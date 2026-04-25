@@ -24,16 +24,30 @@ import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionUndoIcon, ArchiveIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
-import { adminTextButtonTypographyTokenClasses, buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminStatusInfoPillCompactTableClassName,
+  adminStatusInfoPillGroupClassName,
+  buttonTokenClasses
+} from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
-import { adminTablePrimaryButtonClassName } from '@/shared/ui/admin-table';
+import {
+  adminTableNeutralIconButtonClassName,
+  adminTablePrimaryButtonClassName,
+  adminTableRowHeightClassName,
+  adminTableSelectedDangerIconButtonClassName,
+  adminTableSelectedWarningIconButtonClassName,
+  adminWindowCardClassName,
+  adminWindowCardStyle
+} from '@/shared/ui/admin-table';
+import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   createArchivedItemRecord,
   readArchivedItemStorage,
   writeArchivedItemStorage
 } from '@/admin/features/artikli/lib/archiveItemClient';
 import {
+  buildPersistedVariantName,
   computeSalePrice,
   createFamily,
   createVariant,
@@ -47,9 +61,10 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
-import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import { NoteTagChip, getNoteTagMenuItemClassName, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import {
   articleNameInputClassName,
+  compactSideInputClassName,
   compactSideInputWrapClassName,
   compactTableAdornmentClassName,
   compactTableAlignedInputClassName,
@@ -68,7 +83,6 @@ const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2
 const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
 const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
 const compactTableThreeDigitSlotClassName = 'inline-flex h-6 w-[4ch] items-center justify-end';
-const compactSideInputClassName = 'h-full w-full border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus:ring-0';
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
@@ -1460,7 +1474,8 @@ function NeutralDropdownChip({
   options,
   onChange,
   chipClassName,
-  placeholderLabel
+  placeholderLabel,
+  optionClassName
 }: {
   value: string;
   editable: boolean;
@@ -1468,6 +1483,7 @@ function NeutralDropdownChip({
   onChange: (next: string) => void;
   chipClassName?: string;
   placeholderLabel?: string;
+  optionClassName?: (value: string) => string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -1505,7 +1521,7 @@ function NeutralDropdownChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant="neutral" className={`min-w-[124px] ${chipClassName ?? ''}`}>{displayedLabel}</Chip>
+          <Chip size="adminStatusInfo" variant="neutral" className={chipClassName}>{displayedLabel}</Chip>
         </span>
       </button>
 
@@ -1515,6 +1531,7 @@ function NeutralDropdownChip({
             {options.map((option) => (
               <MenuItem
                 key={option.value}
+                className={optionClassName?.(option.value)}
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
@@ -1643,6 +1660,7 @@ export default function AdminItemEditorPage({
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
   const [pendingSaveConfirmation, setPendingSaveConfirmation] = useState<PendingSaveConfirmation | null>(null);
+  const [isDiscardUnsavedDialogOpen, setIsDiscardUnsavedDialogOpen] = useState(false);
   const undoHistoryRef = useRef<EditorUndoSnapshot[]>([]);
   const activeTextUndoSessionRef = useRef<TextUndoSession | null>(null);
   const pendingTextUndoCommitRef = useRef<TextUndoSession | null>(null);
@@ -2122,7 +2140,14 @@ export default function AdminItemEditorPage({
         adminNotes: initialData?.adminNotes ?? null,
         position: nextDraft.sort ?? 0,
         variants: nextDraft.variants.map((variant, index) => ({
-          variantName: variant.label || `Različica ${index + 1}`,
+          variantName: buildPersistedVariantName({
+            ...variant,
+            weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null)
+          }, {
+            baseName: nextDraft.name,
+            variantCount: nextDraft.variants.length,
+            index
+          }),
           length: variant.length,
           width: variant.width,
           thickness: variant.thickness,
@@ -2314,6 +2339,18 @@ export default function AdminItemEditorPage({
   const setTableEditorMode = (_value: 'read' | 'edit' | ((current: 'read' | 'edit') => 'read' | 'edit')) => undefined;
   const canArchive = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving;
 
+  const discardEditorUnsavedChanges = () => {
+    setIsDiscardUnsavedDialogOpen(false);
+    restoreSavedSnapshot();
+    setEditorMode('read');
+    toast.success('Neshranjene spremembe so zavržene.');
+  };
+
+  const saveEditorUnsavedChanges = () => {
+    setIsDiscardUnsavedDialogOpen(false);
+    void save();
+  };
+
   const handleEditModeToggle = () => {
     commitPendingTextUndoSession();
     if (editorMode === 'read') {
@@ -2326,11 +2363,7 @@ export default function AdminItemEditorPage({
       setEditorMode('read');
       return;
     }
-    const shouldDiscard = window.confirm('Na strani imate neshranjene spremembe. Ali jih želite zavreči in zapreti način urejanja?');
-    if (!shouldDiscard) return;
-    restoreSavedSnapshot();
-    setEditorMode('read');
-    toast.success('Neshranjene spremembe so zavržene.');
+    setIsDiscardUnsavedDialogOpen(true);
   };
 
   const generateVariants = () => {
@@ -3044,7 +3077,7 @@ export default function AdminItemEditorPage({
         <span className="mx-1 text-slate-400">&rsaquo;</span>
         <span>{mode === 'create' ? 'Nov artikel' : draft.name || 'Uredi artikel'}</span>
       </div>
-      <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+      <section className={`${adminWindowCardClassName} px-5 py-4`} style={adminWindowCardStyle}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
             <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 flex-1 xl:max-w-[420px] ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
@@ -3058,11 +3091,10 @@ export default function AdminItemEditorPage({
                 className={`${topBarArticleNameInputClassName} ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={adminStatusInfoPillGroupClassName}>
               <ActiveStateChip
                 active={draft.active}
                 editable={isEditable}
-                chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
                 onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))}
               />
               {itemLevelNote
@@ -3070,7 +3102,6 @@ export default function AdminItemEditorPage({
                   <NoteTagChip
                     value={itemLevelNote}
                     editable={isEditable}
-                    chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
                     menuPlacement="bottom"
                     onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
                   />
@@ -3079,10 +3110,10 @@ export default function AdminItemEditorPage({
                   <NeutralDropdownChip
                     value=""
                     editable={isEditable}
-                    chipClassName="!h-[26px] !min-w-[132px] !justify-center !px-4"
                     placeholderLabel="Opombe"
                     onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
                     options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+                    optionClassName={(value) => getNoteTagMenuItemClassName(value as NoteTag | '')}
                   />
                 )}
             </div>
@@ -3093,7 +3124,7 @@ export default function AdminItemEditorPage({
               onClick={handleEditModeToggle}
               tone="neutral"
               size="sm"
-              className="order-1"
+              className={`order-1 ${adminTableNeutralIconButtonClassName}`}
               aria-label="Uredi artikel"
               title="Uredi"
               disabled={isSaving}
@@ -3105,7 +3136,7 @@ export default function AdminItemEditorPage({
               onClick={undoLastChange}
               tone="neutral"
               size="sm"
-              className="order-2"
+              className={`order-2 ${adminTableNeutralIconButtonClassName}`}
               aria-label="Razveljavi"
               title="Razveljavi"
               disabled={!canUndoStagedChanges}
@@ -3117,7 +3148,7 @@ export default function AdminItemEditorPage({
               onClick={() => void archiveItem()}
               tone="warning"
               size="sm"
-              className="order-3"
+              className={`order-3 ${adminTableSelectedWarningIconButtonClassName}`}
               aria-label="Arhiviraj artikel"
               title="Arhiviraj"
               disabled={!canArchive}
@@ -3140,7 +3171,7 @@ export default function AdminItemEditorPage({
       </section>
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
-          <section className="h-full rounded-[24px] border border-slate-200 bg-white p-6">
+          <section className={`${adminWindowCardClassName} h-full p-6`} style={adminWindowCardStyle}>
             <div className="hidden flex flex-wrap items-center gap-2">
               <h1 className="flex min-h-10 flex-1 flex-nowrap items-center gap-1 whitespace-nowrap text-lg font-semibold tracking-tight text-slate-900">
                 <span className="inline-flex h-10 min-w-0 flex-1 items-center gap-0">
@@ -3162,7 +3193,6 @@ export default function AdminItemEditorPage({
                     <NoteTagChip
                       value={itemLevelNote}
                       editable={isEditable}
-                      chipClassName="!min-w-[131px]"
                       menuPlacement="bottom"
                       onChange={(next) => applySelectionChange(() => setItemLevelNote(next))}
                     />
@@ -3171,15 +3201,15 @@ export default function AdminItemEditorPage({
                     <NeutralDropdownChip
                       value=""
                       editable={isEditable}
-                      chipClassName="!min-w-[131px]"
                       placeholderLabel="Opombe"
                       onChange={(value) => applySelectionChange(() => setItemLevelNote((value as VariantTag) || 'na-zalogi'))}
                       options={ITEM_NOTE_OPTIONS as unknown as Array<{ value: string; label: string }>}
+                      optionClassName={(value) => getNoteTagMenuItemClassName(value as NoteTag | '')}
                     />
                   )}
                 <ActiveStateChip active={draft.active} editable={isEditable} onChange={(next) => applySelectionChange(() => setDraft((current) => ({ ...current, active: next })))} />
-                <IconButton type="button" tone="neutral" onClick={() => setEditorMode((current) => (current === 'read' ? 'edit' : 'read'))} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
-                <IconButton type="button" tone="neutral" onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
+                <IconButton type="button" tone="neutral" className={adminTableNeutralIconButtonClassName} onClick={handleEditModeToggle} aria-label="Uredi artikel" title="Uredi"><PencilIcon /></IconButton>
+                <IconButton type="button" tone="neutral" className={adminTableNeutralIconButtonClassName} onClick={() => save(false)} aria-label="Shrani artikel" title="Shrani" disabled={!isEditable}><SaveIcon /></IconButton>
                 <button type="button" className={buttonTokenClasses.closeX} onClick={deleteItem} aria-label="Izbriši artikel" title="Izbriši"><TrashCanIcon /></button>
               </div>
             </div>
@@ -3226,7 +3256,7 @@ export default function AdminItemEditorPage({
 
         </div>
 
-        <aside className="h-full rounded-[24px] border border-slate-200 bg-white p-6">
+        <aside className={`${adminWindowCardClassName} h-full p-6`} style={adminWindowCardStyle}>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <EuiTabs
@@ -3777,7 +3807,7 @@ export default function AdminItemEditorPage({
         </aside>
       </div>
 
-      <section className="rounded-[24px] border border-slate-200 bg-white px-5 pb-5 pt-5">
+      <section className={`${adminWindowCardClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className={editorSectionTitleClassName}>Uredi artikel</h2>
           <div className={`flex items-center gap-2 [&>*:first-child]:hidden [&>*:nth-child(3)]:hidden ${isTableEditable ? '' : '[&>*:nth-child(5)]:pointer-events-none [&>*:nth-child(5)]:opacity-50'}`}>
@@ -3786,6 +3816,7 @@ export default function AdminItemEditorPage({
               aria-label="Uredi tabelo artikla"
               title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
               tone="neutral"
+              className={adminTableNeutralIconButtonClassName}
               onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
             >
               <PencilIcon />
@@ -3795,6 +3826,7 @@ export default function AdminItemEditorPage({
               aria-label="Dodaj različico"
               title="Dodaj različico"
               tone="neutral"
+              className={adminTableNeutralIconButtonClassName}
               disabled={!isTableEditable}
               onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
             >
@@ -3805,6 +3837,7 @@ export default function AdminItemEditorPage({
               aria-label="Shrani tabelo artikla"
               title="Shrani"
               tone="neutral"
+              className={adminTableNeutralIconButtonClassName}
               disabled={!isTableEditable}
               onClick={async () => {
                 setTableEditorMode('read');
@@ -3818,12 +3851,21 @@ export default function AdminItemEditorPage({
               aria-label="Odstrani izbrane različice"
               title="Izbriši izbrane"
               tone={hasSelectedVariants ? 'danger' : 'neutral'}
+              className={hasSelectedVariants ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
               disabled={!isTableEditable || !hasSelectedVariants}
               onClick={deleteSelectedVariants}
             >
               <TrashCanIcon />
             </IconButton>
-            <Button type="button" variant="primary" size="toolbar" className={`!h-8 !rounded-lg !px-3 !leading-none !tracking-[0] ${adminTextButtonTypographyTokenClasses}`} onClick={generateVariants}>Generiraj različice</Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              className={adminTablePrimaryButtonClassName}
+              onClick={generateVariants}
+            >
+              Generiraj različice
+            </Button>
           </div>
         </div>
         <div className="mb-3 space-y-2">
@@ -3909,7 +3951,7 @@ export default function AdminItemEditorPage({
             </colgroup>
             <THead>
               <tr>
-                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>
                   <AdminCheckbox
                     checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
@@ -3918,25 +3960,25 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Dolžina</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Širina/fi</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Debelina</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Teža</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Toleranca</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Cena</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Popust</TH>
-                <TH className="h-[38.4px] whitespace-nowrap px-2 py-1.5 text-right text-[11px]">Akcijska cena</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-right text-[11px]">Zaloga</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Min/nar.</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">SKU</TH>
-                <TH className="h-[38.4px] px-1 py-1.5 text-center text-[11px]">Status</TH>
-                <TH className="h-[38.4px] px-1 py-1.5 text-center text-[11px]">Opombe</TH>
-                <TH className="h-[38.4px] px-2 py-1.5 text-center text-[11px]">Mesto</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Dolžina</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Širina/fi</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Debelina</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Teža</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Toleranca</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Cena</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Popust</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Akcijska cena</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Zaloga</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Min/nar.</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>SKU</TH>
+                <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Status</TH>
+                <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Opombe</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Mesto</TH>
               </tr>
             </THead>
             <tbody>
               {draft.variants.map((variant, index) => (
-                <tr key={variant.id} className="h-[38.4px] border-t border-slate-100 align-middle">
+                <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
@@ -3996,7 +4038,7 @@ export default function AdminItemEditorPage({
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName="!h-7 !min-w-[94px] !px-1.5 !text-[10px]"
+                        chipClassName={adminStatusInfoPillCompactTableClassName}
                         menuPlacement="bottom"
                         onChange={(next) => applySelectionChange(() => updateVariant(variant.id, { active: next }))}
                       />
@@ -4007,7 +4049,7 @@ export default function AdminItemEditorPage({
                       <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
-                        chipClassName="!h-7 !min-w-[94px] !px-1.5 !text-[10px]"
+                        chipClassName={adminStatusInfoPillCompactTableClassName}
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
@@ -4023,6 +4065,15 @@ export default function AdminItemEditorPage({
           </table>
         </div>
       </section>
+      <UnsavedChangesDialog
+        open={isDiscardUnsavedDialogOpen}
+        label="zaključkom urejanja artikla"
+        isSaving={isSaving}
+        saveDisabled={!hasUnsavedChanges || isSaving}
+        onSave={saveEditorUnsavedChanges}
+        onContinueEditing={() => setIsDiscardUnsavedDialogOpen(false)}
+        onDiscard={discardEditorUnsavedChanges}
+      />
       <Dialog
         open={pendingSaveConfirmation !== null}
         onOpenChange={(open) => {

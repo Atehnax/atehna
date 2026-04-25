@@ -12,8 +12,9 @@ export default function PaymentChip({ status, isSaving = false, className }: Pro
 
   return (
     <Chip
+      size="adminStatusInfo"
       variant={getPaymentBadgeVariant(status)}
-      className={`${isKnown ? 'rounded-md' : 'rounded-md text-slate-400'} ${className ?? ''} !h-7`.trim()}
+      className={`${isKnown ? 'rounded-md' : 'rounded-md text-slate-400'} ${className ?? ''}`.trim()}
     >
       <span>{getPaymentLabel(status)}</span>
       {isSaving && <span className="ml-1 text-[10px]">…</span>}

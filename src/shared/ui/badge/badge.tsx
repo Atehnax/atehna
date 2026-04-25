@@ -1,7 +1,8 @@
 import type { HTMLAttributes } from 'react';
+import { adminStatusInfoPillClassName } from '@/shared/ui/theme/tokens';
 
 export type BadgeVariant = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
-export type BadgeSize = 'sm' | 'md';
+export type BadgeSize = 'sm' | 'md' | 'adminStatusInfo';
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant;
@@ -22,7 +23,8 @@ const variantClassMap: Record<BadgeVariant, string> = {
 
 const sizeClassMap: Record<BadgeSize, string> = {
   sm: 'h-6 min-w-[104px] px-2 text-[11px]',
-  md: 'h-7 min-w-[112px] px-2.5 text-xs'
+  md: 'h-7 min-w-[112px] px-2.5 text-xs',
+  adminStatusInfo: adminStatusInfoPillClassName
 };
 
 export default function Badge({ variant = 'neutral', size = 'sm', className, children, ...props }: BadgeProps) {

@@ -92,6 +92,7 @@ import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import { StatusToggle } from '@/shared/ui/status-toggle';
+import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 
 const AdminCategoriesPreview = dynamic(
   () => import('./AdminCategoriesPreview').then((module) => module.AdminCategoriesPreview)
@@ -126,6 +127,10 @@ type MillerDropLocation = {
   parentId: string;
   index: number;
   columnKey: string;
+};
+type PendingInlineEditAction = {
+  label: string;
+  run: () => void;
 };
 type CategorySortKey = 'category' | 'subcategories' | 'items';
 type CategorySortDirection = 'asc' | 'desc';
@@ -448,6 +453,7 @@ export default function AdminCategoriesMainTable({
   const [tableSaveSummary, setTableSaveSummary] = useState<string[]>([]);
   const [millerSaveSummary, setMillerSaveSummary] = useState<string[]>([]);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [pendingInlineEditLabel, setPendingInlineEditLabel] = useState<string | null>(null);
   const [isUnsavedLeaveDialogOpen, setIsUnsavedLeaveDialogOpen] = useState(false);
   const [activeMillerDragId, setActiveMillerDragId] = useState<string | null>(null);
 
@@ -462,7 +468,8 @@ export default function AdminCategoriesMainTable({
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
   const tableAutosaveBlockedRef = useRef(false);
-  const saveInlineEditRef = useRef<() => void>(() => {});
+  const saveInlineEditRef = useRef<() => Promise<boolean>>(async () => true);
+  const pendingInlineEditActionRef = useRef<PendingInlineEditAction | null>(null);
   const toastRef = useRef(toast);
   const persistedTableRef = useRef<CatalogData>({ categories: [] });
   const persistedMillerRef = useRef<CatalogData>({ categories: [] });
@@ -2581,20 +2588,20 @@ export default function AdminCategoriesMainTable({
   }, [isRowExpanded]);
 
   const saveInlineEdit = useCallback(async () => {
-    if (!editingRow) return;
+    if (!editingRow) return true;
     await ensureFullPayloadLoaded();
     const nextTitle = editingRow.title.trim();
 
     if (!nextTitle) {
       toast.error('Naziv je obvezen');
-      return;
+      return false;
     }
 
     if (editingRow.kind === 'category') {
-      if (!editingRow.categorySlug) return;
+      if (!editingRow.categorySlug) return false;
 
       const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
-      if (!currentCategory) return;
+      if (!currentCategory) return false;
 
       const hasChange =
         (editingRow.initialTitle ?? currentCategory.title) !== nextTitle ||
@@ -2603,7 +2610,7 @@ export default function AdminCategoriesMainTable({
 
       if (!hasChange) {
         setEditingRow(null);
-        return;
+        return true;
       }
 
       const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
@@ -2616,26 +2623,27 @@ export default function AdminCategoriesMainTable({
       };
 
       isInlineSavingRef.current = true;
+      let didSave = false;
       try {
         stageTableCatalog(nextCatalog, nextStatuses);
         setEditingRow(null);
-        await saveTableChanges();
+        didSave = await saveTableChanges();
       } finally {
         isInlineSavingRef.current = false;
       }
-      return;
+      return didSave;
     }
 
-    if (!editingRow.categorySlug) return;
+    if (!editingRow.categorySlug) return false;
 
     const subcategoryPath = toSubcategoryPath(editingRow.subcategoryPath ?? editingRow.subcategorySlug);
-    if (subcategoryPath.length === 0) return;
+    if (subcategoryPath.length === 0) return false;
 
     const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
     const currentSubcategory = currentCategory
       ? findSubcategoryByPath(currentCategory.subcategories, subcategoryPath)
       : null;
-    if (!currentSubcategory) return;
+    if (!currentSubcategory) return false;
 
     const hasChange =
       (editingRow.initialTitle ?? currentSubcategory.title) !== nextTitle ||
@@ -2644,7 +2652,7 @@ export default function AdminCategoriesMainTable({
 
     if (!hasChange) {
       setEditingRow(null);
-      return;
+      return true;
     }
 
     const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
@@ -2664,16 +2672,69 @@ export default function AdminCategoriesMainTable({
     };
 
     isInlineSavingRef.current = true;
+    let didSave = false;
     try {
       stageTableCatalog(nextCatalog, nextStatuses);
       setEditingRow(null);
-      await saveTableChanges();
+      didSave = await saveTableChanges();
     } finally {
       isInlineSavingRef.current = false;
     }
+    return didSave;
   }, [catalog.categories, editingRow, ensureFullPayloadLoaded, saveTableChanges, stageTableCatalog, statusByRow, toast]);
 
   saveInlineEditRef.current = saveInlineEdit;
+
+  const editingRowHasUnsavedChanges = useMemo(() => {
+    if (!editingRow) return false;
+
+    return (
+      editingRow.title.trim() !== (editingRow.initialTitle ?? '').trim() ||
+      editingRow.description !== (editingRow.initialDescription ?? '') ||
+      editingRow.status !== (editingRow.initialStatus ?? (statusByRow[editingRow.id] ?? 'active'))
+    );
+  }, [editingRow, statusByRow]);
+  const editingRowCanSave = !editingRow || editingRow.title.trim().length > 0;
+
+  const closeInlineEditGuard = useCallback(() => {
+    pendingInlineEditActionRef.current = null;
+    setPendingInlineEditLabel(null);
+  }, []);
+
+  const runPendingInlineEditAction = useCallback(() => {
+    const pendingAction = pendingInlineEditActionRef.current;
+    pendingInlineEditActionRef.current = null;
+    setPendingInlineEditLabel(null);
+    pendingAction?.run();
+  }, []);
+
+  const handleInlineEditGuardSave = useCallback(async () => {
+    const didSave = await saveInlineEditRef.current();
+    if (!didSave) return;
+
+    runPendingInlineEditAction();
+  }, [runPendingInlineEditAction]);
+
+  const handleInlineEditGuardDiscard = useCallback(() => {
+    setEditingRow(null);
+    runPendingInlineEditAction();
+  }, [runPendingInlineEditAction]);
+
+  const requestInlineEditResolution = useCallback((label: string, run: () => void) => {
+    if (!editingRow) {
+      run();
+      return;
+    }
+
+    if (!editingRowHasUnsavedChanges) {
+      setEditingRow(null);
+      run();
+      return;
+    }
+
+    pendingInlineEditActionRef.current = { label, run };
+    setPendingInlineEditLabel(label);
+  }, [editingRow, editingRowHasUnsavedChanges]);
 
   const handleInlineEditKeyDown = useCallback((event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -2943,7 +3004,7 @@ export default function AdminCategoriesMainTable({
         return;
       }
 
-      setEditingRow({
+      const startInlineEdit = () => setEditingRow({
         id,
         kind,
         categorySlug,
@@ -2956,6 +3017,13 @@ export default function AdminCategoriesMainTable({
         initialDescription: description,
         initialStatus: rowStatus
       });
+
+      if (editingRow && editingRow.id !== id) {
+        requestInlineEditResolution('začetkom urejanja druge vrstice', startInlineEdit);
+        return;
+      }
+
+      startInlineEdit();
     };
 
     const setStatus = async (nextStatus: CategoryStatus) => {
@@ -3221,7 +3289,8 @@ export default function AdminCategoriesMainTable({
               )}
             </td>
 
-            <td className="px-3 py-3 text-center">
+            <td className="relative z-0 h-12 px-0 py-0 text-center align-middle">
+              <div className="flex h-12 items-center justify-center">
               {isRowEditing ? (
                 <div className={adminTableInlineActionRowClassName}>
                   <IconButton
@@ -3250,9 +3319,8 @@ export default function AdminCategoriesMainTable({
                     <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
                   </IconButton>
                 </div>
-              ) : null}
-              {!isRowEditing ? (
-                <RowActions>
+              ) : (
+                <RowActions className="relative">
                   <RowActionsDropdown
                   label={`Možnosti za ${title}`}
                   items={[
@@ -3300,7 +3368,8 @@ export default function AdminCategoriesMainTable({
                   ]}
                   />
                 </RowActions>
-              ) : null}
+              )}
+              </div>
             </td>
           </tr>
         );
@@ -3329,6 +3398,7 @@ export default function AdminCategoriesMainTable({
     getDescendantIds,
     handleInlineEditKeyDown,
     openingRowIdSet,
+    requestInlineEditResolution,
     selected,
     selectedRowSet,
     stageTableCatalog,
@@ -3676,6 +3746,19 @@ export default function AdminCategoriesMainTable({
         }}
         />
       ) : null}
+
+      <UnsavedChangesDialog
+        open={pendingInlineEditLabel !== null}
+        label={pendingInlineEditLabel ?? undefined}
+        isSaving={saving}
+        saveDisabled={!editingRowHasUnsavedChanges || !editingRowCanSave}
+        validationMessage={!editingRowCanSave ? 'Naziv je obvezen.' : undefined}
+        onSave={() => {
+          void handleInlineEditGuardSave();
+        }}
+        onContinueEditing={closeInlineEditGuard}
+        onDiscard={handleInlineEditGuardDiscard}
+      />
 
       {isTableSaveDialogOpen ? <LazyConfirmDialog
         open={isTableSaveDialogOpen}

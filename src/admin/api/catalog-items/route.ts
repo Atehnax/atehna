@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchCatalogItemSeeds } from '@/shared/server/catalogItems';
+import { fetchCatalogItemSeeds, type CatalogItemSeedRow } from '@/shared/server/catalogItems';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
 
@@ -13,13 +13,33 @@ type CatalogChoice = {
 
 const DEFAULT_UNIT = 'kos';
 
+const isFiniteMeasurement = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const formatMeasurement = (value: number) => `${Number(value)}`;
+
+const buildChoiceName = (row: CatalogItemSeedRow) => {
+  const baseName = row.item_name.trim();
+  if (row.variant_count <= 1) return baseName;
+
+  const dimensions = [row.length, row.width, row.thickness]
+    .filter(isFiniteMeasurement)
+    .map(formatMeasurement);
+
+  if (dimensions.length > 0) return `${baseName} ${dimensions.join(' × ')} mm`;
+  if (isFiniteMeasurement(row.weight)) return `${baseName} ${formatMeasurement(row.weight)} g`;
+
+  const variantName = row.variant_name.trim();
+  return variantName ? `${baseName} ${variantName}` : baseName;
+};
+
 async function collectCatalogChoices(): Promise<CatalogChoice[]> {
   return instrumentCatalogLoader('adminCatalogItemsRoute', '/api/admin/catalog-items', async () => {
     const rows = await fetchCatalogItemSeeds();
     return rows
       .map((row) => ({
         sku: row.sku,
-        name: row.item_name,
+        name: buildChoiceName(row),
         unit: DEFAULT_UNIT,
         unitPrice: row.price,
         display_order: row.item_position

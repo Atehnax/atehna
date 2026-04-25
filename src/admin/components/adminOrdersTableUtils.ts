@@ -1,4 +1,5 @@
 import { getStatusLabel, isOrderStatus } from '@/shared/domain/order/orderStatus';
+import { adminStatusInfoPillTableColumnWidth } from '@/shared/ui/theme/tokens';
 
 export type OrderRow = {
   id: number;
@@ -96,8 +97,8 @@ export const columnWidths = {
   customer: '150px',
   address: '188px',
   type: '88px',
-  status: '104px',
-  payment: '104px',
+  status: adminStatusInfoPillTableColumnWidth,
+  payment: adminStatusInfoPillTableColumnWidth,
   total: '92px',
   date: '128px',
   documents: '144px',

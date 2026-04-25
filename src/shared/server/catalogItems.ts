@@ -11,6 +11,12 @@ export type CatalogItemSeedRow = {
   category_id: string | null;
   parent_category_id: string | null;
   variant_id: number;
+  variant_name: string;
+  variant_count: number;
+  length: number | null;
+  width: number | null;
+  thickness: number | null;
+  weight: number | null;
   price: number;
   sku: string;
   images: string[];
@@ -81,6 +87,7 @@ export type AdminCatalogVariantSummary = {
   length: number | null;
   width: number | null;
   thickness: number | null;
+  weight: number | null;
   price: number;
   discountPct: number;
   inventory: number;
@@ -253,6 +260,12 @@ export async function fetchCatalogItemSeeds(): Promise<CatalogItemSeedRow[]> {
       ci.category_id,
       cc.parent_id as parent_category_id,
       civ.id as variant_id,
+      civ.variant_name,
+      count(civ.id) over (partition by ci.id)::int as variant_count,
+      civ.length::text as variant_length,
+      civ.width::text as variant_width,
+      civ.thickness::text as variant_thickness,
+      civ.weight::text as variant_weight,
       coalesce(civ.price, 0)::text as price,
       coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug) as sku,
       coalesce(mi.image_urls, array[]::text[]) as images,
@@ -278,6 +291,12 @@ export async function fetchCatalogItemSeeds(): Promise<CatalogItemSeedRow[]> {
       category_id: asStringOrNull(row.parent_category_id) ?? asStringOrNull(row.category_id),
       parent_category_id: asStringOrNull(row.category_id),
       variant_id: Number(row.variant_id),
+      variant_name: String(row.variant_name ?? ''),
+      variant_count: asNumber(row.variant_count),
+      length: row.variant_length === null ? null : asNumber(row.variant_length),
+      width: row.variant_width === null ? null : asNumber(row.variant_width),
+      thickness: row.variant_thickness === null ? null : asNumber(row.variant_thickness),
+      weight: row.variant_weight === null ? null : asNumber(row.variant_weight),
       price: asNumber(row.price),
       sku: String(row.sku ?? ''),
       images: Array.isArray(row.images) ? row.images.map((image) => String(image)) : [],
@@ -426,6 +445,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'length', civ.length,
               'width', civ.width,
               'thickness', civ.thickness,
+              'weight', civ.weight,
               'price', civ.price,
               'discountPct', civ.discount_pct,
               'inventory', civ.inventory,
@@ -487,6 +507,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
             length: entry.length === null ? null : asNumber(entry.length),
             width: entry.width === null ? null : asNumber(entry.width),
             thickness: entry.thickness === null ? null : asNumber(entry.thickness),
+            weight: entry.weight === null ? null : asNumber(entry.weight),
             price: asNumber(entry.price),
             discountPct: asNumber(entry.discountPct),
             inventory: asNumber(entry.inventory),

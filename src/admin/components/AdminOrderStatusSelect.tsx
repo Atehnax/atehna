@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
+import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import StatusChip from '@/admin/components/StatusChip';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { useToast } from '@/shared/ui/toast';
@@ -108,7 +108,7 @@ export default function AdminOrderStatusSelect({
                 key={option.value}
                 onClick={() => handleChange(option.value)}
                 disabled={isSaving || option.value === currentStatus}
-                className="justify-between"
+                className={getStatusMenuItemClassName(option.value)}
               >
                 <span>{option.label}</span>
                 {option.value === currentStatus && <span aria-hidden>✓</span>}

@@ -4,6 +4,10 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { getAdminStatusInfoMenuOptionClassName } from '@/shared/ui/theme/tokens';
+
+export const getActiveStateMenuItemClassName = (active: boolean) =>
+  getAdminStatusInfoMenuOptionClassName(active ? 'success' : 'neutral');
 
 export default function ActiveStateChip({
   active,
@@ -76,7 +80,7 @@ export default function ActiveStateChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={active ? 'success' : 'neutral'} className={`${chipClassName ?? ''} !h-7`.trim()}>{label}</Chip>
+          <Chip size="adminStatusInfo" variant={active ? 'success' : 'neutral'} className={chipClassName}>{label}</Chip>
         </span>
       </button>
 
@@ -90,8 +94,8 @@ export default function ActiveStateChip({
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >
               <MenuPanel>
-                <MenuItem onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
-                <MenuItem onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
+                <MenuItem className={getActiveStateMenuItemClassName(true)} onClick={() => { onChange(true); setIsOpen(false); }}>Aktiven</MenuItem>
+                <MenuItem className={getActiveStateMenuItemClassName(false)} onClick={() => { onChange(false); setIsOpen(false); }}>Neaktiven</MenuItem>
               </MenuPanel>
             </div>,
             document.body

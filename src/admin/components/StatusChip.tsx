@@ -12,8 +12,9 @@ export default function StatusChip({ status, isSaving = false, className }: Prop
 
   return (
     <Chip
+      size="adminStatusInfo"
       variant={getStatusChipVariant(status)}
-      className={`${isKnown ? 'rounded-md' : 'rounded-md text-slate-400'} ${className ?? ''} !h-7`.trim()}
+      className={`${isKnown ? 'rounded-md' : 'rounded-md text-slate-400'} ${className ?? ''}`.trim()}
     >
       <span>{getStatusLabel(status)}</span>
       {isSaving && <span className="ml-1 text-[10px]">…</span>}

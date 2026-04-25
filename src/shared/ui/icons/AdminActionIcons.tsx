@@ -3,7 +3,8 @@ import { useId, type SVGProps } from 'react';
 type ActionIconProps = SVGProps<SVGSVGElement>;
 
 const classNames = (...parts: Array<string | null | undefined | false>) => parts.filter(Boolean).join(' ');
-const defaultIconSizeClassName = 'h-[18px] w-[18px] shrink-0';
+export const adminActionIconSizeClassName = 'h-[18px] w-[18px] shrink-0';
+const defaultIconSizeClassName = adminActionIconSizeClassName;
 
 function iconClassName(className?: string) {
   return classNames(defaultIconSizeClassName, className);
@@ -391,6 +392,28 @@ export function GeneratePdfIcon({ className, ...props }: ActionIconProps) {
       <path d="M6.2 11.4h7.6" />
       <path d="M6.2 13.5h7.6" />
       <path d="M6.2 15.6h3.6" />
+    </svg>
+  );
+}
+
+export function PdfFileIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+      <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+      <path d="M10 9H8" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
     </svg>
   );
 }

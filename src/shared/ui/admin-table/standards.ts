@@ -12,6 +12,11 @@ export const adminTableCardStyle: CSSProperties = {
   borderColor: '#e2e8f0'
 };
 
+export const adminWindowCardClassName =
+  `${adminTableCardClassName} overflow-hidden rounded-2xl border-slate-200 bg-white`;
+
+export const adminWindowCardStyle = adminTableCardStyle;
+
 export const adminTableHeaderClassName = 'px-5 pt-5 pb-2 [&>div:last-child]:!mt-3';
 export const adminTableContentClassName = 'overflow-x-auto bg-white';
 export const adminTableToolbarGroupClassName = 'flex min-h-9 items-center gap-2';
@@ -29,13 +34,13 @@ export const adminTableNeutralIconButtonClassName =
   '!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]';
 
 export const adminTableSelectedSuccessIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-emerald-300/80 !bg-emerald-50 !text-emerald-700 !transition-none';
+  '!h-9 !w-9 !rounded-md !border-emerald-300/80 !bg-white !text-emerald-700 hover:!bg-emerald-50 active:!bg-emerald-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTableSelectedWarningIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-amber-300/80 !bg-amber-50 !text-amber-700 !transition-none';
+  '!h-9 !w-9 !rounded-md !border-amber-300/80 !bg-white !text-amber-700 hover:!bg-amber-50 active:!bg-amber-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTableSelectedDangerIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-rose-300/80 !bg-rose-50 !text-rose-700 !transition-none';
+  '!h-9 !w-9 !rounded-md !border-rose-300/80 !bg-white !text-rose-700 hover:!bg-rose-50 active:!bg-rose-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTablePrimaryButtonClassName =
   `${adminTextButtonTypographyTokenClasses} !h-9 !rounded-md !px-4 !text-[13px] !font-semibold !tracking-[0.005em] hover:!bg-[#1777af] active:!bg-[#146997]`;
@@ -43,8 +48,30 @@ export const adminTablePrimaryButtonClassName =
 export const adminTableHeaderButtonClassName =
   'inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 transition-colors hover:text-[color:var(--blue-500)]';
 
+export const adminTableBulkHeaderButtonClassName =
+  'inline-flex h-8 items-center rounded-md border border-slate-300 bg-white px-2.5 text-[12px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300';
+
 export const adminTableHeaderTextClassName =
   'inline-flex items-center text-[12px] font-semibold leading-none text-slate-900';
+
+export const adminTableHeaderCellBaseClassName =
+  'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
+
+export const adminTableHeaderCellCenterClassName = `${adminTableHeaderCellBaseClassName} text-center`;
+
+export const adminTableHeaderCellLeftClassName = `${adminTableHeaderCellBaseClassName} text-left`;
+
+export const adminTableHeaderContentClassName =
+  'relative inline-flex h-11 items-center gap-1.5 align-middle';
+
+export const adminTableBodyCellBaseClassName =
+  'h-12 px-3 py-0 align-middle text-[12px] text-slate-700';
+
+export const adminTableBodyCellCenterClassName = `${adminTableBodyCellBaseClassName} text-center`;
+
+export const adminTableBodyCellLeftClassName = `${adminTableBodyCellBaseClassName} text-left`;
+
+export const adminTableRowHeightClassName = 'h-12';
 
 export const adminTableInlineEditInputClassName =
   "h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0";

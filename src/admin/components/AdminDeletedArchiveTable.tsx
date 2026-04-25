@@ -13,7 +13,10 @@ import {
   adminTableCardStyle,
   adminTableContentClassName,
   adminTableHeaderButtonClassName,
+  adminTableHeaderCellCenterClassName,
+  adminTableHeaderCellLeftClassName,
   adminTableHeaderClassName,
+  adminTableHeaderContentClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePopoverPanelClassName,
   adminTablePopoverPresetButtonClassName,
@@ -689,12 +692,12 @@ export default function AdminDeletedArchiveTable({
           </colgroup>
           <THead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
             <TR>
-              <TH className="w-10 border-b border-slate-200 py-4 text-center">
+              <TH className={`${adminTableHeaderCellCenterClassName} w-10 px-2`}>
                 <AdminCheckbox checked={allSelected} onChange={toggleAll} aria-label="Izberi vse" />
               </TH>
               {visibleColumns.type ? (
-                <TH className="h-11 w-[108px] border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
-                  <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                <TH className={`${adminTableHeaderCellCenterClassName} w-[108px]`}>
+                  <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => handleSort('type')} className={getHeaderTitleClass('type')}>Vrsta</button>
                     <button ref={typeFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'type'} aria-label="Filtriraj vrsto" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'type' ? null : 'type'))}>
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
@@ -702,27 +705,27 @@ export default function AdminDeletedArchiveTable({
                   </div>
                 </TH>
               ) : null}
-              {visibleColumns.element ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('element')} className={getHeaderTitleClass('element')}>Element</button></TH> : null}
-              {visibleColumns.orderDate ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
-                <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+              {visibleColumns.element ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('element')} className={getHeaderTitleClass('element')}>Element</button></div></TH> : null}
+              {visibleColumns.orderDate ? <TH className={adminTableHeaderCellCenterClassName}>
+                <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('order_created_at')} className={getHeaderTitleClass('order_created_at')}>Datum naročila</button>
                   <button ref={orderDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'orderDate'} aria-label="Filtriraj datum naročila" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'orderDate' ? null : 'orderDate'))}>
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.customer ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('customer_name')} className={getHeaderTitleClass('customer_name')}>Naročnik</button></TH> : null}
-              {visibleColumns.address ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold text-slate-700"><button type="button" onClick={() => handleSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></TH> : null}
-              {visibleColumns.orderType ? <TH className="h-11 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
-                <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+              {visibleColumns.customer ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('customer_name')} className={getHeaderTitleClass('customer_name')}>Naročnik</button></div></TH> : null}
+              {visibleColumns.address ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></div></TH> : null}
+              {visibleColumns.orderType ? <TH className={adminTableHeaderCellCenterClassName}>
+                <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('customer_type')} className={getHeaderTitleClass('customer_type')}>Tip</button>
                   <button ref={customerTypeFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'customerType'} aria-label="Filtriraj tip" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'customerType' ? null : 'customerType'))}>
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.deleted ? <TH className="h-11 w-40 border-b border-slate-200 px-3 py-4 text-center text-[12px] font-semibold text-slate-700">
-                <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+              {visibleColumns.deleted ? <TH className={`${adminTableHeaderCellCenterClassName} w-40`}>
+                <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('deleted_at')} className={getHeaderTitleClass('deleted_at')}>
                     Izbris
                   </button>
@@ -731,8 +734,8 @@ export default function AdminDeletedArchiveTable({
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.expires ? <TH className="h-11 w-40 border-b border-slate-200 px-3 py-4 pr-5 text-center text-[12px] font-semibold text-slate-700">
-                <div className="relative inline-flex items-center gap-1.5 align-middle" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+              {visibleColumns.expires ? <TH className={`${adminTableHeaderCellCenterClassName} w-40 pr-5`}>
+                <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('expires_at')} className={getHeaderTitleClass('expires_at')}>
                     Iztek
                   </button>

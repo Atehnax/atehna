@@ -1,3 +1,5 @@
+import { formatDecimalForDisplay } from './decimalFormat';
+
 export type SeedItemTuple = [
   id: string,
   name: string,
@@ -58,8 +60,8 @@ const parseDimensionTriplet = (input: string): { width: number | null; length: n
     return { width: null, length: null, thickness: null };
   }
   return {
-    width: Number(matches[0]),
-    length: Number(matches[1]),
+    length: Number(matches[0]),
+    width: Number(matches[1]),
     thickness: Number(matches[2])
   };
 };
@@ -78,11 +80,41 @@ export const computeSalePrice = (price: number, discountPct: number) =>
 export const formatCurrency = (value: number) =>
   new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
 
-const buildVariantLabel = (variant: Pick<Variant, 'width' | 'length' | 'thickness' | 'label'>) => {
-  if (variant.width === null || variant.length === null || variant.thickness === null) {
-    return variant.label || 'Osnovna različica';
+type VariantNameSource = Pick<Variant, 'width' | 'length' | 'thickness'> & {
+  label?: string | null;
+  weight?: number | null;
+};
+
+const isFiniteMeasurement = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+export const buildVariantMeasurementName = (
+  variant: VariantNameSource,
+  fallbackLabel = 'Osnovna različica'
+) => {
+  const dimensions = [variant.length, variant.width, variant.thickness]
+    .filter(isFiniteMeasurement)
+    .map(formatDecimalForDisplay);
+
+  if (dimensions.length > 0) {
+    return `${dimensions.join(' × ')} mm`;
   }
-  return `${variant.width} × ${variant.length} × ${variant.thickness} mm`;
+
+  if (isFiniteMeasurement(variant.weight)) {
+    return `${formatDecimalForDisplay(variant.weight)} g`;
+  }
+
+  const label = variant.label?.trim();
+  return label || fallbackLabel;
+};
+
+export const buildPersistedVariantName = (
+  variant: VariantNameSource,
+  options: { baseName: string; variantCount: number; index?: number }
+) => {
+  const baseName = options.baseName.trim();
+  if (options.variantCount === 1 && baseName) return baseName;
+  return buildVariantMeasurementName(variant, `Različica ${(options.index ?? 0) + 1}`);
 };
 
 export const createVariant = (overrides: Partial<Variant> = {}): Variant => ({
@@ -126,7 +158,7 @@ export const createFamily = (overrides: Partial<ProductFamily> = {}): ProductFam
 
 export const statusLabel = (active: boolean) => (active ? 'Aktiven' : 'Skrit');
 
-export const variantLabel = (variant: Variant) => buildVariantLabel(variant);
+export const variantLabel = (variant: Variant) => buildVariantMeasurementName(variant);
 
 export function buildFamiliesFromSeed(seedItems: SeedItemTuple[]): ProductFamily[] {
   const grouped = new Map<string, ProductFamily>();
@@ -188,6 +220,6 @@ export function buildFamiliesFromSeed(seedItems: SeedItemTuple[]): ProductFamily
     ...family,
     variants: [...family.variants]
       .sort((a, b) => a.sort - b.sort)
-      .map((variant, index) => ({ ...variant, label: buildVariantLabel(variant), sort: index + 1 }))
+      .map((variant, index) => ({ ...variant, label: buildVariantMeasurementName(variant), sort: index + 1 }))
   }));
 }

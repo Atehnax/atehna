@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
-import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
+import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
-import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
+import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -85,7 +86,8 @@ function ChipDropdown({
   renderChip,
   disabled = false,
   showArrow = true,
-  interactive = true
+  interactive = true,
+  optionClassName
 }: {
   value: string;
   options: ReadonlyArray<{ value: string; label: string }>;
@@ -94,14 +96,30 @@ function ChipDropdown({
   disabled?: boolean;
   showArrow?: boolean;
   interactive?: boolean;
+  optionClassName?: (value: string) => string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<{ left: number; top: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const updateMenuRect = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    setMenuRect({
+      left: rect.left,
+      top: rect.bottom + 4,
+      width: Math.max(rect.width, 150)
+    });
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
     const onDocClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
@@ -113,6 +131,21 @@ function ChipDropdown({
       document.removeEventListener('keydown', onEscape);
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setMenuRect(null);
+      return;
+    }
+
+    updateMenuRect();
+    window.addEventListener('resize', updateMenuRect);
+    window.addEventListener('scroll', updateMenuRect, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuRect);
+      window.removeEventListener('scroll', updateMenuRect, true);
+    };
+  }, [isOpen, updateMenuRect]);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -133,24 +166,33 @@ function ChipDropdown({
         <span className="block">{renderChip(value)}</span>
       </button>
 
-      {isOpen ? (
-        <div role="menu">
-          <MenuPanel className="absolute left-0 top-9 z-30 min-w-[150px]">
-            {options.map((option) => (
-              <MenuItem
-                key={option.value}
-                isActive={option.value === value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-              >
-                {option.label}
-              </MenuItem>
-            ))}
-          </MenuPanel>
-        </div>
-      ) : null}
+      {isOpen && menuRect && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className="fixed z-[1100]"
+              style={{ left: menuRect.left, top: menuRect.top, minWidth: menuRect.width }}
+            >
+              <MenuPanel className="w-full min-w-[150px]">
+                {options.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    isActive={option.value === value}
+                    className={optionClassName?.(option.value)}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </MenuPanel>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
@@ -372,6 +414,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               setDraftTopData((prev) => ({ ...prev, status: value }));
             }}
             renderChip={(value) => <StatusChip status={value} />}
+            optionClassName={getStatusMenuItemClassName}
           />
 
           <ChipDropdown
@@ -385,6 +428,7 @@ export default function AdminOrderHeaderChips(props: Props) {
               setDraftTopData((prev) => ({ ...prev, paymentStatus: value }));
             }}
             renderChip={(value) => <PaymentChip status={value} />}
+            optionClassName={getPaymentMenuItemClassName}
           />
 
           <IconButton

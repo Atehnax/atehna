@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import type { ReactNode } from 'react';
 import { AdminOrderDocumentsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 
 type PdfDocument = {
@@ -19,8 +20,7 @@ const AdminOrderPdfManager = dynamic(() => import('@/admin/components/AdminOrder
 export default function AdminOrderPdfManagerClient(props: {
   orderId: number;
   documents: PdfDocument[];
-  paymentStatus?: string | null;
-  adminOrderNotes?: string | null;
+  adminNotesSlot?: ReactNode;
 }) {
   return <AdminOrderPdfManager {...props} />;
 }

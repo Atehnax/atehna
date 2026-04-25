@@ -42,6 +42,50 @@ export const adminPlaceholderTokenClasses =
 export const adminSearchPlaceholderTokenClasses =
   'placeholder:font-normal placeholder:text-slate-500 placeholder:opacity-80';
 
+export const adminStatusInfoPillClassName =
+  'h-[26px] min-w-[132px] justify-center px-4 text-[11px]';
+
+export const adminStatusInfoPillGapClassName = 'gap-4';
+export const adminStatusInfoPillGroupClassName =
+  `flex flex-wrap items-center ${adminStatusInfoPillGapClassName}`;
+export const adminStatusInfoPillTableColumnWidth = '148px';
+export const adminStatusInfoPillTableColumnClassName =
+  'w-[148px] min-w-[148px] max-w-[148px]';
+export const adminStatusInfoPillTableCellClassName =
+  `${adminStatusInfoPillTableColumnClassName} !px-0 text-center`;
+export const adminStatusInfoPillCompactTableClassName =
+  '!h-[23.4px] !min-w-[94px] !px-1.5 !text-[10px]';
+
+export const adminStatusInfoMenuOptionBaseClassName =
+  '!bg-white !text-slate-700 disabled:!bg-white disabled:!text-slate-300';
+
+export const adminStatusInfoMenuOptionToneClasses = {
+  neutral:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-[color:var(--ui-neutral-bg)] hover:!text-slate-700 focus-visible:!bg-[color:var(--ui-neutral-bg)] focus-visible:!text-slate-700 active:!bg-[color:var(--ui-neutral-bg-hover)] active:!text-slate-700`,
+  success:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-emerald-50 hover:!text-emerald-700 focus-visible:!bg-emerald-50 focus-visible:!text-emerald-700 active:!bg-emerald-100 active:!text-emerald-800`,
+  warning:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-yellow-50 hover:!text-yellow-800 focus-visible:!bg-yellow-50 focus-visible:!text-yellow-800 active:!bg-yellow-100 active:!text-yellow-900`,
+  sky:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-sky-50 hover:!text-sky-700 focus-visible:!bg-sky-50 focus-visible:!text-sky-700 active:!bg-sky-100 active:!text-sky-800`,
+  info:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-blue-50 hover:!text-blue-700 focus-visible:!bg-blue-50 focus-visible:!text-blue-700 active:!bg-blue-100 active:!text-blue-800`,
+  danger:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-orange-100 hover:!text-orange-900 focus-visible:!bg-orange-100 focus-visible:!text-orange-900 active:!bg-orange-200 active:!text-orange-950`,
+  purple:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-violet-50 hover:!text-violet-700 focus-visible:!bg-violet-50 focus-visible:!text-violet-700 active:!bg-violet-100 active:!text-violet-800`,
+  rose:
+    `${adminStatusInfoMenuOptionBaseClassName} hover:!bg-rose-50 hover:!text-rose-700 focus-visible:!bg-rose-50 focus-visible:!text-rose-700 active:!bg-rose-100 active:!text-rose-800`
+} as const;
+
+export type AdminStatusInfoMenuOptionTone = keyof typeof adminStatusInfoMenuOptionToneClasses;
+
+export const getAdminStatusInfoMenuOptionClassName = (
+  tone: AdminStatusInfoMenuOptionTone,
+  className = ''
+) =>
+  `justify-between !font-semibold ${adminStatusInfoMenuOptionToneClasses[tone]} ${className}`.trim();
+
 export const hoverTokenClasses = {
   neutral: 'hover:bg-[color:var(--hover-neutral)]'
 } as const;
@@ -130,7 +174,7 @@ export const buttonTokenClasses = {
   restore: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.success.border} ${semanticButtonColors.success.bg} ${semanticButtonColors.success.text} ${semanticButtonColors.success.hoverBg} ${semanticButtonColors.success.activeBg}`,
   archive: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.warning.border} ${semanticButtonColors.warning.bg} ${semanticButtonColors.warning.text} ${semanticButtonColors.warning.hoverBg} ${semanticButtonColors.warning.activeBg}`,
   closeX:
-    'inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-sm font-semibold leading-none text-rose-600 hover:bg-rose-50 disabled:text-slate-300',
+    'inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 bg-white text-sm font-semibold leading-none text-rose-600 transition hover:bg-rose-50 active:bg-rose-50 disabled:bg-white disabled:text-slate-300',
   activeSuccess: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
   inactiveNeutral: 'border border-slate-200 bg-slate-100 text-slate-600',
   activeSuccessBorderless: 'border border-transparent bg-emerald-50 text-emerald-700',
@@ -144,12 +188,12 @@ export const iconButtonTokenClasses = {
   neutralStatus:
     'border border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700 shadow-none transition hover:border-slate-300 hover:bg-[color:var(--ui-neutral-bg-hover)] active:bg-[color:var(--ui-neutral-bg-hover)] hover:text-[color:var(--blue-500)] active:text-[color:var(--blue-500)] disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-transparent disabled:text-slate-400',
   success:
-    'border border-emerald-700/35 bg-emerald-50 text-emerald-700 shadow-none transition hover:bg-emerald-100 active:bg-emerald-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-emerald-50/60 disabled:text-emerald-500',
-  warning: 'border border-amber-300 text-amber-700 hover:bg-amber-100',
+    'border border-emerald-700/35 bg-white text-emerald-700 shadow-none transition hover:bg-emerald-50 active:bg-emerald-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-white disabled:text-slate-300',
+  warning: 'border border-amber-300 bg-white text-amber-700 shadow-none transition hover:bg-amber-50 active:bg-amber-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-white disabled:text-slate-300',
 
   add:
     'border border-amber-300/80 bg-amber-50/80 text-amber-700 shadow-none transition hover:border-dashed hover:border-amber-400 hover:bg-amber-100/80 active:bg-amber-100/80 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60',
-  danger: 'border border-rose-300 text-xs font-semibold leading-none text-rose-600 hover:bg-rose-50'
+  danger: 'border border-rose-300 bg-white text-xs font-semibold leading-none text-rose-600 shadow-none transition hover:bg-rose-50 active:bg-rose-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-white disabled:text-slate-300'
 } as const;
 
 export const pillTokenClasses = {

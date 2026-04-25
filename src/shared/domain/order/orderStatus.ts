@@ -1,3 +1,8 @@
+import {
+  getAdminStatusInfoMenuOptionClassName,
+  type AdminStatusInfoMenuOptionTone
+} from '@/shared/ui/theme/tokens';
+
 export const ORDER_STATUS_OPTIONS = [
   { value: 'received', label: 'Prejeto' },
   { value: 'in_progress', label: 'V obdelavi' },
@@ -22,6 +27,15 @@ const STATUS_CHIP_CLASSNAMES: Record<OrderStatus, string> = {
   cancelled: 'border-orange-300 bg-orange-100 text-orange-900'
 };
 
+const STATUS_MENU_OPTION_TONES: Record<OrderStatus, AdminStatusInfoMenuOptionTone> = {
+  received: 'neutral',
+  in_progress: 'warning',
+  partially_sent: 'sky',
+  sent: 'info',
+  finished: 'success',
+  cancelled: 'danger'
+};
+
 export const isOrderStatus = (value: string): value is OrderStatus =>
   STATUS_LABELS.has(value as OrderStatus);
 
@@ -32,6 +46,11 @@ export const getStatusChipClassName = (value: string) =>
   isOrderStatus(value)
     ? STATUS_CHIP_CLASSNAMES[value]
     : 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400';
+
+export const getStatusMenuItemClassName = (value: string) =>
+  getAdminStatusInfoMenuOptionClassName(
+    isOrderStatus(value) ? STATUS_MENU_OPTION_TONES[value] : 'neutral'
+  );
 
 export const getStatusChipVariant = (value: string) => {
   if (!isOrderStatus(value)) return 'neutral' as const;

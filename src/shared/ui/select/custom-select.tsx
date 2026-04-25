@@ -16,10 +16,13 @@ type CustomSelectProps = {
   options: ReadonlyArray<CustomSelectOption>;
   disabled?: boolean;
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
+  containerClassName?: string;
   triggerClassName?: string;
   menuClassName?: string;
   valueClassName?: string;
+  showArrow?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
 };
 
@@ -31,10 +34,13 @@ export default function CustomSelect({
   options,
   disabled = false,
   placeholder = '',
+  ariaLabel,
   className,
+  containerClassName,
   triggerClassName,
   menuClassName,
   valueClassName,
+  showArrow = true,
   onOpenChange
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -93,23 +99,27 @@ export default function CustomSelect({
   }, [isOpen, onOpenChange]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={classNames('relative', containerClassName)}>
       <button
         ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((previousOpen) => !previousOpen)}
+        aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={classNames(
-          'relative pr-5',
+          'relative',
+          showArrow && 'pr-5',
           selectTokenClasses.trigger,
           className,
           triggerClassName
         )}
       >
         <span className={classNames('min-w-0 flex-1 truncate pb-px text-left leading-[1.3]', valueClassName)}>{selectedLabel}</span>
-        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+        {showArrow ? (
+          <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
+        ) : null}
       </button>
 
       {isOpen && menuRect && typeof document !== 'undefined'

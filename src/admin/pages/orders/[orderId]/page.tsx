@@ -1,15 +1,5 @@
-import type { ReactNode } from 'react';
-import { Suspense } from 'react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import {
-  AdminOrderDocumentsSectionSkeleton,
-  AdminOrderItemsSectionSkeleton
-} from '@/admin/components/AdminPageSkeletons';
-import AdminOrderHeaderChips from '@/admin/components/AdminOrderHeaderChips';
-import AdminOrderItemsEditorClient from '@/admin/components/AdminOrderItemsEditorClient';
-import AdminOrderPdfManagerClient from '@/admin/components/AdminOrderPdfManagerClient';
-import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
+import AdminOrderDetailClient from '@/admin/components/AdminOrderDetailClient';
 import {
   fetchOrderById,
   fetchOrderDocuments,
@@ -57,134 +47,6 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     tax: asNumber(order.tax, 0),
     total: asNumber(order.total, 0)
   };
-}
-
-function AdminOrderDetailShell({
-  orderId,
-  order,
-  itemsSection,
-  documentsSection,
-  showDemoBanner = false
-}: {
-  orderId: number;
-  order: ReturnType<typeof normalizeOrder>;
-  itemsSection: ReactNode;
-  documentsSection: ReactNode;
-  showDemoBanner?: boolean;
-}) {
-  return (
-    <div className="w-full font-['Inter',system-ui,sans-serif]">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-3 text-xs text-slate-500">
-          <Link href="/admin/orders" className="hover:underline">Naročila</Link>
-          <span className="mx-1 text-slate-400">&rsaquo;</span>
-          <span>Naročilo {orderId}</span>
-        </div>
-        {showDemoBanner ? (
-          <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
-            DATABASE_URL ni nastavljen — prikazan je demo pogled.
-          </div>
-        ) : null}
-
-        {!showDemoBanner ? (
-          <Link
-            href="/admin/orders"
-            className="text-sm font-semibold text-black transition-colors hover:text-[#1982bf] active:text-[#1982bf]"
-          >
-            ← Nazaj na seznam
-          </Link>
-        ) : null}
-
-        {order.is_draft ? (
-          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            To naročilo je osnutek. Izpolnite podatke in shranite, da bo vidno na seznamu naročil.
-          </div>
-        ) : null}
-
-        {order.deleted_at ? (
-          <div className="mt-3 rounded-lg border border-rose-300/80 bg-rose-100/70 px-3 py-2 text-sm font-semibold text-rose-800">
-            To naročilo je bilo izbrisano.
-          </div>
-        ) : null}
-
-        <div className={showDemoBanner ? 'mt-6' : 'mt-4'}>
-          <div className="grid items-start gap-6 lg:grid-cols-[2fr_1.5fr]">
-            <div className="space-y-6">
-              <AdminOrderHeaderChips
-                orderId={orderId}
-                orderNumber={toDisplayOrderNumber(order.order_number)}
-                status={order.status}
-                paymentStatus={order.payment_status ?? null}
-                customerType={order.customer_type}
-                organizationName={order.organization_name}
-                contactName={order.contact_name}
-                email={order.email}
-                deliveryAddress={order.delivery_address}
-                postalCode={order.postal_code}
-                notes={order.notes}
-                createdAt={order.created_at}
-              />
-
-              {itemsSection}
-            </div>
-
-            <aside className="w-full min-w-0 space-y-5">
-              {documentsSection}
-            </aside>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-async function AdminOrderItemsSection({
-  orderId,
-  itemsPromise,
-  initialSubtotal,
-  initialTax,
-  initialTotal
-}: {
-  orderId: number;
-  itemsPromise: Promise<OrderItemRow[]>;
-  initialSubtotal: number;
-  initialTax: number;
-  initialTotal: number;
-}) {
-  const items = await itemsPromise;
-
-  return (
-    <AdminOrderItemsEditorClient
-      orderId={orderId}
-      items={items}
-      initialSubtotal={initialSubtotal}
-      initialTax={initialTax}
-      initialTotal={initialTotal}
-    />
-  );
-}
-
-async function AdminOrderDocumentsSection({
-  orderId,
-  documentsPromise,
-  paymentStatus,
-  adminOrderNotes
-}: {
-  orderId: number;
-  documentsPromise: Promise<OrderDocumentRow[]>;
-  paymentStatus?: string | null;
-  adminOrderNotes?: string | null;
-}) {
-  const documents = await documentsPromise;
-
-  return (
-    <AdminOrderPdfManagerClient
-      orderId={orderId}
-      documents={documents}
-      paymentStatus={paymentStatus}
-      adminOrderNotes={adminOrderNotes}
-    />
-  );
 }
 
 export default async function AdminOrderDetailPage(props: { params: Promise<{ orderId: string }> }) {
@@ -249,27 +111,12 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ or
       ];
 
       return (
-        <AdminOrderDetailShell
+        <AdminOrderDetailClient
           orderId={1}
           order={demoOrder}
+          items={demoItems}
+          documents={demoDocuments}
           showDemoBanner
-          itemsSection={
-            <AdminOrderItemsEditorClient
-              orderId={1}
-              items={demoItems}
-              initialSubtotal={demoOrder.subtotal}
-              initialTax={demoOrder.tax}
-              initialTotal={demoOrder.total}
-            />
-          }
-          documentsSection={
-            <AdminOrderPdfManagerClient
-              orderId={1}
-              documents={demoDocuments}
-              paymentStatus={demoOrder.payment_status}
-              adminOrderNotes={demoOrder.admin_order_notes}
-            />
-          }
         />
       );
     }
@@ -283,7 +130,7 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ or
     const itemsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderItems', () => fetchOrderItems(orderId));
     const documentsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderDocuments', () => fetchOrderDocuments(orderId));
 
-    const order = await orderPromise;
+    const [order, items, documents] = await Promise.all([orderPromise, itemsPromise, documentsPromise]);
     if (!order) {
       notFound();
     }
@@ -295,30 +142,11 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ or
     });
 
     return (
-      <AdminOrderDetailShell
+      <AdminOrderDetailClient
         orderId={orderId}
         order={safeOrder}
-        itemsSection={
-          <Suspense fallback={<AdminOrderItemsSectionSkeleton />}>
-            <AdminOrderItemsSection
-              orderId={orderId}
-              itemsPromise={itemsPromise}
-              initialSubtotal={safeOrder.subtotal}
-              initialTax={safeOrder.tax}
-              initialTotal={safeOrder.total}
-            />
-          </Suspense>
-        }
-        documentsSection={
-          <Suspense fallback={<AdminOrderDocumentsSectionSkeleton />}>
-            <AdminOrderDocumentsSection
-              orderId={orderId}
-              documentsPromise={documentsPromise}
-              paymentStatus={safeOrder.payment_status}
-              adminOrderNotes={safeOrder.admin_order_notes}
-            />
-          </Suspense>
-        }
+        items={items}
+        documents={documents}
       />
     );
   });

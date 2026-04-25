@@ -1,3 +1,8 @@
+import {
+  getAdminStatusInfoMenuOptionClassName,
+  type AdminStatusInfoMenuOptionTone
+} from '@/shared/ui/theme/tokens';
+
 export const PAYMENT_STATUS_OPTIONS = [
   { value: 'unpaid', label: 'Neplačano', badgeClassName: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700' },
   { value: 'paid', label: 'Plačano', badgeClassName: 'border-emerald-700/35 bg-emerald-50 text-emerald-700' },
@@ -12,6 +17,12 @@ const PAYMENT_STATUS_META = new Map<PaymentStatus, { label: string; badgeClassNa
     { label: option.label, badgeClassName: option.badgeClassName }
   ])
 );
+
+const PAYMENT_MENU_OPTION_TONES: Record<PaymentStatus, AdminStatusInfoMenuOptionTone> = {
+  unpaid: 'neutral',
+  paid: 'success',
+  refunded: 'purple'
+};
 
 export const isPaymentStatus = (value: string): value is PaymentStatus =>
   PAYMENT_STATUS_META.has(value as PaymentStatus);
@@ -28,6 +39,11 @@ export const getPaymentBadgeClassName = (status?: string | null) => {
     'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400'
   );
 };
+
+export const getPaymentMenuItemClassName = (status?: string | null) =>
+  getAdminStatusInfoMenuOptionClassName(
+    status && isPaymentStatus(status) ? PAYMENT_MENU_OPTION_TONES[status] : 'neutral'
+  );
 
 
 export const getPaymentBadgeVariant = (status?: string | null) => {

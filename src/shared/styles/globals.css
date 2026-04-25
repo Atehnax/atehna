@@ -343,6 +343,34 @@ input.admin-item-name-input:disabled,
   color: rgb(15 23 42) !important;
 }
 
+input.admin-top-bar-title-input,
+.admin-scope input.admin-top-bar-title-input,
+input.admin-top-bar-title-input:placeholder-shown,
+input.admin-top-bar-title-input:not(:placeholder-shown),
+.admin-scope input.admin-top-bar-title-input:placeholder-shown,
+.admin-scope input.admin-top-bar-title-input:not(:placeholder-shown),
+input.admin-top-bar-title-input:disabled,
+.admin-scope input.admin-top-bar-title-input:disabled {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.025em !important;
+  color: rgb(15 23 42) !important;
+}
+
+input.admin-order-number-input,
+.admin-scope input.admin-order-number-input,
+input.admin-order-number-input:disabled,
+.admin-scope input.admin-order-number-input:disabled {
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.025em !important;
+  color: rgb(15 23 42) !important;
+}
+
 [data-floating-field] input:-webkit-autofill,
 [data-floating-field] textarea:-webkit-autofill,
 [data-floating-field] select:-webkit-autofill,

@@ -56,13 +56,13 @@ export function AdminOrdersSectionSkeleton() {
       }
       footerRight={<Skeleton className="h-8 w-[90px] rounded-xl" />}
     >
-      <table className="min-w-[1180px] w-full border-collapse">
+      <table className="min-w-[1250px] w-full border-collapse">
         <colgroup>
           <col style={{ width: columnWidths.selectAndDelete }} />
           <col style={{ width: columnWidths.order }} />
           <col style={{ width: columnWidths.date }} />
           <col style={{ width: columnWidths.customer }} />
-          <col style={{ width: columnWidths.address }} />
+          <col />
           <col style={{ width: columnWidths.type }} />
           <col style={{ width: columnWidths.status }} />
           <col style={{ width: columnWidths.payment }} />

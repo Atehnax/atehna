@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import {
-  adminTableCardClassName,
-  adminTableCardStyle,
   adminTableInlineActionRowClassName,
   adminTableInlineCancelButtonClassName,
   adminTableInlineCancelIconClassName,
@@ -16,7 +14,9 @@ import {
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableSearchWrapperClassName,
-  adminTableSelectedDangerIconButtonClassName
+  adminTableSelectedDangerIconButtonClassName,
+  adminWindowCardClassName,
+  adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { IconButton } from '@/shared/ui/icon-button';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -117,16 +117,27 @@ export default function AdminOrderItemsEditor({
   items,
   initialSubtotal = 0,
   initialTax = 0,
-  initialTotal = 0
+  initialTotal = 0,
+  externalEditMode,
+  hideSectionEditControls = false,
+  onDirtyChange,
+  onSavingChange,
+  onRegisterSave
 }: {
   orderId: number;
   items: OrderItemInput[];
   initialSubtotal?: number;
   initialTax?: number;
   initialTotal?: number;
+  externalEditMode?: boolean;
+  hideSectionEditControls?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onSavingChange?: (isSaving: boolean) => void;
+  onRegisterSave?: (handler: () => Promise<boolean>) => void | (() => void);
 }) {
   const initialMappedItems = useMemo(() => mapIncomingItems(items), [items]);
-  const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>('read');
+  const hasExternalEditMode = typeof externalEditMode === 'boolean';
+  const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>(externalEditMode ? 'edit' : 'read');
   const [persistedItems, setPersistedItems] = useState<EditableItem[]>(initialMappedItems);
   const [draftItems, setDraftItems] = useState<EditableItem[]>(() => cloneEditableItems(initialMappedItems));
   const initialShipping = Math.max(0, toMoney(initialTotal - initialSubtotal - initialTax));
@@ -138,8 +149,9 @@ export default function AdminOrderItemsEditor({
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { toast } = useToast();
+  const saveItemsRef = useRef<() => Promise<boolean>>(async () => true);
 
-  const itemsEditable = itemsSectionMode === 'edit';
+  const itemsEditable = hasExternalEditMode ? Boolean(externalEditMode) : itemsSectionMode === 'edit';
 
   const isItemsDirty = useMemo(
     () => !areEditableItemsEqual(draftItems, persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
@@ -246,17 +258,17 @@ export default function AdminOrderItemsEditor({
     setCatalogQuery('');
   };
 
-  const saveItems = async () => {
-    if (!itemsEditable || isItemsSaving) return;
+  const saveItems = useCallback(async (): Promise<boolean> => {
+    if (!itemsEditable || isItemsSaving) return true;
 
     if (!isItemsDirty) {
-      cancelItemsEdit();
-      return;
+      if (!hasExternalEditMode) cancelItemsEdit();
+      return true;
     }
 
     if (draftItems.length === 0) {
       toast.error('Naročilo mora vsebovati vsaj eno postavko.');
-      return;
+      return false;
     }
 
     setIsItemsSaving(true);
@@ -288,17 +300,60 @@ export default function AdminOrderItemsEditor({
       setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
       setSelectedDraftItemIds([]);
-      setItemsSectionMode('read');
-      toast.success('Postavke so posodobljene.');
+      if (!hasExternalEditMode) {
+        setItemsSectionMode('read');
+        toast.success('Postavke so posodobljene.');
+      }
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
+      return false;
     } finally {
       setIsItemsSaving(false);
     }
-  };
+  }, [
+    draftItems,
+    draftShipping,
+    hasExternalEditMode,
+    isItemsDirty,
+    isItemsSaving,
+    itemsEditable,
+    orderId,
+    toast
+  ]);
 
   useEffect(() => {
-    if (!itemsEditable || isPickerOpen) return;
+    if (!hasExternalEditMode) return;
+
+    setDraftItems(cloneEditableItems(persistedItems));
+    setDraftShipping(persistedShipping);
+    setSelectedDraftItemIds([]);
+    setItemsSectionMode(externalEditMode ? 'edit' : 'read');
+    if (!externalEditMode) {
+      setIsPickerOpen(false);
+      setCatalogQuery('');
+    }
+  }, [externalEditMode, hasExternalEditMode, persistedItems, persistedShipping]);
+
+  useEffect(() => {
+    onDirtyChange?.(isItemsDirty);
+  }, [isItemsDirty, onDirtyChange]);
+
+  useEffect(() => {
+    onSavingChange?.(isItemsSaving);
+  }, [isItemsSaving, onSavingChange]);
+
+  useEffect(() => {
+    saveItemsRef.current = saveItems;
+  }, [saveItems]);
+
+  useEffect(() => {
+    if (!onRegisterSave) return undefined;
+    return onRegisterSave(() => saveItemsRef.current());
+  }, [onRegisterSave]);
+
+  useEffect(() => {
+    if (hasExternalEditMode || !itemsEditable || isPickerOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -321,7 +376,7 @@ export default function AdminOrderItemsEditor({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [itemsEditable, isPickerOpen, draftItems, draftShipping, persistedItems, persistedShipping, isItemsSaving]);
+  }, [hasExternalEditMode, itemsEditable, isPickerOpen, saveItems]);
 
   const toggleSelectedDraftItem = (itemId: string) => {
     if (!itemsEditable) return;
@@ -347,14 +402,15 @@ export default function AdminOrderItemsEditor({
   };
 
   return (
-    <section className={`${adminTableCardClassName} rounded-[24px] border bg-white p-6`} style={adminTableCardStyle}>
+    <section className={`${adminWindowCardClassName} flex flex-col p-6`} style={adminWindowCardStyle}>
       <h2 className="text-lg font-semibold text-slate-900">Uredi naročilo</h2>
 
-      <div className="mt-4 min-h-[340px] overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-3">
           <h3 className="text-[13px] font-semibold text-slate-900">Postavke</h3>
           <div className="ml-auto flex items-center gap-1.5">
-            {itemsEditable ? (
+            {!hideSectionEditControls ? (
+              itemsEditable ? (
               <div className={adminTableInlineActionRowClassName}>
                 <IconButton
                   type="button"
@@ -394,7 +450,8 @@ export default function AdminOrderItemsEditor({
               >
                 <PencilIcon />
               </IconButton>
-            )}
+              )
+            ) : null}
 
             <IconButton
               type="button"
@@ -427,16 +484,16 @@ export default function AdminOrderItemsEditor({
         <div className="overflow-x-auto">
           <table className="min-w-full table-fixed text-[12px] leading-5">
             <colgroup>
-              <col style={{ width: '5%' }} />
-              <col style={{ width: '47%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '45%' }} />
               <col style={{ width: '12%' }} />
               <col style={{ width: '13%' }} />
               <col style={{ width: '11%' }} />
               <col style={{ width: '12%' }} />
             </colgroup>
-            <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)] text-slate-700">
+            <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)] text-slate-600">
               <tr>
-                <th className="border-b border-slate-200 px-2 py-4 text-center" aria-label="Izbira">
+                <th className="border-b border-slate-200 py-4 pl-4 pr-2 text-left align-middle" aria-label="Izbira">
                   <AdminCheckbox
                     checked={itemsEditable ? areAllActiveItemsSelected : false}
                     disabled={!itemsEditable}
@@ -444,11 +501,11 @@ export default function AdminOrderItemsEditor({
                     aria-label="Izberi vse postavke"
                   />
                 </th>
-                <th className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold">Artikel</th>
-                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Količina</th>
-                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Cena</th>
-                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold">Popust %</th>
-                <th className="border-b border-slate-200 px-2 py-4 text-right text-[12px] font-semibold">Skupaj</th>
+                <th className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold align-middle">Artikel</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Količina</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Cena</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Popust %</th>
+                <th className="border-b border-slate-200 py-4 pl-2 pr-4 text-right text-[12px] font-semibold align-middle">Skupaj</th>
               </tr>
             </thead>
             <tbody>
@@ -456,7 +513,7 @@ export default function AdminOrderItemsEditor({
                 const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
                 return (
                   <tr key={item.id} className={`border-t border-slate-200/90 bg-white align-middle ${adminTableRowToneClasses.hover}`}>
-                    <td className="px-2 py-3 text-center">
+                    <td className="py-3 pl-4 pr-2 text-left">
                       <AdminCheckbox
                         checked={selectedDraftItemIds.includes(item.id)}
                         disabled={!itemsEditable}
@@ -518,7 +575,7 @@ export default function AdminOrderItemsEditor({
                         <span className={`${readonlyCellFrameClassName} justify-center gap-1`}>{formatDecimalInput(item.discountPercentage)} %</span>
                       )}
                     </td>
-                    <td className="px-2 py-3 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+                    <td className="py-3 pl-2 pr-4 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
                   </tr>
                 );
               })}
@@ -526,15 +583,15 @@ export default function AdminOrderItemsEditor({
           </table>
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 bg-slate-50/50 px-4 py-4 text-[12px] text-slate-700">
+        <div className={`space-y-2 bg-slate-50/50 px-4 py-4 text-[12px] text-slate-700 ${activeItems.length > 0 ? 'border-t border-slate-200' : ''}`}>
           <div className="flex items-center justify-between">
             <span>Vmesni seštevek</span>
             <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex min-h-8 items-center justify-between">
             <span>Poštnina</span>
-            {itemsEditable ? (
-              <span className="inline-flex items-center gap-1">
+            <span className="inline-flex w-[60px] items-center justify-end gap-1">
+              {itemsEditable ? (
                 <input
                   type="text"
                   inputMode="decimal"
@@ -544,13 +601,15 @@ export default function AdminOrderItemsEditor({
                     setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
                   }}
                   aria-label="Poštnina"
-                  className={`${rightAlignedEditInputClassName} w-[78px]`}
+                  className={`${rightAlignedEditInputClassName} !w-[44px]`}
                 />
-                <span className="text-[12px] text-slate-700">€</span>
-              </span>
-            ) : (
-              <span className="font-semibold">{formatCurrency(totals.shipping)}</span>
-            )}
+              ) : (
+                <span className="inline-flex h-8 w-[44px] items-center justify-end rounded-md border border-transparent px-0 text-right text-[12px] font-semibold text-slate-700">
+                  {formatDecimalInput(totals.shipping)}
+                </span>
+              )}
+              <span className={`text-[12px] text-slate-700 ${itemsEditable ? '' : 'font-semibold'}`}>€</span>
+            </span>
           </div>
           <div className="flex items-center justify-between text-slate-500">
             <span>DDV (22 %)</span>

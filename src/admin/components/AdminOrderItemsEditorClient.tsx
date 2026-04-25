@@ -24,6 +24,11 @@ export default function AdminOrderItemsEditorClient(props: {
   initialSubtotal?: number;
   initialTax?: number;
   initialTotal?: number;
+  externalEditMode?: boolean;
+  hideSectionEditControls?: boolean;
+  onDirtyChange?: (isDirty: boolean) => void;
+  onSavingChange?: (isSaving: boolean) => void;
+  onRegisterSave?: (handler: () => Promise<boolean>) => void | (() => void);
 }) {
   return <AdminOrderItemsEditor {...props} />;
 }

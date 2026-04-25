@@ -4,13 +4,14 @@ import dynamic from 'next/dynamic';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Dialog, dialogActionButtonClassName, dialogDescriptionClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
+import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   adminTableCardClassName,
   adminTableCardStyle,
+  adminTableBulkHeaderButtonClassName,
   adminTableHeaderClassName,
   adminTableHeaderTextClassName,
   adminTableInlineActionRowClassName,
@@ -42,22 +43,27 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminStatusInfoPillTableCellClassName,
+  adminTableRowToneClasses,
+  filterPillTokenClasses
+} from '@/shared/ui/theme/tokens';
 import {
   createArchivedItemRecord,
   readArchivedItemStorage,
   writeArchivedItemStorage
 } from '@/admin/features/artikli/lib/archiveItemClient';
 import {
+  buildPersistedVariantName,
   computeSalePrice,
   formatCurrency,
   type ProductFamily,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
-import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
+import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
-import { NoteTagChip, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import { NoteTagChip, getNoteTagMenuItemClassName, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import {
   compactTableAdornmentClassName,
   compactTableAlignedInputClassName,
@@ -86,16 +92,19 @@ type ActiveEditScope = { familyId: string; kind: EditScopeKind; restoreExpandedO
 type PendingGuardAction = { label: string; run: () => void };
 type NumericDraftField = 'price' | 'discountPct' | 'salePrice';
 type NumericDraftScope = 'family' | 'variant';
+type HighlightableArticleColumn = 'sku' | 'category' | 'priceRange' | 'discount' | 'actionPriceRange';
 const ROW_EDIT_INPUT_CLASS = `${compactTableAlignedTextInputClassName} !mt-0 !h-7 !w-full !px-2 text-[12px]`;
 const ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS = `${compactTableAlignedInputClassName} !mt-0 !h-7 text-right text-[12px]`;
 const MESTO_EDIT_INPUT_CLASS =
   'mx-auto h-7 w-3/4 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const QUICK_EDIT_NAME_SHELL_CLASS = 'min-w-0 flex-1';
 const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
-const STATUS_COLUMN_CLASS = 'w-[120px] min-w-[120px] max-w-[120px]';
-const NOTE_COLUMN_CLASS = 'w-[124px] min-w-[124px] max-w-[124px]';
+const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
+const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
 const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-center';
+const MATCHING_VALUE_HIGHLIGHT_CLASS =
+  'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
   price: 'Cena',
   discountPct: 'Popust',
@@ -120,6 +129,23 @@ const normalizeCategoryPath = (value: string) =>
     .split('/')
     .map((entry) => entry.trim())
     .filter(Boolean);
+
+const CATEGORY_PLACEHOLDER_LABELS = new Set(['Izberi kategorijo', 'Izberi podkategorijo']);
+const getFamilyCategoryDisplay = (family: ListFamily) => {
+  const categoryPath = (family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)).filter(
+    (segment) => !CATEGORY_PLACEHOLDER_LABELS.has(segment)
+  );
+  const displayValue = categoryPath.join(' / ').trim();
+
+  return displayValue || '\u2014';
+};
+
+const getComparableArticleCellValue = (value: string) =>
+  (value || '\u2014')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 const formatCurrencyAmountOnly = (value: number) =>
   value.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -155,6 +181,17 @@ const noteValueLabel = (value: NoteValue) => {
   if (value === 'zadnji-kosi') return 'Zadnji kosi';
   return 'Brez opombe';
 };
+const ITEM_STATUS_BULK_OPTIONS = [
+  { value: true, label: 'Aktiven' },
+  { value: false, label: 'Neaktiven' }
+] as const;
+const ITEM_NOTE_BULK_OPTIONS: Array<{ value: NoteTag; label: string }> = [
+  { value: 'na-zalogi', label: 'Na zalogi' },
+  { value: 'novo', label: 'Novo' },
+  { value: 'akcija', label: 'V akciji' },
+  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
+  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
+];
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 'Neaktiven inactive Skrit hidden');
 const familySearchValue = (family: ListFamily) =>
@@ -220,10 +257,20 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   return items.map((item, itemIndex) => {
     const variants: Variant[] = item.variants.map((variant, variantIndex) => ({
       id: String(variant.id),
-      label: variant.variantName || `Različica ${variantIndex + 1}`,
+      label: buildPersistedVariantName(
+        {
+          label: variant.variantName || `Različica ${variantIndex + 1}`,
+          width: variant.width,
+          length: variant.length,
+          thickness: variant.thickness,
+          weight: variant.weight
+        },
+        { baseName: item.itemName, variantCount: item.variants.length, index: variantIndex }
+      ),
       width: variant.width,
       length: variant.length,
       thickness: variant.thickness,
+      weight: variant.weight,
       minOrder: variant.minOrder,
       badge: variant.badge,
       position: variant.position,
@@ -381,6 +428,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
   const [noteFilter, setNoteFilter] = useState<NoteFilter>('all');
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null);
+  const [isStatusBulkMenuOpen, setIsStatusBulkMenuOpen] = useState(false);
+  const [isNoteBulkMenuOpen, setIsNoteBulkMenuOpen] = useState(false);
+  const [isSelectedPillUpdating, setIsSelectedPillUpdating] = useState(false);
   const [expandedFamilyIds, setExpandedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
@@ -399,6 +449,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: HighlightableArticleColumn; value: string } | null>(null);
   const [isBulkArchiveDialogOpen, setIsBulkArchiveDialogOpen] = useState(false);
   const [isArchivingSelected, setIsArchivingSelected] = useState(false);
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
@@ -409,6 +460,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const statusBulkMenuRef = useRef<HTMLDivElement | null>(null);
+  const noteBulkMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingGuardActionRef = useRef<PendingGuardAction | null>(null);
 
   const families = useMemo(() => toListFamilies(items), [items]);
@@ -426,6 +479,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       }),
     [families, savedFamilyRows]
   );
+  const familyById = useMemo(() => new Map(effectiveFamilies.map((family) => [family.id, family])), [effectiveFamilies]);
+  const variantTargetById = useMemo(() => {
+    const next = new Map<string, { family: ListFamily; variant: Variant }>();
+    effectiveFamilies.forEach((family) => {
+      family.variants.forEach((variant) => {
+        next.set(variant.id, { family, variant });
+      });
+    });
+    return next;
+  }, [effectiveFamilies]);
   const selectedArchiveFamilies = useMemo(
     () =>
       effectiveFamilies.filter(
@@ -437,6 +500,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   );
   const selectedArchiveCount = selectedArchiveFamilies.length;
   const hasSelectedArchiveFamilies = selectedArchiveCount > 0;
+  const selectedPillTargetCount = selectedFamilyIds.size + selectedVariantIds.size;
+  const hasBulkSelectedPillTargets = selectedPillTargetCount > 1;
+  const singleSelectedFamilyId = selectedPillTargetCount === 1 ? Array.from(selectedFamilyIds)[0] ?? null : null;
+  const singleSelectedVariantId = selectedPillTargetCount === 1 ? Array.from(selectedVariantIds)[0] ?? null : null;
   const archiveDialogFamilies = useMemo(
     () =>
       archiveDialogFamilyIds
@@ -477,6 +544,40 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       cancelled = true;
     };
   }, [effectiveFamilies]);
+
+  useEffect(() => {
+    if (hasBulkSelectedPillTargets) return;
+    setIsStatusBulkMenuOpen(false);
+    setIsNoteBulkMenuOpen(false);
+  }, [hasBulkSelectedPillTargets]);
+
+  useEffect(() => {
+    if (!isStatusBulkMenuOpen && !isNoteBulkMenuOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!statusBulkMenuRef.current?.contains(target)) {
+        setIsStatusBulkMenuOpen(false);
+      }
+      if (!noteBulkMenuRef.current?.contains(target)) {
+        setIsNoteBulkMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsStatusBulkMenuOpen(false);
+        setIsNoteBulkMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNoteBulkMenuOpen, isStatusBulkMenuOpen]);
 
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1216,6 +1317,86 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       const draft = current[familyId] ?? fallbackDraft;
       return { ...current, [familyId]: mutate(draft) };
     });
+  const updateSelectedPillTargets = (
+    label: string,
+    patch: Record<string, unknown>,
+    targets?: { familyIds?: string[]; variantIds?: string[] }
+  ) => {
+    requestCurrentEditResolution(label, () => {
+      void (async () => {
+        const familyIds = targets?.familyIds ?? Array.from(selectedFamilyIds);
+        const variantIds = targets?.variantIds ?? Array.from(selectedVariantIds);
+        if (familyIds.length + variantIds.length === 0) return;
+
+        setIsSelectedPillUpdating(true);
+        try {
+          const tasks: Array<Promise<AdminCatalogListItem>> = [];
+
+          familyIds.forEach((familyId) => {
+            const family = familyById.get(familyId);
+            if (!family?.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
+            tasks.push(
+              fetch('/api/admin/artikli/quick-save/item', {
+                method: 'PATCH',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  itemIdentifier: family.slug,
+                  patch
+                })
+              }).then(async (response) => {
+                const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+                if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
+                return body.item;
+              })
+            );
+          });
+
+          variantIds.forEach((variantId) => {
+            const target = variantTargetById.get(variantId);
+            if (!target?.family.slug) throw new Error('Artikel nima veljavnega identifikatorja (slug).');
+            tasks.push(
+              fetch('/api/admin/artikli/quick-save/variant', {
+                method: 'PATCH',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  itemIdentifier: target.family.slug,
+                  variantId: Number(target.variant.id),
+                  patch
+                })
+              }).then(async (response) => {
+                const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+                if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje različice ni uspelo.');
+                return body.item;
+              })
+            );
+          });
+
+          const savedItems = await Promise.all(tasks);
+          savedItems.forEach(applySavedFamilyRow);
+          setIsStatusBulkMenuOpen(false);
+          setIsNoteBulkMenuOpen(false);
+          toast.success('Shranjeno');
+          router.refresh();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'Shranjevanje ni uspelo.');
+        } finally {
+          setIsSelectedPillUpdating(false);
+        }
+      })();
+    });
+  };
+  const handleSelectedStatusUpdate = (nextActive: boolean, targets?: { familyIds?: string[]; variantIds?: string[] }) =>
+    updateSelectedPillTargets(
+      nextActive ? 'množičnim nastavljanjem statusa na aktiven' : 'množičnim nastavljanjem statusa na neaktiven',
+      { status: nextActive ? 'active' : 'inactive' },
+      targets
+    );
+  const handleSelectedNoteUpdate = (nextNote: NoteTag, targets?: { familyIds?: string[]; variantIds?: string[] }) =>
+    updateSelectedPillTargets(
+      `množičnim nastavljanjem opombe ${noteValueLabel(nextNote)}`,
+      { badge: nextNote || null },
+      targets
+    );
   const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
     `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[color:var(--blue-500)] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
@@ -1368,6 +1549,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       setArchiveDialogFamilyIds(new Set([family.id]));
       setIsBulkArchiveDialogOpen(true);
     });
+  const isMatchingHoveredCell = (column: HighlightableArticleColumn, value: string) =>
+    hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableArticleCellValue(value);
+  const getMatchingValueClassName = (column: HighlightableArticleColumn, value: string) =>
+    isMatchingHoveredCell(column, value) ? MATCHING_VALUE_HIGHLIGHT_CLASS : '';
+  const setHoveredArticleCell = (column: HighlightableArticleColumn, value: string) =>
+    setHoveredCellMatch({ column, value: getComparableArticleCellValue(value) });
 
   return (
     <div className="space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -1393,64 +1580,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         />
       ) : null}
       {pendingGuardLabel ? (
-        <Dialog
+        <UnsavedChangesDialog
           open
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) handleGuardDialogCancel();
+          label={pendingGuardArticleTitle ? 'začetkom urejanja artikla' : pendingGuardLabel}
+          itemTitle={pendingGuardArticleTitle}
+          isSaving={isSavingActiveScope}
+          saveDisabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid}
+          validationMessage={activeEditSnapshot?.validationMessage}
+          onSave={() => {
+            void handleGuardDialogSave();
           }}
-          title="Neshranjene spremembe"
-          isDismissable={false}
-          panelClassName="!max-w-[32rem]"
-          footer={
-            <div className={`${dialogFooterClassName} flex-nowrap gap-1.5`}>
-              <Button
-                type="button"
-                variant="restore"
-                size="toolbar"
-                onClick={() => {
-                  void handleGuardDialogSave();
-                }}
-                disabled={!activeEditSnapshot?.isDirty || !activeEditSnapshot.isValid || isSavingActiveScope}
-                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
-              >
-                {isSavingActiveScope ? 'Shranjujem...' : 'Shrani in nadaljuj'}
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                size="toolbar"
-                onClick={handleGuardDialogCancel}
-                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
-              >
-                Nadaljuj urejanje
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                size="toolbar"
-                onClick={handleGuardDialogDiscard}
-                className={`${dialogActionButtonClassName} whitespace-nowrap !px-2.5 !text-[11px]`}
-              >
-                Zavrzi spremembe
-              </Button>
-            </div>
-          }
-        >
-          {pendingGuardArticleTitle ? (
-            <p className={dialogDescriptionClassName}>
-              Pred začetkom urejanja artikla{' '}
-              <span className="font-semibold text-slate-900">{pendingGuardArticleTitle}</span>{' '}
-              shrani ali zavrzi trenutno urejanje, da se spremembe ne izgubijo.
-            </p>
-          ) : (
-            <p className={dialogDescriptionClassName}>
-              Pred {pendingGuardLabel} shrani ali zavrzi trenutno urejanje, da se spremembe ne izgubijo.
-            </p>
-          )}
-          {activeEditSnapshot?.validationMessage ? (
-            <p className="mt-2 text-xs font-medium text-rose-600">{activeEditSnapshot.validationMessage}</p>
-          ) : null}
-        </Dialog>
+          onContinueEditing={handleGuardDialogCancel}
+          onDiscard={handleGuardDialogDiscard}
+        />
       ) : null}
       <AdminTableLayout
         className={adminTableCardClassName}
@@ -1713,45 +1855,111 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={`${STATUS_COLUMN_CLASS} whitespace-nowrap px-0 text-center`}>
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
-                      Status
-                    </button>
-                    <button
-                      ref={statusFilterButtonRef}
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        requestCurrentEditResolution('filtriranjem statusov', () => {
-                          setOpenFilter((current) => (current === 'status' ? null : 'status'));
-                        });
-                      }}
-                      aria-label="Filtriraj status"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
+                  <div className="relative inline-flex h-11 items-center justify-center" ref={statusBulkMenuRef}>
+                    {hasBulkSelectedPillTargets ? (
+                      <>
+                        <button
+                          type="button"
+                          className={adminTableBulkHeaderButtonClassName}
+                          onClick={() => setIsStatusBulkMenuOpen((current) => !current)}
+                          disabled={isSelectedPillUpdating}
+                          aria-haspopup="menu"
+                          aria-expanded={isStatusBulkMenuOpen}
+                        >
+                          Status ▾ ({selectedPillTargetCount})
+                        </button>
+                        {isStatusBulkMenuOpen ? (
+                          <div role="menu">
+                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-36 -translate-x-1/2">
+                              {ITEM_STATUS_BULK_OPTIONS.map((option) => (
+                                <MenuItem
+                                  key={String(option.value)}
+                                  className={getActiveStateMenuItemClassName(option.value)}
+                                  disabled={isSelectedPillUpdating}
+                                  onClick={() => handleSelectedStatusUpdate(option.value)}
+                                >
+                                  {option.label}
+                                </MenuItem>
+                              ))}
+                            </MenuPanel>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                        <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
+                          Status
+                        </button>
+                        <button
+                          ref={statusFilterButtonRef}
+                          type="button"
+                          className={HEADER_FILTER_BUTTON_CLASS}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            requestCurrentEditResolution('filtriranjem statusov', () => {
+                              setOpenFilter((current) => (current === 'status' ? null : 'status'));
+                            });
+                          }}
+                          aria-label="Filtriraj status"
+                        >
+                          <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </TH>
                 <TH className={`${NOTE_COLUMN_CLASS} whitespace-nowrap px-0 text-center`}>
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
-                      Opombe
-                    </button>
-                    <button
-                      ref={noteFilterButtonRef}
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        requestCurrentEditResolution('filtriranjem opomb', () => {
-                          setOpenFilter((current) => (current === 'note' ? null : 'note'));
-                        });
-                      }}
-                      aria-label="Filtriraj opombe"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
+                  <div className="relative inline-flex h-11 items-center justify-center" ref={noteBulkMenuRef}>
+                    {hasBulkSelectedPillTargets ? (
+                      <>
+                        <button
+                          type="button"
+                          className={adminTableBulkHeaderButtonClassName}
+                          onClick={() => setIsNoteBulkMenuOpen((current) => !current)}
+                          disabled={isSelectedPillUpdating}
+                          aria-haspopup="menu"
+                          aria-expanded={isNoteBulkMenuOpen}
+                        >
+                          Opombe ▾ ({selectedPillTargetCount})
+                        </button>
+                        {isNoteBulkMenuOpen ? (
+                          <div role="menu">
+                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
+                              {ITEM_NOTE_BULK_OPTIONS.map((option) => (
+                                <MenuItem
+                                  key={option.value}
+                                  className={getNoteTagMenuItemClassName(option.value)}
+                                  disabled={isSelectedPillUpdating}
+                                  onClick={() => handleSelectedNoteUpdate(option.value)}
+                                >
+                                  {option.label}
+                                </MenuItem>
+                              ))}
+                            </MenuPanel>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                        <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
+                          Opombe
+                        </button>
+                        <button
+                          ref={noteFilterButtonRef}
+                          type="button"
+                          className={HEADER_FILTER_BUTTON_CLASS}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            requestCurrentEditResolution('filtriranjem opomb', () => {
+                              setOpenFilter((current) => (current === 'note' ? null : 'note'));
+                            });
+                          }}
+                          aria-label="Filtriraj opombe"
+                        >
+                          <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </TH>
                 <TH className={`${ACTIONS_COLUMN_CLASS} px-2 text-center`}>
@@ -1763,9 +1971,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               {pagedFamilies.map((row) => {
                 const { family, visibleVariants, minPrice, maxPrice, discounts } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const hasSubtable = visibleVariants.length > 0;
+                const hasSubtable = visibleVariants.length > 1;
                 const isEditingFamily = activeEditScope?.familyId === family.id;
                 const isEditingGroup = isEditingFamily && activeEditScope?.kind === 'group';
+                const isSingleSelectedFamily = singleSelectedFamilyId === family.id;
+                const canEditFamilyPills = !isSelectedPillUpdating && (isEditingFamily || isSingleSelectedFamily);
                 const familyDraft = getFamilyDraftForState(family, familyDrafts);
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
                 const draftVisibleVariants = visibleVariants.map((variant) => getVariantDraftForState(variant, variantDrafts));
@@ -1775,6 +1985,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const rawActionPrices = visibleVariants
                   .filter((variant) => variant.discountPct > 0)
                   .map((variant) => computeSalePrice(variant.price, variant.discountPct));
+                const familySkuDisplay = getBaseSku(family) || '\u2014';
+                const familyCategoryDisplay = getFamilyCategoryDisplay(family);
+                const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
+                const familyDiscountDisplay = formatPercentRange(discounts);
+                const familyActionPriceDisplay = rawActionPrices.length ? formatCurrencyRangeFromValues(rawActionPrices) : '\u2014';
                 return (
                   <Fragment key={family.id}>
                     <tr className={`border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
@@ -1821,7 +2036,19 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           )}
                         </div>
                       </td>
-                      <td className="px-2 py-4 text-slate-600">{isEditingFamily ? <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} /> : (getBaseSku(family) || '—')}</td>
+                      <td className="px-2 py-4 text-slate-600">
+                        {isEditingFamily ? (
+                          <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} />
+                        ) : (
+                          <span
+                            className={`inline-flex max-w-full items-center ${getMatchingValueClassName('sku', familySkuDisplay)}`}
+                            onMouseEnter={() => setHoveredArticleCell('sku', familySkuDisplay)}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {familySkuDisplay}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-2 py-4 text-slate-600">
                         {isEditingFamily ? (
                           <div className="min-w-0">
@@ -1834,13 +2061,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </div>
                         ) : (
                           <div className="min-w-0">
-                            <AdminCategoryBreadcrumbPicker
-                              value={family.categoryPath.length > 0 ? family.categoryPath : normalizeCategoryPath(family.category)}
-                              onChange={() => {}}
-                              categoryPaths={categoryPaths}
-                              disabled
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
-                            />
+                            <span
+                              className={`inline-block max-w-full truncate px-1 align-middle text-[12px] text-slate-600 ${getMatchingValueClassName('category', familyCategoryDisplay)}`}
+                              onMouseEnter={() => setHoveredArticleCell('category', familyCategoryDisplay)}
+                              onMouseLeave={() => setHoveredCellMatch(null)}
+                            >
+                              {familyCategoryDisplay}
+                            </span>
                           </div>
                         )}
                       </td>
@@ -1860,7 +2087,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <span className={compactTableAdornmentClassName}>€</span>
                             </span>
                           </span>
-                        ) : formatCurrencyRange(minPrice, maxPrice)}
+                        ) : (
+                          <span
+                            className={`inline-flex justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}
+                            onMouseEnter={() => setHoveredArticleCell('priceRange', familyPriceDisplay)}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {familyPriceDisplay}
+                          </span>
+                        )}
                       </td>
                       <td className="w-[6.83%] px-2 py-4 text-right text-emerald-700">
                         {isEditingFamily ? (
@@ -1878,7 +2113,15 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <span className={compactTableAdornmentClassName}>%</span>
                             </span>
                           </span>
-                        ) : formatPercentRange(discounts)}
+                        ) : (
+                          <span
+                            className={`inline-flex justify-end ${getMatchingValueClassName('discount', familyDiscountDisplay)}`}
+                            onMouseEnter={() => setHoveredArticleCell('discount', familyDiscountDisplay)}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {familyDiscountDisplay}
+                          </span>
+                        )}
                       </td>
                       <td className="w-[10.33%] px-2 py-4 text-right">
                         {isEditingFamily ? (
@@ -1896,13 +2139,44 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               <span className={compactTableAdornmentClassName}>€</span>
                             </span>
                           </span>
-                        ) : rawActionPrices.length ? formatCurrencyRangeFromValues(rawActionPrices) : '—'}
+                        ) : (
+                          <span
+                            className={`inline-flex justify-end ${getMatchingValueClassName('actionPriceRange', familyActionPriceDisplay)}`}
+                            onMouseEnter={() => setHoveredArticleCell('actionPriceRange', familyActionPriceDisplay)}
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {familyActionPriceDisplay}
+                          </span>
+                        )}
                       </td>
-                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-4 text-center`}><div className={STATUS_NOTE_CELL_INNER_CLASS}><ActiveStateChip active={familyDraft.active} editable={isEditingFamily} editScope={`family:${family.id}`} chipClassName="!min-w-[92px] !text-[11px]" onChange={(next) => updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, active: next }))} /></div></td>
+                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-4 text-center`}>
+                        <div className={STATUS_NOTE_CELL_INNER_CLASS}>
+                          <ActiveStateChip
+                            active={isEditingFamily ? familyDraft.active : family.active}
+                            editable={canEditFamilyPills}
+                            editScope={`family:${family.id}`}
+                            onChange={(next) =>
+                              isEditingFamily
+                                ? updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, active: next }))
+                                : handleSelectedStatusUpdate(next, { familyIds: [family.id], variantIds: [] })
+                            }
+                          />
+                        </div>
+                      </td>
                       <td className={`${NOTE_COLUMN_CLASS} px-0 py-4 text-center`}>
-                        {isEditingFamily
-                          ? <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(familyDraft.badge || 'na-zalogi') as NoteTag} editable editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={(next) => updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, badge: (next || 'na-zalogi') as NoteValue }))} /></div>
-                          : <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(family.itemBadge || 'na-zalogi') as NoteTag} editable={false} editScope={`family:${family.id}`} chipClassName="!min-w-[97px] !text-[11px]" placeholderLabel="Opombe" onChange={() => {}} /></div>}
+                        <div className={STATUS_NOTE_CELL_INNER_CLASS}>
+                          <NoteTagChip
+                            value={((isEditingFamily ? familyDraft.badge : family.itemBadge) || 'na-zalogi') as NoteTag}
+                            editable={canEditFamilyPills}
+                            editScope={`family:${family.id}`}
+                            placeholderLabel="Opombe"
+                            onChange={(next) =>
+                              isEditingFamily
+                                ? updateFamilyDraft(family.id, familyDraft, (current) => ({ ...current, badge: (next || 'na-zalogi') as NoteValue }))
+                                : handleSelectedNoteUpdate((next || 'na-zalogi') as NoteTag, { familyIds: [family.id], variantIds: [] })
+                            }
+                          />
+                        </div>
                       </td>
                       <td className={`${ACTIONS_COLUMN_CLASS} px-2 py-4 text-center`}>
                         {isEditingFamily ? (
@@ -1992,8 +2266,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             <tbody>
                               {visibleVariants.map((variant) => {
                                 const isEditing = isEditingGroup;
+                                const isSingleSelectedVariant = singleSelectedVariantId === variant.id;
+                                const canEditVariantPills = !isSelectedPillUpdating && (isEditing || isSingleSelectedVariant);
                                 const draft = variantDrafts[variant.id] ?? createVariantDraft(variant);
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
+                                const variantSkuDisplay = draft.sku || '\u2014';
+                                const variantPriceDisplay = formatCurrency(draft.price);
+                                const variantDiscountDisplay = `${draft.discountPct}%`;
+                                const variantActionPriceDisplay = actionPrice === null ? '\u2014' : formatCurrency(actionPrice);
                                 return (
                                   <tr key={variant.id} className="border-t border-slate-200/90" data-edit-scope={`family:${family.id}`}>
                                     <td className="px-2 py-2 text-center">
@@ -2038,7 +2318,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           }
                                         />
                                       ) : (
-                                        draft.sku
+                                        <span
+                                          className={`inline-flex max-w-full items-center ${getMatchingValueClassName('sku', variantSkuDisplay)}`}
+                                          onMouseEnter={() => setHoveredArticleCell('sku', variantSkuDisplay)}
+                                          onMouseLeave={() => setHoveredCellMatch(null)}
+                                        >
+                                          {variantSkuDisplay}
+                                        </span>
                                       )}
                                     </td>
                                     <td className="w-[10.33%] px-2 py-2 text-right">
@@ -2058,7 +2344,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           </span>
                                         </span>
                                       ) : (
-                                        formatCurrency(draft.price)
+                                        <span
+                                          className={`inline-flex justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}
+                                          onMouseEnter={() => setHoveredArticleCell('priceRange', variantPriceDisplay)}
+                                          onMouseLeave={() => setHoveredCellMatch(null)}
+                                        >
+                                          {variantPriceDisplay}
+                                        </span>
                                       )}
                                     </td>
                                     <td className="w-[10.33%] px-2 py-2 text-right text-emerald-700">
@@ -2078,7 +2370,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           </span>
                                         </span>
                                       ) : (
-                                        `${draft.discountPct}%`
+                                        <span
+                                          className={`inline-flex justify-end ${getMatchingValueClassName('discount', variantDiscountDisplay)}`}
+                                          onMouseEnter={() => setHoveredArticleCell('discount', variantDiscountDisplay)}
+                                          onMouseLeave={() => setHoveredCellMatch(null)}
+                                        >
+                                          {variantDiscountDisplay}
+                                        </span>
                                       )}
                                     </td>
                                     <td className="w-[10.33%] px-2 py-2 text-right">
@@ -2097,43 +2395,49 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                             <span className={compactTableAdornmentClassName}>€</span>
                                           </span>
                                         </span>
-                                      ) : actionPrice === null ? '—' : formatCurrency(actionPrice)}
+                                      ) : (
+                                        <span
+                                          className={`inline-flex justify-end ${getMatchingValueClassName('actionPriceRange', variantActionPriceDisplay)}`}
+                                          onMouseEnter={() => setHoveredArticleCell('actionPriceRange', variantActionPriceDisplay)}
+                                          onMouseLeave={() => setHoveredCellMatch(null)}
+                                        >
+                                          {variantActionPriceDisplay}
+                                        </span>
+                                      )}
                                     </td>
                                     <td className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>
                                       <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <ActiveStateChip
-                                          active={draft.active}
-                                          editable={isEditing}
+                                          active={isEditing ? draft.active : variant.active}
+                                          editable={canEditVariantPills}
                                           editScope={`variant:${variant.id}`}
-                                          chipClassName="!min-w-[92px] !text-[11px]"
                                           onChange={(next) =>
-                                            setVariantDrafts((current) => ({
-                                              ...current,
-                                              [variant.id]: { ...draft, active: next }
-                                            }))
+                                            isEditing
+                                              ? setVariantDrafts((current) => ({
+                                                  ...current,
+                                                  [variant.id]: { ...draft, active: next }
+                                                }))
+                                              : handleSelectedStatusUpdate(next, { familyIds: [], variantIds: [variant.id] })
                                           }
                                         />
                                       </div>
                                     </td>
                                     <td className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>
-                                      {isEditing ? (
-                                        <div className={STATUS_NOTE_CELL_INNER_CLASS}>
-                                          <NoteTagChip
-                                            value={(draft.note || 'na-zalogi') as NoteTag}
-                                            editable
-                                            editScope={`variant:${variant.id}`}
-                                            chipClassName="!min-w-[97px] !text-[11px]"
-                                            onChange={(next) =>
-                                              setVariantDrafts((current) => ({
-                                                ...current,
-                                                [variant.id]: { ...draft, note: (next || 'na-zalogi') as NoteValue }
-                                              }))
-                                            }
-                                          />
-                                        </div>
-                                      ) : (
-                                        <div className={STATUS_NOTE_CELL_INNER_CLASS}><NoteTagChip value={(draft.note || 'na-zalogi') as NoteTag} editable={false} editScope={`variant:${variant.id}`} chipClassName="!min-w-[97px] !text-[11px]" onChange={() => {}} /></div>
-                                      )}
+                                      <div className={STATUS_NOTE_CELL_INNER_CLASS}>
+                                        <NoteTagChip
+                                          value={((isEditing ? draft.note : normalizeNoteValue(variant.badge)) || 'na-zalogi') as NoteTag}
+                                          editable={canEditVariantPills}
+                                          editScope={`variant:${variant.id}`}
+                                          onChange={(next) =>
+                                            isEditing
+                                              ? setVariantDrafts((current) => ({
+                                                  ...current,
+                                                  [variant.id]: { ...draft, note: (next || 'na-zalogi') as NoteValue }
+                                                }))
+                                              : handleSelectedNoteUpdate((next || 'na-zalogi') as NoteTag, { familyIds: [], variantIds: [variant.id] })
+                                          }
+                                        />
+                                      </div>
                                     </td>
                                     <td className="w-[5%] px-2 py-2 text-center">
                                       {isEditing ? (
@@ -2241,11 +2545,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           <div style={getHeaderPopoverStyle(noteFilterButtonRef.current, 184)}>
             <MenuPanel className="w-44 shadow-lg">
               <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('all'); setOpenFilter(null); })}>Vse opombe</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('na-zalogi'); setOpenFilter(null); })}>Na zalogi</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('novo'); setOpenFilter(null); })}>Novo</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('akcija'); setOpenFilter(null); })}>V akciji</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); })}>Zadnji kosi</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); })}>Ni na zalogi</MenuItem>
+              <MenuItem className={getNoteTagMenuItemClassName('na-zalogi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('na-zalogi'); setOpenFilter(null); })}>Na zalogi</MenuItem>
+              <MenuItem className={getNoteTagMenuItemClassName('novo')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('novo'); setOpenFilter(null); })}>Novo</MenuItem>
+              <MenuItem className={getNoteTagMenuItemClassName('akcija')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('akcija'); setOpenFilter(null); })}>V akciji</MenuItem>
+              <MenuItem className={getNoteTagMenuItemClassName('zadnji-kosi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('zadnji-kosi'); setOpenFilter(null); })}>Zadnji kosi</MenuItem>
+              <MenuItem className={getNoteTagMenuItemClassName('ni-na-zalogi')} onClick={() => requestCurrentEditResolution('filtriranjem opomb', () => { setNoteFilter('ni-na-zalogi'); setOpenFilter(null); })}>Ni na zalogi</MenuItem>
             </MenuPanel>
           </div>
         ) : null}
@@ -2253,8 +2557,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 144)}>
             <MenuPanel className="w-36 shadow-lg">
               <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('all'); setOpenFilter(null); })}>Vsi</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('active'); setOpenFilter(null); })}>Aktiven</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('inactive'); setOpenFilter(null); })}>Neaktiven</MenuItem>
+              <MenuItem className={getActiveStateMenuItemClassName(true)} onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('active'); setOpenFilter(null); })}>Aktiven</MenuItem>
+              <MenuItem className={getActiveStateMenuItemClassName(false)} onClick={() => requestCurrentEditResolution('filtriranjem statusov', () => { setStatusFilter('inactive'); setOpenFilter(null); })}>Neaktiven</MenuItem>
             </MenuPanel>
           </div>
         ) : null}

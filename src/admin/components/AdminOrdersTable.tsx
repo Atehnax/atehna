@@ -24,10 +24,16 @@ import { useToast } from '@/shared/ui/toast';
 import { EmptyState, RowActions, RowActionsDropdown, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { Input } from '@/shared/ui/input';
-import { adminTableRowToneClasses, adminTextButtonTypographyTokenClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  adminStatusInfoPillTableCellClassName,
+  adminTableRowToneClasses,
+  adminTextButtonTypographyTokenClasses,
+  filterPillTokenClasses
+} from '@/shared/ui/theme/tokens';
 import {
   adminTableCardClassName,
   adminTableCardStyle,
+  adminTableBulkHeaderButtonClassName,
   adminTableCompactPopoverPanelClassName,
   adminTableContentClassName,
   adminTableHeaderButtonClassName,
@@ -40,7 +46,6 @@ import {
   adminTableInlineConfirmIconClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePopoverPanelClassName,
-  adminTablePopoverPresetButtonClassName,
   adminTablePopoverPrimaryButtonClassName,
   adminTablePopoverSecondaryButtonClassName,
   adminTablePrimaryButtonClassName,
@@ -66,9 +71,9 @@ import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
 import { CustomSelect } from '@/shared/ui/select';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel } from '@/shared/domain/order/customerType';
-import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
+import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
-import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
+import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 import {
@@ -139,6 +144,7 @@ type OrderQuickEditState = {
 };
 
 type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
+type OrdersQuickDateRange = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 type SortableColumnKey = 'order' | 'date' | 'customer' | 'address' | 'status' | 'payment' | 'total' | 'type';
 type TypePriority = 'school' | 'company' | 'individual';
@@ -174,6 +180,25 @@ const ORDERS_NUMERIC_RANGE_PRESETS: RangePreset[] = ['20', '50', '100', '200', '
   label: `0-${maxValue === '1000' ? '1k' : maxValue}`,
   value: { min: '0', max: maxValue }
 }));
+const ORDERS_QUICK_DATE_RANGE_OPTIONS: Array<{
+  key: OrdersQuickDateRange;
+  label: string;
+  value: string;
+  unit?: string;
+}> = [
+  { key: '7d', label: 'Zadnjih 7 dni', value: '7', unit: 'dni' },
+  { key: '30d', label: 'Zadnjih 30 dni', value: '30', unit: 'dni' },
+  { key: '90d', label: 'Zadnjih 90 dni', value: '90', unit: 'dni' },
+  { key: '180d', label: 'Zadnjih 180 dni', value: '180', unit: 'dni' },
+  { key: '365d', label: 'Zadnje leto', value: '1', unit: 'leto' },
+  { key: 'ytd', label: 'Letos', value: 'Letos' }
+];
+const ORDERS_DATE_PRESET_BUTTON_CLASS =
+  "inline-flex h-8 items-center justify-center gap-1 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 font-['Inter',system-ui,sans-serif] text-slate-600 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0";
+const ORDERS_DATE_PRESET_VALUE_CLASS =
+  "font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-none text-slate-800";
+const ORDERS_DATE_PRESET_UNIT_CLASS =
+  "font-['Inter',system-ui,sans-serif] text-[10px] font-medium leading-none text-slate-500";
 const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) => ({
   value: option.value,
   label: getCustomerTypeLabel(option.value)
@@ -184,20 +209,21 @@ const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-lef
 const ORDERS_HEADER_CONTENT_CLASS = 'relative inline-flex h-11 items-center gap-1.5 align-middle';
 const ORDERS_BODY_CELL_BASE_CLASS = 'h-12 px-3 py-0 align-middle text-[12px] text-slate-700';
 const ORDERS_BODY_CELL_CENTER_CLASS = `${ORDERS_BODY_CELL_BASE_CLASS} text-center`;
+const ORDERS_STATUS_INFO_HEADER_CELL_CLASS =
+  `${ORDERS_HEADER_CELL_BASE_CLASS} ${adminStatusInfoPillTableCellClassName}`;
+const ORDERS_STATUS_INFO_BODY_CELL_CLASS =
+  `${ORDERS_BODY_CELL_BASE_CLASS} ${adminStatusInfoPillTableCellClassName}`;
 const ORDERS_ROW_CLASS = 'h-12 border-t border-slate-200/90 bg-white text-[12px] transition-colors duration-200';
 const ORDERS_INLINE_CONTROL_FRAME_CLASS = 'mx-auto flex h-7 w-full items-center justify-center';
 const ORDERS_INLINE_SELECT_TRIGGER_CLASS =
   '!h-7 !rounded-md !border-slate-300 !bg-white !px-2 !py-0 !text-[12px] !leading-none !text-slate-700';
-const ORDERS_BULK_HEADER_BUTTON_CLASS =
-  'inline-flex h-8 items-center rounded-md border border-slate-300 bg-white px-2.5 text-[12px] font-semibold leading-none text-slate-700 hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300';
+const ORDERS_BULK_HEADER_BUTTON_CLASS = adminTableBulkHeaderButtonClassName;
 const ORDERS_INLINE_TEXT_INPUT_CLASS =
   'h-7 !rounded-md border-slate-300 bg-white px-2 text-[12px] text-slate-900';
 const ORDERS_ORDER_INPUT_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} !w-[52px] !text-center font-semibold`;
 const ORDERS_DATE_INPUT_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} admin-orders-date-input !w-[100px] !max-w-[100px] !pl-2 !pr-[3px] !font-normal`;
 const ORDERS_TEXT_INPUT_FULL_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} !w-full !font-normal`;
 const ORDERS_TYPE_SELECT_TRIGGER_CLASS = `${ORDERS_INLINE_SELECT_TRIGGER_CLASS} !min-w-[82px] !font-normal`;
-const ORDERS_STATUS_CHIP_CLASS = '!min-w-[96px] !text-[11px]';
-const ORDERS_PAYMENT_CHIP_CLASS = '!min-w-[96px] !text-[11px]';
 const ORDERS_EMPHASIZED_VALUE_CLASS = 'font-semibold text-slate-900';
 const ORDERS_STANDARD_VALUE_CLASS = 'font-normal text-slate-700';
 const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -213,6 +239,7 @@ function OrdersInlineChipSelect<Value extends string>({
   disabled = false,
   ariaLabel,
   menuWidth = 144,
+  optionClassName,
   onChange,
   children
 }: {
@@ -221,6 +248,7 @@ function OrdersInlineChipSelect<Value extends string>({
   disabled?: boolean;
   ariaLabel: string;
   menuWidth?: number;
+  optionClassName?: (value: Value) => string;
   onChange: (next: Value) => void;
   children: ReactNode;
 }) {
@@ -322,6 +350,7 @@ function OrdersInlineChipSelect<Value extends string>({
                   <MenuItem
                     key={option.value}
                     isActive={option.value === value}
+                    className={optionClassName?.(option.value)}
                     onClick={() => {
                       onChange(option.value);
                       setIsOpen(false);
@@ -711,7 +740,7 @@ export default function AdminOrdersTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyQuickDateRange = (range: '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd') => {
+  const applyQuickDateRange = (range: OrdersQuickDateRange) => {
     const anchorDate = new Date(latestOrderDate);
 
     if (range === 'ytd') {
@@ -719,7 +748,7 @@ export default function AdminOrdersTable({
       return { from: toDateInputValue(ytdStart), to: toDateInputValue(anchorDate) };
     }
 
-    const dayCountByRange: Record<'7d' | '30d' | '90d' | '180d' | '365d', number> = {
+    const dayCountByRange: Record<Exclude<OrdersQuickDateRange, 'ytd'>, number> = {
       '7d': 6,
       '30d': 29,
       '90d': 89,
@@ -1084,6 +1113,8 @@ export default function AdminOrdersTable({
   const allSelected = visibleOrderIds.length > 0 && selectedVisibleCount === visibleOrderIds.length;
   const selectedCount = selected.length;
   const hasSelectedRows = selectedCount > 0;
+  const hasBulkSelectedRows = selectedCount > 1;
+  const singleSelectedOrderId = selectedCount === 1 ? selected[0] ?? null : null;
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
   const [rowPaymentOverrides, setRowPaymentOverrides] = useState<Record<number, string | null>>({});
@@ -1331,11 +1362,11 @@ export default function AdminOrdersTable({
   }, [quickEdit, toast]);
 
   useEffect(() => {
-    if (selectedCount === 0) {
+    if (!hasBulkSelectedRows) {
       setIsStatusHeaderMenuOpen(false);
       setIsPaymentHeaderMenuOpen(false);
     }
-  }, [selectedCount]);
+  }, [hasBulkSelectedRows]);
 
   useEffect(() => {
     if (!selectAllRef.current) return;
@@ -1467,7 +1498,7 @@ export default function AdminOrdersTable({
   };
 
   const handleBulkStatusUpdate = async (nextStatus: string) => {
-    if (selected.length === 0) return;
+    if (selected.length <= 1) return;
 
     setIsBulkUpdatingStatus(true);
     try {
@@ -1499,7 +1530,7 @@ export default function AdminOrdersTable({
   };
 
   const handleBulkPaymentUpdate = async (nextPaymentStatus: string) => {
-    if (selected.length === 0 || !isPaymentStatus(nextPaymentStatus)) return;
+    if (selected.length <= 1 || !isPaymentStatus(nextPaymentStatus)) return;
 
     setIsBulkUpdatingStatus(true);
     try {
@@ -1521,6 +1552,56 @@ export default function AdminOrdersTable({
         return nextOverrides;
       });
       setIsPaymentHeaderMenuOpen(false);
+      toast.success('Shranjeno');
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
+  const handleSingleRowStatusUpdate = async (orderId: number, nextStatus: string) => {
+    setIsBulkUpdatingStatus(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+
+      if (!response.ok) throw new Error('Status update failed');
+
+      setRowStatusOverrides((previousOverrides) => ({
+        ...previousOverrides,
+        [orderId]: nextStatus
+      }));
+      toast.success('Shranjeno');
+    } catch (error) {
+      console.error(error);
+      toast.error('Napaka pri shranjevanju');
+    } finally {
+      setIsBulkUpdatingStatus(false);
+    }
+  };
+
+  const handleSingleRowPaymentUpdate = async (orderId: number, nextPaymentStatus: string) => {
+    if (!isPaymentStatus(nextPaymentStatus)) return;
+
+    setIsBulkUpdatingStatus(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextPaymentStatus, note: '' })
+      });
+
+      if (!response.ok) throw new Error('Payment status update failed');
+
+      setRowPaymentOverrides((previousOverrides) => ({
+        ...previousOverrides,
+        [orderId]: nextPaymentStatus
+      }));
       toast.success('Shranjeno');
     } catch (error) {
       console.error(error);
@@ -1912,13 +1993,13 @@ export default function AdminOrdersTable({
             />
           }
         >
-          <Table className="min-w-[1060px] w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200">
+          <Table className="min-w-[1250px] w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}
               {visibleColumns.date ? <col style={{ width: columnWidths.date }} /> : null}
               {visibleColumns.customer ? <col style={{ width: columnWidths.customer }} /> : null}
-              {visibleColumns.address ? <col style={{ width: columnWidths.address }} /> : null}
+              {visibleColumns.address ? <col /> : null}
               {visibleColumns.type ? <col style={{ width: columnWidths.type }} /> : null}
               {visibleColumns.status ? <col style={{ width: columnWidths.status }} /> : null}
               {visibleColumns.payment ? <col style={{ width: columnWidths.payment }} /> : null}
@@ -1970,15 +2051,15 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.status ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                {visibleColumns.status ? <TH className={ORDERS_STATUS_INFO_HEADER_CELL_CLASS}>
                   <div className="relative flex h-11 items-center justify-center" ref={statusHeaderMenuRef}>
-                    {selectedCount > 0 ? (
+                    {hasBulkSelectedRows ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className={ORDERS_BULK_HEADER_BUTTON_CLASS}
+                          className={ORDERS_BULK_HEADER_BUTTON_CLASS}
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
                         >
@@ -1991,6 +2072,7 @@ export default function AdminOrdersTable({
                               {ORDER_STATUS_OPTIONS.map((option) => (
                                 <MenuItem
                                   key={option.value}
+                                  className={getStatusMenuItemClassName(option.value)}
                                   onClick={() => handleBulkStatusUpdate(option.value)}
                                   disabled={isBulkUpdatingStatus}
                                 >
@@ -2010,15 +2092,15 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.payment ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
+                {visibleColumns.payment ? <TH className={ORDERS_STATUS_INFO_HEADER_CELL_CLASS}>
                   <div className="relative flex h-11 items-center justify-center" ref={paymentHeaderMenuRef}>
-                    {selectedCount > 0 ? (
+                    {hasBulkSelectedRows ? (
                       <>
                         <button
                           type="button"
                           onClick={() => setIsPaymentHeaderMenuOpen((previousOpen) => !previousOpen)}
                           disabled={isBulkUpdatingStatus}
-                        className={ORDERS_BULK_HEADER_BUTTON_CLASS}
+                          className={ORDERS_BULK_HEADER_BUTTON_CLASS}
                           aria-haspopup="menu"
                           aria-expanded={isPaymentHeaderMenuOpen}
                         >
@@ -2031,6 +2113,7 @@ export default function AdminOrdersTable({
                               {PAYMENT_STATUS_OPTIONS.map((option) => (
                                 <MenuItem
                                   key={option.value}
+                                  className={getPaymentMenuItemClassName(option.value)}
                                   onClick={() => handleBulkPaymentUpdate(option.value)}
                                   disabled={isBulkUpdatingStatus}
                                 >
@@ -2104,7 +2187,9 @@ export default function AdminOrdersTable({
                   const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(effectiveOrder.customer_type);
                   const rowStatus = effectiveOrder.status;
                   const rowPaymentStatus = effectiveOrder.payment_status ?? null;
+                  const normalizedRowPaymentStatus = isPaymentStatus(rowPaymentStatus ?? '') ? rowPaymentStatus ?? 'unpaid' : 'unpaid';
                   const isRowSelected = selected.includes(order.id);
+                  const isSingleSelectedOrder = singleSelectedOrderId === order.id;
                   const activeQuickEdit = quickEdit?.orderId === order.id ? quickEdit : null;
                   const isRowQuickEditing = activeQuickEdit !== null;
                   const isQuickEditValid = activeQuickEdit
@@ -2303,7 +2388,7 @@ export default function AdminOrdersTable({
                         )}
                       </TD> : null}
 
-                      {visibleColumns.status ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
+                      {visibleColumns.status ? <TD className={ORDERS_STATUS_INFO_BODY_CELL_CLASS}>
                         <div className={ORDERS_INLINE_CONTROL_FRAME_CLASS}>
                           {isRowQuickEditing ? (
                             <OrdersInlineChipSelect
@@ -2319,16 +2404,29 @@ export default function AdminOrdersTable({
                               disabled={activeQuickEdit.isSaving}
                               ariaLabel={`Status naročila ${order.id}`}
                               menuWidth={152}
+                              optionClassName={getStatusMenuItemClassName}
                             >
-                              <StatusChip status={activeQuickEdit.draftStatus} className={ORDERS_STATUS_CHIP_CLASS} />
+                              <StatusChip status={activeQuickEdit.draftStatus} />
+                            </OrdersInlineChipSelect>
+                          ) : isSingleSelectedOrder ? (
+                            <OrdersInlineChipSelect
+                              value={rowStatus}
+                              onChange={(value) => void handleSingleRowStatusUpdate(order.id, value)}
+                              options={ORDER_STATUS_OPTIONS}
+                              disabled={isBulkUpdatingStatus}
+                              ariaLabel={`Status naročila ${order.id}`}
+                              menuWidth={152}
+                              optionClassName={getStatusMenuItemClassName}
+                            >
+                              <StatusChip status={rowStatus} />
                             </OrdersInlineChipSelect>
                           ) : (
-                            <StatusChip status={rowStatus} className={ORDERS_STATUS_CHIP_CLASS} />
+                            <StatusChip status={rowStatus} />
                           )}
                         </div>
                       </TD> : null}
 
-                      {visibleColumns.payment ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
+                      {visibleColumns.payment ? <TD className={ORDERS_STATUS_INFO_BODY_CELL_CLASS}>
                         <div className={ORDERS_INLINE_CONTROL_FRAME_CLASS}>
                           {isRowQuickEditing ? (
                             <OrdersInlineChipSelect
@@ -2344,11 +2442,24 @@ export default function AdminOrdersTable({
                               disabled={activeQuickEdit.isSaving}
                               ariaLabel={`Plačilo naročila ${order.id}`}
                               menuWidth={140}
+                              optionClassName={getPaymentMenuItemClassName}
                             >
-                              <PaymentChip status={activeQuickEdit.draftPaymentStatus} className={ORDERS_PAYMENT_CHIP_CLASS} />
+                              <PaymentChip status={activeQuickEdit.draftPaymentStatus} />
+                            </OrdersInlineChipSelect>
+                          ) : isSingleSelectedOrder ? (
+                            <OrdersInlineChipSelect
+                              value={normalizedRowPaymentStatus}
+                              onChange={(value) => void handleSingleRowPaymentUpdate(order.id, value)}
+                              options={PAYMENT_STATUS_OPTIONS}
+                              disabled={isBulkUpdatingStatus}
+                              ariaLabel={`Plačilo naročila ${order.id}`}
+                              menuWidth={140}
+                              optionClassName={getPaymentMenuItemClassName}
+                            >
+                              <PaymentChip status={rowPaymentStatus} />
                             </OrdersInlineChipSelect>
                           ) : (
-                            <PaymentChip status={rowPaymentStatus} className={ORDERS_PAYMENT_CHIP_CLASS} />
+                            <PaymentChip status={rowPaymentStatus} />
                           )}
                         </div>
                       </TD> : null}
@@ -2468,19 +2579,13 @@ export default function AdminOrdersTable({
               <div lang="sl-SI" style={getHeaderPopoverStyle(dateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi obdobje</h4>
                 <div className="mb-3 grid grid-cols-3 gap-2">
-                    {[
-                    { key: '7d', label: 'Zadnjih 7d' },
-                    { key: '30d', label: 'Zadnjih 30d' },
-                    { key: '90d', label: 'Zadnjih 90d' },
-                    { key: '180d', label: 'Zadnjih 180d' },
-                    { key: '365d', label: 'Zadnjih 365d' },
-                    { key: 'ytd', label: 'Letos' }
-                  ].map((item) => (
+                  {ORDERS_QUICK_DATE_RANGE_OPTIONS.map((item) => (
                     <button
                       key={item.key}
                       type="button"
+                      aria-label={item.label}
                       onClick={() => {
-                        const quickRange = applyQuickDateRange(item.key as '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd');
+                        const quickRange = applyQuickDateRange(item.key);
                         setDraftFromDate(quickRange.from);
                         setDraftToDate(quickRange.to);
                         setFromDate(quickRange.from);
@@ -2488,9 +2593,10 @@ export default function AdminOrdersTable({
                         setHasExplicitDateFilter(true);
                         setOpenHeaderFilter(null);
                       }}
-                      className={adminTablePopoverPresetButtonClassName}
+                      className={ORDERS_DATE_PRESET_BUTTON_CLASS}
                     >
-                      {item.label}
+                      <span className={ORDERS_DATE_PRESET_VALUE_CLASS}>{item.value}</span>
+                      {item.unit ? <span className={ORDERS_DATE_PRESET_UNIT_CLASS}>{item.unit}</span> : null}
                     </button>
                   ))}
                 </div>
@@ -2522,7 +2628,11 @@ export default function AdminOrdersTable({
               <div style={getHeaderPopoverStyle(statusFilterButtonRef.current, 160)}>
                 <MenuPanel>
                   {[{ value: 'all', label: 'Vsi' } as const, ...ORDER_STATUS_OPTIONS].map((option) => (
-                    <MenuItem key={option.value} onClick={() => { setColumnStatusFilter(option.value as StatusTab); setOpenHeaderFilter(null); }}>
+                    <MenuItem
+                      key={option.value}
+                      className={option.value === 'all' ? undefined : getStatusMenuItemClassName(option.value)}
+                      onClick={() => { setColumnStatusFilter(option.value as StatusTab); setOpenHeaderFilter(null); }}
+                    >
                       {option.label}
                     </MenuItem>
                   ))}
@@ -2533,7 +2643,13 @@ export default function AdminOrdersTable({
               <div style={getHeaderPopoverStyle(paymentFilterButtonRef.current, 160)}>
                 <MenuPanel>
                   {[{ value: 'all', label: 'Vsa' }, ...PAYMENT_STATUS_OPTIONS].map((option) => (
-                    <MenuItem key={option.value} onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}>{option.label}</MenuItem>
+                    <MenuItem
+                      key={option.value}
+                      className={option.value === 'all' ? undefined : getPaymentMenuItemClassName(option.value)}
+                      onClick={() => { setColumnPaymentFilter(option.value as any); setOpenHeaderFilter(null); }}
+                    >
+                      {option.label}
+                    </MenuItem>
                   ))}
                 </MenuPanel>
               </div>

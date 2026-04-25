@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import PaymentChip from '@/admin/components/PaymentChip';
-import { PAYMENT_STATUS_OPTIONS, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
+import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { useToast } from '@/shared/ui/toast';
 
@@ -109,6 +109,7 @@ export default function AdminOrderPaymentSelect({
             {PAYMENT_STATUS_OPTIONS.map((option) => (
               <MenuItem
                 key={option.value}
+                className={getPaymentMenuItemClassName(option.value)}
                 onClick={() => handleChange(option.value)}
                 disabled={isSaving || option.value === currentStatus}
               >

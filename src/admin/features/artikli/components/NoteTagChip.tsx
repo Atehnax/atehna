@@ -4,9 +4,23 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Chip } from '@/shared/ui/badge';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import { getAdminStatusInfoMenuOptionClassName } from '@/shared/ui/theme/tokens';
 
 export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-type NoteTagValue = NoteTag | '';
+export type NoteTagValue = NoteTag | '';
+
+export const getNoteTagMenuItemClassName = (value: NoteTagValue) =>
+  getAdminStatusInfoMenuOptionClassName(
+    value === 'na-zalogi'
+      ? 'success'
+      : value === 'novo'
+        ? 'info'
+        : value === 'akcija'
+          ? 'rose'
+          : value === 'zadnji-kosi'
+            ? 'purple'
+            : 'neutral'
+  );
 
 export function NoteTagChip({
   value,
@@ -107,7 +121,7 @@ export function NoteTagChip({
       >
         {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
         <span className="block">
-          <Chip variant={variant} className={`${chipClassName ?? ''} ${emphasisClassName} !h-7`.trim()}>{label}</Chip>
+          <Chip size="adminStatusInfo" variant={variant} className={`${emphasisClassName} ${chipClassName ?? ''}`.trim()}>{label}</Chip>
         </span>
       </button>
       {editable && isOpen && menuPosition && typeof document !== 'undefined'
@@ -120,12 +134,12 @@ export function NoteTagChip({
               style={{ top: menuPosition.top, left: menuPosition.left }}
             >
               <MenuPanel>
-                {allowEmpty ? <MenuItem onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
-                <MenuItem onClick={() => { onChange('na-zalogi'); setIsOpen(false); }}>Na zalogi</MenuItem>
-                <MenuItem onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
-                <MenuItem onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
-                <MenuItem onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
-                <MenuItem onClick={() => { onChange('ni-na-zalogi'); setIsOpen(false); }}>Ni na zalogi</MenuItem>
+                {allowEmpty ? <MenuItem className={getNoteTagMenuItemClassName('')} onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
+                <MenuItem className={getNoteTagMenuItemClassName('na-zalogi')} onClick={() => { onChange('na-zalogi'); setIsOpen(false); }}>Na zalogi</MenuItem>
+                <MenuItem className={getNoteTagMenuItemClassName('novo')} onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
+                <MenuItem className={getNoteTagMenuItemClassName('akcija')} onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
+                <MenuItem className={getNoteTagMenuItemClassName('zadnji-kosi')} onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
+                <MenuItem className={getNoteTagMenuItemClassName('ni-na-zalogi')} onClick={() => { onChange('ni-na-zalogi'); setIsOpen(false); }}>Ni na zalogi</MenuItem>
               </MenuPanel>
             </div>,
             document.body

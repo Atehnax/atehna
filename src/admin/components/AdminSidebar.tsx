@@ -7,31 +7,117 @@ import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
 const primaryLinks = [
-  { href: '/admin/orders', label: 'Naročila', icon: 'orders' },
-  { href: '/admin/artikli', label: 'Artikli', icon: 'products' },
-  { href: '/admin/kategorije', label: 'Kategorije', icon: 'categories' },
-  { href: '/admin/analitika', label: 'Analitika', icon: 'analytics' },
-  { href: '/admin/kupci', label: 'Seznam kupcev', icon: 'customers' },
-  { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: 'visual' },
-  { href: '/admin/arhiv', label: 'Arhiv', icon: 'archive' }
+  { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
+  { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
+  { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
+  { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
+  { href: '/admin/kupci', label: 'Seznam kupcev', icon: UsersIcon },
+  { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: PaletteIcon },
+  { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon }
 ] as const;
 
 const bottomLinks = [{ href: '/', label: 'Glavna stran', icon: 'home' }] as const;
 
-type SidebarIconType = (typeof primaryLinks)[number]['icon'] | (typeof bottomLinks)[number]['icon'] | 'logout';
+type SidebarIconType = (typeof bottomLinks)[number]['icon'] | 'logout';
 
 const COLLAPSED_WIDTH = 'w-16';
 const EXPANDED_WIDTH = 'w-[14.5rem]';
+const sidebarIconWrapperClassName = 'inline-flex h-4 w-4 shrink-0 items-center justify-center';
+const sidebarIconClassName = 'h-4 w-4 shrink-0';
+const sidebarSvgProps = {
+  width: 16,
+  height: 16,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true
+} as const;
+
+function ClipboardListIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M12 11h4" />
+      <path d="M12 16h4" />
+      <path d="M8 11h.01" />
+      <path d="M8 16h.01" />
+    </svg>
+  );
+}
+
+function PackageIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+      <path d="M12 22V12" />
+      <polyline points="3.29 7 12 12 20.71 7" />
+      <path d="m7.5 4.27 9 5.15" />
+    </svg>
+  );
+}
+
+function NetworkIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <rect x="16" y="16" width="6" height="6" rx="1" />
+      <rect x="2" y="16" width="6" height="6" rx="1" />
+      <rect x="9" y="2" width="6" height="6" rx="1" />
+      <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
+      <path d="M12 12V8" />
+    </svg>
+  );
+}
+
+function ChartColumnIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+      <path d="M18 17V9" />
+      <path d="M13 17V5" />
+      <path d="M8 17v-3" />
+    </svg>
+  );
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <circle cx="9" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function PaletteIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" />
+      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ArchiveIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <rect width="20" height="5" x="2" y="3" rx="1" />
+      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+      <path d="M10 12h4" />
+    </svg>
+  );
+}
 
 function SidebarIcon({ type }: { type: SidebarIconType }) {
   if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
-  if (type === 'orders') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="3" width="12" height="14" rx="2.2"/><path d="M7 7h6"/><path d="M7 10.5h4.5"/><path d="M13 10.5h.01"/><path d="M7 14h4.5"/><path d="M13 14h.01"/></svg>;
-  if (type === 'products') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3.3 15.8 6.2 10 9.1 4.2 6.2 10 3.3Z"/><path d="M4.2 6.2v7L10 16.7v-7.6"/><path d="M15.8 6.2v7L10 16.7"/></svg>;
-  if (type === 'categories') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 4.5h5v4h-5z"/><path d="M11.5 4.5H16v4h-4.5z"/><path d="M7 8.5v2h6"/><path d="M10 10.5v5"/><path d="M7.5 13.5h5v3h-5z"/></svg>;
-  if (type === 'analytics') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 16h14"/><path d="M5.5 13V9.5"/><path d="M10 13V6"/><path d="M14.5 13V4"/></svg>;
-  if (type === 'customers') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="2.3"/><circle cx="13.2" cy="8" r="1.8"/><path d="M3.2 15c.9-2 2.2-3 3.8-3s2.9 1 3.8 3"/><path d="M11.4 14.3c.5-1.3 1.4-2 2.6-2"/></svg>;
-  if (type === 'visual') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 3a7 7 0 1 0 0 14h1.3a2 2 0 0 0 2-2 1.8 1.8 0 0 1 1.8-1.8h1A3.2 3.2 0 0 0 10 3z"/><circle cx="6.4" cy="8.1" r=".7" fill="currentColor"/><circle cx="9" cy="6.2" r=".7" fill="currentColor"/><circle cx="11.8" cy="6.2" r=".7" fill="currentColor"/></svg>;
-  if (type === 'archive') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 5h13v3h-13z"/><path d="M5 8v8h10V8"/><path d="M8 11h4"/></svg>;
   return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 4h4v12h-4"/><path d="M8 6L4 10l4 4"/><path d="M4 10h9"/></svg>;
 }
 
@@ -74,7 +160,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-8 left-0 top-16 z-40 flex">
+    <div className="pointer-events-none fixed bottom-0 left-0 top-0 z-40 flex">
       <aside
         className={`pointer-events-auto h-full ${COLLAPSED_WIDTH} overflow-hidden border-r border-[color:var(--semantic-info-border)] bg-slate-50/90 shadow-sm transition-[width] duration-300 ease-out ${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH}`}
         onMouseEnter={() => setExpanded(true)}
@@ -84,6 +170,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
           <nav className="space-y-1">
             {primaryLinks.map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              const SidebarIconComponent = link.icon;
               return (
                 <Link
                   key={link.href}
@@ -97,8 +184,8 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                       : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
                   }`}
                 >
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                    <SidebarIcon type={link.icon} />
+                  <span className={sidebarIconWrapperClassName}>
+                    <SidebarIconComponent className={sidebarIconClassName} />
                   </span>
                   <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
                     {link.label}
@@ -125,7 +212,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                       : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
                   }`}
                 >
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                  <span className={sidebarIconWrapperClassName}>
                     <SidebarIcon type={link.icon} />
                   </span>
                   <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
@@ -142,7 +229,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
               disabled={isLoggingOut}
               className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
             >
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+              <span className={sidebarIconWrapperClassName}>
                 <SidebarIcon type="logout" />
               </span>
               <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>

@@ -24,7 +24,7 @@ function AdminSectionShell({ title, description, children }: SectionProps) {
   );
 }
 
-export function AdminOrdersSectionSkeleton() {
+function AdminOrdersSectionSkeleton() {
   return (
     <AdminTableLayout
       className="border"
@@ -95,7 +95,7 @@ export function AdminOrdersSectionSkeleton() {
   );
 }
 
-export function AdminArchiveSectionSkeleton() {
+function AdminArchiveSectionSkeleton() {
   return (
     <AdminTableLayout
       className="border-slate-200 bg-white"
@@ -134,7 +134,7 @@ export function AdminArchiveSectionSkeleton() {
   );
 }
 
-export function AdminItemsSectionSkeleton() {
+function AdminItemsSectionSkeleton() {
   return (
     <div className="space-y-4">
       <div>
@@ -204,7 +204,7 @@ export function AdminItemsSectionSkeleton() {
   );
 }
 
-export function AdminAnalyticsSectionSkeleton() {
+function AdminAnalyticsSectionSkeleton() {
   return (
     <div className="min-h-full rounded-2xl border border-slate-200 p-4 text-slate-900">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -327,7 +327,7 @@ function CategoryTabsSkeleton({ initialView }: { initialView: 'table' | 'preview
   );
 }
 
-export function AdminCategoriesTableContentSkeleton() {
+function AdminCategoriesTableContentSkeleton() {
   return (
     <AdminTableLayout
       className="border"
@@ -415,7 +415,7 @@ function CategoryPreviewCardSkeleton({ showAddButton = false }: { showAddButton?
   );
 }
 
-export function AdminCategoriesPreviewContentSkeleton() {
+function AdminCategoriesPreviewContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -438,7 +438,7 @@ export function AdminCategoriesPreviewContentSkeleton() {
   );
 }
 
-export function AdminCategoriesMillerContentSkeleton() {
+function AdminCategoriesMillerContentSkeleton() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">

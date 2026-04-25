@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalog';
 import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+import { isDatabaseUnavailableError } from '@/shared/server/db';
 
 export const dynamicParams = true;
 
@@ -20,7 +21,8 @@ export async function generateStaticParams() {
     }
 
     return params;
-  } catch {
+  } catch (error) {
+    if (!isDatabaseUnavailableError(error)) throw error;
     return [];
   }
 }
@@ -51,7 +53,7 @@ export default async function ItemPage(
         <p className="mt-4 text-lg text-slate-600">{item.description}</p>
         {images[0] && <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"><Image src={images[0]} alt={item.name} fill className="object-contain p-8" /></div>}
         <p className="mt-4 text-xl font-semibold text-slate-900">{formatCatalogPrice(effectivePrice)}</p>
-        <AddToCartButton sku={itemSku} name={item.name} price={effectivePrice} category={`${category.title} / ${subcategory.title}`} className="mt-6" />
+        <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={`${category.title} / ${subcategory.title}`} className="mt-6" />
       </div>
       <div className="mt-10 flex flex-wrap gap-4">
         <Link href={`/products/${category.slug}/${subcategory.slug}`} className="text-sm font-semibold text-brand-600">← Nazaj na {subcategory.title}</Link>

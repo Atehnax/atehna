@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
+import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 
 type ItemSearchProps = {
   items: CatalogSearchItem[];

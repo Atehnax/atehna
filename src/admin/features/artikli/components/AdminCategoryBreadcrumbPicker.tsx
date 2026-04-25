@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
 
 type CategoryNodeEntry = {
@@ -111,7 +111,7 @@ export default function AdminCategoryBreadcrumbPicker({
 
   const categoryIndex = useMemo(() => buildCategoryIndex(allPaths), [allPaths]);
 
-  function resolveVisibleChildren(path: string[]) {
+  const resolveVisibleChildren = useCallback((path: string[]) => {
     const key = pathKeyFromParts(path);
     const childKeys = Array.from(categoryIndex.childrenByParent.get(key) ?? []);
 
@@ -122,11 +122,11 @@ export default function AdminCategoryBreadcrumbPicker({
         return !isSlugLikeTitle(entry.title);
       })
       .sort((a, b) => a.title.localeCompare(b.title, 'sl'));
-  }
+  }, [categoryIndex]);
 
   const drillChildren = useMemo(() => {
     return resolveVisibleChildren(drillPath);
-  }, [categoryIndex.childrenByParent, categoryIndex.entryMap, drillPath]);
+  }, [drillPath, resolveVisibleChildren]);
 
   const searchResults = useMemo(() => {
     const normalizedQuery = normalizeSearch(query);
@@ -201,7 +201,7 @@ export default function AdminCategoryBreadcrumbPicker({
   const displayedPathChildren = useMemo(() => {
     if (displayedPath.length === 0) return [];
     return resolveVisibleChildren(displayedPath);
-  }, [categoryIndex.childrenByParent, categoryIndex.entryMap, displayedPath]);
+  }, [displayedPath, resolveVisibleChildren]);
   const hasDisplayedPathChildren = displayedPathChildren.length > 0;
 
   const assignFocusedPath = (path: string[]) => {

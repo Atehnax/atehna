@@ -4,26 +4,19 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  DndContext,
-  DragOverlay,
   PointerSensor,
-  closestCenter,
-  useDraggable,
-  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent
+  type DraggableAttributes,
+  type DraggableSyntheticListeners
 } from '@dnd-kit/core';
 import {
-  SortableContext,
   arrayMove,
-  useSortable,
-  verticalListSortingStrategy
+  useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { CatalogCategory, CatalogItem, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 import type {
   AdminCategoriesPayload,
   CatalogData,
@@ -31,7 +24,6 @@ import type {
   CategoryStatus,
   ContentCard,
   CreateTarget,
-  DeleteTarget,
   EditingRowDraft,
   HistorySnapshot,
   ImageDeleteTarget,
@@ -73,7 +65,6 @@ import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } fr
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import { IconButton } from '@/shared/ui/icon-button';
-import { Chip } from '@/shared/ui/badge';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActions, RowActionsDropdown } from '@/shared/ui/table';
@@ -107,6 +98,8 @@ const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
   { ssr: false }
 );
+
+type DragHandleProps = Partial<DraggableAttributes> | Partial<NonNullable<DraggableSyntheticListeners>>;
 
 type RecursiveNode = RecursiveCatalogSubcategory;
 type MillerSearchMatch =
@@ -195,7 +188,7 @@ const getCheckboxLeftFromTreeStart = (
   return 0;
 };
 
-export const InlineStatusToggle = ({
+const InlineStatusToggle = ({
   checked,
   onToggle,
   disabled,
@@ -212,7 +205,7 @@ function SortableItem({
   children
 }: {
   id: string;
-  children: (args: { dragHandleProps: Record<string, unknown>; setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties }) => ReactNode;
+  children: (args: { dragHandleProps: DragHandleProps; setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties }) => ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
@@ -231,7 +224,7 @@ function SortableTreeRow({
   id: string;
   disabled?: boolean;
   children: (args: {
-    dragHandleProps: Record<string, unknown>;
+    dragHandleProps: DragHandleProps;
     setNodeRef: (node: HTMLElement | null) => void;
     style: CSSProperties;
     isDragging: boolean;
@@ -430,8 +423,6 @@ export default function AdminCategoriesMainTable({
   const [query, setQuery] = useState('');
   const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection } | null>(null);
   const [millerSearchQuery, setMillerSearchQuery] = useState('');
-  const [deletingRowId, setDeletingRowId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [warningDialog, setWarningDialog] = useState<{ title: string; description: string } | null>(null);
   const [openingRowIds, setOpeningRowIds] = useState<string[]>([]);
   const [closingRowIds, setClosingRowIds] = useState<string[]>([]);
@@ -455,7 +446,6 @@ export default function AdminCategoriesMainTable({
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [pendingInlineEditLabel, setPendingInlineEditLabel] = useState<string | null>(null);
   const [isUnsavedLeaveDialogOpen, setIsUnsavedLeaveDialogOpen] = useState(false);
-  const [activeMillerDragId, setActiveMillerDragId] = useState<string | null>(null);
 
   const { toast } = useToast();
   const pathname = usePathname();
@@ -781,7 +771,7 @@ export default function AdminCategoriesMainTable({
     delete pendingImageUploadsRef.current[rowId];
   }, []);
 
-  const persist = async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
+  const persist = useCallback(async (next: CatalogData, statuses: Record<string, CategoryStatus>, message = 'Shranjeno') => {
     const previousTableCatalog = catalog;
     const previousMillerCatalog = millerCatalog;
     const previousPersistedCatalog = persistedTableRef.current;
@@ -824,7 +814,7 @@ export default function AdminCategoriesMainTable({
     } finally {
       setSaving(false);
     }
-  };
+  }, [catalog, clearPendingImageUpload, millerCatalog, resolvePendingImageCatalog, toast]);
 
   const selectedContext = useMemo(() => {
     if (activeView !== 'preview') return null;
@@ -841,23 +831,6 @@ export default function AdminCategoriesMainTable({
 
     return { kind: 'subcategory' as const, category, subcategory };
   }, [activeView, catalog.categories, selected]);
-
-  const millerSelectedContext = useMemo(() => {
-    if (activeView !== 'miller') return null;
-    if (selected.kind === 'root') return { kind: 'root' as const };
-
-    const category = millerCatalog.categories.find((entry) => entry.slug === selected.categorySlug);
-    if (!category) return null;
-
-    if (selected.kind === 'category') return { kind: 'category' as const, category };
-
-    const subcategoryPath = toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug);
-    const subcategory = findSubcategoryByPath(category.subcategories, subcategoryPath);
-    if (!subcategory) return null;
-
-    return { kind: 'subcategory' as const, category, subcategory };
-  }, [activeView, millerCatalog.categories, selected]);
-
 
   const millerBreadcrumbs = useMemo(() => {
     if (selected.kind === 'root') {
@@ -985,6 +958,7 @@ export default function AdminCategoriesMainTable({
     }
 
     setStatusByRow(nextStatuses);
+    statusByRowRef.current = nextStatuses;
   }, [activeView, catalog, millerCatalog, statusByRow]);
 
   const hasUnsavedChanges = tableDirty || millerDirty;
@@ -1941,6 +1915,7 @@ export default function AdminCategoriesMainTable({
     stageMillerCatalog({ categories: nextCategories });
     setMillerSelection([]);
     setMillerDeleteTarget(null);
+    toast.info('Izbris je pripravljen. Shrani Miller spremembe za potrditev.');
   };
 
   const addMillerNode = async (column: 'categories' | 'subcategories' | 'items') => {
@@ -1995,7 +1970,7 @@ export default function AdminCategoriesMainTable({
     setTableError(null);
   };
 
-  const saveTableChanges = async () => {
+  const saveTableChanges = useCallback(async () => {
     await ensureFullPayloadLoaded();
     const savedCatalog = normalizeCatalogData(catalogRef.current);
     const savedPayload = await persist(savedCatalog, statusByRowRef.current, 'Spremembe shranjene');
@@ -2031,7 +2006,7 @@ export default function AdminCategoriesMainTable({
     setTableError(null);
     setMillerError(null);
     return true;
-  };
+  }, [ensureFullPayloadLoaded, persist]);
 
   useEffect(() => {
     if (activeView !== 'table' || !tableDirty || saving || editingRow || isInlineSavingRef.current || tableAutosaveBlockedRef.current) {
@@ -2253,7 +2228,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return columns;
-  }, [activeView, millerCatalog.categories, millerSearchIndex, millerSearchQuery, millerSelection, selected, statusByRow]);
+  }, [activeView, ensureFullPayloadLoaded, millerCatalog.categories, millerSearchIndex, millerSearchQuery, millerSelection, selected, statusByRow]);
 
   const activeMillerColumnKind = useMemo<'categories' | 'subcategories' | 'items'>(() => {
     const selectedId = millerSelection.at(-1);
@@ -2307,42 +2282,6 @@ export default function AdminCategoriesMainTable({
     updateSubcategory(item.categorySlug, item.subcategoryPath, { image: nextObjectUrl });
   };
 
- const confirmDeleteNode = () => {
-    if (!deleteTarget) return;
-
-    if (deleteTarget.kind === 'root') {
-      setDeleteTarget(null);
-      setSelected({ kind: 'root' });
-      stageTableCatalog({ categories: [] });
-      return;
-    }
-
-    if (deleteTarget.kind === 'category') {
-      setDeleteTarget(null);
-      setSelected({ kind: 'root' });
-      stageTableCatalog({
-        categories: catalog.categories.filter((entry) => entry.slug !== deleteTarget.categorySlug)
-      });
-      return;
-    }
-
-    const subcategoryPath = toSubcategoryPath(deleteTarget.subcategoryPath ?? deleteTarget.subcategorySlug);
-
-    setDeleteTarget(null);
-    setSelected({ kind: 'category', categorySlug: deleteTarget.categorySlug });
-
-    stageTableCatalog({
-      categories: catalog.categories.map((entry) =>
-        entry.slug === deleteTarget.categorySlug
-          ? {
-              ...entry,
-              subcategories: removeSubcategoryTree(entry.subcategories, subcategoryPath)
-            }
-          : entry
-      )
-    });
-  };
-
   const confirmDeleteImage = () => {
     if (!imageDeleteTarget) return;
 
@@ -2354,6 +2293,7 @@ export default function AdminCategoriesMainTable({
         )
       });
       setImageDeleteTarget(null);
+      toast.info('Slika je odstranjena. Shrani spremembe za potrditev.');
       return;
     }
 
@@ -2362,6 +2302,7 @@ export default function AdminCategoriesMainTable({
       image: ''
     });
     setImageDeleteTarget(null);
+    toast.info('Slika je odstranjena. Shrani spremembe za potrditev.');
   };
 
   const openPreviewNode = useCallback(async (card: ContentCard) => {
@@ -2989,7 +2930,8 @@ export default function AdminCategoriesMainTable({
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
-    const rowStatus = statusByRow[id] ?? 'active';
+    const persistedRowStatus = statusByRow[id] ?? 'active';
+    const rowStatus = isRowEditing ? editingRow.status : persistedRowStatus;
     const isInlineEditValid = isRowEditing ? editingRow.title.trim().length > 0 : false;
     const isInlineEditDirty = isRowEditing
       ? editingRow.title.trim() !== (editingRow.initialTitle ?? title).trim() ||
@@ -3015,7 +2957,7 @@ export default function AdminCategoriesMainTable({
         status: rowStatus,
         initialTitle: title,
         initialDescription: description,
-        initialStatus: rowStatus
+        initialStatus: persistedRowStatus
       });
 
       if (editingRow && editingRow.id !== id) {
@@ -3033,8 +2975,26 @@ export default function AdminCategoriesMainTable({
         return;
       }
 
-      const nextStatuses = { ...statusByRow, [id]: nextStatus };
-      stageStatusChange(nextStatuses);
+      const startInlineStatusEdit = () => setEditingRow({
+        id,
+        kind,
+        categorySlug,
+        subcategoryPath: resolvedSubcategoryPath,
+        subcategorySlug: resolvedSubcategoryPath.at(-1),
+        title,
+        description,
+        status: nextStatus,
+        initialTitle: title,
+        initialDescription: description,
+        initialStatus: persistedRowStatus
+      });
+
+      if (editingRow && editingRow.id !== id) {
+        requestInlineEditResolution('spreminjanjem vidnosti druge vrstice', startInlineStatusEdit);
+        return;
+      }
+
+      startInlineStatusEdit();
     };
 
     const isOpening = parentIsAnimating && openingRowIdSet.size > 0;
@@ -3074,7 +3034,7 @@ export default function AdminCategoriesMainTable({
           style,
           isDragging
         }: {
-          dragHandleProps: Record<string, unknown>;
+          dragHandleProps: DragHandleProps;
           setNodeRef?: (node: HTMLElement | null) => void;
           style?: CSSProperties;
           isDragging: boolean;
@@ -3313,8 +3273,8 @@ export default function AdminCategoriesMainTable({
                     size="sm"
                     className={adminTableInlineCancelButtonClassName}
                     onClick={() => setEditingRow(null)}
-                    aria-label={`PrekliÄi urejanje za ${title}`}
-                    title="PrekliÄi"
+                    aria-label={`Prekliči urejanje za ${title}`}
+                    title="Prekliči"
                   >
                     <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
                   </IconButton>
@@ -3394,6 +3354,7 @@ export default function AdminCategoriesMainTable({
     catalog.categories,
     closingRowIdSet,
     editingRow,
+    ensureFullPayloadLoaded,
     expanded,
     getDescendantIds,
     handleInlineEditKeyDown,
@@ -3402,7 +3363,6 @@ export default function AdminCategoriesMainTable({
     selected,
     selectedRowSet,
     stageTableCatalog,
-    stageStatusChange,
     statusByRow,
     toggleExpanded
   ]);

@@ -1,4 +1,6 @@
-export type CustomerType = 'individual' | 'company' | 'school';
+export const CUSTOMER_TYPES = ['individual', 'company', 'school'] as const;
+
+export type CustomerType = (typeof CUSTOMER_TYPES)[number];
 
 export const CUSTOMER_TYPE_FORM_OPTIONS = [
   { value: 'individual', label: 'Fizična oseba' },

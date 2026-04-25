@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { upsertCatalogItem, type CatalogItemEditorPayload } from '@/shared/server/catalogItems';
+import {
+  CatalogItemIdentityConflictError,
+  upsertCatalogItem,
+  type CatalogItemEditorPayload
+} from '@/shared/server/catalogItems';
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +21,9 @@ export async function POST(request: Request) {
     const saved = await upsertCatalogItem(payload);
     return NextResponse.json({ id: saved.id, slug: saved.slug });
   } catch (error) {
+    if (error instanceof CatalogItemIdentityConflictError) {
+      return NextResponse.json({ message: error.message, conflicts: error.conflicts }, { status: error.statusCode });
+    }
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka na strežniku.' }, { status: 500 });
   }
 }

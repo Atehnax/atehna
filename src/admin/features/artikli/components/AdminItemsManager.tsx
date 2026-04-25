@@ -31,7 +31,7 @@ import {
 } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, DownloadIcon, OpenArticleIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -99,6 +99,8 @@ const MESTO_EDIT_INPUT_CLASS =
   'mx-auto h-7 w-3/4 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const QUICK_EDIT_NAME_SHELL_CLASS = 'min-w-0 flex-1';
 const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
+const ARTICLE_COLUMN_CLASS = 'w-[21.175%]';
+const CATEGORY_COLUMN_CLASS = 'w-[20.825%]';
 const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
@@ -117,13 +119,6 @@ const LazyConfirmDialog = dynamic(
 );
 
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
-const formatRangeValue = (values: number[], formatter: (value: number) => string) => {
-  if (!values.length) return '—';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max ? formatter(min) : `${formatter(min)}–${formatter(max)}`;
-};
-
 const normalizeCategoryPath = (value: string) =>
   value
     .split('/')
@@ -146,6 +141,93 @@ const getComparableArticleCellValue = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+
+const normalizeIdentityValue = (value: string) => value.trim().replace(/\s+/g, ' ');
+const normalizeIdentityComparisonValue = (value: string) => normalizeIdentityValue(value).toLocaleLowerCase('sl');
+const createIdentitySuggestions = (value: string, reservedValues: Iterable<string>, separator: ' ' | '-' = '-') => {
+  const reserved = new Set(Array.from(reservedValues, normalizeIdentityComparisonValue));
+  const base = normalizeIdentityValue(value);
+  const suggestions: string[] = [];
+
+  for (let suffix = 2; suggestions.length < 5 && suffix <= 99; suffix += 1) {
+    const suggestion = separator === ' ' ? `${base} ${suffix}` : `${base}-${suffix}`;
+    const comparison = normalizeIdentityComparisonValue(suggestion);
+    if (!comparison || reserved.has(comparison)) continue;
+    reserved.add(comparison);
+    suggestions.push(suggestion);
+  }
+
+  return suggestions;
+};
+type CatalogIdentityIssue = { message: string; suggestions: string[] };
+
+const getFamilyNameIssue = (families: ListFamily[], familyId: string, value: string): CatalogIdentityIssue | null => {
+  const normalized = normalizeIdentityComparisonValue(value);
+  if (!normalized) return null;
+  const conflict = families.find((family) => family.id !== familyId && normalizeIdentityComparisonValue(family.name) === normalized);
+  if (!conflict) return null;
+
+  return {
+    message: `Naziv artikla je že uporabljen (${conflict.name}).`,
+    suggestions: createIdentitySuggestions(value, families.filter((family) => family.id !== familyId).map((family) => family.name), ' ')
+  };
+};
+
+const collectReservedSkuValues = (
+  families: ListFamily[],
+  options: { familyId: string; variantId?: string | null; includeSameFamilyVariants: boolean }
+) => {
+  const reserved: string[] = [];
+  families.forEach((family) => {
+    const baseSku = getBaseSku(family);
+    if (family.id !== options.familyId && baseSku) reserved.push(baseSku);
+    family.variants.forEach((variant) => {
+      if (!variant.sku) return;
+      if (family.id !== options.familyId) {
+        reserved.push(variant.sku);
+        return;
+      }
+      if (options.includeSameFamilyVariants && variant.id !== options.variantId) {
+        reserved.push(variant.sku);
+      }
+    });
+  });
+  return reserved;
+};
+
+const getSkuIssue = (
+  families: ListFamily[],
+  value: string,
+  options: { familyId: string; variantId?: string | null; includeSameFamilyVariants?: boolean }
+): CatalogIdentityIssue | null => {
+  const normalized = normalizeIdentityComparisonValue(value);
+  if (!normalized) return null;
+  const includeSameFamilyVariants = Boolean(options.includeSameFamilyVariants);
+
+  for (const family of families) {
+    if (family.id !== options.familyId && normalizeIdentityComparisonValue(getBaseSku(family)) === normalized) {
+      return {
+        message: `SKU je že uporabljen (${family.name}).`,
+        suggestions: createIdentitySuggestions(value, collectReservedSkuValues(families, { ...options, includeSameFamilyVariants }))
+      };
+    }
+
+    for (const variant of family.variants) {
+      if (!variant.sku) continue;
+      const isSameVariant = family.id === options.familyId && variant.id === options.variantId;
+      const isAllowedSameFamilyVariant = family.id === options.familyId && !includeSameFamilyVariants;
+      if (isSameVariant || isAllowedSameFamilyVariant) continue;
+      if (normalizeIdentityComparisonValue(variant.sku) === normalized) {
+        return {
+          message: `SKU je že uporabljen (${family.name}).`,
+          suggestions: createIdentitySuggestions(value, collectReservedSkuValues(families, { ...options, includeSameFamilyVariants }))
+        };
+      }
+    }
+  }
+
+  return null;
+};
 
 const formatCurrencyAmountOnly = (value: number) =>
   value.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -238,6 +320,34 @@ const getUniformNumber = (values: number[]) => {
 };
 const getVariantSalePrice = (draft: Pick<VariantDraft, 'price' | 'discountPct'>) =>
   draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
+const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
+const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraftField, raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return field === 'price'
+      ? { nextDraft: { ...draft, price: 0 } }
+      : { nextDraft: { ...draft, discountPct: 0 } };
+  }
+
+  const parsed = parseDecimalInput(trimmed);
+  if (parsed === null) {
+    return { nextDraft: draft, error: `Preverite vrednost v polju ${NUMERIC_FIELD_LABELS[field]}.` };
+  }
+
+  if (field === 'price') {
+    return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
+  }
+  if (field === 'discountPct') {
+    return { nextDraft: { ...draft, discountPct: clampDiscountPct(parsed) } };
+  }
+
+  return {
+    nextDraft: {
+      ...draft,
+      discountPct: computeDiscountPctFromSalePrice(draft.price, parsed)
+    }
+  };
+};
 const formatAmountRangeForInput = (values: number[]) => {
   if (!values.length) return '';
   const min = Math.min(...values);
@@ -441,10 +551,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantDrafts, setVariantDrafts] = useState<Record<string, VariantDraft>>({});
   const [numericDrafts, setNumericDrafts] = useState<Record<string, string>>({});
   const [savedFamilyRows, setSavedFamilyRows] = useState<Record<string, ListFamily>>({});
+  const [duplicatedFamilyRows, setDuplicatedFamilyRows] = useState<Record<string, ListFamily[]>>({});
   const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
   const [sortState, setSortState] = useState<SortState>(null);
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
-  const [draftVariantCountRange, setDraftVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
@@ -452,6 +562,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: HighlightableArticleColumn; value: string } | null>(null);
   const [isBulkArchiveDialogOpen, setIsBulkArchiveDialogOpen] = useState(false);
   const [isArchivingSelected, setIsArchivingSelected] = useState(false);
+  const [isDuplicatingSelected, setIsDuplicatingSelected] = useState(false);
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -472,12 +583,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   }, [pendingGuardLabel]);
   const { toast } = useToast();
   const effectiveFamilies = useMemo(
-    () =>
-      families.map((family) => {
+    () => {
+      const baseFamilyIds = new Set(families.map((family) => family.id));
+      return families.flatMap((family) => {
         const saved = savedFamilyRows[family.id];
-        return saved ?? family;
-      }),
-    [families, savedFamilyRows]
+        const duplicatedRows = (duplicatedFamilyRows[family.id] ?? []).filter(
+          (duplicatedFamily) => !baseFamilyIds.has(duplicatedFamily.id)
+        );
+        return [
+          saved ?? family,
+          ...duplicatedRows.map((duplicatedFamily) => savedFamilyRows[duplicatedFamily.id] ?? duplicatedFamily)
+        ];
+      });
+    },
+    [duplicatedFamilyRows, families, savedFamilyRows]
   );
   const familyById = useMemo(() => new Map(effectiveFamilies.map((family) => [family.id, family])), [effectiveFamilies]);
   const variantTargetById = useMemo(() => {
@@ -516,6 +635,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   useEffect(() => {
     setSavedFamilyRows({});
+    setDuplicatedFamilyRows({});
   }, [items]);
 
   useEffect(() => {
@@ -868,18 +988,83 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setSavedFamilyRows((current) => ({ ...current, [nextFamily.id]: nextFamily }));
   };
   const getItemEditHref = (family: ListFamily) => `/admin/artikli/${encodeURIComponent(family.slug || family.id)}`;
-  const createVariantDraft = (variant: Variant): VariantDraft => ({
-    label: variant.label || 'Različica',
-    sku: variant.sku,
-    price: variant.price,
-    discountPct: variant.discountPct,
-    stock: variant.stock,
-    active: variant.active,
-    minOrder: variant.minOrder ?? 1,
-    note: (normalizeNoteValue(variant.badge) as NoteValue) || 'na-zalogi',
-    position: variant.position ?? 1
-  });
-  const getVariantDraftForState = (variant: Variant, sourceDrafts: Record<string, VariantDraft>) => sourceDrafts[variant.id] ?? createVariantDraft(variant);
+  const getItemEditHrefFromItem = (item: AdminCatalogListItem) => `/admin/artikli/${encodeURIComponent(item.slug || String(item.id))}`;
+  const showDuplicateToast = (items: AdminCatalogListItem[]) => {
+    const firstItem = items[0];
+    if (!firstItem) return;
+    const href = getItemEditHrefFromItem(firstItem);
+    toast.success(
+      <span>
+        {items.length === 1 ? 'Kopija artikla je ustvarjena.' : `Ustvarjenih kopij: ${items.length}.`}{' '}
+        <a className="font-semibold underline underline-offset-2" href={href}>
+          {items.length === 1 ? 'Uredi kopijo' : 'Uredi prvo kopijo'}
+        </a>
+      </span>,
+      { durationMs: 7000 }
+    );
+  };
+  const addDuplicatedFamilyRows = (pairs: Array<{ sourceId: string; item: AdminCatalogListItem }>) => {
+    const sourceBaseIds = new Set(families.map((family) => family.id));
+    setDuplicatedFamilyRows((current) => {
+      const next = Object.fromEntries(Object.entries(current).map(([sourceId, rows]) => [sourceId, [...rows]])) as Record<string, ListFamily[]>;
+
+      pairs.forEach(({ sourceId, item }) => {
+        const [nextFamily] = toListFamilies([item]);
+        if (!nextFamily) return;
+
+        if (sourceBaseIds.has(sourceId)) {
+          const currentRows = next[sourceId] ?? [];
+          next[sourceId] = [nextFamily, ...currentRows.filter((row) => row.id !== nextFamily.id)];
+          return;
+        }
+
+        const parentEntry = Object.entries(next).find(([, rows]) => rows.some((row) => row.id === sourceId));
+        if (!parentEntry) return;
+
+        const [parentSourceId, rows] = parentEntry;
+        const sourceIndex = rows.findIndex((row) => row.id === sourceId);
+        const withoutDuplicate = rows.filter((row) => row.id !== nextFamily.id);
+        withoutDuplicate.splice(Math.max(0, sourceIndex + 1), 0, nextFamily);
+        next[parentSourceId] = withoutDuplicate;
+      });
+
+      return next;
+    });
+  };
+  const duplicateSelectedItems = async () => {
+    if (!hasSelectedArchiveFamilies || isDuplicatingSelected) return;
+
+    setIsDuplicatingSelected(true);
+    try {
+      const duplicatedPairs: Array<{ sourceId: string; item: AdminCatalogListItem }> = [];
+
+      for (const family of selectedArchiveFamilies) {
+        const itemIdentifier = family.slug.trim();
+        if (!itemIdentifier) throw new Error(`Artikel ${family.name} nima veljavnega identifikatorja.`);
+
+        const response = await fetch('/api/admin/artikli/duplicate', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ itemIdentifier })
+        });
+        const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        if (!response.ok || !body.item) throw new Error(body.message || 'Kopiranje artikla ni uspelo.');
+        duplicatedPairs.push({ sourceId: family.id, item: body.item });
+      }
+
+      addDuplicatedFamilyRows(duplicatedPairs);
+      showDuplicateToast(duplicatedPairs.map((pair) => pair.item));
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kopiranje artikla ni uspelo.');
+    } finally {
+      setIsDuplicatingSelected(false);
+    }
+  };
+  const getVariantDraftForState = useCallback(
+    (variant: Variant, sourceDrafts: Record<string, VariantDraft>) => sourceDrafts[variant.id] ?? createVariantDraft(variant),
+    []
+  );
   const getEditableVariantsForFamily = useCallback(
     (family: ListFamily) => family.variants.filter((variant) => !deletedVariantIds.has(variant.id)),
     [deletedVariantIds]
@@ -893,8 +1078,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     [getEditableVariantsForFamily]
   );
   const resolveScopeKind = (variants: Variant[]): EditScopeKind => (variants.length > 1 ? 'group' : 'row');
-  const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
-  const clearNumericDraftKeys = (keys: string[]) =>
+  const clearNumericDraftKeys = useCallback((keys: string[]) =>
     setNumericDrafts((current) => {
       if (keys.length === 0) return current;
       const next = { ...current };
@@ -902,40 +1086,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         delete next[key];
       });
       return next;
-    });
+    }), []);
   const updateNumericDraft = (scope: NumericDraftScope, id: string, field: NumericDraftField, raw: string) => {
     if (!isDecimalInputDraft(raw)) return;
     const key = numericDraftKey(scope, id, field);
     setNumericDrafts((current) => ({ ...current, [key]: raw }));
   };
-  const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraftField, raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      return field === 'price'
-        ? { nextDraft: { ...draft, price: 0 } }
-        : { nextDraft: { ...draft, discountPct: 0 } };
-    }
-
-    const parsed = parseDecimalInput(trimmed);
-    if (parsed === null) {
-      return { nextDraft: draft, error: `Preverite vrednost v polju ${NUMERIC_FIELD_LABELS[field]}.` };
-    }
-
-    if (field === 'price') {
-      return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
-    }
-    if (field === 'discountPct') {
-      return { nextDraft: { ...draft, discountPct: clampDiscountPct(parsed) } };
-    }
-
-    return {
-      nextDraft: {
-        ...draft,
-        discountPct: computeDiscountPctFromSalePrice(draft.price, parsed)
-      }
-    };
-  };
-  const resolvePendingNumericDraftsForFamily = (
+  const resolvePendingNumericDraftsForFamily = useCallback((
     familyId: string,
     variants: Variant[],
     sourceVariantDrafts = variantDrafts,
@@ -973,8 +1130,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     }
 
     return { nextVariantDrafts, consumedKeys };
-  };
-  const commitPendingNumericDraftsForFamily = (familyId: string, variants: Variant[]) => {
+  }, [getVariantDraftForState, numericDrafts, variantDrafts]);
+  const commitPendingNumericDraftsForFamily = useCallback((familyId: string, variants: Variant[]) => {
     const resolved = resolvePendingNumericDraftsForFamily(familyId, variants);
     if ('error' in resolved && resolved.error) {
       toast.error(resolved.error);
@@ -987,7 +1144,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       clearNumericDraftKeys(consumedKeys);
     }
     return nextVariantDrafts;
-  };
+  }, [clearNumericDraftKeys, resolvePendingNumericDraftsForFamily, toast, variantDrafts]);
   const commitVariantNumericDraft = (variant: Variant, field: NumericDraftField) => {
     const key = numericDraftKey('variant', variant.id, field);
     const raw = numericDrafts[key];
@@ -1105,12 +1262,31 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         validationMessages.push('Kategorija je obvezna.');
       }
 
+      const familyNameIssue = getFamilyNameIssue(effectiveFamilies, family.id, familyDraft.name);
+      if (familyNameIssue) validationMessages.push(familyNameIssue.message);
+      const familySkuIssue = getSkuIssue(effectiveFamilies, familyDraft.sku, { familyId: family.id });
+      if (familySkuIssue) validationMessages.push(familySkuIssue.message);
+
       const familyPatchResult = buildFamilyPatch(family, familyDraft);
+      const pendingVariantSkuValues = new Map<string, string>();
       const variantPatchResults = variants.map((variant) => {
         const draft = getVariantDraftForState(variant, resolvedVariantDrafts);
         if (draft.label.trim().length === 0) {
           validationMessages.push('Naziv različice je obvezen.');
         }
+        const normalizedSku = normalizeIdentityComparisonValue(draft.sku);
+        const duplicateVariantLabel = normalizedSku ? pendingVariantSkuValues.get(normalizedSku) : undefined;
+        if (duplicateVariantLabel) {
+          validationMessages.push(`SKU je že uporabljen (${duplicateVariantLabel}).`);
+        } else if (normalizedSku) {
+          pendingVariantSkuValues.set(normalizedSku, draft.label || variant.label || draft.sku);
+        }
+        const variantSkuIssue = getSkuIssue(effectiveFamilies, draft.sku, {
+          familyId: family.id,
+          variantId: variant.id,
+          includeSameFamilyVariants: true
+        });
+        if (variantSkuIssue) validationMessages.push(variantSkuIssue.message);
         return {
           variant,
           draft,
@@ -1133,7 +1309,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         validationMessage: validationMessages[0] ?? null
       };
     },
-    [familyDrafts, getScopeVariants, numericDrafts, variantDrafts]
+    [effectiveFamilies, familyDrafts, getScopeVariants, getVariantDraftForState, numericDrafts, resolvePendingNumericDraftsForFamily, variantDrafts]
   );
   const activeEditSnapshot = useMemo(
     () => resolveEditScopeSnapshot(activeEditScope, activeScopeFamily),
@@ -1171,7 +1347,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         });
       }
     },
-    [getScopeNumericDraftKeys, getScopeVariants]
+    [clearNumericDraftKeys, getScopeNumericDraftKeys, getScopeVariants]
   );
   const cancelCurrentEditScope = useCallback(() => {
     clearActiveEditScopeState(activeEditScope, activeScopeFamily);
@@ -1238,6 +1414,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
       if (latestSavedItem) {
         applySavedFamilyRow(latestSavedItem);
+        toast.success('Shranjeno');
       }
 
       clearActiveEditScopeState(activeEditScope, activeScopeFamily);
@@ -1249,7 +1426,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     } finally {
       setIsSavingActiveScope(false);
     }
-  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState, resolveEditScopeSnapshot, router, toast]);
+  }, [activeEditScope, activeScopeFamily, clearActiveEditScopeState, commitPendingNumericDraftsForFamily, resolveEditScopeSnapshot, router, toast]);
   const resolvePendingGuardAction = useCallback(() => {
     const action = pendingGuardActionRef.current;
     pendingGuardActionRef.current = null;
@@ -1311,7 +1488,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
     if (activeEditScope?.familyId === family.id && activeEditScope.kind === nextScope.kind) return;
     requestCurrentEditResolution(`začetkom urejanja artikla ${family.name}`, beginEdit);
-  }, [activeEditScope, expandedFamilyIds, getEditableVariantsForFamily, requestCurrentEditResolution]);
+  }, [activeEditScope, clearNumericDraftKeys, expandedFamilyIds, getEditableVariantsForFamily, requestCurrentEditResolution]);
   const updateFamilyDraft = (familyId: string, fallbackDraft: FamilyDraft, mutate: (draft: FamilyDraft) => FamilyDraft) =>
     setFamilyDrafts((current) => {
       const draft = current[familyId] ?? fallbackDraft;
@@ -1541,6 +1718,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     requestCurrentEditResolution('iskanjem po artiklih', () => setSearch(nextValue));
   const handleCreateItemNavigation = () =>
     requestCurrentEditResolution('odhodom na ustvarjanje novega artikla', () => router.push('/admin/artikli/nov'));
+  const handleDuplicateSelectionAction = () =>
+    requestCurrentEditResolution('podvajanjem izbranih artiklov', () => {
+      void duplicateSelectedItems();
+    });
   const handleArchiveSelectionAction = () =>
     requestCurrentEditResolution('arhiviranjem izbranih artiklov', handleArchiveSelected);
   const handleArchiveFamilyAction = (family: ListFamily) =>
@@ -1626,6 +1807,22 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </IconButton>
             <IconButton
               type="button"
+              onClick={handleDuplicateSelectionAction}
+              disabled={!hasSelectedArchiveFamilies || isDuplicatingSelected}
+              tone="neutral"
+              size="sm"
+              className={adminTableNeutralIconButtonClassName}
+              aria-label={
+                hasSelectedArchiveFamilies
+                  ? `Podvoji izbrane artikle (${selectedArchiveCount})`
+                  : 'Podvoji izbrane artikle'
+              }
+              title="Podvoji"
+            >
+              {isDuplicatingSelected ? <Spinner size="sm" className="text-[color:var(--blue-500)]" /> : <CopyIcon className="!h-[18px] !w-[18px]" />}
+            </IconButton>
+            <IconButton
+              type="button"
               onClick={handleArchiveSelectionAction}
               disabled={!hasSelectedArchiveFamilies || isArchivingSelected}
               tone={hasSelectedArchiveFamilies ? 'warning' : 'neutral'}
@@ -1694,7 +1891,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   className={filterPillTokenClasses.clear}
                   onClick={() => requestCurrentEditResolution('čiščenjem filtra števila različic', () => {
                     setVariantCountRange({ min: '', max: '' });
-                    setDraftVariantCountRange({ min: '', max: '' });
                   })}
                   aria-label="Počisti filter Št. različic"
                 >
@@ -1758,7 +1954,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     aria-label="Izberi vse družine"
                   />
                 </TH>
-                <TH className="w-[17.5%]">
+                <TH className={ARTICLE_COLUMN_CLASS}>
                   <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
@@ -1768,7 +1964,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     SKU
                   </button>
                 </TH>
-                <TH className="w-[24.5%]">
+                <TH className={CATEGORY_COLUMN_CLASS}>
                   <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
@@ -1977,11 +2173,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const isSingleSelectedFamily = singleSelectedFamilyId === family.id;
                 const canEditFamilyPills = !isSelectedPillUpdating && (isEditingFamily || isSingleSelectedFamily);
                 const familyDraft = getFamilyDraftForState(family, familyDrafts);
+                const familyNameIssue = isEditingFamily ? getFamilyNameIssue(effectiveFamilies, family.id, familyDraft.name) : null;
+                const familySkuIssue = isEditingFamily ? getSkuIssue(effectiveFamilies, familyDraft.sku, { familyId: family.id }) : null;
+                const familyNameSuggestionsId = `article-list-name-suggestions-${family.id}`;
+                const familySkuSuggestionsId = `article-list-sku-suggestions-${family.id}`;
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
-                const draftVisibleVariants = visibleVariants.map((variant) => getVariantDraftForState(variant, variantDrafts));
-                const draftActionPrices = draftVisibleVariants
-                  .map((draft) => getVariantSalePrice(draft))
-                  .filter((value): value is number => value !== null);
                 const rawActionPrices = visibleVariants
                   .filter((variant) => variant.discountPct > 0)
                   .map((variant) => computeSalePrice(variant.price, variant.discountPct));
@@ -1999,7 +2195,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
                       <td className="px-2 py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             disabled={!hasSubtable}
@@ -2022,10 +2218,18 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           {isEditingFamily ? (
                             <div className={`${QUICK_EDIT_NAME_SHELL_CLASS} flex-1`}>
                               <input
-                                className={QUICK_EDIT_NAME_INPUT_CLASS}
+                                className={`${QUICK_EDIT_NAME_INPUT_CLASS} ${familyNameIssue ? '!border-rose-400' : ''}`}
                                 value={familyDraft.name}
+                                list={familyNameSuggestionsId}
+                                title={familyNameIssue?.message}
+                                aria-invalid={Boolean(familyNameIssue)}
                                 onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, name: event.target.value } }))}
                               />
+                              <datalist id={familyNameSuggestionsId}>
+                                {familyNameIssue?.suggestions.map((suggestion) => (
+                                  <option key={suggestion} value={suggestion} />
+                                ))}
+                              </datalist>
                             </div>
                           ) : (
                             <button type="button" className="min-w-0 flex-1 text-left" onClick={() => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))}>
@@ -2038,7 +2242,21 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       </td>
                       <td className="px-2 py-4 text-slate-600">
                         {isEditingFamily ? (
-                          <input className={ROW_EDIT_INPUT_CLASS} value={familyDraft.sku} onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))} />
+                          <>
+                            <input
+                              className={`${ROW_EDIT_INPUT_CLASS} ${familySkuIssue ? '!border-rose-400' : ''}`}
+                              value={familyDraft.sku}
+                              list={familySkuSuggestionsId}
+                              title={familySkuIssue?.message}
+                              aria-invalid={Boolean(familySkuIssue)}
+                              onChange={(event) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, sku: event.target.value } }))}
+                            />
+                            <datalist id={familySkuSuggestionsId}>
+                              {familySkuIssue?.suggestions.map((suggestion) => (
+                                <option key={suggestion} value={suggestion} />
+                              ))}
+                            </datalist>
+                          </>
                         ) : (
                           <span
                             className={`inline-flex max-w-full items-center ${getMatchingValueClassName('sku', familySkuDisplay)}`}
@@ -2269,6 +2487,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 const isSingleSelectedVariant = singleSelectedVariantId === variant.id;
                                 const canEditVariantPills = !isSelectedPillUpdating && (isEditing || isSingleSelectedVariant);
                                 const draft = variantDrafts[variant.id] ?? createVariantDraft(variant);
+                                const variantSkuIssue = isEditing
+                                  ? getSkuIssue(effectiveFamilies, draft.sku, {
+                                      familyId: family.id,
+                                      variantId: variant.id,
+                                      includeSameFamilyVariants: true
+                                    })
+                                  : null;
+                                const variantSkuSuggestionsId = `article-list-variant-sku-suggestions-${variant.id}`;
                                 const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 const variantSkuDisplay = draft.sku || '\u2014';
                                 const variantPriceDisplay = formatCurrency(draft.price);
@@ -2308,8 +2534,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     <td className="px-2 py-2">
                                       {isEditing ? (
                                         <input
-                                          className={ROW_EDIT_INPUT_CLASS}
+                                          className={`${ROW_EDIT_INPUT_CLASS} ${variantSkuIssue ? '!border-rose-400' : ''}`}
                                           value={draft.sku}
+                                          list={variantSkuSuggestionsId}
+                                          title={variantSkuIssue?.message}
+                                          aria-invalid={Boolean(variantSkuIssue)}
                                           onChange={(event) =>
                                             setVariantDrafts((current) => ({
                                               ...current,
@@ -2326,6 +2555,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           {variantSkuDisplay}
                                         </span>
                                       )}
+                                      {isEditing ? (
+                                        <datalist id={variantSkuSuggestionsId}>
+                                          {variantSkuIssue?.suggestions.map((suggestion) => (
+                                            <option key={suggestion} value={suggestion} />
+                                          ))}
+                                        </datalist>
+                                      ) : null}
                                     </td>
                                     <td className="w-[10.33%] px-2 py-2 text-right">
                                       {isEditing ? (

@@ -24,7 +24,7 @@ export function AdminPageHeader({
   );
 }
 
-export function AdminSurfaceCard({ children, className }: { children: ReactNode; className?: string }) {
+function AdminSurfaceCard({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={classNames("rounded-xl border border-slate-200 bg-white p-6 font-['Inter',system-ui,sans-serif]", className)}>{children}</div>;
 }
 

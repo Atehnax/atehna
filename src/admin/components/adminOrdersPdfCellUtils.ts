@@ -1,27 +1,18 @@
-export type PdfDocument = {
-  id?: number;
-  type: string;
-  blob_url: string;
-  filename: string;
-  created_at: string;
-};
+import type { GenerateOrderPdfType, OrderPdfDocument, OrderPdfTypeKey } from '@/shared/domain/order/orderTypes';
 
-export type PdfTypeKey =
-  | 'order_summary'
-  | 'purchase_order'
-  | 'dobavnica'
-  | 'predracun'
-  | 'invoice';
+export type PdfDocument = OrderPdfDocument;
 
-export type GeneratePdfType = PdfTypeKey;
+export type PdfTypeKey = OrderPdfTypeKey;
 
-export type PdfTypeConfig = {
+export type GeneratePdfType = GenerateOrderPdfType;
+
+type PdfTypeConfig = {
   key: PdfTypeKey;
   label: string;
   canGenerate: boolean;
 };
 
-export const pdfTypes: PdfTypeConfig[] = [
+const pdfTypes: PdfTypeConfig[] = [
   { key: 'order_summary', label: 'Povzetek', canGenerate: true },
   { key: 'purchase_order', label: 'Naročilnica', canGenerate: true },
   { key: 'dobavnica', label: 'Dobavnica', canGenerate: true },
@@ -37,7 +28,7 @@ export const routeMap: Record<GeneratePdfType, string> = {
   invoice: 'generate-invoice'
 };
 
-export const normalizePdfType = (type: string): PdfTypeKey | null => {
+const normalizePdfType = (type: string): PdfTypeKey | null => {
   if (type === 'offer' || type === 'order_summary') return 'order_summary';
   if (type === 'purchase_order') return 'purchase_order';
   if (type === 'predracun') return 'predracun';

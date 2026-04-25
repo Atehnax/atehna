@@ -72,7 +72,7 @@ export default async function CategoryItemPage(
           </p>
         ) : null}
 
-        <AddToCartButton sku={itemSku} name={item.name} price={effectivePrice} category={category.title} className="mt-6" />
+        <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={category.title} className="mt-6" />
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
           <p className="font-semibold text-slate-900">Opis izdelka</p>
           <p className="mt-2">{item.description}</p>

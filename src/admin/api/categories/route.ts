@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import type { CatalogCategory } from '@/commercial/catalog/catalog';
+import type { CatalogCategory } from '@/shared/domain/catalog/catalogTypes';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
 import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, getCatalogPreviewDataFromDatabase, patchCategoryTree, replaceCategoryTree } from '@/shared/server/catalogCategories';
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
@@ -80,10 +80,14 @@ export async function PATCH(request: Request) {
 
     await patchCategoryTree({ upserts, deleteIds });
 
+    for (const target of CATALOG_REVALIDATE_PATHS) {
+      revalidatePath(target.path, target.type);
+    }
+
     recordCatalogInvalidation({
       context: '/api/admin/categories:patch',
       tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
-      revalidatedPaths: 0
+      revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
     });
 
     return NextResponse.json({ ok: true });

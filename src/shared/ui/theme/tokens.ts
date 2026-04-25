@@ -92,7 +92,7 @@ export const hoverTokenClasses = {
 
 export const adminTableRowToneClasses = {
   even: 'bg-white',
-  odd: 'bg-[#eef1f8]', // 'bg-[#edf1f5]',
+  odd: 'bg-[#eef1f8]',
   hover: 'hover:bg-[color:var(--admin-table-row-hover)]',
   selected: 'bg-[color:var(--admin-table-row-selected)]'
 } as const;

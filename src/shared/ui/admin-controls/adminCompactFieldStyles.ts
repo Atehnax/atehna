@@ -3,10 +3,10 @@
 export const adminNumberInputClassName =
   '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
-export const adminOrderLikeEditableInputClassName =
+const adminOrderLikeEditableInputClassName =
   'mt-0.5 h-5 w-full rounded-md border border-slate-300 bg-white px-1.5 font-[\'Inter\',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 
-export const adminCompactTableNumberInputClassName =
+const adminCompactTableNumberInputClassName =
   `h-6 w-full rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:outline-none focus:ring-0 ${adminNumberInputClassName}`;
 
 export const adminCompactTableAlignedInputClassName =

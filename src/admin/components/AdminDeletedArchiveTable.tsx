@@ -32,6 +32,7 @@ import {
   AdminTableLayout,
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
+import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
 import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -44,7 +45,7 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
+import { getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
 import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
@@ -81,7 +82,7 @@ type DisplayRow = {
 };
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
-type CustomerTypeFilterValue = 'all' | 'individual' | 'company' | 'school';
+type CustomerTypeFilterValue = 'all' | CustomerType;
 type ArchiveHeaderFilter = 'type' | 'orderDate' | 'customerType' | 'deletedDate' | 'expiresDate' | null;
 type ArchiveSortKey = 'type' | 'element' | 'order_created_at' | 'customer_name' | 'address' | 'customer_type' | 'deleted_at' | 'expires_at';
 type ArchiveSortDirection = 'asc' | 'desc';
@@ -116,21 +117,6 @@ const formatDateOnly = (value: string) => {
   const year = parsedDate.getFullYear();
   return `${day}.${month}.${year}`;
 };
-
-const toDateInputValue = (date: Date) => date.toISOString().slice(0, 10);
-const shiftDateByDays = (baseDate: Date, days: number) => {
-  const nextDate = new Date(baseDate);
-  nextDate.setDate(nextDate.getDate() + days);
-  return nextDate;
-};
-const DATE_RANGE_PRESETS = [
-  { key: '7d', label: 'Zadnjih 7d', days: 7 },
-  { key: '30d', label: 'Zadnjih 30d', days: 30 },
-  { key: '90d', label: 'Zadnjih 90d', days: 90 },
-  { key: '180d', label: 'Zadnjih 180d', days: 180 },
-  { key: '365d', label: 'Zadnjih 365d', days: 365 },
-  { key: 'ytd', label: 'Letos', days: null }
-] as const;
 
 const tupleToArchiveEntry = (entry: ArchiveEntryTuple): ArchiveEntry => ({
   id: entry[0],
@@ -186,16 +172,6 @@ export default function AdminDeletedArchiveTable({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const { toast } = useToast();
-
-  const applyQuickDateRange = (presetKey: (typeof DATE_RANGE_PRESETS)[number]['key']) => {
-    const now = new Date();
-    if (presetKey === 'ytd') {
-      return { from: `${now.getFullYear()}-01-01`, to: toDateInputValue(now) };
-    }
-    const preset = DATE_RANGE_PRESETS.find((entry) => entry.key === presetKey);
-    const days = preset?.days ?? 30;
-    return { from: toDateInputValue(shiftDateByDays(now, -days + 1)), to: toDateInputValue(now) };
-  };
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -848,7 +824,7 @@ export default function AdminDeletedArchiveTable({
           <div role="menu" style={getHeaderPopoverStyle(orderDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftOrderDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftOrderDateRange(getQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}
@@ -877,7 +853,7 @@ export default function AdminDeletedArchiveTable({
           <div role="menu" style={getHeaderPopoverStyle(deletedDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftDeletedDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftDeletedDateRange(getQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}
@@ -896,7 +872,7 @@ export default function AdminDeletedArchiveTable({
           <div role="menu" style={getHeaderPopoverStyle(expiresDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
             <div className="mb-3 grid grid-cols-3 gap-2">
               {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftExpiresDateRange(applyQuickDateRange(preset.key))}>
+                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftExpiresDateRange(getQuickDateRange(preset.key))}>
                   {preset.label}
                 </button>
               ))}

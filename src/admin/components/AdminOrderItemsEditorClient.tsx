@@ -2,16 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { AdminOrderItemsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
-
-type OrderItemInput = {
-  id: number;
-  sku: string;
-  name: string;
-  unit: string | null;
-  quantity: number;
-  unit_price: number | null;
-  discount_percentage?: number;
-};
+import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
 const AdminOrderItemsEditor = dynamic(() => import('@/admin/components/AdminOrderItemsEditor'), {
   ssr: false,

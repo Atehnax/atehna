@@ -1,4 +1,4 @@
-import type { CatalogItem } from '@/commercial/catalog/catalog';
+import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 
 export function getCatalogItemSku(
   categorySlug: string,

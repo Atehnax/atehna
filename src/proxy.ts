@@ -13,10 +13,6 @@ function hasValidSession(request: NextRequest, username: string, password: strin
   return token === expectedToken(username, password);
 }
 
-function unauthorizedApi() {
-  return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });
-}
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const username = process.env.ADMIN_USERNAME ?? 'admin';

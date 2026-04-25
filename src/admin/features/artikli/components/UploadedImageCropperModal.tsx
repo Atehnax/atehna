@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Cropper from 'cropperjs';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { SaveIcon } from '@/shared/ui/icons/AdminActionIcons';
+
+type CropperInstance = InstanceType<typeof import('cropperjs').default>;
 
 type UploadedImageCropperModalProps = {
   imageUrl: string;
@@ -31,7 +32,7 @@ export default function UploadedImageCropperModal({
 
   const hostRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const cropperRef = useRef<Cropper | null>(null);
+  const cropperRef = useRef<CropperInstance | null>(null);
   const pendingViewportRebaseRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const livePreviewUrlRef = useRef<string | null>(null);
   const workingImageObjectUrlRef = useRef<string | null>(null);
@@ -90,13 +91,29 @@ export default function UploadedImageCropperModal({
   }, []);
 
   useEffect(() => {
-    const host = hostRef.current;
-    const sourceImage = imageRef.current;
-    if (!host || !sourceImage) return;
+    let isDisposed = false;
+    let cropper: CropperInstance | null = null;
+    let selection: ReturnType<CropperInstance['getCropperSelection']> | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let animationFrameId: number | null = null;
+    const queuePreviewRefresh = () => {
+      void refreshLivePreview();
+    };
+    const forceLayoutRefresh = () => {
+      refreshCropperLayout();
+      void refreshLivePreview();
+    };
 
-    const cropper = new Cropper(sourceImage, {
-      container: host,
-      template: '<cropper-canvas background style="width:100%;height:100%;display:block;">\
+    void import('cropperjs').then(({ default: Cropper }) => {
+      if (isDisposed) return;
+
+      const host = hostRef.current;
+      const sourceImage = imageRef.current;
+      if (!host || !sourceImage) return;
+
+      cropper = new Cropper(sourceImage, {
+        container: host,
+        template: '<cropper-canvas background style="width:100%;height:100%;display:block;">\
   <cropper-image rotatable scalable translatable initial-center-size="contain"></cropper-image>\
   <cropper-shade hidden></cropper-shade>\
   <cropper-handle action="select" plain></cropper-handle>\
@@ -114,50 +131,47 @@ export default function UploadedImageCropperModal({
     <cropper-handle action="sw-resize"></cropper-handle>\
   </cropper-selection>\
 </cropper-canvas>'
-    });
+      });
 
-    cropperRef.current = cropper;
-    const selection = cropper.getCropperSelection();
-    const queuePreviewRefresh = () => {
-      void refreshLivePreview();
-    };
-    const forceLayoutRefresh = () => {
-      refreshCropperLayout();
-      void refreshLivePreview();
-    };
+      cropperRef.current = cropper;
+      selection = cropper.getCropperSelection();
+      selection?.addEventListener('change', queuePreviewRefresh);
+      resizeObserver = new ResizeObserver(() => {
+        forceLayoutRefresh();
+      });
+      resizeObserver.observe(host);
+      void cropper.getCropperImage()?.$ready((nativeImage: HTMLImageElement) => {
+        if (isDisposed || !cropper) return;
 
-    selection?.addEventListener('change', queuePreviewRefresh);
-    const resizeObserver = new ResizeObserver(() => {
-      forceLayoutRefresh();
-    });
-    resizeObserver.observe(host);
-    void cropper.getCropperImage()?.$ready((nativeImage: HTMLImageElement) => {
-      const pendingRebase = pendingViewportRebaseRef.current;
-      if (pendingRebase) {
-        const cropperImage = cropper.getCropperImage();
-        const cropperSelection = cropper.getCropperSelection();
-        if (cropperImage && nativeImage.naturalWidth > 0 && nativeImage.naturalHeight > 0) {
-          const scaleX = pendingRebase.width / nativeImage.naturalWidth;
-          const scaleY = pendingRebase.height / nativeImage.naturalHeight;
-          cropperImage.$setTransform(scaleX, 0, 0, scaleY, pendingRebase.x, pendingRebase.y);
+        const pendingRebase = pendingViewportRebaseRef.current;
+        if (pendingRebase) {
+          const cropperImage = cropper.getCropperImage();
+          const cropperSelection = cropper.getCropperSelection();
+          if (cropperImage && nativeImage.naturalWidth > 0 && nativeImage.naturalHeight > 0) {
+            const scaleX = pendingRebase.width / nativeImage.naturalWidth;
+            const scaleY = pendingRebase.height / nativeImage.naturalHeight;
+            cropperImage.$setTransform(scaleX, 0, 0, scaleY, pendingRebase.x, pendingRebase.y);
+          }
+          if (cropperSelection) {
+            cropperSelection.hidden = false;
+            cropperSelection.$change(pendingRebase.x, pendingRebase.y, pendingRebase.width, pendingRebase.height);
+          }
+          pendingViewportRebaseRef.current = null;
         }
-        if (cropperSelection) {
-          cropperSelection.hidden = false;
-          cropperSelection.$change(pendingRebase.x, pendingRebase.y, pendingRebase.width, pendingRebase.height);
-        }
-        pendingViewportRebaseRef.current = null;
-      }
-      forceLayoutRefresh();
-    });
-    requestAnimationFrame(() => {
-      forceLayoutRefresh();
+        forceLayoutRefresh();
+      });
+      animationFrameId = requestAnimationFrame(() => {
+        forceLayoutRefresh();
+      });
     });
 
     return () => {
-      resizeObserver.disconnect();
+      isDisposed = true;
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+      resizeObserver?.disconnect();
       selection?.removeEventListener('change', queuePreviewRefresh);
-      cropper.destroy();
-      cropperRef.current = null;
+      cropper?.destroy();
+      if (cropperRef.current === cropper) cropperRef.current = null;
     };
   }, [refreshCropperLayout, refreshLivePreview, renderSeed]);
 

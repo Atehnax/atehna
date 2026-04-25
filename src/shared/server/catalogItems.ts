@@ -1,6 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { revalidateTag } from 'next/cache';
-import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCategories';
+import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
 
 export type CatalogItemSeedRow = {
@@ -161,6 +161,35 @@ export type CatalogVariantQuickPatch = {
   position?: number;
 };
 
+export type CatalogItemIdentityField = 'name' | 'sku' | 'slug';
+
+export type CatalogItemIdentityAvailability = {
+  field: CatalogItemIdentityField;
+  value: string;
+  isAvailable: boolean;
+  conflictLabel: string | null;
+  suggestions: string[];
+};
+
+export type CatalogItemIdentityConflict = CatalogItemIdentityAvailability & {
+  message: string;
+};
+
+export class CatalogItemIdentityConflictError extends Error {
+  readonly conflicts: CatalogItemIdentityConflict[];
+  readonly statusCode = 409;
+
+  constructor(conflicts: CatalogItemIdentityConflict[]) {
+    const firstConflict = conflicts[0];
+    const suggestionText = firstConflict && firstConflict.suggestions.length > 0
+      ? ` Predlogi: ${firstConflict.suggestions.join(', ')}.`
+      : '';
+    super(firstConflict ? `${firstConflict.message}${suggestionText}` : 'Podatki artikla niso enolični.');
+    this.name = 'CatalogItemIdentityConflictError';
+    this.conflicts = conflicts;
+  }
+}
+
 function asNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -176,6 +205,288 @@ function asStringOrNull(value: unknown): string | null {
 
 function normalizeActiveState(value: unknown): 'active' | 'inactive' {
   return String(value ?? 'inactive') === 'active' ? 'active' : 'inactive';
+}
+
+function normalizeIdentityValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+}
+
+function normalizeIdentityComparisonValue(value: unknown): string {
+  return normalizeIdentityValue(value).toLocaleLowerCase('sl');
+}
+
+function normalizeSlugSuggestionBase(value: string) {
+  const normalized = normalizeIdentityValue(value)
+    .toLocaleLowerCase('sl')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return normalized || 'artikel';
+}
+
+function normalizeSkuSuggestionBase(value: string) {
+  return normalizeIdentityValue(value).toLocaleUpperCase('sl').replace(/\s+/g, '-').replace(/-+/g, '-') || 'SKU';
+}
+
+function createIdentitySuggestion(field: CatalogItemIdentityField, value: string, suffix: number) {
+  if (field === 'name') return `${normalizeIdentityValue(value)} ${suffix}`;
+  if (field === 'slug') return `${normalizeSlugSuggestionBase(value)}-${suffix}`;
+  return `${normalizeSkuSuggestionBase(value)}-${suffix}`;
+}
+
+async function fetchReservedIdentityValues(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  field: CatalogItemIdentityField,
+  currentItemId: number | null,
+  currentVariantId: number | null
+) {
+  if (field === 'name') {
+    const result = await client.query(
+      `
+      select item_name as value
+      from catalog_items
+      where item_name is not null
+        and ($1::bigint is null or id <> $1)
+      `,
+      [currentItemId]
+    );
+    return new Set(result.rows.map((row) => normalizeIdentityComparisonValue(row.value)));
+  }
+
+  if (field === 'slug') {
+    const result = await client.query(
+      `
+      select slug as value
+      from catalog_items
+      where slug is not null
+        and ($1::bigint is null or id <> $1)
+      `,
+      [currentItemId]
+    );
+    return new Set(result.rows.map((row) => normalizeIdentityComparisonValue(row.value)));
+  }
+
+  const result = await client.query(
+    `
+    select sku as value
+    from catalog_items
+    where nullif(trim(sku), '') is not null
+      and ($1::bigint is null or id <> $1)
+    union all
+    select variant_sku as value
+    from catalog_item_variants
+    where nullif(trim(variant_sku), '') is not null
+      and (
+        $1::bigint is null
+        or item_id <> $1
+        or ($2::bigint is not null and id <> $2)
+      )
+    `,
+    [currentItemId, currentVariantId]
+  );
+  return new Set(result.rows.map((row) => normalizeIdentityComparisonValue(row.value)));
+}
+
+async function buildIdentitySuggestions(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  field: CatalogItemIdentityField,
+  value: string,
+  currentItemId: number | null,
+  currentVariantId: number | null,
+  extraReservedValues: string[] = []
+) {
+  const reserved = await fetchReservedIdentityValues(client, field, currentItemId, currentVariantId);
+  extraReservedValues.forEach((entry) => reserved.add(normalizeIdentityComparisonValue(entry)));
+
+  const suggestions: string[] = [];
+  for (let suffix = 2; suggestions.length < 5 && suffix <= 99; suffix += 1) {
+    const suggestion = createIdentitySuggestion(field, value, suffix);
+    const comparison = normalizeIdentityComparisonValue(suggestion);
+    if (!comparison || reserved.has(comparison)) continue;
+    reserved.add(comparison);
+    suggestions.push(suggestion);
+  }
+  return suggestions;
+}
+
+async function findIdentityConflict(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  field: CatalogItemIdentityField,
+  value: string,
+  currentItemId: number | null,
+  currentVariantId: number | null
+) {
+  const normalized = normalizeIdentityValue(value);
+  if (!normalized) return null;
+
+  if (field === 'name') {
+    const result = await client.query(
+      `
+      select item_name as label
+      from catalog_items
+      where lower(trim(item_name)) = lower(trim($1::text))
+        and ($2::bigint is null or id <> $2)
+      limit 1
+      `,
+      [normalized, currentItemId]
+    );
+    return typeof result.rows[0]?.label === 'string' ? result.rows[0].label : null;
+  }
+
+  if (field === 'slug') {
+    const result = await client.query(
+      `
+      select item_name as label
+      from catalog_items
+      where lower(trim(slug)) = lower(trim($1::text))
+        and ($2::bigint is null or id <> $2)
+      limit 1
+      `,
+      [normalized, currentItemId]
+    );
+    return typeof result.rows[0]?.label === 'string' ? result.rows[0].label : null;
+  }
+
+  const result = await client.query(
+    `
+    select label
+    from (
+      select item_name as label
+      from catalog_items
+      where lower(trim(sku)) = lower(trim($1::text))
+        and ($2::bigint is null or id <> $2)
+      union all
+      select ci.item_name || coalesce(' / ' || nullif(civ.variant_name, ''), '') as label
+      from catalog_item_variants civ
+      join catalog_items ci on ci.id = civ.item_id
+      where lower(trim(civ.variant_sku)) = lower(trim($1::text))
+        and (
+          $2::bigint is null
+          or civ.item_id <> $2
+          or ($3::bigint is not null and civ.id <> $3)
+        )
+    ) matches
+    limit 1
+    `,
+    [normalized, currentItemId, currentVariantId]
+  );
+  return typeof result.rows[0]?.label === 'string' ? result.rows[0].label : null;
+}
+
+function identityConflictMessage(field: CatalogItemIdentityField, conflictLabel: string | null) {
+  const suffix = conflictLabel ? ` (${conflictLabel})` : '';
+  if (field === 'name') return `Naziv artikla je že uporabljen${suffix}.`;
+  if (field === 'slug') return `URL artikla je že uporabljen${suffix}.`;
+  return `SKU je že uporabljen${suffix}.`;
+}
+
+async function buildIdentityConflict(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  field: CatalogItemIdentityField,
+  value: string,
+  currentItemId: number | null,
+  currentVariantId: number | null,
+  conflictLabel: string | null,
+  extraReservedValues: string[] = []
+): Promise<CatalogItemIdentityConflict> {
+  return {
+    field,
+    value: normalizeIdentityValue(value),
+    isAvailable: false,
+    conflictLabel,
+    message: identityConflictMessage(field, conflictLabel),
+    suggestions: await buildIdentitySuggestions(client, field, value, currentItemId, currentVariantId, extraReservedValues)
+  };
+}
+
+export async function getCatalogItemIdentityAvailability({
+  field,
+  value,
+  itemId = null,
+  variantId = null
+}: {
+  field: CatalogItemIdentityField;
+  value: string;
+  itemId?: number | null;
+  variantId?: number | null;
+}): Promise<CatalogItemIdentityAvailability> {
+  const pool = await getPool();
+  const normalized = normalizeIdentityValue(value);
+  if (!normalized) {
+    return { field, value: normalized, isAvailable: false, conflictLabel: null, suggestions: [] };
+  }
+
+  const conflictLabel = await findIdentityConflict(pool, field, normalized, itemId, variantId);
+  const suggestions = conflictLabel
+    ? await buildIdentitySuggestions(pool, field, normalized, itemId, variantId)
+    : [];
+
+  return {
+    field,
+    value: normalized,
+    isAvailable: conflictLabel === null,
+    conflictLabel,
+    suggestions
+  };
+}
+
+async function assertCatalogItemIdentityAvailable(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  input: {
+    itemId: number | null;
+    itemName?: string | null;
+    slug?: string | null;
+    sku?: string | null;
+    variantSkus?: Array<{ sku: string | null | undefined; variantId?: number | null; label?: string }>;
+  }
+) {
+  const conflicts: CatalogItemIdentityConflict[] = [];
+
+  const itemName = normalizeIdentityValue(input.itemName);
+  if (itemName) {
+    const conflictLabel = await findIdentityConflict(client, 'name', itemName, input.itemId, null);
+    if (conflictLabel) conflicts.push(await buildIdentityConflict(client, 'name', itemName, input.itemId, null, conflictLabel));
+  }
+
+  const slug = normalizeIdentityValue(input.slug);
+  if (slug) {
+    const conflictLabel = await findIdentityConflict(client, 'slug', slug, input.itemId, null);
+    if (conflictLabel) conflicts.push(await buildIdentityConflict(client, 'slug', slug, input.itemId, null, conflictLabel));
+  }
+
+  const sku = normalizeIdentityValue(input.sku);
+  if (sku) {
+    const conflictLabel = await findIdentityConflict(client, 'sku', sku, input.itemId, null);
+    if (conflictLabel) conflicts.push(await buildIdentityConflict(client, 'sku', sku, input.itemId, null, conflictLabel));
+  }
+
+  const seenVariantSkus = new Map<string, string>();
+  for (const variant of input.variantSkus ?? []) {
+    const variantSku = normalizeIdentityValue(variant.sku);
+    if (!variantSku) continue;
+
+    const comparison = normalizeIdentityComparisonValue(variantSku);
+    const duplicateLabel = seenVariantSkus.get(comparison);
+    if (duplicateLabel) {
+      conflicts.push(
+        await buildIdentityConflict(client, 'sku', variantSku, input.itemId, variant.variantId ?? null, duplicateLabel, [...seenVariantSkus.keys()])
+      );
+      continue;
+    }
+    seenVariantSkus.set(comparison, variant.label ?? variantSku);
+
+    const conflictLabel = await findIdentityConflict(client, 'sku', variantSku, input.itemId, variant.variantId ?? null);
+    if (conflictLabel) {
+      conflicts.push(await buildIdentityConflict(client, 'sku', variantSku, input.itemId, variant.variantId ?? null, conflictLabel));
+    }
+  }
+
+  if (conflicts.length > 0) {
+    throw new CatalogItemIdentityConflictError(conflicts);
+  }
 }
 
 async function resolveItemIdByIdentifier(client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> }, itemIdentifier: string): Promise<number | null> {
@@ -199,6 +510,236 @@ async function resolveItemIdByIdentifier(client: { query: (sql: string, params?:
 async function fetchAdminCatalogListItemByItemId(itemId: number): Promise<AdminCatalogListItem | null> {
   const items = await fetchAdminCatalogListItems();
   return items.find((item) => item.id === itemId) ?? null;
+}
+
+function createCopyName(value: unknown, attempt: number) {
+  const base = normalizeIdentityValue(value) || 'Artikel';
+  return attempt === 0 ? `${base} kopija` : `${base} kopija ${attempt + 1}`;
+}
+
+function createCopySku(value: unknown, attempt: number) {
+  const base = normalizeIdentityValue(value);
+  if (!base) return null;
+  return attempt === 0 ? `${base}-KOPIJA` : `${base}-KOPIJA-${attempt + 1}`;
+}
+
+function createCopySlug(sourceSlug: unknown, sourceName: unknown, attempt: number) {
+  const base = normalizeIdentityValue(sourceSlug) || normalizeSlugSuggestionBase(normalizeIdentityValue(sourceName));
+  return attempt === 0 ? `${base}-kopija` : `${base}-kopija-${attempt + 1}`;
+}
+
+async function buildCatalogItemCopyIdentity(
+  client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
+  source: Record<string, unknown>,
+  variants: Array<Record<string, unknown>>
+) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const itemName = createCopyName(source.item_name, attempt);
+    const sku = createCopySku(source.sku, attempt);
+    const slug = createCopySlug(source.slug, source.item_name, attempt);
+    const variantSkus = variants.map((variant) => createCopySku(variant.variant_sku, attempt));
+
+    try {
+      await assertCatalogItemIdentityAvailable(client, {
+        itemId: null,
+        itemName,
+        slug,
+        sku,
+        variantSkus: variants.map((variant, index) => ({
+          sku: variantSkus[index],
+          variantId: null,
+          label: String(variant.variant_name ?? `Različica ${index + 1}`)
+        }))
+      });
+      return { itemName, sku, slug, variantSkus };
+    } catch (error) {
+      if (error instanceof CatalogItemIdentityConflictError) continue;
+      throw error;
+    }
+  }
+
+  throw new Error('Ni bilo mogoče najti prostega naziva, SKU ali URL za kopijo artikla.');
+}
+
+function serializeJsonbValue(value: unknown) {
+  if (value === null || value === undefined) return null;
+  return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
+export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): Promise<AdminCatalogListItem | null> {
+  const normalizedIdentifier = itemIdentifier.trim();
+  if (!normalizedIdentifier) throw new Error('Neveljaven identifikator artikla.');
+
+  const pool = await getPool();
+  const client = await pool.connect();
+  let newItemId: number | null = null;
+
+  try {
+    await client.query('begin');
+
+    const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
+    if (!itemId) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const sourceResult = await client.query(
+      `
+      select id, item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape, description, admin_notes, position
+      from catalog_items
+      where id = $1
+      limit 1
+      `,
+      [itemId]
+    );
+    const source = sourceResult.rows[0] as Record<string, unknown> | undefined;
+    if (!source) {
+      await client.query('rollback');
+      return null;
+    }
+
+    const variants = (
+      await client.query(
+        `
+        select id, variant_name, length, width, thickness, weight, error_tolerance, price, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position
+        from catalog_item_variants
+        where item_id = $1
+        order by position asc, id asc
+        `,
+        [itemId]
+      )
+    ).rows as Array<Record<string, unknown>>;
+
+    const media = (
+      await client.query(
+        `
+        select variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+               alt_text, image_type, image_dimensions, video_type, hidden, position
+        from catalog_media
+        where item_id = $1
+        order by position asc, id asc
+        `,
+        [itemId]
+      )
+    ).rows as Array<Record<string, unknown>>;
+
+    const identity = await buildCatalogItemCopyIdentity(client, source, variants);
+    const sourcePosition = asNumber(source.position);
+    const nextPosition = sourcePosition + 1;
+
+    await client.query(
+      `
+      update catalog_items
+      set position = position + 1,
+          updated_at = now()
+      where position > $1
+      `,
+      [sourcePosition]
+    );
+
+    const itemResult = await client.query(
+      `
+      insert into catalog_items (
+        item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape, description, admin_notes, position
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      returning id
+      `,
+      [
+        identity.itemName,
+        String(source.item_type ?? 'unit'),
+        asStringOrNull(source.badge),
+        normalizeActiveState(source.status),
+        asStringOrNull(source.category_id),
+        identity.sku,
+        identity.slug,
+        asStringOrNull(source.unit),
+        asStringOrNull(source.brand),
+        asStringOrNull(source.material),
+        asStringOrNull(source.colour),
+        asStringOrNull(source.shape),
+        String(source.description ?? ''),
+        asStringOrNull(source.admin_notes),
+        nextPosition
+      ]
+    );
+    newItemId = asNumber(itemResult.rows[0]?.id, -1);
+    if (!newItemId || newItemId < 0) throw new Error('Kopiranje artikla ni uspelo.');
+
+    const variantIdBySourceId = new Map<number, number>();
+    for (let index = 0; index < variants.length; index += 1) {
+      const variant = variants[index];
+      const variantResult = await client.query(
+        `
+        insert into catalog_item_variants (
+          item_id, variant_name, length, width, thickness, weight, error_tolerance, price, discount_pct,
+          inventory, min_order, variant_sku, unit, status, badge, position
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        returning id
+        `,
+        [
+          newItemId,
+          String(variant.variant_name ?? ''),
+          variant.length ?? null,
+          variant.width ?? null,
+          variant.thickness ?? null,
+          variant.weight ?? null,
+          asStringOrNull(variant.error_tolerance),
+          asNumber(variant.price),
+          asNumber(variant.discount_pct),
+          asNumber(variant.inventory),
+          Math.max(1, asNumber(variant.min_order, 1)),
+          identity.variantSkus[index],
+          asStringOrNull(variant.unit),
+          normalizeActiveState(variant.status),
+          asStringOrNull(variant.badge),
+          asNumber(variant.position, index)
+        ]
+      );
+      variantIdBySourceId.set(asNumber(variant.id), asNumber(variantResult.rows[0]?.id));
+    }
+
+    for (const mediaEntry of media) {
+      const sourceVariantId = mediaEntry.variant_id === null ? null : asNumber(mediaEntry.variant_id, -1);
+      const nextVariantId = sourceVariantId !== null && sourceVariantId >= 0 ? variantIdBySourceId.get(sourceVariantId) ?? null : null;
+
+      await client.query(
+        `
+        insert into catalog_media (
+          item_id, variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+          alt_text, image_type, image_dimensions, video_type, hidden, position
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)
+        `,
+        [
+          newItemId,
+          nextVariantId,
+          String(mediaEntry.media_kind ?? 'image'),
+          String(mediaEntry.role ?? 'gallery'),
+          String(mediaEntry.source_kind ?? 'upload'),
+          asStringOrNull(mediaEntry.filename),
+          asStringOrNull(mediaEntry.blob_url),
+          asStringOrNull(mediaEntry.blob_pathname),
+          asStringOrNull(mediaEntry.external_url),
+          asStringOrNull(mediaEntry.mime_type),
+          asStringOrNull(mediaEntry.alt_text),
+          asStringOrNull(mediaEntry.image_type),
+          serializeJsonbValue(mediaEntry.image_dimensions),
+          asStringOrNull(mediaEntry.video_type),
+          Boolean(mediaEntry.hidden),
+          asNumber(mediaEntry.position)
+        ]
+      );
+    }
+
+    await client.query('commit');
+    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return newItemId ? await fetchAdminCatalogListItemByItemId(newItemId) : null;
 }
 
 async function resolveCategoryIdByPath(path: string[]): Promise<string | null> {
@@ -738,6 +1279,14 @@ export async function quickPatchCatalogItemByIdentifier(
         : patch.categoryPath !== undefined
           ? await resolveCategoryIdByPath(patch.categoryPath)
           : asStringOrNull(existing.category_id);
+    const nextItemName = patch.itemName !== undefined ? patch.itemName : String(existing.item_name ?? '');
+    const nextSku = patch.sku !== undefined ? asStringOrNull(patch.sku) : asStringOrNull(existing.sku);
+
+    await assertCatalogItemIdentityAvailable(client, {
+      itemId,
+      itemName: nextItemName,
+      sku: nextSku
+    });
 
     await client.query(
       `
@@ -751,8 +1300,8 @@ export async function quickPatchCatalogItemByIdentifier(
       where id = $6
       `,
       [
-        patch.itemName !== undefined ? patch.itemName : String(existing.item_name ?? ''),
-        patch.sku !== undefined ? asStringOrNull(patch.sku) : asStringOrNull(existing.sku),
+        nextItemName,
+        nextSku,
         patch.status !== undefined ? patch.status : normalizeActiveState(existing.status),
         patch.badge !== undefined ? asStringOrNull(patch.badge) : asStringOrNull(existing.badge),
         nextCategoryId,
@@ -804,6 +1353,12 @@ export async function quickPatchCatalogVariantByIdentifier(
       await client.query('rollback');
       return null;
     }
+    const nextVariantSku = patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku);
+
+    await assertCatalogItemIdentityAvailable(client, {
+      itemId,
+      variantSkus: [{ sku: nextVariantSku, variantId, label: String(existing.variant_name ?? '') }]
+    });
 
     await client.query(
       `
@@ -827,7 +1382,7 @@ export async function quickPatchCatalogVariantByIdentifier(
       `,
       [
         patch.variantName !== undefined ? patch.variantName : String(existing.variant_name ?? ''),
-        patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku),
+        nextVariantSku,
         patch.length !== undefined ? patch.length : existing.length,
         patch.width !== undefined ? patch.width : existing.width,
         patch.thickness !== undefined ? patch.thickness : existing.thickness,
@@ -867,11 +1422,19 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
     await client.query('begin');
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath);
+    const effectiveId = payload.id ?? null;
 
-    const existingBySlug = payload.id
-      ? null
-      : await client.query('select id from catalog_items where slug = $1 limit 1', [payload.slug]);
-    const effectiveId = payload.id ?? (existingBySlug?.rows[0]?.id ? Number(existingBySlug.rows[0].id) : null);
+    await assertCatalogItemIdentityAvailable(client, {
+      itemId: effectiveId,
+      itemName: payload.itemName,
+      slug: payload.slug,
+      sku: payload.sku,
+      variantSkus: payload.variants.map((variant, index) => ({
+        sku: variant.variantSku,
+        variantId: variant.id ?? null,
+        label: variant.variantName || `Različica ${index + 1}`
+      }))
+    });
 
     const itemResult = effectiveId
       ? await client.query(

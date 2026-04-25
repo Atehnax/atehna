@@ -609,7 +609,7 @@ function recordRouteProfile(context: string, totalServerMs: number) {
   });
 }
 
-export function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
+function recordCatalogLoaderMetric(input: RecordLoaderMetricInput) {
   const recordedAt = input.recordedAt ?? new Date();
   const normalizedContext = normalizeDiagnosticsContext(input.context);
   if (!shouldPersistDiagnosticsContext(normalizedContext)) return;

@@ -10,7 +10,6 @@ type AddToCartButtonProps = {
   unit?: string;
   category?: string;
   unitPrice?: number;
-  price?: number; // legacy fallback
   className?: string;
   children?: ReactNode;
 };
@@ -21,14 +20,11 @@ export default function AddToCartButton({
   unit,
   category,
   unitPrice,
-  price,
   className = '',
   children
 }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem);
   const openDrawer = useCartStore((state) => state.openDrawer);
-
-  const resolvedUnitPrice = unitPrice ?? price;
 
   return (
     <Button
@@ -36,7 +32,7 @@ export default function AddToCartButton({
       variant="primary"
       size="sm"
       onClick={() => {
-        addItem({ sku, name, unit, category, unitPrice: resolvedUnitPrice });
+        addItem({ sku, name, unit, category, unitPrice });
         openDrawer();
       }}
       className={className}

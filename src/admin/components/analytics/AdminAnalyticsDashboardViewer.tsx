@@ -79,7 +79,6 @@ export default function AdminAnalyticsDashboardViewer({ initialData, initialHeat
   useEffect(() => {
     const saved = window.localStorage.getItem('admin-analytics-range');
     if ((saved === '7d' || saved === '30d' || saved === '90d' || saved === '180d' || saved === '365d' || saved === 'ytd') && saved !== initialRange) void loadRange(saved);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRange]);
 
   useEffect(() => {

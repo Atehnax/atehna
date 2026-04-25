@@ -13,13 +13,15 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import type {
   CatalogCategory,
   CatalogItem,
   CatalogSubcategory,
-} from "@/commercial/catalog/catalog";
+} from "@/shared/domain/catalog/catalogTypes";
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -41,6 +43,8 @@ import type {
   SelectedPreviewContext,
 } from "../common/types";
 import { categoriesBreadcrumbCurrentTextClassName } from "../common/typography";
+
+type DragHandleProps = Partial<DraggableAttributes> | Partial<NonNullable<DraggableSyntheticListeners>>;
 
 export function AdminCategoriesPreview({
   activeView,
@@ -86,7 +90,7 @@ export function AdminCategoriesPreview({
   renderSortableItem: (
     id: string,
     children: (args: {
-      dragHandleProps: Record<string, unknown>;
+      dragHandleProps: DragHandleProps;
       setNodeRef: (node: HTMLElement | null) => void;
       style: CSSProperties;
     }) => ReactNode,
@@ -305,7 +309,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   onOpenNode,
   onStageStatusChange,
 }: {
-  dragHandleProps: Record<string, unknown>;
+  dragHandleProps: DragHandleProps;
   setNodeRef: (node: HTMLElement | null) => void;
   style: CSSProperties;
   item: ContentCard;

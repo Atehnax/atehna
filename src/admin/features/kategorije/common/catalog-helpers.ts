@@ -1,4 +1,4 @@
-import type { CatalogCategory, CatalogSubcategory } from '@/commercial/catalog/catalog';
+import type { CatalogCategory, CatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
 import type {
   CatalogData,
   CategoryStatus,
@@ -247,7 +247,7 @@ export function mapSubcategoryTree(
   });
 }
 
-export function findSubcategoryById(nodes: RecursiveNode[], id: string): { node: RecursiveNode; path: string[] } | null {
+function findSubcategoryById(nodes: RecursiveNode[], id: string): { node: RecursiveNode; path: string[] } | null {
   const visit = (entries: RecursiveNode[], parentPath: string[] = []): { node: RecursiveNode; path: string[] } | null => {
     for (const node of entries) {
       const currentPath = [...parentPath, node.slug];

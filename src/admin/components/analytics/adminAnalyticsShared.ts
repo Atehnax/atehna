@@ -1,6 +1,6 @@
 import { getBaseChartLayout, type ChartTheme } from '@/admin/components/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
-import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
+import type { AnalyticsRange, OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type {
   AnalyticsChartConfig,
   AnalyticsChartRow,
@@ -10,7 +10,7 @@ import type {
   AnalyticsGlobalAppearance
 } from '@/shared/server/analyticsCharts';
 
-export type RangeOption = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
+export type RangeOption = AnalyticsRange;
 
 export const rangeOptions: RangeOption[] = ['7d', '30d', '90d', '180d', '365d', 'ytd'];
 

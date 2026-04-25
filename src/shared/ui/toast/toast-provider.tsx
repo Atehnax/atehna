@@ -6,7 +6,7 @@ export type ToastTone = 'success' | 'error' | 'info';
 
 export type ToastItem = {
   id: string;
-  message: string;
+  message: ReactNode;
   tone: ToastTone;
   durationMs: number;
 };
@@ -18,9 +18,9 @@ type ToastOptions = {
 type ToastContextValue = {
   toasts: ToastItem[];
   removeToast: (id: string) => void;
-  success: (message: string, options?: ToastOptions) => void;
-  error: (message: string, options?: ToastOptions) => void;
-  info: (message: string, options?: ToastOptions) => void;
+  success: (message: ReactNode, options?: ToastOptions) => void;
+  error: (message: ReactNode, options?: ToastOptions) => void;
+  info: (message: ReactNode, options?: ToastOptions) => void;
 };
 
 export const ToastContext = createContext<ToastContextValue | null>(null);
@@ -36,7 +36,7 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== id));
   }, []);
 
-  const pushToast = useCallback((tone: ToastTone, message: string, options?: ToastOptions) => {
+  const pushToast = useCallback((tone: ToastTone, message: ReactNode, options?: ToastOptions) => {
     const id = createToastId();
     const durationMs = options?.durationMs ?? DEFAULT_DURATION_MS;
 

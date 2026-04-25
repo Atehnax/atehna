@@ -1,7 +1,7 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { getPool, getDatabaseUrl } from '@/shared/server/db';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
-import type { CatalogItem } from '@/commercial/catalog/catalog';
+import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCatalogData,
   readCatalogFile,
@@ -9,9 +9,11 @@ import {
   type RecursiveCatalogCategory,
   type RecursiveCatalogSubcategory
 } from '@/shared/server/catalogAdmin';
+import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import { fetchCatalogItemsForCategory } from '@/shared/server/catalogItems';
 
-type CategoryStatus = 'active' | 'inactive';
+export { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS } from '@/shared/server/catalogCache';
+
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'items'> & {
   subcategories: CatalogPreviewSubcategory[];
@@ -21,22 +23,6 @@ type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'ti
 };
 type CatalogPreviewData = { categories: CatalogPreviewCategory[] };
 type CatalogPreviewDataWithStatuses = CatalogPreviewData & { statuses: Record<string, CategoryStatus> };
-type AdminCategoriesView = 'table' | 'preview' | 'miller';
-
-export const CATALOG_PUBLIC_TAG = 'catalog-public';
-export const CATALOG_ADMIN_TAG = 'catalog-admin';
-
-export const CATALOG_REVALIDATE_PATHS = [
-  { path: '/', type: 'page' },
-  { path: '/products', type: 'page' },
-  { path: '/products/[category]', type: 'page' },
-  { path: '/products/[category]/[subcategory]', type: 'page' },
-  { path: '/products/[category]/items/[item]', type: 'page' },
-  { path: '/products/[category]/[subcategory]/[item]', type: 'page' },
-  { path: '/admin/kategorije', type: 'page' },
-  { path: '/admin/kategorije/miller-view', type: 'page' },
-  { path: '/admin/artikli', type: 'page' }
-] as const;
 
 type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'slug' | 'title' | 'summary' | 'image'>;
 type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
@@ -1008,7 +994,7 @@ function mapMillerInitialCategory(category: RecursiveCatalogCategory): Recursive
 }
 
 export async function getCatalogAdminInitialPayloadFromDatabase(
-  view: AdminCategoriesView,
+  view: CategoriesView,
   diagnosticsContext?: string
 ): Promise<CatalogDataWithStatuses> {
   const payload = await getCatalogDataFromDatabase({

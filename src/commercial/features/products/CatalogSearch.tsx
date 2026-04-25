@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { CatalogSearchItem } from '@/commercial/catalog/catalog';
+import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 import ItemSearch from './ItemSearch';
 
 let searchItemsCache: CatalogSearchItem[] | null = null;

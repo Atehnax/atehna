@@ -4,7 +4,7 @@ import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 export const HEADER_FILTER_ROOT_ATTR = 'data-header-filter-root';
-export const HEADER_FILTER_ROOT_SELECTOR = `[${HEADER_FILTER_ROOT_ATTR}="true"]`;
+const HEADER_FILTER_ROOT_SELECTOR = `[${HEADER_FILTER_ROOT_ATTR}="true"]`;
 export const HEADER_FILTER_BUTTON_CLASS =
   'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
 

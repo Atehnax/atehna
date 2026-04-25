@@ -13,6 +13,8 @@ const primaryLinks = [
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
   { href: '/admin/kupci', label: 'Seznam kupcev', icon: UsersIcon },
   { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: PaletteIcon },
+  { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
+  { href: '/admin/urejanje-dokumentov', label: 'Urejanje dokumentov', icon: FilePenLineIcon },
   { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon }
 ] as const;
 
@@ -106,6 +108,30 @@ function PaletteIcon({ className }: { className?: string }) {
   );
 }
 
+function BookOpenTextIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M12 7v14" />
+      <path d="M16 12h2" />
+      <path d="M16 8h2" />
+      <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+      <path d="M6 12h2" />
+      <path d="M6 8h2" />
+    </svg>
+  );
+}
+
+function FilePenLineIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z" />
+      <path d="M14.487 7.858A1 1 0 0 1 14 7V2" />
+      <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516" />
+      <path d="M8 18h1" />
+    </svg>
+  );
+}
+
 function ArchiveIcon({ className }: { className?: string }) {
   return (
     <svg {...sidebarSvgProps} className={className}>
@@ -117,8 +143,24 @@ function ArchiveIcon({ className }: { className?: string }) {
 }
 
 function SidebarIcon({ type }: { type: SidebarIconType }) {
-  if (type === 'home') return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3.5 9.5 10 4l6.5 5.5"/><path d="M5.5 8.5V16h9V8.5"/></svg>;
-  return <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 4h4v12h-4"/><path d="M8 6L4 10l4 4"/><path d="M4 10h9"/></svg>;
+  if (type === 'home') {
+    return (
+      <svg {...sidebarSvgProps} className={sidebarIconClassName}>
+        <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+        <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...sidebarSvgProps} className={sidebarIconClassName}>
+      <g transform="translate(24 0) scale(-1 1)">
+        <path d="m16 17 5-5-5-5" />
+        <path d="M21 12H9" />
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      </g>
+    </svg>
+  );
 }
 
 function ActiveChevron({ visible }: { visible: boolean }) {

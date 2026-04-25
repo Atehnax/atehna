@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
+import { ensureOrdersDraftColumn, ensureOrdersPostalCodeColumn, getOrderNumberAvailability } from '@/shared/server/orders';
 
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -59,6 +60,26 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const normalizedOrderDate = normalizeOrderDate(orderDate);
 
     const pool = await getPool();
+    await ensureOrdersPostalCodeColumn();
+    await ensureOrdersDraftColumn();
+    const trimmedOrderNumber = typeof orderNumber === 'string' ? orderNumber.trim() : '';
+    const orderNumberAvailability = trimmedOrderNumber
+      ? await getOrderNumberAvailability(trimmedOrderNumber, orderId, 0)
+      : null;
+
+    if (orderNumberAvailability && orderNumberAvailability.normalizedOrderNumber === null) {
+      return NextResponse.json({ message: 'Vnesite veljavno številko naročila.' }, { status: 400 });
+    }
+
+    if (orderNumberAvailability && !orderNumberAvailability.isAvailable) {
+      return NextResponse.json(
+        { message: 'Številka naročila je že zasedena.' },
+        { status: 409 }
+      );
+    }
+
+    const normalizedOrderNumber = orderNumberAvailability?.formattedOrderNumber ?? null;
+
     try {
       await pool.query(
         `
@@ -85,7 +106,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null,
           reference || null,
           notes || null,
-          typeof orderNumber === 'string' ? orderNumber.trim() : null,
+          normalizedOrderNumber,
           normalizedOrderDate,
           orderId
         ]
@@ -117,7 +138,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           deliveryAddress || null,
           reference || null,
           notes || null,
-          typeof orderNumber === 'string' ? orderNumber.trim() : null,
+          normalizedOrderNumber,
           normalizedOrderDate,
           orderId
         ]

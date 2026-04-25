@@ -22,7 +22,7 @@ import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ActionUndoIcon, ArchiveIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, ArchiveIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import {
   adminStatusInfoPillCompactTableClassName,
@@ -61,6 +61,11 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import AdminFieldSuggestionMenu from '@/admin/components/AdminFieldSuggestionMenu';
+import {
+  getCatalogItemIdentityMessage,
+  useCatalogItemIdentityAvailability
+} from '@/admin/features/artikli/components/useCatalogItemIdentityAvailability';
 import { NoteTagChip, getNoteTagMenuItemClassName, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
 import {
   articleNameInputClassName,
@@ -76,7 +81,7 @@ import {
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
-import type { CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
+import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
@@ -119,6 +124,7 @@ type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VariantDimensionSet = { length: number; width: number; thickness: number };
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
+type IdentitySuggestionField = 'name' | 'sku' | 'slug';
 type SideSettingsState = {
   sku: string;
   brand: string;
@@ -1463,7 +1469,8 @@ function NeutralDropdownChip<Value extends string>({
   onChange,
   chipClassName,
   placeholderLabel,
-  optionClassName
+  optionClassName,
+  menuPlacement = 'bottom'
 }: {
   value: Value | '';
   editable: boolean;
@@ -1472,32 +1479,54 @@ function NeutralDropdownChip<Value extends string>({
   chipClassName?: string;
   placeholderLabel?: string;
   optionClassName?: (value: Value) => string;
+  menuPlacement?: 'top' | 'bottom';
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const displayedLabel = selectedOption?.label ?? placeholderLabel ?? '';
 
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = Math.max(150, menuRef.current?.offsetWidth ?? 150);
+    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
+    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
+    setMenuPosition({ top, left });
+  }, [menuPlacement]);
+
   useEffect(() => {
     if (!isOpen) return;
+    updateMenuPosition();
     const onDocClick = (event: MouseEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
       setIsOpen(false);
     };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
+    const onWindowChange = () => updateMenuPosition();
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onEscape);
+    window.addEventListener('resize', onWindowChange);
+    window.addEventListener('scroll', onWindowChange, true);
     return () => {
       document.removeEventListener('mousedown', onDocClick);
       document.removeEventListener('keydown', onEscape);
+      window.removeEventListener('resize', onWindowChange);
+      window.removeEventListener('scroll', onWindowChange, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateMenuPosition]);
 
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
           if (!editable) return;
@@ -1513,24 +1542,32 @@ function NeutralDropdownChip<Value extends string>({
         </span>
       </button>
 
-      {editable && isOpen ? (
-        <div role="menu" className="absolute left-0 top-8 z-30 min-w-[150px]">
-          <MenuPanel>
-            {options.map((option) => (
-              <MenuItem
-                key={option.value}
-                className={optionClassName?.(option.value)}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-              >
-                {option.label}
-              </MenuItem>
-            ))}
-          </MenuPanel>
-        </div>
-      ) : null}
+      {editable && isOpen && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className={`fixed z-[1000] min-w-[150px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
+              style={{ top: menuPosition.top, left: menuPosition.left }}
+            >
+              <MenuPanel>
+                {options.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    className={optionClassName?.(option.value)}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </MenuPanel>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
@@ -1568,6 +1605,7 @@ export default function AdminItemEditorPage({
   const [documents, setDocuments] = useState<StagedTechnicalDocument[]>(() => initialPersistedState.documents.map(cloneDocument));
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(initialPersistedState.itemLevelNote);
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
@@ -1601,10 +1639,14 @@ export default function AdminItemEditorPage({
   const pendingTextUndoCommitRef = useRef<TextUndoSession | null>(null);
   const pendingTextUndoStartRef = useRef<HTMLElement | null>(null);
   const resumeTextUndoSessionRef = useRef<HTMLElement | null>(null);
+  const nameSuggestionInputRef = useRef<HTMLInputElement | null>(null);
+  const skuSuggestionInputRef = useRef<HTMLInputElement | null>(null);
+  const slugSuggestionInputRef = useRef<HTMLInputElement | null>(null);
   const suppressUndoTrackingRef = useRef(false);
   const lastTrackedUndoSnapshotRef = useRef<{ key: string; snapshot: EditorUndoSnapshot } | null>(null);
   const [undoDepth, setUndoDepth] = useState(0);
   const [textUndoSessionRevision, setTextUndoSessionRevision] = useState(0);
+  const [openIdentitySuggestionField, setOpenIdentitySuggestionField] = useState<IdentitySuggestionField | null>(null);
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
@@ -1874,6 +1916,34 @@ export default function AdminItemEditorPage({
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
   const isGeneratorLocked = !isTableEditable;
+  const identityItemId = initialData?.id ?? null;
+  const nameAvailability = useCatalogItemIdentityAvailability({
+    field: 'name',
+    value: draft.name,
+    itemId: identityItemId,
+    enabled: isEditable
+  });
+  const skuAvailability = useCatalogItemIdentityAvailability({
+    field: 'sku',
+    value: sideSettings.sku,
+    itemId: identityItemId,
+    enabled: isEditable && sideSettings.sku.trim().length > 0
+  });
+  const slugAvailability = useCatalogItemIdentityAvailability({
+    field: 'slug',
+    value: draft.slug || toSlug(draft.name.trim()),
+    itemId: identityItemId,
+    enabled: isEditable && (draft.slug.trim().length > 0 || draft.name.trim().length > 0)
+  });
+  const identityValidationMessages = [
+    getCatalogItemIdentityMessage('name', nameAvailability),
+    getCatalogItemIdentityMessage('sku', skuAvailability),
+    getCatalogItemIdentityMessage('slug', slugAvailability)
+  ].filter((message): message is string => Boolean(message));
+  const hasIdentityConflict =
+    (nameAvailability.status === 'ready' && !nameAvailability.isAvailable) ||
+    (skuAvailability.status === 'ready' && !skuAvailability.isAvailable) ||
+    (slugAvailability.status === 'ready' && !slugAvailability.isAvailable);
   const hasSelectedVariants = variantSelections.size > 0;
   const allVariantsSelected = draft.variants.length > 0 && draft.variants.every((variant) => variantSelections.has(variant.id));
   const canUndoStagedChanges = isEditable && !isSaving && pendingSaveConfirmation === null && undoDepth > 0;
@@ -2197,6 +2267,10 @@ export default function AdminItemEditorPage({
       toast.error('Kategorija je obvezna.');
       return;
     }
+    if (hasIdentityConflict) {
+      toast.error(identityValidationMessages[0] ?? 'Naziv, SKU ali URL je že uporabljen.');
+      return;
+    }
     if (!isEditable || !hasUnsavedChanges || isSaving) return;
 
     const decimalCommit = commitPendingDecimalDrafts();
@@ -2270,9 +2344,45 @@ export default function AdminItemEditorPage({
     }
   };
 
+  const duplicateItem = async () => {
+    const itemIdentifier = articleId || String(initialData?.id ?? '').trim() || draft.slug.trim();
+    if (!itemIdentifier) {
+      toast.error('Artikel nima veljavnega identifikatorja za kopiranje.');
+      return;
+    }
+
+    setIsDuplicating(true);
+    try {
+      const response = await fetch('/api/admin/artikli/duplicate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ itemIdentifier })
+      });
+      const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+      if (!response.ok || !body.item) throw new Error(body.message || 'Kopiranje artikla ni uspelo.');
+
+      const href = `/admin/artikli/${encodeURIComponent(body.item.slug || String(body.item.id))}`;
+      toast.success(
+        <span>
+          Kopija artikla je ustvarjena.{' '}
+          <a className="font-semibold underline underline-offset-2" href={href}>
+            Uredi kopijo
+          </a>
+        </span>,
+        { durationMs: 7000 }
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Kopiranje artikla ni uspelo.');
+    } finally {
+      setIsDuplicating(false);
+    }
+  };
+
   const deleteItem = archiveItem;
   const setTableEditorMode = (_value: 'read' | 'edit' | ((current: 'read' | 'edit') => 'read' | 'edit')) => undefined;
   const canArchive = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving;
+  const canDuplicate = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving && !isDuplicating;
 
   const discardEditorUnsavedChanges = () => {
     setIsDiscardUnsavedDialogOpen(false);
@@ -2614,6 +2724,7 @@ export default function AdminItemEditorPage({
 
   const deleteSelectedVariants = () => {
     if (!isTableEditable || !hasSelectedVariants) return;
+    const removedCount = variantSelections.size;
     setDraft((current) => {
       const remainingVariants = current.variants.filter((variant) => !variantSelections.has(variant.id));
       return {
@@ -2625,6 +2736,7 @@ export default function AdminItemEditorPage({
       };
     });
     setVariantSelections(new Set());
+    toast.info(removedCount === 1 ? 'Različica je odstranjena. Shrani za potrditev.' : `Odstranjenih različic: ${removedCount}. Shrani za potrditev.`);
   };
 
   const setVariantTag = (variantId: string, tag: VariantTag) => {
@@ -3003,16 +3115,38 @@ export default function AdminItemEditorPage({
       <section className={`${adminWindowCardClassName} px-5 py-4`} style={adminWindowCardStyle}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
-            <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 flex-1 xl:max-w-[420px] ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
-              <SideInputIcon icon="material" muted={draft.name.trim().length === 0} className="h-[18px] w-[18px]" />
-              <input
-                aria-label="Naziv artikla"
-                value={draft.name}
-                disabled={!isEditable}
-                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Naziv artikla"
-                className={`${topBarArticleNameInputClassName} ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
-              />
+            <div className="min-w-0 flex-1 xl:max-w-[420px]">
+              <div className={`${compactSideInputWrapClassName} !mt-0 !h-[38.4px] min-w-0 ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'} ${nameAvailability.status === 'ready' && !nameAvailability.isAvailable ? '!border-rose-400' : ''}`}>
+                <SideInputIcon icon="material" muted={draft.name.trim().length === 0} className="h-[18px] w-[18px]" />
+                <input
+                  ref={nameSuggestionInputRef}
+                  aria-label="Naziv artikla"
+                  aria-invalid={isEditable && nameAvailability.status === 'ready' && !nameAvailability.isAvailable}
+                  value={draft.name}
+                  disabled={!isEditable}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onFocus={() => setOpenIdentitySuggestionField('name')}
+                  onBlur={() => setOpenIdentitySuggestionField((current) => (current === 'name' ? null : current))}
+                  onChange={(event) => {
+                    setDraft((current) => ({ ...current, name: event.target.value }));
+                    setOpenIdentitySuggestionField('name');
+                  }}
+                  placeholder="Naziv artikla"
+                  className={`${topBarArticleNameInputClassName} ${isEditable ? 'text-slate-900' : 'cursor-not-allowed text-slate-500'}`}
+                />
+                <AdminFieldSuggestionMenu
+                  anchorRef={nameSuggestionInputRef}
+                  open={isEditable && openIdentitySuggestionField === 'name' && nameAvailability.status === 'ready' && !nameAvailability.isAvailable}
+                  suggestions={nameAvailability.suggestions.slice(0, 1)}
+                  ariaLabel="Predlog naziva artikla"
+                  onSelect={(suggestion) => {
+                    setDraft((current) => ({ ...current, name: suggestion }));
+                    setOpenIdentitySuggestionField(null);
+                    window.setTimeout(() => nameSuggestionInputRef.current?.focus(), 0);
+                  }}
+                />
+              </div>
             </div>
             <div className={adminStatusInfoPillGroupClassName}>
               <ActiveStateChip
@@ -3068,10 +3202,22 @@ export default function AdminItemEditorPage({
             </IconButton>
             <IconButton
               type="button"
+              onClick={() => void duplicateItem()}
+              tone="neutral"
+              size="sm"
+              className={`order-3 ${adminTableNeutralIconButtonClassName}`}
+              aria-label="Podvoji artikel"
+              title="Podvoji"
+              disabled={!canDuplicate}
+            >
+              <CopyIcon />
+            </IconButton>
+            <IconButton
+              type="button"
               onClick={() => void archiveItem()}
               tone="warning"
               size="sm"
-              className={`order-3 ${adminTableSelectedWarningIconButtonClassName}`}
+              className={`order-4 ${adminTableSelectedWarningIconButtonClassName}`}
               aria-label="Arhiviraj artikel"
               title="Arhiviraj"
               disabled={!canArchive}
@@ -3082,7 +3228,7 @@ export default function AdminItemEditorPage({
               type="button"
               variant="primary"
               size="toolbar"
-              className={`order-4 ${topActionSaveButtonClassName}`}
+              className={`order-5 ${topActionSaveButtonClassName}`}
               onClick={() => void save()}
               disabled={!isEditable || !hasUnsavedChanges || isSaving}
             >
@@ -3160,15 +3306,69 @@ export default function AdminItemEditorPage({
                   { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
                   { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
                   { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) }
-                ].map((field) => (
-                  <div key={field.title} className="min-h-10">
-                    <p className="text-sm font-semibold text-slate-900">{field.title}</p>
-                    <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
-                      <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
-                      <input disabled={!isEditable} style={{ outline: 'none', boxShadow: 'none' }} className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`} value={field.value} onChange={(event) => field.onChange(event.target.value)} placeholder={field.placeholder} />
+                ].map((field) => {
+                  const availability = field.title === 'Osnovni SKU'
+                    ? skuAvailability
+                    : field.title === 'URL'
+                      ? slugAvailability
+                      : null;
+                  const identityField = field.title === 'Osnovni SKU'
+                    ? 'sku'
+                    : field.title === 'URL'
+                      ? 'slug'
+                      : null;
+                  const suggestionInputRef = identityField === 'sku'
+                    ? skuSuggestionInputRef
+                    : identityField === 'slug'
+                      ? slugSuggestionInputRef
+                      : null;
+                  const hasConflict = availability?.status === 'ready' && !availability.isAvailable;
+
+                  return (
+                    <div key={field.title} className="min-h-10">
+                      <p className="text-sm font-semibold text-slate-900">{field.title}</p>
+                      <div className={`${compactSideInputWrapClassName} ${isEditable ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'} ${hasConflict ? '!border-rose-400' : ''}`}>
+                        <SideInputIcon icon={field.icon} muted={field.value.trim().length === 0} />
+                        <input
+                          ref={suggestionInputRef ?? undefined}
+                          disabled={!isEditable}
+                          style={{ outline: 'none', boxShadow: 'none' }}
+                          className={`${compactSideInputClassName} ${isEditable ? '' : 'cursor-not-allowed text-slate-500'}`}
+                          value={field.value}
+                          aria-invalid={isEditable && hasConflict}
+                          autoComplete="off"
+                          spellCheck={false}
+                          onFocus={() => {
+                            if (identityField) setOpenIdentitySuggestionField(identityField);
+                          }}
+                          onBlur={() => {
+                            if (identityField) {
+                              setOpenIdentitySuggestionField((current) => (current === identityField ? null : current));
+                            }
+                          }}
+                          onChange={(event) => {
+                            field.onChange(event.target.value);
+                            if (identityField) setOpenIdentitySuggestionField(identityField);
+                          }}
+                          placeholder={field.placeholder}
+                        />
+                        {identityField && suggestionInputRef && availability ? (
+                          <AdminFieldSuggestionMenu
+                            anchorRef={suggestionInputRef}
+                            open={isEditable && openIdentitySuggestionField === identityField && hasConflict}
+                            suggestions={availability.suggestions.slice(0, 1)}
+                            ariaLabel={identityField === 'sku' ? 'Predlog SKU' : 'Predlog URL'}
+                            onSelect={(suggestion) => {
+                              field.onChange(suggestion);
+                              setOpenIdentitySuggestionField(null);
+                              window.setTimeout(() => suggestionInputRef.current?.focus(), 0);
+                            }}
+                          />
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="space-y-1 pt-0.5 md:col-span-2">
                 <label className="text-sm font-semibold text-slate-900">Opis</label>

@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { quickPatchCatalogVariantByIdentifier, type CatalogVariantQuickPatch } from '@/shared/server/catalogItems';
+import {
+  CatalogItemIdentityConflictError,
+  quickPatchCatalogVariantByIdentifier,
+  type CatalogVariantQuickPatch
+} from '@/shared/server/catalogItems';
 
 type VariantQuickSaveRequest = {
   itemIdentifier?: string;
@@ -29,6 +33,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof CatalogItemIdentityConflictError) {
+      return NextResponse.json({ message: error.message, conflicts: error.conflicts }, { status: error.statusCode });
+    }
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka na strežniku.' }, { status: 500 });
   }
 }

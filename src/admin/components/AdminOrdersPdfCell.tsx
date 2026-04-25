@@ -190,6 +190,7 @@ export default function AdminOrdersPdfCell({
         ...previousDocuments
       ]);
 
+      toast.success('PDF je uspešno ustvarjen.');
       setOpenType(type);
     } finally {
       setLoadingType(null);

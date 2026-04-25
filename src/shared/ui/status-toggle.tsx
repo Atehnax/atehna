@@ -27,7 +27,7 @@ export function StatusToggle({
     >
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute left-[6.5px] top-1/2 -translate-y-1/2 text-white transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`pointer-events-none absolute left-[6.5px] top-1/2 -translate-y-1/2 text-[#46515e] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           checked ? 'translate-x-0 opacity-100' : 'translate-x-1 opacity-0'
         }`}
       >

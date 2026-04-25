@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
 import {
-  CheckCircleIcon,
   DownloadIcon,
   PdfFileIcon,
   TrashCanIcon,
@@ -14,6 +13,7 @@ import { Spinner } from '@/shared/ui/loading';
 import {
   adminTableInlineCancelButtonClassName,
   adminTableNeutralIconButtonClassName,
+  adminTableSelectedDangerIconButtonClassName,
   adminWindowCardClassName,
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
@@ -185,7 +185,7 @@ export default function AdminOrderPdfManager({
           const latestDoc = docs[0] ?? null;
           const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
-          const visibleDocs = isExpanded ? docs : docs.slice(0, 1);
+          const visibleDocs = isExpanded ? docs.slice(1) : [];
 
           return (
             <div key={pdfType.key} className="rounded-2xl border border-slate-200 p-4">
@@ -273,6 +273,7 @@ export default function AdminOrderPdfManager({
                   <IconButton
                     type="button"
                     onClick={() => downloadLatestByType(pdfType.key)}
+                    disabled={!latestDoc}
                     className={adminTableNeutralIconButtonClassName}
                     title="Prenesi"
                     tone="neutral"
@@ -280,30 +281,37 @@ export default function AdminOrderPdfManager({
                   >
                     <DownloadIcon />
                   </IconButton>
+
+                  <IconButton
+                    type="button"
+                    onClick={() => {
+                      if (latestDoc) setConfirmDeleteDocumentId(latestDoc.id);
+                    }}
+                    disabled={!latestDoc || deletingDocumentId === latestDoc.id}
+                    tone="danger"
+                    className={adminTableSelectedDangerIconButtonClassName}
+                    aria-label={latestDoc ? `Izbriši dokument ${latestDoc.filename}` : `Izbriši ${pdfType.label}`}
+                    title="Izbriši"
+                  >
+                    {latestDoc && deletingDocumentId === latestDoc.id ? <Spinner size="sm" className="text-slate-500" /> : <TrashCanIcon />}
+                  </IconButton>
                 </div>
               </div>
 
-              {latestDoc && isExpanded ? (
+              {latestDoc && isExpanded && visibleDocs.length > 0 ? (
                 <div id={`pdf-versions-${pdfType.key}`} className="mt-3 rounded-xl bg-slate-50/80 p-2">
                   <ul className="space-y-1">
-                    {visibleDocs.map((doc, index) => {
-                      const isNewest = index === 0;
-
+                    {visibleDocs.map((doc) => {
                       return (
                         <li
                           key={`${doc.id}-${doc.created_at}`}
-                          className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)_120px_28px] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] leading-4 text-slate-600 transition hover:bg-white"
+                          className="grid min-w-0 grid-cols-[minmax(0,1fr)_120px_28px] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] leading-4 text-slate-600 transition hover:bg-white"
                         >
-                          <span className="inline-flex h-4 w-4 items-center justify-center text-emerald-700" aria-hidden="true">
-                            {isNewest ? <CheckCircleIcon className="h-3.5 w-3.5" /> : null}
-                          </span>
                           <a
                             href={doc.blob_url}
                             target="_blank"
                             rel="noreferrer"
-                            className={`truncate text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)] ${
-                              isNewest ? 'font-semibold' : 'font-medium'
-                            }`}
+                            className="truncate font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]"
                             title={doc.filename}
                           >
                             {doc.filename}
@@ -314,7 +322,7 @@ export default function AdminOrderPdfManager({
                             onClick={() => setConfirmDeleteDocumentId(doc.id)}
                             disabled={deletingDocumentId === doc.id}
                             tone="neutral"
-                            className={adminTableInlineCancelButtonClassName}
+                            className={`${adminTableInlineCancelButtonClassName} !text-rose-700`}
                             aria-label={`Izbriši dokument ${doc.filename}`}
                             title="Izbriši"
                           >

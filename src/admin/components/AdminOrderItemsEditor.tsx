@@ -388,9 +388,11 @@ export default function AdminOrderItemsEditor({
 
   const deleteSelectedDraftItems = () => {
     if (!itemsEditable || selectedDraftItemIds.length === 0) return;
+    const removedCount = selectedDraftItemIds.length;
     const selectedSet = new Set(selectedDraftItemIds);
     setDraftItems((previous) => previous.filter((item) => !selectedSet.has(item.id)));
     setSelectedDraftItemIds([]);
+    toast.info(removedCount === 1 ? 'Postavka je odstranjena. Shrani za potrditev.' : `Odstranjenih postavk: ${removedCount}. Shrani za potrditev.`);
   };
 
   return (

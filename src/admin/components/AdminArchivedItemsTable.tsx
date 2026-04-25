@@ -44,6 +44,7 @@ import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
+import { useToast } from '@/shared/ui/toast';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -109,6 +110,7 @@ const dateInRange = (value: string | null | undefined, from: string, to: string)
 };
 
 export default function AdminArchivedItemsTable() {
+  const { toast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
@@ -297,6 +299,7 @@ export default function AdminArchivedItemsTable() {
     const next = items.map((item) => (selectedSet.has(item.id) ? { ...item, archivedAt: null } : item));
     persist(next);
     setSelectedIds([]);
+    toast.success(selectedIds.length === 1 ? 'Artikel je obnovljen.' : `Obnovljenih artiklov: ${selectedIds.length}.`);
   };
 
   const hardDeleteSelected = () => {
@@ -306,10 +309,12 @@ export default function AdminArchivedItemsTable() {
 
   const confirmHardDeleteSelected = () => {
     const selectedSet = new Set(selectedIds);
+    const deletedCount = selectedIds.length;
     const next = items.filter((item) => !selectedSet.has(item.id));
     persist(next);
     setSelectedIds([]);
     setIsDeleteConfirmOpen(false);
+    toast.success(deletedCount === 1 ? 'Artikel je trajno izbrisan.' : `Trajno izbrisanih artiklov: ${deletedCount}.`);
   };
 
   const toggleAll = () => {

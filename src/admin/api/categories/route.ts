@@ -80,10 +80,14 @@ export async function PATCH(request: Request) {
 
     await patchCategoryTree({ upserts, deleteIds });
 
+    for (const target of CATALOG_REVALIDATE_PATHS) {
+      revalidatePath(target.path, target.type);
+    }
+
     recordCatalogInvalidation({
       context: '/api/admin/categories:patch',
       tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
-      revalidatedPaths: 0
+      revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
     });
 
     return NextResponse.json({ ok: true });

@@ -8,7 +8,14 @@ import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import AdminOrderItemsEditorClient from '@/admin/components/AdminOrderItemsEditorClient';
 import AdminOrderPdfManagerClient from '@/admin/components/AdminOrderPdfManagerClient';
+import OrderNumberSuggestionMenu from '@/admin/components/OrderNumberSuggestionMenu';
 import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
+import {
+  getOrderNumberValidationMessage,
+  isOrderNumberAllowed,
+  sanitizeOrderNumberInput,
+  useOrderNumberAvailability
+} from '@/admin/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
@@ -650,6 +657,24 @@ export default function AdminOrderDetailClient({
   const pageIsBusy = isSaving || itemsSaving || isDeleting;
   const pageTitle = `Naročilo ${displayOrderNumber}`;
   const activeOrderNumberValue = toEditableOrderNumber(isEditing ? draftOrderNumber : displayOrderNumber);
+  const orderNumberSuggestionsId = `order-number-suggestions-${orderId}`;
+  const orderNumberInputRef = useRef<HTMLInputElement | null>(null);
+  const [isOrderNumberMenuOpen, setIsOrderNumberMenuOpen] = useState(false);
+  const orderNumberAvailability = useOrderNumberAvailability({
+    orderId,
+    value: draftOrderNumber,
+    enabled: isEditing
+  });
+  const orderNumberIsAllowed = isOrderNumberAllowed(draftOrderNumber, displayOrderNumber, orderNumberAvailability);
+  const orderNumberValidationMessage = getOrderNumberValidationMessage(
+    draftOrderNumber,
+    displayOrderNumber,
+    orderNumberAvailability
+  );
+
+  useEffect(() => {
+    if (!isEditing) setIsOrderNumberMenuOpen(false);
+  }, [isEditing]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -808,6 +833,10 @@ export default function AdminOrderDetailClient({
 
   const saveAll = async (afterSave?: () => void) => {
     if (!isEditing || pageIsBusy) return false;
+    if (!orderNumberIsAllowed) {
+      toast.error(orderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
+      return false;
+    }
 
     setIsSaving(true);
     try {
@@ -895,9 +924,9 @@ export default function AdminOrderDetailClient({
           </div>
         ) : null}
 
-        {order.is_draft ? (
+        {order.is_draft && !hasUnsavedChanges ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            To naročilo je osnutek. Izpolnite podatke in shranite, da bo vidno na seznamu naročil.
+            To naročilo je osnutek. Izpolni podatke in shrani.
           </div>
         ) : null}
 
@@ -910,25 +939,50 @@ export default function AdminOrderDetailClient({
         <section className={`${adminWindowCardClassName} px-5 py-4`} style={adminWindowCardStyle}>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
-              <div className={`${adminCompactIconFieldShellClassName} !mt-0 !h-[38.4px] w-full min-w-[270px] max-w-[50%] flex-none xl:max-w-[210px] ${isEditing ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'}`}>
+              <div className="relative w-full min-w-[270px] max-w-[50%] flex-none xl:max-w-[210px]">
+                <div className={`${adminCompactIconFieldShellClassName} !mt-0 !h-[38.4px] w-full ${isEditing ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'} ${isEditing && orderNumberValidationMessage ? '!border-rose-400' : ''}`}>
                 <HeaderOrderIcon />
                 <div className="flex min-w-0 flex-1 items-center">
                   <span className={`shrink-0 text-slate-900 ${adminTopBarTitleTextClassName}`}>
                     Naročilo #
                   </span>
                   <input
+                    ref={orderNumberInputRef}
                     aria-label="Številka naročila"
+                    aria-invalid={isEditing && Boolean(orderNumberValidationMessage)}
+                    aria-describedby={isEditing && orderNumberValidationMessage ? `${orderNumberSuggestionsId}-message` : undefined}
+                    name={`order-number-${orderId}`}
                     value={activeOrderNumberValue}
                     disabled={!isEditing || pageIsBusy}
+                    title={orderNumberValidationMessage ?? undefined}
+                    onFocus={() => setIsOrderNumberMenuOpen(true)}
+                    onBlur={() => setIsOrderNumberMenuOpen(false)}
                     onChange={(event) => {
-                      const nextValue = event.target.value
-                        .replace(/^#/, '')
-                        .replace(/[^\dA-Za-z-]/g, '');
-                      setDraftOrderNumber(nextValue);
+                      setDraftOrderNumber(sanitizeOrderNumberInput(event.target.value));
+                      setIsOrderNumberMenuOpen(true);
                     }}
+                    autoComplete="off"
+                    spellCheck={false}
                     className={`${adminTopBarArticleNameInputClassName} admin-order-number-input !w-[8ch] flex-none ${isEditing ? 'text-slate-900' : 'cursor-not-allowed text-slate-900'}`}
                   />
+                  <OrderNumberSuggestionMenu
+                    anchorRef={orderNumberInputRef}
+                    open={isEditing && isOrderNumberMenuOpen}
+                    currentValue={toEditableOrderNumber(displayOrderNumber)}
+                    suggestions={orderNumberAvailability.suggestions}
+                    onSelect={(suggestion) => {
+                      setDraftOrderNumber(sanitizeOrderNumberInput(suggestion));
+                      setIsOrderNumberMenuOpen(false);
+                      window.setTimeout(() => orderNumberInputRef.current?.focus(), 0);
+                    }}
+                  />
+                  {isEditing && orderNumberValidationMessage ? (
+                    <span id={`${orderNumberSuggestionsId}-message`} className="sr-only">
+                      {orderNumberValidationMessage}
+                    </span>
+                  ) : null}
                 </div>
+              </div>
               </div>
 
               <div className={adminStatusInfoPillGroupClassName}>
@@ -1002,7 +1056,7 @@ export default function AdminOrderDetailClient({
                 size="toolbar"
                 className={topActionSaveButtonClassName}
                 onClick={() => void saveAll()}
-                disabled={!isEditing || pageIsBusy}
+                disabled={!isEditing || pageIsBusy || !orderNumberIsAllowed}
               >
                 <SaveIcon className={topSaveActionButtonIconClassName} />
                 <span>Shrani</span>

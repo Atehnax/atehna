@@ -958,6 +958,7 @@ export default function AdminCategoriesMainTable({
     }
 
     setStatusByRow(nextStatuses);
+    statusByRowRef.current = nextStatuses;
   }, [activeView, catalog, millerCatalog, statusByRow]);
 
   const hasUnsavedChanges = tableDirty || millerDirty;
@@ -1914,6 +1915,7 @@ export default function AdminCategoriesMainTable({
     stageMillerCatalog({ categories: nextCategories });
     setMillerSelection([]);
     setMillerDeleteTarget(null);
+    toast.info('Izbris je pripravljen. Shrani Miller spremembe za potrditev.');
   };
 
   const addMillerNode = async (column: 'categories' | 'subcategories' | 'items') => {
@@ -2291,6 +2293,7 @@ export default function AdminCategoriesMainTable({
         )
       });
       setImageDeleteTarget(null);
+      toast.info('Slika je odstranjena. Shrani spremembe za potrditev.');
       return;
     }
 
@@ -2299,6 +2302,7 @@ export default function AdminCategoriesMainTable({
       image: ''
     });
     setImageDeleteTarget(null);
+    toast.info('Slika je odstranjena. Shrani spremembe za potrditev.');
   };
 
   const openPreviewNode = useCallback(async (card: ContentCard) => {
@@ -2926,7 +2930,8 @@ export default function AdminCategoriesMainTable({
     const isExpanded = expanded[id] ?? false;
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
-    const rowStatus = statusByRow[id] ?? 'active';
+    const persistedRowStatus = statusByRow[id] ?? 'active';
+    const rowStatus = isRowEditing ? editingRow.status : persistedRowStatus;
     const isInlineEditValid = isRowEditing ? editingRow.title.trim().length > 0 : false;
     const isInlineEditDirty = isRowEditing
       ? editingRow.title.trim() !== (editingRow.initialTitle ?? title).trim() ||
@@ -2952,7 +2957,7 @@ export default function AdminCategoriesMainTable({
         status: rowStatus,
         initialTitle: title,
         initialDescription: description,
-        initialStatus: rowStatus
+        initialStatus: persistedRowStatus
       });
 
       if (editingRow && editingRow.id !== id) {
@@ -2970,8 +2975,26 @@ export default function AdminCategoriesMainTable({
         return;
       }
 
-      const nextStatuses = { ...statusByRow, [id]: nextStatus };
-      stageStatusChange(nextStatuses);
+      const startInlineStatusEdit = () => setEditingRow({
+        id,
+        kind,
+        categorySlug,
+        subcategoryPath: resolvedSubcategoryPath,
+        subcategorySlug: resolvedSubcategoryPath.at(-1),
+        title,
+        description,
+        status: nextStatus,
+        initialTitle: title,
+        initialDescription: description,
+        initialStatus: persistedRowStatus
+      });
+
+      if (editingRow && editingRow.id !== id) {
+        requestInlineEditResolution('spreminjanjem vidnosti druge vrstice', startInlineStatusEdit);
+        return;
+      }
+
+      startInlineStatusEdit();
     };
 
     const isOpening = parentIsAnimating && openingRowIdSet.size > 0;
@@ -3250,8 +3273,8 @@ export default function AdminCategoriesMainTable({
                     size="sm"
                     className={adminTableInlineCancelButtonClassName}
                     onClick={() => setEditingRow(null)}
-                    aria-label={`PrekliÄi urejanje za ${title}`}
-                    title="PrekliÄi"
+                    aria-label={`Prekliči urejanje za ${title}`}
+                    title="Prekliči"
                   >
                     <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
                   </IconButton>
@@ -3340,7 +3363,6 @@ export default function AdminCategoriesMainTable({
     selected,
     selectedRowSet,
     stageTableCatalog,
-    stageStatusChange,
     statusByRow,
     toggleExpanded
   ]);

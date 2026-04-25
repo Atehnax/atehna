@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
+import { ensureOrdersDraftColumn } from '@/shared/server/orders';
 import { buildOrderBlobPath, uploadBlob } from '@/shared/server/blob';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { isCustomerType, type CustomerType } from '@/shared/domain/order/customerType';
@@ -124,6 +125,8 @@ export async function POST(request: Request) {
     const tax = total - total / (1 + TAX_RATE);
 
     const pool = await getPool();
+    await ensureOrdersDraftColumn();
+
     const databaseClient = await pool.connect();
 
     try {

@@ -68,6 +68,13 @@ import {
 } from '@/shared/ui/admin-header-filter';
 import StatusChip from '@/admin/components/StatusChip';
 import PaymentChip from '@/admin/components/PaymentChip';
+import OrderNumberSuggestionMenu from '@/admin/components/OrderNumberSuggestionMenu';
+import {
+  getOrderNumberValidationMessage,
+  isOrderNumberAllowed,
+  sanitizeOrderNumberInput,
+  useOrderNumberAvailability
+} from '@/admin/components/useOrderNumberAvailability';
 import { CustomSelect } from '@/shared/ui/select';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
@@ -515,6 +522,32 @@ export default function AdminOrdersTable({
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<number | null>(null);
   const [isBulkUpdatingStatus, setIsBulkUpdatingStatus] = useState(false);
   const [quickEdit, setQuickEdit] = useState<OrderQuickEditState | null>(null);
+  const quickEditOrderNumberInputRef = useRef<HTMLInputElement | null>(null);
+  const [isQuickEditOrderNumberMenuOpen, setIsQuickEditOrderNumberMenuOpen] = useState(false);
+  const [rowDetailOverrides, setRowDetailOverrides] = useState<Record<number, Partial<OrderRow>>>({});
+  const quickEditOrderNumberAvailability = useOrderNumberAvailability({
+    orderId: quickEdit?.orderId ?? null,
+    value: quickEdit?.draftOrderNumber ?? '',
+    enabled: quickEdit !== null
+  });
+  const quickEditOrderNumberIsAllowed = quickEdit
+    ? isOrderNumberAllowed(
+        quickEdit.draftOrderNumber,
+        quickEdit.initialOrderNumber,
+        quickEditOrderNumberAvailability
+      )
+    : true;
+  const quickEditOrderNumberValidationMessage = quickEdit
+    ? getOrderNumberValidationMessage(
+        quickEdit.draftOrderNumber,
+        quickEdit.initialOrderNumber,
+        quickEditOrderNumberAvailability
+      )
+    : null;
+
+  useEffect(() => {
+    setIsQuickEditOrderNumberMenuOpen(false);
+  }, [quickEdit?.orderId]);
 
   const [statusFilter, setStatusFilter] = useState<StatusTab>((initialStatusFilter as StatusTab) ?? 'all');
   const [query, setQuery] = useState(initialQuery);
@@ -943,11 +976,28 @@ export default function AdminOrdersTable({
     const sortedOrders = [...filteredOrders].sort((leftOrder, rightOrder) => {
       const leftRuntime = orderRuntimeById.get(leftOrder.id);
       const rightRuntime = orderRuntimeById.get(rightOrder.id);
-      const leftOrderNumberNumeric = leftRuntime?.numericOrderNumber ?? getNumericOrderNumber(leftOrder.order_number);
-      const rightOrderNumberNumeric = rightRuntime?.numericOrderNumber ?? getNumericOrderNumber(rightOrder.order_number);
+      const leftOrderNumber = String(rowDetailOverrides[leftOrder.id]?.order_number ?? leftOrder.order_number);
+      const rightOrderNumber = String(rowDetailOverrides[rightOrder.id]?.order_number ?? rightOrder.order_number);
+      const leftOrderNumberNumeric = getNumericOrderNumber(leftOrderNumber);
+      const rightOrderNumberNumeric = getNumericOrderNumber(rightOrderNumber);
       const fallbackStable = (leftRuntime?.originalIndex ?? 0) - (rightRuntime?.originalIndex ?? 0);
 
       if (!sortState) {
+        if (
+          Number.isFinite(leftOrderNumberNumeric) &&
+          Number.isFinite(rightOrderNumberNumeric) &&
+          leftOrderNumberNumeric !== rightOrderNumberNumeric
+        ) {
+          return rightOrderNumberNumeric - leftOrderNumberNumeric;
+        }
+
+        if (leftOrderNumberNumeric !== rightOrderNumberNumeric) {
+          if (!Number.isFinite(leftOrderNumberNumeric)) return 1;
+          if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
+        }
+
+        const textResult = textCollator.compare(rightOrderNumber, leftOrderNumber);
+        if (textResult !== 0) return textResult;
         return fallbackStable;
       }
 
@@ -984,8 +1034,8 @@ export default function AdminOrdersTable({
             if (!Number.isFinite(rightOrderNumberNumeric)) return -1;
           }
 
-          leftValue = leftOrder.order_number;
-          rightValue = rightOrder.order_number;
+          leftValue = leftOrderNumber;
+          rightValue = rightOrderNumber;
           break;
         case 'customer':
           leftValue = leftRuntime?.customerLabel ?? (leftOrder.organization_name || leftOrder.contact_name || '');
@@ -1041,6 +1091,7 @@ export default function AdminOrdersTable({
     orderNumberRange,
     latestDocumentsByOrder,
     orderRuntimeById,
+    rowDetailOverrides,
     sortState
   ]);
 
@@ -1119,7 +1170,6 @@ export default function AdminOrdersTable({
 
   const [rowStatusOverrides, setRowStatusOverrides] = useState<Record<number, string>>({});
   const [rowPaymentOverrides, setRowPaymentOverrides] = useState<Record<number, string | null>>({});
-  const [rowDetailOverrides, setRowDetailOverrides] = useState<Record<number, Partial<OrderRow>>>({});
   const rowDisplayByOrderId = useMemo(() => {
     const next = new Map<number, { dateLabel: string; dateTimeLabel: string; orderAddress: string; typeLabel: string; totalLabel: string }>();
     pagedOrders.forEach((order) => {
@@ -1215,6 +1265,10 @@ export default function AdminOrdersTable({
     if (!quickEdit.draftCustomerName.trim() || !quickEdit.draftOrderDate.trim() || !quickEdit.draftCustomerType.trim()) {
       return;
     }
+    if (!quickEditOrderNumberIsAllowed) {
+      toast.error(quickEditOrderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
+      return;
+    }
 
     const detailsDirty =
       quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim() ||
@@ -1265,6 +1319,12 @@ export default function AdminOrdersTable({
         });
 
         if (!response.ok) {
+          const error = await response.json().catch(() => null);
+          toast.error(
+            error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+              ? error.message
+              : 'Shranjevanje številke naročila ni uspelo.'
+          );
           hasError = true;
         } else {
           nextInitialOrderNumber = quickEdit.draftOrderNumber;
@@ -1360,7 +1420,7 @@ export default function AdminOrdersTable({
 
     toast.success('Shranjeno');
     setQuickEdit(null);
-  }, [quickEdit, toast]);
+  }, [quickEdit, quickEditOrderNumberIsAllowed, quickEditOrderNumberValidationMessage, toast]);
 
   useEffect(() => {
     if (!hasBulkSelectedRows) {
@@ -2193,11 +2253,16 @@ export default function AdminOrdersTable({
                   const isSingleSelectedOrder = singleSelectedOrderId === order.id;
                   const activeQuickEdit = quickEdit?.orderId === order.id ? quickEdit : null;
                   const isRowQuickEditing = activeQuickEdit !== null;
+                  const activeQuickEditOrderNumberMessage = activeQuickEdit ? quickEditOrderNumberValidationMessage : null;
+                  const orderNumberSuggestionsId = activeQuickEdit
+                    ? `order-quick-edit-number-suggestions-${order.id}`
+                    : undefined;
                   const isQuickEditValid = activeQuickEdit
                     ? Boolean(
                         activeQuickEdit.draftCustomerName.trim() &&
                         activeQuickEdit.draftOrderDate.trim() &&
-                        activeQuickEdit.draftCustomerType.trim()
+                        activeQuickEdit.draftCustomerType.trim() &&
+                        quickEditOrderNumberIsAllowed
                       )
                     : false;
                   const isQuickEditDirty = activeQuickEdit
@@ -2233,22 +2298,51 @@ export default function AdminOrdersTable({
                         {isRowQuickEditing ? (
                           <div className="mx-auto flex h-7 w-full items-center justify-center">
                             <Input
+                              ref={quickEditOrderNumberInputRef}
                               id={`order-quick-edit-number-${order.id}`}
                               name={`orderQuickEditNumber-${order.id}`}
                               value={activeQuickEdit.draftOrderNumber}
-                              onChange={(event) =>
+                              aria-invalid={Boolean(activeQuickEditOrderNumberMessage)}
+                              aria-describedby={activeQuickEditOrderNumberMessage ? `${orderNumberSuggestionsId}-message` : undefined}
+                              title={activeQuickEditOrderNumberMessage ?? undefined}
+                              onFocus={() => setIsQuickEditOrderNumberMenuOpen(true)}
+                              onBlur={() => setIsQuickEditOrderNumberMenuOpen(false)}
+                              onChange={(event) => {
                                 setQuickEdit((current) =>
                                   current && current.orderId === order.id
-                                    ? { ...current, draftOrderNumber: event.target.value.replace(/[^\d#]/g, '') }
+                                    ? { ...current, draftOrderNumber: sanitizeOrderNumberInput(event.target.value) }
                                     : current
-                                )
-                              }
+                                );
+                                setIsQuickEditOrderNumberMenuOpen(true);
+                              }}
                               onKeyDown={handleQuickEditInputKeyDown}
                               inputMode="numeric"
-                              className={ORDERS_ORDER_INPUT_CLASS}
+                              autoComplete="off"
+                              spellCheck={false}
+                              className={`${ORDERS_ORDER_INPUT_CLASS} ${activeQuickEditOrderNumberMessage ? '!border-rose-400 !text-rose-700' : ''}`}
                               aria-label={`Številka naročila ${order.id}`}
                               autoFocus
                             />
+                            <OrderNumberSuggestionMenu
+                              anchorRef={quickEditOrderNumberInputRef}
+                              open={isQuickEditOrderNumberMenuOpen && isRowQuickEditing}
+                              currentValue={activeQuickEdit.initialOrderNumber}
+                              suggestions={quickEditOrderNumberAvailability.suggestions}
+                              onSelect={(suggestion) => {
+                                setQuickEdit((current) =>
+                                  current && current.orderId === order.id
+                                    ? { ...current, draftOrderNumber: sanitizeOrderNumberInput(suggestion) }
+                                    : current
+                                );
+                                setIsQuickEditOrderNumberMenuOpen(false);
+                                window.setTimeout(() => quickEditOrderNumberInputRef.current?.focus(), 0);
+                              }}
+                            />
+                            {activeQuickEditOrderNumberMessage ? (
+                              <span id={`${orderNumberSuggestionsId}-message`} className="sr-only">
+                                {activeQuickEditOrderNumberMessage}
+                              </span>
+                            ) : null}
                           </div>
                         ) : (
                           <Link
@@ -2499,7 +2593,7 @@ export default function AdminOrdersTable({
                                 }}
                                 disabled={!isQuickEditDirty || !isQuickEditValid || activeQuickEdit.isSaving}
                                 aria-label={`Shrani hitro urejanje za naročilo ${toDisplayOrderNumber(order.order_number)}`}
-                                title={!isQuickEditValid ? 'Izpolnite obvezna polja' : (!isQuickEditDirty ? 'Ni sprememb za shranjevanje' : 'Shrani')}
+                                title={activeQuickEditOrderNumberMessage ?? (!isQuickEditValid ? 'Izpolnite obvezna polja' : (!isQuickEditDirty ? 'Ni sprememb za shranjevanje' : 'Shrani'))}
                               >
                                 <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
                               </IconButton>

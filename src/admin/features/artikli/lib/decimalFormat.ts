@@ -23,20 +23,9 @@ export function parseDecimalListInput(raw: string): number[] {
   const normalized = raw.trim();
   if (!normalized) return [];
 
-  const hasSemicolon = normalized.includes(';');
-  const hasSpaceSeparated = /\s+/.test(normalized);
-  if (hasSemicolon || hasSpaceSeparated) {
-    return normalized
-      .split(/[;\s]+/)
-      .map((token) => parseDecimalInput(token))
-      .filter((value): value is number => value !== null);
-  }
-
-  const parts = normalized.split(',').map((part) => part.trim()).filter(Boolean);
-  if (parts.length === 2 && !normalized.includes('.') && parts[1].length <= 2) {
-    const asSingle = parseDecimalInput(normalized);
-    if (asSingle !== null) return [asSingle];
-  }
+  const parts = normalized.includes(';')
+    ? normalized.split(';').map((part) => part.trim()).filter(Boolean)
+    : [normalized];
 
   return parts
     .map((token) => parseDecimalInput(token))

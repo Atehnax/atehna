@@ -61,6 +61,35 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import {
+  CommercialToolsPanel,
+  ProductTypeSelectorCardRow,
+  QuantityDiscountsCard,
+  SimpleProductModule,
+  UniqueMachineProductModule,
+  WeightProductModule,
+  buildMachineCatalogVariants,
+  buildSimpleCatalogVariants,
+  buildWeightCatalogVariants,
+  cloneQuantityDiscountDraft,
+  cloneTypeSpecificData,
+  createInitialTypeSpecificData,
+  createInitialQuantityDiscountDrafts,
+  createQuantityDiscountDraft,
+  getDimensionSimulatorOptions,
+  getMachineSimulatorOptions,
+  getSimpleSimulatorOptions,
+  getWeightSimulatorOptions,
+  normalizeSimpleProductData,
+  normalizeUniqueMachineProductData,
+  normalizeWeightProductData,
+  serializeQuantityDiscountTargets,
+  adminProductInputChipClassName,
+  type ProductEditorType,
+  type QuantityDiscountDraft,
+  type SimulatorOption,
+  type UniversalProductSpecificData
+} from '@/admin/features/artikli/components/DimensionProductPricingSections';
 import AdminFieldSuggestionMenu from '@/admin/components/AdminFieldSuggestionMenu';
 import {
   getCatalogItemIdentityMessage,
@@ -117,7 +146,7 @@ function formatCurrencyAmountOnly(value: number) {
 }
 
 type EditorMode = 'create' | 'edit';
-type CreateType = 'simple' | 'variants';
+type CreateType = ProductEditorType | 'variants';
 type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
@@ -149,6 +178,16 @@ type SideSettingsState = {
   imageAltText: string;
   videoUrl: string;
 };
+
+function normalizeCreateType(createType: CreateType): ProductEditorType {
+  return createType === 'variants' ? 'dimensions' : createType;
+}
+
+function mapProductTypeToCatalogItemType(productType: ProductEditorType): CatalogItemEditorPayload['itemType'] {
+  if (productType === 'dimensions') return 'sheet';
+  if (productType === 'weight') return 'bulk';
+  return 'unit';
+}
 type StagedImageSlot = {
   previewUrl: string;
   uploadedUrl: string | null;
@@ -180,8 +219,11 @@ type StagedTechnicalDocument = {
 };
 type EditorPersistedState = {
   draft: ProductFamily;
+  productType: ProductEditorType;
+  typeSpecificData: UniversalProductSpecificData;
   sideSettings: SideSettingsState;
   documents: StagedTechnicalDocument[];
+  quantityDiscounts: QuantityDiscountDraft[];
   itemLevelNote: VariantTag | '';
   mediaImages: StagedImageSlot[];
   video: StagedVideoState | null;
@@ -271,8 +313,11 @@ function cloneEditorPersistedState(state: EditorPersistedState): EditorPersisted
       ...state.draft,
       variants: state.draft.variants.map(cloneVariant)
     },
+    productType: state.productType,
+    typeSpecificData: cloneTypeSpecificData(state.typeSpecificData),
     sideSettings: cloneSideSettings(state.sideSettings),
     documents: state.documents.map(cloneDocument),
+    quantityDiscounts: state.quantityDiscounts.map(cloneQuantityDiscountDraft),
     itemLevelNote: state.itemLevelNote,
     mediaImages: state.mediaImages.map(cloneMediaImage),
     video: cloneVideo(state.video),
@@ -314,6 +359,8 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
         imageAssignments: [...(variant.imageAssignments ?? [])]
       }))
     },
+    productType: state.productType,
+    typeSpecificData: state.typeSpecificData,
     sideSettings: state.sideSettings,
     documents: state.documents.map((documentEntry) => ({
       id: documentEntry.id,
@@ -332,6 +379,19 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
           }
         : null
     })),
+    quantityDiscounts: state.quantityDiscounts
+      .map((rule) => ({
+        id: rule.id,
+        persistedId: rule.persistedId ?? null,
+        minQuantity: rule.minQuantity,
+        discountPercent: rule.discountPercent,
+        appliesTo: serializeQuantityDiscountTargets(rule),
+        variantTargets: [...rule.variantTargets],
+        customerTargets: [...rule.customerTargets],
+        note: rule.note,
+        position: rule.position
+      }))
+      .sort((left, right) => left.position - right.position || left.minQuantity - right.minQuantity),
     itemLevelNote: state.itemLevelNote,
     mediaImages: state.mediaImages.map((slot) => ({
       uploadedUrl: slot.uploadedUrl,
@@ -420,6 +480,25 @@ function formatSaveDiffAssignments(assignments: number[] | undefined) {
   return normalized.length > 0 ? normalized.map((value) => `#${value + 1}`).join(', ') : 'brez dodeljenih slik';
 }
 
+function formatQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
+  const note = rule.note.trim() ? `, opomba ${rule.note.trim()}` : '';
+  const variants = rule.variantTargets.join(', ') || 'Vse';
+  const customers = rule.customerTargets.join(', ') || 'Vse';
+  return `${rule.minQuantity} kos -> ${formatDecimalForDisplay(rule.discountPercent)} %; razlicice: ${variants}; kupci: ${customers}${note}`;
+}
+
+function serializeQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
+  return JSON.stringify({
+    minQuantity: rule.minQuantity,
+    discountPercent: rule.discountPercent,
+    appliesTo: serializeQuantityDiscountTargets(rule),
+    variantTargets: rule.variantTargets,
+    customerTargets: rule.customerTargets,
+    note: rule.note.trim(),
+    position: rule.position
+  });
+}
+
 function buildVariantSaveDiffLabel(variant: Variant, index: number) {
   const label = variant.label.trim();
   return label || `Razlicica ${index + 1}`;
@@ -437,6 +516,13 @@ function describeStagedVideo(video: StagedVideoState) {
   const sourceLabel = video.source === 'youtube' ? 'YouTube' : 'Upload';
   const label = video.file?.name ?? video.label ?? video.uploadedUrl ?? video.previewUrl ?? 'video';
   return `${sourceLabel}: ${formatSaveDiffText(label, 80)}`;
+}
+
+function formatProductTypeLabel(type: ProductEditorType) {
+  if (type === 'dimensions') return 'Po dimenzijah';
+  if (type === 'weight') return 'Po tezi';
+  if (type === 'unique_machine') return 'Stroj / unikaten';
+  return 'Enostavni';
 }
 
 function resolveVideoVariantTargetLabel(state: EditorPersistedState, variantId: string | null) {
@@ -466,6 +552,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(basicItems, 'URL', formatSaveDiffText(saved.draft.slug), formatSaveDiffText(next.draft.slug));
   pushSaveDiff(basicItems, 'Status', formatSaveDiffStatus(saved.draft.active), formatSaveDiffStatus(next.draft.active));
   pushSaveDiff(basicItems, 'Kategorija', formatSaveDiffPath(saved.selectedCategoryPath), formatSaveDiffPath(next.selectedCategoryPath));
+  pushSaveDiff(basicItems, 'Tip artikla', formatProductTypeLabel(saved.productType), formatProductTypeLabel(next.productType));
   pushSaveDiff(basicItems, 'Opis', formatSaveDiffText(saved.draft.description, 180), formatSaveDiffText(next.draft.description, 180));
   pushSaveDiff(basicItems, 'Opomba artikla', formatSaveDiffNoteTag(saved.itemLevelNote), formatSaveDiffNoteTag(next.itemLevelNote));
   if (basicItems.length > 0) groups.push({ title: 'Osnovni podatki', items: basicItems });
@@ -480,6 +567,10 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(detailItems, 'Min. narocilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
   pushSaveDiff(detailItems, 'Teza / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
   if (detailItems.length > 0) groups.push({ title: 'Dodatni podatki', items: detailItems });
+
+  if (JSON.stringify(saved.typeSpecificData) !== JSON.stringify(next.typeSpecificData)) {
+    groups.push({ title: 'Aktivni modul', items: ['Posodobljeni so podatki aktivnega modula.'] });
+  }
 
   const variantItems: string[] = [];
   const savedVariantsById = new Map(saved.draft.variants.map((variant, index) => [variant.id, { variant, index }]));
@@ -542,6 +633,26 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   });
 
   if (variantItems.length > 0) groups.push({ title: 'Razlicice', items: variantItems });
+
+  const quantityDiscountItems: string[] = [];
+  const savedQuantityDiscountsById = new Map(saved.quantityDiscounts.map((rule) => [rule.id, rule]));
+  const nextQuantityDiscountsById = new Map(next.quantityDiscounts.map((rule) => [rule.id, rule]));
+  saved.quantityDiscounts.forEach((rule) => {
+    if (!nextQuantityDiscountsById.has(rule.id)) {
+      quantityDiscountItems.push(`Odstranjen kolicinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
+    }
+  });
+  next.quantityDiscounts.forEach((rule) => {
+    const savedRule = savedQuantityDiscountsById.get(rule.id);
+    if (!savedRule) {
+      quantityDiscountItems.push(`Dodan kolicinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
+      return;
+    }
+    if (serializeQuantityDiscountForSaveDiff(savedRule) !== serializeQuantityDiscountForSaveDiff(rule)) {
+      quantityDiscountItems.push(`Kolicinski popust: ${formatQuantityDiscountForSaveDiff(savedRule)} -> ${formatQuantityDiscountForSaveDiff(rule)}.`);
+    }
+  });
+  if (quantityDiscountItems.length > 0) groups.push({ title: 'Kolicinski popusti', items: quantityDiscountItems });
 
   const imageItems: string[] = [];
   const maxImageSlots = Math.max(saved.mediaImages.length, next.mediaImages.length);
@@ -790,10 +901,29 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     if (key && ITEM_NOTE_OPTIONS.some((entry) => entry.value === rawBadge)) variantTags[key] = rawBadge;
   });
 
+  const productType: ProductEditorType =
+    initialData?.productType
+    ?? (initialData?.itemType === 'bulk'
+      ? 'weight'
+      : initialData?.itemType === 'sheet'
+        ? 'dimensions'
+        : createType === 'variants'
+          ? 'dimensions'
+          : family.variants.length > 1 || family.variants.some((variant) => variant.length !== null || variant.width !== null || variant.thickness !== null)
+            ? 'dimensions'
+            : normalizeCreateType(createType));
+  const typeSpecificData = createInitialTypeSpecificData(initialData?.typeSpecificData, {
+    variants: family.variants,
+    baseSku: sideSettings.sku
+  });
+
   return {
     draft: family,
+    productType,
+    typeSpecificData,
     sideSettings,
     documents,
+    quantityDiscounts: createInitialQuantityDiscountDrafts(initialData?.quantityDiscounts, productType),
     itemLevelNote,
     mediaImages,
     video,
@@ -1433,7 +1563,7 @@ function OpisRichTextEditor({
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           ref={editorHostRef}
-          className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-blue-600 [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--field-locked-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
+          className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-[#1982bf] [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--field-locked-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
         />
         <div className={`pointer-events-none ml-auto px-4 pb-2 text-xs ${editable ? 'text-slate-400' : 'text-slate-500'}`}>{textLength} / 5000</div>
       </div>
@@ -1597,12 +1727,15 @@ export default function AdminItemEditorPage({
     ...initialPersistedState.draft,
     variants: initialPersistedState.draft.variants.map(cloneVariant)
   }));
+  const [productType, setProductType] = useState<ProductEditorType>(initialPersistedState.productType);
+  const [typeSpecificData, setTypeSpecificData] = useState<UniversalProductSpecificData>(() => cloneTypeSpecificData(initialPersistedState.typeSpecificData));
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [generatorInput, setGeneratorInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [sideSettings, setSideSettings] = useState<SideSettingsState>(() => cloneSideSettings(initialPersistedState.sideSettings));
   const [documents, setDocuments] = useState<StagedTechnicalDocument[]>(() => initialPersistedState.documents.map(cloneDocument));
+  const [quantityDiscounts, setQuantityDiscounts] = useState<QuantityDiscountDraft[]>(() => initialPersistedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [isSaving, setIsSaving] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -1647,7 +1780,20 @@ export default function AdminItemEditorPage({
   const [undoDepth, setUndoDepth] = useState(0);
   const [textUndoSessionRevision, setTextUndoSessionRevision] = useState(0);
   const [openIdentitySuggestionField, setOpenIdentitySuggestionField] = useState<IdentitySuggestionField | null>(null);
+  const [simulatorVariantId, setSimulatorVariantId] = useState(() => initialPersistedState.draft.variants[0]?.id ?? '');
+  const [simulatorQuantity, setSimulatorQuantity] = useState(30);
+  const [simulatorAppliesQuantityDiscounts, setSimulatorAppliesQuantityDiscounts] = useState(true);
+  const [simulatorNote, setSimulatorNote] = useState('');
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
+  const simpleProductData = typeSpecificData.simple;
+  const weightProductData = typeSpecificData.weight;
+  const machineProductData = typeSpecificData.uniqueMachine;
+  const simulatorOptions = useMemo<SimulatorOption[]>(() => {
+    if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants, draft.name);
+    if (productType === 'weight') return getWeightSimulatorOptions(weightProductData);
+    if (productType === 'unique_machine') return getMachineSimulatorOptions(machineProductData, draft.name || 'Stroj / unikaten artikel');
+    return getSimpleSimulatorOptions(simpleProductData, draft.name || 'Osnovni artikel');
+  }, [draft.name, draft.variants, machineProductData, productType, simpleProductData, weightProductData]);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
@@ -1672,6 +1818,16 @@ export default function AdminItemEditorPage({
       setVideoAssignedVariantId(draft.variants[0].id);
     }
   }, [draft.variants, videoAssignedVariantId, videoDraft, videoMoveMode]);
+
+  useEffect(() => {
+    if (simulatorOptions.length === 0) {
+      if (simulatorVariantId) setSimulatorVariantId('');
+      return;
+    }
+    if (!simulatorOptions.some((option) => option.id === simulatorVariantId)) {
+      setSimulatorVariantId(simulatorOptions[0].id);
+    }
+  }, [simulatorOptions, simulatorVariantId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1706,8 +1862,11 @@ export default function AdminItemEditorPage({
         category: selectedCategoryPath.join(' / '),
         variants: nextDraft.variants.map(cloneVariant)
       },
+      productType,
+      typeSpecificData: cloneTypeSpecificData(typeSpecificData),
       sideSettings: cloneSideSettings(sideSettings),
       documents: documents.map(cloneDocument),
+      quantityDiscounts: quantityDiscounts.map(cloneQuantityDiscountDraft),
       itemLevelNote,
       mediaImages: mediaImageSlots.map(cloneMediaImage),
       video: cloneVideo(videoDraft),
@@ -1715,9 +1874,40 @@ export default function AdminItemEditorPage({
       selectedCategoryPath: [...selectedCategoryPath],
       videoAssignedVariantId
     }
-  ), [documents, itemLevelNote, mediaImageSlots, selectedCategoryPath, sideSettings, variantTags, videoAssignedVariantId, videoDraft]);
+  ), [documents, itemLevelNote, mediaImageSlots, productType, quantityDiscounts, selectedCategoryPath, sideSettings, typeSpecificData, variantTags, videoAssignedVariantId, videoDraft]);
 
   const currentPersistedState = useMemo<EditorPersistedState>(() => buildPersistedState(draft), [buildPersistedState, draft]);
+  const buildSaveReadyPersistedState = useCallback((state: EditorPersistedState): EditorPersistedState => {
+    const baseSku = state.sideSettings.sku || state.draft.variants[0]?.sku || toSlug(state.draft.name || 'artikel').toUpperCase();
+    let variants = state.draft.variants.map(cloneVariant);
+    if (state.productType === 'simple') {
+      variants = buildSimpleCatalogVariants(
+        normalizeSimpleProductData(state.typeSpecificData.simple, { variants, baseSku }),
+        variants[0],
+        baseSku,
+        state.draft.name
+      );
+    } else if (state.productType === 'weight') {
+      variants = buildWeightCatalogVariants(
+        normalizeWeightProductData(state.typeSpecificData.weight, { variants, baseSku }),
+        baseSku
+      );
+    } else if (state.productType === 'unique_machine') {
+      variants = buildMachineCatalogVariants(
+        normalizeUniqueMachineProductData(state.typeSpecificData.uniqueMachine, { variants, baseSku }),
+        variants[0],
+        baseSku,
+        state.draft.name
+      );
+    }
+    return {
+      ...state,
+      draft: {
+        ...state.draft,
+        variants
+      }
+    };
+  }, []);
   const currentUndoSnapshot = useMemo<EditorUndoSnapshot>(() => ({
     persistedState: cloneEditorPersistedState(currentPersistedState),
     decimalDrafts: { ...decimalInputDrafts }
@@ -1852,8 +2042,11 @@ export default function AdminItemEditorPage({
       ...snapshot.persistedState.draft,
       variants: snapshot.persistedState.draft.variants.map(cloneVariant)
     });
+    setProductType(snapshot.persistedState.productType);
+    setTypeSpecificData(cloneTypeSpecificData(snapshot.persistedState.typeSpecificData));
     setSideSettings(cloneSideSettings(snapshot.persistedState.sideSettings));
     setDocuments(snapshot.persistedState.documents.map(cloneDocument));
+    setQuantityDiscounts(snapshot.persistedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
     setItemLevelNote(snapshot.persistedState.itemLevelNote);
     setMediaImageSlots(snapshot.persistedState.mediaImages.map(cloneMediaImage));
     setVideoDraft(cloneVideo(snapshot.persistedState.video));
@@ -1912,6 +2105,21 @@ export default function AdminItemEditorPage({
   const hasUnsavedChanges = currentSnapshotKey !== savedSnapshotKey;
   const isTableEditable = isEditable;
   const isMediaEditable = isEditable;
+  const isDimensionBasedMode = productType === 'dimensions';
+  const changeProductType = (nextProductType: ProductEditorType) => {
+    if (!isEditable) return;
+    setProductType(nextProductType);
+    setSimulatorVariantId('');
+  };
+  const updateSimpleProductData = (nextData: typeof simpleProductData) => {
+    setTypeSpecificData((current) => ({ ...current, simple: nextData }));
+  };
+  const updateWeightProductData = (nextData: typeof weightProductData) => {
+    setTypeSpecificData((current) => ({ ...current, weight: nextData }));
+  };
+  const updateMachineProductData = (nextData: typeof machineProductData) => {
+    setTypeSpecificData((current) => ({ ...current, uniqueMachine: nextData }));
+  };
   const isToleranceLocked = false;
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
@@ -2052,8 +2260,11 @@ export default function AdminItemEditorPage({
       ...nextDraft,
       variants: nextDraft.variants.map(cloneVariant)
     });
+    setProductType(preparedState.productType);
+    setTypeSpecificData(cloneTypeSpecificData(preparedState.typeSpecificData));
     setSideSettings(cloneSideSettings(preparedState.sideSettings));
     setDocuments(preparedState.documents.map(cloneDocument));
+    setQuantityDiscounts(preparedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
     setItemLevelNote(preparedState.itemLevelNote);
     setMediaImageSlots(preparedState.mediaImages.map(cloneMediaImage));
     setVideoDraft(cloneVideo(preparedState.video));
@@ -2130,7 +2341,9 @@ export default function AdminItemEditorPage({
       const payload: CatalogItemEditorPayload = {
         id: initialData?.id,
         itemName: nextDraft.name.trim(),
-        itemType: (initialData?.itemType ?? 'unit') as 'unit' | 'sheet' | 'linear' | 'bulk',
+        itemType: mapProductTypeToCatalogItemType(preparedState.productType),
+        productType: preparedState.productType,
+        typeSpecificData: preparedState.typeSpecificData,
         badge: preparedState.itemLevelNote || null,
         status: nextDraft.active ? 'active' : 'inactive',
         categoryPath: preparedState.selectedCategoryPath,
@@ -2168,6 +2381,14 @@ export default function AdminItemEditorPage({
           badge: preparedState.variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
           position: variant.sort ?? index,
           imageAssignments: variant.imageAssignments ?? []
+        })),
+        quantityDiscounts: preparedState.quantityDiscounts.map((rule, index) => ({
+          id: rule.persistedId,
+          minQuantity: Math.max(1, Math.floor(rule.minQuantity)),
+          discountPercent: Math.min(100, Math.max(0, rule.discountPercent)),
+          appliesTo: serializeQuantityDiscountTargets(rule),
+          note: rule.note.trim() || null,
+          position: index
         })),
         media: [
           ...uploadedImages.map((entry, index) => ({
@@ -2222,8 +2443,11 @@ export default function AdminItemEditorPage({
           ...canonicalDraft,
           variants: canonicalDraft.variants.map(cloneVariant)
         },
+        productType: preparedState.productType,
+        typeSpecificData: cloneTypeSpecificData(preparedState.typeSpecificData),
         sideSettings: cloneSideSettings(preparedState.sideSettings),
         documents: uploadedDocuments.map(cloneDocument),
+        quantityDiscounts: preparedState.quantityDiscounts.map(cloneQuantityDiscountDraft),
         itemLevelNote: preparedState.itemLevelNote,
         mediaImages: uploadedImages.map(cloneMediaImage),
         video: cloneVideo(uploadedVideo),
@@ -2234,10 +2458,13 @@ export default function AdminItemEditorPage({
 
       suppressUndoTrackingRef.current = true;
       setDraft(canonicalDraft);
+      setProductType(preparedState.productType);
+      setTypeSpecificData(cloneTypeSpecificData(preparedState.typeSpecificData));
       setSideSettings(cloneSideSettings(preparedState.sideSettings));
       setMediaImageSlots(uploadedImages.map(cloneMediaImage));
       setVideoDraft(cloneVideo(uploadedVideo));
       setDocuments(uploadedDocuments.map(cloneDocument));
+      setQuantityDiscounts(preparedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
       setItemLevelNote(preparedState.itemLevelNote);
       setVariantTags({ ...preparedState.variantTags });
       setSelectedCategoryPath([...preparedState.selectedCategoryPath]);
@@ -2279,7 +2506,7 @@ export default function AdminItemEditorPage({
       return;
     }
 
-    const nextPersistedState = cloneEditorPersistedState(buildPersistedState(decimalCommit.nextDraft));
+    const nextPersistedState = cloneEditorPersistedState(buildSaveReadyPersistedState(buildPersistedState(decimalCommit.nextDraft)));
     const computedChangeGroups = buildProposedSaveChanges(savedSnapshot, nextPersistedState);
     const computedChangeCount = computedChangeGroups.reduce((count, group) => count + group.items.length, 0);
     const changeGroups =
@@ -2745,6 +2972,36 @@ export default function AdminItemEditorPage({
 
   const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'na-zalogi';
 
+  const addQuantityDiscount = () => {
+    setQuantityDiscounts((current) => {
+      const maxMinQuantity = current.reduce((max, rule) => Math.max(max, rule.minQuantity), 0);
+      return [
+        ...current,
+        createQuantityDiscountDraft({
+          minQuantity: Math.max(1, maxMinQuantity + 10),
+          discountPercent: 0,
+          appliesTo: 'allVariants',
+          note: '',
+          position: current.length
+        }, current.length)
+      ];
+    });
+  };
+
+  const updateQuantityDiscount = (id: string, updates: Partial<QuantityDiscountDraft>) => {
+    setQuantityDiscounts((current) =>
+      current.map((rule) => (rule.id === id ? { ...rule, ...updates } : rule))
+    );
+  };
+
+  const removeQuantityDiscount = (id: string) => {
+    setQuantityDiscounts((current) =>
+      current
+        .filter((rule) => rule.id !== id)
+        .map((rule, index) => ({ ...rule, position: index }))
+    );
+  };
+
   const createLocalImageUrl = useCallback((file: Blob) => {
     const url = URL.createObjectURL(file);
     localBlobUrlsRef.current.add(url);
@@ -3101,6 +3358,34 @@ export default function AdminItemEditorPage({
       </div>
     );
   };
+  const basicProductFields: Array<{
+    title: string;
+    value: string;
+    placeholder: string;
+    icon: SideFieldIcon;
+    onChange: (value: string) => void;
+  }> = [
+    { title: 'Osnovni SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku', onChange: (value) => setSideSettings((current) => ({ ...current, sku: value })) },
+    { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link', onChange: (value) => setDraft((current) => ({ ...current, slug: value })) },
+    { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: productType === 'unique_machine' ? 'Proxxon' : 'AluCraft', icon: 'brand', onChange: (value) => setSideSettings((current) => ({ ...current, brand: value })) },
+    { title: 'Material', value: sideSettings.material, placeholder: productType === 'weight' ? 'Kremenčev pesek' : 'Aluminij', icon: 'material', onChange: (value) => setSideSettings((current) => ({ ...current, material: value })) },
+    ...(productType === 'weight'
+      ? [
+          { title: 'Enota prodaje', value: 'kg', placeholder: 'kg', icon: 'sku' as SideFieldIcon, onChange: () => {} },
+          { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+        ]
+      : productType === 'unique_machine'
+        ? [
+            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'sku' as SideFieldIcon, onChange: () => {} },
+            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+          ]
+        : [
+            { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
+            { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
+            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'sku' as SideFieldIcon, onChange: () => {} },
+            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+          ])
+  ];
   return (
     <div
       className="mx-auto max-w-7xl space-y-5 font-['Inter',system-ui,sans-serif] [&>div:nth-child(2)]:hidden"
@@ -3237,6 +3522,7 @@ export default function AdminItemEditorPage({
             </Button>
           </div>
         </div>
+        <ProductTypeSelectorCardRow value={productType} editable={isEditable} onChange={changeProductType} embedded />
       </section>
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
@@ -3299,14 +3585,7 @@ export default function AdminItemEditorPage({
             <div className="mb-5 border-t border-slate-200" />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
-                {[
-                  { title: 'Osnovni SKU', value: sideSettings.sku, placeholder: 'SKU koda', icon: 'sku' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, sku: value })) },
-                  { title: 'URL', value: draft.slug, placeholder: toSlug(draft.name || 'naziv-artikla'), icon: 'link' as SideFieldIcon, onChange: (value: string) => setDraft((current) => ({ ...current, slug: value })) },
-                  { title: 'Blagovna znamka', value: sideSettings.brand, placeholder: 'AluCraft', icon: 'brand' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, brand: value })) },
-                  { title: 'Material', value: sideSettings.material, placeholder: 'Aluminij', icon: 'material' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, material: value })) },
-                  { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
-                  { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) }
-                ].map((field) => {
+                {basicProductFields.map((field) => {
                   const availability = field.title === 'Osnovni SKU'
                     ? skuAvailability
                     : field.title === 'URL'
@@ -3417,7 +3696,7 @@ export default function AdminItemEditorPage({
                         uppy={uppyRef.current}
                         disabled={!isMediaEditable}
                         onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(0, true, files)}
-                        className="group !relative !flex h-full w-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] text-blue-600 hover:!bg-[#f3f5f7]"
+                        className="group !relative !flex h-full w-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] text-[#1982bf] hover:!bg-[#f3f5f7]"
                       >
                         <CalmDashedOutline
                           className="inset-0 text-[#c8c8c8]"
@@ -3427,14 +3706,14 @@ export default function AdminItemEditorPage({
                           lineCap="butt"
                         />
                         <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
-                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#1982bf]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
                       </UppyDropzoneField>
                     ) : (
                       <div
-                        className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-blue-600 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
+                        className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-[#1982bf] transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
                         onClick={() => openUppyFilePicker(0, true)}
                         onDragOver={(event) => {
                           if (!isMediaEditable) return;
@@ -3454,7 +3733,7 @@ export default function AdminItemEditorPage({
                           lineCap="butt"
                         />
                         <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
-                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#2f7dc5]" />
+                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#1982bf]" />
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
@@ -3556,7 +3835,7 @@ export default function AdminItemEditorPage({
                                   lineCap="butt"
                                 />
                                 <span className="relative z-[1] flex h-full w-full flex-col items-center justify-center gap-1.5 text-center">
-                                  <ImageUploadFrameIcon className="h-[42px] w-[42px] text-[#2f7dc5]" />
+                                  <ImageUploadFrameIcon className="h-[42px] w-[42px] text-[#1982bf]" />
                                   <span className="-translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
                                 </span>
                               </UppyDropzoneField>
@@ -3582,7 +3861,7 @@ export default function AdminItemEditorPage({
                                   gapLength={2.95}
                                   lineCap="butt"
                                 />
-                                <ImageUploadFrameIcon className="relative z-[1] h-[42px] w-[42px] text-[#2f7dc5]" />
+                                <ImageUploadFrameIcon className="relative z-[1] h-[42px] w-[42px] text-[#1982bf]" />
                                 <span className="relative z-[1] -translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
                               </div>
                             )
@@ -3614,22 +3893,29 @@ export default function AdminItemEditorPage({
                       <tr>
                         <th className="px-2 py-1.5 text-left">SKU</th>
                         <th className="px-2 py-1.5 text-center">Tip</th>
-                        <th className="px-2 py-1.5 text-center">Dimenzije</th>
+                        <th className="px-2 py-1.5 text-center">{productType === 'weight' ? 'Teža' : 'Dimenzije'}</th>
                         <th className="px-2 py-1.5 text-left">Slike</th>
                       </tr>
                     </thead>
                     <tbody>
                       {draft.variants.map((variant, variantIndex) => {
                         const assignedSlots = variant.imageAssignments ?? [];
-                        const assignedImageDetails = assignedSlots.flatMap((slot) => {
-                          const url = mediaImagesDraft[slot];
-                          if (!url) return [];
-                          const typeLabel = imageMeta[url]?.type ?? imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
-                          const dimensionLabel = imageMeta[url] ? `${imageMeta[url].width}x${imageMeta[url].height}` : '—';
-                          return [{ typeLabel, dimensionLabel }];
-                        });
-                        const assignedImageTypes = assignedImageDetails.map((entry) => entry.typeLabel);
-                        const assignedImageDimensions = assignedImageDetails.map((entry) => entry.dimensionLabel);
+                        const variantTypeLabel =
+                          productType === 'dimensions'
+                            ? 'Plošča'
+                            : productType === 'weight'
+                              ? 'Po teži'
+                              : productType === 'unique_machine'
+                                ? 'Stroj'
+                                : 'Enostavni';
+                        const variantDimensionParts = [variant.length, variant.width, variant.thickness]
+                          .filter((value): value is number => value !== null && value !== undefined)
+                          .map((value) => formatDecimalForDisplay(value));
+                        const variantDimensionLabel = variantDimensionParts.length > 0
+                          ? `${variantDimensionParts.join(' x ')} mm`
+                          : productType === 'weight'
+                            ? (variant.weight === null || variant.weight === undefined ? '—' : `${formatDecimalForDisplay(variant.weight)} kg`)
+                            : '—';
                         return (
                           <tr
                             key={`variant-media-${variant.id}`}
@@ -3646,8 +3932,8 @@ export default function AdminItemEditorPage({
                             }}
                           >
                             <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{assignedImageTypes.length ? assignedImageTypes.join(', ') : '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{assignedImageDimensions.length ? assignedImageDimensions.join(', ') : '—'}</td>
+                            <td className="px-2 py-1.5 text-center">{variantTypeLabel}</td>
+                            <td className="px-2 py-1.5 text-center">{variantDimensionLabel}</td>
                             <td className="px-2 py-1.5">
                               <div className="flex flex-wrap gap-1">
                                 {assignedSlots.map((slot) => {
@@ -3801,7 +4087,7 @@ export default function AdminItemEditorPage({
                         lineCap="butt"
                       />
                       <div className="relative z-[1] flex flex-1 flex-col items-center justify-center">
-                        <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#74addb]" />
+                        <VideoUploadFrameIcon className="h-[72px] w-[72px] text-[#1982bf]" />
                         <div className="mt-1 flex flex-col items-center justify-center leading-tight">
                           <span className="text-base font-semibold text-slate-800">Naloži video</span>
                           <span className="mt-1 text-xs font-medium text-slate-500">(največ 100 MB)</span>
@@ -3862,7 +4148,7 @@ export default function AdminItemEditorPage({
                             <button
                               type="button"
                               disabled={!canPlaceHere && !hasVideoInCell}
-                              className={`inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border px-1 text-[11px] transition ${hasVideoInCell ? 'border-slate-200 bg-white text-slate-600' : canPlaceHere ? 'border-[#9cb8ea] bg-[#f0f6ff] text-[#2f7dc5] hover:bg-[#e6f0ff]' : 'border-transparent bg-transparent text-slate-400'}`}
+                              className={`inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border px-1 text-[11px] transition ${hasVideoInCell ? 'border-slate-200 bg-white text-slate-600' : canPlaceHere ? 'border-[#9cb8ea] bg-[#f0f6ff] text-[#1982bf] hover:bg-[#e6f0ff]' : 'border-transparent bg-transparent text-slate-400'}`}
                               onClick={() => {
                                 if (!canPlaceHere) return;
                                 setVideoAssignedVariantId(variant.id);
@@ -3917,7 +4203,7 @@ export default function AdminItemEditorPage({
                       gapLength={2.95}
                       lineCap="butt"
                     />
-                    <DocumentUploadFrameIcon className="relative z-[1] h-[72px] w-[72px] text-[#74addb]" />
+                    <DocumentUploadFrameIcon className="relative z-[1] h-[72px] w-[72px] text-[#1982bf]" />
                     <div className="relative z-[1] mt-1 flex flex-col items-center justify-center leading-tight">
                       <span className="text-base font-semibold text-slate-800">Naloži tehnični list</span>
                       <span className="mt-1 text-xs font-medium text-slate-500">(največ 5 MB)</span>
@@ -3952,6 +4238,7 @@ export default function AdminItemEditorPage({
         </aside>
       </div>
 
+      {isDimensionBasedMode ? (
       <section className={`${adminWindowCardClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className={editorSectionTitleClassName}>Uredi artikel</h2>
@@ -4016,7 +4303,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10,20</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti. Ob generiranju se na podlagi vseh vnesenih kombinacij ustvarijo različice.
+            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10; 20</span>. Več vrednosti loči s podpičjem; decimalke lahko vneseš z vejico ali piko, npr. <span className={inlineSnippetClass}>10,5; 20.25</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti.
           </p>
           <p className="whitespace-nowrap text-xs leading-5 text-slate-700">
             <span className="font-semibold">Dodaj do tri dimenzije. Vnosne bližnjice:</span>{' '}
@@ -4028,22 +4315,22 @@ export default function AdminItemEditorPage({
               <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : 'bg-white'}`}>
                 <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
                 {generatorChips.map((chip) => (
-                  <span key={chip.dimension} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
+                  <span key={chip.dimension} className={`${adminProductInputChipClassName} shrink-0 whitespace-nowrap`}>
                     <button
                       type="button"
-                      className="whitespace-nowrap hover:text-slate-900 disabled:cursor-not-allowed disabled:text-slate-400"
+                      className="whitespace-nowrap hover:text-[#0f6799] disabled:cursor-not-allowed disabled:text-slate-400"
                       disabled={isGeneratorLocked}
                       onClick={() => {
-                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(',')}`);
+                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`);
                         setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
                       }}
                     >
-                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join(', ')}`}
+                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`}
                     </button>
                     <button
                       type="button"
                       aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
-                      className="text-slate-500 transition hover:text-rose-600 active:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                      className="text-[#1982bf]/70 transition hover:text-rose-600 active:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
                       disabled={isGeneratorLocked}
                       onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
                     >
@@ -4059,7 +4346,7 @@ export default function AdminItemEditorPage({
                     setGeneratorInput(event.target.value);
                     if (generatorError) setGeneratorError(null);
                   }}
-                  placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10,20 + enter'}
+                  placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10; 20 + enter'}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') return;
                     event.preventDefault();
@@ -4085,8 +4372,12 @@ export default function AdminItemEditorPage({
               <col style={{ width: '5%' }} />
               <col style={{ width: '5.1%' }} />
               <col style={{ width: '5.1%' }} />
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '8%' }} />
+              {!isDimensionBasedMode ? (
+                <>
+                  <col style={{ width: '6%' }} />
+                  <col style={{ width: '8%' }} />
+                </>
+              ) : null}
               <col style={{ width: '6%' }} />
               <col style={{ width: '6%' }} />
               <col style={{ width: '20.97%' }} />
@@ -4111,10 +4402,14 @@ export default function AdminItemEditorPage({
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Teža</TH>
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Toleranca</TH>
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Cena</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Popust</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Akcijska cena</TH>
+                {!isDimensionBasedMode ? (
+                  <>
+                    <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Popust</TH>
+                    <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Akcijska cena</TH>
+                  </>
+                ) : null}
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Zaloga</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Min/nar.</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Min količina</TH>
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>SKU</TH>
                 <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Status</TH>
                 <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Opombe</TH>
@@ -4173,8 +4468,12 @@ export default function AdminItemEditorPage({
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right"><span className="inline-flex h-6 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
+                  {!isDimensionBasedMode ? (
+                    <>
+                      <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
+                      <td className="px-2 py-1.5 text-right"><span className="inline-flex h-6 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
+                    </>
+                  ) : null}
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-6 w-full justify-end"><span className="inline-flex h-6 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-6 w-[5ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
                   <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-6 !w-[26ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-6 w-[26ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
@@ -4208,8 +4507,73 @@ export default function AdminItemEditorPage({
               ))}
             </tbody>
           </table>
+          <p className="border-t border-slate-200 px-3 py-2 text-[11px] leading-4 text-slate-500">Cena vključuje DDV.</p>
+          <QuantityDiscountsCard
+            editable={isEditable}
+            quantityDiscounts={quantityDiscounts}
+            onAddDiscount={addQuantityDiscount}
+            onRemoveDiscount={removeQuantityDiscount}
+            onUpdateDiscount={updateQuantityDiscount}
+            simulatorOptions={simulatorOptions}
+            usesScopedCommercialTools
+            embedded
+          />
         </div>
       </section>
+      ) : productType === 'weight' ? (
+        <WeightProductModule
+          editable={isEditable}
+          data={weightProductData}
+          baseSku={sideSettings.sku || draft.variants[0]?.sku || 'SKU'}
+          color={sideSettings.color}
+          onChange={updateWeightProductData}
+          quantityDiscountsPanel={(
+            <QuantityDiscountsCard
+              editable={isEditable}
+              quantityDiscounts={quantityDiscounts}
+              onAddDiscount={addQuantityDiscount}
+              onRemoveDiscount={removeQuantityDiscount}
+              onUpdateDiscount={updateQuantityDiscount}
+              simulatorOptions={simulatorOptions}
+              usesScopedCommercialTools
+              embedded
+              minQuantityLabel="Min kg"
+              minQuantityAllowsDecimal
+            />
+          )}
+        />
+      ) : productType === 'unique_machine' ? (
+        <UniqueMachineProductModule
+          editable={isEditable}
+          data={machineProductData}
+          documents={documents.map((documentEntry) => ({ id: documentEntry.id, name: documentEntry.name, size: documentEntry.size }))}
+          onUploadDocument={() => technicalUploadInputRef.current?.click()}
+          onChange={updateMachineProductData}
+        />
+      ) : (
+        <SimpleProductModule editable={isEditable} data={simpleProductData} onChange={updateSimpleProductData} />
+      )}
+
+          <CommercialToolsPanel
+            productType={productType}
+            hideQuantityDiscounts={
+              productType === 'dimensions' || productType === 'weight' || productType === 'unique_machine'
+            }
+            editable={isEditable}
+            quantityDiscounts={quantityDiscounts}
+            onAddDiscount={addQuantityDiscount}
+        onRemoveDiscount={removeQuantityDiscount}
+        onUpdateDiscount={updateQuantityDiscount}
+        simulatorOptions={simulatorOptions}
+        selectedOptionId={simulatorVariantId}
+        onSelectedOptionIdChange={setSimulatorVariantId}
+        quantity={simulatorQuantity}
+        onQuantityChange={setSimulatorQuantity}
+        applyQuantityDiscounts={simulatorAppliesQuantityDiscounts}
+        onApplyQuantityDiscountsChange={setSimulatorAppliesQuantityDiscounts}
+        simulatorNote={simulatorNote}
+        onSimulatorNoteChange={setSimulatorNote}
+      />
       <UnsavedChangesDialog
         open={isDiscardUnsavedDialogOpen}
         label="zaključkom urejanja artikla"

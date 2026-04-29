@@ -10,7 +10,14 @@ export default async function AdminNewArticlePage({
 }) {
   return instrumentAdminRouteRender('/admin/artikli/nov', async () => {
     const params = (await searchParams) ?? {};
-    const createType = params.tip === 'variants' ? 'variants' : 'simple';
+    const createType =
+      params.tip === 'variants' || params.tip === 'dimensions'
+        ? 'dimensions'
+        : params.tip === 'weight'
+          ? 'weight'
+          : params.tip === 'unique_machine'
+            ? 'unique_machine'
+            : 'simple';
     return <AdminItemEditorPage mode="create" createType={createType} />;
   });
 }

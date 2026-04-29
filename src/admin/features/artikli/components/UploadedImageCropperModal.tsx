@@ -310,7 +310,7 @@ export default function UploadedImageCropperModal({
   const toolButtonClassName = (isActive: boolean, size: 'toolbar' | 'header' = 'toolbar') => [
     `${size === 'toolbar' ? '!h-9 !w-9' : '!h-7 !w-7'} rounded-lg border transition`,
     isActive
-      ? 'border-[#3e67d6] bg-[#e9efff] text-[#2143a8]'
+      ? 'border-[#3e67d6] bg-[#e9efff] text-[#1982bf]'
       : 'border-slate-200 bg-white text-slate-700 hover:border-[#9cb8ea] hover:bg-[#f7f9fe]'
   ].join(' ');
 

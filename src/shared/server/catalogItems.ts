@@ -3,6 +3,9 @@ import { revalidateTag } from 'next/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
 
+export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
+export type CatalogItemTypeSpecificData = Record<string, unknown>;
+
 export type CatalogItemSeedRow = {
   id: number;
   item_name: string;
@@ -28,6 +31,8 @@ export type CatalogItemEditorPayload = {
   id?: number;
   itemName: string;
   itemType: CatalogItemType;
+  productType?: CatalogEditorProductType;
+  typeSpecificData?: CatalogItemTypeSpecificData;
   badge?: string | null;
   status: 'active' | 'inactive';
   categoryPath: string[];
@@ -60,6 +65,7 @@ export type CatalogItemEditorPayload = {
     position?: number;
     imageAssignments?: number[];
   }>;
+  quantityDiscounts?: CatalogItemQuantityDiscountRule[];
   media: Array<{
     id?: number;
     variantIndex?: number | null;
@@ -78,6 +84,15 @@ export type CatalogItemEditorPayload = {
     hidden?: boolean;
     position?: number;
   }>;
+};
+
+export type CatalogItemQuantityDiscountRule = {
+  id?: number;
+  minQuantity: number;
+  discountPercent: number;
+  appliesTo?: 'allVariants' | string | null;
+  note?: string | null;
+  position?: number | null;
 };
 
 export type AdminCatalogVariantSummary = {
@@ -118,6 +133,8 @@ export type CatalogItemEditorHydration = {
   id: number;
   itemName: string;
   itemType: CatalogItemType;
+  productType: CatalogEditorProductType;
+  typeSpecificData: CatalogItemTypeSpecificData;
   badge: string | null;
   status: 'active' | 'inactive';
   categoryPath: string[];
@@ -132,6 +149,7 @@ export type CatalogItemEditorHydration = {
   adminNotes: string | null;
   position: number;
   variants: CatalogItemEditorPayload['variants'];
+  quantityDiscounts: CatalogItemQuantityDiscountRule[];
   media: CatalogItemEditorPayload['media'];
 };
 
@@ -205,6 +223,78 @@ function asStringOrNull(value: unknown): string | null {
 
 function normalizeActiveState(value: unknown): 'active' | 'inactive' {
   return String(value ?? 'inactive') === 'active' ? 'active' : 'inactive';
+}
+
+async function ensureCatalogItemQuantityDiscountsTable(db: { query: (sql: string, params?: unknown[]) => Promise<unknown> }) {
+  await db.query(`
+    create table if not exists catalog_item_quantity_discounts (
+      id bigserial primary key,
+      item_id bigint not null references catalog_items(id) on delete cascade,
+      min_quantity integer not null default 1,
+      discount_percent numeric(5,2) not null default 0,
+      applies_to text not null default 'allVariants',
+      note text,
+      position integer not null default 0,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      check (min_quantity >= 1),
+      check (discount_percent >= 0 and discount_percent <= 100)
+    )
+  `);
+  await db.query('create index if not exists idx_catalog_item_quantity_discounts_item_id on catalog_item_quantity_discounts(item_id)');
+  await db.query('create index if not exists idx_catalog_item_quantity_discounts_position on catalog_item_quantity_discounts(item_id, position)');
+}
+
+async function ensureCatalogItemEditorDetailsTable(db: { query: (sql: string, params?: unknown[]) => Promise<unknown> }) {
+  await db.query(`
+    create table if not exists catalog_item_editor_details (
+      item_id bigint primary key references catalog_items(id) on delete cascade,
+      product_type text not null default 'simple',
+      data jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      check (product_type in ('simple', 'dimensions', 'weight', 'unique_machine'))
+    )
+  `);
+  await db.query('create index if not exists idx_catalog_item_editor_details_product_type on catalog_item_editor_details(product_type)');
+}
+
+function normalizeCatalogEditorProductType(value: unknown): CatalogEditorProductType | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (normalized === 'simple' || normalized === 'dimensions' || normalized === 'weight' || normalized === 'unique_machine') {
+    return normalized;
+  }
+  return null;
+}
+
+function inferCatalogEditorProductType(itemType: unknown, variants: Array<Record<string, unknown>>): CatalogEditorProductType {
+  if (itemType === 'bulk') return 'weight';
+  if (itemType === 'sheet') return 'dimensions';
+  const hasDimensionVariants = variants.some((variant) =>
+    variant.length !== null && variant.length !== undefined
+    || variant.width !== null && variant.width !== undefined
+    || variant.thickness !== null && variant.thickness !== undefined
+  );
+  if (hasDimensionVariants || variants.length > 1) return 'dimensions';
+  return 'simple';
+}
+
+function normalizeTypeSpecificData(value: unknown): CatalogItemTypeSpecificData {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as CatalogItemTypeSpecificData;
+  }
+  return {};
+}
+
+function normalizeQuantityDiscountRule(entry: Record<string, unknown>, fallbackPosition: number): CatalogItemQuantityDiscountRule {
+  return {
+    id: entry.id === null || entry.id === undefined ? undefined : asNumber(entry.id),
+    minQuantity: Math.max(1, Math.floor(asNumber(entry.minQuantity ?? entry.min_quantity, 1))),
+    discountPercent: Math.min(100, Math.max(0, asNumber(entry.discountPercent ?? entry.discount_percent))),
+    appliesTo: asStringOrNull(entry.appliesTo ?? entry.applies_to) ?? 'allVariants',
+    note: asStringOrNull(entry.note),
+    position: asNumber(entry.position, fallbackPosition)
+  };
 }
 
 function normalizeIdentityValue(value: unknown): string {
@@ -576,6 +666,8 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
 
   try {
     await client.query('begin');
+    await ensureCatalogItemQuantityDiscountsTable(client);
+    await ensureCatalogItemEditorDetailsTable(client);
 
     const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
     if (!itemId) {
@@ -622,6 +714,28 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
         [itemId]
       )
     ).rows as Array<Record<string, unknown>>;
+    const quantityDiscounts = (
+      await client.query(
+        `
+        select min_quantity, discount_percent, applies_to, note, position
+        from catalog_item_quantity_discounts
+        where item_id = $1
+        order by position asc, min_quantity asc, id asc
+        `,
+        [itemId]
+      )
+    ).rows as Array<Record<string, unknown>>;
+    const editorDetails = (
+      await client.query(
+        `
+        select product_type, data
+        from catalog_item_editor_details
+        where item_id = $1
+        limit 1
+        `,
+        [itemId]
+      )
+    ).rows[0] as Record<string, unknown> | undefined;
 
     const identity = await buildCatalogItemCopyIdentity(client, source, variants);
     const sourcePosition = asNumber(source.position);
@@ -729,6 +843,40 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
         ]
       );
     }
+
+    for (const quantityDiscount of quantityDiscounts) {
+      await client.query(
+        `
+        insert into catalog_item_quantity_discounts (
+          item_id, min_quantity, discount_percent, applies_to, note, position
+        ) values ($1,$2,$3,$4,$5,$6)
+        `,
+        [
+          newItemId,
+          Math.max(1, Math.floor(asNumber(quantityDiscount.min_quantity, 1))),
+          Math.min(100, Math.max(0, asNumber(quantityDiscount.discount_percent))),
+          asStringOrNull(quantityDiscount.applies_to) ?? 'allVariants',
+          asStringOrNull(quantityDiscount.note),
+          asNumber(quantityDiscount.position)
+        ]
+      );
+    }
+
+    await client.query(
+      `
+      insert into catalog_item_editor_details (item_id, product_type, data)
+      values ($1,$2,$3::jsonb)
+      on conflict (item_id) do update
+      set product_type = excluded.product_type,
+          data = excluded.data,
+          updated_at = now()
+      `,
+      [
+        newItemId,
+        normalizeCatalogEditorProductType(editorDetails?.product_type) ?? inferCatalogEditorProductType(source.item_type, variants),
+        serializeJsonbValue(normalizeTypeSpecificData(editorDetails?.data)) ?? '{}'
+      ]
+    );
 
     await client.query('commit');
     revalidateTag(CATALOG_PUBLIC_TAG, 'max');
@@ -1067,6 +1215,8 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
   if (!normalizedSlug) return null;
 
   const pool = await getPool();
+  await ensureCatalogItemQuantityDiscountsTable(pool);
+  await ensureCatalogItemEditorDetailsTable(pool);
   const result = await pool.query(
     `
     with item as (
@@ -1106,6 +1256,18 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       i.description,
       i.admin_notes,
       i.position,
+      (
+        select cied.product_type
+        from catalog_item_editor_details cied
+        where cied.item_id = i.id
+        limit 1
+      ) as editor_product_type,
+      coalesce((
+        select cied.data
+        from catalog_item_editor_details cied
+        where cied.item_id = i.id
+        limit 1
+      ), '{}'::jsonb) as type_specific_data,
       coalesce((select path from category_path), array[]::text[]) as category_path,
       coalesce((
         select json_agg(
@@ -1132,6 +1294,21 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
         from catalog_item_variants civ
         where civ.item_id = i.id
       ), '[]'::json) as variants,
+      coalesce((
+        select json_agg(
+          json_build_object(
+            'id', cqd.id,
+            'minQuantity', cqd.min_quantity,
+            'discountPercent', cqd.discount_percent,
+            'appliesTo', cqd.applies_to,
+            'note', cqd.note,
+            'position', cqd.position
+          )
+          order by cqd.position asc, cqd.min_quantity asc, cqd.id asc
+        )
+        from catalog_item_quantity_discounts cqd
+        where cqd.item_id = i.id
+      ), '[]'::json) as quantity_discounts,
       coalesce((
         select json_agg(
           json_build_object(
@@ -1167,6 +1344,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
   if (!row) return null;
 
   const variantsJson = Array.isArray(row.variants) ? row.variants : [];
+  const quantityDiscountsJson = Array.isArray(row.quantity_discounts) ? row.quantity_discounts : [];
   const mediaJson = Array.isArray(row.media) ? row.media : [];
   const variantIdToIndex = new Map<number, number>();
   const variants = variantsJson.map((entry, index) => {
@@ -1217,11 +1395,19 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       position: asNumber(item.position, index)
     };
   });
+  const quantityDiscounts = quantityDiscountsJson.map((entry, index) =>
+    normalizeQuantityDiscountRule(entry as Record<string, unknown>, index)
+  );
+  const productType =
+    normalizeCatalogEditorProductType(row.editor_product_type)
+    ?? inferCatalogEditorProductType(row.item_type, variantsJson as Array<Record<string, unknown>>);
 
   return {
     id: asNumber(row.id),
     itemName: String(row.item_name ?? ''),
     itemType: String(row.item_type ?? 'unit') as CatalogItemType,
+    productType,
+    typeSpecificData: normalizeTypeSpecificData(row.type_specific_data),
     badge: asStringOrNull(row.badge),
     status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
     categoryPath: Array.isArray(row.category_path) ? row.category_path.map((entry) => String(entry)) : [],
@@ -1236,6 +1422,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     adminNotes: asStringOrNull(row.admin_notes),
     position: asNumber(row.position),
     variants,
+    quantityDiscounts,
     media
   };
 }
@@ -1420,6 +1607,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
   const client = await pool.connect();
   try {
     await client.query('begin');
+    await ensureCatalogItemQuantityDiscountsTable(client);
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath);
     const effectiveId = payload.id ?? null;
@@ -1506,6 +1694,43 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
 
     const itemRow = itemResult.rows[0] as { id: number; slug: string } | undefined;
     if (!itemRow) throw new Error('Shranjevanje artikla ni uspelo.');
+
+    await client.query(
+      `
+      insert into catalog_item_editor_details (item_id, product_type, data)
+      values ($1,$2,$3::jsonb)
+      on conflict (item_id) do update
+      set product_type = excluded.product_type,
+          data = excluded.data,
+          updated_at = now()
+      `,
+      [
+        itemRow.id,
+        normalizeCatalogEditorProductType(payload.productType) ?? inferCatalogEditorProductType(payload.itemType, payload.variants as Array<Record<string, unknown>>),
+        serializeJsonbValue(normalizeTypeSpecificData(payload.typeSpecificData)) ?? '{}'
+      ]
+    );
+
+    await client.query('delete from catalog_item_quantity_discounts where item_id = $1', [itemRow.id]);
+    const quantityDiscounts = payload.quantityDiscounts ?? [];
+    for (let index = 0; index < quantityDiscounts.length; index += 1) {
+      const discount = normalizeQuantityDiscountRule(quantityDiscounts[index] as Record<string, unknown>, index);
+      await client.query(
+        `
+        insert into catalog_item_quantity_discounts (
+          item_id, min_quantity, discount_percent, applies_to, note, position
+        ) values ($1,$2,$3,$4,$5,$6)
+        `,
+        [
+          itemRow.id,
+          discount.minQuantity,
+          discount.discountPercent,
+          discount.appliesTo ?? 'allVariants',
+          asStringOrNull(discount.note),
+          discount.position ?? index
+        ]
+      );
+    }
 
     await client.query('delete from catalog_item_variants where item_id = $1', [itemRow.id]);
 

@@ -1575,8 +1575,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       targets
     );
   const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
-    `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[color:var(--blue-500)] ${
-      sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[color:var(--blue-500)]' : ''
+    `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[#1982bf] ${
+      sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[#1982bf]' : ''
     }`;
   const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
     requestCurrentEditResolution(`razvrščanjem po stolpcu ${column}`, () => {
@@ -1819,7 +1819,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               }
               title="Podvoji"
             >
-              {isDuplicatingSelected ? <Spinner size="sm" className="text-[color:var(--blue-500)]" /> : <CopyIcon className="!h-[18px] !w-[18px]" />}
+              {isDuplicatingSelected ? <Spinner size="sm" className="text-[#1982bf]" /> : <CopyIcon className="!h-[18px] !w-[18px]" />}
             </IconButton>
             <IconButton
               type="button"
@@ -2233,7 +2233,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             </div>
                           ) : (
                             <button type="button" className="min-w-0 flex-1 text-left" onClick={() => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))}>
-                              <span className="block truncate text-[12px] font-semibold text-slate-900 transition hover:text-[color:var(--blue-500)] hover:underline underline-offset-2">
+                              <span className="block truncate text-[12px] font-semibold text-slate-900 transition hover:text-[#1982bf] hover:underline underline-offset-2">
                                 {family.name}
                               </span>
                             </button>
@@ -2415,7 +2415,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               }}
                             >
                               {isSavingActiveScope ? (
-                                <Spinner size="sm" className="text-[color:var(--blue-500)]" />
+                                <Spinner size="sm" className="text-[#1982bf]" />
                               ) : (
                                 <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
                               )}

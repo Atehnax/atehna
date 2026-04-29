@@ -385,7 +385,7 @@ export default function AdminCategoryBreadcrumbPicker({
               <span className="truncate">{drillPath.join(' → ')}</span>
               <button
                 type="button"
-                className="ml-2 text-[#1f3f93] hover:text-[#19316f] disabled:text-slate-300"
+                className="ml-2 text-[#1982bf] hover:text-[#1982bf] disabled:text-slate-300"
                 onClick={() => {
                   const current = categoryIndex.entryMap.get(pathKeyFromParts(drillPath));
                   if (current?.isLeaf) assignPath(drillPath);
@@ -406,7 +406,7 @@ export default function AdminCategoryBreadcrumbPicker({
                 role="option"
                 aria-selected={index === activeIndex}
                 className={`flex w-full items-start justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
-                  index === activeIndex ? 'bg-[#f0f4ff] text-[#1f3f93]' : 'hover:bg-slate-50 text-slate-700'
+                  index === activeIndex ? 'bg-[#f0f4ff] text-[#1982bf]' : 'hover:bg-slate-50 text-slate-700'
                 }`}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => {

@@ -3460,6 +3460,8 @@ export function CommercialToolsPanel({
         : 'simple';
   const quantitySummaryIcon: OrderSummaryIconType = productType === 'dimensions' ? 'layers' : 'boxes';
   const stockSummaryIcon: OrderSummaryIconType = productType === 'dimensions' ? 'layersMinus' : 'boxes';
+  const simulatorItemIcon: OrderSummaryIconType = productType === 'weight' ? 'weightGranules' : selectedProductSummaryIcon;
+  const simulatorStockIcon: OrderSummaryIconType = productType === 'weight' ? 'quantity' : quantitySummaryIcon;
   const stockAfterOrderLabel = formatStockAfterOrder(
     activeSimulatorOption?.stockLabel,
     productType === 'weight' ? customWeightScenario.totalKg : normalizedQuantity
@@ -3714,6 +3716,8 @@ export function CommercialToolsPanel({
               </SimulatorControlField>
             </div>
             <SimulatorOverviewCards
+              itemIcon={simulatorItemIcon}
+              stockIcon={simulatorStockIcon}
               title="Izbrana frakcija"
               sku={activeSimulatorOption ? getSimulatorOptionSku(activeSimulatorOption) : '—'}
               grossPrice={`${formatCurrency(customWeightScenario.withVat)} z DDV`}
@@ -3767,6 +3771,8 @@ export function CommercialToolsPanel({
               </SimulatorControlField>
             </div>
             <SimulatorOverviewCards
+              itemIcon={simulatorItemIcon}
+              stockIcon={simulatorStockIcon}
               sku={selectedOption ? getSimulatorOptionSku(selectedOption) : '—'}
               grossPrice={`${formatCurrency(toGrossWithVat(basePrice))} z DDV`}
               netPrice={`${formatCurrency(basePrice)} brez DDV`}
@@ -3817,6 +3823,8 @@ export function CommercialToolsPanel({
               </SimulatorControlField>
             </div>
             <SimulatorOverviewCards
+              itemIcon={simulatorItemIcon}
+              stockIcon={simulatorStockIcon}
               title="Izbrani stroj"
               sku={selectedOption ? getSimulatorOptionSku(selectedOption) : '—'}
               grossPrice={`${formatCurrency(toGrossWithVat(basePrice))} z DDV`}
@@ -3874,6 +3882,8 @@ export function CommercialToolsPanel({
               </SimulatorControlField>
             </div>
             <SimulatorOverviewCards
+              itemIcon={simulatorItemIcon}
+              stockIcon={simulatorStockIcon}
               title="Izbrani artikel"
               sku={selectedOption ? getSimulatorOptionSku(selectedOption) : '—'}
               grossPrice={`${formatCurrency(toGrossWithVat(basePrice))} z DDV`}
@@ -3945,36 +3955,10 @@ function SimulatorControlField({ label, children }: { label: string; children: R
   );
 }
 
-function SimulatorCardIcon({ type }: { type: 'variant' | 'discount' | 'stock' }) {
-  const path = {
-    variant: (
-      <>
-        <path d="M5 7h14v12H5z" />
-        <path d="M8 7V4h8v3" />
-        <path d="M9 11h2" />
-        <path d="M13 11h2" />
-      </>
-    ),
-    discount: (
-      <>
-        <path d="M20 12 12 20 4 12V4h8z" />
-        <path d="M8.5 8.5h.01" />
-      </>
-    ),
-    stock: (
-      <>
-        <path d="M4 8h16v12H4z" />
-        <path d="M7 8V5h10v3" />
-        <path d="M8 12h8" />
-      </>
-    )
-  }[type];
-
+function SimulatorCardIcon({ type }: { type: OrderSummaryIconType }) {
   return (
     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#eaf4ff] text-[#1982bf]">
-      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        {path}
-      </svg>
+      <OrderSummaryIcon type={type} compact className="text-[#1982bf]" />
     </span>
   );
 }
@@ -3984,7 +3968,7 @@ function SimulatorMetricCard({
   title,
   children
 }: {
-  icon: 'variant' | 'discount' | 'stock';
+  icon: OrderSummaryIconType;
   title: string;
   children: ReactNode;
 }) {
@@ -4045,6 +4029,8 @@ function isEmptySimulatorStock(stockLabel: string | undefined) {
 }
 
 function SimulatorOverviewCards({
+  itemIcon,
+  stockIcon,
   title = 'Izbrana različica',
   sku,
   grossPrice,
@@ -4055,6 +4041,8 @@ function SimulatorOverviewCards({
   stockLabel,
   minOrderLabel
 }: {
+  itemIcon: OrderSummaryIconType;
+  stockIcon: OrderSummaryIconType;
   title?: string;
   sku: string;
   grossPrice: string;
@@ -4069,7 +4057,7 @@ function SimulatorOverviewCards({
 
   return (
     <div className="mt-5 grid gap-3 md:grid-cols-3">
-      <SimulatorMetricCard icon="variant" title={title}>
+      <SimulatorMetricCard icon={itemIcon} title={title}>
         <p>SKU: <span className="font-medium text-slate-700">{sku}</span></p>
         <p className="pt-0.5 text-[13px] font-semibold text-slate-900">{grossPrice}</p>
         <p>{netPrice}</p>
@@ -4084,7 +4072,7 @@ function SimulatorOverviewCards({
           <span className={nextDiscountLabel.topReached ? 'break-words' : 'whitespace-nowrap'}>{nextDiscountLabel.value}</span>
         </p>
       </SimulatorMetricCard>
-      <SimulatorMetricCard icon="stock" title="Zaloga">
+      <SimulatorMetricCard icon={stockIcon} title="Zaloga">
         <p className="text-[13px] font-semibold text-[#1982bf]">{stockLabel || '—'}</p>
         <p>{stockEmpty ? 'Ni na zalogi' : 'Na voljo'}</p>
         {minOrderLabel ? <p>Min. naročilo: {minOrderLabel}</p> : null}
@@ -4736,7 +4724,7 @@ function DiscountTargetChipInput({
   );
 }
 
-function OrderSummaryIcon({ type, compact = false }: { type: OrderSummaryIconType; compact?: boolean }) {
+function OrderSummaryIcon({ type, compact = false, className }: { type: OrderSummaryIconType; compact?: boolean; className?: string }) {
   const path = {
     document: (
       <>
@@ -4891,7 +4879,7 @@ function OrderSummaryIcon({ type, compact = false }: { type: OrderSummaryIconTyp
   }[type];
 
   return (
-    <span className={classNames('inline-flex shrink-0 items-center justify-center text-slate-500', compact ? 'h-5 w-5' : 'h-7 w-7')}>
+    <span className={classNames('inline-flex shrink-0 items-center justify-center', className ?? 'text-slate-500', compact ? 'h-5 w-5' : 'h-7 w-7')}>
       <svg viewBox="0 0 24 24" className={compact ? 'h-[17px] w-[17px]' : 'h-[21px] w-[21px]'} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {path}
       </svg>

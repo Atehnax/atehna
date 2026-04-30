@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
+import { isOrderStatus } from '@/shared/domain/order/orderStatus';
+import { ensureOrderStatusLogsTable } from '@/shared/server/orders';
 import { getPool } from '@/shared/server/db';
 
 
@@ -14,12 +16,28 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const body = await request.json();
     const status = String(body?.status ?? '').trim();
 
-    if (!status) {
-      return NextResponse.json({ message: 'Status manjka.' }, { status: 400 });
+    if (!status || !isOrderStatus(status)) {
+      return NextResponse.json({ message: 'Status manjka ali je neveljaven.' }, { status: 400 });
     }
 
     const pool = await getPool();
+    await ensureOrderStatusLogsTable(pool);
+    const current = await pool.query('SELECT status FROM orders WHERE id = $1', [orderId]);
+    const previousStatus = current.rows[0]?.status === null || current.rows[0]?.status === undefined
+      ? null
+      : String(current.rows[0].status);
+
+    if (current.rows.length === 0) {
+      return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+    }
+
     await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, orderId]);
+    if (previousStatus !== status) {
+      await pool.query(
+        'INSERT INTO order_status_logs (order_id, previous_status, new_status) VALUES ($1, $2, $3)',
+        [orderId, previousStatus, status]
+      );
+    }
 
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ status });

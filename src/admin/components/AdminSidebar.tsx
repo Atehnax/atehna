@@ -26,6 +26,8 @@ const COLLAPSED_WIDTH = 'w-16';
 const EXPANDED_WIDTH = 'w-[14.5rem]';
 const sidebarIconWrapperClassName = 'inline-flex h-4 w-4 shrink-0 items-center justify-center';
 const sidebarIconClassName = 'h-4 w-4 shrink-0';
+const sidebarLogoIconWrapperClassName = 'inline-flex h-4 w-4 shrink-0 items-center justify-center';
+const sidebarLogoIconClassName = 'h-4 w-4 shrink-0';
 const sidebarSvgProps = {
   width: 16,
   height: 16,
@@ -37,6 +39,31 @@ const sidebarSvgProps = {
   strokeLinejoin: 'round',
   'aria-hidden': true
 } as const;
+
+function AtehnaMarkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 32 32"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.35}
+      strokeLinecap="butt"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      <circle cx="16" cy="4.9" r="3.25" strokeLinecap="round" />
+      <path d="M13.75 7.85 7.65 18.35 19.75 18.35" />
+      <path d="M0.95 30 4.85 23.15 17.35 23.15" />
+      <path d="M18.25 7.85 24.05 19.45" />
+      <path d="M25.75 23.25 29.25 30" />
+      <path d="M21.23 20.85 26.87 18.05" />
+      <path d="M22.93 24.65 28.57 21.85" />
+    </svg>
+  );
+}
 
 function ClipboardListIcon({ className }: { className?: string }) {
   return (
@@ -208,7 +235,23 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
-        <div className="flex h-full flex-col px-2 py-4">
+        <div className="flex h-full flex-col px-2 pb-4 pt-7">
+          <Link
+            href="/admin"
+            prefetch={false}
+            onMouseEnter={() => router.prefetch('/admin')}
+            onFocus={() => router.prefetch('/admin')}
+            className={`mb-12 flex -translate-y-3 rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}
+            aria-label="Atehna administracija"
+          >
+            <span className={sidebarLogoIconWrapperClassName}>
+              <AtehnaMarkIcon className={sidebarLogoIconClassName} />
+            </span>
+            <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
+              Atehna
+            </span>
+          </Link>
+
           <nav className="space-y-1">
             {primaryLinks.map((link) => {
               const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);

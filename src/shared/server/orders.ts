@@ -24,6 +24,11 @@ const PAGED_ORDER_NUMBER_DESC_SQL =
 const PAGED_ORDER_NUMBER_JSON_DESC_SQL =
   "nullif(regexp_replace(po.order_number::text, '\\D', '', 'g'), '')::bigint desc nulls last, po.id desc";
 const NEXT_HIGHER_ORDER_NUMBER_SUGGESTION_COUNT = 3;
+const SHIPPED_ORDER_STATUSES = ['partially_sent', 'sent', 'finished'] as const;
+
+type Queryable = {
+  query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+};
 
 type OrderNumberRow = {
   id: number | string;
@@ -426,6 +431,18 @@ export type PaymentLogRow = {
   created_at: string;
 };
 
+export type OrderItemSkuAllocationRow = {
+  orderId: number;
+  orderNumber: string;
+  orderStatus: string;
+  orderCreatedAt: string;
+  orderItemId: number;
+  orderItemSku: string;
+  orderItemName: string;
+  quantity: number;
+  shippedAt: string | null;
+};
+
 export type OrderAnalyticsRow = {
   id: number;
   created_at: string;
@@ -547,6 +564,37 @@ function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
     note: asNullableString(rawRow.note),
     created_at: toIsoTimestamp(rawRow.created_at)
   };
+}
+
+function mapOrderItemSkuAllocationRow(rawRow: Record<string, unknown>): OrderItemSkuAllocationRow {
+  const quantity = Math.max(0, Math.floor(Number(rawRow.quantity) || 0));
+  const orderId = Number(rawRow.order_id);
+  return {
+    orderId,
+    orderNumber: String(rawRow.order_number ?? `#${orderId}`),
+    orderStatus: String(rawRow.order_status ?? ''),
+    orderCreatedAt: toIsoTimestamp(rawRow.order_created_at),
+    orderItemId: Number(rawRow.order_item_id),
+    orderItemSku: String(rawRow.order_item_sku ?? ''),
+    orderItemName: String(rawRow.order_item_name ?? ''),
+    quantity,
+    shippedAt: rawRow.shipped_at === null || rawRow.shipped_at === undefined ? null : toIsoTimestamp(rawRow.shipped_at)
+  };
+}
+
+export async function ensureOrderStatusLogsTable(db?: Queryable) {
+  const target = db ?? await getPool();
+  await target.query(`
+    create table if not exists order_status_logs (
+      id bigserial primary key,
+      order_id bigint not null references orders(id) on delete cascade,
+      previous_status text,
+      new_status text not null,
+      created_at timestamptz not null default now()
+    )
+  `);
+  await target.query('create index if not exists idx_order_status_logs_order_id_created_at on order_status_logs(order_id, created_at desc)');
+  await target.query('create index if not exists idx_order_status_logs_new_status_created_at on order_status_logs(new_status, created_at desc)');
 }
 
 export async function fetchOrders(
@@ -991,6 +1039,68 @@ export async function fetchOrderItems(orderId: number, diagnosticsContext = '/ad
     );
     return profileRoutePhase('transform', 'fetchOrderItems:mapRows', async () =>
       result.rows.map((rawRow) => mapOrderItemRow(rawRow as Record<string, unknown>))
+    );
+  });
+}
+
+export async function fetchOrderItemAllocationsForSkus(
+  skus: string[],
+  diagnosticsContext = '/admin/artikli/[itemName]'
+): Promise<OrderItemSkuAllocationRow[]> {
+  const normalizedSkus = Array.from(new Set(
+    skus
+      .map((sku) => sku.trim().toLocaleLowerCase('sl-SI'))
+      .filter(Boolean)
+  ));
+  if (normalizedSkus.length === 0) return [];
+
+  return instrumentCatalogLoader('fetchOrderItemAllocationsForSkus', diagnosticsContext, async () => {
+    const pool = await getPool();
+    await ensureOrderStatusLogsTable(pool);
+    const { supportsDraftColumn, supportsDeletedColumn } = await getOrdersSchemaSupport();
+    const conditions = [
+      'lower(trim(order_items.sku)) = any($1::text[])',
+      "coalesce(orders.status, '') <> 'cancelled'"
+    ];
+    if (supportsDraftColumn) conditions.push('coalesce(orders.is_draft, false) = false');
+    if (supportsDeletedColumn) conditions.push('orders.deleted_at is null');
+
+    const result = await profileRoutePhase('db', 'fetchOrderItemAllocationsForSkus:query', () =>
+      pool.query(
+        `
+        select
+          orders.id as order_id,
+          orders.order_number,
+          orders.status as order_status,
+          orders.created_at as order_created_at,
+          order_items.id as order_item_id,
+          order_items.sku as order_item_sku,
+          order_items.name as order_item_name,
+          order_items.quantity,
+          case
+            when orders.status = any($2::text[])
+              then coalesce(shipped_status_log.created_at, orders.created_at)
+            else null
+          end as shipped_at
+        from order_items
+        join orders on orders.id = order_items.order_id
+        left join lateral (
+          select order_status_logs.created_at
+          from order_status_logs
+          where order_status_logs.order_id = orders.id
+            and order_status_logs.new_status = any($2::text[])
+          order by order_status_logs.created_at desc
+          limit 1
+        ) shipped_status_log on true
+        where ${conditions.join(' and ')}
+        order by orders.created_at asc, orders.id asc, order_items.id asc
+        `,
+        [normalizedSkus, [...SHIPPED_ORDER_STATUSES]]
+      )
+    );
+
+    return profileRoutePhase('transform', 'fetchOrderItemAllocationsForSkus:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderItemSkuAllocationRow(rawRow as Record<string, unknown>))
     );
   });
 }

@@ -2,6 +2,7 @@ import { getPool } from '@/shared/server/db';
 import { revalidateTag } from 'next/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
+import { fetchOrderItemAllocationsForSkus, type OrderItemSkuAllocationRow } from '@/shared/server/orders';
 
 export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
 export type CatalogItemTypeSpecificData = Record<string, unknown>;
@@ -151,6 +152,7 @@ export type CatalogItemEditorHydration = {
   variants: CatalogItemEditorPayload['variants'];
   quantityDiscounts: CatalogItemQuantityDiscountRule[];
   media: CatalogItemEditorPayload['media'];
+  machineSerialOrderMatches: OrderItemSkuAllocationRow[];
 };
 
 export type CatalogItemQuickPatch = {
@@ -1401,6 +1403,15 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
   const productType =
     normalizeCatalogEditorProductType(row.editor_product_type)
     ?? inferCatalogEditorProductType(row.item_type, variantsJson as Array<Record<string, unknown>>);
+  const machineSerialOrderMatchSkus = productType === 'unique_machine'
+    ? [
+        asStringOrNull(row.sku),
+        ...variants.map((variant) => variant.variantSku)
+      ].filter((entry): entry is string => Boolean(entry?.trim()))
+    : [];
+  const machineSerialOrderMatches = machineSerialOrderMatchSkus.length > 0
+    ? await fetchOrderItemAllocationsForSkus(machineSerialOrderMatchSkus)
+    : [];
 
   return {
     id: asNumber(row.id),
@@ -1423,7 +1434,8 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     position: asNumber(row.position),
     variants,
     quantityDiscounts,
-    media
+    media,
+    machineSerialOrderMatches
   };
 }
 

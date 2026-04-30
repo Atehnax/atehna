@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Uppy from '@uppy/core';
 import { UppyContextProvider, useDropzone } from '@uppy/react';
@@ -281,6 +281,30 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+type MediaUrlImportKind = 'image' | 'video' | 'document';
+type UploadedMediaFile = { url: string; pathname: string; mimeType: string | null; filename: string; size?: number };
+const pastedUrlPattern = /https?:\/\/[^\s<>"']+/giu;
+const technicalDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'dwg']);
+
+function getPastedUrls(value: string) {
+  return Array.from(new Set((value.match(pastedUrlPattern) ?? []).map((url) => url.trim().replace(/[),.;]+$/u, ''))));
+}
+
+function getFileExtension(fileName: string) {
+  return fileName.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function isTechnicalDocumentFile(file: File) {
+  if (file.type && !file.type.startsWith('image/') && !file.type.startsWith('video/')) return true;
+  return technicalDocumentExtensions.has(getFileExtension(file.name));
+}
+
+function isEditablePasteTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
 function cloneVariant(variant: Variant): Variant {
   return {
     ...variant,
@@ -520,7 +544,7 @@ function describeStagedVideo(video: StagedVideoState) {
 
 function formatProductTypeLabel(type: ProductEditorType) {
   if (type === 'dimensions') return 'Po dimenzijah';
-  if (type === 'weight') return 'Po tezi';
+  if (type === 'weight') return 'Po teži';
   if (type === 'unique_machine') return 'Stroj / unikaten';
   return 'Enostavni';
 }
@@ -1766,6 +1790,7 @@ export default function AdminItemEditorPage({
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(() => [...initialPersistedState.selectedCategoryPath]);
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
   const [pendingSaveConfirmation, setPendingSaveConfirmation] = useState<PendingSaveConfirmation | null>(null);
+  const [pendingProductTypeChange, setPendingProductTypeChange] = useState<ProductEditorType | null>(null);
   const [isDiscardUnsavedDialogOpen, setIsDiscardUnsavedDialogOpen] = useState(false);
   const undoHistoryRef = useRef<EditorUndoSnapshot[]>([]);
   const activeTextUndoSessionRef = useRef<TextUndoSession | null>(null);
@@ -1783,13 +1808,12 @@ export default function AdminItemEditorPage({
   const [simulatorVariantId, setSimulatorVariantId] = useState(() => initialPersistedState.draft.variants[0]?.id ?? '');
   const [simulatorQuantity, setSimulatorQuantity] = useState(30);
   const [simulatorAppliesQuantityDiscounts, setSimulatorAppliesQuantityDiscounts] = useState(true);
-  const [simulatorNote, setSimulatorNote] = useState('');
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
   const simpleProductData = typeSpecificData.simple;
   const weightProductData = typeSpecificData.weight;
   const machineProductData = typeSpecificData.uniqueMachine;
   const simulatorOptions = useMemo<SimulatorOption[]>(() => {
-    if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants, draft.name);
+    if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants);
     if (productType === 'weight') return getWeightSimulatorOptions(weightProductData);
     if (productType === 'unique_machine') return getMachineSimulatorOptions(machineProductData, draft.name || 'Stroj / unikaten artikel');
     return getSimpleSimulatorOptions(simpleProductData, draft.name || 'Osnovni artikel');
@@ -2059,6 +2083,7 @@ export default function AdminItemEditorPage({
     setYoutubeInput('');
     setVideoMoveMode(false);
     setPendingSaveConfirmation(null);
+    setPendingProductTypeChange(null);
   }, []);
 
   const handleUndoTrackedFieldFocus = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
@@ -2106,10 +2131,18 @@ export default function AdminItemEditorPage({
   const isTableEditable = isEditable;
   const isMediaEditable = isEditable;
   const isDimensionBasedMode = productType === 'dimensions';
-  const changeProductType = (nextProductType: ProductEditorType) => {
-    if (!isEditable) return;
+  const applyProductTypeChange = useCallback((nextProductType: ProductEditorType) => {
     setProductType(nextProductType);
     setSimulatorVariantId('');
+    setPendingProductTypeChange(null);
+  }, []);
+  const changeProductType = (nextProductType: ProductEditorType) => {
+    if (!isEditable || nextProductType === productType) return;
+    if (mode !== 'create' && hasUnsavedChanges) {
+      setPendingProductTypeChange(nextProductType);
+      return;
+    }
+    applyProductTypeChange(nextProductType);
   };
   const updateSimpleProductData = (nextData: typeof simpleProductData) => {
     setTypeSpecificData((current) => ({ ...current, simple: nextData }));
@@ -2768,7 +2801,7 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
-  const uploadMediaFile = useCallback(async (file: File): Promise<{ url: string; pathname: string; mimeType: string | null; filename: string }> => {
+  const uploadMediaFile = useCallback(async (file: File): Promise<UploadedMediaFile> => {
     const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
     if (!itemSlug) {
       throw new Error('Najprej vnesite naziv ali URL artikla.');
@@ -2786,6 +2819,7 @@ export default function AdminItemEditorPage({
       pathname?: string;
       mimeType?: string | null;
       filename?: string;
+      size?: number;
     };
     if (!response.ok || !body.url || !body.pathname) {
       throw new Error(body.message || 'Nalaganje datoteke ni uspelo.');
@@ -2794,7 +2828,41 @@ export default function AdminItemEditorPage({
       url: body.url,
       pathname: body.pathname,
       mimeType: body.mimeType ?? null,
-      filename: body.filename ?? file.name
+      filename: body.filename ?? file.name,
+      size: body.size
+    };
+  }, [articleId, draft.name, draft.slug]);
+
+  const uploadMediaUrl = useCallback(async (sourceUrl: string, mediaKind: MediaUrlImportKind): Promise<UploadedMediaFile> => {
+    const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
+    if (!itemSlug) {
+      throw new Error('Najprej vnesite naziv ali URL artikla.');
+    }
+    const formData = new FormData();
+    formData.append('sourceUrl', sourceUrl);
+    formData.append('mediaKind', mediaKind);
+    formData.append('itemSlug', itemSlug);
+    const response = await fetch('/api/admin/artikli/media', {
+      method: 'POST',
+      body: formData
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      url?: string;
+      pathname?: string;
+      mimeType?: string | null;
+      filename?: string;
+      size?: number;
+    };
+    if (!response.ok || !body.url || !body.pathname) {
+      throw new Error(body.message || 'Nalaganje URL-ja ni uspelo.');
+    }
+    return {
+      url: body.url,
+      pathname: body.pathname,
+      mimeType: body.mimeType ?? null,
+      filename: body.filename ?? sourceUrl,
+      size: body.size
     };
   }, [articleId, draft.name, draft.slug]);
 
@@ -2977,13 +3045,16 @@ export default function AdminItemEditorPage({
       const maxMinQuantity = current.reduce((max, rule) => Math.max(max, rule.minQuantity), 0);
       return [
         ...current,
-        createQuantityDiscountDraft({
-          minQuantity: Math.max(1, maxMinQuantity + 10),
-          discountPercent: 0,
-          appliesTo: 'allVariants',
-          note: '',
-          position: current.length
-        }, current.length)
+        {
+          ...createQuantityDiscountDraft({
+            minQuantity: Math.max(1, maxMinQuantity + 10),
+            discountPercent: 0,
+            appliesTo: 'allVariants',
+            note: '',
+            position: current.length
+          }, current.length),
+          id: `quantity-discount-local-${Date.now().toString(36)}-${current.length}`
+        }
       ];
     });
   };
@@ -3170,6 +3241,157 @@ export default function AdminItemEditorPage({
     });
 
   }, [isMediaEditable, stageImageFile, toast]);
+
+  const importImageUrls = async (urls: string[], startSlot: number, allowMultiple: boolean) => {
+    if (!isMediaEditable) return;
+    const remainingSlots = Math.max(0, MEDIA_SLOT_COUNT - startSlot);
+    if (remainingSlots === 0) {
+      toast.error('Vse reže so že zapolnjene.');
+      return;
+    }
+
+    const acceptedUrls = urls.slice(0, Math.max(1, allowMultiple ? remainingSlots : 1));
+    if (urls.length > acceptedUrls.length) {
+      toast.error(`Prilepite lahko največ ${acceptedUrls.length} slik.`);
+    }
+
+    let importedCount = 0;
+    for (const [offset, url] of acceptedUrls.entries()) {
+      try {
+        const uploaded = await uploadMediaUrl(url, 'image');
+        const targetSlot = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, startSlot + offset));
+        imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({
+          mimeType: uploaded.mimeType ?? undefined,
+          fileName: uploaded.filename
+        });
+        updateImageAtSlot(targetSlot, {
+          previewUrl: uploaded.url,
+          uploadedUrl: uploaded.url,
+          file: null,
+          filename: uploaded.filename,
+          mimeType: uploaded.mimeType,
+          altText: mediaImageSlots[targetSlot]?.altText ?? '',
+          localId: null
+        });
+        importedCount += 1;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Nalaganje slike iz URL-ja ni uspelo.');
+      }
+    }
+    if (importedCount > 0) {
+      toast.success(importedCount === 1 ? 'Slika je naložena iz URL-ja.' : `Naloženih slik iz URL-ja: ${importedCount}.`);
+    }
+  };
+
+  const importVideoUrl = async (url: string) => {
+    if (!isMediaEditable) return;
+    if (submitYoutubeVideo(url)) return;
+    try {
+      const uploaded = await uploadMediaUrl(url, 'video');
+      if (videoDraft?.file && videoDraft.previewUrl.startsWith('blob:')) {
+        revokeLocalImageUrl(videoDraft.previewUrl);
+      }
+      setVideoDraft({
+        source: 'upload',
+        label: uploaded.filename,
+        previewUrl: uploaded.url,
+        uploadedUrl: uploaded.url,
+        blobPathname: uploaded.pathname,
+        file: null,
+        mimeType: uploaded.mimeType,
+        localId: null
+      });
+      setVideoMoveMode(false);
+      toast.success('Video je naložen iz URL-ja.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Nalaganje videa iz URL-ja ni uspelo.');
+    }
+  };
+
+  const importDocumentUrls = async (urls: string[]) => {
+    if (!isMediaEditable) return;
+    let importedCount = 0;
+    for (const url of urls) {
+      try {
+        const uploaded = await uploadMediaUrl(url, 'document');
+        const nextDocument: StagedTechnicalDocument = {
+          id: `document-${createLocalStageId()}`,
+          name: uploaded.filename,
+          size: uploaded.size ? formatFileSize(uploaded.size) : '—',
+          blobUrl: uploaded.url,
+          blobPathname: uploaded.pathname,
+          file: null,
+          mimeType: uploaded.mimeType,
+          localId: null
+        };
+        setDocuments((current) => [
+          nextDocument,
+          ...current.filter((entry) => entry.name !== nextDocument.name)
+        ]);
+        importedCount += 1;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Nalaganje dokumenta iz URL-ja ni uspelo.');
+      }
+    }
+    if (importedCount > 0) {
+      toast.success(importedCount === 1 ? 'Dokument je naložen iz URL-ja.' : `Naloženih dokumentov iz URL-ja: ${importedCount}.`);
+    }
+  };
+
+  const handleMediaPanelPaste = (event: ReactClipboardEvent<HTMLElement>) => {
+    if (!isMediaEditable || isEditablePasteTarget(event.target)) return;
+
+    const clipboardFiles = [
+      ...Array.from(event.clipboardData.files ?? []),
+      ...Array.from(event.clipboardData.items ?? [])
+        .filter((item) => item.kind === 'file')
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file instanceof File)
+    ].filter((file, index, files) => files.findIndex((candidate) => candidate.name === file.name && candidate.size === file.size && candidate.type === file.type) === index);
+
+    if (clipboardFiles.length > 0) {
+      if (mediaTab === 'slike') {
+        const imageFiles = clipboardFiles.filter((file) => file.type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+          event.preventDefault();
+          queueImageUpload(imageFiles, Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1), true);
+          return;
+        }
+      }
+
+      if (mediaTab === 'video') {
+        const videoFile = clipboardFiles.find((file) => file.type.startsWith('video/'));
+        if (videoFile) {
+          event.preventDefault();
+          handleVideoFileSelect(videoFile);
+          return;
+        }
+      }
+
+      if (mediaTab === 'tehnicni') {
+        const documentFile = clipboardFiles.find(isTechnicalDocumentFile);
+        if (documentFile) {
+          event.preventDefault();
+          handleTechnicalFileSelect(documentFile);
+          return;
+        }
+      }
+    }
+
+    const pastedUrls = getPastedUrls(event.clipboardData.getData('text/plain'));
+    if (pastedUrls.length === 0) return;
+    event.preventDefault();
+
+    if (mediaTab === 'slike') {
+      void importImageUrls(pastedUrls, Math.min(mediaImagesDraft.length, MEDIA_SLOT_COUNT - 1), true);
+      return;
+    }
+    if (mediaTab === 'video') {
+      void importVideoUrl(pastedUrls[0] ?? '');
+      return;
+    }
+    void importDocumentUrls(pastedUrls);
+  };
 
   const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
@@ -3571,15 +3793,18 @@ export default function AdminItemEditorPage({
             <div className="mb-3">
               <h2 className={editorSectionTitleClassName}>Osnovni podatki</h2>
             </div>
-            <div className="mb-[15px] grid grid-cols-[minmax(0,1fr)] items-center">
-              <div className="col-span-1 flex min-h-8 items-center px-1">
-                <AdminCategoryBreadcrumbPicker
-                  className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0"
-                  value={selectedCategoryPath}
-                  onChange={(path) => applySelectionChange(() => selectCategoryPath(path))}
-                  categoryPaths={categoryPaths}
-                  disabled={!isEditable}
-                />
+            <div className="mb-[15px]">
+              <p className="text-sm font-semibold text-slate-900">Pot do kategorije</p>
+              <div className="grid grid-cols-[minmax(0,1fr)] items-center">
+                <div className="col-span-1 flex min-h-8 items-center px-1">
+                  <AdminCategoryBreadcrumbPicker
+                    className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0"
+                    value={selectedCategoryPath}
+                    onChange={(path) => applySelectionChange(() => selectCategoryPath(path))}
+                    categoryPaths={categoryPaths}
+                    disabled={!isEditable}
+                  />
+                </div>
               </div>
             </div>
             <div className="mb-5 border-t border-slate-200" />
@@ -3658,7 +3883,17 @@ export default function AdminItemEditorPage({
 
         </div>
 
-        <aside className={`${adminWindowCardClassName} h-full p-6`} style={adminWindowCardStyle}>
+        <aside
+          className={`${adminWindowCardClassName} h-full p-6 outline-none`}
+          style={adminWindowCardStyle}
+          tabIndex={isMediaEditable ? 0 : -1}
+          aria-label="Mediji artikla"
+          onPaste={handleMediaPanelPaste}
+          onMouseDown={(event) => {
+            if (!isMediaEditable || isEditablePasteTarget(event.target)) return;
+            event.currentTarget.focus({ preventScroll: true });
+          }}
+        >
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <EuiTabs
@@ -4547,17 +4782,35 @@ export default function AdminItemEditorPage({
           editable={isEditable}
           data={machineProductData}
           documents={documents.map((documentEntry) => ({ id: documentEntry.id, name: documentEntry.name, size: documentEntry.size }))}
+          orderMatches={initialData?.machineSerialOrderMatches ?? []}
           onUploadDocument={() => technicalUploadInputRef.current?.click()}
           onChange={updateMachineProductData}
         />
       ) : (
-        <SimpleProductModule editable={isEditable} data={simpleProductData} onChange={updateSimpleProductData} />
+        <SimpleProductModule
+          editable={isEditable}
+          data={simpleProductData}
+          onChange={updateSimpleProductData}
+          quantityDiscountsPanel={(
+            <QuantityDiscountsCard
+              editable={isEditable}
+              quantityDiscounts={quantityDiscounts}
+              onAddDiscount={addQuantityDiscount}
+              onRemoveDiscount={removeQuantityDiscount}
+              onUpdateDiscount={updateQuantityDiscount}
+              simulatorOptions={simulatorOptions}
+              usesScopedCommercialTools
+              embedded
+              className="!border-t-0"
+            />
+          )}
+        />
       )}
 
           <CommercialToolsPanel
             productType={productType}
             hideQuantityDiscounts={
-              productType === 'dimensions' || productType === 'weight' || productType === 'unique_machine'
+              productType === 'simple' || productType === 'dimensions' || productType === 'weight' || productType === 'unique_machine'
             }
             editable={isEditable}
             quantityDiscounts={quantityDiscounts}
@@ -4571,8 +4824,6 @@ export default function AdminItemEditorPage({
         onQuantityChange={setSimulatorQuantity}
         applyQuantityDiscounts={simulatorAppliesQuantityDiscounts}
         onApplyQuantityDiscountsChange={setSimulatorAppliesQuantityDiscounts}
-        simulatorNote={simulatorNote}
-        onSimulatorNoteChange={setSimulatorNote}
       />
       <UnsavedChangesDialog
         open={isDiscardUnsavedDialogOpen}
@@ -4583,6 +4834,50 @@ export default function AdminItemEditorPage({
         onContinueEditing={() => setIsDiscardUnsavedDialogOpen(false)}
         onDiscard={discardEditorUnsavedChanges}
       />
+      <Dialog
+        open={pendingProductTypeChange !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingProductTypeChange(null);
+        }}
+        title="Potrditev spremembe tipa artikla"
+        footer={(
+          <div className={dialogFooterClassName}>
+            <Button
+              type="button"
+              variant="default"
+              size="toolbar"
+              className={dialogActionButtonClassName}
+              onClick={() => setPendingProductTypeChange(null)}
+            >
+              Prekliči
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="toolbar"
+              className={dialogActionButtonClassName}
+              onClick={() => {
+                if (pendingProductTypeChange) applyProductTypeChange(pendingProductTypeChange);
+              }}
+            >
+              Da, spremeni tip
+            </Button>
+          </div>
+        )}
+      >
+        <div className="mt-3 space-y-2 text-[13px] leading-5 text-slate-600">
+          <p>
+            Artikel ima neshranjene spremembe. Ali ste popolnoma prepričani, da želite spremeniti tip artikla?
+          </p>
+          <p>
+            Sprememba iz <span className="font-semibold text-slate-800">{formatProductTypeLabel(productType)}</span> v{' '}
+            <span className="font-semibold text-slate-800">
+              {pendingProductTypeChange ? formatProductTypeLabel(pendingProductTypeChange) : ''}
+            </span>{' '}
+            lahko vpliva na prikazane module, simulator in podatke, ki bodo shranjeni za artikel.
+          </p>
+        </div>
+      </Dialog>
       <Dialog
         open={pendingSaveConfirmation !== null}
         onOpenChange={(open) => {

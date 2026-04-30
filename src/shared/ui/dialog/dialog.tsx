@@ -1,4 +1,5 @@
 import { useEffect, type MouseEvent, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 export const dialogOverlayClassName =
   'fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/34 px-4 py-6 backdrop-blur-[1px]';
@@ -35,7 +36,7 @@ export default function Dialog({
     initialFocusRef?.current?.focus();
   }, [open, initialFocusRef]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   const handleOverlayClick = () => {
     if (!isDismissable) return;
@@ -46,7 +47,7 @@ export default function Dialog({
     event.stopPropagation();
   };
 
-  return (
+  return createPortal(
     <div
       className={dialogOverlayClassName}
       role="dialog"
@@ -58,6 +59,7 @@ export default function Dialog({
         {children}
         {footer}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

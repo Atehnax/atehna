@@ -15,8 +15,7 @@ export default function SiteFooter() {
         <div>
           <p className="text-lg font-semibold text-slate-900">Atehna d.o.o.</p>
           <p className="mt-2 text-sm text-slate-600">
-            Zanesljiv partner pri opremljanju delavnic, projektnih prostorov in tehničnih
-            potreb.
+            Zanesljiv partner pri xyz
           </p>
           <p className="mt-4 text-sm text-slate-500">
             © {year} Atehna. Vse pravice pridržane.

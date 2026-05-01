@@ -55,6 +55,8 @@ export const adminStatusInfoPillTableCellClassName =
   `${adminStatusInfoPillTableColumnClassName} !px-0 text-center`;
 export const adminStatusInfoPillCompactTableClassName =
   '!h-[23.4px] !min-w-[94px] !px-1.5 !text-[10px]';
+export const adminStatusInfoPillVariantTableClassName =
+  '!h-[26px] !min-h-[26px] !min-w-[94px] !px-1.5 !text-[11px]';
 
 export const adminStatusInfoMenuOptionBaseClassName =
   '!bg-white !text-slate-700 disabled:!bg-white disabled:!text-slate-300';

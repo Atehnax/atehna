@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
@@ -20,8 +20,10 @@ type CustomSelectProps<Value extends string> = {
   className?: string;
   containerClassName?: string;
   triggerClassName?: string;
+  triggerStyle?: CSSProperties;
   menuClassName?: string;
   valueClassName?: string;
+  valueStyle?: CSSProperties;
   showArrow?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
 };
@@ -38,8 +40,10 @@ export default function CustomSelect<Value extends string = string>({
   className,
   containerClassName,
   triggerClassName,
+  triggerStyle,
   menuClassName,
   valueClassName,
+  valueStyle,
   showArrow = true,
   onOpenChange
 }: CustomSelectProps<Value>) {
@@ -108,6 +112,7 @@ export default function CustomSelect<Value extends string = string>({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        style={triggerStyle}
         className={classNames(
           'relative',
           showArrow && 'pr-5',
@@ -116,7 +121,7 @@ export default function CustomSelect<Value extends string = string>({
           triggerClassName
         )}
       >
-        <span className={classNames('min-w-0 flex-1 truncate pb-px text-left leading-[1.3]', valueClassName)}>{selectedLabel}</span>
+        <span className={classNames('min-w-0 flex-1 truncate pb-px text-left leading-[1.3]', valueClassName)} style={valueStyle}>{selectedLabel}</span>
         {showArrow ? (
           <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500">▾</span>
         ) : null}

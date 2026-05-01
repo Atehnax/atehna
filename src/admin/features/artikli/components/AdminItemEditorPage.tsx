@@ -25,8 +25,8 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { ActionUndoIcon, ArchiveIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import {
-  adminStatusInfoPillCompactTableClassName,
   adminStatusInfoPillGroupClassName,
+  adminStatusInfoPillVariantTableClassName,
   buttonTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -113,8 +113,15 @@ import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
-const compactTableNumericSlotClassName = 'inline-flex h-6 w-[7ch] items-center justify-end';
-const compactTableFourDigitSlotClassName = 'inline-flex h-6 w-[5ch] items-center justify-end';
+const compactTableReadOnlyNumberClassName = "inline-flex h-[30px] shrink-0 items-center justify-end rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700";
+const compactTableReadOnlyCenteredNumberClassName = "inline-flex h-[30px] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700";
+const compactTableNumericSlotClassName = `${compactTableReadOnlyNumberClassName} w-[7ch]`;
+const compactTableSixDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[6ch]`;
+const compactTableFourDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[5ch]`;
+const compactTableFiveDigitCenteredSlotClassName = `${compactTableReadOnlyCenteredNumberClassName} w-[5ch]`;
+const compactTableThreeDigitCenteredSlotClassName = `${compactTableReadOnlyCenteredNumberClassName} w-[3ch]`;
+const dimensionEditorInputHeightClassName =
+  '[&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!min-h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!leading-[30px] [&_.h-6]:!h-[30px] [&_.min-h-6]:!min-h-[30px]';
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
@@ -147,12 +154,13 @@ function formatCurrencyAmountOnly(value: number) {
 
 type EditorMode = 'create' | 'edit';
 type CreateType = ProductEditorType | 'variants';
+type ProductEditorMainTab = 'basic' | 'sales' | 'simulator';
 type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type VariantDimensionSet = { length: number; width: number; thickness: number };
-type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku';
+type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku' | 'percent' | 'unit';
 type IdentitySuggestionField = 'name' | 'sku' | 'slug';
 type SideSettingsState = {
   sku: string;
@@ -579,7 +587,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(basicItems, 'Tip artikla', formatProductTypeLabel(saved.productType), formatProductTypeLabel(next.productType));
   pushSaveDiff(basicItems, 'Opis', formatSaveDiffText(saved.draft.description, 180), formatSaveDiffText(next.draft.description, 180));
   pushSaveDiff(basicItems, 'Opomba artikla', formatSaveDiffNoteTag(saved.itemLevelNote), formatSaveDiffNoteTag(next.itemLevelNote));
-  if (basicItems.length > 0) groups.push({ title: 'Osnovni podatki', items: basicItems });
+  if (basicItems.length > 0) groups.push({ title: 'Osnovne informacije', items: basicItems });
 
   const detailItems: string[] = [];
   pushSaveDiff(detailItems, 'Osnovni SKU', formatSaveDiffText(saved.sideSettings.sku), formatSaveDiffText(next.sideSettings.sku));
@@ -1239,6 +1247,27 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
       </svg>
     );
   }
+  if (icon === 'percent') {
+    return (
+      <svg {...iconProps}>
+        <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0Z" />
+        <path d="M9.2 9.2h.01" />
+        <path d="m14.5 9.5-5 5" />
+        <path d="M14.7 14.8h.01" />
+      </svg>
+    );
+  }
+  if (icon === 'unit') {
+    return (
+      <svg {...iconProps}>
+        <path d="M7 10H6a4 4 0 0 1-4-4 1 1 0 0 1 1-1h4" />
+        <path d="M7 5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1 7 7 0 0 1-7 7H8a1 1 0 0 1-1-1z" />
+        <path d="M9 12v5" />
+        <path d="M15 12v5" />
+        <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
+      </svg>
+    );
+  }
   if (icon === 'sku') {
     return (
       <svg {...iconProps}>
@@ -1764,6 +1793,7 @@ export default function AdminItemEditorPage({
   const [isSaving, setIsSaving] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(initialPersistedState.itemLevelNote);
+  const [editorTab, setEditorTab] = useState<ProductEditorMainTab>('basic');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
@@ -1791,6 +1821,8 @@ export default function AdminItemEditorPage({
   const [savedSnapshot, setSavedSnapshot] = useState<EditorPersistedState>(() => cloneEditorPersistedState(initialPersistedState));
   const [pendingSaveConfirmation, setPendingSaveConfirmation] = useState<PendingSaveConfirmation | null>(null);
   const [pendingProductTypeChange, setPendingProductTypeChange] = useState<ProductEditorType | null>(null);
+  const [isProductTypeSelectorExpanded, setIsProductTypeSelectorExpanded] = useState(mode === 'create');
+  const [isProductTypeSelectionConfirmed, setIsProductTypeSelectionConfirmed] = useState(mode !== 'create');
   const [isDiscardUnsavedDialogOpen, setIsDiscardUnsavedDialogOpen] = useState(false);
   const undoHistoryRef = useRef<EditorUndoSnapshot[]>([]);
   const activeTextUndoSessionRef = useRef<TextUndoSession | null>(null);
@@ -2135,6 +2167,8 @@ export default function AdminItemEditorPage({
     setProductType(nextProductType);
     setSimulatorVariantId('');
     setPendingProductTypeChange(null);
+    setIsProductTypeSelectionConfirmed(false);
+    setIsProductTypeSelectorExpanded(true);
   }, []);
   const changeProductType = (nextProductType: ProductEditorType) => {
     if (!isEditable || nextProductType === productType) return;
@@ -2143,6 +2177,15 @@ export default function AdminItemEditorPage({
       return;
     }
     applyProductTypeChange(nextProductType);
+  };
+  const shouldCollapseProductTypeSelector = isProductTypeSelectionConfirmed && !isProductTypeSelectorExpanded;
+  const expandProductTypeSelector = () => {
+    if (isSaving) return;
+    if (editorMode === 'read') {
+      clearUndoHistory();
+      setEditorMode('edit');
+    }
+    setIsProductTypeSelectorExpanded(true);
   };
   const updateSimpleProductData = (nextData: typeof simpleProductData) => {
     setTypeSpecificData((current) => ({ ...current, simple: nextData }));
@@ -2503,6 +2546,8 @@ export default function AdminItemEditorPage({
       setSelectedCategoryPath([...preparedState.selectedCategoryPath]);
       setVideoAssignedVariantId(preparedState.videoAssignedVariantId);
       setSavedSnapshot(cloneEditorPersistedState(canonicalSnapshot));
+      setIsProductTypeSelectionConfirmed(true);
+      setIsProductTypeSelectorExpanded(false);
       clearUndoHistory();
       setEditorMode('read');
       toast.success('Artikel shranjen.');
@@ -2647,6 +2692,8 @@ export default function AdminItemEditorPage({
   const discardEditorUnsavedChanges = () => {
     setIsDiscardUnsavedDialogOpen(false);
     restoreSavedSnapshot();
+    setIsProductTypeSelectionConfirmed(mode !== 'create');
+    setIsProductTypeSelectorExpanded(mode === 'create');
     setEditorMode('read');
     toast.success('Neshranjene spremembe so zavržene.');
   };
@@ -3593,19 +3640,19 @@ export default function AdminItemEditorPage({
     { title: 'Material', value: sideSettings.material, placeholder: productType === 'weight' ? 'Kremenčev pesek' : 'Aluminij', icon: 'material', onChange: (value) => setSideSettings((current) => ({ ...current, material: value })) },
     ...(productType === 'weight'
       ? [
-          { title: 'Enota prodaje', value: 'kg', placeholder: 'kg', icon: 'sku' as SideFieldIcon, onChange: () => {} },
-          { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+          { title: 'Enota prodaje', value: 'kg', placeholder: 'kg', icon: 'unit' as SideFieldIcon, onChange: () => {} },
+          { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
         ]
       : productType === 'unique_machine'
         ? [
-            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'sku' as SideFieldIcon, onChange: () => {} },
-            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'unit' as SideFieldIcon, onChange: () => {} },
+            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
           ]
         : [
             { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
             { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
-            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'sku' as SideFieldIcon, onChange: () => {} },
-            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'color' as SideFieldIcon, onChange: () => {} }
+            { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'unit' as SideFieldIcon, onChange: () => {} },
+            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
           ])
   ];
   return (
@@ -3744,8 +3791,29 @@ export default function AdminItemEditorPage({
             </Button>
           </div>
         </div>
-        <ProductTypeSelectorCardRow value={productType} editable={isEditable} onChange={changeProductType} embedded />
+        <ProductTypeSelectorCardRow
+          value={productType}
+          editable={isEditable}
+          onChange={changeProductType}
+          embedded
+          collapsed={shouldCollapseProductTypeSelector}
+          onExpand={expandProductTypeSelector}
+          expandDisabled={isSaving}
+        />
       </section>
+      <div className="-mb-2">
+        <EuiTabs
+          value={editorTab}
+          onChange={(value) => setEditorTab(value as ProductEditorMainTab)}
+          size="compact"
+          tabs={[
+            { value: 'basic', label: 'Osnovno' },
+            { value: 'sales', label: 'Prodaja' },
+            { value: 'simulator', label: 'Simulator' }
+          ]}
+        />
+      </div>
+      {editorTab === 'basic' ? (
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
           <section className={`${adminWindowCardClassName} h-full p-6`} style={adminWindowCardStyle}>
@@ -3791,7 +3859,7 @@ export default function AdminItemEditorPage({
               </div>
             </div>
             <div className="mb-3">
-              <h2 className={editorSectionTitleClassName}>Osnovni podatki</h2>
+              <h2 className={editorSectionTitleClassName}>Osnovne informacije</h2>
             </div>
             <div className="mb-[15px]">
               <p className="text-sm font-semibold text-slate-900">Pot do kategorije</p>
@@ -3899,8 +3967,8 @@ export default function AdminItemEditorPage({
               <EuiTabs
                 value={mediaTab}
                 onChange={(value) => setMediaTab(value as MediaTab)}
+                surface="panel"
                 size="compact"
-                tone="muted-control"
                 tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
                 tabs={[
                   { value: 'slike', label: 'Slike' },
@@ -4472,11 +4540,14 @@ export default function AdminItemEditorPage({
           </div>
         </aside>
       </div>
+      ) : null}
 
+      {editorTab === 'sales' ? (
+      <>
       {isDimensionBasedMode ? (
-      <section className={`${adminWindowCardClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
+      <section className={`${adminWindowCardClassName} ${dimensionEditorInputHeightClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className={editorSectionTitleClassName}>Uredi artikel</h2>
+          <h2 className={editorSectionTitleClassName}>Prodajne informacije</h2>
           <div className={`flex items-center gap-2 [&>*:first-child]:hidden [&>*:nth-child(3)]:hidden ${isTableEditable ? '' : '[&>*:nth-child(5)]:pointer-events-none [&>*:nth-child(5)]:opacity-50'}`}>
             <IconButton
               type="button"
@@ -4538,7 +4609,7 @@ export default function AdminItemEditorPage({
         <div className="mb-3 space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
           <p className="text-xs text-slate-500">
-            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10; 20</span>. Več vrednosti loči s podpičjem; decimalke lahko vneseš z vejico ali piko, npr. <span className={inlineSnippetClass}>10,5; 20.25</span>. Podprte so Dolžina, Širina/fi in Debelina, razen pri dolžinskih artiklih, kjer Debelina ni dovoljena. Za posamezno dimenzijo lahko dodaš največ pet vrednosti.
+            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10; 20</span>. Več vrednosti loči s podpičjem; decimalke lahko vneseš z vejico ali piko, npr. <span className={inlineSnippetClass}>10,5; 20.25</span>. Podprte so Dolžina, Širina/fi in Debelina.
           </p>
           <p className="whitespace-nowrap text-xs leading-5 text-slate-700">
             <span className="font-semibold">Dodaj do tri dimenzije. Vnosne bližnjice:</span>{' '}
@@ -4598,7 +4669,10 @@ export default function AdminItemEditorPage({
           </div>
         </div>
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-          <table className="min-w-full text-[11px] leading-4">
+          <div className="flex min-w-full items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-900">Različice</h3>
+          </div>
+          <table className="min-w-full table-fixed text-[11px] leading-4">
             <colgroup>
               <col style={{ width: '1.87%' }} />
               <col style={{ width: '5.4%' }} />
@@ -4655,20 +4729,20 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant) => (
                 <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-6 w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-center">
                     {isTableEditable ? (
-                      <div className={`inline-flex h-6 items-center justify-center whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
+                      <div className={`inline-flex h-[30px] items-center justify-center whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
                         <span className={compactTableAdornmentClassName}>±</span>
                         <input
                           type="text"
                           inputMode="decimal"
                           disabled={isToleranceLocked}
                           maxLength={1}
-                          className={`${compactTableAlignedInputClassName} !mt-0 !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`}
+                          className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`}
                           value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
                           onChange={(event) => {
                             if (isToleranceLocked) return;
@@ -4690,11 +4764,12 @@ export default function AdminItemEditorPage({
                         <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                       </div>
                     ) : (
-                      <span className="inline-flex h-6 items-center justify-center">
+                      <span className="inline-flex h-[30px] items-center justify-center">
                         {variant.errorTolerance
                           ? (
-                            <span className="inline-flex h-6 items-center whitespace-nowrap">
-                              <span>{`±${variant.errorTolerance.replace('.', ',')}`}</span>
+                            <span className="inline-flex h-[30px] items-center justify-center whitespace-nowrap">
+                              <span className={compactTableAdornmentClassName}>±</span>
+                              <span className={`${compactTableThreeDigitCenteredSlotClassName} px-0`}>{variant.errorTolerance.replace('.', ',')}</span>
                               <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                             </span>
                           )
@@ -4702,22 +4777,22 @@ export default function AdminItemEditorPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
                   {!isDimensionBasedMode ? (
                     <>
-                      <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><span className={compactTableValueUnitShellClassName}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-6 w-full justify-end"><span className={compactTableValueUnitShellClassName}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
-                      <td className="px-2 py-1.5 text-right"><span className="inline-flex h-6 items-center justify-end">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
+                      <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
+                      <td className="px-2 py-1.5 text-right"><span className="inline-flex h-[30px] min-w-[7ch] items-center justify-end rounded-md border border-transparent bg-transparent px-1 text-slate-700">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
                     </>
                   ) : null}
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-auto !max-w-[6ch] text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-6 w-full justify-end"><span className="inline-flex h-6 max-w-[6ch] items-center justify-end">{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className="inline-flex h-6 w-[5ch] items-center justify-center">{variant.minOrder ?? 1}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-6 !w-[26ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-6 w-[26ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap text-center">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[6ch] !px-0 text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={compactTableSixDigitSlotClassName}>{variant.stock}</span></span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className={`${compactTableFiveDigitCenteredSlotClassName} px-0`}>{variant.minOrder ?? 1}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-[30px] !w-[26ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-[30px] w-[26ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-transparent bg-transparent px-1 text-center font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName={adminStatusInfoPillCompactTableClassName}
+                        chipClassName={adminStatusInfoPillVariantTableClassName}
                         menuPlacement="bottom"
                         onChange={(next) => applySelectionChange(() => updateVariant(variant.id, { active: next }))}
                       />
@@ -4728,7 +4803,7 @@ export default function AdminItemEditorPage({
                       <NoteTagChip
                         value={getVariantTag(variant.id)}
                         editable={isTableEditable}
-                        chipClassName={adminStatusInfoPillCompactTableClassName}
+                        chipClassName={adminStatusInfoPillVariantTableClassName}
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
@@ -4737,7 +4812,7 @@ export default function AdminItemEditorPage({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-6 w-[4ch] items-center justify-center">{variant.sort}</span>}</td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-[30px] w-[4ch] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -4772,8 +4847,10 @@ export default function AdminItemEditorPage({
               simulatorOptions={simulatorOptions}
               usesScopedCommercialTools
               embedded
-              minQuantityLabel="Min kg"
+              minQuantityLabel="Neto masa"
+              minQuantityUnitLabel="kg"
               minQuantityAllowsDecimal
+              className="!border-t-0"
             />
           )}
         />
@@ -4806,7 +4883,10 @@ export default function AdminItemEditorPage({
           )}
         />
       )}
+      </>
+      ) : null}
 
+      {editorTab === 'simulator' ? (
           <CommercialToolsPanel
             productType={productType}
             hideQuantityDiscounts={
@@ -4825,6 +4905,7 @@ export default function AdminItemEditorPage({
         applyQuantityDiscounts={simulatorAppliesQuantityDiscounts}
         onApplyQuantityDiscountsChange={setSimulatorAppliesQuantityDiscounts}
       />
+      ) : null}
       <UnsavedChangesDialog
         open={isDiscardUnsavedDialogOpen}
         label="zaključkom urejanja artikla"

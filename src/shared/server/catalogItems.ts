@@ -117,6 +117,8 @@ export type AdminCatalogListItem = {
   id: number;
   slug: string;
   itemName: string;
+  productType: CatalogEditorProductType;
+  typeSpecificData: CatalogItemTypeSpecificData;
   material: string | null;
   baseSku: string | null;
   categoryLabel: string;
@@ -1109,6 +1111,7 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
 
 export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem[]> {
   const pool = await getPool();
+  await ensureCatalogItemEditorDetailsTable(pool);
   const result = await pool.query(
     `
     with recursive category_paths as (
@@ -1156,6 +1159,9 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       ci.id,
       ci.slug,
       ci.item_name,
+      ci.item_type,
+      cied.product_type as editor_product_type,
+      coalesce(cied.data, '{}'::jsonb) as type_specific_data,
       ci.material,
       ci.sku,
       ci.status,
@@ -1170,46 +1176,54 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
     from catalog_items ci
     left join category_paths cp on cp.id = ci.category_id
     left join variants_agg va on va.item_id = ci.id
+    left join catalog_item_editor_details cied on cied.item_id = ci.id
     order by ci.position asc, ci.item_name asc, ci.id asc
     `
   );
 
-  return (result.rows as Record<string, unknown>[]).map((row) => ({
-    id: Number(row.id),
-    slug: String(row.slug ?? ''),
-    itemName: String(row.item_name ?? ''),
-    material: asStringOrNull(row.material),
-    baseSku: asStringOrNull(row.sku),
-    categoryLabel: String(row.category_label ?? ''),
-    status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
-    badge: asStringOrNull(row.badge),
-    variantCount: asNumber(row.variant_count),
-    minPrice: asNumber(row.min_price),
-    maxPrice: asNumber(row.max_price),
-    defaultDiscountPct: asNumber(row.default_discount_pct),
-    adminNotes: asStringOrNull(row.admin_notes),
-    variants: Array.isArray(row.variants)
-      ? row.variants.map((variant) => {
-          const entry = variant as Record<string, unknown>;
-          return {
-            id: asNumber(entry.id),
-            variantName: String(entry.variantName ?? ''),
-            variantSku: asStringOrNull(entry.variantSku),
-            length: entry.length === null ? null : asNumber(entry.length),
-            width: entry.width === null ? null : asNumber(entry.width),
-            thickness: entry.thickness === null ? null : asNumber(entry.thickness),
-            weight: entry.weight === null ? null : asNumber(entry.weight),
-            price: asNumber(entry.price),
-            discountPct: asNumber(entry.discountPct),
-            inventory: asNumber(entry.inventory),
-            minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
-            status: String(entry.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
-            badge: asStringOrNull(entry.badge),
-            position: asNumber(entry.position)
-          };
-        })
-      : []
-  }));
+  return (result.rows as Record<string, unknown>[]).map((row) => {
+    const variantsJson = Array.isArray(row.variants) ? row.variants : [];
+    const variants = variantsJson.map((variant) => {
+      const entry = variant as Record<string, unknown>;
+      return {
+        id: asNumber(entry.id),
+        variantName: String(entry.variantName ?? ''),
+        variantSku: asStringOrNull(entry.variantSku),
+        length: entry.length === null ? null : asNumber(entry.length),
+        width: entry.width === null ? null : asNumber(entry.width),
+        thickness: entry.thickness === null ? null : asNumber(entry.thickness),
+        weight: entry.weight === null ? null : asNumber(entry.weight),
+        price: asNumber(entry.price),
+        discountPct: asNumber(entry.discountPct),
+        inventory: asNumber(entry.inventory),
+        minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
+        status: (String(entry.status ?? 'inactive') === 'active' ? 'active' : 'inactive') as 'active' | 'inactive',
+        badge: asStringOrNull(entry.badge),
+        position: asNumber(entry.position)
+      };
+    });
+
+    return {
+      id: Number(row.id),
+      slug: String(row.slug ?? ''),
+      itemName: String(row.item_name ?? ''),
+      productType:
+        normalizeCatalogEditorProductType(row.editor_product_type)
+        ?? inferCatalogEditorProductType(row.item_type, variantsJson as Array<Record<string, unknown>>),
+      typeSpecificData: normalizeTypeSpecificData(row.type_specific_data),
+      material: asStringOrNull(row.material),
+      baseSku: asStringOrNull(row.sku),
+      categoryLabel: String(row.category_label ?? ''),
+      status: String(row.status ?? 'inactive') === 'active' ? 'active' : 'inactive',
+      badge: asStringOrNull(row.badge),
+      variantCount: asNumber(row.variant_count),
+      minPrice: asNumber(row.min_price),
+      maxPrice: asNumber(row.max_price),
+      defaultDiscountPct: asNumber(row.default_discount_pct),
+      adminNotes: asStringOrNull(row.admin_notes),
+      variants
+    };
+  });
 }
 
 export async function fetchCatalogItemEditorBySlug(slug: string): Promise<CatalogItemEditorHydration | null> {

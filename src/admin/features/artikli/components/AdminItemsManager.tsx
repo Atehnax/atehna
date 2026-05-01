@@ -19,14 +19,16 @@ import {
   adminTableInlineCancelIconClassName,
   adminTableInlineConfirmButtonClassName,
   adminTableInlineConfirmIconClassName,
+  adminTableMatchingValueActiveClassName,
+  adminTableMatchingValueBaseClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedWarningIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
+  adminTableToolbarSearchWrapperClassName,
   AdminTableLayout
 } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -55,7 +57,6 @@ import {
 } from '@/admin/features/artikli/lib/archiveItemClient';
 import {
   buildPersistedVariantName,
-  computeSalePrice,
   formatCurrency,
   type ProductFamily,
   type Variant
@@ -73,45 +74,76 @@ import {
 import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
-type DiscountFilter = 'all' | 'yes' | 'no';
 type NoteFilter = 'all' | 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-type OpenFilter = 'category' | 'status' | 'discount' | 'note' | 'variantCount' | 'priceRange' | 'actionPriceRange' | null;
+type ProductType = AdminCatalogListItem['productType'];
+type ProductTypeFilter = 'all' | ProductType;
+type OpenFilter = 'category' | 'productType' | 'status' | 'note' | 'variantCount' | 'priceRange' | null;
 type EditScopeKind = 'row' | 'group';
 type SortState =
-  | { column: 'article' | 'sku' | 'category'; direction: 'asc' | 'desc' }
-  | { column: 'variantCount' | 'discount' | 'status' | 'note'; direction: 'desc' | 'asc' }
-  | { column: 'priceRange' | 'actionPriceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
+  | { column: 'article' | 'sku' | 'productType' | 'category'; direction: 'asc' | 'desc' }
+  | { column: 'variantCount' | 'status' | 'note'; direction: 'desc' | 'asc' }
+  | { column: 'priceRange'; mode: 'minAsc' | 'minDesc' | 'maxDesc' | 'maxAsc' }
   | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-type ListFamily = ProductFamily & { baseSku: string; material: string | null; categoryPath: string[]; itemBadge: NoteValue };
+type ListFamily = ProductFamily & {
+  baseSku: string;
+  material: string | null;
+  categoryPath: string[];
+  itemBadge: NoteValue;
+  productType: ProductType;
+  typeSpecificData: AdminCatalogListItem['typeSpecificData'];
+};
 type NoteValue = '' | NoteTag;
 type FamilyDraft = { name: string; sku: string; categoryPath: string[]; active: boolean; badge: NoteValue };
 type VariantDraft = { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number };
 type ActiveEditScope = { familyId: string; kind: EditScopeKind; restoreExpandedOnExit: boolean };
 type PendingGuardAction = { label: string; run: () => void };
-type NumericDraftField = 'price' | 'discountPct' | 'salePrice';
+type NumericDraftField = 'price';
 type NumericDraftScope = 'family' | 'variant';
-type HighlightableArticleColumn = 'sku' | 'category' | 'priceRange' | 'discount' | 'actionPriceRange';
+type HighlightableArticleColumn = 'sku' | 'productType' | 'category' | 'priceRange';
 const ROW_EDIT_INPUT_CLASS = `${compactTableAlignedTextInputClassName} !mt-0 !h-7 !w-full !px-2 text-[12px]`;
 const ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS = `${compactTableAlignedInputClassName} !mt-0 !h-7 text-right text-[12px]`;
 const MESTO_EDIT_INPUT_CLASS =
   'mx-auto h-7 w-3/4 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
 const QUICK_EDIT_NAME_SHELL_CLASS = 'min-w-0 flex-1';
 const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
-const ARTICLE_COLUMN_CLASS = 'w-[21.175%]';
-const CATEGORY_COLUMN_CLASS = 'w-[20.825%]';
+const ARTICLE_COLUMN_CLASS = 'w-[15.25%]';
+const SKU_COLUMN_CLASS = 'w-[10.725%]';
+const PRODUCT_TYPE_COLUMN_CLASS = 'w-[9.25%]';
+const CATEGORY_COLUMN_CLASS = 'w-[19.575%]';
+const PRICE_COLUMN_CLASS = 'w-[9%]';
 const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
 const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-center';
-const MATCHING_VALUE_HIGHLIGHT_CLASS =
-  'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
+const ARTICLE_HEADER_VALUE_ALIGN_CLASS = 'ml-[39px]';
+const MAIN_HEADER_VALUE_ALIGN_CLASS = 'ml-2.5';
+const MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS = 'ml-1.5';
+const MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS = '-translate-x-2.5';
+const SUB_HEADER_VALUE_ALIGN_CLASS = 'ml-2.5';
+const SUB_HEADER_HOVER_VALUE_ALIGN_CLASS = 'ml-3.5';
+const SUB_HEADER_RIGHT_VALUE_ALIGN_CLASS = 'relative right-3.5';
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
-  price: 'Cena',
-  discountPct: 'Popust',
-  salePrice: 'Akcijska cena'
+  price: 'Cena'
 };
+const MAIN_ROW_CLASS = `h-12 border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`;
+const MAIN_CELL_CLASS = 'h-12 px-2 py-0 align-middle';
+const MAIN_CENTER_CELL_CLASS = `${MAIN_CELL_CLASS} text-center`;
+const MAIN_TEXT_SLOT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
+const MAIN_TEXT_SLOT_TIGHT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-1';
+const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent px-2 text-right';
+const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[5px] text-right';
+const SUB_ROW_CLASS = 'h-10 border-t border-slate-200/90';
+const SUB_CELL_CLASS = 'h-10 px-2 py-0 align-middle';
+const SUB_CENTER_CELL_CLASS = `${SUB_CELL_CLASS} text-center`;
+const SUB_TEXT_SLOT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
+const SUB_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[9ch] items-center justify-end rounded-md border border-transparent px-2 text-right';
+const SUB_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[9ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[13px] text-right';
+const ROW_EDIT_VALUE_UNIT_SHELL_CLASS = `${compactTableValueUnitShellClassName} !h-7`;
+const ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} !pl-[13px]`;
+const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[12ch]`;
+const ROW_EDIT_VARIANT_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[9ch]`;
 const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
 const LazyConfirmDialog = dynamic(
   () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
@@ -238,14 +270,6 @@ const formatCurrencyRange = (minValue: number, maxValue: number) =>
   minValue === maxValue
     ? formatCurrencyWithSuffix(minValue)
     : `${formatCurrencyAmountOnly(minValue)}–${formatCurrencyAmountOnly(maxValue)} €`;
-const formatCurrencyRangeFromValues = (values: number[]) => {
-  if (!values.length) return '—';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max
-    ? formatCurrencyWithSuffix(min)
-    : `${formatCurrencyAmountOnly(min)}–${formatCurrencyAmountOnly(max)} €`;
-};
 const normalizeNoteValue = (value: string | null | undefined): NoteTag | '' => {
   const normalized = (value ?? '').trim().toLowerCase();
   if (!normalized) return '';
@@ -276,10 +300,25 @@ const ITEM_NOTE_BULK_OPTIONS: Array<{ value: NoteTag; label: string }> = [
 ];
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 'Neaktiven inactive Skrit hidden');
+const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  simple: 'Enostavni',
+  dimensions: 'Po dimenzijah',
+  weight: 'Po teži',
+  unique_machine: 'Stroj / unikaten'
+};
+const PRODUCT_TYPE_FILTER_OPTIONS: Array<{ value: ProductTypeFilter; label: string }> = [
+  { value: 'all', label: 'Vsi tipi artikla' },
+  { value: 'simple', label: PRODUCT_TYPE_LABELS.simple },
+  { value: 'dimensions', label: PRODUCT_TYPE_LABELS.dimensions },
+  { value: 'weight', label: PRODUCT_TYPE_LABELS.weight },
+  { value: 'unique_machine', label: PRODUCT_TYPE_LABELS.unique_machine }
+];
+const formatProductTypeLabel = (value: ProductType) => PRODUCT_TYPE_LABELS[value] ?? 'Enostavni';
 const familySearchValue = (family: ListFamily) =>
   [
     family.name,
     getBaseSku(family),
+    formatProductTypeLabel(family.productType),
     family.category,
     family.categoryPath.join(' / '),
     itemStatusSearchValue(family.active),
@@ -297,36 +336,17 @@ const familySearchValue = (family: ListFamily) =>
     .filter((value) => value && value.trim().length > 0)
     .join(' ')
     .toLowerCase();
-const formatPercentRange = (values: number[]) => {
-  if (!values.length) return '—';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const minLabel = formatDecimalForDisplay(min);
-  const maxLabel = formatDecimalForDisplay(max);
-  return min === max ? `${maxLabel}%` : `${minLabel}–${maxLabel}%`;
-};
-
-const clampDiscountPct = (value: number) => Math.min(99.9, Math.max(0, value));
-const computeDiscountPctFromSalePrice = (price: number, salePrice: number) => {
-  if (!Number.isFinite(price) || price <= 0) return 0;
-  const normalizedSalePrice = Math.max(0, salePrice);
-  return clampDiscountPct(Number((((price - normalizedSalePrice) / price) * 100).toFixed(2)));
-};
 const isDecimalInputDraft = (raw: string) => raw.trim() === '' || /^\d*(?:[.,]\d*)?$/.test(raw.trim());
 const getUniformNumber = (values: number[]) => {
   if (!values.length) return null;
   const [first, ...rest] = values;
   return rest.every((value) => Object.is(value, first)) ? first : null;
 };
-const getVariantSalePrice = (draft: Pick<VariantDraft, 'price' | 'discountPct'>) =>
-  draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
 const numericDraftKey = (scope: NumericDraftScope, id: string, field: NumericDraftField) => `${scope}:${id}:${field}`;
 const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraftField, raw: string) => {
   const trimmed = raw.trim();
   if (!trimmed) {
-    return field === 'price'
-      ? { nextDraft: { ...draft, price: 0 } }
-      : { nextDraft: { ...draft, discountPct: 0 } };
+    return { nextDraft: { ...draft, price: 0 } };
   }
 
   const parsed = parseDecimalInput(trimmed);
@@ -334,19 +354,7 @@ const applyNumericFieldToVariantDraft = (draft: VariantDraft, field: NumericDraf
     return { nextDraft: draft, error: `Preverite vrednost v polju ${NUMERIC_FIELD_LABELS[field]}.` };
   }
 
-  if (field === 'price') {
-    return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
-  }
-  if (field === 'discountPct') {
-    return { nextDraft: { ...draft, discountPct: clampDiscountPct(parsed) } };
-  }
-
-  return {
-    nextDraft: {
-      ...draft,
-      discountPct: computeDiscountPctFromSalePrice(draft.price, parsed)
-    }
-  };
+  return { nextDraft: { ...draft, price: Math.max(0, parsed) } };
 };
 const formatAmountRangeForInput = (values: number[]) => {
   if (!values.length) return '';
@@ -354,29 +362,52 @@ const formatAmountRangeForInput = (values: number[]) => {
   const max = Math.max(...values);
   return min === max ? formatCurrencyAmountOnly(min) : `${formatCurrencyAmountOnly(min)}-${formatCurrencyAmountOnly(max)}`;
 };
-const formatPercentRangeForInput = (values: number[]) => {
-  if (!values.length) return '';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const minLabel = formatDecimalForDisplay(min);
-  const maxLabel = formatDecimalForDisplay(max);
-  return min === max ? maxLabel : `${minLabel}-${maxLabel}`;
-};
 
+const asRecord = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+const asText = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+const asFiniteNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(',', '.'));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+const getWeightVariantName = (item: AdminCatalogListItem, variantIndex: number, variantWeight: number | null) => {
+  if (item.productType !== 'weight') return null;
+
+  const weightData = asRecord(item.typeSpecificData.weight);
+  const weightVariants = Array.isArray(weightData.variants) ? weightData.variants : [];
+  const weightVariant = asRecord(weightVariants[variantIndex]);
+  const fraction = asText(weightVariant.fraction) || asText(weightData.fraction);
+  const netMassKg = asFiniteNumberOrNull(weightVariant.netMassKg) ?? variantWeight;
+
+  const fractionLabel = fraction.replace(/^frakcija\s*/i, '').trim();
+  const massLabel = netMassKg === null ? '' : `${formatDecimalForDisplay(netMassKg)} kg`;
+  const labelParts = [fractionLabel, massLabel].filter(Boolean);
+  return labelParts.length > 0 ? labelParts.join(' | ') : null;
+};
+const getListVariantName = (item: AdminCatalogListItem, variant: AdminCatalogListItem['variants'][number], variantIndex: number) => {
+  const weightVariantName = getWeightVariantName(item, variantIndex, variant.weight);
+  if (weightVariantName) return weightVariantName;
+
+  return buildPersistedVariantName(
+    {
+      label: variant.variantName || `Različica ${variantIndex + 1}`,
+      width: variant.width,
+      length: variant.length,
+      thickness: variant.thickness,
+      weight: variant.weight
+    },
+    { baseName: item.itemName, variantCount: item.variants.length, index: variantIndex }
+  );
+};
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   return items.map((item, itemIndex) => {
     const variants: Variant[] = item.variants.map((variant, variantIndex) => ({
       id: String(variant.id),
-      label: buildPersistedVariantName(
-        {
-          label: variant.variantName || `Različica ${variantIndex + 1}`,
-          width: variant.width,
-          length: variant.length,
-          thickness: variant.thickness,
-          weight: variant.weight
-        },
-        { baseName: item.itemName, variantCount: item.variants.length, index: variantIndex }
-      ),
+      label: getListVariantName(item, variant, variantIndex),
       width: variant.width,
       length: variant.length,
       thickness: variant.thickness,
@@ -412,7 +443,9 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       slug: item.slug,
       variants,
       baseSku: item.baseSku ?? '',
-      material: item.material
+      material: item.material,
+      productType: item.productType,
+      typeSpecificData: item.typeSpecificData
     };
   });
 }
@@ -534,8 +567,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [productTypeFilter, setProductTypeFilter] = useState<ProductTypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [discountFilter, setDiscountFilter] = useState<DiscountFilter>('all');
   const [noteFilter, setNoteFilter] = useState<NoteFilter>('all');
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null);
   const [isStatusBulkMenuOpen, setIsStatusBulkMenuOpen] = useState(false);
@@ -557,8 +590,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [variantCountRange, setVariantCountRange] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [priceRangeFilter, setPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [draftPriceRangeFilter, setDraftPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
-  const [actionPriceRangeFilter, setActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
-  const [draftActionPriceRangeFilter, setDraftActionPriceRangeFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: HighlightableArticleColumn; value: string } | null>(null);
   const [isBulkArchiveDialogOpen, setIsBulkArchiveDialogOpen] = useState(false);
   const [isArchivingSelected, setIsArchivingSelected] = useState(false);
@@ -566,9 +597,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const productTypeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const discountFilterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const actionPriceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const noteFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusBulkMenuRef = useRef<HTMLDivElement | null>(null);
@@ -699,42 +729,41 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     };
   }, [isNoteBulkMenuOpen, isStatusBulkMenuOpen]);
 
+  const getListVisibleVariants = useCallback(
+    (family: ListFamily) => {
+      const variants = family.variants.filter((variant) => !deletedVariantIds.has(variant.id));
+      if (family.productType === 'simple' || family.productType === 'unique_machine') return variants.slice(0, 1);
+      return variants;
+    },
+    [deletedVariantIds]
+  );
+
   const filteredFamilies = useMemo(() => {
     const q = search.trim().toLowerCase();
     return effectiveFamilies.filter((family) => {
       const matchesSearch = q.length === 0 || familySearchValue(family).includes(q);
       const matchesCategory = categoryFilter === 'all' || family.category === categoryFilter;
+      const matchesProductType = productTypeFilter === 'all' || family.productType === productTypeFilter;
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? family.active : !family.active);
-      const hasDiscount = family.defaultDiscountPct > 0 || family.variants.some((variant) => variant.discountPct > 0);
-      const matchesDiscount = discountFilter === 'all' || (discountFilter === 'yes' ? hasDiscount : !hasDiscount);
       const familyNote = family.itemBadge;
       const matchesNote = noteFilter === 'all' || familyNote === noteFilter;
-      return matchesSearch && matchesCategory && matchesStatus && matchesDiscount && matchesNote;
+      return matchesSearch && matchesCategory && matchesProductType && matchesStatus && matchesNote;
     });
-  }, [categoryFilter, discountFilter, effectiveFamilies, noteFilter, search, statusFilter]);
+  }, [categoryFilter, effectiveFamilies, noteFilter, productTypeFilter, search, statusFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedRows = filteredFamilies
       .map((family) => {
-        const visibleVariants = family.variants.filter((variant) => !deletedVariantIds.has(variant.id));
+        const visibleVariants = getListVisibleVariants(family);
         const prices = visibleVariants.map((variant) => variant.price);
         const minPrice = prices.length ? Math.min(...prices) : 0;
         const maxPrice = prices.length ? Math.max(...prices) : 0;
-        const discounts = visibleVariants.map((variant) => variant.discountPct);
-        const actionPrices = visibleVariants
-          .filter((variant) => variant.discountPct > 0)
-          .map((variant) => computeSalePrice(variant.price, variant.discountPct));
-        const minActionPrice = actionPrices.length ? Math.min(...actionPrices) : null;
-        const maxActionPrice = actionPrices.length ? Math.max(...actionPrices) : null;
         return {
           family,
           visibleVariants,
           variantCount: visibleVariants.length,
           minPrice,
-          maxPrice,
-          discounts,
-          minActionPrice,
-          maxActionPrice
+          maxPrice
         };
       })
       .filter((row) => {
@@ -742,17 +771,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         const maxCount = variantCountRange.max.trim() === '' ? null : Number(variantCountRange.max);
         const minPriceFilter = priceRangeFilter.min.trim() === '' ? null : Number(priceRangeFilter.min);
         const maxPriceFilter = priceRangeFilter.max.trim() === '' ? null : Number(priceRangeFilter.max);
-        const minActionPriceFilter = actionPriceRangeFilter.min.trim() === '' ? null : Number(actionPriceRangeFilter.min);
-        const maxActionPriceFilter = actionPriceRangeFilter.max.trim() === '' ? null : Number(actionPriceRangeFilter.max);
         const matchesCountMin = minCount === null || row.variantCount >= minCount;
         const matchesCountMax = maxCount === null || row.variantCount <= maxCount;
         const matchesPriceMin = minPriceFilter === null || row.minPrice >= minPriceFilter;
         const matchesPriceMax = maxPriceFilter === null || row.maxPrice <= maxPriceFilter;
-        const matchesActionPriceMin =
-          minActionPriceFilter === null || (row.minActionPrice !== null && row.minActionPrice >= minActionPriceFilter);
-        const matchesActionPriceMax =
-          maxActionPriceFilter === null || (row.maxActionPrice !== null && row.maxActionPrice <= maxActionPriceFilter);
-        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax && matchesActionPriceMin && matchesActionPriceMax;
+        return matchesCountMin && matchesCountMax && matchesPriceMin && matchesPriceMax;
       });
 
     if (!sortState) return normalizedRows;
@@ -782,16 +805,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       );
       return rows;
     }
-    if (sortState.column === 'variantCount') {
-      rows.sort((a, b) => (sortState.direction === 'desc' ? b.variantCount - a.variantCount : a.variantCount - b.variantCount));
+    if (sortState.column === 'productType') {
+      rows.sort((a, b) =>
+        sortState.direction === 'asc'
+          ? formatProductTypeLabel(a.family.productType).localeCompare(formatProductTypeLabel(b.family.productType), 'sl')
+          : formatProductTypeLabel(b.family.productType).localeCompare(formatProductTypeLabel(a.family.productType), 'sl')
+      );
       return rows;
     }
-    if (sortState.column === 'discount') {
-      rows.sort((a, b) =>
-        sortState.direction === 'desc'
-          ? b.family.defaultDiscountPct - a.family.defaultDiscountPct
-          : a.family.defaultDiscountPct - b.family.defaultDiscountPct
-      );
+    if (sortState.column === 'variantCount') {
+      rows.sort((a, b) => (sortState.direction === 'desc' ? b.variantCount - a.variantCount : a.variantCount - b.variantCount));
       return rows;
     }
     if (sortState.column === 'status') {
@@ -812,9 +835,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       });
       return rows;
     }
-    if (sortState.column === 'priceRange' || sortState.column === 'actionPriceRange') {
-      const getMin = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.minPrice : row.minActionPrice ?? Number.POSITIVE_INFINITY);
-      const getMax = (row: (typeof rows)[number]) => (sortState.column === 'priceRange' ? row.maxPrice : row.maxActionPrice ?? Number.NEGATIVE_INFINITY);
+    if (sortState.column === 'priceRange') {
+      const getMin = (row: (typeof rows)[number]) => row.minPrice;
+      const getMax = (row: (typeof rows)[number]) => row.maxPrice;
       rows.sort((a, b) => {
         if (sortState.mode === 'minAsc') return getMin(a) - getMin(b);
         if (sortState.mode === 'minDesc') return getMin(b) - getMin(a);
@@ -824,7 +847,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       return rows;
     }
     return rows;
-  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, deletedVariantIds, filteredFamilies, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
+  }, [filteredFamilies, getListVisibleVariants, priceRangeFilter.max, priceRangeFilter.min, sortState, variantCountRange.max, variantCountRange.min]);
 
   const hasExportSelection = selectedFamilyIds.size > 0 || selectedVariantIds.size > 0;
 
@@ -858,17 +881,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   useEffect(() => {
     setPage(1);
-  }, [actionPriceRangeFilter.max, actionPriceRangeFilter.min, categoryFilter, discountFilter, noteFilter, priceRangeFilter.max, priceRangeFilter.min, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
+  }, [categoryFilter, noteFilter, priceRangeFilter.max, priceRangeFilter.min, productTypeFilter, search, setPage, statusFilter, variantCountRange.max, variantCountRange.min]);
 
   const exportVariantsCsv = () => {
-    const headers = ['Družina', 'Različica', 'SKU', 'Cena', 'Popust', 'Akcijska cena', 'Zaloga', 'Status'];
+    const headers = ['Družina', 'Različica', 'SKU', 'Tip artikla', 'Cena', 'Zaloga', 'Status'];
     const csvRows = exportRows.map(({ family, variant }) => [
       family.name,
       variant.label,
       variant.sku,
+      formatProductTypeLabel(family.productType),
       variant.price.toFixed(2),
-      `${variant.discountPct}`,
-      `${computeSalePrice(variant.price, variant.discountPct).toFixed(2)}`,
       `${variant.stock}`,
       itemStatusLabel(variant.active)
     ]);
@@ -1066,8 +1088,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     []
   );
   const getEditableVariantsForFamily = useCallback(
-    (family: ListFamily) => family.variants.filter((variant) => !deletedVariantIds.has(variant.id)),
-    [deletedVariantIds]
+    (family: ListFamily) => getListVisibleVariants(family),
+    [getListVisibleVariants]
   );
   const getScopeVariants = useCallback(
     (scope: ActiveEditScope | null, family: ListFamily | null) => {
@@ -1100,7 +1122,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   ) => {
     let nextVariantDrafts = { ...sourceVariantDrafts };
     const consumedKeys: string[] = [];
-    const fields: NumericDraftField[] = ['price', 'discountPct', 'salePrice'];
+    const fields: NumericDraftField[] = ['price'];
 
     for (const field of fields) {
       const familyKey = numericDraftKey('family', familyId, field);
@@ -1177,46 +1199,26 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const readVariantNumericInputValue = (variant: Variant, draft: VariantDraft, field: NumericDraftField) => {
     const raw = numericDrafts[numericDraftKey('variant', variant.id, field)];
     if (raw !== undefined) return raw;
-    if (field === 'price') return formatDecimalForDisplay(draft.price);
-    if (field === 'discountPct') return formatDecimalForDisplay(draft.discountPct);
-    const salePrice = getVariantSalePrice(draft);
-    return salePrice === null ? '' : formatDecimalForDisplay(salePrice);
+    return formatDecimalForDisplay(draft.price);
   };
   const readFamilyNumericInputValue = (familyId: string, variants: Variant[], field: NumericDraftField) => {
     const raw = numericDrafts[numericDraftKey('family', familyId, field)];
     if (raw !== undefined) return raw;
 
-    if (field === 'price') {
-      const uniformPrice = getUniformNumber(variants.map((variant) => getVariantDraftForState(variant, variantDrafts).price));
-      return uniformPrice === null ? '' : formatDecimalForDisplay(uniformPrice);
-    }
-    if (field === 'discountPct') {
-      const uniformDiscount = getUniformNumber(variants.map((variant) => getVariantDraftForState(variant, variantDrafts).discountPct));
-      return uniformDiscount === null ? '' : formatDecimalForDisplay(uniformDiscount);
-    }
-
-    const salePrices = variants.map((variant) => getVariantSalePrice(getVariantDraftForState(variant, variantDrafts)));
-    if (salePrices.some((value) => value === null)) {
-      return salePrices.every((value) => value === null) ? '' : '';
-    }
-
-    const uniformSalePrice = getUniformNumber(salePrices as number[]);
-    return uniformSalePrice === null ? '' : formatDecimalForDisplay(uniformSalePrice);
+    const uniformPrice = getUniformNumber(variants.map((variant) => getVariantDraftForState(variant, variantDrafts).price));
+    return uniformPrice === null ? '' : formatDecimalForDisplay(uniformPrice);
   };
   const getFamilyNumericInputPlaceholder = (variants: Variant[], field: NumericDraftField) => {
     const drafts = variants.map((variant) => getVariantDraftForState(variant, variantDrafts));
-    if (field === 'price') return formatAmountRangeForInput(drafts.map((draft) => draft.price));
-    if (field === 'discountPct') return formatPercentRangeForInput(drafts.map((draft) => draft.discountPct));
-    const salePrices = drafts.map((draft) => getVariantSalePrice(draft)).filter((value): value is number => value !== null);
-    return formatAmountRangeForInput(salePrices);
+    return formatAmountRangeForInput(drafts.map((draft) => draft.price));
   };
   const getScopeNumericDraftKeys = useCallback((scope: ActiveEditScope | null, family: ListFamily | null) => {
     if (!scope || !family) return [];
     const variants = getScopeVariants(scope, family);
     return [
-      ...(['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
+      ...(['price'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
       ...variants.flatMap((variant) =>
-        (['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
+        (['price'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
       )
     ];
   }, [getScopeVariants]);
@@ -1475,9 +1477,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         return next;
       });
       clearNumericDraftKeys([
-        ...(['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
+        ...(['price'] as NumericDraftField[]).map((field) => numericDraftKey('family', family.id, field)),
         ...scopedVariants.flatMap((variant) =>
-          (['price', 'discountPct', 'salePrice'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
+          (['price'] as NumericDraftField[]).map((field) => numericDraftKey('variant', variant.id, field))
         )
       ]);
       setFamilyDrafts((current) => ({
@@ -1574,24 +1576,24 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       { badge: nextNote || null },
       targets
     );
-  const getSortTitleClass = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') =>
+  const getSortTitleClass = (column: 'article' | 'sku' | 'productType' | 'category' | 'variantCount' | 'priceRange' | 'status' | 'note') =>
     `inline-flex items-center text-[12px] font-semibold leading-none text-slate-900 hover:text-[#1982bf] ${
       sortState && 'column' in sortState && sortState.column === column ? 'underline underline-offset-2 text-[#1982bf]' : ''
     }`;
-  const cycleSort = (column: 'article' | 'sku' | 'category' | 'variantCount' | 'discount' | 'priceRange' | 'actionPriceRange' | 'status' | 'note') => {
+  const cycleSort = (column: 'article' | 'sku' | 'productType' | 'category' | 'variantCount' | 'priceRange' | 'status' | 'note') => {
     requestCurrentEditResolution(`razvrščanjem po stolpcu ${column}`, () => {
       setSortState((current) => {
-        if (column === 'article' || column === 'sku' || column === 'category') {
+        if (column === 'article' || column === 'sku' || column === 'productType' || column === 'category') {
           if (!current || !('column' in current) || current.column !== column) return { column, direction: 'asc' };
           if ('direction' in current && current.direction === 'asc') return { column, direction: 'desc' };
           return null;
         }
-        if (column === 'variantCount' || column === 'discount' || column === 'status' || column === 'note') {
+        if (column === 'variantCount' || column === 'status' || column === 'note') {
           if (!current || !('column' in current) || current.column !== column) return { column, direction: 'desc' };
           if ('direction' in current && current.direction === 'desc') return { column, direction: 'asc' };
           return null;
         }
-        if (column === 'priceRange' || column === 'actionPriceRange') {
+        if (column === 'priceRange') {
           if (!current || !('column' in current) || current.column !== column) return { column, mode: 'minAsc' };
           if ('mode' in current && current.mode === 'minAsc') return { column, mode: 'minDesc' };
           if ('mode' in current && current.mode === 'minDesc') return { column, mode: 'maxDesc' };
@@ -1733,7 +1735,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const isMatchingHoveredCell = (column: HighlightableArticleColumn, value: string) =>
     hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableArticleCellValue(value);
   const getMatchingValueClassName = (column: HighlightableArticleColumn, value: string) =>
-    isMatchingHoveredCell(column, value) ? MATCHING_VALUE_HIGHLIGHT_CLASS : '';
+    isMatchingHoveredCell(column, value) ? adminTableMatchingValueActiveClassName : '';
   const setHoveredArticleCell = (column: HighlightableArticleColumn, value: string) =>
     setHoveredCellMatch({ column, value: getComparableArticleCellValue(value) });
 
@@ -1781,15 +1783,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         headerClassName={adminTableHeaderClassName}
         headerLeft={
           <div className={adminTableToolbarGroupClassName}>
-            <AdminSearchInput
-              value={search}
-              onChange={(event) => handleSearchInputChange(event.target.value)}
-              placeholder="Poišči artikel, SKU, kategorijo, status ali opombe ..."
-              aria-label="Poišči artikel, SKU, kategorijo, status ali opombe"
-              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
-              inputClassName={adminTableSearchInputClassName}
-              iconClassName={adminTableSearchIconClassName}
-            />
+            <div className="min-w-0 w-full">
+              <AdminSearchInput
+                value={search}
+                onChange={(event) => handleSearchInputChange(event.target.value)}
+                placeholder="Poišči artikel, SKU, tip artikla, kategorijo, status ali opombe ..."
+                aria-label="Poišči artikel, SKU, tip artikla, kategorijo, status ali opombe"
+                wrapperClassName={adminTableToolbarSearchWrapperClassName}
+                inputClassName={adminTableSearchInputClassName}
+                iconClassName={adminTableSearchIconClassName}
+              />
+            </div>
           </div>
         }
         headerRight={
@@ -1859,6 +1863,14 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 </button>
               </span>
             ) : null}
+            {productTypeFilter !== 'all' ? (
+              <span className={filterPillTokenClasses.base}>
+                Tip artikla: {formatProductTypeLabel(productTypeFilter)}
+                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra tipa artikla', () => setProductTypeFilter('all'))} aria-label="Počisti filter tipa artikla">
+                  ×
+                </button>
+              </span>
+            ) : null}
             {statusFilter !== 'all' ? (
               <span className={filterPillTokenClasses.base}>
                 Status: {statusFilter === 'active' ? 'Aktiven' : 'Neaktiven'}
@@ -1871,14 +1883,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra opomb', () => setNoteFilter('all'))} aria-label="Počisti filter opomb">
-                  ×
-                </button>
-              </span>
-            ) : null}
-            {discountFilter !== 'all' ? (
-              <span className={filterPillTokenClasses.base}>
-                Popust: {discountFilter === 'yes' ? 'Da' : 'Ne'}
-                <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra popusta', () => setDiscountFilter('all'))} aria-label="Počisti filter popusta">
                   ×
                 </button>
               </span>
@@ -1914,22 +1918,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 </button>
               </span>
             ) : null}
-            {actionPriceRangeFilter.min || actionPriceRangeFilter.max ? (
-              <span className={filterPillTokenClasses.base}>
-                Razpon akcijske cene: {actionPriceRangeFilter.min || '0'}–{actionPriceRangeFilter.max || '∞'}
-                <button
-                  type="button"
-                  className={filterPillTokenClasses.clear}
-                  onClick={() => requestCurrentEditResolution('čiščenjem filtra akcijske cene', () => {
-                    setActionPriceRangeFilter({ min: '', max: '' });
-                    setDraftActionPriceRangeFilter({ min: '', max: '' });
-                  })}
-                  aria-label="Počisti filter Razpon akcijske cene"
-                >
-                  ×
-                </button>
-              </span>
-            ) : null}
           </div>
         }
         filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
@@ -1937,9 +1925,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         showDivider={false}
       >
-        <Table className="w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200 [&_thead_th]:!py-4">
+        <Table className="w-full table-fixed text-[12px] [&_thead_th]:!h-12 [&_thead_th]:!border-slate-200 [&_thead_th]:!py-0">
             <THead className="border-t border-slate-200">
-              <TR>
+              <TR className="h-12">
                 <TH className="w-10 px-2 text-center">
                   <AdminCheckbox
                     checked={familiesSelectedOnPage}
@@ -1955,17 +1943,38 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   />
                 </TH>
                 <TH className={ARTICLE_COLUMN_CLASS}>
-                  <button type="button" className={getSortTitleClass('article')} onClick={() => cycleSort('article')}>
+                  <button type="button" className={`${getSortTitleClass('article')} ${ARTICLE_HEADER_VALUE_ALIGN_CLASS}`} onClick={() => cycleSort('article')}>
                     Artikel
                   </button>
                 </TH>
-                <TH className="w-[13%]">
-                  <button type="button" className={getSortTitleClass('sku')} onClick={() => cycleSort('sku')}>
+                <TH className={SKU_COLUMN_CLASS}>
+                  <button type="button" className={`${getSortTitleClass('sku')} ${MAIN_HEADER_VALUE_ALIGN_CLASS}`} onClick={() => cycleSort('sku')}>
                     SKU
                   </button>
                 </TH>
+                <TH className={PRODUCT_TYPE_COLUMN_CLASS}>
+                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                    <button type="button" className={getSortTitleClass('productType')} onClick={() => cycleSort('productType')}>
+                      Tip artikla
+                    </button>
+                    <button
+                      ref={productTypeFilterButtonRef}
+                      type="button"
+                      className={HEADER_FILTER_BUTTON_CLASS}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        requestCurrentEditResolution('filtriranjem tipov artikla', () => {
+                          setOpenFilter((current) => (current === 'productType' ? null : 'productType'));
+                        });
+                      }}
+                      aria-label="Filtriraj tip artikla"
+                    >
+                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
+                    </button>
+                  </div>
+                </TH>
                 <TH className={CATEGORY_COLUMN_CLASS}>
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
                     </button>
@@ -1985,8 +1994,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     </button>
                   </div>
                 </TH>
-                <TH className="w-[6.83%] text-right">
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                <TH className={`${PRICE_COLUMN_CLASS} text-right`}>
+                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena
                     </button>
@@ -2002,49 +2011,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         });
                       }}
                       aria-label="Filtriraj Cena"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
-                  </div>
-                </TH>
-                <TH className="w-[10.33%] whitespace-nowrap text-right">
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <button type="button" className={getSortTitleClass('discount')} onClick={() => cycleSort('discount')}>
-                      Popust
-                    </button>
-                    <button
-                      ref={discountFilterButtonRef}
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        requestCurrentEditResolution('filtriranjem popustov', () => {
-                          setOpenFilter((current) => (current === 'discount' ? null : 'discount'));
-                        });
-                      }}
-                      aria-label="Filtriraj popust"
-                    >
-                      <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                    </button>
-                  </div>
-                </TH>
-                <TH className="w-[10.33%] whitespace-nowrap text-right">
-                  <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <button type="button" className={getSortTitleClass('actionPriceRange')} onClick={() => cycleSort('actionPriceRange')}>
-                      Akcijska cena
-                    </button>
-                    <button
-                      ref={actionPriceFilterButtonRef}
-                      type="button"
-                      className={HEADER_FILTER_BUTTON_CLASS}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        requestCurrentEditResolution('filtriranjem akcijskih cen', () => {
-                          setDraftActionPriceRangeFilter(actionPriceRangeFilter);
-                          setOpenFilter((current) => (current === 'actionPriceRange' ? null : 'actionPriceRange'));
-                        });
-                      }}
-                      aria-label="Filtriraj Akcijska cena"
                     >
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
@@ -2165,9 +2131,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </THead>
             <tbody>
               {pagedFamilies.map((row) => {
-                const { family, visibleVariants, minPrice, maxPrice, discounts } = row;
+                const { family, visibleVariants, minPrice, maxPrice } = row;
                 const isExpanded = expandedFamilyIds.has(family.id);
-                const hasSubtable = visibleVariants.length > 1;
+                const hasSubtable = (family.productType === 'dimensions' || family.productType === 'weight') && visibleVariants.length > 1;
                 const isEditingFamily = activeEditScope?.familyId === family.id;
                 const isEditingGroup = isEditingFamily && activeEditScope?.kind === 'group';
                 const isSingleSelectedFamily = singleSelectedFamilyId === family.id;
@@ -2178,24 +2144,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const familyNameSuggestionsId = `article-list-name-suggestions-${family.id}`;
                 const familySkuSuggestionsId = `article-list-sku-suggestions-${family.id}`;
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
-                const rawActionPrices = visibleVariants
-                  .filter((variant) => variant.discountPct > 0)
-                  .map((variant) => computeSalePrice(variant.price, variant.discountPct));
                 const familySkuDisplay = getBaseSku(family) || '\u2014';
                 const familyCategoryDisplay = getFamilyCategoryDisplay(family);
+                const familyProductTypeDisplay = formatProductTypeLabel(family.productType);
                 const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
-                const familyDiscountDisplay = formatPercentRange(discounts);
-                const familyActionPriceDisplay = rawActionPrices.length ? formatCurrencyRangeFromValues(rawActionPrices) : '\u2014';
                 return (
                   <Fragment key={family.id}>
-                    <tr className={`border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`} data-edit-scope={`family:${family.id}`}>
-                      <td className="w-10 px-2 py-4 text-center"><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
+                    <tr className={MAIN_ROW_CLASS} data-edit-scope={`family:${family.id}`}>
+                      <td className={`w-10 ${MAIN_CENTER_CELL_CLASS}`}><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
                         const next = new Set(current);
                         if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
                         return next;
                       })} aria-label={`Izberi ${family.name}`} /></td>
-                      <td className="px-2 py-4">
-                        <div className="flex items-center gap-1.5">
+                      <td className={MAIN_CELL_CLASS}>
+                        <div className="flex h-7 items-center gap-1.5">
                           <button
                             type="button"
                             disabled={!hasSubtable}
@@ -2232,7 +2194,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               </datalist>
                             </div>
                           ) : (
-                            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))}>
+                            <button type="button" className={`${MAIN_TEXT_SLOT_CLASS} min-w-0 flex-1 text-left`} onClick={() => requestCurrentEditResolution(`odhodom na urejanje artikla ${family.name}`, () => router.push(getItemEditHref(family)))}>
                               <span className="block truncate text-[12px] font-semibold text-slate-900 transition hover:text-[#1982bf] hover:underline underline-offset-2">
                                 {family.name}
                               </span>
@@ -2240,11 +2202,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           )}
                         </div>
                       </td>
-                      <td className="px-2 py-4 text-slate-600">
+                      <td className={`${MAIN_CELL_CLASS} text-slate-600`}>
                         {isEditingFamily ? (
                           <>
                             <input
-                              className={`${ROW_EDIT_INPUT_CLASS} ${familySkuIssue ? '!border-rose-400' : ''}`}
+                              className={`${ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS} ${familySkuIssue ? '!border-rose-400' : ''}`}
                               value={familyDraft.sku}
                               list={familySkuSuggestionsId}
                               title={familySkuIssue?.message}
@@ -2259,115 +2221,82 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </>
                         ) : (
                           <span
-                            className={`inline-flex max-w-full items-center ${getMatchingValueClassName('sku', familySkuDisplay)}`}
+                            className={MAIN_TEXT_SLOT_CLASS}
                             onMouseEnter={() => setHoveredArticleCell('sku', familySkuDisplay)}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
-                            {familySkuDisplay}
+                            <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('sku', familySkuDisplay)}`}>
+                              {familySkuDisplay}
+                            </span>
                           </span>
                         )}
                       </td>
-                      <td className="px-2 py-4 text-slate-600">
+                      <td className={`${MAIN_CELL_CLASS} text-slate-600`}>
+                        <span
+                          className={`${MAIN_TEXT_SLOT_CLASS} min-w-0 text-[12px] text-slate-600`}
+                          onMouseEnter={() => setHoveredArticleCell('productType', familyProductTypeDisplay)}
+                          onMouseLeave={() => setHoveredCellMatch(null)}
+                        >
+                          <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('productType', familyProductTypeDisplay)}`}>
+                            {familyProductTypeDisplay}
+                          </span>
+                        </span>
+                      </td>
+                      <td className={`${MAIN_CELL_CLASS} text-slate-600`}>
                         {isEditingFamily ? (
                           <div className="min-w-0">
                             <AdminCategoryBreadcrumbPicker
                               value={familyDraft.categoryPath}
                               onChange={(nextPath) => setFamilyDrafts((current) => ({ ...current, [family.id]: { ...familyDraft, categoryPath: nextPath } }))}
                               categoryPaths={categoryPaths}
-                              className="flex h-7 items-center rounded-md bg-transparent px-1 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
+                              className="flex h-7 w-full min-w-0 items-center rounded-md bg-transparent pl-[10px] pr-0 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
                             />
                           </div>
                         ) : (
                           <div className="min-w-0">
                             <span
-                              className={`inline-block max-w-full truncate px-1 align-middle text-[12px] text-slate-600 ${getMatchingValueClassName('category', familyCategoryDisplay)}`}
+                              className={`${MAIN_TEXT_SLOT_TIGHT_CLASS} min-w-0 text-[12px] text-slate-600`}
                               onMouseEnter={() => setHoveredArticleCell('category', familyCategoryDisplay)}
                               onMouseLeave={() => setHoveredCellMatch(null)}
                             >
-                              {familyCategoryDisplay}
+                              <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('category', familyCategoryDisplay)}`}>
+                                {familyCategoryDisplay}
+                              </span>
                             </span>
                           </div>
                         )}
                       </td>
-                      <td className="w-[6.83%] whitespace-nowrap px-2 py-4 text-right">
+                      <td className={`${PRICE_COLUMN_CLASS} whitespace-nowrap ${MAIN_CELL_CLASS} text-right`}>
                         {isEditingFamily ? (
                           <span className="inline-flex w-full justify-end">
-                            <span className={compactTableValueUnitShellClassName}>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[7ch]`}
-                                value={readFamilyNumericInputValue(family.id, visibleVariants, 'price')}
-                                placeholder={getFamilyNumericInputPlaceholder(visibleVariants, 'price')}
-                                onChange={(event) => updateNumericDraft('family', family.id, 'price', event.target.value)}
-                                onBlur={() => commitFamilyNumericDraft(family.id, visibleVariants, 'price')}
-                              />
-                              <span className={compactTableAdornmentClassName}>€</span>
+                            <span className={MAIN_EDIT_NUMBER_SLOT_CLASS}>
+                              <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  className={ROW_EDIT_FAMILY_PRICE_INPUT_CLASS}
+                                  value={readFamilyNumericInputValue(family.id, visibleVariants, 'price')}
+                                  placeholder={getFamilyNumericInputPlaceholder(visibleVariants, 'price')}
+                                  onChange={(event) => updateNumericDraft('family', family.id, 'price', event.target.value)}
+                                  onBlur={() => commitFamilyNumericDraft(family.id, visibleVariants, 'price')}
+                                />
+                                <span className={compactTableAdornmentClassName}>€</span>
+                              </span>
                             </span>
                           </span>
                         ) : (
                           <span
-                            className={`inline-flex justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}
+                            className={MAIN_NUMBER_SLOT_CLASS}
                             onMouseEnter={() => setHoveredArticleCell('priceRange', familyPriceDisplay)}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
-                            {familyPriceDisplay}
-                          </span>
-                        )}
-                      </td>
-                      <td className="w-[6.83%] px-2 py-4 text-right text-emerald-700">
-                        {isEditingFamily ? (
-                          <span className="inline-flex w-full justify-end">
-                            <span className={compactTableValueUnitShellClassName}>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[5ch] !px-0`}
-                                value={readFamilyNumericInputValue(family.id, visibleVariants, 'discountPct')}
-                                placeholder={getFamilyNumericInputPlaceholder(visibleVariants, 'discountPct')}
-                                onChange={(event) => updateNumericDraft('family', family.id, 'discountPct', event.target.value)}
-                                onBlur={() => commitFamilyNumericDraft(family.id, visibleVariants, 'discountPct')}
-                              />
-                              <span className={compactTableAdornmentClassName}>%</span>
+                            <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}>
+                              {familyPriceDisplay}
                             </span>
                           </span>
-                        ) : (
-                          <span
-                            className={`inline-flex justify-end ${getMatchingValueClassName('discount', familyDiscountDisplay)}`}
-                            onMouseEnter={() => setHoveredArticleCell('discount', familyDiscountDisplay)}
-                            onMouseLeave={() => setHoveredCellMatch(null)}
-                          >
-                            {familyDiscountDisplay}
-                          </span>
                         )}
                       </td>
-                      <td className="w-[10.33%] px-2 py-4 text-right">
-                        {isEditingFamily ? (
-                          <span className="inline-flex w-full justify-end">
-                            <span className={compactTableValueUnitShellClassName}>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[7ch]`}
-                                value={readFamilyNumericInputValue(family.id, visibleVariants, 'salePrice')}
-                                placeholder={getFamilyNumericInputPlaceholder(visibleVariants, 'salePrice')}
-                                onChange={(event) => updateNumericDraft('family', family.id, 'salePrice', event.target.value)}
-                                onBlur={() => commitFamilyNumericDraft(family.id, visibleVariants, 'salePrice')}
-                              />
-                              <span className={compactTableAdornmentClassName}>€</span>
-                            </span>
-                          </span>
-                        ) : (
-                          <span
-                            className={`inline-flex justify-end ${getMatchingValueClassName('actionPriceRange', familyActionPriceDisplay)}`}
-                            onMouseEnter={() => setHoveredArticleCell('actionPriceRange', familyActionPriceDisplay)}
-                            onMouseLeave={() => setHoveredCellMatch(null)}
-                          >
-                            {familyActionPriceDisplay}
-                          </span>
-                        )}
-                      </td>
-                      <td className={`${STATUS_COLUMN_CLASS} px-0 py-4 text-center`}>
+                      <td className={`${STATUS_COLUMN_CLASS} h-12 px-0 py-0 text-center align-middle`}>
                         <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                           <ActiveStateChip
                             active={isEditingFamily ? familyDraft.active : family.active}
@@ -2381,7 +2310,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           />
                         </div>
                       </td>
-                      <td className={`${NOTE_COLUMN_CLASS} px-0 py-4 text-center`}>
+                      <td className={`${NOTE_COLUMN_CLASS} h-12 px-0 py-0 text-center align-middle`}>
                         <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                           <NoteTagChip
                             value={((isEditingFamily ? familyDraft.badge : family.itemBadge) || 'na-zalogi') as NoteTag}
@@ -2396,7 +2325,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           />
                         </div>
                       </td>
-                      <td className={`${ACTIONS_COLUMN_CLASS} px-2 py-4 text-center`}>
+                      <td className={`${ACTIONS_COLUMN_CLASS} h-12 px-2 py-0 text-center align-middle`}>
                         {isEditingFamily ? (
                           <div className={adminTableInlineActionRowClassName}>
                             <IconButton
@@ -2466,16 +2395,20 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                     {isExpanded && hasSubtable ? (
                       <tr className="border-t border-slate-200/90 bg-slate-50/70">
                         <td />
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={8} className="p-0">
                           <table className="w-full text-[12px]">
                             <thead className="bg-[color:var(--admin-table-header-bg)]">
                               <tr className="border-b border-slate-200 text-[11px] font-medium text-slate-600">
                                 <th className="px-2 py-2" />
-                                <th className="w-[25%] px-2 py-2 text-left">Različica</th>
-                                <th className="w-[20%] px-2 py-2 text-left">SKU</th>
-                                <th className="w-[10.33%] px-2 py-2 text-right">Cena</th>
-                                <th className="w-[10.33%] px-2 py-2 text-right">Popust</th>
-                                <th className="w-[10.33%] px-2 py-2 text-right">Akcijska cena</th>
+                                <th className="w-[32%] px-2 py-2 text-left">
+                                  <span className={SUB_HEADER_VALUE_ALIGN_CLASS}>Različica</span>
+                                </th>
+                                <th className="w-[20%] px-2 py-2 text-left">
+                                  <span className={SUB_HEADER_HOVER_VALUE_ALIGN_CLASS}>SKU</span>
+                                </th>
+                                <th className="w-[12%] px-2 py-2 text-right">
+                                  <span className={SUB_HEADER_RIGHT_VALUE_ALIGN_CLASS}>Cena</span>
+                                </th>
                                 <th className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>Status</th>
                                 <th className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>Opombe</th>
                                 <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
@@ -2495,14 +2428,11 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     })
                                   : null;
                                 const variantSkuSuggestionsId = `article-list-variant-sku-suggestions-${variant.id}`;
-                                const actionPrice = draft.discountPct > 0 ? computeSalePrice(draft.price, draft.discountPct) : null;
                                 const variantSkuDisplay = draft.sku || '\u2014';
                                 const variantPriceDisplay = formatCurrency(draft.price);
-                                const variantDiscountDisplay = `${draft.discountPct}%`;
-                                const variantActionPriceDisplay = actionPrice === null ? '\u2014' : formatCurrency(actionPrice);
                                 return (
-                                  <tr key={variant.id} className="border-t border-slate-200/90" data-edit-scope={`family:${family.id}`}>
-                                    <td className="px-2 py-2 text-center">
+                                  <tr key={variant.id} className={SUB_ROW_CLASS} data-edit-scope={`family:${family.id}`}>
+                                    <td className={SUB_CENTER_CELL_CLASS}>
                                       <AdminCheckbox
                                         checked={selectedVariantIds.has(variant.id)}
                                         onChange={() =>
@@ -2515,7 +2445,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         }
                                       />
                                     </td>
-                                    <td className="px-2 py-2 font-medium">
+                                    <td className={`${SUB_CELL_CLASS} font-medium`}>
                                       {isEditing ? (
                                         <input
                                           className={ROW_EDIT_INPUT_CLASS}
@@ -2528,13 +2458,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           }
                                         />
                                       ) : (
-                                        (variant.label || 'Različica')
+                                        <span className={`${SUB_TEXT_SLOT_CLASS} truncate`}>{variant.label || 'Različica'}</span>
                                       )}
                                     </td>
-                                    <td className="px-2 py-2">
+                                    <td className={SUB_CELL_CLASS}>
                                       {isEditing ? (
                                         <input
-                                          className={`${ROW_EDIT_INPUT_CLASS} ${variantSkuIssue ? '!border-rose-400' : ''}`}
+                                          className={`${ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS} ${variantSkuIssue ? '!border-rose-400' : ''}`}
                                           value={draft.sku}
                                           list={variantSkuSuggestionsId}
                                           title={variantSkuIssue?.message}
@@ -2548,11 +2478,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       ) : (
                                         <span
-                                          className={`inline-flex max-w-full items-center ${getMatchingValueClassName('sku', variantSkuDisplay)}`}
+                                          className={SUB_TEXT_SLOT_CLASS}
                                           onMouseEnter={() => setHoveredArticleCell('sku', variantSkuDisplay)}
                                           onMouseLeave={() => setHoveredCellMatch(null)}
                                         >
-                                          {variantSkuDisplay}
+                                          <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('sku', variantSkuDisplay)}`}>
+                                            {variantSkuDisplay}
+                                          </span>
                                         </span>
                                       )}
                                       {isEditing ? (
@@ -2563,85 +2495,37 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         </datalist>
                                       ) : null}
                                     </td>
-                                    <td className="w-[10.33%] px-2 py-2 text-right">
+                                    <td className={`w-[12%] ${SUB_CELL_CLASS} text-right`}>
                                       {isEditing ? (
                                         <span className="inline-flex w-full justify-end">
-                                          <span className={compactTableValueUnitShellClassName}>
-                                            <input
-                                              type="text"
-                                              inputMode="decimal"
-                                              className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[7ch]`}
-                                              value={readVariantNumericInputValue(variant, draft, 'price')}
-                                              placeholder={formatDecimalForDisplay(draft.price)}
-                                              onChange={(event) => updateNumericDraft('variant', variant.id, 'price', event.target.value)}
-                                              onBlur={() => commitVariantNumericDraft(variant, 'price')}
-                                            />
-                                            <span className={compactTableAdornmentClassName}>€</span>
+                                          <span className={SUB_EDIT_NUMBER_SLOT_CLASS}>
+                                            <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
+                                              <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                className={ROW_EDIT_VARIANT_PRICE_INPUT_CLASS}
+                                                value={readVariantNumericInputValue(variant, draft, 'price')}
+                                                placeholder={formatDecimalForDisplay(draft.price)}
+                                                onChange={(event) => updateNumericDraft('variant', variant.id, 'price', event.target.value)}
+                                                onBlur={() => commitVariantNumericDraft(variant, 'price')}
+                                              />
+                                              <span className={compactTableAdornmentClassName}>€</span>
+                                            </span>
                                           </span>
                                         </span>
                                       ) : (
                                         <span
-                                          className={`inline-flex justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}
+                                          className={SUB_NUMBER_SLOT_CLASS}
                                           onMouseEnter={() => setHoveredArticleCell('priceRange', variantPriceDisplay)}
                                           onMouseLeave={() => setHoveredCellMatch(null)}
                                         >
-                                          {variantPriceDisplay}
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td className="w-[10.33%] px-2 py-2 text-right text-emerald-700">
-                                      {isEditing ? (
-                                        <span className="inline-flex w-full justify-end">
-                                          <span className={compactTableValueUnitShellClassName}>
-                                            <input
-                                              type="text"
-                                              inputMode="decimal"
-                                              className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[5ch] !px-0`}
-                                              value={readVariantNumericInputValue(variant, draft, 'discountPct')}
-                                              placeholder={formatDecimalForDisplay(draft.discountPct)}
-                                              onChange={(event) => updateNumericDraft('variant', variant.id, 'discountPct', event.target.value)}
-                                              onBlur={() => commitVariantNumericDraft(variant, 'discountPct')}
-                                            />
-                                            <span className={compactTableAdornmentClassName}>%</span>
+                                          <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}>
+                                            {variantPriceDisplay}
                                           </span>
                                         </span>
-                                      ) : (
-                                        <span
-                                          className={`inline-flex justify-end ${getMatchingValueClassName('discount', variantDiscountDisplay)}`}
-                                          onMouseEnter={() => setHoveredArticleCell('discount', variantDiscountDisplay)}
-                                          onMouseLeave={() => setHoveredCellMatch(null)}
-                                        >
-                                          {variantDiscountDisplay}
-                                        </span>
                                       )}
                                     </td>
-                                    <td className="w-[10.33%] px-2 py-2 text-right">
-                                      {isEditing ? (
-                                        <span className="inline-flex w-full justify-end">
-                                          <span className={compactTableValueUnitShellClassName}>
-                                            <input
-                                              type="text"
-                                              inputMode="decimal"
-                                              className={`${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[7ch]`}
-                                              value={readVariantNumericInputValue(variant, draft, 'salePrice')}
-                                              placeholder={actionPrice === null ? '' : formatDecimalForDisplay(actionPrice)}
-                                              onChange={(event) => updateNumericDraft('variant', variant.id, 'salePrice', event.target.value)}
-                                              onBlur={() => commitVariantNumericDraft(variant, 'salePrice')}
-                                            />
-                                            <span className={compactTableAdornmentClassName}>€</span>
-                                          </span>
-                                        </span>
-                                      ) : (
-                                        <span
-                                          className={`inline-flex justify-end ${getMatchingValueClassName('actionPriceRange', variantActionPriceDisplay)}`}
-                                          onMouseEnter={() => setHoveredArticleCell('actionPriceRange', variantActionPriceDisplay)}
-                                          onMouseLeave={() => setHoveredCellMatch(null)}
-                                        >
-                                          {variantActionPriceDisplay}
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>
+                                    <td className={`${STATUS_COLUMN_CLASS} h-10 px-0 py-0 text-center align-middle`}>
                                       <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <ActiveStateChip
                                           active={isEditing ? draft.active : variant.active}
@@ -2658,7 +2542,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>
+                                    <td className={`${NOTE_COLUMN_CLASS} h-10 px-0 py-0 text-center align-middle`}>
                                       <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <NoteTagChip
                                           value={((isEditing ? draft.note : normalizeNoteValue(variant.badge)) || 'na-zalogi') as NoteTag}
@@ -2675,7 +2559,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className="w-[5%] px-2 py-2 text-center">
+                                    <td className="h-10 w-[5%] px-2 py-0 text-center align-middle">
                                       {isEditing ? (
                                         <input
                                           type="text"
@@ -2726,6 +2610,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             </MenuPanel>
           </div>
         ) : null}
+        {openFilter === 'productType' ? (
+          <div style={getHeaderPopoverStyle(productTypeFilterButtonRef.current, 192)}>
+            <MenuPanel className="w-48 shadow-lg">
+              {PRODUCT_TYPE_FILTER_OPTIONS.map((option) => (
+                <MenuItem
+                  key={option.value}
+                  onClick={() => requestCurrentEditResolution('filtriranjem tipov artikla', () => {
+                    setProductTypeFilter(option.value);
+                    setOpenFilter(null);
+                  })}
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+            </MenuPanel>
+          </div>
+        ) : null}
         {openFilter === 'priceRange' ? (
           <div style={getHeaderPopoverStyle(priceFilterButtonRef.current, 192)}>
             <AdminRangeFilterPanel
@@ -2743,36 +2644,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               })}
               minPlaceholder="Min cena"
               maxPlaceholder="Max cena"
-              min={0}
-            />
-          </div>
-        ) : null}
-        {openFilter === 'discount' ? (
-          <div style={getHeaderPopoverStyle(discountFilterButtonRef.current, 160)}>
-            <MenuPanel className="w-40 shadow-lg">
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('all'); setOpenFilter(null); })}>Vsi</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('yes'); setOpenFilter(null); })}>S popustom</MenuItem>
-              <MenuItem onClick={() => requestCurrentEditResolution('filtriranjem popustov', () => { setDiscountFilter('no'); setOpenFilter(null); })}>Brez popusta</MenuItem>
-            </MenuPanel>
-          </div>
-        ) : null}
-        {openFilter === 'actionPriceRange' ? (
-          <div style={getHeaderPopoverStyle(actionPriceFilterButtonRef.current, 192)}>
-            <AdminRangeFilterPanel
-              title="Akcijska cena"
-              draftRange={draftActionPriceRangeFilter}
-              onDraftChange={setDraftActionPriceRangeFilter}
-              onConfirm={() => requestCurrentEditResolution('filtriranjem akcijskih cen', () => {
-                setActionPriceRangeFilter(draftActionPriceRangeFilter);
-                setOpenFilter(null);
-              })}
-              onReset={() => requestCurrentEditResolution('ponastavitvijo filtra akcijskih cen', () => {
-                setDraftActionPriceRangeFilter({ min: '', max: '' });
-                setActionPriceRangeFilter({ min: '', max: '' });
-                setOpenFilter(null);
-              })}
-              minPlaceholder="Min akcijska"
-              maxPlaceholder="Max akcijska"
               min={0}
             />
           </div>

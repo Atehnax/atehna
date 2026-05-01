@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import SiteHeader from '@/commercial/components/SiteHeader';
-import SiteFooter from '@/commercial/components/SiteFooter';
+import SiteFooterGate from '@/commercial/components/SiteFooterGate';
 import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 
@@ -34,7 +34,7 @@ export default function CommercialRootLayout({ children }: { children: React.Rea
           <CommercialEnhancements />
           <SiteHeader />
           <main className="flex-1">{children}</main>
-          <SiteFooter />
+          <SiteFooterGate />
           <Toaster />
         </ToastProvider>
       </body>

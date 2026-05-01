@@ -44,16 +44,19 @@ import {
   adminTableInlineCancelIconClassName,
   adminTableInlineConfirmButtonClassName,
   adminTableInlineConfirmIconClassName,
+  adminTableMatchingValueActiveClassName,
+  adminTableMatchingValueBaseClassName,
+  adminTableMatchingValueHeaderStartClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePopoverPanelClassName,
   adminTablePopoverPrimaryButtonClassName,
   adminTablePopoverSecondaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
+  adminTableToolbarSearchWrapperClassName,
   AdminTableLayout,
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
@@ -1828,8 +1831,8 @@ export default function AdminOrdersTable({
   const getComparableCellValue = (value: string) => normalizeForSearch(value || '—');
   const isMatchingHoveredCell = (column: OrdersColumnKey, value: string) =>
     hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableCellValue(value);
-  const matchingValueHighlightClass = 'rounded-[4px] border border-dashed border-amber-500/80 bg-amber-100/70 px-1';
-  const matchingValueHighlightNoShiftClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
+  const getMatchingValueClassName = (column: OrdersColumnKey, value: string) =>
+    isMatchingHoveredCell(column, value) ? adminTableMatchingValueActiveClassName : '';
 
   useEffect(() => {
     if (hasAutoResetFiltersRef.current) return;
@@ -1956,7 +1959,7 @@ export default function AdminOrdersTable({
             <div className={adminTableToolbarGroupClassName}>
               <div className="min-w-0 w-full">
                 <AdminSearchInput
-                  wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+                  wrapperClassName={adminTableToolbarSearchWrapperClassName}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Poišči naročila"
@@ -2101,9 +2104,9 @@ export default function AdminOrdersTable({
                   </div>
                 </TH> : null}
 
-                {visibleColumns.customer ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('customer')} className={getHeaderTitleClass('customer')}>Naročnik</button></div></TH> : null}
+                {visibleColumns.customer ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('customer')} className={`${getHeaderTitleClass('customer')} ${adminTableMatchingValueHeaderStartClassName}`}>Naročnik</button></div></TH> : null}
 
-                {visibleColumns.address ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></div></TH> : null}
+                {visibleColumns.address ? <TH className={ORDERS_HEADER_CELL_LEFT_CLASS}><div className="flex h-11 items-center"><button type="button" onClick={() => onSort('address')} className={`${getHeaderTitleClass('address')} ${adminTableMatchingValueHeaderStartClassName}`}>Naslov</button></div></TH> : null}
 
                 {visibleColumns.type ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
                   <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
@@ -2378,7 +2381,7 @@ export default function AdminOrdersTable({
                           </div>
                         ) : (
                           <span
-                            className={`inline-block rounded-sm focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${isMatchingHoveredCell('date', rowDisplay?.dateLabel ?? formatSlDate(effectiveOrder.created_at)) ? matchingValueHighlightClass : 'px-1'}`}
+                            className={`${adminTableMatchingValueBaseClassName} focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6] ${getMatchingValueClassName('date', rowDisplay?.dateLabel ?? formatSlDate(effectiveOrder.created_at))}`}
                             title={rowDisplay?.dateTimeLabel ?? formatSlDateTime(effectiveOrder.created_at)}
                             aria-label={`Datum naročila ${rowDisplay?.dateTimeLabel ?? formatSlDateTime(effectiveOrder.created_at)}`}
                             tabIndex={0}
@@ -2413,7 +2416,7 @@ export default function AdminOrdersTable({
                           />
                         ) : (
                           <span
-                            className={`inline-flex max-w-full items-center truncate ${ORDERS_STANDARD_VALUE_CLASS} ${isMatchingHoveredCell('customer', effectiveOrder.organization_name || effectiveOrder.contact_name) ? matchingValueHighlightNoShiftClass : ''}`}
+                            className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('customer', effectiveOrder.organization_name || effectiveOrder.contact_name)}`}
                             title={effectiveOrder.organization_name || effectiveOrder.contact_name}
                             onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(effectiveOrder.organization_name || effectiveOrder.contact_name) })}
                             onMouseLeave={() => setHoveredCellMatch(null)}
@@ -2442,7 +2445,7 @@ export default function AdminOrdersTable({
                           />
                         ) : (
                           <span
-                            className={`inline-flex max-w-full items-center truncate ${ORDERS_STANDARD_VALUE_CLASS} ${isMatchingHoveredCell('address', orderAddress || '—') ? matchingValueHighlightNoShiftClass : ''}`}
+                            className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('address', orderAddress || '—')}`}
                             title={orderAddress || '—'}
                             onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: getComparableCellValue(orderAddress || '—') })}
                             onMouseLeave={() => setHoveredCellMatch(null)}
@@ -2474,7 +2477,7 @@ export default function AdminOrdersTable({
                           </div>
                         ) : (
                           <span
-                            className={isMatchingHoveredCell('type', typeLabel) ? matchingValueHighlightClass : ''}
+                            className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('type', typeLabel)}`}
                             onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: getComparableCellValue(typeLabel) })}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
@@ -2561,7 +2564,7 @@ export default function AdminOrdersTable({
 
                       {visibleColumns.total ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
                         <span
-                          className={`${ORDERS_EMPHASIZED_VALUE_CLASS} ${isMatchingHoveredCell('total', rowDisplay?.totalLabel ?? formatCurrency(order.total)) ? matchingValueHighlightClass : ''}`}
+                          className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? formatCurrency(order.total))}`}
                           onMouseEnter={() => setHoveredCellMatch({ column: 'total', value: getComparableCellValue(rowDisplay?.totalLabel ?? formatCurrency(order.total)) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
                         >

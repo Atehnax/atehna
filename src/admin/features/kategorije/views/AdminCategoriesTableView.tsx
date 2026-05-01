@@ -14,9 +14,9 @@ import {
   adminTableSearchInputClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminTableSelectedSuccessIconButtonClassName,
-  adminTableSearchWrapperClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
+  adminTableToolbarSearchWrapperClassName,
   AdminTableLayout
 } from '@/shared/ui/admin-table';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -130,7 +130,7 @@ export function AdminCategoriesTableView({
                   id="categories-table-search"
                   name="categoriesTableSearch"
                   value={query}
-                  wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+                  wrapperClassName={adminTableToolbarSearchWrapperClassName}
                   onChange={(event) => onQueryChange(event.target.value)}
                   placeholder="Poišči kategorije"
                   aria-label="Poišči kategorije"

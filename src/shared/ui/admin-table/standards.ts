@@ -25,6 +25,9 @@ export const adminTableToolbarActionsClassName = 'flex min-h-9 items-center gap-
 export const adminTableSearchWrapperClassName =
   '!w-full min-w-0 h-9 !rounded-md border-slate-200/90 !bg-slate-50';
 
+export const adminTableToolbarSearchWrapperClassName =
+  `${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[50%] sm:min-w-[25rem] sm:max-w-[37.5rem]`;
+
 export const adminTableSearchInputClassName =
   `!m-0 !h-full min-w-0 w-full flex-1 !rounded-md !border-0 !bg-transparent !pr-4 !text-[13px] !font-normal text-slate-700 !shadow-none !outline-none ring-0 transition-colors [--euiFormControlStateWidth:0px] focus:[--euiFormControlStateWidth:0px] focus-visible:[--euiFormControlStateWidth:0px] focus:!border-0 focus:!shadow-none focus:!outline-none focus-visible:!border-0 focus-visible:!shadow-none focus-visible:!outline-none ${adminSearchPlaceholderTokenClasses}`;
 
@@ -72,6 +75,17 @@ export const adminTableBodyCellCenterClassName = `${adminTableBodyCellBaseClassN
 export const adminTableBodyCellLeftClassName = `${adminTableBodyCellBaseClassName} text-left`;
 
 export const adminTableRowHeightClassName = 'h-12';
+
+export const adminTableMatchingValueBaseClassName =
+  'inline-flex items-center rounded-[4px] border border-transparent px-1 leading-[1.35]';
+
+export const adminTableMatchingValueActiveClassName =
+  'border-dashed !border-amber-500/80 bg-amber-100/70';
+
+export const adminTableMatchingValueClassName =
+  `${adminTableMatchingValueBaseClassName} ${adminTableMatchingValueActiveClassName}`;
+
+export const adminTableMatchingValueHeaderStartClassName = 'ml-[5px]';
 
 export const adminTableInlineEditInputClassName =
   "h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0";

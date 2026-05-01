@@ -31,11 +31,11 @@ import {
   adminTablePopoverSecondaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminTableSelectedSuccessIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
+  adminTableToolbarSearchWrapperClassName,
   AdminTableLayout,
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
@@ -423,7 +423,7 @@ export default function AdminArchivedItemsTable() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči arhivirane artikle"
               aria-label="Poišči arhivirane artikle"
-              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+              wrapperClassName={adminTableToolbarSearchWrapperClassName}
               inputClassName={adminTableSearchInputClassName}
               iconClassName={adminTableSearchIconClassName}
             />

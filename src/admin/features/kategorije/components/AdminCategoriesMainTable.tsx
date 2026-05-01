@@ -167,10 +167,22 @@ const treeExpandButtonInset = (treeButtonDiameter - treeExpandButtonSize) / 2;
 const treeExpandButtonHalf = treeExpandButtonSize / 2;
 const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 3;
-const treeConnectorClassName = 'absolute z-[1] bg-slate-300/90 pointer-events-none';
+const treeConnectorStrokeColor = 'rgb(203 213 225 / 0.9)';
+const treeConnectorStrokeWidth = 1;
 const expandTransitionMs = 140;
 const treeCheckboxSize = 16;
 const treeCheckboxHalf = treeCheckboxSize / 2;
+
+type CatalogProductCountNode = {
+  items?: CatalogItem[];
+  subcategories: RecursiveCatalogSubcategory[];
+};
+
+const countSubcategoryProducts = (subcategory: RecursiveCatalogSubcategory): number =>
+  subcategory.items.length + subcategory.subcategories.reduce((total, child) => total + countSubcategoryProducts(child), 0);
+
+const countCatalogNodeProducts = (node: CatalogProductCountNode): number =>
+  (node.items ?? []).length + node.subcategories.reduce((total, subcategory) => total + countSubcategoryProducts(subcategory), 0);
 
 const getCheckboxLeftFromTreeStart = (
   kind: 'root' | 'category' | 'subcategory',
@@ -2722,7 +2734,7 @@ export default function AdminCategoriesMainTable({
     const sortDirectionMultiplier = tableSort.direction === 'asc' ? 1 : -1;
     const getSortValue = (node: { title: string; subcategories: RecursiveCatalogSubcategory[]; items?: CatalogItem[] }) => {
       if (tableSort.key === 'subcategories') return node.subcategories.length;
-      if (tableSort.key === 'items') return (node.items ?? []).length;
+      if (tableSort.key === 'items') return countCatalogNodeProducts(node);
       return node.title;
     };
     const compareNodes = (
@@ -3023,6 +3035,60 @@ export default function AdminCategoriesMainTable({
     const checkboxLeftFromTreeStart = getCheckboxLeftFromTreeStart(kind, buttonLeft, parentColumnX);
 
     const gutterWidth = level === 0 ? treeButtonDiameter : buttonLeft + treeButtonDiameter;
+    const connectorSegments: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
+
+    ancestorContinuationColumns.forEach((shouldContinue, ancestorIndex) => {
+      if (!shouldContinue) return;
+
+      const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
+      connectorSegments.push({
+        key: `ancestor-${ancestorIndex}`,
+        x1: ancestorX,
+        y1: -treeConnectorBleed,
+        x2: ancestorX,
+        y2: treeRowHeight + treeConnectorBleed
+      });
+    });
+
+    if (hasChildren && isExpanded) {
+      connectorSegments.push({
+        key: 'expanded-children',
+        x1: buttonCenterX,
+        y1: treeHalfRowHeight + treeExpandButtonHalf,
+        x2: buttonCenterX,
+        y2: treeRowHeight + treeConnectorBleed
+      });
+    }
+
+    if (level > 0 && parentColumnX !== null) {
+      if (kind === 'subcategory' || hasPreviousSibling) {
+        connectorSegments.push({
+          key: 'parent-above',
+          x1: parentColumnX,
+          y1: -treeConnectorBleed,
+          x2: parentColumnX,
+          y2: treeHalfRowHeight
+        });
+      }
+
+      if (continueCurrentColumnBelow) {
+        connectorSegments.push({
+          key: 'parent-below',
+          x1: parentColumnX,
+          y1: treeHalfRowHeight,
+          x2: parentColumnX,
+          y2: treeRowHeight + treeConnectorBleed + 1
+        });
+      }
+
+      connectorSegments.push({
+        key: 'parent-branch',
+        x1: parentColumnX,
+        y1: treeHalfRowHeight,
+        x2: parentColumnX + (hasChildren ? buttonLeft + treeExpandButtonInset - parentColumnX : leafConnectorWidth),
+        y2: treeHalfRowHeight
+      });
+    }
 
     return (
       (() => {
@@ -3081,68 +3147,32 @@ export default function AdminCategoriesMainTable({
                     height: `${treeRowHeight}px`
                   }}
                 >
-                  {ancestorContinuationColumns.map((shouldContinue, ancestorIndex) => {
-                    if (!shouldContinue) return null;
-
-                    const ancestorX = ancestorIndex * treeIndent + treeButtonRadius;
-
-                    return (
-                      <span
-                        key={`ancestor-${ancestorIndex}`}
-                        className={`${treeConnectorClassName} w-px`}
-                        style={{
-                          left: `${ancestorX}px`,
-                          top: `-${treeConnectorBleed}px`,
-                          height: `${treeRowHeight + treeConnectorBleed * 2}px`
-                        }}
-                      />
-                    );
-                  })}
-
-                  {hasChildren && isExpanded ? (
-                    <span
-                      className={`${treeConnectorClassName} w-px`}
+                  {connectorSegments.length > 0 ? (
+                    <svg
+                      aria-hidden="true"
+                      className="absolute inset-0 z-[1] overflow-visible pointer-events-none"
+                      focusable="false"
+                      shapeRendering="crispEdges"
                       style={{
-                        left: `${buttonCenterX}px`,
-                        top: `${treeHalfRowHeight + treeExpandButtonHalf}px`,
-                        height: `${treeHalfRowHeight - treeExpandButtonHalf + treeConnectorBleed}px`
+                        width: `${gutterWidth}px`,
+                        height: `${treeRowHeight}px`
                       }}
-                    />
-                  ) : null}
-
-                  {level > 0 && parentColumnX !== null ? (
-                    <>
-                      {kind === 'subcategory' || hasPreviousSibling ? (
-                        <span
-                          className={`${treeConnectorClassName} w-px`}
-                          style={{
-                            left: `${parentColumnX}px`,
-                            top: `-${treeConnectorBleed}px`,
-                            height: `${treeHalfRowHeight + treeConnectorBleed}px`
-                          }}
+                      viewBox={`0 0 ${gutterWidth} ${treeRowHeight}`}
+                    >
+                      {connectorSegments.map((segment) => (
+                        <line
+                          key={segment.key}
+                          x1={segment.x1}
+                          y1={segment.y1}
+                          x2={segment.x2}
+                          y2={segment.y2}
+                          stroke={treeConnectorStrokeColor}
+                          strokeLinecap="square"
+                          strokeWidth={treeConnectorStrokeWidth}
+                          vectorEffect="non-scaling-stroke"
                         />
-                      ) : null}
-
-                      {continueCurrentColumnBelow ? (
-                        <span
-                          className={`${treeConnectorClassName} w-px`}
-                          style={{
-                            left: `${parentColumnX}px`,
-                            top: `${treeHalfRowHeight}px`,
-                            height: `${treeHalfRowHeight + treeConnectorBleed + 1}px`
-                          }}
-                        />
-                      ) : null}
-
-                      <span
-                        className={`${treeConnectorClassName} h-px`}
-                        style={{
-                          left: `${parentColumnX}px`,
-                          top: `${treeHalfRowHeight}px`,
-                          width: `${hasChildren ? buttonLeft + treeExpandButtonInset - parentColumnX : leafConnectorWidth}px`
-                        }}
-                      />
-                    </>
+                      ))}
+                    </svg>
                   ) : null}
 
                   {hasChildren ? (
@@ -3394,7 +3424,7 @@ export default function AdminCategoriesMainTable({
           subcategoryPath: currentPath,
           description: subcategory.description,
           childrenCount: subcategory.subcategories.length,
-          productCount: subcategory.items.length,
+          productCount: countCatalogNodeProducts(subcategory),
           ancestorContinuationColumns,
           hasPreviousSibling: index > 0,
           continueCurrentColumnBelow: !isLastSibling,
@@ -3443,7 +3473,7 @@ export default function AdminCategoriesMainTable({
           categorySlug: category.slug,
           description: category.summary,
           childrenCount: category.subcategories.length,
-          productCount: (category.items ?? []).length,
+          productCount: countCatalogNodeProducts(category),
           ancestorContinuationColumns: [],
           hasPreviousSibling: categoryIndex > 0,
           continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,

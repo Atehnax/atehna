@@ -17,6 +17,9 @@ import {
   adminTableHeaderCellLeftClassName,
   adminTableHeaderClassName,
   adminTableHeaderContentClassName,
+  adminTableMatchingValueActiveClassName,
+  adminTableMatchingValueBaseClassName,
+  adminTableMatchingValueHeaderStartClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePopoverPanelClassName,
   adminTablePopoverPresetButtonClassName,
@@ -24,11 +27,11 @@ import {
   adminTablePopoverSecondaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminTableSelectedSuccessIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
+  adminTableToolbarSearchWrapperClassName,
   AdminTableLayout,
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
@@ -492,8 +495,8 @@ export default function AdminDeletedArchiveTable({
   const toComparableValue = (value: string) => (value || '—').toLowerCase();
   const isMatchingHoveredCell = (key: ArchiveSortKey, value: string) =>
     hoveredCellMatch?.column === key && hoveredCellMatch.value === toComparableValue(value);
-  const matchingValueHighlightClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
-  const matchingValueHighlightNoShiftClass = 'rounded-[4px] bg-amber-100/70 outline outline-1 outline-dashed outline-amber-500/80';
+  const getMatchingValueClassName = (key: ArchiveSortKey, value: string) =>
+    isMatchingHoveredCell(key, value) ? adminTableMatchingValueActiveClassName : '';
 
   useEffect(() => {
     setPage(1);
@@ -547,7 +550,7 @@ export default function AdminDeletedArchiveTable({
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Poišči arhivirane zapise"
               aria-label="Poišči arhivirane zapise"
-              wrapperClassName={`${adminTableSearchWrapperClassName} sm:!flex-none sm:!w-[40%] sm:min-w-[20rem] sm:max-w-[30rem]`}
+              wrapperClassName={adminTableToolbarSearchWrapperClassName}
               inputClassName={adminTableSearchInputClassName}
               iconClassName={adminTableSearchIconClassName}
             />
@@ -690,8 +693,8 @@ export default function AdminDeletedArchiveTable({
                   </button>
                 </div>
               </TH> : null}
-              {visibleColumns.customer ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('customer_name')} className={getHeaderTitleClass('customer_name')}>Naročnik</button></div></TH> : null}
-              {visibleColumns.address ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('address')} className={getHeaderTitleClass('address')}>Naslov</button></div></TH> : null}
+              {visibleColumns.customer ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('customer_name')} className={`${getHeaderTitleClass('customer_name')} ${adminTableMatchingValueHeaderStartClassName}`}>Naročnik</button></div></TH> : null}
+              {visibleColumns.address ? <TH className={adminTableHeaderCellLeftClassName}><div className="flex h-11 items-center"><button type="button" onClick={() => handleSort('address')} className={`${getHeaderTitleClass('address')} ${adminTableMatchingValueHeaderStartClassName}`}>Naslov</button></div></TH> : null}
               {visibleColumns.orderType ? <TH className={adminTableHeaderCellCenterClassName}>
                 <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('customer_type')} className={getHeaderTitleClass('customer_type')}>Tip</button>
@@ -744,9 +747,9 @@ export default function AdminDeletedArchiveTable({
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
                   </TD>
-                  {visibleColumns.type ? <TD className="px-3 py-3 font-semibold text-slate-700">
+                  {visibleColumns.type ? <TD className="px-3 py-3 text-center font-semibold text-slate-700">
                     <span
-                      className={isMatchingHoveredCell('type', entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka') ? matchingValueHighlightClass : ''}
+                      className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('type', entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka')}`}
                       onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: toComparableValue(entry.item_type === 'order' ? 'Naročilo' : 'PDF datoteka') })}
                       onMouseLeave={() => setHoveredCellMatch(null)}
                     >
@@ -764,7 +767,7 @@ export default function AdminDeletedArchiveTable({
                   </TD> : null}
                   {visibleColumns.orderDate ? <TD className="px-3 py-3 text-center text-slate-600">
                     <span
-                      className={isMatchingHoveredCell('order_created_at', entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—') ? matchingValueHighlightClass : ''}
+                      className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('order_created_at', entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—')}`}
                       onMouseEnter={() => setHoveredCellMatch({ column: 'order_created_at', value: toComparableValue(entry.order_created_at ? formatDateOnly(entry.order_created_at) : '—') })}
                       onMouseLeave={() => setHoveredCellMatch(null)}
                     >
@@ -772,27 +775,27 @@ export default function AdminDeletedArchiveTable({
                     </span>
                   </TD> : null}
                   {visibleColumns.customer ? <TD className="px-3 py-3 text-slate-600">
-                    <span className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('customer_name', entry.customer_name ?? '—') ? matchingValueHighlightNoShiftClass : ''}`} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_name', value: toComparableValue(entry.customer_name ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                    <span className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${getMatchingValueClassName('customer_name', entry.customer_name ?? '—')}`} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_name', value: toComparableValue(entry.customer_name ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.customer_name ?? '—'}
                     </span>
                   </TD> : null}
                   {visibleColumns.address ? <TD className="px-3 py-3 text-slate-600">
-                    <span className={`inline-flex max-w-full items-center truncate ${isMatchingHoveredCell('address', entry.address ?? '—') ? matchingValueHighlightNoShiftClass : ''}`} onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: toComparableValue(entry.address ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                    <span className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${getMatchingValueClassName('address', entry.address ?? '—')}`} onMouseEnter={() => setHoveredCellMatch({ column: 'address', value: toComparableValue(entry.address ?? '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.address ?? '—'}
                     </span>
                   </TD> : null}
                   {visibleColumns.orderType ? <TD className="px-3 py-3 text-center text-slate-600">
-                    <span className={isMatchingHoveredCell('customer_type', entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—') ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_type', value: toComparableValue(entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                    <span className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('customer_type', entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—')}`} onMouseEnter={() => setHoveredCellMatch({ column: 'customer_type', value: toComparableValue(entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—') })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {entry.customer_type ? getCustomerTypeLabel(entry.customer_type) : '—'}
                     </span>
                   </TD> : null}
                   {visibleColumns.deleted ? <TD className="px-3 py-3 text-center text-slate-600">
-                    <span className={isMatchingHoveredCell('deleted_at', formatDateOnly(entry.deleted_at)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'deleted_at', value: toComparableValue(formatDateOnly(entry.deleted_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                    <span className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('deleted_at', formatDateOnly(entry.deleted_at))}`} onMouseEnter={() => setHoveredCellMatch({ column: 'deleted_at', value: toComparableValue(formatDateOnly(entry.deleted_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {formatDateOnly(entry.deleted_at)}
                     </span>
                   </TD> : null}
                   {visibleColumns.expires ? <TD className="px-3 py-3 pr-5 text-center text-slate-600">
-                    <span className={isMatchingHoveredCell('expires_at', formatDateOnly(entry.expires_at)) ? matchingValueHighlightClass : ''} onMouseEnter={() => setHoveredCellMatch({ column: 'expires_at', value: toComparableValue(formatDateOnly(entry.expires_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
+                    <span className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('expires_at', formatDateOnly(entry.expires_at))}`} onMouseEnter={() => setHoveredCellMatch({ column: 'expires_at', value: toComparableValue(formatDateOnly(entry.expires_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
                       {formatDateOnly(entry.expires_at)}
                     </span>
                   </TD> : null}

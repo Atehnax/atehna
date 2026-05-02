@@ -2,10 +2,12 @@
 
 export {
   CommercialToolsPanel,
-  DimensionOrderPricingPanel,
+  DimensionOrderPricingPanel
+} from './OrderPriceSimulatorCard';
+export { QuantityDiscountsCard } from './QuantityDiscountsCard';
+export {
   ProductPricingLogicCardRow,
   ProductTypeSelectorCardRow,
-  QuantityDiscountsCard,
   SimpleProductModule,
   UniqueMachineProductModule,
   WeightProductModule,
@@ -26,7 +28,19 @@ export {
   normalizeUniqueMachineProductData,
   normalizeWeightProductData,
   serializeQuantityDiscountTargets
-} from './pricing/DimensionProductPricingSections';
+} from './DimensionProductPricingSectionsRuntime.js';
+
+export type {
+  CommercialToolsPanelProps,
+  ProductDataNormalizationContext,
+  ProductModuleProps,
+  ProductPricingLogicCardRowProps,
+  ProductTypeSelectorCardRowProps,
+  QuantityDiscountsCardProps,
+  TypeSpecificProductData,
+  UniqueMachineProductModuleProps,
+  WeightProductModuleProps
+} from './pricingTypes';
 
 export type {
   ProductEditorType,

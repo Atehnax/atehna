@@ -1,30 +1,30 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalog';
+import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
-import { isDatabaseUnavailableError } from '@/shared/server/db';
+import { hasDatabaseConnectionString } from '@/shared/server/db';
 
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  try {
-    const categories = await getCatalogCategorySlugsServer();
-    const params: { category: string; subcategory: string; item: string }[] = [];
-
-    for (const category of categories) {
-      for (const subcategory of await getCatalogSubcategorySlugsServer(category)) {
-        for (const item of await getCatalogItemSlugsServer(category, subcategory)) {
-          params.push({ category, subcategory, item });
-        }
-      }
-    }
-
-    return params;
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
+  if (!hasDatabaseConnectionString()) {
+    console.warn('Skipping /products/[category]/[subcategory]/[item] static params because database connection string is not set.');
     return [];
   }
+
+  const categories = await getCatalogCategorySlugsServer();
+  const params: { category: string; subcategory: string; item: string }[] = [];
+
+  for (const category of categories) {
+    for (const subcategory of await getCatalogSubcategorySlugsServer(category)) {
+      for (const item of await getCatalogItemSlugsServer(category, subcategory)) {
+        params.push({ category, subcategory, item });
+      }
+    }
+  }
+
+  return params;
 }
 
 export async function generateMetadata(

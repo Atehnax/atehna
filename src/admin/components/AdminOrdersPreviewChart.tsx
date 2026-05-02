@@ -3,6 +3,7 @@
 import { memo, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { OrderRow } from '@/admin/components/adminOrdersTableUtils';
+import { formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
@@ -74,15 +75,12 @@ const shiftDateByDays = (date: Date, days: number) => {
 const formatInt = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? '—'
-    : Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
+    : formatSlInteger(value);
 
 const formatCurrency = (value: number | null | undefined) =>
   value === null || value === undefined || !Number.isFinite(value)
     ? '—'
-    : `${Intl.NumberFormat('sl-SI', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(value)} €`;
+    : formatEuroWithSuffix(value);
 
 const toAmount = (value: OrderRow['total']) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;

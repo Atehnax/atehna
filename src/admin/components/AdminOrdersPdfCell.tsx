@@ -70,12 +70,11 @@ export default function AdminOrdersPdfCell({
     const updatePosition = () => {
       const anchorRect = anchor.getBoundingClientRect();
 
-      // Menu is rendered in a portal with `position: fixed`,
-      // so coordinates must be viewport coordinates (NO scrollX/scrollY).
+      // The fixed-position portal uses viewport coordinates, so scroll offsets do not apply.
       const menuWidth = menuRef.current?.offsetWidth ?? 250;
       const menuHeight = menuRef.current?.offsetHeight ?? 180;
 
-      // Prefer explicit boundary (data-pdf-menu-boundary), fallback to nearest overflow-x container.
+      // Constrain the menu to an explicit boundary or the nearest horizontal scroll container.
       const boundaryElement =
         (anchor.closest('[data-pdf-menu-boundary]') as HTMLElement | null) ??
         (anchor.closest('.overflow-x-auto') as HTMLElement | null);

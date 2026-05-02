@@ -5,13 +5,21 @@ import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
   getDiscountedPrice
-} from '@/commercial/catalog/catalog';
+} from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategoryItemPageDataServer, getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+import { hasDatabaseConnectionString } from '@/shared/server/db';
+
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
+  if (!hasDatabaseConnectionString()) {
+    console.warn('Skipping /products/[category]/items/[item] static params because database connection string is not set.');
+    return [];
+  }
+
   const categories = await getCatalogCategorySlugsServer();
-  const params = [];
+  const params: { category: string; item: string }[] = [];
   for (const category of categories) {
     const items = await getCatalogCategoryItemSlugsServer(category);
     for (const item of items) params.push({ category, item });

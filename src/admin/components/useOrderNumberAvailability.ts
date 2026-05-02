@@ -1,20 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import type { OrderNumberAvailabilityResult } from '@/shared/domain/order/orderTypes';
 
-type OrderNumberAvailability = {
-  inputDigits: string;
-  normalizedOrderNumber: number | null;
-  formattedOrderNumber: string | null;
-  isAvailable: boolean;
-  conflictOrderId: number | null;
-  suggestions: string[];
-};
-
-export type OrderNumberAvailabilityState =
+type OrderNumberAvailabilityState =
   | { status: 'idle'; isAvailable: false; suggestions: string[]; message: string | null }
   | { status: 'loading'; isAvailable: false; suggestions: string[]; message: string | null }
-  | ({ status: 'ready'; message: string | null } & OrderNumberAvailability)
+  | ({ status: 'ready'; message: string | null } & OrderNumberAvailabilityResult)
   | { status: 'error'; isAvailable: false; suggestions: string[]; message: string };
 
 const IDLE_STATE: OrderNumberAvailabilityState = {
@@ -28,7 +20,7 @@ export function sanitizeOrderNumberInput(value: string) {
   return value.replace(/[^\d]/g, '');
 }
 
-export function normalizeOrderNumberDigits(value: string) {
+function normalizeOrderNumberDigits(value: string) {
   const digits = sanitizeOrderNumberInput(value);
   return digits.replace(/^0+(?=\d)/, '');
 }
@@ -78,7 +70,7 @@ export function useOrderNumberAvailability({
             );
           }
 
-          return payload as OrderNumberAvailability;
+          return payload as OrderNumberAvailabilityResult;
         })
         .then((availability) => {
           setState({

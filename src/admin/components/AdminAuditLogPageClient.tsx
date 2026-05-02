@@ -68,7 +68,7 @@ import {
   type AuditActionFilterValue,
   type AuditEventGroup
 } from '@/shared/audit/auditPresentation';
-import type { AuditAction, AuditEntityType, AuditEventListResult } from '@/shared/audit/auditTypes';
+import type { AuditAction, AuditEntityType, AuditEventListResult, AuditLoggingSettingsResponse } from '@/shared/audit/auditTypes';
 
 type Filters = {
   q: string;
@@ -83,13 +83,6 @@ type Filters = {
   deletionTo: string;
   page: number;
   pageSize: number;
-};
-
-type AuditLoggingSettingsResponse = {
-  enabled: boolean;
-  updatedAt: string | null;
-  message?: string;
-  warning?: string;
 };
 
 type AuditHeaderFilter = 'date' | 'actor' | 'type' | 'location' | 'action' | 'deletion' | null;

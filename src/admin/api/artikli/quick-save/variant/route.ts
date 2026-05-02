@@ -2,35 +2,33 @@ import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
   fetchCatalogItemEditorBySlug,
-  quickPatchCatalogVariantByIdentifier,
-  type CatalogVariantQuickPatch
+  quickPatchCatalogVariantByIdentifier
 } from '@/shared/server/catalogItems';
 import { computeCatalogItemAuditDiff, countAuditChangedFields, diffHasEntries, inferCatalogItemAuditAction } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
-
-type VariantQuickSaveRequest = {
-  itemIdentifier?: string;
-  variantId?: number;
-  patch?: CatalogVariantQuickPatch;
-};
+import { isJsonRecord, readRequiredJsonRecord } from '@/shared/server/requestJson';
+import type { CatalogVariantQuickPatch } from '@/shared/domain/catalog/catalogAdminTypes';
 
 export async function PATCH(request: Request) {
   try {
-    const body = (await request.json()) as VariantQuickSaveRequest;
-    const itemIdentifier = (body.itemIdentifier ?? '').trim();
-    const variantId = Number(body.variantId);
+    const bodyResult = await readRequiredJsonRecord(request);
+    if (!bodyResult.ok) return bodyResult.response;
+
+    const itemIdentifier = typeof bodyResult.body.itemIdentifier === 'string' ? bodyResult.body.itemIdentifier.trim() : '';
+    const variantId = Number(bodyResult.body.variantId);
+    const patch = isJsonRecord(bodyResult.body.patch) ? (bodyResult.body.patch as CatalogVariantQuickPatch) : undefined;
     if (!itemIdentifier) {
       return NextResponse.json({ message: 'Item identifikator je obvezen.' }, { status: 400 });
     }
     if (!Number.isFinite(variantId)) {
       return NextResponse.json({ message: 'Variant identifikator je obvezen.' }, { status: 400 });
     }
-    if (!body.patch || Object.keys(body.patch).length === 0) {
+    if (!patch || Object.keys(patch).length === 0) {
       return NextResponse.json({ message: 'Patch payload je obvezen.' }, { status: 400 });
     }
 
     const before = await fetchCatalogItemEditorBySlug(itemIdentifier);
-    const updated = await quickPatchCatalogVariantByIdentifier(itemIdentifier, variantId, body.patch);
+    const updated = await quickPatchCatalogVariantByIdentifier(itemIdentifier, variantId, patch);
     if (!updated) {
       return NextResponse.json({ message: 'Različica ni bila najdena.' }, { status: 404 });
     }

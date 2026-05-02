@@ -15,6 +15,10 @@ export function getDatabaseUrl(): string | null {
   return null;
 }
 
+export function hasDatabaseConnectionString(): boolean {
+  return getDatabaseUrl() !== null;
+}
+
 function parseSslMode(databaseUrl: string): string | null {
   const parsedUrl = new URL(databaseUrl);
   return parsedUrl.searchParams.get('sslmode');

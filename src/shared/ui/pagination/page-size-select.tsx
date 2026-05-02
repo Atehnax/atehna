@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomSelect } from '@/shared/ui/select';
+import CustomSelect from '../select/custom-select';
 
 type PageSizeSelectProps = {
   value: number;

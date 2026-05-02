@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import {
-  getCatalogItemIdentityAvailability,
-  type CatalogItemIdentityField
-} from '@/shared/server/catalogItems';
+import { getCatalogItemIdentityAvailability } from '@/shared/server/catalogItems';
+import type { CatalogItemIdentityField } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const IDENTITY_FIELDS = new Set<CatalogItemIdentityField>(['name', 'sku', 'slug']);
 

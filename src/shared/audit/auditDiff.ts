@@ -1,6 +1,7 @@
 import { getAuditFieldLabel } from './auditLabels';
 import { createRedactedAuditEntry, isAuditFieldSensitive, redactAuditDiff } from './auditRedaction';
 import type { AuditAction, AuditCollectionValue, AuditDiff, AuditEntityType } from './auditTypes';
+import { formatEuro, formatSlNumber } from '../domain/formatting';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '../domain/order/customerType';
 
 const IGNORED_FIELDS = new Set([
@@ -15,7 +16,6 @@ const IGNORED_FIELDS = new Set([
   'machineSerialOrderMatches'
 ]);
 
-const currencyFormatter = new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' });
 const CUSTOMER_TYPE_FORM_LABELS = new Map(
   CUSTOMER_TYPE_FORM_OPTIONS.map((option) => [option.value, option.label])
 );
@@ -139,9 +139,9 @@ export function formatAuditValue(value: unknown, fieldKey = ''): string {
   if (typeof normalized === 'number') {
     const lowerKey = fieldKey.toLowerCase();
     if (lowerKey.includes('price') || lowerKey.includes('total') || lowerKey.includes('tax') || lowerKey.includes('shipping') || lowerKey.includes('subtotal')) {
-      return currencyFormatter.format(normalized);
+      return formatEuro(normalized);
     }
-    return new Intl.NumberFormat('sl-SI').format(normalized);
+    return formatSlNumber(normalized);
   }
   if (Array.isArray(normalized)) return formatArrayValue(normalized);
   if (isRecord(normalized)) return 'spremenjen zapis';

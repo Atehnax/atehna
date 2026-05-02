@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getOrderNumberAvailability } from '@/shared/server/orders';
+import type { OrderNumberAvailabilityResult } from '@/shared/domain/order/orderTypes';
 
 export async function GET(request: Request) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
     }
 
     const availability = await getOrderNumberAvailability(value, orderId);
-    return NextResponse.json(availability);
+    return NextResponse.json<OrderNumberAvailabilityResult>(availability);
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

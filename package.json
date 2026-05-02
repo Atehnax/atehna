@@ -29,8 +29,6 @@
     "@tiptap/extension-underline": "^3.22.3",
     "@tiptap/starter-kit": "^3.22.3",
     "@types/plotly.js": "^3.0.10",
-    "@uppy/core": "^5.2.0",
-    "@uppy/react": "^5.2.0",
     "@vercel/blob": "^2.3.3",
     "colord": "^2.9.3",
     "cropperjs": "^2.1.1",

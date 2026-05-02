@@ -1,26 +1,13 @@
 import { getPool } from '@/shared/server/db';
 import { deleteBlob } from '@/shared/server/blob';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
-
-export type ArchiveEntry = {
-  id: number;
-  item_type: 'order' | 'pdf';
-  order_id: number | null;
-  document_id: number | null;
-  label: string;
-  order_created_at: string | null;
-  customer_name: string | null;
-  address: string | null;
-  customer_type: string | null;
-  deleted_at: string;
-  expires_at: string;
-};
+import type { ArchiveEntry, ArchiveItemType, RestoreTarget } from '@/shared/domain/archive/archiveTypes';
 
 type DatabaseDateValue = string | number | Date;
 
 type ArchiveEntryRow = {
   id: number | string;
-  item_type: 'order' | 'pdf';
+  item_type: ArchiveItemType;
   order_id: number | string | null;
   document_id: number | string | null;
   label: string;
@@ -30,12 +17,6 @@ type ArchiveEntryRow = {
   customer_type: string | null;
   deleted_at: DatabaseDateValue;
   expires_at: DatabaseDateValue;
-};
-
-export type RestoreTarget = {
-  item_type: 'order' | 'pdf';
-  order_id: number | null;
-  document_id: number | null;
 };
 
 async function enforceParentOrderRestoreForDeletedPdfChildren(
@@ -84,7 +65,7 @@ async function enforceParentOrderRestoreForDeletedPdfChildren(
   }
 }
 
-export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): Promise<ArchiveEntry[]> {
+export async function fetchArchiveEntries(itemType?: 'all' | ArchiveItemType): Promise<ArchiveEntry[]> {
   return instrumentCatalogLoader('fetchArchiveEntries', '/admin/arhiv', async () => {
     const pool = await getPool();
     const params: unknown[] = [];
@@ -119,7 +100,7 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
 
     return result.rows.map((row) => ({
       id: Number(row.id),
-      item_type: row.item_type as 'order' | 'pdf',
+      item_type: row.item_type,
       order_id: row.order_id === null ? null : Number(row.order_id),
       document_id: row.document_id === null ? null : Number(row.document_id),
       label: String(row.label),

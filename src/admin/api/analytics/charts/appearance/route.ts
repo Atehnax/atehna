@@ -3,6 +3,7 @@ import {
   fetchGlobalAnalyticsAppearance,
   updateGlobalAnalyticsAppearance
 } from '@/shared/server/analyticsCharts';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = await readRequiredJsonRecord(request);
+    if (!body.ok) return body.response;
+    const payload = body.body;
     const appearance = await updateGlobalAnalyticsAppearance(
       {
         sectionBg: typeof payload.sectionBg === 'string' ? payload.sectionBg : undefined,

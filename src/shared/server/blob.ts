@@ -1,6 +1,6 @@
 import { del, put } from '@vercel/blob';
 
-export type UploadResult = {
+type UploadResult = {
   url: string;
   pathname: string;
 };

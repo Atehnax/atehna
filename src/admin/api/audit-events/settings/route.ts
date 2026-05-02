@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { fetchAuditLoggingSettings, updateAuditLoggingSettings } from '@/shared/server/audit';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = await readRequiredJsonRecord(request);
+    if (!body.ok) return body.response;
+    const payload = body.body;
     if (typeof payload.enabled !== 'boolean') {
       return NextResponse.json({ message: 'Manjka veljavna vrednost enabled.' }, { status: 400 });
     }

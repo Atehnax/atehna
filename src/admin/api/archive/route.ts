@@ -4,10 +4,32 @@ import {
   fetchArchiveEntries,
   permanentlyDeleteArchiveEntries,
   restoreArchiveEntries,
-  restoreArchiveTargets,
-  type RestoreTarget
+  restoreArchiveTargets
 } from '@/shared/server/deletedArchive';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import type {
+  ArchiveDeleteResponse,
+  ArchiveEntriesResponse,
+  ArchiveRestoreResponse,
+  RestoreTarget
+} from '@/shared/domain/archive/archiveTypes';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
+
+const isPositiveNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+const isArchiveEntryId = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+function isRestoreTarget(value: unknown): value is RestoreTarget {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const target = value as Partial<RestoreTarget>;
+  return (
+    (target.item_type === 'order' || target.item_type === 'pdf') &&
+    (target.order_id === null || isArchiveEntryId(target.order_id)) &&
+    (target.document_id === null || isArchiveEntryId(target.document_id))
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +38,7 @@ export async function GET(request: Request) {
     const type = typeParam === 'order' || typeParam === 'pdf' ? typeParam : 'all';
 
     const entries = await fetchArchiveEntries(type);
-    return NextResponse.json({ entries });
+    return NextResponse.json<ArchiveEntriesResponse>({ entries });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
@@ -27,8 +49,10 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { ids?: number[] };
-    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(id)) : [];
+    const parsedBody = await readRequiredJsonRecord(request);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.body;
+    const ids = Array.isArray(body.ids) ? body.ids.filter(isArchiveEntryId) : [];
     if (ids.length === 0) {
       return NextResponse.json({ message: 'Ni izbranih zapisov za trajni izbris.' }, { status: 400 });
     }
@@ -58,7 +82,7 @@ export async function DELETE(request: Request) {
         }
       });
     }
-    return NextResponse.json({ success: true, deletedCount });
+    return NextResponse.json<ArchiveDeleteResponse>({ success: true, deletedCount });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
@@ -69,21 +93,12 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      ids?: number[];
-      targets?: RestoreTarget[];
-    };
+    const parsedBody = await readRequiredJsonRecord(request);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.body;
 
-    const ids = Array.isArray(body.ids) ? body.ids.filter((id) => Number.isFinite(id) && id > 0) : [];
-    const targets = Array.isArray(body.targets)
-      ? body.targets.filter(
-          (target) =>
-            target &&
-            (target.item_type === 'order' || target.item_type === 'pdf') &&
-            (target.order_id === null || Number.isFinite(target.order_id)) &&
-            (target.document_id === null || Number.isFinite(target.document_id))
-        )
-      : [];
+    const ids = Array.isArray(body.ids) ? body.ids.filter(isPositiveNumber) : [];
+    const targets = Array.isArray(body.targets) ? body.targets.filter(isRestoreTarget) : [];
 
     if (ids.length === 0 && targets.length === 0) {
       return NextResponse.json({ message: 'Ni izbranih zapisov za obnovo.' }, { status: 400 });
@@ -128,11 +143,10 @@ export async function PATCH(request: Request) {
     }
 
     revalidatePath('/admin/arhiv');
-    revalidatePath('/admin/arhiv-izbrisanih');
     revalidatePath('/admin/orders');
     revalidatePath('/admin/orders/[orderId]', 'page');
 
-    return NextResponse.json({ success: true, restoredCount: restoredFromIds + restoredFromTargets });
+    return NextResponse.json<ArchiveRestoreResponse>({ success: true, restoredCount: restoredFromIds + restoredFromTargets });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

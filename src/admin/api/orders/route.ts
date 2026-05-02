@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
-import { ensureOrdersDraftColumn } from '@/shared/server/orders';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 
 export async function POST(request: Request) {
   try {
     const pool = await getPool();
-    await ensureOrdersDraftColumn();
 
     const result = await pool.query(
       `

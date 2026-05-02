@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
-import { sortCatalogItems } from '@/commercial/catalog/catalog';
+import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import {
   getCatalogCategoryCardsFromDatabase,

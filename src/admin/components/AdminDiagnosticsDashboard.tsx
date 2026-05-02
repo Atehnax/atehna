@@ -26,7 +26,7 @@ const DIAGNOSTICS_WINDOW_OPTIONS: DiagnosticsWindowOption[] = [
 const DIAGNOSTICS_COVERAGE_TARGETS = [
   { contexts: ['/admin/orders'], label: 'Naročila seznam', hint: 'Zapis nastane ob server loadu seznama in spremljevalnih dokument/priponka loaderjih.' },
   { contexts: ['/admin/orders/[orderId]'], label: 'Naročila podrobnosti', hint: 'Podrobnosti sprožijo več server loaderjev, zato se tukaj aktivnost pokaže najlažje.' },
-  { contexts: ['/admin/arhiv'], label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva; demo pogled brez baze se ne zabeleži.' },
+  { contexts: ['/admin/arhiv'], label: 'Arhiv', hint: 'Zapis nastane ob server loadu arhiva.' },
   { contexts: ['/admin/analitika'], label: 'Analitika naročil', hint: 'Zapis nastane ob server loadu analitike in njenih nastavitev.' },
   { contexts: ['/admin/analitika/splet'], label: 'Analitika splet', hint: 'Samo začetni load in gumb Uporabi obdobje sprožita server fetch; samo urejanje datumov je lokalno.' },
   { contexts: ['/admin/artikli'], label: 'Artikli', hint: 'Prikazan je začetni server load seed podatkov; večina nadaljnjih interakcij v upravljalniku je lokalna.' },
@@ -274,7 +274,7 @@ export default function AdminDiagnosticsDashboard({ windowHours = 24 }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Pokritost glavnih admin kontekstov</h2>
-            <p className="mt-1 text-sm text-slate-500">Prikazani so samo server-backed konteksti z aktivnostjo v izbranem oknu; veliko lokalnih admin interakcij po začetnem loadu ne ustvari novega diagnostičnega zapisa. Demo/fallback pogledi brez baze se ne beležijo.</p>
+            <p className="mt-1 text-sm text-slate-500">Prikazani so samo server-backed konteksti z aktivnostjo v izbranem oknu; veliko lokalnih admin interakcij po začetnem loadu ne ustvari novega diagnostičnega zapisa. Konteksti brez baze se ne beležijo.</p>
           </div>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">

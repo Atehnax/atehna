@@ -15,6 +15,7 @@ import { Spinner } from '@/shared/ui/loading';
 import { CustomSelect } from '@/shared/ui/select';
 import { IconButton } from '@/shared/ui/icon-button';
 import { QuantityInput } from '@/shared/ui/quantity-input';
+import { formatEuro } from '@/shared/domain/formatting';
 
 const FORM_STORAGE_KEY = 'atehna-order-form';
 
@@ -71,8 +72,7 @@ const initialForm: OrderFormData = {
   notes: ''
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+const formatCurrency = formatEuro;
 
 const toNumber = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;

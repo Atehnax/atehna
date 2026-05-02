@@ -87,7 +87,6 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
       <defs>
         <mask id={cutMaskId}>
           <rect fill="white" x="0" y="0" width="20" height="20" />
-          {/* hide front funnel + gap */}
           <path
             fill="black"
             stroke="black"
@@ -98,12 +97,10 @@ export function ActionFilterIcon({ className, ...props }: ActionIconProps) {
           />
         </mask>
       </defs>
-      {/* back/left funnel */}
       <path
         mask={`url(#${cutMaskId})`}
         d="M 2.5,5.5 L 13.0,5.5 L 9.0,12.0 L 9.0,17.5 L 6.3,14.8 L 6.3,12.0 Z"
       />
-      {/* front/right funnel */}
       <path d="M 8.0,2.0 L 18.5,2.0 L 14.5,8.5 L 14.5,14.0 L 11.8,11.3 L 11.8,8.5 Z" />
     </svg>
   );

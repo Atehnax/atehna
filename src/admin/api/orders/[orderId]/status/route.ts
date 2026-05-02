@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
-import { ensureOrderStatusLogsTable } from '@/shared/server/orders';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -14,7 +14,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const bodyResult = await readRequiredJsonRecord(request);
+    if (!bodyResult.ok) return bodyResult.response;
+
+    const body = bodyResult.body;
     const status = String(body?.status ?? '').trim();
 
     if (!status || !isOrderStatus(status)) {
@@ -22,7 +25,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
 
     const pool = await getPool();
-    await ensureOrderStatusLogsTable(pool);
     const current = await pool.query('SELECT id, order_number, status FROM orders WHERE id = $1', [orderId]);
     const previousStatus = current.rows[0]?.status === null || current.rows[0]?.status === undefined
       ? null

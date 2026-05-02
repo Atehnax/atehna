@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { isJsonRecord } from '@/shared/server/requestJson';
 
 export type AnalyticsChartType =
   | 'line'
@@ -30,7 +31,7 @@ export type AnalyticsMetricField =
   | 'paid_count'
   | 'cancelled_count';
 
-export type AnalyticsChartAppearance = {
+type AnalyticsChartAppearance = {
   sectionBg?: string;
   canvasBg?: string;
   cardBg?: string;
@@ -114,8 +115,6 @@ export type AnalyticsChartRow = {
   created_at: string;
   updated_at: string;
 };
-
-let ensured = false;
 
 const toIso = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
@@ -214,8 +213,8 @@ const defaultAppearance = (): AnalyticsGlobalAppearance => ({
 });
 
 const parseAppearance = (value: unknown): AnalyticsChartAppearance => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  const raw = value as Record<string, unknown>;
+  if (!isJsonRecord(value)) return {};
+  const raw = value;
   return {
     sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : undefined,
     canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : undefined,
@@ -230,13 +229,13 @@ const parseAppearance = (value: unknown): AnalyticsChartAppearance => {
 
 const parseConfig = (value: unknown): AnalyticsChartConfig => {
   const fallback = defaultConfig();
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
-  const raw = value as Record<string, unknown>;
+  if (!isJsonRecord(value)) return fallback;
+  const raw = value;
 
   const parsedSeries = (Array.isArray(raw.series) ? raw.series : [])
     .map((seriesRaw): AnalyticsChartSeries | null => {
-      if (!seriesRaw || typeof seriesRaw !== 'object' || Array.isArray(seriesRaw)) return null;
-      const source = seriesRaw as Record<string, unknown>;
+      if (!isJsonRecord(seriesRaw)) return null;
+      const source = seriesRaw;
       if (!isMetric(source.field_key)) return null;
       return {
         id: typeof source.id === 'string' ? source.id : randomUUID(),
@@ -259,6 +258,7 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
       };
     })
     .filter((series): series is AnalyticsChartSeries => series !== null);
+  const filters = isJsonRecord(raw.filters) ? raw.filters : null;
 
   return {
     dataset: 'orders_daily',
@@ -284,17 +284,17 @@ const parseConfig = (value: unknown): AnalyticsChartConfig => {
         ? raw.quickRange
         : '90d',
     filters: {
-      customerType: raw.filters && typeof raw.filters === 'object' && ['P', 'Š', 'F'].includes(String((raw.filters as Record<string, unknown>).customerType))
-        ? ((raw.filters as Record<string, unknown>).customerType as 'P' | 'Š' | 'F')
+      customerType: filters && ['P', 'Š', 'F'].includes(String(filters.customerType))
+        ? (filters.customerType as 'P' | 'Š' | 'F')
         : 'all',
-      status: raw.filters && typeof raw.filters === 'object' && typeof (raw.filters as Record<string, unknown>).status === 'string'
-        ? String((raw.filters as Record<string, unknown>).status)
+      status: filters && typeof filters.status === 'string'
+        ? filters.status
         : 'all',
-      paymentStatus: raw.filters && typeof raw.filters === 'object' && typeof (raw.filters as Record<string, unknown>).paymentStatus === 'string'
-        ? String((raw.filters as Record<string, unknown>).paymentStatus)
+      paymentStatus: filters && typeof filters.paymentStatus === 'string'
+        ? filters.paymentStatus
         : 'all',
       includeNulls:
-        !(raw.filters && typeof raw.filters === 'object' && (raw.filters as Record<string, unknown>).includeNulls === false)
+        !(filters && filters.includeNulls === false)
     },
     appearance: parseAppearance(raw.appearance),
     editedAt: typeof raw.editedAt === 'string' ? raw.editedAt : undefined,
@@ -317,35 +317,6 @@ function mapRow(raw: Record<string, unknown>): AnalyticsChartRow {
     created_at: toIso(raw.created_at),
     updated_at: toIso(raw.updated_at)
   };
-}
-
-async function ensureAnalyticsTables() {
-  if (ensured) return;
-  const pool = await getPool();
-  await pool.query(`
-    create table if not exists analytics_charts (
-      id bigserial primary key,
-      dashboard_key text not null default 'narocila',
-      key text not null unique,
-      title text not null,
-      description text null,
-      comment text null,
-      chart_type text not null,
-      config_json jsonb not null default '{}'::jsonb,
-      position integer not null default 0,
-      is_system boolean not null default false,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now()
-    )
-  `);
-  await pool.query(`
-    create table if not exists analytics_chart_settings (
-      dashboard_key text primary key,
-      settings_json jsonb not null default '{}'::jsonb,
-      updated_at timestamptz not null default now()
-    )
-  `);
-  ensured = true;
 }
 
 const buildSystemCharts = (dashboardKey: string) => [
@@ -506,7 +477,6 @@ async function ensureDefaultChartsIfEmpty(dashboardKey = 'narocila') {
 
 export async function fetchAnalyticsCharts(dashboardKey = 'narocila', diagnosticsContext = '/admin/analitika') {
   return instrumentCatalogLoader('fetchAnalyticsCharts', diagnosticsContext, async () => {
-    await ensureAnalyticsTables();
     await ensureDefaultChartsIfEmpty(dashboardKey);
 
     const pool = await getPool();
@@ -521,15 +491,16 @@ export async function createAnalyticsChart(input: {
   description?: string | null;
   comment?: string | null;
   chartType: AnalyticsChartType;
-  config: AnalyticsChartConfig;
+  config: unknown;
 }) {
-  await ensureAnalyticsTables();
-
   const pool = await getPool();
   const dashboardKey = input.dashboardKey ?? 'narocila';
   const positionResult = await pool.query('select coalesce(max(position), -1) + 1 as next_position from analytics_charts where dashboard_key = $1', [dashboardKey]);
   const position = Number(positionResult.rows[0]?.next_position ?? 0);
-  const nextConfig = parseConfig({ ...input.config, editedAt: new Date().toISOString() });
+  const nextConfig = parseConfig({
+    ...(isJsonRecord(input.config) ? input.config : {}),
+    editedAt: new Date().toISOString()
+  });
 
   const result = await pool.query(
     `insert into analytics_charts (dashboard_key, key, title, description, comment, chart_type, config_json, position, is_system)
@@ -548,10 +519,9 @@ export async function updateAnalyticsChart(
     description: string | null;
     comment: string | null;
     chartType: AnalyticsChartType;
-    config: AnalyticsChartConfig;
+    config: unknown;
   }>
 ) {
-  await ensureAnalyticsTables();
   const pool = await getPool();
 
   const existing = await pool.query('select * from analytics_charts where id = $1 limit 1', [chartId]);
@@ -562,7 +532,14 @@ export async function updateAnalyticsChart(
   const nextDescription = input.description === undefined ? (typeof row.description === 'string' ? row.description : null) : input.description;
   const nextComment = input.comment === undefined ? (typeof row.comment === 'string' ? row.comment : null) : input.comment;
   const nextChartType = input.chartType ?? parseChartType(row.chart_type);
-  const nextConfig = parseConfig({ ...(input.config ? input.config : parseConfig(row.config_json)), editedAt: new Date().toISOString() });
+  const nextConfig = parseConfig({
+    ...(input.config === undefined
+      ? parseConfig(row.config_json)
+      : isJsonRecord(input.config)
+        ? input.config
+        : {}),
+    editedAt: new Date().toISOString()
+  });
 
   const result = await pool.query(
     `update analytics_charts
@@ -576,14 +553,12 @@ export async function updateAnalyticsChart(
 }
 
 export async function deleteAnalyticsChart(chartId: number) {
-  await ensureAnalyticsTables();
   const pool = await getPool();
   const result = await pool.query('delete from analytics_charts where id = $1 returning id', [chartId]);
   return Number(result.rowCount ?? 0) > 0;
 }
 
 export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboardKey = 'narocila') {
-  await ensureAnalyticsTables();
   const pool = await getPool();
 
   await pool.query('begin');
@@ -600,12 +575,11 @@ export async function reorderAnalyticsCharts(chartIdsInOrder: number[], dashboar
 
 export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila', diagnosticsContext = '/admin/analitika'): Promise<AnalyticsGlobalAppearance> {
   return instrumentCatalogLoader('fetchGlobalAnalyticsAppearance', diagnosticsContext, async () => {
-    await ensureAnalyticsTables();
     const pool = await getPool();
     const result = await pool.query('select settings_json, updated_at from analytics_chart_settings where dashboard_key = $1 limit 1', [dashboardKey]);
     if (!result.rows[0]) return defaultAppearance();
     const row = result.rows[0] as Record<string, unknown>;
-    const raw = (row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {}) as Record<string, unknown>;
+    const raw = isJsonRecord(row.settings_json) ? row.settings_json : {};
     return {
       sectionBg: typeof raw.sectionBg === 'string' ? raw.sectionBg : defaultAppearance().sectionBg,
       canvasBg: typeof raw.canvasBg === 'string' ? raw.canvasBg : defaultAppearance().canvasBg,
@@ -621,7 +595,6 @@ export async function fetchGlobalAnalyticsAppearance(dashboardKey = 'narocila', 
 }
 
 export async function updateGlobalAnalyticsAppearance(input: Partial<AnalyticsGlobalAppearance>, dashboardKey = 'narocila') {
-  await ensureAnalyticsTables();
   const current = await fetchGlobalAnalyticsAppearance(dashboardKey, '/admin/analitika');
   const next: AnalyticsGlobalAppearance = {
     sectionBg: input.sectionBg ?? current.sectionBg,

@@ -17,8 +17,8 @@ import Color from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Button } from '@/shared/ui/button';
-import { Chip } from '@/shared/ui/badge';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
+import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionUndoIcon, ArchiveIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
@@ -41,6 +41,7 @@ import {
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   createArchivedItemRecord,
+  fetchCatalogItemRestorePayload,
   readArchivedItemStorage,
   writeArchivedItemStorage
 } from '@/admin/features/artikli/lib/archiveItemClient';
@@ -54,6 +55,7 @@ import {
   type ProductFamily,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import { formatEuroAmount } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
@@ -83,18 +85,30 @@ import {
   normalizeUniqueMachineProductData,
   normalizeWeightProductData,
   serializeQuantityDiscountTargets,
-  adminProductInputChipClassName,
-  type ProductEditorType,
-  type QuantityDiscountDraft,
-  type SimulatorOption,
-  type UniversalProductSpecificData
+  adminProductInputChipClassName
 } from '@/admin/features/artikli/components/DimensionProductPricingSections';
+import type {
+  ProductEditorType,
+  CatalogItemQuickSaveResponse,
+  QuantityDiscountDraft,
+  SimulatorOption,
+  CatalogMediaImportKind,
+  UploadedCatalogMediaFile,
+  UniversalProductSpecificData
+} from '@/shared/domain/catalog/catalogAdminTypes';
 import AdminFieldSuggestionMenu from '@/admin/components/AdminFieldSuggestionMenu';
 import {
   getCatalogItemIdentityMessage,
   useCatalogItemIdentityAvailability
 } from '@/admin/features/artikli/components/useCatalogItemIdentityAvailability';
-import { NoteTagChip, getNoteTagMenuItemClassName, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import {
+  NOTE_TAG_OPTIONS,
+  NoteTagChip,
+  getNoteTagLabel,
+  getNoteTagMenuItemClassName,
+  normalizeNoteTagValue,
+  type NoteTag
+} from '@/admin/features/artikli/components/NoteTagChip';
 import {
   articleNameInputClassName,
   compactSideInputClassName,
@@ -109,7 +123,7 @@ import {
 import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
-import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/server/catalogItems';
+import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const compactTableReadOnlyNumberClassName = "inline-flex h-[30px] shrink-0 items-center justify-end rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700";
@@ -145,10 +159,6 @@ function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: stri
   const fromUrl = url?.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
   if (fromUrl) return fromUrl;
   return 'IMG';
-}
-
-function formatCurrencyAmountOnly(value: number) {
-  return formatCurrency(value).replace(/\s*€/u, '').trim();
 }
 
 type EditorMode = 'create' | 'edit';
@@ -292,23 +302,9 @@ const UNDO_HISTORY_LIMIT = 10;
 const IMAGE_MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const TECHNICAL_DOCUMENT_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const ITEM_NOTE_OPTIONS: Array<{ value: VariantTag; label: string }> = [
-  { value: 'na-zalogi', label: 'Na zalogi' },
-  { value: 'novo', label: 'Novo' },
-  { value: 'akcija', label: 'V akciji' },
-  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
-  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
-];
+const ITEM_NOTE_OPTIONS = NOTE_TAG_OPTIONS;
 
-const normalizeVariantTag = (value: string | null | undefined): VariantTag | '' => {
-  const normalized = (value ?? '').trim().toLowerCase();
-  if (!normalized) return '';
-  if (normalized === 'opomba') return 'na-zalogi';
-  if (normalized === 'na-zalogi' || normalized === 'novo' || normalized === 'akcija' || normalized === 'zadnji-kosi' || normalized === 'ni-na-zalogi') {
-    return normalized;
-  }
-  return '';
-};
+const normalizeVariantTag = normalizeNoteTagValue;
 
 const createLocalStageId = () => `local-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -318,8 +314,6 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-type MediaUrlImportKind = 'image' | 'video' | 'document';
-type UploadedMediaFile = { url: string; pathname: string; mimeType: string | null; filename: string; size?: number };
 const pastedUrlPattern = /https?:\/\/[^\s<>"']+/giu;
 const technicalDocumentExtensions = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'dwg']);
 
@@ -531,7 +525,7 @@ function formatSaveDiffStatus(active: boolean) {
 }
 
 function formatSaveDiffNoteTag(value: VariantTag | '') {
-  return ITEM_NOTE_OPTIONS.find((entry) => entry.value === value)?.label ?? 'Brez opombe';
+  return getNoteTagLabel(value);
 }
 
 function formatSaveDiffAssignments(assignments: number[] | undefined) {
@@ -817,7 +811,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   return groups;
 }
 
-function buildArchiveRecord(state: EditorPersistedState, identifier: string) {
+function buildArchiveRecord(state: EditorPersistedState, identifier: string, restorePayload: CatalogItemEditorPayload | null) {
   const firstVariant = state.draft.variants[0];
   return createArchivedItemRecord({
     id: identifier,
@@ -826,7 +820,8 @@ function buildArchiveRecord(state: EditorPersistedState, identifier: string) {
     sku: state.sideSettings.sku || firstVariant?.sku || '',
     price: firstVariant?.price ?? 0,
     discountPct: firstVariant?.discountPct ?? 0,
-    active: state.draft.active
+    active: state.draft.active,
+    restorePayload
   });
 }
 
@@ -1416,7 +1411,7 @@ function OpisRichTextEditor({
       element: editorHostRef.current,
       editable,
       extensions: [
-        StarterKit,
+        StarterKit.configure({ link: false, underline: false }),
         Underline,
         TextStyle,
         FontSize,
@@ -1718,94 +1713,25 @@ function NeutralDropdownChip<Value extends string>({
   optionClassName?: (value: Value) => string;
   menuPlacement?: 'top' | 'bottom';
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const displayedLabel = selectedOption?.label ?? placeholderLabel ?? '';
-
-  const updateMenuPosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = Math.max(150, menuRef.current?.offsetWidth ?? 150);
-    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
-    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
-    setMenuPosition({ top, left });
-  }, [menuPlacement]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    updateMenuPosition();
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    const onWindowChange = () => updateMenuPosition();
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    window.addEventListener('resize', onWindowChange);
-    window.addEventListener('scroll', onWindowChange, true);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-      window.removeEventListener('resize', onWindowChange);
-      window.removeEventListener('scroll', onWindowChange, true);
-    };
-  }, [isOpen, updateMenuPosition]);
+  const menuOptions = options.map((option): EditableChipMenuOption<Value> => ({
+    value: option.value,
+    label: option.label,
+    className: optionClassName?.(option.value)
+  }));
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => {
-          if (!editable) return;
-          setIsOpen((current) => !current);
-        }}
-        className="relative block rounded-full focus:outline-none"
-        aria-haspopup={editable ? 'menu' : undefined}
-        aria-expanded={editable ? isOpen : undefined}
-      >
-        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
-        <span className="block">
-          <Chip size="adminStatusInfo" variant="neutral" className={chipClassName}>{displayedLabel}</Chip>
-        </span>
-      </button>
-
-      {editable && isOpen && menuPosition && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className={`fixed z-[1000] min-w-[150px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
-              style={{ top: menuPosition.top, left: menuPosition.left }}
-            >
-              <MenuPanel>
-                {options.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    className={optionClassName?.(option.value)}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </MenuPanel>
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
+    <EditableChipMenu
+      label={displayedLabel}
+      variant="neutral"
+      editable={editable}
+      options={menuOptions}
+      onChange={onChange}
+      chipClassName={chipClassName}
+      menuPlacement={menuPlacement}
+      minMenuWidth={150}
+    />
   );
 }
 
@@ -2523,7 +2449,7 @@ export default function AdminItemEditorPage({
           imageAssignments: variant.imageAssignments ?? []
         })),
         quantityDiscounts: persistableQuantityDiscounts.map((rule, index) => ({
-          id: rule.persistedId,
+          id: rule.persistedId ?? undefined,
           minQuantity: Math.max(1, Math.floor(rule.minQuantity)),
           discountPercent: Math.min(100, Math.max(0, rule.discountPercent)),
           appliesTo: serializeQuantityDiscountTargets(rule),
@@ -2696,13 +2622,20 @@ export default function AdminItemEditorPage({
     );
     if (!shouldArchive) return;
 
-    const previousArchiveItems = readArchivedItemStorage();
-    writeArchivedItemStorage([
-      buildArchiveRecord(currentPersistedState, itemIdentifier),
-      ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
-    ]);
-
+    let previousArchiveItems = readArchivedItemStorage();
     try {
+      const restorePayload = await fetchCatalogItemRestorePayload(itemIdentifier);
+      if (!restorePayload) {
+        toast.error('Podatkov za obnovitev artikla ni bilo mogoče pripraviti.');
+        return;
+      }
+
+      previousArchiveItems = readArchivedItemStorage();
+      writeArchivedItemStorage([
+        buildArchiveRecord(currentPersistedState, itemIdentifier, restorePayload),
+        ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
+      ]);
+
       const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
@@ -2731,7 +2664,7 @@ export default function AdminItemEditorPage({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ itemIdentifier })
       });
-      const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+      const body = (await response.json().catch(() => ({}))) as CatalogItemQuickSaveResponse;
       if (!response.ok || !body.item) throw new Error(body.message || 'Kopiranje artikla ni uspelo.');
 
       const href = `/admin/artikli/${encodeURIComponent(body.item.slug || String(body.item.id))}`;
@@ -2916,7 +2849,7 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
-  const uploadMediaFile = useCallback(async (file: File): Promise<UploadedMediaFile> => {
+  const uploadMediaFile = useCallback(async (file: File): Promise<UploadedCatalogMediaFile> => {
     const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
     if (!itemSlug) {
       throw new Error('Najprej vnesite naziv ali URL artikla.');
@@ -2948,7 +2881,7 @@ export default function AdminItemEditorPage({
     };
   }, [articleId, draft.name, draft.slug]);
 
-  const uploadMediaUrl = useCallback(async (sourceUrl: string, mediaKind: MediaUrlImportKind): Promise<UploadedMediaFile> => {
+  const uploadMediaUrl = useCallback(async (sourceUrl: string, mediaKind: CatalogMediaImportKind): Promise<UploadedCatalogMediaFile> => {
     const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
     if (!itemSlug) {
       throw new Error('Najprej vnesite naziv ali URL artikla.');
@@ -4731,7 +4664,7 @@ export default function AdminItemEditorPage({
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{formatCurrencyAmountOnly(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{formatEuroAmount(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
                   {!isDimensionBasedMode ? (
                     <>
                       <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>

@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
-import { Button } from '@/shared/ui/button';
-import {
-  Dialog,
+import Button from '../button/Button';
+import Dialog, {
   dialogActionButtonClassName,
   dialogDescriptionClassName,
   dialogFooterClassName
-} from '@/shared/ui/dialog';
+} from '../dialog/dialog';
 
 type UnsavedChangesDialogProps = {
   open: boolean;

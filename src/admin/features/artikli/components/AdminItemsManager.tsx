@@ -1,12 +1,12 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   adminTableCardClassName,
@@ -86,6 +86,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 import {
   createArchivedItemRecord,
+  fetchCatalogItemRestorePayload,
   readArchivedItemStorage,
   writeArchivedItemStorage
 } from '@/admin/features/artikli/lib/archiveItemClient';
@@ -95,20 +96,34 @@ import {
   type ProductFamily,
   type Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import { formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
 import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
-import { NoteTagChip, getNoteTagMenuItemClassName, type NoteTag } from '@/admin/features/artikli/components/NoteTagChip';
+import {
+  NOTE_TAG_OPTIONS,
+  NoteTagChip,
+  getNoteTagLabel,
+  getNoteTagMenuItemClassName,
+  normalizeNoteTagValue,
+  type NoteTag,
+  type NoteTagValue
+} from '@/admin/features/artikli/components/NoteTagChip';
 import {
   compactTableAdornmentClassName,
   compactTableAlignedInputClassName,
   compactTableAlignedTextInputClassName,
   compactTableValueUnitShellClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
-import type { AdminCatalogListItem } from '@/shared/server/catalogItems';
+import type {
+  AdminCatalogListItem,
+  CatalogItemEditorPayload,
+  CatalogItemQuickSaveResponse,
+  CatalogVariantQuickSaveResponse
+} from '@/shared/domain/catalog/catalogAdminTypes';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
-type NoteFilter = 'all' | 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
+type NoteFilter = 'all' | NoteTag;
 type ProductType = AdminCatalogListItem['productType'];
 type ProductTypeFilter = 'all' | ProductType;
 type OpenFilter = 'category' | 'productType' | 'status' | 'note' | 'variantCount' | 'priceRange' | null;
@@ -128,7 +143,7 @@ type ListFamily = ProductFamily & {
   productType: ProductType;
   typeSpecificData: AdminCatalogListItem['typeSpecificData'];
 };
-type NoteValue = '' | NoteTag;
+type NoteValue = NoteTagValue;
 type FamilyDraft = { name: string; sku: string; categoryPath: string[]; active: boolean; badge: NoteValue };
 type VariantDraft = { label: string; sku: string; price: number; discountPct: number; stock: number; active: boolean; minOrder: number; note: NoteValue; position: number };
 type ActiveEditScope = { familyId: string; kind: EditScopeKind; restoreExpandedOnExit: boolean };
@@ -181,11 +196,6 @@ const ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} !pl-[13px]`;
 const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[12ch]`;
 const ROW_EDIT_VARIANT_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[9ch]`;
 const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
-const LazyConfirmDialog = dynamic(
-  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
-  { ssr: false }
-);
-
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const normalizeCategoryPath = (value: string) =>
   value
@@ -297,43 +307,13 @@ const getSkuIssue = (
   return null;
 };
 
-const formatCurrencyAmountOnly = (value: number) =>
-  value.toLocaleString('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const formatCurrencyWithSuffix = (value: number) => `${formatCurrencyAmountOnly(value)} €`;
-
-const formatCurrencyRange = (minValue: number, maxValue: number) =>
-  minValue === maxValue
-    ? formatCurrencyWithSuffix(minValue)
-    : `${formatCurrencyAmountOnly(minValue)}–${formatCurrencyAmountOnly(maxValue)} €`;
-const normalizeNoteValue = (value: string | null | undefined): NoteTag | '' => {
-  const normalized = (value ?? '').trim().toLowerCase();
-  if (!normalized) return '';
-  if (normalized === 'opomba') return 'na-zalogi';
-  if (normalized === 'na-zalogi' || normalized === 'novo' || normalized === 'akcija' || normalized === 'zadnji-kosi' || normalized === 'ni-na-zalogi') {
-    return normalized;
-  }
-  return '';
-};
-const noteValueLabel = (value: NoteValue) => {
-  if (value === 'na-zalogi') return 'Na zalogi';
-  if (value === 'novo') return 'Novo';
-  if (value === 'akcija') return 'V akciji';
-  if (value === 'ni-na-zalogi') return 'Ni na zalogi';
-  if (value === 'zadnji-kosi') return 'Zadnji kosi';
-  return 'Brez opombe';
-};
+const normalizeNoteValue = normalizeNoteTagValue;
+const noteValueLabel = getNoteTagLabel;
 const ITEM_STATUS_BULK_OPTIONS = [
   { value: true, label: 'Aktiven' },
   { value: false, label: 'Neaktiven' }
 ] as const;
-const ITEM_NOTE_BULK_OPTIONS: Array<{ value: NoteTag; label: string }> = [
-  { value: 'na-zalogi', label: 'Na zalogi' },
-  { value: 'novo', label: 'Novo' },
-  { value: 'akcija', label: 'V akciji' },
-  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
-  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
-];
+const ITEM_NOTE_BULK_OPTIONS = NOTE_TAG_OPTIONS;
 const itemStatusLabel = (active: boolean) => (active ? 'Aktiven' : 'Neaktiven');
 const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 'Neaktiven inactive Skrit hidden');
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
@@ -486,7 +466,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   });
 }
 
-function buildArchiveRecordForFamily(family: ListFamily) {
+function buildArchiveRecordForFamily(family: ListFamily, restorePayload: CatalogItemEditorPayload | null) {
   const firstVariant = family.variants[0];
   return createArchivedItemRecord({
     id: family.slug,
@@ -495,7 +475,8 @@ function buildArchiveRecordForFamily(family: ListFamily) {
     sku: getBaseSku(family) || firstVariant?.sku || '',
     price: firstVariant?.price ?? 0,
     discountPct: firstVariant?.discountPct ?? 0,
-    active: family.active
+    active: family.active,
+    restorePayload
   });
 }
 
@@ -975,12 +956,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         }
 
         const previousArchiveItems = readArchivedItemStorage();
-        writeArchivedItemStorage([
-          buildArchiveRecordForFamily(family),
-          ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
-        ]);
 
         try {
+          const restorePayload = await fetchCatalogItemRestorePayload(itemIdentifier);
+          if (!restorePayload) throw new Error('Podatkov za obnovitev artikla ni bilo mogoče pripraviti.');
+
+          writeArchivedItemStorage([
+            buildArchiveRecordForFamily(family, restorePayload),
+            ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
+          ]);
+
           const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
           if (!response.ok) {
             const body = (await response.json().catch(() => ({}))) as { message?: string };
@@ -1105,7 +1090,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ itemIdentifier })
         });
-        const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        const body = (await response.json().catch(() => ({}))) as CatalogItemQuickSaveResponse;
         if (!response.ok || !body.item) throw new Error(body.message || 'Kopiranje artikla ni uspelo.');
         duplicatedPairs.push({ sourceId: family.id, item: body.item });
       }
@@ -1426,7 +1411,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             patch: familyPatchResult.patch
           })
         });
-        const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        const body = (await response.json().catch(() => ({}))) as CatalogItemQuickSaveResponse;
         if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
         latestSavedItem = body.item;
       }
@@ -1443,7 +1428,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             patch
           })
         });
-        const variantBody = (await variantResponse.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+        const variantBody = (await variantResponse.json().catch(() => ({}))) as CatalogVariantQuickSaveResponse;
         if (!variantResponse.ok || !variantBody.item) {
           throw new Error(variantBody.message || 'Shranjevanje različice ni uspelo.');
         }
@@ -1559,7 +1544,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   patch
                 })
               }).then(async (response) => {
-                const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+                const body = (await response.json().catch(() => ({}))) as CatalogItemQuickSaveResponse;
                 if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje artikla ni uspelo.');
                 return body.item;
               })
@@ -1579,7 +1564,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   patch
                 })
               }).then(async (response) => {
-                const body = (await response.json().catch(() => ({}))) as { item?: AdminCatalogListItem; message?: string };
+                const body = (await response.json().catch(() => ({}))) as CatalogVariantQuickSaveResponse;
                 if (!response.ok || !body.item) throw new Error(body.message || 'Shranjevanje različice ni uspelo.');
                 return body.item;
               })

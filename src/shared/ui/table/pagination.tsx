@@ -1,4 +1,4 @@
-import { Pagination } from '@/shared/ui/pagination';
+import Pagination from '../pagination/pagination';
 
 type TablePaginationProps = {
   page: number;

@@ -2,20 +2,24 @@ import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getPool } from '@/shared/server/db';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
-type Body = {
-  eventType?: 'page_view' | 'product_view';
-  path?: string;
-  productId?: string | null;
-};
+const analyticsEventTypes = new Set(['page_view', 'product_view']);
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as Body;
-    const eventType = body.eventType;
-    const path = body.path?.trim();
+    const parsedBody = await readRequiredJsonRecord(request);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.body;
+    const eventType = typeof body.eventType === 'string' && analyticsEventTypes.has(body.eventType)
+      ? body.eventType
+      : null;
+    const path = typeof body.path === 'string' ? body.path.trim() : '';
+    const productId = typeof body.productId === 'string' && body.productId.trim()
+      ? body.productId.trim()
+      : null;
 
     if (!eventType || !path) {
       return NextResponse.json({ message: 'Manjkajo podatki dogodka.' }, { status: 400 });
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
       [
         eventType,
         path,
-        body.productId || null,
+        productId,
         sessionId,
         visitorId,
         userAgent,

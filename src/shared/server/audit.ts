@@ -3,7 +3,7 @@ import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import type { QueryResult } from 'pg';
 import { getPool } from '@/shared/server/db';
-import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, type AuditCollectionDiff, type AuditDiff, type AuditDiffEntry, type AuditEntityType, type AuditEventFilters, type AuditEventInput, type AuditEventListResult, type AuditEventRecord, type AuditMetadata } from '@/shared/audit/auditTypes';
+import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, type AuditCollectionDiff, type AuditDiff, type AuditDiffEntry, type AuditEntityType, type AuditEventFilters, type AuditEventInput, type AuditEventListResult, type AuditEventRecord, type AuditLoggingSettingsResponse, type AuditMetadata } from '@/shared/audit/auditTypes';
 import { AUDIT_ACTION_LABELS } from '@/shared/audit/auditLabels';
 import { getAuditRetentionUntil } from '@/shared/audit/auditRetention';
 
@@ -166,70 +166,8 @@ function mapAuditRow(row: Record<string, unknown>): AuditEventRecord {
   };
 }
 
-export async function ensureAuditEventsTable(db?: Queryable) {
+export async function fetchAuditLoggingSettings(db?: Queryable): Promise<AuditLoggingSettingsResponse> {
   const target = db ?? await getPool();
-  await target.query('create extension if not exists pgcrypto');
-  await target.query(`
-    create table if not exists audit_events (
-      id uuid primary key default gen_random_uuid(),
-      occurred_at timestamptz not null default now(),
-      actor_id text,
-      actor_name text,
-      actor_email text,
-      entity_type text not null,
-      entity_id text not null,
-      entity_label text,
-      action text not null,
-      summary text not null,
-      diff_json jsonb not null default '{}'::jsonb,
-      metadata_json jsonb not null default '{}'::jsonb,
-      request_id text,
-      source text not null default 'admin',
-      ip_hash text,
-      user_agent_hash text,
-      retention_until timestamptz,
-      created_at timestamptz not null default now(),
-      constraint audit_events_entity_type_check check (
-        entity_type in ('item', 'order', 'category', 'media', 'system')
-      ),
-      constraint audit_events_action_check check (
-        action in (
-          'created',
-          'updated',
-          'deleted',
-          'archived',
-          'restored',
-          'uploaded',
-          'removed',
-          'status_changed',
-          'reordered',
-          'price_changed',
-          'stock_changed'
-        )
-      )
-    )
-  `);
-  await target.query('create index if not exists audit_events_entity_idx on audit_events (entity_type, entity_id, occurred_at desc)');
-  await target.query('create index if not exists audit_events_occurred_at_idx on audit_events (occurred_at desc)');
-  await target.query('create index if not exists audit_events_actor_idx on audit_events (actor_id, occurred_at desc)');
-  await target.query('create index if not exists audit_events_action_idx on audit_events (action, occurred_at desc)');
-  await target.query('create index if not exists audit_events_retention_idx on audit_events (retention_until) where retention_until is not null');
-}
-
-export async function ensureAuditSettingsTable(db?: Queryable) {
-  const target = db ?? await getPool();
-  await target.query(`
-    create table if not exists audit_settings (
-      key text primary key,
-      is_enabled boolean not null default true,
-      updated_at timestamptz not null default now()
-    )
-  `);
-}
-
-export async function fetchAuditLoggingSettings(db?: Queryable) {
-  const target = db ?? await getPool();
-  await ensureAuditSettingsTable(target);
   const result = await target.query(
     'select is_enabled, updated_at from audit_settings where key = $1 limit 1',
     [AUDIT_SETTINGS_KEY]
@@ -254,9 +192,8 @@ export async function fetchAuditLoggingSettings(db?: Queryable) {
   };
 }
 
-export async function updateAuditLoggingSettings(enabled: boolean, db?: Queryable) {
+export async function updateAuditLoggingSettings(enabled: boolean, db?: Queryable): Promise<AuditLoggingSettingsResponse> {
   const target = db ?? await getPool();
-  await ensureAuditSettingsTable(target);
   const result = await target.query(
     `insert into audit_settings (key, is_enabled, updated_at)
      values ($1, $2, now())
@@ -370,7 +307,6 @@ export function createAuditSummary(input: {
 export async function insertAuditEvent(input: AuditEventInput, db?: Queryable) {
   const target = db ?? await getPool();
   if (!(await isAuditLoggingEnabled(target))) return null;
-  await ensureAuditEventsTable(target);
   const occurredAt = input.occurredAt ?? new Date();
   const actor = input.actor ?? {
     actor_id: input.actor_id ?? null,
@@ -526,7 +462,6 @@ export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise
 
   const whereSql = where.length > 0 ? `where ${where.join(' and ')}` : '';
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
 
   const limitPlaceholder = `$${params.length + 1}`;
   const offsetPlaceholder = `$${params.length + 2}`;
@@ -561,7 +496,6 @@ export async function fetchAuditEventById(id: string) {
   const normalizedId = id.trim();
   if (!normalizedId) return null;
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
   const result = await pool.query('select * from audit_events where id = $1 limit 1', [normalizedId]);
   return result.rows[0] ? mapAuditRow(result.rows[0]) : null;
 }
@@ -570,7 +504,6 @@ export async function fetchAuditEventsByIds(ids: string[]) {
   const normalizedIds = normalizeAuditEventIds(ids);
   if (normalizedIds.length === 0) return [];
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
   const result = await pool.query(
     'select * from audit_events where id = any($1::uuid[]) order by occurred_at desc, created_at desc',
     [normalizedIds]
@@ -583,7 +516,6 @@ export async function deleteAuditEventsByIds(ids: string[]) {
   if (normalizedIds.length === 0) return { deletedEvents: 0 };
 
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
   const result = await pool.query(
     'delete from audit_events where id = any($1::uuid[])',
     [normalizedIds]
@@ -604,7 +536,6 @@ export async function deleteAuditChangesByIds(changeIds: string[]) {
   }
 
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
   const client = await pool.connect();
 
   try {
@@ -654,7 +585,6 @@ export async function deleteAuditChangesByIds(changeIds: string[]) {
 
 export async function pruneExpiredAuditEvents(now = new Date()) {
   const pool = await getPool();
-  await ensureAuditEventsTable(pool);
   const result = await pool.query(
     `
     delete from audit_events

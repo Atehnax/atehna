@@ -1,4 +1,4 @@
-export const CUSTOMER_TYPES = ['individual', 'company', 'school'] as const;
+const CUSTOMER_TYPES = ['individual', 'company', 'school'] as const;
 
 export type CustomerType = (typeof CUSTOMER_TYPES)[number];
 

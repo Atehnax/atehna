@@ -44,9 +44,7 @@ Key places:
 - Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
 
 # DB migration
-Run SQL migrations in `migrations/`, including:
-- `006_admin_analytics_charts.sql` for persisted chart metadata/config and ordering.
-- `007_admin_analytics_appearance.sql` for global chart appearance settings.
+Run `migrations/001_current_baseline.sql` against an empty database to create the current schema. Old backfill, cleanup, and compatibility migrations are intentionally squashed because historical business data has been purged.
 
 # Example
 - `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.
@@ -56,7 +54,7 @@ Run SQL migrations in `migrations/`, including:
 `npm install atehna`
 
 # Test
-- Run all local safety gates: `npm run lint && npm run typecheck && npm run build`
+- Run all local safety gates: `npm run lint && npm run typecheck && npm run build && npm run test:e2e`
 
 ## CI safety gates
 The pull request CI workflow runs:
@@ -64,9 +62,7 @@ The pull request CI workflow runs:
 - `npm run lint`
 - `npm run typecheck`
 - `npm run build`
-
-Playwright smoke tests are not yet present in this repository.
-A commented placeholder is included in `.github/workflows/ci.yml`; enable it after adding `test:e2e` and Playwright specs.
+- `npm run test:e2e`
 
 ## Deployed network measurement harness
 
@@ -107,7 +103,7 @@ Default target routes:
 - `/admin/orders`
 - `/admin/orders/[orderId]`
 
-If `--category` or `--order-id` are not supplied, the script will try to auto-resolve them from the deployed site by finding the first matching category/order link.
+If `--category` or `--order-id` are not supplied, the script will try to auto-resolve them from the deployed site by finding the first matching category/order link. In a reset state with no categories or orders, matching dynamic route templates are skipped and listed in the report instead of failing the whole run.
 
 
 # License

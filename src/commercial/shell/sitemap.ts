@@ -1,12 +1,15 @@
 import { MetadataRoute } from 'next';
-import { getCategorySlugs } from '@/commercial/content/content';
+import { getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
+import { hasDatabaseConnectionString } from '@/shared/server/db';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://atehna.si';
-  const categoryRoutes = getCategorySlugs().map((slug) => ({
-    url: `${baseUrl}/products/${slug}`,
-    lastModified: new Date()
-  }));
+  const categoryRoutes = hasDatabaseConnectionString()
+    ? (await getCatalogCategorySlugsServer()).map((slug) => ({
+        url: `${baseUrl}/products/${slug}`,
+        lastModified: new Date()
+      }))
+    : [];
 
   return [
     { url: baseUrl, lastModified: new Date() },

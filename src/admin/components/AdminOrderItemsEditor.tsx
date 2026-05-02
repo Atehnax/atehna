@@ -22,6 +22,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
+import { formatEuro } from '@/shared/domain/formatting';
 import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
 type CatalogChoice = {
@@ -46,9 +47,8 @@ type ItemsSectionMode = 'read' | 'edit';
 
 const TAX_RATE = 0.22;
 const toMoney = (value: number) => Math.round(value * 100) / 100;
-const currencyFormatter = new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' });
 const decimalFormatter = new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const formatCurrency = (value: number) => currencyFormatter.format(value);
+const formatCurrency = formatEuro;
 
 const parseLocaleNumber = (value: string) => {
   const trimmed = value.trim();

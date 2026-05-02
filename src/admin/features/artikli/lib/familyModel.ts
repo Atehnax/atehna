@@ -1,3 +1,4 @@
+import { formatEuro } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay } from './decimalFormat';
 
 type SeedItemTuple = [
@@ -77,8 +78,7 @@ export const toSlug = (value: string) =>
 export const computeSalePrice = (price: number, discountPct: number) =>
   Number((price * (1 - Math.max(0, Math.min(100, discountPct)) / 100)).toFixed(2));
 
-export const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+export const formatCurrency = formatEuro;
 
 type VariantNameSource = Pick<Variant, 'width' | 'length' | 'thickness'> & {
   label?: string | null;

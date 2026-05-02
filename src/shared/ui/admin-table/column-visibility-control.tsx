@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { MenuPanel } from '@/shared/ui/menu';
+import MenuPanel from '../menu/menu-panel';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ColumnOption = {

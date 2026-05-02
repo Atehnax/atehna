@@ -27,13 +27,13 @@ export type AuditScalarDiff = {
   message?: string;
 };
 
-export type AuditCollectionUpdatedEntry = {
+type AuditCollectionUpdatedEntry = {
   id: string;
   label?: string | AuditLinkedValue;
   changes: AuditDiff;
 };
 
-export type AuditLinkedValue = {
+type AuditLinkedValue = {
   label: string;
   href?: string | null;
 };
@@ -121,4 +121,11 @@ export type AuditEventListResult = {
   page: number;
   pageSize: number;
   pageCount: number;
+};
+
+export type AuditLoggingSettingsResponse = {
+  enabled: boolean;
+  updatedAt: string | null;
+  message?: string;
+  warning?: string;
 };

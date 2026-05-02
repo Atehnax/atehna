@@ -2,7 +2,7 @@
 'use client';
 
 import { Fragment, jsxDEV } from 'react/jsx-dev-runtime';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentType, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/shared/ui/button';
 import { Chip } from '@/shared/ui/badge';
@@ -23,14 +23,12 @@ import { adminTableBodyCellCenterClassName, adminTableBodyCellLeftClassName, adm
 import { createVariant, formatCurrency } from '@/admin/features/artikli/lib/familyModel';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 
-export type ProductEditorType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
-export type QuantityDiscountDraft = Record<string, any>;
-export type SimulatorOption = Record<string, any>;
-export type UniversalProductSpecificData = {
-  simple: any;
-  weight: any;
-  uniqueMachine: any;
-};
+export type {
+  ProductEditorType,
+  QuantityDiscountDraft,
+  SimulatorOption,
+  UniversalProductSpecificData
+} from '@/shared/domain/catalog/catalogAdminTypes';
 
 const __refreshSig = () => {};
 const _s = __refreshSig, _s1 = __refreshSig, _s2 = __refreshSig, _s3 = __refreshSig, _s4 = __refreshSig, _s5 = __refreshSig, _s6 = __refreshSig, _s7 = __refreshSig, _s8 = __refreshSig, _s9 = __refreshSig;
@@ -4794,7 +4792,7 @@ function WeightFractionEditorSelect({ value, rows, editable, onSelect, onRename,
     }, this);
 }
 _s2(WeightFractionEditorSelect, "lbPaauVbjJzVdjjhlA8LI4WfiAM=");
-function UniqueMachineProductModule({ editable, data, orderMatches = [], onChange }) {
+function UniqueMachineProductModule({ editable, data, documents = [] as unknown[], orderMatches = [] as unknown[], onUploadDocument = () => {}, onChange }) {
     _s3();
     const update = (updates)=>onChange({
             ...data,
@@ -6307,7 +6305,7 @@ function UniqueMachineProductModule({ editable, data, orderMatches = [], onChang
     }, this);
 }
 _s3(UniqueMachineProductModule, "Wm0vgAafjGuzcJidJDkMp0DcdHE=");
-function QuantityDiscountsCard({ editable, quantityDiscounts, onAddDiscount, onRemoveDiscount, onUpdateDiscount, simulatorOptions, usesScopedCommercialTools = true, embedded = false, minQuantityLabel = 'Min. količina', minQuantityUnitLabel, minQuantityAllowsDecimal = false, className }) {
+function QuantityDiscountsCard({ editable, quantityDiscounts, onAddDiscount, onRemoveDiscount, onUpdateDiscount, simulatorOptions, usesScopedCommercialTools = true, embedded = false, minQuantityLabel = 'Min. količina', minQuantityUnitLabel = '', minQuantityAllowsDecimal = false, className = '' }) {
     _s4();
     const [customerSuggestions, setCustomerSuggestions] = (0, useState)([]);
     const [selectedDiscountIds, setSelectedDiscountIds] = (0, useState)(new Set());
@@ -6531,7 +6529,7 @@ function QuantityDiscountsCard({ editable, quantityDiscounts, onAddDiscount, onR
                                             columnNumber: 17
                                         }, this)
                                     ]
-                                }, void 0, true) : /*#__PURE__*/ jsxDEV("col", {}, void 0, false, {
+                                }, "scoped-discount-cols", true) : /*#__PURE__*/ jsxDEV("col", {}, void 0, false, {
                                     fileName: "[project]/src/admin/features/artikli/components/DimensionProductPricingSections.tsx",
                                     lineNumber: 3458,
                                     columnNumber: 15
@@ -6601,7 +6599,7 @@ function QuantityDiscountsCard({ editable, quantityDiscounts, onAddDiscount, onR
                                                 columnNumber: 19
                                             }, this)
                                         ]
-                                    }, void 0, true) : /*#__PURE__*/ jsxDEV("th", {
+                                    }, "scoped-discount-headers", true) : /*#__PURE__*/ jsxDEV("th", {
                                         className: `text-center ${discountHeaderCellClassName}`,
                                         children: "Velja za"
                                     }, void 0, false, {
@@ -6804,7 +6802,7 @@ function QuantityDiscountsCard({ editable, quantityDiscounts, onAddDiscount, onR
                                                     columnNumber: 21
                                                 }, this)
                                             ]
-                                        }, void 0, true) : /*#__PURE__*/ jsxDEV("td", {
+                                        }, "scoped-discount-targets", true) : /*#__PURE__*/ jsxDEV("td", {
                                             className: `${discountTableCellClassName} text-center`,
                                             children: /*#__PURE__*/ jsxDEV("span", {
                                                 className: "font-medium text-slate-700",
@@ -10278,12 +10276,14 @@ function OrderSummaryCard({ compact, detailRows, calculationRows, total }) {
     }, this);
 }
 
-const CommercialToolsPanelExport: any = CommercialToolsPanel;
-const ProductTypeSelectorCardRowExport: any = ProductTypeSelectorCardRow;
-const QuantityDiscountsCardExport: any = QuantityDiscountsCard;
-const SimpleProductModuleExport: any = SimpleProductModule;
-const UniqueMachineProductModuleExport: any = UniqueMachineProductModule;
-const WeightProductModuleExport: any = WeightProductModule;
+type ProductPricingComponent = ComponentType<Record<string, unknown>>;
+
+const CommercialToolsPanelExport = CommercialToolsPanel as ProductPricingComponent;
+const ProductTypeSelectorCardRowExport = ProductTypeSelectorCardRow as ProductPricingComponent;
+const QuantityDiscountsCardExport = QuantityDiscountsCard as ProductPricingComponent;
+const SimpleProductModuleExport = SimpleProductModule as ProductPricingComponent;
+const UniqueMachineProductModuleExport = UniqueMachineProductModule as ProductPricingComponent;
+const WeightProductModuleExport = WeightProductModule as ProductPricingComponent;
 
 export {
   CommercialToolsPanelExport as CommercialToolsPanel,

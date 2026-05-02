@@ -1,10 +1,7 @@
 import AdminOrdersTableLoader from '@/admin/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
-import {
-  type OrderRow,
-  fetchOrders,
-  fetchOrdersListPage
-} from '@/shared/server/orders';
+import { fetchOrders, fetchOrdersListPage } from '@/shared/server/orders';
+import type { OrderRow } from '@/shared/domain/order/orderTypes';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
@@ -70,43 +67,8 @@ async function AdminOrdersTableSection({
     const pageSize = [25, 50, 100].includes(Number(normalizeSearchParam(searchParams?.pageSize)))
       ? Number(normalizeSearchParam(searchParams?.pageSize))
       : 25;
-
-  const demoOrders: OrderRow[] = [
-    {
-      id: 1,
-      order_number: '#1',
-      customer_type: 'school',
-      organization_name: 'Osnovna šola Triglav',
-      contact_name: 'Maja Kovač',
-      email: 'maja.kovac@example.com',
-      delivery_address: 'Šolska ulica 1, Ljubljana',
-      reference: 'PO-2024-01',
-      notes: null,
-      status: 'received',
-      payment_status: 'paid',
-      admin_order_notes: null,
-      subtotal: 0,
-      tax: 0,
-      total: 0,
-      created_at: new Date().toISOString(),
-      is_draft: false
-    }
-  ];
-
-  const demoDocuments = [
-    {
-      id: 1,
-      order_id: 1,
-      type: 'order_summary',
-      filename: '#1-order-summary.pdf',
-      blob_url: '#',
-      blob_pathname: null,
-      created_at: new Date().toISOString()
-    }
-  ];
-
-  let orders: OrderRow[] = demoOrders;
-  let analyticsOrders: OrderRow[] = demoOrders;
+  let orders: OrderRow[] = [];
+  let analyticsOrders: OrderRow[] = [];
   let documents: Array<{
     id: number;
     order_id: number;
@@ -115,8 +77,8 @@ async function AdminOrdersTableSection({
     blob_url: string;
     blob_pathname: string | null;
     created_at: string;
-  }> = demoDocuments;
-  let totalCount = demoOrders.length;
+  }> = [];
+  let totalCount = 0;
   let warningMessage: string | null = null;
 
   const fallbackAppearance: AnalyticsGlobalAppearance = {
@@ -132,7 +94,7 @@ async function AdminOrdersTableSection({
   let analyticsAppearance = fallbackAppearance;
 
   if (!getDatabaseUrl()) {
-    warningMessage = 'Povezava z bazo ni nastavljena — prikazan je demo pogled.';
+    warningMessage = 'Povezava z bazo ni nastavljena.';
   } else {
     try {
       const [ordersPageResult, analyticsOrdersResult, analyticsAppearanceResult] = await Promise.all([
@@ -169,8 +131,7 @@ async function AdminOrdersTableSection({
       console.info(`/admin/orders loaded rows=${orders.length} total=${totalCount} page=${page} pageSize=${pageSize}`);
     } catch (error) {
       console.error('Failed to load /admin/orders data', error);
-      warningMessage =
-        'Podatkov trenutno ni mogoče naložiti. Prikazan je demo pogled, dokler povezava z bazo ne deluje.';
+      warningMessage = 'Podatkov trenutno ni mogoče naložiti.';
     }
   }
 

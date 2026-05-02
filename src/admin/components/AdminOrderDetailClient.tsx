@@ -613,14 +613,12 @@ export default function AdminOrderDetailClient({
   orderId,
   order,
   items,
-  documents,
-  showDemoBanner = false
+  documents
 }: {
   orderId: number;
   order: NormalizedOrder;
   items: OrderItemInput[];
   documents: PersistedOrderPdfDocument[];
-  showDemoBanner?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -918,12 +916,6 @@ export default function AdminOrderDetailClient({
           <span className="mx-1 text-slate-400">›</span>
           <span>{pageTitle}</span>
         </div>
-
-        {showDemoBanner ? (
-          <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
-            DATABASE_URL ni nastavljen - prikazan je demo pogled.
-          </div>
-        ) : null}
 
         {order.is_draft && !hasUnsavedChanges ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">

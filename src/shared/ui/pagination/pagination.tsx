@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IconButton } from '@/shared/ui/icon-button';
-import { Input } from '@/shared/ui/input';
+import IconButton from '../icon-button/IconButton';
+import Input from '../input/input';
 
 export type PaginationProps = {
   page: number;

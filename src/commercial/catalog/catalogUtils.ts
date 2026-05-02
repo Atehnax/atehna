@@ -1,4 +1,5 @@
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
+import { formatEuro } from '@/shared/domain/formatting';
 
 export function getCatalogItemSku(
   categorySlug: string,
@@ -35,7 +36,7 @@ export function getCatalogCategoryItemPrice(categorySlug: string, itemSlug: stri
 }
 
 export function formatCatalogPrice(price: number): string {
-  return new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(price);
+  return formatEuro(price);
 }
 
 export function sortCatalogItems(items: CatalogItem[]): CatalogItem[] {

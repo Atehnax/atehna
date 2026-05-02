@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
-import { Button } from '@/shared/ui/button';
+import Button from '../button/Button';
 import { adminTablePrimaryButtonClassName } from './standards';
 
 type AdminTablePrimaryActionButtonProps = Omit<

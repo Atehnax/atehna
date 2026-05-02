@@ -1,7 +1,7 @@
 import {
-  getAdminStatusInfoMenuOptionClassName,
-  type AdminStatusInfoMenuOptionTone
-} from '@/shared/ui/theme/tokens';
+  getStatusInfoMenuOptionClassName,
+  type StatusInfoMenuOptionTone
+} from './statusMenuOptionStyles';
 
 export const ORDER_STATUS_OPTIONS = [
   { value: 'received', label: 'Prejeto' },
@@ -12,22 +12,13 @@ export const ORDER_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Preklicano' }
 ] as const;
 
-export type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
+type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
 
 const STATUS_LABELS = new Map<OrderStatus, string>(
   ORDER_STATUS_OPTIONS.map((option) => [option.value, option.label])
 );
 
-const STATUS_CHIP_CLASSNAMES: Record<OrderStatus, string> = {
-  received: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700',
-  in_progress: 'border-yellow-200 bg-yellow-50 text-yellow-800',
-  partially_sent: 'border-sky-200 bg-sky-50 text-sky-700',
-  sent: 'border-blue-200 bg-blue-50 text-blue-700',
-  finished: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  cancelled: 'border-orange-300 bg-orange-100 text-orange-900'
-};
-
-const STATUS_MENU_OPTION_TONES: Record<OrderStatus, AdminStatusInfoMenuOptionTone> = {
+const STATUS_MENU_OPTION_TONES: Record<OrderStatus, StatusInfoMenuOptionTone> = {
   received: 'neutral',
   in_progress: 'warning',
   partially_sent: 'sky',
@@ -42,13 +33,8 @@ export const isOrderStatus = (value: string): value is OrderStatus =>
 export const getStatusLabel = (value: string) =>
   isOrderStatus(value) ? STATUS_LABELS.get(value) ?? 'Neznano' : 'Neznano';
 
-export const getStatusChipClassName = (value: string) =>
-  isOrderStatus(value)
-    ? STATUS_CHIP_CLASSNAMES[value]
-    : 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400';
-
 export const getStatusMenuItemClassName = (value: string) =>
-  getAdminStatusInfoMenuOptionClassName(
+  getStatusInfoMenuOptionClassName(
     isOrderStatus(value) ? STATUS_MENU_OPTION_TONES[value] : 'neutral'
   );
 

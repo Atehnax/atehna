@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { TableShell } from '@/shared/ui/table';
+import TableShell from '../table/table-shell';
 
 type AdminTableLayoutProps = {
   headerLeft?: ReactNode;

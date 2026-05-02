@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getPageContent } from '@/commercial/content/content';
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
+import { hasDatabaseConnectionString } from '@/shared/server/db';
 
 export const metadata = {
   title: 'Izdelki'
@@ -11,7 +12,11 @@ export const dynamic = 'force-static';
 
 export default async function ProductsPage() {
   const page = getPageContent('products');
-  const categories = await getCatalogCategoryCardsServer();
+  const hasDatabase = hasDatabaseConnectionString();
+  const categories = hasDatabase ? await getCatalogCategoryCardsServer() : [];
+  if (!hasDatabase) {
+    console.warn('Skipping /products catalog data because database connection string is not set.');
+  }
 
   return (
     <div className="container-base py-12">

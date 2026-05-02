@@ -34,16 +34,16 @@ export const adminTableSearchInputClassName =
 export const adminTableSearchIconClassName = 'left-4 h-[18px] w-[18px] text-slate-400';
 
 export const adminTableNeutralIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]';
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]';
 
 export const adminTableSelectedSuccessIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-emerald-300/80 !bg-white !text-emerald-700 hover:!bg-emerald-50 active:!bg-emerald-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-emerald-300/80 !bg-white !text-emerald-700 hover:!bg-emerald-50 active:!bg-emerald-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTableSelectedWarningIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-amber-300/80 !bg-white !text-amber-700 hover:!bg-amber-50 active:!bg-amber-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-amber-300/80 !bg-white !text-amber-700 hover:!bg-amber-50 active:!bg-amber-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTableSelectedDangerIconButtonClassName =
-  '!h-9 !w-9 !rounded-md !border-rose-300/80 !bg-white !text-rose-700 hover:!bg-rose-50 active:!bg-rose-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-rose-300/80 !bg-white !text-rose-700 hover:!bg-rose-50 active:!bg-rose-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTablePrimaryButtonClassName =
   `${adminTextButtonTypographyTokenClasses} !h-9 !rounded-md !px-4 !text-[13px] !font-semibold !tracking-[0.005em] hover:!bg-[#1777af] active:!bg-[#146997]`;
@@ -75,6 +75,71 @@ export const adminTableBodyCellCenterClassName = `${adminTableBodyCellBaseClassN
 export const adminTableBodyCellLeftClassName = `${adminTableBodyCellBaseClassName} text-left`;
 
 export const adminTableRowHeightClassName = 'h-12';
+
+export const adminExpandableTableHeaderCellBaseClassName =
+  'h-11 border-b border-slate-200 px-2 py-0 align-middle text-[12px] font-semibold text-slate-700';
+export const adminExpandableTableHeaderCellLeftClassName =
+  `${adminExpandableTableHeaderCellBaseClassName} text-left`;
+export const adminExpandableTableHeaderCellCenterClassName =
+  `${adminExpandableTableHeaderCellBaseClassName} text-center`;
+export const adminExpandableTableHeaderContentClassName =
+  'relative inline-flex h-11 items-center gap-1.5 align-middle';
+export const adminExpandableTableHeaderValueAlignClassName = 'ml-2.5';
+export const adminExpandableTableHeaderTightValueAlignClassName = 'ml-1.5';
+export const adminExpandableTableHeaderFirstValueAlignClassName = 'ml-[39px]';
+export const adminExpandableTableHeaderRightValueAlignClassName = '-translate-x-2.5';
+export const adminExpandableTableCheckboxColumnClassName = 'w-10 min-w-10 max-w-10';
+export const adminExpandableTableMainCellClassName = 'h-12 px-2 !py-0 align-middle';
+export const adminExpandableTableMainCenterCellClassName =
+  `${adminExpandableTableMainCellClassName} text-center`;
+export const adminExpandableTableTextSlotClassName =
+  'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
+export const adminExpandableTableMultilineTextSlotClassName =
+  'inline-flex h-8 max-w-full items-center rounded-md border border-transparent px-2';
+export const adminExpandableTableTightTextSlotClassName =
+  'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-1';
+export const adminExpandableSubtableParentRowClassName =
+  'border-t border-slate-200/90 bg-slate-50/70';
+export const adminExpandableSubtableParentContentCellClassName = 'p-0';
+
+export const adminSubtableHeaderValueAlignClassName = 'ml-2.5';
+export const adminSubtableHeaderHoverValueAlignClassName = 'ml-3.5';
+export const adminSubtableHeaderRightValueAlignClassName = 'relative right-3.5';
+export const adminSubtableHeaderRowClassName = 'h-10 border-b border-slate-200 text-[11px] font-medium text-slate-600';
+export const adminSubtableHeaderCellClassName = 'h-10 px-2 py-0 align-middle whitespace-nowrap';
+export const adminSubtableHeaderCellLeftClassName = `${adminSubtableHeaderCellClassName} text-left`;
+export const adminSubtableHeaderCellCenterClassName = `${adminSubtableHeaderCellClassName} text-center`;
+export const adminSubtableHeaderCellRightClassName = `${adminSubtableHeaderCellClassName} text-right`;
+export const adminSubtableRowClassName = 'h-10 border-t border-slate-200/90';
+export const adminSubtableCellClassName = 'h-10 px-2 py-0 align-middle';
+export const adminSubtableCenterCellClassName = `${adminSubtableCellClassName} text-center`;
+export const adminSubtableTextSlotClassName =
+  'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
+export const adminSubtableNumberSlotClassName =
+  'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-2 text-right';
+export const adminSubtableEditNumberSlotClassName =
+  'inline-flex h-7 min-w-[9ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[13px] text-right';
+
+export const adminProductVariantSubtableCheckboxColumnClassName =
+  'w-[44px] min-w-[44px] max-w-[44px]';
+export const adminProductVariantSubtableVariantColumnClassName =
+  'w-[140.3px] min-w-[140.3px] max-w-[140.3px]';
+export const adminProductVariantSubtableSkuColumnClassName =
+  'w-[478px] min-w-[478px] max-w-[478px]';
+export const adminProductVariantSubtablePriceColumnClassName =
+  'w-[109px] min-w-[109px] max-w-[109px]';
+export const adminProductVariantSubtablePillColumnClassName =
+  'w-[150px] min-w-[150px] max-w-[150px]';
+export const adminProductVariantSubtableActionsColumnClassName =
+  'w-[97px] min-w-[97px] max-w-[97px]';
+export const adminProductVariantSubtableSkuHeaderAlignClassName = 'ml-[14px]';
+export const adminSubtableFirstTextColumnIndentClassName = 'ml-3';
+export const adminSubtableFirstTextColumnTextOffsetClassName = '-translate-x-px';
+export const adminProductVariantSubtableVariantIndentClassName = adminSubtableFirstTextColumnIndentClassName;
+export const adminProductVariantSubtableVariantTextSlotClassName =
+  `inline-flex h-7 max-w-full ${adminSubtableFirstTextColumnTextOffsetClassName} items-center rounded-md border border-transparent`;
+export const adminProductVariantSubtablePriceHeaderAlignClassName = 'relative right-[38px]';
+export const adminProductVariantSubtablePillHeaderAlignClassName = 'relative right-2';
 
 export const adminTableMatchingValueBaseClassName =
   'inline-flex items-center rounded-[4px] border border-transparent px-1 leading-[1.35]';

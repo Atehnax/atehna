@@ -1,6 +1,7 @@
 import AdminItemEditorPage from '@/admin/features/artikli/components/AdminItemEditorPage';
 import { fetchCatalogItemEditorBySlug } from '@/shared/server/catalogItems';
 import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,9 @@ export default async function AdminEditArticlePage({
     const { articleId } = await params;
     const slug = decodeURIComponent(articleId);
     const initialData = await fetchCatalogItemEditorBySlug(slug);
+    if (initialData?.slug && initialData.slug !== slug) {
+      redirect(`/admin/artikli/${encodeURIComponent(initialData.slug)}`);
+    }
     return <AdminItemEditorPage mode="edit" articleId={slug} initialData={initialData} />;
   });
 }

@@ -342,6 +342,11 @@ export function summarizeCatalogChanges(
   const nextCats = next.categories;
   const prevById = new Map(prevCats.map((category, index) => [category.id, { category, index }]));
   const nextById = new Map(nextCats.map((category, index) => [category.id, { category, index }]));
+  const hasSameTopLevelCategories =
+    prevById.size === nextById.size && prevCats.every((category) => nextById.has(category.id));
+  const topLevelOrderChanged =
+    hasSameTopLevelCategories &&
+    prevCats.some((category, index) => nextCats[index]?.id !== category.id);
 
   for (const { category } of prevById.values()) {
     if (!nextById.has(category.id)) lines.push(`izbrisana kategorija "${category.title}"`);
@@ -349,6 +354,10 @@ export function summarizeCatalogChanges(
 
   for (const { category } of nextById.values()) {
     if (!prevById.has(category.id)) lines.push(`dodana kategorija "${category.title}"`);
+  }
+
+  if (topLevelOrderChanged) {
+    lines.push('spremenjen vrstni red glavnih kategorij');
   }
 
   const prevSubsById = new Map<string, { title: string; image: string; index: number; parentId: string; parentLabel: string }>();
@@ -381,7 +390,7 @@ export function summarizeCatalogChanges(
     const newCat = match.category;
     if (oldCat.title !== newCat.title) lines.push(`preimenovana kategorija "${oldCat.title}" → "${newCat.title}"`);
     if ((oldCat.image ?? '') !== (newCat.image ?? '')) lines.push(`spremenjena slika za kategorijo "${newCat.title}"`);
-    if (oldIndex !== match.index) lines.push(`premaknjena kategorija "${newCat.title}"`);
+    if (!topLevelOrderChanged && oldIndex !== match.index) lines.push(`premaknjena kategorija "${newCat.title}"`);
   }
 
   const labelById = buildLabelMap(nextCats);

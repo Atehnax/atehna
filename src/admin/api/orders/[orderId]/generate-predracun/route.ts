@@ -3,8 +3,9 @@ import { getPool } from '@/shared/server/db';
 import { buildOrderBlobPath, uploadBlob } from '@/shared/server/blob';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { buildGeneratedPdfFileName, buildPdfContext } from '@/shared/server/pdfGeneration';
+import { recordOrderDocumentAudit } from '../../orderDocumentAudit';
 
-export async function POST(_request: Request, props: { params: Promise<{ orderId: string }> }) {
+export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
   try {
     const orderId = Number(params.orderId);
@@ -32,6 +33,15 @@ export async function POST(_request: Request, props: { params: Promise<{ orderId
       'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
       [orderId, 'predracun', fileName, blob.url, blob.pathname]
     );
+    await recordOrderDocumentAudit({
+      request,
+      orderId,
+      orderNumber: context.orderForPdf.orderNumber,
+      documentId: Number(insertResult.rows[0].id),
+      documentType: 'predracun',
+      filename: fileName,
+      generated: true
+    });
 
     return NextResponse.json({
       url: blob.url,

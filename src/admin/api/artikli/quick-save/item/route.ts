@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
+  fetchCatalogItemEditorBySlug,
   quickPatchCatalogItemByIdentifier,
   type CatalogItemQuickPatch
 } from '@/shared/server/catalogItems';
+import { computeCatalogItemAuditDiff, countAuditChangedFields, diffHasEntries, inferCatalogItemAuditAction } from '@/shared/audit/auditDiff';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 type ItemQuickSaveRequest = {
   itemIdentifier?: string;
@@ -21,9 +24,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'Patch payload je obvezen.' }, { status: 400 });
     }
 
+    const before = await fetchCatalogItemEditorBySlug(itemIdentifier);
     const item = await quickPatchCatalogItemByIdentifier(itemIdentifier, body.patch);
     if (!item) {
       return NextResponse.json({ message: 'Artikel ni bil najden.' }, { status: 404 });
+    }
+    const after = await fetchCatalogItemEditorBySlug(String(item.id));
+    const diff = computeCatalogItemAuditDiff(before as Record<string, unknown> | null, after as Record<string, unknown> | null);
+    if (diffHasEntries(diff)) {
+      await insertAuditEventForRequest(request, {
+        entityType: 'item',
+        entityId: String(after?.slug ?? item.slug ?? itemIdentifier),
+        entityLabel: after?.itemName ?? item.itemName,
+        action: inferCatalogItemAuditAction(diff, 'updated'),
+        diff,
+        metadata: {
+          product_type: after?.productType ?? item.productType,
+          changed_field_count: countAuditChangedFields(diff)
+        }
+      });
     }
 
     return NextResponse.json({ item });

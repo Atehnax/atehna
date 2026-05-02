@@ -827,15 +827,32 @@ function normalizeWeightNoteTag(value) {
 function weightSkuPart(value) {
     return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '').toUpperCase();
 }
+function weightFractionSkuPart(value) {
+    const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\b(mm|cm|m)\b/gi, '').replace(/\s+/g, '').replace(/[,.]/g, 'P').replace(/[^a-zA-Z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return normalized.toUpperCase();
+}
+function weightMassSkuPart(value) {
+    if (value === null) return 'BULK';
+    return (0, formatDecimalForSku)(value) || '0';
+}
+function shouldUseGeneratedWeightSku(sku, baseSku) {
+    const normalizedSku = String(sku ?? '').trim();
+    if (!normalizedSku) return true;
+    const normalizedBaseSku = String(baseSku ?? '').trim();
+    if (!normalizedBaseSku) return normalizedSku.toUpperCase().startsWith('SKU-');
+    const upperSku = normalizedSku.toUpperCase();
+    const upperBaseSku = normalizedBaseSku.toUpperCase();
+    return upperSku.startsWith('SKU-') || !upperSku.startsWith(`${upperBaseSku}-`);
+}
 function createWeightVariantFromCombination({ netMassKg, fraction, color, bagCount = 1, index, data, baseSku }) {
-    const suffix = netMassKg === null ? '001' : (0, formatDecimalForSku)(netMassKg).padStart(3, '0');
+    const suffix = weightMassSkuPart(netMassKg);
     const normalizedBagCount = Math.max(1, Math.floor(bagCount));
     const fractionPricing = getWeightFractionPricing(data, fraction);
     const skuParts = [
-        weightSkuPart(fraction),
+        weightFractionSkuPart(fraction),
         weightSkuPart(color),
-        normalizedBagCount > 1 ? `VR${normalizedBagCount}` : '',
-        suffix
+        suffix,
+        normalizedBagCount > 1 ? `VR${normalizedBagCount}` : ''
     ].filter(Boolean);
     return {
         id: `weight-${skuParts.join('-') || suffix}-${index}`,
@@ -969,6 +986,7 @@ function normalizeWeightVariant(value, index, data, baseSku) {
         data,
         baseSku
     });
+    const rawSku = asString(record.sku, '');
     return {
         id: asString(record.id, fallback.id),
         type: normalizeWeightLooseLabel(asString(record.type, fallback.type)),
@@ -983,7 +1001,7 @@ function normalizeWeightVariant(value, index, data, baseSku) {
         orderStep: Math.max(0, asNumber(record.orderStep, data.orderStep)),
         stockKg: Math.max(0, asNumber(record.stockKg, data.stockKg)),
         deliveryTime: asString(record.deliveryTime, data.deliveryTime),
-        sku: asString(record.sku, fallback.sku),
+        sku: shouldUseGeneratedWeightSku(rawSku, baseSku) ? fallback.sku : rawSku,
         active: asBoolean(record.active, true),
         note: asString(record.note, ''),
         position: Math.max(1, Math.floor(asNumber(record.position, index + 1)))

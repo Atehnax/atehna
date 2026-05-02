@@ -1,5 +1,6 @@
 import { useMemo, type RefObject, type ReactNode } from 'react';
 import Selecto from 'react-selecto';
+import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import { IconButton } from '@/shared/ui/icon-button';
 import { ActionRestoreIcon, ActionUndoIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
@@ -185,7 +186,7 @@ export function AdminCategoriesMiller({
         <div className="ml-[14px] min-w-0 text-xs text-slate-600">
           <AdminBreadcrumbPath items={breadcrumbs} />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" data-miller-selection-toolbar="true">
           <div className="w-[320px] max-w-[36vw] min-w-0">
             <div className="min-w-0 w-full">
               <AdminSearchInput
@@ -216,6 +217,7 @@ export function AdminCategoriesMiller({
           >
             <ActionUndoIcon />
           </IconButton>
+          <AuditHistoryDrawer entityType="category" entityLabel="Kategorije" />
           <IconButton
             type="button"
             size="sm"

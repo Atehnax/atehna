@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/archive/cleanup",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/admin/audit-events/prune",
+      "schedule": "20 3 * * *"
     }
   ]
 }

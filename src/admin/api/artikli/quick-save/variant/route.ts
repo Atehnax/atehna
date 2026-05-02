@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
+  fetchCatalogItemEditorBySlug,
   quickPatchCatalogVariantByIdentifier,
   type CatalogVariantQuickPatch
 } from '@/shared/server/catalogItems';
+import { computeCatalogItemAuditDiff, countAuditChangedFields, diffHasEntries, inferCatalogItemAuditAction } from '@/shared/audit/auditDiff';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 type VariantQuickSaveRequest = {
   itemIdentifier?: string;
@@ -26,9 +29,27 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'Patch payload je obvezen.' }, { status: 400 });
     }
 
+    const before = await fetchCatalogItemEditorBySlug(itemIdentifier);
     const updated = await quickPatchCatalogVariantByIdentifier(itemIdentifier, variantId, body.patch);
     if (!updated) {
       return NextResponse.json({ message: 'Različica ni bila najdena.' }, { status: 404 });
+    }
+
+    const after = await fetchCatalogItemEditorBySlug(String(updated.item.id));
+    const diff = computeCatalogItemAuditDiff(before as Record<string, unknown> | null, after as Record<string, unknown> | null);
+    if (diffHasEntries(diff)) {
+      await insertAuditEventForRequest(request, {
+        entityType: 'item',
+        entityId: String(after?.slug ?? updated.item.slug ?? itemIdentifier),
+        entityLabel: after?.itemName ?? updated.item.itemName,
+        action: inferCatalogItemAuditAction(diff, 'updated'),
+        diff,
+        metadata: {
+          product_type: after?.productType ?? updated.item.productType,
+          changed_field_count: countAuditChangedFields(diff),
+          variant_id: variantId
+        }
+      });
     }
 
     return NextResponse.json(updated);

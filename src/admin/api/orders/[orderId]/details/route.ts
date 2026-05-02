@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
 import { ensureOrdersDraftColumn, ensureOrdersPostalCodeColumn, getOrderNumberAvailability } from '@/shared/server/orders';
+import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -62,6 +64,29 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const pool = await getPool();
     await ensureOrdersPostalCodeColumn();
     await ensureOrdersDraftColumn();
+    const detailFields = [
+      'order_number',
+      'customer_type',
+      'organization_name',
+      'contact_name',
+      'email',
+      'delivery_address',
+      'postal_code',
+      'reference',
+      'notes',
+      'created_at'
+    ];
+    const beforeResult = await pool.query(
+      `
+      select order_number, customer_type, organization_name, contact_name, email, delivery_address, postal_code, reference, notes, created_at
+      from orders
+      where id = $1
+      `,
+      [orderId]
+    );
+    if (beforeResult.rows.length === 0) {
+      return NextResponse.json({ message: 'NaroÄilo ne obstaja.' }, { status: 404 });
+    }
     const trimmedOrderNumber = typeof orderNumber === 'string' ? orderNumber.trim() : '';
     const orderNumberAvailability = trimmedOrderNumber
       ? await getOrderNumberAvailability(trimmedOrderNumber, orderId, 0)
@@ -143,6 +168,36 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           orderId
         ]
       );
+    }
+
+    const afterResult = await pool.query(
+      `
+      select order_number, customer_type, organization_name, contact_name, email, delivery_address, postal_code, reference, notes, created_at
+      from orders
+      where id = $1
+      `,
+      [orderId]
+    );
+    const after = afterResult.rows[0] as Record<string, unknown> | undefined;
+    const before = beforeResult.rows[0] as Record<string, unknown>;
+    const diff = computeObjectDiff(before, after ?? {}, {
+      entityType: 'order',
+      fields: detailFields
+    });
+    if (diffHasEntries(diff)) {
+      const orderNumberLabel = String(after?.order_number ?? before.order_number ?? `#${orderId}`);
+      await insertAuditEventForRequest(request, {
+        entityType: 'order',
+        entityId: String(orderId),
+        entityLabel: `Naročilo ${orderNumberLabel}`,
+        action: 'updated',
+        summary: `Naročilo ${orderNumberLabel}: podatki spremenjeni`,
+        diff,
+        metadata: {
+          order_number: orderNumberLabel,
+          changed_field_count: countAuditChangedFields(diff)
+        }
+      });
     }
 
     revalidateAdminOrderPaths(orderId);

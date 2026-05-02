@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 async function ensureArchiveSchema() {
   const pool = await getPool();
@@ -36,7 +37,7 @@ async function hasDocumentsDeletedAtColumn() {
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   props: { params: Promise<{ orderId: string; documentId: string }> }
 ) {
   const params = await props.params;
@@ -56,14 +57,14 @@ export async function DELETE(
       supportsSoftDelete
         ? `
           select d.id, d.type, d.filename, d.blob_url, d.blob_pathname, d.deleted_at,
-            o.contact_name, o.delivery_address, o.customer_type, o.created_at
+            o.order_number, o.contact_name, o.delivery_address, o.customer_type, o.created_at
           from order_documents d
           left join orders o on o.id = d.order_id
           where d.id = $1 and d.order_id = $2
         `
         : `
           select d.id, d.type, d.filename, d.blob_url, d.blob_pathname, null::timestamptz as deleted_at,
-            o.contact_name, o.delivery_address, o.customer_type, o.created_at
+            o.order_number, o.contact_name, o.delivery_address, o.customer_type, o.created_at
           from order_documents d
           left join orders o on o.id = d.order_id
           where d.id = $1 and d.order_id = $2
@@ -80,6 +81,7 @@ export async function DELETE(
       filename: string;
       blob_url: string;
       blob_pathname: string | null;
+      order_number: string | null;
       contact_name: string | null;
       delivery_address: string | null;
       customer_type: string | null;
@@ -122,10 +124,51 @@ export async function DELETE(
         }
       }
 
+      const orderNumber = row.order_number || `#${orderId}`;
+      await insertAuditEventForRequest(request, {
+        entityType: 'order',
+        entityId: String(orderId),
+        entityLabel: `Naročilo ${orderNumber}`,
+        action: 'removed',
+        summary: `Naročilo ${orderNumber}: dokument odstranjen`,
+        diff: {
+          documents: {
+            label: 'Dokumenti',
+            removed: [row.filename]
+          }
+        },
+        metadata: {
+          order_number: orderNumber,
+          document_id: documentId,
+          document_type: row.type,
+          soft_delete: true
+        }
+      });
+
       return NextResponse.json({ success: true });
     }
 
     await pool.query('delete from order_documents where id = $1 and order_id = $2', [documentId, orderId]);
+    const orderNumber = row.order_number || `#${orderId}`;
+    await insertAuditEventForRequest(request, {
+      entityType: 'order',
+      entityId: String(orderId),
+      entityLabel: `Naročilo ${orderNumber}`,
+      action: 'removed',
+      summary: `Naročilo ${orderNumber}: dokument odstranjen`,
+      diff: {
+        documents: {
+          label: 'Dokumenti',
+          removed: [row.filename]
+        }
+      },
+      metadata: {
+        order_number: orderNumber,
+        document_id: documentId,
+        document_type: row.type,
+        soft_delete: false
+      }
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

@@ -211,6 +211,8 @@ export const filterPillTokenClasses = {
   clear: 'inline-flex text-[12px] leading-none text-slate-500 transition hover:text-[color:var(--danger-600)] active:text-[color:var(--danger-600)]'
 } as const;
 
+export const filterPillClearGlyph = '×';
+
 export const adminFilterInputTokenClasses =
   `h-8 rounded-md border border-slate-300 bg-white px-2.5 text-[12px] leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${adminPlaceholderTokenClasses}`;
 

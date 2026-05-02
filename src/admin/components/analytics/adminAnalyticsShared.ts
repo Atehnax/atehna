@@ -33,8 +33,6 @@ export const chartTypeOptions: AnalyticsChartType[] = [
 
 export const transformOptions = ['none', 'moving_average_7d', 'cumulative', 'pct_change', 'share_of_total'] as const;
 
-const legacyPalette = new Set(['#22d3ee', '#f59e0b', '#34d399', '#60a5fa', '#38bdf8', '#f87171', '#5d3ed6']);
-
 const movingAverage = (values: number[], window = 7) => values.map((_, index) => {
   const start = Math.max(0, index - (window - 1));
   const slice = values.slice(start, index + 1);
@@ -75,12 +73,10 @@ export function buildChartModel(chart: AnalyticsChartRow, data: OrdersAnalyticsR
   const enabledSeries = chart.config_json.series.filter((series) => series.enabled);
   const traces: Data[] = [];
   const exportRows: Array<Record<string, string | number>> = [];
-  const palette = chart.config_json.appearance?.seriesPalette ?? globalAppearance.seriesPalette;
 
-  enabledSeries.forEach((series, index) => {
+  enabledSeries.forEach((series) => {
     const metricValues = extractSeriesValues(days, series);
-    const effectiveColor = legacyPalette.has(series.color) ? (palette[index % palette.length] ?? series.color) : series.color;
-    const trace = seriesToTrace({ ...series, color: effectiveColor }, x, metricValues, chart.chart_type);
+    const trace = seriesToTrace(series, x, metricValues, chart.chart_type);
     traces.push(trace);
 
     x.forEach((date, valueIndex) => {

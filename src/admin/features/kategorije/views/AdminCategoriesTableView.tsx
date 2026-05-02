@@ -2,6 +2,7 @@ import type { RefObject, ReactNode } from 'react';
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
+import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import { IconButton } from '@/shared/ui/icon-button';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import {
@@ -166,6 +167,7 @@ export function AdminCategoriesTableView({
               >
                 <ActionRestoreIcon />
               </IconButton>
+              <AuditHistoryDrawer entityType="category" entityLabel="Kategorije" />
               <IconButton
                 type="button"
                 size="sm"

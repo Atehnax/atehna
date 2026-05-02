@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Uppy from '@uppy/core';
-import { UppyContextProvider, useDropzone } from '@uppy/react';
 import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -61,6 +59,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/A
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
   CommercialToolsPanel,
   ProductTypeSelectorCardRow,
@@ -199,6 +198,7 @@ function mapProductTypeToCatalogItemType(productType: ProductEditorType): Catalo
 type StagedImageSlot = {
   previewUrl: string;
   uploadedUrl: string | null;
+  blobPathname: string | null;
   file: File | null;
   filename: string | null;
   mimeType: string | null;
@@ -257,6 +257,35 @@ type TextUndoSession = {
   snapshot: EditorUndoSnapshot;
   snapshotKey: string;
 };
+
+const defaultQuantityDiscountAuditPlaceholders = [
+  { minQuantity: 1, discountPercent: 0, appliesTo: 'allVariants', note: '', position: 0 },
+  { minQuantity: 10, discountPercent: 3, appliesTo: 'allVariants', note: '', position: 1 },
+  { minQuantity: 25, discountPercent: 5, appliesTo: 'allVariants', note: '', position: 2 },
+  { minQuantity: 50, discountPercent: 8, appliesTo: 'allVariants', note: '', position: 3 }
+] as const;
+
+function normalizeQuantityDiscountAuditTarget(rule: QuantityDiscountDraft) {
+  return serializeQuantityDiscountTargets(rule) || 'allVariants';
+}
+
+function isUntouchedDefaultQuantityDiscountSet(rules: QuantityDiscountDraft[]) {
+  if (rules.length !== defaultQuantityDiscountAuditPlaceholders.length) return false;
+  return rules.every((rule, index) => {
+    const expected = defaultQuantityDiscountAuditPlaceholders[index];
+    if (!expected) return false;
+    return !rule.persistedId
+      && Number(rule.minQuantity) === expected.minQuantity
+      && Number(rule.discountPercent) === expected.discountPercent
+      && normalizeQuantityDiscountAuditTarget(rule) === expected.appliesTo
+      && String(rule.note ?? '').trim() === expected.note
+      && Number(rule.position ?? index) === expected.position;
+  });
+}
+
+function getPersistableQuantityDiscounts(rules: QuantityDiscountDraft[], hadPersistedQuantityDiscounts: boolean) {
+  return !hadPersistedQuantityDiscounts && isUntouchedDefaultQuantityDiscountSet(rules) ? [] : rules;
+}
 const MEDIA_SLOT_COUNT = 7;
 const GALLERY_SMALL_SLOT_COUNT = 6;
 const UNDO_HISTORY_LIMIT = 10;
@@ -427,6 +456,7 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
     itemLevelNote: state.itemLevelNote,
     mediaImages: state.mediaImages.map((slot) => ({
       uploadedUrl: slot.uploadedUrl,
+      blobPathname: slot.blobPathname,
       altText: slot.altText,
       filename: slot.filename,
       mimeType: slot.mimeType,
@@ -516,7 +546,7 @@ function formatQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
   const note = rule.note.trim() ? `, opomba ${rule.note.trim()}` : '';
   const variants = rule.variantTargets.join(', ') || 'Vse';
   const customers = rule.customerTargets.join(', ') || 'Vse';
-  return `${rule.minQuantity} kos -> ${formatDecimalForDisplay(rule.discountPercent)} %; razlicice: ${variants}; kupci: ${customers}${note}`;
+  return `${rule.minQuantity} kos -> ${formatDecimalForDisplay(rule.discountPercent)} %; različice: ${variants}; kupci: ${customers}${note}`;
 }
 
 function serializeQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
@@ -533,7 +563,7 @@ function serializeQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
 
 function buildVariantSaveDiffLabel(variant: Variant, index: number) {
   const label = variant.label.trim();
-  return label || `Razlicica ${index + 1}`;
+  return label || `Različica ${index + 1}`;
 }
 
 function describeStagedImageSlot(slot: StagedImageSlot) {
@@ -541,7 +571,7 @@ function describeStagedImageSlot(slot: StagedImageSlot) {
 }
 
 function describeStagedDocument(documentEntry: StagedTechnicalDocument) {
-  return formatSaveDiffText(documentEntry.file?.name ?? documentEntry.name ?? documentEntry.blobUrl ?? 'tehnicni list', 80);
+  return formatSaveDiffText(documentEntry.file?.name ?? documentEntry.name ?? documentEntry.blobUrl ?? 'tehnični list', 80);
 }
 
 function describeStagedVideo(video: StagedVideoState) {
@@ -596,8 +626,8 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(detailItems, 'Barva', formatSaveDiffText(saved.sideSettings.color), formatSaveDiffText(next.sideSettings.color));
   pushSaveDiff(detailItems, 'Oblika', formatSaveDiffText(saved.sideSettings.surface), formatSaveDiffText(next.sideSettings.surface));
   pushSaveDiff(detailItems, 'Toleranca', formatSaveDiffText(saved.sideSettings.thicknessTolerance), formatSaveDiffText(next.sideSettings.thicknessTolerance));
-  pushSaveDiff(detailItems, 'Min. narocilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
-  pushSaveDiff(detailItems, 'Teza / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
+  pushSaveDiff(detailItems, 'Min. naročilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
+  pushSaveDiff(detailItems, 'Teža / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
   if (detailItems.length > 0) groups.push({ title: 'Dodatni podatki', items: detailItems });
 
   if (JSON.stringify(saved.typeSpecificData) !== JSON.stringify(next.typeSpecificData)) {
@@ -610,13 +640,13 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
 
   saved.draft.variants.forEach((variant, index) => {
     if (nextVariantsById.has(variant.id)) return;
-    variantItems.push(`Odstranjena razlicica "${buildVariantSaveDiffLabel(variant, index)}".`);
+    variantItems.push(`Odstranjena različica "${buildVariantSaveDiffLabel(variant, index)}".`);
   });
 
   next.draft.variants.forEach((variant, index) => {
     const savedVariantInfo = savedVariantsById.get(variant.id);
     const variantLabel = buildVariantSaveDiffLabel(variant, index);
-    const prefix = `Razlicica "${variantLabel}"`;
+    const prefix = `Različica "${variantLabel}"`;
 
     if (!savedVariantInfo) {
       const summary: string[] = [];
@@ -631,21 +661,21 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
         );
       }
       summary.push(`cena ${formatSaveDiffCurrency(variant.price)}`);
-      variantItems.push(`Dodana razlicica "${variantLabel}"${summary.length > 0 ? ` (${summary.join(', ')})` : ''}.`);
+      variantItems.push(`Dodana različica "${variantLabel}"${summary.length > 0 ? ` (${summary.join(', ')})` : ''}.`);
       return;
     }
 
     const savedVariant = savedVariantInfo.variant;
     pushSaveDiff(variantItems, `${prefix} - naziv`, formatSaveDiffText(savedVariant.label), formatSaveDiffText(variant.label));
-    pushSaveDiff(variantItems, `${prefix} - dolzina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
-    pushSaveDiff(variantItems, `${prefix} - sirina/fi`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - dolžina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - širina/fi`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - debelina`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
-    pushSaveDiff(variantItems, `${prefix} - teza`, formatSaveDiffNumber(savedVariant.weight, 'g'), formatSaveDiffNumber(variant.weight, 'g'));
+    pushSaveDiff(variantItems, `${prefix} - teža`, formatSaveDiffNumber(savedVariant.weight, 'g'), formatSaveDiffNumber(variant.weight, 'g'));
     pushSaveDiff(variantItems, `${prefix} - toleranca`, formatSaveDiffText(savedVariant.errorTolerance), formatSaveDiffText(variant.errorTolerance));
     pushSaveDiff(variantItems, `${prefix} - cena`, formatSaveDiffCurrency(savedVariant.price), formatSaveDiffCurrency(variant.price));
     pushSaveDiff(variantItems, `${prefix} - popust`, formatSaveDiffNumber(savedVariant.discountPct, '%'), formatSaveDiffNumber(variant.discountPct, '%'));
     pushSaveDiff(variantItems, `${prefix} - zaloga`, formatSaveDiffInteger(savedVariant.stock), formatSaveDiffInteger(variant.stock));
-    pushSaveDiff(variantItems, `${prefix} - min. narocilo`, formatSaveDiffInteger(savedVariant.minOrder), formatSaveDiffInteger(variant.minOrder));
+    pushSaveDiff(variantItems, `${prefix} - min. naročilo`, formatSaveDiffInteger(savedVariant.minOrder), formatSaveDiffInteger(variant.minOrder));
     pushSaveDiff(variantItems, `${prefix} - SKU`, formatSaveDiffText(savedVariant.sku), formatSaveDiffText(variant.sku));
     pushSaveDiff(variantItems, `${prefix} - status`, formatSaveDiffStatus(savedVariant.active), formatSaveDiffStatus(variant.active));
     pushSaveDiff(variantItems, `${prefix} - vrstni red`, formatSaveDiffInteger(savedVariant.sort), formatSaveDiffInteger(variant.sort));
@@ -664,27 +694,27 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     }
   });
 
-  if (variantItems.length > 0) groups.push({ title: 'Razlicice', items: variantItems });
+  if (variantItems.length > 0) groups.push({ title: 'Različice', items: variantItems });
 
   const quantityDiscountItems: string[] = [];
   const savedQuantityDiscountsById = new Map(saved.quantityDiscounts.map((rule) => [rule.id, rule]));
   const nextQuantityDiscountsById = new Map(next.quantityDiscounts.map((rule) => [rule.id, rule]));
   saved.quantityDiscounts.forEach((rule) => {
     if (!nextQuantityDiscountsById.has(rule.id)) {
-      quantityDiscountItems.push(`Odstranjen kolicinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
+      quantityDiscountItems.push(`Odstranjen količinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
     }
   });
   next.quantityDiscounts.forEach((rule) => {
     const savedRule = savedQuantityDiscountsById.get(rule.id);
     if (!savedRule) {
-      quantityDiscountItems.push(`Dodan kolicinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
+      quantityDiscountItems.push(`Dodan količinski popust: ${formatQuantityDiscountForSaveDiff(rule)}.`);
       return;
     }
     if (serializeQuantityDiscountForSaveDiff(savedRule) !== serializeQuantityDiscountForSaveDiff(rule)) {
-      quantityDiscountItems.push(`Kolicinski popust: ${formatQuantityDiscountForSaveDiff(savedRule)} -> ${formatQuantityDiscountForSaveDiff(rule)}.`);
+      quantityDiscountItems.push(`Količinski popust: ${formatQuantityDiscountForSaveDiff(savedRule)} -> ${formatQuantityDiscountForSaveDiff(rule)}.`);
     }
   });
-  if (quantityDiscountItems.length > 0) groups.push({ title: 'Kolicinski popusti', items: quantityDiscountItems });
+  if (quantityDiscountItems.length > 0) groups.push({ title: 'Količinski popusti', items: quantityDiscountItems });
 
   const imageItems: string[] = [];
   const maxImageSlots = Math.max(saved.mediaImages.length, next.mediaImages.length);
@@ -757,7 +787,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   for (let index = 0; index < maxDocumentCount; index += 1) {
     const savedDocument = saved.documents[index];
     const nextDocument = next.documents[index];
-    const label = `Tehnicni list ${index + 1}`;
+    const label = `Tehnični list ${index + 1}`;
     if (!savedDocument && nextDocument) {
       documentItems.push(`${label}: dodan (${describeStagedDocument(nextDocument)}).`);
       continue;
@@ -782,7 +812,7 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
       pushSaveDiff(documentItems, label, describeStagedDocument(savedDocument), describeStagedDocument(nextDocument));
     }
   }
-  if (documentItems.length > 0) groups.push({ title: 'Tehnicni listi', items: documentItems });
+  if (documentItems.length > 0) groups.push({ title: 'Tehnični listi', items: documentItems });
 
   return groups;
 }
@@ -855,6 +885,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
       return {
         previewUrl: url,
         uploadedUrl: url || null,
+        blobPathname: media.blobPathname ?? null,
         file: null,
         filename: media.filename ?? null,
         mimeType: media.mimeType ?? null,
@@ -1123,29 +1154,7 @@ function DocumentUploadFrameIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function UppyDropzoneField({
-  uppy,
-  disabled,
-  onPrepareAddFiles,
-  className = '',
-  children
-}: {
-  uppy: Uppy;
-  disabled: boolean;
-  onPrepareAddFiles: (files: File[]) => void;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <UppyContextProvider uppy={uppy}>
-      <UppyDropzoneFieldInner disabled={disabled} onPrepareAddFiles={onPrepareAddFiles} className={className}>
-        {children}
-      </UppyDropzoneFieldInner>
-    </UppyContextProvider>
-  );
-}
-
-function UppyDropzoneFieldInner({
+function ImageDropzoneField({
   disabled,
   onPrepareAddFiles,
   className = '',
@@ -1157,25 +1166,56 @@ function UppyDropzoneFieldInner({
   children: ReactNode;
 }) {
   const [dragActive, setDragActive] = useState(false);
-  const dropzone = useDropzone({
-    onDragEnter: () => setDragActive(true),
-    onDragLeave: () => setDragActive(false),
-    onDrop: (files) => {
-      setDragActive(false);
-      onPrepareAddFiles(files);
-    },
-    onFileInputChange: (files) => {
-      onPrepareAddFiles(files);
-    }
-  });
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const rootProps = dropzone.getRootProps();
-  const inputProps = dropzone.getInputProps();
-  const interactionProps = disabled ? {} : rootProps;
+  const handleFiles = useCallback((files: FileList | File[] | null) => {
+    if (disabled) return;
+    const selectedFiles = Array.from(files ?? []).filter((file): file is File => file instanceof File);
+    if (selectedFiles.length === 0) return;
+    onPrepareAddFiles(selectedFiles);
+  }, [disabled, onPrepareAddFiles]);
+
+  const openPicker = useCallback(() => {
+    if (disabled) return;
+    inputRef.current?.click();
+  }, [disabled]);
 
   return (
     <div
-      {...interactionProps}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      onClick={openPicker}
+      onKeyDown={(event) => {
+        if (disabled) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openPicker();
+        }
+      }}
+      onDragEnter={(event) => {
+        if (disabled) return;
+        event.preventDefault();
+        setDragActive(true);
+      }}
+      onDragOver={(event) => {
+        if (disabled) return;
+        event.preventDefault();
+        setDragActive(true);
+      }}
+      onDragLeave={(event) => {
+        if (disabled) return;
+        event.preventDefault();
+        const nextTarget = event.relatedTarget as Node | null;
+        if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+          setDragActive(false);
+        }
+      }}
+      onDrop={(event) => {
+        if (disabled) return;
+        event.preventDefault();
+        setDragActive(false);
+        handleFiles(event.dataTransfer.files);
+      }}
       className={[
         'relative border-2 border-dashed transition',
         dragActive ? 'border-[#1982bf] bg-[#edf3ff]' : 'border-[#9cb8ea] bg-[#f7f9fe]',
@@ -1183,7 +1223,21 @@ function UppyDropzoneFieldInner({
         className
       ].join(' ')}
     >
-      {disabled ? null : <input {...inputProps} className="hidden" />}
+      {disabled ? null : (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          tabIndex={-1}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => {
+            handleFiles(event.currentTarget.files);
+            event.currentTarget.value = '';
+          }}
+        />
+      )}
       {children}
     </div>
   );
@@ -1803,11 +1857,8 @@ export default function AdminItemEditorPage({
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
   const imageTypeHintsRef = useRef<Record<string, string>>({});
   const suppressImageClickAfterDragRef = useRef(false);
-  const uppyRef = useRef<Uppy | null>(null);
-  const uploadPlanRef = useRef<{ startSlot: number; nextOffset: number; maxFiles: number }>({ startSlot: 0, nextOffset: 0, maxFiles: 1 });
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
-  const updateImageAtSlotRef = useRef<(slotIndex: number, slot: StagedImageSlot) => void>(() => {});
   const [youtubeInput, setYoutubeInput] = useState('');
   const [videoDraft, setVideoDraft] = useState<StagedVideoState | null>(() => cloneVideo(initialPersistedState.video));
   const [videoDragActive, setVideoDragActive] = useState(false);
@@ -1936,21 +1987,27 @@ export default function AdminItemEditorPage({
   const buildSaveReadyPersistedState = useCallback((state: EditorPersistedState): EditorPersistedState => {
     const baseSku = state.sideSettings.sku || state.draft.variants[0]?.sku || toSlug(state.draft.name || 'artikel').toUpperCase();
     let variants = state.draft.variants.map(cloneVariant);
+    let typeSpecificData = cloneTypeSpecificData(state.typeSpecificData);
     if (state.productType === 'simple') {
       variants = buildSimpleCatalogVariants(
-        normalizeSimpleProductData(state.typeSpecificData.simple, { variants, baseSku }),
+        normalizeSimpleProductData(typeSpecificData.simple, { variants, baseSku }),
         variants[0],
         baseSku,
         state.draft.name
       );
     } else if (state.productType === 'weight') {
+      const weightData = normalizeWeightProductData(typeSpecificData.weight, { variants, baseSku });
+      typeSpecificData = {
+        ...typeSpecificData,
+        weight: weightData
+      };
       variants = buildWeightCatalogVariants(
-        normalizeWeightProductData(state.typeSpecificData.weight, { variants, baseSku }),
+        weightData,
         baseSku
       );
     } else if (state.productType === 'unique_machine') {
       variants = buildMachineCatalogVariants(
-        normalizeUniqueMachineProductData(state.typeSpecificData.uniqueMachine, { variants, baseSku }),
+        normalizeUniqueMachineProductData(typeSpecificData.uniqueMachine, { variants, baseSku }),
         variants[0],
         baseSku,
         state.draft.name
@@ -1958,6 +2015,7 @@ export default function AdminItemEditorPage({
     }
     return {
       ...state,
+      typeSpecificData,
       draft: {
         ...state.draft,
         variants
@@ -2373,6 +2431,7 @@ export default function AdminItemEditorPage({
             ...slot,
             previewUrl: uploaded.url,
             uploadedUrl: uploaded.url,
+            blobPathname: uploaded.pathname,
             file: null,
             filename: uploaded.filename ?? slot.filename,
             mimeType: uploaded.mimeType ?? slot.mimeType,
@@ -2412,6 +2471,11 @@ export default function AdminItemEditorPage({
             localId: null
           } satisfies StagedTechnicalDocument;
         })
+      );
+
+      const persistableQuantityDiscounts = getPersistableQuantityDiscounts(
+        preparedState.quantityDiscounts,
+        Boolean(initialData?.quantityDiscounts.length)
       );
 
       const payload: CatalogItemEditorPayload = {
@@ -2458,7 +2522,7 @@ export default function AdminItemEditorPage({
           position: variant.sort ?? index,
           imageAssignments: variant.imageAssignments ?? []
         })),
-        quantityDiscounts: preparedState.quantityDiscounts.map((rule, index) => ({
+        quantityDiscounts: persistableQuantityDiscounts.map((rule, index) => ({
           id: rule.persistedId,
           minQuantity: Math.max(1, Math.floor(rule.minQuantity)),
           discountPercent: Math.min(100, Math.max(0, rule.discountPercent)),
@@ -2472,6 +2536,9 @@ export default function AdminItemEditorPage({
             role: 'gallery' as const,
             sourceKind: 'upload' as const,
             blobUrl: entry.uploadedUrl,
+            blobPathname: entry.blobPathname,
+            filename: entry.filename,
+            mimeType: entry.mimeType,
             altText: entry.altText || null,
             position: index
           })),
@@ -2584,8 +2651,9 @@ export default function AdminItemEditorPage({
       return;
     }
 
+    const savedSaveReadySnapshot = cloneEditorPersistedState(buildSaveReadyPersistedState(savedSnapshot));
     const nextPersistedState = cloneEditorPersistedState(buildSaveReadyPersistedState(buildPersistedState(decimalCommit.nextDraft)));
-    const computedChangeGroups = buildProposedSaveChanges(savedSnapshot, nextPersistedState);
+    const computedChangeGroups = buildProposedSaveChanges(savedSaveReadySnapshot, nextPersistedState);
     const computedChangeCount = computedChangeGroups.reduce((count, group) => count + group.items.length, 0);
     const changeGroups =
       computedChangeCount > 0
@@ -3154,8 +3222,8 @@ export default function AdminItemEditorPage({
 
   useEffect(() => {
     if (editingImageSlot === null) return;
-    if (!mediaImagesDraft[editingImageSlot]) setEditingImageSlot(null);
-  }, [editingImageSlot, mediaImagesDraft]);
+    if (!isMediaEditable || !mediaImagesDraft[editingImageSlot]) setEditingImageSlot(null);
+  }, [editingImageSlot, isMediaEditable, mediaImagesDraft]);
 
   const updateImageAtSlot = useCallback((slotIndex: number, nextSlot: StagedImageSlot) => {
     setMediaImageSlots((current) => {
@@ -3171,78 +3239,6 @@ export default function AdminItemEditorPage({
     });
   }, [revokeLocalImageUrl]);
 
-  useEffect(() => {
-    updateImageAtSlotRef.current = updateImageAtSlot;
-  }, [updateImageAtSlot]);
-
-  useEffect(() => {
-    const uppy = new Uppy({
-      autoProceed: false,
-      restrictions: {
-        allowedFileTypes: ['image/*'],
-        maxFileSize: IMAGE_MAX_UPLOAD_BYTES,
-        maxNumberOfFiles: 1
-      },
-      onBeforeFileAdded: (file) => {
-        const plan = uploadPlanRef.current;
-        if (plan.nextOffset >= plan.maxFiles) return false;
-        const targetSlot = Math.min(MEDIA_SLOT_COUNT - 1, plan.startSlot + plan.nextOffset);
-        plan.nextOffset += 1;
-        return {
-          ...file,
-          meta: {
-            ...file.meta,
-            targetSlot
-          }
-        };
-      }
-    });
-
-    uppy.on('restriction-failed', (_file, error) => {
-      toast.error(error.message || 'Nalaganje ni uspelo. Dovoljene so le slike do 4 MB.');
-    });
-
-    uppy.on('error', (error) => {
-      toast.error(error.message || 'Pri nalaganju slik je prišlo do napake.');
-    });
-    uppy.on('files-added', () => {
-      void uppy.upload();
-    });
-
-    uppy.addUploader(async (fileIDs) => {
-      for (const fileID of fileIDs) {
-        const file = uppy.getFile(fileID);
-        if (!file) continue;
-        const targetSlot = Number(file.meta?.targetSlot);
-        if (!Number.isFinite(targetSlot)) continue;
-        const blob = file.data;
-        if (!(blob instanceof Blob)) continue;
-        const stagedFile = blob instanceof File ? blob : new File([blob], file.name, { type: file.type });
-        const previewUrl = createLocalImageUrl(stagedFile);
-        imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
-        updateImageAtSlotRef.current(Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot)), {
-          previewUrl,
-          uploadedUrl: null,
-          file: stagedFile,
-          filename: file.name,
-          mimeType: file.type || null,
-          altText: mediaImageSlots[Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, targetSlot))]?.altText ?? '',
-          localId: createLocalStageId()
-        });
-      }
-      fileIDs.forEach((fileID) => {
-        if (uppy.getFile(fileID)) uppy.removeFile(fileID);
-      });
-    });
-
-    uppyRef.current = uppy;
-    return () => {
-      uppy.cancelAll();
-      uppy.destroy();
-      uppyRef.current = null;
-    };
-  }, [createLocalImageUrl, mediaImageSlots, toast, updateImageAtSlot]);
-
   const stageImageFile = useCallback((file: File, slotIndex: number) => {
     const boundedSlotIndex = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, slotIndex));
     const previewUrl = createLocalImageUrl(file);
@@ -3250,6 +3246,7 @@ export default function AdminItemEditorPage({
     updateImageAtSlot(boundedSlotIndex, {
       previewUrl,
       uploadedUrl: null,
+      blobPathname: null,
       file,
       filename: file.name,
       mimeType: file.type || null,
@@ -3314,6 +3311,7 @@ export default function AdminItemEditorPage({
         updateImageAtSlot(targetSlot, {
           previewUrl: uploaded.url,
           uploadedUrl: uploaded.url,
+          blobPathname: uploaded.pathname,
           file: null,
           filename: uploaded.filename,
           mimeType: uploaded.mimeType,
@@ -3440,7 +3438,7 @@ export default function AdminItemEditorPage({
     void importDocumentUrls(pastedUrls);
   };
 
-  const openUppyFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
+  const openMediaFilePicker = useCallback((slotIndex: number, allowMultiple: boolean) => {
     if (!isMediaEditable) return;
     mediaUploadContextRef.current = { slotIndex, multiple: allowMultiple };
     const input = mediaUploadInputRef.current;
@@ -3479,6 +3477,7 @@ export default function AdminItemEditorPage({
   };
 
   const removeImageSlot = (slotIndex: number) => {
+    if (!isMediaEditable) return;
     setMediaImageSlots((current) => {
       const slotToRemove = current[slotIndex];
       if (slotToRemove?.previewUrl) revokeLocalImageUrl(slotToRemove.previewUrl);
@@ -3541,6 +3540,7 @@ export default function AdminItemEditorPage({
   }, []);
 
   const handleSaveEditedImage = useCallback((slotIndex: number, blob: Blob, mimeType: string) => {
+    if (!isMediaEditable) return;
     const nextMimeType = mimeType || 'image/webp';
     if (blob.size > IMAGE_MAX_UPLOAD_BYTES) {
       toast.error('Urejena slika je prevelika. Dovoljene so le slike do 4 MB.');
@@ -3554,6 +3554,7 @@ export default function AdminItemEditorPage({
     updateImageAtSlot(slotIndex, {
       previewUrl,
       uploadedUrl: null,
+      blobPathname: null,
       file,
       filename: fileName,
       mimeType: nextMimeType,
@@ -3562,9 +3563,10 @@ export default function AdminItemEditorPage({
     });
     setEditingImageSlot(null);
     toast.success('Slika je pripravljena za shranjevanje.');
-  }, [createLocalImageUrl, mediaImageSlots, toast, updateImageAtSlot]);
+  }, [createLocalImageUrl, isMediaEditable, mediaImageSlots, toast, updateImageAtSlot]);
 
   const renderImageActionButtons = (slotIndex: number) => {
+    if (!isMediaEditable) return null;
     const compact = slotIndex !== 0;
     const verticalAlignClass = compact ? 'justify-center' : 'justify-start pt-2';
     const actions = [
@@ -3579,7 +3581,7 @@ export default function AdminItemEditorPage({
         key: 'replace',
         label: 'Zamenjaj sliko',
         tone: 'light' as const,
-        onClick: () => openUppyFilePicker(slotIndex, false),
+        onClick: () => openMediaFilePicker(slotIndex, false),
         icon: (
           <svg viewBox="0 0 24 24" className={`block shrink-0 ${compact ? 'h-[12px] w-[12px]' : 'h-[17.6px] w-[17.6px]'}`} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <rect x="3" y="4" width="18" height="16" rx="2.8" />
@@ -3730,12 +3732,20 @@ export default function AdminItemEditorPage({
             </div>
           </div>
           <div className="flex flex-nowrap items-center justify-end gap-3">
+            {mode !== 'create' ? (
+              <AuditHistoryDrawer
+                entityType="item"
+                entityId={initialData?.slug ?? articleId ?? draft.slug}
+                entityLabel={draft.name || initialData?.itemName || articleId || 'Artikel'}
+                buttonClassName={`order-5 ${adminTableNeutralIconButtonClassName}`}
+              />
+            ) : null}
             <IconButton
               type="button"
               onClick={handleEditModeToggle}
               tone="neutral"
               size="sm"
-              className={`order-1 ${adminTableNeutralIconButtonClassName}`}
+              className={`order-2 ${adminTableNeutralIconButtonClassName}`}
               aria-label="Uredi artikel"
               title="Uredi"
               disabled={isSaving}
@@ -3747,7 +3757,7 @@ export default function AdminItemEditorPage({
               onClick={undoLastChange}
               tone="neutral"
               size="sm"
-              className={`order-2 ${adminTableNeutralIconButtonClassName}`}
+              className={`order-3 ${adminTableNeutralIconButtonClassName}`}
               aria-label="Razveljavi"
               title="Razveljavi"
               disabled={!canUndoStagedChanges}
@@ -3759,7 +3769,7 @@ export default function AdminItemEditorPage({
               onClick={() => void duplicateItem()}
               tone="neutral"
               size="sm"
-              className={`order-3 ${adminTableNeutralIconButtonClassName}`}
+              className={`order-4 ${adminTableNeutralIconButtonClassName}`}
               aria-label="Podvoji artikel"
               title="Podvoji"
               disabled={!canDuplicate}
@@ -3771,7 +3781,7 @@ export default function AdminItemEditorPage({
               onClick={() => void archiveItem()}
               tone="warning"
               size="sm"
-              className={`order-4 ${adminTableSelectedWarningIconButtonClassName}`}
+              className={`order-6 ${adminTableSelectedWarningIconButtonClassName}`}
               aria-label="Arhiviraj artikel"
               title="Arhiviraj"
               disabled={!canArchive}
@@ -3782,7 +3792,7 @@ export default function AdminItemEditorPage({
               type="button"
               variant="primary"
               size="toolbar"
-              className={`order-5 ${topActionSaveButtonClassName}`}
+              className={`order-7 ${topActionSaveButtonClassName}`}
               onClick={() => void save()}
               disabled={!isEditable || !hasUnsavedChanges || isSaving}
             >
@@ -3994,9 +4004,7 @@ export default function AdminItemEditorPage({
                 />
                 <div className="h-[11.5rem]">
                   {mediaImagesDraft.length === 0 ? (
-                    uppyRef.current ? (
-                      <UppyDropzoneField
-                        uppy={uppyRef.current}
+                    <ImageDropzoneField
                         disabled={!isMediaEditable}
                         onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(0, true, files)}
                         className="group !relative !flex h-full w-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] text-[#1982bf] hover:!bg-[#f3f5f7]"
@@ -4013,35 +4021,7 @@ export default function AdminItemEditorPage({
                           <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
                           <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
                         </span>
-                      </UppyDropzoneField>
-                    ) : (
-                      <div
-                        className={`group relative flex h-full w-full items-center justify-center rounded-[8px] bg-[#f5f6f8] text-[#1982bf] transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
-                        onClick={() => openUppyFilePicker(0, true)}
-                        onDragOver={(event) => {
-                          if (!isMediaEditable) return;
-                          event.preventDefault();
-                        }}
-                        onDrop={(event) => {
-                          if (!isMediaEditable) return;
-                          event.preventDefault();
-                          prepareDropzoneUploadPlan(0, true, Array.from(event.dataTransfer.files));
-                        }}
-                      >
-                        <CalmDashedOutline
-                          className="inset-0 text-[#c8c8c8]"
-                          strokeWidth={1.1664}
-                          dashLength={3.77}
-                          gapLength={2.95}
-                          lineCap="butt"
-                        />
-                        <span className="relative z-[1] flex flex-col items-center justify-center gap-2 text-center">
-                          <ImageUploadFrameIcon className="h-[84px] w-[84px] text-[#1982bf]" />
-                          <span className="text-base font-semibold text-slate-800">Naloži sliko</span>
-                          <span className="text-xs font-medium text-slate-500">(največ 4 MB)</span>
-                        </span>
-                      </div>
-                    )
+                    </ImageDropzoneField>
                   ) : (
                     <div className="grid h-full grid-cols-5 grid-rows-2 gap-2">
                       <div
@@ -4066,6 +4046,7 @@ export default function AdminItemEditorPage({
                           suppressImageClickAfterDragRef.current = false;
                         }}
                         onClick={() => {
+                          if (!isMediaEditable) return;
                           if (suppressImageClickAfterDragRef.current) {
                             suppressImageClickAfterDragRef.current = false;
                             return;
@@ -4107,6 +4088,7 @@ export default function AdminItemEditorPage({
                                 suppressImageClickAfterDragRef.current = false;
                               }}
                               onClick={() => {
+                                if (!isMediaEditable) return;
                                 if (suppressImageClickAfterDragRef.current) {
                                   suppressImageClickAfterDragRef.current = false;
                                   return;
@@ -4122,10 +4104,8 @@ export default function AdminItemEditorPage({
 
                         if (isActiveUploadSlot) {
                           return (
-                            uppyRef.current ? (
-                              <UppyDropzoneField
+                            <ImageDropzoneField
                                 key={`slot-${slotIndex}`}
-                                uppy={uppyRef.current}
                                 disabled={!isMediaEditable}
                                 onPrepareAddFiles={(files) => prepareDropzoneUploadPlan(slotIndex, true, files)}
                                 className="group !relative !flex h-full !items-center !justify-center !rounded-[8px] !border-0 !bg-[#f5f6f8] px-2 py-3 text-slate-500 hover:!bg-[#f3f5f7]"
@@ -4141,33 +4121,7 @@ export default function AdminItemEditorPage({
                                   <ImageUploadFrameIcon className="h-[42px] w-[42px] text-[#1982bf]" />
                                   <span className="-translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
                                 </span>
-                              </UppyDropzoneField>
-                            ) : (
-                              <div
-                                key={`slot-${slotIndex}`}
-                                className={`group relative flex h-full flex-col items-center justify-center gap-1.5 rounded-[8px] bg-[#f5f6f8] px-2 py-3 text-center text-slate-500 transition ${isMediaEditable ? 'cursor-pointer hover:bg-[#f3f5f7]' : 'cursor-not-allowed opacity-60'}`}
-                                onClick={() => openUppyFilePicker(slotIndex, true)}
-                                onDragOver={(event) => {
-                                  if (!isMediaEditable) return;
-                                  event.preventDefault();
-                                }}
-                                onDrop={(event) => {
-                                  if (!isMediaEditable) return;
-                                  event.preventDefault();
-                                  prepareDropzoneUploadPlan(slotIndex, true, Array.from(event.dataTransfer.files));
-                                }}
-                              >
-                                <CalmDashedOutline
-                                  className="inset-0 text-[#c8c8c8] transition group-hover:text-[#c8c8c8]"
-                                  strokeWidth={1.1664}
-                                  dashLength={3.77}
-                                  gapLength={2.95}
-                                  lineCap="butt"
-                                />
-                                <ImageUploadFrameIcon className="relative z-[1] h-[42px] w-[42px] text-[#1982bf]" />
-                                <span className="relative z-[1] -translate-y-[7px] text-[10px] font-medium leading-none text-slate-600">Naloži sliko</span>
-                              </div>
-                            )
+                            </ImageDropzoneField>
                           );
                         }
 
@@ -4268,7 +4222,7 @@ export default function AdminItemEditorPage({
                                       <button
                                         type="button"
                                         disabled={!isMediaEditable}
-                                        className="text-slate-400 hover:text-rose-600"
+                                        className={`${isMediaEditable ? '' : 'hidden'} text-slate-400 hover:text-rose-600`}
                                         onClick={() => updateVariant(variant.id, {
                                           imageAssignments: assignedSlots.filter((value) => value !== slot),
                                           imageOverride: assignedSlots.length > 1 ? mediaImagesDraft[assignedSlots.find((value) => value !== slot) ?? 0] ?? null : null
@@ -4965,7 +4919,7 @@ export default function AdminItemEditorPage({
           if (!open) setPendingSaveConfirmation(null);
         }}
         title={pendingSaveConfirmation ? `Pred shranjevanjem preverite spremembe (${pendingSaveConfirmation.changeCount})` : 'Pred shranjevanjem preverite spremembe'}
-        panelClassName="!max-w-2xl"
+        panelClassName="!max-w-xl [&_[data-dialog-title]]:text-xl"
         footer={(
           <div className={dialogFooterClassName}>
             <Button
@@ -4989,16 +4943,16 @@ export default function AdminItemEditorPage({
           </div>
         )}
       >
-        <div className="mt-3 max-h-[60vh] space-y-4 overflow-y-auto pr-1">
-          <p className="text-sm text-slate-600">
+        <div className="mt-2 max-h-[56vh] space-y-3 overflow-y-auto pr-1">
+          <p className="text-[13px] leading-5 text-slate-600">
             Pred potrditvijo bodo shranjene naslednje spremembe:
           </p>
           {pendingSaveConfirmation?.changeGroups.map((group) => (
-            <div key={group.title} className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-900">{group.title}</h3>
-              <ul className="space-y-1.5 text-sm text-slate-600">
+            <div key={group.title} className="space-y-1.5">
+              <h3 className="text-[13px] font-semibold text-slate-900">{group.title}</h3>
+              <ul className="space-y-1 text-[13px] text-slate-600">
                 {group.items.map((item, index) => (
-                  <li key={`${group.title}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 leading-5">
+                  <li key={`${group.title}-${index}`} className="rounded-md bg-slate-50 px-2.5 py-1.5 leading-5">
                     {item}
                   </li>
                 ))}
@@ -5007,7 +4961,7 @@ export default function AdminItemEditorPage({
           ))}
         </div>
       </Dialog>
-      {editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
+      {isMediaEditable && editingImageSlot !== null && mediaImagesDraft[editingImageSlot]
         ? createPortal(
           <UploadedImageCropperModal
             imageUrl={mediaImagesDraft[editingImageSlot]}

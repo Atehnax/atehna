@@ -26,6 +26,39 @@ import {
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableSelectedWarningIconButtonClassName,
+  adminExpandableTableHeaderFirstValueAlignClassName,
+  adminExpandableTableHeaderRightValueAlignClassName,
+  adminExpandableTableHeaderTightValueAlignClassName,
+  adminExpandableTableHeaderValueAlignClassName,
+  adminExpandableTableMainCellClassName,
+  adminExpandableTableMainCenterCellClassName,
+  adminExpandableTableTextSlotClassName,
+  adminExpandableTableTightTextSlotClassName,
+  adminExpandableSubtableParentContentCellClassName,
+  adminExpandableSubtableParentRowClassName,
+  adminExpandableTableCheckboxColumnClassName,
+  adminProductVariantSubtableActionsColumnClassName,
+  adminProductVariantSubtableCheckboxColumnClassName,
+  adminProductVariantSubtablePillHeaderAlignClassName,
+  adminProductVariantSubtablePillColumnClassName,
+  adminProductVariantSubtablePriceHeaderAlignClassName,
+  adminProductVariantSubtablePriceColumnClassName,
+  adminProductVariantSubtableSkuColumnClassName,
+  adminProductVariantSubtableSkuHeaderAlignClassName,
+  adminProductVariantSubtableVariantIndentClassName,
+  adminProductVariantSubtableVariantColumnClassName,
+  adminProductVariantSubtableVariantTextSlotClassName,
+  adminSubtableCellClassName,
+  adminSubtableCenterCellClassName,
+  adminSubtableEditNumberSlotClassName,
+  adminSubtableHeaderCellClassName,
+  adminSubtableHeaderCellCenterClassName,
+  adminSubtableHeaderCellLeftClassName,
+  adminSubtableHeaderCellRightClassName,
+  adminSubtableHeaderRowClassName,
+  adminSubtableNumberSlotClassName,
+  adminSubtableRowClassName,
+  adminSubtableTextSlotClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
   adminTableToolbarSearchWrapperClassName,
@@ -48,6 +81,7 @@ import {
 import {
   adminStatusInfoPillTableCellClassName,
   adminTableRowToneClasses,
+  filterPillClearGlyph,
   filterPillTokenClasses
 } from '@/shared/ui/theme/tokens';
 import {
@@ -117,29 +151,31 @@ const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
 const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-center';
-const ARTICLE_HEADER_VALUE_ALIGN_CLASS = 'ml-[39px]';
-const MAIN_HEADER_VALUE_ALIGN_CLASS = 'ml-2.5';
-const MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS = 'ml-1.5';
-const MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS = '-translate-x-2.5';
-const SUB_HEADER_VALUE_ALIGN_CLASS = 'ml-2.5';
-const SUB_HEADER_HOVER_VALUE_ALIGN_CLASS = 'ml-3.5';
-const SUB_HEADER_RIGHT_VALUE_ALIGN_CLASS = 'relative right-3.5';
+const ARTICLE_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderFirstValueAlignClassName;
+const MAIN_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderValueAlignClassName;
+const MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderTightValueAlignClassName;
+const MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderRightValueAlignClassName;
+const SUB_HEADER_SKU_ALIGN_CLASS = adminProductVariantSubtableSkuHeaderAlignClassName;
+const SUB_HEADER_PRICE_ALIGN_CLASS = adminProductVariantSubtablePriceHeaderAlignClassName;
+const SUB_HEADER_PILL_ALIGN_CLASS = adminProductVariantSubtablePillHeaderAlignClassName;
+const SUB_VARIANT_INDENT_CLASS = adminProductVariantSubtableVariantIndentClassName;
+const SUB_VARIANT_TEXT_SLOT_CLASS = adminProductVariantSubtableVariantTextSlotClassName;
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
   price: 'Cena'
 };
 const MAIN_ROW_CLASS = `h-12 border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`;
-const MAIN_CELL_CLASS = 'h-12 px-2 py-0 align-middle';
-const MAIN_CENTER_CELL_CLASS = `${MAIN_CELL_CLASS} text-center`;
-const MAIN_TEXT_SLOT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
-const MAIN_TEXT_SLOT_TIGHT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-1';
-const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent px-2 text-right';
+const MAIN_CELL_CLASS = adminExpandableTableMainCellClassName;
+const MAIN_CENTER_CELL_CLASS = adminExpandableTableMainCenterCellClassName;
+const MAIN_TEXT_SLOT_CLASS = adminExpandableTableTextSlotClassName;
+const MAIN_TEXT_SLOT_TIGHT_CLASS = adminExpandableTableTightTextSlotClassName;
+const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-2 text-right';
 const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[5px] text-right';
-const SUB_ROW_CLASS = 'h-10 border-t border-slate-200/90';
-const SUB_CELL_CLASS = 'h-10 px-2 py-0 align-middle';
-const SUB_CENTER_CELL_CLASS = `${SUB_CELL_CLASS} text-center`;
-const SUB_TEXT_SLOT_CLASS = 'inline-flex h-7 max-w-full items-center rounded-md border border-transparent px-2';
-const SUB_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[9ch] items-center justify-end rounded-md border border-transparent px-2 text-right';
-const SUB_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[9ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[13px] text-right';
+const SUB_ROW_CLASS = adminSubtableRowClassName;
+const SUB_CELL_CLASS = adminSubtableCellClassName;
+const SUB_CENTER_CELL_CLASS = adminSubtableCenterCellClassName;
+const SUB_TEXT_SLOT_CLASS = adminSubtableTextSlotClassName;
+const SUB_NUMBER_SLOT_CLASS = adminSubtableNumberSlotClassName;
+const SUB_EDIT_NUMBER_SLOT_CLASS = adminSubtableEditNumberSlotClassName;
 const ROW_EDIT_VALUE_UNIT_SHELL_CLASS = `${compactTableValueUnitShellClassName} !h-7`;
 const ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} !pl-[13px]`;
 const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[12ch]`;
@@ -1859,7 +1895,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Kategorija: {categoryFilter}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra kategorije', () => setCategoryFilter('all'))} aria-label="Počisti filter kategorije">
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1867,7 +1903,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Tip artikla: {formatProductTypeLabel(productTypeFilter)}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra tipa artikla', () => setProductTypeFilter('all'))} aria-label="Počisti filter tipa artikla">
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1875,7 +1911,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Status: {statusFilter === 'active' ? 'Aktiven' : 'Neaktiven'}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra statusa', () => setStatusFilter('all'))} aria-label="Počisti filter statusa">
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1883,7 +1919,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               <span className={filterPillTokenClasses.base}>
                 Opombe: {noteFilter === 'na-zalogi' ? 'Na zalogi' : noteFilter === 'novo' ? 'Novo' : noteFilter === 'akcija' ? 'V akciji' : noteFilter === 'zadnji-kosi' ? 'Zadnji kosi' : 'Ni na zalogi'}
                 <button type="button" className={filterPillTokenClasses.clear} onClick={() => requestCurrentEditResolution('čiščenjem filtra opomb', () => setNoteFilter('all'))} aria-label="Počisti filter opomb">
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1898,7 +1934,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   })}
                   aria-label="Počisti filter Št. različic"
                 >
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1914,7 +1950,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   })}
                   aria-label="Počisti filter Razpon cen"
                 >
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ) : null}
@@ -1925,10 +1961,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
         footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         showDivider={false}
       >
-        <Table className="w-full table-fixed text-[12px] [&_thead_th]:!h-12 [&_thead_th]:!border-slate-200 [&_thead_th]:!py-0">
+        <Table className="w-full min-w-[1208px] table-fixed text-[12px] [&>thead>tr>th]:!h-12 [&>thead>tr>th]:!border-slate-200 [&>thead>tr>th]:!py-0">
             <THead className="border-t border-slate-200">
               <TR className="h-12">
-                <TH className="w-10 px-2 text-center">
+                <TH className={`${adminExpandableTableCheckboxColumnClassName} px-2 text-center`}>
                   <AdminCheckbox
                     checked={familiesSelectedOnPage}
                     onChange={() =>
@@ -2393,25 +2429,29 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       </td>
                     </tr>
                     {isExpanded && hasSubtable ? (
-                      <tr className="border-t border-slate-200/90 bg-slate-50/70">
+                      <tr className={adminExpandableSubtableParentRowClassName}>
                         <td />
-                        <td colSpan={8} className="p-0">
-                          <table className="w-full text-[12px]">
+                        <td colSpan={8} className={adminExpandableSubtableParentContentCellClassName}>
+                          <table className="w-full table-fixed text-[12px]">
                             <thead className="bg-[color:var(--admin-table-header-bg)]">
-                              <tr className="border-b border-slate-200 text-[11px] font-medium text-slate-600">
-                                <th className="px-2 py-2" />
-                                <th className="w-[32%] px-2 py-2 text-left">
-                                  <span className={SUB_HEADER_VALUE_ALIGN_CLASS}>Različica</span>
+                              <tr className={adminSubtableHeaderRowClassName}>
+                                <th className={`${adminProductVariantSubtableCheckboxColumnClassName} ${adminSubtableHeaderCellClassName}`} />
+                                <th className={`${adminProductVariantSubtableVariantColumnClassName} ${adminSubtableHeaderCellLeftClassName}`}>
+                                  <span className={SUB_VARIANT_INDENT_CLASS}>Različica</span>
                                 </th>
-                                <th className="w-[20%] px-2 py-2 text-left">
-                                  <span className={SUB_HEADER_HOVER_VALUE_ALIGN_CLASS}>SKU</span>
+                                <th className={`${adminProductVariantSubtableSkuColumnClassName} ${adminSubtableHeaderCellLeftClassName}`}>
+                                  <span className={SUB_HEADER_SKU_ALIGN_CLASS}>SKU</span>
                                 </th>
-                                <th className="w-[12%] px-2 py-2 text-right">
-                                  <span className={SUB_HEADER_RIGHT_VALUE_ALIGN_CLASS}>Cena</span>
+                                <th className={`${adminProductVariantSubtablePriceColumnClassName} ${adminSubtableHeaderCellRightClassName} !pr-0`}>
+                                  <span className={SUB_HEADER_PRICE_ALIGN_CLASS}>Cena</span>
                                 </th>
-                                <th className={`${STATUS_COLUMN_CLASS} px-0 py-2 text-center`}>Status</th>
-                                <th className={`${NOTE_COLUMN_CLASS} px-0 py-2 text-center`}>Opombe</th>
-                                <th className="w-[5%] px-2 py-2 text-center">Mesto</th>
+                                <th className={`${adminProductVariantSubtablePillColumnClassName} ${adminSubtableHeaderCellCenterClassName} !px-0`}>
+                                  <span className={SUB_HEADER_PILL_ALIGN_CLASS}>Status</span>
+                                </th>
+                                <th className={`${adminProductVariantSubtablePillColumnClassName} ${adminSubtableHeaderCellCenterClassName} !px-0`}>
+                                  <span className={SUB_HEADER_PILL_ALIGN_CLASS}>Opombe</span>
+                                </th>
+                                <th className={`${adminProductVariantSubtableActionsColumnClassName} ${adminSubtableHeaderCellCenterClassName}`}>Mesto</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -2432,7 +2472,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 const variantPriceDisplay = formatCurrency(draft.price);
                                 return (
                                   <tr key={variant.id} className={SUB_ROW_CLASS} data-edit-scope={`family:${family.id}`}>
-                                    <td className={SUB_CENTER_CELL_CLASS}>
+                                    <td className={`${adminProductVariantSubtableCheckboxColumnClassName} ${SUB_CENTER_CELL_CLASS}`}>
                                       <AdminCheckbox
                                         checked={selectedVariantIds.has(variant.id)}
                                         onChange={() =>
@@ -2445,7 +2485,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         }
                                       />
                                     </td>
-                                    <td className={`${SUB_CELL_CLASS} font-medium`}>
+                                    <td className={`${adminProductVariantSubtableVariantColumnClassName} ${SUB_CELL_CLASS} font-medium`}>
                                       {isEditing ? (
                                         <input
                                           className={ROW_EDIT_INPUT_CLASS}
@@ -2458,10 +2498,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           }
                                         />
                                       ) : (
-                                        <span className={`${SUB_TEXT_SLOT_CLASS} truncate`}>{variant.label || 'Različica'}</span>
+                                        <span className={`${SUB_VARIANT_TEXT_SLOT_CLASS} ${SUB_VARIANT_INDENT_CLASS} truncate`}>{variant.label || 'Različica'}</span>
                                       )}
                                     </td>
-                                    <td className={SUB_CELL_CLASS}>
+                                    <td className={`${adminProductVariantSubtableSkuColumnClassName} ${SUB_CELL_CLASS}`}>
                                       {isEditing ? (
                                         <input
                                           className={`${ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS} ${variantSkuIssue ? '!border-rose-400' : ''}`}
@@ -2495,7 +2535,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         </datalist>
                                       ) : null}
                                     </td>
-                                    <td className={`w-[12%] ${SUB_CELL_CLASS} text-right`}>
+                                    <td className={`${adminProductVariantSubtablePriceColumnClassName} ${SUB_CELL_CLASS} text-right`}>
                                       {isEditing ? (
                                         <span className="inline-flex w-full justify-end">
                                           <span className={SUB_EDIT_NUMBER_SLOT_CLASS}>
@@ -2525,7 +2565,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         </span>
                                       )}
                                     </td>
-                                    <td className={`${STATUS_COLUMN_CLASS} h-10 px-0 py-0 text-center align-middle`}>
+                                    <td className={`${adminProductVariantSubtablePillColumnClassName} h-10 px-0 py-0 text-center align-middle`}>
                                       <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <ActiveStateChip
                                           active={isEditing ? draft.active : variant.active}
@@ -2542,7 +2582,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className={`${NOTE_COLUMN_CLASS} h-10 px-0 py-0 text-center align-middle`}>
+                                    <td className={`${adminProductVariantSubtablePillColumnClassName} h-10 px-0 py-0 text-center align-middle`}>
                                       <div className={STATUS_NOTE_CELL_INNER_CLASS}>
                                         <NoteTagChip
                                           value={((isEditing ? draft.note : normalizeNoteValue(variant.badge)) || 'na-zalogi') as NoteTag}
@@ -2559,7 +2599,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                         />
                                       </div>
                                     </td>
-                                    <td className="h-10 w-[5%] px-2 py-0 text-center align-middle">
+                                    <td className={`${adminProductVariantSubtableActionsColumnClassName} h-10 px-2 py-0 text-center align-middle`}>
                                       {isEditing ? (
                                         <input
                                           type="text"

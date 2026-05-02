@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
+  fetchCatalogItemEditorBySlug,
   upsertCatalogItem,
   type CatalogItemEditorPayload
 } from '@/shared/server/catalogItems';
+import {
+  computeCatalogItemAuditDiff,
+  countAuditChangedFields,
+  diffHasEntries,
+  inferCatalogItemAuditAction
+} from '@/shared/audit/auditDiff';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +26,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Artikel mora imeti vsaj eno različico.' }, { status: 400 });
     }
 
+    const before = payload.id
+      ? await fetchCatalogItemEditorBySlug(String(payload.id))
+      : await fetchCatalogItemEditorBySlug(payload.slug);
     const saved = await upsertCatalogItem(payload);
+    const after = await fetchCatalogItemEditorBySlug(String(saved.id));
+    const diff = computeCatalogItemAuditDiff(before as Record<string, unknown> | null, after as Record<string, unknown> | null);
+    const action = before ? inferCatalogItemAuditAction(diff, 'updated') : 'created';
+
+    if (!before || diffHasEntries(diff)) {
+      await insertAuditEventForRequest(request, {
+        entityType: 'item',
+        entityId: String(after?.slug ?? saved.slug ?? payload.slug),
+        entityLabel: after?.itemName ?? payload.itemName,
+        action,
+        diff,
+        metadata: {
+          product_type: after?.productType ?? payload.productType ?? null,
+          changed_field_count: countAuditChangedFields(diff),
+          variant_added_count: 'variants' in diff && 'added' in diff.variants ? diff.variants.added?.length ?? 0 : 0,
+          variant_removed_count: 'variants' in diff && 'removed' in diff.variants ? diff.variants.removed?.length ?? 0 : 0,
+          variant_updated_count: 'variants' in diff && 'updated' in diff.variants ? diff.variants.updated?.length ?? 0 : 0
+        }
+      });
+    }
+
     return NextResponse.json({ id: saved.id, slug: saved.slug });
   } catch (error) {
     if (error instanceof CatalogItemIdentityConflictError) {

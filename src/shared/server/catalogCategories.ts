@@ -1,10 +1,9 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
-import { getPool, getDatabaseUrl } from '@/shared/server/db';
+import { getPool } from '@/shared/server/db';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCatalogData,
-  readCatalogFile,
   type CatalogData,
   type RecursiveCatalogCategory,
   type RecursiveCatalogSubcategory
@@ -69,8 +68,6 @@ type CategoryRow = {
 };
 
 let ensured = false;
-let seeded = false;
-let cleanedLegacyImages = false;
 
 async function ensureTable() {
   if (ensured) return;
@@ -100,44 +97,8 @@ async function ensureTable() {
   ensured = true;
 }
 
-async function cleanupLegacyCategoryImages() {
-  if (cleanedLegacyImages) return;
-
-  const pool = await getPool();
-  await pool.query(
-    `
-      update catalog_categories
-      set
-        image = case when image like 'data:image/%' then '' else image end,
-        banner_image = case when banner_image like 'data:image/%' then null else banner_image end,
-        updated_at = case when image like 'data:image/%' or banner_image like 'data:image/%' then now() else updated_at end
-      where image like 'data:image/%' or banner_image like 'data:image/%'
-    `
-  );
-  cleanedLegacyImages = true;
-}
-
-async function seedIfEmpty() {
-  if (seeded) return;
-
-  const pool = await getPool();
-  const countResult = await pool.query('select count(*)::int as count from catalog_categories');
-  const count = Number(countResult.rows[0]?.count ?? 0);
-
-  if (count > 0) {
-    seeded = true;
-    return;
-  }
-
-  const fromFile = await readCatalogFile();
-  await replaceCategoryTree(fromFile);
-  seeded = true;
-}
-
 async function ensureCatalogStorageReady() {
   await ensureTable();
-  await cleanupLegacyCategoryImages();
-  await seedIfEmpty();
 }
 
 function normalizeStatus(value: string): CategoryStatus {
@@ -242,29 +203,6 @@ function rowToPreviewSubcategory(row: CategoryRow): CatalogPreviewSubcategory {
   };
 }
 
-function buildDefaultStatuses(categories: RecursiveCatalogCategory[]): Record<string, CategoryStatus> {
-  const statuses: Record<string, CategoryStatus> = {};
-
-  const visit = (
-    categorySlug: string,
-    nodes: RecursiveCatalogSubcategory[],
-    parentPath: string[] = []
-  ) => {
-    for (const node of nodes) {
-      const currentPath = [...parentPath, node.slug];
-      statuses[`sub:${categorySlug}:${currentPath.join('__')}`] = 'active';
-      visit(categorySlug, node.subcategories, currentPath);
-    }
-  };
-
-  for (const category of categories) {
-    statuses[`cat:${category.slug}`] = 'active';
-    visit(category.slug, category.subcategories);
-  }
-
-  return statuses;
-}
-
 function buildSubcategoryTree(
   parentId: string,
   topCategorySlug: string,
@@ -289,13 +227,6 @@ async function readCatalogDataFromDatabase(
   options: { includeInactive?: boolean; includeStatuses?: boolean } = {}
 ): Promise<CatalogData | CatalogDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
-
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    return includeStatuses
-      ? { categories: normalized.categories, statuses: buildDefaultStatuses(normalized.categories) }
-      : normalized;
-  }
 
   await ensureCatalogStorageReady();
 
@@ -364,36 +295,6 @@ async function readCatalogPreviewDataFromDatabase(
 ): Promise<CatalogPreviewData | CatalogPreviewDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
 
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    const previewPayload: CatalogPreviewData = {
-      categories: normalized.categories.map((category) => ({
-        id: category.id,
-        slug: category.slug,
-        title: category.title,
-        summary: category.summary,
-        description: category.description,
-        image: normalizeCatalogImage(category.image),
-        items: category.items,
-        subcategories: category.subcategories.map(function mapSubcategories(node): CatalogPreviewSubcategory {
-          return {
-            id: node.id,
-            slug: node.slug,
-            title: node.title,
-            description: node.description,
-            image: normalizeCatalogImage(node.image),
-            items: node.items,
-            subcategories: node.subcategories.map(mapSubcategories)
-          };
-        })
-      }))
-    };
-
-    return includeStatuses
-      ? { ...previewPayload, statuses: buildDefaultStatuses(normalized.categories) }
-      : previewPayload;
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -445,11 +346,6 @@ async function readCatalogPreviewDataFromDatabase(
 
 
 async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    return normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -464,11 +360,6 @@ async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCa
 }
 
 async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    return normalized.categories.map(({ slug, title }) => ({ slug, title }));
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -485,29 +376,6 @@ async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCatego
 async function readCatalogCategoryWithSubcategoriesFromDatabase(
   slug: string
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    const category = normalized.categories.find((entry) => entry.slug === slug);
-    if (!category) return null;
-
-    return {
-      id: category.id,
-      slug: category.slug,
-      title: category.title,
-      summary: category.summary,
-      description: category.description,
-      image: category.image,
-      items: category.items,
-      subcategories: category.subcategories.map(({ id, slug, title, description, items }) => ({
-        id,
-        slug,
-        title,
-        description,
-        items
-      }))
-    };
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -559,29 +427,6 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
 async function readCatalogCategoryPageDataFromDatabase(
   slug: string
 ): Promise<CatalogCategoryPageData | null> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    const category = normalized.categories.find((entry) => entry.slug === slug);
-    if (!category) return null;
-
-    return {
-      id: category.id,
-      slug: category.slug,
-      title: category.title,
-      summary: category.summary,
-      description: category.description,
-      image: category.image,
-      items: category.subcategories.length === 0 ? category.items : [],
-      subcategories: category.subcategories.map(({ id, slug: subSlug, title, description, items }) => ({
-        id,
-        slug: subSlug,
-        title,
-        description,
-        itemCount: items.length
-      }))
-    };
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -638,24 +483,6 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 } | null> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    const category = normalized.categories.find((entry) => entry.slug === categorySlug);
-    const subcategory = category?.subcategories.find((entry) => entry.slug === subSlug);
-    if (!category || !subcategory) return null;
-
-    return {
-      category: { slug: category.slug, title: category.title },
-      subcategory: {
-        id: subcategory.id,
-        slug: subcategory.slug,
-        title: subcategory.title,
-        description: subcategory.description,
-        items: subcategory.items
-      }
-    };
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -702,24 +529,6 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    return {
-      categories: normalized.categories.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
-      searchItems: normalized.categories.flatMap((category) => {
-        const directItems = category.items.length
-          ? [{ categorySlug: category.slug, items: category.items }]
-          : [];
-        const subcategoryItems = category.subcategories.map((subcategory) => ({
-          categorySlug: category.slug,
-          subcategorySlug: subcategory.slug,
-          items: subcategory.items
-        }));
-        return [...directItems, ...subcategoryItems];
-      })
-    };
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -770,22 +579,6 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 
 
 async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
-  if (!getDatabaseUrl()) {
-    const normalized = await readCatalogFile();
-    return normalized.categories.map(({ id, slug, title, items, subcategories }) => ({
-      id,
-      slug,
-      title,
-      items,
-      subcategories: subcategories.map(({ id: subcategoryId, slug: subcategorySlug, title: subcategoryTitle, items: subcategoryItems }) => ({
-        id: subcategoryId,
-        slug: subcategorySlug,
-        title: subcategoryTitle,
-        items: subcategoryItems
-      }))
-    }));
-  }
-
   await ensureCatalogStorageReady();
 
   const pool = await getPool();
@@ -1036,7 +829,6 @@ export async function patchCategoryTree(
 ): Promise<void> {
   const { upserts, deleteIds } = patches;
 
-  if (!getDatabaseUrl()) return;
   if (upserts.length === 0 && deleteIds.length === 0) return;
 
   await ensureCatalogStorageReady();
@@ -1089,8 +881,8 @@ export async function patchCategoryTree(
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
-    revalidateTag(CATALOG_ADMIN_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
+    revalidateTag(CATALOG_ADMIN_TAG, { expire: 0 });
   } catch (error) {
     await client.query('rollback');
     throw error;
@@ -1184,10 +976,6 @@ export async function replaceCategoryTree(
   statuses: Record<string, CategoryStatus> = {}
 ): Promise<CatalogData> {
   const normalized = normalizeCatalogData(input);
-
-  if (!getDatabaseUrl()) {
-    return normalized;
-  }
 
   await ensureCatalogStorageReady();
   const pool = await getPool();
@@ -1294,8 +1082,8 @@ export async function replaceCategoryTree(
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
-    revalidateTag(CATALOG_ADMIN_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
+    revalidateTag(CATALOG_ADMIN_TAG, { expire: 0 });
   } catch (error) {
     await client.query('rollback');
     throw error;

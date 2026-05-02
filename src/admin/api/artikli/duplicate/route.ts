@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
-  duplicateCatalogItemByIdentifier
+  duplicateCatalogItemByIdentifier,
+  fetchCatalogItemEditorBySlug
 } from '@/shared/server/catalogItems';
+import { computeCatalogItemAuditDiff, countAuditChangedFields } from '@/shared/audit/auditDiff';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +17,20 @@ export async function POST(request: Request) {
 
     const item = await duplicateCatalogItemByIdentifier(itemIdentifier);
     if (!item) return NextResponse.json({ message: 'Artikel ni bil najden.' }, { status: 404 });
+    const after = await fetchCatalogItemEditorBySlug(String(item.id));
+    const diff = computeCatalogItemAuditDiff(null, after as Record<string, unknown> | null);
+    await insertAuditEventForRequest(request, {
+      entityType: 'item',
+      entityId: String(after?.slug ?? item.slug ?? itemIdentifier),
+      entityLabel: after?.itemName ?? item.itemName,
+      action: 'created',
+      diff,
+      metadata: {
+        duplicated_from: itemIdentifier,
+        product_type: after?.productType ?? item.productType,
+        changed_field_count: countAuditChangedFields(diff)
+      }
+    });
 
     return NextResponse.json({ item });
   } catch (error) {

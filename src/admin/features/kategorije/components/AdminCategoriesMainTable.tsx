@@ -576,25 +576,28 @@ export default function AdminCategoriesMainTable({
     return hydrationPromiseRef.current;
   }, []);
 
-  const ensureFullPayloadLoaded = useCallback(async () => {
-    if (!partialPayloadRef.current) return;
+  const ensureFullPayloadLoaded = useCallback(async (): Promise<CatalogData> => {
+    if (!partialPayloadRef.current) return catalogRef.current;
 
     const payload = await prefetchFullPayload();
-    if (!payload) return;
+    if (!payload) return catalogRef.current;
 
-    applyPayloadState({
+    const fullPayload = {
       ...payload,
       payloadMode: 'full',
       payloadView: activeView
-    });
+    } as AdminCategoriesPayload;
+    const normalized = normalizeCatalogData(fullPayload);
+    applyPayloadState(fullPayload);
+    return normalized;
   }, [activeView, applyPayloadState, prefetchFullPayload]);
 
-  const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+  const load = useCallback(async ({ silent = false, view = activeView }: { silent?: boolean; view?: CategoriesView } = {}) => {
     if (!silent) setLoading(true);
 
     try {
       const response = await fetch(
-        activeView === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        view === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
         { cache: 'no-store' }
       );
 
@@ -604,7 +607,7 @@ export default function AdminCategoriesMainTable({
       }
 
       const payloadRaw = (await response.json()) as AdminCategoriesPayload;
-      applyPayloadState(payloadRaw);
+      applyPayloadState({ ...payloadRaw, payloadView: view });
     } catch {
       toastRef.current.error('Napaka pri nalaganju kategorij');
     } finally {
@@ -629,6 +632,12 @@ export default function AdminCategoriesMainTable({
   }, [statusByRow]);
 
   useEffect(() => {
+    if (initialPayload) {
+      applyPayloadState(initialPayload, { persistSession: initialPayload.payloadMode !== 'partial' });
+      setLoading(false);
+      return;
+    }
+
     const sessionPayload = getAdminCategoriesSessionPayload();
     if (sessionPayload && sessionPayload.payloadMode !== 'partial') {
       applyPayloadState(sessionPayload);
@@ -636,11 +645,6 @@ export default function AdminCategoriesMainTable({
       return;
     }
 
-    if (initialPayload) {
-      applyPayloadState(initialPayload, { persistSession: initialPayload.payloadMode !== 'partial' });
-      setLoading(false);
-      return;
-    }
     void load();
   }, [applyPayloadState, initialPayload, load]);
 
@@ -655,6 +659,34 @@ export default function AdminCategoriesMainTable({
     }
     setActiveView('table');
   }, [pathname]);
+
+  const enteredMillerViewRef = useRef(false);
+
+  useEffect(() => {
+    if (activeView !== 'miller') {
+      enteredMillerViewRef.current = false;
+      return;
+    }
+
+    if (enteredMillerViewRef.current || saving || editingRow) return;
+    enteredMillerViewRef.current = true;
+
+    if (tableDirty) {
+      const normalized = normalizeCatalogData(catalogRef.current);
+      setMillerCatalog(normalized);
+      millerCatalogRef.current = normalized;
+      setMillerDirty(
+        !areMillerCatalogsEqual(normalized, persistedMillerRef.current) ||
+          !areStatusesEqual(statusByRowRef.current, persistedStatusRef.current)
+      );
+      setMillerError(null);
+      return;
+    }
+
+    if (!millerDirty) {
+      void load({ silent: true, view: 'miller' });
+    }
+  }, [activeView, editingRow, load, millerDirty, saving, tableDirty]);
 
   useEffect(() => {
     return () => {
@@ -675,6 +707,7 @@ export default function AdminCategoriesMainTable({
       if (!viewport) return;
 
       if (viewport.contains(target)) return;
+      if (target instanceof Element && target.closest('[data-miller-selection-toolbar="true"]')) return;
       setMillerSelection([]);
     };
 
@@ -903,15 +936,17 @@ export default function AdminCategoriesMainTable({
     return crumbs;
   }, [millerCatalog.categories, millerSelection, selected]);
 
-  const stageMillerCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
+  const stageMillerCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRowRef.current) => {
+    const currentCatalog = millerCatalogRef.current;
+    const currentStatuses = statusByRowRef.current;
     const normalized = normalizeCatalogData(next);
-    if (areMillerCatalogsEqual(normalized, millerCatalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+    if (areMillerCatalogsEqual(normalized, currentCatalog) && areStatusesEqual(nextStatuses, currentStatuses)) {
       setMillerError(null);
       return;
     }
     stagedMillerHistoryRef.current.push({
-      catalog: normalizeCatalogData(millerCatalog),
-      statuses: { ...statusByRow }
+      catalog: normalizeCatalogData(currentCatalog),
+      statuses: { ...currentStatuses }
     });
     setMillerCatalog(normalized);
     millerCatalogRef.current = normalized;
@@ -922,18 +957,20 @@ export default function AdminCategoriesMainTable({
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
     );
     setMillerError(null);
-  }, [millerCatalog, statusByRow]);
+  }, []);
 
-  const stageTableCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRow) => {
+  const stageTableCatalog = useCallback((next: CatalogData, nextStatuses: Record<string, CategoryStatus> = statusByRowRef.current) => {
+    const currentCatalog = catalogRef.current;
+    const currentStatuses = statusByRowRef.current;
     const normalized = normalizeCatalogData(next);
-    if (areCatalogsEqual(normalized, catalog) && areStatusesEqual(nextStatuses, statusByRow)) {
+    if (areCatalogsEqual(normalized, currentCatalog) && areStatusesEqual(nextStatuses, currentStatuses)) {
       setTableError(null);
       return;
     }
     tableAutosaveBlockedRef.current = false;
     stagedTableHistoryRef.current.push({
-      catalog: normalizeCatalogData(catalog),
-      statuses: { ...statusByRow }
+      catalog: normalizeCatalogData(currentCatalog),
+      statuses: { ...currentStatuses }
     });
     setCatalog(normalized);
     catalogRef.current = normalized;
@@ -944,18 +981,20 @@ export default function AdminCategoriesMainTable({
         !areStatusesEqual(nextStatuses, persistedStatusRef.current)
     );
     setTableError(null);
-  }, [catalog, statusByRow]);
+  }, []);
 
   const stageStatusChange = useCallback((nextStatuses: Record<string, CategoryStatus>) => {
+    const currentCatalog = activeView === 'miller' ? millerCatalogRef.current : catalogRef.current;
+    const currentStatuses = statusByRowRef.current;
     const snapshot = {
-      catalog: normalizeCatalogData(activeView === 'miller' ? millerCatalog : catalog),
-      statuses: { ...statusByRow }
+      catalog: normalizeCatalogData(currentCatalog),
+      statuses: { ...currentStatuses }
     };
 
     if (activeView === 'miller') {
       stagedMillerHistoryRef.current.push(snapshot);
       setMillerDirty(
-        !areMillerCatalogsEqual(millerCatalog, persistedMillerRef.current) ||
+        !areMillerCatalogsEqual(currentCatalog, persistedMillerRef.current) ||
           !areStatusesEqual(nextStatuses, persistedStatusRef.current)
       );
       setMillerError(null);
@@ -963,7 +1002,7 @@ export default function AdminCategoriesMainTable({
       tableAutosaveBlockedRef.current = false;
       stagedTableHistoryRef.current.push(snapshot);
       setTableDirty(
-        !areCatalogsEqual(catalog, persistedTableRef.current) ||
+        !areCatalogsEqual(currentCatalog, persistedTableRef.current) ||
           !areStatusesEqual(nextStatuses, persistedStatusRef.current)
       );
       setTableError(null);
@@ -971,7 +1010,7 @@ export default function AdminCategoriesMainTable({
 
     setStatusByRow(nextStatuses);
     statusByRowRef.current = nextStatuses;
-  }, [activeView, catalog, millerCatalog, statusByRow]);
+  }, [activeView]);
 
   const hasUnsavedChanges = tableDirty || millerDirty;
 
@@ -1093,13 +1132,13 @@ export default function AdminCategoriesMainTable({
 
   const addCategory = (title: string, afterSlug?: string) => {
     const slug = slugify(title);
-    if (!slug) return;
+    if (!slug) return false;
 
     const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
 
     if (sourceCatalog.categories.some((entry) => entry.slug === slug)) {
       toast.error('Kategorija s tem nazivom že obstaja');
-      return;
+      return false;
     }
 
     const item: RecursiveCatalogCategory = {
@@ -1129,6 +1168,7 @@ export default function AdminCategoriesMainTable({
     } else {
       stageTableCatalog({ categories: list });
     }
+    return true;
   };
 
   const addSubcategory = (
@@ -1138,14 +1178,14 @@ export default function AdminCategoriesMainTable({
     afterSlug?: string
   ) => {
     const slug = slugify(title);
-    if (!slug) return;
+    if (!slug) return false;
 
     const parentPath = Array.isArray(parentPathOrAfterSlug) ? parentPathOrAfterSlug : [];
     const resolvedAfterSlug = typeof parentPathOrAfterSlug === 'string' ? parentPathOrAfterSlug : afterSlug;
 
     const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
     const parentCategory = sourceCatalog.categories.find((entry) => entry.slug === categorySlug);
-    if (!parentCategory) return;
+    if (!parentCategory) return false;
 
     const newNode: RecursiveCatalogSubcategory = {
       id: createCatalogNodeId(),
@@ -1157,6 +1197,7 @@ export default function AdminCategoriesMainTable({
       subcategories: []
     };
 
+    let createBlocked = false;
     const next = {
       categories: sourceCatalog.categories.map((entry) => {
         if (entry.slug !== categorySlug) return entry;
@@ -1164,6 +1205,7 @@ export default function AdminCategoriesMainTable({
         if (parentPath.length === 0) {
           if (entry.subcategories.some((node) => node.slug === slug)) {
             toast.error('Podkategorija s tem nazivom že obstaja');
+            createBlocked = true;
             return entry;
           }
 
@@ -1180,10 +1222,14 @@ export default function AdminCategoriesMainTable({
         }
 
         const parentNode = findSubcategoryByPath(entry.subcategories, parentPath);
-        if (!parentNode) return entry;
+        if (!parentNode) {
+          createBlocked = true;
+          return entry;
+        }
 
         if (parentNode.subcategories.some((node) => node.slug === slug)) {
           toast.error('Podkategorija s tem nazivom že obstaja');
+          createBlocked = true;
           return entry;
         }
 
@@ -1208,6 +1254,8 @@ export default function AdminCategoriesMainTable({
       })
     };
 
+    if (createBlocked) return false;
+
     setExpanded((prev) => {
       const nextExpanded = { ...prev, [catId(categorySlug)]: true };
       for (let index = 1; index <= parentPath.length; index += 1) {
@@ -1221,6 +1269,7 @@ export default function AdminCategoriesMainTable({
     } else {
       stageTableCatalog(next);
     }
+    return true;
   };
 
   const createLocationOptions = useMemo<CreateLocationOption[]>(() => {
@@ -1305,16 +1354,28 @@ export default function AdminCategoriesMainTable({
     const nextName = createName.trim();
     if (!nextName || !createTarget || !selectedCreateLocation) return;
 
+    const shouldUseRequestedInsertPosition =
+      selectedCreateLocation.target.kind === createTarget.kind &&
+      (createTarget.kind === 'category'
+        ? selectedCreateLocation.target.kind === 'category'
+        : selectedCreateLocation.target.kind === 'subcategory' &&
+          selectedCreateLocation.target.categorySlug === createTarget.categorySlug &&
+          pathEquals(selectedCreateLocation.target.parentPath, createTarget.parentPath ?? []));
+    const insertAfterSlug = shouldUseRequestedInsertPosition ? createTarget.afterSlug : undefined;
+    let created = false;
+
     if (selectedCreateLocation.target.kind === 'category') {
-      addCategory(nextName, createTarget.afterSlug);
+      created = addCategory(nextName, insertAfterSlug);
     } else {
-      addSubcategory(
+      created = addSubcategory(
         selectedCreateLocation.target.categorySlug,
         nextName,
         selectedCreateLocation.target.parentPath,
-        createTarget.afterSlug
+        insertAfterSlug
       );
     }
+
+    if (!created) return;
 
     setCreateTarget(null);
     setCreateName('');
@@ -1323,7 +1384,7 @@ export default function AdminCategoriesMainTable({
 
 
   const onTreeDragEnd = async (event: DragEndEvent) => {
-    await ensureFullPayloadLoaded();
+    const sourceCatalog = await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -1331,24 +1392,24 @@ export default function AdminCategoriesMainTable({
     const overId = String(over.id);
 
     if (activeId.startsWith('cat:') && overId.startsWith('cat:')) {
-      const oldIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === activeId);
-      const newIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === overId);
+      const oldIndex = sourceCatalog.categories.findIndex((entry) => catId(entry.slug) === activeId);
+      const newIndex = sourceCatalog.categories.findIndex((entry) => catId(entry.slug) === overId);
       if (oldIndex < 0 || newIndex < 0) return;
 
-      stageTableCatalog({ categories: arrayMove(catalog.categories, oldIndex, newIndex) });
+      stageTableCatalog({ categories: arrayMove(sourceCatalog.categories, oldIndex, newIndex) });
       return;
     }
 
     if (!activeId.startsWith('sub:')) return;
 
     const [, activeCategorySlug, activeSubSlug] = activeId.split(':');
-    const sourceCategory = catalog.categories.find((entry) => entry.slug === activeCategorySlug);
+    const sourceCategory = sourceCatalog.categories.find((entry) => entry.slug === activeCategorySlug);
     if (!sourceCategory) return;
     const movingSubcategory = sourceCategory.subcategories.find((entry) => entry.slug === activeSubSlug);
     if (!movingSubcategory) return;
 
     if (overId === rootId) {
-      const nextCategories = catalog.categories.map((entry) => ({
+      const nextCategories = sourceCatalog.categories.map((entry) => ({
         ...entry,
         subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug)
       }));
@@ -1368,7 +1429,7 @@ export default function AdminCategoriesMainTable({
       const targetCategorySlug = overId.slice(4);
       if (targetCategorySlug === activeCategorySlug) return;
 
-      const nextCategories = catalog.categories.map((entry) => {
+      const nextCategories = sourceCatalog.categories.map((entry) => {
         if (entry.slug === activeCategorySlug) {
           return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug) };
         }
@@ -1393,7 +1454,7 @@ export default function AdminCategoriesMainTable({
       const newIndex = sourceCategory.subcategories.findIndex((entry) => entry.slug === overSubSlug);
       if (oldIndex < 0 || newIndex < 0) return;
 
-      const nextCategories = catalog.categories.map((entry) =>
+      const nextCategories = sourceCatalog.categories.map((entry) =>
         entry.slug === activeCategorySlug
           ? { ...entry, subcategories: arrayMove(entry.subcategories, oldIndex, newIndex) }
           : entry
@@ -1403,12 +1464,12 @@ export default function AdminCategoriesMainTable({
       return;
     }
 
-    const targetCategory = catalog.categories.find((entry) => entry.slug === overCategorySlug);
+    const targetCategory = sourceCatalog.categories.find((entry) => entry.slug === overCategorySlug);
     if (!targetCategory) return;
     const targetIndex = targetCategory.subcategories.findIndex((entry) => entry.slug === overSubSlug);
     if (targetIndex < 0) return;
 
-    const nextCategories = catalog.categories.map((entry) => {
+    const nextCategories = sourceCatalog.categories.map((entry) => {
       if (entry.slug === activeCategorySlug) {
         return { ...entry, subcategories: entry.subcategories.filter((sub) => sub.slug !== activeSubSlug) };
       }
@@ -1427,16 +1488,16 @@ export default function AdminCategoriesMainTable({
   };
 
   const onBottomReorder = async (event: DragEndEvent) => {
-    await ensureFullPayloadLoaded();
+    const sourceCatalog = await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
     if (selected.kind === 'root') {
-      const oldIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === active.id);
-      const newIndex = catalog.categories.findIndex((entry) => catId(entry.slug) === over.id);
+      const oldIndex = sourceCatalog.categories.findIndex((entry) => catId(entry.slug) === active.id);
+      const newIndex = sourceCatalog.categories.findIndex((entry) => catId(entry.slug) === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
 
-      stageTableCatalog({ categories: arrayMove(catalog.categories, oldIndex, newIndex) });
+      stageTableCatalog({ categories: arrayMove(sourceCatalog.categories, oldIndex, newIndex) });
       return;
     }
 
@@ -1448,7 +1509,7 @@ export default function AdminCategoriesMainTable({
     const parentPath = parsedActive.subcategoryPath.slice(0, -1);
     if (!pathEquals(parentPath, parsedOver.subcategoryPath.slice(0, -1))) return;
 
-    const category = catalog.categories.find((entry) => entry.slug === parsedActive.categorySlug);
+    const category = sourceCatalog.categories.find((entry) => entry.slug === parsedActive.categorySlug);
     const siblings = !category
       ? []
       : parentPath.length === 0
@@ -1460,7 +1521,7 @@ export default function AdminCategoriesMainTable({
     if (oldIndex < 0 || newIndex < 0) return;
 
     const next = {
-      categories: catalog.categories.map((entry) =>
+      categories: sourceCatalog.categories.map((entry) =>
         entry.slug !== parsedActive.categorySlug
           ? entry
           : parentPath.length === 0
@@ -1479,12 +1540,13 @@ export default function AdminCategoriesMainTable({
   };
 
   const onLeafProductsDragEnd = async (event: DragEndEvent) => {
-    await ensureFullPayloadLoaded();
+    const sourceCatalog = await ensureFullPayloadLoaded();
     const { active, over } = event;
     if (!over || active.id === over.id || !selectedContext || selectedContext.kind === 'root') return;
 
     if (selectedContext.kind === 'category') {
-      const items = sortCatalogItems(selectedContext.category.items ?? []);
+      const sourceCategory = sourceCatalog.categories.find((entry) => entry.slug === selectedContext.category.slug);
+      const items = sortCatalogItems(sourceCategory?.items ?? []);
       const oldIndex = items.findIndex((item) => item.slug === active.id);
       const newIndex = items.findIndex((item) => item.slug === over.id);
       if (oldIndex < 0 || newIndex < 0) return;
@@ -1495,14 +1557,21 @@ export default function AdminCategoriesMainTable({
       }));
 
       stageTableCatalog({
-        categories: catalog.categories.map((entry) =>
+        categories: sourceCatalog.categories.map((entry) =>
           entry.slug === selectedContext.category.slug ? { ...entry, items: reordered } : entry
         )
       });
       return;
     }
 
-    const items = sortCatalogItems(selectedContext.subcategory.items);
+    const subcategoryPath = selected.kind === 'subcategory'
+      ? toSubcategoryPath(selected.subcategoryPath ?? selected.subcategorySlug)
+      : [selectedContext.subcategory.slug];
+    const sourceCategory = sourceCatalog.categories.find((entry) => entry.slug === selectedContext.category.slug);
+    const sourceSubcategory = sourceCategory
+      ? findSubcategoryByPath(sourceCategory.subcategories, subcategoryPath)
+      : null;
+    const items = sortCatalogItems(sourceSubcategory?.items ?? []);
     const oldIndex = items.findIndex((item) => item.slug === active.id);
     const newIndex = items.findIndex((item) => item.slug === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
@@ -1513,13 +1582,14 @@ export default function AdminCategoriesMainTable({
     }));
 
     const next = {
-      categories: catalog.categories.map((entry) =>
+      categories: sourceCatalog.categories.map((entry) =>
         entry.slug === selectedContext.category.slug
           ? {
               ...entry,
-              subcategories: entry.subcategories.map((sub) =>
-                sub.slug === selectedContext.subcategory.slug ? { ...sub, items: reordered } : sub
-              )
+              subcategories: updateSubcategoryTree(entry.subcategories, subcategoryPath, (node) => ({
+                ...node,
+                items: reordered
+              }))
             }
           : entry
       )
@@ -1961,7 +2031,12 @@ export default function AdminCategoriesMainTable({
     persistedTableRef.current = canonicalCatalog;
     persistedMillerRef.current = canonicalCatalog;
     persistedStatusRef.current = { ...canonicalStatuses };
-    setAdminCategoriesSessionPayload({ categories: canonicalCatalog.categories, statuses: canonicalStatuses });
+    setAdminCategoriesSessionPayload({
+      categories: canonicalCatalog.categories,
+      statuses: canonicalStatuses,
+      payloadMode: 'full',
+      payloadView: 'miller'
+    });
 
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
     committedHistoryRef.current.push({
@@ -1980,6 +2055,7 @@ export default function AdminCategoriesMainTable({
     setTableDirty(false);
     setMillerError(null);
     setTableError(null);
+    router.refresh();
   };
 
   const saveTableChanges = useCallback(async () => {
@@ -1998,7 +2074,12 @@ export default function AdminCategoriesMainTable({
     persistedTableRef.current = canonicalCatalog;
     persistedMillerRef.current = canonicalCatalog;
     persistedStatusRef.current = { ...canonicalStatuses };
-    setAdminCategoriesSessionPayload({ categories: canonicalCatalog.categories, statuses: canonicalStatuses });
+    setAdminCategoriesSessionPayload({
+      categories: canonicalCatalog.categories,
+      statuses: canonicalStatuses,
+      payloadMode: 'full',
+      payloadView: 'table'
+    });
 
     committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
     committedHistoryRef.current.push({
@@ -2017,8 +2098,33 @@ export default function AdminCategoriesMainTable({
     setMillerDirty(false);
     setTableError(null);
     setMillerError(null);
+    router.refresh();
     return true;
-  }, [ensureFullPayloadLoaded, persist]);
+  }, [ensureFullPayloadLoaded, persist, router]);
+
+  const openTableSaveDialog = useCallback(async () => {
+    const currentCatalog = await ensureFullPayloadLoaded();
+    const summary = summarizeCatalogChanges(
+      persistedTableRef.current,
+      currentCatalog,
+      persistedStatusRef.current,
+      statusByRowRef.current
+    );
+    setTableSaveSummary(summary);
+    setIsTableSaveDialogOpen(true);
+  }, [ensureFullPayloadLoaded]);
+
+  const openMillerSaveDialog = useCallback(async () => {
+    await ensureFullPayloadLoaded();
+    const summary = summarizeCatalogChanges(
+      persistedMillerRef.current,
+      millerCatalogRef.current,
+      persistedStatusRef.current,
+      statusByRowRef.current
+    );
+    setMillerSaveSummary(summary);
+    setIsMillerSaveDialogOpen(true);
+  }, [ensureFullPayloadLoaded]);
 
   useEffect(() => {
     if (activeView !== 'table' || !tableDirty || saving || editingRow || isInlineSavingRef.current || tableAutosaveBlockedRef.current) {
@@ -3509,7 +3615,7 @@ export default function AdminCategoriesMainTable({
 
   return (
     <div className="space-y-5">
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold leading-8 text-slate-900">Kategorije</h1>
       </header>
 
@@ -3615,7 +3721,8 @@ export default function AdminCategoriesMainTable({
                 value={createLocationPath}
                 onChange={setCreateLocationPath}
                 categoryPaths={createLocationPaths}
-                placeholder="Izberi kategorijo"
+                placeholder="Glavna raven"
+                allowIntermediateSelection
                 className="flex h-9 items-center rounded-md bg-transparent px-0 !py-0 text-[12px] [&_input]:text-[12px] [&_span]:text-[12px]"
               />
             </div>
@@ -3702,9 +3809,7 @@ export default function AdminCategoriesMainTable({
         lowerViewCount={lowerViewCount}
         onLowerViewCountChange={setLowerViewCount}
         onRequestSave={() => {
-          const summary = summarizeCatalogChanges(persistedTableRef.current, catalog, persistedStatusRef.current, statusByRow);
-          setTableSaveSummary(summary);
-          setIsTableSaveDialogOpen(true);
+          void openTableSaveDialog();
         }}
         canNavigateUp={selected.kind !== 'root'}
         onNavigateUp={navigatePreviewUp}
@@ -3809,9 +3914,7 @@ export default function AdminCategoriesMainTable({
         onSearchQueryChange={setMillerSearchQuery}
         activeColumnKind={activeMillerColumnKind}
         onRequestSave={() => {
-          const summary = summarizeCatalogChanges(persistedMillerRef.current, millerCatalog, persistedStatusRef.current, statusByRow);
-          setMillerSaveSummary(summary);
-          setIsMillerSaveDialogOpen(true);
+          void openMillerSaveDialog();
         }}
         saving={saving}
         canUndoStagedChanges={canUndoStagedChanges}

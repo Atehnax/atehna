@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 async function ensureArchiveSchema() {
   const pool = await getPool();
@@ -35,7 +36,7 @@ async function hasOrdersDeletedAtColumn() {
   return Number(result.rowCount ?? 0) > 0;
 }
 
-export async function DELETE(_request: Request, props: { params: Promise<{ orderId: string }> }) {
+export async function DELETE(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
   try {
     const orderId = Number(params.orderId);
@@ -101,11 +102,50 @@ export async function DELETE(_request: Request, props: { params: Promise<{ order
         }
       }
 
+      const orderNumber = order.order_number || `#${orderId}`;
+      await insertAuditEventForRequest(request, {
+        entityType: 'order',
+        entityId: String(orderId),
+        entityLabel: `Naročilo ${orderNumber}`,
+        action: 'deleted',
+        summary: `Naročilo ${orderNumber}: izbrisano`,
+        diff: {
+          deleted_at: {
+            label: 'Izbrisano',
+            before: 'prazno',
+            after: 'nastavljeno'
+          }
+        },
+        metadata: {
+          order_number: orderNumber,
+          soft_delete: true
+        }
+      });
+
       revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
 
     await pool.query('delete from orders where id = $1', [orderId]);
+    const orderNumber = order.order_number || `#${orderId}`;
+    await insertAuditEventForRequest(request, {
+      entityType: 'order',
+      entityId: String(orderId),
+      entityLabel: `Naročilo ${orderNumber}`,
+      action: 'deleted',
+      summary: `Naročilo ${orderNumber}: trajno izbrisano`,
+      diff: {
+        deleted_at: {
+          label: 'Izbrisano',
+          before: 'prazno',
+          after: 'trajno izbrisano'
+        }
+      },
+      metadata: {
+        order_number: orderNumber,
+        soft_delete: false
+      }
+    });
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {

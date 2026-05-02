@@ -2,12 +2,6 @@ import { getPool } from '@/shared/server/db';
 import { deleteBlob } from '@/shared/server/blob';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 
-const isMissingRelationError = (error: unknown) =>
-  Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42P01');
-
-const isMissingColumnError = (error: unknown) =>
-  Boolean(error && typeof error === 'object' && 'code' in error && error.code === '42703');
-
 export type ArchiveEntry = {
   id: number;
   item_type: 'order' | 'pdf';
@@ -22,43 +16,7 @@ export type ArchiveEntry = {
   expires_at: string;
 };
 
-type SoftDeletedEntry = {
-  item_type: 'order' | 'pdf';
-  order_id: number | null;
-  document_id: number | null;
-  label: string;
-  order_created_at: string | null;
-  customer_name: string | null;
-  address: string | null;
-  customer_type: string | null;
-  deleted_at: string;
-  expires_at: string;
-};
-
 type DatabaseDateValue = string | number | Date;
-
-type SoftDeletedOrderRow = {
-  order_id: number | string;
-  order_number: string | null;
-  contact_name: string | null;
-  deleted_at: DatabaseDateValue;
-  customer_type: string | null;
-  delivery_address: string | null;
-  created_at: DatabaseDateValue | null;
-  expires_at: DatabaseDateValue | null;
-};
-
-type SoftDeletedDocumentRow = {
-  document_id: number | string;
-  order_id: number | string | null;
-  filename: string | null;
-  deleted_at: DatabaseDateValue;
-  contact_name: string | null;
-  delivery_address: string | null;
-  customer_type: string | null;
-  created_at: DatabaseDateValue | null;
-  expires_at: DatabaseDateValue | null;
-};
 
 type ArchiveEntryRow = {
   id: number | string;
@@ -95,7 +53,9 @@ async function enforceParentOrderRestoreForDeletedPdfChildren(
     }
 
     if (candidate.document_id && candidate.document_id > 0) {
-      const documentResult = await client.query('select order_id from order_documents where id = $1 limit 1', [candidate.document_id]);
+      const documentResult = await client.query('select order_id from order_documents where id = $1 limit 1', [
+        candidate.document_id
+      ]);
       const rawOrderId = documentResult.rows[0]?.order_id;
       if (rawOrderId !== undefined && rawOrderId !== null) {
         const resolved = Number(rawOrderId);
@@ -124,93 +84,6 @@ async function enforceParentOrderRestoreForDeletedPdfChildren(
   }
 }
 
-async function fetchSoftDeletedFallbackEntries(
-  itemType?: 'all' | 'order' | 'pdf'
-): Promise<SoftDeletedEntry[]> {
-  const pool = await getPool();
-  const entries: SoftDeletedEntry[] = [];
-
-  if (!itemType || itemType === 'all' || itemType === 'order') {
-    try {
-      const ordersResult = await pool.query<SoftDeletedOrderRow>(
-        `
-        select
-          id as order_id,
-          order_number,
-          contact_name,
-          deleted_at,
-          customer_type,
-          delivery_address,
-          created_at,
-          deleted_at + interval '90 days' as expires_at
-        from orders
-        where deleted_at is not null
-        order by deleted_at desc
-        `
-      );
-
-      entries.push(
-        ...ordersResult.rows.map((row) => ({
-          item_type: 'order' as const,
-          order_id: Number(row.order_id),
-          document_id: null,
-          label: `${String(row.order_number || `#${row.order_id}`)} · ${String(row.contact_name || 'Naročilo')}`,
-          order_created_at: row.created_at ? new Date(row.created_at).toISOString() : null,
-          customer_name: row.contact_name ? String(row.contact_name) : null,
-          address: row.delivery_address ? String(row.delivery_address) : null,
-          customer_type: row.customer_type ? String(row.customer_type) : null,
-          deleted_at: new Date(row.deleted_at).toISOString(),
-          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString()
-        }))
-      );
-    } catch (error) {
-      if (!isMissingColumnError(error) && !isMissingRelationError(error)) throw error;
-    }
-  }
-
-  if (!itemType || itemType === 'all' || itemType === 'pdf') {
-    try {
-      const documentsResult = await pool.query<SoftDeletedDocumentRow>(
-        `
-        select
-          d.id as document_id,
-          d.order_id,
-          d.filename,
-          d.deleted_at,
-          o.contact_name,
-          o.delivery_address,
-          o.customer_type,
-          o.created_at,
-          d.deleted_at + interval '90 days' as expires_at
-        from order_documents d
-        left join orders o on o.id = d.order_id
-        where d.deleted_at is not null
-        order by d.deleted_at desc
-        `
-      );
-
-      entries.push(
-        ...documentsResult.rows.map((row) => ({
-          item_type: 'pdf' as const,
-          order_id: Number(row.order_id),
-          document_id: Number(row.document_id),
-          label: String(row.filename || 'PDF dokument'),
-          order_created_at: row.created_at ? new Date(row.created_at).toISOString() : null,
-          customer_name: row.contact_name ? String(row.contact_name) : null,
-          address: row.delivery_address ? String(row.delivery_address) : null,
-          customer_type: row.customer_type ? String(row.customer_type) : null,
-          deleted_at: new Date(row.deleted_at).toISOString(),
-          expires_at: new Date(row.expires_at ?? new Date(row.deleted_at).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString()
-        }))
-      );
-    } catch (error) {
-      if (!isMissingColumnError(error) && !isMissingRelationError(error)) throw error;
-    }
-  }
-
-  return entries;
-}
-
 export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): Promise<ArchiveEntry[]> {
   return instrumentCatalogLoader('fetchArchiveEntries', '/admin/arhiv', async () => {
     const pool = await getPool();
@@ -222,76 +95,41 @@ export async function fetchArchiveEntries(itemType?: 'all' | 'order' | 'pdf'): P
       where = `where e.item_type = $${params.length}`;
     }
 
-    let explicitEntries: ArchiveEntry[] = [];
-    let shouldUseFallbackEntries = false;
-    try {
-      const result = await pool.query<ArchiveEntryRow>(
-        `
-        select
-          e.id,
-          e.item_type,
-          e.order_id,
-          e.document_id,
-          e.label,
-          coalesce(e.payload->>'orderCreatedAt', o.created_at::text) as order_created_at,
-          coalesce(e.payload->>'customerName', o.contact_name) as customer_name,
-          coalesce(e.payload->>'address', o.delivery_address) as address,
-          coalesce(e.payload->>'customerType', o.customer_type) as customer_type,
-          e.deleted_at,
-          e.expires_at
-        from deleted_archive_entries e
-        left join orders o on o.id = e.order_id
-        ${where}
-        order by e.deleted_at desc
-        `,
-        params
-      );
-
-      explicitEntries = result.rows.map((row) => ({
-        id: Number(row.id),
-        item_type: row.item_type as 'order' | 'pdf',
-        order_id: row.order_id === null ? null : Number(row.order_id),
-        document_id: row.document_id === null ? null : Number(row.document_id),
-        label: String(row.label),
-        order_created_at: row.order_created_at ? new Date(row.order_created_at).toISOString() : null,
-        customer_name: row.customer_name ? String(row.customer_name) : null,
-        address: row.address ? String(row.address) : null,
-        customer_type: row.customer_type ? String(row.customer_type) : null,
-        deleted_at: new Date(row.deleted_at).toISOString(),
-        expires_at: new Date(row.expires_at).toISOString()
-      }));
-    } catch (error) {
-      if (!isMissingRelationError(error)) throw error;
-      shouldUseFallbackEntries = true;
-    }
-
-    if (!shouldUseFallbackEntries) {
-      return explicitEntries;
-    }
-
-    const fallbackRows = await instrumentCatalogLoader(
-      'fetchSoftDeletedFallbackEntries',
-      '/admin/arhiv',
-      () => fetchSoftDeletedFallbackEntries(itemType)
+    const result = await pool.query<ArchiveEntryRow>(
+      `
+      select
+        e.id,
+        e.item_type,
+        e.order_id,
+        e.document_id,
+        e.label,
+        coalesce(e.payload->>'orderCreatedAt', o.created_at::text) as order_created_at,
+        coalesce(e.payload->>'customerName', o.contact_name) as customer_name,
+        coalesce(e.payload->>'address', o.delivery_address) as address,
+        coalesce(e.payload->>'customerType', o.customer_type) as customer_type,
+        e.deleted_at,
+        e.expires_at
+      from deleted_archive_entries e
+      left join orders o on o.id = e.order_id
+      ${where}
+      order by e.deleted_at desc
+      `,
+      params
     );
 
-    const dedup = new Set(
-      explicitEntries.map((entry) => `${entry.item_type}:${entry.order_id ?? '-'}:${entry.document_id ?? '-'}`)
-    );
-
-    const syntheticEntries: ArchiveEntry[] = [];
-    fallbackRows.forEach((row, index) => {
-      const key = `${row.item_type}:${row.order_id ?? '-'}:${row.document_id ?? '-'}`;
-      if (dedup.has(key)) return;
-      syntheticEntries.push({
-        id: -(index + 1),
-        ...row
-      });
-    });
-
-    return [...explicitEntries, ...syntheticEntries].sort(
-      (left, right) => new Date(right.deleted_at).getTime() - new Date(left.deleted_at).getTime()
-    );
+    return result.rows.map((row) => ({
+      id: Number(row.id),
+      item_type: row.item_type as 'order' | 'pdf',
+      order_id: row.order_id === null ? null : Number(row.order_id),
+      document_id: row.document_id === null ? null : Number(row.document_id),
+      label: String(row.label),
+      order_created_at: row.order_created_at ? new Date(row.order_created_at).toISOString() : null,
+      customer_name: row.customer_name ? String(row.customer_name) : null,
+      address: row.address ? String(row.address) : null,
+      customer_type: row.customer_type ? String(row.customer_type) : null,
+      deleted_at: new Date(row.deleted_at).toISOString(),
+      expires_at: new Date(row.expires_at).toISOString()
+    }));
   });
 }
 
@@ -373,12 +211,18 @@ export async function restoreArchiveTargets(targets: RestoreTarget[]): Promise<n
     for (const target of targets) {
       if (target.item_type === 'order' && target.order_id) {
         await client.query('update orders set deleted_at = null where id = $1', [target.order_id]);
-        await client.query('delete from deleted_archive_entries where item_type = $1 and order_id = $2', ['order', target.order_id]);
+        await client.query('delete from deleted_archive_entries where item_type = $1 and order_id = $2', [
+          'order',
+          target.order_id
+        ]);
       }
 
       if (target.item_type === 'pdf' && target.document_id) {
         await client.query('update order_documents set deleted_at = null where id = $1', [target.document_id]);
-        await client.query('delete from deleted_archive_entries where item_type = $1 and document_id = $2', ['pdf', target.document_id]);
+        await client.query('delete from deleted_archive_entries where item_type = $1 and document_id = $2', [
+          'pdf',
+          target.document_id
+        ]);
       }
     }
 
@@ -452,17 +296,10 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
 }
 
 export async function cleanupExpiredArchiveEntries(): Promise<number> {
-  try {
-    const pool = await getPool();
-    const result = await pool.query(
-      'select id from deleted_archive_entries where expires_at <= now() order by id asc limit 200'
-    );
+  const pool = await getPool();
+  const result = await pool.query('select id from deleted_archive_entries where expires_at <= now() order by id asc limit 200');
 
-    const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
-    if (ids.length === 0) return 0;
-    return permanentlyDeleteArchiveEntries(ids);
-  } catch (error) {
-    if (isMissingRelationError(error)) return 0;
-    throw error;
-  }
+  const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
+  if (ids.length === 0) return 0;
+  return permanentlyDeleteArchiveEntries(ids);
 }

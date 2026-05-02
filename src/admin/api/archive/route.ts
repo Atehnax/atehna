@@ -7,6 +7,7 @@ import {
   restoreArchiveTargets,
   type RestoreTarget
 } from '@/shared/server/deletedArchive';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +33,31 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ message: 'Ni izbranih zapisov za trajni izbris.' }, { status: 400 });
     }
 
+    const beforeEntries = await fetchArchiveEntries('all');
+    const selected = beforeEntries.filter((entry) => ids.includes(entry.id));
     const deletedCount = await permanentlyDeleteArchiveEntries(ids);
+    for (const entry of selected) {
+      await insertAuditEventForRequest(request, {
+        entityType: entry.item_type === 'order' ? 'order' : 'media',
+        entityId: String(entry.order_id ?? entry.document_id ?? entry.id),
+        entityLabel: entry.item_type === 'order' ? `Naročilo ${entry.label.split(' ')[0] ?? entry.order_id}` : entry.label,
+        action: 'deleted',
+        summary: entry.item_type === 'order' ? 'Naročilo trajno izbrisano' : 'Dokument trajno izbrisan',
+        diff: {
+          status: {
+            label: 'Status',
+            before: 'v arhivu',
+            after: 'trajno izbrisano'
+          }
+        },
+        metadata: {
+          archive_entry_id: entry.id,
+          item_type: entry.item_type,
+          order_id: entry.order_id,
+          document_id: entry.document_id
+        }
+      });
+    }
     return NextResponse.json({ success: true, deletedCount });
   } catch (error) {
     return NextResponse.json(
@@ -64,8 +89,43 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: 'Ni izbranih zapisov za obnovo.' }, { status: 400 });
     }
 
+    const beforeEntries = await fetchArchiveEntries('all');
+    const selectedByIds = beforeEntries.filter((entry) => ids.includes(entry.id));
+    const selectedByTargets = beforeEntries.filter((entry) =>
+      targets.some((target) =>
+        target.item_type === entry.item_type &&
+        (target.order_id ?? null) === (entry.order_id ?? null) &&
+        (target.document_id ?? null) === (entry.document_id ?? null)
+      )
+    );
+    const selected = [...selectedByIds, ...selectedByTargets].filter((entry, index, entries) =>
+      entries.findIndex((candidate) => candidate.id === entry.id) === index
+    );
+
     const restoredFromIds = ids.length > 0 ? await restoreArchiveEntries(ids) : 0;
     const restoredFromTargets = targets.length > 0 ? await restoreArchiveTargets(targets) : 0;
+    for (const entry of selected) {
+      await insertAuditEventForRequest(request, {
+        entityType: entry.item_type === 'order' ? 'order' : 'media',
+        entityId: String(entry.order_id ?? entry.document_id ?? entry.id),
+        entityLabel: entry.item_type === 'order' ? `Naročilo ${entry.label.split(' ')[0] ?? entry.order_id}` : entry.label,
+        action: 'restored',
+        summary: entry.item_type === 'order' ? 'Naročilo obnovljeno' : 'Dokument obnovljen',
+        diff: {
+          status: {
+            label: 'Status',
+            before: 'v arhivu',
+            after: 'obnovljeno'
+          }
+        },
+        metadata: {
+          archive_entry_id: entry.id,
+          item_type: entry.item_type,
+          order_id: entry.order_id,
+          document_id: entry.document_id
+        }
+      });
+    }
 
     revalidatePath('/admin/arhiv');
     revalidatePath('/admin/arhiv-izbrisanih');

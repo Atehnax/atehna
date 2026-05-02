@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-import path from 'path';
 import type {
   CatalogCategory,
   CatalogSubcategory,
@@ -19,14 +17,6 @@ function normalizeCatalogImage(value: unknown): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
   return trimmed.startsWith('data:image/') ? '' : trimmed;
-}
-
-const catalogPath = path.join(process.cwd(), 'src/commercial/content/data/catalog.json');
-
-export async function readCatalogFile(): Promise<RecursiveCatalogData> {
-  const raw = await fs.readFile(catalogPath, 'utf8');
-  const parsed: unknown = JSON.parse(raw);
-  return normalizeCatalogData(parsed);
 }
 
 export function normalizeCatalogData(input: unknown): RecursiveCatalogData {

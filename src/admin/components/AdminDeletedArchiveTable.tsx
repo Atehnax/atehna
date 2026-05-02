@@ -49,7 +49,7 @@ import {
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
 import { getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
-import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ArchiveEntry = {
   id: number;
@@ -103,8 +103,8 @@ const ARCHIVE_COLUMN_OPTIONS: Array<{ key: ArchiveColumnKey; label: string }> = 
   { key: 'customer', label: 'Naročnik' },
   { key: 'address', label: 'Naslov' },
   { key: 'orderType', label: 'Tip' },
-  { key: 'deleted', label: 'Izbris' },
-  { key: 'expires', label: 'Iztek' }
+  { key: 'deleted', label: 'Zabeleženo' },
+  { key: 'expires', label: 'Izbris' }
 ];
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const LazyConfirmDialog = dynamic(
@@ -322,10 +322,10 @@ export default function AdminDeletedArchiveTable({
       chips.push({ key: 'orderDate', title: 'Datum naročila:', value: `${orderDateRange.from || '—'} – ${orderDateRange.to || '—'}`, clear: () => { setOrderDateRange({ from: '', to: '' }); setDraftOrderDateRange({ from: '', to: '' }); } });
     }
     if (deletedDateRange.from || deletedDateRange.to) {
-      chips.push({ key: 'deletedDate', title: 'Datum izbrisa:', value: `${deletedDateRange.from || '—'} – ${deletedDateRange.to || '—'}`, clear: () => { setDeletedDateRange({ from: '', to: '' }); setDraftDeletedDateRange({ from: '', to: '' }); } });
+      chips.push({ key: 'deletedDate', title: 'Zabeleženo:', value: `${deletedDateRange.from || '—'} – ${deletedDateRange.to || '—'}`, clear: () => { setDeletedDateRange({ from: '', to: '' }); setDraftDeletedDateRange({ from: '', to: '' }); } });
     }
     if (expiresDateRange.from || expiresDateRange.to) {
-      chips.push({ key: 'expiresDate', title: 'Datum izteka:', value: `${expiresDateRange.from || '—'} – ${expiresDateRange.to || '—'}`, clear: () => { setExpiresDateRange({ from: '', to: '' }); setDraftExpiresDateRange({ from: '', to: '' }); } });
+      chips.push({ key: 'expiresDate', title: 'Izbris:', value: `${expiresDateRange.from || '—'} – ${expiresDateRange.to || '—'}`, clear: () => { setExpiresDateRange({ from: '', to: '' }); setDraftExpiresDateRange({ from: '', to: '' }); } });
     }
     return chips;
   }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, expiresDateRange.from, expiresDateRange.to, orderDateRange.from, orderDateRange.to, search, typeFilter]);
@@ -611,7 +611,7 @@ export default function AdminDeletedArchiveTable({
                   {chip.title} <span className="font-semibold">{chip.value}</span>
                 </span>
                 <button type="button" className={filterPillTokenClasses.clear} onClick={chip.clear} aria-label={`Odstrani filter ${chip.title}`}>
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ))}
@@ -706,9 +706,9 @@ export default function AdminDeletedArchiveTable({
               {visibleColumns.deleted ? <TH className={`${adminTableHeaderCellCenterClassName} w-40`}>
                 <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('deleted_at')} className={getHeaderTitleClass('deleted_at')}>
-                    Izbris
+                    Zabeleženo
                   </button>
-                  <button ref={deletedDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'deletedDate'} aria-label="Filtriraj datum izbrisa" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'deletedDate' ? null : 'deletedDate'))}>
+                  <button ref={deletedDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'deletedDate'} aria-label="Filtriraj datum zabeležbe" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'deletedDate' ? null : 'deletedDate'))}>
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                 </div>
@@ -716,9 +716,9 @@ export default function AdminDeletedArchiveTable({
               {visibleColumns.expires ? <TH className={`${adminTableHeaderCellCenterClassName} w-40 pr-5`}>
                 <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('expires_at')} className={getHeaderTitleClass('expires_at')}>
-                    Iztek
+                    Izbris
                   </button>
-                  <button ref={expiresDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'expiresDate'} aria-label="Filtriraj datum izteka" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'expiresDate' ? null : 'expiresDate'))}>
+                  <button ref={expiresDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'expiresDate'} aria-label="Filtriraj datum izbrisa" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'expiresDate' ? null : 'expiresDate'))}>
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                 </div>

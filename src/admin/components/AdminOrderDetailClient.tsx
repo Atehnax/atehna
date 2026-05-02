@@ -8,6 +8,7 @@ import PaymentChip from '@/admin/components/PaymentChip';
 import StatusChip from '@/admin/components/StatusChip';
 import AdminOrderItemsEditorClient from '@/admin/components/AdminOrderItemsEditorClient';
 import AdminOrderPdfManagerClient from '@/admin/components/AdminOrderPdfManagerClient';
+import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import OrderNumberSuggestionMenu from '@/admin/components/OrderNumberSuggestionMenu';
 import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
 import {
@@ -1038,6 +1039,12 @@ export default function AdminOrderDetailClient({
               >
                 <ActionUndoIcon />
               </IconButton>
+              <AuditHistoryDrawer
+                entityType="order"
+                entityId={orderId}
+                entityLabel={displayOrderNumber}
+                buttonClassName={adminTableNeutralIconButtonClassName}
+              />
               <IconButton
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}

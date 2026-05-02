@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { buildOrderBlobPath, uploadBlob } from '@/shared/server/blob';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 export const runtime = 'nodejs';
 
@@ -54,7 +55,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
 
     const pool = await getPool();
-    const orderResult = await pool.query('SELECT id FROM orders WHERE id = $1', [orderId]);
+    const orderResult = await pool.query('SELECT id, order_number FROM orders WHERE id = $1', [orderId]);
     const order = orderResult.rows[0];
 
     if (!order) {
@@ -72,6 +73,26 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       'INSERT INTO order_documents (order_id, type, filename, blob_url, blob_pathname) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at',
       [orderId, normalizedType, fileName, blob.url, blob.pathname]
     );
+    const orderNumber = String(order.order_number ?? `#${orderId}`);
+    await insertAuditEventForRequest(request, {
+      entityType: 'order',
+      entityId: String(orderId),
+      entityLabel: `Naročilo ${orderNumber}`,
+      action: 'uploaded',
+      summary: `Naročilo ${orderNumber}: dokument naložen`,
+      diff: {
+        documents: {
+          label: 'Dokumenti',
+          added: [fileName]
+        }
+      },
+      metadata: {
+        order_number: orderNumber,
+        document_id: Number(insertResult.rows[0].id),
+        document_type: normalizedType,
+        filename: fileName
+      }
+    });
 
     return NextResponse.json({
       id: Number(insertResult.rows[0].id),

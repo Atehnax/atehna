@@ -21,18 +21,18 @@ export default function AdminBreadcrumbPath({
   className?: string;
 }) {
   return (
-    <nav className={className} aria-label="Breadcrumb">
+    <nav className={`${className} inline-flex min-w-0 items-center`.trim()} aria-label="Breadcrumb">
       {items.length === 0 ? (
         <span className="text-xs text-slate-400">{emptyLabel}</span>
       ) : (
         items.map((crumb, index) => (
-          <span key={crumb.key ?? `${crumb.label}-${index}`}>
-            {index > 0 ? <span className="mx-1 text-slate-400">/</span> : null}
+          <span key={crumb.key ?? `${crumb.label}-${index}`} className="inline-flex min-w-0 items-center">
+            {index > 0 ? <span className="mx-1 inline-flex items-center leading-5 text-slate-400">/</span> : null}
             {crumb.render ? crumb.render : crumb.onClick && !crumb.isCurrent ? (
               <button
                 type="button"
                 onClick={crumb.onClick}
-                className="text-sm leading-5 text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
+                className="inline-flex min-w-0 items-center text-sm leading-5 text-slate-600 hover:text-slate-900 focus-visible:outline-none focus-visible:underline"
               >
                 <span className={crumb.labelClassName} title={crumb.title ?? crumb.label}>{crumb.label}</span>
               </button>

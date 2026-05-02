@@ -42,7 +42,7 @@ import {
 import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { adminTableRowToneClasses, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
 
@@ -476,7 +476,7 @@ export default function AdminArchivedItemsTable() {
                   {chip.title} <span className="font-semibold">{chip.value}</span>
                 </span>
                 <button type="button" onClick={chip.clear} className={filterPillTokenClasses.clear} aria-label={`Odstrani filter ${chip.title}`}>
-                  ×
+                  {filterPillClearGlyph}
                 </button>
               </span>
             ))}

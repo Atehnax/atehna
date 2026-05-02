@@ -28,6 +28,7 @@ import {
   adminStatusInfoPillTableCellClassName,
   adminTableRowToneClasses,
   adminTextButtonTypographyTokenClasses,
+  filterPillClearGlyph,
   filterPillTokenClasses
 } from '@/shared/ui/theme/tokens';
 import {
@@ -2030,7 +2031,7 @@ export default function AdminOrdersTable({
                       {chip.title}{' '}
                       <span className="font-semibold">{chip.value}</span>
                     </span>
-                    <button type="button" onClick={chip.clear} className={filterPillTokenClasses.clear} aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>×</button>
+                    <button type="button" onClick={chip.clear} className={filterPillTokenClasses.clear} aria-label={`Odstrani filter ${chip.title} ${chip.value}`}>{filterPillClearGlyph}</button>
                   </span>
                 ))}
               </div>

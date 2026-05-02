@@ -86,6 +86,7 @@ export default function AdminCategoryBreadcrumbPicker({
   categoryPaths,
   disabled,
   placeholder = 'Izberi kategorijo',
+  allowIntermediateSelection = false,
   className = 'col-span-2'
 }: {
   value: string[];
@@ -93,6 +94,7 @@ export default function AdminCategoryBreadcrumbPicker({
   categoryPaths: string[];
   disabled?: boolean;
   placeholder?: string;
+  allowIntermediateSelection?: boolean;
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -215,6 +217,19 @@ export default function AdminCategoryBreadcrumbPicker({
     assignPath(nextPath);
   };
 
+  const currentDrillEntry = categoryIndex.entryMap.get(pathKeyFromParts(drillPath));
+  const canSelectCurrentDrillPath = Boolean(
+    drillPath.length > 0
+      && focusedSegmentIndex === null
+      && currentDrillEntry
+      && (allowIntermediateSelection || currentDrillEntry.isLeaf)
+  );
+
+  const selectCurrentDrillPath = () => {
+    if (!canSelectCurrentDrillPath) return;
+    assignPath(drillPath);
+  };
+
   const isCollapsibleIndex = (index: number) =>
     displayedPath.length >= 4 && index > 0 && index < displayedPath.length - 2;
 
@@ -281,7 +296,7 @@ export default function AdminCategoryBreadcrumbPicker({
           });
 
   const breadcrumbItems =
-    hasDisplayedPathChildren && displayedPath.length > 0
+    !allowIntermediateSelection && hasDisplayedPathChildren && displayedPath.length > 0
       ? [
           ...baseBreadcrumbItems,
           {
@@ -362,6 +377,10 @@ export default function AdminCategoryBreadcrumbPicker({
                 }
                 if (event.key === 'Enter') {
                   event.preventDefault();
+                  if (query.length === 0 && canSelectCurrentDrillPath) {
+                    selectCurrentDrillPath();
+                    return;
+                  }
                   const current = searchResults[activeIndex];
                   if (!current) return;
                   if (focusedSegmentIndex !== null) {
@@ -381,20 +400,22 @@ export default function AdminCategoryBreadcrumbPicker({
           </div>
 
           {query.length === 0 && drillPath.length > 0 && focusedSegmentIndex === null ? (
-            <div className="mt-1 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
+            <button
+              type="button"
+              className={`mt-1 flex w-full items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-left text-[11px] transition-colors ${
+                canSelectCurrentDrillPath
+                  ? 'bg-slate-50 text-slate-600 hover:border-[#1982bf]/45 hover:bg-[#f0f4ff] hover:text-[#1982bf]'
+                  : 'bg-slate-50 text-slate-400'
+              }`}
+              onClick={selectCurrentDrillPath}
+              disabled={!canSelectCurrentDrillPath}
+              aria-label={`Izberi ${drillPath.join(' / ')}`}
+            >
               <span className="truncate">{drillPath.join(' → ')}</span>
-              <button
-                type="button"
-                className="ml-2 text-[#1982bf] hover:text-[#1982bf] disabled:text-slate-300"
-                onClick={() => {
-                  const current = categoryIndex.entryMap.get(pathKeyFromParts(drillPath));
-                  if (current?.isLeaf) assignPath(drillPath);
-                }}
-                disabled={!categoryIndex.entryMap.get(pathKeyFromParts(drillPath))?.isLeaf}
-              >
+              <span className={`ml-2 shrink-0 ${canSelectCurrentDrillPath ? 'text-[#1982bf]' : 'text-slate-300'}`}>
                 Izberi
-              </button>
-            </div>
+              </span>
+            </button>
           ) : null}
 
           <div className="mt-1 max-h-56 overflow-y-auto" role="listbox" aria-label="Rezultati kategorij">

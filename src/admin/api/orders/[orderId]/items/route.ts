@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
+import { computeOrderLineItemsDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
+import type { AuditDiff } from '@/shared/audit/auditTypes';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 type IncomingItem = {
   id?: number;
@@ -96,6 +99,29 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     try {
       await client.query('BEGIN');
+      const hasShippingColumnResult = await client.query(
+        `
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'shipping'
+        LIMIT 1
+        `
+      );
+      const hasShippingColumn = (hasShippingColumnResult.rowCount ?? 0) > 0;
+      const orderBeforeResult = await client.query(
+        hasShippingColumn
+          ? 'SELECT order_number, subtotal, tax, shipping, total FROM orders WHERE id = $1'
+          : 'SELECT order_number, subtotal, tax, null::numeric as shipping, total FROM orders WHERE id = $1',
+        [orderId]
+      );
+      if (orderBeforeResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'NaroÄilo ne obstaja.' }, { status: 404 });
+      }
+      const oldItemsResult = await client.query(
+        'SELECT id, sku, name, unit, quantity, unit_price, total_price FROM order_items WHERE order_id = $1 ORDER BY id',
+        [orderId]
+      );
       await client.query('DELETE FROM order_items WHERE order_id = $1', [orderId]);
 
       for (const item of normalizedItems) {
@@ -119,16 +145,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      const hasShippingColumnResult = await client.query(
-        `
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'shipping'
-        LIMIT 1
-        `
-      );
-      const hasShippingColumn = (hasShippingColumnResult.rowCount ?? 0) > 0;
-
       if (hasShippingColumn) {
         await client.query(
           'UPDATE orders SET subtotal = $1, tax = $2, shipping = $3, total = $4 WHERE id = $5',
@@ -139,6 +155,51 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           'UPDATE orders SET subtotal = $1, tax = $2, total = $3 WHERE id = $4',
           [subtotal, tax, total, orderId]
         );
+      }
+
+      const oldItems = oldItemsResult.rows.map((row) => ({
+        id: row.id,
+        sku: row.sku,
+        name: row.name,
+        unit: row.unit,
+        quantity: Number(row.quantity ?? 0),
+        unitPrice: Number(row.unit_price ?? 0),
+        totalPrice: Number(row.total_price ?? 0)
+      }));
+      const newItems = normalizedItems.map((item) => {
+        const lineBase = item.quantity * item.unitPrice;
+        const totalPrice = roundAmount(lineBase - (lineBase * (item.discountPercentage ?? 0)) / 100);
+        return {
+          id: item.id ?? null,
+          sku: item.sku,
+          name: item.name,
+          unit: item.unit,
+          quantity: item.quantity,
+          unitPrice: roundAmount(item.unitPrice),
+          discountPercentage: item.discountPercentage ?? 0,
+          totalPrice
+        };
+      });
+      const beforeTotals = orderBeforeResult.rows[0] as Record<string, unknown>;
+      const itemDiff = computeOrderLineItemsDiff(oldItems, newItems);
+      const diff: AuditDiff = {
+        ...(itemDiff ? { items: itemDiff } : {})
+      };
+      if (diffHasEntries(diff)) {
+        const orderNumber = String(beforeTotals.order_number ?? `#${orderId}`);
+        await insertAuditEventForRequest(request, {
+          entityType: 'order',
+          entityId: String(orderId),
+          entityLabel: `Naročilo ${orderNumber}`,
+          action: 'updated',
+          summary: `Naročilo ${orderNumber}: postavke spremenjene`,
+          diff,
+          metadata: {
+            order_number: orderNumber,
+            changed_field_count: countAuditChangedFields(diff),
+            line_item_count: newItems.length
+          }
+        }, client);
       }
 
       await client.query('COMMIT');

@@ -3,6 +3,7 @@ import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { ensureOrderStatusLogsTable } from '@/shared/server/orders';
 import { getPool } from '@/shared/server/db';
+import { insertAuditEventForRequest } from '@/shared/server/audit';
 
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -22,7 +23,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const pool = await getPool();
     await ensureOrderStatusLogsTable(pool);
-    const current = await pool.query('SELECT status FROM orders WHERE id = $1', [orderId]);
+    const current = await pool.query('SELECT id, order_number, status FROM orders WHERE id = $1', [orderId]);
     const previousStatus = current.rows[0]?.status === null || current.rows[0]?.status === undefined
       ? null
       : String(current.rows[0].status);
@@ -37,6 +38,25 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         'INSERT INTO order_status_logs (order_id, previous_status, new_status) VALUES ($1, $2, $3)',
         [orderId, previousStatus, status]
       );
+      const orderNumber = String(current.rows[0]?.order_number ?? `#${orderId}`);
+      await insertAuditEventForRequest(request, {
+        entityType: 'order',
+        entityId: String(orderId),
+        entityLabel: `Naročilo ${orderNumber}`,
+        action: 'status_changed',
+        summary: `Naročilo ${orderNumber}: status spremenjen`,
+        diff: {
+          status: {
+            label: 'Status naročila',
+            before: previousStatus,
+            after: status
+          }
+        },
+        metadata: {
+          order_number: orderNumber,
+          changed_field_count: 1
+        }
+      });
     }
 
     revalidateAdminOrderPaths(orderId);

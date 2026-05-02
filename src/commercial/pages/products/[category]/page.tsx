@@ -13,10 +13,16 @@ import {
   getCatalogCategorySlugsServer
 } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+import { hasDatabaseConnectionString } from '@/shared/server/db';
 
 export const dynamic = 'force-static';
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
+  if (!hasDatabaseConnectionString()) {
+    console.warn('Skipping /products/[category] static params because database connection string is not set.');
+    return [];
+  }
   return (await getCatalogCategorySlugsServer()).map((category) => ({ category }));
 }
 

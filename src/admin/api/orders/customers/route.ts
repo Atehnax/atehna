@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
-import { ensureOrdersDraftColumn } from '@/shared/server/orders';
+import type { OrderCustomerSuggestionsResponse } from '@/shared/domain/order/orderTypes';
 
 type CustomerSuggestionRow = {
   label: string | null;
@@ -9,7 +9,6 @@ type CustomerSuggestionRow = {
 export async function GET() {
   try {
     const pool = await getPool();
-    await ensureOrdersDraftColumn();
 
     const result = await pool.query<CustomerSuggestionRow>(
       `
@@ -26,7 +25,7 @@ export async function GET() {
       `
     );
 
-    return NextResponse.json({
+    return NextResponse.json<OrderCustomerSuggestionsResponse>({
       customers: result.rows
         .map((row) => row.label?.trim())
         .filter((label): label is string => Boolean(label))

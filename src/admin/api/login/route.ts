@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
 
@@ -6,7 +7,9 @@ export async function POST(request: Request) {
   const username = process.env.ADMIN_USERNAME ?? 'admin';
   const password = process.env.ADMIN_PASSWORD ?? 'admin';
 
-  const body = (await request.json().catch(() => ({}))) as { username?: string; password?: string };
+  const parsedBody = await readRequiredJsonRecord(request);
+  if (!parsedBody.ok) return parsedBody.response;
+  const body = parsedBody.body;
   if (body.username !== username || body.password !== password) {
     return NextResponse.json({ message: 'Napačno uporabniško ime ali geslo.' }, { status: 401 });
   }

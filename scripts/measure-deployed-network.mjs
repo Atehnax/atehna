@@ -416,7 +416,7 @@ async function autoResolveOrderId(page, baseUrl, timeout) {
 }
 
 async function resolveRouteTemplates(browser, options) {
-  const routeTemplates = options.routes.length > 0
+  let routeTemplates = options.routes.length > 0
     ? options.routes
     : options.routesFile
       ? await loadRoutesFromFile(options.routesFile)
@@ -428,6 +428,7 @@ async function resolveRouteTemplates(browser, options) {
   if (!needsCategory && !needsOrderId) {
     return {
       routeTemplates,
+      skippedRouteTemplates: [],
       params: {
         category: options.category,
         orderId: options.orderId
@@ -441,13 +442,30 @@ async function resolveRouteTemplates(browser, options) {
       category: options.category,
       orderId: options.orderId
     };
+    const skippedRouteTemplates = [];
     if (needsCategory) {
-      params.category = await autoResolveCategory(page, options.baseUrl, options.timeout);
+      try {
+        params.category = await autoResolveCategory(page, options.baseUrl, options.timeout);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const skipped = routeTemplates.filter((route) => route.includes('[category]'));
+        skippedRouteTemplates.push(...skipped.map((routeTemplate) => ({ routeTemplate, reason })));
+        routeTemplates = routeTemplates.filter((route) => !route.includes('[category]'));
+        console.warn(`Skipping ${skipped.length} category route template(s): ${reason}`);
+      }
     }
     if (needsOrderId) {
-      params.orderId = await autoResolveOrderId(page, options.baseUrl, options.timeout);
+      try {
+        params.orderId = await autoResolveOrderId(page, options.baseUrl, options.timeout);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const skipped = routeTemplates.filter((route) => route.includes('[orderId]'));
+        skippedRouteTemplates.push(...skipped.map((routeTemplate) => ({ routeTemplate, reason })));
+        routeTemplates = routeTemplates.filter((route) => !route.includes('[orderId]'));
+        console.warn(`Skipping ${skipped.length} order route template(s): ${reason}`);
+      }
     }
-    return { routeTemplates, params };
+    return { routeTemplates, skippedRouteTemplates, params };
   } finally {
     await page.close();
   }
@@ -678,7 +696,20 @@ function renderSummaryMarkdown(report) {
   lines.push(`- Generated at: ${report.generatedAt}`);
   lines.push(`- Base URL: ${report.baseUrl}`);
   lines.push(`- Resolved params: ${JSON.stringify(report.resolvedParams)}`);
+  if (report.skippedRouteTemplates?.length > 0) {
+    lines.push(`- Skipped dynamic routes: ${report.skippedRouteTemplates.length}`);
+  }
   lines.push('');
+  if (report.skippedRouteTemplates?.length > 0) {
+    lines.push('## Skipped dynamic routes');
+    lines.push('');
+    lines.push('| Template | Reason |');
+    lines.push('| --- | --- |');
+    for (const skipped of report.skippedRouteTemplates) {
+      lines.push(`| ${skipped.routeTemplate} | ${skipped.reason} |`);
+    }
+    lines.push('');
+  }
   lines.push('## Routes');
   lines.push('');
 
@@ -788,7 +819,7 @@ async function main() {
 
   const browser = await chromium.launch(await resolveChromiumLaunchOptions(options));
   try {
-    const { routeTemplates, params } = await resolveRouteTemplates(browser, options);
+    const { routeTemplates, skippedRouteTemplates, params } = await resolveRouteTemplates(browser, options);
     const routes = routeTemplates.map((routeTemplate) => ({
       routeTemplate,
       resolvedPath: materializeRoute(routeTemplate, params)
@@ -811,6 +842,7 @@ async function main() {
       generatedAt: new Date().toISOString(),
       baseUrl: options.baseUrl,
       resolvedParams: params,
+      skippedRouteTemplates,
       options: {
         timeout: options.timeout,
         settleMs: options.settleMs,

@@ -4,7 +4,7 @@ import { createContext, useCallback, useMemo, useState, type ReactNode } from 'r
 
 export type ToastTone = 'success' | 'error' | 'info';
 
-export type ToastItem = {
+type ToastItem = {
   id: string;
   message: ReactNode;
   tone: ToastTone;

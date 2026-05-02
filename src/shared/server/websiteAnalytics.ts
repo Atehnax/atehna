@@ -1,7 +1,7 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
-export type WebsiteAnalyticsSummary = {
+type WebsiteAnalyticsSummary = {
   visitsByDay: Array<{ day: string; visits: number }>;
   topPages: Array<{ path: string; views: number }>;
   topProducts: Array<{ product_id: string; views: number }>;

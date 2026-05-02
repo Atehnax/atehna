@@ -9,15 +9,6 @@ const nextConfig = {
         hostname: '**.public.blob.vercel-storage.com'
       }
     ]
-  },
-  async redirects() {
-    return [
-      {
-        source: '/admin/arhiv-izbrisanih',
-        destination: '/admin/arhiv',
-        permanent: true
-      }
-    ];
   }
 };
 

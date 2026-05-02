@@ -5,7 +5,7 @@ import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
   getDiscountedPrice
-} from '@/commercial/catalog/catalog';
+} from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategoryItemPageDataServer, getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 

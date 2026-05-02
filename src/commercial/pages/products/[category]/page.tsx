@@ -6,7 +6,7 @@ import {
   getCatalogCategoryItemSku,
   getDiscountedPrice,
   sortCatalogItems
-} from '@/commercial/catalog/catalog';
+} from '@/commercial/catalog/catalogUtils';
 import {
   getCatalogCategoryPageDataServer,
   getCatalogCategoryServer,

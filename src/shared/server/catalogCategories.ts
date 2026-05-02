@@ -67,40 +67,6 @@ type CategoryRow = {
   updated_at: string;
 };
 
-let ensured = false;
-
-async function ensureTable() {
-  if (ensured) return;
-  const pool = await getPool();
-  await pool.query(`
-    create table if not exists catalog_categories (
-      id text primary key,
-      parent_id text references catalog_categories(id) on delete cascade,
-      slug text not null,
-      title text not null,
-      summary text not null default '',
-      description text not null default '',
-      image text not null default '',
-      admin_notes text,
-      banner_image text,
-      items jsonb not null default '[]'::jsonb,
-      position integer not null default 0,
-      status text not null default 'active',
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      constraint catalog_categories_status_check check (status in ('active', 'inactive')),
-      constraint catalog_categories_parent_slug_unique unique (parent_id, slug)
-    )
-  `);
-  await pool.query('create index if not exists idx_catalog_categories_parent_position on catalog_categories(parent_id, position)');
-  await pool.query('create index if not exists idx_catalog_categories_parent on catalog_categories(parent_id)');
-  ensured = true;
-}
-
-async function ensureCatalogStorageReady() {
-  await ensureTable();
-}
-
 function normalizeStatus(value: string): CategoryStatus {
   return value === 'inactive' ? 'inactive' : 'active';
 }
@@ -228,8 +194,6 @@ async function readCatalogDataFromDatabase(
 ): Promise<CatalogData | CatalogDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
 
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogDataFromDatabase:allRows', () => pool.query(`
     select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, created_at, updated_at
@@ -295,8 +259,6 @@ async function readCatalogPreviewDataFromDatabase(
 ): Promise<CatalogPreviewData | CatalogPreviewDataWithStatuses> {
   const { includeInactive = false, includeStatuses = false } = options;
 
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogPreviewDataFromDatabase:allRows', () => pool.query(`
     select id, parent_id, slug, title, summary, description, image, items, position, status
@@ -346,8 +308,6 @@ async function readCatalogPreviewDataFromDatabase(
 
 
 async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const result = await pool.query(`
     select slug, title, summary, image
@@ -360,8 +320,6 @@ async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCa
 }
 
 async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const result = await pool.query(`
     select slug, title
@@ -376,8 +334,6 @@ async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCatego
 async function readCatalogCategoryWithSubcategoriesFromDatabase(
   slug: string
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const categoryResult = await pool.query(
     `
@@ -427,8 +383,6 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
 async function readCatalogCategoryPageDataFromDatabase(
   slug: string
 ): Promise<CatalogCategoryPageData | null> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const categoryResult = await pool.query(
     `
@@ -483,8 +437,6 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 } | null> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const categoryResult = await pool.query(
     `
@@ -529,8 +481,6 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const categoryResult = await pool.query(`
     select id, slug, title, summary, image, items
@@ -579,8 +529,6 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 
 
 async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
-  await ensureCatalogStorageReady();
-
   const pool = await getPool();
   const categoryResult = await profileRoutePhase('db', 'readCatalogItemsIndexFromDatabase:categories', () => pool.query(`
     select id, slug, title, items
@@ -726,7 +674,7 @@ function mapPreviewInitialCategory(category: RecursiveCatalogCategory): Recursiv
   };
 }
 
-function mapSearchStubItems(items: CatalogItem[]): CatalogItem[] {
+function mapSearchItems(items: CatalogItem[]): CatalogItem[] {
   return items.map(({ slug, name, description }) => ({ slug, name, description }));
 }
 
@@ -738,14 +686,14 @@ function mapTableInitialCategory(category: RecursiveCatalogCategory): RecursiveC
     summary: category.summary,
     description: category.description,
     image: '',
-    items: mapSearchStubItems(category.items ?? []),
+    items: mapSearchItems(category.items ?? []),
     subcategories: category.subcategories.map((subcategory) => ({
       id: subcategory.id,
       slug: subcategory.slug,
       title: subcategory.title,
       description: subcategory.description,
       image: '',
-      items: mapSearchStubItems(subcategory.items),
+      items: mapSearchItems(subcategory.items),
       subcategories: []
     }))
   };
@@ -831,7 +779,6 @@ export async function patchCategoryTree(
 
   if (upserts.length === 0 && deleteIds.length === 0) return;
 
-  await ensureCatalogStorageReady();
   const pool = await getPool();
   const client = await pool.connect();
 
@@ -977,7 +924,6 @@ export async function replaceCategoryTree(
 ): Promise<CatalogData> {
   const normalized = normalizeCatalogData(input);
 
-  await ensureCatalogStorageReady();
   const pool = await getPool();
   const client = await pool.connect();
 

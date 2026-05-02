@@ -6,5 +6,6 @@ out
 .vercel
 .env.local
 *.tsbuildinfo
-artifacts/measurements
+artifacts/
+test-results/
 .env*.local

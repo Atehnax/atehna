@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
-import { ensureOrdersDraftColumn } from '@/shared/server/orders';
 import { buildOrderBlobPath, uploadBlob } from '@/shared/server/blob';
 import { generateOrderPdf } from '@/shared/server/pdf';
-import { isCustomerType, type CustomerType } from '@/shared/domain/order/customerType';
+import { isCustomerType } from '@/shared/domain/order/customerType';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const runtime = 'nodejs';
 
@@ -16,17 +16,6 @@ type PricedOrderItem = {
   unit: string | null;
   quantity: number;
   unitPrice: number;
-};
-
-type OrderPayload = {
-  customerType?: unknown;
-  organizationName?: unknown;
-  deliveryAddress?: unknown;
-  contactName?: unknown;
-  email?: unknown;
-  reference?: unknown;
-  notes?: unknown;
-  items?: unknown;
 };
 
 const toTrimmedText = (value: unknown): string =>
@@ -82,15 +71,11 @@ const asDatabaseErrorDetails = (error: unknown): { code: string; message: string
 
 export async function POST(request: Request) {
   try {
-    let payload: OrderPayload;
-    try {
-      payload = (await request.json()) as OrderPayload;
-    } catch {
-      return NextResponse.json({ message: 'Neveljaven JSON.' }, { status: 400 });
-    }
+    const payloadResult = await readRequiredJsonRecord(request);
+    if (!payloadResult.ok) return payloadResult.response;
 
+    const payload = payloadResult.body;
     const customerTypeText = toTrimmedText(payload.customerType);
-    const customerType = customerTypeText as CustomerType;
 
     const organizationName = toTrimmedText(payload.organizationName);
     const deliveryAddress = toTrimmedText(payload.deliveryAddress);
@@ -102,6 +87,8 @@ export async function POST(request: Request) {
     if (!isCustomerType(customerTypeText)) {
       return NextResponse.json({ message: 'Neveljaven tip naročnika.' }, { status: 400 });
     }
+
+    const customerType = customerTypeText;
 
     if (!contactName || !email) {
       return NextResponse.json({ message: 'Manjkajo obvezni podatki.' }, { status: 400 });
@@ -125,7 +112,6 @@ export async function POST(request: Request) {
     const tax = total - total / (1 + TAX_RATE);
 
     const pool = await getPool();
-    await ensureOrdersDraftColumn();
 
     const databaseClient = await pool.connect();
 
@@ -148,6 +134,7 @@ export async function POST(request: Request) {
           notes,
           subtotal,
           tax,
+          shipping,
           total,
           is_draft
         )
@@ -164,6 +151,7 @@ export async function POST(request: Request) {
           $8,
           $9,
           $10,
+          $11,
           false
         from next_id
         returning id, order_number, created_at
@@ -179,6 +167,7 @@ export async function POST(request: Request) {
         toNullableText(notes),
         subtotal,
         tax,
+        shipping,
         total
       ];
 

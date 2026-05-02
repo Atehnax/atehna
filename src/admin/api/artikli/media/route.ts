@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildCatalogItemMediaBlobPath, uploadBlob } from '@/shared/server/blob';
+import type { CatalogMediaImportKind, CatalogMediaUploadResponse } from '@/shared/domain/catalog/catalogAdminTypes';
 
 export const runtime = 'nodejs';
 
@@ -8,8 +9,7 @@ const URL_IMPORT_MAX_BYTES_BY_KIND = {
   image: 4 * 1024 * 1024,
   video: 100 * 1024 * 1024,
   document: 5 * 1024 * 1024
-} as const;
-type MediaImportKind = keyof typeof URL_IMPORT_MAX_BYTES_BY_KIND;
+} as const satisfies Record<CatalogMediaImportKind, number>;
 
 const extensionMimeTypes: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -69,13 +69,13 @@ function mediaFolderForMime(mimeType: string): 'images' | 'videos' | 'documents'
   return 'documents';
 }
 
-function mediaFolderForKind(kind: MediaImportKind): 'images' | 'videos' | 'documents' {
+function mediaFolderForKind(kind: CatalogMediaImportKind): 'images' | 'videos' | 'documents' {
   if (kind === 'image') return 'images';
   if (kind === 'video') return 'videos';
   return 'documents';
 }
 
-function normalizeMediaKind(value: FormDataEntryValue | null): MediaImportKind | null {
+function normalizeMediaKind(value: FormDataEntryValue | null): CatalogMediaImportKind | null {
   if (value === 'image' || value === 'video' || value === 'document') return value;
   return null;
 }
@@ -119,7 +119,7 @@ function inferMimeType(contentTypeHeader: string | null, fileName: string) {
   return extension ? extensionMimeTypes[extension] ?? normalizedHeader : normalizedHeader;
 }
 
-function mimeMatchesKind(mimeType: string, kind: MediaImportKind) {
+function mimeMatchesKind(mimeType: string, kind: CatalogMediaImportKind) {
   if (kind === 'image') return mimeType.startsWith('image/');
   if (kind === 'video') return mimeType.startsWith('video/');
   return !mimeType.startsWith('image/') && !mimeType.startsWith('video/');
@@ -147,7 +147,7 @@ async function uploadFilePayload({
     mimeType || 'application/octet-stream'
   );
 
-  return NextResponse.json({
+  return NextResponse.json<CatalogMediaUploadResponse>({
     ok: true,
     url: blob.url,
     pathname: blob.pathname,

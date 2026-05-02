@@ -82,6 +82,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/ui/toast';
 import EuiTabs from '@/shared/ui/eui-tabs';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { StatusToggle } from '@/shared/ui/status-toggle';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 
@@ -94,11 +95,6 @@ const AdminCategoriesMiller = dynamic(
 const AdminCategoriesTableView = dynamic(
   () => import('../views/AdminCategoriesTableView').then((module) => module.AdminCategoriesTableView)
 );
-const LazyConfirmDialog = dynamic(
-  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
-  { ssr: false }
-);
-
 type DragHandleProps = Partial<DraggableAttributes> | Partial<NonNullable<DraggableSyntheticListeners>>;
 
 type RecursiveNode = RecursiveCatalogSubcategory;
@@ -156,6 +152,63 @@ type CreateLocationOption = {
   path: string[];
   target: Exclude<CreateTarget, null>;
 };
+
+function buildCreateLocationOptions(categories: RecursiveCatalogCategory[]): CreateLocationOption[] {
+  const options: CreateLocationOption[] = [
+    {
+      path: [],
+      target: { kind: 'category' }
+    }
+  ];
+
+  const visitSubcategories = (
+    category: RecursiveCatalogCategory,
+    nodes: RecursiveCatalogSubcategory[],
+    breadcrumbLabels: string[] = [],
+    parentPath: string[] = []
+  ) => {
+    nodes.forEach((node) => {
+      const nextPath = [...parentPath, node.slug];
+      const nextBreadcrumbLabels = [...breadcrumbLabels, node.title];
+      options.push({
+        path: [category.title, ...nextBreadcrumbLabels],
+        target: {
+          kind: 'subcategory',
+          categorySlug: category.slug,
+          parentPath: nextPath
+        }
+      });
+      visitSubcategories(category, node.subcategories, nextBreadcrumbLabels, nextPath);
+    });
+  };
+
+  categories.forEach((category) => {
+    options.push({
+      path: [category.title],
+      target: {
+        kind: 'subcategory',
+        categorySlug: category.slug,
+        parentPath: []
+      }
+    });
+    visitSubcategories(category, category.subcategories);
+  });
+
+  return options;
+}
+
+function resolveCreateLocationPathFromOptions(target: CreateTarget, options: CreateLocationOption[]) {
+  if (!target || target.kind === 'category') return [];
+
+  return (
+    options.find(
+      (option) =>
+        option.target.kind === 'subcategory' &&
+        option.target.categorySlug === target.categorySlug &&
+        pathEquals(option.target.parentPath, target.parentPath ?? [])
+    )?.path ?? []
+  );
+}
 
 const treeIndent = 32;
 const treeRowHeight = 48;
@@ -430,6 +483,7 @@ export default function AdminCategoriesMainTable({
   const [createTarget, setCreateTarget] = useState<CreateTarget>(null);
   const [createName, setCreateName] = useState('');
   const [createLocationPath, setCreateLocationPath] = useState<string[]>([]);
+  const [createLocationOptionsOverride, setCreateLocationOptionsOverride] = useState<CreateLocationOption[] | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -479,6 +533,10 @@ export default function AdminCategoriesMainTable({
   const catalogRef = useRef<CatalogData>({ categories: [] });
   const millerCatalogRef = useRef<CatalogData>({ categories: [] });
   const statusByRowRef = useRef<Record<string, CategoryStatus>>({});
+  const createDialogCatalogRef = useRef<CatalogData | null>(null);
+  const createLocationTargetRef = useRef<Exclude<CreateTarget, null> | null>(null);
+  const tableMutationVersionRef = useRef(0);
+  const tableSaveInFlightRef = useRef(false);
   const partialPayloadRef = useRef(initialPayload?.payloadMode === 'partial');
   const hydrationPromiseRef = useRef<Promise<AdminCategoriesPayload> | null>(null);
   const stagedTableHistoryRef = useRef<HistorySnapshot[]>([]);
@@ -660,6 +718,11 @@ export default function AdminCategoriesMainTable({
     setActiveView('table');
   }, [pathname]);
 
+  useEffect(() => {
+    if (activeView === 'miller' || !partialPayloadRef.current) return;
+    void ensureFullPayloadLoaded();
+  }, [activeView, ensureFullPayloadLoaded]);
+
   const enteredMillerViewRef = useRef(false);
 
   useEffect(() => {
@@ -684,9 +747,18 @@ export default function AdminCategoriesMainTable({
     }
 
     if (!millerDirty) {
-      void load({ silent: true, view: 'miller' });
+      void (async () => {
+        const currentCatalog = normalizeCatalogData(await ensureFullPayloadLoaded());
+        setMillerCatalog(currentCatalog);
+        millerCatalogRef.current = currentCatalog;
+        setMillerDirty(
+          !areMillerCatalogsEqual(currentCatalog, persistedMillerRef.current) ||
+            !areStatusesEqual(statusByRowRef.current, persistedStatusRef.current)
+        );
+        setMillerError(null);
+      })();
     }
-  }, [activeView, editingRow, load, millerDirty, saving, tableDirty]);
+  }, [activeView, editingRow, ensureFullPayloadLoaded, millerDirty, saving, tableDirty]);
 
   useEffect(() => {
     return () => {
@@ -968,6 +1040,7 @@ export default function AdminCategoriesMainTable({
       return;
     }
     tableAutosaveBlockedRef.current = false;
+    tableMutationVersionRef.current += 1;
     stagedTableHistoryRef.current.push({
       catalog: normalizeCatalogData(currentCatalog),
       statuses: { ...currentStatuses }
@@ -1000,6 +1073,7 @@ export default function AdminCategoriesMainTable({
       setMillerError(null);
     } else {
       tableAutosaveBlockedRef.current = false;
+      tableMutationVersionRef.current += 1;
       stagedTableHistoryRef.current.push(snapshot);
       setTableDirty(
         !areCatalogsEqual(currentCatalog, persistedTableRef.current) ||
@@ -1130,11 +1204,11 @@ export default function AdminCategoriesMainTable({
     toast.success('Obnovljena je bila prejšnja shranjena verzija.');
   };
 
-  const addCategory = (title: string, afterSlug?: string) => {
+  const addCategory = (title: string, afterSlug?: string, sourceCatalogOverride?: CatalogData) => {
     const slug = slugify(title);
     if (!slug) return false;
 
-    const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
+    const sourceCatalog = sourceCatalogOverride ?? (activeView === 'miller' ? millerCatalogRef.current : catalogRef.current);
 
     if (sourceCatalog.categories.some((entry) => entry.slug === slug)) {
       toast.error('Kategorija s tem nazivom že obstaja');
@@ -1175,7 +1249,8 @@ export default function AdminCategoriesMainTable({
     categorySlug: string,
     title: string,
     parentPathOrAfterSlug?: string[] | string,
-    afterSlug?: string
+    afterSlug?: string,
+    sourceCatalogOverride?: CatalogData
   ) => {
     const slug = slugify(title);
     if (!slug) return false;
@@ -1183,7 +1258,7 @@ export default function AdminCategoriesMainTable({
     const parentPath = Array.isArray(parentPathOrAfterSlug) ? parentPathOrAfterSlug : [];
     const resolvedAfterSlug = typeof parentPathOrAfterSlug === 'string' ? parentPathOrAfterSlug : afterSlug;
 
-    const sourceCatalog = activeView === 'miller' ? millerCatalog : catalog;
+    const sourceCatalog = sourceCatalogOverride ?? (activeView === 'miller' ? millerCatalogRef.current : catalogRef.current);
     const parentCategory = sourceCatalog.categories.find((entry) => entry.slug === categorySlug);
     if (!parentCategory) return false;
 
@@ -1272,106 +1347,83 @@ export default function AdminCategoriesMainTable({
     return true;
   };
 
-  const createLocationOptions = useMemo<CreateLocationOption[]>(() => {
-    const options: CreateLocationOption[] = [
-      {
-        path: [],
-        target: { kind: 'category' }
-      }
-    ];
-
-    const visitSubcategories = (
-      category: RecursiveCatalogCategory,
-      nodes: RecursiveCatalogSubcategory[],
-      breadcrumbLabels: string[] = [],
-      parentPath: string[] = []
-    ) => {
-      nodes.forEach((node) => {
-        const nextPath = [...parentPath, node.slug];
-        const nextBreadcrumbLabels = [...breadcrumbLabels, node.title];
-        options.push({
-          path: [category.title, ...nextBreadcrumbLabels],
-          target: {
-            kind: 'subcategory',
-            categorySlug: category.slug,
-            parentPath: nextPath
-          }
-        });
-        visitSubcategories(category, node.subcategories, nextBreadcrumbLabels, nextPath);
-      });
-    };
-
-    catalog.categories.forEach((category) => {
-      options.push({
-        path: [category.title],
-        target: {
-          kind: 'subcategory',
-          categorySlug: category.slug,
-          parentPath: []
-        }
-      });
-      visitSubcategories(category, category.subcategories);
-    });
-
-    return options;
-  }, [catalog.categories]);
+  const createLocationOptions = useMemo<CreateLocationOption[]>(
+    () => buildCreateLocationOptions(catalog.categories),
+    [catalog.categories]
+  );
+  const activeCreateLocationOptions = createLocationOptionsOverride ?? createLocationOptions;
 
   const createLocationPaths = useMemo(
-    () => createLocationOptions.filter((option) => option.path.length > 0).map((option) => option.path.join(' / ')),
-    [createLocationOptions]
+    () => activeCreateLocationOptions.filter((option) => option.path.length > 0).map((option) => option.path.join(' / ')),
+    [activeCreateLocationOptions]
   );
-
-  const resolveCreateLocationPath = useCallback((target: CreateTarget) => {
-    if (!target || target.kind === 'category') return [];
-
-    return (
-      createLocationOptions.find(
-        (option) =>
-          option.target.kind === 'subcategory' &&
-          option.target.categorySlug === target.categorySlug &&
-          pathEquals(option.target.parentPath, target.parentPath ?? [])
-      )?.path ?? []
-    );
-  }, [createLocationOptions]);
 
   const selectedCreateLocation = useMemo(
     () =>
-      createLocationOptions.find((option) => pathEquals(option.path, createLocationPath)) ??
-      createLocationOptions[0] ??
+      activeCreateLocationOptions.find((option) => pathEquals(option.path, createLocationPath)) ??
+      activeCreateLocationOptions[0] ??
       null,
-    [createLocationOptions, createLocationPath]
+    [activeCreateLocationOptions, createLocationPath]
   );
 
+  const updateCreateLocationPath = useCallback((path: string[]) => {
+    setCreateLocationPath(path);
+    createLocationTargetRef.current =
+      activeCreateLocationOptions.find((option) => pathEquals(option.path, path))?.target ??
+      activeCreateLocationOptions[0]?.target ??
+      null;
+  }, [activeCreateLocationOptions]);
+
   const openCreateDialog = async (target: CreateTarget) => {
-    await ensureFullPayloadLoaded();
+    const activeCatalog = normalizeCatalogData(activeView === 'miller' ? millerCatalogRef.current : catalogRef.current);
+    const hasStagedCreateContext = stagedTableHistoryRef.current.length > 0 || stagedMillerHistoryRef.current.length > 0;
+    const latestCreateCatalog =
+      activeCatalog.categories.length > 0 && hasStagedCreateContext
+        ? activeCatalog
+        : normalizeCatalogData(await ensureFullPayloadLoaded());
+    createDialogCatalogRef.current = latestCreateCatalog;
+    const latestOptions = buildCreateLocationOptions(
+      latestCreateCatalog.categories
+    );
+    setCreateLocationOptionsOverride(latestOptions);
     setCreateTarget(target);
     setCreateName('');
-    setCreateLocationPath(resolveCreateLocationPath(target));
+    const initialPath = resolveCreateLocationPathFromOptions(target, latestOptions);
+    setCreateLocationPath(initialPath);
+    createLocationTargetRef.current =
+      latestOptions.find((option) => pathEquals(option.path, initialPath))?.target ??
+      latestOptions[0]?.target ??
+      null;
   };
 
   const confirmCreate = async () => {
-    await ensureFullPayloadLoaded();
+    const latestCatalog = createDialogCatalogRef.current ?? normalizeCatalogData(await ensureFullPayloadLoaded());
     const nextName = createName.trim();
-    if (!nextName || !createTarget || !selectedCreateLocation) return;
+    const selectedLocation =
+      createLocationTargetRef.current ??
+      selectedCreateLocation?.target ??
+      null;
+    if (!nextName || !createTarget || !selectedLocation) return;
 
     const shouldUseRequestedInsertPosition =
-      selectedCreateLocation.target.kind === createTarget.kind &&
+      selectedLocation.kind === createTarget.kind &&
       (createTarget.kind === 'category'
-        ? selectedCreateLocation.target.kind === 'category'
-        : selectedCreateLocation.target.kind === 'subcategory' &&
-          selectedCreateLocation.target.categorySlug === createTarget.categorySlug &&
-          pathEquals(selectedCreateLocation.target.parentPath, createTarget.parentPath ?? []));
+        ? selectedLocation.kind === 'category'
+        : selectedLocation.kind === 'subcategory' &&
+          selectedLocation.categorySlug === createTarget.categorySlug &&
+          pathEquals(selectedLocation.parentPath, createTarget.parentPath ?? []));
     const insertAfterSlug = shouldUseRequestedInsertPosition ? createTarget.afterSlug : undefined;
     let created = false;
 
-    if (selectedCreateLocation.target.kind === 'category') {
-      created = addCategory(nextName, insertAfterSlug);
+    if (selectedLocation.kind === 'category') {
+      created = addCategory(nextName, insertAfterSlug, latestCatalog);
     } else {
       created = addSubcategory(
-        selectedCreateLocation.target.categorySlug,
+        selectedLocation.categorySlug,
         nextName,
-        selectedCreateLocation.target.parentPath,
-        insertAfterSlug
+        selectedLocation.parentPath,
+        insertAfterSlug,
+        latestCatalog
       );
     }
 
@@ -1380,6 +1432,9 @@ export default function AdminCategoriesMainTable({
     setCreateTarget(null);
     setCreateName('');
     setCreateLocationPath([]);
+    setCreateLocationOptionsOverride(null);
+    createDialogCatalogRef.current = null;
+    createLocationTargetRef.current = null;
   };
 
 
@@ -1676,7 +1731,8 @@ export default function AdminCategoriesMainTable({
       millerSelection.filter((entry) => entry.startsWith('item:'))
     );
 
-    let nextCategories = millerCatalog.categories.map(cloneCategory);
+    const sourceCatalog = millerCatalogRef.current;
+    let nextCategories = sourceCatalog.categories.map(cloneCategory);
 
     if (selectedCategorySlugs.size > 0) {
       const moved = nextCategories.filter((category) => selectedCategorySlugs.has(category.slug));
@@ -1898,6 +1954,7 @@ export default function AdminCategoriesMainTable({
   const applyMillerRename = async () => {
     await ensureFullPayloadLoaded();
     if (!millerRename) return;
+    const sourceCatalog = millerCatalogRef.current;
     const value = millerRename.value.trim();
     if (!value) {
       toast.error('Naziv je obvezen');
@@ -1907,7 +1964,7 @@ export default function AdminCategoriesMainTable({
     if (millerRename.id.startsWith('cat:')) {
       const slug = millerRename.id.slice(4);
       stageMillerCatalog({
-        categories: millerCatalog.categories.map((category) =>
+        categories: sourceCatalog.categories.map((category) =>
           category.slug === slug ? { ...category, title: value, summary: value } : category
         )
       });
@@ -1920,7 +1977,7 @@ export default function AdminCategoriesMainTable({
       if (!parsed) return;
 
       stageMillerCatalog({
-        categories: millerCatalog.categories.map((category) =>
+        categories: sourceCatalog.categories.map((category) =>
           category.slug !== parsed.categorySlug
             ? category
             : {
@@ -2055,52 +2112,81 @@ export default function AdminCategoriesMainTable({
     setTableDirty(false);
     setMillerError(null);
     setTableError(null);
-    router.refresh();
   };
 
   const saveTableChanges = useCallback(async () => {
-    await ensureFullPayloadLoaded();
-    const savedCatalog = normalizeCatalogData(catalogRef.current);
-    const savedPayload = await persist(savedCatalog, statusByRowRef.current, 'Spremembe shranjene');
+    if (tableSaveInFlightRef.current) return true;
+    tableSaveInFlightRef.current = true;
 
-    if (!savedPayload) {
-      setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
-      return false;
+    try {
+      await ensureFullPayloadLoaded();
+      const saveMutationVersion = tableMutationVersionRef.current;
+      const savedCatalog = normalizeCatalogData(catalogRef.current);
+      const savedStatuses = { ...statusByRowRef.current };
+      const savedPayload = await persist(savedCatalog, savedStatuses, 'Spremembe shranjene');
+
+      if (!savedPayload) {
+        setTableError('Shranjevanje sprememb ni uspelo. Lokalno stanje je ohranjeno.');
+        return false;
+      }
+
+      const canonicalCatalog = normalizeCatalogData(savedPayload);
+      const canonicalStatuses = savedPayload.statuses ?? {};
+
+      const hasNewerLocalState =
+        tableMutationVersionRef.current !== saveMutationVersion ||
+        !areCatalogsEqual(catalogRef.current, savedCatalog) ||
+        !areStatusesEqual(statusByRowRef.current, savedStatuses);
+
+      if (hasNewerLocalState) {
+        persistedTableRef.current = canonicalCatalog;
+        persistedMillerRef.current = canonicalCatalog;
+        persistedStatusRef.current = { ...canonicalStatuses };
+        setTableDirty(
+          !areCatalogsEqual(catalogRef.current, canonicalCatalog) ||
+            !areStatusesEqual(statusByRowRef.current, canonicalStatuses)
+        );
+        setMillerDirty(
+          !areMillerCatalogsEqual(millerCatalogRef.current, canonicalCatalog) ||
+            !areStatusesEqual(statusByRowRef.current, canonicalStatuses)
+        );
+        setTableError(null);
+        setMillerError(null);
+        return true;
+      }
+
+      persistedTableRef.current = canonicalCatalog;
+      persistedMillerRef.current = canonicalCatalog;
+      persistedStatusRef.current = { ...canonicalStatuses };
+      setAdminCategoriesSessionPayload({
+        categories: canonicalCatalog.categories,
+        statuses: canonicalStatuses,
+        payloadMode: 'full',
+        payloadView: 'table'
+      });
+
+      committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
+      committedHistoryRef.current.push({
+        catalog: canonicalCatalog,
+        statuses: { ...canonicalStatuses }
+      });
+      committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
+
+      stagedTableHistoryRef.current = [];
+      stagedMillerHistoryRef.current = [];
+
+      setCatalog(canonicalCatalog);
+      setMillerCatalog(canonicalCatalog);
+      setStatusByRow(canonicalStatuses);
+      setTableDirty(false);
+      setMillerDirty(false);
+      setTableError(null);
+      setMillerError(null);
+      return true;
+    } finally {
+      tableSaveInFlightRef.current = false;
     }
-
-    const canonicalCatalog = normalizeCatalogData(savedPayload);
-    const canonicalStatuses = savedPayload.statuses ?? {};
-
-    persistedTableRef.current = canonicalCatalog;
-    persistedMillerRef.current = canonicalCatalog;
-    persistedStatusRef.current = { ...canonicalStatuses };
-    setAdminCategoriesSessionPayload({
-      categories: canonicalCatalog.categories,
-      statuses: canonicalStatuses,
-      payloadMode: 'full',
-      payloadView: 'table'
-    });
-
-    committedHistoryRef.current = committedHistoryRef.current.slice(0, committedHistoryIndexRef.current + 1);
-    committedHistoryRef.current.push({
-      catalog: canonicalCatalog,
-      statuses: { ...canonicalStatuses }
-    });
-    committedHistoryIndexRef.current = committedHistoryRef.current.length - 1;
-
-    stagedTableHistoryRef.current = [];
-    stagedMillerHistoryRef.current = [];
-
-    setCatalog(canonicalCatalog);
-    setMillerCatalog(canonicalCatalog);
-    setStatusByRow(canonicalStatuses);
-    setTableDirty(false);
-    setMillerDirty(false);
-    setTableError(null);
-    setMillerError(null);
-    router.refresh();
-    return true;
-  }, [ensureFullPayloadLoaded, persist, router]);
+  }, [ensureFullPayloadLoaded, persist]);
 
   const openTableSaveDialog = useCallback(async () => {
     const currentCatalog = await ensureFullPayloadLoaded();
@@ -2127,7 +2213,15 @@ export default function AdminCategoriesMainTable({
   }, [ensureFullPayloadLoaded]);
 
   useEffect(() => {
-    if (activeView !== 'table' || !tableDirty || saving || editingRow || isInlineSavingRef.current || tableAutosaveBlockedRef.current) {
+    if (
+      activeView !== 'table' ||
+      !tableDirty ||
+      saving ||
+      tableSaveInFlightRef.current ||
+      editingRow ||
+      isInlineSavingRef.current ||
+      tableAutosaveBlockedRef.current
+    ) {
       return;
     }
 
@@ -2649,6 +2743,8 @@ export default function AdminCategoriesMainTable({
   const saveInlineEdit = useCallback(async () => {
     if (!editingRow) return true;
     await ensureFullPayloadLoaded();
+    const sourceCatalog = catalogRef.current;
+    const sourceStatuses = statusByRowRef.current;
     const nextTitle = editingRow.title.trim();
 
     if (!nextTitle) {
@@ -2659,22 +2755,22 @@ export default function AdminCategoriesMainTable({
     if (editingRow.kind === 'category') {
       if (!editingRow.categorySlug) return false;
 
-      const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
+      const currentCategory = sourceCatalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
       if (!currentCategory) return false;
 
       const hasChange =
         (editingRow.initialTitle ?? currentCategory.title) !== nextTitle ||
         (editingRow.initialDescription ?? currentCategory.summary) !== editingRow.description ||
-        (editingRow.initialStatus ?? (statusByRow[editingRow.id] ?? 'active')) !== editingRow.status;
+        (editingRow.initialStatus ?? (sourceStatuses[editingRow.id] ?? 'active')) !== editingRow.status;
 
       if (!hasChange) {
         setEditingRow(null);
         return true;
       }
 
-      const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
+      const nextStatuses = { ...sourceStatuses, [editingRow.id]: editingRow.status };
       const nextCatalog = {
-        categories: catalog.categories.map((entry) =>
+        categories: sourceCatalog.categories.map((entry) =>
           entry.slug === editingRow.categorySlug
             ? { ...entry, title: nextTitle, summary: editingRow.description }
             : entry
@@ -2698,7 +2794,7 @@ export default function AdminCategoriesMainTable({
     const subcategoryPath = toSubcategoryPath(editingRow.subcategoryPath ?? editingRow.subcategorySlug);
     if (subcategoryPath.length === 0) return false;
 
-    const currentCategory = catalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
+    const currentCategory = sourceCatalog.categories.find((entry) => entry.slug === editingRow.categorySlug);
     const currentSubcategory = currentCategory
       ? findSubcategoryByPath(currentCategory.subcategories, subcategoryPath)
       : null;
@@ -2707,16 +2803,16 @@ export default function AdminCategoriesMainTable({
     const hasChange =
       (editingRow.initialTitle ?? currentSubcategory.title) !== nextTitle ||
       (editingRow.initialDescription ?? currentSubcategory.description) !== editingRow.description ||
-      (editingRow.initialStatus ?? (statusByRow[editingRow.id] ?? 'active')) !== editingRow.status;
+      (editingRow.initialStatus ?? (sourceStatuses[editingRow.id] ?? 'active')) !== editingRow.status;
 
     if (!hasChange) {
       setEditingRow(null);
       return true;
     }
 
-    const nextStatuses = { ...statusByRow, [editingRow.id]: editingRow.status };
+    const nextStatuses = { ...sourceStatuses, [editingRow.id]: editingRow.status };
     const nextCatalog = {
-      categories: catalog.categories.map((entry) =>
+      categories: sourceCatalog.categories.map((entry) =>
         entry.slug === editingRow.categorySlug
           ? {
               ...entry,
@@ -2740,7 +2836,7 @@ export default function AdminCategoriesMainTable({
       isInlineSavingRef.current = false;
     }
     return didSave;
-  }, [catalog.categories, editingRow, ensureFullPayloadLoaded, saveTableChanges, stageTableCatalog, statusByRow, toast]);
+  }, [editingRow, ensureFullPayloadLoaded, saveTableChanges, stageTableCatalog, toast]);
 
   saveInlineEditRef.current = saveInlineEdit;
 
@@ -2990,9 +3086,10 @@ export default function AdminCategoriesMainTable({
     setIsBulkDeleteDialogOpen(false);
     setIsBulkDeleting(true);
     const selectedSet = new Set(selectedRows);
+    const sourceCatalog = catalogRef.current;
 
     const next = {
-      categories: catalog.categories
+      categories: sourceCatalog.categories
         .filter((category) => !selectedSet.has(catId(category.slug)))
         .map((category) => ({
           ...category,
@@ -3707,6 +3804,9 @@ export default function AdminCategoriesMainTable({
           setCreateTarget(null);
           setCreateName('');
           setCreateLocationPath([]);
+          setCreateLocationOptionsOverride(null);
+          createDialogCatalogRef.current = null;
+          createLocationTargetRef.current = null;
         }}
         onConfirm={confirmCreate}
         confirmDisabled={createName.trim().length === 0 || selectedCreateLocation === null}
@@ -3719,7 +3819,7 @@ export default function AdminCategoriesMainTable({
             <div className="rounded-md border border-slate-300 bg-white px-3">
               <AdminCategoryBreadcrumbPicker
                 value={createLocationPath}
-                onChange={setCreateLocationPath}
+                onChange={updateCreateLocationPath}
                 categoryPaths={createLocationPaths}
                 placeholder="Glavna raven"
                 allowIntermediateSelection

@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import {
   deleteAnalyticsChart,
   updateAnalyticsChart,
-  type AnalyticsChartConfig,
   type AnalyticsChartType
 } from '@/shared/server/analyticsCharts';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,9 @@ export async function PATCH(request: Request, props: { params: Promise<{ chartId
     const chartId = Number(params.chartId);
     if (!Number.isFinite(chartId)) return NextResponse.json({ message: 'Neveljaven ID.' }, { status: 400 });
 
-    const payload = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = await readRequiredJsonRecord(request);
+    if (!body.ok) return body.response;
+    const payload = body.body;
     const chart = await updateAnalyticsChart(chartId, {
       title: typeof payload.title === 'string' ? payload.title : undefined,
       description:
@@ -46,7 +48,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ chartId
           ? (payload.comment as string | null)
           : undefined,
       chartType: parseChartType(payload.chartType),
-      config: payload.config as AnalyticsChartConfig | undefined
+      config: payload.config
     });
 
     if (!chart) return NextResponse.json({ message: 'Graf ni najden.' }, { status: 404 });

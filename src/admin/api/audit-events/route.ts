@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { deleteAuditEventsByIds, fetchAuditEvents, normalizeAuditFilters } from '@/shared/server/audit';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export async function GET(request: Request) {
   try {
@@ -41,7 +42,9 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as { eventIds?: unknown } | null;
+    const parsedBody = await readRequiredJsonRecord(request);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.body;
     const eventIds = Array.isArray(body?.eventIds)
       ? body.eventIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
       : [];

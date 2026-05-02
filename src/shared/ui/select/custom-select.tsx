@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import MenuItem from '../menu/menu-item';
+import MenuPanel from '../menu/menu-panel';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type CustomSelectOption<Value extends string> = {

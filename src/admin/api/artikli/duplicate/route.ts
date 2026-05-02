@@ -6,10 +6,13 @@ import {
 } from '@/shared/server/catalogItems';
 import { computeCatalogItemAuditDiff, countAuditChangedFields } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { itemIdentifier?: string };
+    const parsedBody = await readRequiredJsonRecord(request);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.body;
     const itemIdentifier = typeof body.itemIdentifier === 'string' ? body.itemIdentifier.trim() : '';
     if (!itemIdentifier) {
       return NextResponse.json({ message: 'Neveljaven identifikator artikla.' }, { status: 400 });

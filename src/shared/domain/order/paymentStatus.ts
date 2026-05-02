@@ -1,7 +1,7 @@
 import {
-  getAdminStatusInfoMenuOptionClassName,
-  type AdminStatusInfoMenuOptionTone
-} from '@/shared/ui/theme/tokens';
+  getStatusInfoMenuOptionClassName,
+  type StatusInfoMenuOptionTone
+} from './statusMenuOptionStyles';
 
 export const PAYMENT_STATUS_OPTIONS = [
   { value: 'unpaid', label: 'Neplačano', badgeClassName: 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-700' },
@@ -18,7 +18,7 @@ const PAYMENT_STATUS_META = new Map<PaymentStatus, { label: string; badgeClassNa
   ])
 );
 
-const PAYMENT_MENU_OPTION_TONES: Record<PaymentStatus, AdminStatusInfoMenuOptionTone> = {
+const PAYMENT_MENU_OPTION_TONES: Record<PaymentStatus, StatusInfoMenuOptionTone> = {
   unpaid: 'neutral',
   paid: 'success',
   refunded: 'purple'
@@ -32,16 +32,8 @@ export const getPaymentLabel = (status?: string | null) => {
   return PAYMENT_STATUS_META.get(status)?.label ?? 'Neznano';
 };
 
-export const getPaymentBadgeClassName = (status?: string | null) => {
-  if (!status || !isPaymentStatus(status)) return 'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400';
-  return (
-    PAYMENT_STATUS_META.get(status)?.badgeClassName ??
-    'border-slate-300 bg-[color:var(--ui-neutral-bg)] text-slate-400'
-  );
-};
-
 export const getPaymentMenuItemClassName = (status?: string | null) =>
-  getAdminStatusInfoMenuOptionClassName(
+  getStatusInfoMenuOptionClassName(
     status && isPaymentStatus(status) ? PAYMENT_MENU_OPTION_TONES[status] : 'neutral'
   );
 

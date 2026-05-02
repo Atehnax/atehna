@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
-import { ensureOrdersDraftColumn, ensureOrdersPostalCodeColumn, getOrderNumberAvailability } from '@/shared/server/orders';
+import { getOrderNumberAvailability } from '@/shared/server/orders';
 import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -14,7 +15,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
     }
 
-    const body = await request.json();
+    const bodyResult = await readRequiredJsonRecord(request);
+    if (!bodyResult.ok) return bodyResult.response;
+
+    const body = bodyResult.body;
     const {
       customerType,
       organizationName,
@@ -62,8 +66,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const normalizedOrderDate = normalizeOrderDate(orderDate);
 
     const pool = await getPool();
-    await ensureOrdersPostalCodeColumn();
-    await ensureOrdersDraftColumn();
     const detailFields = [
       'order_number',
       'customer_type',
@@ -105,70 +107,36 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const normalizedOrderNumber = orderNumberAvailability?.formattedOrderNumber ?? null;
 
-    try {
-      await pool.query(
-        `
-        UPDATE orders
-        SET customer_type = $1,
-            organization_name = $2,
-            contact_name = $3,
-            email = $4,
-            delivery_address = $5,
-            postal_code = $6,
-            reference = $7,
-            notes = $8,
-            order_number = coalesce(nullif($9::text, ''), order_number),
-            created_at = coalesce($10::timestamptz, created_at),
-            is_draft = false
-        WHERE id = $11
-        `,
-        [
-          customerType,
-          organizationName || null,
-          contactName,
-          email,
-          deliveryAddress || null,
-          typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null,
-          reference || null,
-          notes || null,
-          normalizedOrderNumber,
-          normalizedOrderDate,
-          orderId
-        ]
-      );
-    } catch (error) {
-      if (!(error && typeof error === 'object' && 'code' in error && error.code === '42703')) {
-        throw error;
-      }
-
-      await pool.query(
-        `
-        UPDATE orders
-        SET customer_type = $1,
-            organization_name = $2,
-            contact_name = $3,
-            email = $4,
-            delivery_address = $5,
-            reference = $6,
-            notes = $7,
-            order_number = coalesce(nullif($8::text, ''), order_number),
-            created_at = coalesce($9::timestamptz, created_at)
-        WHERE id = $10
-        `,
-        [
-          customerType,
-          organizationName || null,
-          contactName,
-          email,
-          deliveryAddress || null,
-          reference || null,
-          notes || null,
-          normalizedOrderNumber,
-          normalizedOrderDate,
-          orderId
-        ]
-      );
-    }
+    await pool.query(
+      `
+      UPDATE orders
+      SET customer_type = $1,
+          organization_name = $2,
+          contact_name = $3,
+          email = $4,
+          delivery_address = $5,
+          postal_code = $6,
+          reference = $7,
+          notes = $8,
+          order_number = coalesce(nullif($9::text, ''), order_number),
+          created_at = coalesce($10::timestamptz, created_at),
+          is_draft = false
+      WHERE id = $11
+      `,
+      [
+        customerType,
+        organizationName || null,
+        contactName,
+        email,
+        deliveryAddress || null,
+        typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null,
+        reference || null,
+        notes || null,
+        normalizedOrderNumber,
+        normalizedOrderDate,
+        orderId
+      ]
+    );
 
     const afterResult = await pool.query(
       `

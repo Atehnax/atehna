@@ -356,7 +356,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
         input.showPicker();
         return;
       } catch {
-        // fall back to click when showPicker is unavailable/restricted
+        // Some browsers expose showPicker but block it outside trusted picker contexts.
       }
     }
     input.click();

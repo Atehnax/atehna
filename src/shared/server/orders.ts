@@ -1,22 +1,17 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import type {
+  OrderAnalyticsRow,
+  OrderDocumentRow,
+  OrderItemRow,
+  OrderItemSkuAllocationRow,
+  OrderListDocumentSummaryRow,
+  OrderListPageResult,
+  OrderNumberAvailabilityResult,
+  OrderRow,
+  PaymentLogRow
+} from '@/shared/domain/order/orderTypes';
 
-let hasOrdersDraftColumnCache: boolean | null = null;
-let hasOrdersDeletedColumnCache: boolean | null = null;
-let hasOrdersPaymentStatusColumnCache: boolean | null = null;
-let hasOrdersAdminOrderNotesColumnCache: boolean | null = null;
-let hasOrdersPostalCodeColumnCache: boolean | null = null;
-let hasDocumentsDeletedColumnCache: boolean | null = null;
-let ordersSchemaSupportPromise:
-  | Promise<{
-      supportsDraftColumn: boolean;
-      supportsDeletedColumn: boolean;
-      supportsPaymentStatusColumn: boolean;
-      supportsAdminOrderNotesColumn: boolean;
-      supportsPostalCodeColumn: boolean;
-    }>
-  | null = null;
-let documentsSchemaSupportPromise: Promise<{ supportsDeletedColumn: boolean }> | null = null;
 const ORDER_NUMBER_DESC_SQL =
   "nullif(regexp_replace(orders.order_number::text, '\\D', '', 'g'), '')::bigint desc nulls last, orders.id desc";
 const PAGED_ORDER_NUMBER_DESC_SQL =
@@ -33,15 +28,6 @@ type Queryable = {
 type OrderNumberRow = {
   id: number | string;
   order_number: string | null;
-};
-
-export type OrderNumberAvailabilityResult = {
-  inputDigits: string;
-  normalizedOrderNumber: number | null;
-  formattedOrderNumber: string | null;
-  isAvailable: boolean;
-  conflictOrderId: number | null;
-  suggestions: string[];
 };
 
 export function sanitizeOrderNumberDigits(value: string | number | null | undefined) {
@@ -244,228 +230,6 @@ export async function getOrderNumberAvailability(
   };
 }
 
-async function hasOrdersColumn(columnName: string) {
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = $1
-    limit 1
-    `,
-    [columnName]
-  );
-
-  return Number(result.rowCount ?? 0) > 0;
-}
-
-async function hasOrdersDraftColumn() {
-  if (hasOrdersDraftColumnCache !== null) return hasOrdersDraftColumnCache;
-
-  hasOrdersDraftColumnCache = await hasOrdersColumn('is_draft');
-  return hasOrdersDraftColumnCache;
-}
-
-export async function ensureOrdersDraftColumn() {
-  if (hasOrdersDraftColumnCache === true) return;
-
-  if (await hasOrdersColumn('is_draft')) {
-    hasOrdersDraftColumnCache = true;
-    ordersSchemaSupportPromise = null;
-    return;
-  }
-
-  const pool = await getPool();
-  await pool.query('alter table if exists orders add column if not exists is_draft boolean not null default false');
-  await pool.query('create index if not exists idx_orders_is_draft on orders (is_draft)');
-
-  hasOrdersDraftColumnCache = true;
-  ordersSchemaSupportPromise = null;
-}
-
-async function hasOrdersDeletedColumn() {
-  if (hasOrdersDeletedColumnCache !== null) return hasOrdersDeletedColumnCache;
-
-  hasOrdersDeletedColumnCache = await hasOrdersColumn('deleted_at');
-  return hasOrdersDeletedColumnCache;
-}
-
-async function hasOrdersPaymentStatusColumn() {
-  if (hasOrdersPaymentStatusColumnCache !== null) return hasOrdersPaymentStatusColumnCache;
-
-  hasOrdersPaymentStatusColumnCache = await hasOrdersColumn('payment_status');
-  return hasOrdersPaymentStatusColumnCache;
-}
-
-async function hasOrdersAdminOrderNotesColumn() {
-  if (hasOrdersAdminOrderNotesColumnCache !== null) return hasOrdersAdminOrderNotesColumnCache;
-
-  hasOrdersAdminOrderNotesColumnCache = await hasOrdersColumn('admin_order_notes');
-  return hasOrdersAdminOrderNotesColumnCache;
-}
-
-async function hasOrdersPostalCodeColumn() {
-  if (hasOrdersPostalCodeColumnCache !== null) return hasOrdersPostalCodeColumnCache;
-
-  hasOrdersPostalCodeColumnCache = await hasOrdersColumn('postal_code');
-  return hasOrdersPostalCodeColumnCache;
-}
-
-export async function ensureOrdersPostalCodeColumn() {
-  if (hasOrdersPostalCodeColumnCache === true) return;
-
-  if (await hasOrdersColumn('postal_code')) {
-    hasOrdersPostalCodeColumnCache = true;
-    ordersSchemaSupportPromise = null;
-    return;
-  }
-
-  const pool = await getPool();
-  await pool.query('alter table if exists orders add column if not exists postal_code text');
-
-  hasOrdersPostalCodeColumnCache = true;
-  ordersSchemaSupportPromise = null;
-}
-
-async function hasDocumentsDeletedColumn() {
-  if (hasDocumentsDeletedColumnCache !== null) return hasDocumentsDeletedColumnCache;
-
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'order_documents'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-
-  hasDocumentsDeletedColumnCache = Number(result.rowCount ?? 0) > 0;
-  return hasDocumentsDeletedColumnCache;
-}
-
-async function getOrdersSchemaSupport() {
-  if (!ordersSchemaSupportPromise) {
-    ordersSchemaSupportPromise = Promise.all([
-      hasOrdersDraftColumn(),
-      hasOrdersDeletedColumn(),
-      hasOrdersPaymentStatusColumn(),
-      hasOrdersAdminOrderNotesColumn(),
-      hasOrdersPostalCodeColumn()
-    ]).then(([supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn, supportsAdminOrderNotesColumn, supportsPostalCodeColumn]) => ({
-      supportsDraftColumn,
-      supportsDeletedColumn,
-      supportsPaymentStatusColumn,
-      supportsAdminOrderNotesColumn,
-      supportsPostalCodeColumn
-    }));
-  }
-
-  return ordersSchemaSupportPromise;
-}
-
-async function getDocumentsSchemaSupport() {
-  if (!documentsSchemaSupportPromise) {
-    documentsSchemaSupportPromise = hasDocumentsDeletedColumn().then((supportsDeletedColumn) => ({
-      supportsDeletedColumn
-    }));
-  }
-
-  return documentsSchemaSupportPromise;
-}
-
-export type OrderRow = {
-  id: number;
-  order_number: string;
-  customer_type: string;
-  organization_name: string | null;
-  contact_name: string;
-  email: string;
-  delivery_address: string | null;
-  postal_code?: string | null;
-  reference: string | null;
-  notes: string | null;
-  status: string;
-  payment_status?: string | null;
-  admin_order_notes?: string | null;
-  subtotal: number | null;
-  tax: number | null;
-  total: number | null;
-  created_at: string;
-  is_draft?: boolean;
-  deleted_at?: string | null;
-};
-
-export type OrderItemRow = {
-  id: number;
-  order_id: number;
-  sku: string;
-  name: string;
-  unit: string | null;
-  quantity: number;
-  unit_price: number | null;
-  total_price: number | null;
-  discount_percentage: number;
-};
-
-export type OrderDocumentRow = {
-  id: number;
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  blob_pathname: string | null;
-  created_at: string;
-};
-
-export type PaymentLogRow = {
-  id: number;
-  order_id: number;
-  previous_status: string | null;
-  new_status: string;
-  note: string | null;
-  created_at: string;
-};
-
-export type OrderItemSkuAllocationRow = {
-  orderId: number;
-  orderNumber: string;
-  orderStatus: string;
-  orderCreatedAt: string;
-  orderItemId: number;
-  orderItemSku: string;
-  orderItemName: string;
-  quantity: number;
-  shippedAt: string | null;
-};
-
-export type OrderAnalyticsRow = {
-  id: number;
-  created_at: string;
-  status: string | null;
-  payment_status: string | null;
-  customer_type: string | null;
-  total: number;
-};
-
-export type OrderListDocumentSummaryRow = {
-  order_id: number;
-  type: string;
-  filename: string;
-  blob_url: string;
-  created_at: string;
-};
-
-export type OrderListPageResult = {
-  orders: OrderRow[];
-  documentSummaries: OrderListDocumentSummaryRow[];
-  totalCount: number;
-};
-
 function parseNullableNumber(rawValue: unknown): number | null {
   if (rawValue === null || rawValue === undefined) return null;
   if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : null;
@@ -503,6 +267,7 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     admin_order_notes: asNullableString(rawRow.admin_order_notes),
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
+    shipping: parseNullableNumber(rawRow.shipping),
     total: parseNullableNumber(rawRow.total),
     created_at: toIsoTimestamp(rawRow.created_at),
     is_draft: Boolean(rawRow.is_draft),
@@ -582,21 +347,6 @@ function mapOrderItemSkuAllocationRow(rawRow: Record<string, unknown>): OrderIte
   };
 }
 
-export async function ensureOrderStatusLogsTable(db?: Queryable) {
-  const target = db ?? await getPool();
-  await target.query(`
-    create table if not exists order_status_logs (
-      id bigserial primary key,
-      order_id bigint not null references orders(id) on delete cascade,
-      previous_status text,
-      new_status text not null,
-      created_at timestamptz not null default now()
-    )
-  `);
-  await target.query('create index if not exists idx_order_status_logs_order_id_created_at on order_status_logs(order_id, created_at desc)');
-  await target.query('create index if not exists idx_order_status_logs_new_status_created_at on order_status_logs(new_status, created_at desc)');
-}
-
 export async function fetchOrders(
   options?: {
     fromDate?: string | null;
@@ -608,26 +358,17 @@ export async function fetchOrders(
 ): Promise<OrderRow[]> {
   return instrumentCatalogLoader('fetchOrders', diagnosticsContext, async () => {
     const pool = await getPool();
-    const {
-      supportsDraftColumn,
-      supportsDeletedColumn,
-      supportsPaymentStatusColumn,
-      supportsAdminOrderNotesColumn,
-      supportsPostalCodeColumn
-    } = await getOrdersSchemaSupport();
     const conditions: string[] = [];
     const queryParams: unknown[] = [];
 
-    if (!options?.includeDrafts && supportsDraftColumn) {
+    if (!options?.includeDrafts) {
       conditions.push(`not (
         coalesce(orders.is_draft, false) = true
         and coalesce(orders.email, '') = 'draft@atehna.si'
         and coalesce(orders.contact_name, '') = 'Osnutek'
       )`);
     }
-    if (supportsDeletedColumn) {
-      conditions.push('orders.deleted_at is null');
-    }
+    conditions.push('orders.deleted_at is null');
 
     if (options?.fromDate) {
       queryParams.push(options.fromDate);
@@ -650,7 +391,7 @@ export async function fetchOrders(
           or orders.delivery_address ilike $${queryIndex}
           or orders.customer_type ilike $${queryIndex}
           or orders.status ilike $${queryIndex}
-          ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
+          or orders.payment_status ilike $${queryIndex}
         )`
       );
     }
@@ -666,18 +407,18 @@ export async function fetchOrders(
       orders.contact_name,
       orders.email,
       orders.delivery_address,
-      ${supportsPostalCodeColumn ? 'orders.postal_code' : 'null::text as postal_code'},
+      orders.postal_code,
       orders.reference,
       orders.notes,
       orders.status,
-      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
+      orders.payment_status,
+      orders.admin_order_notes,
       coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
       coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
-      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+      orders.is_draft,
+      orders.deleted_at
     from orders
     left join (
       select
@@ -693,44 +434,10 @@ export async function fetchOrders(
     order by ${ORDER_NUMBER_DESC_SQL}
   `;
 
-    const safeFallbackQuery = `
-    select
-      orders.id,
-      orders.order_number,
-      orders.customer_type,
-      orders.organization_name,
-      orders.contact_name,
-      orders.email,
-      orders.delivery_address,
-      ${supportsPostalCodeColumn ? 'orders.postal_code' : 'null::text as postal_code'},
-      orders.reference,
-      orders.notes,
-      orders.status,
-      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
-      coalesce(orders.subtotal::text, '0') as subtotal,
-      coalesce(orders.tax::text, '0') as tax,
-      coalesce(orders.total::text, '0') as total,
-      orders.created_at,
-      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
-    from orders
-    ${whereClause}
-    order by ${ORDER_NUMBER_DESC_SQL}
-  `;
-
-    try {
-      const result = await profileRoutePhase('db', 'fetchOrders:primaryQuery', () => pool.query(primaryQuery, queryParams));
-      return profileRoutePhase('transform', 'fetchOrders:mapRows', async () =>
-        result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
-      );
-    } catch (error) {
-      console.error('fetchOrders primary query failed, retrying with safe fallback', error);
-      const fallbackResult = await profileRoutePhase('db', 'fetchOrders:fallbackQuery', () => pool.query(safeFallbackQuery, queryParams));
-      return profileRoutePhase('transform', 'fetchOrders:mapFallbackRows', async () =>
-        fallbackResult.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
-      );
-    }
+    const result = await profileRoutePhase('db', 'fetchOrders:primaryQuery', () => pool.query(primaryQuery, queryParams));
+    return profileRoutePhase('transform', 'fetchOrders:mapRows', async () =>
+      result.rows.map((rawRow) => mapOrderRow(rawRow as Record<string, unknown>))
+    );
   });
 }
 
@@ -749,28 +456,17 @@ export async function fetchOrdersListPage(
 ): Promise<OrderListPageResult> {
   return instrumentCatalogLoader('fetchOrdersListPage', diagnosticsContext, async () => {
     const pool = await getPool();
-    const {
-      supportsDraftColumn,
-      supportsDeletedColumn,
-      supportsPaymentStatusColumn,
-      supportsAdminOrderNotesColumn,
-      supportsPostalCodeColumn
-    } = await getOrdersSchemaSupport();
-    const { supportsDeletedColumn: supportsDocumentsDeletedColumn } = await getDocumentsSchemaSupport();
-
     const conditions: string[] = [];
     const queryParams: unknown[] = [];
 
-    if (!options?.includeDrafts && supportsDraftColumn) {
+    if (!options?.includeDrafts) {
       conditions.push(`not (
         coalesce(orders.is_draft, false) = true
         and coalesce(orders.email, '') = 'draft@atehna.si'
         and coalesce(orders.contact_name, '') = 'Osnutek'
       )`);
     }
-    if (supportsDeletedColumn) {
-      conditions.push('orders.deleted_at is null');
-    }
+    conditions.push('orders.deleted_at is null');
 
     if (options?.fromDate) {
       queryParams.push(options.fromDate);
@@ -795,7 +491,7 @@ export async function fetchOrdersListPage(
           or orders.delivery_address ilike $${queryIndex}
           or orders.customer_type ilike $${queryIndex}
           or orders.status ilike $${queryIndex}
-          ${supportsPaymentStatusColumn ? `or orders.payment_status ilike $${queryIndex}` : ''}
+          or orders.payment_status ilike $${queryIndex}
         )`
       );
     }
@@ -808,7 +504,7 @@ export async function fetchOrdersListPage(
           select 1
           from order_documents od
           where od.order_id = orders.id
-            ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
+            and od.deleted_at is null
             and od.type = $${documentTypeIndex}
         )
       )`);
@@ -832,18 +528,18 @@ export async function fetchOrdersListPage(
           orders.contact_name,
           orders.email,
           orders.delivery_address,
-          ${supportsPostalCodeColumn ? 'orders.postal_code' : 'null::text as postal_code'},
+          orders.postal_code,
           orders.reference,
           orders.notes,
           orders.status,
-          ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-          ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
+          orders.payment_status,
+          orders.admin_order_notes,
           coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
           coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
           coalesce(orders.total::text, computed_totals.total::text, '0') as total,
           orders.created_at,
-          ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-          ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+          orders.is_draft,
+          orders.deleted_at
         from orders
         left join (
           select
@@ -879,7 +575,7 @@ export async function fetchOrdersListPage(
             od.created_at
           from order_documents od
           where od.order_id in (select id from paged_orders)
-            ${supportsDocumentsDeletedColumn ? 'and od.deleted_at is null' : ''}
+            and od.deleted_at is null
         ) source_docs
         order by order_id, type, created_at desc
       )
@@ -934,20 +630,17 @@ export async function fetchOrdersAnalyticsRows(
 ): Promise<OrderAnalyticsRow[]> {
   return instrumentCatalogLoader('fetchOrdersAnalyticsRows', diagnosticsContext, async () => {
     const pool = await getPool();
-    const { supportsDraftColumn, supportsDeletedColumn, supportsPaymentStatusColumn } = await getOrdersSchemaSupport();
     const conditions: string[] = [];
     const queryParams: unknown[] = [];
 
-    if (!options?.includeDrafts && supportsDraftColumn) {
+    if (!options?.includeDrafts) {
       conditions.push(`not (
         coalesce(orders.is_draft, false) = true
         and coalesce(orders.email, '') = 'draft@atehna.si'
         and coalesce(orders.contact_name, '') = 'Osnutek'
       )`);
     }
-    if (supportsDeletedColumn) {
-      conditions.push('orders.deleted_at is null');
-    }
+    conditions.push('orders.deleted_at is null');
     if (options?.fromDate) {
       queryParams.push(options.fromDate);
       conditions.push(`orders.created_at >= $${queryParams.length}`);
@@ -963,7 +656,7 @@ export async function fetchOrdersAnalyticsRows(
         orders.id,
         orders.created_at,
         orders.status,
-        ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
+        orders.payment_status,
         orders.customer_type,
         coalesce(orders.total::numeric, orders.subtotal::numeric + orders.tax::numeric, 0::numeric)::text as total
       from orders
@@ -981,14 +674,6 @@ export async function fetchOrdersAnalyticsRows(
 export async function fetchOrderById(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderRow | null> {
   return instrumentCatalogLoader('fetchOrderById', diagnosticsContext, async () => {
     const pool = await getPool();
-    const {
-      supportsDraftColumn,
-      supportsDeletedColumn,
-      supportsPaymentStatusColumn,
-      supportsAdminOrderNotesColumn,
-      supportsPostalCodeColumn
-    } = await getOrdersSchemaSupport();
-
     const result = await profileRoutePhase('db', 'fetchOrderById:query', () => pool.query(
       `
     select
@@ -999,18 +684,19 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.contact_name,
       orders.email,
       orders.delivery_address,
-      ${supportsPostalCodeColumn ? 'orders.postal_code' : 'null::text as postal_code'},
+      orders.postal_code,
       orders.reference,
       orders.notes,
       orders.status,
-      ${supportsPaymentStatusColumn ? 'orders.payment_status' : 'null::text as payment_status'},
-      ${supportsAdminOrderNotesColumn ? 'orders.admin_order_notes' : 'null::text as admin_order_notes'},
+      orders.payment_status,
+      orders.admin_order_notes,
       coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      coalesce(orders.shipping::text, '0') as shipping,
       coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
-      ${supportsDraftColumn ? 'orders.is_draft' : 'false as is_draft'},
-      ${supportsDeletedColumn ? 'orders.deleted_at' : 'null::timestamptz as deleted_at'}
+      orders.is_draft,
+      orders.deleted_at
     from orders
     left join lateral (
       select
@@ -1056,14 +742,12 @@ export async function fetchOrderItemAllocationsForSkus(
 
   return instrumentCatalogLoader('fetchOrderItemAllocationsForSkus', diagnosticsContext, async () => {
     const pool = await getPool();
-    await ensureOrderStatusLogsTable(pool);
-    const { supportsDraftColumn, supportsDeletedColumn } = await getOrdersSchemaSupport();
     const conditions = [
       'lower(trim(order_items.sku)) = any($1::text[])',
-      "coalesce(orders.status, '') <> 'cancelled'"
+      "coalesce(orders.status, '') <> 'cancelled'",
+      'coalesce(orders.is_draft, false) = false',
+      'orders.deleted_at is null'
     ];
-    if (supportsDraftColumn) conditions.push('coalesce(orders.is_draft, false) = false');
-    if (supportsDeletedColumn) conditions.push('orders.deleted_at is null');
 
     const result = await profileRoutePhase('db', 'fetchOrderItemAllocationsForSkus:query', () =>
       pool.query(
@@ -1108,9 +792,8 @@ export async function fetchOrderItemAllocationsForSkus(
 export async function fetchOrderDocuments(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderDocumentRow[]> {
   return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
     const pool = await getPool();
-    const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
     const result = await profileRoutePhase('db', 'fetchOrderDocuments:query', () => pool.query(
-      `select * from order_documents where order_id = $1 ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+      'select * from order_documents where order_id = $1 and deleted_at is null order by created_at desc',
       [orderId]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocuments:mapRows', async () =>
@@ -1126,9 +809,8 @@ export async function fetchOrderDocumentsForOrders(
   return instrumentCatalogLoader('fetchOrderDocumentsForOrders', diagnosticsContext, async () => {
     if (orderIds.length === 0) return [];
     const pool = await getPool();
-    const { supportsDeletedColumn } = await getDocumentsSchemaSupport();
     const result = await profileRoutePhase('db', 'fetchOrderDocumentsForOrders:query', () => pool.query(
-      `select * from order_documents where order_id = any($1::bigint[]) ${supportsDeletedColumn ? 'and deleted_at is null' : ''} order by created_at desc`,
+      'select * from order_documents where order_id = any($1::bigint[]) and deleted_at is null order by created_at desc',
       [orderIds]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocumentsForOrders:mapRows', async () =>
@@ -1139,21 +821,9 @@ export async function fetchOrderDocumentsForOrders(
 
 export async function fetchPaymentLogs(orderId: number): Promise<PaymentLogRow[]> {
   const pool = await getPool();
-  try {
-    const result = await pool.query(
-      'select * from order_payment_logs where order_id = $1 order by created_at desc',
-      [orderId]
-    );
-    return result.rows.map((rawRow) => mapPaymentLogRow(rawRow as Record<string, unknown>));
-  } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      ['42P01', '42501'].includes((error as { code?: string }).code ?? '')
-    ) {
-      return [];
-    }
-    throw error;
-  }
+  const result = await pool.query(
+    'select * from order_payment_logs where order_id = $1 order by created_at desc',
+    [orderId]
+  );
+  return result.rows.map((rawRow) => mapPaymentLogRow(rawRow as Record<string, unknown>));
 }

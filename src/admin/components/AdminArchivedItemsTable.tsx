@@ -45,6 +45,9 @@ import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon }
 import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
+import { formatEuro } from '@/shared/domain/formatting';
+import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
+import type { CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -58,6 +61,7 @@ type Item = {
   discountPct?: number | null;
   active: boolean;
   archivedAt?: string | null;
+  restorePayload?: CatalogItemEditorPayload | null;
 };
 
 type ArchivedItemsColumnKey = 'name' | 'sku' | 'category' | 'price' | 'archivedAt';
@@ -73,13 +77,22 @@ const ARCHIVED_ITEMS_COLUMN_OPTIONS: Array<{ key: ArchivedItemsColumnKey; label:
   { key: 'archivedAt', label: 'Arhivirano' }
 ];
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR' }).format(value);
+const formatCurrency = formatEuro;
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
   return new Date(value).toLocaleString('sl-SI', { dateStyle: 'medium', timeStyle: 'short' });
 };
+
+function createRestoreInsertPayload(payload: CatalogItemEditorPayload): CatalogItemEditorPayload {
+  const { id: _id, ...itemPayload } = payload;
+  return {
+    ...itemPayload,
+    variants: itemPayload.variants.map(({ id: _variantId, ...variant }) => variant),
+    quantityDiscounts: itemPayload.quantityDiscounts?.map(({ id: _discountId, ...rule }) => rule),
+    media: itemPayload.media.map(({ id: _mediaId, ...media }) => media)
+  };
+}
 
 const normalizeText = (value: string | number | null | undefined) =>
   String(value ?? '').trim().toLocaleLowerCase('sl');
@@ -134,6 +147,7 @@ export default function AdminArchivedItemsTable() {
     archivedAt: true
   });
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isRestoringSelected, setIsRestoringSelected] = useState(false);
   const nameFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const skuFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -293,13 +307,32 @@ export default function AdminArchivedItemsTable() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const restoreSelected = () => {
-    if (selectedIds.length === 0) return;
+  const restoreSelected = async () => {
+    if (selectedIds.length === 0 || isRestoringSelected) return;
     const selectedSet = new Set(selectedIds);
-    const next = items.map((item) => (selectedSet.has(item.id) ? { ...item, archivedAt: null } : item));
-    persist(next);
-    setSelectedIds([]);
-    toast.success(selectedIds.length === 1 ? 'Artikel je obnovljen.' : `Obnovljenih artiklov: ${selectedIds.length}.`);
+    const selectedItems = items.filter((item) => selectedSet.has(item.id));
+    const missingPayloadCount = selectedItems.filter((item) => !item.restorePayload).length;
+    if (missingPayloadCount > 0) {
+      toast.error('Izbrani arhivski zapis ne vsebuje podatkov za obnovitev.');
+      return;
+    }
+
+    setIsRestoringSelected(true);
+    try {
+      for (const item of selectedItems) {
+        if (!item.restorePayload) throw new Error('Arhivski zapis ne vsebuje podatkov za obnovitev.');
+        await saveCatalogItemPayload(createRestoreInsertPayload(item.restorePayload));
+      }
+
+      const next = items.map((item) => (selectedSet.has(item.id) ? { ...item, archivedAt: null } : item));
+      persist(next);
+      setSelectedIds([]);
+      toast.success(selectedIds.length === 1 ? 'Artikel je obnovljen.' : `Obnovljenih artiklov: ${selectedIds.length}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Obnova artikla ni uspela.');
+    } finally {
+      setIsRestoringSelected(false);
+    }
   };
 
   const hardDeleteSelected = () => {
@@ -446,8 +479,8 @@ export default function AdminArchivedItemsTable() {
             size="sm"
             tone={selectedIds.length > 0 ? 'success' : 'neutral'}
             className={selectedIds.length > 0 ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
-            onClick={restoreSelected}
-            disabled={selectedIds.length === 0}
+            onClick={() => void restoreSelected()}
+            disabled={selectedIds.length === 0 || isRestoringSelected}
             aria-label="Obnovi izbrane artikle"
             title="Obnovi"
           >

@@ -3,39 +3,6 @@ import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 
-async function ensureArchiveSchema() {
-  const pool = await getPool();
-  await pool.query('alter table if exists orders add column if not exists deleted_at timestamptz');
-  await pool.query('alter table if exists order_documents add column if not exists deleted_at timestamptz');
-  await pool.query(`
-    create table if not exists deleted_archive_entries (
-      id bigserial primary key,
-      item_type text not null check (item_type in ('order', 'pdf')),
-      order_id bigint,
-      document_id bigint,
-      label text not null,
-      deleted_at timestamptz not null default now(),
-      expires_at timestamptz not null default (now() + interval '90 days'),
-      payload jsonb not null default '{}'::jsonb
-    )
-  `);
-}
-
-async function hasOrdersDeletedAtColumn() {
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'orders'
-      and column_name = 'deleted_at'
-    limit 1
-    `
-  );
-  return Number(result.rowCount ?? 0) > 0;
-}
-
 export async function DELETE(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
   try {
@@ -45,13 +12,8 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
     }
 
     const pool = await getPool();
-    await ensureArchiveSchema();
-    const supportsSoftDelete = await hasOrdersDeletedAtColumn();
-
     const orderResult = await pool.query(
-      supportsSoftDelete
-        ? 'select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at from orders where id = $1'
-        : 'select id, order_number, contact_name, customer_type, delivery_address, created_at, null::timestamptz as deleted_at from orders where id = $1',
+      'select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at from orders where id = $1',
       [orderId]
     );
 
@@ -74,78 +36,46 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       return NextResponse.json({ success: true });
     }
 
-    if (supportsSoftDelete) {
-      await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
+    await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
+    await pool.query(
+      `
+      insert into deleted_archive_entries (item_type, order_id, label, payload)
+      values ($1, $2, $3, $4::jsonb)
+      `,
+      [
+        'order',
+        orderId,
+        `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
+        JSON.stringify({
+          orderNumber: order.order_number || `#${orderId}`,
+          orderCreatedAt: order.created_at,
+          customerName: order.contact_name || null,
+          address: order.delivery_address || null,
+          customerType: order.customer_type || null
+        })
+      ]
+    );
 
-      try {
-        await pool.query(
-          `
-          insert into deleted_archive_entries (item_type, order_id, label, payload)
-          values ($1, $2, $3, $4::jsonb)
-          `,
-          [
-            'order',
-            orderId,
-            `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
-            JSON.stringify({
-              orderNumber: order.order_number || `#${orderId}`,
-              orderCreatedAt: order.created_at,
-              customerName: order.contact_name || null,
-              address: order.delivery_address || null,
-              customerType: order.customer_type || null
-            })
-          ]
-        );
-      } catch (error) {
-        if (!(error && typeof error === 'object' && 'code' in error && error.code === '42P01')) {
-          throw error;
-        }
-      }
-
-      const orderNumber = order.order_number || `#${orderId}`;
-      await insertAuditEventForRequest(request, {
-        entityType: 'order',
-        entityId: String(orderId),
-        entityLabel: `Naročilo ${orderNumber}`,
-        action: 'deleted',
-        summary: `Naročilo ${orderNumber}: izbrisano`,
-        diff: {
-          deleted_at: {
-            label: 'Izbrisano',
-            before: 'prazno',
-            after: 'nastavljeno'
-          }
-        },
-        metadata: {
-          order_number: orderNumber,
-          soft_delete: true
-        }
-      });
-
-      revalidateAdminOrderPaths(orderId);
-      return NextResponse.json({ success: true });
-    }
-
-    await pool.query('delete from orders where id = $1', [orderId]);
     const orderNumber = order.order_number || `#${orderId}`;
     await insertAuditEventForRequest(request, {
       entityType: 'order',
       entityId: String(orderId),
       entityLabel: `Naročilo ${orderNumber}`,
       action: 'deleted',
-      summary: `Naročilo ${orderNumber}: trajno izbrisano`,
+      summary: `Naročilo ${orderNumber}: izbrisano`,
       diff: {
         deleted_at: {
           label: 'Izbrisano',
           before: 'prazno',
-          after: 'trajno izbrisano'
+          after: 'nastavljeno'
         }
       },
       metadata: {
         order_number: orderNumber,
-        soft_delete: false
+        soft_delete: true
       }
     });
+
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ success: true });
   } catch (error) {

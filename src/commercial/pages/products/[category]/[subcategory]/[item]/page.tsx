@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalog';
+import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 import { isDatabaseUnavailableError } from '@/shared/server/db';

@@ -1,8 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   DownloadIcon,
   PdfFileIcon,
@@ -41,11 +41,6 @@ const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
 });
 
 const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date(value));
-
-const LazyConfirmDialog = dynamic(
-  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
-  { ssr: false }
-);
 
 export default function AdminOrderPdfManager({
   orderId,

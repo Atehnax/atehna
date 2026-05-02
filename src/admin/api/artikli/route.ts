@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
   fetchCatalogItemEditorBySlug,
-  upsertCatalogItem,
-  type CatalogItemEditorPayload
+  upsertCatalogItem
 } from '@/shared/server/catalogItems';
+import type { CatalogItemEditorPayload, CatalogItemSaveApiResponse } from '@/shared/domain/catalog/catalogAdminTypes';
 import {
   computeCatalogItemAuditDiff,
   countAuditChangedFields,
@@ -12,15 +12,19 @@ import {
   inferCatalogItemAuditAction
 } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as CatalogItemEditorPayload;
+    const payloadResult = await readRequiredJsonRecord(request);
+    if (!payloadResult.ok) return payloadResult.response;
+
+    const payload = payloadResult.body as Partial<CatalogItemEditorPayload>;
     if (!payload?.itemName?.trim()) {
-      return NextResponse.json({ message: 'Naziv artikla je obvezen.' }, { status: 400 });
+      return NextResponse.json<CatalogItemSaveApiResponse>({ message: 'Naziv artikla je obvezen.' }, { status: 400 });
     }
     if (!payload?.slug?.trim()) {
-      return NextResponse.json({ message: 'URL (slug) je obvezen.' }, { status: 400 });
+      return NextResponse.json<CatalogItemSaveApiResponse>({ message: 'URL (slug) je obvezen.' }, { status: 400 });
     }
     if (!Array.isArray(payload.variants) || payload.variants.length === 0) {
       return NextResponse.json({ message: 'Artikel mora imeti vsaj eno različico.' }, { status: 400 });
@@ -29,7 +33,8 @@ export async function POST(request: Request) {
     const before = payload.id
       ? await fetchCatalogItemEditorBySlug(String(payload.id))
       : await fetchCatalogItemEditorBySlug(payload.slug);
-    const saved = await upsertCatalogItem(payload);
+    const itemPayload = payload as CatalogItemEditorPayload;
+    const saved = await upsertCatalogItem(itemPayload);
     const after = await fetchCatalogItemEditorBySlug(String(saved.id));
     const diff = computeCatalogItemAuditDiff(before as Record<string, unknown> | null, after as Record<string, unknown> | null);
     const action = before ? inferCatalogItemAuditAction(diff, 'updated') : 'created';
@@ -51,10 +56,13 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ id: saved.id, slug: saved.slug });
+    return NextResponse.json<CatalogItemSaveApiResponse>({ id: saved.id, slug: saved.slug });
   } catch (error) {
     if (error instanceof CatalogItemIdentityConflictError) {
-      return NextResponse.json({ message: error.message, conflicts: error.conflicts }, { status: error.statusCode });
+      return NextResponse.json<CatalogItemSaveApiResponse>(
+        { message: error.message, conflicts: error.conflicts },
+        { status: error.statusCode }
+      );
     }
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka na strežniku.' }, { status: 500 });
   }

@@ -1,25 +1,15 @@
 import { getStatusLabel, isOrderStatus } from '@/shared/domain/order/orderStatus';
-import type { OrderPdfDocumentSummary, OrderPdfTypeKey } from '@/shared/domain/order/orderTypes';
+import { formatEuro } from '@/shared/domain/formatting';
+import type { OrderPdfDocumentSummary, OrderPdfTypeKey, OrderRow as DomainOrderRow } from '@/shared/domain/order/orderTypes';
 import { adminStatusInfoPillTableColumnWidth } from '@/shared/ui/theme/tokens';
 
-export type OrderRow = {
-  id: number;
-  order_number: string;
-  customer_type: string;
-  organization_name: string | null;
-  contact_name: string;
-  email: string;
-  reference?: string | null;
-  notes?: string | null;
-  admin_order_notes?: string | null;
-  status: string;
-  payment_status?: string | null;
-  total: number | string | null;
-  created_at: string;
+export type OrderRow = Omit<DomainOrderRow, 'subtotal' | 'tax' | 'total' | 'delivery_address'> & {
   delivery_address?: string | null;
   address_line1?: string | null;
   city?: string | null;
-  postal_code?: string | null;
+  subtotal?: number | string | null;
+  tax?: number | string | null;
+  total: number | string | null;
 };
 
 export type PdfDoc = OrderPdfDocumentSummary;
@@ -93,11 +83,6 @@ export const columnWidths = {
   edit: '64px'
 };
 
-const currencyFormatter = new Intl.NumberFormat('sl-SI', {
-  style: 'currency',
-  currency: 'EUR'
-});
-
 export const textCollator = new Intl.Collator('sl', { sensitivity: 'base', numeric: true });
 
 export const toAmount = (value: unknown): number => {
@@ -112,7 +97,7 @@ export const toAmount = (value: unknown): number => {
   return 0;
 };
 
-export const formatCurrency = (value: unknown) => currencyFormatter.format(toAmount(value));
+export const formatCurrency = (value: unknown) => formatEuro(toAmount(value));
 
 export const getMergedOrderStatusValue = (status: string): StatusTab | 'unknown' =>
   isOrderStatus(status) ? status : 'unknown';

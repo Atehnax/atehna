@@ -17,7 +17,7 @@ type BuildPdfContextFailure = {
   message: string;
 };
 
-export type BuildPdfContextResult = BuildPdfContextSuccess | BuildPdfContextFailure;
+type BuildPdfContextResult = BuildPdfContextSuccess | BuildPdfContextFailure;
 
 const PDF_CODE_BY_TYPE: Record<string, string> = {
   order_summary: 'PN',

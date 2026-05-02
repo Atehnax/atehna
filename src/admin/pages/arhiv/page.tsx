@@ -15,35 +15,8 @@ export const dynamic = 'force-dynamic';
 async function AdminArchiveTableSection() {
   return instrumentAdminRouteRender('/admin/arhiv', async () => {
     const entries = getDatabaseUrl()
-    ? await profileRoutePhase('db', 'AdminArchiveTableSection:fetchArchiveEntries', () => fetchArchiveEntries('all'))
-    : [
-        {
-          id: 1,
-          item_type: 'order' as const,
-          order_id: 1,
-          document_id: null,
-          label: '#1 · Demo naročilo',
-          order_created_at: new Date().toISOString(),
-          customer_name: 'Demo kupec',
-          address: 'Demo naslov 1, Ljubljana',
-          customer_type: 'individual',
-          deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          item_type: 'pdf' as const,
-          order_id: 1,
-          document_id: 17,
-          label: '#1-order-summary-v2.pdf',
-          order_created_at: new Date().toISOString(),
-          customer_name: 'Demo kupec',
-          address: 'Demo naslov 1, Ljubljana',
-          customer_type: 'individual',
-          deleted_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
+      ? await profileRoutePhase('db', 'AdminArchiveTableSection:fetchArchiveEntries', () => fetchArchiveEntries('all'))
+      : [];
     const compactEntries = entries.map((entry) => [
       entry.id,
       entry.item_type,

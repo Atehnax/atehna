@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { reorderAnalyticsCharts } from '@/shared/server/analyticsCharts';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json().catch(() => ({}))) as { ids?: unknown };
+    const body = await readRequiredJsonRecord(request);
+    if (!body.ok) return body.response;
+    const payload = body.body;
     const ids = Array.isArray(payload.ids)
       ? payload.ids.map((id) => Number(id)).filter((id) => Number.isFinite(id))
       : [];

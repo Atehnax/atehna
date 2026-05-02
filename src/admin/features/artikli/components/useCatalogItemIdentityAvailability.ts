@@ -1,15 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { CatalogItemIdentityField } from '@/shared/server/catalogItems';
-
-type CatalogItemIdentityAvailability = {
-  field: CatalogItemIdentityField;
-  value: string;
-  isAvailable: boolean;
-  conflictLabel: string | null;
-  suggestions: string[];
-};
+import type { CatalogItemIdentityAvailability, CatalogItemIdentityField } from '@/shared/domain/catalog/catalogAdminTypes';
 
 export type CatalogItemIdentityAvailabilityState =
   | { status: 'idle'; isAvailable: false; suggestions: string[]; message: string | null }

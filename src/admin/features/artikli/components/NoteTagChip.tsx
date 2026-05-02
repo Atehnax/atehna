@@ -1,13 +1,54 @@
 'use client';
 
-import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Chip } from '@/shared/ui/badge';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
+import type { BadgeVariant } from '@/shared/ui/badge';
 import { getAdminStatusInfoMenuOptionClassName } from '@/shared/ui/theme/tokens';
 
 export type NoteTag = 'na-zalogi' | 'novo' | 'akcija' | 'zadnji-kosi' | 'ni-na-zalogi';
-type NoteTagValue = NoteTag | '';
+export type NoteTagValue = NoteTag | '';
+
+export const NOTE_TAG_OPTIONS: ReadonlyArray<{ value: NoteTag; label: string }> = [
+  { value: 'na-zalogi', label: 'Na zalogi' },
+  { value: 'novo', label: 'Novo' },
+  { value: 'akcija', label: 'V akciji' },
+  { value: 'zadnji-kosi', label: 'Zadnji kosi' },
+  { value: 'ni-na-zalogi', label: 'Ni na zalogi' }
+];
+
+const NOTE_TAG_LABELS: Record<NoteTag, string> = {
+  'na-zalogi': 'Na zalogi',
+  novo: 'Novo',
+  akcija: 'V akciji',
+  'zadnji-kosi': 'Zadnji kosi',
+  'ni-na-zalogi': 'Ni na zalogi'
+};
+
+const NOTE_TAG_VARIANTS: Record<NoteTag, BadgeVariant> = {
+  'na-zalogi': 'success',
+  novo: 'info',
+  akcija: 'danger',
+  'zadnji-kosi': 'purple',
+  'ni-na-zalogi': 'neutral'
+};
+
+const isNoteTag = (value: string): value is NoteTag =>
+  NOTE_TAG_OPTIONS.some((option) => option.value === value);
+
+export const normalizeNoteTagValue = (value: string | null | undefined): NoteTagValue => {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'opomba') return 'na-zalogi';
+  return isNoteTag(normalized) ? normalized : '';
+};
+
+export const getNoteTagLabel = (value: NoteTagValue, emptyLabel = 'Brez opombe') =>
+  value === '' ? emptyLabel : NOTE_TAG_LABELS[value];
+
+const getNoteTagVariant = (value: NoteTagValue): BadgeVariant =>
+  value === '' ? 'neutral' : NOTE_TAG_VARIANTS[value];
+
+const getNoteTagEmphasisClassName = (value: NoteTagValue) =>
+  value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
 
 export const getNoteTagMenuItemClassName = (value: NoteTagValue) =>
   getAdminStatusInfoMenuOptionClassName(
@@ -41,110 +82,28 @@ export function NoteTagChip({
   placeholderLabel?: string;
   editScope?: string;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const label =
-    value === ''
-      ? placeholderLabel
-      : value === 'na-zalogi'
-      ? 'Na zalogi'
-      : value === 'novo'
-      ? 'Novo'
-      : value === 'akcija'
-        ? 'V akciji'
-        : value === 'ni-na-zalogi'
-          ? 'Ni na zalogi'
-          : 'Zadnji kosi';
-  const variant =
-    value === ''
-      ? 'neutral'
-      : value === 'na-zalogi'
-        ? 'success'
-        : value === 'novo'
-          ? 'info'
-          : value === 'akcija'
-            ? 'danger'
-            : value === 'ni-na-zalogi'
-              ? 'neutral'
-              : 'purple';
-  const emphasisClassName = value === 'akcija' ? '!border-rose-200 !bg-rose-50 !text-rose-700' : value === '' ? 'text-slate-600' : '';
-
-  const updateMenuPosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = Math.max(130, menuRef.current?.offsetWidth ?? 130);
-    const left = Math.min(Math.max(8, triggerRect.left), window.innerWidth - menuWidth - 8);
-    const top = menuPlacement === 'top' ? triggerRect.top - 6 : triggerRect.bottom + 6;
-    setMenuPosition({ top, left });
-  }, [menuPlacement]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    updateMenuPosition();
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    const onWindowChange = () => updateMenuPosition();
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    window.addEventListener('resize', onWindowChange);
-    window.addEventListener('scroll', onWindowChange, true);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-      window.removeEventListener('resize', onWindowChange);
-      window.removeEventListener('scroll', onWindowChange, true);
-    };
-  }, [isOpen, updateMenuPosition]);
+  const options: Array<EditableChipMenuOption<NoteTagValue>> = [
+    ...(allowEmpty
+      ? [{ value: '' as NoteTagValue, label: placeholderLabel, className: getNoteTagMenuItemClassName('') }]
+      : []),
+    ...NOTE_TAG_OPTIONS.map((option): EditableChipMenuOption<NoteTagValue> => ({
+      value: option.value,
+      label: option.label,
+      className: getNoteTagMenuItemClassName(option.value)
+    }))
+  ];
 
   return (
-    <div ref={rootRef} className="relative" data-edit-scope={editScope}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => {
-          if (!editable) return;
-          setIsOpen((current) => !current);
-        }}
-        className="relative block rounded-full focus:outline-none"
-        aria-haspopup={editable ? 'menu' : undefined}
-        aria-expanded={editable ? isOpen : undefined}
-      >
-        {editable ? <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span> : null}
-        <span className="block">
-          <Chip size="adminStatusInfo" variant={variant} className={`${emphasisClassName} ${chipClassName ?? ''}`.trim()}>{label}</Chip>
-        </span>
-      </button>
-      {editable && isOpen && menuPosition && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              data-edit-scope={editScope}
-              className={`fixed z-[1000] min-w-[130px] ${menuPlacement === 'top' ? '-translate-y-full' : ''}`}
-              style={{ top: menuPosition.top, left: menuPosition.left }}
-            >
-              <MenuPanel>
-                {allowEmpty ? <MenuItem className={getNoteTagMenuItemClassName('')} onClick={() => { onChange(''); setIsOpen(false); }}>{placeholderLabel}</MenuItem> : null}
-                <MenuItem className={getNoteTagMenuItemClassName('na-zalogi')} onClick={() => { onChange('na-zalogi'); setIsOpen(false); }}>Na zalogi</MenuItem>
-                <MenuItem className={getNoteTagMenuItemClassName('novo')} onClick={() => { onChange('novo'); setIsOpen(false); }}>Novo</MenuItem>
-                <MenuItem className={getNoteTagMenuItemClassName('akcija')} onClick={() => { onChange('akcija'); setIsOpen(false); }}>V akciji</MenuItem>
-                <MenuItem className={getNoteTagMenuItemClassName('zadnji-kosi')} onClick={() => { onChange('zadnji-kosi'); setIsOpen(false); }}>Zadnji kosi</MenuItem>
-                <MenuItem className={getNoteTagMenuItemClassName('ni-na-zalogi')} onClick={() => { onChange('ni-na-zalogi'); setIsOpen(false); }}>Ni na zalogi</MenuItem>
-              </MenuPanel>
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
+    <EditableChipMenu
+      label={getNoteTagLabel(value, placeholderLabel)}
+      variant={getNoteTagVariant(value)}
+      editable={editable}
+      options={options}
+      onChange={onChange}
+      chipClassName={chipClassName}
+      chipEmphasisClassName={getNoteTagEmphasisClassName(value)}
+      menuPlacement={menuPlacement}
+      editScope={editScope}
+    />
   );
 }

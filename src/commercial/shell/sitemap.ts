@@ -1,9 +1,9 @@
 import { MetadataRoute } from 'next';
-import { getCategorySlugs } from '@/commercial/content/content';
+import { getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://atehna.si';
-  const categoryRoutes = getCategorySlugs().map((slug) => ({
+  const categoryRoutes = (await getCatalogCategorySlugsServer()).map((slug) => ({
     url: `${baseUrl}/products/${slug}`,
     lastModified: new Date()
   }));

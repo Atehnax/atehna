@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -41,6 +40,7 @@ import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   HeaderFilterPortal,
   HEADER_FILTER_BUTTON_CLASS,
@@ -50,33 +50,7 @@ import {
 } from '@/shared/ui/admin-header-filter';
 import { getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
 import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
-
-type ArchiveEntry = {
-  id: number;
-  item_type: 'order' | 'pdf';
-  order_id: number | null;
-  document_id: number | null;
-  label: string;
-  order_created_at: string | null;
-  customer_name: string | null;
-  address: string | null;
-  customer_type: string | null;
-  deleted_at: string;
-  expires_at: string;
-};
-type ArchiveEntryTuple = readonly [
-  id: number,
-  itemType: 'order' | 'pdf',
-  orderId: number | null,
-  documentId: number | null,
-  label: string,
-  orderCreatedAt: string | null,
-  customerName: string | null,
-  address: string | null,
-  customerType: string | null,
-  deletedAt: string,
-  expiresAt: string
-];
+import type { ArchiveEntry, ArchiveEntryTuple } from '@/shared/domain/archive/archiveTypes';
 
 type DisplayRow = {
   entry: ArchiveEntry;
@@ -107,11 +81,6 @@ const ARCHIVE_COLUMN_OPTIONS: Array<{ key: ArchiveColumnKey; label: string }> = 
   { key: 'expires', label: 'Izbris' }
 ];
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
-const LazyConfirmDialog = dynamic(
-  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
-  { ssr: false }
-);
-
 const formatDateOnly = (value: string) => {
   const parsedDate = new Date(value);
   if (Number.isNaN(parsedDate.getTime())) return '—';

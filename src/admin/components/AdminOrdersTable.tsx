@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
@@ -85,6 +86,7 @@ import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domai
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 
 import {
   type DocumentType,
@@ -107,27 +109,6 @@ import {
   toDateInputValue,
   toDisplayOrderNumber
 } from '@/admin/components/adminOrdersTableUtils';
-type OrderRowTuple = [
-  id: number,
-  orderNumber: string,
-  customerType: string,
-  organizationName: string | null,
-  contactName: string,
-  email: string,
-  deliveryAddress: string | null,
-  reference: string | null,
-  notes: string | null,
-  status: string,
-  paymentStatus: string | null,
-  adminOrderNotes: string | null,
-  subtotal: number | string | null,
-  tax: number | string | null,
-  total: number | string | null,
-  createdAt: string,
-  isDraft: boolean,
-  deletedAt?: string | null
-];
-type PdfDocTuple = readonly [id: number, orderId: number, type: PdfDoc['type'], filename: string, blobUrl: string, createdAt: string];
 type OrderQuickEditState = {
   orderId: number;
   draftOrderNumber: string;
@@ -422,11 +403,6 @@ const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrd
     </button>
   )
 });
-const LazyConfirmDialog = dynamic(
-  () => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog),
-  { ssr: false }
-);
-
 export default function AdminOrdersTable({
   orders: serializedOrders,
   analyticsOrders: serializedAnalyticsOrders,
@@ -442,9 +418,9 @@ export default function AdminOrdersTable({
   topAction,
   analyticsAppearance
 }: {
-  orders: ReadonlyArray<Readonly<OrderRowTuple>>;
-  analyticsOrders?: ReadonlyArray<Readonly<OrderRowTuple>>;
-  documents: ReadonlyArray<PdfDocTuple>;
+  orders: ReadonlyArray<AdminOrderRowTuple>;
+  analyticsOrders?: ReadonlyArray<AdminOrderRowTuple>;
+  documents: ReadonlyArray<AdminOrderPdfDocumentTuple>;
   initialFrom?: string;
   initialTo?: string;
   initialQuery?: string;
@@ -473,6 +449,7 @@ export default function AdminOrdersTable({
         admin_order_notes: row[11],
         subtotal: row[12] ?? 0,
         tax: row[13] ?? 0,
+        shipping: 0,
         total: row[14] ?? 0,
         created_at: row[15],
         is_draft: row[16],
@@ -497,6 +474,7 @@ export default function AdminOrdersTable({
         admin_order_notes: row[11],
         subtotal: row[12] ?? 0,
         tax: row[13] ?? 0,
+        shipping: 0,
         total: row[14] ?? 0,
         created_at: row[15],
         is_draft: row[16],

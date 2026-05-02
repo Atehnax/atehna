@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku, sortCatalogItems } from '@/commercial/catalog/catalog';
+import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku, sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategorySlugsServer, getCatalogSubcategoryPageDataServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 

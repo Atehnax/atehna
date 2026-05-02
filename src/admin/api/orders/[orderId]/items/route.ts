@@ -3,6 +3,7 @@ import { getPool } from '@/shared/server/db';
 import { computeOrderLineItemsDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import type { AuditDiff } from '@/shared/audit/auditTypes';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { isJsonRecord, readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 type IncomingItem = {
   id?: number;
@@ -35,7 +36,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
   }
 
   try {
-    const body = await request.json();
+    const bodyResult = await readRequiredJsonRecord(request);
+    if (!bodyResult.ok) return bodyResult.response;
+
+    const body = bodyResult.body;
     const itemsRaw = Array.isArray(body?.items) ? body.items : null;
     const shippingRaw = normalizeNumber(body?.shipping ?? 0);
     const shipping = Number.isFinite(shippingRaw) ? Math.max(0, roundAmount(shippingRaw)) : 0;
@@ -44,7 +48,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       return NextResponse.json({ message: 'Naročilo mora vsebovati vsaj eno postavko.' }, { status: 400 });
     }
 
-    const normalizedItems: IncomingItem[] = itemsRaw.map((rawItem: Record<string, unknown>) => {
+    const normalizedItems: IncomingItem[] = itemsRaw.map((rawValue) => {
+      const rawItem = isJsonRecord(rawValue) ? rawValue : {};
       const quantity = normalizeNumber(rawItem?.quantity);
       const unitPrice = normalizeNumber(rawItem?.unitPrice);
       const discountPercentage = Math.max(0, normalizeNumber(rawItem?.discountPercentage ?? 0));
@@ -99,19 +104,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     try {
       await client.query('BEGIN');
-      const hasShippingColumnResult = await client.query(
-        `
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'shipping'
-        LIMIT 1
-        `
-      );
-      const hasShippingColumn = (hasShippingColumnResult.rowCount ?? 0) > 0;
       const orderBeforeResult = await client.query(
-        hasShippingColumn
-          ? 'SELECT order_number, subtotal, tax, shipping, total FROM orders WHERE id = $1'
-          : 'SELECT order_number, subtotal, tax, null::numeric as shipping, total FROM orders WHERE id = $1',
+        'SELECT order_number, subtotal, tax, shipping, total FROM orders WHERE id = $1',
         [orderId]
       );
       if (orderBeforeResult.rows.length === 0) {
@@ -145,17 +139,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      if (hasShippingColumn) {
-        await client.query(
-          'UPDATE orders SET subtotal = $1, tax = $2, shipping = $3, total = $4 WHERE id = $5',
-          [subtotal, tax, shipping, total, orderId]
-        );
-      } else {
-        await client.query(
-          'UPDATE orders SET subtotal = $1, tax = $2, total = $3 WHERE id = $4',
-          [subtotal, tax, total, orderId]
-        );
-      }
+      await client.query(
+        'UPDATE orders SET subtotal = $1, tax = $2, shipping = $3, total = $4 WHERE id = $5',
+        [subtotal, tax, shipping, total, orderId]
+      );
 
       const oldItems = oldItemsResult.rows.map((row) => ({
         id: row.id,

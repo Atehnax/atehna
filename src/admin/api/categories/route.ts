@@ -6,6 +6,7 @@ import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCat
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
 import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 type CategoryStatus = 'active' | 'inactive';
 
@@ -21,6 +22,30 @@ type CategoryAuditRow = {
   bannerImage: string | null;
   position: number;
   status: CategoryStatus;
+};
+
+type CategoryPutPayload = {
+  categories?: CatalogCategory[];
+  statuses?: Record<string, CategoryStatus>;
+};
+
+type CategoryPatchPayload = {
+  upserts?: Array<{
+    id: string;
+    parentId: string | null;
+    slug: string;
+    title: string;
+    summary: string;
+    description: string;
+    image: string | null;
+    removeImage?: boolean;
+    adminNotes?: string | null;
+    bannerImage?: string | null;
+    items?: unknown;
+    position: number;
+    status: CategoryStatus;
+  }>;
+  deleteIds?: string[];
 };
 
 const categoryAuditFields = [
@@ -300,7 +325,10 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const payload = (await request.json()) as { categories?: CatalogCategory[]; statuses?: Record<string, 'active' | 'inactive'> };
+    const payloadResult = await readRequiredJsonRecord(request);
+    if (!payloadResult.ok) return payloadResult.response;
+
+    const payload = payloadResult.body as CategoryPutPayload;
     const normalized = normalizeCatalogData(payload);
 
     if (!Array.isArray(payload.categories)) {
@@ -345,24 +373,10 @@ export async function PUT(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const payload = (await request.json()) as {
-      upserts?: Array<{
-        id: string;
-        parentId: string | null;
-        slug: string;
-        title: string;
-        summary: string;
-        description: string;
-        image: string | null;
-        removeImage?: boolean;
-        adminNotes?: string | null;
-        bannerImage?: string | null;
-        items?: unknown;
-        position: number;
-        status: 'active' | 'inactive';
-      }>;
-      deleteIds?: string[];
-    };
+    const payloadResult = await readRequiredJsonRecord(request);
+    if (!payloadResult.ok) return payloadResult.response;
+
+    const payload = payloadResult.body as CategoryPatchPayload;
 
     const upserts = Array.isArray(payload.upserts)
       ? payload.upserts.map((entry) => ({

@@ -2,11 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import type { DragEndEvent } from '@dnd-kit/core';
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import type { ChartTheme } from '@/admin/components/charts/chartTheme';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartConfig, AnalyticsChartType, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
-const LazyConfirmDialog = dynamic(() => import('@/shared/ui/confirm-dialog').then((module) => module.ConfirmDialog), { ssr: false });
 const LazyBuilderModal = dynamic(() => import('@/admin/components/analytics/AnalyticsBuilderModal'), { ssr: false });
 const LazyAppearancePanel = dynamic(() => import('@/admin/components/analytics/AnalyticsAppearancePanel'), { ssr: false });
 const LazySortableGrid = dynamic(() => import('@/admin/components/analytics/AnalyticsSortableGrid'), { ssr: false });

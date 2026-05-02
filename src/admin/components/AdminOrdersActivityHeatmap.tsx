@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
 
 type HeatmapMode = 'orders' | 'revenue';
 
@@ -62,13 +63,8 @@ const parseYmd = (value: string) => startOfLocalDay(new Date(`${value}T00:00:00`
 
 const formatDate = (date: Date) => toDateKey(date);
 
-const formatInt = (value: number) => Intl.NumberFormat('sl-SI', { maximumFractionDigits: 0 }).format(value);
-
-const formatCurrency = (value: number) =>
-  `${Intl.NumberFormat('sl-SI', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value)} €`;
+const formatInt = formatSlInteger;
+const formatCurrency = formatEuroWithSuffix;
 
 const buildWeeks = (days: readonly AdminOrdersHeatmapDay[], mode: HeatmapMode): HeatmapWeek[] => {
   const parsedDays = days

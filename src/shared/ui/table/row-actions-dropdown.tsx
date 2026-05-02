@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { IconButton } from '@/shared/ui/icon-button';
+import IconButton from '../icon-button/IconButton';
 import { MoreActionsIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
+import MenuItem from '../menu/menu-item';
+import MenuPanel from '../menu/menu-panel';
 
 type RowActionItem = {
   key: string;

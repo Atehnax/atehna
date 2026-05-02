@@ -2,10 +2,21 @@ import { getPool } from '@/shared/server/db';
 import { revalidateTag } from 'next/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
-import { fetchOrderItemAllocationsForSkus, type OrderItemSkuAllocationRow } from '@/shared/server/orders';
-
-export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
-export type CatalogItemTypeSpecificData = Record<string, unknown>;
+import type {
+  AdminCatalogListItem,
+  AdminCatalogVariantSummary,
+  CatalogEditorProductType,
+  CatalogItemEditorHydration,
+  CatalogItemEditorPayload,
+  CatalogItemIdentityAvailability,
+  CatalogItemIdentityConflict,
+  CatalogItemIdentityField,
+  CatalogItemQuickPatch,
+  CatalogItemQuantityDiscountRule,
+  CatalogItemTypeSpecificData,
+  CatalogVariantQuickPatch
+} from '@/shared/domain/catalog/catalogAdminTypes';
+import { fetchOrderItemAllocationsForSkus } from '@/shared/server/orders';
 
 export type CatalogItemSeedRow = {
   id: number;
@@ -26,175 +37,6 @@ export type CatalogItemSeedRow = {
   images: string[];
   discount_pct: number;
   item_position: number;
-};
-
-export type CatalogItemEditorPayload = {
-  id?: number;
-  itemName: string;
-  itemType: CatalogItemType;
-  productType?: CatalogEditorProductType;
-  typeSpecificData?: CatalogItemTypeSpecificData;
-  badge?: string | null;
-  status: 'active' | 'inactive';
-  categoryPath: string[];
-  sku?: string | null;
-  slug: string;
-  unit?: string | null;
-  brand?: string | null;
-  material?: string | null;
-  colour?: string | null;
-  shape?: string | null;
-  description?: string | null;
-  adminNotes?: string | null;
-  position?: number;
-  variants: Array<{
-    id?: number;
-    variantName: string;
-    length?: number | null;
-    width?: number | null;
-    thickness?: number | null;
-    weight?: number | null;
-    errorTolerance?: string | null;
-    price: number;
-    discountPct?: number;
-    inventory?: number;
-    minOrder?: number;
-    variantSku?: string | null;
-    unit?: string | null;
-    status?: 'active' | 'inactive';
-    badge?: string | null;
-    position?: number;
-    imageAssignments?: number[];
-  }>;
-  quantityDiscounts?: CatalogItemQuantityDiscountRule[];
-  media: Array<{
-    id?: number;
-    variantIndex?: number | null;
-    mediaKind: 'image' | 'video' | 'document';
-    role: 'gallery' | 'technical_sheet';
-    sourceKind: 'upload' | 'youtube';
-    filename?: string | null;
-    blobUrl?: string | null;
-    blobPathname?: string | null;
-    externalUrl?: string | null;
-    mimeType?: string | null;
-    altText?: string | null;
-    imageType?: string | null;
-    imageDimensions?: { width?: number; height?: number } | null;
-    videoType?: string | null;
-    hidden?: boolean;
-    position?: number;
-  }>;
-};
-
-export type CatalogItemQuantityDiscountRule = {
-  id?: number;
-  minQuantity: number;
-  discountPercent: number;
-  appliesTo?: 'allVariants' | string | null;
-  note?: string | null;
-  position?: number | null;
-};
-
-export type AdminCatalogVariantSummary = {
-  id: number;
-  variantName: string;
-  variantSku: string | null;
-  length: number | null;
-  width: number | null;
-  thickness: number | null;
-  weight: number | null;
-  price: number;
-  discountPct: number;
-  inventory: number;
-  minOrder: number;
-  status: 'active' | 'inactive';
-  badge: string | null;
-  position: number;
-};
-
-export type AdminCatalogListItem = {
-  id: number;
-  slug: string;
-  itemName: string;
-  productType: CatalogEditorProductType;
-  typeSpecificData: CatalogItemTypeSpecificData;
-  material: string | null;
-  baseSku: string | null;
-  categoryLabel: string;
-  status: 'active' | 'inactive';
-  badge: string | null;
-  variantCount: number;
-  minPrice: number;
-  maxPrice: number;
-  defaultDiscountPct: number;
-  adminNotes: string | null;
-  variants: AdminCatalogVariantSummary[];
-};
-
-export type CatalogItemEditorHydration = {
-  id: number;
-  itemName: string;
-  itemType: CatalogItemType;
-  productType: CatalogEditorProductType;
-  typeSpecificData: CatalogItemTypeSpecificData;
-  badge: string | null;
-  status: 'active' | 'inactive';
-  categoryPath: string[];
-  sku: string | null;
-  slug: string;
-  unit: string | null;
-  brand: string | null;
-  material: string | null;
-  colour: string | null;
-  shape: string | null;
-  description: string | null;
-  adminNotes: string | null;
-  position: number;
-  variants: CatalogItemEditorPayload['variants'];
-  quantityDiscounts: CatalogItemQuantityDiscountRule[];
-  media: CatalogItemEditorPayload['media'];
-  machineSerialOrderMatches: OrderItemSkuAllocationRow[];
-};
-
-export type CatalogItemQuickPatch = {
-  itemName?: string;
-  sku?: string | null;
-  status?: 'active' | 'inactive';
-  badge?: string | null;
-  categoryPath?: string[];
-  categoryId?: string | null;
-};
-
-export type CatalogVariantQuickPatch = {
-  variantName?: string;
-  variantSku?: string | null;
-  length?: number | null;
-  width?: number | null;
-  thickness?: number | null;
-  weight?: number | null;
-  errorTolerance?: string | null;
-  price?: number;
-  discountPct?: number;
-  inventory?: number;
-  minOrder?: number;
-  status?: 'active' | 'inactive';
-  badge?: string | null;
-  position?: number;
-};
-
-export type CatalogItemIdentityField = 'name' | 'sku' | 'slug';
-
-export type CatalogItemIdentityAvailability = {
-  field: CatalogItemIdentityField;
-  value: string;
-  isAvailable: boolean;
-  conflictLabel: string | null;
-  suggestions: string[];
-};
-
-export type CatalogItemIdentityConflict = CatalogItemIdentityAvailability & {
-  message: string;
 };
 
 export class CatalogItemIdentityConflictError extends Error {
@@ -227,40 +69,6 @@ function asStringOrNull(value: unknown): string | null {
 
 function normalizeActiveState(value: unknown): 'active' | 'inactive' {
   return String(value ?? 'inactive') === 'active' ? 'active' : 'inactive';
-}
-
-async function ensureCatalogItemQuantityDiscountsTable(db: { query: (sql: string, params?: unknown[]) => Promise<unknown> }) {
-  await db.query(`
-    create table if not exists catalog_item_quantity_discounts (
-      id bigserial primary key,
-      item_id bigint not null references catalog_items(id) on delete cascade,
-      min_quantity integer not null default 1,
-      discount_percent numeric(5,2) not null default 0,
-      applies_to text not null default 'allVariants',
-      note text,
-      position integer not null default 0,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      check (min_quantity >= 1),
-      check (discount_percent >= 0 and discount_percent <= 100)
-    )
-  `);
-  await db.query('create index if not exists idx_catalog_item_quantity_discounts_item_id on catalog_item_quantity_discounts(item_id)');
-  await db.query('create index if not exists idx_catalog_item_quantity_discounts_position on catalog_item_quantity_discounts(item_id, position)');
-}
-
-async function ensureCatalogItemEditorDetailsTable(db: { query: (sql: string, params?: unknown[]) => Promise<unknown> }) {
-  await db.query(`
-    create table if not exists catalog_item_editor_details (
-      item_id bigint primary key references catalog_items(id) on delete cascade,
-      product_type text not null default 'simple',
-      data jsonb not null default '{}'::jsonb,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      check (product_type in ('simple', 'dimensions', 'weight', 'unique_machine'))
-    )
-  `);
-  await db.query('create index if not exists idx_catalog_item_editor_details_product_type on catalog_item_editor_details(product_type)');
 }
 
 function normalizeCatalogEditorProductType(value: unknown): CatalogEditorProductType | null {
@@ -670,8 +478,6 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
 
   try {
     await client.query('begin');
-    await ensureCatalogItemQuantityDiscountsTable(client);
-    await ensureCatalogItemEditorDetailsTable(client);
 
     const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
     if (!itemId) {
@@ -1111,7 +917,6 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
 
 export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem[]> {
   const pool = await getPool();
-  await ensureCatalogItemEditorDetailsTable(pool);
   const result = await pool.query(
     `
     with recursive category_paths as (
@@ -1231,8 +1036,6 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
   if (!normalizedSlug) return null;
 
   const pool = await getPool();
-  await ensureCatalogItemQuantityDiscountsTable(pool);
-  await ensureCatalogItemEditorDetailsTable(pool);
   const result = await pool.query(
     `
     with item as (
@@ -1633,7 +1436,6 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
   const client = await pool.connect();
   try {
     await client.query('begin');
-    await ensureCatalogItemQuantityDiscountsTable(client);
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath);
     const effectiveId = payload.id ?? null;

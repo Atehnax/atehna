@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
+import { formatEuro } from '@/shared/domain/formatting';
 
 export default function CartButton() {
   const items = useCartStore((state) => state.items);
@@ -14,10 +15,7 @@ export default function CartButton() {
     0
   );
 
-  const formattedTotal = new Intl.NumberFormat('sl-SI', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(total);
+  const formattedTotal = formatEuro(total);
 
   useEffect(() => {
     setIsMounted(true);

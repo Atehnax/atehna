@@ -26,8 +26,8 @@ export async function POST(request: Request) {
     if (!payload?.slug?.trim()) {
       return NextResponse.json<CatalogItemSaveApiResponse>({ message: 'URL (slug) je obvezen.' }, { status: 400 });
     }
-    if (!Array.isArray(payload.variants) || payload.variants.length === 0) {
-      return NextResponse.json({ message: 'Artikel mora imeti vsaj eno različico.' }, { status: 400 });
+    if (!Array.isArray(payload.variants)) {
+      return NextResponse.json({ message: 'Različice morajo biti poslane kot seznam.' }, { status: 400 });
     }
 
     const before = payload.id

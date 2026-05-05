@@ -92,7 +92,7 @@ const buildVariantMeasurementName = (
   variant: VariantNameSource,
   fallbackLabel = 'Osnovna različica'
 ) => {
-  const dimensions = [variant.length, variant.width, variant.thickness]
+  const dimensions = [variant.thickness, variant.length, variant.width]
     .filter(isFiniteMeasurement)
     .map(formatDecimalForDisplay);
 

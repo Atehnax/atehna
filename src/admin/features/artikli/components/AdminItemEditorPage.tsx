@@ -20,18 +20,26 @@ import { Button } from '@/shared/ui/button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ActionUndoIcon, ArchiveIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, ArchiveIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   adminStatusInfoPillGroupClassName,
   adminStatusInfoPillVariantTableClassName,
-  buttonTokenClasses
+  buttonTokenClasses,
+  hoverTokenClasses,
+  selectTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import {
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
+  adminTableInlineActionRowClassName,
+  adminTableInlineCancelButtonClassName,
+  adminTableInlineCancelIconClassName,
+  adminTableInlineConfirmButtonClassName,
+  adminTableInlineConfirmIconClassName,
   adminTableRowHeightClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminTableSelectedWarningIconButtonClassName,
@@ -124,21 +132,20 @@ import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSa
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
+import { classNames, fieldUnitAdornmentClassName } from '@/admin/features/artikli/components/pricing/PricingFieldControls';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
-const compactTableReadOnlyNumberClassName = "inline-flex h-[30px] shrink-0 items-center justify-end rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700";
-const compactTableReadOnlyCenteredNumberClassName = "inline-flex h-[30px] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700";
+const compactTableReadOnlyNumberClassName = "inline-flex h-[30px] min-h-[30px] shrink-0 items-center justify-end rounded-md border border-transparent bg-transparent px-0.5 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700";
+const compactTableReadOnlyCenteredNumberClassName = "inline-flex h-[30px] min-h-[30px] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-0.5 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700";
 const compactTableNumericSlotClassName = `${compactTableReadOnlyNumberClassName} w-[7ch]`;
 const compactTableSixDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[6ch]`;
 const compactTableFourDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[5ch]`;
-const compactTableFiveDigitCenteredSlotClassName = `${compactTableReadOnlyCenteredNumberClassName} w-[5ch]`;
 const compactTableThreeDigitCenteredSlotClassName = `${compactTableReadOnlyCenteredNumberClassName} w-[3ch]`;
 const dimensionEditorInputHeightClassName =
   '[&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!min-h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!leading-[30px] [&_.h-6]:!h-[30px] [&_.min-h-6]:!min-h-[30px]';
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
-const inlineSnippetClass = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 const mimeTypeToImageExtension: Record<string, string> = {
   'image/jpeg': 'JPG',
   'image/jpg': 'JPG',
@@ -168,7 +175,15 @@ type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
-type VariantDimensionSet = { length: number; width: number; thickness: number };
+type DimensionInventoryEntry = {
+  id: string;
+  thickness: number | null;
+  length: number | null;
+  width: number | null;
+  stock: number;
+  deliveryTime: string;
+};
+type DimensionInventoryOption = Pick<DimensionInventoryEntry, 'thickness' | 'length' | 'width'>;
 type SideFieldIcon = 'name' | 'brand' | 'material' | 'shape' | 'color' | 'link' | 'document' | 'dimension' | 'sku' | 'percent' | 'unit';
 type IdentitySuggestionField = 'name' | 'sku' | 'slug';
 type SideSettingsState = {
@@ -576,9 +591,15 @@ function describeStagedVideo(video: StagedVideoState) {
 
 function formatProductTypeLabel(type: ProductEditorType) {
   if (type === 'dimensions') return 'Po dimenzijah';
-  if (type === 'weight') return 'Po teži';
+  if (type === 'weight') return 'Po masi';
   if (type === 'unique_machine') return 'Stroj / unikaten';
   return 'Enostavni';
+}
+
+function formatProductSalesSectionLabel(type: ProductEditorType) {
+  if (type === 'weight') return 'Prodaja po masi';
+  if (type === 'unique_machine') return 'Stroj / unikaten artikel';
+  return 'Prodajne informacije';
 }
 
 function resolveVideoVariantTargetLabel(state: EditorPersistedState, variantId: string | null) {
@@ -625,7 +646,10 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   if (detailItems.length > 0) groups.push({ title: 'Dodatni podatki', items: detailItems });
 
   if (JSON.stringify(saved.typeSpecificData) !== JSON.stringify(next.typeSpecificData)) {
-    groups.push({ title: 'Aktivni modul', items: ['Posodobljeni so podatki aktivnega modula.'] });
+    groups.push({
+      title: formatProductSalesSectionLabel(next.productType),
+      items: [`Posodobljeni so prodajni podatki za tip "${formatProductTypeLabel(next.productType)}".`]
+    });
   }
 
   const variantItems: string[] = [];
@@ -648,9 +672,9 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
       if (variant.length !== null || variant.width !== null || variant.thickness !== null) {
         summary.push(
           `dimenzije ${[
+            formatSaveDiffNumber(variant.thickness, 'mm'),
             formatSaveDiffNumber(variant.length, 'mm'),
-            formatSaveDiffNumber(variant.width, 'mm'),
-            formatSaveDiffNumber(variant.thickness, 'mm')
+            formatSaveDiffNumber(variant.width, 'mm')
           ].join(' / ')}`
         );
       }
@@ -661,9 +685,9 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
 
     const savedVariant = savedVariantInfo.variant;
     pushSaveDiff(variantItems, `${prefix} - naziv`, formatSaveDiffText(savedVariant.label), formatSaveDiffText(variant.label));
+    pushSaveDiff(variantItems, `${prefix} - debelina/fi`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - dolžina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
-    pushSaveDiff(variantItems, `${prefix} - širina/fi`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
-    pushSaveDiff(variantItems, `${prefix} - debelina`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
+    pushSaveDiff(variantItems, `${prefix} - širina`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - teža`, formatSaveDiffNumber(savedVariant.weight, 'g'), formatSaveDiffNumber(variant.weight, 'g'));
     pushSaveDiff(variantItems, `${prefix} - toleranca`, formatSaveDiffText(savedVariant.errorTolerance), formatSaveDiffText(variant.errorTolerance));
     pushSaveDiff(variantItems, `${prefix} - cena`, formatSaveDiffCurrency(savedVariant.price), formatSaveDiffCurrency(variant.price));
@@ -991,24 +1015,556 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
   };
 }
 
-function canonicalizeVariantDimensions(
-  input: VariantDimensionSet,
-  options: { interchangeableGroups?: Array<Array<keyof VariantDimensionSet>> } = {}
-): VariantDimensionSet {
-  const normalized: VariantDimensionSet = { ...input };
-  const groups = options.interchangeableGroups ?? [['length', 'width']];
-  groups.forEach((group) => {
-    if (group.length < 2) return;
-    const values = group
-      .map((key) => normalized[key])
-      .filter((value): value is number => Number.isFinite(value))
-      .sort((a, b) => b - a);
-    if (values.length !== group.length) return;
-    group.forEach((key, index) => {
-      normalized[key] = values[index];
+const defaultDimensionDeliveryTime = '1-2 delovna dneva';
+
+function getWorkingDayUnit(amount: string) {
+  const numbers = amount.match(/\d+/g);
+  const lastValue = numbers ? Number(numbers[numbers.length - 1]) : 0;
+  const lastTwo = Math.abs(lastValue) % 100;
+  if (lastTwo === 1) return 'delovni dan';
+  if (lastTwo === 2) return 'delovna dneva';
+  if (lastTwo === 3 || lastTwo === 4) return 'delovni dnevi';
+  return 'delovnih dni';
+}
+
+function getDeliveryDayAmount(value: string) {
+  const normalized = value.replace(/[–—]/g, '-').trim();
+  const match = normalized.match(/\d+(?:\s*-\s*\d*)?/);
+  return match ? match[0].replace(/\s+/g, '') : '';
+}
+
+function normalizeDeliveryDayAmount(value: string) {
+  const normalized = value
+    .replace(/[–—]/g, '-')
+    .replace(/[^\d-\s]/g, '')
+    .replace(/\s+/g, '')
+    .replace(/-+/g, '-');
+  const [start = '', end = ''] = normalized.split('-', 2);
+  if (normalized.includes('-')) return `${start}${start ? '-' : ''}${end}`;
+  return start;
+}
+
+function formatDeliveryTimeFromAmount(amount: string) {
+  const normalizedAmount = normalizeDeliveryDayAmount(amount);
+  return normalizedAmount ? `${normalizedAmount} ${getWorkingDayUnit(normalizedAmount)}` : '';
+}
+
+function asPlainRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function formatDimensionKeyValue(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? formatDecimalForSku(value) : '';
+}
+
+function getDimensionVariantKey(variant: Pick<Variant, 'thickness' | 'width' | 'length'> | DimensionInventoryOption): string {
+  return [
+    formatDimensionKeyValue(variant.thickness),
+    formatDimensionKeyValue(variant.length),
+    formatDimensionKeyValue(variant.width)
+  ].join('x');
+}
+
+function shouldGenerateDimensionPair(length: number, width: number | null): boolean {
+  return width === null || length >= width;
+}
+
+function compareDimensionSortValue(left: number | null | undefined, right: number | null | undefined): number {
+  const normalizedLeft = typeof left === 'number' && Number.isFinite(left) ? left : Number.POSITIVE_INFINITY;
+  const normalizedRight = typeof right === 'number' && Number.isFinite(right) ? right : Number.POSITIVE_INFINITY;
+  return normalizedLeft - normalizedRight;
+}
+
+function compareGeneratedDimensionOptions(left: DimensionInventoryOption, right: DimensionInventoryOption): number {
+  return (
+    compareDimensionSortValue(left.thickness, right.thickness) ||
+    compareDimensionSortValue(left.length, right.length) ||
+    compareDimensionSortValue(left.width, right.width)
+  );
+}
+
+function getLegacyDimensionVariantKey(variant: Pick<Variant, 'thickness' | 'width' | 'length'> | DimensionInventoryOption): string {
+  return [
+    formatDimensionKeyValue(variant.thickness),
+    formatDimensionKeyValue(variant.width),
+    formatDimensionKeyValue(variant.length)
+  ].join('x');
+}
+
+function hasDimensionInventoryValues(option: DimensionInventoryOption): boolean {
+  return [option.thickness, option.length, option.width].some((value) => typeof value === 'number' && Number.isFinite(value));
+}
+
+function formatDimensionInventoryLabel(option: DimensionInventoryOption, fallback = 'Različica'): string {
+  const dimensions = [option.thickness, option.length, option.width]
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .map((value) => formatDecimalForDisplay(value));
+  return dimensions.length > 0 ? `${dimensions.join(' × ')} mm` : fallback;
+}
+
+function parseDimensionInventoryEntry(value: unknown, index: number): DimensionInventoryEntry | null {
+  const record = asPlainRecord(value);
+  const thickness = parseDecimalInput(String(record.thickness ?? '').trim());
+  const length = parseDecimalInput(String(record.length ?? '').trim());
+  const width = parseDecimalInput(String(record.width ?? '').trim());
+  const option = {
+    thickness: typeof record.thickness === 'number' && Number.isFinite(record.thickness) ? record.thickness : thickness,
+    length: typeof record.length === 'number' && Number.isFinite(record.length) ? record.length : length,
+    width: typeof record.width === 'number' && Number.isFinite(record.width) ? record.width : width
+  };
+  if (!hasDimensionInventoryValues(option)) return null;
+
+  const rawStock = typeof record.stock === 'number' ? record.stock : Number(String(record.stock ?? '').replace(',', '.'));
+  return {
+    id: typeof record.id === 'string' && record.id.trim() ? record.id : `dimension-inventory-${index}-${getDimensionVariantKey(option)}`,
+    thickness: option.thickness,
+    length: option.length,
+    width: option.width,
+    stock: Number.isFinite(rawStock) ? Math.max(0, Math.floor(rawStock)) : 0,
+    deliveryTime: typeof record.deliveryTime === 'string' && record.deliveryTime.trim() ? record.deliveryTime : defaultDimensionDeliveryTime
+  };
+}
+
+function uniqueDimensionInventoryRows(rows: readonly DimensionInventoryEntry[]): DimensionInventoryEntry[] {
+  const unique: DimensionInventoryEntry[] = [];
+  rows.forEach((row) => {
+    if (!hasDimensionInventoryValues(row)) return;
+    const key = getDimensionVariantKey(row);
+    if (unique.some((entry) => getDimensionVariantKey(entry) === key)) return;
+    unique.push({
+      ...row,
+      id: row.id || `dimension-inventory-${key}`
     });
   });
-  return normalized;
+  return unique;
+}
+
+function normalizeDimensionSalesData(value: unknown): {
+  defaultDeliveryTime: string;
+  variantDeliveryTimes: Record<string, string>;
+  variantInventory: DimensionInventoryEntry[];
+} {
+  const record = asPlainRecord(value);
+  const rawDeliveryTimes = asPlainRecord(record.variantDeliveryTimes);
+  const variantDeliveryTimes = Object.fromEntries(
+    Object.entries(rawDeliveryTimes)
+      .map(([key, deliveryTime]) => [key, typeof deliveryTime === 'string' ? deliveryTime : ''])
+      .filter(([key, deliveryTime]) => key.trim().length > 0 && deliveryTime.trim().length > 0)
+  );
+  return {
+    defaultDeliveryTime: typeof record.defaultDeliveryTime === 'string' && record.defaultDeliveryTime.trim()
+      ? record.defaultDeliveryTime
+      : defaultDimensionDeliveryTime,
+    variantDeliveryTimes,
+    variantInventory: uniqueDimensionInventoryRows(
+      Array.isArray(record.variantInventory)
+        ? record.variantInventory.map(parseDimensionInventoryEntry).filter((entry): entry is DimensionInventoryEntry => Boolean(entry))
+        : []
+    )
+  };
+}
+
+function getDimensionVariantDeliveryTime(data: unknown, variant: Variant | null | undefined): string {
+  const normalized = normalizeDimensionSalesData(data);
+  if (!variant) return normalized.defaultDeliveryTime;
+  return (
+    normalized.variantDeliveryTimes[variant.id] ||
+    normalized.variantDeliveryTimes[getDimensionVariantKey(variant)] ||
+    normalized.variantDeliveryTimes[getLegacyDimensionVariantKey(variant)] ||
+    normalized.defaultDeliveryTime
+  );
+}
+
+function createDimensionInventoryEntry(
+  option: DimensionInventoryOption,
+  fallback: { stock?: number; deliveryTime?: string }
+): DimensionInventoryEntry {
+  const key = getDimensionVariantKey(option);
+  return {
+    id: `dimension-inventory-${key || Math.random().toString(36).slice(2, 9)}`,
+    thickness: option.thickness,
+    length: option.length,
+    width: option.width,
+    stock: Math.max(0, Math.floor(Number(fallback.stock) || 0)),
+    deliveryTime: fallback.deliveryTime || defaultDimensionDeliveryTime
+  };
+}
+
+function getDimensionInventoryRows(data: unknown, variants: readonly Variant[]): DimensionInventoryEntry[] {
+  const normalized = normalizeDimensionSalesData(data);
+  const rows = [...normalized.variantInventory];
+
+  variants.forEach((variant) => {
+    if (!hasDimensionInventoryValues(variant)) return;
+    const key = getDimensionVariantKey(variant);
+    const existingIndex = rows.findIndex((row) => getDimensionVariantKey(row) === key);
+    const deliveryTime = existingIndex >= 0
+      ? rows[existingIndex]?.deliveryTime ?? getDimensionVariantDeliveryTime(data, variant)
+      : getDimensionVariantDeliveryTime(data, variant);
+    if (existingIndex >= 0) {
+      rows[existingIndex] = {
+        ...rows[existingIndex],
+        stock: Math.max(0, Math.floor(Number(variant.stock) || 0)),
+        deliveryTime
+      };
+      return;
+    }
+    rows.push(createDimensionInventoryEntry(variant, { stock: variant.stock, deliveryTime }));
+  });
+
+  return uniqueDimensionInventoryRows(rows);
+}
+
+function setDimensionInventoryRows(data: unknown, rows: readonly DimensionInventoryEntry[]): Record<string, unknown> {
+  const record = asPlainRecord(data);
+  const normalized = normalizeDimensionSalesData(record);
+  const variantInventory = uniqueDimensionInventoryRows(rows);
+  return {
+    ...record,
+    defaultDeliveryTime: normalized.defaultDeliveryTime,
+    variantDeliveryTimes: {
+      ...normalized.variantDeliveryTimes,
+      ...Object.fromEntries(variantInventory.map((row) => [getDimensionVariantKey(row), row.deliveryTime]))
+    },
+    variantInventory
+  };
+}
+
+function setDimensionDefaultDeliveryTime(data: unknown, deliveryTime: string): Record<string, unknown> {
+  const record = asPlainRecord(data);
+  const normalized = normalizeDimensionSalesData(record);
+  return {
+    ...record,
+    defaultDeliveryTime: deliveryTime.trim() || normalized.defaultDeliveryTime,
+    variantDeliveryTimes: normalized.variantDeliveryTimes,
+    variantInventory: normalized.variantInventory
+  };
+}
+
+function parseDimensionInventoryInput(value: string): DimensionInventoryOption | null {
+  const matches = value.replace(/,/g, '.').match(/-?\d+(?:\.\d+)?/g) ?? [];
+  const values = matches.map(Number).filter(Number.isFinite);
+  if (values.length < 2) return null;
+  return {
+    thickness: values[0],
+    length: values[1],
+    width: values[2] ?? null
+  };
+}
+
+function DimensionVariantInventoryPanel({
+  editable,
+  inventories,
+  selectedInventory,
+  selectedInventoryKey,
+  lockedInventoryKeys,
+  onSelectInventory,
+  onAddInventory,
+  onRenameInventory,
+  onDeleteInventory,
+  onUpdateInventory
+}: {
+  editable: boolean;
+  inventories: DimensionInventoryEntry[];
+  selectedInventory: DimensionInventoryEntry | null;
+  selectedInventoryKey: string;
+  lockedInventoryKeys: ReadonlySet<string>;
+  onSelectInventory: (key: string) => void;
+  onAddInventory: (option: DimensionInventoryOption) => void;
+  onRenameInventory: (previousOption: DimensionInventoryOption, nextOption: DimensionInventoryOption) => void;
+  onDeleteInventory: (option: DimensionInventoryOption) => void;
+  onUpdateInventory: (updates: Partial<Pick<DimensionInventoryEntry, 'stock' | 'deliveryTime'>>) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [addingVariant, setAddingVariant] = useState(false);
+  const [newVariantInput, setNewVariantInput] = useState('');
+  const [editingInventoryKey, setEditingInventoryKey] = useState<string | null>(null);
+  const [editingVariantInput, setEditingVariantInput] = useState('');
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setAddingVariant(false);
+    setNewVariantInput('');
+    setEditingInventoryKey(null);
+    setEditingVariantInput('');
+  }, []);
+  const dismissRefs = useMemo(() => [menuRef], []);
+  const deliveryTime = selectedInventory?.deliveryTime ?? defaultDimensionDeliveryTime;
+  const deliveryDayAmount = getDeliveryDayAmount(deliveryTime);
+  const deliveryDayUnit = getWorkingDayUnit(deliveryDayAmount);
+  const selectedLabel = selectedInventory ? formatDimensionInventoryLabel(selectedInventory) : 'Ni različic';
+  const commitNewVariant = () => {
+    const option = parseDimensionInventoryInput(newVariantInput);
+    if (!option) return;
+    onAddInventory(option);
+    setNewVariantInput('');
+    setAddingVariant(false);
+  };
+  const startInventoryEdit = (entry: DimensionInventoryEntry) => {
+    const key = getDimensionVariantKey(entry);
+    if (lockedInventoryKeys.has(key)) return;
+    setAddingVariant(false);
+    setEditingInventoryKey(key);
+    setEditingVariantInput(formatDimensionInventoryLabel(entry).replace(/\s*mm$/i, ''));
+  };
+  const cancelInventoryEdit = () => {
+    setEditingInventoryKey(null);
+    setEditingVariantInput('');
+  };
+  const commitInventoryRename = (entry: DimensionInventoryEntry) => {
+    const key = getDimensionVariantKey(entry);
+    if (lockedInventoryKeys.has(key)) return;
+    const option = parseDimensionInventoryInput(editingVariantInput);
+    if (!option) return;
+    onRenameInventory(entry, option);
+    cancelInventoryEdit();
+  };
+
+  useDropdownDismiss({
+    open: menuOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
+
+  return (
+    <aside
+      className={classNames(
+        'relative mb-5 inline-grid w-fit max-w-full rounded-lg border border-slate-200 bg-white lg:grid-cols-[300px_auto] xl:max-w-[66.666%]',
+        menuOpen ? 'overflow-visible' : 'overflow-hidden'
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3 px-3 py-3">
+        <span className="font-['Inter',system-ui,sans-serif] text-[11px] font-semibold leading-[1.2] text-slate-600">Različica</span>
+        <div ref={menuRef} className="relative min-w-0">
+          <button
+            type="button"
+            disabled={!editable && inventories.length === 0}
+            className={classNames(
+              selectTokenClasses.trigger,
+              '!h-[30px] !w-[205px] !rounded-md !px-2.5 !py-0 justify-between gap-3 shadow-sm disabled:cursor-not-allowed disabled:opacity-60'
+            )}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span className="truncate font-semibold text-slate-900">{selectedLabel}</span>
+            <span
+              className="h-0 w-0 border-x-[3.5px] border-t-[5px] border-x-transparent border-t-slate-500"
+              aria-hidden="true"
+            />
+          </button>
+          {menuOpen ? (
+            <div className={classNames('absolute left-0 z-20 mt-1 rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl', editable ? 'w-[360px]' : 'w-[300px]')}>
+              <div className="space-y-1">
+                {inventories.map((entry) => {
+                  const key = getDimensionVariantKey(entry);
+                  const selected = key === selectedInventoryKey;
+                  const locked = lockedInventoryKeys.has(key);
+                  const isEditing = editingInventoryKey === key && !locked;
+                  return (
+                    <div
+                      key={entry.id || key}
+                      role="option"
+                      aria-selected={selected}
+                      tabIndex={0}
+                      className={classNames(
+                        "grid min-h-[42px] cursor-pointer items-center gap-2 rounded-md px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] outline-none transition hover:text-[color:var(--blue-500)] focus-visible:ring-2 focus-visible:ring-[#1982bf]/35",
+                        editable ? 'grid-cols-[18px_minmax(0,1fr)_58px_24px]' : 'grid-cols-[18px_minmax(0,1fr)_24px]',
+                        hoverTokenClasses.neutral,
+                        selected ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
+                      )}
+                      onClick={() => {
+                        onSelectInventory(key);
+                        setMenuOpen(false);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.target !== event.currentTarget) return;
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        onSelectInventory(key);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full">
+                        <span
+                          className={
+                            selected
+                              ? 'h-2 w-2 rounded-full bg-[#1982bf]'
+                              : 'h-2.5 w-2.5 rounded-full border border-slate-300 bg-white'
+                          }
+                        />
+                      </span>
+                      {editable && isEditing ? (
+                        <>
+                          <input
+                            className="h-8 min-w-0 rounded-md border border-slate-300 bg-white px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] text-slate-900 outline-none focus:border-[#3e67d6] focus:ring-0"
+                            value={editingVariantInput}
+                            autoFocus
+                            placeholder="0,5 × 200 × 300"
+                            onChange={(event) => setEditingVariantInput(event.target.value)}
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Escape') {
+                                event.preventDefault();
+                                cancelInventoryEdit();
+                                return;
+                              }
+                              if (event.key !== 'Enter') return;
+                              event.preventDefault();
+                              commitInventoryRename(entry);
+                            }}
+                          />
+                          <span className={adminTableInlineActionRowClassName}>
+                            <IconButton
+                              type="button"
+                              tone="neutral"
+                              className={adminTableInlineConfirmButtonClassName}
+                              disabled={!parseDimensionInventoryInput(editingVariantInput)}
+                              aria-label={`Potrdi urejanje za ${formatDimensionInventoryLabel(entry)}`}
+                              title="Potrdi"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                commitInventoryRename(entry);
+                              }}
+                            >
+                              <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
+                            </IconButton>
+                            <IconButton
+                              type="button"
+                              tone="neutral"
+                              className={adminTableInlineCancelButtonClassName}
+                              aria-label={`Prekliči urejanje za ${formatDimensionInventoryLabel(entry)}`}
+                              title="Prekliči"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                cancelInventoryEdit();
+                              }}
+                            >
+                              <CloseIcon className={adminTableInlineCancelIconClassName} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+                            </IconButton>
+                          </span>
+                        </>
+                      ) : editable && !locked ? (
+                        <>
+                          <button
+                            type="button"
+                            className="min-w-0 truncate rounded-md px-1 py-1 text-left font-semibold text-slate-700 hover:bg-white hover:text-slate-900"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startInventoryEdit(entry);
+                            }}
+                            title="Uredi različico"
+                          >
+                            {formatDimensionInventoryLabel(entry)}
+                          </button>
+                          <span aria-hidden="true" />
+                        </>
+                      ) : (
+                        <>
+                          <span className="min-w-0 truncate text-left">{formatDimensionInventoryLabel(entry)}</span>
+                          {editable ? <span aria-hidden="true" /> : null}
+                        </>
+                      )}
+                      {editable ? (
+                        <button
+                          type="button"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label={`Izbriši različico ${formatDimensionInventoryLabel(entry)}`}
+                          disabled={inventories.length <= 1 || locked}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteInventory(entry);
+                          }}
+                        >
+                          <TrashCanIcon className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <span aria-hidden="true" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {editable ? (
+                addingVariant ? (
+                  <div className="mt-1 grid min-h-[34px] grid-cols-[18px_minmax(0,1fr)_66px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                    <PlusIcon className="h-4 w-4 text-slate-600" />
+                    <input
+                      className="h-8 min-w-0 rounded-md border border-slate-300 bg-white px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] text-slate-900 outline-none focus:border-[#3e67d6] focus:ring-0"
+                      value={newVariantInput}
+                      autoFocus
+                      placeholder="0,5 × 200 × 300"
+                      onChange={(event) => setNewVariantInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          setAddingVariant(false);
+                          setNewVariantInput('');
+                          return;
+                        }
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        commitNewVariant();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="h-8 rounded-md border border-slate-200 bg-white px-2 font-['Inter',system-ui,sans-serif] text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      disabled={!parseDimensionInventoryInput(newVariantInput)}
+                      onClick={commitNewVariant}
+                    >
+                      Dodaj
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mt-1 flex h-8 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-slate-50"
+                    onClick={() => setAddingVariant(true)}
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Dodaj različico
+                  </button>
+                )
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid min-w-0 border-t border-slate-200 bg-white md:grid-cols-[185px_275px] lg:border-l lg:border-t-0 xl:divide-x xl:divide-slate-200">
+        <div className="flex min-h-[62px] min-w-0 items-center gap-2 px-3 py-3">
+          <span className="shrink-0 text-[11px] font-semibold text-slate-600">Zaloga</span>
+          <span className="ml-auto min-w-0">
+            <span className="flex h-[30px] w-[90px] rounded-md border border-slate-300 bg-white">
+              <input
+                className="h-full min-w-0 flex-1 rounded-md border-0 bg-transparent px-2.5 text-right text-[12px] font-semibold text-slate-900 outline-none focus:ring-0"
+                value={selectedInventory ? String(selectedInventory.stock) : '0'}
+                inputMode="numeric"
+                readOnly={!editable || !selectedInventory}
+                tabIndex={editable && selectedInventory ? undefined : -1}
+                onChange={(event) => onUpdateInventory({ stock: Math.max(0, Math.floor(Number(event.target.value.replace(/\D/g, '')) || 0)) })}
+              />
+            </span>
+          </span>
+        </div>
+        <div className="flex min-h-[62px] min-w-0 items-center gap-2 px-3 py-3">
+          <span className="shrink-0 text-[11px] font-semibold text-slate-600">Dobavni rok</span>
+          <span className="ml-auto min-w-0">
+            <span className="flex h-[30px] w-[175px] rounded-md border border-slate-300 bg-white">
+              <input
+                className="h-full min-w-0 flex-1 rounded-l-md border-0 bg-transparent px-2.5 text-[12px] font-semibold text-slate-900 outline-none focus:ring-0"
+                value={deliveryDayAmount}
+                inputMode="numeric"
+                placeholder="1-2"
+                readOnly={!editable || !selectedInventory}
+                tabIndex={editable && selectedInventory ? undefined : -1}
+                onChange={(event) => onUpdateInventory({ deliveryTime: formatDeliveryTimeFromAmount(event.target.value) })}
+              />
+              <span className={fieldUnitAdornmentClassName}>{deliveryDayUnit}</span>
+            </span>
+          </span>
+        </div>
+      </div>
+    </aside>
+  );
 }
 
 function CalmDashedOutline({
@@ -1379,6 +1935,8 @@ function OpisRichTextEditor({
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [mediaDialogMode, setMediaDialogMode] = useState<'link' | 'image' | null>(null);
   const [mediaUrlDraft, setMediaUrlDraft] = useState('https://');
+  const closeRichTextMenu = useCallback(() => setOpenMenu(null), []);
+  const richTextMenuDismissRefs = useMemo(() => [toolbarRef, sizeMenuRef, fontMenuRef], []);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -1479,26 +2037,19 @@ function OpisRichTextEditor({
     setMenuPosition({ top, left });
   }, []);
 
+  useDropdownDismiss({
+    open: openMenu === 'size' || openMenu === 'font',
+    refs: richTextMenuDismissRefs,
+    onClose: closeRichTextMenu
+  });
+
   useEffect(() => {
     if (!openMenu) return;
     updateMenuPosition();
-    const onDocMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const refs = getMenuRefs(openMenu);
-      if (toolbarRef.current?.contains(target) || refs.trigger?.contains(target) || refs.panel?.contains(target)) return;
-      setOpenMenu(null);
-    };
-    const onDocKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenMenu(null);
-    };
     const onWindowChange = () => updateMenuPosition();
-    document.addEventListener('mousedown', onDocMouseDown);
-    document.addEventListener('keydown', onDocKeyDown);
     window.addEventListener('resize', onWindowChange);
     window.addEventListener('scroll', onWindowChange, true);
     return () => {
-      document.removeEventListener('mousedown', onDocMouseDown);
-      document.removeEventListener('keydown', onDocKeyDown);
       window.removeEventListener('resize', onWindowChange);
       window.removeEventListener('scroll', onWindowChange, true);
     };
@@ -1818,15 +2369,26 @@ export default function AdminItemEditorPage({
   const [simulatorQuantity, setSimulatorQuantity] = useState(30);
   const [simulatorAppliesQuantityDiscounts, setSimulatorAppliesQuantityDiscounts] = useState(true);
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
+  const dimensionProductData = typeSpecificData.dimensions;
   const simpleProductData = typeSpecificData.simple;
   const weightProductData = typeSpecificData.weight;
   const machineProductData = typeSpecificData.uniqueMachine;
+  const normalizedDimensionSalesData = useMemo(
+    () => normalizeDimensionSalesData(dimensionProductData),
+    [dimensionProductData]
+  );
+  const dimensionDefaultDeliveryDayAmount = getDeliveryDayAmount(normalizedDimensionSalesData.defaultDeliveryTime);
+  const dimensionDefaultDeliveryDayUnit = getWorkingDayUnit(dimensionDefaultDeliveryDayAmount);
   const simulatorOptions = useMemo<SimulatorOption[]>(() => {
     if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants);
     if (productType === 'weight') return getWeightSimulatorOptions(weightProductData);
     if (productType === 'unique_machine') return getMachineSimulatorOptions(machineProductData, draft.name || 'Stroj / unikaten artikel');
-    return getSimpleSimulatorOptions(simpleProductData, draft.name || 'Osnovni artikel');
-  }, [draft.name, draft.variants, machineProductData, productType, simpleProductData, weightProductData]);
+    return getSimpleSimulatorOptions(
+      simpleProductData,
+      draft.name || 'Osnovni artikel',
+      sideSettings.sku || draft.variants[0]?.sku || ''
+    );
+  }, [draft.name, draft.variants, machineProductData, productType, sideSettings.sku, simpleProductData, weightProductData]);
 
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
@@ -2180,6 +2742,15 @@ export default function AdminItemEditorPage({
   const updateMachineProductData = (nextData: typeof machineProductData) => {
     setTypeSpecificData((current) => ({ ...current, uniqueMachine: nextData }));
   };
+  const updateDimensionDefaultDeliveryTime = (amount: string) => {
+    const deliveryTime = formatDeliveryTimeFromAmount(amount);
+    if (!deliveryTime) return;
+    setTypeSpecificData((current) => ({
+      ...current,
+      dimensions: setDimensionDefaultDeliveryTime(current.dimensions, deliveryTime)
+    }));
+  };
+
   const isToleranceLocked = false;
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
@@ -2217,8 +2788,8 @@ export default function AdminItemEditorPage({
   const canUndoStagedChanges = isEditable && !isSaving && pendingSaveConfirmation === null && undoDepth > 0;
   const generatorDimensionLabels: Record<GeneratorDimension, string> = {
     length: 'Dolžina',
-    width: 'Širina/fi',
-    thickness: 'Debelina'
+    width: 'Širina',
+    thickness: 'Debelina/fi'
   };
   const generatorByDimension = useMemo(() => {
     const map = new Map<GeneratorDimension, number[]>();
@@ -2228,11 +2799,17 @@ export default function AdminItemEditorPage({
     return map;
   }, [generatorChips]);
   const combinationCount = useMemo(() => {
-    const activeDimensions = (['length', 'width', 'thickness'] as const)
-      .map((dimension) => generatorByDimension.get(dimension) ?? [])
-      .filter((values) => values.length > 0);
-    if (activeDimensions.length < 2) return 0;
-    return activeDimensions.reduce((total, values) => total * values.length, 1);
+    const lengths = generatorByDimension.get('length') ?? [];
+    const widths = generatorByDimension.get('width') ?? [];
+    const thicknesses = generatorByDimension.get('thickness') ?? [];
+    if (lengths.length === 0 || thicknesses.length === 0) return 0;
+
+    const widthValues: Array<number | null> = widths.length > 0 ? widths : [null];
+    const lengthWidthCount = widthValues.reduce<number>(
+      (total, width) => total + lengths.filter((length) => shouldGenerateDimensionPair(length, width)).length,
+      0
+    );
+    return lengthWidthCount * thicknesses.length;
   }, [generatorByDimension]);
 
   const commitPendingDecimalDrafts = useCallback(() => {
@@ -2686,7 +3263,6 @@ export default function AdminItemEditorPage({
   };
 
   const deleteItem = archiveItem;
-  const setTableEditorMode = (_value: 'read' | 'edit' | ((current: 'read' | 'edit') => 'read' | 'edit')) => undefined;
   const canArchive = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving;
   const canDuplicate = mode !== 'create' && Boolean(articleId || initialData?.id || draft.slug.trim()) && !isSaving && !isDuplicating;
 
@@ -2727,40 +3303,39 @@ export default function AdminItemEditorPage({
     const shouldUseThickness = true;
     const thicknessValues = shouldUseThickness ? thicknesses : [0];
 
-    if (widths.length === 0 || lengths.length === 0 || (shouldUseThickness && thicknesses.length === 0)) {
-      toast.error(shouldUseThickness ? 'Najprej dodajte Dolžino, Širino in Debelino.' : 'Najprej dodajte Dolžino in Širino/fi.');
+    if (lengths.length === 0 || (shouldUseThickness && thicknesses.length === 0)) {
+      toast.error(shouldUseThickness ? 'Najprej dodajte Debelino/fi in Dolžino.' : 'Najprej dodajte Dolžino.');
       return;
     }
 
     const baseSku = sideSettings.sku.trim();
     const normalizedBaseForVariants = baseSku.replace(/-GEN$/i, '');
-    const generatedByKey = new Map<string, VariantDimensionSet>();
+    const generatedByKey = new Map<string, DimensionInventoryOption>();
+    const widthValues: Array<number | null> = widths.length > 0 ? widths : [null];
 
-    widths.forEach((width) => lengths.forEach((length) => thicknessValues.forEach((thickness) => {
-      const canonical = canonicalizeVariantDimensions({
+    widthValues.forEach((width) => lengths.forEach((length) => thicknessValues.forEach((thickness) => {
+      if (!shouldGenerateDimensionPair(length, width)) return;
+      const dimensions = {
         length,
         width,
         thickness
-      });
-      const key = shouldUseThickness
-        ? `${canonical.length}|${canonical.width}|${canonical.thickness}`
-        : `${canonical.length}|${canonical.width}`;
-      if (!generatedByKey.has(key)) generatedByKey.set(key, canonical);
+      };
+      const key = getDimensionVariantKey(dimensions);
+      if (!generatedByKey.has(key)) generatedByKey.set(key, dimensions);
     })));
 
-    const generated: Variant[] = Array.from(generatedByKey.values()).map((dimensions, index) => {
+    const generatedDimensions = Array.from(generatedByKey.values()).sort(compareGeneratedDimensionOptions);
+    const generated: Variant[] = generatedDimensions.map((dimensions, index) => {
       const dimensionSuffix = shouldUseThickness
-        ? `${formatDecimalForSku(dimensions.length)}x${formatDecimalForSku(dimensions.width)}x${formatDecimalForSku(dimensions.thickness)}`
-        : `${formatDecimalForSku(dimensions.length)}x${formatDecimalForSku(dimensions.width)}`;
+        ? [dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x')
+        : [dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
       const generatedSku = baseSku
         ? `${normalizedBaseForVariants}-${dimensionSuffix}`
         : shouldUseThickness
-          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${formatDecimalForSku(dimensions.length)}${formatDecimalForSku(dimensions.width)}${formatDecimalForSku(dimensions.thickness)}`
-          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${formatDecimalForSku(dimensions.length)}${formatDecimalForSku(dimensions.width)}`;
+          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${[dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`
+          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${[dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`;
       return createVariant({
-        label: shouldUseThickness
-          ? `${formatDecimalForDisplay(dimensions.length)} × ${formatDecimalForDisplay(dimensions.width)} × ${formatDecimalForDisplay(dimensions.thickness)} mm`
-          : `${formatDecimalForDisplay(dimensions.length)} × ${formatDecimalForDisplay(dimensions.width)} mm`,
+        label: formatDimensionInventoryLabel(dimensions),
         width: dimensions.width,
         length: dimensions.length,
         thickness: dimensions.thickness,
@@ -2771,6 +3346,11 @@ export default function AdminItemEditorPage({
         sort: index + 1
       });
     });
+
+    if (generated.length === 0) {
+      toast.error('Ni veljavnih kombinacij. Dolžina mora biti enaka ali večja od širine.');
+      return;
+    }
 
     setDraft((current) => ({ ...current, variants: generated }));
     setVariantSelections(new Set());
@@ -2794,8 +3374,9 @@ export default function AdminItemEditorPage({
       let changed = false;
       const variants = current.variants.map((variant) => {
         if (variant.skuAutoGenerated === false) return variant;
-        if (variant.length === null || variant.width === null || variant.thickness === null) return variant;
-        const nextSku = `${normalizedBaseForVariants}-${formatDecimalForSku(variant.length)}x${formatDecimalForSku(variant.width)}x${formatDecimalForSku(variant.thickness)}`;
+        if (variant.length === null || variant.thickness === null) return variant;
+        const dimensionSuffix = [variant.thickness, variant.length, variant.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
+        const nextSku = `${normalizedBaseForVariants}-${dimensionSuffix}`;
         if (variant.sku === nextSku && variant.skuAutoGenerated) return variant;
         changed = true;
         return { ...variant, sku: nextSku, skuAutoGenerated: true };
@@ -2807,8 +3388,8 @@ export default function AdminItemEditorPage({
   const parseGeneratorEntry = (value: string): { dimension: GeneratorDimension; values: number[] } | { error: string } => {
     const normalized = value.trim();
     if (!normalized) return { error: 'Vnos ne sme biti prazen.' };
-    const match = normalized.match(/^(dolzina|dolžina|sirina(?:\/fi)?|širina(?:\/fi)?|debelina|fi|d|s|š|v|h)\s*:?\s*(.+)$/i);
-    if (!match) return { error: 'Uporabite Dolžina/Širina/fi/Debelina + vrednosti.' };
+    const match = normalized.match(/^(dolzina|dolžina|sirina|širina|debelina(?:\/fi)?|fi|d|s|š|v|h)\s*:?\s*(.+)$/i);
+    if (!match) return { error: 'Uporabite Debelina/fi, Dolžina ali Širina + vrednosti.' };
     const prefix = match[1]
       .toLowerCase()
       .normalize('NFD')
@@ -2818,9 +3399,9 @@ export default function AdminItemEditorPage({
 
     const dimension: GeneratorDimension = (prefix.startsWith('dol') || prefix === 'd')
       ? 'length'
-      : (prefix.startsWith('sir') || prefix.startsWith('fi') || prefix === 's')
+      : (prefix.startsWith('sir') || prefix === 's')
         ? 'width'
-        : (prefix.startsWith('deb') || prefix === 'v' || prefix === 'h')
+        : (prefix.startsWith('deb') || prefix.startsWith('fi') || prefix === 'v' || prefix === 'h')
           ? 'thickness'
           : 'thickness';
     const parsedValues = parseDecimalListInput(rawValues);
@@ -3023,6 +3604,10 @@ export default function AdminItemEditorPage({
         variants: current.variants.map((variant) => (variant.id === variantId ? { ...variant, ...updates } : variant))
       };
     });
+  };
+
+  const updateDimensionVariantStock = (variant: Variant, stock: number) => {
+    updateVariant(variant.id, { stock });
   };
 
   const readDecimalInputValue = (variantId: string, field: string, value: number | null | undefined) => {
@@ -4094,11 +4679,11 @@ export default function AdminItemEditorPage({
                           productType === 'dimensions'
                             ? 'Plošča'
                             : productType === 'weight'
-                              ? 'Po teži'
+                              ? 'Po masi'
                               : productType === 'unique_machine'
                                 ? 'Stroj'
                                 : 'Enostavni';
-                        const variantDimensionParts = [variant.length, variant.width, variant.thickness]
+                        const variantDimensionParts = [variant.thickness, variant.length, variant.width]
                           .filter((value): value is number => value !== null && value !== undefined)
                           .map((value) => formatDecimalForDisplay(value));
                         const variantDimensionLabel = variantDimensionParts.length > 0
@@ -4433,149 +5018,160 @@ export default function AdminItemEditorPage({
       <>
       {isDimensionBasedMode ? (
       <section className={`${adminWindowCardClassName} ${dimensionEditorInputHeightClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3">
           <h2 className={editorSectionTitleClassName}>Prodajne informacije</h2>
-          <div className={`flex items-center gap-2 [&>*:first-child]:hidden [&>*:nth-child(3)]:hidden ${isTableEditable ? '' : '[&>*:nth-child(5)]:pointer-events-none [&>*:nth-child(5)]:opacity-50'}`}>
-            <IconButton
-              type="button"
-              aria-label="Uredi tabelo artikla"
-              title={isTableEditable ? 'Zaključi urejanje' : 'Uredi'}
-              tone="neutral"
-              className={adminTableNeutralIconButtonClassName}
-              onClick={() => setTableEditorMode((current) => (current === 'read' ? 'edit' : 'read'))}
-            >
-              <PencilIcon />
-            </IconButton>
-            <IconButton
-              type="button"
-              aria-label="Dodaj različico"
-              title="Dodaj različico"
-              tone="neutral"
-              className={adminTableNeutralIconButtonClassName}
-              disabled={!isTableEditable}
-              onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
-            >
-              <PlusIcon />
-            </IconButton>
-            <IconButton
-              type="button"
-              aria-label="Shrani tabelo artikla"
-              title="Shrani"
-              tone="neutral"
-              className={adminTableNeutralIconButtonClassName}
-              disabled={!isTableEditable}
-              onClick={async () => {
-                setTableEditorMode('read');
-                await save();
-              }}
-            >
-              <SaveIcon />
-            </IconButton>
-            <IconButton
-              type="button"
-              aria-label="Odstrani izbrane različice"
-              title="Izbriši izbrane"
-              tone={hasSelectedVariants ? 'danger' : 'neutral'}
-              className={hasSelectedVariants ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
-              disabled={!isTableEditable || !hasSelectedVariants}
-              onClick={deleteSelectedVariants}
-            >
-              <TrashCanIcon />
-            </IconButton>
-            <Button
-              type="button"
-              variant="primary"
-              size="toolbar"
-              className={adminTablePrimaryButtonClassName}
-              onClick={generateVariants}
-            >
-              Generiraj različice
-            </Button>
-          </div>
         </div>
-        <div className="mb-3 space-y-2">
-          <h3 className="text-sm font-semibold text-slate-800">Dimenzije</h3>
-          <p className="text-xs text-slate-500">
-            Vnesi vrednosti (v mm) za vsako dimenzijo posebej, na primer: <span className={inlineSnippetClass}>Dolžina: 10; 20</span>. Več vrednosti loči s podpičjem; decimalke lahko vneseš z vejico ali piko, npr. <span className={inlineSnippetClass}>10,5; 20.25</span>. Podprte so Dolžina, Širina/fi in Debelina.
-          </p>
-          <p className="whitespace-nowrap text-xs leading-5 text-slate-700">
-            <span className="font-semibold">Dodaj do tri dimenzije. Vnosne bližnjice:</span>{' '}
-            <span className={`${inlineSnippetClass} !font-normal`}>d:</span>, <span className={`${inlineSnippetClass} !font-normal`}>š:</span>, <span className={`${inlineSnippetClass} !font-normal`}>fi:</span>, <span className={`${inlineSnippetClass} !font-normal`}>h:</span>, <span className={`${inlineSnippetClass} !font-normal`}>v:</span>
-          </p>
-          <div className="pt-2">
-            <div className="flex items-start gap-3">
-            <div className="relative w-1/2 min-w-[300px]">
-              <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 pl-[10px] pr-11 ${isGeneratorLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : 'bg-white'}`}>
-                <SideInputIcon icon="dimension" muted={generatorInput.trim().length === 0 && generatorChips.length === 0} />
-                {generatorChips.map((chip) => (
-                  <span key={chip.dimension} className={`${adminProductInputChipClassName} shrink-0 whitespace-nowrap`}>
-                    <button
-                      type="button"
-                      className="whitespace-nowrap hover:text-[#0f6799] disabled:cursor-not-allowed disabled:text-slate-400"
-                      disabled={isGeneratorLocked}
-                      onClick={() => {
-                        setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`);
-                        setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
-                      }}
-                    >
-                      {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`}
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
-                      className="text-[#1982bf]/70 transition hover:text-rose-600 active:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                      disabled={isGeneratorLocked}
-                      onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
+        <div className="mb-3 space-y-1 px-1">
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-1">
+            <p className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-[12px] font-medium leading-5 text-slate-600">
+              <span>Vnesi debelino/fi, dolžino in po potrebi širino v en vnos, na primer:</span>
+              <span className={adminProductInputChipClassName}>Debelina/fi: 0,5; 0,3</span>
+              <span className={adminProductInputChipClassName}>Dolžina: 100; 200</span>
+              <span>in</span>
+              <span className="inline-flex items-center">
+                <span className={adminProductInputChipClassName}>Širina: 100; 200</span>
+                <span>.</span>
+              </span>
+            </p>
+            <label className="ml-auto inline-flex shrink-0 items-center gap-2 text-[12px] font-medium leading-5 text-slate-600">
+              <span className="font-semibold">Dobavni rok</span>
+              <span className="flex h-[30px] w-[175px] rounded-md border border-slate-300 bg-white">
                 <input
-                  className={`h-full min-w-0 flex-1 border-0 bg-transparent text-xs outline-none focus:ring-0 ${isGeneratorLocked ? 'cursor-not-allowed text-slate-500' : 'text-slate-900'}`}
-                  value={generatorInput}
-                  disabled={isGeneratorLocked}
-                  onChange={(event) => {
-                    setGeneratorInput(event.target.value);
-                    if (generatorError) setGeneratorError(null);
-                  }}
-                  placeholder={generatorChips.length > 0 ? '' : 'Dolžina: 10; 20 + enter'}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') return;
-                    event.preventDefault();
-                    submitGeneratorEntry();
-                  }}
+                  className="h-full min-w-0 flex-1 rounded-l-md border-0 bg-transparent px-2.5 text-[12px] font-semibold text-slate-900 outline-none focus:ring-0"
+                  value={dimensionDefaultDeliveryDayAmount}
+                  inputMode="numeric"
+                  placeholder="1-2"
+                  readOnly={!isEditable}
+                  tabIndex={isEditable ? undefined : -1}
+                  onChange={(event) => updateDimensionDefaultDeliveryTime(event.target.value)}
                 />
-              </div>
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
-            </div>
+                <span className={fieldUnitAdornmentClassName}>{dimensionDefaultDeliveryDayUnit}</span>
+              </span>
+            </label>
           </div>
-          </div>
-          <div className="text-xs">
-            {generatorError ? <span className="text-rose-600">{generatorError}</span> : null}
-          </div>
+          <p className="flex flex-wrap items-center gap-1.5 text-[12px] font-medium leading-5 text-slate-600">
+            <span className="font-semibold">Vnosne bližnjice:</span>
+            <span className={adminProductInputChipClassName}>d:</span>
+            <span className={adminProductInputChipClassName}>s:</span>
+            <span className={adminProductInputChipClassName}>fi:</span>
+            <span className="inline-flex items-center">
+              <span className={adminProductInputChipClassName}>v:</span>
+              <span>.</span>
+            </span>
+          </p>
         </div>
         <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-          <div className="flex min-w-full items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 py-3">
+          <div className="grid min-w-full grid-cols-[minmax(120px,1fr)_minmax(320px,560px)_minmax(340px,1fr)] items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">Različice</h3>
+            <div className="w-[560px] max-w-full min-w-0 justify-self-center">
+              <div className="relative w-full min-w-0">
+                <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 !bg-white pl-[10px] pr-11 ${isGeneratorLocked ? 'text-slate-500' : ''}`}>
+                  {generatorChips.map((chip) => (
+                    <span
+                      key={chip.dimension}
+                      className={`${adminProductInputChipClassName} shrink-0 whitespace-nowrap ${isGeneratorLocked ? '' : '!gap-0.5 !pr-1'}`.trim()}
+                    >
+                      {isGeneratorLocked ? (
+                        <span>{`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`}</span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="whitespace-nowrap hover:text-[#0f6799]"
+                            onClick={() => {
+                              setGeneratorInput(`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`);
+                              setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension));
+                            }}
+                          >
+                            {`${generatorDimensionLabels[chip.dimension]}: ${chip.values.map((value) => formatDecimalForDisplay(value)).join('; ')}`}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Odstrani ${generatorDimensionLabels[chip.dimension]}`}
+                            className="inline-flex h-3 w-3 items-center justify-center rounded-full text-[12px] leading-none text-current transition hover:text-[color:var(--danger-600)] active:text-[color:var(--danger-600)]"
+                            onClick={() => setGeneratorChips((current) => current.filter((entry) => entry.dimension !== chip.dimension))}
+                          >
+                            &times;
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  ))}
+                  {isGeneratorLocked ? (
+                    <span className="h-full min-w-0 flex-1 !bg-white" aria-hidden="true" />
+                  ) : (
+                    <input
+                      className="h-full min-w-0 flex-1 border-0 !bg-transparent text-xs text-slate-900 outline-none focus:ring-0"
+                      value={generatorInput}
+                      onChange={(event) => {
+                        setGeneratorInput(event.target.value);
+                        if (generatorError) setGeneratorError(null);
+                      }}
+                      placeholder={generatorChips.length > 0 ? '' : 'Debelina/fi: 0,5; 0,3 + enter'}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        submitGeneratorEntry();
+                      }}
+                    />
+                  )}
+                </div>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{combinationCount}</span>
+              </div>
+              {generatorError ? <div className="mt-1 text-xs text-rose-600">{generatorError}</div> : null}
+            </div>
+            <div className="flex items-center justify-end gap-2 justify-self-end">
+              <IconButton
+                type="button"
+                aria-label="Dodaj različico"
+                title="Dodaj različico"
+                tone="neutral"
+                className={adminTableNeutralIconButtonClassName}
+                disabled={!isTableEditable}
+                onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
+              >
+                <PlusIcon />
+              </IconButton>
+              <IconButton
+                type="button"
+                aria-label="Odstrani izbrane različice"
+                title="Izbriši izbrane"
+                tone={hasSelectedVariants ? 'danger' : 'neutral'}
+                className={hasSelectedVariants ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
+                disabled={!isTableEditable || !hasSelectedVariants}
+                onClick={deleteSelectedVariants}
+              >
+                <TrashCanIcon />
+              </IconButton>
+              <Button
+                type="button"
+                variant="primary"
+                size="toolbar"
+                className={adminTablePrimaryButtonClassName}
+                disabled={!isTableEditable}
+                onClick={generateVariants}
+              >
+                Generiraj različice
+              </Button>
+            </div>
           </div>
           <table className="min-w-full table-fixed text-[11px] leading-4">
             <colgroup>
               <col style={{ width: '1.87%' }} />
+              <col style={{ width: '5.1%' }} />
               <col style={{ width: '5.4%' }} />
               <col style={{ width: '5.4%' }} />
-              <col style={{ width: '5.1%' }} />
-              <col style={{ width: '5%' }} />
-              <col style={{ width: '5.1%' }} />
-              <col style={{ width: '5.1%' }} />
+              <col style={{ width: '5.8%' }} />
+              <col style={{ width: '5.8%' }} />
+              <col style={{ width: '5.8%' }} />
               {!isDimensionBasedMode ? (
                 <>
                   <col style={{ width: '6%' }} />
                   <col style={{ width: '8%' }} />
                 </>
               ) : null}
-              <col style={{ width: '6%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '5.8%' }} />
+              <col style={{ width: '5.8%' }} />
               <col style={{ width: '20.97%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
@@ -4592,20 +5188,20 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Debelina/fi</TH>
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Dolžina</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Širina/fi</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Debelina</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Teža</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Toleranca</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Cena</TH>
+                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Širina</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Masa</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-left text-[11px]`}>Toleranca</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Cena</TH>
                 {!isDimensionBasedMode ? (
                   <>
                     <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Popust</TH>
                     <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Akcijska cena</TH>
                   </>
                 ) : null}
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Zaloga</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Min količina</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Zaloga</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Min. količina</TH>
                 <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>SKU</TH>
                 <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Status</TH>
                 <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Opombe</TH>
@@ -4616,13 +5212,13 @@ export default function AdminItemEditorPage({
               {draft.variants.map((variant) => (
                 <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
                   <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
+                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
                   <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">
+                  <td className="px-2 py-1.5 text-left">
                     {isTableEditable ? (
-                      <div className={`inline-flex h-[30px] items-center justify-center whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
+                      <div className={`inline-flex h-[30px] w-full items-center justify-start whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
                         <span className={compactTableAdornmentClassName}>±</span>
                         <input
                           type="text"
@@ -4651,16 +5247,14 @@ export default function AdminItemEditorPage({
                         <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
                       </div>
                     ) : (
-                      <span className="inline-flex h-[30px] items-center justify-center">
-                        {variant.errorTolerance
-                          ? (
-                            <span className="inline-flex h-[30px] items-center justify-center whitespace-nowrap">
-                              <span className={compactTableAdornmentClassName}>±</span>
-                              <span className={`${compactTableThreeDigitCenteredSlotClassName} px-0`}>{variant.errorTolerance.replace('.', ',')}</span>
-                              <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
-                            </span>
-                          )
-                          : '—'}
+                      <span className="inline-flex h-[30px] w-full items-center justify-start">
+                        <span className="inline-flex h-[30px] items-center justify-start whitespace-nowrap">
+                          <span className={`${compactTableAdornmentClassName} ${variant.errorTolerance ? '' : 'invisible'}`}>±</span>
+                          <span className={`${compactTableThreeDigitCenteredSlotClassName} !px-0`}>
+                            {variant.errorTolerance ? variant.errorTolerance.replace('.', ',') : '—'}
+                          </span>
+                          <span className={`ml-1 ${compactTableAdornmentClassName} ${variant.errorTolerance ? '' : 'invisible'}`}>mm</span>
+                        </span>
                       </span>
                     )}
                   </td>
@@ -4671,9 +5265,49 @@ export default function AdminItemEditorPage({
                       <td className="px-2 py-1.5 text-right"><span className="inline-flex h-[30px] min-w-[7ch] items-center justify-end rounded-md border border-transparent bg-transparent px-1 text-slate-700">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
                     </>
                   ) : null}
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[6ch] !px-0 text-right`} value={variant.stock} onChange={(event) => updateVariant(variant.id, { stock: Number(event.target.value) || 0 })} /></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={compactTableSixDigitSlotClassName}>{variant.stock}</span></span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] !px-0 text-center`} value={variant.minOrder ?? 1} onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Number(event.target.value) || 1) })} /> : <span className={`${compactTableFiveDigitCenteredSlotClassName} px-0`}>{variant.minOrder ?? 1}</span>}</td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-[30px] !w-[26ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-[30px] w-[26ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-transparent bg-transparent px-1 text-center font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700">{variant.sku || '—'}</span>}</td>
+                  <td className="px-2 py-1.5 text-right">
+                    {isTableEditable ? (
+                      <span className="inline-flex h-[30px] w-full justify-end">
+                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[6ch] text-right`}
+                            value={variant.stock}
+                            onChange={(event) => updateDimensionVariantStock(variant, Math.max(0, Math.floor(Number(event.target.value.replace(/\D/g, '')) || 0)))}
+                          />
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex h-[30px] w-full justify-end">
+                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
+                          <span className={compactTableSixDigitSlotClassName}>{variant.stock}</span>
+                        </span>
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 text-right">
+                    {isTableEditable ? (
+                      <span className="inline-flex h-[30px] w-full justify-end">
+                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] text-right`}
+                            value={variant.minOrder ?? 1}
+                            onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Math.floor(Number(event.target.value.replace(/\D/g, '')) || 1)) })}
+                          />
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex h-[30px] w-full justify-end">
+                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
+                          <span className={compactTableFourDigitSlotClassName}>{variant.minOrder ?? 1}</span>
+                        </span>
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-[30px] !w-[31ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-[30px] w-[31ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-transparent bg-transparent px-1 text-center font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700">{variant.sku || '—'}</span>}</td>
                   <td className="px-1 py-1.5 text-center">
                     <div className="inline-flex justify-center">
                       <ActiveStateChip
@@ -4734,10 +5368,6 @@ export default function AdminItemEditorPage({
               simulatorOptions={simulatorOptions}
               usesScopedCommercialTools
               embedded
-              minQuantityLabel="Neto masa"
-              minQuantityUnitLabel="kg"
-              minQuantityAllowsDecimal
-              className="!border-t-0"
             />
           )}
         />
@@ -4745,9 +5375,8 @@ export default function AdminItemEditorPage({
         <UniqueMachineProductModule
           editable={isEditable}
           data={machineProductData}
-          documents={documents.map((documentEntry) => ({ id: documentEntry.id, name: documentEntry.name, size: documentEntry.size }))}
           orderMatches={initialData?.machineSerialOrderMatches ?? []}
-          onUploadDocument={() => technicalUploadInputRef.current?.click()}
+          onRequestEdit={handleEditModeToggle}
           onChange={updateMachineProductData}
         />
       ) : (

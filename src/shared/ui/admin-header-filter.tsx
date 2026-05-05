@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 export const HEADER_FILTER_ROOT_ATTR = 'data-header-filter-root';
 const HEADER_FILTER_ROOT_SELECTOR = `[${HEADER_FILTER_ROOT_ATTR}="true"]`;
@@ -15,26 +16,11 @@ type UseHeaderFilterDismissOptions = {
 };
 
 export const useHeaderFilterDismiss = ({ isOpen, onClose, rootSelector = HEADER_FILTER_ROOT_SELECTOR }: UseHeaderFilterDismissOptions) => {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest(rootSelector)) return;
-      onClose();
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose, rootSelector]);
+  useDropdownDismiss({
+    open: isOpen,
+    ignoreSelector: rootSelector,
+    onClose
+  });
 };
 
 export const getHeaderPopoverStyle = (

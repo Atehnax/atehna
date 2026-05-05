@@ -330,7 +330,6 @@ export function computeCatalogItemAuditDiff(
     fields: [
       'itemName',
       'productType',
-      'itemType',
       'status',
       'categoryPath',
       'sku',

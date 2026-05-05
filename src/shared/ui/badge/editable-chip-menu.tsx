@@ -1,9 +1,10 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import MenuItem from '@/shared/ui/menu/menu-item';
 import MenuPanel from '@/shared/ui/menu/menu-panel';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import Chip, { type ChipProps } from './chip';
 
 type EditableChipMenuValue = string | number | boolean;
@@ -45,6 +46,8 @@ export default function EditableChipMenu<Value extends EditableChipMenuValue>({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [rootRef, menuRef], []);
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
@@ -56,30 +59,23 @@ export default function EditableChipMenu<Value extends EditableChipMenuValue>({
     setMenuPosition({ top, left });
   }, [menuPlacement, minMenuWidth]);
 
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
+
   useEffect(() => {
     if (!isOpen) return;
 
     updateMenuPosition();
 
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
     const onWindowChange = () => updateMenuPosition();
 
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
     window.addEventListener('resize', onWindowChange);
     window.addEventListener('scroll', onWindowChange, true);
 
     return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
       window.removeEventListener('resize', onWindowChange);
       window.removeEventListener('scroll', onWindowChange, true);
     };

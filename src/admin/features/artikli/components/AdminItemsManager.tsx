@@ -78,6 +78,7 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   adminStatusInfoPillTableCellClassName,
   adminTableRowToneClasses,
@@ -197,6 +198,10 @@ const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS
 const ROW_EDIT_VARIANT_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[9ch]`;
 const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
+const SKU_CHIP_CLASS =
+  'inline-flex h-6 min-w-0 max-w-full items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium leading-none text-slate-600';
+const SKU_CHIP_IDLE_CLASS = 'bg-slate-50';
+const SKU_CHIP_TEXT_CLASS = 'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap';
 const normalizeCategoryPath = (value: string) =>
   value
     .split('/')
@@ -319,7 +324,7 @@ const itemStatusSearchValue = (active: boolean) => (active ? 'Aktiven active' : 
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   simple: 'Enostavni',
   dimensions: 'Po dimenzijah',
-  weight: 'Po teži',
+  weight: 'Po masi',
   unique_machine: 'Stroj / unikaten'
 };
 const PRODUCT_TYPE_FILTER_OPTIONS: Array<{ value: ProductTypeFilter; label: string }> = [
@@ -397,11 +402,13 @@ const getWeightVariantName = (item: AdminCatalogListItem, variantIndex: number, 
   const weightVariants = Array.isArray(weightData.variants) ? weightData.variants : [];
   const weightVariant = asRecord(weightVariants[variantIndex]);
   const fraction = asText(weightVariant.fraction) || asText(weightData.fraction);
+  const color = asText(weightVariant.color);
   const netMassKg = asFiniteNumberOrNull(weightVariant.netMassKg) ?? variantWeight;
 
   const fractionLabel = fraction.replace(/^frakcija\s*/i, '').trim();
+  const colorLabel = color && color !== '—' ? color : '';
   const massLabel = netMassKg === null ? '' : `${formatDecimalForDisplay(netMassKg)} kg`;
-  const labelParts = [fractionLabel, massLabel].filter(Boolean);
+  const labelParts = [massLabel, colorLabel, fractionLabel].filter(Boolean);
   return labelParts.length > 0 ? labelParts.join(' | ') : null;
 };
 const getListVariantName = (item: AdminCatalogListItem, variant: AdminCatalogListItem['variants'][number], variantIndex: number) => {
@@ -621,6 +628,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const statusBulkMenuRef = useRef<HTMLDivElement | null>(null);
   const noteBulkMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingGuardActionRef = useRef<PendingGuardAction | null>(null);
+  const closeStatusBulkMenu = useCallback(() => setIsStatusBulkMenuOpen(false), []);
+  const closeNoteBulkMenu = useCallback(() => setIsNoteBulkMenuOpen(false), []);
+  const statusBulkDismissRefs = useMemo(() => [statusBulkMenuRef], []);
+  const noteBulkDismissRefs = useMemo(() => [noteBulkMenuRef], []);
 
   const families = useMemo(() => toListFamilies(items), [items]);
   const pendingGuardArticleTitle = useMemo(() => {
@@ -718,33 +729,17 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setIsNoteBulkMenuOpen(false);
   }, [hasBulkSelectedPillTargets]);
 
-  useEffect(() => {
-    if (!isStatusBulkMenuOpen && !isNoteBulkMenuOpen) return;
+  useDropdownDismiss({
+    open: isStatusBulkMenuOpen,
+    refs: statusBulkDismissRefs,
+    onClose: closeStatusBulkMenu
+  });
 
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!statusBulkMenuRef.current?.contains(target)) {
-        setIsStatusBulkMenuOpen(false);
-      }
-      if (!noteBulkMenuRef.current?.contains(target)) {
-        setIsNoteBulkMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsStatusBulkMenuOpen(false);
-        setIsNoteBulkMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isNoteBulkMenuOpen, isStatusBulkMenuOpen]);
+  useDropdownDismiss({
+    open: isNoteBulkMenuOpen,
+    refs: noteBulkDismissRefs,
+    onClose: closeNoteBulkMenu
+  });
 
   const getListVisibleVariants = useCallback(
     (family: ListFamily) => {
@@ -1757,6 +1752,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     hoveredCellMatch?.column === column && hoveredCellMatch.value === getComparableArticleCellValue(value);
   const getMatchingValueClassName = (column: HighlightableArticleColumn, value: string) =>
     isMatchingHoveredCell(column, value) ? adminTableMatchingValueActiveClassName : '';
+  const getSkuChipClassName = (value: string) =>
+    `${SKU_CHIP_CLASS} ${isMatchingHoveredCell('sku', value) ? adminTableMatchingValueActiveClassName : SKU_CHIP_IDLE_CLASS}`;
   const setHoveredArticleCell = (column: HighlightableArticleColumn, value: string) =>
     setHoveredCellMatch({ column, value: getComparableArticleCellValue(value) });
 
@@ -2166,6 +2163,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const familySkuSuggestionsId = `article-list-sku-suggestions-${family.id}`;
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
                 const familySkuDisplay = getBaseSku(family) || '\u2014';
+                const familySkuChipDisplay = familySkuDisplay === '\u2014' ? familySkuDisplay : `SKU: ${familySkuDisplay}`;
                 const familyCategoryDisplay = getFamilyCategoryDisplay(family);
                 const familyProductTypeDisplay = formatProductTypeLabel(family.productType);
                 const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
@@ -2223,7 +2221,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           )}
                         </div>
                       </td>
-                      <td className={`${MAIN_CELL_CLASS} text-slate-600`}>
+                      <td className={`${MAIN_CELL_CLASS} overflow-hidden text-slate-600`}>
                         {isEditingFamily ? (
                           <>
                             <input
@@ -2242,12 +2240,16 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           </>
                         ) : (
                           <span
-                            className={MAIN_TEXT_SLOT_CLASS}
+                            className={`${MAIN_TEXT_SLOT_CLASS} min-w-0 max-w-full overflow-hidden px-0`}
+                            title={familySkuDisplay}
                             onMouseEnter={() => setHoveredArticleCell('sku', familySkuDisplay)}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
-                            <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('sku', familySkuDisplay)}`}>
-                              {familySkuDisplay}
+                            <span
+                              className={getSkuChipClassName(familySkuDisplay)}
+                              style={{ maxWidth: 'min(180px, 100%)' }}
+                            >
+                              <span className={SKU_CHIP_TEXT_CLASS}>{familySkuChipDisplay}</span>
                             </span>
                           </span>
                         )}

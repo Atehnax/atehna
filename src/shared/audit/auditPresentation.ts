@@ -88,15 +88,9 @@ const CUSTOMER_TYPE_FORM_LABELS = new Map(
 
 const PRODUCT_TYPE_LABELS = new Map<string, string>([
   ['dimensions', 'Po dimenzijah'],
-  ['weight', 'Po teži'],
+  ['weight', 'Po masi'],
   ['simple', 'Osnovni artikel'],
   ['unique_machine', 'Stroj / unikaten']
-]);
-
-const CATALOG_ITEM_TYPE_PRODUCT_EQUIVALENTS = new Map<string, string>([
-  ['sheet', 'dimensions'],
-  ['bulk', 'weight'],
-  ['unit', 'simple']
 ]);
 
 const STATUS_LABELS: Record<string, Record<AuditEntityType | 'default', string>> = {
@@ -473,16 +467,6 @@ function isScalarDiffEntry(entry: AuditDiffEntry | undefined): entry is AuditSca
   return !('added' in entry) && !('removed' in entry) && !('updated' in entry);
 }
 
-function normalizeProductTypeConcept(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return CATALOG_ITEM_TYPE_PRODUCT_EQUIVALENTS.get(normalized) ?? normalized;
-}
-
-function getRawScalarSide(entry: AuditScalarDiff, side: 'before' | 'after') {
-  const value = side === 'before' ? entry.before : entry.after;
-  return value === null || value === undefined ? '' : String(value).trim().toLowerCase();
-}
-
 function findScalarDiffEntry(diff: AuditDiff, keys: string[]) {
   const entry = Object.entries(diff).find(([key, value]) => keys.includes(key.toLowerCase()) && isScalarDiffEntry(value));
   return entry?.[1] as AuditScalarDiff | undefined;
@@ -491,21 +475,23 @@ function findScalarDiffEntry(diff: AuditDiff, keys: string[]) {
 function shouldSuppressMirroredCatalogItemType(diff: AuditDiff) {
   const productTypeEntry = findScalarDiffEntry(diff, ['producttype', 'product_type']);
   const itemTypeEntry = findScalarDiffEntry(diff, ['itemtype', 'item_type']);
-  if (!productTypeEntry || !itemTypeEntry) return false;
-
-  const productBefore = normalizeProductTypeConcept(getRawScalarSide(productTypeEntry, 'before'));
-  const productAfter = normalizeProductTypeConcept(getRawScalarSide(productTypeEntry, 'after'));
-  const itemBefore = normalizeProductTypeConcept(getRawScalarSide(itemTypeEntry, 'before'));
-  const itemAfter = normalizeProductTypeConcept(getRawScalarSide(itemTypeEntry, 'after'));
-
-  return Boolean(productBefore || productAfter || itemBefore || itemAfter)
-    && productBefore === itemBefore
-    && productAfter === itemAfter;
+  return Boolean(productTypeEntry && itemTypeEntry);
 }
 
 function isCatalogItemTypeKey(key: string) {
   const normalized = key.toLowerCase();
   return normalized === 'itemtype' || normalized === 'item_type';
+}
+
+function isFieldLabel(field: string, label: string) {
+  const normalizedField = field.trim().toLowerCase();
+  const normalizedLabel = label.toLowerCase();
+  return normalizedField === normalizedLabel || normalizedField.endsWith(` / ${normalizedLabel}`);
+}
+
+function suppressGroupedCatalogItemTypeRows(changes: AuditChangeRow[]) {
+  if (!changes.some((change) => isFieldLabel(change.field, 'Tip artikla'))) return changes;
+  return changes.filter((change) => !isFieldLabel(change.field, 'Tip v katalogu'));
 }
 
 export function flattenAuditEventChanges(event: AuditEventRecord): AuditChangeRow[] {
@@ -636,7 +622,7 @@ function makeGroup(events: AuditEventRecord[]): AuditEventGroup {
   const first = ordered[0];
   const prefixCategoryChangeFields = ordered.length > 1
     && ordered.every((event) => event.entityType === 'category' && event.action === 'reordered');
-  const changes = ordered.flatMap((event) => {
+  const flattenedChanges = ordered.flatMap((event) => {
     const eventChanges = flattenAuditEventChanges(event);
     if (!prefixCategoryChangeFields) return eventChanges;
     const label = event.entityLabel || event.entityId;
@@ -645,6 +631,7 @@ function makeGroup(events: AuditEventRecord[]): AuditEventGroup {
       field: `${label} / ${change.field}`
     }));
   });
+  const changes = suppressGroupedCatalogItemTypeRows(flattenedChanges);
   const action = chooseGroupAction(ordered);
   const identity = groupEntityIdentity(ordered);
   return {

@@ -46,7 +46,7 @@ import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses 
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
 import { formatEuro } from '@/shared/domain/formatting';
-import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
+import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import type { CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const STORAGE_KEY = 'admin-items-crud-v2';

@@ -1,5 +1,5 @@
-import AdminDeletedArchiveTableLoader from '@/admin/components/AdminDeletedArchiveTableLoader';
-import AdminArchiveTabs from '@/admin/components/AdminArchiveTabs';
+import AdminDeletedArchiveTableLoader from '@/admin/features/arhiv/components/AdminDeletedArchiveTableLoader';
+import AdminArchiveTabs from '@/admin/features/arhiv/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';

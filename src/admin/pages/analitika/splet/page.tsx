@@ -1,5 +1,5 @@
-import AdminWebsiteAnalyticsDashboard from '@/admin/components/AdminWebsiteAnalyticsDashboard';
-import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
+import AdminWebsiteAnalyticsDashboard from '@/admin/features/analitika/components/AdminWebsiteAnalyticsDashboard';
+import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
 import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';

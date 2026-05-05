@@ -1,4 +1,4 @@
-import AdminItemsManagerLoader from '@/admin/components/AdminItemsManagerLoader';
+import AdminItemsManagerLoader from '@/admin/features/artikli/components/AdminItemsManagerLoader';
 import { fetchAdminCatalogListItems } from '@/shared/server/catalogItems';
 import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';

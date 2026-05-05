@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import AdminDiagnosticsChart from '@/admin/components/AdminDiagnosticsChart';
+import AdminDiagnosticsChart from '@/admin/features/analitika/components/AdminDiagnosticsChart';
 import { getCatalogDiagnosticsSnapshot } from '@/shared/server/catalogDiagnostics';
 
 type Props = {

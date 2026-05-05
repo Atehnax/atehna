@@ -71,15 +71,15 @@ import {
   getHeaderPopoverStyle,
   useHeaderFilterDismiss
 } from '@/shared/ui/admin-header-filter';
-import StatusChip from '@/admin/components/StatusChip';
-import PaymentChip from '@/admin/components/PaymentChip';
-import OrderNumberSuggestionMenu from '@/admin/components/OrderNumberSuggestionMenu';
+import StatusChip from '@/admin/features/orders/components/StatusChip';
+import PaymentChip from '@/admin/features/orders/components/PaymentChip';
+import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
 import {
   getOrderNumberValidationMessage,
   isOrderNumberAllowed,
   sanitizeOrderNumberInput,
   useOrderNumberAvailability
-} from '@/admin/components/useOrderNumberAvailability';
+} from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CustomSelect } from '@/shared/ui/select';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
@@ -87,7 +87,7 @@ import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domai
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
-import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
+import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 
 import {
   type DocumentType,
@@ -109,7 +109,7 @@ import {
   toAmount,
   toDateInputValue,
   toDisplayOrderNumber
-} from '@/admin/components/adminOrdersTableUtils';
+} from '@/admin/features/orders/components/adminOrdersTableUtils';
 type OrderQuickEditState = {
   orderId: number;
   draftOrderNumber: string;
@@ -143,6 +143,11 @@ type TypePriority = CustomerType;
 type ColumnTypeFilter = 'all' | TypePriority;
 type ColumnPaymentFilter = 'all' | PaymentStatus;
 type SortCycleState = { column: SortableColumnKey; index: number } | null;
+type OrderAnalyticsPreviewRow = {
+  created_at: string;
+  status: string;
+  total: number;
+};
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
@@ -382,8 +387,8 @@ const formatDateForRangeChip = (value: string) => {
   if (!year || !month || !day) return trimmed;
   return `${day}.${month}.${year}`;
 };
-const AdminOrdersPreviewChart = dynamic(() => import('@/admin/components/AdminOrdersPreviewChart'), { ssr: false });
-const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/components/AdminOrdersPdfCell'), {
+const AdminOrdersPreviewChart = dynamic(() => import('@/admin/features/orders/components/AdminOrdersPreviewChart'), { ssr: false });
+const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/features/orders/components/AdminOrdersPdfCell'), {
   ssr: false,
   loading: () => (
     <button
@@ -411,7 +416,7 @@ export default function AdminOrdersTable({
   analyticsAppearance
 }: {
   orders: ReadonlyArray<AdminOrderRowTuple>;
-  analyticsOrders?: ReadonlyArray<AdminOrderRowTuple>;
+  analyticsOrders?: ReadonlyArray<AdminOrderAnalyticsTuple>;
   documents: ReadonlyArray<AdminOrderPdfDocumentTuple>;
   initialFrom?: string;
   initialTo?: string;
@@ -449,28 +454,12 @@ export default function AdminOrdersTable({
       })),
     [serializedOrders]
   );
-  const analyticsOrders = useMemo<OrderRow[]>(
+  const analyticsOrders = useMemo<OrderAnalyticsPreviewRow[]>(
     () =>
-      (serializedAnalyticsOrders ?? serializedOrders).map((row) => ({
-        id: row[0],
-        order_number: row[1],
-        customer_type: row[2],
-        organization_name: row[3] ?? '',
-        contact_name: row[4],
-        email: row[5],
-        delivery_address: row[6] ?? '',
-        reference: row[7] ?? '',
-        notes: row[8],
-        status: row[9],
-        payment_status: row[10],
-        admin_order_notes: row[11],
-        subtotal: row[12] ?? 0,
-        tax: row[13] ?? 0,
-        shipping: 0,
-        total: row[14] ?? 0,
-        created_at: row[15],
-        is_draft: row[16],
-        deleted_at: row[17] ?? null
+      (serializedAnalyticsOrders ?? serializedOrders.map((row) => [row[15], row[9], row[14] ?? 0] as const)).map((row) => ({
+        created_at: row[0],
+        status: row[1] ?? '',
+        total: Number(row[2] ?? 0)
       })),
     [serializedAnalyticsOrders, serializedOrders]
   );
@@ -585,8 +574,9 @@ export default function AdminOrdersTable({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const refreshOrders = () => {
+    const refreshOrders = (force = false) => {
       const hasPendingRefresh = window.sessionStorage.getItem('admin-orders-needs-refresh') === '1';
+      if (!hasPendingRefresh && !force) return;
       if (hasPendingRefresh) {
         window.sessionStorage.removeItem('admin-orders-needs-refresh');
       }
@@ -595,7 +585,7 @@ export default function AdminOrdersTable({
       }
     };
 
-    const handlePageShow = () => refreshOrders();
+    const handlePageShow = (event: PageTransitionEvent) => refreshOrders(event.persisted);
     const handleWindowFocus = () => refreshOrders();
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') refreshOrders();

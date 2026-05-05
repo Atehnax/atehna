@@ -29,6 +29,8 @@ export async function generateMetadata(props: { params: Promise<{ category: stri
   return { title: subcategory.title, description: subcategory.description };
 }
 
+const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
+
 export default async function SubcategoryPage(props: { params: Promise<{ category: string; subcategory: string }> }) {
   const params = await props.params;
   const { category, subcategory } = await getCatalogSubcategoryPageDataServer(params.category, params.subcategory);
@@ -48,11 +50,12 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
           const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
           const price = formatCatalogPrice(finalPrice);
           const itemHref = `/products/${category.slug}/${subcategory.slug}/${item.slug}`;
+          const itemImageSrc = getImageSrc(item.images?.[0]) ?? getImageSrc(item.image);
           return (
             <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
               <div>
                 <Link href={itemHref} className="group block">
-                  {item.image && <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={item.images?.[0] ?? item.image ?? ''} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div>}
+                  {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
                   <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">{item.name}</p>
                 </Link>
                 <p className="mt-2 text-sm text-slate-600">{item.description}</p>

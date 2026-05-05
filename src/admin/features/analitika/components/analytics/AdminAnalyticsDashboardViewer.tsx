@@ -4,18 +4,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import dynamic from 'next/dynamic';
-import AdminOrdersActivityHeatmap, { type AdminOrdersHeatmapDay } from '@/admin/components/AdminOrdersActivityHeatmap';
-import AnalyticsChartCardView from '@/admin/components/analytics/AnalyticsChartCardView';
-import AnalyticsPlotlySurface from '@/admin/components/analytics/AnalyticsPlotlySurface';
-import { buildChartModel, newSeries, rangeOptions, type RangeOption } from '@/admin/components/analytics/adminAnalyticsShared';
-import { getChartThemeFromCssVars } from '@/admin/components/charts/chartTheme';
+import AdminOrdersActivityHeatmap, { type AdminOrdersHeatmapDay } from '@/admin/features/analitika/components/AdminOrdersActivityHeatmap';
+import AnalyticsChartCardView from '@/admin/features/analitika/components/analytics/AnalyticsChartCardView';
+import AnalyticsPlotlySurface from '@/admin/features/analitika/components/analytics/AnalyticsPlotlySurface';
+import { buildChartModel, newSeries, rangeOptions, type RangeOption } from '@/admin/features/analitika/components/analytics/adminAnalyticsShared';
+import { getChartThemeFromCssVars } from '@/admin/features/analitika/components/charts/chartTheme';
 import { useToast } from '@/shared/ui/toast';
 import { SegmentedControl } from '@/shared/ui/segmented';
 import { Spinner, TableSkeleton } from '@/shared/ui/loading';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartType, AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
-const LazyAdminTools = dynamic(() => import('@/admin/components/analytics/AdminAnalyticsAdminTools'), { ssr: false });
+const LazyAdminTools = dynamic(() => import('@/admin/features/analitika/components/analytics/AdminAnalyticsAdminTools'), { ssr: false });
 
 type Props = {
   initialData: OrdersAnalyticsResponse;

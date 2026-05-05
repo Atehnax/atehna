@@ -2,7 +2,6 @@
 
 import { memo, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import type { OrderRow } from '@/admin/components/adminOrdersTableUtils';
 import { formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 
@@ -34,6 +33,12 @@ type AnalyticsCard = {
   title: string;
   metric: string;
   comparisons: ComparisonItem[];
+};
+
+type OrderAnalyticsPreviewRow = {
+  created_at: string;
+  status: string;
+  total: number | string | null;
 };
 
 const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }> = [
@@ -82,7 +87,7 @@ const formatCurrency = (value: number | null | undefined) =>
     ? '—'
     : formatEuroWithSuffix(value);
 
-const toAmount = (value: OrderRow['total']) => {
+const toAmount = (value: OrderAnalyticsPreviewRow['total']) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
     const parsed = Number(value.replace(',', '.').trim());
@@ -100,7 +105,7 @@ const toStatusBucket = (status: string): StatusBucket => {
   return 'other';
 };
 
-const getPeriodMetrics = (orders: OrderRow[], start: Date, end: Date): PeriodMetrics => {
+const getPeriodMetrics = (orders: OrderAnalyticsPreviewRow[], start: Date, end: Date): PeriodMetrics => {
   const startTs = start.getTime();
   const endTs = end.getTime();
   const dayCount = Math.max(
@@ -123,7 +128,7 @@ const getPeriodMetrics = (orders: OrderRow[], start: Date, end: Date): PeriodMet
   };
 };
 
-const getFinishedOrderCount = (orders: OrderRow[], start: Date, end: Date) => {
+const getFinishedOrderCount = (orders: OrderAnalyticsPreviewRow[], start: Date, end: Date) => {
   const startTs = start.getTime();
   const endTs = end.getTime();
   return orders.filter((order) => {
@@ -203,7 +208,7 @@ function AdminOrdersPreviewChart({
   activeRange = '1m',
   onRangeChange
 }: {
-  orders: OrderRow[];
+  orders: OrderAnalyticsPreviewRow[];
   appearance?: AnalyticsGlobalAppearance;
   fromDate?: string;
   toDate?: string;

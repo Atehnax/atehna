@@ -65,7 +65,7 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatEuroAmount } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
-import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
@@ -128,7 +128,7 @@ import {
   numberInputClass,
   topBarArticleNameInputClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
-import { saveCatalogItemPayload } from '@/admin/features/artikli/lib/canonicalSaveClient';
+import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';

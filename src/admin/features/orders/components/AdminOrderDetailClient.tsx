@@ -4,19 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import PaymentChip from '@/admin/components/PaymentChip';
-import StatusChip from '@/admin/components/StatusChip';
-import AdminOrderItemsEditorClient from '@/admin/components/AdminOrderItemsEditorClient';
-import AdminOrderPdfManagerClient from '@/admin/components/AdminOrderPdfManagerClient';
+import PaymentChip from '@/admin/features/orders/components/PaymentChip';
+import StatusChip from '@/admin/features/orders/components/StatusChip';
+import AdminOrderItemsEditorClient from '@/admin/features/orders/components/AdminOrderItemsEditorClient';
+import AdminOrderPdfManagerClient from '@/admin/features/orders/components/AdminOrderPdfManagerClient';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
-import OrderNumberSuggestionMenu from '@/admin/components/OrderNumberSuggestionMenu';
-import { toDisplayOrderNumber } from '@/admin/components/adminOrdersTableUtils';
+import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
+import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
 import {
   getOrderNumberValidationMessage,
   isOrderNumberAllowed,
   sanitizeOrderNumberInput,
   useOrderNumberAvailability
-} from '@/admin/components/useOrderNumberAvailability';
+} from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';

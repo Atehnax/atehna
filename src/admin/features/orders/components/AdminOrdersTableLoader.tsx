@@ -1,10 +1,10 @@
-import AdminOrdersTable from '@/admin/components/AdminOrdersTable';
+import AdminOrdersTable from '@/admin/features/orders/components/AdminOrdersTable';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
-import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
+import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 
 export default function AdminOrdersTableLoader(props: {
   orders: ReadonlyArray<AdminOrderRowTuple>;
-  analyticsOrders?: ReadonlyArray<AdminOrderRowTuple>;
+  analyticsOrders?: ReadonlyArray<AdminOrderAnalyticsTuple>;
   documents: ReadonlyArray<AdminOrderPdfDocumentTuple>;
   initialFrom?: string;
   initialTo?: string;

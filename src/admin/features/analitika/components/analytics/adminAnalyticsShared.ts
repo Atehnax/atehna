@@ -1,4 +1,4 @@
-import { getBaseChartLayout, type ChartTheme } from '@/admin/components/charts/chartTheme';
+import { getBaseChartLayout, type ChartTheme } from '@/admin/features/analitika/components/charts/chartTheme';
 import type { Data, Layout } from 'plotly.js';
 import type { AnalyticsRange, OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type {

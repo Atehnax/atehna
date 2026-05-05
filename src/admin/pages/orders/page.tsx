@@ -1,7 +1,7 @@
-import AdminOrdersTableLoader from '@/admin/components/AdminOrdersTableLoader';
-import AdminCreateDraftOrderButton from '@/admin/components/AdminCreateDraftOrderButton';
-import { fetchOrders, fetchOrdersListPage } from '@/shared/server/orders';
-import type { OrderRow } from '@/shared/domain/order/orderTypes';
+import AdminOrdersTableLoader from '@/admin/features/orders/components/AdminOrdersTableLoader';
+import AdminCreateDraftOrderButton from '@/admin/features/orders/components/AdminCreateDraftOrderButton';
+import { fetchOrdersAnalyticsRows, fetchOrdersListPage } from '@/shared/server/orders';
+import type { OrderAnalyticsRow, OrderRow } from '@/shared/domain/order/orderTypes';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
@@ -68,7 +68,7 @@ async function AdminOrdersTableSection({
       ? Number(normalizeSearchParam(searchParams?.pageSize))
       : 25;
   let orders: OrderRow[] = [];
-  let analyticsOrders: OrderRow[] = [];
+  let analyticsOrders: OrderAnalyticsRow[] = [];
   let documents: Array<{
     id: number;
     order_id: number;
@@ -108,11 +108,11 @@ async function AdminOrdersTableSection({
           page,
           pageSize
         }),
-        fetchOrders({
+        fetchOrdersAnalyticsRows({
           includeDrafts: true,
           fromDate: toIsoOrNull(from),
           toDate: getToDateIsoOrNull(to)
-        }),
+        }, '/admin/orders:analytics-preview'),
         fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
       ]);
       orders = ordersPageResult.orders;
@@ -163,24 +163,9 @@ async function AdminOrdersTableSection({
       order.deleted_at ?? null
     ] as const);
     const compactAnalyticsOrders = analyticsOrders.map((order) => [
-      order.id,
-      order.order_number,
-      order.customer_type,
-      order.organization_name,
-      order.contact_name,
-      order.email,
-      order.delivery_address ?? null,
-      order.reference ?? null,
-      order.notes ?? null,
-      order.status,
-      order.payment_status ?? null,
-      order.admin_order_notes ?? null,
-      order.subtotal,
-      order.tax,
-      order.total,
       order.created_at,
-      order.is_draft ?? false,
-      order.deleted_at ?? null
+      order.status,
+      order.total
     ] as const);
     const compactDocuments = documents.map((document) => [
       document.id,

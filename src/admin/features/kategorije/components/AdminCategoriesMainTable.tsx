@@ -64,7 +64,7 @@ import {
 } from '../common/catalog-helpers';
 import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
-import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import { IconButton } from '@/shared/ui/icon-button';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';

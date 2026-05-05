@@ -100,7 +100,7 @@ import {
 import { formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
 import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
-import AdminCategoryBreadcrumbPicker from '@/admin/features/artikli/components/AdminCategoryBreadcrumbPicker';
+import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import {
   NOTE_TAG_OPTIONS,
   NoteTagChip,

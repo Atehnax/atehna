@@ -35,6 +35,8 @@ export async function generateMetadata(
   return { title: item.name, description: item.description };
 }
 
+const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
+
 export default async function ItemPage(
   props: { params: Promise<{ category: string; subcategory: string; item: string }> }
 ) {
@@ -43,7 +45,7 @@ export default async function ItemPage(
   const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
   const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
   const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);
-  const images = item.images?.length ? item.images : item.image ? [item.image] : [];
+  const images = (item.images?.length ? item.images : item.image ? [item.image] : []).map(getImageSrc).filter((image): image is string => Boolean(image));
 
   return (
     <div className="container-base py-12">

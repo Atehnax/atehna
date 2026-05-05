@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import type { Data, Layout } from 'plotly.js';
 
-const LazyPlotlyClient = dynamic(() => import('@/admin/components/charts/PlotlyClient'), {
+const LazyPlotlyClient = dynamic(() => import('@/admin/features/analitika/components/charts/PlotlyClient'), {
   ssr: false
 });
 

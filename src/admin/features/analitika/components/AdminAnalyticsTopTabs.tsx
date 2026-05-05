@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import EuiTabs from '@/shared/ui/eui-tabs';
 
@@ -12,14 +11,6 @@ export default function AdminAnalyticsTopTabs() {
     : pathname.startsWith('/admin/analitika/splet')
       ? 'web'
       : 'orders';
-
-  useEffect(() => {
-    ['/admin/analitika', '/admin/analitika/splet', '/admin/analitika/diagnostika'].forEach((href) => {
-      if (href !== pathname) {
-        router.prefetch(href);
-      }
-    });
-  }, [pathname, router]);
 
   return (
     <EuiTabs

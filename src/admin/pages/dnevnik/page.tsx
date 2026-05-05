@@ -1,4 +1,4 @@
-import AdminAuditLogPageClient from '@/admin/components/AdminAuditLogPageClient';
+import AdminAuditLogPageClient from '@/admin/features/dnevnik/components/AdminAuditLogPageClient';
 
 export const metadata = {
   title: 'Dnevnik sprememb'

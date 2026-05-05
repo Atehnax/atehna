@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { AdminOrderItemsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
-const AdminOrderItemsEditor = dynamic(() => import('@/admin/components/AdminOrderItemsEditor'), {
+const AdminOrderItemsEditor = dynamic(() => import('@/admin/features/orders/components/AdminOrderItemsEditor'), {
   ssr: false,
   loading: () => <AdminOrderItemsSectionSkeleton />
 });

@@ -165,3 +165,9 @@ export type AdminOrderPdfDocumentTuple = readonly [
   blobUrl: string,
   createdAt: string
 ];
+
+export type AdminOrderAnalyticsTuple = readonly [
+  createdAt: string,
+  status: string | null,
+  total: number
+];

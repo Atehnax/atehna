@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import AdminDiagnosticsDashboard from '@/admin/components/AdminDiagnosticsDashboard';
-import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
+import AdminDiagnosticsDashboard from '@/admin/features/analitika/components/AdminDiagnosticsDashboard';
+import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
 import { AdminDiagnosticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 
 export const metadata = {

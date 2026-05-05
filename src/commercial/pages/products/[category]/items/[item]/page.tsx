@@ -40,6 +40,8 @@ export async function generateMetadata(
   };
 }
 
+const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
+
 export default async function CategoryItemPage(
   props: {
     params: Promise<{ category: string; item: string }>;
@@ -50,7 +52,7 @@ export default async function CategoryItemPage(
   const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
   const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
   const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);
-  const images = item.images?.length ? item.images : item.image ? [item.image] : [];
+  const images = (item.images?.length ? item.images : item.image ? [item.image] : []).map(getImageSrc).filter((image): image is string => Boolean(image));
 
   return (
     <div className="container-base py-12">

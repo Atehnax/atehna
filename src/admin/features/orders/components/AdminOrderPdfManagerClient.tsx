@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { AdminOrderDocumentsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
 import type { PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
 
-const AdminOrderPdfManager = dynamic(() => import('@/admin/components/AdminOrderPdfManager'), {
+const AdminOrderPdfManager = dynamic(() => import('@/admin/features/orders/components/AdminOrderPdfManager'), {
   ssr: false,
   loading: () => <AdminOrderDocumentsSectionSkeleton />
 });

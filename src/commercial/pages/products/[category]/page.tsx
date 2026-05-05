@@ -42,9 +42,12 @@ const getArticleLabel = (count: number) => {
   return 'artiklov';
 };
 
+const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
+
 export default async function CategoryPage(props: { params: Promise<{ category: string }> }) {
   const params = await props.params;
   const { category, categories } = await getCatalogCategoryPageDataServer(params.category);
+  const categoryImageSrc = getImageSrc(category.image);
 
   return <div>
     <div className="container-base py-12">
@@ -80,10 +83,11 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
                     const price = formatCatalogPrice(finalPrice);
                     const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
                     const itemHref = `/products/${category.slug}/items/${item.slug}`;
+                    const itemImageSrc = getImageSrc(item.images?.[0]) ?? getImageSrc(item.image);
                     return <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
                       <div>
                         <Link href={itemHref} prefetch={false} className="group block">
-                          {(item.images?.[0] ?? item.image) && <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={item.images?.[0] ?? item.image ?? ''} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div>}
+                          {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
                           <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">{item.name}</p>
                         </Link>
                         <p className="mt-2 text-sm text-slate-600">{item.description}</p>
@@ -98,7 +102,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
           </div>
         </div>
         <aside className="space-y-4">
-          <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><Image src={category.image} alt={category.title} fill className="object-cover" /></div>
+          <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">{categoryImageSrc ? <Image src={categoryImageSrc} alt={category.title} fill className="object-cover" /> : null}</div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={`/products/${item.slug}`} prefetch={false} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
         </aside>
       </div>

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import AdminOrderDetailClient from '@/admin/components/AdminOrderDetailClient';
+import AdminOrderDetailClient from '@/admin/features/orders/components/AdminOrderDetailClient';
 import {
   fetchOrderById,
   fetchOrderDocuments,

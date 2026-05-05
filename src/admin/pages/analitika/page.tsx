@@ -1,5 +1,5 @@
-import AdminAnalyticsDashboardLoader from '@/admin/components/AdminAnalyticsDashboardLoader';
-import AdminAnalyticsTopTabs from '@/admin/components/AdminAnalyticsTopTabs';
+import AdminAnalyticsDashboardLoader from '@/admin/features/analitika/components/AdminAnalyticsDashboardLoader';
+import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
 import { emptyOrdersAnalyticsResponse, fetchOrdersAnalytics } from '@/shared/server/orderAnalytics';
 import { fetchAnalyticsCharts, fetchGlobalAnalyticsAppearance } from '@/shared/server/analyticsCharts';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';

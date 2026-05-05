@@ -18,7 +18,7 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { useToast } from '@/shared/ui/toast';
-import { groupDocumentsByType, routeMap, type PdfTypeKey } from '@/admin/components/adminOrdersPdfCellUtils';
+import { groupDocumentsByType, routeMap, type PdfTypeKey } from '@/admin/features/orders/components/adminOrdersPdfCellUtils';
 import type { PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
 
 type PdfTypeConfig = {

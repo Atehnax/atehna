@@ -1,8 +1,8 @@
 'use client';
 
-import PlotlyClient from '@/admin/components/charts/PlotlyClient';
-import { buildChartModel, chartTypeOptions, metricOptions, newSeries, transformOptions, updateSeries } from '@/admin/components/analytics/adminAnalyticsShared';
-import type { ChartTheme } from '@/admin/components/charts/chartTheme';
+import PlotlyClient from '@/admin/features/analitika/components/charts/PlotlyClient';
+import { buildChartModel, chartTypeOptions, metricOptions, newSeries, transformOptions, updateSeries } from '@/admin/features/analitika/components/analytics/adminAnalyticsShared';
+import type { ChartTheme } from '@/admin/features/analitika/components/charts/chartTheme';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartSeries, AnalyticsChartType, AnalyticsGlobalAppearance, AnalyticsMetricField } from '@/shared/server/analyticsCharts';
 

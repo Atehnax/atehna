@@ -13,6 +13,8 @@ const primaryLinks = [
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
   { href: '/admin/kupci', label: 'Seznam kupcev', icon: UsersIcon },
   { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: PaletteIcon },
+  { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
+  { href: '/admin/urejevalnik', label: 'Urejevalnik dokumentov', icon: FilePenLineIcon },
   { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
   { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
 ] as const;
@@ -130,6 +132,30 @@ function PaletteIcon({ className }: { className?: string }) {
       <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
       <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
       <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BookOpenTextIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M12 7v14" />
+      <path d="M16 12h2" />
+      <path d="M16 8h2" />
+      <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+      <path d="M6 12h2" />
+      <path d="M6 8h2" />
+    </svg>
+  );
+}
+
+function FilePenLineIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z" />
+      <path d="M14.487 7.858A1 1 0 0 1 14 7V2" />
+      <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516" />
+      <path d="M8 18h1" />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 import { getPool } from '@/shared/server/db';
 import { revalidateTag } from 'next/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
+import type { PoolClient } from 'pg';
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
 import type {
   AdminCatalogListItem,
@@ -466,6 +467,134 @@ async function buildCatalogItemCopyIdentity(
 function serializeJsonbValue(value: unknown) {
   if (value === null || value === undefined) return null;
   return typeof value === 'string' ? value : JSON.stringify(value);
+}
+
+function clampPercent(value: unknown, fallback = 0): number {
+  return Math.min(100, Math.max(0, asNumber(value, fallback)));
+}
+
+function getDiscountedPrice(basePrice: number, discountPercent: number): number {
+  return Number((Math.max(0, basePrice) * (1 - clampPercent(discountPercent) / 100)).toFixed(2));
+}
+
+function getSimpleActionPriceEnabled(simpleData: Record<string, unknown>, fallbackDiscountPercent: number): boolean {
+  if (typeof simpleData.actionPriceEnabled === 'boolean') return simpleData.actionPriceEnabled;
+  const basePrice = asNumber(simpleData.basePrice);
+  const actionPrice = asNumber(simpleData.actionPrice, getDiscountedPrice(basePrice, fallbackDiscountPercent));
+  return fallbackDiscountPercent > 0 || actionPrice < basePrice;
+}
+
+function getSimpleDiscountPercent(
+  simpleData: Record<string, unknown>,
+  fallbackBasePrice: number,
+  fallbackDiscountPercent: number
+): number {
+  const basePrice = asNumber(simpleData.basePrice, fallbackBasePrice);
+  const actionPrice = asNumber(simpleData.actionPrice, getDiscountedPrice(basePrice, fallbackDiscountPercent));
+  if (getSimpleActionPriceEnabled(simpleData, fallbackDiscountPercent) && basePrice > 0) {
+    return clampPercent(((basePrice - actionPrice) / basePrice) * 100);
+  }
+  return fallbackDiscountPercent;
+}
+
+function patchSingleVariantEditorPricingData(
+  productType: CatalogEditorProductType,
+  currentData: unknown,
+  variantPatch: CatalogVariantQuickPatch,
+  existingVariant: Record<string, unknown>
+): CatalogItemTypeSpecificData | null {
+  if (variantPatch.price === undefined && variantPatch.discountPct === undefined) return null;
+
+  const data = { ...normalizeTypeSpecificData(currentData) };
+  if (productType === 'simple') {
+    const simpleData = { ...normalizeTypeSpecificData(data.simple) };
+    const currentBasePrice = asNumber(simpleData.basePrice, asNumber(existingVariant.price));
+    const fallbackDiscountPercent = clampPercent(
+      simpleData.discountPercent,
+      clampPercent(variantPatch.discountPct, asNumber(existingVariant.discount_pct))
+    );
+    const discountPercent =
+      variantPatch.discountPct !== undefined
+        ? clampPercent(variantPatch.discountPct)
+        : getSimpleDiscountPercent(simpleData, currentBasePrice, fallbackDiscountPercent);
+    const nextBasePrice = variantPatch.price !== undefined ? Math.max(0, asNumber(variantPatch.price)) : currentBasePrice;
+
+    data.simple = {
+      ...simpleData,
+      basePrice: nextBasePrice,
+      discountPercent,
+      actionPrice: getDiscountedPrice(nextBasePrice, discountPercent),
+      actionPriceEnabled: discountPercent > 0
+    };
+    return data;
+  }
+
+  if (productType === 'unique_machine') {
+    const machineData = { ...normalizeTypeSpecificData(data.uniqueMachine ?? data.machine) };
+    data.uniqueMachine = {
+      ...machineData,
+      ...(variantPatch.price !== undefined ? { basePrice: Math.max(0, asNumber(variantPatch.price)) } : {}),
+      ...(variantPatch.discountPct !== undefined ? { discountPercent: clampPercent(variantPatch.discountPct) } : {})
+    };
+    return data;
+  }
+
+  return null;
+}
+
+async function syncSingleVariantEditorPricing(
+  client: PoolClient,
+  itemId: number,
+  variantPatch: CatalogVariantQuickPatch,
+  existingVariant: Record<string, unknown>
+) {
+  if (variantPatch.price === undefined && variantPatch.discountPct === undefined) return;
+
+  const editorResult = await client.query<{
+    item_type: string | null;
+    product_type: string | null;
+    data: unknown;
+    variant_count: string | number;
+  }>(
+    `
+    select
+      ci.item_type,
+      cied.product_type,
+      coalesce(cied.data, '{}'::jsonb) as data,
+      (
+        select count(*)
+        from catalog_item_variants civ
+        where civ.item_id = ci.id
+      ) as variant_count
+    from catalog_items ci
+    left join catalog_item_editor_details cied on cied.item_id = ci.id
+    where ci.id = $1
+    limit 1
+    `,
+    [itemId]
+  );
+  const editorRow = editorResult.rows[0];
+  if (!editorRow || asNumber(editorRow.variant_count) !== 1) return;
+
+  const productType =
+    normalizeCatalogEditorProductType(editorRow.product_type)
+    ?? inferCatalogEditorProductType(editorRow.item_type, [existingVariant]);
+  if (productType !== 'simple' && productType !== 'unique_machine') return;
+
+  const nextData = patchSingleVariantEditorPricingData(productType, editorRow.data, variantPatch, existingVariant);
+  if (!nextData) return;
+
+  await client.query(
+    `
+    insert into catalog_item_editor_details (item_id, product_type, data)
+    values ($1,$2,$3::jsonb)
+    on conflict (item_id) do update
+    set product_type = excluded.product_type,
+        data = excluded.data,
+        updated_at = now()
+    `,
+    [itemId, productType, serializeJsonbValue(nextData) ?? '{}']
+  );
 }
 
 export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): Promise<AdminCatalogListItem | null> {
@@ -1415,6 +1544,7 @@ export async function quickPatchCatalogVariantByIdentifier(
         itemId
       ]
     );
+    await syncSingleVariantEditorPricing(client, itemId, patch, existing);
 
     await client.query('commit');
     revalidateTag(CATALOG_PUBLIC_TAG, 'max');

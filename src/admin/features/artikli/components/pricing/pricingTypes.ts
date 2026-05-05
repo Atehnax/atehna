@@ -1,10 +1,10 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { Variant } from '@/admin/features/artikli/lib/familyModel';
 import type {
   CatalogItemQuantityDiscountRule,
   ProductEditorType,
   QuantityDiscountDraft,
-  SimulatorOption,
+  SimulatorOption as CatalogSimulatorOption,
   UniversalProductSpecificData
 } from '@/shared/domain/catalog/catalogAdminTypes';
 import type { OrderItemSkuAllocationRow } from '@/shared/domain/order/orderTypes';
@@ -14,6 +14,122 @@ export type TypeSpecificProductData = Record<string, unknown>;
 export type ProductDataNormalizationContext = {
   variants?: Variant[];
   baseSku?: string;
+};
+
+export type SpecRow = {
+  id: string;
+  property: string;
+  value: string;
+  unit?: string;
+};
+
+export type SimpleProductData = {
+  basePrice: number;
+  actionPrice: number;
+  actionPriceEnabled: boolean;
+  stock: number;
+  minStock: number;
+  deliveryTime: string;
+  moq: number;
+  warehouseLocation: string;
+  saleStatus: 'active' | 'inactive';
+  visibleInStore: boolean;
+  showAsNew: boolean;
+  requireInstructions: boolean;
+  basicInfoRows: SpecRow[];
+  technicalSpecs: SpecRow[];
+};
+
+export type WeightVariant = {
+  id: string;
+  sku: string;
+  fraction: string;
+  color: string;
+  netMassKg: number | null;
+  minQuantity: number;
+  unitPrice: number | null;
+  stockKg: number;
+  tolerance: string;
+  deliveryTime: string;
+  active: boolean;
+  noteTag: string;
+  position: number;
+};
+
+export type WeightFractionInventoryRow = {
+  id: string;
+  fraction: string;
+  color: string;
+  stockKg: number;
+  reservedKg: number;
+  deliveryTime: string;
+};
+
+export type WeightProductData = {
+  minQuantity: number;
+  fraction: string;
+  netMassKg: number;
+  stockKg: number;
+  deliveryTime: string;
+  packagingChips: string[];
+  fractionChips: string[];
+  colorChips: string[];
+  fractionInventory: WeightFractionInventoryRow[];
+  variants: WeightVariant[];
+};
+
+export type MachineSerialStatus = 'in_stock' | 'sold' | 'reserved' | 'service';
+
+export type MachineSerialRow = {
+  id: string;
+  serialNumber: string;
+  status: MachineSerialStatus;
+  orderReference: string;
+  shippedAt: string;
+};
+
+export type UniqueMachineProductData = {
+  basePrice: number;
+  discountPercent: number;
+  stock: number;
+  warrantyLabel: string;
+  warrantyMonths: string;
+  warrantyUnit?: string;
+  serviceIntervalLabel: string;
+  serviceIntervalMonths: string;
+  serviceIntervalUnit?: string;
+  deliveryTime: string;
+  packageWeightKg: number;
+  packageWeightUnit?: string;
+  packageDimensions: string;
+  warnings: string;
+  basicInfoRows: SpecRow[];
+  serialNumbers: MachineSerialRow[];
+  specs: SpecRow[];
+  includedItems: string[];
+};
+
+export type PricingSimulatorOption = CatalogSimulatorOption & {
+  label: string;
+  basePrice: number;
+  discountPercent?: number;
+  quantityUnit?: string;
+  targetKey?: string;
+  dimensionLabel?: string;
+  dimensionThickness?: number;
+  dimensionWidth?: number;
+  dimensionLength?: number;
+  summaryLabel?: string;
+  discountUnitLabel?: string;
+  stockLabel?: string;
+  minOrderLabel?: string;
+  serialLabels?: string[];
+  weightFraction?: string;
+  weightColor?: string;
+  weightPackageLabel?: string;
+  weightFractionColorLabel?: string;
+  weightSelectionLabel?: string;
+  weightNetMassKg?: number;
 };
 
 export type ProductTypeSelectorCardRowProps = {
@@ -39,7 +155,7 @@ export type QuantityDiscountsCardProps = {
   onAddDiscount: () => void;
   onRemoveDiscount: (id: string) => void;
   onUpdateDiscount: (id: string, updates: Partial<QuantityDiscountDraft>) => void;
-  simulatorOptions: SimulatorOption[];
+  simulatorOptions: CatalogSimulatorOption[];
   usesScopedCommercialTools?: boolean;
   embedded?: boolean;
   minQuantityLabel?: string;
@@ -56,7 +172,7 @@ export type CommercialToolsPanelProps = {
   onAddDiscount: () => void;
   onRemoveDiscount: (id: string) => void;
   onUpdateDiscount: (id: string, updates: Partial<QuantityDiscountDraft>) => void;
-  simulatorOptions: SimulatorOption[];
+  simulatorOptions: CatalogSimulatorOption[];
   selectedOptionId: string;
   onSelectedOptionIdChange: (nextOptionId: string) => void;
   quantity: number;
@@ -77,31 +193,50 @@ export type WeightProductModuleProps = ProductModuleProps & {
   color?: string | null;
 };
 
-export type MachineDocumentSummary = {
-  id: string | number;
-  name: string;
-  size?: string | number | null;
-};
-
 export type UniqueMachineProductModuleProps = {
   editable: boolean;
   data: TypeSpecificProductData;
-  documents?: MachineDocumentSummary[];
   orderMatches?: OrderItemSkuAllocationRow[];
-  onUploadDocument?: () => void;
+  onRequestEdit?: () => void;
   onChange: (nextData: TypeSpecificProductData) => void;
 };
 
-export type ProductPricingComponentMap = {
-  CommercialToolsPanel: ComponentType<CommercialToolsPanelProps>;
-  DimensionOrderPricingPanel: ComponentType<CommercialToolsPanelProps>;
-  ProductPricingLogicCardRow: ComponentType<ProductPricingLogicCardRowProps>;
-  ProductTypeSelectorCardRow: ComponentType<ProductTypeSelectorCardRowProps>;
-  QuantityDiscountsCard: ComponentType<QuantityDiscountsCardProps>;
-  SimpleProductModule: ComponentType<ProductModuleProps>;
-  UniqueMachineProductModule: ComponentType<UniqueMachineProductModuleProps>;
-  WeightProductModule: ComponentType<WeightProductModuleProps>;
+export type OrderPriceSummaryRow = {
+  label: string;
+  value: string;
+  detail?: string;
+  detailDisplay?: 'below' | 'inline';
+  icon?:
+    | 'fraction'
+    | 'simpleProduct'
+    | 'dimensionVariant'
+    | 'machine'
+    | 'machineCluster'
+    | 'price'
+    | 'quantity'
+    | 'dimensionQuantity'
+    | 'discount'
+    | 'simpleStock'
+    | 'stock'
+    | 'machineGear'
+    | 'dimensionStock'
+    | 'package';
+  tone?: 'default' | 'discount' | 'success' | 'warning';
+  chips?: string[];
+  valueDisplay?: 'plain' | 'badge';
 };
 
-export type { ProductEditorType, QuantityDiscountDraft, SimulatorOption, UniversalProductSpecificData };
-export type { CatalogItemQuantityDiscountRule };
+export type OrderPriceSummaryCardProps = {
+  compact?: boolean;
+  detailRows: OrderPriceSummaryRow[];
+  calculationRows: OrderPriceSummaryRow[];
+  total: string;
+};
+
+export type {
+  CatalogItemQuantityDiscountRule,
+  ProductEditorType,
+  QuantityDiscountDraft,
+  UniversalProductSpecificData
+};
+export type SimulatorOption = CatalogSimulatorOption;

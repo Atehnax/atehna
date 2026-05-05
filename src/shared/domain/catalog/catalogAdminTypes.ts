@@ -254,6 +254,7 @@ export type SimulatorOption = {
 };
 
 export type UniversalProductSpecificData = {
+  dimensions: Record<string, unknown>;
   simple: Record<string, unknown>;
   weight: Record<string, unknown>;
   uniqueMachine: Record<string, unknown>;

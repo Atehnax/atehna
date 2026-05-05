@@ -22,7 +22,7 @@ const buildChoiceName = (row: CatalogItemSeedRow) => {
   const baseName = row.item_name.trim();
   if (row.variant_count <= 1) return baseName;
 
-  const dimensions = [row.length, row.width, row.thickness]
+  const dimensions = [row.thickness, row.length, row.width]
     .filter(isFiniteMeasurement)
     .map(formatMeasurement);
 

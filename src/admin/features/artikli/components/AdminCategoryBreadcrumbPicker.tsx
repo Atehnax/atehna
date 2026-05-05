@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdminBreadcrumbPath from '@/shared/ui/admin-breadcrumb-path';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 type CategoryNodeEntry = {
   key: string;
@@ -105,6 +106,8 @@ export default function AdminCategoryBreadcrumbPicker({
   const [expandedCollapsedSegments, setExpandedCollapsedSegments] = useState<Set<number>>(new Set());
   const [menuWidthPx, setMenuWidthPx] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const closePicker = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [containerRef], []);
 
   const allPaths = useMemo(() => {
     const selectedPath = value.join(' / ');
@@ -167,26 +170,11 @@ export default function AdminCategoryBreadcrumbPicker({
     if (nextWidth > 0) setMenuWidthPx(nextWidth);
   }, [isOpen, menuWidthPx]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closePicker
+  });
 
   useEffect(() => {
     setActiveIndex(0);

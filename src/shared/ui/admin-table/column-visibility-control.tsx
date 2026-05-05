@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import MenuPanel from '../menu/menu-panel';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type ColumnOption = {
@@ -31,28 +32,14 @@ export function ColumnVisibilityControl({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [rootRef], []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!rootRef.current?.contains(target)) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
 
   return (
     <div ref={rootRef} className={`relative ${className ?? ''}`}>

@@ -81,6 +81,7 @@ import {
   useOrderNumberAvailability
 } from '@/admin/components/useOrderNumberAvailability';
 import { CustomSelect } from '@/shared/ui/select';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
@@ -250,6 +251,8 @@ function OrdersInlineChipSelect<Value extends string>({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [rootRef, menuRef], []);
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current || typeof window === 'undefined') return;
@@ -271,36 +274,25 @@ function OrdersInlineChipSelect<Value extends string>({
     setMenuPosition({ top, left, width: resolvedWidth });
   }, [menuWidth]);
 
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
+
   useEffect(() => {
     if (!isOpen) return;
 
     updateMenuPosition();
     const frameId = window.requestAnimationFrame(() => updateMenuPosition());
 
-    const handleDocumentClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
     const handleWindowChange = () => updateMenuPosition();
 
-    document.addEventListener('mousedown', handleDocumentClick);
-    document.addEventListener('keydown', handleEscape);
     window.addEventListener('resize', handleWindowChange);
     window.addEventListener('scroll', handleWindowChange, true);
 
     return () => {
       window.cancelAnimationFrame(frameId);
-      document.removeEventListener('mousedown', handleDocumentClick);
-      document.removeEventListener('keydown', handleEscape);
       window.removeEventListener('resize', handleWindowChange);
       window.removeEventListener('scroll', handleWindowChange, true);
     };
@@ -574,6 +566,10 @@ export default function AdminOrdersTable({
 
   const [isStatusHeaderMenuOpen, setIsStatusHeaderMenuOpen] = useState(false);
   const [isPaymentHeaderMenuOpen, setIsPaymentHeaderMenuOpen] = useState(false);
+  const closeStatusHeaderMenu = useCallback(() => setIsStatusHeaderMenuOpen(false), []);
+  const closePaymentHeaderMenu = useCallback(() => setIsPaymentHeaderMenuOpen(false), []);
+  const statusHeaderDismissRefs = useMemo(() => [statusHeaderMenuRef], []);
+  const paymentHeaderDismissRefs = useMemo(() => [paymentHeaderMenuRef], []);
   const [visibleColumns, setVisibleColumns] = useState<Record<OrdersColumnKey, boolean>>({
     order: true,
     date: true,
@@ -631,34 +627,17 @@ export default function AdminOrdersTable({
     return () => globalThis.clearTimeout(timeoutId);
   }, []);
 
-  useEffect(() => {
-    if (!isStatusHeaderMenuOpen && !isPaymentHeaderMenuOpen) return;
+  useDropdownDismiss({
+    open: isStatusHeaderMenuOpen,
+    refs: statusHeaderDismissRefs,
+    onClose: closeStatusHeaderMenu
+  });
 
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!statusHeaderMenuRef.current?.contains(target)) {
-        setIsStatusHeaderMenuOpen(false);
-      }
-      if (!paymentHeaderMenuRef.current?.contains(target)) {
-        setIsPaymentHeaderMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsStatusHeaderMenuOpen(false);
-        setIsPaymentHeaderMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isPaymentHeaderMenuOpen, isStatusHeaderMenuOpen]);
+  useDropdownDismiss({
+    open: isPaymentHeaderMenuOpen,
+    refs: paymentHeaderDismissRefs,
+    onClose: closePaymentHeaderMenu
+  });
 
   useHeaderFilterDismiss({
     isOpen: Boolean(openHeaderFilter),

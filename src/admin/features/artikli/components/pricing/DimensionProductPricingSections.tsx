@@ -10,7 +10,9 @@ export {
   ProductTypeSelectorCardRow,
   SimpleProductModule,
   UniqueMachineProductModule,
-  WeightProductModule,
+  WeightProductModule
+} from './DimensionProductPricingSectionsImpl';
+export {
   adminProductInputChipClassName,
   buildMachineCatalogVariants,
   buildSimpleCatalogVariants,
@@ -20,7 +22,6 @@ export {
   createInitialQuantityDiscountDrafts,
   createInitialTypeSpecificData,
   createQuantityDiscountDraft,
-  getDimensionSimulatorOptions,
   getMachineSimulatorOptions,
   getSimpleSimulatorOptions,
   getWeightSimulatorOptions,
@@ -28,7 +29,8 @@ export {
   normalizeUniqueMachineProductData,
   normalizeWeightProductData,
   serializeQuantityDiscountTargets
-} from './DimensionProductPricingSectionsRuntime.js';
+} from './productData';
+export { getDimensionSimulatorOptions } from './variantUtils';
 
 export type {
   CommercialToolsPanelProps,

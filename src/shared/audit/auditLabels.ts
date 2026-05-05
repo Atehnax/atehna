@@ -44,7 +44,7 @@ export const AUDIT_FIELD_LABELS: Record<string, string> = {
   variantName: 'Naziv različice',
   length: 'Dolžina',
   width: 'Širina',
-  thickness: 'Debelina',
+  thickness: 'Debelina/fi',
   weight: 'Teža',
   errorTolerance: 'Toleranca',
   discountPct: 'Popust',

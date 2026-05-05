@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import IconButton from '../icon-button/IconButton';
 import { MoreActionsIcon } from '@/shared/ui/icons/AdminActionIcons';
 import MenuItem from '../menu/menu-item';
 import MenuPanel from '../menu/menu-panel';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 type RowActionItem = {
   key: string;
@@ -45,6 +46,8 @@ export default function RowActionsDropdown({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [rootRef, menuRef], []);
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current || typeof window === 'undefined') {
@@ -78,29 +81,11 @@ export default function RowActionsDropdown({
     });
   }, [menuWidth]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen]);
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
 
   useLayoutEffect(() => {
     if (!isOpen) {

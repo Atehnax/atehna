@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   type GeneratePdfType,
@@ -13,6 +13,7 @@ import {
 } from '@/admin/components/adminOrdersPdfCellUtils';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 type PdfButton = { key: PdfTypeKey; short: string; full: string };
 
@@ -58,8 +59,17 @@ export default function AdminOrdersPdfCell({
   const { toast } = useToast();
   const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeMenu = useCallback(() => setOpenType(null), []);
+  const dismissRefs = useMemo(() => [rootRef, menuRef], []);
+
+  useDropdownDismiss({
+    open: Boolean(openType),
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
 
   useEffect(() => {
     if (!openType) return;
@@ -133,26 +143,10 @@ export default function AdminOrdersPdfCell({
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
 
-    const onOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (menuRef.current?.contains(target)) return;
-      if (anchor.contains(target)) return;
-      setOpenType(null);
-    };
-
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenType(null);
-    };
-
-    document.addEventListener('mousedown', onOutside);
-    document.addEventListener('keydown', onEscape);
-
     return () => {
       window.cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
-      document.removeEventListener('mousedown', onOutside);
-      document.removeEventListener('keydown', onEscape);
     };
   }, [openType, loadingType]);
 
@@ -263,7 +257,7 @@ export default function AdminOrdersPdfCell({
   };
 
   return (
-    <div className="relative isolate inline-flex items-center" data-no-row-nav>
+    <div ref={rootRef} className="relative isolate inline-flex items-center" data-no-row-nav>
       {PDF_BUTTONS.map((button, index) => {
         const isOpen = openType === button.key;
         const hasExistingDocument = (groupedDocuments[button.key] ?? []).length > 0;

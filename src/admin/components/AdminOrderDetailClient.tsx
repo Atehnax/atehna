@@ -34,6 +34,7 @@ import {
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
 import { useToast } from '@/shared/ui/toast';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
@@ -317,22 +318,14 @@ function OrderDatePickerField({
   );
   const rootRef = useRef<HTMLDivElement | null>(null);
   const monthFormatter = useMemo(() => new Intl.DateTimeFormat('sl-SI', { month: 'long', year: 'numeric' }), []);
+  const closeCalendar = useCallback(() => setIsOpen(false), []);
+  const calendarDismissRefs = useMemo(() => [rootRef], []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onDocClick = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-    };
-  }, [isOpen]);
+  useDropdownDismiss({
+    open: isOpen,
+    refs: calendarDismissRefs,
+    onClose: closeCalendar
+  });
 
   const toIsoDate = (date: Date) => {
     const year = date.getFullYear();
@@ -497,6 +490,8 @@ function ChipDropdown({
   const [menuRect, setMenuRect] = useState<{ left: number; top: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [containerRef, menuRef], []);
 
   const updateMenuRect = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -509,23 +504,11 @@ function ChipDropdown({
     });
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
-      setIsOpen(false);
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onEscape);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onEscape);
-    };
-  }, [isOpen]);
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeMenu
+  });
 
   useEffect(() => {
     if (!isOpen) {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { createPortal } from 'react-dom';
 import { HexColorPicker } from 'react-colorful';
 import { colord } from 'colord';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 const numberInputClass = '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const compactInputClass = 'h-6 w-full rounded-md border border-slate-300 bg-white px-1.5 text-[12px] text-slate-900 outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0';
@@ -25,6 +26,7 @@ export default function OpisColorPopover({
   const hexInputRef = useRef<HTMLInputElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [hexDraft, setHexDraft] = useState(color);
+  const dismissRefs = useMemo(() => [anchorRef, panelRef], [anchorRef]);
 
   useEffect(() => {
     setHexDraft(color);
@@ -45,6 +47,12 @@ export default function OpisColorPopover({
     setPosition({ top, left });
   }, [anchorRef]);
 
+  useDropdownDismiss({
+    open,
+    refs: dismissRefs,
+    onClose
+  });
+
   useEffect(() => {
     if (!open) return;
     updatePosition();
@@ -53,24 +61,12 @@ export default function OpisColorPopover({
       hexInputRef.current?.focus();
     });
 
-    const onDocMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (anchorRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      onClose();
-    };
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
     const onWindowChange = () => updatePosition();
 
-    document.addEventListener('mousedown', onDocMouseDown);
-    document.addEventListener('keydown', onEscape);
     window.addEventListener('resize', onWindowChange);
     window.addEventListener('scroll', onWindowChange, true);
     return () => {
       window.cancelAnimationFrame(frame);
-      document.removeEventListener('mousedown', onDocMouseDown);
-      document.removeEventListener('keydown', onEscape);
       window.removeEventListener('resize', onWindowChange);
       window.removeEventListener('scroll', onWindowChange, true);
     };

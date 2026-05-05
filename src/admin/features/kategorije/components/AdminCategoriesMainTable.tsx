@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   PointerSensor,
   useSensor,
@@ -521,6 +522,8 @@ export default function AdminCategoriesMainTable({
   const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const pendingImageUploadsRef = useRef<Record<string, PendingImageUpload>>({});
   const statusHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const closeStatusHeaderMenu = useCallback(() => setIsStatusHeaderMenuOpen(false), []);
+  const statusHeaderDismissRefs = useMemo(() => [statusHeaderMenuRef], []);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const isInlineSavingRef = useRef(false);
   const tableAutosaveBlockedRef = useRef(false);
@@ -792,28 +795,11 @@ export default function AdminCategoriesMainTable({
     window.localStorage.setItem(CATEGORY_STATUS_STORAGE_KEY, JSON.stringify(statusByRow));
   }, [statusByRow]);
 
-  useEffect(() => {
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      if (isStatusHeaderMenuOpen && statusHeaderMenuRef.current && !statusHeaderMenuRef.current.contains(target)) {
-        setIsStatusHeaderMenuOpen(false);
-      }
-    };
-
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsStatusHeaderMenuOpen(false);
-      }
-    };
-
-    window.addEventListener('mousedown', closeOnOutsideClick);
-    window.addEventListener('keydown', closeOnEscape);
-    return () => {
-      window.removeEventListener('mousedown', closeOnOutsideClick);
-      window.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [isStatusHeaderMenuOpen]);
+  useDropdownDismiss({
+    open: isStatusHeaderMenuOpen,
+    refs: statusHeaderDismissRefs,
+    onClose: closeStatusHeaderMenu
+  });
 
   const resolvePendingImageCatalog = useCallback(async (source: CatalogData): Promise<CatalogData> => {
     const pendingEntries = Object.entries(pendingImageUploadsRef.current);

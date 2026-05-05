@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import MenuItem from '../menu/menu-item';
 import MenuPanel from '../menu/menu-panel';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 
 type CustomSelectOption<Value extends string> = {
@@ -53,11 +54,19 @@ export default function CustomSelect<Value extends string = string>({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const closeSelect = useCallback(() => setIsOpen(false), []);
+  const dismissRefs = useMemo(() => [containerRef, menuContainerRef], []);
 
   const selectedLabel = useMemo(
     () => options.find((option) => option.value === value)?.label ?? placeholder,
     [options, placeholder, value]
   );
+
+  useDropdownDismiss({
+    open: isOpen,
+    refs: dismissRefs,
+    onClose: closeSelect
+  });
 
   useEffect(() => {
     onOpenChange?.(isOpen);
@@ -75,29 +84,10 @@ export default function CustomSelect<Value extends string = string>({
 
     updateMenuRect();
 
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const clickedInsideTrigger = containerRef.current?.contains(target);
-      const clickedInsideMenu = menuContainerRef.current?.contains(target);
-      if (!clickedInsideTrigger && !clickedInsideMenu) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
     window.addEventListener('resize', updateMenuRect);
     window.addEventListener('scroll', updateMenuRect, true);
 
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
       window.removeEventListener('resize', updateMenuRect);
       window.removeEventListener('scroll', updateMenuRect, true);
     };

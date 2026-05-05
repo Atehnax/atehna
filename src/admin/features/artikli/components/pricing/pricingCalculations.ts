@@ -1,4 +1,5 @@
-import type { QuantityDiscountDraft, SimulatorOption } from './pricingTypes';
+import type { PricingSimulatorOption, QuantityDiscountDraft } from './pricingTypes';
+import { allDiscountTargetLabel, normalizeDiscountTargetList } from './productData';
 
 export const defaultVatRate = 0.22;
 export const defaultVatMultiplier = 1 + defaultVatRate;
@@ -15,29 +16,36 @@ export function clampDiscountPercent(value: number): number {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
 }
 
-export function getSimulatorOptionSku(option: Pick<SimulatorOption, 'id' | 'sku'>): string {
-  return option.sku?.trim() || option.id;
+export function getSimulatorOptionSku(option: Pick<PricingSimulatorOption, 'id' | 'label' | 'targetKey'>): string {
+  if (option.targetKey?.trim()) return option.targetKey.trim();
+  const match = option.label.match(/\(([^()]+)\)\s*$/);
+  return match?.[1]?.trim() || option.id;
 }
 
 export function discountRuleTargetsVariant(
   rule: Pick<QuantityDiscountDraft, 'variantTargets'>,
-  option: Pick<SimulatorOption, 'id' | 'sku'>
+  option: PricingSimulatorOption | null
 ): boolean {
-  const targets = rule.variantTargets.length > 0 ? rule.variantTargets : ['Vse'];
-  return targets.includes('Vse') || targets.includes(getSimulatorOptionSku(option));
+  const targets = normalizeDiscountTargetList(rule.variantTargets);
+  if (targets.includes(allDiscountTargetLabel) || !option) return true;
+  const sku = getSimulatorOptionSku(option).toLocaleLowerCase('sl-SI');
+  const label = option.label.toLocaleLowerCase('sl-SI');
+  return targets.some((target) => {
+    const normalized = target.toLocaleLowerCase('sl-SI');
+    return normalized === sku || label.includes(normalized);
+  });
 }
 
 export function discountRuleTargetsAllCustomers(
   rule: Pick<QuantityDiscountDraft, 'customerTargets'>
 ): boolean {
-  const targets = rule.customerTargets.length > 0 ? rule.customerTargets : ['Vse'];
-  return targets.includes('Vse');
+  return normalizeDiscountTargetList(rule.customerTargets).includes(allDiscountTargetLabel);
 }
 
 export function getBestQuantityDiscount(
   rules: readonly QuantityDiscountDraft[],
   quantity: number,
-  option: SimulatorOption
+  option: PricingSimulatorOption | null
 ): QuantityDiscountDraft | null {
   return rules
     .filter(
@@ -55,7 +63,7 @@ export function getBestQuantityDiscount(
 export function getNextQuantityDiscount(
   rules: readonly QuantityDiscountDraft[],
   quantity: number,
-  option: SimulatorOption
+  option: PricingSimulatorOption | null
 ): QuantityDiscountDraft | null {
   return rules
     .filter(

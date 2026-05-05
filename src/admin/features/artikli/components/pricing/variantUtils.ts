@@ -1,31 +1,40 @@
-import type { Variant } from '@/admin/features/artikli/lib/familyModel';
-import type { SimulatorOption } from './pricingTypes';
+import { formatCurrency, type Variant } from '@/admin/features/artikli/lib/familyModel';
+import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
+import { formatPieceCount } from './productData';
+import type { PricingSimulatorOption } from './pricingTypes';
 
 export function isFiniteDimensionValue(value: number | null | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-export function getDimensionSimulatorLabel(variant: Variant, index: number): string {
-  const measurements = [variant.length, variant.width, variant.thickness]
+export function getDimensionSimulatorLabel(variant: Variant): string {
+  const dimensionValues = [variant.thickness, variant.length, variant.width];
+  const dimensions = dimensionValues
     .filter(isFiniteDimensionValue)
-    .map((value) => `${value}`);
+    .map((value) => formatDecimalForDisplay(value));
 
-  if (measurements.length > 0) {
-    return `${measurements.join(' × ')} mm`;
-  }
-
-  return variant.label?.trim() || `Različica ${index + 1}`;
+  return dimensions.length > 0 ? `${dimensions.join(' × ')} mm` : variant.label;
 }
 
-export function getDimensionSimulatorOptions(variants: readonly Variant[]): SimulatorOption[] {
-  return variants.map((variant, index) => ({
-    id: variant.id,
-    label: getDimensionSimulatorLabel(variant, index),
-    sku: variant.sku,
-    discountUnitLabel: 'kos',
-    stockLabel: `${variant.stock ?? 0} kos`,
-    minOrderLabel: `${variant.minOrder ?? 1} kos`
-  }));
+export function getDimensionSimulatorOptions(variants: readonly Variant[]): PricingSimulatorOption[] {
+  return variants.map((variant) => {
+    const dimensionLabel = getDimensionSimulatorLabel(variant);
+
+    return {
+      id: variant.id,
+      label: dimensionLabel,
+      dimensionLabel,
+      dimensionThickness: variant.thickness ?? undefined,
+      dimensionWidth: variant.width ?? undefined,
+      dimensionLength: variant.length ?? undefined,
+      basePrice: variant.price,
+      quantityUnit: 'kos',
+      targetKey: variant.sku || variant.id,
+      summaryLabel: formatCurrency(variant.price),
+      stockLabel: formatPieceCount(variant.stock),
+      minOrderLabel: formatPieceCount(Math.max(1, Math.floor(Number(variant.minOrder) || 1)))
+    };
+  });
 }
 
 export function normalizeSkuPart(value: string): string {

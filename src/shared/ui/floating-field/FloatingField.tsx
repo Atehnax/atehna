@@ -109,15 +109,49 @@ export function FloatingInput({
   const classes = toneClasses[tone];
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
-  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
-    <input
-      {...props}
-      id={id}
-      className={classNames((isStatic ? classes.staticInput : classes.input), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
-      placeholder={placeholder ?? label}
-      aria-label={ariaLabel ?? label}
-    />
-  </div>;
+  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
+  const fieldBackgroundVariable =
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
+  const currentValue = props.value ?? props.defaultValue ?? '';
+  const hasValue = String(currentValue).length > 0;
+
+  return (
+    <div
+      className={classNames(
+        'ff-root',
+        classes.shell,
+        isStatic && classes.staticShell,
+        muted && 'bg-[color:var(--field-locked-bg)]'
+      )}
+      data-floating-field
+      data-filled={hasValue}
+      style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
+    >
+      {isStatic ? (
+        <label htmlFor={id} className={classes.inputLabelStatic}>
+          {label}
+        </label>
+      ) : null}
+      <input
+        {...props}
+        id={id}
+        className={classNames(
+          'ff-control',
+          isStatic ? classes.staticInput : classes.input,
+          isStatic && 'mt-1',
+          "font-['Inter',system-ui,sans-serif]",
+          className
+        )}
+        placeholder={placeholder ?? ''}
+        aria-label={ariaLabel ?? label}
+      />
+      {!isStatic ? (
+        <label htmlFor={id} className={classes.inputLabel}>
+          {label}
+        </label>
+      ) : null}
+    </div>
+  );
 }
 
 export function FloatingTextarea({
@@ -133,15 +167,49 @@ export function FloatingTextarea({
   const classes = toneClasses[tone];
   const isStatic = labelMode === 'static';
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
-  return <div className={classNames(classes.shell, isStatic && classes.staticShell, muted && 'bg-[color:var(--field-locked-bg)]')} data-floating-field>
-    <textarea
-      {...props}
-      id={id}
-      className={classNames((isStatic ? classes.staticTextarea : classes.textarea), isStatic && 'mt-1', "font-['Inter',system-ui,sans-serif]", className)}
-      placeholder={placeholder ?? label}
-      aria-label={ariaLabel ?? label}
-    />
-  </div>;
+  const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
+  const fieldBackgroundVariable =
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
+  const currentValue = props.value ?? props.defaultValue ?? '';
+  const hasValue = String(currentValue).length > 0;
+
+  return (
+    <div
+      className={classNames(
+        'ff-root',
+        classes.shell,
+        isStatic && classes.staticShell,
+        muted && 'bg-[color:var(--field-locked-bg)]'
+      )}
+      data-floating-field
+      data-filled={hasValue}
+      style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
+    >
+      {isStatic ? (
+        <label htmlFor={id} className={classes.textareaLabelStatic}>
+          {label}
+        </label>
+      ) : null}
+      <textarea
+        {...props}
+        id={id}
+        className={classNames(
+          'ff-control',
+          isStatic ? classes.staticTextarea : classes.textarea,
+          isStatic && 'mt-1',
+          "font-['Inter',system-ui,sans-serif]",
+          className
+        )}
+        placeholder={placeholder ?? ''}
+        aria-label={ariaLabel ?? label}
+      />
+      {!isStatic ? (
+        <label htmlFor={id} className={classes.textareaLabel}>
+          {label}
+        </label>
+      ) : null}
+    </div>
+  );
 }
 
 export function FloatingSelect({
@@ -166,7 +234,7 @@ export function FloatingSelect({
 
   return (
     <div
-      className={classNames(classes.shell, isStatic && classes.staticShell)}
+      className={classNames('ff-root', classes.shell, isStatic && classes.staticShell)}
       data-floating-field
       data-has-value={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}

@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { FloatingInput } from '@/shared/ui/floating-field';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -15,6 +16,7 @@ export default function PurchaseOrderUploadForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState('');
   const { toast } = useToast();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -65,6 +67,7 @@ export default function PurchaseOrderUploadForm() {
       setMessage('Naročilnica je uspešno shranjena.');
       toast.success('Poslano');
       form.reset();
+      setSelectedFileName('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.');
       toast.error('Napaka pri pošiljanju');
@@ -81,7 +84,7 @@ export default function PurchaseOrderUploadForm() {
         value={orderNumber}
         onChange={(event) => setOrderNumber(event.target.value)}
       />
-      <div>
+      <div className="space-y-1.5">
         <label className="text-sm font-medium text-slate-700" htmlFor="purchaseOrder">
           Datoteka naročilnice (PDF ali JPG)
         </label>
@@ -90,10 +93,23 @@ export default function PurchaseOrderUploadForm() {
           name="purchaseOrder"
           type="file"
           accept="application/pdf,image/jpeg"
-          className="mt-1 block w-full text-sm text-slate-600"
+          className="peer sr-only"
+          onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? '')}
         />
+        <div className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-300 bg-white px-3">
+          <label
+            htmlFor="purchaseOrder"
+            className={`${buttonTokenClasses.outline} h-8 shrink-0 cursor-pointer px-3 text-xs peer-focus-visible:border-[color:var(--blue-500)]`}
+          >
+            Izberi datoteko
+          </label>
+          <span className="min-w-0 truncate text-sm text-slate-600">
+            {selectedFileName || 'Ni izbrane datoteke'}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500">Največ 10 MB.</p>
       </div>
-      <Button type="submit" disabled={isSubmitting} variant="brand" size="sm">
+      <Button type="submit" disabled={isSubmitting} variant="brand" size="sm" className="w-full sm:w-auto">
         {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Nalaganje...</span> : 'Naloži naročilnico'}
       </Button>
       {message && <p className="text-sm text-slate-600">{message}</p>}

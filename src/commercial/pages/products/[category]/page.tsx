@@ -87,7 +87,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
                     return <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
                       <div>
                         <Link href={itemHref} prefetch={false} className="group block">
-                          {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
+                          {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill sizes="(min-width: 640px) 50vw, 100vw" className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
                           <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">{item.name}</p>
                         </Link>
                         <p className="mt-2 text-sm text-slate-600">{item.description}</p>
@@ -102,7 +102,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
           </div>
         </div>
         <aside className="space-y-4">
-          <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">{categoryImageSrc ? <Image src={categoryImageSrc} alt={category.title} fill className="object-cover" /> : null}</div>
+          <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">{categoryImageSrc ? <Image src={categoryImageSrc} alt={category.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" /> : null}</div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={`/products/${item.slug}`} prefetch={false} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
         </aside>
       </div>

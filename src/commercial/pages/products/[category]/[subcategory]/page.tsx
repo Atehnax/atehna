@@ -55,7 +55,7 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
             <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
               <div>
                 <Link href={itemHref} className="group block">
-                  {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
+                  {itemImageSrc ? <div className="relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><Image src={itemImageSrc} alt={item.name} fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-contain p-3 transition duration-300 group-hover:scale-105" /></div> : null}
                   <p className="mt-3 text-base font-semibold text-slate-900 transition group-hover:text-brand-600">{item.name}</p>
                 </Link>
                 <p className="mt-2 text-sm text-slate-600">{item.description}</p>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import SiteFooterGate from '@/commercial/components/SiteFooterGate';
 import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
+import CommercialScaleFrame from '@/commercial/components/CommercialScaleFrame';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 
 export const metadata: Metadata = {
@@ -32,9 +33,11 @@ export default function CommercialRootLayout({ children }: { children: React.Rea
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
           <CommercialEnhancements />
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooterGate />
+          <CommercialScaleFrame>
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+            <SiteFooterGate />
+          </CommercialScaleFrame>
           <Toaster />
         </ToastProvider>
       </body>

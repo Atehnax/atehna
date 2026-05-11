@@ -53,7 +53,7 @@ export default async function ItemPage(
         <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">{category.title} · {subcategory.title}</p>
         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{item.name}</h1>
         <p className="mt-4 text-lg text-slate-600">{item.description}</p>
-        {images[0] && <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"><Image src={images[0]} alt={item.name} fill className="object-contain p-8" /></div>}
+        {images[0] && <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"><Image src={images[0]} alt={item.name} fill sizes="(min-width: 768px) 768px, 100vw" className="object-contain p-8" /></div>}
         <p className="mt-4 text-xl font-semibold text-slate-900">{formatCatalogPrice(effectivePrice)}</p>
         <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={`${category.title} / ${subcategory.title}`} className="mt-6" />
       </div>

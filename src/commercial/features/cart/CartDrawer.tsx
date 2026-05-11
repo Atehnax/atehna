@@ -5,6 +5,8 @@ import { useCartStore } from '@/commercial/cart/store';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { QuantityInput } from '@/shared/ui/quantity-input';
+import { CloseIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { formatEuro } from '@/shared/domain/formatting';
 
 export default function CartDrawer() {
@@ -42,13 +44,15 @@ export default function CartDrawer() {
               <p className="text-lg font-semibold text-slate-900">Košarica</p>
               <p className="text-sm text-slate-500">Priprava naročila za šolo.</p>
             </div>
-            <button
+            <Button
               type="button"
               onClick={closeDrawer}
-              className="text-sm font-semibold text-slate-500 hover:text-slate-700"
+              variant="close-x"
+              aria-label="Zapri košarico"
+              title="Zapri"
             >
-              Zapri
-            </button>
+              <CloseIcon className="h-4 w-4" />
+            </Button>
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
@@ -73,21 +77,25 @@ export default function CartDrawer() {
                         <p className="mt-1 text-xs text-slate-500">Enota: {item.unit}</p>
                       )}
                     </div>
-                    <button
+                    <IconButton
                       type="button"
                       onClick={() => removeItem(item.sku)}
-                      className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                      tone="danger"
+                      shape="square"
+                      size="sm"
+                      aria-label={`Odstrani ${item.name}`}
+                      title="Odstrani"
                     >
-                      Odstrani
-                    </button>
+                      <TrashCanIcon className="h-4 w-4" />
+                    </IconButton>
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
                     <IconButton
                       type="button"
                       onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                      shape="rounded"
-                      size="md"
+                      shape="square"
+                      size="sm"
                       className="text-sm font-semibold"
                     >
                       −
@@ -103,8 +111,8 @@ export default function CartDrawer() {
                     <IconButton
                       type="button"
                       onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                      shape="rounded"
-                      size="md"
+                      shape="square"
+                      size="sm"
                       className="text-sm font-semibold"
                     >
                       +
@@ -131,7 +139,7 @@ export default function CartDrawer() {
                 href="/order"
                 prefetch={false}
                 onClick={closeDrawer}
-                className="rounded-full bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+                className={`${buttonTokenClasses.primary} w-full`}
               >
                 Nadaljuj na naročilo
               </Link>

@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans";
+  src: url("/fonts/NotoSans-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Core surfaces */
   --surface: #ffffff;
@@ -99,11 +115,14 @@
   --orders-analytics-status-sent: #38bdf8;
   --orders-analytics-status-finished: #0284c7;
   --orders-analytics-status-other: #cbd5e1;
+
+  --commercial-storefront-scale: 0.75;
+  --commercial-order-sidebar-zoom: 1.2;
 }
 
 body {
   @apply bg-[color:var(--bg)] text-[color:var(--text)];
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Noto Sans", "Inter", system-ui, sans-serif;
 }
 
 input[type='checkbox'],
@@ -141,6 +160,16 @@ textarea[readonly] {
 
 .container-base {
   @apply mx-auto w-full max-w-6xl px-6;
+}
+
+.commercial-storefront-scale {
+  width: 100%;
+  min-height: 100vh;
+  zoom: var(--commercial-storefront-scale);
+}
+
+.commercial-storefront-scale .commercial-order-sidebar {
+  zoom: var(--commercial-order-sidebar-zoom);
 }
 
 @layer base {
@@ -196,6 +225,21 @@ textarea[readonly] {
     border: 1px solid var(--border);
     box-shadow: var(--shadow-soft);
   }
+}
+
+@keyframes technical-preview-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.technical-preview-image {
+  animation: technical-preview-fade 220ms ease-out;
 }
 
 

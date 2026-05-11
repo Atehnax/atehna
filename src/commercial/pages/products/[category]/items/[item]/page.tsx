@@ -62,14 +62,14 @@ export default async function CategoryItemPage(
         <p className="mt-4 text-lg text-slate-600">{item.description}</p>
         {images[0] && (
           <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <Image src={images[0]} alt={item.name} fill className="object-contain p-8" />
+            <Image src={images[0]} alt={item.name} fill sizes="(min-width: 768px) 768px, 100vw" className="object-contain p-8" />
           </div>
         )}
         {images.length > 1 ? (
           <div className="mt-3 grid grid-cols-5 gap-2">
             {images.slice(1).map((img) => (
               <div key={img} className="relative h-14 overflow-hidden rounded border border-slate-200 bg-slate-50">
-                <Image src={img} alt={`${item.name} dodatna slika`} fill className="object-cover" />
+                <Image src={img} alt={`${item.name} dodatna slika`} fill sizes="112px" className="object-cover" />
               </div>
             ))}
           </div>

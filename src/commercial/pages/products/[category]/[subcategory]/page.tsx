@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { catalogCategoryHref, catalogSubcategoryItemHref } from '@/commercial/catalog/catalogRoutes';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku, sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategorySlugsServer, getCatalogSubcategoryPageDataServer, getCatalogSubcategoryServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
@@ -49,7 +50,7 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
           const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
           const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
           const price = formatCatalogPrice(finalPrice);
-          const itemHref = `/products/${category.slug}/${subcategory.slug}/${item.slug}`;
+          const itemHref = catalogSubcategoryItemHref(category.slug, subcategory.slug, item.slug);
           const itemImageSrc = getImageSrc(item.images?.[0]) ?? getImageSrc(item.image);
           return (
             <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
@@ -68,7 +69,7 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
       </div>
 
       <div className="mt-10">
-        <Link href={`/products/${category.slug}`} className="text-sm font-semibold text-brand-600">← Nazaj na {category.title}</Link>
+        <Link href={catalogCategoryHref(category.slug)} className="text-sm font-semibold text-brand-600">← Nazaj na {category.title}</Link>
       </div>
     </div>
   );

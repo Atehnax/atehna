@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { catalogCategoryHref } from '@/commercial/catalog/catalogRoutes';
 import { getPageContent } from '@/commercial/content/content';
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import MdxContent from '@/commercial/components/MdxContent';
@@ -35,7 +36,7 @@ export default async function ProductsPage() {
           return (
             <Link
               key={category.slug}
-              href={`/products/${category.slug}`}
+              href={catalogCategoryHref(category.slug)}
               prefetch={false}
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-brand-200"
             >

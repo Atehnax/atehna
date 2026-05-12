@@ -1,4 +1,5 @@
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
+import { catalogCategoryHref } from '@/commercial/catalog/catalogRoutes';
 import CategoryCard from '@/commercial/components/landing/CategoryCard';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 
@@ -16,7 +17,7 @@ export default async function CategoryGrid() {
           <CategoryCard
             key={category.slug}
             title={category.title}
-            href={`/products/${category.slug}`}
+            href={catalogCategoryHref(category.slug)}
             image={category.image}
           />
         ))}

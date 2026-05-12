@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { catalogCategoryHref, catalogSubcategoryHref } from '@/commercial/catalog/catalogRoutes';
 import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalogUtils';
 import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
@@ -58,8 +59,8 @@ export default async function ItemPage(
         <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={`${category.title} / ${subcategory.title}`} className="mt-6" />
       </div>
       <div className="mt-10 flex flex-wrap gap-4">
-        <Link href={`/products/${category.slug}/${subcategory.slug}`} className="text-sm font-semibold text-brand-600">← Nazaj na {subcategory.title}</Link>
-        <Link href={`/products/${category.slug}`} className="text-sm font-semibold text-brand-600">{category.title}</Link>
+        <Link href={catalogSubcategoryHref(category.slug, subcategory.slug)} className="text-sm font-semibold text-brand-600">← Nazaj na {subcategory.title}</Link>
+        <Link href={catalogCategoryHref(category.slug)} className="text-sm font-semibold text-brand-600">{category.title}</Link>
       </div>
     </div>
   );

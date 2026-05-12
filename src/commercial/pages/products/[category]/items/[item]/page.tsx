@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { catalogCategoryHref } from '@/commercial/catalog/catalogRoutes';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -90,7 +91,7 @@ export default async function CategoryItemPage(
       </div>
 
       <div className="mt-10 flex flex-wrap gap-4">
-        <Link href={`/products/${category.slug}`} className="text-sm font-semibold text-brand-600">
+        <Link href={catalogCategoryHref(category.slug)} className="text-sm font-semibold text-brand-600">
           ← Nazaj na {category.title}
         </Link>
       </div>

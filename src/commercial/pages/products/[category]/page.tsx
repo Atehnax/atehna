@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { catalogCategoryHref, catalogCategoryItemHref, catalogSubcategoryHref } from '@/commercial/catalog/catalogRoutes';
 import {
   formatCatalogPrice,
   getCatalogCategoryItemPrice,
@@ -65,7 +66,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
                 <p className="mt-2 text-sm text-slate-600">Izberite podkategorijo za ogled razpoložljivih artiklov.</p>
                 <div className="mt-4 space-y-3">
                   {category.subcategories.map((subcategory) => (
-                    <Link key={subcategory.slug} href={`/products/${category.slug}/${subcategory.slug}`} prefetch={false} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition hover:border-brand-200">
+                    <Link key={subcategory.slug} href={catalogSubcategoryHref(category.slug, subcategory.slug)} prefetch={false} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition hover:border-brand-200">
                       <span className="font-semibold text-slate-900">{subcategory.title}</span>
                       <span className="text-xs text-slate-500">{subcategory.itemCount} {getArticleLabel(subcategory.itemCount)}</span>
                     </Link>
@@ -82,7 +83,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
                     const finalPrice = getDiscountedPrice(basePrice, item.discountPct);
                     const price = formatCatalogPrice(finalPrice);
                     const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
-                    const itemHref = `/products/${category.slug}/items/${item.slug}`;
+                    const itemHref = catalogCategoryItemHref(category.slug, item.slug);
                     const itemImageSrc = getImageSrc(item.images?.[0]) ?? getImageSrc(item.image);
                     return <div key={item.slug} className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm transition hover:border-brand-200">
                       <div>
@@ -103,7 +104,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
         </div>
         <aside className="space-y-4">
           <div className="relative h-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">{categoryImageSrc ? <Image src={categoryImageSrc} alt={category.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" /> : null}</div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={`/products/${item.slug}`} prefetch={false} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm"><p className="font-semibold text-slate-900">Druge kategorije</p><ul className="mt-3 space-y-2">{categories.filter((item) => item.slug !== category.slug).map((item) => <li key={item.slug}><Link href={catalogCategoryHref(item.slug)} prefetch={false} className="hover:text-brand-600">{item.title}</Link></li>)}</ul></div>
         </aside>
       </div>
     </div>

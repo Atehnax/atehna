@@ -238,8 +238,110 @@ textarea[readonly] {
   }
 }
 
+@keyframes siteMenuScaleIn {
+  0% {
+    opacity: 0;
+    transform: rotateX(-30deg) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateX(0deg) scale(1);
+  }
+}
+
+@keyframes siteMenuEnterFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(200px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes siteMenuEnterFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-200px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes siteMenuExitToRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(200px);
+  }
+}
+
+@keyframes siteMenuExitToLeft {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-200px);
+  }
+}
+
 .technical-preview-image {
   animation: technical-preview-fade 220ms ease-out;
+}
+
+.site-menu-perspective {
+  perspective: 2000px;
+  will-change: perspective;
+}
+
+.site-menu-viewport-open {
+  animation: siteMenuScaleIn 150ms ease;
+  transform-origin: center top;
+}
+
+.site-menu-content {
+  will-change: transform, opacity;
+}
+
+.site-menu-content-from-start {
+  animation: siteMenuEnterFromLeft 200ms ease;
+}
+
+.site-menu-content-from-end {
+  animation: siteMenuEnterFromRight 200ms ease;
+}
+
+.site-menu-content-to-start {
+  animation: siteMenuExitToLeft 200ms ease forwards;
+}
+
+.site-menu-content-to-end {
+  animation: siteMenuExitToRight 200ms ease forwards;
+}
+
+.site-menu-description-clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-menu-viewport-open,
+  .site-menu-content-from-start,
+  .site-menu-content-from-end,
+  .site-menu-content-to-start,
+  .site-menu-content-to-end {
+    animation: none;
+  }
 }
 
 

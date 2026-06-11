@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import type { CSSProperties, FormEvent, ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCartStore } from '@/commercial/cart/store';
+import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 
 type MenuKey = 'products' | 'resources' | 'solutions';
 type MenuItemIcon =
@@ -46,9 +48,36 @@ type MenuColumn = {
 
 type MenuDirection = 'forward' | 'backward';
 type MenuMotion = 'from-start' | 'from-end' | 'to-start' | 'to-end';
+type CtaVariant = 'secondary' | 'ghost' | 'primary';
 
 const desktopPanelId = 'site-desktop-mega-menu';
 const mobileMenuId = 'site-mobile-menu';
+const coreNavTextRenderingStyle: CSSProperties = {
+  fontFamily: 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  WebkitFontSmoothing: 'antialiased',
+  MozOsxFontSmoothing: 'grayscale'
+};
+const dropdownTextRenderingStyle: CSSProperties = {
+  fontFamily: coreNavTextRenderingStyle.fontFamily,
+  WebkitFontSmoothing: 'antialiased',
+  MozOsxFontSmoothing: 'grayscale',
+  textRendering: 'optimizeLegibility',
+  willChange: 'auto'
+};
+const navbarColorStyle = {
+  '--navbar-link-default': '#4d4d4d',
+  '--navbar-link-hover': '#171717',
+  '--navbar-link-current': '#171717',
+  '--navbar-trigger-open-bg': '#ebebeb',
+  '--navbar-dropdown-heading': '#4d4d4d',
+  '--navbar-dropdown-title': '#171717',
+  '--navbar-dropdown-description': '#636363',
+  '--navbar-dropdown-icon': '#4c4c4d',
+  '--navbar-dropdown-border': '#e6e6e6',
+  '--navbar-dropdown-border-hover': '#dcdcdc'
+} as CSSProperties & Record<string, string>;
+const coreNavTextClassName =
+  '[font-size:calc(14px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))]';
 
 const menuLabels: Record<MenuKey, string> = {
   products: 'Products',
@@ -279,11 +308,43 @@ const staticNavItems = [
   { label: 'Pricing', href: '/contact' }
 ];
 
-const ctas = [
-  { label: 'Ask AI', href: '/contact', variant: 'secondary' },
-  { label: 'Log In', href: '/admin', variant: 'ghost' },
-  { label: 'Sign Up', href: '/order', variant: 'primary' }
-] as const;
+const ctas: Array<{ label: string; href: string; variant: CtaVariant }> = [
+  { label: 'Vprašaj AI', href: '/contact', variant: 'secondary' }
+];
+
+const normalizeSearchValue = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+let navbarSearchItemsCache: CatalogSearchItem[] | null = null;
+let navbarSearchItemsPromise: Promise<CatalogSearchItem[]> | null = null;
+
+async function loadNavbarSearchItems(): Promise<CatalogSearchItem[]> {
+  if (navbarSearchItemsCache) return navbarSearchItemsCache;
+
+  if (!navbarSearchItemsPromise) {
+    navbarSearchItemsPromise = fetch('/api/catalog/search', { cache: 'force-cache' })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load catalog search items: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as { items?: CatalogSearchItem[] };
+        navbarSearchItemsCache = Array.isArray(payload.items) ? payload.items : [];
+        return navbarSearchItemsCache;
+      })
+      .catch((error) => {
+        navbarSearchItemsPromise = null;
+        throw error;
+      });
+  }
+
+  return navbarSearchItemsPromise;
+}
 
 function Brand() {
   return (
@@ -296,20 +357,20 @@ function Brand() {
   );
 }
 
-function ChevronIcon({ open }: { open: boolean }) {
+function ChevronIcon({ open, subtle = false }: { open: boolean; subtle?: boolean }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 16 16"
-      className={`h-[18px] w-[18px] transition duration-150 ${
-        open ? 'rotate-180 opacity-100' : 'opacity-60'
+      className={`block shrink-0 self-center ${subtle ? 'h-4 w-4' : 'h-[18px] w-[18px]'} transition duration-150 ${
+        open ? `rotate-180 ${subtle ? 'opacity-70' : 'opacity-100'}` : subtle ? 'opacity-50' : 'opacity-60'
       }`}
       fill="none"
     >
       <path
         d="m4 6 4 4 4-4"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth={subtle ? '1.5' : '1.6'}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -342,7 +403,7 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
-function MenuItemGlyph({ icon }: { icon: MenuItemIcon }) {
+function MenuItemGlyph({ icon, size = 'default' }: { icon: MenuItemIcon; size?: 'default' | 'desktopDropdown' }) {
   let path: ReactNode;
 
   switch (icon) {
@@ -571,15 +632,17 @@ function MenuItemGlyph({ icon }: { icon: MenuItemIcon }) {
       break;
   }
 
+  const isDesktopDropdown = size === 'desktopDropdown';
+
   return (
-    <span className="inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg border border-[#e8e8e8] bg-[#fafafa] text-[#5f6368] transition group-hover:border-[#dedede] group-hover:bg-white group-hover:text-black">
+    <span className={`inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg border border-[var(--navbar-dropdown-border)] bg-[#fafafa] ${isDesktopDropdown ? 'text-[var(--navbar-dropdown-icon)]' : 'text-[var(--navbar-dropdown-icon)]'} transition group-hover:border-[var(--navbar-dropdown-border-hover)] group-hover:bg-white group-hover:text-[var(--navbar-dropdown-title)]`}>
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className="h-[21px] w-[21px]"
+        className={isDesktopDropdown ? 'h-[30px] w-[30px]' : 'h-[21px] w-[21px]'}
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth={isDesktopDropdown ? '1.75' : '1.6'}
         strokeLinecap="round"
         strokeLinejoin="round"
       >
@@ -606,6 +669,7 @@ function DesktopMenuContent({
     <div
       key={menu}
       aria-hidden={isExiting}
+      style={dropdownTextRenderingStyle}
       className={`site-menu-content grid grid-cols-3 gap-[11px] p-4 ${motionClass} ${
         isExiting ? 'pointer-events-none absolute inset-0' : 'relative'
       }`}
@@ -614,7 +678,7 @@ function DesktopMenuContent({
         <section key={column.heading} aria-labelledby={`${menu}-${column.heading}`}>
           <h2
             id={`${menu}-${column.heading}`}
-            className="px-4 pb-[11px] pt-[5px] text-[17px] font-medium leading-[27px] text-[#666666]"
+            className="px-4 pb-[11px] pt-[5px] text-[17px] font-normal leading-[27px] text-[var(--navbar-dropdown-heading)]"
           >
             {column.heading}
           </h2>
@@ -627,13 +691,13 @@ function DesktopMenuContent({
                   onClick={onNavigate}
                   className="group grid h-[92px] grid-cols-[43px_1fr] items-center gap-[13px] overflow-hidden rounded-lg px-3 transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
                 >
-                  <MenuItemGlyph icon={item.icon} />
+                  <MenuItemGlyph icon={item.icon} size="desktopDropdown" />
                   <span className="block min-w-0">
-                    <span className="block truncate text-[19px] font-medium leading-[24px] text-[#111111]">
+                    <span className="block truncate text-[19px] font-medium leading-[24px] text-[var(--navbar-dropdown-title)]">
                       {item.title}
                     </span>
                     {item.description ? (
-                      <span className="site-menu-description-clamp mt-[3px] block text-[17px] font-normal leading-[23px] text-[#6b7280]">
+                      <span className="site-menu-description-clamp mt-[3px] block text-[17px] font-normal leading-[23px] text-[var(--navbar-dropdown-description)]">
                         {item.description}
                       </span>
                     ) : null}
@@ -680,7 +744,7 @@ function MobileAccordion({
               key={column.heading}
               className="px-[27px] pb-4"
             >
-              <h2 className="pb-[5px] text-base font-medium uppercase tracking-normal text-[#737373]">
+              <h2 className="pb-[5px] text-base font-medium uppercase tracking-normal text-[var(--navbar-dropdown-heading)]">
                 {column.heading}
               </h2>
               <ul className="space-y-[5px]">
@@ -694,11 +758,11 @@ function MobileAccordion({
                     >
                       <MenuItemGlyph icon={item.icon} />
                       <span className="block min-w-0">
-                        <span className="block text-[19px] font-medium leading-[24px] text-[#111111]">
+                        <span className="block text-[19px] font-medium leading-[24px] text-[var(--navbar-dropdown-title)]">
                           {item.title}
                         </span>
                         {item.description ? (
-                          <span className="mt-[3px] block text-[17px] leading-[23px] text-[#6b7280]">
+                          <span className="mt-[3px] block text-[17px] leading-[23px] text-[var(--navbar-dropdown-description)]">
                             {item.description}
                           </span>
                         ) : null}
@@ -715,6 +779,289 @@ function MobileAccordion({
   );
 }
 
+function SearchGlyph({ className = 'h-[22px] w-[22px]' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10.8 18.1a7.3 7.3 0 1 0 0-14.6 7.3 7.3 0 0 0 0 14.6Z" />
+      <path d="m16.1 16.1 4.4 4.4" />
+    </svg>
+  );
+}
+
+function CartGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-[27px] w-[27px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3.5 4.8h2.2l1.8 10.1h9.7l2-7.1H7.2" />
+      <path d="M8.2 19.1h.1" />
+      <path d="M16.5 19.1h.1" />
+    </svg>
+  );
+}
+
+function getNavbarSearchResults(items: CatalogSearchItem[], query: string) {
+  const normalizedQuery = normalizeSearchValue(query);
+
+  if (!normalizedQuery) return [];
+
+  const tokens = normalizedQuery.split(' ').filter(Boolean);
+
+  return items
+    .map((item) => ({
+      ...item,
+      haystack: normalizeSearchValue(`${item.name} ${item.description}`)
+    }))
+    .filter((item) => tokens.every((token) => item.haystack.includes(token)))
+    .slice(0, 5);
+}
+
+function NavbarSearch({
+  mobile = false,
+  onNavigate
+}: {
+  mobile?: boolean;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState<CatalogSearchItem[]>(() => navbarSearchItemsCache ?? []);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const inputId = mobile ? 'site-mobile-search' : 'site-desktop-search';
+  const results = getNavbarSearchResults(items, query);
+  const hasQuery = normalizeSearchValue(query).length > 0;
+
+  const ensureItemsLoaded = () => {
+    if (navbarSearchItemsCache) {
+      setItems(navbarSearchItemsCache);
+      return Promise.resolve(navbarSearchItemsCache);
+    }
+
+    setLoading(true);
+    return loadNavbarSearchItems()
+      .then((nextItems) => {
+        setItems(nextItems);
+        return nextItems;
+      })
+      .catch(() => {
+        setItems([]);
+        return [];
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const openExpandedSearch = () => {
+    setExpanded(true);
+    setOpen(true);
+    void ensureItemsLoaded();
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  useEffect(() => {
+    if (mobile || !expanded) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (!rootRef.current?.contains(target) && !query) {
+        setOpen(false);
+        setExpanded(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [expanded, mobile, query]);
+
+  const closeOrClearSearch = () => {
+    if (query) {
+      setQuery('');
+      setOpen(false);
+      return;
+    }
+
+    setOpen(false);
+    setExpanded(false);
+  };
+
+  const submitSearch = async () => {
+    if (!hasQuery) {
+      closeOrClearSearch();
+      return;
+    }
+
+    const nextItems = items.length > 0 ? items : await ensureItemsLoaded();
+    const firstResult = getNavbarSearchResults(nextItems, query)[0];
+
+    if (firstResult) {
+      setOpen(false);
+      setExpanded(false);
+      onNavigate();
+      router.push(firstResult.href);
+      return;
+    }
+
+    setOpen(true);
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submitSearch();
+  };
+
+  return (
+    <div ref={rootRef} className={mobile ? 'relative' : 'relative h-[43px] w-[43px] shrink-0'}>
+      {!mobile ? (
+        <button
+          type="button"
+          aria-label="Išči"
+          aria-hidden={expanded}
+          tabIndex={expanded ? -1 : 0}
+          onClick={openExpandedSearch}
+          onFocus={openExpandedSearch}
+          className={`inline-flex h-[43px] w-[43px] items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
+            expanded ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+        >
+          <SearchGlyph />
+        </button>
+      ) : null}
+
+      <form
+        role="search"
+        aria-hidden={!mobile && !expanded}
+        onSubmit={handleSubmit}
+        style={mobile ? undefined : coreNavTextRenderingStyle}
+        className={
+          mobile
+            ? 'relative w-full'
+            : `absolute right-0 top-0 z-30 w-[320px] transition-opacity duration-150 ease-out ${
+                expanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+              }`
+        }
+      >
+        <label htmlFor={inputId} className="sr-only">
+          Išči
+        </label>
+        <SearchGlyph className="pointer-events-none absolute left-[13px] top-1/2 h-[21px] w-[21px] -translate-y-1/2 text-[var(--navbar-link-default)]" />
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="search"
+          tabIndex={!mobile && !expanded ? -1 : undefined}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+            void ensureItemsLoaded();
+          }}
+          onFocus={() => {
+            setOpen(true);
+            void ensureItemsLoaded();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              closeOrClearSearch();
+            } else if (event.key === 'Enter') {
+              event.preventDefault();
+              void submitSearch();
+            }
+          }}
+          aria-label="Išči"
+          placeholder="Išči"
+          className={
+            mobile
+              ? 'h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-[38px] pr-3 text-[17px] font-medium leading-none text-[#111111] outline-none transition placeholder:text-[#737373] hover:border-[#dedede] focus:border-[#111111] focus:bg-white focus-visible:ring-2 focus-visible:ring-black/20'
+              : 'h-[43px] w-full appearance-none rounded-lg border border-[var(--navbar-dropdown-border)] bg-white pl-[38px] pr-3 text-[19px] font-normal leading-none text-[var(--navbar-link-current)] shadow-none outline-none [box-shadow:none] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[var(--navbar-dropdown-border-hover)] focus:border-[var(--navbar-link-current)] focus:bg-white focus:shadow-none focus:[box-shadow:none] focus-visible:border-[var(--navbar-link-current)] focus-visible:shadow-none focus-visible:[box-shadow:none]'
+          }
+        />
+        {open && hasQuery ? (
+          <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-[#dedede] bg-white py-1 shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
+            {loading && items.length === 0 ? (
+              <p className="px-3 py-2 text-[13px] font-medium text-[#666666]">Nalagam ...</p>
+            ) : results.length > 0 ? (
+              results.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={false}
+                  onClick={() => {
+                    setOpen(false);
+                    setExpanded(false);
+                    onNavigate();
+                  }}
+                  className="block px-3 py-2 text-[13px] transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                >
+                  <span className="block truncate font-medium text-[#111111]">{item.name}</span>
+                  <span className="block truncate text-[#666666]">{item.description}</span>
+                </Link>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-[13px] font-medium text-[#666666]">Ni zadetkov.</p>
+            )}
+          </div>
+        ) : null}
+      </form>
+    </div>
+  );
+}
+
+function NavbarCartControl() {
+  const cartItemCount = useCartStore((state) => state.getItemCount());
+  const openDrawer = useCartStore((state) => state.openDrawer);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const visibleCount = isMounted && cartItemCount > 0 ? cartItemCount : 0;
+
+  return (
+    <button
+      type="button"
+      onClick={openDrawer}
+      aria-label={visibleCount > 0 ? `Košarica, ${visibleCount} izdelki` : 'Košarica'}
+      className="relative inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20"
+    >
+      <CartGlyph />
+      {visibleCount > 0 ? (
+        <span className="absolute right-[-5px] top-[-5px] inline-flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-black px-[5px] text-[14px] font-bold leading-[21px] text-white">
+          {visibleCount}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 function DesktopCta({
   label,
   href,
@@ -723,22 +1070,21 @@ function DesktopCta({
 }: {
   label: string;
   href: string;
-  variant: 'secondary' | 'ghost' | 'primary';
+  variant: CtaVariant;
   onNavigate: () => void;
 }) {
   const className =
     variant === 'primary'
       ? 'bg-black text-white hover:bg-[#1f1f1f]'
-      : variant === 'secondary'
-        ? 'border border-[#dedede] bg-white text-[#111111] hover:bg-[#f5f5f5]'
-        : 'text-[#555555] hover:bg-[#f5f5f5] hover:text-black';
+      : 'text-[var(--navbar-link-default)] hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)]';
 
   return (
     <Link
       href={href}
       prefetch={false}
       onClick={onNavigate}
-      className={`inline-flex h-[43px] items-center justify-center rounded-lg px-4 text-[19px] font-medium leading-none transition ${className}`}
+      style={coreNavTextRenderingStyle}
+      className={`inline-flex h-[43px] items-center justify-center rounded-lg px-4 ${coreNavTextClassName} transition focus-visible:ring-2 focus-visible:ring-black/20 ${className}`}
     >
       {label}
     </Link>
@@ -750,6 +1096,7 @@ export default function SiteHeader() {
   const headerRef = useRef<HTMLElement>(null);
   const switchTimerRef = useRef<number | null>(null);
   const activeMenuRef = useRef<MenuKey | null>(null);
+  const previousActiveMenuRef = useRef<MenuKey | null>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
   const [previousMenu, setPreviousMenu] = useState<MenuKey | null>(null);
   const [menuDirection, setMenuDirection] = useState<MenuDirection | null>(null);
@@ -767,6 +1114,7 @@ export default function SiteHeader() {
   const closeMenus = () => {
     clearSwitchTimer();
     activeMenuRef.current = null;
+    previousActiveMenuRef.current = null;
     setActiveMenu(null);
     setPreviousMenu(null);
     setMenuDirection(null);
@@ -781,23 +1129,6 @@ export default function SiteHeader() {
     }
 
     clearSwitchTimer();
-
-    if (currentMenu) {
-      const currentIndex = dropdownOrder.indexOf(currentMenu);
-      const nextIndex = dropdownOrder.indexOf(nextMenu);
-
-      setPreviousMenu(currentMenu);
-      setMenuDirection(nextIndex > currentIndex ? 'forward' : 'backward');
-      switchTimerRef.current = window.setTimeout(() => {
-        setPreviousMenu(null);
-        setMenuDirection(null);
-        switchTimerRef.current = null;
-      }, 220);
-    } else {
-      setPreviousMenu(null);
-      setMenuDirection(null);
-    }
-
     activeMenuRef.current = nextMenu;
     setActiveMenu(nextMenu);
   };
@@ -809,22 +1140,79 @@ export default function SiteHeader() {
   }, [pathname]);
 
   useEffect(() => {
+    activeMenuRef.current = activeMenu;
+  }, [activeMenu]);
+
+  useLayoutEffect(() => {
+    if (switchTimerRef.current !== null) {
+      window.clearTimeout(switchTimerRef.current);
+      switchTimerRef.current = null;
+    }
+
+    const previousMenu = previousActiveMenuRef.current;
+
+    if (!activeMenu) {
+      previousActiveMenuRef.current = null;
+      setPreviousMenu(null);
+      setMenuDirection(null);
+      return;
+    }
+
+    if (previousMenu && previousMenu !== activeMenu) {
+      const previousIndex = dropdownOrder.indexOf(previousMenu);
+      const nextIndex = dropdownOrder.indexOf(activeMenu);
+
+      setPreviousMenu(previousMenu);
+      setMenuDirection(nextIndex > previousIndex ? 'forward' : 'backward');
+      switchTimerRef.current = window.setTimeout(() => {
+        setPreviousMenu(null);
+        setMenuDirection(null);
+        switchTimerRef.current = null;
+      }, 220);
+    } else {
+      setPreviousMenu(null);
+      setMenuDirection(null);
+    }
+
+    previousActiveMenuRef.current = activeMenu;
+  }, [activeMenu]);
+
+  useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
+      const header = headerRef.current;
 
       if (!(target instanceof Node)) {
         return;
       }
 
-      if (!headerRef.current?.contains(target)) {
+      const headerRect = header?.getBoundingClientRect();
+      const isInsideHeaderBox = headerRect
+        ? event.clientX >= headerRect.left &&
+          event.clientX <= headerRect.right &&
+          event.clientY >= headerRect.top &&
+          event.clientY <= headerRect.bottom
+        : false;
+
+      if (header && !header.contains(target) && !event.composedPath().includes(header) && !isInsideHeaderBox) {
+        clearSwitchTimer();
+        activeMenuRef.current = null;
+        previousActiveMenuRef.current = null;
         setActiveMenu(null);
+        setPreviousMenu(null);
+        setMenuDirection(null);
         setMobileOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        clearSwitchTimer();
+        activeMenuRef.current = null;
+        previousActiveMenuRef.current = null;
         setActiveMenu(null);
+        setPreviousMenu(null);
+        setMenuDirection(null);
         setMobileOpen(false);
       }
     };
@@ -859,13 +1247,15 @@ export default function SiteHeader() {
   return (
     <header
       ref={headerRef}
+      style={navbarColorStyle}
       className="relative z-50 border-b border-[#e5e5e5] bg-white text-black [font-family:Inter,Geist,system-ui,sans-serif]"
     >
-      <div className="flex h-[85px] w-full items-center justify-between gap-[21px] px-8">
+      <div className="flex h-[85px] w-full items-center justify-between gap-[21px] px-8 lg:mx-auto lg:grid lg:max-w-[1600px] lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-[64px] lg:px-12">
         <Link
           href="/"
           prefetch={false}
           aria-label="Atehna home"
+          data-navbar-left
           onClick={closeMenus}
           className="inline-flex shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
         >
@@ -874,7 +1264,8 @@ export default function SiteHeader() {
 
         <nav
           aria-label="Main navigation"
-          className="hidden flex-1 items-center justify-center gap-[5px] lg:flex"
+          className="hidden min-w-0 items-center justify-start gap-[5px] lg:flex"
+          style={coreNavTextRenderingStyle}
         >
           {dropdownOrder.map((key) => {
             const open = activeMenu === key;
@@ -889,12 +1280,14 @@ export default function SiteHeader() {
                 onClick={() => openDesktopMenu(key)}
                 onFocus={() => openDesktopMenu(key)}
                 onMouseEnter={() => openDesktopMenu(key)}
-                className={`inline-flex h-[43px] items-center gap-2 rounded-lg px-4 text-[19px] font-medium leading-none transition hover:bg-[#f5f5f5] hover:text-black focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  open ? 'text-black' : 'text-[#666666]'
+                className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
+                  open ? 'bg-[var(--navbar-trigger-open-bg)] text-[var(--navbar-link-current)]' : 'text-[var(--navbar-link-default)]'
                 }`}
               >
-                <span>{menuLabels[key]}</span>
-                <ChevronIcon open={open} />
+                <span className="inline-flex items-center gap-2">
+                  <span>{menuLabels[key]}</span>
+                  <ChevronIcon open={open} subtle />
+                </span>
               </button>
             );
           })}
@@ -905,14 +1298,15 @@ export default function SiteHeader() {
               href={item.href}
               prefetch={false}
               onClick={closeMenus}
-              className="inline-flex h-[43px] items-center rounded-lg px-4 text-[19px] font-medium leading-none text-[#666666] transition hover:bg-[#f5f5f5] hover:text-black focus-visible:ring-2 focus-visible:ring-black/20"
+              className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} text-[var(--navbar-link-default)] transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20`}
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden shrink-0 items-center gap-[11px] lg:flex">
+        <div data-navbar-right className="hidden min-w-0 shrink-0 items-center justify-end gap-2 lg:flex lg:w-[240px] xl:w-auto">
+          <NavbarSearch onNavigate={closeMenus} />
           {ctas.map((cta) => (
             <DesktopCta
               key={cta.label}
@@ -922,18 +1316,22 @@ export default function SiteHeader() {
               onNavigate={closeMenus}
             />
           ))}
+          <NavbarCartControl />
         </div>
 
-        <button
-          type="button"
-          aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
-          aria-expanded={mobileOpen}
-          aria-controls={mobileMenuId}
-          onClick={() => setMobileOpen((open) => !open)}
-          className="inline-flex h-12 w-12 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20 lg:hidden"
-        >
-          <MenuIcon open={mobileOpen} />
-        </button>
+        <div className="inline-flex shrink-0 items-center gap-2 lg:hidden">
+          <NavbarCartControl />
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
+            onClick={() => setMobileOpen((open) => !open)}
+            className="inline-flex h-12 w-12 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+          >
+            <MenuIcon open={mobileOpen} />
+          </button>
+        </div>
       </div>
 
       {activeMenu ? (
@@ -941,7 +1339,7 @@ export default function SiteHeader() {
           id={desktopPanelId}
           className="site-menu-perspective absolute left-1/2 top-full hidden w-[1013px] max-w-[calc(100vw-48px)] -translate-x-1/2 pt-[11px] lg:block"
         >
-          <div className="site-menu-viewport-open overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="site-menu-viewport-open overflow-hidden rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
             <div className="relative overflow-hidden">
               {previousMenu && menuDirection ? (
                 <DesktopMenuContent
@@ -976,6 +1374,10 @@ export default function SiteHeader() {
             aria-label="Mobile navigation"
             className="pb-[27px]"
           >
+            <div className="border-b border-[#eeeeee] px-[27px] py-[18px]">
+              <NavbarSearch mobile onNavigate={closeMenus} />
+            </div>
+
             {dropdownOrder.map((key) => (
               <MobileAccordion
                 key={key}

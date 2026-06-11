@@ -33,9 +33,8 @@ export default function CartDrawer() {
         onClick={closeDrawer}
       />
       <aside
-        className={`absolute right-0 top-0 h-full w-full max-w-md transform bg-white shadow-xl transition-transform ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transition-transform"
+        style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
         aria-label="Košarica"
       >
         <div className="flex h-full flex-col">

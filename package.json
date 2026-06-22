@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "measure:deployed-network": "node scripts/measure-deployed-network.mjs"
+    "measure:deployed-network": "node scripts/measure-deployed-network.mjs",
+    "maintenance:purge-audit": "node scripts/purge-artikli-orders-arhiv.mjs",
+    "maintenance:purge-execute": "node scripts/purge-artikli-orders-arhiv.mjs --execute"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

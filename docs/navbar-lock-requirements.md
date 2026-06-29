@@ -2,373 +2,389 @@
 
 ## Purpose
 
-Protect the current landing-page navbar from accidental style drift while still allowing new controls to be added to the left or right of the locked nav group.
+Protect the landing-page navbar from accidental style drift while allowing only explicitly scoped changes. Codex must read this file before creating, editing, or refactoring the navbar.
 
-Codex must read this file before creating, editing, or refactoring the landing-page navbar.
+## Locked core navbar group
 
-## Locked navbar group
+The locked desktop core navbar group is:
 
-The following desktop navbar items are style-locked:
+- Katalog
+- Za šole
+- Projekti
+- Pomoč
 
-- Products
-- Resources
-- Solutions
-- Enterprise
-- Pricing
+`Za podjetja` is not part of the core navbar anymore and must not appear in the desktop or mobile top-level navbar unless explicitly requested later.
 
-This includes their container, typography, spacing, active state, hover state, chevrons, dropdown trigger behavior, dropdown panel alignment, and mega-menu styling.
+The locked group includes top-level layout, typography, spacing, colors, hover/open states, chevrons, trigger behavior, dropdown behavior, dropdown panel alignment, dropdown geometry, dropdown animation, dropdown item hover behavior, and mega-menu styling.
 
-## Hard rule
-
-Do not change the visual style, dimensions, behavior, or layout of the locked navbar group unless the user explicitly says:
+Do not change the locked group unless the user explicitly says:
 
 > override navbar lock requirements
 
-A normal request such as “add a search bar”, “add cart”, “change logo”, “add login button”, “add CTA”, or “add left-side content” is not permission to modify the locked group.
+If there is an override, obey only the exact scope of that override. Do not use it as permission to refactor unrelated navbar code. Requests such as “add search”, “add cart”, “change logo”, “add account button”, or “add CTA” are not permission to modify the locked group.
 
 ## Navbar height lock
 
 Preserve the existing navbar height exactly.
 
-- Do not increase or decrease the desktop navbar height.
-- Do not add vertical padding, margins, borders, line-height changes, or controls that alter the rendered header height.
-- Treat the current code as the source of truth for the exact height.
-- If no token exists, create or preserve a token such as `--navbar-height` equal to the current rendered content height.
-- If the current implementation is 64px plus a 1px border, preserve that total rendered height.
-- New controls must fit inside the existing height.
-- New controls should generally use a 32px height on desktop.
+- Do not increase or decrease desktop navbar height.
+- Do not add vertical padding, margins, borders, line-height changes, or controls that alter rendered header height.
+- Treat the current rendered height as the source of truth.
+- If no token exists, create or preserve `--navbar-height` equal to the current rendered height.
+- New desktop controls should generally use `32px` height.
 
-## Locked style details
+## Top-level style lock
 
-For Products, Resources, Solutions, Enterprise, and Pricing, preserve the current values for:
+For Katalog, Za šole, Projekti, and Pomoč, preserve the current top-level values unless the override explicitly permits changing them:
 
-- font family
-- font size
-- line height
-- font weight
-- letter spacing
-- text color
-- hover color
-- active/open color
-- hover background
-- active/open background
-- border radius
-- item height
-- horizontal padding
-- gap between nav items
-- chevron size
-- chevron spacing
-- chevron rotation/open state
-- transition timing
+- font family, size, line-height, weight, letter-spacing
+- text color, hover color, open/current color
+- hover background, open/current background
+- item height, padding, border radius, and gap between nav items
+- chevron size, spacing, stroke, rotation, and transition
 - focus style
 - dropdown open/close behavior
-- dropdown panel position
-- dropdown panel width
-- dropdown panel border
-- dropdown panel border radius
-- dropdown panel shadow
-- dropdown panel padding
-- dropdown grid/column layout
-- dropdown item typography
-- dropdown item hover states
+- dropdown switch behavior and animations
 
-If these are currently implemented with Tailwind classes, do not change those classes for the locked group.
-If these are currently implemented with CSS selectors, do not change those selectors for the locked group.
-If these are currently implemented with component props or variants, do not change those variants for the locked group.
+Do not change locked Tailwind classes, CSS selectors, or component variants unless the override explicitly allows it.
 
-## Navbar state names and color standard
+## State names and neutral colors
 
-Use these state names for navbar links and triggers:
+Use these state names: `default/resting`, `hover`, `open/current`. Do not call a normal non-open link `inactive` or `disabled`.
 
-- `default/resting`
-- `hover`
-- `open/current`
+Use neutral monochrome navbar/dropdown colors. If matching the Vercel-like reference, inspect computed styles first. Fallback values:
 
-Do not describe normal non-open navbar links as `inactive` or `disabled`. A normal navbar link is not disabled; it is simply in its default/resting state.
-
-### Color correction rule
-
-Navbar and dropdown color corrections are allowed only when the user explicitly says:
-
-> override navbar lock requirements
-
-If the override is scoped to color correction, Codex may only change navbar/dropdown color values, color tokens, or color classes. It must not change:
-
-- font size
-- font family
-- font weight
-- line height
-- letter spacing
-- spacing
-- padding
-- layout
-- navbar height
-- dropdown behavior
-- menu content
-- icon size
-- animations
-- right-side controls
-- mobile behavior
-
-Color correction must be treated as a color-only task unless the user explicitly expands the override scope.
-
-### Color source of truth
-
-When matching the Vercel-like reference, first inspect the current Vercel navbar/dropdown with DevTools or browser automation if available.
-
-Use computed styles for:
-
-- default/resting top nav link
-- hover top nav link
-- open/current top nav link
-- open trigger background
-- dropdown section heading
-- dropdown item title
-- dropdown item description
-- dropdown icon glyph
-- dropdown panel border
-
-If computed values are unavailable, use these screenshot-derived neutral monochrome targets.
-
-### Top-level navbar colors
-
-- default/resting link text: `#4d4d4d` or `#4c4c4d`
-- hover link text: `#171717`
-- open/current link text: `#171717`
-- open trigger background: approximately `#ebebeb`
-- chevrons: `currentColor`
-- default/resting chevron opacity: `0.7` to `0.8`
-- open/current chevron opacity: `1`
-
-Do not make open/current state bolder to indicate selection. Use color, background, and chevron state instead.
-
-### Dropdown colors
-
-- section heading: `#4d4d4d` to `#5f5f5f`
-- item title: `#171717`
-- item description: `#636363`
-- icon glyph: `#4c4c4d` to `#5f5f5f`
-- icon tile border: light neutral gray, around `#e6e6e6` to `#ebebeb`
-- panel border: light neutral gray, around `#e6e6e6` to `#ebebeb`
-
-Avoid blue-gray/slate colors in the navbar and dropdown. In particular, avoid Tailwind-style `slate-*` colors and values like `#6b7280`, `#6b727f`, or Material-style `#5f6368` if they make descriptions or icons look cool/blue compared with the Vercel reference.
-
-Use neutral grays where red, green, and blue channels are equal or nearly equal.
-
-### Navbar-scoped color variables
-
-Prefer navbar-scoped CSS variables/classes such as:
-
-````css
+```css
 --navbar-link-default: #4d4d4d;
 --navbar-link-hover: #171717;
 --navbar-link-current: #171717;
 --navbar-trigger-open-bg: #ebebeb;
-
 --navbar-dropdown-heading: #4d4d4d;
 --navbar-dropdown-title: #171717;
 --navbar-dropdown-description: #636363;
---navbar-dropdown-icon: #4c4c4d;
+--navbar-dropdown-icon: #171717;
 --navbar-dropdown-border: #e6e6e6;
-
-## Core nav typography/rendering standard
-
-The locked core nav text should visually match the Vercel-like navbar reference.
-
-Core nav typography:
-
-- font-size: 14px
-- line-height: 20px
-- font-weight: 400 by default
-- active/open state should not use bold/semibold unless explicitly requested
-- use color/background/chevron state for active indication instead of heavier font weight
-
-Core nav rendering:
-
-- use Geist Sans or the closest configured equivalent
-- apply navbar-scoped font smoothing:
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-- avoid text-shadow, filter, backdrop-filter, opacity-on-parent, scale, zoom, translateZ(0), unnecessary will-change, or transform-based positioning on nav text ancestors
-- prefer flex/grid layout over transform centering when positioning the nav group
-- chevrons should be subtle, around 12px with light stroke weight
-
-## Dropdown typography and icon rendering
-
-Dropdown typography must visually match the Vercel-like navbar reference.
+```
 
 Rules:
 
-- Use the same navbar font family as the core nav, preferably Geist Sans.
-- Do not let dropdown text inherit unrelated global/body typography if it creates a mismatch.
-- Section headings should be lighter than item titles: 400-500 weight, neutral muted gray.
-- Item titles should be strong but not chunky: usually 500-600 weight, never 700 unless explicitly requested.
-- Descriptions should use neutral gray, not cool blue-gray.
-- Apply font smoothing only inside the navbar/dropdown scope:
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-- Avoid text-shadow, opacity on parent containers, filters, scale, zoom, translateZ(0), and unnecessary will-change on dropdown text ancestors.
-- Dropdown icon tiles should stay compact, but SVG glyphs should be large enough to match the Vercel reference.
-- Target dropdown SVG icon size: 22px-24px, with stroke width around 1.75-2 for lucide-style icons.
+- Chevrons use `currentColor`.
+- Open/current state becomes darker, not bolder.
+- Avoid Tailwind `slate-*` and blue-gray values like `#6b7280` in navbar/dropdown text.
+- Do not change global text, button, input, icon, or Tailwind theme colors to fix navbar colors.
 
-## Allowed extension areas
+## Typography and rendering
 
-New navbar elements may be added only in extension areas outside the locked group:
+Top-level core nav:
 
-1. Left extension area
-   - Logo/brand area
-   - Optional controls near the logo
-   - Optional compact search trigger
+- `14px` font size
+- `20px` line-height
+- `400` default font weight
+- open/current state should not use bold/semibold unless explicitly requested
 
-2. Right extension area
-   - Search bar or search trigger
-   - Cart button
-   - Account controls
-   - Login/signup/dashboard buttons
-   - Other compact utility controls
+Dropdown typography:
 
-Do not insert new utility controls between Products, Resources, Solutions, Enterprise, and Pricing unless the user explicitly requests that exact placement.
+- Use the same navbar font family as the core nav, preferably Geist Sans or the closest configured equivalent.
+- Section headings: `400` to `500`, lighter than item titles.
+- Item titles: usually `500` to `600`, never `700` unless explicitly requested.
+- Descriptions: neutral gray, not cool blue-gray.
+- Do not shrink dropdown text just to solve layout problems. If text does not fit, shorten the title/description or adjust approved shared geometry.
 
-## Extension layout rules
+Apply font smoothing only inside the navbar/dropdown scope:
 
-Any new left/right navbar control must obey these constraints:
+```css
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+text-rendering: optimizeLegibility;
+```
 
-- Must not change navbar height.
-- Must not cause the locked nav group to wrap.
-- Must not change locked nav group spacing.
-- Must be vertically centered in the existing navbar.
-- Desktop control height should be 32px unless an existing token says otherwise.
-- Icon-only controls should be approximately 32px by 32px.
-- Search input height should be approximately 32px.
-- Search input width may change responsively, but height must not.
-- Use `min-width: 0` where needed to avoid overflow.
-- At narrower widths, collapse or hide extension controls before changing the navbar height.
-- If horizontal space is limited, prefer this order:
-  1. keep logo visible
-  2. keep locked nav group unchanged on desktop
-  3. collapse search to icon-only
-  4. hide optional utility labels
-  5. move optional controls into mobile menu
+Avoid text-shadow, parent opacity, filters, backdrop filters, scale, zoom, unnecessary `translateZ(0)`, and unnecessary `will-change` on navbar/dropdown text ancestors.
 
-## Right and left extension controls
+## Vercel reference rule
 
-Search, AI, cart, account, and similar left- and right-side navbar controls must use navbar-local styling. Do not let these controls inherit generic/global input or button sizing if that makes them visually inconsistent with the locked navbar.
+Use Vercel only as a visual style, spacing, layout-rhythm, hover-behavior, and animation reference. Do not copy Vercel’s actual labels, product names, routes, or menu content.
 
-Left-side and right-side controls must match the locked core nav links in visual rhythm:
+Avoid persistent magic-scale rules such as “always make everything 10% smaller” or “always make everything 35% smaller.” Size changes belong in explicit task prompts. This file defines lock boundaries, alignment, rhythm, and behavior.
 
-- 32px control height
-- 14px text
-- 20px line-height
-- 500 font-weight
-- default/resting color matching core nav links
-- dark hover color matching core nav links
-- subtle hover background matching core nav links
-- same border radius as navbar controls
+## Core dropdown behavior
+
+Only these top-level items have dropdowns: Katalog, Za šole, Projekti, Pomoč.
+
+Dropdown hover model:
+
+- Hovering a dropdown trigger opens the shared dropdown panel.
+- The dropdown stays open while the pointer is over a dropdown trigger or the dropdown panel.
+- The dropdown closes as soon as the pointer leaves both the dropdown trigger area and the dropdown panel.
+- The user should not need to click outside to close the dropdown.
+- Outside click may still close the dropdown, but it must not be required.
+- Escape closes the dropdown.
+- Clicking/tapping a dropdown item closes the dropdown.
+- A small leave delay is allowed only to prevent flicker, usually `80ms` to `120ms` maximum.
+
+Animation modes:
+
+- Fresh open: when no dropdown is visible, open with subtle scale/enlarge + fade. Contents appear in place. Do not slide contents left/right on fresh open.
+- Open-to-open switch: when a dropdown is already visible and the user moves to another dropdown trigger, keep the shared panel mounted and preserve the existing left/right content transition.
+- Close: when pointer leaves both triggers and panel, close with reverse fresh-open effect: subtle fade + slight scale/contract.
+- After close, clear previous menu, transition direction, and switching state so the next hover is treated as a fresh open, including reopening the same trigger.
+
+## Desktop dropdown anchor and geometry
+
+The desktop dropdown panel uses one fixed horizontal anchor:
+
+- Align the panel left edge with the left edge of the `K` in `Katalog`.
+- Do not align to the trigger pill/button edge.
+- Do not align to the active/open trigger.
+- Do not move the panel horizontally when switching dropdowns.
+- Recalculate only on real layout changes such as resize, font loading, or breakpoint changes.
+
+Implementation preference: wrap the `Katalog` label text in a measurable element and derive the shared dropdown anchor from that text-left edge.
+
+Katalog, Za šole, Projekti, and Pomoč must share the same desktop dropdown geometry:
+
+- panel left/top position
+- panel width/height
+- column x-coordinates
+- row y-coordinates
+- divider lane position
+- icon tile coordinates
+
+Column m / row n icon placement must be static across dropdowns. Do not let dropdown content length, number of items, group names, or active trigger determine icon coordinates.
+
+## Desktop dropdown panel spacing
+
+Dropdown content-to-border spacing must match the Vercel-like reference and be shared across all dropdowns.
+
+- Do not hard-code cramped `10px` padding unless actually measured from the reference.
+- Katalog, Za šole, Projekti, and Pomoč share the same panel padding tokens.
+- If exact measured values are unavailable, use a spacious fallback near `24px` to `28px` block padding and `28px` to `32px` inline padding.
+- If content needs more room, adjust the shared panel size or shorten text. Do not shrink padding differently per dropdown.
+- Preserve white surface, light neutral border, rounded corners, and restrained shadow.
+
+## Desktop dropdown grid and rhythm
+
+Desktop dropdowns use exactly `3` columns and `5` item row slots.
+
+- Section headings are not item slots.
+- Fill columns first: column 1 top-to-bottom, then column 2, then column 3.
+- Every column reserves exactly 5 item row slots.
+- Empty slots remain empty and must not stretch existing rows.
+- Use shared column width tokens across all dropdowns.
+- Do not use per-dropdown content-based column widths if that shifts icon coordinates.
+- Do not use `space-between`, `justify-between`, `align-content: space-between`, or other distribution rules that create variable gaps.
+- If text does not fit shared geometry, shorten the label or description instead of changing one dropdown’s geometry.
+
+Vertical rhythm uses the icon tile as the unit:
+
+- icon tile size is the source of truth
+- each item slot height equals icon tile height
+- empty vertical gap between adjacent item slots equals icon tile height
+- title-to-title spacing is consistent across every column in every desktop dropdown
+- no normal list gaps such as `8px`, `12px`, `16px`, or `24px`
+- no per-item margins or variable spacing
+
+## Desktop dropdown item layout
+
+Every desktop dropdown item must have icon tile, title, and short description.
+
+Item alignment:
+
+- title top aligns with icon tile top
+- description bottom aligns with icon tile bottom
+- text stack height equals icon tile height
+- title and description have no default top/bottom margins
+- use intentional line-height; do not let paragraph margins or inherited styles affect alignment
+
+Implementation preference:
+
+```css
+.dropdownItem {
+  display: grid;
+  grid-template-columns: var(--navbar-dropdown-icon-tile-size) 1fr;
+  column-gap: var(--navbar-dropdown-item-gap);
+  align-items: stretch;
+  min-height: var(--navbar-dropdown-icon-tile-size);
+}
+.dropdownItemText {
+  height: var(--navbar-dropdown-icon-tile-size);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+.dropdownItemTitle,
+.dropdownItemDescription {
+  margin: 0;
+  white-space: nowrap;
+}
+```
+
+## Strict one-line rule
+
+Every desktop dropdown title and description must be a strict one-liner.
+
+- Titles must not wrap.
+- Descriptions must not wrap.
+- Do not truncate, ellipsize, clip, or hide overflow.
+- Use `white-space: nowrap` for desktop dropdown titles and descriptions if needed.
+- If text does not fit, shorten this site’s Slovenian title or description.
+- Do not copy Vercel labels to solve text length.
+- Do not resize one dropdown differently just to fit one long label.
+
+## Dropdown item hover behavior
+
+Dropdown item hover must not use a gray background on the full item row.
+
+Only the icon tile visibly changes on hover/focus of the whole dropdown item.
+
+Default icon tile:
+
+- white background
+- light neutral border
+- black or near-black glyph/image
+
+Hover/focus icon tile:
+
+- black background
+- black border
+- white glyph/image
+
+Rules:
+
+- Hover/focus must trigger from the whole dropdown item, not only the icon.
+- Use `currentColor` for SVG icons where possible.
+- If icons are images, use inline SVG or masking if needed so color can switch cleanly.
+- Do not use blur, glow, gradients, colored icon backgrounds, or full-row hover backgrounds.
+- Transition should be subtle, around `120ms` to `160ms`.
+- Apply the same behavior on `focus-visible`.
+
+## Two-column group divider
+
+For Katalog and Projekti:
+
+- Main group uses columns 1 and 2.
+- Secondary group uses column 3.
+- Reserve the divider lane between column 2 and column 3 in all dropdowns.
+- Show a subtle divider only between column 2 and column 3 where needed.
+- Do not add a divider between column 1 and column 2.
+- Divider color: `#eaeaea` or `rgba(0,0,0,0.08)`.
+
+## Current dropdown content constraints
+
+- `Komplet za posamezen projekt` must be named `Kompleti za projekte`.
+- Katalog → Po uporabi must not include `Varnost pri delu`.
+- Katalog → Po uporabi must not include `Nadomestni deli`.
+- `Varnost pri delu` and `Dodatki in nadomestni deli` may remain catalog categories under Katalog → Kategorije if they are real catalog categories.
+- Every dropdown item must keep a concise one-line description.
+
+## Extension areas and controls
+
+New navbar elements may be added only outside the locked group.
+
+Left extension area:
+
+- logo/brand area
+- optional controls near logo
+- optional compact search trigger
+
+Right extension area:
+
+- search
+- cart
+- account controls
+- login/signup/dashboard controls
+- compact utility controls
+
+Do not insert new utility controls between Katalog, Za šole, Projekti, and Pomoč unless explicitly requested.
+
+Left/right controls must not change navbar height or locked core nav spacing. Use navbar-local styling:
+
+- control height: `32px`
+- text: `14px / 20px`, weight `500`
+- icon-only controls: about `32px` by `32px`
+- search input height: about `32px`
 - visible focus rings
-- no navbar height changes
+- vertically centered
 
-Search must be icon-only by default. The collapsed search control should be a 32px by 32px magnifying-glass button. It may expand into a 220px-260px input on click/focus, but the expanded input must stay 32px high and must use navbar-local styling.
-
-Cart must be a compact navbar icon button with an icon size around 18px-19px. If a badge is shown, it must be absolutely positioned and must not affect navbar height. Hide the badge when cart count is zero or unavailable.
-
-`Vprašaj AI` must visually harmonize with the core nav links. It should not look like a mismatched standalone form button unless the locked navbar style itself uses that treatment.
+Search is icon-only by default. Expanded search should be `220px` to `260px` wide and `32px` high. Cart icon size should be around `18px` to `19px`; badge appears only when count is greater than zero and must not affect navbar height. `Vprašaj AI` must visually harmonize with the core nav links.
 
 ## Preferred component structure
-
-Use a layout with explicit slots so future changes do not disturb the locked group:
 
 ```tsx
 <header>
   <nav aria-label="Main">
     <div data-navbar-left>brand/logo and optional left accessories</div>
-
-    <div data-navbar-core>
-      Products, Resources, Solutions, Enterprise, Pricing
-    </div>
-
-    <div data-navbar-right>
-      search, cart, account, CTAs, and other utilities
-    </div>
+    <div data-navbar-core>Katalog, Za šole, Projekti, Pomoč</div>
+    <div data-navbar-right>search, cart, account, CTAs, utilities</div>
   </nav>
 </header>
-````
+```
 
-The `data-navbar-core` area is locked.
-The left and right areas are extension zones.
+`data-navbar-core` is locked. Left and right areas are extension zones.
 
 ## Allowed changes without override
 
-Codex may do the following without violating this file:
+Codex may do the following without override:
 
-- Add or replace the logo in the left extension area.
-- Add a search trigger or search input in the left or right extension area.
-- Add a cart button in the right extension area.
+- Add or replace logo in the left extension area.
+- Add search in the left or right extension area.
+- Add cart in the right extension area.
 - Add account, login, signup, or dashboard controls in the right extension area.
 - Add accessibility labels to new controls.
 - Add responsive collapse behavior for new controls.
 - Add tests or comments documenting the lock.
-- Add CSS variables for extension controls, as long as the locked group remains unchanged.
 
 ## Not allowed without override
 
-Codex must not do the following unless the user explicitly overrides this file:
+Codex must not do the following unless explicitly overridden:
 
-- Change the navbar height.
-- Change the Products/Resources/Solutions/Enterprise/Pricing font size.
-- Change the Products/Resources/Solutions/Enterprise/Pricing padding.
-- Change the gap between locked nav items.
-- Change any active/open trigger pill style.
-- Change chevron appearance or behavior.
-- Change dropdown panel size, border, radius, shadow, padding, or alignment.
-- Change hover styles for the locked group.
-- Move locked nav items to a different visual region.
+- Change navbar height.
+- Change locked top-level nav typography, padding, gap, hover/open states, or chevrons.
+- Change dropdown behavior or animation.
+- Change dropdown panel anchor, size, padding, grid, item alignment, icon placement, or icon hover behavior unless the override explicitly allows dropdown geometry/icon changes.
+- Move locked nav items to another visual region.
 - Add a new item inside the locked group.
-- Use larger controls that force the navbar taller.
-- Add top/bottom margin to navbar children.
-- Add vertical padding to the header or nav wrapper.
+- Add `Za podjetja` back into the top-level navbar.
+- Add vertical padding/margins to header or nav children.
 - Introduce wrapping in the desktop navbar.
-- Refactor locked navbar styles “for cleanup” unless directly requested.
-
-## Search/cart examples
-
-Acceptable search additions:
-
-- A 32px-tall search input in the right extension area.
-- A 32px by 32px search icon button that opens search.
-- A responsive search input that collapses to an icon below a chosen width.
-
-Acceptable cart additions:
-
-- A 32px by 32px cart icon button in the right extension area.
-- A small badge positioned inside the button without changing button size.
-
-Unacceptable additions:
-
-- A 40px or 44px search input that makes the navbar taller.
-- A search bar inserted between Resources and Solutions.
-- A cart button that changes the locked nav group gap.
-- A logo change that increases header height.
+- Refactor locked navbar styles “for cleanup”.
 
 ## Mobile rules
 
-Mobile behavior may be adjusted only as needed for new controls, but the existing mobile navbar height and locked menu styling should remain stable.
+Mobile behavior may be adjusted only as needed for new controls.
 
 - Do not make the closed mobile header taller.
-- New controls should move into the mobile menu when there is not enough horizontal space.
-- Keep Products, Resources, and Solutions as accordion/dropdown sections if that is the existing mobile pattern.
-- Keep Enterprise and Pricing as direct links if that is the existing mobile pattern.
+- New controls should move into the mobile menu when horizontal space is limited.
+- Keep Katalog, Za šole, Projekti, and Pomoč as accordion/dropdown sections if that is the existing mobile pattern.
+- Do not show `Za podjetja` in the mobile top-level navbar unless explicitly requested later.
+- Strict desktop dropdown geometry applies only to desktop dropdowns unless explicitly requested for mobile.
 
-## Required self-check before finishing
+## Required self-check
 
-Before finalizing a change, Codex must inspect the diff and confirm:
+Before finishing, Codex must confirm:
 
-- The rendered navbar height is unchanged.
-- Products, Resources, Solutions, Enterprise, and Pricing still look unchanged.
-- Locked nav item typography is unchanged.
-- Locked nav item spacing is unchanged.
-- Dropdown behavior is unchanged.
-- New elements are only in left/right extension areas.
-- No locked Tailwind classes, CSS rules, or component variants were changed accidentally.
+- navbar height is unchanged
+- `Za podjetja` is not present in desktop or mobile top-level navbar
+- top-level core nav styling and spacing are unchanged unless explicitly overridden
+- new elements are only in left/right extension areas
+- dropdown panel padding matches the Vercel-like reference and is shared across all dropdowns
+- dropdown panel left edge aligns with the left edge of the `K` in `Katalog`
+- switching dropdowns does not move the panel horizontally
+- every desktop dropdown uses the same 3-column x 5-slot geometry
+- every column/row icon coordinate is static across dropdowns
+- row gap equals icon tile height
+- title top aligns with icon tile top
+- description bottom aligns with icon tile bottom
+- every title and description is one line and fully visible
+- no title/description wraps, truncates, ellipsizes, clips, or hides
+- dropdown closes on pointer leave without requiring an outside click
+- fresh open uses scale/fade only, with no directional content slide
+- close uses fade/scale-out
+- open-to-open switching preserves the existing left/right transition
+- after close, reopening any trigger is treated as a fresh open
+- dropdown item hover changes only the icon tile, not the full row background
+- icon tiles are white by default and become black on item hover/focus
+- icon glyphs are black by default and become white on item hover/focus
+- Katalog/Projekti divider appears only between columns 2 and 3
 
-If a requested change cannot be implemented without changing the locked group or navbar height, Codex must stop and explain the conflict instead of editing the locked styles.
+If a requested change conflicts with the lock or navbar height, Codex must stop and explain the conflict instead of editing outside scope.

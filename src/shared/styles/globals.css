@@ -249,6 +249,17 @@ textarea[readonly] {
   }
 }
 
+@keyframes siteMenuScaleOut {
+  0% {
+    opacity: 1;
+    transform: rotateX(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotateX(-30deg) scale(0.9);
+  }
+}
+
 @keyframes siteMenuEnterFromRight {
   0% {
     opacity: 0;
@@ -307,6 +318,11 @@ textarea[readonly] {
   transform-origin: center top;
 }
 
+.site-menu-viewport-close {
+  animation: siteMenuScaleOut 150ms ease forwards;
+  transform-origin: center top;
+}
+
 .site-menu-content {
   will-change: transform, opacity;
 }
@@ -336,6 +352,7 @@ textarea[readonly] {
 
 @media (prefers-reduced-motion: reduce) {
   .site-menu-viewport-open,
+  .site-menu-viewport-close,
   .site-menu-content-from-start,
   .site-menu-content-from-end,
   .site-menu-content-to-start,

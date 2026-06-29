@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 
-type MenuKey = 'products' | 'resources' | 'solutions';
+type MenuKey = 'products' | 'resources' | 'solutions' | 'help';
 type MenuItemIcon =
   | 'box'
   | 'tool'
@@ -36,13 +36,19 @@ type MenuItemIcon =
 
 type MenuItem = {
   title: string;
-  description?: string;
+  description: string;
   href: string;
   icon: MenuItemIcon;
 };
 
 type MenuColumn = {
   heading: string;
+  items: MenuItem[];
+  desktopSpan?: 1 | 2;
+};
+
+type DesktopMenuColumnSlot = {
+  heading?: string;
   items: MenuItem[];
 };
 
@@ -64,6 +70,21 @@ const dropdownTextRenderingStyle: CSSProperties = {
   textRendering: 'optimizeLegibility',
   willChange: 'auto'
 };
+const desktopDropdownGridStyle: CSSProperties = {
+  gridTemplateColumns:
+    'var(--navbar-dropdown-col-1-width) var(--navbar-dropdown-col-gap) var(--navbar-dropdown-col-2-width) var(--navbar-dropdown-divider-lane-width) var(--navbar-dropdown-col-gap) var(--navbar-dropdown-col-3-width)',
+  gridTemplateRows: '100%',
+  columnGap: 0
+};
+const desktopDropdownColumnGridStyle: CSSProperties = {
+  gridTemplateRows:
+    'var(--navbar-dropdown-heading-slot-height) var(--navbar-dropdown-heading-to-items-gap) auto'
+};
+const desktopDropdownColumnListStyle: CSSProperties = {
+  gridTemplateRows: 'repeat(5, var(--navbar-dropdown-item-slot-height))',
+  rowGap: 'var(--navbar-dropdown-row-gap)'
+};
+const desktopDropdownColumnGridColumns = ['1', '3', '6'];
 const navbarColorStyle = {
   '--navbar-link-default': '#4d4d4d',
   '--navbar-link-hover': '#171717',
@@ -74,239 +95,401 @@ const navbarColorStyle = {
   '--navbar-dropdown-description': '#636363',
   '--navbar-dropdown-icon': '#4c4c4d',
   '--navbar-dropdown-border': '#e6e6e6',
-  '--navbar-dropdown-border-hover': '#dcdcdc'
+  '--navbar-dropdown-border-hover': '#dcdcdc',
+  '--navbar-dropdown-panel-width': '896px',
+  '--navbar-dropdown-panel-height': '463px',
+  '--navbar-dropdown-panel-padding': '28px',
+  '--navbar-dropdown-icon-tile-size': '41px',
+  '--navbar-dropdown-icon-size': '18px',
+  '--navbar-dropdown-title-font-size': '18px',
+  '--navbar-dropdown-title-line-height': '22px',
+  '--navbar-dropdown-description-font-size': '16px',
+  '--navbar-dropdown-description-line-height': '18px',
+  '--navbar-dropdown-heading-font-size': '16px',
+  '--navbar-dropdown-heading-line-height': '22px',
+  '--navbar-dropdown-heading-slot-height': '22px',
+  '--navbar-dropdown-heading-to-items-gap': '16px',
+  '--navbar-dropdown-item-slot-height': 'var(--navbar-dropdown-icon-tile-size)',
+  '--navbar-dropdown-row-gap': 'var(--navbar-dropdown-icon-tile-size)',
+  '--navbar-dropdown-item-content-gap': '14px',
+  '--navbar-dropdown-col-1-width': '265px',
+  '--navbar-dropdown-col-2-width': '285px',
+  '--navbar-dropdown-col-3-width': '241px',
+  '--navbar-dropdown-col-gap': '24px',
+  '--navbar-dropdown-divider-lane-width': '1px'
 } as CSSProperties & Record<string, string>;
 const coreNavTextClassName =
   '[font-size:calc(14px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))]';
 
 const menuLabels: Record<MenuKey, string> = {
-  products: 'Products',
-  resources: 'Resources',
-  solutions: 'Solutions'
+  products: 'Katalog',
+  resources: 'Za šole',
+  solutions: 'Projekti',
+  help: 'Pomoč'
 };
 
 const dropdownOrder: MenuKey[] = ['products', 'resources', 'solutions'];
+const trailingDropdownOrder: MenuKey[] = ['help'];
+const allDropdownOrder: MenuKey[] = [...dropdownOrder, ...trailingDropdownOrder];
 
 const megaMenus: Record<MenuKey, MenuColumn[]> = {
   products: [
     {
-      heading: 'Catalog',
+      heading: 'Kategorije',
+      desktopSpan: 2,
       items: [
         {
-          title: 'Teaching Materials',
-          description: 'Consumables and classroom essentials',
-          href: '/products',
+          title: 'Tehnika in tehnologija',
+          description: 'Osnovni tehnični pouk',
+          href: '/products/tehnika-in-tehnologija',
           icon: 'box'
         },
         {
-          title: 'Workshop Equipment',
-          description: 'Tools, machines, and accessories',
-          href: '/products#workshop',
+          title: 'Materiali',
+          description: 'Les, kovine in plastika',
+          href: '/products/materiali',
           icon: 'tool'
         },
         {
-          title: 'Measuring Tools',
-          description: 'Precision instruments for lessons',
-          href: '/products#measuring',
-          icon: 'ruler'
-        }
-      ]
-    },
-    {
-      heading: 'Operations',
-      items: [
-        {
-          title: 'Order Portal',
-          description: 'Prepare and submit school orders',
-          href: '/order',
-          icon: 'clipboard'
-        },
-        {
-          title: 'Purchase Orders',
-          description: 'Upload documentation in one flow',
-          href: '/order/narocilnica',
-          icon: 'upload'
-        },
-        {
-          title: 'Catalog Search',
-          description: 'Find products by category or keyword',
-          href: '/products',
-          icon: 'search'
-        }
-      ]
-    },
-    {
-      heading: 'Platform',
-      items: [
-        {
-          title: 'Technical Preview',
-          description: 'Explore product details before ordering',
-          href: '/products',
+          title: 'Stroji in naprave',
+          description: 'Oprema za šolske delavnice',
+          href: '/products/stroji-in-naprave',
           icon: 'layers'
         },
         {
-          title: 'Availability',
-          description: 'Plan purchases around current supply',
-          href: '/contact',
-          icon: 'clock'
+          title: 'Merilno orodje',
+          description: 'Merjenje in geometrija',
+          href: '/products/merilno-orodje-in-geometrija',
+          icon: 'ruler'
         },
         {
-          title: 'Documentation',
-          description: 'How ordering and delivery work',
-          href: '/how-schools-order',
-          icon: 'book'
+          title: 'Elektrika in mehanika',
+          description: 'Vezja in prenosi',
+          href: '/products/elektricni-in-mehanicni-elementi',
+          icon: 'grid'
+        },
+        {
+          title: 'Ročno orodje in pribor',
+          description: 'Pribor za delavnico',
+          href: '/products/rocno-orodje-in-delavniski-pribor',
+          icon: 'tool'
+        },
+        {
+          title: 'Zaščita pri delu',
+          description: 'Oprema za varno delo',
+          href: '/products/zascita-pri-delu',
+          icon: 'hardhat'
+        },
+        {
+          title: 'Dodatki in deli',
+          description: 'Rezervni deli in dodatki',
+          href: '/products/dodatki-in-nadomestni-deli',
+          icon: 'repeat'
+        }
+      ]
+    },
+    {
+      heading: 'Po uporabi',
+      items: [
+        {
+          title: 'Za učilnice',
+          description: 'Pripomočki za pouk',
+          href: '/products#za-ucilnice',
+          icon: 'school'
+        },
+        {
+          title: 'Za delavnico',
+          description: 'Orodje za prakso',
+          href: '/products#za-delavnico',
+          icon: 'tool'
+        },
+        {
+          title: 'Za projektno delo',
+          description: 'Materiali za izdelavo',
+          href: '/products#za-projektno-delo',
+          icon: 'clipboard'
+        },
+        {
+          title: 'Potrošni material',
+          description: 'Pogosta zaloga za pouk',
+          href: '/products#potrosni-material',
+          icon: 'box'
         }
       ]
     }
   ],
   resources: [
     {
-      heading: 'Learn',
+      heading: 'Po razredih',
       items: [
         {
-          title: 'Ordering Guide',
-          description: 'Steps for public school procurement',
+          title: '5. razred',
+          description: 'Osnove tehničnega pouka',
+          href: '/products#5-razred',
+          icon: 'school'
+        },
+        {
+          title: '6. razred',
+          description: 'Za razvijanje spretnosti',
+          href: '/products#6-razred',
+          icon: 'school'
+        },
+        {
+          title: '7. razred',
+          description: 'Za zahtevnejše naloge',
+          href: '/products#7-razred',
+          icon: 'school'
+        },
+        {
+          title: '8. razred',
+          description: 'Merjenje in mehanika',
+          href: '/products#8-razred',
+          icon: 'school'
+        },
+        {
+          title: '9. razred',
+          description: 'Zaključni šolski projekti',
+          href: '/products#9-razred',
+          icon: 'school'
+        }
+      ]
+    },
+    {
+      heading: 'Kompleti za pouk',
+      items: [
+        {
+          title: 'Kompleti za projekte',
+          description: 'Material za en izdelek',
+          href: '/products#komplet-za-posamezen-projekt',
+          icon: 'grid'
+        },
+        {
+          title: 'Potrošni material za pouk',
+          description: 'Zaloga za več oddelkov',
+          href: '/products#potrosni-material-za-pouk',
+          icon: 'box'
+        },
+        {
+          title: 'Varnostni komplet',
+          description: 'Osnovna zaščitna oprema',
+          href: '/products/zascita-pri-delu',
+          icon: 'shield'
+        },
+        {
+          title: 'Oprema za učilnico',
+          description: 'Pripomočki za organiziran pouk',
+          href: '/products#oprema-za-ucilnico',
+          icon: 'layers'
+        }
+      ]
+    },
+    {
+      heading: 'Za učitelje',
+      items: [
+        {
+          title: 'Kako naročiti',
+          description: 'Koraki za naročanje',
           href: '/how-schools-order',
           icon: 'book'
         },
         {
-          title: 'Product Notes',
-          description: 'Practical details for classroom use',
-          href: '/products',
+          title: 'Oddaj naročilnico',
+          description: 'Pošljite naročilnico',
+          href: '/order/narocilnica',
+          icon: 'upload'
+        },
+        {
+          title: 'Video vodiči',
+          description: 'Pomoč za izbiro',
+          href: '/how-schools-order#video-vodici',
           icon: 'file'
-        },
-        {
-          title: 'Terms',
-          description: 'Commercial and delivery conditions',
-          href: '/terms',
-          icon: 'clipboard'
-        }
-      ]
-    },
-    {
-      heading: 'Company',
-      items: [
-        {
-          title: 'About Atehna',
-          description: 'Focused support for technical education',
-          href: '/about',
-          icon: 'users'
-        },
-        {
-          title: 'Contact',
-          description: 'Reach the team for a quote or question',
-          href: '/contact',
-          icon: 'mail'
-        },
-        {
-          title: 'Privacy',
-          description: 'How customer data is handled',
-          href: '/privacy',
-          icon: 'shield'
-        }
-      ]
-    },
-    {
-      heading: 'Support',
-      items: [
-        {
-          title: 'Order Help',
-          description: 'Get assistance with an active request',
-          href: '/contact',
-          icon: 'message'
-        },
-        {
-          title: 'Cookies',
-          description: 'Manage website preferences',
-          href: '/cookies',
-          icon: 'cookie'
-        },
-        {
-          title: 'Account Access',
-          description: 'Administrative login for the team',
-          href: '/admin',
-          icon: 'lock'
         }
       ]
     }
   ],
   solutions: [
     {
-      heading: 'By Team',
+      heading: 'Vrste projektov',
+      desktopSpan: 2,
       items: [
         {
-          title: 'Primary Schools',
-          description: 'Reliable supply for yearly programs',
+          title: 'Vsi projekti',
+          description: 'Celoten projektni program',
           href: '/products',
-          icon: 'school'
+          icon: 'grid'
         },
         {
-          title: 'Procurement Teams',
-          description: 'Clear ordering and documentation flows',
-          href: '/how-schools-order',
-          icon: 'team'
+          title: 'Vozila in mehanizmi',
+          description: 'Kolesa in prenosi',
+          href: '/products#vozila-in-mehanizmi',
+          icon: 'truck'
         },
         {
-          title: 'Technical Teachers',
-          description: 'Materials matched to classroom projects',
-          href: '/products',
+          title: 'Leseni izdelki',
+          description: 'Les in ploščni materiali',
+          href: '/products#leseni-izdelki',
+          icon: 'tool'
+        },
+        {
+          title: 'Elektronika',
+          description: 'Vezja in elementi',
+          href: '/products/elektricni-in-mehanicni-elementi',
+          icon: 'layers'
+        },
+        {
+          title: 'Konstrukcije',
+          description: 'Nosilci in okvirji',
+          href: '/products#konstrukcije',
+          icon: 'box'
+        },
+        {
+          title: 'Modelarstvo',
+          description: 'Modeli za izdelavo',
+          href: '/products#modelarstvo',
+          icon: 'ruler'
+        },
+        {
+          title: 'Merjenje in geometrija',
+          description: 'Natančnost in oblike',
+          href: '/products/merilno-orodje-in-geometrija',
+          icon: 'ruler'
+        },
+        {
+          title: 'Ustvarjalni tehnični projekti',
+          description: 'Od ideje do izdelka',
+          href: '/products#ustvarjalni-tehnicni-projekti',
           icon: 'teacher'
         }
       ]
     },
     {
-      heading: 'By Need',
+      heading: 'Priporočeno',
       items: [
         {
-          title: 'Classroom Kits',
-          description: 'Bundled materials for repeat lessons',
-          href: '/products#kits',
-          icon: 'grid'
+          title: 'Najbolj iskano',
+          description: 'Pogosta šolska naročila',
+          href: '/products#najbolj-iskano',
+          icon: 'search'
         },
         {
-          title: 'Workshop Renewal',
-          description: 'Refresh tools and storage in stages',
-          href: '/contact',
+          title: 'Novo v ponudbi',
+          description: 'Novi materiali in kompleti',
+          href: '/products#novo-v-ponudbi',
+          icon: 'clock'
+        },
+        {
+          title: 'Za začetnike',
+          description: 'Preprosti prvi projekti',
+          href: '/products#za-zacetnike',
+          icon: 'school'
+        },
+        {
+          title: 'Kompleti z navodili',
+          description: 'Materiali z navodili',
+          href: '/products#kompleti-z-navodili',
+          icon: 'book'
+        }
+      ]
+    }
+  ],
+  help: [
+    {
+      heading: 'Naročanje',
+      items: [
+        {
+          title: 'Kako naročiti',
+          description: 'Od izbire do dobave',
+          href: '/how-schools-order',
+          icon: 'book'
+        },
+        {
+          title: 'Dostava',
+          description: 'Roki in prevzem',
+          href: '/how-schools-order#dostava',
+          icon: 'truck'
+        },
+        {
+          title: 'Plačilo',
+          description: 'Načini plačila',
+          href: '/how-schools-order#placilo',
+          icon: 'clipboard'
+        },
+        {
+          title: 'Predračun',
+          description: 'Ponudba pred naročilom',
+          href: '/how-schools-order#predracun',
+          icon: 'file'
+        },
+        {
+          title: 'Vračila in reklamacije',
+          description: 'Zamenjave in napake',
+          href: '/terms#vracila-in-reklamacije',
           icon: 'refresh'
-        },
-        {
-          title: 'Safety Supplies',
-          description: 'Protective gear and workshop basics',
-          href: '/products#safety',
-          icon: 'hardhat'
         }
       ]
     },
     {
-      heading: 'By Workflow',
+      heading: 'Dokumentacija',
       items: [
         {
-          title: 'Quote Requests',
-          description: 'Start a focused procurement conversation',
-          href: '/contact',
-          icon: 'message'
+          title: 'Navodila za uporabo',
+          description: 'Navodila za izdelke',
+          href: '/products#navodila-za-uporabo',
+          icon: 'book'
         },
         {
-          title: 'Fast Reorders',
-          description: 'Return to known categories quickly',
-          href: '/products',
-          icon: 'repeat'
+          title: 'Varnostni listi',
+          description: 'Podatki za materiale',
+          href: '/products#varnostni-listi',
+          icon: 'shield'
         },
         {
-          title: 'Delivery Planning',
-          description: 'Coordinate timing across school terms',
+          title: 'Tehnični podatki',
+          description: 'Mere in specifikacije',
+          href: '/products#tehnicni-podatki',
+          icon: 'file'
+        },
+        {
+          title: 'Garancija',
+          description: 'Pogoji garancije in podpore',
+          href: '/terms#garancija',
+          icon: 'lock'
+        }
+      ]
+    },
+    {
+      heading: 'Podjetje',
+      items: [
+        {
+          title: 'O nas',
+          description: 'Kako podpiramo šole',
+          href: '/about',
+          icon: 'users'
+        },
+        {
+          title: 'Kontakt',
+          description: 'Ponudba ali pomoč',
           href: '/contact',
-          icon: 'truck'
+          icon: 'mail'
+        },
+        {
+          title: 'Pogoji poslovanja',
+          description: 'Pravila naročanja',
+          href: '/terms',
+          icon: 'clipboard'
+        },
+        {
+          title: 'Zasebnost',
+          description: 'Varovanje podatkov',
+          href: '/privacy',
+          icon: 'shield'
         }
       ]
     }
   ]
 };
 
-const staticNavItems = [
-  { label: 'Enterprise', href: '/about' },
-  { label: 'Pricing', href: '/contact' }
-];
+const staticNavItems: Array<{ label: string; href: string }> = [];
 
 const ctas: Array<{ label: string; href: string; variant: CtaVariant }> = [
   { label: 'Vprašaj AI', href: '/contact', variant: 'secondary' }
@@ -401,6 +584,39 @@ function MenuIcon({ open }: { open: boolean }) {
       />
     </span>
   );
+}
+
+function createDesktopMenuColumnSlots(menu: MenuKey): DesktopMenuColumnSlot[] {
+  const slots: DesktopMenuColumnSlot[] = [
+    { items: [] },
+    { items: [] },
+    { items: [] }
+  ];
+  let slotIndex = 0;
+
+  for (const column of megaMenus[menu]) {
+    if (column.desktopSpan === 2) {
+      slots[0] = {
+        heading: column.heading,
+        items: column.items.slice(0, 5)
+      };
+      slots[1] = {
+        items: column.items.slice(5, 10)
+      };
+      slotIndex = 2;
+      continue;
+    }
+
+    if (slotIndex < slots.length) {
+      slots[slotIndex] = {
+        heading: column.heading,
+        items: column.items.slice(0, 5)
+      };
+      slotIndex += 1;
+    }
+  }
+
+  return slots;
 }
 
 function MenuItemGlyph({ icon, size = 'default' }: { icon: MenuItemIcon; size?: 'default' | 'desktopDropdown' }) {
@@ -635,11 +851,21 @@ function MenuItemGlyph({ icon, size = 'default' }: { icon: MenuItemIcon; size?: 
   const isDesktopDropdown = size === 'desktopDropdown';
 
   return (
-    <span className={`inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg border border-[var(--navbar-dropdown-border)] bg-[#fafafa] ${isDesktopDropdown ? 'text-[var(--navbar-dropdown-icon)]' : 'text-[var(--navbar-dropdown-icon)]'} transition group-hover:border-[var(--navbar-dropdown-border-hover)] group-hover:bg-white group-hover:text-[var(--navbar-dropdown-title)]`}>
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-lg border border-[var(--navbar-dropdown-border)] ${
+        isDesktopDropdown
+          ? 'h-[var(--navbar-dropdown-icon-tile-size)] w-[var(--navbar-dropdown-icon-tile-size)] bg-white text-[var(--navbar-dropdown-title)] transition-colors duration-150 group-hover:border-black group-hover:bg-black group-hover:text-white group-focus-visible:border-black group-focus-visible:bg-black group-focus-visible:text-white'
+          : 'h-[43px] w-[43px] bg-[#fafafa] text-[var(--navbar-dropdown-icon)] transition group-hover:border-[var(--navbar-dropdown-border-hover)] group-hover:bg-white group-hover:text-[var(--navbar-dropdown-title)]'
+      }`}
+    >
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className={isDesktopDropdown ? 'h-[30px] w-[30px]' : 'h-[21px] w-[21px]'}
+        className={
+          isDesktopDropdown
+            ? 'h-[var(--navbar-dropdown-icon-size)] w-[var(--navbar-dropdown-icon-size)]'
+            : 'h-[21px] w-[21px]'
+        }
         fill="none"
         stroke="currentColor"
         strokeWidth={isDesktopDropdown ? '1.75' : '1.6'}
@@ -664,50 +890,75 @@ function DesktopMenuContent({
   isExiting?: boolean;
 }) {
   const motionClass = motion ? `site-menu-content-${motion}` : '';
+  const columns = createDesktopMenuColumnSlots(menu);
+  const showDivider = megaMenus[menu].some((column) => column.desktopSpan === 2);
 
   return (
     <div
       key={menu}
       aria-hidden={isExiting}
-      style={dropdownTextRenderingStyle}
-      className={`site-menu-content grid grid-cols-3 gap-[11px] p-4 ${motionClass} ${
+      style={{
+        ...dropdownTextRenderingStyle,
+        ...desktopDropdownGridStyle,
+        padding: 'var(--navbar-dropdown-panel-padding)'
+      }}
+      className={`site-menu-content grid h-full ${motionClass} ${
         isExiting ? 'pointer-events-none absolute inset-0' : 'relative'
       }`}
     >
-      {megaMenus[menu].map((column) => (
-        <section key={column.heading} aria-labelledby={`${menu}-${column.heading}`}>
-          <h2
-            id={`${menu}-${column.heading}`}
-            className="px-4 pb-[11px] pt-[5px] text-[17px] font-normal leading-[27px] text-[var(--navbar-dropdown-heading)]"
+      {columns.map((column, index) => {
+        const headingId = column.heading ? `${menu}-desktop-column-${index + 1}` : undefined;
+
+        return (
+          <section
+            key={`${menu}-desktop-column-${index + 1}`}
+            aria-labelledby={headingId}
+            style={{
+              ...desktopDropdownColumnGridStyle,
+              gridColumn: desktopDropdownColumnGridColumns[index]
+            }}
+            className="grid min-w-0"
           >
-            {column.heading}
-          </h2>
-          <ul className="space-y-[5px]">
-            {column.items.map((item) => (
-              <li key={item.title}>
-                <Link
-                  href={item.href}
-                  prefetch={false}
-                  onClick={onNavigate}
-                  className="group grid h-[92px] grid-cols-[43px_1fr] items-center gap-[13px] overflow-hidden rounded-lg px-3 transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
-                >
-                  <MenuItemGlyph icon={item.icon} size="desktopDropdown" />
-                  <span className="block min-w-0">
-                    <span className="block truncate text-[19px] font-medium leading-[24px] text-[var(--navbar-dropdown-title)]">
-                      {item.title}
-                    </span>
-                    {item.description ? (
-                      <span className="site-menu-description-clamp mt-[3px] block text-[17px] font-normal leading-[23px] text-[var(--navbar-dropdown-description)]">
+            {column.heading ? (
+              <h2
+                id={headingId}
+                className="m-0 whitespace-nowrap p-0 [font-size:var(--navbar-dropdown-heading-font-size)] font-normal [line-height:var(--navbar-dropdown-heading-line-height)] text-[var(--navbar-dropdown-heading)]"
+              >
+                {column.heading}
+              </h2>
+            ) : (
+              <div aria-hidden="true" />
+            )}
+            <ul style={desktopDropdownColumnListStyle} className="row-start-3 grid min-w-0">
+              {column.items.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    href={item.href}
+                    prefetch={false}
+                    onClick={onNavigate}
+                    className="group grid h-[var(--navbar-dropdown-item-slot-height)] w-full grid-cols-[var(--navbar-dropdown-icon-tile-size)_1fr] items-stretch gap-[var(--navbar-dropdown-item-content-gap)] rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    <MenuItemGlyph icon={item.icon} size="desktopDropdown" />
+                    <span className="flex h-[var(--navbar-dropdown-icon-tile-size)] min-w-0 flex-col justify-between">
+                      <span className="m-0 block whitespace-nowrap [font-size:var(--navbar-dropdown-title-font-size)] font-medium [line-height:var(--navbar-dropdown-title-line-height)] text-[var(--navbar-dropdown-title)]">
+                        {item.title}
+                      </span>
+                      <span className="m-0 block whitespace-nowrap [font-size:var(--navbar-dropdown-description-font-size)] font-normal [line-height:var(--navbar-dropdown-description-line-height)] text-[var(--navbar-dropdown-description)]">
                         {item.description}
                       </span>
-                    ) : null}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+      <div
+        aria-hidden="true"
+        style={{ gridColumn: '4', gridRow: '1', width: 'var(--navbar-dropdown-divider-lane-width)' }}
+        className={showDivider ? 'h-full bg-[#eaeaea]' : 'h-full bg-transparent'}
+      />
     </div>
   );
 }
@@ -1094,15 +1345,38 @@ function DesktopCta({
 export default function SiteHeader() {
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
+  const katalogLabelRef = useRef<HTMLSpanElement>(null);
   const switchTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   const activeMenuRef = useRef<MenuKey | null>(null);
   const previousActiveMenuRef = useRef<MenuKey | null>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
   const [previousMenu, setPreviousMenu] = useState<MenuKey | null>(null);
   const [menuDirection, setMenuDirection] = useState<MenuDirection | null>(null);
+  const [isMenuClosing, setIsMenuClosing] = useState(false);
+  const [dropdownPanelLeft, setDropdownPanelLeft] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMobileMenus, setOpenMobileMenus] = useState<MenuKey[]>([]);
   const isAdminPath = pathname.startsWith('/admin');
+
+  const updateDropdownPanelLeft = useCallback(() => {
+    const header = headerRef.current;
+    const katalogLabel = katalogLabelRef.current;
+
+    if (!header || !katalogLabel) {
+      return;
+    }
+
+    const headerRect = header.getBoundingClientRect();
+    const labelRect = katalogLabel.getBoundingClientRect();
+    const scaleX = header.offsetWidth > 0 ? headerRect.width / header.offsetWidth : 1;
+    const nextPanelLeft = (labelRect.left - headerRect.left) / (scaleX || 1);
+    const roundedPanelLeft = Math.round(nextPanelLeft * 100) / 100;
+
+    setDropdownPanelLeft((currentPanelLeft) =>
+      Math.abs(currentPanelLeft - roundedPanelLeft) < 0.5 ? currentPanelLeft : roundedPanelLeft
+    );
+  }, []);
 
   const clearSwitchTimer = () => {
     if (switchTimerRef.current !== null) {
@@ -1111,17 +1385,63 @@ export default function SiteHeader() {
     }
   };
 
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
   const closeMenus = () => {
     clearSwitchTimer();
+    clearCloseTimer();
     activeMenuRef.current = null;
     previousActiveMenuRef.current = null;
     setActiveMenu(null);
     setPreviousMenu(null);
     setMenuDirection(null);
+    setIsMenuClosing(false);
     setMobileOpen(false);
   };
 
+  const cancelDesktopMenuClose = () => {
+    clearCloseTimer();
+    setIsMenuClosing(false);
+  };
+
+  const closeDesktopMenuWithAnimation = () => {
+    if (!activeMenuRef.current) {
+      return;
+    }
+
+    clearSwitchTimer();
+    clearCloseTimer();
+    previousActiveMenuRef.current = null;
+    setPreviousMenu(null);
+    setMenuDirection(null);
+    setIsMenuClosing(true);
+
+    closeTimerRef.current = window.setTimeout(() => {
+      activeMenuRef.current = null;
+      previousActiveMenuRef.current = null;
+      setActiveMenu(null);
+      setPreviousMenu(null);
+      setMenuDirection(null);
+      setIsMenuClosing(false);
+      closeTimerRef.current = null;
+    }, 150);
+  };
+
+  const scheduleDesktopMenuClose = () => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      closeDesktopMenuWithAnimation();
+    }, 90);
+  };
+
   const openDesktopMenu = (nextMenu: MenuKey) => {
+    cancelDesktopMenuClose();
     const currentMenu = activeMenuRef.current;
 
     if (currentMenu === nextMenu) {
@@ -1138,6 +1458,58 @@ export default function SiteHeader() {
     // closeMenus intentionally stays local to keep the route-change reset immediate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  useLayoutEffect(() => {
+    updateDropdownPanelLeft();
+  }, [updateDropdownPanelLeft]);
+
+  useEffect(() => {
+    let animationFrame: number | null = null;
+    let disposed = false;
+
+    const scheduleDropdownPanelLeftUpdate = () => {
+      if (disposed) {
+        return;
+      }
+
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        updateDropdownPanelLeft();
+      });
+    };
+
+    scheduleDropdownPanelLeftUpdate();
+    window.addEventListener('resize', scheduleDropdownPanelLeftUpdate);
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleDropdownPanelLeftUpdate) : null;
+
+    if (headerRef.current) {
+      resizeObserver?.observe(headerRef.current);
+    }
+
+    if (katalogLabelRef.current) {
+      resizeObserver?.observe(katalogLabelRef.current);
+    }
+
+    const fontSet = 'fonts' in document ? document.fonts : undefined;
+    void fontSet?.ready.then(scheduleDropdownPanelLeftUpdate);
+
+    return () => {
+      disposed = true;
+
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+
+      window.removeEventListener('resize', scheduleDropdownPanelLeftUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [updateDropdownPanelLeft]);
 
   useEffect(() => {
     activeMenuRef.current = activeMenu;
@@ -1159,8 +1531,8 @@ export default function SiteHeader() {
     }
 
     if (previousMenu && previousMenu !== activeMenu) {
-      const previousIndex = dropdownOrder.indexOf(previousMenu);
-      const nextIndex = dropdownOrder.indexOf(activeMenu);
+      const previousIndex = allDropdownOrder.indexOf(previousMenu);
+      const nextIndex = allDropdownOrder.indexOf(activeMenu);
 
       setPreviousMenu(previousMenu);
       setMenuDirection(nextIndex > previousIndex ? 'forward' : 'backward');
@@ -1196,11 +1568,13 @@ export default function SiteHeader() {
 
       if (header && !header.contains(target) && !event.composedPath().includes(header) && !isInsideHeaderBox) {
         clearSwitchTimer();
+        clearCloseTimer();
         activeMenuRef.current = null;
         previousActiveMenuRef.current = null;
         setActiveMenu(null);
         setPreviousMenu(null);
         setMenuDirection(null);
+        setIsMenuClosing(false);
         setMobileOpen(false);
       }
     };
@@ -1208,11 +1582,13 @@ export default function SiteHeader() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         clearSwitchTimer();
+        clearCloseTimer();
         activeMenuRef.current = null;
         previousActiveMenuRef.current = null;
         setActiveMenu(null);
         setPreviousMenu(null);
         setMenuDirection(null);
+        setIsMenuClosing(false);
         setMobileOpen(false);
       }
     };
@@ -1222,6 +1598,7 @@ export default function SiteHeader() {
 
     return () => {
       clearSwitchTimer();
+      clearCloseTimer();
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
@@ -1280,12 +1657,15 @@ export default function SiteHeader() {
                 onClick={() => openDesktopMenu(key)}
                 onFocus={() => openDesktopMenu(key)}
                 onMouseEnter={() => openDesktopMenu(key)}
+                onMouseLeave={scheduleDesktopMenuClose}
+                onPointerEnter={() => openDesktopMenu(key)}
+                onPointerLeave={scheduleDesktopMenuClose}
                 className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
                   open ? 'bg-[var(--navbar-trigger-open-bg)] text-[var(--navbar-link-current)]' : 'text-[var(--navbar-link-default)]'
                 }`}
               >
                 <span className="inline-flex items-center gap-2">
-                  <span>{menuLabels[key]}</span>
+                  <span ref={key === 'products' ? katalogLabelRef : undefined}>{menuLabels[key]}</span>
                   <ChevronIcon open={open} subtle />
                 </span>
               </button>
@@ -1303,6 +1683,34 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
+
+          {trailingDropdownOrder.map((key) => {
+            const open = activeMenu === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-expanded={open}
+                aria-controls={desktopPanelId}
+                aria-haspopup="true"
+                onClick={() => openDesktopMenu(key)}
+                onFocus={() => openDesktopMenu(key)}
+                onMouseEnter={() => openDesktopMenu(key)}
+                onMouseLeave={scheduleDesktopMenuClose}
+                onPointerEnter={() => openDesktopMenu(key)}
+                onPointerLeave={scheduleDesktopMenuClose}
+                className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
+                  open ? 'bg-[var(--navbar-trigger-open-bg)] text-[var(--navbar-link-current)]' : 'text-[var(--navbar-link-default)]'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <span>{menuLabels[key]}</span>
+                  <ChevronIcon open={open} subtle />
+                </span>
+              </button>
+            );
+          })}
         </nav>
 
         <div data-navbar-right className="hidden min-w-0 shrink-0 items-center justify-end gap-2 lg:flex lg:w-[240px] xl:w-auto">
@@ -1337,10 +1745,19 @@ export default function SiteHeader() {
       {activeMenu ? (
         <div
           id={desktopPanelId}
-          className="site-menu-perspective absolute left-1/2 top-full hidden w-[1013px] max-w-[calc(100vw-48px)] -translate-x-1/2 pt-[11px] lg:block"
+          style={{
+            left: dropdownPanelLeft,
+            width: 'var(--navbar-dropdown-panel-width)',
+            maxWidth: 'calc((100vw - 32px) / var(--commercial-storefront-scale))'
+          }}
+          onMouseEnter={cancelDesktopMenuClose}
+          onMouseLeave={scheduleDesktopMenuClose}
+          onPointerEnter={cancelDesktopMenuClose}
+          onPointerLeave={scheduleDesktopMenuClose}
+          className="site-menu-perspective absolute top-full hidden pt-[11px] lg:block"
         >
-          <div className="site-menu-viewport-open overflow-hidden rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
-            <div className="relative overflow-hidden">
+          <div className={`${isMenuClosing ? 'site-menu-viewport-close' : 'site-menu-viewport-open'} h-[var(--navbar-dropdown-panel-height)] overflow-hidden rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]`}>
+            <div className="relative h-full overflow-hidden">
               {previousMenu && menuDirection ? (
                 <DesktopMenuContent
                   menu={previousMenu}
@@ -1394,19 +1811,37 @@ export default function SiteHeader() {
               />
             ))}
 
-            <div className="border-b border-[#eeeeee] py-2">
-              {staticNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={false}
-                  onClick={closeMenus}
-                className="block px-[27px] py-4 text-xl font-medium text-[#111111] transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
-              >
-                {item.label}
-              </Link>
+            {staticNavItems.length > 0 ? (
+              <div className="border-b border-[#eeeeee] py-2">
+                {staticNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    prefetch={false}
+                    onClick={closeMenus}
+                    className="block px-[27px] py-4 text-xl font-medium text-[#111111] transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+
+            {trailingDropdownOrder.map((key) => (
+              <MobileAccordion
+                key={key}
+                menu={key}
+                open={openMobileMenus.includes(key)}
+                onToggle={() =>
+                  setOpenMobileMenus((openMenus) =>
+                    openMenus.includes(key)
+                      ? openMenus.filter((openMenu) => openMenu !== key)
+                      : [...openMenus, key]
+                  )
+                }
+                onNavigate={closeMenus}
+              />
             ))}
-          </div>
 
             <div className="grid gap-[11px] px-[27px] pt-[21px]">
               {ctas.map((cta) => (

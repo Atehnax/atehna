@@ -12,7 +12,7 @@ const primaryLinks = [
   { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
   { href: '/admin/kupci', label: 'Seznam kupcev', icon: UsersIcon },
-  { href: '/admin/celostna-podoba', label: 'Vizualna podoba', icon: PaletteIcon },
+  { href: '/admin/podoba/navigacija', label: 'Podoba', icon: PaletteIcon },
   { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
   { href: '/admin/urejevalnik', label: 'Urejevalnik dokumentov', icon: FilePenLineIcon },
   { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },

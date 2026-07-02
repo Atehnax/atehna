@@ -67,7 +67,7 @@ const toneClasses = {
   },
   admin: {
     shell:
-      'group relative rounded-xl border border-slate-300 transition-[border-color,box-shadow] focus-within:border-[#3e67d6] focus-within:ring-2 focus-within:ring-brand-100',
+      'group relative rounded-xl border border-slate-300 transition-[border-color,box-shadow] focus-within:border-[color:var(--blue-500)] focus-within:ring-2 focus-within:ring-brand-100',
     input:
       'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     textarea:

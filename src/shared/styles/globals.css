@@ -118,6 +118,14 @@
 
   --commercial-storefront-scale: 0.75;
   --commercial-order-sidebar-zoom: 1.2;
+  --site-content-max-width: 1260px;
+  --site-gutter-min: 16px;
+  --site-gutter-max: 32px;
+  --site-gutter: clamp(var(--site-gutter-min), 4vw, var(--site-gutter-max));
+  --topbar-height: 72px;
+  --topbar-column-gap: 24px;
+  --topbar-item-gap: 12px;
+  --topbar-inner-max-width: var(--site-content-max-width);
 }
 
 body {
@@ -159,13 +167,90 @@ textarea[readonly] {
 }
 
 .container-base {
-  @apply mx-auto w-full max-w-6xl px-6;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--site-content-max-width);
+  margin-inline: auto;
+  padding-inline: var(--site-gutter);
+}
+
+.site-container,
+.topbar-inner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--site-content-max-width);
+  margin-inline: auto;
+  padding-inline: var(--site-gutter);
+}
+
+.topbar {
+  width: 100%;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+  background: var(--surface-color, #ffffff);
+}
+
+.topbar-inner {
+  height: var(--topbar-height);
+  display: grid;
+  align-items: center;
+  column-gap: var(--topbar-column-gap);
+  max-width: var(--topbar-inner-max-width);
+}
+
+.topbar-inner[data-width-mode='full'] {
+  max-width: none;
+}
+
+.topbar-inner[data-layout-mode='centered_nav'] {
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+}
+
+.topbar-inner[data-layout-mode='flow'] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.topbar-left,
+.topbar-center,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--topbar-item-gap);
+  min-width: 0;
+}
+
+.topbar-left {
+  justify-self: start;
+}
+
+.topbar-center {
+  justify-self: center;
+}
+
+.topbar-right {
+  justify-self: end;
 }
 
 .commercial-storefront-scale {
   width: 100%;
   min-height: 100vh;
   zoom: var(--commercial-storefront-scale);
+}
+
+.commercial-storefront-scale.admin-site-header-preview-scale {
+  position: relative;
+  z-index: 70;
+  width: 100%;
+  height: 65px;
+  min-height: 0;
+  flex: 0 0 auto;
+  overflow: visible;
+  zoom: 1;
+}
+
+.commercial-storefront-scale.admin-site-header-preview-scale > header {
+  width: calc(100% / var(--commercial-storefront-scale));
+  transform: scale(var(--commercial-storefront-scale));
+  transform-origin: left top;
 }
 
 .commercial-storefront-scale .commercial-order-sidebar {

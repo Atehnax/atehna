@@ -2,62 +2,61 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import type { CSSProperties, FormEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
+import {
+  DEFAULT_SITE_NAVIGATION_CONFIG,
+  SITE_NAVIGATION_DESKTOP_COLUMN_COUNT,
+  SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
+  SITE_NAVIGATION_DESKTOP_LINK_ROWS,
+  getVisibleSiteNavigationItems,
+  getSiteNavigationDesktopGroupPlacements,
+  getSiteNavigationTopBarReservedFixedWidth,
+  normalizeSiteNavigationConfig,
+  type SiteNavigationConfig,
+  type SiteNavigationGroup,
+  type SiteNavigationItemIcon,
+  type SiteNavigationLink,
+  type SiteNavigationTopBarResponsiveItem,
+  type SiteNavigationTopLevelItem
+} from '@/shared/domain/navigation/siteNavigation';
+import { SiteNavigationLucideIcon } from '@/shared/ui/icons/SiteNavigationLucideIcon';
+import { sharedIconTileBorderWidth } from '@/shared/ui/theme/tokens';
 
-type MenuKey = 'products' | 'resources' | 'solutions' | 'help';
-type MenuItemIcon =
-  | 'box'
-  | 'tool'
-  | 'ruler'
-  | 'clipboard'
-  | 'upload'
-  | 'search'
-  | 'layers'
-  | 'clock'
-  | 'book'
-  | 'file'
-  | 'users'
-  | 'mail'
-  | 'shield'
-  | 'cookie'
-  | 'lock'
-  | 'school'
-  | 'team'
-  | 'teacher'
-  | 'grid'
-  | 'refresh'
-  | 'hardhat'
-  | 'message'
-  | 'repeat'
-  | 'truck';
-
-type MenuItem = {
-  title: string;
-  description: string;
-  href: string;
-  icon: MenuItemIcon;
-};
-
-type MenuColumn = {
-  heading: string;
-  items: MenuItem[];
-  desktopSpan?: 1 | 2;
-};
-
+type MenuKey = string;
 type DesktopMenuColumnSlot = {
   heading?: string;
-  items: MenuItem[];
+  items: SiteNavigationLink[];
+  sourceGroupId?: string;
+  sourceSlotSpan?: number;
+};
+type DesktopMenuPage = {
+  slots: DesktopMenuColumnSlot[];
+  showDivider: boolean;
 };
 
 type MenuDirection = 'forward' | 'backward';
 type MenuMotion = 'from-start' | 'from-end' | 'to-start' | 'to-end';
 type CtaVariant = 'secondary' | 'ghost' | 'primary';
+type TopBarCssProperties = CSSProperties & {
+  '--site-content-max-width'?: string;
+  '--site-gutter-min'?: string;
+  '--site-gutter-max'?: string;
+  '--topbar-height'?: string;
+  '--topbar-column-gap'?: string;
+  '--topbar-item-gap'?: string;
+  '--topbar-inner-max-width'?: string;
+};
 
 const desktopPanelId = 'site-desktop-mega-menu';
 const mobileMenuId = 'site-mobile-menu';
+const adminSiteNavigationPreviewEventName = 'admin-site-navigation-preview';
+type AdminSiteNavigationPreviewEventDetail = {
+  enabled: boolean;
+  navigation?: SiteNavigationConfig;
+};
 const coreNavTextRenderingStyle: CSSProperties = {
   fontFamily: 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   WebkitFontSmoothing: 'antialiased',
@@ -84,6 +83,10 @@ const desktopDropdownColumnListStyle: CSSProperties = {
   gridTemplateRows: 'repeat(5, var(--navbar-dropdown-item-slot-height))',
   rowGap: 'var(--navbar-dropdown-row-gap)'
 };
+const desktopDropdownColumnListExpandedHoverStyle: CSSProperties = {
+  marginLeft: 'calc(var(--navbar-dropdown-item-hover-x) * -1)',
+  marginRight: 'calc(var(--navbar-dropdown-item-hover-x) * -1)'
+};
 const desktopDropdownColumnGridColumns = ['1', '3', '6'];
 const navbarColorStyle = {
   '--navbar-link-default': '#4d4d4d',
@@ -97,21 +100,25 @@ const navbarColorStyle = {
   '--navbar-dropdown-border': '#e6e6e6',
   '--navbar-dropdown-border-hover': '#dcdcdc',
   '--navbar-dropdown-panel-width': '896px',
-  '--navbar-dropdown-panel-height': '463px',
+  '--navbar-dropdown-panel-height':
+    'calc(var(--navbar-dropdown-panel-padding) * 2 + var(--navbar-dropdown-heading-slot-height) + var(--navbar-dropdown-heading-to-items-gap) + var(--navbar-dropdown-item-slot-height) * 5 + var(--navbar-dropdown-row-gap) * 4)',
   '--navbar-dropdown-panel-padding': '28px',
   '--navbar-dropdown-icon-tile-size': '41px',
   '--navbar-dropdown-icon-size': '18px',
+  '--navbar-dropdown-icon-tile-border-width': sharedIconTileBorderWidth,
   '--navbar-dropdown-title-font-size': '18px',
-  '--navbar-dropdown-title-line-height': '22px',
+  '--navbar-dropdown-title-line-height': '21px',
   '--navbar-dropdown-description-font-size': '16px',
-  '--navbar-dropdown-description-line-height': '18px',
+  '--navbar-dropdown-description-line-height': '20px',
   '--navbar-dropdown-heading-font-size': '16px',
   '--navbar-dropdown-heading-line-height': '22px',
   '--navbar-dropdown-heading-slot-height': '22px',
   '--navbar-dropdown-heading-to-items-gap': '16px',
   '--navbar-dropdown-item-slot-height': 'var(--navbar-dropdown-icon-tile-size)',
-  '--navbar-dropdown-row-gap': 'var(--navbar-dropdown-icon-tile-size)',
+  '--navbar-dropdown-row-gap': `${SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX}px`,
   '--navbar-dropdown-item-content-gap': '14px',
+  '--navbar-dropdown-item-hover-x': '8px',
+  '--navbar-dropdown-item-hover-y': '6px',
   '--navbar-dropdown-col-1-width': '265px',
   '--navbar-dropdown-col-2-width': '285px',
   '--navbar-dropdown-col-3-width': '241px',
@@ -120,380 +127,52 @@ const navbarColorStyle = {
 } as CSSProperties & Record<string, string>;
 const coreNavTextClassName =
   '[font-size:calc(14px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))]';
+const publicNavNoFocusOutlineClassName =
+  'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0';
+const publicDropdownSelectionClassName =
+  `transition hover:bg-[color:var(--hover-neutral)] active:bg-[color:var(--hover-neutral)] focus:bg-[color:var(--hover-neutral)] focus:outline-none focus:ring-0 focus-visible:bg-[color:var(--hover-neutral)] focus-visible:outline-none focus-visible:ring-0`;
+const publicDropdownIconTileInteractionClassName =
+  'group-hover:border-transparent group-hover:text-[color:var(--blue-500)] group-hover:[outline:1px_solid_currentColor] group-hover:[outline-offset:-1px] group-focus:border-transparent group-focus:text-[color:var(--blue-500)] group-focus:[outline:1px_solid_currentColor] group-focus:[outline-offset:-1px] group-focus-visible:border-transparent group-focus-visible:text-[color:var(--blue-500)] group-focus-visible:[outline:1px_solid_currentColor] group-focus-visible:[outline-offset:-1px] group-active:border-transparent group-active:text-[color:var(--blue-500)] group-active:[outline:1px_solid_currentColor] group-active:[outline-offset:-1px]';
+const publicCoreNavInteractiveClassName =
+  `transition hover:text-[var(--navbar-link-hover)] focus:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)] ${publicNavNoFocusOutlineClassName}`;
+const publicCoreNavOpenClassName =
+  `transition text-[color:var(--blue-500)] hover:text-[color:var(--blue-500)] focus:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)] ${publicNavNoFocusOutlineClassName}`;
 
-const menuLabels: Record<MenuKey, string> = {
-  products: 'Katalog',
-  resources: 'Za šole',
-  solutions: 'Projekti',
-  help: 'Pomoč'
-};
-
-const dropdownOrder: MenuKey[] = ['products', 'resources', 'solutions'];
-const trailingDropdownOrder: MenuKey[] = ['help'];
-const allDropdownOrder: MenuKey[] = [...dropdownOrder, ...trailingDropdownOrder];
-
-const megaMenus: Record<MenuKey, MenuColumn[]> = {
-  products: [
-    {
-      heading: 'Kategorije',
-      desktopSpan: 2,
-      items: [
-        {
-          title: 'Tehnika in tehnologija',
-          description: 'Osnovni tehnični pouk',
-          href: '/products/tehnika-in-tehnologija',
-          icon: 'box'
-        },
-        {
-          title: 'Materiali',
-          description: 'Les, kovine in plastika',
-          href: '/products/materiali',
-          icon: 'tool'
-        },
-        {
-          title: 'Stroji in naprave',
-          description: 'Oprema za šolske delavnice',
-          href: '/products/stroji-in-naprave',
-          icon: 'layers'
-        },
-        {
-          title: 'Merilno orodje',
-          description: 'Merjenje in geometrija',
-          href: '/products/merilno-orodje-in-geometrija',
-          icon: 'ruler'
-        },
-        {
-          title: 'Elektrika in mehanika',
-          description: 'Vezja in prenosi',
-          href: '/products/elektricni-in-mehanicni-elementi',
-          icon: 'grid'
-        },
-        {
-          title: 'Ročno orodje in pribor',
-          description: 'Pribor za delavnico',
-          href: '/products/rocno-orodje-in-delavniski-pribor',
-          icon: 'tool'
-        },
-        {
-          title: 'Zaščita pri delu',
-          description: 'Oprema za varno delo',
-          href: '/products/zascita-pri-delu',
-          icon: 'hardhat'
-        },
-        {
-          title: 'Dodatki in deli',
-          description: 'Rezervni deli in dodatki',
-          href: '/products/dodatki-in-nadomestni-deli',
-          icon: 'repeat'
-        }
-      ]
-    },
-    {
-      heading: 'Po uporabi',
-      items: [
-        {
-          title: 'Za učilnice',
-          description: 'Pripomočki za pouk',
-          href: '/products#za-ucilnice',
-          icon: 'school'
-        },
-        {
-          title: 'Za delavnico',
-          description: 'Orodje za prakso',
-          href: '/products#za-delavnico',
-          icon: 'tool'
-        },
-        {
-          title: 'Za projektno delo',
-          description: 'Materiali za izdelavo',
-          href: '/products#za-projektno-delo',
-          icon: 'clipboard'
-        },
-        {
-          title: 'Potrošni material',
-          description: 'Pogosta zaloga za pouk',
-          href: '/products#potrosni-material',
-          icon: 'box'
-        }
-      ]
-    }
-  ],
-  resources: [
-    {
-      heading: 'Po razredih',
-      items: [
-        {
-          title: '5. razred',
-          description: 'Osnove tehničnega pouka',
-          href: '/products#5-razred',
-          icon: 'school'
-        },
-        {
-          title: '6. razred',
-          description: 'Za razvijanje spretnosti',
-          href: '/products#6-razred',
-          icon: 'school'
-        },
-        {
-          title: '7. razred',
-          description: 'Za zahtevnejše naloge',
-          href: '/products#7-razred',
-          icon: 'school'
-        },
-        {
-          title: '8. razred',
-          description: 'Merjenje in mehanika',
-          href: '/products#8-razred',
-          icon: 'school'
-        },
-        {
-          title: '9. razred',
-          description: 'Zaključni šolski projekti',
-          href: '/products#9-razred',
-          icon: 'school'
-        }
-      ]
-    },
-    {
-      heading: 'Kompleti za pouk',
-      items: [
-        {
-          title: 'Kompleti za projekte',
-          description: 'Material za en izdelek',
-          href: '/products#komplet-za-posamezen-projekt',
-          icon: 'grid'
-        },
-        {
-          title: 'Potrošni material za pouk',
-          description: 'Zaloga za več oddelkov',
-          href: '/products#potrosni-material-za-pouk',
-          icon: 'box'
-        },
-        {
-          title: 'Varnostni komplet',
-          description: 'Osnovna zaščitna oprema',
-          href: '/products/zascita-pri-delu',
-          icon: 'shield'
-        },
-        {
-          title: 'Oprema za učilnico',
-          description: 'Pripomočki za organiziran pouk',
-          href: '/products#oprema-za-ucilnico',
-          icon: 'layers'
-        }
-      ]
-    },
-    {
-      heading: 'Za učitelje',
-      items: [
-        {
-          title: 'Kako naročiti',
-          description: 'Koraki za naročanje',
-          href: '/how-schools-order',
-          icon: 'book'
-        },
-        {
-          title: 'Oddaj naročilnico',
-          description: 'Pošljite naročilnico',
-          href: '/order/narocilnica',
-          icon: 'upload'
-        },
-        {
-          title: 'Video vodiči',
-          description: 'Pomoč za izbiro',
-          href: '/how-schools-order#video-vodici',
-          icon: 'file'
-        }
-      ]
-    }
-  ],
-  solutions: [
-    {
-      heading: 'Vrste projektov',
-      desktopSpan: 2,
-      items: [
-        {
-          title: 'Vsi projekti',
-          description: 'Celoten projektni program',
-          href: '/products',
-          icon: 'grid'
-        },
-        {
-          title: 'Vozila in mehanizmi',
-          description: 'Kolesa in prenosi',
-          href: '/products#vozila-in-mehanizmi',
-          icon: 'truck'
-        },
-        {
-          title: 'Leseni izdelki',
-          description: 'Les in ploščni materiali',
-          href: '/products#leseni-izdelki',
-          icon: 'tool'
-        },
-        {
-          title: 'Elektronika',
-          description: 'Vezja in elementi',
-          href: '/products/elektricni-in-mehanicni-elementi',
-          icon: 'layers'
-        },
-        {
-          title: 'Konstrukcije',
-          description: 'Nosilci in okvirji',
-          href: '/products#konstrukcije',
-          icon: 'box'
-        },
-        {
-          title: 'Modelarstvo',
-          description: 'Modeli za izdelavo',
-          href: '/products#modelarstvo',
-          icon: 'ruler'
-        },
-        {
-          title: 'Merjenje in geometrija',
-          description: 'Natančnost in oblike',
-          href: '/products/merilno-orodje-in-geometrija',
-          icon: 'ruler'
-        },
-        {
-          title: 'Ustvarjalni tehnični projekti',
-          description: 'Od ideje do izdelka',
-          href: '/products#ustvarjalni-tehnicni-projekti',
-          icon: 'teacher'
-        }
-      ]
-    },
-    {
-      heading: 'Priporočeno',
-      items: [
-        {
-          title: 'Najbolj iskano',
-          description: 'Pogosta šolska naročila',
-          href: '/products#najbolj-iskano',
-          icon: 'search'
-        },
-        {
-          title: 'Novo v ponudbi',
-          description: 'Novi materiali in kompleti',
-          href: '/products#novo-v-ponudbi',
-          icon: 'clock'
-        },
-        {
-          title: 'Za začetnike',
-          description: 'Preprosti prvi projekti',
-          href: '/products#za-zacetnike',
-          icon: 'school'
-        },
-        {
-          title: 'Kompleti z navodili',
-          description: 'Materiali z navodili',
-          href: '/products#kompleti-z-navodili',
-          icon: 'book'
-        }
-      ]
-    }
-  ],
-  help: [
-    {
-      heading: 'Naročanje',
-      items: [
-        {
-          title: 'Kako naročiti',
-          description: 'Od izbire do dobave',
-          href: '/how-schools-order',
-          icon: 'book'
-        },
-        {
-          title: 'Dostava',
-          description: 'Roki in prevzem',
-          href: '/how-schools-order#dostava',
-          icon: 'truck'
-        },
-        {
-          title: 'Plačilo',
-          description: 'Načini plačila',
-          href: '/how-schools-order#placilo',
-          icon: 'clipboard'
-        },
-        {
-          title: 'Predračun',
-          description: 'Ponudba pred naročilom',
-          href: '/how-schools-order#predracun',
-          icon: 'file'
-        },
-        {
-          title: 'Vračila in reklamacije',
-          description: 'Zamenjave in napake',
-          href: '/terms#vracila-in-reklamacije',
-          icon: 'refresh'
-        }
-      ]
-    },
-    {
-      heading: 'Dokumentacija',
-      items: [
-        {
-          title: 'Navodila za uporabo',
-          description: 'Navodila za izdelke',
-          href: '/products#navodila-za-uporabo',
-          icon: 'book'
-        },
-        {
-          title: 'Varnostni listi',
-          description: 'Podatki za materiale',
-          href: '/products#varnostni-listi',
-          icon: 'shield'
-        },
-        {
-          title: 'Tehnični podatki',
-          description: 'Mere in specifikacije',
-          href: '/products#tehnicni-podatki',
-          icon: 'file'
-        },
-        {
-          title: 'Garancija',
-          description: 'Pogoji garancije in podpore',
-          href: '/terms#garancija',
-          icon: 'lock'
-        }
-      ]
-    },
-    {
-      heading: 'Podjetje',
-      items: [
-        {
-          title: 'O nas',
-          description: 'Kako podpiramo šole',
-          href: '/about',
-          icon: 'users'
-        },
-        {
-          title: 'Kontakt',
-          description: 'Ponudba ali pomoč',
-          href: '/contact',
-          icon: 'mail'
-        },
-        {
-          title: 'Pogoji poslovanja',
-          description: 'Pravila naročanja',
-          href: '/terms',
-          icon: 'clipboard'
-        },
-        {
-          title: 'Zasebnost',
-          description: 'Varovanje podatkov',
-          href: '/privacy',
-          icon: 'shield'
-        }
-      ]
-    }
-  ]
-};
-
-const staticNavItems: Array<{ label: string; href: string }> = [];
 
 const ctas: Array<{ label: string; href: string; variant: CtaVariant }> = [
   { label: 'Vprašaj AI', href: '/contact', variant: 'secondary' }
 ];
+
+function sortTopBarSlotItems(items: SiteNavigationTopBarResponsiveItem[]) {
+  return [...items].sort((first, second) => {
+    const orderDelta = first.orderIndex - second.orderIndex;
+    return orderDelta === 0 ? first.position - second.position : orderDelta;
+  });
+}
+
+function getTopBarItemLayoutStyle(item: SiteNavigationTopBarResponsiveItem): CSSProperties {
+  const reservedFixedWidthPx = getSiteNavigationTopBarReservedFixedWidth(item, 'desktop');
+  const style: CSSProperties = {
+    order: item.orderIndex,
+    marginInlineStart: item.marginBeforePx ? `${item.marginBeforePx}px` : undefined,
+    marginInlineEnd: item.marginAfterPx ? `${item.marginAfterPx}px` : undefined
+  };
+
+  if (reservedFixedWidthPx !== null) {
+    style.width = `${reservedFixedWidthPx}px`;
+    style.flex = `0 0 ${reservedFixedWidthPx}px`;
+  } else if (item.widthMode === 'fill') {
+    style.flex = '1 1 0';
+    style.minWidth = item.minWidthPx !== null ? `${item.minWidthPx}px` : 0;
+  } else {
+    style.flex = '0 1 auto';
+  }
+
+  if (item.minWidthPx !== null) style.minWidth = `${item.minWidthPx}px`;
+  if (item.maxWidthPx !== null) style.maxWidth = `${item.maxWidthPx}px`;
+
+  return style;
+}
 
 const normalizeSearchValue = (value: string) =>
   value
@@ -586,316 +265,149 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
-function createDesktopMenuColumnSlots(menu: MenuKey): DesktopMenuColumnSlot[] {
-  const slots: DesktopMenuColumnSlot[] = [
+function createEmptyDesktopMenuSlots(): DesktopMenuColumnSlot[] {
+  return [
     { items: [] },
     { items: [] },
     { items: [] }
   ];
-  let slotIndex = 0;
-
-  for (const column of megaMenus[menu]) {
-    if (column.desktopSpan === 2) {
-      slots[0] = {
-        heading: column.heading,
-        items: column.items.slice(0, 5)
-      };
-      slots[1] = {
-        items: column.items.slice(5, 10)
-      };
-      slotIndex = 2;
-      continue;
-    }
-
-    if (slotIndex < slots.length) {
-      slots[slotIndex] = {
-        heading: column.heading,
-        items: column.items.slice(0, 5)
-      };
-      slotIndex += 1;
-    }
-  }
-
-  return slots;
 }
 
-function MenuItemGlyph({ icon, size = 'default' }: { icon: MenuItemIcon; size?: 'default' | 'desktopDropdown' }) {
-  let path: ReactNode;
+function createDesktopMenuPageFromGroups(groups: SiteNavigationGroup[]): DesktopMenuPage {
+  const slots = createEmptyDesktopMenuSlots();
+  const placements = getSiteNavigationDesktopGroupPlacements(groups);
 
-  switch (icon) {
-    case 'box':
-      path = (
-        <>
-          <path d="m4.5 8 7.5-4 7.5 4-7.5 4-7.5-4Z" />
-          <path d="M4.5 8v8l7.5 4 7.5-4V8" />
-          <path d="M12 12v8" />
-        </>
-      );
-      break;
-    case 'tool':
-      path = (
-        <>
-          <path d="m14.5 5.5 4 4" />
-          <path d="M4.5 19.5 15.8 8.2" />
-          <path d="M16 4.5 19.5 8l-2.2 2.2-3.5-3.5L16 4.5Z" />
-        </>
-      );
-      break;
-    case 'ruler':
-      path = (
-        <>
-          <path d="M4.5 16.5 16.5 4.5l3 3-12 12-3-3Z" />
-          <path d="m8 13 1.4 1.4" />
-          <path d="m10.5 10.5 1.4 1.4" />
-          <path d="m13 8 1.4 1.4" />
-        </>
-      );
-      break;
-    case 'clipboard':
-      path = (
-        <>
-          <path d="M8.5 5.5h7l.8 2h1.2v12h-11v-12h1.2l.8-2Z" />
-          <path d="M9 11h6" />
-          <path d="M9 15h5" />
-        </>
-      );
-      break;
-    case 'upload':
-      path = (
-        <>
-          <path d="M12 15V5" />
-          <path d="m8.5 8.5 3.5-3.5 3.5 3.5" />
-          <path d="M5.5 15.5v3h13v-3" />
-        </>
-      );
-      break;
-    case 'search':
-      path = (
-        <>
-          <path d="M10.8 16.1a5.3 5.3 0 1 0 0-10.6 5.3 5.3 0 0 0 0 10.6Z" />
-          <path d="m15 15 4 4" />
-        </>
-      );
-      break;
-    case 'layers':
-      path = (
-        <>
-          <path d="m4.5 8 7.5-4 7.5 4-7.5 4-7.5-4Z" />
-          <path d="m4.5 12 7.5 4 7.5-4" />
-          <path d="m4.5 16 7.5 4 7.5-4" />
-        </>
-      );
-      break;
-    case 'clock':
-      path = (
-        <>
-          <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
-          <path d="M12 8v4.5l3 1.8" />
-        </>
-      );
-      break;
-    case 'book':
-      path = (
-        <>
-          <path d="M5.5 5.5h5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5h-5v-11Z" />
-          <path d="M18.5 5.5h-3A2.5 2.5 0 0 0 13 8v11a2.5 2.5 0 0 1 2.5-2.5h3v-11Z" />
-        </>
-      );
-      break;
-    case 'file':
-      path = (
-        <>
-          <path d="M7 4.5h7l3 3v12h-10v-15Z" />
-          <path d="M14 4.5v3h3" />
-          <path d="M9 12h6" />
-          <path d="M9 15h5" />
-        </>
-      );
-      break;
-    case 'users':
-      path = (
-        <>
-          <path d="M9.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-          <path d="M4.5 19c.6-3 2.4-4.5 5-4.5s4.4 1.5 5 4.5" />
-          <path d="M15 11.5a2.5 2.5 0 1 0 0-5" />
-          <path d="M15.5 14.5c2.1.3 3.5 1.8 4 4.5" />
-        </>
-      );
-      break;
-    case 'mail':
-      path = (
-        <>
-          <path d="M5 7h14v10h-14V7Z" />
-          <path d="m5 8 7 5 7-5" />
-        </>
-      );
-      break;
-    case 'shield':
-      path = (
-        <>
-          <path d="M12 4.5 18 7v4.5c0 4-2.2 6.6-6 8-3.8-1.4-6-4-6-8V7l6-2.5Z" />
-          <path d="m9.5 12 1.7 1.7 3.5-4" />
-        </>
-      );
-      break;
-    case 'cookie':
-      path = (
-        <>
-          <path d="M18.5 12.5A6.5 6.5 0 1 1 11.5 5c.1 2.3 1.7 3.7 4 3.6.1 1.8 1.1 3 3 3.9Z" />
-          <path d="M9 10h.1" />
-          <path d="M12 15h.1" />
-          <path d="M8 15h.1" />
-        </>
-      );
-      break;
-    case 'lock':
-      path = (
-        <>
-          <path d="M7 10h10v9h-10v-9Z" />
-          <path d="M9 10V8a3 3 0 0 1 6 0v2" />
-          <path d="M12 14v2" />
-        </>
-      );
-      break;
-    case 'school':
-      path = (
-        <>
-          <path d="m4 10 8-4 8 4-8 4-8-4Z" />
-          <path d="M7 12.2v3.3c1.6 1.2 3.2 1.8 5 1.8s3.4-.6 5-1.8v-3.3" />
-          <path d="M20 10v5" />
-        </>
-      );
-      break;
-    case 'team':
-      path = (
-        <>
-          <path d="M8 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-          <path d="M16 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-          <path d="M4.5 18.5c.5-2.7 1.8-4 3.5-4s3 1.3 3.5 4" />
-          <path d="M12.5 18.5c.5-2.7 1.8-4 3.5-4s3 1.3 3.5 4" />
-        </>
-      );
-      break;
-    case 'teacher':
-      path = (
-        <>
-          <path d="M8.5 10.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-          <path d="M4 19c.5-3 2.1-4.5 4.5-4.5S12.5 16 13 19" />
-          <path d="M14 6.5h6v8h-5" />
-          <path d="M16 10.5h2" />
-        </>
-      );
-      break;
-    case 'grid':
-      path = (
-        <>
-          <path d="M5.5 5.5h5v5h-5v-5Z" />
-          <path d="M13.5 5.5h5v5h-5v-5Z" />
-          <path d="M5.5 13.5h5v5h-5v-5Z" />
-          <path d="M13.5 13.5h5v5h-5v-5Z" />
-        </>
-      );
-      break;
-    case 'refresh':
-      path = (
-        <>
-          <path d="M18 8a6 6 0 0 0-10.2-2.2L6 7.5" />
-          <path d="M6 4.5v3h3" />
-          <path d="M6 16a6 6 0 0 0 10.2 2.2L18 16.5" />
-          <path d="M18 19.5v-3h-3" />
-        </>
-      );
-      break;
-    case 'hardhat':
-      path = (
-        <>
-          <path d="M5 15.5h14" />
-          <path d="M7 15.5v-2a5 5 0 0 1 10 0v2" />
-          <path d="M10 15.5v-7" />
-          <path d="M14 15.5v-7" />
-          <path d="M6.5 18.5h11" />
-        </>
-      );
-      break;
-    case 'message':
-      path = (
-        <>
-          <path d="M5 6.5h14v9.5h-8l-4.5 3v-3H5V6.5Z" />
-          <path d="M8 10h8" />
-          <path d="M8 13h5" />
-        </>
-      );
-      break;
-    case 'repeat':
-      path = (
-        <>
-          <path d="M7 7h9.5l2 2" />
-          <path d="m16.5 5 2 2-2 2" />
-          <path d="M17 17H7.5l-2-2" />
-          <path d="m7.5 19-2-2 2-2" />
-        </>
-      );
-      break;
-    case 'truck':
-      path = (
-        <>
-          <path d="M4.5 7h9.5v8h-9.5V7Z" />
-          <path d="M14 10h3l2.5 3v2H14v-5Z" />
-          <path d="M8 18a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 8 18Z" />
-          <path d="M16.5 18a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2Z" />
-        </>
-      );
-      break;
+  for (const group of groups) {
+    const placement = placements[group.id];
+    if (!placement) continue;
+
+    for (let offset = 0; offset < placement.slotSpan && placement.slotIndex + offset < slots.length; offset += 1) {
+      slots[placement.slotIndex + offset] = {
+        heading: offset === 0 ? group.label : undefined,
+        items: group.links.slice(offset * SITE_NAVIGATION_DESKTOP_LINK_ROWS, offset * SITE_NAVIGATION_DESKTOP_LINK_ROWS + SITE_NAVIGATION_DESKTOP_LINK_ROWS),
+        sourceGroupId: group.id,
+        sourceSlotSpan: placement.slotSpan
+      };
+    }
   }
 
-  const isDesktopDropdown = size === 'desktopDropdown';
+  const showDivider = slots.some((slot, index) =>
+    index < SITE_NAVIGATION_DESKTOP_COLUMN_COUNT - 1 &&
+    slot.sourceGroupId &&
+    slot.sourceGroupId === slots[index + 1]?.sourceGroupId &&
+    slots.slice(index + 2).some((nextSlot) => nextSlot.items.length > 0)
+  );
+
+  return { slots, showDivider };
+}
+
+function createDesktopMenuPages(menuItem: SiteNavigationTopLevelItem): DesktopMenuPage[] {
+  const placements = getSiteNavigationDesktopGroupPlacements(menuItem.groups);
+  const groupedPages = new Map<number, SiteNavigationGroup[]>();
+
+  for (const group of menuItem.groups) {
+    const pageIndex = placements[group.id]?.pageIndex ?? 0;
+    const pageGroups = groupedPages.get(pageIndex) ?? [];
+    pageGroups.push(group);
+    groupedPages.set(pageIndex, pageGroups);
+  }
+
+  if (groupedPages.size === 0) return [{ slots: createEmptyDesktopMenuSlots(), showDivider: false }];
+
+  return [...groupedPages.entries()]
+    .sort(([firstPage], [secondPage]) => firstPage - secondPage)
+    .map(([, groups]) => createDesktopMenuPageFromGroups(groups));
+}
+
+function DesktopMenuPageControls({
+  pageIndex,
+  pageCount,
+  onPageChange
+}: {
+  pageIndex: number;
+  pageCount: number;
+  onPageChange: (pageIndex: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  const pagerButtonClassName =
+    'inline-grid h-6 w-6 place-items-center rounded-md text-[var(--navbar-dropdown-description)] transition hover:text-[color:var(--blue-500)] focus:text-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:text-slate-300';
+
+  return (
+    <div className="absolute bottom-3 right-4 z-10 flex items-center gap-1 text-[13px] text-[var(--navbar-dropdown-description)]">
+      <button
+        type="button"
+        aria-label="Prejšnja stran dropdowna"
+        disabled={pageIndex === 0}
+        onClick={(event) => {
+          event.stopPropagation();
+          onPageChange(Math.max(0, pageIndex - 1));
+        }}
+        className={pagerButtonClassName}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4">
+          <path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+        </svg>
+      </button>
+      <span className="min-w-9 text-center text-[12px] font-medium leading-6 text-[var(--navbar-dropdown-description)]">
+        {pageIndex + 1} / {pageCount}
+      </span>
+      <button
+        type="button"
+        aria-label="Naslednja stran dropdowna"
+        disabled={pageIndex >= pageCount - 1}
+        onClick={(event) => {
+          event.stopPropagation();
+          onPageChange(Math.min(pageCount - 1, pageIndex + 1));
+        }}
+        className={pagerButtonClassName}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4">
+          <path d="m7.5 4.5 5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function MenuItemGlyph({ icon, size = 'default' }: { icon: SiteNavigationItemIcon; size?: 'default' | 'desktopDropdown' }) {
+  const usesDesktopDropdownSize = size === 'desktopDropdown';
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-lg border border-[var(--navbar-dropdown-border)] ${
-        isDesktopDropdown
-          ? 'h-[var(--navbar-dropdown-icon-tile-size)] w-[var(--navbar-dropdown-icon-tile-size)] bg-white text-[var(--navbar-dropdown-title)] transition-colors duration-150 group-hover:border-black group-hover:bg-black group-hover:text-white group-focus-visible:border-black group-focus-visible:bg-black group-focus-visible:text-white'
-          : 'h-[43px] w-[43px] bg-[#fafafa] text-[var(--navbar-dropdown-icon)] transition group-hover:border-[var(--navbar-dropdown-border-hover)] group-hover:bg-white group-hover:text-[var(--navbar-dropdown-title)]'
+      style={{ borderWidth: 'var(--navbar-dropdown-icon-tile-border-width)' }}
+      className={`grid shrink-0 place-items-center rounded-md border border-[var(--navbar-dropdown-border)] bg-white text-[#111111] transition ${publicDropdownIconTileInteractionClassName} ${
+        usesDesktopDropdownSize ? 'h-[var(--navbar-dropdown-icon-tile-size)] w-[var(--navbar-dropdown-icon-tile-size)]' : 'h-8 w-8'
       }`}
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className={
-          isDesktopDropdown
-            ? 'h-[var(--navbar-dropdown-icon-size)] w-[var(--navbar-dropdown-icon-size)]'
-            : 'h-[21px] w-[21px]'
-        }
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={isDesktopDropdown ? '1.75' : '1.6'}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {path}
-      </svg>
+      <SiteNavigationLucideIcon icon={icon} className={usesDesktopDropdownSize ? 'h-[18px] w-[18px]' : 'h-4 w-4'} strokeWidth={usesDesktopDropdownSize ? 1.75 : 1.6} />
     </span>
   );
 }
 
 function DesktopMenuContent({
-  menu,
+  menuItem,
   onNavigate,
+  pageIndex,
+  onPageChange,
   motion,
   isExiting = false
 }: {
-  menu: MenuKey;
+  menuItem: SiteNavigationTopLevelItem;
   onNavigate: () => void;
+  pageIndex: number;
+  onPageChange?: (pageIndex: number) => void;
   motion?: MenuMotion;
   isExiting?: boolean;
 }) {
   const motionClass = motion ? `site-menu-content-${motion}` : '';
-  const columns = createDesktopMenuColumnSlots(menu);
-  const showDivider = megaMenus[menu].some((column) => column.desktopSpan === 2);
+  const pages = createDesktopMenuPages(menuItem);
+  const resolvedPageIndex = Math.min(Math.max(pageIndex, 0), pages.length - 1);
+  const { slots: columns, showDivider } = pages[resolvedPageIndex] ?? pages[0];
 
   return (
     <div
-      key={menu}
+      key={menuItem.id}
       aria-hidden={isExiting}
       style={{
         ...dropdownTextRenderingStyle,
@@ -907,11 +419,11 @@ function DesktopMenuContent({
       }`}
     >
       {columns.map((column, index) => {
-        const headingId = column.heading ? `${menu}-desktop-column-${index + 1}` : undefined;
+        const headingId = column.heading ? `${menuItem.id}-desktop-column-${index + 1}` : undefined;
 
         return (
           <section
-            key={`${menu}-desktop-column-${index + 1}`}
+            key={`${menuItem.id}-desktop-column-${index + 1}`}
             aria-labelledby={headingId}
             style={{
               ...desktopDropdownColumnGridStyle,
@@ -929,19 +441,19 @@ function DesktopMenuContent({
             ) : (
               <div aria-hidden="true" />
             )}
-            <ul style={desktopDropdownColumnListStyle} className="row-start-3 grid min-w-0">
+            <ul style={{ ...desktopDropdownColumnListStyle, ...desktopDropdownColumnListExpandedHoverStyle }} className="row-start-3 grid min-w-0">
               {column.items.map((item) => (
-                <li key={item.title}>
+                <li key={item.id}>
                   <Link
                     href={item.href}
                     prefetch={false}
                     onClick={onNavigate}
-                    className="group grid h-[var(--navbar-dropdown-item-slot-height)] w-full grid-cols-[var(--navbar-dropdown-icon-tile-size)_1fr] items-stretch gap-[var(--navbar-dropdown-item-content-gap)] rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                    className={`group grid h-[calc(var(--navbar-dropdown-item-slot-height)+var(--navbar-dropdown-item-hover-y)*2)] w-full -translate-y-[var(--navbar-dropdown-item-hover-y)] grid-cols-[var(--navbar-dropdown-icon-tile-size)_1fr] items-center gap-[var(--navbar-dropdown-item-content-gap)] rounded-lg px-[var(--navbar-dropdown-item-hover-x)] ${publicDropdownSelectionClassName}`}
                   >
                     <MenuItemGlyph icon={item.icon} size="desktopDropdown" />
                     <span className="flex h-[var(--navbar-dropdown-icon-tile-size)] min-w-0 flex-col justify-between">
                       <span className="m-0 block whitespace-nowrap [font-size:var(--navbar-dropdown-title-font-size)] font-medium [line-height:var(--navbar-dropdown-title-line-height)] text-[var(--navbar-dropdown-title)]">
-                        {item.title}
+                        {item.label}
                       </span>
                       <span className="m-0 block whitespace-nowrap [font-size:var(--navbar-dropdown-description-font-size)] font-normal [line-height:var(--navbar-dropdown-description-line-height)] text-[var(--navbar-dropdown-description)]">
                         {item.description}
@@ -959,22 +471,25 @@ function DesktopMenuContent({
         style={{ gridColumn: '4', gridRow: '1', width: 'var(--navbar-dropdown-divider-lane-width)' }}
         className={showDivider ? 'h-full bg-[#eaeaea]' : 'h-full bg-transparent'}
       />
+      {!isExiting && onPageChange ? (
+        <DesktopMenuPageControls pageIndex={resolvedPageIndex} pageCount={pages.length} onPageChange={onPageChange} />
+      ) : null}
     </div>
   );
 }
 
 function MobileAccordion({
-  menu,
+  item,
   open,
   onToggle,
   onNavigate
 }: {
-  menu: MenuKey;
+  item: SiteNavigationTopLevelItem;
   open: boolean;
   onToggle: () => void;
   onNavigate: () => void;
 }) {
-  const panelId = `site-mobile-${menu}-panel`;
+  const panelId = `site-mobile-${item.id}-panel`;
 
   return (
     <div className="border-b border-[#eeeeee]">
@@ -983,38 +498,38 @@ function MobileAccordion({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={onToggle}
-        className="flex w-full items-center justify-between px-[27px] py-[21px] text-left text-xl font-medium text-[#111111] transition hover:bg-[#f7f7f7]"
+        className={`flex w-full items-center justify-between px-[27px] py-[21px] text-left text-xl font-medium text-[#111111] ${publicDropdownSelectionClassName}`}
       >
-        <span>{menuLabels[menu]}</span>
+        <span>{item.label}</span>
         <ChevronIcon open={open} />
       </button>
       {open ? (
         <div id={panelId} className="pb-4">
-          {megaMenus[menu].map((column) => (
+          {item.groups.map((group) => (
             <section
-              key={column.heading}
+              key={group.id}
               className="px-[27px] pb-4"
             >
               <h2 className="pb-[5px] text-base font-medium uppercase tracking-normal text-[var(--navbar-dropdown-heading)]">
-                {column.heading}
+                {group.label}
               </h2>
               <ul className="space-y-[5px]">
-                {column.items.map((item) => (
-                  <li key={item.title}>
+                {group.links.map((link) => (
+                  <li key={link.id}>
                     <Link
-                      href={item.href}
-                      prefetch={false}
-                      onClick={onNavigate}
-                      className="group grid min-h-[82px] grid-cols-[43px_1fr] items-center gap-[13px] rounded-lg px-3 py-[9px] transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                    href={link.href}
+                    prefetch={false}
+                    onClick={onNavigate}
+                      className={`group grid min-h-[82px] grid-cols-[43px_1fr] items-center gap-[13px] rounded-lg px-3 py-[9px] ${publicDropdownSelectionClassName}`}
                     >
-                      <MenuItemGlyph icon={item.icon} />
+                      <MenuItemGlyph icon={link.icon} />
                       <span className="block min-w-0">
                         <span className="block text-[19px] font-medium leading-[24px] text-[var(--navbar-dropdown-title)]">
-                          {item.title}
+                          {link.label}
                         </span>
-                        {item.description ? (
+                        {link.description ? (
                           <span className="mt-[3px] block text-[17px] leading-[23px] text-[var(--navbar-dropdown-description)]">
-                            {item.description}
+                            {link.description}
                           </span>
                         ) : null}
                       </span>
@@ -1044,6 +559,25 @@ function SearchGlyph({ className = 'h-[22px] w-[22px]' }: { className?: string }
     >
       <path d="M10.8 18.1a7.3 7.3 0 1 0 0-14.6 7.3 7.3 0 0 0 0 14.6Z" />
       <path d="m16.1 16.1 4.4 4.4" />
+    </svg>
+  );
+}
+
+function SparklesGlyph({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10.5 2.8 11.7 7l4.1 1.2-4.1 1.2-1.2 4.1-1.2-4.1-4.1-1.2L9.3 7l1.2-4.2Z" />
+      <path d="m4.2 12.8.5 1.7 1.7.5-1.7.5-.5 1.7-.5-1.7-1.7-.5 1.7-.5.5-1.7Z" />
+      <path d="m15.2 13 .4 1.2 1.2.4-1.2.4-.4 1.2-.4-1.2-1.2-.4 1.2-.4.4-1.2Z" />
     </svg>
   );
 }
@@ -1188,7 +722,7 @@ function NavbarSearch({
   };
 
   return (
-    <div ref={rootRef} className={mobile ? 'relative' : 'relative h-[43px] w-[43px] shrink-0'}>
+    <div ref={rootRef} className={mobile ? 'relative' : 'relative flex h-[43px] w-full min-w-[43px] shrink-0 justify-end'}>
       {!mobile ? (
         <button
           type="button"
@@ -1213,7 +747,7 @@ function NavbarSearch({
         className={
           mobile
             ? 'relative w-full'
-            : `absolute right-0 top-0 z-30 w-[320px] transition-opacity duration-150 ease-out ${
+            : `absolute right-0 top-0 z-30 w-full max-w-[320px] transition-opacity duration-150 ease-out ${
                 expanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
               }`
         }
@@ -1326,8 +860,8 @@ function DesktopCta({
 }) {
   const className =
     variant === 'primary'
-      ? 'bg-black text-white hover:bg-[#1f1f1f]'
-      : 'text-[var(--navbar-link-default)] hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)]';
+      ? 'h-[43px] rounded-lg bg-black px-4 text-white hover:bg-[#1f1f1f]'
+      : 'h-8 gap-1.5 rounded-md border border-[var(--navbar-dropdown-border)] bg-white px-2.5 text-[var(--navbar-link-default)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[color:var(--blue-500)] hover:text-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]';
 
   return (
     <Link
@@ -1335,14 +869,25 @@ function DesktopCta({
       prefetch={false}
       onClick={onNavigate}
       style={coreNavTextRenderingStyle}
-      className={`inline-flex h-[43px] items-center justify-center rounded-lg px-4 ${coreNavTextClassName} transition focus-visible:ring-2 focus-visible:ring-black/20 ${className}`}
+      className={`inline-flex items-center justify-center [font-size:calc(13px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)]/20 ${className}`}
     >
-      {label}
+      {variant === 'secondary' ? <SparklesGlyph /> : null}
+      <span>{label}</span>
     </Link>
   );
 }
 
-export default function SiteHeader() {
+type SiteHeaderProps = {
+  navigation?: SiteNavigationConfig;
+  previewMode?: 'normal' | 'inline';
+  previewViewportWidth?: number;
+};
+
+export default function SiteHeader({
+  navigation = DEFAULT_SITE_NAVIGATION_CONFIG,
+  previewMode = 'normal',
+  previewViewportWidth
+}: SiteHeaderProps) {
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const katalogLabelRef = useRef<HTMLSpanElement>(null);
@@ -1354,10 +899,77 @@ export default function SiteHeader() {
   const [previousMenu, setPreviousMenu] = useState<MenuKey | null>(null);
   const [menuDirection, setMenuDirection] = useState<MenuDirection | null>(null);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
+  const [desktopMenuPageById, setDesktopMenuPageById] = useState<Record<MenuKey, number>>({});
   const [dropdownPanelLeft, setDropdownPanelLeft] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMobileMenus, setOpenMobileMenus] = useState<MenuKey[]>([]);
+  const [adminPreviewNavigation, setAdminPreviewNavigation] = useState<SiteNavigationConfig | null>(null);
   const isAdminPath = pathname.startsWith('/admin');
+  const isInlinePreview = previewMode === 'inline';
+  const effectiveNavigation = isInlinePreview ? navigation : adminPreviewNavigation ?? navigation;
+  const isAdminNavbarPreview = isInlinePreview || (isAdminPath && adminPreviewNavigation !== null);
+  const forceMobilePreview = isInlinePreview && previewViewportWidth !== undefined && previewViewportWidth < 1024;
+  const normalizedNavigation = useMemo(
+    () => normalizeSiteNavigationConfig(effectiveNavigation),
+    [effectiveNavigation]
+  );
+  const navigationItems = useMemo(
+    () => getVisibleSiteNavigationItems(normalizedNavigation),
+    [normalizedNavigation]
+  );
+  const desktopTopBarLayout = normalizedNavigation.topBarLayout.responsive.desktop;
+  const siteLayout = normalizedNavigation.siteLayout;
+  const desktopTopBarItemsBySlot = useMemo(() => {
+    const visibleItems = desktopTopBarLayout.items.filter((item) => item.visible && item.slot !== 'menu');
+
+    return {
+      left: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'left')),
+      center: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'center')),
+      right: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'right'))
+    };
+  }, [desktopTopBarLayout.items]);
+  const topBarShellStyle = useMemo<TopBarCssProperties>(() => ({
+    '--site-content-max-width': `${siteLayout.siteContentMaxWidthPx}px`,
+    '--site-gutter-min': `${siteLayout.siteGutterMinPx}px`,
+    '--site-gutter-max': `${siteLayout.siteGutterMaxPx}px`,
+    '--topbar-height': `${desktopTopBarLayout.settings.height}px`,
+    '--topbar-column-gap': `${desktopTopBarLayout.settings.columnGapPx}px`,
+    '--topbar-item-gap': `${desktopTopBarLayout.settings.itemGapPx}px`,
+    '--topbar-inner-max-width':
+      desktopTopBarLayout.settings.widthMode === 'full'
+        ? 'none'
+        : desktopTopBarLayout.settings.widthMode === 'custom' && desktopTopBarLayout.settings.customMaxWidthPx
+          ? `${desktopTopBarLayout.settings.customMaxWidthPx}px`
+          : `${siteLayout.siteContentMaxWidthPx}px`
+  }), [
+    desktopTopBarLayout.settings.columnGapPx,
+    desktopTopBarLayout.settings.customMaxWidthPx,
+    desktopTopBarLayout.settings.height,
+    desktopTopBarLayout.settings.itemGapPx,
+    desktopTopBarLayout.settings.widthMode,
+    siteLayout.siteContentMaxWidthPx,
+    siteLayout.siteGutterMaxPx,
+    siteLayout.siteGutterMinPx
+  ]);
+  const dropdownItems = useMemo(
+    () => navigationItems.filter((item) => item.groups.length > 0),
+    [navigationItems]
+  );
+  const dropdownItemsById = useMemo(
+    () => new Map(dropdownItems.map((item) => [item.id, item])),
+    [dropdownItems]
+  );
+  const dropdownOrderIds = useMemo(
+    () => dropdownItems.map((item) => item.id),
+    [dropdownItems]
+  );
+  const anchorMenuId = useMemo(
+    () => navigationItems.some((item) => item.id === 'products') ? 'products' : navigationItems[0]?.id,
+    [navigationItems]
+  );
+  const activeMenuItem = activeMenu ? dropdownItemsById.get(activeMenu) ?? null : null;
+  const previousMenuItem = previousMenu ? dropdownItemsById.get(previousMenu) ?? null : null;
+  const activeMenuPageIndex = activeMenu ? desktopMenuPageById[activeMenu] ?? 0 : 0;
 
   const updateDropdownPanelLeft = useCallback(() => {
     const header = headerRef.current;
@@ -1401,6 +1013,7 @@ export default function SiteHeader() {
     setPreviousMenu(null);
     setMenuDirection(null);
     setIsMenuClosing(false);
+    setDesktopMenuPageById({});
     setMobileOpen(false);
   };
 
@@ -1428,6 +1041,7 @@ export default function SiteHeader() {
       setPreviousMenu(null);
       setMenuDirection(null);
       setIsMenuClosing(false);
+      setDesktopMenuPageById({});
       closeTimerRef.current = null;
     }, 150);
   };
@@ -1442,6 +1056,7 @@ export default function SiteHeader() {
 
   const openDesktopMenu = (nextMenu: MenuKey) => {
     cancelDesktopMenuClose();
+    updateDropdownPanelLeft();
     const currentMenu = activeMenuRef.current;
 
     if (currentMenu === nextMenu) {
@@ -1451,6 +1066,11 @@ export default function SiteHeader() {
     clearSwitchTimer();
     activeMenuRef.current = nextMenu;
     setActiveMenu(nextMenu);
+    setDesktopMenuPageById((currentPages) => ({ ...currentPages, [nextMenu]: 0 }));
+  };
+
+  const setDesktopMenuPage = (menuId: MenuKey, pageIndex: number) => {
+    setDesktopMenuPageById((currentPages) => ({ ...currentPages, [menuId]: pageIndex }));
   };
 
   useEffect(() => {
@@ -1462,6 +1082,12 @@ export default function SiteHeader() {
   useLayoutEffect(() => {
     updateDropdownPanelLeft();
   }, [updateDropdownPanelLeft]);
+
+  useLayoutEffect(() => {
+    if (isAdminNavbarPreview || !isAdminPath) {
+      updateDropdownPanelLeft();
+    }
+  }, [isAdminNavbarPreview, isAdminPath, navigationItems, updateDropdownPanelLeft]);
 
   useEffect(() => {
     let animationFrame: number | null = null;
@@ -1515,6 +1141,33 @@ export default function SiteHeader() {
     activeMenuRef.current = activeMenu;
   }, [activeMenu]);
 
+  useEffect(() => {
+    if (!isAdminPath) {
+      setAdminPreviewNavigation(null);
+      return undefined;
+    }
+
+    const handleAdminPreview = (event: Event) => {
+      const detail = (event as CustomEvent<AdminSiteNavigationPreviewEventDetail>).detail;
+
+      if (detail?.enabled && detail.navigation) {
+        setAdminPreviewNavigation(normalizeSiteNavigationConfig(detail.navigation));
+      } else {
+        setAdminPreviewNavigation(null);
+      }
+
+      closeMenus();
+    };
+
+    window.addEventListener(adminSiteNavigationPreviewEventName, handleAdminPreview);
+
+    return () => {
+      window.removeEventListener(adminSiteNavigationPreviewEventName, handleAdminPreview);
+    };
+    // closeMenus is intentionally local; this listener only mirrors preview state into the existing header.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminPath]);
+
   useLayoutEffect(() => {
     if (switchTimerRef.current !== null) {
       window.clearTimeout(switchTimerRef.current);
@@ -1531,8 +1184,8 @@ export default function SiteHeader() {
     }
 
     if (previousMenu && previousMenu !== activeMenu) {
-      const previousIndex = allDropdownOrder.indexOf(previousMenu);
-      const nextIndex = allDropdownOrder.indexOf(activeMenu);
+      const previousIndex = dropdownOrderIds.indexOf(previousMenu);
+      const nextIndex = dropdownOrderIds.indexOf(activeMenu);
 
       setPreviousMenu(previousMenu);
       setMenuDirection(nextIndex > previousIndex ? 'forward' : 'backward');
@@ -1547,7 +1200,102 @@ export default function SiteHeader() {
     }
 
     previousActiveMenuRef.current = activeMenu;
-  }, [activeMenu]);
+  }, [activeMenu, dropdownOrderIds]);
+
+  const renderDesktopTopBarElement = (item: SiteNavigationTopBarResponsiveItem) => {
+    const wrapperStyle = getTopBarItemLayoutStyle(item);
+    const wrapperClassName = 'inline-flex min-w-0 shrink-0 items-center';
+
+    if (item.id === 'logo') {
+      return (
+        <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
+          <Link
+            href="/"
+            prefetch={false}
+            aria-label="Atehna home"
+            data-navbar-left
+            onClick={closeMenus}
+            className="inline-flex shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+          >
+            <Brand />
+          </Link>
+        </div>
+      );
+    }
+
+    if (item.id === 'navigation') {
+      return (
+        <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
+          <nav
+            aria-label="Main navigation"
+            className="inline-flex min-w-0 items-center justify-start gap-[5px]"
+            style={coreNavTextRenderingStyle}
+          >
+            {navigationItems.map((navigationItem) => {
+              const hasDropdown = navigationItem.groups.length > 0;
+              const open = activeMenu === navigationItem.id;
+
+              return hasDropdown ? (
+                <button
+                  key={navigationItem.id}
+                  type="button"
+                  aria-expanded={open}
+                  aria-controls={desktopPanelId}
+                  aria-haspopup="true"
+                  onClick={() => openDesktopMenu(navigationItem.id)}
+                  onFocus={() => openDesktopMenu(navigationItem.id)}
+                  onMouseEnter={() => openDesktopMenu(navigationItem.id)}
+                  onMouseLeave={scheduleDesktopMenuClose}
+                  onPointerEnter={() => openDesktopMenu(navigationItem.id)}
+                  onPointerLeave={scheduleDesktopMenuClose}
+                  className={`inline-flex h-[43px] shrink-0 items-center whitespace-nowrap rounded-lg px-4 ${coreNavTextClassName} ${
+                    open ? publicCoreNavOpenClassName : `text-[var(--navbar-link-default)] ${publicCoreNavInteractiveClassName}`
+                  }`}
+                >
+                  <span className="inline-flex min-w-max items-center gap-2 whitespace-nowrap">
+                    <span className="whitespace-nowrap" ref={navigationItem.id === anchorMenuId ? katalogLabelRef : undefined}>{navigationItem.label}</span>
+                    <ChevronIcon open={open} subtle />
+                  </span>
+                </button>
+              ) : navigationItem.href ? (
+                <Link
+                  key={navigationItem.id}
+                  href={navigationItem.href}
+                  prefetch={false}
+                  onClick={closeMenus}
+                  className={`inline-flex h-[43px] shrink-0 items-center whitespace-nowrap rounded-lg px-4 ${coreNavTextClassName} text-[var(--navbar-link-default)] ${publicCoreNavInteractiveClassName}`}
+                >
+                  <span className="whitespace-nowrap" ref={navigationItem.id === anchorMenuId ? katalogLabelRef : undefined}>{navigationItem.label}</span>
+                </Link>
+              ) : null;
+            })}
+          </nav>
+        </div>
+      );
+    }
+
+    if (item.id === 'search') {
+      return (
+        <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
+          <NavbarSearch onNavigate={closeMenus} />
+        </div>
+      );
+    }
+
+    if (item.id === 'ai') {
+      return ctas.map((cta) => (
+        <div key={`${item.id}-${cta.label}`} className={wrapperClassName} style={wrapperStyle}>
+          <DesktopCta label={cta.label} href={cta.href} variant={cta.variant} onNavigate={closeMenus} />
+        </div>
+      ));
+    }
+
+    return (
+      <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
+        <NavbarCartControl />
+      </div>
+    );
+  };
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -1575,6 +1323,7 @@ export default function SiteHeader() {
         setPreviousMenu(null);
         setMenuDirection(null);
         setIsMenuClosing(false);
+        setDesktopMenuPageById({});
         setMobileOpen(false);
       }
     };
@@ -1589,6 +1338,7 @@ export default function SiteHeader() {
         setPreviousMenu(null);
         setMenuDirection(null);
         setIsMenuClosing(false);
+        setDesktopMenuPageById({});
         setMobileOpen(false);
       }
     };
@@ -1604,130 +1354,45 @@ export default function SiteHeader() {
     };
   }, []);
 
-  if (isAdminPath) {
+  if (isAdminPath && !isAdminNavbarPreview) {
     return (
-      <header className="border-b border-[#e5e5e5] bg-white">
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center px-5 sm:px-8">
-          <Link
-            href="/"
-            prefetch={false}
-            aria-label="Atehna home"
-            className="rounded-md focus-visible:ring-2 focus-visible:ring-black/20"
-          >
-            <Brand />
-          </Link>
-        </div>
-      </header>
+      <header className="h-[65px] border-b border-[#e5e5e5] bg-white" aria-hidden="true" />
     );
   }
 
-  return (
+  const siteHeader = (
     <header
       ref={headerRef}
       style={navbarColorStyle}
       className="relative z-50 border-b border-[#e5e5e5] bg-white text-black [font-family:Inter,Geist,system-ui,sans-serif]"
     >
-      <div className="flex h-[85px] w-full items-center justify-between gap-[21px] px-8 lg:mx-auto lg:grid lg:max-w-[1600px] lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-[64px] lg:px-12">
+      <div
+        className={`topbar-inner ${forceMobilePreview ? 'hidden' : 'hidden lg:grid'}`}
+        data-layout-mode={desktopTopBarLayout.settings.layoutMode}
+        data-width-mode={desktopTopBarLayout.settings.widthMode}
+        style={topBarShellStyle}
+      >
+        <div className="topbar-left">{desktopTopBarItemsBySlot.left.map(renderDesktopTopBarElement)}</div>
+        <div className="topbar-center">{desktopTopBarItemsBySlot.center.map(renderDesktopTopBarElement)}</div>
+        <div className="topbar-right">{desktopTopBarItemsBySlot.right.map(renderDesktopTopBarElement)}</div>
+      </div>
+
+      <div
+        className={`topbar-inner items-center justify-between gap-[21px] ${forceMobilePreview ? 'flex' : 'flex lg:hidden'}`}
+        data-layout-mode={desktopTopBarLayout.settings.layoutMode}
+        data-width-mode={desktopTopBarLayout.settings.widthMode}
+        style={topBarShellStyle}
+      >
         <Link
           href="/"
           prefetch={false}
           aria-label="Atehna home"
-          data-navbar-left
           onClick={closeMenus}
-          className="inline-flex shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+          className="inline-flex min-w-0 shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
         >
           <Brand />
         </Link>
-
-        <nav
-          aria-label="Main navigation"
-          className="hidden min-w-0 items-center justify-start gap-[5px] lg:flex"
-          style={coreNavTextRenderingStyle}
-        >
-          {dropdownOrder.map((key) => {
-            const open = activeMenu === key;
-
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-expanded={open}
-                aria-controls={desktopPanelId}
-                aria-haspopup="true"
-                onClick={() => openDesktopMenu(key)}
-                onFocus={() => openDesktopMenu(key)}
-                onMouseEnter={() => openDesktopMenu(key)}
-                onMouseLeave={scheduleDesktopMenuClose}
-                onPointerEnter={() => openDesktopMenu(key)}
-                onPointerLeave={scheduleDesktopMenuClose}
-                className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  open ? 'bg-[var(--navbar-trigger-open-bg)] text-[var(--navbar-link-current)]' : 'text-[var(--navbar-link-default)]'
-                }`}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <span ref={key === 'products' ? katalogLabelRef : undefined}>{menuLabels[key]}</span>
-                  <ChevronIcon open={open} subtle />
-                </span>
-              </button>
-            );
-          })}
-
-          {staticNavItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={false}
-              onClick={closeMenus}
-              className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} text-[var(--navbar-link-default)] transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20`}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          {trailingDropdownOrder.map((key) => {
-            const open = activeMenu === key;
-
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-expanded={open}
-                aria-controls={desktopPanelId}
-                aria-haspopup="true"
-                onClick={() => openDesktopMenu(key)}
-                onFocus={() => openDesktopMenu(key)}
-                onMouseEnter={() => openDesktopMenu(key)}
-                onMouseLeave={scheduleDesktopMenuClose}
-                onPointerEnter={() => openDesktopMenu(key)}
-                onPointerLeave={scheduleDesktopMenuClose}
-                className={`inline-flex h-[43px] items-center rounded-lg px-4 ${coreNavTextClassName} transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
-                  open ? 'bg-[var(--navbar-trigger-open-bg)] text-[var(--navbar-link-current)]' : 'text-[var(--navbar-link-default)]'
-                }`}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <span>{menuLabels[key]}</span>
-                  <ChevronIcon open={open} subtle />
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <div data-navbar-right className="hidden min-w-0 shrink-0 items-center justify-end gap-2 lg:flex lg:w-[240px] xl:w-auto">
-          <NavbarSearch onNavigate={closeMenus} />
-          {ctas.map((cta) => (
-            <DesktopCta
-              key={cta.label}
-              label={cta.label}
-              href={cta.href}
-              variant={cta.variant}
-              onNavigate={closeMenus}
-            />
-          ))}
-          <NavbarCartControl />
-        </div>
-
-        <div className="inline-flex shrink-0 items-center gap-2 lg:hidden">
+        <div className="inline-flex shrink-0 items-center gap-2">
           <NavbarCartControl />
           <button
             type="button"
@@ -1742,7 +1407,7 @@ export default function SiteHeader() {
         </div>
       </div>
 
-      {activeMenu ? (
+      {activeMenuItem ? (
         <div
           id={desktopPanelId}
           style={{
@@ -1758,19 +1423,22 @@ export default function SiteHeader() {
         >
           <div className={`${isMenuClosing ? 'site-menu-viewport-close' : 'site-menu-viewport-open'} h-[var(--navbar-dropdown-panel-height)] overflow-hidden rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]`}>
             <div className="relative h-full overflow-hidden">
-              {previousMenu && menuDirection ? (
+              {previousMenuItem && menuDirection ? (
                 <DesktopMenuContent
-                  menu={previousMenu}
+                  menuItem={previousMenuItem}
                   onNavigate={closeMenus}
+                  pageIndex={previousMenu ? desktopMenuPageById[previousMenu] ?? 0 : 0}
                   motion={menuDirection === 'forward' ? 'to-start' : 'to-end'}
                   isExiting
                 />
               ) : null}
               <DesktopMenuContent
-                menu={activeMenu}
+                menuItem={activeMenuItem}
                 onNavigate={closeMenus}
+                pageIndex={activeMenuPageIndex}
+                onPageChange={(pageIndex) => setDesktopMenuPage(activeMenuItem.id, pageIndex)}
                 motion={
-                  previousMenu && menuDirection
+                  previousMenuItem && menuDirection
                     ? menuDirection === 'forward'
                       ? 'from-end'
                       : 'from-start'
@@ -1795,52 +1463,33 @@ export default function SiteHeader() {
               <NavbarSearch mobile onNavigate={closeMenus} />
             </div>
 
-            {dropdownOrder.map((key) => (
-              <MobileAccordion
-                key={key}
-                menu={key}
-                open={openMobileMenus.includes(key)}
-                onToggle={() =>
-                  setOpenMobileMenus((openMenus) =>
-                    openMenus.includes(key)
-                      ? openMenus.filter((openMenu) => openMenu !== key)
-                      : [...openMenus, key]
-                  )
-                }
-                onNavigate={closeMenus}
-              />
-            ))}
-
-            {staticNavItems.length > 0 ? (
-              <div className="border-b border-[#eeeeee] py-2">
-                {staticNavItems.map((item) => (
+            {navigationItems.map((item) => (
+              item.groups.length > 0 ? (
+                <MobileAccordion
+                  key={item.id}
+                  item={item}
+                  open={openMobileMenus.includes(item.id)}
+                  onToggle={() =>
+                    setOpenMobileMenus((openMenus) =>
+                      openMenus.includes(item.id)
+                        ? openMenus.filter((openMenu) => openMenu !== item.id)
+                        : [...openMenus, item.id]
+                    )
+                  }
+                  onNavigate={closeMenus}
+                />
+              ) : item.href ? (
+                <div key={item.id} className="border-b border-[#eeeeee] py-2">
                   <Link
-                    key={item.href}
                     href={item.href}
                     prefetch={false}
                     onClick={closeMenus}
-                    className="block px-[27px] py-4 text-xl font-medium text-[#111111] transition hover:bg-[#f5f5f5] focus-visible:bg-[#f5f5f5]"
+                    className={`block px-[27px] py-4 text-xl font-medium text-[#111111] ${publicDropdownSelectionClassName}`}
                   >
                     {item.label}
                   </Link>
-                ))}
-              </div>
-            ) : null}
-
-            {trailingDropdownOrder.map((key) => (
-              <MobileAccordion
-                key={key}
-                menu={key}
-                open={openMobileMenus.includes(key)}
-                onToggle={() =>
-                  setOpenMobileMenus((openMenus) =>
-                    openMenus.includes(key)
-                      ? openMenus.filter((openMenu) => openMenu !== key)
-                      : [...openMenus, key]
-                  )
-                }
-                onNavigate={closeMenus}
-              />
+                </div>
+              ) : null
             ))}
 
             <div className="grid gap-[11px] px-[27px] pt-[21px]">
@@ -1867,4 +1516,10 @@ export default function SiteHeader() {
       ) : null}
     </header>
   );
+
+  if (isAdminNavbarPreview && !isInlinePreview) {
+    return <div className="commercial-storefront-scale admin-site-header-preview-scale">{siteHeader}</div>;
+  }
+
+  return siteHeader;
 }

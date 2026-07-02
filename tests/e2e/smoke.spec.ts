@@ -49,3 +49,11 @@ test('admin orders route is accessible or protected', async ({ page }) => {
 test('admin artikli route is accessible or protected', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/artikli');
 });
+
+test('admin podoba route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/navigacija');
+});
+
+test('admin podoba archive route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/arhiv/podoba');
+});

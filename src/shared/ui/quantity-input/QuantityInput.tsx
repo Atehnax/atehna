@@ -14,7 +14,7 @@ export default function QuantityInput({ className, ...props }: QuantityInputProp
       type="number"
       aria-label={props['aria-label'] ?? 'Količina'}
       className={classNames(
-        "h-7 w-14 appearance-none rounded-md border border-slate-200 px-0 py-0 text-center font-['Inter',system-ui,sans-serif] text-sm font-semibold leading-7 text-slate-700 outline-none transition [appearance:textfield] focus:border-[#3e67d6] focus:ring-0 focus:ring-[#3e67d6] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+        "h-7 w-14 appearance-none rounded-md border border-slate-200 px-0 py-0 text-center font-['Inter',system-ui,sans-serif] text-sm font-semibold leading-7 text-slate-700 outline-none transition [appearance:textfield] focus:border-[color:var(--blue-500)] focus:ring-0 focus:ring-[color:var(--blue-500)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
         className
       )}
     />

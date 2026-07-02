@@ -33,6 +33,19 @@ Preserve the existing navbar height exactly.
 - If no token exists, create or preserve `--navbar-height` equal to the current rendered height.
 - New desktop controls should generally use `32px` height.
 
+## Admin-managed top-bar positioning
+
+`admin/podoba/navigacija` may expose saved horizontal positioning for the full top bar: logo, core navigation, search, `Vprašaj AI`, and cart.
+
+Rules:
+
+- Store this only in `SiteNavigationConfig.topBarLayout`.
+- Automatic/default mode must preserve the current public header positions.
+- Manual mode may apply left/right offsets, but only as horizontal transforms or equivalent positioning that does not affect document flow height.
+- Do not use these controls to change navbar height, typography, core nav spacing tokens, dropdown anchor behavior, dropdown panel geometry, or responsive breakpoints.
+- The public dropdown anchor remains based on the visible `Katalog` label after layout is rendered.
+- The admin preview checkbox must feed the unsaved configuration into the existing root `SiteHeader`, using the same commercial scale as the landing page. It must not render a separate fixed overlay or constrained card-contained navbar preview, and it must not add extra document height or push admin page content down.
+
 ## Top-level style lock
 
 For Katalog, Za šole, Projekti, and Pomoč, preserve the current top-level values unless the override explicitly permits changing them:
@@ -143,13 +156,14 @@ Implementation preference: wrap the `Katalog` label text in a measurable element
 Katalog, Za šole, Projekti, and Pomoč must share the same desktop dropdown geometry:
 
 - panel left/top position
-- panel width/height
+- panel width and token-derived content height
 - column x-coordinates
 - row y-coordinates
 - divider lane position
 - icon tile coordinates
 
 Column m / row n icon placement must be static across dropdowns. Do not let dropdown content length, number of items, group names, or active trigger determine icon coordinates.
+The shared panel height must be calculated from the dropdown tokens: panel padding, heading slot, heading-to-items gap, five item slots, and four row gaps. Do not restore a taller hardcoded panel that leaves a blank band below the fifth row.
 
 ## Desktop dropdown panel spacing
 
@@ -168,19 +182,24 @@ Desktop dropdowns use exactly `3` columns and `5` item row slots.
 - Section headings are not item slots.
 - Fill columns first: column 1 top-to-bottom, then column 2, then column 3.
 - Every column reserves exactly 5 item row slots.
+- If a top-level item has more groups than fit in those 3 columns, keep the same panel size and geometry and paginate the dropdown into additional 3-column pages.
+- Do not hide overflow groups, create a fourth desktop column, increase the panel height, or wrap groups into unlabelled rows.
+- Pagination controls must live inside the existing dropdown panel and must not alter navbar height, panel anchor, panel width, or the 3-column x 5-slot geometry.
+- The admin `admin/podoba/navigacija` editor must indicate when a group belongs to public dropdown page 2 or later.
 - Empty slots remain empty and must not stretch existing rows.
 - Use shared column width tokens across all dropdowns.
 - Do not use per-dropdown content-based column widths if that shifts icon coordinates.
 - Do not use `space-between`, `justify-between`, `align-content: space-between`, or other distribution rules that create variable gaps.
 - If text does not fit shared geometry, shorten the label or description instead of changing one dropdown’s geometry.
 
-Vertical rhythm uses the icon tile as the unit:
+Vertical rhythm uses the admin navigation editor as the source of truth:
 
 - icon tile size is the source of truth
 - each item slot height equals icon tile height
-- empty vertical gap between adjacent item slots equals icon tile height
+- `admin/podoba/navigacija` keeps the compact raw grid gap from `SITE_NAVIGATION_ADMIN_SELECTION_ROW_GAP_PX`
+- the public desktop dropdown uses `SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX` so its rendered title-to-title rhythm visually matches the admin editor despite shorter public rows
 - title-to-title spacing is consistent across every column in every desktop dropdown
-- no normal list gaps such as `8px`, `12px`, `16px`, or `24px`
+- do not collapse the public dropdown to the tiny admin raw gap, and do not restore icon-tile-height gaps unless explicitly requested
 - no per-item margins or variable spacing
 
 ## Desktop dropdown item layout
@@ -189,9 +208,9 @@ Every desktop dropdown item must have icon tile, title, and short description.
 
 Item alignment:
 
-- title top aligns with icon tile top
-- description bottom aligns with icon tile bottom
+- title and description sit as one icon-tile-height text stack against the icon tile
 - text stack height equals icon tile height
+- title top aligns with icon tile top and description bottom aligns with icon tile bottom, matching `admin/podoba/navigacija`
 - title and description have no default top/bottom margins
 - use intentional line-height; do not let paragraph margins or inherited styles affect alignment
 
@@ -202,7 +221,7 @@ Implementation preference:
   display: grid;
   grid-template-columns: var(--navbar-dropdown-icon-tile-size) 1fr;
   column-gap: var(--navbar-dropdown-item-gap);
-  align-items: stretch;
+  align-items: center;
   min-height: var(--navbar-dropdown-icon-tile-size);
 }
 .dropdownItemText {
@@ -233,9 +252,9 @@ Every desktop dropdown title and description must be a strict one-liner.
 
 ## Dropdown item hover behavior
 
-Dropdown item hover must not use a gray background on the full item row.
+Dropdown item hover/focus/active behavior must match the admin navigation editor interaction model.
 
-Only the icon tile visibly changes on hover/focus of the whole dropdown item.
+The whole dropdown item may use the shared neutral hover background on hover/focus/active.
 
 Default icon tile:
 
@@ -245,16 +264,16 @@ Default icon tile:
 
 Hover/focus icon tile:
 
-- black background
-- black border
-- white glyph/image
+- white background
+- shared blue border or glyph color
+- shared blue glyph/image where the icon supports `currentColor`
 
 Rules:
 
 - Hover/focus must trigger from the whole dropdown item, not only the icon.
 - Use `currentColor` for SVG icons where possible.
 - If icons are images, use inline SVG or masking if needed so color can switch cleanly.
-- Do not use blur, glow, gradients, colored icon backgrounds, or full-row hover backgrounds.
+- Do not use blur, glow, gradients, or colored icon backgrounds.
 - Transition should be subtle, around `120ms` to `160ms`.
 - Apply the same behavior on `focus-visible`.
 
@@ -371,8 +390,9 @@ Before finishing, Codex must confirm:
 - dropdown panel left edge aligns with the left edge of the `K` in `Katalog`
 - switching dropdowns does not move the panel horizontally
 - every desktop dropdown uses the same 3-column x 5-slot geometry
+- dropdown panel height is derived from the shared five-row token geometry and does not include extra blank bottom space
 - every column/row icon coordinate is static across dropdowns
-- row gap equals icon tile height
+- row gap uses `SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX` and visually matches the `admin/podoba/navigacija` title-to-title rhythm
 - title top aligns with icon tile top
 - description bottom aligns with icon tile bottom
 - every title and description is one line and fully visible
@@ -382,9 +402,10 @@ Before finishing, Codex must confirm:
 - close uses fade/scale-out
 - open-to-open switching preserves the existing left/right transition
 - after close, reopening any trigger is treated as a fresh open
-- dropdown item hover changes only the icon tile, not the full row background
-- icon tiles are white by default and become black on item hover/focus
-- icon glyphs are black by default and become white on item hover/focus
+- dropdown item hover/focus/active may use the shared neutral row background
+- icon tiles are white by default and use the shared blue border on item hover/focus/active
+- icon glyphs are near-black by default and use the shared blue color on item hover/focus/active
+- icon tile borders use the shared `1px` width; the interactive blue frame uses a `1px` current-color outline, not a fractional border
 - Katalog/Projekti divider appears only between columns 2 and 3
 
 If a requested change conflicts with the lock or navbar height, Codex must stop and explain the conflict instead of editing outside scope.

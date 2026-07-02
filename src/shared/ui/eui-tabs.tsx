@@ -58,17 +58,17 @@ export default function EuiTabs({ value, onChange, tabs, className, surface = 'p
               isRaised
                 ? `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
                   active
-                    ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[#1982bf]`
+                    ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[color:var(--blue-500)]`
                     : 'border-transparent bg-transparent font-semibold text-slate-600 hover:text-slate-900 active:text-slate-900'
                 }`
                 : `relative z-10 border-b-2 bg-transparent font-['Inter',system-ui,sans-serif] transition ${size === 'compact' ? 'pt-2 pb-2.5 text-[15px] leading-[22px]' : 'pb-2 text-base leading-none'} ${tabClassName ?? ''} ${
                   tone === 'muted-control'
                     ? active
-                      ? 'border-[#1982bf] text-[#1982bf] font-semibold'
+                      ? 'border-[color:var(--blue-500)] text-[color:var(--blue-500)] font-semibold'
                       : 'border-transparent text-slate-500 font-medium hover:text-slate-700 active:text-slate-700'
                     : active
-                      ? 'border-[#1982bf] text-[#1982bf] font-semibold'
-                      : 'border-transparent text-black font-semibold hover:text-[#1982bf] active:text-[#1982bf]'
+                      ? 'border-[color:var(--blue-500)] text-[color:var(--blue-500)] font-semibold'
+                      : 'border-transparent text-black font-semibold hover:text-[color:var(--blue-500)] active:text-[color:var(--blue-500)]'
                 }`
             }
           >

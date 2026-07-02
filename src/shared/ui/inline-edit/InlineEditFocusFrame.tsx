@@ -5,7 +5,7 @@ export default function InlineEditFocusFrame({ className, ...props }: HTMLAttrib
     <span
       {...props}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 rounded-md border border-[#3e67d6] ${className ?? ''}`.trim()}
+      className={`pointer-events-none absolute inset-0 rounded-md border border-[color:var(--blue-500)] ${className ?? ''}`.trim()}
     />
   );
 }

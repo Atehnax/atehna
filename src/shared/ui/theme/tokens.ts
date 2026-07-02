@@ -8,7 +8,7 @@ export const UI_TOKENS = {
     accentText: 'text-[#5d3ed6]',
     accentBorder: 'border-[#5d3ed6]',
     accentBgSoft: 'bg-[#f8f7fc]',
-    focusBorder: 'focus:border-[#3e67d6] focus-visible:border-[#3e67d6]',
+    focusBorder: 'focus:border-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)]',
     focusRingNone: 'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0'
   },
   radius: {
@@ -41,6 +41,12 @@ export const adminPlaceholderTokenClasses =
 
 export const adminSearchPlaceholderTokenClasses =
   'placeholder:font-normal placeholder:text-slate-500 placeholder:opacity-80';
+
+export const adminControlFocusTokenClasses =
+  'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
+
+export const adminControlFocusRingTokenClasses =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)]/30';
 
 export const adminStatusInfoPillClassName =
   'h-[26px] min-w-[132px] justify-center px-4 text-[11px]';
@@ -92,6 +98,8 @@ export const hoverTokenClasses = {
   neutral: 'hover:bg-[color:var(--hover-neutral)]'
 } as const;
 
+export const sharedIconTileBorderWidth = '1px';
+
 export const adminTableRowToneClasses = {
   even: 'bg-white',
   odd: 'bg-[#eef1f8]',
@@ -120,8 +128,7 @@ export const surfaceTokenClasses = {
 
 const BTN_BASE =
   "inline-flex items-center justify-center font-['Inter',system-ui,sans-serif] font-normal tracking-[0] transition disabled:pointer-events-none disabled:opacity-45";
-const BTN_FOCUS =
-  'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
+const BTN_FOCUS = adminControlFocusTokenClasses;
 const BTN_SIZE_MD = 'h-8 px-3 rounded-lg text-xs';
 const BTN_SIZE_PILL = 'h-9 px-4 rounded-md text-[13px] leading-none';
 
@@ -171,7 +178,7 @@ export const buttonTokenClasses = {
   outline: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_PILL} border ${semanticButtonColors.neutral.border} ${semanticButtonColors.neutral.bg} ${semanticButtonColors.neutral.text} ${semanticButtonColors.neutral.hoverBorder} ${semanticButtonColors.neutral.hoverBg} ${semanticButtonColors.neutral.activeBg}`,
   ghost: `${BTN_BASE} ${BTN_FOCUS} rounded-md border border-transparent bg-transparent text-xs text-slate-700 ${semanticButtonColors.neutral.hoverBg} ${semanticButtonColors.neutral.activeBg}`,
   adminSoft:
-    `inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 ${hoverTokenClasses.neutral} active:bg-[color:var(--hover-neutral)] focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400`,
+    `inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#ede8ff] bg-[#f8f7fc] px-3 text-xs font-semibold text-[#5d3ed6] shadow-sm transition hover:border-slate-300 ${hoverTokenClasses.neutral} active:bg-[color:var(--hover-neutral)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-400`,
   danger: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.danger.border} ${semanticButtonColors.danger.bg} ${semanticButtonColors.danger.text} ${semanticButtonColors.danger.hoverBg} ${semanticButtonColors.danger.activeBg}`,
   restore: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.success.border} ${semanticButtonColors.success.bg} ${semanticButtonColors.success.text} ${semanticButtonColors.success.hoverBg} ${semanticButtonColors.success.activeBg}`,
   archive: `${BTN_BASE} ${BTN_FOCUS} ${BTN_SIZE_MD} border ${semanticButtonColors.warning.border} ${semanticButtonColors.warning.bg} ${semanticButtonColors.warning.text} ${semanticButtonColors.warning.hoverBg} ${semanticButtonColors.warning.activeBg}`,
@@ -198,10 +205,44 @@ export const iconButtonTokenClasses = {
   danger: 'border border-rose-300 bg-white text-xs font-semibold leading-none text-rose-600 shadow-none transition hover:bg-rose-50 active:bg-rose-100 disabled:cursor-default disabled:pointer-events-none disabled:opacity-60 disabled:bg-white disabled:text-slate-300'
 } as const;
 
+export const adminMiniIconButtonTokenClasses =
+  'inline-grid h-6 w-6 place-items-center rounded-md text-slate-400 transition hover:bg-transparent hover:!text-[color:var(--blue-500)] active:bg-transparent active:!text-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)] focus-visible:bg-transparent focus-visible:!text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
+
+export const adminSelectableIconBadgeTokenClasses = {
+  base:
+    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors',
+  interactive:
+    'group-hover:border-[color:var(--blue-500)] group-hover:text-[color:var(--blue-500)] group-focus-within:border-[color:var(--blue-500)] group-focus-within:text-[color:var(--blue-500)]',
+  selected:
+    'border-[color:var(--blue-500)] text-[color:var(--blue-500)]'
+} as const;
+
+export const adminActionMenuItemTokenClasses = {
+  base:
+    'block w-full rounded-md px-2 py-1.5 text-left text-xs font-normal text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-slate-950',
+  flex:
+    'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-normal text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-slate-950',
+  drag:
+    'block w-full cursor-grab rounded-md px-2 py-1.5 text-left text-xs font-normal text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-slate-950 active:cursor-grabbing',
+  flexDrag:
+    'flex w-full cursor-grab items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-normal text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-slate-950 active:cursor-grabbing',
+  danger:
+    'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-normal text-rose-600/80 transition hover:bg-rose-50 hover:text-rose-700 active:bg-rose-100 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0'
+} as const;
+
+export const adminTinyNumberInputTokenClasses =
+  `h-6 w-7 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-none text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition ${adminControlFocusTokenClasses}`;
+
+export const adminInlineEditTriggerTokenClasses =
+  `pointer-events-auto rounded-md text-left outline-none transition hover:bg-[color:var(--hover-neutral)] ${adminControlFocusRingTokenClasses}`;
+
+export const adminDragSurfaceTokenClasses =
+  `absolute inset-0 z-0 cursor-grab rounded-lg ${adminControlFocusRingTokenClasses} active:cursor-grabbing`;
+
 export const pillTokenClasses = {
   list: 'inline-flex items-center rounded-xl border border-slate-300 bg-transparent',
   itemBase:
-    'rounded-lg font-semibold transition focus-visible:border focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0',
+    'rounded-lg font-semibold transition focus-visible:border focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0',
   itemActive: 'rounded-lg bg-[#e9efff] text-[#3659d6]',
   itemIdle: `border border-transparent bg-transparent text-slate-700 ${hoverTokenClasses.neutral}`
 } as const;
@@ -214,7 +255,7 @@ export const filterPillTokenClasses = {
 export const filterPillClearGlyph = '×';
 
 export const adminFilterInputTokenClasses =
-  `h-8 rounded-md border border-slate-300 bg-white px-2.5 text-[12px] leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:outline-none focus-visible:ring-0 ${adminPlaceholderTokenClasses}`;
+  `h-8 rounded-md border border-slate-300 bg-white px-2.5 text-[12px] leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition ${adminControlFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 
 export const adminRangeFilterTokenClasses = {
   panel: 'rounded-md border border-slate-200 bg-white p-2 text-left shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]',
@@ -232,7 +273,7 @@ export const adminRangeFilterTokenClasses = {
 
 export const selectTokenClasses = {
   trigger:
-    "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-white active:bg-white focus:border-[#3e67d6] focus:bg-white focus:outline-none focus:ring-0 focus-visible:border-[#3e67d6] focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",
+    "inline-flex h-7 w-full items-center overflow-visible rounded-md border border-slate-300 bg-white px-2 py-0.5 text-left text-[11px] font-normal leading-[1.2] text-slate-700 font-['Inter',system-ui,sans-serif] outline-none ring-0 transition hover:bg-white active:bg-white focus:border-[color:var(--blue-500)] focus:bg-white focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-300",
   menu: 'w-full rounded-md border border-slate-200 bg-white p-1 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]',
   menuItem:
     `flex h-8 w-full items-center rounded-md px-2.5 text-left text-[12px] font-normal leading-[1.25] text-slate-700 font-['Inter',system-ui,sans-serif] transition ${hoverTokenClasses.neutral} hover:text-[color:var(--blue-500)] disabled:cursor-default disabled:text-slate-300`
@@ -240,10 +281,10 @@ export const selectTokenClasses = {
 
 export const dateInputTokenClasses = {
   base:
-    'w-full border border-slate-300 bg-white text-xs text-slate-900 outline-none transition hover:bg-transparent focus:border-[#3e67d6] focus:bg-white focus:ring-0 focus-visible:border-[#3e67d6]',
+    'w-full border border-slate-300 bg-white text-xs text-slate-900 outline-none transition hover:bg-transparent focus:border-[color:var(--blue-500)] focus:bg-white focus:ring-0 focus-visible:border-[color:var(--blue-500)]',
   compact: 'h-8 rounded-lg px-2.5',
   floating: 'h-10 rounded-xl px-2.5 pb-1.5 pt-5 leading-6'
 } as const;
 
 export const adminInputFocusTokenClasses =
-  'outline-none focus:border-[#3e67d6] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
+  'outline-none focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';

@@ -4,6 +4,7 @@ import SiteFooterGate from '@/commercial/components/SiteFooterGate';
 import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
 import CommercialScaleFrame from '@/commercial/components/CommercialScaleFrame';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
+import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -27,14 +28,16 @@ export const metadata: Metadata = {
   }
 };
 
-export default function CommercialRootLayout({ children }: { children: React.ReactNode }) {
+export default async function CommercialRootLayout({ children }: { children: React.ReactNode }) {
+  const siteNavigation = await getSiteNavigationConfig();
+
   return (
     <html lang="sl">
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
           <CommercialEnhancements />
-          <CommercialScaleFrame>
-            <SiteHeader />
+          <CommercialScaleFrame siteLayout={siteNavigation.siteLayout}>
+            <SiteHeader navigation={siteNavigation} />
             <main className="flex-1">{children}</main>
             <SiteFooterGate />
           </CommercialScaleFrame>

@@ -34,7 +34,7 @@ export const adminTableSearchInputClassName =
 export const adminTableSearchIconClassName = 'left-4 h-[18px] w-[18px] text-slate-400';
 
 export const adminTableNeutralIconButtonClassName =
-  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[#1982bf] active:!text-[#1982bf]';
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[color:var(--blue-500)] active:!text-[color:var(--blue-500)]';
 
 export const adminTableSelectedSuccessIconButtonClassName =
   '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-emerald-300/80 !bg-white !text-emerald-700 hover:!bg-emerald-50 active:!bg-emerald-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
@@ -153,7 +153,7 @@ export const adminTableMatchingValueClassName =
 export const adminTableMatchingValueHeaderStartClassName = 'ml-[5px]';
 
 export const adminTableInlineEditInputClassName =
-  "h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[#3e67d6] focus:outline-none focus:ring-0";
+  "h-7 w-full rounded-md border border-slate-300 bg-white px-2 text-[12px] leading-7 text-slate-900 shadow-none outline-none transition focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0";
 
 export const adminTableInlineActionRowClassName = 'flex items-center justify-center gap-1 whitespace-nowrap';
 

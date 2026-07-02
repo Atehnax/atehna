@@ -27,7 +27,7 @@ export function AdminSearchInput({
   return (
     <div
       className={classNames(
-        `relative min-w-0 w-full flex-1 overflow-hidden border transition-colors focus-within:border-[#3e67d6] ${adminTableSearchWrapperClassName}`,
+        `relative min-w-0 w-full flex-1 overflow-hidden border transition-colors focus-within:border-[color:var(--blue-500)] ${adminTableSearchWrapperClassName}`,
         wrapperClassName
       )}
     >

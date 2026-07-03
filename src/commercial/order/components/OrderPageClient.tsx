@@ -310,7 +310,7 @@ export default function OrderPageClient() {
 
   if (orderResponse && submittedOrder) {
     return (
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="space-y-8">
         <header className="space-y-3">
           <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Naročilo je potrjeno</h1>
           <p className="text-sm text-slate-600">

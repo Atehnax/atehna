@@ -15,7 +15,6 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import SiteHeader from '@/commercial/components/SiteHeader';
 import {
   DndContext,
   PointerSensor,
@@ -30,10 +29,11 @@ import {
   cloneDefaultSiteNavigationConfig,
   DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT,
   getSiteNavigationDesktopGroupPlacements,
-  getSiteNavigationTopBarReservedFixedWidth,
   getSiteNavigationTopBarSearchReservedWidth,
+  isSiteNavigationTopBarSecondRowItem,
   normalizeSiteNavigationConfig,
   normalizeSiteNavigationTopBarOffset,
+  SITE_CONTENT_MAX_WIDTH_PX,
   SITE_NAVIGATION_ADMIN_SELECTION_ROW_GAP_PX,
   SITE_NAVIGATION_TOP_BAR_OFFSET_MAX,
   SITE_NAVIGATION_TOP_BAR_OFFSET_MIN,
@@ -43,12 +43,10 @@ import {
   type SiteNavigationGroup,
   type SiteNavigationItemIcon,
   type SiteNavigationLink,
-  type SiteNavigationTopBarActionId,
   type SiteNavigationTopBarAiMode,
   type SiteNavigationTopBarDevice,
   type SiteNavigationTopBarElementId,
   type SiteNavigationSiteLayoutSettings,
-  type SiteNavigationTopBarConstraintLayoutMode,
   type SiteNavigationTopBarItemWidthMode,
   type SiteNavigationTopBarLayout,
   type SiteNavigationTopBarNavigationMode,
@@ -59,13 +57,14 @@ import {
   type SiteNavigationTopBarSecondRow,
   type SiteNavigationTopBarSlot,
   type SiteNavigationTopBarWidthMode,
+  type SiteNavigationTopBarZoneSettings,
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Input } from '@/shared/ui/input';
-import { ActionUndoIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import {
   SiteNavigationLucideIcon,
   siteNavigationLucideIconNames,
@@ -73,7 +72,11 @@ import {
 } from '@/shared/ui/icons/SiteNavigationLucideIcon';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { MenuPanel } from '@/shared/ui/menu';
-import { adminTableNeutralIconButtonClassName, adminTablePrimaryButtonClassName } from '@/shared/ui/admin-table/standards';
+import {
+  adminTableNeutralIconButtonClassName,
+  adminTablePrimaryButtonClassName,
+  adminTableSelectedDangerIconButtonClassName
+} from '@/shared/ui/admin-table/standards';
 import {
   adminActionMenuItemTokenClasses,
   adminControlFocusTokenClasses,
@@ -86,16 +89,26 @@ import {
   iconButtonTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
+import SiteHeader from '@/commercial/components/SiteHeader';
+import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import AdminPodobaTabs from './AdminPodobaTabs';
 
 const compactInputClassName = adminFilterInputTokenClasses;
 const numberInputNoSpinnerClassName =
   '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const topBarElementRowGridClassName =
-  'grid-cols-[minmax(170px,1fr)_112px_62px_116px_194px_88px_70px]';
-const topBarElementRowMinWidthClassName = 'min-w-[932px]';
+const topBarElementRowGridClassName = 'grid-cols-[34px_minmax(140px,1fr)_96px_104px_78px_56px_56px]';
+const topBarElementRowMinWidthClassName = 'min-w-[646px]';
 const topBarUnitAdornmentBaseClassName =
-  'inline-flex h-full shrink-0 items-center justify-center whitespace-nowrap border-l border-slate-200';
+  'inline-flex h-full w-6 shrink-0 items-center justify-center whitespace-nowrap border-l border-slate-200 px-1 font-[\'Inter\',system-ui,sans-serif] text-[12px] font-medium leading-none !text-slate-500';
+const topBarUnitAdornmentSuffixClassName = topBarUnitAdornmentBaseClassName;
+const topBarActiveFieldClassName =
+  '!border-[color:var(--blue-500)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--blue-500)_34%,transparent)]';
+const navEditorRowHoverClassName = 'bg-slate-50';
+const topBarPreviewRulerLeftGutterPx = 28;
+const topBarPreviewRulerRightGutterPx = topBarPreviewRulerLeftGutterPx;
+const topBarPreviewRulerTopGutterPx = 14;
+const topBarTechnicalPreviewVisualTopbarHeightPx =
+  DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive.tablet.settings.height * COMMERCIAL_STOREFRONT_SCALE;
 const iconPickerPageSize = 24;
 const topActionSaveButtonClassName =
   `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
@@ -258,6 +271,14 @@ function ChevronGlyph({ className = 'h-4 w-4 opacity-60' }: { className?: string
   );
 }
 
+function GridGlyph({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} fill="none" aria-hidden="true">
+      <path d="M3 3.5h10M3 8h10M3 12.5h10M3.5 3v10M8 3v10M12.5 3v10" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function EyeGlyph({ visible, className = 'h-[17px] w-[17px]' }: { visible: boolean; className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
@@ -294,6 +315,12 @@ function estimateTopBarTextWidth(value: string) {
   return Math.ceil(value.length * 7.2);
 }
 
+type TopBarSearchVariant = 'icon' | 'input';
+
+function getTopBarSearchVariant(settings: Pick<SiteNavigationTopBarResponsiveSettings, 'searchMode'>): TopBarSearchVariant {
+  return settings.searchMode === 'field' ? 'input' : 'icon';
+}
+
 function estimateTopBarElementWidth({
   id,
   items,
@@ -306,8 +333,8 @@ function estimateTopBarElementWidth({
   settings: SiteNavigationTopBarResponsiveSettings;
 }) {
   if (id === 'logo') return 88;
-  if (id === 'search') return settings.searchMode === 'field' ? 132 : getSiteNavigationTopBarSearchReservedWidth(device);
-  if (id === 'ai') return settings.aiMode === 'icon' ? 32 : 96;
+  if (id === 'search') return getTopBarSearchVariant(settings) === 'input' ? getSiteNavigationTopBarSearchReservedWidth(device) : 32;
+  if (id === 'ai') return settings.aiMode === 'icon' ? 32 : 116;
   if (id === 'cart') return 32;
 
   if (device === 'mobile' || settings.navigationMode === 'hamburger') return 32;
@@ -339,14 +366,9 @@ const topBarSlotLabels: Record<SiteNavigationTopBarSlot, string> = {
 };
 
 const topBarWidthModeLabels: Record<SiteNavigationTopBarWidthMode, string> = {
-  match_content: 'Kot vsebina',
+  match_content: 'Vsebina',
   custom: 'Po meri',
-  full: 'Polna'
-};
-
-const topBarConstraintLayoutModeLabels: Record<SiteNavigationTopBarConstraintLayoutMode, string> = {
-  centered_nav: 'Navigacija v sredini',
-  flow: 'Tok'
+  full: 'Celotna stran'
 };
 
 const topBarItemWidthModeLabels: Record<SiteNavigationTopBarItemWidthMode, string> = {
@@ -357,7 +379,7 @@ const topBarItemWidthModeLabels: Record<SiteNavigationTopBarItemWidthMode, strin
 
 const topBarHelpCopy = {
   siteContentWidth:
-    'Največja širina glavne vsebine strani. Ko je zgornja vrstica nastavljena na "Kot vsebina", uporablja isto širino. Primer: 1260 px pomeni, da sta vsebina strani in elementi v zgornji vrstici poravnani na isti levi in desni rob.',
+    'Največja širina glavne vsebine strani. Ko je zgornja vrstica nastavljena na "Vsebina", uporablja isto skupno širino. Primer: 1280 px pomeni, da sta vsebina strani in elementi v zgornji vrstici poravnani na isti levi in desni rob.',
   gutterMin:
     'Najmanjši notranji rob strani na ozkih zaslonih. Primer: 16 px zagotovi, da se vsebina in zgornja vrstica ne dotikata roba zaslona na mobilniku.',
   gutterMax:
@@ -371,17 +393,17 @@ const topBarHelpCopy = {
   headerPreview:
     'Vklopi živ predogled zgornje vrstice na vrhu admin strani. Predogled se spremeni takoj, shranjen pa je šele po kliku na Shrani.',
   widthMode:
-    'Določa, kako široka je notranja vsebina zgornje vrstice. Kot vsebina uporablja skupno širino strani, Po meri uporablja posebno max širino samo za zgornjo vrstico, Polna pa raztegne elemente čez celotno širino z varnim robom.',
+    'Določa, kako široka je zgornja vrstica. Vsebina uporablja skupno širino strani, Po meri uporablja posebno max širino samo za zgornjo vrstico, Celotna stran pa raztegne vsebino čez celoten viewport z varnim robom.',
   customWidth:
     'Največja širina zgornje vrstice, kadar je izbran način Po meri. Primer: 1440 px omogoči širšo zgornjo vrstico kot glavno vsebino strani.',
   layoutMode:
-    'Navigacija v sredini uporablja tri stolpce, kjer je sredinski stolpec res centriran na strani. Tok postavi levi, sredinski in desni del bolj tekoče, zato se bolje prilagodi, ko je na eni strani veliko elementov.',
+    'Zgornja vrstica uporablja enotno postavitev: logotip levo, navigacija na sredini, akcije desno. Elemente med deli premikate z vlečenjem v predogledu.',
   slot:
-    'Pozicija določi, v kateri del zgornje vrstice element spada. Levo se poravna ob levi rob vsebinskega kontejnerja, Sredina se postavi v sredinski del, Desno se poravna ob desni rob. Elementi na isti poziciji se razvrstijo po polju Red. Na mobilniku Meni pomeni, da se element premakne v hamburger meni.',
+    'Del zgornje vrstice določite z vlečenjem elementa v predogledu. Elementi v istem delu se razvrstijo po polju Vrstni red.',
   order:
-    'Vrstni red znotraj istega slota. Manjša številka pride prej. Primer: na desni strani Red 1 za Iskanje, Red 2 za Vprašaj AI in Red 3 za Košarico prikaže elemente v tem vrstnem redu.',
+    'Vrstni red znotraj istega območja. Manjša številka pride prej. Primer: na desni strani Vrstni red 1 za Iskanje, 2 za Vprašaj AI in 3 za Košarico prikaže elemente v tem vrstnem redu.',
   widthModeColumn:
-    'Način širine določa, kako element porabi prostor. Samodejno uporabi naravno širino elementa, Fiksno uporabi vpisano širino v px, Zapolni pa dovoli elementu, da zapolni razpoložljiv prostor v svojem slotu.',
+    'Širina se določi glede na tip elementa. Logotip in iskalno polje imata urejeno širino, navigacija in besedilni gumbi pa uporabljajo naravno širino.',
   widthColumn:
     'Širina elementa v px, kadar je način širine Fiksno. Primer: logotip 88 px ohrani stalno širino logotipnega območja.',
   offsetsColumn:
@@ -391,7 +413,7 @@ const topBarHelpCopy = {
   breakpoint:
     'Prelomna širina pove, pri katerih širinah zaslona veljajo nastavitve naprave. Primer: Tablica od 768 px do 1024 px pomeni, da se tablična postavitev uporabi v tem razponu.',
   tabletNavigation:
-    'Polna prikaže vse navigacijske povezave. Strnjena prikaže samo nastavljeno število prvih povezav in ostalo skrije za krajšo predstavitev. Hamburger zamenja navigacijo z menijskim gumbom.',
+    'Polna prikaže vse navigacijske povezave. Strnjena prikaže samo nastavljeno število prvih povezav in ostalo skrije za krajšo predstavitev. Meni zamenja navigacijo z menijskim gumbom.',
   maxVisibleLinks:
     'Največ povezav, ki so vidne v strnjenem tabličnem meniju. Primer: 3 prikaže prve tri navigacijske naslove, ostale pa ostanejo skrite za zgoščen prikaz.',
   rowPattern:
@@ -513,6 +535,85 @@ const topBarRowSettingLimits: Record<SiteNavigationTopBarDevice, {
 
 type TopBarPreviewDevice = SiteNavigationTopBarDevice;
 type TopBarZone = 'left' | 'center' | 'right';
+type TopBarActiveEditKind =
+  | 'position'
+  | 'order'
+  | 'gap-before'
+  | 'gap-after'
+  | 'element-width'
+  | 'container-width'
+  | 'layout-mode'
+  | 'width-mode'
+  | null;
+type TopBarActiveEdit = {
+  kind: TopBarActiveEditKind;
+  elementId?: SiteNavigationTopBarElementId;
+  fieldName?: string;
+};
+type TopBarActiveGuide =
+  | { type: 'none' }
+  | { type: 'topbar_width' }
+  | { type: 'page_width' }
+  | { type: 'height' }
+  | { type: 'min_gutter' }
+  | { type: 'max_gutter' }
+  | { type: 'zone_gap' }
+  | { type: 'element_gap' }
+  | { type: 'zone_width'; zone: TopBarZone }
+  | { type: 'element_width'; elementKey: SiteNavigationTopBarElementId }
+  | { type: 'margin_before'; elementKey: SiteNavigationTopBarElementId }
+  | { type: 'margin_after'; elementKey: SiteNavigationTopBarElementId };
+type TopBarRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+type TopBarSpacingRects = {
+  before: TopBarRect;
+  after: TopBarRect;
+};
+type TopBarMarginGuideRects = {
+  left: TopBarRect;
+  right: TopBarRect;
+};
+type TopBarWidthModeGuide = {
+  containerRect: TopBarRect;
+  contentRect: TopBarRect;
+  label: string;
+  innerLabel: string;
+};
+type TopBarGeometry = {
+  viewportRect: TopBarRect;
+  containerRect: TopBarRect;
+  contentRect: TopBarRect;
+  leftZoneRect: TopBarRect;
+  centerZoneRect: TopBarRect;
+  rightZoneRect: TopBarRect;
+  elementRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>>;
+  spacingRects: Partial<Record<SiteNavigationTopBarElementId, TopBarSpacingRects>>;
+  widthRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>>;
+  containerWidthGuideRect: TopBarRect;
+  marginGuideRects: TopBarMarginGuideRects;
+  widthModeGuideRects: Record<SiteNavigationTopBarWidthMode, TopBarWidthModeGuide>;
+  zoneOrderIds: Record<TopBarZone, SiteNavigationTopBarElementId[]>;
+};
+type TopBarViewportDragState =
+  | { type: 'element'; elementId: SiteNavigationTopBarElementId }
+  | { type: 'width'; elementId: SiteNavigationTopBarElementId; edge: 'left' | 'right' }
+  | null;
+type TopBarOverflowStatus = {
+  tone: 'ok' | 'warning' | 'info';
+  label: string;
+  detail?: string;
+};
+type TopBarDropTarget = {
+  xPx: number;
+  xRatio: number;
+  deltaPx: number;
+  rect: TopBarRect;
+  constrained: boolean;
+};
 
 const topBarPreviewDeviceLabels = topBarDeviceLabels;
 const topBarPreviewDeviceWidths: Record<TopBarPreviewDevice, string> = {
@@ -526,6 +627,18 @@ const topBarZoneLabels: Record<TopBarZone, string> = {
   center: 'Sredina',
   right: 'Desno'
 };
+
+function getCanonicalTopBarZoneSettings(): SiteNavigationTopBarZoneSettings {
+  return {
+    left: { widthMode: 'fill', widthPx: null },
+    center: { widthMode: 'auto', widthPx: null },
+    right: { widthMode: 'fill', widthPx: null }
+  };
+}
+
+function getTopBarZoneSettings(): SiteNavigationTopBarZoneSettings {
+  return getCanonicalTopBarZoneSettings();
+}
 
 const topBarZoneToneClassNames: Record<TopBarZone, string> = {
   left: 'bg-sky-50 text-sky-700',
@@ -608,7 +721,7 @@ function cloneTopBarLayout(layout: SiteNavigationTopBarLayout): SiteNavigationTo
         items: layout.responsive.mobile.items.map((item) => ({ ...item })),
         settings: {
           ...layout.responsive.mobile.settings,
-          actionPriority: [...(layout.responsive.mobile.settings.actionPriority ?? ['cart', 'search', 'ai'])]
+          actionPriority: ['search', 'ai', 'cart']
         }
       }
     }
@@ -629,7 +742,7 @@ function TopBarHelpVisual({ visual }: { visual: TopBarHelpVisualKind }) {
         </span>
         <span className="flex h-9 items-center gap-2 rounded bg-white px-2">
           <span className="h-px flex-1 bg-slate-200" />
-          <span className={`${blueBoxClassName} inline-flex h-6 w-28 items-center justify-center`}>1260 px</span>
+          <span className={`${blueBoxClassName} inline-flex h-6 w-28 items-center justify-center`}>1280 px</span>
           <span className="h-px flex-1 bg-slate-200" />
         </span>
       </span>
@@ -890,7 +1003,7 @@ function AdminTopBarSparklesGlyph({ className = 'h-[17px] w-[17px]' }: { classNa
   );
 }
 
-function AdminTopBarSearchGlyph({ className = 'h-[17px] w-[17px]' }: { className?: string }) {
+function AdminTopBarSearchGlyph({ className = 'h-[18px] w-[18px]' }: { className?: string }) {
   return (
     <svg
       aria-hidden="true"
@@ -949,9 +1062,9 @@ function AdminTopBarBrandPreview() {
 function AdminTopBarSearchPreview({ mode = 'icon' }: { mode?: SiteNavigationTopBarSearchMode }) {
   if (mode === 'field') {
     return (
-      <span className="inline-flex h-8 w-[132px] items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-[13px] text-slate-500">
-        <AdminTopBarSearchGlyph className="h-4 w-4" />
-        <span>Iskanje</span>
+      <span className="inline-flex h-8 w-full min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-[13px] text-slate-500">
+        <AdminTopBarSearchGlyph className="h-[18px] w-[18px]" />
+        <span className="truncate">Iskanje</span>
       </span>
     );
   }
@@ -1127,14 +1240,11 @@ function AdminTopBarElementBadge({ id, selected = false }: { id: SiteNavigationT
   );
 }
 
-const topBarActionLabels: Record<SiteNavigationTopBarActionId, string> = {
-  cart: 'Košarica',
-  search: 'Iskanje',
-  ai: 'Vprašaj AI'
-};
-
 function sortedResponsiveItems(items: SiteNavigationTopBarResponsiveItem[]) {
-  return [...items].sort((first, second) => first.position - second.position);
+  return [...items].sort((first, second) => {
+    const xDelta = first.xPx - second.xPx;
+    return xDelta === 0 ? first.zIndex - second.zIndex : xDelta;
+  });
 }
 
 function updateResponsiveLayout(
@@ -1157,7 +1267,7 @@ function updateResponsiveLayout(
     ...nextLayout,
     items: nextLayout.items.map((item) => ({
       ...item,
-      visible: desktopItems.find((desktopItem) => desktopItem.id === item.id)?.visible ?? item.visible
+      visible: desktopItems.find((desktopItem) => desktopItem.id === item.id)?.visible ?? false
     }))
   };
 }
@@ -1283,14 +1393,20 @@ function TopBarHelpLabel({
 function TopBarSegmentedControl<T extends string>({
   value,
   options,
-  onChange
+  activeValue,
+  onChange,
+  onOptionActive,
+  onOptionInactive
 }: {
   value: T;
   options: Array<{ value: T; label: string; disabled?: boolean }>;
+  activeValue?: T | null;
   onChange: (value: T) => void;
+  onOptionActive?: (value: T) => void;
+  onOptionInactive?: () => void;
 }) {
   return (
-    <div className="inline-flex min-h-9 items-center gap-1">
+    <div className="inline-flex min-h-9 min-w-0 flex-wrap items-center gap-1">
       {options.map((option) => (
         <button
           key={option.value}
@@ -1299,11 +1415,17 @@ function TopBarSegmentedControl<T extends string>({
           className={`inline-flex h-8 items-center rounded-md border px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses} ${
             value === option.value
               ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
+              : activeValue === option.value
+                ? 'border-[color:var(--blue-500)]/50 bg-[color:var(--blue-50)]/60 text-[color:var(--blue-500)]'
               : option.disabled
                 ? 'cursor-not-allowed border-transparent text-slate-300'
                 : 'border-transparent text-slate-500 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
           }`}
+          onBlur={onOptionInactive}
           onClick={() => onChange(option.value)}
+          onFocus={() => onOptionActive?.(option.value)}
+          onMouseEnter={() => onOptionActive?.(option.value)}
+          onMouseLeave={onOptionInactive}
         >
           {option.label}
         </button>
@@ -1324,6 +1446,11 @@ function TopBarUnitNumberInput({
   className = 'w-full',
   inputClassName = 'min-w-0 flex-1',
   stopPropagation = false,
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
   onChange
 }: {
   value: number;
@@ -1337,6 +1464,11 @@ function TopBarUnitNumberInput({
   className?: string;
   inputClassName?: string;
   stopPropagation?: boolean;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onChange: (value: number) => void;
 }) {
   const simulatorStyle = variant === 'simulator';
@@ -1345,12 +1477,22 @@ function TopBarUnitNumberInput({
     <span
       className={`inline-flex items-center overflow-hidden rounded-md border bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
         simulatorStyle
-          ? 'h-9 border-slate-300 text-slate-600'
-          : 'h-8 border-slate-200 text-slate-700'
+          ? 'h-9 border-slate-300 text-slate-700'
+          : 'h-7 border-slate-200 text-slate-700'
       } ${
-        disabled ? 'bg-[color:var(--field-locked-bg)] text-slate-400' : ''
+        active ? topBarActiveFieldClassName : ''
+      } ${
+        disabled ? 'cursor-not-allowed bg-[color:var(--field-locked-bg)] text-slate-400' : ''
       } ${className}`}
-      onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
+      onClick={(event) => {
+        if (stopPropagation) event.stopPropagation();
+        if (!disabled) onFocus?.();
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onPointerDown={() => {
+        if (!disabled) onFocus?.();
+      }}
     >
       <input
         type="number"
@@ -1359,22 +1501,19 @@ function TopBarUnitNumberInput({
         step={step}
         value={value}
         disabled={disabled}
+        onBlur={onBlur}
         onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || 0)))}
-        className={`h-full border-0 bg-transparent text-right font-['Inter',system-ui,sans-serif] text-[12px] leading-none outline-none focus:ring-0 ${numberInputNoSpinnerClassName} ${
+        onFocus={onFocus}
+        onInput={(event) => onChange(Math.min(max, Math.max(min, Number((event.target as HTMLInputElement).value) || 0)))}
+        className={`h-full border-0 bg-transparent text-right font-['Inter',system-ui,sans-serif] leading-none outline-none focus:ring-0 ${numberInputNoSpinnerClassName} ${
           simulatorStyle
-            ? 'px-2.5 font-semibold text-slate-600 disabled:text-slate-400'
-            : 'px-2 font-normal text-slate-700 disabled:text-slate-300'
-        } ${inputClassName}`}
+            ? 'rounded-l-md px-2.5 text-[12px] font-medium text-slate-900 disabled:bg-transparent disabled:text-slate-500 disabled:opacity-100'
+            : 'px-2 text-[12px] font-medium text-slate-700 disabled:text-slate-300'
+        } ${disabled ? 'cursor-not-allowed' : ''} ${inputClassName}`}
         aria-label={ariaLabel}
       />
       {suffix ? (
-        <span
-          className={`${topBarUnitAdornmentBaseClassName} ${
-            simulatorStyle
-              ? 'px-2.5 text-[12px] font-semibold leading-none text-slate-500'
-              : 'px-2 text-[12px] font-medium leading-none text-slate-500'
-          }`}
-        >
+        <span className={topBarUnitAdornmentSuffixClassName}>
           {suffix}
         </span>
       ) : null}
@@ -1391,6 +1530,11 @@ function TopBarNumberField({
   step = 1,
   suffix = 'px',
   className = '',
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
   onChange
 }: {
   label: string;
@@ -1401,6 +1545,11 @@ function TopBarNumberField({
   step?: number;
   suffix?: string;
   className?: string;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onChange: (value: number) => void;
 }) {
   return (
@@ -1415,9 +1564,14 @@ function TopBarNumberField({
         step={step}
         suffix={suffix}
         variant="simulator"
-        className="w-full"
-        inputClassName="w-10 shrink-0"
+        className="w-full max-w-[112px]"
+        inputClassName="w-[52px] shrink-0 text-[13px]"
         ariaLabel={label}
+        active={active}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         onChange={onChange}
       />
     </label>
@@ -1432,7 +1586,13 @@ function TopBarMiniNumberField({
   max = 1920,
   step = 1,
   suffix = 'px',
+  layout = 'stack',
   className = '',
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
   onChange
 }: {
   label: string;
@@ -1442,14 +1602,24 @@ function TopBarMiniNumberField({
   max?: number;
   step?: number;
   suffix?: string;
+  layout?: 'stack' | 'row';
   className?: string;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onChange: (value: number) => void;
 }) {
+  const rowLayout = layout === 'row';
+
   return (
     <label
-      className={`grid min-w-0 gap-1.5 text-[12px] text-slate-700 ${className}`}
+      className={`grid min-w-0 text-[12px] text-slate-700 ${
+        rowLayout ? 'grid-cols-[minmax(0,1fr)_auto] items-center gap-3' : 'gap-1'
+      } ${className}`}
     >
-      <TopBarHelpLabel help={help} align="right" className="text-[12px] font-medium leading-none text-slate-600">
+      <TopBarHelpLabel help={help} align="right" className={`${rowLayout ? '' : 'mb-1'} text-[12px] font-semibold leading-none text-slate-700`}>
         {label}
       </TopBarHelpLabel>
       <TopBarUnitNumberInput
@@ -1458,11 +1628,227 @@ function TopBarMiniNumberField({
         max={max}
         step={step}
         suffix={suffix}
-        variant="simulator"
-        className="w-full"
+        className={rowLayout ? 'ml-auto w-[84px]' : 'w-full max-w-[84px]'}
+        inputClassName="w-10 shrink-0"
         ariaLabel={label}
+        active={active}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         onChange={onChange}
       />
+    </label>
+  );
+}
+
+function TopBarMiniRangeField({
+  label,
+  help,
+  startValue,
+  endValue,
+  min = 0,
+  max = 1920,
+  suffix = 'px',
+  layout = 'stack',
+  className = '',
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
+  onChange
+}: {
+  label: string;
+  help?: string;
+  startValue: number;
+  endValue: number;
+  min?: number;
+  max?: number;
+  suffix?: string;
+  layout?: 'stack' | 'row';
+  className?: string;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onChange: (startValue: number, endValue: number) => void;
+}) {
+  const formattedValue = `${startValue}-${endValue}`;
+  const [draftValue, setDraftValue] = useState(formattedValue);
+  const rowLayout = layout === 'row';
+
+  useEffect(() => {
+    setDraftValue(formattedValue);
+  }, [formattedValue]);
+
+  const commitDraftValue = () => {
+    const match = draftValue.match(/^\s*(\d+)\s*[-–—]\s*(\d+)\s*$/);
+
+    if (!match) {
+      setDraftValue(formattedValue);
+      return;
+    }
+
+    const firstValue = clampTopBarNumber(Number(match[1]), min, max);
+    const secondValue = clampTopBarNumber(Number(match[2]), min, max);
+    const nextStartValue = Math.min(firstValue, secondValue);
+    const nextEndValue = Math.max(firstValue, secondValue);
+
+    setDraftValue(`${nextStartValue}-${nextEndValue}`);
+    onChange(nextStartValue, nextEndValue);
+  };
+
+  return (
+    <label
+      className={`grid min-w-0 text-[12px] text-slate-700 ${
+        rowLayout ? 'grid-cols-[minmax(0,1fr)_auto] items-center gap-3' : 'gap-1'
+      } ${className}`}
+    >
+      <TopBarHelpLabel help={help} align="right" className={`${rowLayout ? '' : 'mb-1'} text-[12px] font-semibold leading-none text-slate-700`}>
+        {label}
+      </TopBarHelpLabel>
+      <span
+        className={`inline-flex h-7 ${rowLayout ? 'ml-auto w-[128px]' : 'w-full max-w-[128px]'} items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
+          active ? topBarActiveFieldClassName : ''
+        }`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <input
+          type="text"
+          inputMode="numeric"
+          value={draftValue}
+          onBlur={() => {
+            commitDraftValue();
+            onBlur?.();
+          }}
+          onFocus={onFocus}
+          onChange={(event) => setDraftValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              setDraftValue(formattedValue);
+              event.currentTarget.blur();
+            }
+          }}
+          className={`h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-right font-['Inter',system-ui,sans-serif] text-[12px] font-medium leading-none text-slate-700 outline-none focus:ring-0 ${numberInputNoSpinnerClassName}`}
+          aria-label={label}
+        />
+        <span className={topBarUnitAdornmentSuffixClassName} aria-hidden="true">
+          {suffix}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function TopBarMiniBreakpointField({
+  label,
+  help,
+  value,
+  min = 0,
+  max = 2400,
+  suffix = 'px',
+  layout = 'row',
+  className = '',
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
+  onChange
+}: {
+  label: string;
+  help?: string;
+  value: string;
+  min?: number;
+  max?: number;
+  suffix?: string;
+  layout?: 'stack' | 'row';
+  className?: string;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onChange: (value: number) => void;
+}) {
+  const [draftValue, setDraftValue] = useState(value);
+  const rowLayout = layout === 'row';
+
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
+  const commitDraftValue = () => {
+    const plusMatch = draftValue.match(/^\s*(\d+)\s*\+\s*$/);
+    const rangeMatch = draftValue.match(/^\s*(\d+)\s*[-–—]\s*(\d+)\s*$/);
+    const plainMatch = draftValue.match(/^\s*(\d+)\s*$/);
+    const rawValue = plusMatch
+      ? Number(plusMatch[1])
+      : rangeMatch
+        ? Number(rangeMatch[1])
+        : plainMatch
+          ? Number(plainMatch[1])
+          : null;
+
+    if (rawValue === null) {
+      setDraftValue(value);
+      return;
+    }
+
+    const nextValue = Math.round(clampTopBarNumber(rawValue, min, max));
+
+    setDraftValue(`${nextValue}+`);
+    onChange(nextValue);
+  };
+
+  return (
+    <label
+      className={`grid min-w-0 text-[12px] text-slate-700 ${
+        rowLayout ? 'grid-cols-[minmax(0,1fr)_auto] items-center gap-3' : 'gap-1'
+      } ${className}`}
+    >
+      <TopBarHelpLabel help={help} align="right" className={`${rowLayout ? '' : 'mb-1'} text-[12px] font-semibold leading-none text-slate-700`}>
+        {label}
+      </TopBarHelpLabel>
+      <span
+        className={`inline-flex h-7 ${rowLayout ? 'ml-auto w-[128px]' : 'w-full max-w-[128px]'} items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
+          active ? topBarActiveFieldClassName : ''
+        }`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <input
+          type="text"
+          inputMode="numeric"
+          value={draftValue}
+          onBlur={() => {
+            commitDraftValue();
+            onBlur?.();
+          }}
+          onFocus={onFocus}
+          onChange={(event) => setDraftValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              setDraftValue(value);
+              event.currentTarget.blur();
+            }
+          }}
+          className={`h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-right font-['Inter',system-ui,sans-serif] text-[12px] font-medium leading-none text-slate-700 outline-none focus:ring-0 ${numberInputNoSpinnerClassName}`}
+          aria-label={label}
+        />
+        <span className={topBarUnitAdornmentSuffixClassName} aria-hidden="true">
+          {suffix}
+        </span>
+      </span>
     </label>
   );
 }
@@ -1527,7 +1913,7 @@ function TopBarToggle({
 
 function TopBarSettingsGroup({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
-    <div className="border-t border-slate-100 pt-4">
+    <div>
       <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
         <TopBarHelpLabel help={help} align="right">
           {title}
@@ -1538,27 +1924,498 @@ function TopBarSettingsGroup({ title, help, children }: { title: string; help?: 
   );
 }
 
-function TopBarCompactSettingsGroup({ children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="grid min-w-0 content-start gap-2">
-      {children}
-    </section>
-  );
-}
-
 function formatPreviewRulerNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '');
 }
 
-const topBarPreviewRulerTopGutter = 16;
-const topBarPreviewRulerLeftGutter = 28;
+function clampTopBarNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getTopBarStorefrontGeometrySiteLayout(
+  siteLayout: SiteNavigationSiteLayoutSettings
+): SiteNavigationSiteLayoutSettings {
+  return {
+    siteContentMaxWidthPx: toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx),
+    siteGutterMinPx: toCommercialStorefrontLogicalPx(siteLayout.siteGutterMinPx),
+    siteGutterMaxPx: toCommercialStorefrontLogicalPx(siteLayout.siteGutterMaxPx)
+  };
+}
+
+function getTopBarStorefrontGeometrySettings(
+  settings: SiteNavigationTopBarResponsiveSettings
+): SiteNavigationTopBarResponsiveSettings {
+  return {
+    ...settings,
+    customMaxWidthPx: settings.customMaxWidthPx === null
+      ? null
+      : toCommercialStorefrontLogicalPx(settings.customMaxWidthPx)
+  };
+}
+
+function createTopBarRect(x: number, y: number, width: number, height: number): TopBarRect {
+  return {
+    x: Math.round(x * 100) / 100,
+    y: Math.round(y * 100) / 100,
+    width: Math.round(Math.max(0, width) * 100) / 100,
+    height: Math.round(Math.max(0, height) * 100) / 100
+  };
+}
+
+function getTopBarRectRight(rect: TopBarRect) {
+  return rect.x + rect.width;
+}
+
+function getTopBarRectCenterX(rect: TopBarRect) {
+  return rect.x + rect.width / 2;
+}
+
+function getTopBarComputedGutter(viewportWidth: number, siteLayout: SiteNavigationSiteLayoutSettings) {
+  return clampTopBarNumber(viewportWidth * 0.04, siteLayout.siteGutterMinPx, siteLayout.siteGutterMaxPx);
+}
+
+function getTopBarContainerForWidthMode({
+  viewportWidth,
+  viewportHeight,
+  widthMode,
+  settings,
+  siteLayout
+}: {
+  viewportWidth: number;
+  viewportHeight: number;
+  widthMode: SiteNavigationTopBarWidthMode;
+  settings: SiteNavigationTopBarResponsiveSettings;
+  siteLayout: SiteNavigationSiteLayoutSettings;
+}) {
+  const configuredWidth =
+    widthMode === 'full'
+      ? viewportWidth
+      : widthMode === 'custom'
+        ? settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx
+        : siteLayout.siteContentMaxWidthPx;
+  const containerWidth = Math.min(viewportWidth, configuredWidth);
+  const containerX = (viewportWidth - containerWidth) / 2;
+  const containerRect = createTopBarRect(containerX, 0, containerWidth, viewportHeight);
+  const gutter = Math.min(containerWidth / 2, getTopBarComputedGutter(viewportWidth, siteLayout));
+  const contentRect = createTopBarRect(
+    containerRect.x + gutter,
+    containerRect.y,
+    Math.max(0, containerRect.width - gutter * 2),
+    containerRect.height
+  );
+
+  return { containerRect, contentRect, gutter };
+}
+
+function getTopBarElementVisualHeight(
+  item: SiteNavigationTopBarResponsiveItem,
+  device: SiteNavigationTopBarDevice,
+  settings: SiteNavigationTopBarResponsiveSettings
+) {
+  if (item.id === 'navigation') return device === 'mobile' || settings.navigationMode === 'hamburger' ? 32 : 43;
+  if (item.id === 'logo') return 34;
+  if (item.id === 'ai') return settings.aiMode === 'icon' ? 32 : 36;
+  return 32;
+}
+
+function getTopBarRenderedViewportHeight(settings: SiteNavigationTopBarResponsiveSettings) {
+  const baseHeight = Math.max(44, settings.height);
+
+  return settings.rowPattern === 'double' ? baseHeight * 2 : baseHeight;
+}
+
+function getTopBarElementYInPlacementBounds(
+  item: SiteNavigationTopBarResponsiveItem,
+  settings: SiteNavigationTopBarResponsiveSettings,
+  placementBounds: TopBarRect,
+  elementHeight: number
+) {
+  if (settings.rowPattern !== 'double') {
+    return placementBounds.y + (placementBounds.height - elementHeight) / 2;
+  }
+
+  const rowHeight = placementBounds.height / 2;
+  const rowIndex = isSiteNavigationTopBarSecondRowItem(item, settings) ? 1 : 0;
+
+  return placementBounds.y + rowIndex * rowHeight + (rowHeight - elementHeight) / 2;
+}
+
+function deriveTopBarElementWidthMode(
+  item: SiteNavigationTopBarResponsiveItem,
+  device: SiteNavigationTopBarDevice,
+  settings: SiteNavigationTopBarResponsiveSettings
+): SiteNavigationTopBarItemWidthMode {
+  if (item.id === 'logo' || item.id === 'cart') return 'fixed';
+  if (item.id === 'search' && item.slot !== 'menu') return 'fixed';
+  if (item.id === 'navigation' && (device === 'mobile' || settings.navigationMode === 'hamburger')) return 'fixed';
+  return 'auto';
+}
+
+function getDerivedTopBarFixedWidthPx(
+  item: SiteNavigationTopBarResponsiveItem,
+  device: SiteNavigationTopBarDevice,
+  settings: SiteNavigationTopBarResponsiveSettings
+) {
+  if (item.id === 'logo') return item.fixedWidthPx ?? 88;
+  if (item.id === 'cart') return 32;
+  if (item.id === 'navigation' && (device === 'mobile' || settings.navigationMode === 'hamburger')) return 32;
+  if (item.id === 'search' && item.slot !== 'menu') {
+    if (getTopBarSearchVariant(settings) === 'icon') return 32;
+    return Math.max(item.fixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device));
+  }
+
+  return null;
+}
+
+function canEditTopBarElementWidth(
+  item: SiteNavigationTopBarResponsiveItem,
+  device: SiteNavigationTopBarDevice,
+  settings: SiteNavigationTopBarResponsiveSettings
+) {
+  if (!item.visible) return false;
+  return true;
+}
+
+function getTopBarElementComputedWidth({
+  item,
+  items,
+  device,
+  settings
+}: {
+  item: SiteNavigationTopBarResponsiveItem;
+  items: SiteNavigationTopLevelItem[];
+  device: SiteNavigationTopBarDevice;
+  settings: SiteNavigationTopBarResponsiveSettings;
+}) {
+  if (item.widthPx > 0) return item.widthPx;
+
+  const derivedFixedWidth = getDerivedTopBarFixedWidthPx(item, device, settings);
+  if (derivedFixedWidth !== null) return derivedFixedWidth;
+
+  const estimatedWidth = estimateTopBarElementWidth({ id: item.id, items, device, settings });
+  if (deriveTopBarElementWidthMode(item, device, settings) === 'fill') return Math.max(item.minWidthPx ?? 0, estimatedWidth);
+
+  return clampTopBarNumber(estimatedWidth, item.minWidthPx ?? 0, item.maxWidthPx ?? 1600);
+}
+
+function getTopBarElementXInBounds(item: SiteNavigationTopBarResponsiveItem, placementBoundsWidth: number, elementWidth: number) {
+  const ratioX = item.xRatio * placementBoundsWidth;
+  return Math.round(clampTopBarNumber(ratioX, 0, Math.max(0, placementBoundsWidth - elementWidth)));
+}
+
+function sortTopBarResponsiveSlotItems(items: SiteNavigationTopBarResponsiveItem[]) {
+  return [...items].sort((first, second) => {
+    const orderDelta = first.orderIndex - second.orderIndex;
+    return orderDelta === 0 ? first.position - second.position : orderDelta;
+  });
+}
+
+function getTopBarItemsAfterDropReorder(
+  items: SiteNavigationTopBarResponsiveItem[],
+  id: SiteNavigationTopBarElementId,
+  slot: TopBarZone,
+  insertionIndex: number
+) {
+  const activeItem = items.find((item) => item.id === id);
+  if (!activeItem) return items;
+
+  const targetSiblings = sortTopBarResponsiveSlotItems(items.filter((item) => item.id !== id && item.slot === slot));
+  const nextTargetItems = [...targetSiblings];
+  nextTargetItems.splice(clampTopBarNumber(insertionIndex, 0, nextTargetItems.length), 0, { ...activeItem, slot });
+  const orderIndexById = new Map<SiteNavigationTopBarElementId, number>();
+
+  nextTargetItems.forEach((item, index) => {
+    orderIndexById.set(item.id, index + 1);
+  });
+
+  (['left', 'center', 'right', 'menu'] as SiteNavigationTopBarSlot[]).forEach((currentSlot) => {
+    if (currentSlot === slot) return;
+    sortTopBarResponsiveSlotItems(items.filter((item) => item.id !== id && item.slot === currentSlot)).forEach((item, index) => {
+      orderIndexById.set(item.id, index + 1);
+    });
+  });
+
+  return items.map((item) => {
+    const nextOrderIndex = orderIndexById.get(item.id);
+    if (item.id === id) return { ...item, slot, orderIndex: nextOrderIndex ?? item.orderIndex };
+    if (nextOrderIndex !== undefined) return { ...item, orderIndex: nextOrderIndex };
+    return item;
+  });
+}
+
+function formatSignedTopBarPx(value: number) {
+  const rounded = Math.round(value);
+  return `${rounded > 0 ? '+' : ''}${rounded} px`;
+}
+
+function formatTopBarTableGapValue(value: number, side: 'left' | 'right' = 'right') {
+  const rounded = Math.round(value);
+  if (side === 'left' && rounded !== 0) return `-${Math.abs(rounded)}`;
+  return String(rounded);
+}
+
+function groupTopBarWidth(
+  zoneItems: SiteNavigationTopBarResponsiveItem[],
+  elementWidths: Partial<Record<SiteNavigationTopBarElementId, number>>,
+  itemGapPx: number
+) {
+  if (zoneItems.length === 0) return 0;
+
+  return zoneItems.reduce((total, item, index) => {
+    const width = elementWidths[item.id] ?? 0;
+    return total + item.marginBeforePx + width + item.marginAfterPx + (index > 0 ? itemGapPx : 0);
+  }, 0);
+}
+
+function getTopBarZoneRects({
+  contentRect,
+  columnGapPx,
+  zoneSettings,
+  leftGroupWidth,
+  centerGroupWidth,
+  rightGroupWidth
+}: {
+  contentRect: TopBarRect;
+  columnGapPx: number;
+  zoneSettings: SiteNavigationTopBarZoneSettings;
+  leftGroupWidth: number;
+  centerGroupWidth: number;
+  rightGroupWidth: number;
+}) {
+  const zoneKeys: TopBarZone[] = ['left', 'center', 'right'];
+  const groupWidths: Record<TopBarZone, number> = {
+    left: leftGroupWidth,
+    center: centerGroupWidth,
+    right: rightGroupWidth
+  };
+  const naturalFallbacks: Record<TopBarZone, number> = {
+    left: Math.min(140, contentRect.width * 0.2),
+    center: Math.min(280, contentRect.width * 0.34),
+    right: Math.min(140, contentRect.width * 0.2)
+  };
+  const gapTotal = columnGapPx * 2;
+  const fixedWidthTotal = zoneKeys.reduce((total, zone) => {
+    const setting = zoneSettings[zone];
+    if (setting.widthMode === 'fill') return total;
+    if (setting.widthMode === 'fixed') return total + (setting.widthPx ?? naturalFallbacks[zone]);
+    return total + Math.max(groupWidths[zone], naturalFallbacks[zone]);
+  }, 0);
+  const fillZones = zoneKeys.filter((zone) => zoneSettings[zone].widthMode === 'fill');
+  const fillWidth = fillZones.length > 0 ? Math.max(0, (contentRect.width - gapTotal - fixedWidthTotal) / fillZones.length) : 0;
+  const zoneWidths = zoneKeys.reduce<Record<TopBarZone, number>>((widths, zone) => {
+    const setting = zoneSettings[zone];
+    widths[zone] = setting.widthMode === 'fill'
+      ? fillWidth
+      : setting.widthMode === 'fixed'
+        ? setting.widthPx ?? naturalFallbacks[zone]
+        : Math.max(groupWidths[zone], naturalFallbacks[zone]);
+    return widths;
+  }, { left: 0, center: 0, right: 0 });
+  const leftX = contentRect.x;
+  const centerX = leftX + zoneWidths.left + columnGapPx;
+  const rightX = centerX + zoneWidths.center + columnGapPx;
+
+  return {
+    leftZoneRect: createTopBarRect(leftX, contentRect.y, zoneWidths.left, contentRect.height),
+    centerZoneRect: createTopBarRect(centerX, contentRect.y, zoneWidths.center, contentRect.height),
+    rightZoneRect: createTopBarRect(rightX, contentRect.y, zoneWidths.right, contentRect.height)
+  };
+}
+
+function placeTopBarZoneItems({
+  zoneItems,
+  groupStartX,
+  settings,
+  device,
+  items,
+  elementWidths
+}: {
+  zoneItems: SiteNavigationTopBarResponsiveItem[];
+  groupStartX: number;
+  settings: SiteNavigationTopBarResponsiveSettings;
+  device: SiteNavigationTopBarDevice;
+  items: SiteNavigationTopLevelItem[];
+  elementWidths: Partial<Record<SiteNavigationTopBarElementId, number>>;
+}) {
+  const elementRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>> = {};
+  const spacingRects: Partial<Record<SiteNavigationTopBarElementId, TopBarSpacingRects>> = {};
+  const widthRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>> = {};
+  let cursorX = groupStartX;
+
+  zoneItems.forEach((item, index) => {
+    if (index > 0) cursorX += settings.itemGapPx;
+
+    const width = elementWidths[item.id] ?? getTopBarElementComputedWidth({ item, items, device, settings });
+    const height = getTopBarElementVisualHeight(item, device, settings);
+    const y = (settings.height - height) / 2;
+    const beforeStartX = cursorX;
+    const beforeEndX = cursorX + item.marginBeforePx;
+    const beforeRect = createTopBarRect(Math.min(beforeStartX, beforeEndX), y, Math.abs(item.marginBeforePx), height);
+    cursorX = beforeEndX;
+
+    const elementRect = createTopBarRect(cursorX, y, width, height);
+    cursorX += width;
+
+    const afterStartX = cursorX;
+    const afterEndX = cursorX + item.marginAfterPx;
+    const afterRect = createTopBarRect(Math.min(afterStartX, afterEndX), y, Math.abs(item.marginAfterPx), height);
+    cursorX = afterEndX;
+
+    elementRects[item.id] = elementRect;
+    spacingRects[item.id] = { before: beforeRect, after: afterRect };
+    widthRects[item.id] = createTopBarRect(elementRect.x, elementRect.y, elementRect.width, elementRect.height);
+  });
+
+  return { elementRects, spacingRects, widthRects };
+}
+
+function calculateTopBarGeometry({
+  viewportWidth,
+  viewportHeight,
+  siteLayout,
+  settings,
+  layoutItems,
+  items,
+  device,
+  labelScale = 1,
+  coordinateScale = 1
+}: {
+  viewportWidth: number;
+  viewportHeight: number;
+  siteLayout: SiteNavigationSiteLayoutSettings;
+  settings: SiteNavigationTopBarResponsiveSettings;
+  layoutItems: SiteNavigationTopBarResponsiveItem[];
+  items: SiteNavigationTopLevelItem[];
+  device: SiteNavigationTopBarDevice;
+  labelScale?: number;
+  coordinateScale?: number;
+}): TopBarGeometry {
+  const coordinateScaleFactor = coordinateScale > 0 ? coordinateScale : 1;
+  const viewportRect = createTopBarRect(0, 0, viewportWidth, viewportHeight);
+  const selectedContainer = getTopBarContainerForWidthMode({
+    viewportWidth,
+    viewportHeight,
+    widthMode: settings.widthMode,
+    settings,
+    siteLayout
+  });
+  const widthModeGuideRects = (Object.keys(topBarWidthModeLabels) as SiteNavigationTopBarWidthMode[]).reduce(
+    (guides, widthMode) => {
+      const modeContainer = getTopBarContainerForWidthMode({
+        viewportWidth,
+        viewportHeight,
+        widthMode,
+        settings,
+        siteLayout
+      });
+      const label =
+        widthMode === 'match_content'
+          ? `Širina strani: ${Math.round(modeContainer.containerRect.width * labelScale)} px`
+          : widthMode === 'custom'
+            ? `Po meri: ${Math.round(modeContainer.containerRect.width * labelScale)} px`
+            : `Celotna stran: ${Math.round(modeContainer.containerRect.width * labelScale)} px`;
+      const innerLabel = `Notranja širina: ${Math.round(modeContainer.contentRect.width * labelScale)} px po robovih`;
+
+      guides[widthMode] = {
+        containerRect: modeContainer.containerRect,
+        contentRect: modeContainer.contentRect,
+        label,
+        innerLabel
+      };
+
+      return guides;
+    },
+    {} as Record<SiteNavigationTopBarWidthMode, TopBarWidthModeGuide>
+  );
+  const visibleItems = [...layoutItems]
+    .filter((item) => item.visible)
+    .sort((first, second) => {
+      const xDelta = first.xPx - second.xPx;
+      return xDelta === 0 ? first.zIndex - second.zIndex : xDelta;
+    });
+  const elementRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>> = {};
+  const spacingRects: Partial<Record<SiteNavigationTopBarElementId, TopBarSpacingRects>> = {};
+  const widthRects: Partial<Record<SiteNavigationTopBarElementId, TopBarRect>> = {};
+  const placementBounds = selectedContainer.contentRect;
+
+  visibleItems.forEach((item) => {
+    const width = getTopBarElementComputedWidth({ item, items, device, settings }) / coordinateScaleFactor;
+    const height = getTopBarElementVisualHeight(item, device, settings);
+    const xInBounds = getTopBarElementXInBounds(item, placementBounds.width, width);
+    const x = placementBounds.x + xInBounds;
+    const y = getTopBarElementYInPlacementBounds(item, settings, placementBounds, height);
+    const elementRect = createTopBarRect(x, y, width, height);
+
+    elementRects[item.id] = elementRect;
+    spacingRects[item.id] = {
+      before: createTopBarRect(x, y, 0, height),
+      after: createTopBarRect(getTopBarRectRight(elementRect), y, 0, height)
+    };
+    widthRects[item.id] = elementRect;
+  });
+  const leftZoneRect = createTopBarRect(placementBounds.x, placementBounds.y, placementBounds.width / 3, placementBounds.height);
+  const centerZoneRect = createTopBarRect(
+    placementBounds.x + placementBounds.width / 3,
+    placementBounds.y,
+    placementBounds.width / 3,
+    placementBounds.height
+  );
+  const rightZoneRect = createTopBarRect(
+    placementBounds.x + placementBounds.width * 2 / 3,
+    placementBounds.y,
+    placementBounds.width / 3,
+    placementBounds.height
+  );
+  const zoneOrderIds = {
+    left: [] as SiteNavigationTopBarElementId[],
+    center: visibleItems.map((item) => item.id),
+    right: [] as SiteNavigationTopBarElementId[]
+  };
+
+  return {
+    viewportRect,
+    containerRect: selectedContainer.containerRect,
+    contentRect: selectedContainer.contentRect,
+    leftZoneRect,
+    centerZoneRect,
+    rightZoneRect,
+    elementRects,
+    spacingRects,
+    widthRects,
+    containerWidthGuideRect:
+      settings.widthMode === 'custom' ? selectedContainer.containerRect : selectedContainer.contentRect,
+    marginGuideRects: {
+      left: createTopBarRect(
+        selectedContainer.containerRect.x,
+        selectedContainer.containerRect.y,
+        selectedContainer.contentRect.x - selectedContainer.containerRect.x,
+        selectedContainer.containerRect.height
+      ),
+      right: createTopBarRect(
+        getTopBarRectRight(selectedContainer.contentRect),
+        selectedContainer.containerRect.y,
+        getTopBarRectRight(selectedContainer.containerRect) - getTopBarRectRight(selectedContainer.contentRect),
+        selectedContainer.containerRect.height
+      )
+    },
+    widthModeGuideRects,
+    zoneOrderIds
+  };
+}
 
 function useMeasuredElementWidth<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
+  const [element, setElement] = useState<T | null>(null);
   const [width, setWidth] = useState(0);
+  const measureRef = useCallback((node: T | null) => {
+    ref.current = node;
+    setElement(node);
+    if (node) {
+      setWidth(Math.round(node.getBoundingClientRect().width));
+    }
+  }, []);
 
-  useEffect(() => {
-    const element = ref.current;
+  useLayoutEffect(() => {
     if (!element) return undefined;
 
     const updateWidth = () => {
@@ -1566,10 +2423,14 @@ function useMeasuredElementWidth<T extends HTMLElement>() {
     };
 
     updateWidth();
+    const animationFrame = window.requestAnimationFrame(updateWidth);
 
     if (typeof ResizeObserver === 'undefined') {
       window.addEventListener('resize', updateWidth);
-      return () => window.removeEventListener('resize', updateWidth);
+      return () => {
+        window.cancelAnimationFrame(animationFrame);
+        window.removeEventListener('resize', updateWidth);
+      };
     }
 
     const resizeObserver = new ResizeObserver((entries) => {
@@ -1579,10 +2440,13 @@ function useMeasuredElementWidth<T extends HTMLElement>() {
 
     resizeObserver.observe(element);
 
-    return () => resizeObserver.disconnect();
-  }, []);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+    };
+  }, [element]);
 
-  return [ref, width] as const;
+  return [measureRef, width] as const;
 }
 
 function TopBarPreviewGridOverlay({ width, height }: { width: number; height: number }) {
@@ -1591,19 +2455,14 @@ function TopBarPreviewGridOverlay({ width, height }: { width: number; height: nu
   );
   const xLineMarkers = xMarkers.filter((marker) => marker > 0 && marker < width);
   const yLineMarkers = [height / 4, height / 2, (height * 3) / 4];
-  const yLabelMarkers = [0, ...yLineMarkers, height];
-
-  if (!xMarkers.includes(width)) xMarkers.push(width);
-  const finalXMarker = xMarkers[xMarkers.length - 1] ?? width;
-  const xLabelMarkers = xMarkers.filter((marker) => marker === finalXMarker || finalXMarker - marker >= 32);
 
   return (
     <>
       <div
-        className="pointer-events-none absolute inset-0 z-20 rounded-xl border border-[rgba(37,99,235,0.28)] bg-[rgba(37,99,235,0.025)]"
+        className="pointer-events-none absolute inset-0 z-20 rounded-xl bg-[rgba(37,99,235,0.025)]"
         aria-hidden="true"
       />
-      <div className="pointer-events-none absolute inset-0 z-[21] overflow-visible" aria-hidden="true">
+      <div className="pointer-events-none absolute inset-0 z-[21] overflow-hidden rounded-xl" aria-hidden="true">
         {xLineMarkers.map((marker) => (
           <span
             key={`x-line-${marker}`}
@@ -1618,33 +2477,118 @@ function TopBarPreviewGridOverlay({ width, height }: { width: number; height: nu
             style={{ top: `${(marker / height) * 100}%` }}
           />
         ))}
-        {xLabelMarkers.map((marker) => (
-          <span
-            key={`x-${marker}`}
-            className="absolute -top-3 whitespace-nowrap text-[8px] font-medium leading-none text-slate-400"
-            style={{
-              left: `${(marker / width) * 100}%`,
-              transform: marker === 0 ? 'none' : marker === finalXMarker ? 'translateX(-100%)' : 'translateX(-50%)'
-            }}
-          >
-            {formatPreviewRulerNumber(marker)}
-            {marker === finalXMarker ? 'px' : ''}
-          </span>
-        ))}
-        {yLabelMarkers.map((marker) => (
-          <span
-            key={`y-${marker}`}
-            className="absolute -left-7 whitespace-nowrap text-right text-[8px] font-medium leading-none text-slate-400"
-            style={{
-              top: `${(marker / height) * 100}%`,
-              transform: marker === 0 ? 'translateY(0)' : marker === height ? 'translateY(-100%)' : 'translateY(-50%)'
-            }}
-          >
-            {formatPreviewRulerNumber(marker)}
-          </span>
-        ))}
       </div>
     </>
+  );
+}
+
+function TopBarPreviewRulerOverlay({
+  viewportWidth,
+  viewportHeight,
+  heightValue,
+  viewportX,
+  viewportY
+}: {
+  viewportWidth: number;
+  viewportHeight: number;
+  heightValue: number;
+  viewportX: number;
+  viewportY: number;
+}) {
+  const finalXMarker = viewportWidth;
+  const xLabelStep = 100;
+  const xLabelCandidates = Array.from(new Set([
+    0,
+    ...Array.from({ length: Math.floor(viewportWidth / xLabelStep) }, (_, index) => (index + 1) * xLabelStep)
+      .filter((marker) => marker < finalXMarker),
+    finalXMarker
+  ])).sort((first, second) => first - second);
+  const xLabels = xLabelCandidates.reduce<Array<{ marker: number; label: string; left: number; width: number }>>(
+    (labels, marker) => {
+      const label = `${formatPreviewRulerNumber(marker)}${marker === finalXMarker ? 'px' : ''}`;
+      const labelWidth = Math.max(12, label.length * 4.6);
+      const left = Math.min(
+        Math.max(viewportX + 3, marker === finalXMarker ? viewportX + viewportWidth - labelWidth - 3 : viewportX + marker - labelWidth / 2),
+        Math.max(viewportX + 3, viewportX + viewportWidth - labelWidth - 3)
+      );
+      const previous = labels[labels.length - 1];
+
+      if (previous && left < previous.left + previous.width + 8) {
+        if (marker === finalXMarker) labels.pop();
+        else return labels;
+      }
+
+      labels.push({ marker, label, left, width: labelWidth });
+      return labels;
+    },
+    []
+  );
+  const yMarkers = [0, viewportHeight / 2, viewportHeight];
+  const yLabels = yMarkers.reduce<Array<{ marker: number; label: string; top: number }>>((labels, marker) => {
+    const labelValue = viewportHeight > 0 ? marker / viewportHeight * heightValue : marker;
+    const label = `${formatPreviewRulerNumber(labelValue)}${marker === viewportHeight ? 'px' : ''}`;
+    const top = Math.min(
+      Math.max(viewportY + 1, viewportY + marker - 4),
+      Math.max(viewportY + 1, viewportY + viewportHeight - 9)
+    );
+    const previous = labels[labels.length - 1];
+
+    if (previous && top < previous.top + 9) return labels;
+    labels.push({ marker, label, top });
+    return labels;
+  }, []);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[24] overflow-hidden" aria-hidden="true">
+      {xLabels.map(({ marker }) => (
+        <span
+          key={`x-ruler-tick-${marker}`}
+          className="absolute w-px rounded-full bg-slate-400/45"
+          style={{
+            height: 4,
+            left: viewportX + marker,
+            top: viewportY - 4
+          }}
+        />
+      ))}
+      {xLabels.map(({ marker, label, left, width: labelWidth }) => (
+        <span
+          key={`x-ruler-${marker}`}
+          className="absolute rounded-sm px-0.5 text-[8px] font-medium leading-none text-slate-400/85"
+          style={{
+            left,
+            top: Math.max(2, viewportY - 11),
+            width: labelWidth
+          }}
+        >
+          {label}
+        </span>
+      ))}
+      {yLabels.map(({ marker }) => (
+        <span
+          key={`y-ruler-tick-${marker}`}
+          className="absolute h-px rounded-full bg-slate-400/45"
+          style={{
+            left: Math.max(0, viewportX - 5),
+            top: viewportY + marker,
+            width: Math.min(5, viewportX)
+          }}
+        />
+      ))}
+      {yLabels.map(({ marker, label, top }) => (
+        <span
+          key={`y-ruler-${marker}`}
+          className="absolute whitespace-nowrap text-right text-[8px] font-medium leading-none text-slate-400/85"
+          style={{
+            left: 2,
+            top,
+            width: Math.max(18, viewportX - 6)
+          }}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -1654,86 +2598,1097 @@ function getTopBarPreviewViewportWidth(
   siteLayout: SiteNavigationSiteLayoutSettings
 ) {
   if (device !== 'desktop') return topBarDevicePreviewWidths[device];
-  if (settings.widthMode === 'custom' && settings.customMaxWidthPx) return settings.customMaxWidthPx;
-  return siteLayout.siteContentMaxWidthPx;
+  return Math.max(
+    topBarDevicePreviewWidths.desktop,
+    siteLayout.siteContentMaxWidthPx + siteLayout.siteGutterMinPx * 2,
+    settings.customMaxWidthPx ?? 0
+  );
 }
 
-function HeaderPreviewFrame({
-  mode,
-  navigation,
-  viewportWidth,
-  viewportHeight,
-  scale,
-  showOverlay
+function getTopBarSelectedWidthLabel(settings: SiteNavigationTopBarResponsiveSettings, selectedViewportWidth: number) {
+  if (settings.widthMode === 'custom') {
+    return `Po meri: ${settings.customMaxWidthPx ?? SITE_CONTENT_MAX_WIDTH_PX} px`;
+  }
+
+  if (settings.widthMode === 'full') {
+    return `Celotna stran: ${selectedViewportWidth} px`;
+  }
+
+  return `Vsebina: ${SITE_CONTENT_MAX_WIDTH_PX} px`;
+}
+
+function getPreviewScale(availableWidth: number, viewportWidth: number, viewportHeight: number) {
+  if (availableWidth <= 0 || viewportWidth <= 0 || viewportHeight <= 0) return 1;
+
+  return Math.min(
+    availableWidth / viewportWidth,
+    topBarTechnicalPreviewVisualTopbarHeightPx / viewportHeight
+  );
+}
+
+function computeOverflowStatus({
+  geometry,
+  settings
 }: {
-  mode: 'real' | 'technical';
-  navigation: SiteNavigationConfig;
-  viewportWidth: number;
-  viewportHeight: number;
-  scale: number;
-  showOverlay: boolean;
+  geometry: TopBarGeometry;
+  settings: SiteNavigationTopBarResponsiveSettings;
+}): TopBarOverflowStatus {
+  const renderedRects = (Object.keys(geometry.elementRects) as SiteNavigationTopBarElementId[])
+    .map((elementId) => geometry.elementRects[elementId])
+    .filter((rect): rect is TopBarRect => Boolean(rect));
+
+  if (renderedRects.length === 0) {
+    return { tone: 'ok', label: 'Postavitev ustreza' };
+  }
+
+  const minX = Math.min(...renderedRects.map((rect) => rect.x));
+  const maxX = Math.max(...renderedRects.map((rect) => getTopBarRectRight(rect)));
+  const rightOverflowPx = Math.ceil(maxX - getTopBarRectRight(geometry.contentRect));
+  const leftOverflowPx = Math.ceil(geometry.contentRect.x - minX);
+  const overflowPx = Math.max(rightOverflowPx, leftOverflowPx);
+  const hasOverlap = renderedRects.some((rect, index) =>
+    renderedRects.slice(index + 1).some((nextRect) =>
+      rect.x < getTopBarRectRight(nextRect) &&
+      getTopBarRectRight(rect) > nextRect.x &&
+      rect.y < nextRect.y + nextRect.height &&
+      rect.y + rect.height > nextRect.y
+    )
+  );
+
+  if (rightOverflowPx > 1) {
+    return {
+      tone: 'warning',
+      label: 'Elementi presegajo desno območje',
+      detail: `Presežek: ${rightOverflowPx} px. Premaknite element levo, zmanjšajte širino ali ga skrijte.`
+    };
+  }
+
+  if (overflowPx > 1) {
+    return {
+      tone: 'warning',
+      label: `Premalo prostora: ${overflowPx} px`,
+      detail: 'Premaknite elemente znotraj postavitvenega območja ali zmanjšajte širino.'
+    };
+  }
+
+  if (hasOverlap) {
+    return {
+      tone: 'warning',
+      label: 'Elementi se prekrivajo'
+    };
+  }
+
+  if (settings.navigationMode === 'hamburger') {
+    return {
+      tone: 'info',
+      label: 'Navigacija bo skrita pri tej širini',
+      detail: 'Besedilna navigacija je nadomeščena z menijskim gumbom.'
+    };
+  }
+
+  return { tone: 'ok', label: 'Postavitev ustreza' };
+}
+
+function topBarRectStyle(rect: TopBarRect): CSSProperties {
+  return {
+    height: rect.height,
+    left: rect.x,
+    top: rect.y,
+    width: rect.width
+  };
+}
+
+function getTopBarZoneRect(geometry: TopBarGeometry, zone: TopBarZone) {
+  if (zone === 'left') return geometry.leftZoneRect;
+  if (zone === 'center') return geometry.centerZoneRect;
+  return geometry.rightZoneRect;
+}
+
+function getTopBarGuideFromActiveEdit(activeEdit: TopBarActiveEdit): TopBarActiveGuide {
+  const fieldName = activeEdit.fieldName ?? '';
+
+  if (activeEdit.kind === 'width-mode') return { type: 'topbar_width' };
+  if (activeEdit.kind === 'container-width') {
+    if (fieldName === 'siteContentMaxWidthPx') return { type: 'page_width' };
+    if (fieldName === 'height') return { type: 'height' };
+    if (fieldName === 'siteGutterRangePx') return { type: 'min_gutter' };
+    if (fieldName === 'siteGutterMinPx') return { type: 'min_gutter' };
+    if (fieldName === 'siteGutterMaxPx') return { type: 'max_gutter' };
+    return { type: 'topbar_width' };
+  }
+  if (activeEdit.kind === 'layout-mode') {
+    if (fieldName === 'columnGapPx') return { type: 'zone_gap' };
+    if (fieldName === 'itemGapPx') return { type: 'element_gap' };
+    if (fieldName.startsWith('zone-')) {
+      const zone = fieldName.split('-')[1];
+      if (zone === 'left' || zone === 'center' || zone === 'right') return { type: 'zone_width', zone };
+    }
+  }
+  if (activeEdit.kind === 'element-width' && activeEdit.elementId) return { type: 'element_width', elementKey: activeEdit.elementId };
+  if (activeEdit.kind === 'gap-before' && activeEdit.elementId) return { type: 'margin_before', elementKey: activeEdit.elementId };
+  if (activeEdit.kind === 'gap-after' && activeEdit.elementId) return { type: 'margin_after', elementKey: activeEdit.elementId };
+
+  return { type: 'none' };
+}
+
+function isTopBarPointInsideRect(rect: TopBarRect, x: number, y: number) {
+  return x >= rect.x && x <= getTopBarRectRight(rect) && y >= rect.y && y <= rect.y + rect.height;
+}
+
+function getTopBarZoneFromPoint(geometry: TopBarGeometry, x: number, y: number): TopBarZone {
+  const zones = (Object.keys(topBarZoneLabels) as TopBarZone[]).map((zone) => ({
+    zone,
+    rect: getTopBarZoneRect(geometry, zone)
+  }));
+  const containingZone = zones.find(({ rect }) => isTopBarPointInsideRect(rect, x, y));
+  if (containingZone) return containingZone.zone;
+
+  return zones.reduce((nearest, current) => {
+    const nearestDistance = Math.abs(getTopBarRectCenterX(nearest.rect) - x);
+    const currentDistance = Math.abs(getTopBarRectCenterX(current.rect) - x);
+    return currentDistance < nearestDistance ? current : nearest;
+  }, zones[0]).zone;
+}
+
+function getTopBarDropTarget({
+  geometry,
+  x,
+  y,
+  startXPx,
+  grabOffsetX,
+  width,
+  height,
+  coordinateScale = 1
+}: {
+  geometry: TopBarGeometry;
+  x: number;
+  y: number;
+  startXPx: number;
+  grabOffsetX: number;
+  width: number;
+  height: number;
+  coordinateScale?: number;
+}): TopBarDropTarget {
+  const coordinateScaleFactor = coordinateScale > 0 ? coordinateScale : 1;
+  const placementBounds = geometry.contentRect;
+  const rawX = x - placementBounds.x - grabOffsetX;
+  const maxX = Math.max(0, placementBounds.width - width);
+  const logicalXPx = clampTopBarNumber(rawX, 0, maxX);
+  const xPx = Math.round(logicalXPx * coordinateScaleFactor);
+  const xRatio = placementBounds.width > 0 ? logicalXPx / placementBounds.width : 0;
+  const rectTop = clampTopBarNumber(
+    y - height / 2,
+    placementBounds.y,
+    Math.max(placementBounds.y, placementBounds.y + placementBounds.height - height)
+  );
+
+  return {
+    xPx,
+    xRatio,
+    deltaPx: xPx - startXPx,
+    rect: createTopBarRect(placementBounds.x + logicalXPx, rectTop, width, height),
+    constrained: Math.abs(rawX - logicalXPx) > 0.5
+  };
+}
+
+function TopBarGuideLabel({
+  rect,
+  children,
+  className = '',
+  align = 'center'
+}: {
+  rect: TopBarRect;
+  children: ReactNode;
+  className?: string;
+  align?: 'left' | 'center' | 'right';
 }) {
-  const frameScale = mode === 'technical' ? scale : 1;
-  const scaledHeight = Math.ceil(viewportHeight * frameScale);
+  return (
+    <span
+      className={`absolute z-[45] whitespace-nowrap rounded bg-[color:var(--blue-500)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm ${className}`}
+      style={{
+        left: align === 'left' ? rect.x : align === 'right' ? getTopBarRectRight(rect) : rect.x + rect.width / 2,
+        top: Math.max(2, rect.y - 14),
+        transform: align === 'left' ? 'none' : align === 'right' ? 'translateX(-100%)' : 'translateX(-50%)'
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function getTopBarDropGuideRect(geometry: TopBarGeometry, target: TopBarDropTarget): TopBarRect {
+  return createTopBarRect(target.rect.x, geometry.viewportRect.y + 6, 0, Math.max(12, geometry.viewportRect.height - 12));
+}
+
+function getTopBarColumnGapRects(geometry: TopBarGeometry) {
+  return [
+    createTopBarRect(
+      getTopBarRectRight(geometry.leftZoneRect),
+      geometry.viewportRect.y,
+      geometry.centerZoneRect.x - getTopBarRectRight(geometry.leftZoneRect),
+      geometry.viewportRect.height
+    ),
+    createTopBarRect(
+      getTopBarRectRight(geometry.centerZoneRect),
+      geometry.viewportRect.y,
+      geometry.rightZoneRect.x - getTopBarRectRight(geometry.centerZoneRect),
+      geometry.viewportRect.height
+    )
+  ].filter((rect) => rect.width > 0.5);
+}
+
+function getTopBarItemGapRects(geometry: TopBarGeometry, preferredZone: TopBarZone | null) {
+  const zones = (Object.keys(topBarZoneLabels) as TopBarZone[]).sort((first, second) => {
+    if (first === preferredZone) return -1;
+    if (second === preferredZone) return 1;
+    return 0;
+  });
+
+  return zones.flatMap((zone) =>
+    geometry.zoneOrderIds[zone].slice(1).flatMap((elementId, index) => {
+      const previousRect = geometry.elementRects[geometry.zoneOrderIds[zone][index]];
+      const currentRect = geometry.elementRects[elementId];
+      if (!previousRect || !currentRect) return [];
+      const gapX = getTopBarRectRight(previousRect);
+      const width = currentRect.x - gapX;
+      if (width <= 0.5) return [];
+
+      return [{
+        zone,
+        rect: createTopBarRect(
+          gapX,
+          Math.min(previousRect.y, currentRect.y),
+          width,
+          Math.max(previousRect.height, currentRect.height)
+        )
+      }];
+    })
+  );
+}
+
+function labelRectForGuide(rect: TopBarRect): TopBarRect {
+  return createTopBarRect(rect.x, Math.max(16, rect.y), rect.width, rect.height);
+}
+
+function TopBarGeometryOverlay({
+  geometry,
+  device,
+  settings,
+  layoutItems,
+  activeEdit,
+  activeGuide,
+  selectedElementId,
+  dragState,
+  dropTarget,
+  showGrid,
+  labelScale = 1,
+  onStartWidthDrag
+}: {
+  geometry: TopBarGeometry;
+  device: SiteNavigationTopBarDevice;
+  settings: SiteNavigationTopBarResponsiveSettings;
+  layoutItems: SiteNavigationTopBarResponsiveItem[];
+  activeEdit: TopBarActiveEdit;
+  activeGuide: TopBarActiveGuide;
+  selectedElementId: SiteNavigationTopBarElementId;
+  dragState: TopBarViewportDragState;
+  dropTarget: TopBarDropTarget | null;
+  showGrid: boolean;
+  labelScale?: number;
+  onStartWidthDrag: (elementId: SiteNavigationTopBarElementId, edge: 'left' | 'right', event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  const hasActiveEdit = activeEdit.kind !== null || dragState !== null;
+  const isAdvancedMode = false;
+  const activeZone: TopBarZone | null = null;
+  const activeElementId = activeEdit.elementId ?? selectedElementId;
+  const ghostWidthMode =
+    activeEdit.kind === 'width-mode' &&
+    (activeEdit.fieldName === 'match_content' || activeEdit.fieldName === 'custom' || activeEdit.fieldName === 'full')
+      ? (activeEdit.fieldName as SiteNavigationTopBarWidthMode)
+      : null;
+  const showZones = false;
+  const showOrderMarkers = false;
+  const showMargins = false;
+  const showContainerGuide = activeEdit.kind === 'container-width' || activeEdit.kind === 'width-mode';
+  const selectedWidthGuide = geometry.widthModeGuideRects[settings.widthMode];
+  const activeWidthRect = activeElementId ? geometry.widthRects[activeElementId] : undefined;
+  const activeWidthItem = activeElementId ? layoutItems.find((item) => item.id === activeElementId) : undefined;
+  const resizeHandleElementId = dragState?.type === 'width' ? dragState.elementId : selectedElementId;
+  const dropGuideRect = dropTarget ? getTopBarDropGuideRect(geometry, dropTarget) : null;
+  const dropLabelAlign = dropTarget && dropTarget.rect.x > geometry.viewportRect.width - 170 ? 'right' : 'left';
+  const dropAdjustmentLabel = dropTarget && Math.abs(dropTarget.deltaPx) >= 0.5
+    ? `premik ${formatSignedTopBarPx(dropTarget.deltaPx)}`
+    : 'naravno';
+  const activeFieldName = activeEdit.fieldName ?? '';
+  const showHeightGuide = activeGuide.type === 'height';
+  const showGutterGuide = activeGuide.type === 'min_gutter' || activeGuide.type === 'max_gutter';
+  const showColumnGapGuide = false;
+  const showItemGapGuide = false;
+  const activeZoneGuide = null;
+  const activeZoneForItemGaps = null;
+  const itemGapZone = activeZoneForItemGaps === 'left' || activeZoneForItemGaps === 'center' || activeZoneForItemGaps === 'right'
+    ? activeZoneForItemGaps
+    : null;
+  const columnGapRects = showColumnGapGuide ? getTopBarColumnGapRects(geometry) : [];
+  const itemGapRects = showItemGapGuide ? getTopBarItemGapRects(geometry, itemGapZone) : [];
 
   return (
-    <div className="relative" style={{ height: scaledHeight }}>
-      <div
-        className="relative overflow-visible"
-        style={{
-          width: viewportWidth,
-          minHeight: viewportHeight,
-          transform: mode === 'technical' ? `scale(${frameScale})` : undefined,
-          transformOrigin: 'top left'
-        }}
+    <div className="pointer-events-none absolute inset-0 z-[130] overflow-visible" aria-hidden="true">
+      {showGrid ? <TopBarPreviewGridOverlay width={geometry.viewportRect.width} height={geometry.viewportRect.height} /> : null}
+
+      <svg
+        className="pointer-events-none absolute inset-0 z-[34] overflow-visible"
+        viewBox={`0 0 ${geometry.viewportRect.width} ${geometry.viewportRect.height}`}
+        width={geometry.viewportRect.width}
+        height={geometry.viewportRect.height}
+        focusable="false"
       >
-        <div className="relative" style={{ height: viewportHeight }}>
-          <div className="relative z-10">
-            <div className="commercial-storefront-scale admin-site-header-preview-scale" style={{ height: viewportHeight }}>
-              <SiteHeader navigation={navigation} previewMode="inline" previewViewportWidth={viewportWidth} />
-            </div>
-          </div>
-          {showOverlay ? <TopBarPreviewGridOverlay width={viewportWidth} height={viewportHeight} /> : null}
-        </div>
-      </div>
+        {showContainerGuide ? (
+          <rect
+            x={selectedWidthGuide.contentRect.x}
+            y={selectedWidthGuide.contentRect.y + 0.5}
+            width={selectedWidthGuide.contentRect.width}
+            height={Math.max(0, selectedWidthGuide.contentRect.height - 1)}
+            rx={6}
+            fill="rgba(37,99,235,0.035)"
+            stroke="rgba(37,99,235,0.42)"
+            strokeWidth="1.25"
+          />
+        ) : null}
+        {showZones
+          ? (Object.keys(topBarZoneLabels) as TopBarZone[]).map((zone) => {
+              const zoneRect = getTopBarZoneRect(geometry, zone);
+              const highlighted = (zone === activeZone && hasActiveEdit) || zone === activeZoneGuide;
+
+              return (
+                <rect
+                  key={`svg-zone-${zone}`}
+                  x={zoneRect.x + 0.5}
+                  y={zoneRect.y + 6}
+                  width={Math.max(0, zoneRect.width - 1)}
+                  height={Math.max(0, zoneRect.height - 12)}
+                  rx={7}
+                  fill={highlighted ? 'rgba(37,99,235,0.10)' : 'rgba(148,163,184,0.045)'}
+                  stroke={highlighted ? 'rgba(37,99,235,0.62)' : 'rgba(100,116,139,0.26)'}
+                  strokeWidth={highlighted ? 1.5 : 1}
+                />
+              );
+            })
+          : null}
+        {showHeightGuide ? (
+          <line
+            x1={geometry.contentRect.x - 10}
+            y1={geometry.viewportRect.y + 2}
+            x2={geometry.contentRect.x - 10}
+            y2={geometry.viewportRect.height - 2}
+            stroke="rgba(37,99,235,0.82)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        ) : null}
+        {showGutterGuide ? (
+          <>
+            <rect
+              x={geometry.marginGuideRects.left.x}
+              y={geometry.marginGuideRects.left.y + 1}
+              width={geometry.marginGuideRects.left.width}
+              height={Math.max(0, geometry.marginGuideRects.left.height - 2)}
+              fill="rgba(37,99,235,0.14)"
+              stroke="rgba(37,99,235,0.42)"
+              strokeWidth="1"
+            />
+            <rect
+              x={geometry.marginGuideRects.right.x}
+              y={geometry.marginGuideRects.right.y + 1}
+              width={geometry.marginGuideRects.right.width}
+              height={Math.max(0, geometry.marginGuideRects.right.height - 2)}
+              fill="rgba(37,99,235,0.14)"
+              stroke="rgba(37,99,235,0.42)"
+              strokeWidth="1"
+            />
+          </>
+        ) : null}
+        {showColumnGapGuide
+          ? columnGapRects.map((rect, index) => (
+              <rect
+                key={`column-gap-${index}`}
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                fill="rgba(37,99,235,0.18)"
+                stroke="rgba(37,99,235,0.42)"
+                strokeWidth="1"
+              />
+            ))
+          : null}
+        {showItemGapGuide
+          ? itemGapRects.map(({ rect, zone }, index) => (
+              <rect
+                key={`item-gap-${zone}-${index}`}
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                rx={4}
+                fill={zone === itemGapZone ? 'rgba(37,99,235,0.22)' : 'rgba(37,99,235,0.15)'}
+                stroke={zone === itemGapZone ? 'rgba(37,99,235,0.48)' : 'rgba(37,99,235,0.28)'}
+                strokeWidth="1"
+              />
+            ))
+          : null}
+        {activeWidthRect ? (
+          <rect
+            x={activeWidthRect.x + 0.5}
+            y={activeWidthRect.y + 0.5}
+            width={Math.max(0, activeWidthRect.width - 1)}
+            height={Math.max(0, activeWidthRect.height - 1)}
+            rx={7}
+            fill="transparent"
+            stroke="rgba(37,99,235,0.74)"
+            strokeWidth="1.5"
+          />
+        ) : null}
+        {dropTarget ? (
+          <rect
+            x={dropTarget.rect.x + 0.5}
+            y={dropTarget.rect.y + 0.5}
+            width={Math.max(0, dropTarget.rect.width - 1)}
+            height={Math.max(0, dropTarget.rect.height - 1)}
+            rx={7}
+            fill="rgba(37,99,235,0.08)"
+            stroke="rgba(37,99,235,0.75)"
+            strokeDasharray="5 4"
+            strokeWidth="1.5"
+          />
+        ) : null}
+        {dropTarget && Math.abs(dropTarget.deltaPx) >= 0.5 ? (
+          <line
+            x1={dropTarget.rect.x - dropTarget.deltaPx}
+            y1={dropTarget.rect.y + dropTarget.rect.height + 7}
+            x2={dropTarget.rect.x}
+            y2={dropTarget.rect.y + dropTarget.rect.height + 7}
+            stroke="rgba(37,99,235,0.72)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        ) : null}
+        {dropGuideRect ? (
+          <line
+            x1={dropGuideRect.x}
+            y1={dropGuideRect.y}
+            x2={dropGuideRect.x}
+            y2={dropGuideRect.y + dropGuideRect.height}
+            stroke="rgba(37,99,235,0.92)"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        ) : null}
+      </svg>
+
+      {dropTarget ? (
+        <TopBarGuideLabel
+          rect={createTopBarRect(dropTarget.rect.x, Math.max(16, dropTarget.rect.y), 1, dropTarget.rect.height)}
+          align={dropLabelAlign}
+          className="!z-[60] !bg-[color:var(--blue-500)]"
+        >
+          x {Math.round(dropTarget.xPx)} px · {dropAdjustmentLabel}
+          {dropTarget.constrained ? ' · omejeno' : ''}
+        </TopBarGuideLabel>
+      ) : null}
+
+      {showContainerGuide ? (
+        <>
+          <TopBarGuideLabel
+            rect={settings.widthMode === 'custom' ? selectedWidthGuide.containerRect : selectedWidthGuide.contentRect}
+            align={settings.widthMode === 'full' ? 'left' : 'center'}
+            className="!bg-white !text-[color:var(--blue-500)] ring-1 ring-[color:var(--blue-500)]/20"
+          >
+            {activeEdit.kind === 'container-width' || activeEdit.kind === 'width-mode' ? selectedWidthGuide.label : 'Širina'}
+          </TopBarGuideLabel>
+        </>
+      ) : null}
+      {showHeightGuide ? (
+        <TopBarGuideLabel rect={createTopBarRect(geometry.contentRect.x - 10, 0, 1, geometry.viewportRect.height)} align="left">
+          Višina: {Math.round(geometry.viewportRect.height)} px
+        </TopBarGuideLabel>
+      ) : null}
+      {showGutterGuide ? (
+        <TopBarGuideLabel rect={geometry.marginGuideRects.left} align="left">
+          {activeFieldName === 'siteGutterRangePx'
+            ? 'Min in Max odmik'
+            : activeFieldName === 'siteGutterMinPx'
+              ? 'Min odmik'
+              : 'Max odmik'}
+        </TopBarGuideLabel>
+      ) : null}
+      {showColumnGapGuide
+        ? columnGapRects.map((rect, index) => (
+            <TopBarGuideLabel key={`column-gap-label-${index}`} rect={labelRectForGuide(rect)}>
+              L|S|D: {settings.columnGapPx} px
+            </TopBarGuideLabel>
+          ))
+        : null}
+      {showItemGapGuide
+        ? itemGapRects.slice(0, 4).map(({ rect, zone }, index) => (
+            <TopBarGuideLabel
+              key={`item-gap-label-${zone}-${index}`}
+              rect={labelRectForGuide(rect)}
+              className={zone === itemGapZone ? '' : '!bg-white !text-[color:var(--blue-500)] ring-1 ring-[color:var(--blue-500)]/20'}
+            >
+              E1|E2: {settings.itemGapPx} px
+            </TopBarGuideLabel>
+          ))
+        : null}
+      {activeZoneGuide ? (
+        <TopBarGuideLabel rect={getTopBarZoneRect(geometry, activeZoneGuide)}>
+          {topBarZoneLabels[activeZoneGuide]}
+        </TopBarGuideLabel>
+      ) : null}
+
+      {ghostWidthMode && ghostWidthMode !== settings.widthMode ? (
+        <span
+          className="absolute z-[30] rounded-md border border-dashed border-[color:var(--blue-500)]/30 bg-[color:var(--blue-50)]/5"
+          style={topBarRectStyle(
+            ghostWidthMode === 'custom'
+              ? geometry.widthModeGuideRects[ghostWidthMode].containerRect
+              : geometry.widthModeGuideRects[ghostWidthMode].contentRect
+          )}
+        />
+      ) : null}
+
+      {showMargins ? (
+        <>
+          <span
+            className="absolute z-[32] border-x border-dashed border-[color:var(--blue-500)]/45 bg-[color:var(--blue-50)]/20"
+            style={topBarRectStyle(geometry.marginGuideRects.left)}
+          />
+          <span
+            className="absolute z-[32] border-x border-dashed border-[color:var(--blue-500)]/45 bg-[color:var(--blue-50)]/20"
+            style={topBarRectStyle(geometry.marginGuideRects.right)}
+          />
+          <TopBarGuideLabel rect={geometry.marginGuideRects.left} align="left" className="!bg-white !text-[color:var(--blue-500)] ring-1 ring-[color:var(--blue-500)]/25">
+            Min. / maks. rob strani
+          </TopBarGuideLabel>
+        </>
+      ) : null}
+
+      {showZones ? (
+        (Object.keys(topBarZoneLabels) as TopBarZone[]).map((zone) => {
+          const zoneRect = getTopBarZoneRect(geometry, zone);
+          const highlighted = zone === activeZone && hasActiveEdit;
+          const showZoneLabel = highlighted || isAdvancedMode;
+
+          return (
+            <span
+              key={zone}
+              className={`${showZoneLabel ? 'absolute z-[35] rounded bg-white/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none shadow-sm ring-1 ring-slate-200' : 'sr-only'} ${
+                highlighted ? 'text-[color:var(--blue-500)]' : 'text-slate-500'
+              }`}
+              style={{ left: zoneRect.x + 6, top: zoneRect.y + 8 }}
+            >
+              {topBarZoneLabels[zone]}
+            </span>
+          );
+        })
+      ) : null}
+
+      {showZones ? (
+        <span
+          className="absolute bottom-0 top-0 z-[36] w-px bg-slate-300/45"
+          style={{ left: geometry.contentRect.x + geometry.contentRect.width / 2 }}
+        />
+      ) : null}
+
+      {showOrderMarkers
+        ? (Object.keys(topBarZoneLabels) as TopBarZone[]).flatMap((zone) =>
+            geometry.zoneOrderIds[zone].map((elementId, index) => {
+              const rect = geometry.elementRects[elementId];
+              if (!rect) return null;
+
+              return (
+                <span
+                  key={`${zone}-${elementId}-order`}
+                  className={`absolute z-[46] grid h-5 w-5 place-items-center rounded-full border text-[10px] font-bold leading-none ${
+                    elementId === activeElementId
+                      ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-500)] text-white'
+                      : 'border-[color:var(--blue-500)]/35 bg-white text-[color:var(--blue-500)]'
+                  }`}
+                  style={{ left: rect.x + 2, top: rect.y - 8 }}
+                >
+                  {index + 1}
+                </span>
+              );
+            })
+          )
+        : null}
+
+      {activeWidthRect && activeWidthItem && (activeEdit.kind === 'element-width' || dragState?.type === 'width') ? (
+        <>
+          <span
+            className={`absolute z-[45] h-0.5 ${deriveTopBarElementWidthMode(activeWidthItem, device, settings) === 'fixed' ? 'bg-[color:var(--blue-500)]' : 'bg-[color:var(--blue-500)]/45'}`}
+            style={{
+              left: activeWidthRect.x,
+              top: activeWidthRect.y + 3,
+              width: activeWidthRect.width
+            }}
+          />
+          <TopBarGuideLabel rect={activeWidthRect}>
+            {deriveTopBarElementWidthMode(activeWidthItem, device, settings) === 'fixed'
+              ? `${Math.round(activeWidthRect.width * labelScale)}px`
+              : `${Math.round(activeWidthRect.width * labelScale)}px`}
+          </TopBarGuideLabel>
+        </>
+      ) : null}
+
+      {(() => {
+        const elementId = resizeHandleElementId;
+        const item = layoutItems.find((currentItem) => currentItem.id === elementId);
+        const rect = geometry.widthRects[elementId];
+        if (!item || !rect || !canEditTopBarElementWidth(item, device, settings)) return null;
+        const active = activeEdit.kind === 'element-width' && activeEdit.elementId === elementId || dragState?.type === 'width' && dragState.elementId === elementId;
+
+        return (
+          <Fragment key={`${elementId}-resize-handles`}>
+            <button
+              type="button"
+              aria-label={`Zmanjšaj ali povečaj širino ${topBarLayoutLabels[elementId]} z leve`}
+              className={`pointer-events-auto absolute z-[56] h-6 w-2 -translate-x-1/2 cursor-ew-resize rounded-full border border-[color:var(--blue-500)] bg-[color:var(--blue-500)]/88 shadow-[0_0_0_1px_rgba(255,255,255,0.78),0_0_0_3px_color-mix(in_srgb,var(--blue-500)_20%,transparent)] transition hover:bg-[color:var(--blue-500)]/95 ${
+                active
+                  ? 'scale-105 bg-[color:var(--blue-500)]'
+                  : 'hover:scale-105'
+              }`}
+              style={{ left: rect.x, top: rect.y + rect.height / 2 - 12 }}
+              onPointerDown={(event) => onStartWidthDrag(elementId, 'left', event)}
+            />
+            <button
+              type="button"
+              aria-label={`Zmanjšaj ali povečaj širino ${topBarLayoutLabels[elementId]} z desne`}
+              className={`pointer-events-auto absolute z-[56] h-6 w-2 -translate-x-1/2 cursor-ew-resize rounded-full border border-[color:var(--blue-500)] bg-[color:var(--blue-500)]/88 shadow-[0_0_0_1px_rgba(255,255,255,0.78),0_0_0_3px_color-mix(in_srgb,var(--blue-500)_20%,transparent)] transition hover:bg-[color:var(--blue-500)]/95 ${
+                active
+                  ? 'scale-105 bg-[color:var(--blue-500)]'
+                  : 'hover:scale-105'
+              }`}
+              style={{ left: getTopBarRectRight(rect), top: rect.y + rect.height / 2 - 12 }}
+              onPointerDown={(event) => onStartWidthDrag(elementId, 'right', event)}
+            />
+          </Fragment>
+        );
+      })()}
     </div>
   );
 }
 
 function TopBarResponsivePreview({
   device,
+  navigation,
   siteLayout,
   settings,
-  navigation,
+  layoutItems,
+  items,
+  selectedElementId,
+  activeEdit,
   showOverlay,
+  onToggleOverlay,
+  onSelectElement,
+  onSetActiveEdit,
+  onClearActiveEditSoon,
+  onUpdateItem,
+  onMoveElement
 }: {
   device: SiteNavigationTopBarDevice;
+  navigation: SiteNavigationConfig;
   siteLayout: SiteNavigationSiteLayoutSettings;
   settings: SiteNavigationTopBarResponsiveSettings;
-  navigation: SiteNavigationConfig;
+  layoutItems: SiteNavigationTopBarResponsiveItem[];
+  items: SiteNavigationTopLevelItem[];
+  selectedElementId: SiteNavigationTopBarElementId;
+  activeEdit: TopBarActiveEdit;
   showOverlay: boolean;
+  onToggleOverlay: () => void;
+  onSelectElement: (elementId: SiteNavigationTopBarElementId) => void;
+  onSetActiveEdit: (edit: TopBarActiveEdit) => void;
+  onClearActiveEditSoon: () => void;
+  onUpdateItem: (elementId: SiteNavigationTopBarElementId, updates: Partial<SiteNavigationTopBarResponsiveItem>) => void;
+  onMoveElement: (elementId: SiteNavigationTopBarElementId, xPx: number, xRatio: number) => void;
 }) {
   const [measureRef, availableWidth] = useMeasuredElementWidth<HTMLDivElement>();
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const [observedScale, setObservedScale] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<TopBarDropTarget | null>(null);
+  const dropTargetRef = useRef<TopBarDropTarget | null>(null);
+  const [dragState, setDragState] = useState<
+    | {
+        type: 'element';
+        elementId: SiteNavigationTopBarElementId;
+        grabOffsetX: number;
+        grabOffsetY: number;
+        pointerX: number;
+        pointerY: number;
+        startXPx: number;
+        width: number;
+        height: number;
+      }
+    | { type: 'width'; elementId: SiteNavigationTopBarElementId; edge: 'left' | 'right'; startClientX: number; startWidth: number; minWidth: number }
+    | null
+  >(null);
   const viewportWidth = getTopBarPreviewViewportWidth(device, settings, siteLayout);
-  const viewportHeight = Math.max(65, Math.ceil(settings.height * 0.75));
-  const scale = availableWidth > 0 ? Math.min(1, Math.max(0.2, availableWidth / viewportWidth)) : 1;
+  const viewportHeight = getTopBarRenderedViewportHeight(settings);
+  const storefrontPreviewScale = COMMERCIAL_STOREFRONT_SCALE;
+  const rendererViewportWidth = viewportWidth / storefrontPreviewScale;
+  const rendererViewportHeight = viewportHeight;
+  const renderedViewportHeight = rendererViewportHeight * storefrontPreviewScale;
+  const rulerLeftGutter = topBarPreviewRulerLeftGutterPx;
+  const rulerRightGutter = topBarPreviewRulerRightGutterPx;
+  const rulerTopGutter = topBarPreviewRulerTopGutterPx;
+  const previewLogicalWidth = viewportWidth + rulerLeftGutter + rulerRightGutter;
+  const previewLogicalHeight = renderedViewportHeight + rulerTopGutter;
+  const rendererSiteLayout = useMemo(() => getTopBarStorefrontGeometrySiteLayout(siteLayout), [siteLayout]);
+  const rendererSettings = useMemo(() => getTopBarStorefrontGeometrySettings(settings), [settings]);
+  const measuredScale = getPreviewScale(availableWidth, previewLogicalWidth, renderedViewportHeight);
+  const previewMeasured = availableWidth > 0 || observedScale !== null;
+  const scale = availableWidth > 0 ? measuredScale : observedScale ?? measuredScale;
+  const combinedRendererScale = scale * storefrontPreviewScale;
+  const heightFitScale = renderedViewportHeight > 0
+    ? topBarTechnicalPreviewVisualTopbarHeightPx / renderedViewportHeight
+    : 1;
+  const cssScaleExpression = `min(${heightFitScale.toFixed(4)}, calc(100cqw / ${previewLogicalWidth}px))`;
   const deviceLabel = topBarDeviceLabels[device];
-  const zoomLabel = `${Math.round(scale * 100) / 100}x`.replace('.', ',');
+  const scaleNumberLabel = scale === 1 ? '1' : scale.toFixed(2).replace('.', ',');
+  const zoomLabel = previewMeasured ? `${scaleNumberLabel}x zoom` : 'prilagajanje širini';
+  const geometry = useMemo(
+    () =>
+      calculateTopBarGeometry({
+        viewportWidth: rendererViewportWidth,
+        viewportHeight: rendererViewportHeight,
+        siteLayout: rendererSiteLayout,
+        settings: rendererSettings,
+        layoutItems,
+        items,
+        device,
+        labelScale: storefrontPreviewScale,
+        coordinateScale: storefrontPreviewScale
+      }),
+    [device, items, layoutItems, rendererSettings, rendererSiteLayout, rendererViewportHeight, rendererViewportWidth, storefrontPreviewScale]
+  );
+  const geometryRef = useRef(geometry);
+  const combinedRendererScaleRef = useRef(combinedRendererScale);
+  const dragStateForOverlay: TopBarViewportDragState = dragState
+    ? dragState.type === 'element'
+      ? { type: 'element', elementId: dragState.elementId }
+      : { type: 'width', elementId: dragState.elementId, edge: dragState.edge }
+    : null;
+  const activeGuide = getTopBarGuideFromActiveEdit(activeEdit);
+  const overflowStatus = useMemo(
+    () => computeOverflowStatus({ geometry, settings }),
+    [geometry, settings]
+  );
+  const overflowStatusClassName = overflowStatus.tone === 'warning'
+    ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+    : overflowStatus.tone === 'info'
+      ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100'
+      : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100';
+
+  useEffect(() => {
+    geometryRef.current = geometry;
+  }, [geometry]);
+
+  useEffect(() => {
+    combinedRendererScaleRef.current = combinedRendererScale;
+  }, [combinedRendererScale]);
+
+  useLayoutEffect(() => {
+    if (availableWidth > 0) {
+      setObservedScale(null);
+      return undefined;
+    }
+
+    const frame = frameRef.current;
+    if (!frame) return undefined;
+
+    const updateObservedScale = () => {
+      const rect = frame.getBoundingClientRect();
+      if (rect.width <= 0 || viewportWidth <= 0) return;
+      const nextScale = getPreviewScale(rect.width, previewLogicalWidth, renderedViewportHeight);
+      setObservedScale((current) => (current !== null && Math.abs(current - nextScale) < 0.002 ? current : nextScale));
+    };
+
+    updateObservedScale();
+    const animationFrame = window.requestAnimationFrame(updateObservedScale);
+    window.addEventListener('resize', updateObservedScale);
+
+    const resizeTarget = frame.parentElement ?? frame;
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateObservedScale) : null;
+    resizeObserver?.observe(resizeTarget);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', updateObservedScale);
+      resizeObserver?.disconnect();
+    };
+  }, [availableWidth, previewLogicalWidth, renderedViewportHeight, viewportWidth]);
+
+  const getViewportPoint = useCallback((event: PointerEvent | ReactPointerEvent<HTMLElement>) => {
+    const frame = frameRef.current;
+    if (!frame) return { x: 0, y: 0 };
+    const rect = frame.getBoundingClientRect();
+    const currentScale = combinedRendererScaleRef.current || 1;
+
+    return {
+      x: (event.clientX - rect.left) / currentScale,
+      y: (event.clientY - rect.top) / currentScale
+    };
+  }, []);
+
+  const getResolvedDropTargetForPoint = useCallback((
+    state: Extract<NonNullable<typeof dragState>, { type: 'element' }>,
+    point: { x: number; y: number }
+  ) => {
+    const geometrySnapshot = geometryRef.current;
+
+    return getTopBarDropTarget({
+      geometry: geometrySnapshot,
+      x: point.x,
+      y: point.y,
+      startXPx: state.startXPx,
+      grabOffsetX: state.grabOffsetX,
+      width: state.width,
+      height: state.height,
+      coordinateScale: storefrontPreviewScale
+    });
+  }, [storefrontPreviewScale]);
+
+  useEffect(() => {
+    if (!dragState) return undefined;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      event.preventDefault();
+
+      if (dragState.type === 'element') {
+        const { x, y } = getViewportPoint(event);
+        const nextDropTarget = getResolvedDropTargetForPoint(dragState, { x, y });
+
+        setDragState((current) =>
+          current?.type === 'element' && current.elementId === dragState.elementId
+            ? { ...current, pointerX: x, pointerY: y }
+            : current
+        );
+        dropTargetRef.current = nextDropTarget;
+        setDropTarget(nextDropTarget);
+        onSetActiveEdit({ kind: 'position', elementId: dragState.elementId, fieldName: 'drag' });
+        return;
+      }
+
+      const delta = (event.clientX - dragState.startClientX) / (combinedRendererScaleRef.current || 1) * storefrontPreviewScale;
+
+      const signedDelta = dragState.edge === 'right' ? delta : -delta;
+      const nextWidth = Math.round(clampTopBarNumber(dragState.startWidth + signedDelta, dragState.minWidth, 1200));
+      onUpdateItem(dragState.elementId, { fixedWidthPx: nextWidth, widthMode: 'fixed', widthPx: nextWidth });
+      onSetActiveEdit({ kind: 'element-width', elementId: dragState.elementId, fieldName: 'width' });
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (dragState.type === 'element') {
+        const target = dropTargetRef.current;
+        if (target) {
+          onMoveElement(dragState.elementId, target.xPx, target.xRatio);
+        }
+      }
+
+      setDragState(null);
+      setDropTarget(null);
+      dropTargetRef.current = null;
+      onClearActiveEditSoon();
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp, { once: true });
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dragState, getResolvedDropTargetForPoint, getViewportPoint, onClearActiveEditSoon, onMoveElement, onSetActiveEdit, onUpdateItem, storefrontPreviewScale]);
+
+  const startElementDrag = (elementId: SiteNavigationTopBarElementId, event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = geometry.elementRects[elementId];
+    if (!rect) return;
+    const point = getViewportPoint(event);
+    onSelectElement(elementId);
+    onSetActiveEdit({ kind: 'position', elementId, fieldName: 'drag' });
+    const initialState = {
+      type: 'element' as const,
+      elementId,
+      grabOffsetX: point.x - rect.x,
+      grabOffsetY: point.y - rect.y,
+      pointerX: point.x,
+      pointerY: point.y,
+      startXPx: Math.round((rect.x - geometry.contentRect.x) * storefrontPreviewScale),
+      width: rect.width,
+      height: rect.height
+    };
+    const initialTarget = getResolvedDropTargetForPoint(initialState, point);
+    dropTargetRef.current = initialTarget;
+    setDropTarget(initialTarget);
+    setDragState(initialState);
+  };
+
+  const startWidthDrag = (elementId: SiteNavigationTopBarElementId, edge: 'left' | 'right', event: ReactPointerEvent<HTMLButtonElement>) => {
+    const item = layoutItems.find((currentItem) => currentItem.id === elementId);
+    const rect = geometry.widthRects[elementId];
+    if (!item || !rect || !canEditTopBarElementWidth(item, device, settings)) return;
+    const minimumFixedWidth = item.id === 'search' && item.slot !== 'menu'
+      ? getSiteNavigationTopBarSearchReservedWidth(device)
+      : 0;
+
+    event.preventDefault();
+    event.stopPropagation();
+    onSelectElement(elementId);
+    onSetActiveEdit({ kind: 'element-width', elementId, fieldName: 'width' });
+    setDragState({
+      type: 'width',
+      elementId,
+      edge,
+      startClientX: event.clientX,
+      startWidth: getTopBarElementComputedWidth({ item, items, device, settings }),
+      minWidth: minimumFixedWidth
+    });
+  };
 
   return (
     <div className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium text-slate-500">
-        <span>{deviceLabel} · {viewportWidth}px viewport · {zoomLabel} zoom</span>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-medium text-slate-500">
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
+          <span>{deviceLabel} · viewport: {viewportWidth} px · {zoomLabel} | </span>
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium transition ${adminControlFocusTokenClasses} ${
+              showOverlay ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-500)]' : 'text-slate-500 hover:text-[color:var(--blue-500)]'
+            }`}
+            onClick={onToggleOverlay}
+          >
+            <GridGlyph />
+            Mreža
+          </button>
+        </span>
+        <span className={`rounded-full px-2 py-1 leading-none ${overflowStatusClassName}`}>{overflowStatus.label}</span>
       </div>
-      <div ref={measureRef} className="relative min-w-0 overflow-hidden rounded-xl bg-slate-50/60">
-        <HeaderPreviewFrame
-          mode="technical"
-          navigation={navigation}
-          viewportWidth={viewportWidth}
-          viewportHeight={viewportHeight}
-          scale={scale}
-          showOverlay={showOverlay}
-        />
+      {overflowStatus.detail ? <p className="mb-2 text-[11px] leading-4 text-amber-700">{overflowStatus.detail}</p> : null}
+      <div ref={measureRef} className="relative min-w-0 overflow-hidden" style={{ containerType: 'inline-size' }}>
+        <div
+          className="relative mx-auto overflow-hidden rounded-[10px] bg-white"
+          style={{
+            height: previewMeasured ? Math.ceil(previewLogicalHeight * scale) : `calc(${previewLogicalHeight}px * ${cssScaleExpression})`,
+            width: previewMeasured ? Math.ceil(previewLogicalWidth * scale) : `calc(${previewLogicalWidth}px * ${cssScaleExpression})`
+          }}
+        >
+          <div
+            className="absolute left-0 top-0 overflow-visible bg-white"
+            style={{
+              width: previewLogicalWidth,
+              height: previewLogicalHeight,
+              transform: previewMeasured ? `scale(${scale})` : `scale(${cssScaleExpression})`,
+              transformOrigin: 'top left'
+            }}
+          >
+            {showOverlay ? (
+              <TopBarPreviewRulerOverlay
+                viewportWidth={viewportWidth}
+                viewportHeight={renderedViewportHeight}
+                heightValue={rendererViewportHeight}
+                viewportX={rulerLeftGutter}
+                viewportY={rulerTopGutter}
+              />
+            ) : null}
+            <div
+              ref={frameRef}
+              className="absolute box-border overflow-visible rounded-[10px] bg-white"
+              style={{
+                left: rulerLeftGutter,
+                top: rulerTopGutter,
+                width: viewportWidth,
+                height: renderedViewportHeight
+              }}
+            >
+              <div
+                data-technical-topbar-renderer="true"
+                className="absolute left-0 top-0 overflow-visible"
+                style={{
+                  width: rendererViewportWidth,
+                  height: rendererViewportHeight,
+                  transform: `scale(${storefrontPreviewScale})`,
+                  transformOrigin: 'top left'
+                }}
+              >
+                <div className="absolute inset-0 z-10 overflow-visible">
+                  <SiteHeader navigation={navigation} previewMode="inline" previewViewportWidth={rendererViewportWidth} />
+                </div>
+                {(layoutItems.filter((item) => item.visible) as SiteNavigationTopBarResponsiveItem[]).map((item) => {
+                  const rect = geometry.elementRects[item.id];
+                  if (!rect) return null;
+                  const dragging = dragState?.type === 'element' && dragState.elementId === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`absolute z-[90] inline-flex cursor-grab items-center justify-center overflow-hidden rounded-lg border border-transparent bg-transparent transition active:cursor-grabbing ${adminControlFocusTokenClasses}`}
+                      style={topBarRectStyle(rect)}
+                      onClick={() => {
+                        onSelectElement(item.id);
+                        onSetActiveEdit({ kind: 'position', elementId: item.id, fieldName: 'element' });
+                        onClearActiveEditSoon();
+                      }}
+                      onPointerDown={(event) => startElementDrag(item.id, event)}
+                    >
+                      {dragging ? <span className="pointer-events-none h-full w-full rounded-lg border border-dashed border-[color:var(--blue-500)]/35 bg-white/75" /> : null}
+                    </button>
+                  );
+                })}
+                {dragState?.type === 'element' ? (
+                  <div
+                    className="pointer-events-none absolute z-[120] inline-flex items-center justify-center overflow-hidden rounded-lg border border-[color:var(--blue-500)] bg-white/95 px-1 text-slate-900 shadow-lg"
+                    style={{
+                      left: dragState.pointerX - dragState.grabOffsetX,
+                      top: dragState.pointerY - dragState.grabOffsetY,
+                      width: dragState.width,
+                      height: dragState.height
+                    }}
+                  >
+                    <AdminTopBarElementPreview
+                      id={dragState.elementId}
+                      items={items}
+                      highlighted
+                      device={device}
+                      settings={settings}
+                    />
+                  </div>
+                ) : null}
+                <TopBarGeometryOverlay
+                  geometry={geometry}
+                  device={device}
+                  settings={settings}
+                  layoutItems={layoutItems}
+                  activeEdit={activeEdit}
+                  activeGuide={activeGuide}
+                  selectedElementId={selectedElementId}
+                  dragState={dragStateForOverlay}
+                  dropTarget={dropTarget}
+                  showGrid={showOverlay}
+                  labelScale={storefrontPreviewScale}
+                  onStartWidthDrag={startWidthDrag}
+                />
+              </div>
+              <span
+                className="pointer-events-none absolute inset-0 z-[160] rounded-[10px] border border-slate-200"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1744,9 +3699,17 @@ function TopBarElementRow({
   device,
   settings,
   items,
+  placementBoundsWidth,
+  currentXPx,
+  offsetLabel,
   selected,
+  checked,
   isLast,
+  activeEdit,
   onSelect,
+  onCheckedChange,
+  onSetActiveEdit,
+  onClearActiveEditSoon,
   onChange,
   onReset
 }: {
@@ -1754,169 +3717,196 @@ function TopBarElementRow({
   device: SiteNavigationTopBarDevice;
   settings: SiteNavigationTopBarResponsiveSettings;
   items: SiteNavigationTopLevelItem[];
+  placementBoundsWidth: number;
+  currentXPx: number;
+  offsetLabel: string;
   selected: boolean;
+  checked: boolean;
   isLast: boolean;
+  activeEdit: TopBarActiveEdit;
   onSelect: () => void;
+  onCheckedChange: (checked: boolean) => void;
+  onSetActiveEdit: (edit: TopBarActiveEdit) => void;
+  onClearActiveEditSoon: () => void;
   onChange: (updates: Partial<SiteNavigationTopBarResponsiveItem>) => void;
   onReset: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuDismissRefs = useMemo(() => [menuRef], []);
-  const elementWidth = estimateTopBarElementWidth({ id: item.id, items, device, settings });
-  const reservedWidth = getSiteNavigationTopBarReservedFixedWidth(item, device);
-  const resolvedWidth = reservedWidth ?? item.fixedWidthPx ?? elementWidth;
+  const resolvedWidth = getTopBarElementComputedWidth({ item, items, device, settings });
   const minimumFixedWidth = item.id === 'search' && item.slot !== 'menu'
     ? getSiteNavigationTopBarSearchReservedWidth(device)
     : 0;
+  const widthEditable = canEditTopBarElementWidth(item, device, settings);
+  const rowGridClassName = topBarElementRowGridClassName;
+  const rowMinWidthClassName = topBarElementRowMinWidthClassName;
+  const rowActive = selected || activeEdit.elementId === item.id;
+  const xActive = activeEdit.elementId === item.id && activeEdit.kind === 'position';
+  const widthActive = activeEdit.elementId === item.id && activeEdit.kind === 'element-width' && activeEdit.fieldName !== 'widthMode';
+  const widthDisplayLabel = `${Math.round(resolvedWidth)} px`;
+  const maxXPx = Math.max(0, Math.round(placementBoundsWidth - resolvedWidth));
+
+  const activateEdit = (edit: TopBarActiveEdit) => {
+    onSelect();
+    onSetActiveEdit(edit);
+  };
+  const activateTargetField = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return;
+
+    const ariaLabel = target.getAttribute('aria-label') ?? '';
+    if (!ariaLabel.includes(topBarLayoutLabels[item.id])) return;
+
+    if (ariaLabel.startsWith('X za')) {
+      activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' });
+    } else if (ariaLabel.startsWith('Širina za')) {
+      activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' });
+    }
+  };
 
   useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
+
+  const visibilityButton = (
+    <button
+      type="button"
+      aria-label={item.visible ? `Skrij ${topBarLayoutLabels[item.id]}` : `Prikaži ${topBarLayoutLabels[item.id]}`}
+      className={`${adminMiniIconButtonTokenClasses} ${item.visible ? '' : '!text-slate-400'}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onChange({ visible: !item.visible });
+      }}
+    >
+      <EyeGlyph visible={item.visible} className="h-4 w-4" />
+    </button>
+  );
+  const menuControl = (
+    <div ref={menuRef} className="relative" onClick={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        aria-label={`Možnosti za ${topBarLayoutLabels[item.id]}`}
+        className={`${adminMiniIconButtonTokenClasses} ${menuOpen ? '!text-[color:var(--blue-500)]' : ''}`}
+        onClick={() => setMenuOpen((current) => !current)}
+      >
+        <DotsGlyph className="h-4 w-4" />
+      </button>
+      {menuOpen ? (
+        <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-40 p-1">
+          <button
+            type="button"
+            className={adminActionMenuItemTokenClasses.base}
+            onClick={() => {
+              onReset();
+              setMenuOpen(false);
+            }}
+          >
+            Ponastavi
+          </button>
+        </MenuPanel>
+      ) : null}
+    </div>
+  );
 
   return (
     <div
       role="button"
       tabIndex={0}
-      className={`group grid ${topBarElementRowMinWidthClassName} ${topBarElementRowGridClassName} items-center gap-3 px-3 py-2 text-left text-[13px] transition focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${isLast ? '' : 'border-b border-slate-100'} ${
-        selected ? 'bg-[color:var(--hover-neutral)]' : 'bg-white hover:bg-[color:var(--hover-neutral)]'
+      className={`group grid ${rowMinWidthClassName} ${rowGridClassName} items-center gap-3 px-3 py-2 text-left text-[13px] transition focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ${isLast ? 'rounded-b-xl' : 'border-b border-slate-100'} ${
+        rowActive ? navEditorRowHoverClassName : 'bg-white hover:bg-slate-50'
       } ${item.visible ? '' : 'text-slate-400'}`}
       onClick={onSelect}
+      onFocusCapture={(event) => activateTargetField(event.target)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           onSelect();
         }
       }}
+      onPointerDownCapture={(event) => activateTargetField(event.target)}
     >
-      <span className="inline-flex min-w-0 items-center gap-2">
-        <AdminTopBarElementBadge id={item.id} selected={selected} />
-        <span className={`truncate font-semibold ${item.visible ? 'text-slate-900' : 'text-slate-400'}`}>{topBarLayoutLabels[item.id]}</span>
-      </span>
-      <select
-        value={item.slot}
-        className={`${compactInputClassName} h-8 py-0 text-[12px]`}
-        style={{ width: 104 }}
-        onClick={(event) => event.stopPropagation()}
-        onChange={(event) => onChange({ slot: event.target.value as SiteNavigationTopBarSlot })}
-      >
-        {(Object.keys(topBarSlotLabels) as SiteNavigationTopBarSlot[]).map((slot) => (
-          <option key={slot} value={slot}>{topBarSlotLabels[slot]}</option>
-        ))}
-      </select>
-      <input
-        type="number"
-        min={0}
-        max={99}
-        value={item.orderIndex}
-        className={`${compactInputClassName} ${numberInputNoSpinnerClassName} h-8 py-0 text-right text-[12px]`}
-        style={{ width: 54 }}
-        onClick={(event) => event.stopPropagation()}
-        onChange={(event) => onChange({ orderIndex: Math.min(99, Math.max(0, Number(event.target.value) || 0)) })}
-        aria-label={`Vrstni red za ${topBarLayoutLabels[item.id]}`}
-      />
-      <select
-        value={item.widthMode}
-        className={`${compactInputClassName} h-8 py-0 text-[12px]`}
-        style={{ width: 112 }}
-        onClick={(event) => event.stopPropagation()}
-        onChange={(event) => onChange({ widthMode: event.target.value as SiteNavigationTopBarItemWidthMode })}
-      >
-        {(Object.keys(topBarItemWidthModeLabels) as SiteNavigationTopBarItemWidthMode[]).map((widthMode) => (
-          <option key={widthMode} value={widthMode}>{topBarItemWidthModeLabels[widthMode]}</option>
-        ))}
-      </select>
-      <div className="flex items-center gap-1.5">
-        <label className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500" onClick={(event) => event.stopPropagation()}>
-          <span>Pred</span>
-          <TopBarUnitNumberInput
-            value={item.marginBeforePx}
-            min={0}
-            max={128}
-            className="w-[70px]"
-            inputClassName="w-8"
-            ariaLabel={`Odmik pred ${topBarLayoutLabels[item.id]}`}
-            stopPropagation
-            onChange={(marginBeforePx) => onChange({ marginBeforePx })}
-          />
-        </label>
-        <label className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500" onClick={(event) => event.stopPropagation()}>
-          <span>Po</span>
-          <TopBarUnitNumberInput
-            value={item.marginAfterPx}
-            min={0}
-            max={128}
-            className="w-[70px]"
-            inputClassName="w-8"
-            ariaLabel={`Odmik po ${topBarLayoutLabels[item.id]}`}
-            stopPropagation
-            onChange={(marginAfterPx) => onChange({ marginAfterPx })}
-          />
-        </label>
-      </div>
-      <TopBarUnitNumberInput
-        value={resolvedWidth}
-        min={minimumFixedWidth}
-        max={1200}
-        disabled={item.widthMode !== 'fixed'}
-        className="w-[82px]"
-        inputClassName="w-9"
-        ariaLabel={`Širina za ${topBarLayoutLabels[item.id]}`}
-        stopPropagation
-        onChange={(fixedWidthPx) => onChange({ fixedWidthPx })}
-      />
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={item.visible ? `Skrij ${topBarLayoutLabels[item.id]}` : `Prikaži ${topBarLayoutLabels[item.id]}`}
-          className={`${adminMiniIconButtonTokenClasses} ${item.visible ? '' : '!text-slate-400'}`}
-          onClick={(event) => {
+      <span className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          checked={checked}
+          aria-label={`Izberi ${topBarLayoutLabels[item.id]}`}
+          className="h-4 w-4 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-[color:var(--blue-500)]"
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => {
             event.stopPropagation();
-            onChange({ visible: !item.visible });
+            onCheckedChange(event.target.checked);
           }}
+        />
+      </span>
+      <span className="inline-flex min-w-0 items-center gap-2">
+        <AdminTopBarElementBadge id={item.id} selected={rowActive} />
+        <span className="min-w-0">
+          <span className={`block truncate font-semibold ${item.visible ? 'text-slate-900' : 'text-slate-400'}`}>{topBarLayoutLabels[item.id]}</span>
+        </span>
+      </span>
+      <TopBarUnitNumberInput
+        value={Math.round(currentXPx)}
+        min={0}
+        max={maxXPx}
+        className="w-[84px]"
+        inputClassName="w-10"
+        ariaLabel={`X za ${topBarLayoutLabels[item.id]}`}
+        stopPropagation
+        active={xActive}
+        onBlur={onClearActiveEditSoon}
+        onFocus={() => activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' })}
+        onMouseEnter={() => activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' })}
+        onMouseLeave={onClearActiveEditSoon}
+        onChange={(xPx) => {
+          const clampedXPx = Math.round(clampTopBarNumber(xPx, 0, maxXPx));
+          activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' });
+          onChange({
+            xPx: clampedXPx,
+            xRatio: placementBoundsWidth > 0 ? clampedXPx / placementBoundsWidth : 0
+          });
+        }}
+      />
+      {widthEditable ? (
+        <TopBarUnitNumberInput
+          value={resolvedWidth}
+          min={minimumFixedWidth}
+          max={1200}
+          className="w-[84px]"
+          inputClassName="w-10"
+          ariaLabel={`Širina za ${topBarLayoutLabels[item.id]}`}
+          stopPropagation
+          active={widthActive}
+          onBlur={onClearActiveEditSoon}
+          onFocus={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
+          onMouseEnter={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
+          onMouseLeave={onClearActiveEditSoon}
+          onChange={(fixedWidthPx) => {
+            activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' });
+            onChange({ fixedWidthPx, widthMode: 'fixed', widthPx: fixedWidthPx });
+          }}
+        />
+      ) : (
+        <span
+          className={`inline-flex h-8 min-w-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2 text-center text-[12px] font-medium ${
+            item.visible ? 'text-slate-500' : 'text-slate-400'
+          }`}
+          aria-label={`Širina za ${topBarLayoutLabels[item.id]}`}
+          onMouseEnter={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
+          onMouseLeave={onClearActiveEditSoon}
+          onFocus={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
         >
-          <EyeGlyph visible={item.visible} className="h-4 w-4" />
-        </button>
-        <div ref={menuRef} className="relative" onClick={(event) => event.stopPropagation()}>
-          <button
-            type="button"
-            aria-label={`Možnosti za ${topBarLayoutLabels[item.id]}`}
-            className={`${adminMiniIconButtonTokenClasses} ${menuOpen ? '!text-[color:var(--blue-500)]' : ''}`}
-            onClick={() => setMenuOpen((current) => !current)}
-          >
-            <DotsGlyph className="h-4 w-4" />
-          </button>
-          {menuOpen ? (
-            <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-40 p-1">
-              <button
-                type="button"
-                className={adminActionMenuItemTokenClasses.base}
-                onClick={() => {
-                  onReset();
-                  setMenuOpen(false);
-                }}
-              >
-                Ponastavi
-              </button>
-            </MenuPanel>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SortableActionPriorityRow({ id }: { id: SiteNavigationTopBarActionId }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 ${isDragging ? 'z-20 opacity-80' : ''}`}
-      {...attributes}
-      {...listeners}
-    >
-      <DragGlyph className="h-4 w-4 text-slate-400" />
-      <span>{topBarActionLabels[id]}</span>
+          {widthDisplayLabel}
+        </span>
+      )}
+      <span
+        className={`inline-flex min-w-0 items-center justify-center px-1 text-center text-[12px] font-medium tabular-nums ${
+          item.visible ? 'text-slate-500' : 'text-slate-400'
+        }`}
+        aria-label={`Odmiki za ${topBarLayoutLabels[item.id]}`}
+        title="Levi in desni odmik v px"
+      >
+        {offsetLabel}
+      </span>
+      <div className="flex items-center justify-center">{visibilityButton}</div>
+      <div className="flex items-center justify-center">{menuControl}</div>
     </div>
   );
 }
@@ -1924,119 +3914,94 @@ function SortableActionPriorityRow({ id }: { id: SiteNavigationTopBarActionId })
 function TopBarDeviceSettingsPanel({
   device,
   settings,
-  onChange
+  onChange,
+  scope = 'extras'
 }: {
   device: SiteNavigationTopBarDevice;
   settings: SiteNavigationTopBarResponsiveSettings;
   onChange: (updates: Partial<SiteNavigationTopBarResponsiveSettings>) => void;
+  scope?: 'navigation' | 'extras';
 }) {
-  const priority = settings.actionPriority ?? ['cart', 'search', 'ai'];
-  const prioritySensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-
   const updateNumber = (key: keyof SiteNavigationTopBarResponsiveSettings) => (value: number) => onChange({ [key]: value });
 
-  if (device === 'tablet') {
+  if (device === 'tablet' && scope === 'navigation') {
     return (
-      <aside className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-base font-semibold text-slate-900">Nastavitve za tablico</h3>
-        <div className="mt-4 grid gap-4">
-          <TopBarSettingsGroup title="Prelomna širina" help={topBarHelpCopy.breakpoint}>
-            <div className="grid grid-cols-2 gap-3">
-              <TopBarNumberField label="Tablica od" help={topBarHelpCopy.breakpoint} value={settings.breakpointFrom ?? 768} min={320} max={1920} onChange={updateNumber('breakpointFrom')} />
-              <TopBarNumberField label="Tablica do" help={topBarHelpCopy.breakpoint} value={settings.breakpointTo ?? 1024} min={320} max={1920} onChange={updateNumber('breakpointTo')} />
-            </div>
-          </TopBarSettingsGroup>
-          <TopBarSettingsGroup title="Navigacija" help={topBarHelpCopy.tabletNavigation}>
-            <TopBarSegmentedControl<SiteNavigationTopBarNavigationMode>
-              value={settings.navigationMode ?? 'condensed'}
-              options={[
-                { value: 'full', label: 'Polna' },
-                { value: 'condensed', label: 'Strnjena' },
-                { value: 'hamburger', label: 'Hamburger' }
-              ]}
-              onChange={(navigationMode) => onChange({ navigationMode })}
-            />
-            {settings.navigationMode === 'condensed' ? (
-              <TopBarNumberField label="Največ prikazanih povezav" help={topBarHelpCopy.maxVisibleLinks} value={settings.maxVisibleLinks ?? 3} min={1} max={8} suffix="" onChange={updateNumber('maxVisibleLinks')} />
-            ) : null}
-          </TopBarSettingsGroup>
+      <div className="min-w-0">
+        <div className={`mb-2 grid min-w-0 items-center gap-2 ${settings.navigationMode === 'condensed' ? 'grid-cols-[minmax(0,1fr)_max-content]' : 'grid-cols-1'}`}>
+          <TopBarHelpLabel help={topBarHelpCopy.tabletNavigation} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+            Navigacija
+          </TopBarHelpLabel>
+          {settings.navigationMode === 'condensed' ? (
+            <TopBarHelpLabel help={topBarHelpCopy.maxVisibleLinks} align="right" className="justify-self-end whitespace-nowrap text-right text-[12px] font-semibold leading-none text-slate-600">
+              Št. povezav
+            </TopBarHelpLabel>
+          ) : null}
         </div>
-      </aside>
+        <div className={`grid min-w-0 items-end gap-2 ${settings.navigationMode === 'condensed' ? 'grid-cols-[minmax(0,1fr)_84px]' : 'grid-cols-1'}`}>
+          <TopBarSegmentedControl<SiteNavigationTopBarNavigationMode>
+            value={settings.navigationMode ?? 'condensed'}
+            options={[
+              { value: 'full', label: 'Polna' },
+              { value: 'condensed', label: 'Strnjena' },
+              { value: 'hamburger', label: 'Meni' }
+            ]}
+            onChange={(navigationMode) => onChange({ navigationMode })}
+          />
+          {settings.navigationMode === 'condensed' ? (
+            <TopBarUnitNumberInput
+              value={settings.maxVisibleLinks ?? 3}
+              min={1}
+              max={8}
+              suffix=""
+              className="ml-auto w-[84px]"
+              inputClassName="w-full px-2"
+              ariaLabel="Št. povezav"
+              onChange={updateNumber('maxVisibleLinks')}
+            />
+          ) : null}
+        </div>
+      </div>
     );
   }
 
-  if (device === 'mobile') {
+  if (device === 'mobile' && scope === 'navigation') {
     return (
-      <aside className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="text-base font-semibold text-slate-900">Nastavitve za mobilno</h3>
-        <div className="mt-4 grid gap-4">
-          <TopBarSettingsGroup title="Prelomna širina" help={topBarHelpCopy.breakpoint}>
-            <TopBarNumberField label="Mobilno do" help={topBarHelpCopy.breakpoint} value={settings.breakpointTo ?? 767} min={320} max={1200} onChange={updateNumber('breakpointTo')} />
-          </TopBarSettingsGroup>
-          <TopBarSettingsGroup title="Vzorec vrstice" help={topBarHelpCopy.rowPattern}>
-            <TopBarSegmentedControl<SiteNavigationTopBarRowPattern>
-              value={settings.rowPattern ?? 'single'}
-              options={[{ value: 'single', label: 'Ena vrstica' }, { value: 'double', label: 'Dve vrstici' }]}
-              onChange={(rowPattern) => onChange({ rowPattern, searchMode: rowPattern === 'single' && settings.searchMode === 'secondRow' ? 'menu' : settings.searchMode })}
-            />
-            {settings.rowPattern === 'double' ? (
-              <div className="grid gap-1.5">
-                <TopBarHelpLabel help={topBarHelpCopy.secondRow} align="right" className="text-[12px] font-medium leading-none text-slate-600">
-                  Druga vrstica
-                </TopBarHelpLabel>
+      <div className="grid min-w-0 gap-2">
+        <div className="min-w-0">
+          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+            <TopBarHelpLabel help={topBarHelpCopy.mobileNavigation} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+              Navigacija
+            </TopBarHelpLabel>
+          </div>
+          <TopBarSegmentedControl<NonNullable<SiteNavigationTopBarResponsiveSettings['menuOpenMode']>>
+            value={settings.menuOpenMode ?? 'drawer'}
+            options={[{ value: 'drawer', label: 'Z leve' }, { value: 'fullscreen', label: 'Celozaslonsko' }]}
+            onChange={(menuOpenMode) => onChange({ menuOpenMode })}
+          />
+        </div>
+        <div className="grid min-w-0 gap-1.5">
+          <TopBarHelpLabel help={topBarHelpCopy.rowPattern} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+            Vzorec vrstice
+          </TopBarHelpLabel>
+          <TopBarSegmentedControl<SiteNavigationTopBarRowPattern>
+            value={settings.rowPattern ?? 'single'}
+            options={[{ value: 'single', label: 'Ena vrstica' }, { value: 'double', label: 'Dve vrstici' }]}
+            onChange={(rowPattern) => onChange({ rowPattern, searchMode: 'menu' })}
+          />
+          {settings.rowPattern === 'double' ? (
+            <div className="grid min-w-0 gap-2">
+              <TopBarHelpLabel help={topBarHelpCopy.secondRow} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+                Druga vrstica
+              </TopBarHelpLabel>
               <TopBarSegmentedControl<SiteNavigationTopBarSecondRow>
                 value={settings.secondRow ?? 'search'}
                 options={[{ value: 'search', label: 'Iskanje' }, { value: 'navigation', label: 'Navigacija' }]}
                 onChange={(secondRow) => onChange({ secondRow })}
               />
-              </div>
-            ) : null}
-          </TopBarSettingsGroup>
-          <TopBarSettingsGroup title="Navigacija" help={topBarHelpCopy.mobileNavigation}>
-            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] font-medium text-slate-500">Hamburger meni</div>
-            <TopBarSegmentedControl<NonNullable<SiteNavigationTopBarResponsiveSettings['menuOpenMode']>>
-              value={settings.menuOpenMode ?? 'drawer'}
-              options={[{ value: 'drawer', label: 'Z leve' }, { value: 'fullscreen', label: 'Celozaslonsko' }]}
-              onChange={(menuOpenMode) => onChange({ menuOpenMode })}
-            />
-          </TopBarSettingsGroup>
-          <TopBarSettingsGroup title="Prioriteta akcij" help={topBarHelpCopy.actionPriority}>
-            <DndContext
-              id="top-bar-mobile-action-priority"
-              sensors={prioritySensors}
-              collisionDetection={closestCenter}
-              onDragEnd={(event) => {
-                const { active, over } = event;
-                if (!over || active.id === over.id) return;
-                const oldIndex = priority.indexOf(active.id as SiteNavigationTopBarActionId);
-                const newIndex = priority.indexOf(over.id as SiteNavigationTopBarActionId);
-                onChange({ actionPriority: arrayMove(priority, oldIndex, newIndex) });
-              }}
-            >
-              <SortableContext items={priority} strategy={rectSortingStrategy}>
-                <div className="grid gap-2">
-                  {priority.map((id) => <SortableActionPriorityRow key={id} id={id} />)}
-                </div>
-              </SortableContext>
-            </DndContext>
-            <p className="text-[12px] leading-5 text-slate-500">Nižje prioritete se premaknejo v meni, ko zmanjka prostora.</p>
-          </TopBarSettingsGroup>
-          <TopBarSettingsGroup title="Iskanje" help={topBarHelpCopy.mobileSearch}>
-            <TopBarSegmentedControl<SiteNavigationTopBarSearchMode>
-              value={settings.searchMode ?? 'menu'}
-              options={[
-                { value: 'menu', label: 'V meniju' },
-                { value: 'icon', label: 'Ikona' },
-                { value: 'secondRow', label: 'Druga vrstica', disabled: settings.rowPattern !== 'double' }
-              ]}
-              onChange={(searchMode) => onChange({ searchMode })}
-            />
-          </TopBarSettingsGroup>
-          <div className="border-t border-slate-100 pt-4">
-            <TopBarToggle label="Varno območje" help={topBarHelpCopy.safeArea} checked={settings.safeArea !== false} onChange={(safeArea) => onChange({ safeArea })} />
-          </div>
+            </div>
+          ) : null}
         </div>
-      </aside>
+      </div>
     );
   }
 
@@ -2048,6 +4013,7 @@ function TopBarLayoutEditor({
   layout,
   initialLayout,
   items,
+  isSaving,
   onChange,
   onSiteLayoutChange,
   onSetInitialLayout
@@ -2056,17 +4022,25 @@ function TopBarLayoutEditor({
   layout: SiteNavigationTopBarLayout;
   initialLayout: SiteNavigationTopBarLayout;
   items: SiteNavigationTopLevelItem[];
+  isSaving: boolean;
   onChange: (updater: (current: SiteNavigationTopBarLayout) => SiteNavigationTopBarLayout) => void;
   onSiteLayoutChange: (updates: Partial<SiteNavigationSiteLayoutSettings>) => void;
-  onSetInitialLayout: (layout: SiteNavigationTopBarLayout) => void;
+  onSetInitialLayout: (layout: SiteNavigationTopBarLayout) => void | Promise<void>;
 }) {
   const [showHeaderPreview, setShowHeaderPreview] = useState(false);
   const [showTechnicalOverlay, setShowTechnicalOverlay] = useState(false);
   const [device, setDevice] = useState<SiteNavigationTopBarDevice>('desktop');
   const [selectedElementId, setSelectedElementId] = useState<SiteNavigationTopBarElementId>('navigation');
+  const [selectedTableElementIds, setSelectedTableElementIds] = useState<SiteNavigationTopBarElementId[]>([]);
+  const [addElementMenuOpen, setAddElementMenuOpen] = useState(false);
+  const [activeEdit, setActiveEditState] = useState<TopBarActiveEdit>({ kind: null });
+  const activeEditFadeTimerRef = useRef<number | null>(null);
+  const addElementMenuRef = useRef<HTMLDivElement | null>(null);
+  const addElementMenuDismissRefs = useMemo(() => [addElementMenuRef], []);
   const deviceLayout = layout.responsive[device];
   const defaultDeviceLayout = initialLayout.responsive[device];
-  const layoutItems = sortedResponsiveItems(deviceLayout.items);
+  const layoutItems = useMemo(() => sortedResponsiveItems(deviceLayout.items), [deviceLayout.items]);
+  const layoutItemIdsKey = layoutItems.map((item) => item.id).join('|');
   const previewNavigation = useMemo(
     () =>
       normalizeSiteNavigationConfig({
@@ -2078,6 +4052,28 @@ function TopBarLayoutEditor({
       } satisfies SiteNavigationConfig),
     [initialLayout, items, layout, siteLayout]
   );
+  const technicalPreviewNavigation = useMemo(() => {
+    const selectedResponsiveLayout = previewNavigation.topBarLayout.responsive[device];
+    const selectedInitialResponsiveLayout = previewNavigation.topBarInitialLayout.responsive[device];
+
+    return normalizeSiteNavigationConfig({
+      ...previewNavigation,
+      topBarLayout: {
+        ...previewNavigation.topBarLayout,
+        responsive: {
+          ...previewNavigation.topBarLayout.responsive,
+          desktop: selectedResponsiveLayout
+        }
+      },
+      topBarInitialLayout: {
+        ...previewNavigation.topBarInitialLayout,
+        responsive: {
+          ...previewNavigation.topBarInitialLayout.responsive,
+          desktop: selectedInitialResponsiveLayout
+        }
+      }
+    });
+  }, [device, previewNavigation]);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -2098,17 +4094,150 @@ function TopBarLayoutEditor({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (activeEditFadeTimerRef.current !== null) {
+        window.clearTimeout(activeEditFadeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const currentIds = new Set(layoutItems.map((item) => item.id));
+
+    setSelectedTableElementIds((current) => current.filter((id) => currentIds.has(id)));
+
+    if (layoutItems.length > 0 && !currentIds.has(selectedElementId)) {
+      setSelectedElementId(layoutItems[0].id);
+    }
+  }, [layoutItemIdsKey, layoutItems, selectedElementId]);
+
+  useDropdownDismiss({ open: addElementMenuOpen, refs: addElementMenuDismissRefs, onClose: () => setAddElementMenuOpen(false) });
+
+  const setActiveEdit = useCallback((edit: TopBarActiveEdit) => {
+    if (activeEditFadeTimerRef.current !== null) {
+      window.clearTimeout(activeEditFadeTimerRef.current);
+      activeEditFadeTimerRef.current = null;
+    }
+
+    setActiveEditState(edit);
+    if (edit.elementId) setSelectedElementId(edit.elementId);
+  }, []);
+
+  const clearActiveEditSoon = useCallback(() => {
+    if (activeEditFadeTimerRef.current !== null) {
+      window.clearTimeout(activeEditFadeTimerRef.current);
+    }
+
+    activeEditFadeTimerRef.current = window.setTimeout(() => {
+      setActiveEditState({ kind: null });
+      activeEditFadeTimerRef.current = null;
+    }, 900);
+  }, []);
+
   const updateDeviceLayout = (
     updater: (current: SiteNavigationTopBarLayout['responsive'][SiteNavigationTopBarDevice]) => SiteNavigationTopBarLayout['responsive'][SiteNavigationTopBarDevice]
   ) => {
     onChange((current) => updateResponsiveLayout(current, device, updater));
   };
 
+  const normalizeDeviceItemWidth = (
+    item: SiteNavigationTopBarResponsiveItem,
+    settings: SiteNavigationTopBarResponsiveSettings
+  ): SiteNavigationTopBarResponsiveItem => {
+    const widthMode = deriveTopBarElementWidthMode(item, device, settings);
+    const fixedWidthPx = widthMode === 'fixed'
+      ? getDerivedTopBarFixedWidthPx(item, device, settings)
+      : null;
+
+    return {
+      ...item,
+      widthMode,
+      fixedWidthPx,
+      widthPx: item.widthPx > 0 ? item.widthPx : fixedWidthPx ?? getTopBarElementComputedWidth({ item, items, device, settings })
+    };
+  };
+
   const updateDeviceItem = (id: SiteNavigationTopBarElementId, updates: Partial<SiteNavigationTopBarResponsiveItem>) => {
     updateDeviceLayout((current) => ({
       ...current,
-      items: current.items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      items: current.items.map((item) => (item.id === id ? normalizeDeviceItemWidth({ ...item, ...updates }, current.settings) : item))
     }));
+  };
+
+  const addTopBarElement = (id: SiteNavigationTopBarElementId) => {
+    const defaultItem =
+      defaultDeviceLayout.items.find((item) => item.id === id) ??
+      DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive[device].items.find((item) => item.id === id);
+    if (!defaultItem || deviceLayout.items.some((item) => item.id === id)) return;
+
+    updateDeviceLayout((current) => ({
+      ...current,
+      items: sortedResponsiveItems([
+        ...current.items,
+        normalizeDeviceItemWidth({ ...defaultItem, visible: true }, current.settings)
+      ]).map((item, position) => ({ ...item, position }))
+    }));
+    setSelectedTableElementIds([]);
+    setSelectedElementId(id);
+    setActiveEdit({ kind: 'position', elementId: id, fieldName: 'x' });
+    setAddElementMenuOpen(false);
+  };
+
+  const chooseTopBarElementType = (id: SiteNavigationTopBarElementId) => {
+    const existingItem = deviceLayout.items.find((item) => item.id === id);
+
+    if (existingItem) {
+      setSelectedTableElementIds([]);
+      setSelectedElementId(id);
+      setActiveEdit({ kind: 'position', elementId: id, fieldName: 'element' });
+      setAddElementMenuOpen(false);
+      return;
+    }
+
+    addTopBarElement(id);
+  };
+
+  const deleteSelectedTopBarElements = () => {
+    if (selectedTableElementIds.length === 0) return;
+
+    const selectedIds = new Set(selectedTableElementIds);
+    const nextSelectedElementId = layoutItems.find((item) => !selectedIds.has(item.id))?.id;
+
+    updateDeviceLayout((current) => ({
+      ...current,
+      items: current.items
+        .filter((item) => !selectedIds.has(item.id))
+        .map((item, position) => ({ ...item, position }))
+    }));
+    setSelectedTableElementIds([]);
+
+    if (selectedIds.has(selectedElementId) && nextSelectedElementId) {
+      setSelectedElementId(nextSelectedElementId);
+    }
+  };
+
+  const moveDeviceItem = (id: SiteNavigationTopBarElementId, xPx: number, xRatio: number) => {
+    updateDeviceLayout((current) => {
+      const maxZIndex = current.items.reduce((max, item) => Math.max(max, item.zIndex), 0);
+
+      return {
+        ...current,
+        items: current.items.map((item) =>
+          item.id === id
+            ? normalizeDeviceItemWidth(
+                {
+                  ...item,
+                  xPx,
+                  xRatio,
+                  zIndex: maxZIndex + 1
+                },
+                current.settings
+              )
+            : item
+        )
+      };
+    });
   };
 
   const updateSettings = (updates: Partial<SiteNavigationTopBarResponsiveSettings>) => {
@@ -2118,15 +4247,98 @@ function TopBarLayoutEditor({
     }));
   };
 
+  const updateDesktopBreakpointFrom = (nextDesktopBreakpointFrom: number) => {
+    const tabletBreakpointFrom = layout.responsive.tablet.settings.breakpointFrom ?? 768;
+    const breakpointTo = Math.max(tabletBreakpointFrom, nextDesktopBreakpointFrom - 1);
+
+    onChange((current) =>
+      updateResponsiveLayout(current, 'tablet', (tabletLayout) => ({
+        ...tabletLayout,
+        settings: {
+          ...tabletLayout.settings,
+          breakpointTo
+        }
+      }))
+    );
+  };
+
   const resetDeviceItem = (id: SiteNavigationTopBarElementId) => {
-    const defaultItem = defaultDeviceLayout.items.find((item) => item.id === id);
+    const defaultItem =
+      defaultDeviceLayout.items.find((item) => item.id === id) ??
+      DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive[device].items.find((item) => item.id === id);
     if (!defaultItem) return;
     updateDeviceItem(id, defaultItem);
   };
 
   const rowSettingLimits = topBarRowSettingLimits[device];
-  const hasDeviceSettingsPanel = device !== 'desktop';
-  const selectedDevicePreviewWidth = device === 'desktop' ? siteLayout.siteContentMaxWidthPx : topBarDevicePreviewWidths[device];
+  const hasDeviceSettingsPanel = device === 'mobile';
+  const selectedDevicePreviewWidth = getTopBarPreviewViewportWidth(device, deviceLayout.settings, siteLayout);
+  const selectedWidthLabel = getTopBarSelectedWidthLabel(deviceLayout.settings, selectedDevicePreviewWidth);
+  const tabletBreakpointFrom = layout.responsive.tablet.settings.breakpointFrom ?? 768;
+  const desktopBreakpointFrom = (layout.responsive.tablet.settings.breakpointTo ?? 1024) + 1;
+  const desktopBreakpointMin = tabletBreakpointFrom + 1;
+  const tablePlacementGeometry = useMemo(
+    () =>
+      calculateTopBarGeometry({
+        viewportWidth: selectedDevicePreviewWidth / COMMERCIAL_STOREFRONT_SCALE,
+        viewportHeight: Math.max(44, deviceLayout.settings.height),
+        siteLayout: getTopBarStorefrontGeometrySiteLayout(siteLayout),
+        settings: getTopBarStorefrontGeometrySettings(deviceLayout.settings),
+        layoutItems,
+        items,
+        device,
+        labelScale: COMMERCIAL_STOREFRONT_SCALE,
+        coordinateScale: COMMERCIAL_STOREFRONT_SCALE
+      }),
+    [device, deviceLayout.settings, items, layoutItems, selectedDevicePreviewWidth, siteLayout]
+  );
+  const placementBoundsWidth = Math.round(tablePlacementGeometry.contentRect.width * COMMERCIAL_STOREFRONT_SCALE);
+  const tableOffsetLabels = useMemo(() => {
+    const placementRects = layoutItems
+      .map((item) => {
+        const computedWidth = getTopBarElementComputedWidth({ item, items, device, settings: deviceLayout.settings });
+        const rect = tablePlacementGeometry.elementRects[item.id];
+        const x = rect
+          ? Math.round((rect.x - tablePlacementGeometry.contentRect.x) * COMMERCIAL_STOREFRONT_SCALE)
+          : getTopBarElementXInBounds(item, placementBoundsWidth, computedWidth);
+        const width = rect ? Math.round(rect.width * COMMERCIAL_STOREFRONT_SCALE) : Math.round(computedWidth);
+
+        return { id: item.id, x, width, zIndex: item.zIndex };
+      })
+      .sort((first, second) => {
+        const xDelta = first.x - second.x;
+        return xDelta === 0 ? first.zIndex - second.zIndex : xDelta;
+      });
+    const labels: Partial<Record<SiteNavigationTopBarElementId, string>> = {};
+
+    placementRects.forEach((rect, index) => {
+      const previousRect = placementRects[index - 1];
+      const nextRect = placementRects[index + 1];
+      const leftGap = previousRect ? rect.x - (previousRect.x + previousRect.width) : rect.x;
+      const rightGap = nextRect ? nextRect.x - (rect.x + rect.width) : placementBoundsWidth - (rect.x + rect.width);
+
+      labels[rect.id] = `${formatTopBarTableGapValue(leftGap, 'left')} | ${formatTopBarTableGapValue(rightGap)}`;
+    });
+
+    layoutItems.forEach((item) => {
+      if (!labels[item.id]) labels[item.id] = '0 | 0';
+    });
+
+    return labels;
+  }, [device, deviceLayout.settings, items, layoutItems, placementBoundsWidth, tablePlacementGeometry.contentRect.x, tablePlacementGeometry.elementRects]);
+  const tableGridClassName = topBarElementRowGridClassName;
+  const tableMinWidthClassName = topBarElementRowMinWidthClassName;
+  const selectedTableElementIdSet = useMemo(() => new Set(selectedTableElementIds), [selectedTableElementIds]);
+  const allTableRowsSelected = layoutItems.length > 0 && layoutItems.every((item) => selectedTableElementIdSet.has(item.id));
+  const addElementChoices = useMemo(() => {
+    const currentIds = new Set(deviceLayout.items.map((item) => item.id));
+
+    return DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive[device].items.map((item) => ({
+      id: item.id,
+      alreadyAdded: currentIds.has(item.id)
+    }));
+  }, [device, deviceLayout.items]);
+  const hasSelectedTableElements = selectedTableElementIds.length > 0;
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -2159,7 +4371,10 @@ function TopBarLayoutEditor({
             variant="primary"
             size="toolbar"
             className={`gap-2 whitespace-nowrap ${adminTablePrimaryButtonClassName}`}
-            onClick={() => onSetInitialLayout(cloneTopBarLayout(layout))}
+            onClick={() => {
+              void onSetInitialLayout(cloneTopBarLayout(layout));
+            }}
+            disabled={isSaving}
           >
             <SaveIcon className="h-4 w-4" />
             Nastavi kot privzete nastavitve
@@ -2167,9 +4382,9 @@ function TopBarLayoutEditor({
         </div>
       </div>
 
-      <div className={`grid min-w-0 items-start gap-4 ${hasDeviceSettingsPanel ? 'min-[1680px]:grid-cols-[minmax(0,1fr)_320px]' : ''}`}>
-        <div className="grid min-w-0 gap-4">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="grid min-w-0 items-start gap-4">
+        <div className="grid min-w-0 gap-4 min-[1180px]:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)]">
+          <div className="col-span-full flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               {(Object.keys(topBarDeviceLabels) as SiteNavigationTopBarDevice[]).map((currentDevice) => (
                 <button
@@ -2184,163 +4399,311 @@ function TopBarLayoutEditor({
                   {topBarDeviceLabels[currentDevice]}
                 </button>
               ))}
-              <button
-                type="button"
-                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses} ${
-                  showTechnicalOverlay ? 'text-[color:var(--blue-500)]' : 'text-slate-500 hover:text-[color:var(--blue-500)]'
-                }`}
-                onClick={() => setShowTechnicalOverlay((current) => !current)}
-              >
-                <TopBarHelpLabel help={topBarHelpCopy.previewGrid} align="left" className="text-[12px] font-medium leading-none">
-                  Mreža
-                </TopBarHelpLabel>
-              </button>
             </div>
           </div>
 
-          <TopBarResponsivePreview
-            device={device}
-            siteLayout={siteLayout}
-            settings={deviceLayout.settings}
-            navigation={previewNavigation}
-            showOverlay={showTechnicalOverlay}
-          />
-
-          <div className="grid min-w-0 justify-start gap-4 border-t border-slate-100 pt-4 min-[1100px]:grid-cols-[auto_auto]">
-            <TopBarCompactSettingsGroup title="Način">
-              <div className="flex min-w-0 flex-wrap items-end gap-3">
-                <div className="grid gap-1.5">
-                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[12px] font-medium leading-none text-slate-600">
-                    Širina
-                  </TopBarHelpLabel>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <TopBarSegmentedControl<SiteNavigationTopBarWidthMode>
-                      value={deviceLayout.settings.widthMode}
-                      options={[
-                        { value: 'match_content', label: topBarWidthModeLabels.match_content },
-                        { value: 'custom', label: topBarWidthModeLabels.custom },
-                        { value: 'full', label: topBarWidthModeLabels.full }
-                      ]}
-                      onChange={(widthMode) => updateSettings({ widthMode })}
-                    />
-                  </div>
-                </div>
-                {deviceLayout.settings.widthMode === 'custom' ? (
-                  <TopBarMiniNumberField
-                    label="Max širina"
-                    help={topBarHelpCopy.customWidth}
-                    value={deviceLayout.settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx}
-                    min={640}
-                    max={2400}
-                    onChange={(customMaxWidthPx) => updateSettings({ customMaxWidthPx })}
-                  />
-                ) : null}
-                <div className="grid gap-1.5">
-                  <TopBarHelpLabel help={topBarHelpCopy.layoutMode} align="right" className="text-[12px] font-medium leading-none text-slate-600">
-                    Postavitev
-                  </TopBarHelpLabel>
-                  <TopBarSegmentedControl<SiteNavigationTopBarConstraintLayoutMode>
-                    value={deviceLayout.settings.layoutMode}
-                    options={[
-                      { value: 'centered_nav', label: topBarConstraintLayoutModeLabels.centered_nav },
-                      { value: 'flow', label: topBarConstraintLayoutModeLabels.flow }
-                    ]}
-                    onChange={(layoutMode) => updateSettings({ layoutMode })}
-                  />
-                </div>
-              </div>
-            </TopBarCompactSettingsGroup>
-
-            <TopBarCompactSettingsGroup title="Kontejner">
-              <div className="grid grid-cols-[88px_72px_72px_72px_72px_72px] gap-2">
-                <TopBarMiniNumberField
-                  label="Širina"
-                  help={topBarHelpCopy.siteContentWidth}
-                  value={siteLayout.siteContentMaxWidthPx}
-                  min={960}
-                  max={1920}
-                  onChange={(siteContentMaxWidthPx) => onSiteLayoutChange({ siteContentMaxWidthPx })}
-                />
-                <TopBarMiniNumberField
-                  label="Višina"
-                  help={topBarHelpCopy.topBarHeight}
-                  value={deviceLayout.settings.height}
-                  min={rowSettingLimits.height.min}
-                  max={rowSettingLimits.height.max}
-                  onChange={(height) => updateSettings({ height })}
-                />
-                <TopBarMiniNumberField
-                  label="Rob min"
-                  help={topBarHelpCopy.gutterMin}
-                  value={siteLayout.siteGutterMinPx}
-                  min={0}
-                  max={64}
-                  onChange={(siteGutterMinPx) => onSiteLayoutChange({ siteGutterMinPx })}
-                />
-                <TopBarMiniNumberField
-                  label="Rob max"
-                  help={topBarHelpCopy.gutterMax}
-                  value={siteLayout.siteGutterMaxPx}
-                  min={0}
-                  max={96}
-                  onChange={(siteGutterMaxPx) => onSiteLayoutChange({ siteGutterMaxPx })}
-                />
-                <TopBarMiniNumberField
-                  label="Stolpci"
-                  help={topBarHelpCopy.columnGap}
-                  value={deviceLayout.settings.columnGapPx}
-                  min={0}
-                  max={96}
-                  onChange={(columnGapPx) => updateSettings({ columnGapPx })}
-                />
-                <TopBarMiniNumberField
-                  label="Elementi"
-                  help={topBarHelpCopy.itemGap}
-                  value={deviceLayout.settings.itemGapPx}
-                  min={0}
-                  max={64}
-                  onChange={(itemGapPx) => updateSettings({ itemGapPx })}
-                />
-              </div>
-            </TopBarCompactSettingsGroup>
+          <div className="col-span-full">
+            <TopBarResponsivePreview
+              device={device}
+              navigation={technicalPreviewNavigation}
+              siteLayout={siteLayout}
+              settings={deviceLayout.settings}
+              layoutItems={layoutItems}
+              items={items}
+              selectedElementId={selectedElementId}
+              activeEdit={activeEdit}
+              showOverlay={showTechnicalOverlay}
+              onToggleOverlay={() => setShowTechnicalOverlay((current) => !current)}
+              onSelectElement={setSelectedElementId}
+              onSetActiveEdit={setActiveEdit}
+              onClearActiveEditSoon={clearActiveEditSoon}
+              onUpdateItem={updateDeviceItem}
+              onMoveElement={moveDeviceItem}
+            />
           </div>
 
-          <div className="min-w-0">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-[13px] font-semibold text-slate-900">Elementi v vrstici</h3>
+          <div className="min-w-0 self-stretch border-t border-slate-100 pt-4 min-[1180px]:col-start-2 min-[1180px]:row-start-3 min-[1180px]:border-t-0 min-[1180px]:pt-0">
+            <aside className={`grid h-full min-w-0 content-start rounded-xl border border-slate-200 bg-white p-4 ${device === 'mobile' ? 'gap-3' : 'gap-4'}`}>
+              <section className="min-w-0">
+                <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+                    Širina zgornje vrstice
+                  </TopBarHelpLabel>
                 </div>
-                <span className="rounded-md bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">{selectedDevicePreviewWidth}px</span>
+                <div className="grid min-w-0 gap-2">
+                  <TopBarSegmentedControl<SiteNavigationTopBarWidthMode>
+                    value={deviceLayout.settings.widthMode}
+                    activeValue={activeEdit.kind === 'width-mode' ? activeEdit.fieldName as SiteNavigationTopBarWidthMode : null}
+                    options={[
+                      { value: 'match_content', label: topBarWidthModeLabels.match_content },
+                      { value: 'custom', label: topBarWidthModeLabels.custom },
+                      { value: 'full', label: topBarWidthModeLabels.full }
+                    ]}
+                    onChange={(widthMode) => {
+                      setActiveEdit({ kind: 'width-mode', fieldName: widthMode });
+                      updateSettings({ widthMode });
+                    }}
+                    onOptionActive={(widthMode) => setActiveEdit({ kind: 'width-mode', fieldName: widthMode })}
+                    onOptionInactive={clearActiveEditSoon}
+                  />
+                  {deviceLayout.settings.widthMode === 'custom' ? (
+                    <TopBarMiniNumberField
+                      label="Po meri"
+                      help={topBarHelpCopy.customWidth}
+                      value={deviceLayout.settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx}
+                      min={640}
+                      max={2400}
+                      active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'customMaxWidthPx'}
+                      onBlur={clearActiveEditSoon}
+                      onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
+                      onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
+                      onMouseLeave={clearActiveEditSoon}
+                      onChange={(customMaxWidthPx) => {
+                        setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' });
+                        updateSettings({ customMaxWidthPx });
+                      }}
+                    />
+                  ) : null}
+                  {device !== 'desktop' ? (
+                    <div className="mt-2">
+                      <TopBarDeviceSettingsPanel device={device} settings={deviceLayout.settings} onChange={updateSettings} scope="navigation" />
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="min-w-0">
+                <div className="grid min-w-0 gap-2">
+                  <TopBarMiniNumberField
+                    layout="row"
+                    label="Višina"
+                    help={topBarHelpCopy.topBarHeight}
+                    value={deviceLayout.settings.height}
+                    min={rowSettingLimits.height.min}
+                    max={rowSettingLimits.height.max}
+                    active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'height'}
+                    onBlur={clearActiveEditSoon}
+                    onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'height' })}
+                    onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'height' })}
+                    onMouseLeave={clearActiveEditSoon}
+                    onChange={(height) => {
+                      setActiveEdit({ kind: 'container-width', fieldName: 'height' });
+                      updateSettings({ height });
+                    }}
+                  />
+                  {device === 'desktop' ? (
+                    <TopBarMiniBreakpointField
+                      label="Prelomna širina"
+                      help={topBarHelpCopy.breakpoint}
+                      value={`${desktopBreakpointFrom}+`}
+                      min={desktopBreakpointMin}
+                      max={2400}
+                      active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'desktopBreakpointFrom'}
+                      onBlur={clearActiveEditSoon}
+                      onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'desktopBreakpointFrom' })}
+                      onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'desktopBreakpointFrom' })}
+                      onMouseLeave={clearActiveEditSoon}
+                      onChange={(nextDesktopBreakpointFrom) => {
+                        setActiveEdit({ kind: 'container-width', fieldName: 'desktopBreakpointFrom' });
+                        updateDesktopBreakpointFrom(nextDesktopBreakpointFrom);
+                      }}
+                    />
+                  ) : null}
+                  {device === 'tablet' ? (
+                    <TopBarMiniRangeField
+                      layout="row"
+                      label="Prelomna širina"
+                      help={topBarHelpCopy.breakpoint}
+                      startValue={deviceLayout.settings.breakpointFrom ?? 768}
+                      endValue={deviceLayout.settings.breakpointTo ?? 1024}
+                      min={320}
+                      max={1920}
+                      onChange={(breakpointFrom, breakpointTo) => updateSettings({ breakpointFrom, breakpointTo })}
+                    />
+                  ) : null}
+                  {device === 'mobile' ? (
+                    <TopBarMiniRangeField
+                      layout="row"
+                      label="Prelomna širina"
+                      help={topBarHelpCopy.breakpoint}
+                      startValue={0}
+                      endValue={deviceLayout.settings.breakpointTo ?? 767}
+                      min={0}
+                      max={1200}
+                      active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'mobileBreakpointTo'}
+                      onBlur={clearActiveEditSoon}
+                      onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'mobileBreakpointTo' })}
+                      onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'mobileBreakpointTo' })}
+                      onMouseLeave={clearActiveEditSoon}
+                      onChange={(_breakpointFrom, breakpointTo) => {
+                        setActiveEdit({ kind: 'container-width', fieldName: 'mobileBreakpointTo' });
+                        updateSettings({ breakpointTo });
+                      }}
+                    />
+                  ) : null}
+                  <TopBarMiniRangeField
+                    layout="row"
+                    label="Min in Max odmik"
+                    help={`${topBarHelpCopy.gutterMin} ${topBarHelpCopy.gutterMax}`}
+                    startValue={siteLayout.siteGutterMinPx}
+                    endValue={siteLayout.siteGutterMaxPx}
+                    min={0}
+                    max={96}
+                    active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'siteGutterRangePx'}
+                    onBlur={clearActiveEditSoon}
+                    onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'siteGutterRangePx' })}
+                    onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'siteGutterRangePx' })}
+                    onMouseLeave={clearActiveEditSoon}
+                    onChange={(siteGutterMinPx, siteGutterMaxPx) => {
+                      setActiveEdit({ kind: 'container-width', fieldName: 'siteGutterRangePx' });
+                      onSiteLayoutChange({ siteGutterMinPx, siteGutterMaxPx });
+                    }}
+                  />
+                </div>
+              </section>
+
+              {hasDeviceSettingsPanel ? (
+                <TopBarDeviceSettingsPanel device={device} settings={deviceLayout.settings} onChange={updateSettings} scope="extras" />
+              ) : null}
+            </aside>
+
+          </div>
+
+          <div className="min-w-0 min-[1180px]:col-start-1 min-[1180px]:row-start-3">
+            <div className="relative overflow-visible rounded-xl bg-white">
+              <div className="flex min-h-[58px] items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+                <h3 className="text-base font-semibold text-slate-900">Elementi v vrstici</h3>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">{selectedWidthLabel}</span>
+                  <div ref={addElementMenuRef} className="relative">
+                    <IconButton
+                      type="button"
+                      tone="neutral"
+                      className={adminTableNeutralIconButtonClassName}
+                      aria-label="Dodaj element v vrstico"
+                      title="Dodaj element"
+                      onClick={() => setAddElementMenuOpen((current) => !current)}
+                    >
+                      <PlusIcon />
+                    </IconButton>
+                    {addElementMenuOpen ? (
+                      <MenuPanel className="absolute right-0 top-full z-[120] mt-2 w-72 p-2">
+                        <div className="px-2 pb-2 pt-1">
+                          <p className="text-[12px] font-semibold leading-4 text-slate-900">Dodaj element</p>
+                          <p className="mt-0.5 text-[11px] leading-4 text-slate-500">Izberite vrsto elementa za zgornjo vrstico.</p>
+                        </div>
+                        <div className="grid gap-1">
+                          {addElementChoices.map(({ id, alreadyAdded }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              aria-label={alreadyAdded ? `Izberi obstoječi element ${topBarLayoutLabels[id]}` : `Dodaj element ${topBarLayoutLabels[id]}`}
+                              className="group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-[12px] transition hover:bg-[color:var(--hover-neutral)] focus-visible:border focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0"
+                              onClick={() => chooseTopBarElementType(id)}
+                            >
+                              <AdminTopBarElementBadge id={id} />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate font-medium text-slate-900">{topBarLayoutLabels[id]}</span>
+                                <span className="block truncate text-[11px] leading-4 text-slate-500">
+                                  {alreadyAdded ? 'Element je že v vrstici' : 'Dodaj v trenutno napravo'}
+                                </span>
+                              </span>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium leading-none ${
+                                  alreadyAdded
+                                    ? 'bg-slate-50 text-slate-500'
+                                    : 'bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
+                                }`}
+                              >
+                                {alreadyAdded ? 'Izberi' : 'Dodaj'}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </MenuPanel>
+                    ) : null}
+                  </div>
+                  <IconButton
+                    type="button"
+                    tone={hasSelectedTableElements ? 'danger' : 'neutral'}
+                    className={hasSelectedTableElements ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
+                    aria-label="Izbriši izbrane elemente"
+                    title="Izbriši izbrane"
+                    disabled={!hasSelectedTableElements}
+                    onClick={deleteSelectedTopBarElements}
+                  >
+                    <TrashCanIcon />
+                  </IconButton>
+                </div>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <div className={`grid ${topBarElementRowMinWidthClassName} ${topBarElementRowGridClassName} gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-500`}>
+              <div className="overflow-x-auto">
+                <div className={`grid ${tableMinWidthClassName} ${tableGridClassName} gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-500`}>
+                  <span className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={allTableRowsSelected}
+                      aria-label="Izberi vse elemente v vrstici"
+                      className="h-4 w-4 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-[color:var(--blue-500)]"
+                      onChange={(event) => {
+                        setSelectedTableElementIds(event.target.checked ? layoutItems.map((item) => item.id) : []);
+                      }}
+                    />
+                  </span>
                   <span>Element</span>
-                  <TopBarHelpLabel help={topBarHelpCopy.slot} className="justify-center text-center">Pozicija</TopBarHelpLabel>
-                  <TopBarHelpLabel help={topBarHelpCopy.order} className="justify-center text-center">Red</TopBarHelpLabel>
-                  <TopBarHelpLabel help={topBarHelpCopy.widthModeColumn} className="justify-center text-center">Način širine</TopBarHelpLabel>
-                  <TopBarHelpLabel help={topBarHelpCopy.offsetsColumn} className="justify-center text-center">Odmiki</TopBarHelpLabel>
+                  <span className="text-center">X</span>
                   <TopBarHelpLabel help={topBarHelpCopy.widthColumn} className="justify-center text-center">Širina</TopBarHelpLabel>
+                  <span className="text-center">Odmiki</span>
+                  <span className="text-center">Vidnost</span>
                   <TopBarHelpLabel help={topBarHelpCopy.editColumn} align="right" className="justify-center text-center">Uredi</TopBarHelpLabel>
                 </div>
-                {layoutItems.map((item, index) => (
+                {layoutItems.length > 0 ? layoutItems.map((item, index) => (
                   <TopBarElementRow
                     key={item.id}
                     item={item}
                     device={device}
                     settings={deviceLayout.settings}
                     items={items}
-                    selected={selectedElementId === item.id}
+                    placementBoundsWidth={placementBoundsWidth}
+                    currentXPx={
+                      tablePlacementGeometry.elementRects[item.id]
+                        ? Math.round(((tablePlacementGeometry.elementRects[item.id]?.x ?? tablePlacementGeometry.contentRect.x) - tablePlacementGeometry.contentRect.x) * COMMERCIAL_STOREFRONT_SCALE)
+                        : getTopBarElementXInBounds(
+                            item,
+                            placementBoundsWidth,
+                            getTopBarElementComputedWidth({ item, items, device, settings: deviceLayout.settings })
+                          )
+                    }
+                    offsetLabel={tableOffsetLabels[item.id] ?? '0 | 0'}
+                    selected={selectedElementId === item.id || activeEdit.elementId === item.id}
+                    checked={selectedTableElementIdSet.has(item.id)}
                     isLast={index === layoutItems.length - 1}
+                    activeEdit={activeEdit}
                     onSelect={() => setSelectedElementId(item.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedTableElementIds((current) =>
+                        checked
+                          ? current.includes(item.id)
+                            ? current
+                            : [...current, item.id]
+                          : current.filter((selectedId) => selectedId !== item.id)
+                      );
+                    }}
+                    onSetActiveEdit={setActiveEdit}
+                    onClearActiveEditSoon={clearActiveEditSoon}
                     onChange={(updates) => updateDeviceItem(item.id, updates)}
                     onReset={() => resetDeviceItem(item.id)}
                   />
-                ))}
+                )) : (
+                  <div className={`${tableMinWidthClassName} px-4 py-8 text-center text-[13px] text-slate-500`}>
+                    V vrstici ni elementov. Dodajte element z gumbom +.
+                  </div>
+                )}
               </div>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[80] rounded-xl border border-slate-200" />
+            </div>
           </div>
         </div>
 
-        {hasDeviceSettingsPanel ? <TopBarDeviceSettingsPanel device={device} settings={deviceLayout.settings} onChange={updateSettings} /> : null}
       </div>
     </section>
   );
@@ -3233,8 +5596,12 @@ function LinkEditor({
         event.stopPropagation();
         setMenuOpen(true);
       }}
-      className={`group relative grid grid-cols-[32px_minmax(0,1fr)_24px] items-start gap-3 rounded-lg px-2 py-1.5 transition hover:bg-[color:var(--hover-neutral)] ${rowLayerClass} ${
-        isDragging ? 'bg-white opacity-80 shadow-lg' : ''
+      className={`group relative grid grid-cols-[32px_minmax(0,1fr)_24px] items-start gap-3 rounded-lg px-2 py-1.5 transition hover:bg-slate-50 ${rowLayerClass} ${
+        isDragging
+          ? 'bg-white opacity-80 shadow-lg'
+          : rowHovered || rowFocused || menuOpen || urlOpen
+            ? navEditorRowHoverClassName
+            : ''
       } ${link.visible ? '' : 'bg-slate-50/60'}`}
     >
       <button
@@ -3489,9 +5856,19 @@ function GroupEditor({
           </div>
         </SortableContext>
       </DndContext>
-      <Button type="button" variant="primary" size="toolbar" className={`${adminTablePrimaryButtonClassName} ml-2 mt-3`} onClick={onAddLink}>
-        Dodaj povezavo
-      </Button>
+      <div className="mt-3 pl-2">
+        <IconButton
+          type="button"
+          size="sm"
+          tone="neutral"
+          className={adminTableNeutralIconButtonClassName}
+          aria-label="Dodaj povezavo"
+          title="Dodaj povezavo"
+          onClick={onAddLink}
+        >
+          <PlusIcon />
+        </IconButton>
+      </div>
     </div>
   );
 }
@@ -3564,13 +5941,6 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
     updateConfig((current) => ({
       ...current,
       topBarLayout: updater(current.topBarLayout)
-    }));
-  }
-
-  function updateTopBarInitialLayout(layout: SiteNavigationTopBarLayout) {
-    updateConfig((current) => ({
-      ...current,
-      topBarInitialLayout: layout
     }));
   }
 
@@ -3813,13 +6183,16 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
     setSelectedItemId(defaults.items[0]?.id ?? '');
   }
 
-  async function save() {
+  async function persistConfig(nextConfig: SiteNavigationConfig, successMessage: string) {
+    const payloadConfig = normalizeSiteNavigationConfig(nextConfig);
+
+    setConfig(payloadConfig);
     setIsSaving(true);
     try {
       const response = await fetch('/api/admin/site-navigation', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config })
+        body: JSON.stringify({ config: payloadConfig })
       });
 
       const body = await response.json().catch(() => ({}));
@@ -3827,20 +6200,34 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
         throw new Error(typeof body.message === 'string' ? body.message : 'Shranjevanje navigacije ni uspelo.');
       }
 
-      const nextConfig = normalizeSiteNavigationConfig(body.config ?? config);
-      setConfig(nextConfig);
-      setSavedConfig(nextConfig);
+      const persistedConfig = normalizeSiteNavigationConfig(body.config ?? payloadConfig);
+      setConfig(persistedConfig);
+      setSavedConfig(persistedConfig);
       setSelectedItemId((current) => {
-        if (nextConfig.items.some((item) => item.id === current)) return current;
-        return nextConfig.items[0]?.id ?? '';
+        if (persistedConfig.items.some((item) => item.id === current)) return current;
+        return persistedConfig.items[0]?.id ?? '';
       });
-      toast.success('Navigacija je shranjena.');
+      toast.success(successMessage);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje navigacije ni uspelo.');
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function save() {
+    await persistConfig(config, 'Navigacija je shranjena.');
+  }
+
+  async function setCurrentTopBarAsDefaults(layout: SiteNavigationTopBarLayout) {
+    await persistConfig(
+      {
+        ...config,
+        topBarInitialLayout: cloneTopBarLayout(layout)
+      },
+      'Privzete nastavitve zgornje vrstice so shranjene.'
+    );
   }
 
   return (
@@ -3864,9 +6251,10 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
         layout={config.topBarLayout}
         initialLayout={config.topBarInitialLayout}
         items={config.items}
+        isSaving={isSaving}
         onChange={updateTopBarLayout}
         onSiteLayoutChange={updateSiteLayout}
-        onSetInitialLayout={updateTopBarInitialLayout}
+        onSetInitialLayout={setCurrentTopBarAsDefaults}
       />
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">

@@ -50,7 +50,7 @@ export default async function ItemPage(
 
   return (
     <div className="container-base py-12">
-      <div className="max-w-3xl">
+      <div className="w-full">
         <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">{category.title} · {subcategory.title}</p>
         <h1 className="mt-3 text-3xl font-semibold text-slate-900">{item.name}</h1>
         <p className="mt-4 text-lg text-slate-600">{item.description}</p>

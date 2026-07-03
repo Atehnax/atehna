@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               isSidebarExpanded ? 'blur-[2px]' : 'blur-0'
             }`}
           >
-            <div className="mx-auto w-full max-w-[1280px]">{children}</div>
+            <div className="mx-auto w-full max-w-[var(--site-content-max-width)]">{children}</div>
           </main>
         </div>
       </div>

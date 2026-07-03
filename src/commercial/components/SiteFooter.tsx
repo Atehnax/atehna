@@ -62,7 +62,7 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-[#dde4ed] bg-white">
-      <div className="mx-auto grid max-w-[1840px] items-center gap-6 px-5 py-5 sm:px-8 md:grid-cols-[1fr_2fr_1fr] lg:px-16">
+      <div className="site-container grid items-center gap-6 py-5 md:grid-cols-[1fr_2fr_1fr]">
         <Link href="/" prefetch={false} aria-label="Atehna domov" className="justify-self-start">
           <AtehnaLogo markOnly />
         </Link>

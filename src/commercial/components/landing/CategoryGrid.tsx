@@ -11,7 +11,7 @@ export default async function CategoryGrid() {
   if (categories.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-[1840px] px-5 pb-6 pt-1 sm:px-8 lg:px-16">
+    <section className="site-container pb-6 pt-1">
       <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4">
         {categories.map((category) => (
           <CategoryCard

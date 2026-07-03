@@ -52,6 +52,7 @@ export type SiteNavigationTopBarWidthMode = 'match_content' | 'custom' | 'full';
 export type SiteNavigationTopBarConstraintLayoutMode = 'centered_nav' | 'flow';
 export type SiteNavigationTopBarSlot = 'left' | 'center' | 'right' | 'menu';
 export type SiteNavigationTopBarItemWidthMode = 'auto' | 'fixed' | 'fill';
+export type SiteNavigationTopBarZoneWidthMode = 'auto' | 'fixed' | 'fill';
 export type SiteNavigationTopBarNavigationMode = 'full' | 'condensed' | 'hamburger';
 export type SiteNavigationTopBarSearchMode = 'icon' | 'field' | 'menu' | 'secondRow';
 export type SiteNavigationTopBarAiMode = 'button' | 'icon';
@@ -76,11 +77,23 @@ export type SiteNavigationTopBarResponsiveItem = {
   maxWidthPx: number | null;
   marginBeforePx: number;
   marginAfterPx: number;
+  xPx: number;
+  xRatio: number;
+  widthPx: number;
+  widthEditable: boolean;
+  zIndex: number;
   region: SiteNavigationTopBarRegion;
   visible: boolean;
   offsetFromCenter: number;
   position: number;
 };
+
+export type SiteNavigationTopBarZoneWidthSettings = {
+  widthMode: SiteNavigationTopBarZoneWidthMode;
+  widthPx: number | null;
+};
+
+export type SiteNavigationTopBarZoneSettings = Record<'left' | 'center' | 'right', SiteNavigationTopBarZoneWidthSettings>;
 
 export type SiteNavigationTopBarResponsiveSettings = {
   widthMode: SiteNavigationTopBarWidthMode;
@@ -88,6 +101,7 @@ export type SiteNavigationTopBarResponsiveSettings = {
   layoutMode: SiteNavigationTopBarConstraintLayoutMode;
   columnGapPx: number;
   itemGapPx: number;
+  zones?: SiteNavigationTopBarZoneSettings;
   breakpointFrom?: number;
   breakpointTo?: number;
   navigationMode?: SiteNavigationTopBarNavigationMode;
@@ -112,6 +126,17 @@ export type SiteNavigationTopBarResponsiveLayout = {
 };
 
 export type SiteNavigationTopBarResponsiveLayouts = Record<SiteNavigationTopBarDevice, SiteNavigationTopBarResponsiveLayout>;
+
+export function isSiteNavigationTopBarSecondRowItem(
+  item: Pick<SiteNavigationTopBarResponsiveItem, 'id'>,
+  settings: Pick<SiteNavigationTopBarResponsiveSettings, 'rowPattern' | 'secondRow'>
+) {
+  if (settings.rowPattern !== 'double') return false;
+
+  return (settings.secondRow ?? 'search') === 'navigation'
+    ? item.id === 'navigation'
+    : item.id === 'search';
+}
 
 export type SiteNavigationTopBarLayout = {
   mode: SiteNavigationTopBarLayoutMode;
@@ -145,12 +170,34 @@ export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MAX = 512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_STEP = 1;
 export const SITE_NAVIGATION_TOP_BAR_SEARCH_EXPANDED_WIDTH_PX = 320;
 export const SITE_NAVIGATION_TOP_BAR_TABLET_SEARCH_EXPANDED_WIDTH_PX = 240;
+export const SITE_CONTENT_MAX_WIDTH_PX = 1280;
 
 export const DEFAULT_SITE_LAYOUT_SETTINGS: SiteNavigationSiteLayoutSettings = {
-  siteContentMaxWidthPx: 1260,
+  siteContentMaxWidthPx: SITE_CONTENT_MAX_WIDTH_PX,
   siteGutterMinPx: 16,
   siteGutterMaxPx: 32
 };
+
+const TOP_BAR_CENTERED_NAV_ZONE_SETTINGS: SiteNavigationTopBarZoneSettings = {
+  left: { widthMode: 'fill', widthPx: null },
+  center: { widthMode: 'auto', widthPx: null },
+  right: { widthMode: 'fill', widthPx: null }
+};
+
+const TOP_BAR_FLOW_ZONE_SETTINGS: SiteNavigationTopBarZoneSettings = {
+  left: { widthMode: 'auto', widthPx: null },
+  center: { widthMode: 'fill', widthPx: null },
+  right: { widthMode: 'auto', widthPx: null }
+};
+
+function defaultTopBarZoneSettings(layoutMode: SiteNavigationTopBarConstraintLayoutMode): SiteNavigationTopBarZoneSettings {
+  const source = layoutMode === 'flow' ? TOP_BAR_FLOW_ZONE_SETTINGS : TOP_BAR_CENTERED_NAV_ZONE_SETTINGS;
+  return {
+    left: { ...source.left },
+    center: { ...source.center },
+    right: { ...source.right }
+  };
+}
 
 export type SiteNavigationDesktopGroupPlacement = {
   pageIndex: number;
@@ -167,9 +214,11 @@ export function getSiteNavigationTopBarSearchReservedWidth(device: SiteNavigatio
 
 export function getSiteNavigationTopBarReservedFixedWidth(
   item: Pick<SiteNavigationTopBarResponsiveItem, 'id' | 'slot' | 'fixedWidthPx' | 'widthMode'>,
-  device: SiteNavigationTopBarDevice
+  device: SiteNavigationTopBarDevice,
+  searchMode: SiteNavigationTopBarSearchMode = 'field'
 ) {
   if (item.id === 'search' && item.slot !== 'menu') {
+    if (searchMode !== 'field') return 32;
     const configuredWidth = item.widthMode === 'fixed' && item.fixedWidthPx !== null ? item.fixedWidthPx : 0;
     return Math.max(configuredWidth, getSiteNavigationTopBarSearchReservedWidth(device));
   }
@@ -226,17 +275,41 @@ const topLevel = (
   groups
 });
 
+const DEFAULT_TOP_BAR_PLACEMENT_BOUNDS_WIDTH: Record<SiteNavigationTopBarDevice, number> = {
+  desktop: 1216,
+  tablet: 720,
+  mobile: 358
+};
+
+function defaultTopBarPlacement(
+  device: SiteNavigationTopBarDevice,
+  xPx: number,
+  widthPx: number,
+  zIndex: number,
+  widthEditable = false
+) {
+  const boundsWidth = DEFAULT_TOP_BAR_PLACEMENT_BOUNDS_WIDTH[device];
+
+  return {
+    xPx,
+    xRatio: boundsWidth > 0 ? xPx / boundsWidth : 0,
+    widthPx,
+    widthEditable,
+    zIndex
+  };
+}
+
 export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout = {
   mode: 'auto',
   items: SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS.map((id) => ({ id, offset: 0, visible: true })),
   responsive: {
     desktop: {
       items: [
-        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'left', visible: true, offsetFromCenter: -420, position: 0 },
-        { id: 'navigation', slot: 'center', orderIndex: 1, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'center', visible: true, offsetFromCenter: -40, position: 1 },
-        { id: 'search', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: SITE_NAVIGATION_TOP_BAR_SEARCH_EXPANDED_WIDTH_PX, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'right', visible: true, offsetFromCenter: 210, position: 2 },
-        { id: 'ai', slot: 'right', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'right', visible: true, offsetFromCenter: 320, position: 3 },
-        { id: 'cart', slot: 'right', orderIndex: 3, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'edgeRight', visible: true, offsetFromCenter: 420, position: 4 }
+        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 0, 88, 1, true), region: 'left', visible: true, offsetFromCenter: -420, position: 0 },
+        { id: 'navigation', slot: 'center', orderIndex: 1, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 381, 455, 2), region: 'center', visible: true, offsetFromCenter: -40, position: 1 },
+        { id: 'search', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 1040, 32, 3), region: 'right', visible: true, offsetFromCenter: 210, position: 2 },
+        { id: 'ai', slot: 'right', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 1084, 116, 4), region: 'right', visible: true, offsetFromCenter: 320, position: 3 },
+        { id: 'cart', slot: 'right', orderIndex: 3, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 1184, 32, 5), region: 'edgeRight', visible: true, offsetFromCenter: 420, position: 4 }
       ],
       settings: {
         widthMode: 'match_content',
@@ -244,6 +317,8 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'centered_nav',
         columnGapPx: 24,
         itemGapPx: 12,
+        zones: defaultTopBarZoneSettings('centered_nav'),
+        searchMode: 'icon',
         height: 85,
         paddingX: 48,
         sticky: false,
@@ -253,11 +328,11 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
     },
     tablet: {
       items: [
-        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 16, region: 'left', visible: true, offsetFromCenter: -280, position: 0 },
-        { id: 'navigation', slot: 'left', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 16, region: 'left', visible: true, offsetFromCenter: -80, position: 1 },
-        { id: 'search', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: SITE_NAVIGATION_TOP_BAR_TABLET_SEARCH_EXPANDED_WIDTH_PX, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 12, region: 'right', visible: true, offsetFromCenter: 120, position: 2 },
-        { id: 'ai', slot: 'right', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 12, region: 'right', visible: true, offsetFromCenter: 220, position: 3 },
-        { id: 'cart', slot: 'right', orderIndex: 3, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'edgeRight', visible: true, offsetFromCenter: 300, position: 4 }
+        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 16, ...defaultTopBarPlacement('tablet', 0, 88, 1, true), region: 'left', visible: true, offsetFromCenter: -280, position: 0 },
+        { id: 'navigation', slot: 'left', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 16, ...defaultTopBarPlacement('tablet', 112, 332, 2), region: 'left', visible: true, offsetFromCenter: -80, position: 1 },
+        { id: 'search', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 12, ...defaultTopBarPlacement('tablet', 512, 32, 3), region: 'right', visible: true, offsetFromCenter: 120, position: 2 },
+        { id: 'ai', slot: 'right', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 12, ...defaultTopBarPlacement('tablet', 556, 116, 4), region: 'right', visible: true, offsetFromCenter: 220, position: 3 },
+        { id: 'cart', slot: 'right', orderIndex: 3, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('tablet', 688, 32, 5), region: 'edgeRight', visible: true, offsetFromCenter: 300, position: 4 }
       ],
       settings: {
         widthMode: 'match_content',
@@ -265,6 +340,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'flow',
         columnGapPx: 20,
         itemGapPx: 12,
+        zones: defaultTopBarZoneSettings('flow'),
         breakpointFrom: 768,
         breakpointTo: 1024,
         navigationMode: 'condensed',
@@ -280,11 +356,11 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
     },
     mobile: {
       items: [
-        { id: 'navigation', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'left', visible: true, offsetFromCenter: -150, position: 0 },
-        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'center', visible: true, offsetFromCenter: 0, position: 1 },
-        { id: 'cart', slot: 'right', orderIndex: 2, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'edgeRight', visible: true, offsetFromCenter: 150, position: 2 },
-        { id: 'search', slot: 'menu', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'menu', visible: true, offsetFromCenter: 0, position: 3 },
-        { id: 'ai', slot: 'menu', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, region: 'menu', visible: true, offsetFromCenter: 0, position: 4 }
+        { id: 'navigation', slot: 'right', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('mobile', 0, 32, 1), region: 'left', visible: true, offsetFromCenter: -150, position: 0 },
+        { id: 'logo', slot: 'left', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 88, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('mobile', 135, 88, 2, true), region: 'center', visible: true, offsetFromCenter: 0, position: 1 },
+        { id: 'cart', slot: 'right', orderIndex: 2, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('mobile', 326, 32, 3), region: 'edgeRight', visible: true, offsetFromCenter: 150, position: 2 },
+        { id: 'search', slot: 'menu', orderIndex: 1, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('mobile', 246, 32, 4), region: 'menu', visible: false, offsetFromCenter: 0, position: 3 },
+        { id: 'ai', slot: 'menu', orderIndex: 2, widthMode: 'auto', fixedWidthPx: null, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('mobile', 120, 116, 5), region: 'menu', visible: false, offsetFromCenter: 0, position: 4 }
       ],
       settings: {
         widthMode: 'match_content',
@@ -292,12 +368,13 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'flow',
         columnGapPx: 16,
         itemGapPx: 10,
+        zones: defaultTopBarZoneSettings('flow'),
         breakpointTo: 767,
         rowPattern: 'single',
         secondRow: 'search',
         navigationMode: 'hamburger',
         menuOpenMode: 'drawer',
-        actionPriority: ['cart', 'search', 'ai'],
+        actionPriority: ['search', 'ai', 'cart'],
         searchMode: 'menu',
         aiMode: 'button',
         cartBadge: true,
@@ -544,10 +621,36 @@ export function normalizeSiteNavigationTopBarOffset(value: unknown) {
   return Math.min(SITE_NAVIGATION_TOP_BAR_OFFSET_MAX, Math.max(SITE_NAVIGATION_TOP_BAR_OFFSET_MIN, stepped));
 }
 
-function normalizeActionPriority(value: unknown, fallback: SiteNavigationTopBarActionId[]) {
-  const rawItems = Array.isArray(value) ? value : [];
-  const items = rawItems.filter((item): item is SiteNavigationTopBarActionId => item === 'cart' || item === 'search' || item === 'ai');
-  return [...items, ...fallback].filter((item, index, allItems) => allItems.indexOf(item) === index);
+function asTopBarZoneWidthMode(value: unknown, fallback: SiteNavigationTopBarZoneWidthMode): SiteNavigationTopBarZoneWidthMode {
+  return value === 'auto' || value === 'fixed' || value === 'fill' ? value : fallback;
+}
+
+function normalizeTopBarZoneWidthSettings(
+  value: unknown,
+  fallback: SiteNavigationTopBarZoneWidthSettings
+): SiteNavigationTopBarZoneWidthSettings {
+  const record = asRecord(value);
+  const widthMode = asTopBarZoneWidthMode(record.widthMode ?? record.width_mode, fallback.widthMode);
+
+  return {
+    widthMode,
+    widthPx: widthMode === 'fixed'
+      ? asNullableBoundedNumber(record.widthPx ?? record.width_px, fallback.widthPx ?? 240, 40, 1600)
+      : null
+  };
+}
+
+function normalizeTopBarZoneSettings(
+  value: unknown,
+  fallback: SiteNavigationTopBarZoneSettings
+): SiteNavigationTopBarZoneSettings {
+  const record = asRecord(value);
+
+  return {
+    left: normalizeTopBarZoneWidthSettings(record.left, fallback.left),
+    center: normalizeTopBarZoneWidthSettings(record.center, fallback.center),
+    right: normalizeTopBarZoneWidthSettings(record.right, fallback.right)
+  };
 }
 
 function normalizeTopBarResponsiveSettings(
@@ -568,10 +671,17 @@ function normalizeTopBarResponsiveSettings(
     columnGapPx: asBoundedNumber(record.columnGapPx ?? record.topbar_column_gap_px, fallback.columnGapPx ?? 24, 0, 96),
     itemGapPx: asBoundedNumber(record.itemGapPx ?? record.topbar_item_gap_px, fallback.itemGapPx ?? 12, 0, 64)
   };
+  const baseSettingsWithZones = {
+    ...baseSettings,
+    zones: normalizeTopBarZoneSettings(
+      record.zones ?? record.topbar_zones,
+      fallback.zones ?? defaultTopBarZoneSettings(baseSettings.layoutMode)
+    )
+  };
 
   if (device === 'tablet') {
     return {
-      ...baseSettings,
+      ...baseSettingsWithZones,
       breakpointFrom: asBoundedNumber(record.breakpointFrom, fallback.breakpointFrom ?? 768, 320, 1920),
       breakpointTo: asBoundedNumber(record.breakpointTo, fallback.breakpointTo ?? 1024, 320, 1920),
       navigationMode: asNavigationMode(record.navigationMode, fallback.navigationMode ?? 'condensed'),
@@ -588,29 +698,33 @@ function normalizeTopBarResponsiveSettings(
 
   if (device === 'mobile') {
     const rowPattern = asRowPattern(record.rowPattern, fallback.rowPattern ?? 'single');
-    const rawSearchMode = asSearchMode(record.searchMode, fallback.searchMode ?? 'menu');
 
     return {
-      ...baseSettings,
+      ...baseSettingsWithZones,
       breakpointTo: asBoundedNumber(record.breakpointTo, fallback.breakpointTo ?? 767, 320, 1200),
       rowPattern,
       secondRow: asSecondRow(record.secondRow, fallback.secondRow ?? 'search'),
       navigationMode: 'hamburger',
       menuOpenMode: asMenuOpenMode(record.menuOpenMode, fallback.menuOpenMode ?? 'drawer'),
-      actionPriority: normalizeActionPriority(record.actionPriority, fallback.actionPriority ?? ['cart', 'search', 'ai']),
-      searchMode: rowPattern === 'single' && rawSearchMode === 'secondRow' ? 'menu' : rawSearchMode,
+      actionPriority: ['search', 'ai', 'cart'],
+      searchMode: 'menu',
       aiMode: asAiMode(record.aiMode, fallback.aiMode ?? 'button'),
       cartBadge: asVisible(record.cartBadge ?? fallback.cartBadge),
       height: asBoundedNumber(record.height, fallback.height, 44, 96),
       paddingX: asBoundedNumber(record.paddingX, fallback.paddingX, 0, 48),
       sticky: asVisible(record.sticky ?? fallback.sticky),
       shadow: asVisible(record.shadow ?? fallback.shadow),
-      safeArea: asVisible(record.safeArea ?? fallback.safeArea)
+      safeArea: true
     };
   }
 
   return {
-    ...baseSettings,
+    ...baseSettingsWithZones,
+    navigationMode: asNavigationMode(record.navigationMode, fallback.navigationMode ?? 'full'),
+    searchMode: asSearchMode(record.searchMode, fallback.searchMode ?? 'icon'),
+    aiMode: asAiMode(record.aiMode, fallback.aiMode ?? 'button'),
+    rowPattern: asRowPattern(record.rowPattern, fallback.rowPattern ?? 'single'),
+    secondRow: asSecondRow(record.secondRow, fallback.secondRow ?? 'search'),
     height: asBoundedNumber(record.height, fallback.height, 56, 120),
     paddingX: asBoundedNumber(record.paddingX, fallback.paddingX, 0, 96),
     sticky: asVisible(record.sticky ?? fallback.sticky),
@@ -623,9 +737,11 @@ function normalizeTopBarResponsiveItems(
   device: SiteNavigationTopBarDevice,
   value: unknown,
   fallbackItems: SiteNavigationTopBarResponsiveItem[],
-  legacyItems: SiteNavigationTopBarLayoutItem[]
+  legacyItems: SiteNavigationTopBarLayoutItem[],
+  searchMode: SiteNavigationTopBarSearchMode = 'icon'
 ) {
-  const rawItems = Array.isArray(value) ? value : [];
+  const hasExplicitItems = Array.isArray(value);
+  const rawItems = hasExplicitItems ? value : [];
   const rawItemsById = new Map<SiteNavigationTopBarElementId, Record<string, unknown>>();
   const fallbackItemsById = new Map(fallbackItems.map((item) => [item.id, item]));
   const legacyItemsById = new Map(legacyItems.map((item) => [item.id, item]));
@@ -638,7 +754,11 @@ function normalizeTopBarResponsiveItems(
     }
   });
 
-  return SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS.map((id, index): SiteNavigationTopBarResponsiveItem => {
+  const itemIds = hasExplicitItems
+    ? Array.from(rawItemsById.keys())
+    : [...SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS];
+
+  return itemIds.map((id, index): SiteNavigationTopBarResponsiveItem => {
     const fallback = fallbackItemsById.get(id) ?? {
       id,
       slot: 'left',
@@ -649,6 +769,11 @@ function normalizeTopBarResponsiveItems(
       maxWidthPx: null,
       marginBeforePx: 0,
       marginAfterPx: 0,
+      xPx: 0,
+      xRatio: 0,
+      widthPx: 88,
+      widthEditable: false,
+      zIndex: index + 1,
       region: 'left',
       visible: true,
       offsetFromCenter: 0,
@@ -661,8 +786,25 @@ function normalizeTopBarResponsiveItems(
     const widthMode = asTopBarItemWidthMode(raw?.widthMode ?? raw?.width_mode, fallback.widthMode);
     const configuredFixedWidthPx = asNullableBoundedNumber(raw?.fixedWidthPx ?? raw?.fixed_width_px, fallback.fixedWidthPx, 0, 1200);
     const fixedWidthPx = id === 'search' && slot !== 'menu'
-      ? Math.max(configuredFixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device))
+      ? searchMode === 'field'
+        ? Math.max(configuredFixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device))
+        : 32
       : configuredFixedWidthPx;
+    const placementBoundsWidth = DEFAULT_TOP_BAR_PLACEMENT_BOUNDS_WIDTH[device];
+    const widthPx = asBoundedNumber(
+      raw?.widthPx ?? raw?.width_px,
+      fallback.widthPx ?? fixedWidthPx ?? 88,
+      1,
+      1600
+    );
+    const xPx = asBoundedNumber(raw?.xPx ?? raw?.x_px, fallback.xPx, 0, 2400);
+    const xRatio = asBoundedNumber(
+      raw?.xRatio ?? raw?.x_ratio,
+      placementBoundsWidth > 0 ? xPx / placementBoundsWidth : fallback.xRatio,
+      0,
+      1,
+      0.0001
+    );
 
     return {
       id,
@@ -672,8 +814,13 @@ function normalizeTopBarResponsiveItems(
       fixedWidthPx,
       minWidthPx: asNullableBoundedNumber(raw?.minWidthPx ?? raw?.min_width_px, fallback.minWidthPx, 0, 1200),
       maxWidthPx: asNullableBoundedNumber(raw?.maxWidthPx ?? raw?.max_width_px, fallback.maxWidthPx, 0, 1600),
-      marginBeforePx: asBoundedNumber(raw?.marginBeforePx ?? raw?.margin_before_px, fallback.marginBeforePx, 0, 128),
-      marginAfterPx: asBoundedNumber(raw?.marginAfterPx ?? raw?.margin_after_px, fallback.marginAfterPx, 0, 128),
+      marginBeforePx: asBoundedNumber(raw?.marginBeforePx ?? raw?.margin_before_px, fallback.marginBeforePx, -128, 128),
+      marginAfterPx: asBoundedNumber(raw?.marginAfterPx ?? raw?.margin_after_px, fallback.marginAfterPx, -128, 128),
+      xPx,
+      xRatio,
+      widthPx,
+      widthEditable: asVisible(raw?.widthEditable ?? raw?.width_editable ?? fallback.widthEditable),
+      zIndex: asBoundedNumber(raw?.zIndex ?? raw?.z_index, fallback.zIndex, 0, 999),
       region: asTopBarRegion(raw?.region, fallback.region),
       visible: asVisible(raw?.visible ?? (device === 'desktop' ? legacy?.visible : undefined) ?? fallback.visible),
       offsetFromCenter: normalizeTopBarCenterOffset(raw?.offsetFromCenter ?? fallback.offsetFromCenter),
@@ -693,9 +840,11 @@ export function normalizeSiteNavigationTopBarResponsiveLayouts(
     const rawLayout = asRecord(record[device]);
     const fallback = defaultLayouts[device];
 
+    const settings = normalizeTopBarResponsiveSettings(device, rawLayout.settings, fallback.settings);
+
     layouts[device] = {
-      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, legacyItems),
-      settings: normalizeTopBarResponsiveSettings(device, rawLayout.settings, fallback.settings)
+      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, legacyItems, settings.searchMode),
+      settings
     };
 
     return layouts;

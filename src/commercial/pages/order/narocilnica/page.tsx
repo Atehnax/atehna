@@ -8,7 +8,7 @@ export const metadata = {
 export default function PurchaseOrderUploadPage() {
   return (
     <div className="container-base py-12">
-      <div className="max-w-3xl">
+      <div className="w-full">
         <Link href="/order" className="text-sm font-semibold text-brand-600">
           ← Nazaj na naročilo
         </Link>

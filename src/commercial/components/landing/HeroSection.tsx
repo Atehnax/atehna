@@ -17,7 +17,7 @@ function ArrowIcon() {
 
 export default function HeroSection() {
   return (
-    <section className="mx-auto max-w-[1840px] px-5 pb-5 pt-8 sm:px-8 lg:px-16 lg:pt-8">
+    <section className="site-container pb-5 pt-8 lg:pt-8">
       <div className="grid gap-7 lg:grid-cols-[36%_1fr] lg:items-center">
         <div className="py-8 lg:py-20">
           <div className="mb-10 h-[3px] w-9 rounded-full bg-[color:var(--blue-500)]" />

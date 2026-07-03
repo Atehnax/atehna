@@ -10,7 +10,7 @@ export default function StaticMdxPage({ slug }: StaticMdxPageProps) {
 
   return (
     <div className="container-base py-12">
-      <div className="max-w-3xl">
+      <div className="w-full">
         <h1 className="text-3xl font-semibold text-slate-900">{page.title}</h1>
         <div className="mt-6">
           <MdxContent source={page.content} />

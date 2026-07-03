@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { CSSProperties } from 'react';
 import { usePathname } from 'next/navigation';
+import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import type { SiteNavigationSiteLayoutSettings } from '@/shared/domain/navigation/siteNavigation';
 
 type CommercialScaleFrameProps = {
@@ -13,11 +14,18 @@ type CommercialScaleFrameProps = {
 export default function CommercialScaleFrame({ children, siteLayout }: CommercialScaleFrameProps) {
   const pathname = usePathname();
   const isAdminPath = pathname?.startsWith('/admin');
+  const resolveLayoutPx = isAdminPath ? (value: number) => value : toCommercialStorefrontLogicalPx;
+  const siteGutterMinPx = siteLayout ? resolveLayoutPx(siteLayout.siteGutterMinPx) : null;
+  const siteGutterMaxPx = siteLayout ? resolveLayoutPx(siteLayout.siteGutterMaxPx) : null;
+  const siteContentMaxWidth = siteLayout
+    ? `${resolveLayoutPx(siteLayout.siteContentMaxWidthPx)}px`
+    : undefined;
   const style = siteLayout
     ? ({
-        '--site-content-max-width': `${siteLayout.siteContentMaxWidthPx}px`,
-        '--site-gutter-min': `${siteLayout.siteGutterMinPx}px`,
-        '--site-gutter-max': `${siteLayout.siteGutterMaxPx}px`
+        '--site-content-max-width': siteContentMaxWidth,
+        '--site-gutter-min': `${siteGutterMinPx}px`,
+        '--site-gutter-max': `${siteGutterMaxPx}px`,
+        '--site-gutter': `clamp(${siteGutterMinPx}px, 4vw, ${siteGutterMaxPx}px)`
       } as CSSProperties)
     : undefined;
 

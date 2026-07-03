@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { CSSProperties, FormEvent } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
+import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
@@ -12,14 +13,16 @@ import {
   SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
   SITE_NAVIGATION_DESKTOP_LINK_ROWS,
   getVisibleSiteNavigationItems,
+  isSiteNavigationTopBarSecondRowItem,
   getSiteNavigationDesktopGroupPlacements,
-  getSiteNavigationTopBarReservedFixedWidth,
   normalizeSiteNavigationConfig,
   type SiteNavigationConfig,
   type SiteNavigationGroup,
   type SiteNavigationItemIcon,
   type SiteNavigationLink,
   type SiteNavigationTopBarResponsiveItem,
+  type SiteNavigationTopBarResponsiveSettings,
+  type SiteNavigationTopBarSearchMode,
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
 import { SiteNavigationLucideIcon } from '@/shared/ui/icons/SiteNavigationLucideIcon';
@@ -44,9 +47,8 @@ type TopBarCssProperties = CSSProperties & {
   '--site-content-max-width'?: string;
   '--site-gutter-min'?: string;
   '--site-gutter-max'?: string;
+  '--site-gutter'?: string;
   '--topbar-height'?: string;
-  '--topbar-column-gap'?: string;
-  '--topbar-item-gap'?: string;
   '--topbar-inner-max-width'?: string;
 };
 
@@ -143,35 +145,33 @@ const ctas: Array<{ label: string; href: string; variant: CtaVariant }> = [
   { label: 'Vprašaj AI', href: '/contact', variant: 'secondary' }
 ];
 
-function sortTopBarSlotItems(items: SiteNavigationTopBarResponsiveItem[]) {
+function sortTopBarPlacementItems(items: SiteNavigationTopBarResponsiveItem[]) {
   return [...items].sort((first, second) => {
-    const orderDelta = first.orderIndex - second.orderIndex;
-    return orderDelta === 0 ? first.position - second.position : orderDelta;
+    const xDelta = first.xPx - second.xPx;
+    return xDelta === 0 ? first.zIndex - second.zIndex : xDelta;
   });
 }
 
-function getTopBarItemLayoutStyle(item: SiteNavigationTopBarResponsiveItem): CSSProperties {
-  const reservedFixedWidthPx = getSiteNavigationTopBarReservedFixedWidth(item, 'desktop');
-  const style: CSSProperties = {
-    order: item.orderIndex,
-    marginInlineStart: item.marginBeforePx ? `${item.marginBeforePx}px` : undefined,
-    marginInlineEnd: item.marginAfterPx ? `${item.marginAfterPx}px` : undefined
+function getTopBarItemLayoutStyle(
+  item: SiteNavigationTopBarResponsiveItem,
+  settings: SiteNavigationTopBarResponsiveSettings
+): CSSProperties {
+  const leftPercent = Math.max(0, Math.min(1, item.xRatio)) * 100;
+  const logicalWidthPx = toCommercialStorefrontLogicalPx(item.widthPx);
+  const top = settings.rowPattern === 'double'
+    ? isSiteNavigationTopBarSecondRowItem(item, settings)
+      ? '75%'
+      : '25%'
+    : '50%';
+
+  return {
+    position: 'absolute',
+    left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))`,
+    top,
+    zIndex: item.zIndex,
+    width: `${logicalWidthPx}px`,
+    transform: 'translateY(-50%)'
   };
-
-  if (reservedFixedWidthPx !== null) {
-    style.width = `${reservedFixedWidthPx}px`;
-    style.flex = `0 0 ${reservedFixedWidthPx}px`;
-  } else if (item.widthMode === 'fill') {
-    style.flex = '1 1 0';
-    style.minWidth = item.minWidthPx !== null ? `${item.minWidthPx}px` : 0;
-  } else {
-    style.flex = '0 1 auto';
-  }
-
-  if (item.minWidthPx !== null) style.minWidth = `${item.minWidthPx}px`;
-  if (item.maxWidthPx !== null) style.maxWidth = `${item.maxWidthPx}px`;
-
-  return style;
 }
 
 const normalizeSearchValue = (value: string) =>
@@ -619,9 +619,11 @@ function getNavbarSearchResults(items: CatalogSearchItem[], query: string) {
 
 function NavbarSearch({
   mobile = false,
+  mode = 'icon',
   onNavigate
 }: {
   mobile?: boolean;
+  mode?: SiteNavigationTopBarSearchMode;
   onNavigate: () => void;
 }) {
   const router = useRouter();
@@ -635,6 +637,8 @@ function NavbarSearch({
   const inputId = mobile ? 'site-mobile-search' : 'site-desktop-search';
   const results = getNavbarSearchResults(items, query);
   const hasQuery = normalizeSearchValue(query).length > 0;
+  const desktopFieldMode = !mobile && mode === 'field';
+  const desktopExpanded = desktopFieldMode || expanded;
 
   const ensureItemsLoaded = () => {
     if (navbarSearchItemsCache) {
@@ -663,7 +667,7 @@ function NavbarSearch({
   };
 
   useEffect(() => {
-    if (mobile || !expanded) return undefined;
+    if (mobile || desktopFieldMode || !expanded) return undefined;
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
@@ -683,7 +687,7 @@ function NavbarSearch({
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [expanded, mobile, query]);
+  }, [desktopFieldMode, expanded, mobile, query]);
 
   const closeOrClearSearch = () => {
     if (query) {
@@ -722,34 +726,45 @@ function NavbarSearch({
   };
 
   return (
-    <div ref={rootRef} className={mobile ? 'relative' : 'relative flex h-[43px] w-full min-w-[43px] shrink-0 justify-end'}>
-      {!mobile ? (
+    <div
+      ref={rootRef}
+        className={
+          mobile
+            ? 'relative'
+          : desktopFieldMode
+            ? 'relative flex h-[43px] w-full min-w-[240px] shrink-0 justify-end'
+            : 'relative flex h-8 w-8 min-w-8 shrink-0 items-center justify-end'
+      }
+    >
+      {!mobile && !desktopFieldMode ? (
         <button
           type="button"
           aria-label="Išči"
-          aria-hidden={expanded}
-          tabIndex={expanded ? -1 : 0}
+          aria-hidden={desktopExpanded}
+          tabIndex={desktopExpanded ? -1 : 0}
           onClick={openExpandedSearch}
           onFocus={openExpandedSearch}
-          className={`inline-flex h-[43px] w-[43px] items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
-            expanded ? 'pointer-events-none opacity-0' : 'opacity-100'
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
+            desktopExpanded ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
         >
-          <SearchGlyph />
+          <SearchGlyph className="h-[24.3px] w-[24.3px]" />
         </button>
       ) : null}
 
       <form
         role="search"
-        aria-hidden={!mobile && !expanded}
+        aria-hidden={!mobile && !desktopExpanded}
         onSubmit={handleSubmit}
         style={mobile ? undefined : coreNavTextRenderingStyle}
         className={
           mobile
             ? 'relative w-full'
-            : `absolute right-0 top-0 z-30 w-full max-w-[320px] transition-opacity duration-150 ease-out ${
-                expanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
-              }`
+            : desktopFieldMode
+              ? 'relative z-30 w-full'
+              : `absolute right-0 top-1/2 z-30 w-[320px] -translate-y-1/2 transition-opacity duration-150 ease-out ${
+                  desktopExpanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+                }`
         }
       >
         <label htmlFor={inputId} className="sr-only">
@@ -760,7 +775,7 @@ function NavbarSearch({
           ref={inputRef}
           id={inputId}
           type="search"
-          tabIndex={!mobile && !expanded ? -1 : undefined}
+          tabIndex={!mobile && !desktopExpanded ? -1 : undefined}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -785,7 +800,7 @@ function NavbarSearch({
           className={
             mobile
               ? 'h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-[38px] pr-3 text-[17px] font-medium leading-none text-[#111111] outline-none transition placeholder:text-[#737373] hover:border-[#dedede] focus:border-[#111111] focus:bg-white focus-visible:ring-2 focus-visible:ring-black/20'
-              : 'h-[43px] w-full appearance-none rounded-lg border border-[var(--navbar-dropdown-border)] bg-white pl-[38px] pr-3 text-[19px] font-normal leading-none text-[var(--navbar-link-current)] shadow-none outline-none [box-shadow:none] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[var(--navbar-dropdown-border-hover)] focus:border-[var(--navbar-link-current)] focus:bg-white focus:shadow-none focus:[box-shadow:none] focus-visible:border-[var(--navbar-link-current)] focus-visible:shadow-none focus-visible:[box-shadow:none]'
+              : 'h-[43px] w-full appearance-none rounded-lg border border-[color:var(--blue-500)] bg-white pl-[38px] pr-3 text-[19px] font-normal leading-none text-[var(--navbar-link-current)] shadow-none [box-shadow:none] [outline:0] [outline-offset:0] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[color:var(--blue-500)] focus:border-[color:var(--blue-500)] focus:bg-white focus:shadow-none focus:ring-0 focus:[box-shadow:none] focus:[outline:0] focus:[outline-offset:0] focus-visible:border-[color:var(--blue-500)] focus-visible:shadow-none focus-visible:ring-0 focus-visible:[box-shadow:none] focus-visible:[outline:0] focus-visible:[outline-offset:0]'
           }
         />
         {open && hasQuery ? (
@@ -861,7 +876,7 @@ function DesktopCta({
   const className =
     variant === 'primary'
       ? 'h-[43px] rounded-lg bg-black px-4 text-white hover:bg-[#1f1f1f]'
-      : 'h-8 gap-1.5 rounded-md border border-[var(--navbar-dropdown-border)] bg-white px-2.5 text-[var(--navbar-link-default)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[color:var(--blue-500)] hover:text-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]';
+      : 'h-[43px] gap-1.5 rounded-lg border border-[var(--navbar-dropdown-border)] bg-white px-3 text-[var(--navbar-link-default)] hover:border-transparent hover:text-[color:var(--blue-500)] hover:[outline:1px_solid_currentColor] hover:[outline-offset:-1px] focus-visible:border-transparent focus-visible:text-[color:var(--blue-500)] focus-visible:[outline:1px_solid_currentColor] focus-visible:[outline-offset:-1px]';
 
   return (
     <Link
@@ -869,7 +884,7 @@ function DesktopCta({
       prefetch={false}
       onClick={onNavigate}
       style={coreNavTextRenderingStyle}
-      className={`inline-flex items-center justify-center [font-size:calc(13px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)]/20 ${className}`}
+      className={`inline-flex w-full items-center justify-center whitespace-nowrap ${coreNavTextClassName} transition focus-visible:outline-none focus-visible:ring-0 ${className}`}
     >
       {variant === 'secondary' ? <SparklesGlyph /> : null}
       <span>{label}</span>
@@ -885,8 +900,7 @@ type SiteHeaderProps = {
 
 export default function SiteHeader({
   navigation = DEFAULT_SITE_NAVIGATION_CONFIG,
-  previewMode = 'normal',
-  previewViewportWidth
+  previewMode = 'normal'
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
@@ -908,7 +922,7 @@ export default function SiteHeader({
   const isInlinePreview = previewMode === 'inline';
   const effectiveNavigation = isInlinePreview ? navigation : adminPreviewNavigation ?? navigation;
   const isAdminNavbarPreview = isInlinePreview || (isAdminPath && adminPreviewNavigation !== null);
-  const forceMobilePreview = isInlinePreview && previewViewportWidth !== undefined && previewViewportWidth < 1024;
+  const forceMobilePreview = false;
   const normalizedNavigation = useMemo(
     () => normalizeSiteNavigationConfig(effectiveNavigation),
     [effectiveNavigation]
@@ -919,33 +933,36 @@ export default function SiteHeader({
   );
   const desktopTopBarLayout = normalizedNavigation.topBarLayout.responsive.desktop;
   const siteLayout = normalizedNavigation.siteLayout;
-  const desktopTopBarItemsBySlot = useMemo(() => {
-    const visibleItems = desktopTopBarLayout.items.filter((item) => item.visible && item.slot !== 'menu');
+  const desktopTopBarPlacementItems = useMemo(
+    () => sortTopBarPlacementItems(desktopTopBarLayout.items.filter((item) => item.visible)),
+    [desktopTopBarLayout.items]
+  );
+  const topBarShellStyle = useMemo<TopBarCssProperties>(() => {
+    const logicalSiteContentMaxWidthPx = toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx);
+    const logicalSiteGutterMinPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMinPx);
+    const logicalSiteGutterMaxPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMaxPx);
+    const rowCount = desktopTopBarLayout.settings.rowPattern === 'double' ? 2 : 1;
+    const logicalCustomMaxWidthPx = desktopTopBarLayout.settings.customMaxWidthPx
+      ? toCommercialStorefrontLogicalPx(desktopTopBarLayout.settings.customMaxWidthPx)
+      : null;
 
     return {
-      left: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'left')),
-      center: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'center')),
-      right: sortTopBarSlotItems(visibleItems.filter((item) => item.slot === 'right'))
+      '--site-content-max-width': `${logicalSiteContentMaxWidthPx}px`,
+      '--site-gutter-min': `${logicalSiteGutterMinPx}px`,
+      '--site-gutter-max': `${logicalSiteGutterMaxPx}px`,
+      '--site-gutter': `clamp(${logicalSiteGutterMinPx}px, 4vw, ${logicalSiteGutterMaxPx}px)`,
+      '--topbar-height': `${desktopTopBarLayout.settings.height * rowCount}px`,
+      '--topbar-inner-max-width':
+        desktopTopBarLayout.settings.widthMode === 'full'
+          ? 'none'
+          : desktopTopBarLayout.settings.widthMode === 'custom' && logicalCustomMaxWidthPx
+            ? `${logicalCustomMaxWidthPx}px`
+            : `${logicalSiteContentMaxWidthPx}px`
     };
-  }, [desktopTopBarLayout.items]);
-  const topBarShellStyle = useMemo<TopBarCssProperties>(() => ({
-    '--site-content-max-width': `${siteLayout.siteContentMaxWidthPx}px`,
-    '--site-gutter-min': `${siteLayout.siteGutterMinPx}px`,
-    '--site-gutter-max': `${siteLayout.siteGutterMaxPx}px`,
-    '--topbar-height': `${desktopTopBarLayout.settings.height}px`,
-    '--topbar-column-gap': `${desktopTopBarLayout.settings.columnGapPx}px`,
-    '--topbar-item-gap': `${desktopTopBarLayout.settings.itemGapPx}px`,
-    '--topbar-inner-max-width':
-      desktopTopBarLayout.settings.widthMode === 'full'
-        ? 'none'
-        : desktopTopBarLayout.settings.widthMode === 'custom' && desktopTopBarLayout.settings.customMaxWidthPx
-          ? `${desktopTopBarLayout.settings.customMaxWidthPx}px`
-          : `${siteLayout.siteContentMaxWidthPx}px`
-  }), [
-    desktopTopBarLayout.settings.columnGapPx,
+  }, [
     desktopTopBarLayout.settings.customMaxWidthPx,
     desktopTopBarLayout.settings.height,
-    desktopTopBarLayout.settings.itemGapPx,
+    desktopTopBarLayout.settings.rowPattern,
     desktopTopBarLayout.settings.widthMode,
     siteLayout.siteContentMaxWidthPx,
     siteLayout.siteGutterMaxPx,
@@ -1203,8 +1220,8 @@ export default function SiteHeader({
   }, [activeMenu, dropdownOrderIds]);
 
   const renderDesktopTopBarElement = (item: SiteNavigationTopBarResponsiveItem) => {
-    const wrapperStyle = getTopBarItemLayoutStyle(item);
-    const wrapperClassName = 'inline-flex min-w-0 shrink-0 items-center';
+    const wrapperStyle = getTopBarItemLayoutStyle(item, desktopTopBarLayout.settings);
+    const wrapperClassName = 'inline-flex min-w-0 items-center overflow-visible';
 
     if (item.id === 'logo') {
       return (
@@ -1277,7 +1294,7 @@ export default function SiteHeader({
     if (item.id === 'search') {
       return (
         <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
-          <NavbarSearch onNavigate={closeMenus} />
+          <NavbarSearch mode={desktopTopBarLayout.settings.searchMode} onNavigate={closeMenus} />
         </div>
       );
     }
@@ -1367,19 +1384,19 @@ export default function SiteHeader({
       className="relative z-50 border-b border-[#e5e5e5] bg-white text-black [font-family:Inter,Geist,system-ui,sans-serif]"
     >
       <div
-        className={`topbar-inner ${forceMobilePreview ? 'hidden' : 'hidden lg:grid'}`}
-        data-layout-mode={desktopTopBarLayout.settings.layoutMode}
+        className={`topbar-inner topbar-inner-freeform ${forceMobilePreview ? 'hidden' : 'hidden lg:block'}`}
+        data-layout-mode="centered_nav"
         data-width-mode={desktopTopBarLayout.settings.widthMode}
         style={topBarShellStyle}
       >
-        <div className="topbar-left">{desktopTopBarItemsBySlot.left.map(renderDesktopTopBarElement)}</div>
-        <div className="topbar-center">{desktopTopBarItemsBySlot.center.map(renderDesktopTopBarElement)}</div>
-        <div className="topbar-right">{desktopTopBarItemsBySlot.right.map(renderDesktopTopBarElement)}</div>
+        <div className="topbar-placement-bounds">
+          {desktopTopBarPlacementItems.map(renderDesktopTopBarElement)}
+        </div>
       </div>
 
       <div
         className={`topbar-inner items-center justify-between gap-[21px] ${forceMobilePreview ? 'flex' : 'flex lg:hidden'}`}
-        data-layout-mode={desktopTopBarLayout.settings.layoutMode}
+        data-layout-mode="centered_nav"
         data-width-mode={desktopTopBarLayout.settings.widthMode}
         style={topBarShellStyle}
       >

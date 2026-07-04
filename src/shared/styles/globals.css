@@ -249,7 +249,7 @@ textarea[readonly] {
 
   .commercial-storefront-scale:not(.admin-site-header-preview-scale) .container-base,
   .commercial-storefront-scale:not(.admin-site-header-preview-scale) .site-container,
-  .commercial-storefront-scale .topbar-inner {
+  .commercial-storefront-scale:not(.admin-site-header-preview-scale) .topbar-inner {
     width: calc(100% - var(--site-admin-content-lane-start) - var(--site-admin-content-lane-end));
     padding-inline: 0;
     transform: translateX(var(--site-admin-content-lane-shift));

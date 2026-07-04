@@ -54,10 +54,8 @@ export type SiteNavigationTopBarSlot = 'left' | 'center' | 'right' | 'menu';
 export type SiteNavigationTopBarItemWidthMode = 'auto' | 'fixed' | 'fill';
 export type SiteNavigationTopBarZoneWidthMode = 'auto' | 'fixed' | 'fill';
 export type SiteNavigationTopBarNavigationMode = 'full' | 'condensed' | 'hamburger';
-export type SiteNavigationTopBarSearchMode = 'icon' | 'field' | 'menu' | 'secondRow';
+export type SiteNavigationTopBarSearchMode = 'icon' | 'field' | 'menu';
 export type SiteNavigationTopBarAiMode = 'button' | 'icon';
-export type SiteNavigationTopBarRowPattern = 'single' | 'double';
-export type SiteNavigationTopBarSecondRow = 'search' | 'navigation';
 export type SiteNavigationTopBarMenuOpenMode = 'drawer' | 'fullscreen';
 export type SiteNavigationTopBarActionId = 'cart' | 'search' | 'ai';
 
@@ -109,8 +107,6 @@ export type SiteNavigationTopBarResponsiveSettings = {
   searchMode?: SiteNavigationTopBarSearchMode;
   aiMode?: SiteNavigationTopBarAiMode;
   cartBadge?: boolean;
-  rowPattern?: SiteNavigationTopBarRowPattern;
-  secondRow?: SiteNavigationTopBarSecondRow;
   menuOpenMode?: SiteNavigationTopBarMenuOpenMode;
   actionPriority?: SiteNavigationTopBarActionId[];
   height: number;
@@ -126,17 +122,6 @@ export type SiteNavigationTopBarResponsiveLayout = {
 };
 
 export type SiteNavigationTopBarResponsiveLayouts = Record<SiteNavigationTopBarDevice, SiteNavigationTopBarResponsiveLayout>;
-
-export function isSiteNavigationTopBarSecondRowItem(
-  item: Pick<SiteNavigationTopBarResponsiveItem, 'id'>,
-  settings: Pick<SiteNavigationTopBarResponsiveSettings, 'rowPattern' | 'secondRow'>
-) {
-  if (settings.rowPattern !== 'double') return false;
-
-  return (settings.secondRow ?? 'search') === 'navigation'
-    ? item.id === 'navigation'
-    : item.id === 'search';
-}
 
 export type SiteNavigationTopBarLayout = {
   mode: SiteNavigationTopBarLayoutMode;
@@ -168,6 +153,7 @@ export const SITE_NAVIGATION_TOP_BAR_OFFSET_STEP = 4;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MIN = -512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MAX = 512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_STEP = 1;
+export const SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX = 88;
 export const SITE_NAVIGATION_TOP_BAR_SEARCH_EXPANDED_WIDTH_PX = 320;
 export const SITE_NAVIGATION_TOP_BAR_TABLET_SEARCH_EXPANDED_WIDTH_PX = 240;
 export const SITE_CONTENT_MAX_WIDTH_PX = 1280;
@@ -370,8 +356,6 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         itemGapPx: 10,
         zones: defaultTopBarZoneSettings('flow'),
         breakpointTo: 767,
-        rowPattern: 'single',
-        secondRow: 'search',
         navigationMode: 'hamburger',
         menuOpenMode: 'drawer',
         actionPriority: ['search', 'ai', 'cart'],
@@ -545,19 +529,11 @@ function asNavigationMode(value: unknown, fallback: SiteNavigationTopBarNavigati
 }
 
 function asSearchMode(value: unknown, fallback: SiteNavigationTopBarSearchMode): SiteNavigationTopBarSearchMode {
-  return value === 'icon' || value === 'field' || value === 'menu' || value === 'secondRow' ? value : fallback;
+  return value === 'icon' || value === 'field' || value === 'menu' ? value : fallback;
 }
 
 function asAiMode(value: unknown, fallback: SiteNavigationTopBarAiMode): SiteNavigationTopBarAiMode {
   return value === 'button' || value === 'icon' ? value : fallback;
-}
-
-function asRowPattern(value: unknown, fallback: SiteNavigationTopBarRowPattern): SiteNavigationTopBarRowPattern {
-  return value === 'single' || value === 'double' ? value : fallback;
-}
-
-function asSecondRow(value: unknown, fallback: SiteNavigationTopBarSecondRow): SiteNavigationTopBarSecondRow {
-  return value === 'search' || value === 'navigation' ? value : fallback;
 }
 
 function asMenuOpenMode(value: unknown, fallback: SiteNavigationTopBarMenuOpenMode): SiteNavigationTopBarMenuOpenMode {
@@ -697,13 +673,9 @@ function normalizeTopBarResponsiveSettings(
   }
 
   if (device === 'mobile') {
-    const rowPattern = asRowPattern(record.rowPattern, fallback.rowPattern ?? 'single');
-
     return {
       ...baseSettingsWithZones,
       breakpointTo: asBoundedNumber(record.breakpointTo, fallback.breakpointTo ?? 767, 320, 1200),
-      rowPattern,
-      secondRow: asSecondRow(record.secondRow, fallback.secondRow ?? 'search'),
       navigationMode: 'hamburger',
       menuOpenMode: asMenuOpenMode(record.menuOpenMode, fallback.menuOpenMode ?? 'drawer'),
       actionPriority: ['search', 'ai', 'cart'],
@@ -723,8 +695,6 @@ function normalizeTopBarResponsiveSettings(
     navigationMode: asNavigationMode(record.navigationMode, fallback.navigationMode ?? 'full'),
     searchMode: asSearchMode(record.searchMode, fallback.searchMode ?? 'icon'),
     aiMode: asAiMode(record.aiMode, fallback.aiMode ?? 'button'),
-    rowPattern: asRowPattern(record.rowPattern, fallback.rowPattern ?? 'single'),
-    secondRow: asSecondRow(record.secondRow, fallback.secondRow ?? 'search'),
     height: asBoundedNumber(record.height, fallback.height, 56, 120),
     paddingX: asBoundedNumber(record.paddingX, fallback.paddingX, 0, 96),
     sticky: asVisible(record.sticky ?? fallback.sticky),

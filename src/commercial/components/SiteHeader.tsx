@@ -12,14 +12,15 @@ import {
   SITE_NAVIGATION_DESKTOP_COLUMN_COUNT,
   SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
   SITE_NAVIGATION_DESKTOP_LINK_ROWS,
+  SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX,
   getVisibleSiteNavigationItems,
-  isSiteNavigationTopBarSecondRowItem,
   getSiteNavigationDesktopGroupPlacements,
   normalizeSiteNavigationConfig,
   type SiteNavigationConfig,
   type SiteNavigationGroup,
   type SiteNavigationItemIcon,
   type SiteNavigationLink,
+  type SiteNavigationTopBarDevice,
   type SiteNavigationTopBarResponsiveItem,
   type SiteNavigationTopBarResponsiveSettings,
   type SiteNavigationTopBarSearchMode,
@@ -58,6 +59,13 @@ const adminSiteNavigationPreviewEventName = 'admin-site-navigation-preview';
 type AdminSiteNavigationPreviewEventDetail = {
   enabled: boolean;
   navigation?: SiteNavigationConfig;
+  previewDevice?: SiteNavigationTopBarDevice;
+  previewViewportWidth?: number;
+};
+type AdminSiteNavigationPreviewState = {
+  navigation: SiteNavigationConfig;
+  previewDevice?: SiteNavigationTopBarDevice;
+  previewViewportWidth?: number;
 };
 const coreNavTextRenderingStyle: CSSProperties = {
   fontFamily: 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -152,22 +160,48 @@ function sortTopBarPlacementItems(items: SiteNavigationTopBarResponsiveItem[]) {
   });
 }
 
+function isCompactTopBarPlacementItem(item: SiteNavigationTopBarResponsiveItem) {
+  return item.id === 'navigation' || item.id === 'logo' || item.id === 'cart';
+}
+
+function isRenderedTopBarPlacementItem(
+  item: SiteNavigationTopBarResponsiveItem,
+  activeDevice: SiteNavigationTopBarDevice
+) {
+  if (!item.visible) return false;
+  if (activeDevice === 'mobile') return isCompactTopBarPlacementItem(item);
+  return true;
+}
+
+function getTopBarItemRenderedWidthPx(
+  item: SiteNavigationTopBarResponsiveItem,
+  activeDevice: SiteNavigationTopBarDevice,
+  settings: SiteNavigationTopBarResponsiveSettings
+) {
+  if (item.id === 'logo') {
+    return Math.max(item.widthPx, item.fixedWidthPx ?? 0, SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX);
+  }
+
+  if (item.id === 'navigation' && (activeDevice === 'mobile' || settings.navigationMode === 'hamburger')) {
+    return 32;
+  }
+
+  return item.widthPx;
+}
+
 function getTopBarItemLayoutStyle(
   item: SiteNavigationTopBarResponsiveItem,
+  activeDevice: SiteNavigationTopBarDevice,
   settings: SiteNavigationTopBarResponsiveSettings
 ): CSSProperties {
   const leftPercent = Math.max(0, Math.min(1, item.xRatio)) * 100;
-  const logicalWidthPx = toCommercialStorefrontLogicalPx(item.widthPx);
-  const top = settings.rowPattern === 'double'
-    ? isSiteNavigationTopBarSecondRowItem(item, settings)
-      ? '75%'
-      : '25%'
-    : '50%';
+  const itemWidthPx = getTopBarItemRenderedWidthPx(item, activeDevice, settings);
+  const logicalWidthPx = toCommercialStorefrontLogicalPx(itemWidthPx);
 
   return {
     position: 'absolute',
     left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))`,
-    top,
+    top: '50%',
     zIndex: item.zIndex,
     width: `${logicalWidthPx}px`,
     transform: 'translateY(-50%)'
@@ -895,12 +929,30 @@ function DesktopCta({
 type SiteHeaderProps = {
   navigation?: SiteNavigationConfig;
   previewMode?: 'normal' | 'inline';
+  previewDevice?: SiteNavigationTopBarDevice;
   previewViewportWidth?: number;
 };
 
+function resolveTopBarDeviceForViewportWidth(
+  navigation: SiteNavigationConfig,
+  viewportWidth: number | null
+): SiteNavigationTopBarDevice {
+  if (viewportWidth === null) return 'desktop';
+
+  const mobileBreakpointTo = navigation.topBarLayout.responsive.mobile.settings.breakpointTo ?? 767;
+  const tabletBreakpointTo = navigation.topBarLayout.responsive.tablet.settings.breakpointTo ?? 1024;
+
+  if (viewportWidth <= mobileBreakpointTo) return 'mobile';
+  if (viewportWidth <= tabletBreakpointTo) return 'tablet';
+
+  return 'desktop';
+}
+
 export default function SiteHeader({
   navigation = DEFAULT_SITE_NAVIGATION_CONFIG,
-  previewMode = 'normal'
+  previewMode = 'normal',
+  previewDevice,
+  previewViewportWidth
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
@@ -917,33 +969,47 @@ export default function SiteHeader({
   const [dropdownPanelLeft, setDropdownPanelLeft] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMobileMenus, setOpenMobileMenus] = useState<MenuKey[]>([]);
-  const [adminPreviewNavigation, setAdminPreviewNavigation] = useState<SiteNavigationConfig | null>(null);
+  const [adminPreview, setAdminPreview] = useState<AdminSiteNavigationPreviewState | null>(null);
   const isAdminPath = pathname.startsWith('/admin');
   const isInlinePreview = previewMode === 'inline';
-  const effectiveNavigation = isInlinePreview ? navigation : adminPreviewNavigation ?? navigation;
-  const isAdminNavbarPreview = isInlinePreview || (isAdminPath && adminPreviewNavigation !== null);
-  const forceMobilePreview = false;
+  const effectiveNavigation = isInlinePreview ? navigation : adminPreview?.navigation ?? navigation;
+  const effectivePreviewDevice = isInlinePreview ? previewDevice : adminPreview?.previewDevice;
+  const effectivePreviewViewportWidth = isInlinePreview ? previewViewportWidth : adminPreview?.previewViewportWidth;
+  const isAdminNavbarPreview = isInlinePreview || (isAdminPath && adminPreview !== null);
+  const [measuredViewportWidth, setMeasuredViewportWidth] = useState<number | null>(
+    typeof previewViewportWidth === 'number' ? previewViewportWidth : null
+  );
   const normalizedNavigation = useMemo(
     () => normalizeSiteNavigationConfig(effectiveNavigation),
     [effectiveNavigation]
   );
+  const resolvedViewportWidth =
+    typeof effectivePreviewViewportWidth === 'number' ? effectivePreviewViewportWidth : measuredViewportWidth;
+  const activeTopBarDevice = useMemo(
+    () => effectivePreviewDevice ?? resolveTopBarDeviceForViewportWidth(normalizedNavigation, resolvedViewportWidth),
+    [effectivePreviewDevice, normalizedNavigation, resolvedViewportWidth]
+  );
+  const activeTopBarLayout = normalizedNavigation.topBarLayout.responsive[activeTopBarDevice];
+  const usesCompactTopBar =
+    activeTopBarDevice === 'mobile' || activeTopBarLayout.settings.navigationMode === 'hamburger';
   const navigationItems = useMemo(
     () => getVisibleSiteNavigationItems(normalizedNavigation),
     [normalizedNavigation]
   );
-  const desktopTopBarLayout = normalizedNavigation.topBarLayout.responsive.desktop;
   const siteLayout = normalizedNavigation.siteLayout;
-  const desktopTopBarPlacementItems = useMemo(
-    () => sortTopBarPlacementItems(desktopTopBarLayout.items.filter((item) => item.visible)),
-    [desktopTopBarLayout.items]
+  const activeTopBarPlacementItems = useMemo(
+    () =>
+      sortTopBarPlacementItems(
+        activeTopBarLayout.items.filter((item) => isRenderedTopBarPlacementItem(item, activeTopBarDevice))
+      ),
+    [activeTopBarDevice, activeTopBarLayout.items]
   );
   const topBarShellStyle = useMemo<TopBarCssProperties>(() => {
     const logicalSiteContentMaxWidthPx = toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx);
     const logicalSiteGutterMinPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMinPx);
     const logicalSiteGutterMaxPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMaxPx);
-    const rowCount = desktopTopBarLayout.settings.rowPattern === 'double' ? 2 : 1;
-    const logicalCustomMaxWidthPx = desktopTopBarLayout.settings.customMaxWidthPx
-      ? toCommercialStorefrontLogicalPx(desktopTopBarLayout.settings.customMaxWidthPx)
+    const logicalCustomMaxWidthPx = activeTopBarLayout.settings.customMaxWidthPx
+      ? toCommercialStorefrontLogicalPx(activeTopBarLayout.settings.customMaxWidthPx)
       : null;
 
     return {
@@ -951,19 +1017,18 @@ export default function SiteHeader({
       '--site-gutter-min': `${logicalSiteGutterMinPx}px`,
       '--site-gutter-max': `${logicalSiteGutterMaxPx}px`,
       '--site-gutter': `clamp(${logicalSiteGutterMinPx}px, 4vw, ${logicalSiteGutterMaxPx}px)`,
-      '--topbar-height': `${desktopTopBarLayout.settings.height * rowCount}px`,
+      '--topbar-height': `${activeTopBarLayout.settings.height}px`,
       '--topbar-inner-max-width':
-        desktopTopBarLayout.settings.widthMode === 'full'
+        activeTopBarLayout.settings.widthMode === 'full'
           ? 'none'
-          : desktopTopBarLayout.settings.widthMode === 'custom' && logicalCustomMaxWidthPx
+          : activeTopBarLayout.settings.widthMode === 'custom' && logicalCustomMaxWidthPx
             ? `${logicalCustomMaxWidthPx}px`
             : `${logicalSiteContentMaxWidthPx}px`
     };
   }, [
-    desktopTopBarLayout.settings.customMaxWidthPx,
-    desktopTopBarLayout.settings.height,
-    desktopTopBarLayout.settings.rowPattern,
-    desktopTopBarLayout.settings.widthMode,
+    activeTopBarLayout.settings.customMaxWidthPx,
+    activeTopBarLayout.settings.height,
+    activeTopBarLayout.settings.widthMode,
     siteLayout.siteContentMaxWidthPx,
     siteLayout.siteGutterMaxPx,
     siteLayout.siteGutterMinPx
@@ -987,6 +1052,38 @@ export default function SiteHeader({
   const activeMenuItem = activeMenu ? dropdownItemsById.get(activeMenu) ?? null : null;
   const previousMenuItem = previousMenu ? dropdownItemsById.get(previousMenu) ?? null : null;
   const activeMenuPageIndex = activeMenu ? desktopMenuPageById[activeMenu] ?? 0 : 0;
+  const adminPreviewWrapperStyle = useMemo(() => {
+    if (
+      isInlinePreview ||
+      activeTopBarDevice === 'desktop' ||
+      typeof effectivePreviewViewportWidth !== 'number'
+    ) {
+      return undefined;
+    }
+
+    return {
+      width: `min(100%, calc(${effectivePreviewViewportWidth}px * var(--commercial-storefront-scale)))`,
+      marginInline: 'auto'
+    } satisfies CSSProperties;
+  }, [activeTopBarDevice, effectivePreviewViewportWidth, isInlinePreview]);
+
+  useLayoutEffect(() => {
+    if (typeof effectivePreviewViewportWidth === 'number') {
+      setMeasuredViewportWidth(effectivePreviewViewportWidth);
+      return undefined;
+    }
+
+    const updateMeasuredViewportWidth = () => {
+      setMeasuredViewportWidth(window.innerWidth);
+    };
+
+    updateMeasuredViewportWidth();
+    window.addEventListener('resize', updateMeasuredViewportWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateMeasuredViewportWidth);
+    };
+  }, [effectivePreviewViewportWidth]);
 
   const updateDropdownPanelLeft = useCallback(() => {
     const header = headerRef.current;
@@ -1160,7 +1257,7 @@ export default function SiteHeader({
 
   useEffect(() => {
     if (!isAdminPath) {
-      setAdminPreviewNavigation(null);
+      setAdminPreview(null);
       return undefined;
     }
 
@@ -1168,9 +1265,13 @@ export default function SiteHeader({
       const detail = (event as CustomEvent<AdminSiteNavigationPreviewEventDetail>).detail;
 
       if (detail?.enabled && detail.navigation) {
-        setAdminPreviewNavigation(normalizeSiteNavigationConfig(detail.navigation));
+        setAdminPreview({
+          navigation: normalizeSiteNavigationConfig(detail.navigation),
+          previewDevice: detail.previewDevice,
+          previewViewportWidth: detail.previewViewportWidth
+        });
       } else {
-        setAdminPreviewNavigation(null);
+        setAdminPreview(null);
       }
 
       closeMenus();
@@ -1219,8 +1320,8 @@ export default function SiteHeader({
     previousActiveMenuRef.current = activeMenu;
   }, [activeMenu, dropdownOrderIds]);
 
-  const renderDesktopTopBarElement = (item: SiteNavigationTopBarResponsiveItem) => {
-    const wrapperStyle = getTopBarItemLayoutStyle(item, desktopTopBarLayout.settings);
+  const renderTopBarPlacementElement = (item: SiteNavigationTopBarResponsiveItem) => {
+    const wrapperStyle = getTopBarItemLayoutStyle(item, activeTopBarDevice, activeTopBarLayout.settings);
     const wrapperClassName = 'inline-flex min-w-0 items-center overflow-visible';
 
     if (item.id === 'logo') {
@@ -1236,6 +1337,23 @@ export default function SiteHeader({
           >
             <Brand />
           </Link>
+        </div>
+      );
+    }
+
+    if (item.id === 'navigation' && usesCompactTopBar) {
+      return (
+        <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
+            onClick={() => setMobileOpen((open) => !open)}
+            className="inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+          >
+            <MenuIcon open={mobileOpen} />
+          </button>
         </div>
       );
     }
@@ -1294,7 +1412,7 @@ export default function SiteHeader({
     if (item.id === 'search') {
       return (
         <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
-          <NavbarSearch mode={desktopTopBarLayout.settings.searchMode} onNavigate={closeMenus} />
+          <NavbarSearch mode={activeTopBarLayout.settings.searchMode} onNavigate={closeMenus} />
         </div>
       );
     }
@@ -1313,6 +1431,12 @@ export default function SiteHeader({
       </div>
     );
   };
+
+  useEffect(() => {
+    closeMenus();
+    // closeMenus intentionally stays local; this only clears menu state after responsive mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTopBarDevice]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -1384,47 +1508,17 @@ export default function SiteHeader({
       className="relative z-50 border-b border-[#e5e5e5] bg-white text-black [font-family:Inter,Geist,system-ui,sans-serif]"
     >
       <div
-        className={`topbar-inner topbar-inner-freeform ${forceMobilePreview ? 'hidden' : 'hidden lg:block'}`}
+        className="topbar-inner topbar-inner-freeform"
         data-layout-mode="centered_nav"
-        data-width-mode={desktopTopBarLayout.settings.widthMode}
+        data-width-mode={activeTopBarLayout.settings.widthMode}
         style={topBarShellStyle}
       >
         <div className="topbar-placement-bounds">
-          {desktopTopBarPlacementItems.map(renderDesktopTopBarElement)}
+          {activeTopBarPlacementItems.map(renderTopBarPlacementElement)}
         </div>
       </div>
 
-      <div
-        className={`topbar-inner items-center justify-between gap-[21px] ${forceMobilePreview ? 'flex' : 'flex lg:hidden'}`}
-        data-layout-mode="centered_nav"
-        data-width-mode={desktopTopBarLayout.settings.widthMode}
-        style={topBarShellStyle}
-      >
-        <Link
-          href="/"
-          prefetch={false}
-          aria-label="Atehna home"
-          onClick={closeMenus}
-          className="inline-flex min-w-0 shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
-        >
-          <Brand />
-        </Link>
-        <div className="inline-flex shrink-0 items-center gap-2">
-          <NavbarCartControl />
-          <button
-            type="button"
-            aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
-            aria-expanded={mobileOpen}
-            aria-controls={mobileMenuId}
-            onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
-          >
-            <MenuIcon open={mobileOpen} />
-          </button>
-        </div>
-      </div>
-
-      {activeMenuItem ? (
+      {!usesCompactTopBar && activeMenuItem ? (
         <div
           id={desktopPanelId}
           style={{
@@ -1436,7 +1530,7 @@ export default function SiteHeader({
           onMouseLeave={scheduleDesktopMenuClose}
           onPointerEnter={cancelDesktopMenuClose}
           onPointerLeave={scheduleDesktopMenuClose}
-          className="site-menu-perspective absolute top-full hidden pt-[11px] lg:block"
+          className="site-menu-perspective absolute top-full pt-[11px]"
         >
           <div className={`${isMenuClosing ? 'site-menu-viewport-close' : 'site-menu-viewport-open'} h-[var(--navbar-dropdown-panel-height)] overflow-hidden rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]`}>
             <div className="relative h-full overflow-hidden">
@@ -1467,10 +1561,10 @@ export default function SiteHeader({
         </div>
       ) : null}
 
-      {mobileOpen ? (
+      {usesCompactTopBar && mobileOpen ? (
         <div
           id={mobileMenuId}
-          className="max-h-[calc(100vh-64px)] overflow-y-auto border-t border-[#eeeeee] bg-white lg:hidden"
+          className="max-h-[calc(100vh-64px)] overflow-y-auto border-t border-[#eeeeee] bg-white"
         >
           <nav
             aria-label="Mobile navigation"
@@ -1535,7 +1629,11 @@ export default function SiteHeader({
   );
 
   if (isAdminNavbarPreview && !isInlinePreview) {
-    return <div className="commercial-storefront-scale admin-site-header-preview-scale">{siteHeader}</div>;
+    return (
+      <div className="commercial-storefront-scale admin-site-header-preview-scale" style={adminPreviewWrapperStyle}>
+        {siteHeader}
+      </div>
+    );
   }
 
   return siteHeader;

@@ -146,8 +146,6 @@ const topBarSettingAuditLabels: Record<string, string> = {
   paddingX: 'Notranji odmik',
   sticky: 'Lepljiva vrstica',
   shadow: 'Senca',
-  rowPattern: 'Vzorec vrstice',
-  secondRow: 'Druga vrstica',
   menuOpenMode: 'Odpiranje menija',
   actionPriority: 'Prioriteta akcij',
   safeArea: 'Varno območje'

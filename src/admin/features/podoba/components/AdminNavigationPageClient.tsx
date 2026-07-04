@@ -27,6 +27,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@d
 import { CSS } from '@dnd-kit/utilities';
 import {
   cloneDefaultSiteNavigationConfig,
+  DEFAULT_SITE_LAYOUT_SETTINGS,
   DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT,
   getSiteNavigationDesktopGroupPlacements,
   getSiteNavigationTopBarSearchReservedWidth,
@@ -4448,15 +4449,14 @@ function TopBarLayoutEditor({
   const defaultDeviceLayout = initialLayout.responsive[device];
   const layoutItems = useMemo(() => sortedResponsiveItems(deviceLayout.items), [deviceLayout.items]);
   const layoutItemIdsKey = layoutItems.map((item) => item.id).join('|');
-  const previewNavigation = useMemo(
-    () =>
-      normalizeSiteNavigationConfig({
-        siteLayout,
-        items,
-        topBarLayout: layout,
-        topBarInitialLayout: initialLayout,
-        updatedAt: null
-      } satisfies SiteNavigationConfig),
+  const previewNavigation = useMemo<SiteNavigationConfig>(
+    () => ({
+      siteLayout,
+      items,
+      topBarLayout: layout,
+      topBarInitialLayout: initialLayout,
+      updatedAt: null
+    }),
     [initialLayout, items, layout, siteLayout]
   );
   const selectedDevicePreviewWidth = getTopBarPreviewViewportWidth(device, deviceLayout.settings, siteLayout);
@@ -5167,7 +5167,7 @@ function LegacyTopBarLayoutEditor({
           ? {
               enabled: true,
               navigation: {
-                siteLayout: cloneDefaultSiteNavigationConfig().siteLayout,
+                siteLayout: DEFAULT_SITE_LAYOUT_SETTINGS,
                 items,
                 topBarLayout: layout,
                 topBarInitialLayout: initialLayout,
@@ -6291,28 +6291,30 @@ function GroupEditor({
 export default function AdminNavigationPageClient({ initialConfig }: { initialConfig: SiteNavigationConfig }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [config, setConfig] = useState(() => normalizeSiteNavigationConfig(initialConfig));
-  const [savedConfig, setSavedConfig] = useState(() => normalizeSiteNavigationConfig(initialConfig));
-  const [selectedItemId, setSelectedItemId] = useState(() => normalizeSiteNavigationConfig(initialConfig).items[0]?.id ?? '');
+  const normalizedInitialConfig = useMemo(() => normalizeSiteNavigationConfig(initialConfig), [initialConfig]);
+  const [config, setConfig] = useState(normalizedInitialConfig);
+  const [savedConfig, setSavedConfig] = useState(normalizedInitialConfig);
+  const [selectedItemId, setSelectedItemId] = useState(() => normalizedInitialConfig.items[0]?.id ?? '');
   const [topLinkEditorId, setTopLinkEditorId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
-    const normalized = normalizeSiteNavigationConfig(initialConfig);
-    setConfig(normalized);
-    setSavedConfig(normalized);
+    setConfig(normalizedInitialConfig);
+    setSavedConfig(normalizedInitialConfig);
     setSelectedItemId((current) => {
-      if (normalized.items.some((item) => item.id === current)) return current;
-      return normalized.items[0]?.id ?? '';
+      if (normalizedInitialConfig.items.some((item) => item.id === current)) return current;
+      return normalizedInitialConfig.items[0]?.id ?? '';
     });
-  }, [initialConfig]);
+  }, [normalizedInitialConfig]);
 
   const selectedItem = useMemo(
     () => config.items.find((item) => item.id === selectedItemId) ?? config.items[0] ?? null,
     [config.items, selectedItemId]
   );
-  const isDirty = comparable(config) !== comparable(savedConfig);
+  const configComparable = useMemo(() => comparable(config), [config]);
+  const savedConfigComparable = useMemo(() => comparable(savedConfig), [savedConfig]);
+  const isDirty = configComparable !== savedConfigComparable;
   const topLevelIds = useMemo(() => config.items.map((item) => item.id), [config.items]);
   const selectedGroupIds = useMemo(() => selectedItem?.groups.map((group) => group.id) ?? [], [selectedItem]);
   const selectedGroupEntries = useMemo(() => {

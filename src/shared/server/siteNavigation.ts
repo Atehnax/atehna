@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag, unstable_cache, unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient, QueryResult } from 'pg';
 import {
   SITE_NAVIGATION_SETTINGS_KEY,
@@ -27,10 +27,18 @@ const tableSql = `
 const SITE_NAVIGATION_AUDIT_ENTITY_ID = 'site-navigation';
 const SITE_NAVIGATION_AUDIT_SOURCE = 'admin-site-navigation';
 const SITE_NAVIGATION_AUDIT_PAGE_SIZE = 200;
+const SITE_NAVIGATION_CACHE_TAG = 'site-navigation-config';
+
+let siteNavigationTableReadyPromise: Promise<void> | null = null;
 
 type SiteNavigationEntityKind = 'topLevel' | 'group' | 'link' | 'topBar';
 type SiteNavigationDisplayAction = 'created' | 'updated' | 'deleted' | 'hidden' | 'shown' | 'reordered';
 type SiteNavigationAuditAction = 'created' | 'updated' | 'deleted' | 'reordered';
+
+export type SiteNavigationUpdateResult = {
+  config: SiteNavigationConfig;
+  changed: boolean;
+};
 
 type SiteNavigationChangeField = {
   field: string;
@@ -532,8 +540,51 @@ function mapSiteNavigationChangeLogRow(row: Record<string, unknown>): SiteNaviga
 
 async function ensureSiteNavigationTable() {
   const pool = await getPool();
-  await pool.query(tableSql);
+
+  siteNavigationTableReadyPromise ??= pool.query(tableSql)
+    .then(() => undefined)
+    .catch((error) => {
+      siteNavigationTableReadyPromise = null;
+      throw error;
+    });
+
+  await siteNavigationTableReadyPromise;
   return pool;
+}
+
+function serializeStoredSiteNavigationConfig(config: SiteNavigationConfig) {
+  return JSON.stringify({
+    siteLayout: config.siteLayout,
+    items: config.items,
+    topBarLayout: config.topBarLayout,
+    topBarInitialLayout: config.topBarInitialLayout
+  });
+}
+
+async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationConfig> {
+  const pool = await ensureSiteNavigationTable();
+  const result = await pool.query(
+    'select config_json, updated_at from site_navigation_settings where key = $1 limit 1',
+    [SITE_NAVIGATION_SETTINGS_KEY]
+  );
+  const row = result.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
+
+  if (!row) return cloneDefaultSiteNavigationConfig();
+
+  return {
+    ...normalizeSiteNavigationConfig(row.config_json),
+    updatedAt: toIso(row.updated_at)
+  };
+}
+
+const getCachedSiteNavigationConfigFromDatabase = unstable_cache(
+  readSiteNavigationConfigFromDatabase,
+  ['site-navigation-config'],
+  { tags: [SITE_NAVIGATION_CACHE_TAG] }
+);
+
+export function revalidateSiteNavigationConfigCache() {
+  revalidateTag(SITE_NAVIGATION_CACHE_TAG, { expire: 0 });
 }
 
 async function insertSiteNavigationAuditRows(client: PoolClient, rows: SiteNavigationAuditRow[], request?: Request) {
@@ -621,22 +672,8 @@ async function insertSiteNavigationAuditRows(client: PoolClient, rows: SiteNavig
 }
 
 export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
-  noStore();
-
   try {
-    const pool = await ensureSiteNavigationTable();
-    const result = await pool.query(
-      'select config_json, updated_at from site_navigation_settings where key = $1 limit 1',
-      [SITE_NAVIGATION_SETTINGS_KEY]
-    );
-    const row = result.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
-
-    if (!row) return cloneDefaultSiteNavigationConfig();
-
-    return {
-      ...normalizeSiteNavigationConfig(row.config_json),
-      updatedAt: toIso(row.updated_at)
-    };
+    return await getCachedSiteNavigationConfigFromDatabase();
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) {
       console.error('Failed to load site navigation config', error);
@@ -645,39 +682,55 @@ export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
   }
 }
 
-export async function updateSiteNavigationConfig(input: unknown, options: { request?: Request } = {}): Promise<SiteNavigationConfig> {
-  const config = toStoredSiteNavigationConfig(normalizeSiteNavigationConfig(input));
+export async function updateSiteNavigationConfig(input: unknown, options: { request?: Request } = {}): Promise<SiteNavigationUpdateResult> {
+  const config = toStoredSiteNavigationConfig(input);
+  const serializedConfig = serializeStoredSiteNavigationConfig(config);
   const pool = await ensureSiteNavigationTable();
   const client = await pool.connect();
 
   try {
     await client.query('begin');
     const previousResult = await client.query(
-      'select config_json from site_navigation_settings where key = $1 for update',
+      'select config_json, updated_at from site_navigation_settings where key = $1 for update',
       [SITE_NAVIGATION_SETTINGS_KEY]
     );
-    const previousConfig = previousResult.rows[0]
-      ? normalizeSiteNavigationConfig((previousResult.rows[0] as { config_json?: unknown }).config_json)
-      : cloneDefaultSiteNavigationConfig();
+    const previousRow = previousResult.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
+    const previousConfig = previousRow
+      ? toStoredSiteNavigationConfig(previousRow.config_json)
+      : toStoredSiteNavigationConfig(cloneDefaultSiteNavigationConfig());
+
+    if (previousRow && serializeStoredSiteNavigationConfig(previousConfig) === serializedConfig) {
+      await client.query('commit');
+
+      return {
+        config: {
+          ...previousConfig,
+          updatedAt: toIso(previousRow.updated_at)
+        },
+        changed: false
+      };
+    }
 
     const result = await client.query(
       `insert into site_navigation_settings (key, config_json, updated_at)
        values ($1, $2::jsonb, now())
        on conflict (key)
        do update set config_json = excluded.config_json, updated_at = now()
-       returning config_json, updated_at`,
-      [SITE_NAVIGATION_SETTINGS_KEY, JSON.stringify(config)]
+       returning updated_at`,
+      [SITE_NAVIGATION_SETTINGS_KEY, serializedConfig]
     );
-    const row = result.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
-    const storedConfig = normalizeSiteNavigationConfig(row?.config_json ?? config);
-    const auditRows = buildSiteNavigationAuditRows(previousConfig, storedConfig);
+    const row = result.rows[0] as { updated_at?: unknown } | undefined;
+    const auditRows = buildSiteNavigationAuditRows(previousConfig, config);
 
     await insertSiteNavigationAuditRows(client, auditRows, options.request);
     await client.query('commit');
 
     return {
-      ...storedConfig,
-      updatedAt: toIso(row?.updated_at)
+      config: {
+        ...config,
+        updatedAt: toIso(row?.updated_at)
+      },
+      changed: true
     };
   } catch (error) {
     await client.query('rollback');

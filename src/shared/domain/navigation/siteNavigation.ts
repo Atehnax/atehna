@@ -994,7 +994,7 @@ export function getVisibleSiteNavigationItems(config: SiteNavigationConfig): Sit
     }));
 }
 
-export function toStoredSiteNavigationConfig(config: SiteNavigationConfig): SiteNavigationConfig {
+export function toStoredSiteNavigationConfig(config: unknown): SiteNavigationConfig {
   const normalized = normalizeSiteNavigationConfig(config);
   return {
     siteLayout: normalized.siteLayout,

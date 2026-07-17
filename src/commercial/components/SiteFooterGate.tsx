@@ -6,6 +6,7 @@ import SiteFooter from '@/commercial/components/SiteFooter';
 export default function SiteFooterGate() {
   const pathname = usePathname();
   if (pathname?.startsWith('/admin')) return null;
+  if (pathname === '/') return null;
 
   return <SiteFooter />;
 }

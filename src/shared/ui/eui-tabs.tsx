@@ -13,12 +13,10 @@ type EuiTabsProps = {
   tabs: EuiTabItem[];
   className?: string;
   surface?: 'page' | 'panel';
-  size?: 'default' | 'compact';
   tabClassName?: string;
-  tone?: 'default' | 'muted-control' | 'raised';
 };
 
-export default function EuiTabs({ value, onChange, tabs, className, surface = 'page', size = 'default', tabClassName, tone = 'raised' }: EuiTabsProps) {
+export default function EuiTabs({ value, onChange, tabs, className, surface = 'page', tabClassName }: EuiTabsProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();
@@ -27,7 +25,6 @@ export default function EuiTabs({ value, onChange, tabs, className, surface = 'p
     onChange(tabs[nextIndex]?.value ?? value);
   };
 
-  const isRaised = tone === 'raised';
   const activeRaisedSurfaceClassName = surface === 'panel'
     ? '!border-b-white bg-white'
     : '!border-b-[color:var(--bg)] bg-[color:var(--bg)]';
@@ -36,13 +33,8 @@ export default function EuiTabs({ value, onChange, tabs, className, surface = 'p
     <div
       role="tablist"
       aria-orientation="horizontal"
-      className={
-        isRaised
-          ? `relative flex w-full items-end gap-0 border-b border-slate-200 ${className ?? ''}`.trim()
-          : `relative inline-flex items-end ${size === 'compact' ? 'gap-4' : 'gap-5'} ${className ?? ''}`.trim()
-      }
+      className={`relative flex w-full items-end gap-0 border-b border-slate-200 ${className ?? ''}`.trim()}
     >
-      {isRaised ? null : <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-slate-300" />}
       {tabs.map((tab) => {
         const active = tab.value === value;
         return (
@@ -55,21 +47,11 @@ export default function EuiTabs({ value, onChange, tabs, className, surface = 'p
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.value === tab.value))}
             className={
-              isRaised
-                ? `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
-                  active
-                    ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[color:var(--blue-500)]`
-                    : 'border-transparent bg-transparent font-semibold text-slate-600 hover:text-slate-900 active:text-slate-900'
-                }`
-                : `relative z-10 border-b-2 bg-transparent font-['Inter',system-ui,sans-serif] transition ${size === 'compact' ? 'pt-2 pb-2.5 text-[15px] leading-[22px]' : 'pb-2 text-base leading-none'} ${tabClassName ?? ''} ${
-                  tone === 'muted-control'
-                    ? active
-                      ? 'border-[color:var(--blue-500)] text-[color:var(--blue-500)] font-semibold'
-                      : 'border-transparent text-slate-500 font-medium hover:text-slate-700 active:text-slate-700'
-                    : active
-                      ? 'border-[color:var(--blue-500)] text-[color:var(--blue-500)] font-semibold'
-                      : 'border-transparent text-black font-semibold hover:text-[color:var(--blue-500)] active:text-[color:var(--blue-500)]'
-                }`
+              `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
+                active
+                  ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[color:var(--blue-500)]`
+                  : 'border-transparent bg-transparent font-semibold text-slate-600 hover:text-slate-900 active:text-slate-900'
+              }`
             }
           >
             {tab.label}

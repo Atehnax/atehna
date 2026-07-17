@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function AdminPodobaPage() {
-  redirect('/admin/podoba/navigacija');
+  redirect('/admin/podoba/glavna-stran');
 }

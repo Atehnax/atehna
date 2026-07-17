@@ -4333,7 +4333,6 @@ export default function AdminItemEditorPage({
         <EuiTabs
           value={editorTab}
           onChange={(value) => setEditorTab(value as ProductEditorMainTab)}
-          size="compact"
           tabs={[
             { value: 'basic', label: 'Osnovno' },
             { value: 'sales', label: 'Prodaja' },
@@ -4496,7 +4495,6 @@ export default function AdminItemEditorPage({
                 value={mediaTab}
                 onChange={(value) => setMediaTab(value as MediaTab)}
                 surface="panel"
-                size="compact"
                 tabClassName="!font-['Inter',system-ui,sans-serif] !tracking-[0]"
                 tabs={[
                   { value: 'slike', label: 'Slike' },

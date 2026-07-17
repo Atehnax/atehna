@@ -55,6 +55,17 @@ export function buildCatalogItemMediaBlobPath(itemSlug: string, fileName: string
   return ['catalog-items', safeItemSlug, mediaFolder, safeFileName].join('/');
 }
 
+export function buildLandingPageMediaBlobPath(elementId: string, fileName: string): string {
+  const safeElementId = sanitizeBlobSegment(elementId) || 'element';
+  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+
+  if (!safeFileName || safeFileName.endsWith('/')) {
+    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+  }
+
+  return ['landing-page', safeElementId, safeFileName].join('/');
+}
+
 export async function uploadBlob(
   pathname: string,
   data: Buffer | Uint8Array,

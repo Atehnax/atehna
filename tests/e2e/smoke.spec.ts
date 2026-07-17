@@ -6,7 +6,7 @@ test('home page loads', async ({ page }) => {
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: /Zanesljiva dobava materialov in opreme po Sloveniji/i
+      name: /Oprema za tehni/i
     })
   ).toBeVisible();
 });
@@ -54,6 +54,63 @@ test('admin podoba route is accessible or protected', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/navigacija');
 });
 
+test('admin landing appearance route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/glavna-stran');
+});
+
+test('admin podoba tabs put landing before navigation when loaded', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/glavna-stran');
+
+  const finalPath = new URL(page.url()).pathname.replace(/\/$/, '');
+  if (finalPath !== '/admin/podoba/glavna-stran') return;
+
+  await expect(page.getByRole('tab').nth(0)).toHaveText('Glavna stran');
+  await expect(page.getByRole('tab').nth(1)).toHaveText('Navigacija');
+});
+
 test('admin podoba archive route is accessible or protected', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/arhiv/podoba');
+});
+
+test('landing page API rejects invalid element type', async ({ request }) => {
+  const response = await request.put('/api/admin/landing-page', {
+    data: {
+      config: {
+        elements: [
+          {
+            id: 'bad',
+            type: 'bad_type',
+            adminLabel: 'Bad',
+            enabled: true,
+            position: 0,
+            content: {
+              title: 'Bad',
+              description: '',
+              primaryButton: { label: '', url: '' },
+              secondaryButton: { label: '', url: '' }
+            },
+            media: { source: 'none', url: '', title: '', description: '', alt: '', decorative: false },
+            mediaItems: [],
+            items: [],
+            layout: {
+              desktop: {
+                visible: true,
+                alignment: 'left',
+                mediaPosition: 'right',
+                spacingAfter: 'medium',
+                maxWidth: 'wide',
+                verticalPadding: 'medium',
+                imageFit: 'cover',
+                focalPoint: 'center'
+              },
+              tablet: { inherits: 'desktop', overrides: {} },
+              mobile: { inherits: 'tablet', overrides: {} }
+            }
+          }
+        ]
+      }
+    }
+  });
+
+  expect(response.status()).toBe(400);
 });

@@ -167,6 +167,12 @@ create table if not exists site_navigation_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists landing_page_settings (
+  key text primary key,
+  config_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists catalog_categories (
   id text primary key,
   parent_id text references catalog_categories(id) on delete cascade,

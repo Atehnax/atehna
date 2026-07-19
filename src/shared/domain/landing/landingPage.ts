@@ -1,3 +1,6 @@
+import { HOMEPAGE_WEBSITE_FONT_FAMILIES } from '@/shared/domain/style/fontFamilies';
+import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+
 export const LANDING_PAGE_SETTINGS_KEY = 'main-landing-page';
 
 export const HOMEPAGE_SECTION_IDS = ['hero', 'categories', 'infoBlocks', 'footer'] as const;
@@ -10,10 +13,11 @@ export const HOMEPAGE_HERO_TITLE_SIZES = ['small', 'medium', 'large', 'xlarge'] 
 export const HOMEPAGE_HERO_DESCRIPTION_SIZES = ['small', 'medium', 'large'] as const;
 export const HOMEPAGE_HERO_TITLE_WEIGHTS = ['semibold', 'bold', 'extrabold'] as const;
 export const HOMEPAGE_HERO_TITLE_TRANSFORMS = ['normal', 'uppercase'] as const;
-export const HOMEPAGE_HERO_FONT_FAMILIES = ['Inter', 'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Trebuchet MS', 'Tahoma', 'Verdana', 'Courier New'] as const;
+export const HOMEPAGE_HERO_FONT_FAMILIES = HOMEPAGE_WEBSITE_FONT_FAMILIES;
 export const HOMEPAGE_CONTAINER_WIDTHS = ['default', 'wide', 'full'] as const;
 export const HOMEPAGE_CATEGORY_CARD_SIZES = ['small', 'medium', 'large'] as const;
 export const HOMEPAGE_CATEGORY_CARD_STYLES = ['image-title', 'title-only', 'compact'] as const;
+export const HOMEPAGE_CATEGORY_ORDER_MODES = ['catalog', 'custom'] as const;
 export const HOMEPAGE_INFO_STYLES = ['boxed', 'unboxed'] as const;
 export const HOMEPAGE_INFO_ICON_POSITIONS = ['top', 'left'] as const;
 export const HOMEPAGE_SECTION_SPACINGS = ['compact', 'default', 'spacious'] as const;
@@ -23,6 +27,7 @@ export const HOMEPAGE_FOOTER_LOGO_MODES = ['full', 'mark', 'hidden'] as const;
 export const HOMEPAGE_FOOTER_SPACINGS = ['compact', 'medium', 'large'] as const;
 export const HOMEPAGE_SOCIAL_TYPES = ['facebook', 'instagram', 'youtube', 'linkedin', 'x', 'custom'] as const;
 export const HOMEPAGE_INFO_ICONS = ['badge-check', 'truck', 'headphones', 'school', 'shield-check', 'wrench', 'package-check', 'mail'] as const;
+export const HOMEPAGE_HERO_FREEFORM_KINDS = ['text', 'button'] as const;
 
 export type HomepageSectionId = (typeof HOMEPAGE_SECTION_IDS)[number];
 export type HomepagePreviewDevice = (typeof HOMEPAGE_PREVIEW_DEVICES)[number];
@@ -38,6 +43,7 @@ export type HomepageHeroFontFamily = (typeof HOMEPAGE_HERO_FONT_FAMILIES)[number
 export type HomepageContainerWidth = (typeof HOMEPAGE_CONTAINER_WIDTHS)[number];
 export type HomepageCategoryCardSize = (typeof HOMEPAGE_CATEGORY_CARD_SIZES)[number];
 export type HomepageCategoryCardStyle = (typeof HOMEPAGE_CATEGORY_CARD_STYLES)[number];
+export type HomepageCategoryOrderMode = (typeof HOMEPAGE_CATEGORY_ORDER_MODES)[number];
 export type HomepageInfoStyle = (typeof HOMEPAGE_INFO_STYLES)[number];
 export type HomepageInfoIconPosition = (typeof HOMEPAGE_INFO_ICON_POSITIONS)[number];
 export type HomepageSectionSpacing = (typeof HOMEPAGE_SECTION_SPACINGS)[number];
@@ -47,6 +53,22 @@ export type HomepageFooterLogoMode = (typeof HOMEPAGE_FOOTER_LOGO_MODES)[number]
 export type HomepageFooterSpacing = (typeof HOMEPAGE_FOOTER_SPACINGS)[number];
 export type HomepageSocialType = (typeof HOMEPAGE_SOCIAL_TYPES)[number];
 export type HomepageInfoIcon = (typeof HOMEPAGE_INFO_ICONS)[number];
+export type HomepageHeroFreeformKind = (typeof HOMEPAGE_HERO_FREEFORM_KINDS)[number];
+
+export const HOMEPAGE_PREVIEW_PROFILES: Record<
+  HomepagePreviewDevice,
+  { viewportWidth: number; fallbackHeight: number }
+> = {
+  desktop: { viewportWidth: 1440, fallbackHeight: 1120 },
+  tablet: { viewportWidth: 1024, fallbackHeight: 1080 },
+  mobile: { viewportWidth: 390, fallbackHeight: 1240 }
+};
+
+export function getHomepagePreviewDeviceForViewport(viewportWidth: number): HomepagePreviewDevice {
+  if (viewportWidth <= 767) return 'mobile';
+  if (viewportWidth <= 1024) return 'tablet';
+  return 'desktop';
+}
 
 export type HomepageButton = {
   label: string;
@@ -113,6 +135,7 @@ export type HomepageHeroTextBlockDeviceSettings = {
 
 export type HomepageHeroTextBlock = {
   id: string;
+  kind: HomepageHeroFreeformKind;
   text: string;
   visible: boolean;
   href: string;
@@ -159,6 +182,70 @@ export type HomepagePageDeviceSettings = {
 };
 
 export type HomepageDeviceSettingsMap<T> = Record<HomepagePreviewDevice, T>;
+
+export type HomepageCanvasElementDeviceSettings = {
+  visible: boolean;
+  locked: boolean;
+  offsetXPx: number;
+  offsetYPx: number;
+  widthPx: number;
+  heightPx: number;
+  paddingTopPx: number;
+  paddingRightPx: number;
+  paddingBottomPx: number;
+  paddingLeftPx: number;
+  marginTopPx: number;
+  marginRightPx: number;
+  marginBottomPx: number;
+  marginLeftPx: number;
+  zIndex: number;
+  textAlign: HomepageAlignment;
+  horizontalAlign: HomepageAlignment;
+  color: string;
+  fontFamily: string;
+  fontSizePx: number;
+  lineHeight: number;
+  letterSpacingPx: number;
+  fontWeight: number;
+  italic: boolean;
+  underline: boolean;
+};
+
+export type HomepageCanvasElementSettings = HomepageCanvasElementDeviceSettings & {
+  responsive: HomepageDeviceSettingsMap<HomepageCanvasElementDeviceSettings>;
+};
+
+export type HomepageCanvasSettings = {
+  elements: Record<string, HomepageCanvasElementSettings>;
+};
+
+export const DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS: HomepageCanvasElementDeviceSettings = {
+  visible: true,
+  locked: false,
+  offsetXPx: 0,
+  offsetYPx: 0,
+  widthPx: 0,
+  heightPx: 0,
+  paddingTopPx: 0,
+  paddingRightPx: 0,
+  paddingBottomPx: 0,
+  paddingLeftPx: 0,
+  marginTopPx: 0,
+  marginRightPx: 0,
+  marginBottomPx: 0,
+  marginLeftPx: 0,
+  zIndex: 0,
+  textAlign: 'left',
+  horizontalAlign: 'left',
+  color: '',
+  fontFamily: 'Inter',
+  fontSizePx: 15,
+  lineHeight: 1.5,
+  letterSpacingPx: 0,
+  fontWeight: 400,
+  italic: false,
+  underline: false
+};
 
 export type HomepageHeroSettings = {
   visible: boolean;
@@ -217,6 +304,7 @@ export type HomepageCategoriesSettings = {
   title: string;
   subtitle: string;
   showAllLink: boolean;
+  showAllLabel: string;
   showAllHref: string;
   limit: number;
   columns: number;
@@ -225,6 +313,7 @@ export type HomepageCategoriesSettings = {
   containerWidth: HomepageContainerWidth;
   cardStyle: HomepageCategoryCardStyle;
   showCardArrow: boolean;
+  categoryOrderMode: HomepageCategoryOrderMode;
   categoryOrder: string[];
   responsive: HomepageDeviceSettingsMap<HomepageCategoriesDeviceSettings>;
 };
@@ -253,11 +342,15 @@ export type HomepageFooterLink = {
   id: string;
   label: string;
   href: string;
+  visible?: boolean;
+  position?: number;
 };
 
 export type HomepageFooterColumn = {
   id: string;
   title: string;
+  visible?: boolean;
+  position?: number;
   links: HomepageFooterLink[];
 };
 
@@ -273,6 +366,8 @@ export type HomepageFooterSocialLink = {
   type: HomepageSocialType;
   label: string;
   href: string;
+  visible?: boolean;
+  position?: number;
 };
 
 export type HomepageFooterSettings = {
@@ -310,14 +405,18 @@ export type HomepageSettings = {
   infoBlocks: HomepageInfoBlocksSettings;
   footer: HomepageFooterSettings;
   page: HomepagePageSettings;
+  canvas: HomepageCanvasSettings;
   updatedAt?: string | null;
 };
 
 export type HomepageCategoryCardData = {
+  id?: string;
   slug: string;
   title: string;
   summary?: string | null;
   image?: string | null;
+  presentation?: CategoryShowcaseMediaSettings;
+  revision?: string;
 };
 
 export type LandingPageConfig = HomepageSettings;
@@ -401,6 +500,11 @@ export const homepageCategoryCardStyleLabels: Record<HomepageCategoryCardStyle, 
   compact: 'Kompaktno'
 };
 
+export const homepageCategoryOrderModeLabels: Record<HomepageCategoryOrderMode, string> = {
+  catalog: 'Po katalogu',
+  custom: 'Po meri'
+};
+
 export const homepageInfoStyleLabels: Record<HomepageInfoStyle, string> = {
   boxed: 'V okvirjih',
   unboxed: 'Brez okvirjev'
@@ -466,44 +570,58 @@ export const DEFAULT_HOMEPAGE_CATEGORY_CARDS: HomepageCategoryCardData[] = [
   {
     slug: 'tehnika-in-tehnologija',
     title: 'Tehnika in tehnologija',
-    image: '/images/categories/tehnika-in-tehnologija.webp'
+    image: '/images/categories/cutouts/tehnika-in-tehnologija.png'
   },
   {
     slug: 'materiali',
     title: 'Materiali',
-    image: '/images/categories/materiali.webp'
+    image: '/images/categories/cutouts/materiali.png'
   },
   {
     slug: 'stroji-in-naprave',
     title: 'Stroji in naprave',
-    image: '/images/categories/stroji-in-naprave.webp'
+    image: '/images/categories/cutouts/stroji-in-naprave.png'
   },
   {
     slug: 'merilno-orodje-in-geometrija',
     title: 'Merilno orodje in geometrija',
-    image: '/images/categories/merilno-orodje-in-geometrija.webp'
+    image: '/images/categories/cutouts/merilno-orodje-in-geometrija.png'
   },
   {
     slug: 'elektricni-in-mehanicni-elementi',
     title: 'Električni in mehanski elementi',
-    image: '/images/categories/elektricni-in-mehanicni-elementi.webp'
+    image: '/images/categories/cutouts/elektricni-in-mehanicni-elementi.png'
   },
   {
     slug: 'rocno-orodje-in-delavniski-pribor',
     title: 'Ročno orodje in delavniški pribor',
-    image: '/images/categories/rocno-orodje-in-delavniski-pribor.webp'
+    image: '/images/categories/cutouts/rocno-orodje-in-delavniski-pribor.png'
   },
   {
     slug: 'zascita-pri-delu',
     title: 'Zaščita pri delu',
-    image: '/images/categories/zascita-pri-delu.webp'
+    image: '/images/categories/cutouts/zascita-pri-delu.png'
   },
   {
     slug: 'dodatki-in-nadomestni-deli',
     title: 'Dodatki in nadomestni deli',
-    image: '/images/categories/dodatki-in-nadomestni-deli.webp'
+    image: '/images/categories/cutouts/dodatki-in-nadomestni-deli.png'
   }
 ];
+
+// Before categoryOrderMode existed, every untouched configuration was stored with
+// this populated order. Matching legacy values therefore mean "inherit"; any
+// different legacy order remains an intentional custom override.
+const LEGACY_DEFAULT_HOMEPAGE_CATEGORY_ORDER = [
+  'tehnika-in-tehnologija',
+  'materiali',
+  'stroji-in-naprave',
+  'merilno-orodje-in-geometrija',
+  'elektricni-in-mehanicni-elementi',
+  'rocno-orodje-in-delavniski-pribor',
+  'zascita-pri-delu',
+  'dodatki-in-nadomestni-deli'
+] as const;
 
 const defaultHeroSlide: HomepageHeroSlide = {
   id: 'laser-cutting-plywood',
@@ -578,7 +696,7 @@ const defaultHeroElementOffsets = {
   | 'secondaryButtonOffsetYPx'
 >;
 
-const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
+export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   sectionOrder: ['hero', 'categories', 'infoBlocks', 'footer'],
   sectionTitles: {},
   hero: {
@@ -640,6 +758,7 @@ const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
     title: 'Kategorije',
     subtitle: '',
     showAllLink: true,
+    showAllLabel: 'Prikaži vse kategorije',
     showAllHref: '/products',
     limit: 8,
     columns: 4,
@@ -648,7 +767,8 @@ const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
     containerWidth: 'default',
     cardStyle: 'image-title',
     showCardArrow: true,
-    categoryOrder: DEFAULT_HOMEPAGE_CATEGORY_CARDS.map((category) => category.slug),
+    categoryOrderMode: 'catalog',
+    categoryOrder: [],
     responsive: {
       desktop: { limit: 8, columns: 4, cardSize: 'medium', gap: 16, containerWidth: 'default', cardStyle: 'image-title', showCardArrow: true },
       tablet: { limit: 8, columns: 2, cardSize: 'medium', gap: 16, containerWidth: 'default', cardStyle: 'image-title', showCardArrow: true },
@@ -772,6 +892,9 @@ const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
       mobile: { containerWidth: 'default', sectionSpacing: 'compact', sectionRadius: 'small' }
     }
   },
+  canvas: {
+    elements: {}
+  },
   updatedAt: null
 };
 
@@ -790,6 +913,7 @@ const MAX_INFO_ITEMS = 12;
 const MAX_FOOTER_COLUMNS = 6;
 const MAX_FOOTER_LINKS = 12;
 const MAX_SOCIAL_LINKS = 8;
+const MAX_CANVAS_ELEMENTS = 256;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -821,6 +945,12 @@ function asNumber(value: unknown, fallback: number, min: number, max: number) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
   return Math.min(max, Math.max(min, Math.round(numeric)));
+}
+
+function asDecimalNumber(value: unknown, fallback: number, min: number, max: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.round(Math.min(max, Math.max(min, numeric)) * 1000) / 1000;
 }
 
 function enumValue<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
@@ -910,6 +1040,7 @@ function normalizeHeroTextBlock(value: unknown, index: number): HomepageHeroText
   const fallback = defaultHeroTextBlockDeviceSettings;
   const base = {
     id: asString(record.id, '', 100) || `hero-text-${index + 1}`,
+    kind: enumValue(record.kind, HOMEPAGE_HERO_FREEFORM_KINDS, 'text'),
     text: asString(record.text, index === 0 ? 'Novo besedilo' : `Novo besedilo ${index + 1}`, DESCRIPTION_MAX_LENGTH),
     visible: asBoolean(record.visible, true),
     href: asString(record.href, '', URL_MAX_LENGTH),
@@ -1138,6 +1269,27 @@ function normalizeCategoryOrder(value: unknown) {
     .slice(0, 80);
 }
 
+function ordersMatch(first: readonly string[], second: readonly string[]) {
+  return first.length === second.length && first.every((slug, index) => slug === second[index]);
+}
+
+export function orderHomepageCategories<T extends { slug: string }>(
+  categories: readonly T[],
+  settings: Pick<HomepageCategoriesSettings, 'categoryOrderMode' | 'categoryOrder'>
+) {
+  const source = [...categories];
+  if (settings.categoryOrderMode !== 'custom' || settings.categoryOrder.length === 0) return source;
+
+  const bySlug = new Map(source.map((category) => [category.slug, category]));
+  const customSlugs = new Set(settings.categoryOrder);
+  return [
+    ...settings.categoryOrder
+      .map((slug) => bySlug.get(slug))
+      .filter((category): category is T => Boolean(category)),
+    ...source.filter((category) => !customSlugs.has(category.slug))
+  ];
+}
+
 function normalizeCategoriesDeviceSettings(value: unknown, fallback: HomepageCategoriesDeviceSettings): HomepageCategoriesDeviceSettings {
   const record = asRecord(value);
   return {
@@ -1179,12 +1331,20 @@ function normalizeCategoriesResponsive(value: unknown, base: HomepageCategoriesD
 function normalizeCategories(value: unknown): HomepageCategoriesSettings {
   const record = asRecord(value);
   const fallback = DEFAULT_HOMEPAGE_SETTINGS.categories;
+  const categoryOrder = normalizeCategoryOrder(record.categoryOrder);
+  const hasExplicitOrderMode = HOMEPAGE_CATEGORY_ORDER_MODES.includes(record.categoryOrderMode as HomepageCategoryOrderMode);
+  const categoryOrderMode: HomepageCategoryOrderMode = hasExplicitOrderMode
+    ? record.categoryOrderMode as HomepageCategoryOrderMode
+    : categoryOrder.length > 0 && !ordersMatch(categoryOrder, LEGACY_DEFAULT_HOMEPAGE_CATEGORY_ORDER)
+      ? 'custom'
+      : 'catalog';
 
   const base = {
     visible: asBoolean(record.visible, fallback.visible),
     title: asString(record.title, fallback.title, TITLE_MAX_LENGTH),
     subtitle: asString(record.subtitle, fallback.subtitle, DESCRIPTION_MAX_LENGTH),
     showAllLink: asBoolean(record.showAllLink, fallback.showAllLink),
+    showAllLabel: asString(record.showAllLabel, fallback.showAllLabel, SHORT_TEXT_MAX_LENGTH),
     showAllHref: asString(record.showAllHref, fallback.showAllHref, URL_MAX_LENGTH),
     limit: asNumber(record.limit, fallback.limit, 1, 24),
     columns: asNumber(record.columns, fallback.columns, 1, 6),
@@ -1193,9 +1353,8 @@ function normalizeCategories(value: unknown): HomepageCategoriesSettings {
     containerWidth: enumValue(record.containerWidth, HOMEPAGE_CONTAINER_WIDTHS, fallback.containerWidth),
     cardStyle: enumValue(record.cardStyle, HOMEPAGE_CATEGORY_CARD_STYLES, fallback.cardStyle),
     showCardArrow: asBoolean(record.showCardArrow, fallback.showCardArrow),
-    categoryOrder: normalizeCategoryOrder(record.categoryOrder).length > 0
-      ? normalizeCategoryOrder(record.categoryOrder)
-      : [...fallback.categoryOrder]
+    categoryOrderMode,
+    categoryOrder: categoryOrderMode === 'custom' ? categoryOrder : []
   };
 
   return {
@@ -1301,20 +1460,40 @@ function normalizeFooterLink(value: unknown, index: number, fallback?: HomepageF
   return {
     id: asString(record.id, fallback?.id ?? `link-${index + 1}`, 100) || `link-${index + 1}`,
     label: asString(record.label, fallback?.label ?? `Povezava ${index + 1}`, SHORT_TEXT_MAX_LENGTH),
-    href: asString(record.href ?? record.url, fallback?.href ?? '#', URL_MAX_LENGTH)
+    href: asString(record.href ?? record.url, fallback?.href ?? '#', URL_MAX_LENGTH),
+    visible: asBoolean(record.visible, fallback?.visible ?? true),
+    position: asNumber(record.position, fallback?.position ?? index, 0, MAX_FOOTER_LINKS - 1)
   };
+}
+
+function normalizeFooterEntryOrder<T extends { position?: number }>(entries: T[]): T[] {
+  return entries
+    .map((entry, sourceIndex) => ({
+      entry,
+      sourceIndex,
+      position: typeof entry.position === 'number' && Number.isFinite(entry.position)
+        ? entry.position
+        : sourceIndex
+    }))
+    .sort((first, second) => first.position - second.position || first.sourceIndex - second.sourceIndex)
+    .map(({ entry }, position) => ({ ...entry, position }));
 }
 
 function normalizeFooterColumn(value: unknown, index: number): HomepageFooterColumn {
   const record = asRecord(value);
   const fallback = DEFAULT_HOMEPAGE_SETTINGS.footer.columns[index];
-  const links = asArray(record.links).slice(0, MAX_FOOTER_LINKS).map((link, linkIndex) =>
-    normalizeFooterLink(link, linkIndex, fallback?.links[linkIndex])
+  const linkSource = Array.isArray(record.links) ? record.links : fallback?.links ?? [];
+  const links = normalizeFooterEntryOrder(
+    linkSource.slice(0, MAX_FOOTER_LINKS).map((link, linkIndex) =>
+      normalizeFooterLink(link, linkIndex, fallback?.links[linkIndex])
+    )
   );
 
   return {
     id: asString(record.id, fallback?.id ?? `column-${index + 1}`, 100) || `column-${index + 1}`,
     title: asString(record.title, fallback?.title ?? `Stolpec ${index + 1}`, SHORT_TEXT_MAX_LENGTH),
+    visible: asBoolean(record.visible, fallback?.visible ?? true),
+    position: asNumber(record.position, fallback?.position ?? index, 0, MAX_FOOTER_COLUMNS - 1),
     links
   };
 }
@@ -1344,7 +1523,9 @@ function normalizeSocialLink(value: unknown, index: number): HomepageFooterSocia
     id: asString(record.id, fallback.id, 100) || `social-${index + 1}`,
     type: enumValue(record.type, HOMEPAGE_SOCIAL_TYPES, fallback.type),
     label: asString(record.label, fallback.label, SHORT_TEXT_MAX_LENGTH),
-    href: asString(record.href ?? record.url, fallback.href, URL_MAX_LENGTH)
+    href: asString(record.href ?? record.url, fallback.href, URL_MAX_LENGTH),
+    visible: asBoolean(record.visible, fallback.visible ?? true),
+    position: asNumber(record.position, fallback.position ?? index, 0, MAX_SOCIAL_LINKS - 1)
   };
 }
 
@@ -1379,12 +1560,21 @@ function normalizeFooterResponsive(value: unknown, base: HomepageFooterDeviceSet
   };
 }
 
-function normalizeFooter(value: unknown): HomepageFooterSettings {
+export function normalizeHomepageFooterSettings(value: unknown): HomepageFooterSettings {
   const record = asRecord(value);
   const fallback = DEFAULT_HOMEPAGE_SETTINGS.footer;
-  const columns = asArray(record.columns).slice(0, MAX_FOOTER_COLUMNS).map(normalizeFooterColumn);
-  const legalLinks = asArray(record.legalLinks).slice(0, MAX_FOOTER_LINKS).map((link, index) =>
-    normalizeFooterLink(link, index, fallback.legalLinks[index])
+  const columnSource = Array.isArray(record.columns) ? record.columns : fallback.columns;
+  const columns = normalizeFooterEntryOrder(
+    columnSource.slice(0, MAX_FOOTER_COLUMNS).map(normalizeFooterColumn)
+  );
+  const legalLinkSource = Array.isArray(record.legalLinks) ? record.legalLinks : fallback.legalLinks;
+  const legalLinks = normalizeFooterEntryOrder(
+    legalLinkSource.slice(0, MAX_FOOTER_LINKS).map((link, index) =>
+      normalizeFooterLink(link, index, fallback.legalLinks[index])
+    )
+  );
+  const socialLinks = normalizeFooterEntryOrder(
+    asArray(record.socialLinks).slice(0, MAX_SOCIAL_LINKS).map(normalizeSocialLink)
   );
 
   const base = {
@@ -1392,11 +1582,11 @@ function normalizeFooter(value: unknown): HomepageFooterSettings {
     logoMode: enumValue(record.logoMode, HOMEPAGE_FOOTER_LOGO_MODES, fallback.logoMode),
     logoText: asString(record.logoText ?? record.logo, fallback.logoText, SHORT_TEXT_MAX_LENGTH),
     description: asString(record.description, fallback.description, DESCRIPTION_MAX_LENGTH),
-    columns: columns.length > 0 ? columns : clone(fallback.columns),
+    columns,
     contact: normalizeFooterContact(record.contact),
-    socialLinks: asArray(record.socialLinks).slice(0, MAX_SOCIAL_LINKS).map(normalizeSocialLink),
+    socialLinks,
     copyright: asString(record.copyright, fallback.copyright, SHORT_TEXT_MAX_LENGTH),
-    legalLinks: legalLinks.length > 0 ? legalLinks : clone(fallback.legalLinks),
+    legalLinks,
     layoutColumns: asNumber(record.layoutColumns, fallback.layoutColumns, 1, MAX_FOOTER_COLUMNS),
     spacing: enumValue(record.spacing, HOMEPAGE_FOOTER_SPACINGS, fallback.spacing),
     topBorder: asBoolean(record.topBorder, fallback.topBorder)
@@ -1465,6 +1655,83 @@ function normalizePage(value: unknown): HomepagePageSettings {
   };
 }
 
+function normalizeCanvasElementDeviceSettings(
+  value: unknown,
+  fallback: HomepageCanvasElementDeviceSettings
+): HomepageCanvasElementDeviceSettings {
+  const record = asRecord(value);
+  const padding = asRecord(record.padding);
+  const margin = asRecord(record.margin);
+  const uniformPadding = record.paddingPx;
+  const uniformMargin = record.marginPx;
+
+  return {
+    visible: asBoolean(record.visible, fallback.visible),
+    locked: asBoolean(record.locked ?? record.lockPosition, fallback.locked),
+    offsetXPx: asNumber(record.offsetXPx ?? record.xPx ?? record.x, fallback.offsetXPx, -5000, 5000),
+    offsetYPx: asNumber(record.offsetYPx ?? record.yPx ?? record.y, fallback.offsetYPx, -5000, 5000),
+    widthPx: asNumber(record.widthPx ?? record.width, fallback.widthPx, 0, 5000),
+    heightPx: asNumber(record.heightPx ?? record.height, fallback.heightPx, 0, 5000),
+    paddingTopPx: asNumber(record.paddingTopPx ?? padding.top ?? uniformPadding, fallback.paddingTopPx, 0, 1000),
+    paddingRightPx: asNumber(record.paddingRightPx ?? padding.right ?? uniformPadding, fallback.paddingRightPx, 0, 1000),
+    paddingBottomPx: asNumber(record.paddingBottomPx ?? padding.bottom ?? uniformPadding, fallback.paddingBottomPx, 0, 1000),
+    paddingLeftPx: asNumber(record.paddingLeftPx ?? padding.left ?? uniformPadding, fallback.paddingLeftPx, 0, 1000),
+    marginTopPx: asNumber(record.marginTopPx ?? margin.top ?? uniformMargin, fallback.marginTopPx, -1000, 2000),
+    marginRightPx: asNumber(record.marginRightPx ?? margin.right ?? uniformMargin, fallback.marginRightPx, -1000, 2000),
+    marginBottomPx: asNumber(record.marginBottomPx ?? margin.bottom ?? uniformMargin, fallback.marginBottomPx, -1000, 2000),
+    marginLeftPx: asNumber(record.marginLeftPx ?? margin.left ?? uniformMargin, fallback.marginLeftPx, -1000, 2000),
+    zIndex: asNumber(record.zIndex ?? record.layerOrder, fallback.zIndex, -100, 1000),
+    textAlign: enumValue(record.textAlign, HOMEPAGE_ALIGNMENTS, fallback.textAlign),
+    horizontalAlign: enumValue(record.horizontalAlign ?? record.alignment, HOMEPAGE_ALIGNMENTS, fallback.horizontalAlign),
+    color: asString(record.color ?? record.colour, fallback.color, COLOR_MAX_LENGTH),
+    fontFamily: asString(record.fontFamily ?? record.font, fallback.fontFamily, 120),
+    fontSizePx: asDecimalNumber(record.fontSizePx ?? record.fontSize, fallback.fontSizePx, 8, 240),
+    lineHeight: asDecimalNumber(record.lineHeight, fallback.lineHeight, 0.5, 4),
+    letterSpacingPx: asDecimalNumber(record.letterSpacingPx ?? record.letterSpacing, fallback.letterSpacingPx, -20, 100),
+    fontWeight: asNumber(record.fontWeight ?? record.weight, fallback.fontWeight, 100, 900),
+    italic: asBoolean(record.italic, fallback.italic),
+    underline: asBoolean(record.underline, fallback.underline)
+  };
+}
+
+function normalizeCanvasElementResponsive(
+  value: unknown,
+  base: HomepageCanvasElementDeviceSettings
+): HomepageDeviceSettingsMap<HomepageCanvasElementDeviceSettings> {
+  const record = asRecord(value);
+
+  return {
+    desktop: normalizeCanvasElementDeviceSettings(record.desktop, base),
+    tablet: normalizeCanvasElementDeviceSettings(record.tablet, base),
+    mobile: normalizeCanvasElementDeviceSettings(record.mobile, base)
+  };
+}
+
+function normalizeCanvasElement(value: unknown): HomepageCanvasElementSettings {
+  const record = asRecord(value);
+  const base = normalizeCanvasElementDeviceSettings(record, DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS);
+
+  return {
+    ...base,
+    responsive: normalizeCanvasElementResponsive(record.responsive, base)
+  };
+}
+
+function normalizeCanvas(value: unknown): HomepageCanvasSettings {
+  const record = asRecord(value);
+  const elementSource = Object.prototype.hasOwnProperty.call(record, 'elements')
+    ? asRecord(record.elements)
+    : record;
+  const elements = Object.fromEntries(
+    Object.entries(elementSource)
+      .slice(0, MAX_CANVAS_ELEMENTS)
+      .map(([rawElementId, element]) => [asString(rawElementId, '', 160), normalizeCanvasElement(element)] as const)
+      .filter(([elementId]) => Boolean(elementId) && !['__proto__', 'prototype', 'constructor'].includes(elementId))
+  );
+
+  return { elements };
+}
+
 function normalizeSectionOrder(value: unknown, fillMissing = !Array.isArray(value)): HomepageSectionId[] {
   const requested = (Array.isArray(value) ? value : [])
     .map((entry) => enumValue(entry, HOMEPAGE_SECTION_IDS, null as never))
@@ -1531,8 +1798,9 @@ export function normalizeLandingPageConfig(value: unknown): HomepageSettings {
     hero: normalizeHero(record.hero ?? legacy.hero),
     categories: normalizeCategories(record.categories ?? legacy.categories),
     infoBlocks: normalizeInfoBlocks(record.infoBlocks),
-    footer: normalizeFooter(record.footer),
+    footer: normalizeHomepageFooterSettings(record.footer),
     page: normalizePage(record.page),
+    canvas: normalizeCanvas(record.canvas),
     updatedAt: asNullableString(record.updatedAt ?? record.updated_at, 80)
   };
 }
@@ -1550,8 +1818,26 @@ export function toStoredLandingPageConfig(config: unknown): HomepageSettings {
     categories: normalized.categories,
     infoBlocks: normalized.infoBlocks,
     footer: normalized.footer,
-    page: normalized.page
+    page: normalized.page,
+    canvas: normalized.canvas
   };
+}
+
+export function resolveHomepageCanvasElementDeviceSettings(
+  settingsOrConfig: HomepageCanvasSettings | HomepageSettings | unknown,
+  elementId: string,
+  device: HomepagePreviewDevice
+): HomepageCanvasElementDeviceSettings {
+  const sourceRecord = asRecord(settingsOrConfig);
+  const canvasInput = Object.prototype.hasOwnProperty.call(sourceRecord, 'canvas')
+    ? sourceRecord.canvas
+    : settingsOrConfig;
+  const canvas = normalizeCanvas(canvasInput);
+  const element = canvas.elements[elementId];
+
+  return element
+    ? clone(element.responsive[device])
+    : clone(DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS);
 }
 
 export function resolveHomepageSettingsForDevice(config: unknown, device: HomepagePreviewDevice): HomepageSettings {
@@ -1561,6 +1847,15 @@ export function resolveHomepageSettingsForDevice(config: unknown, device: Homepa
   const infoBlocksDevice = normalized.infoBlocks.responsive[device];
   const footerDevice = normalized.footer.responsive[device];
   const pageDevice = normalized.page.responsive[device];
+  const canvasElements = Object.fromEntries(
+    Object.entries(normalized.canvas.elements).map(([elementId, element]) => [
+      elementId,
+      {
+        ...element,
+        ...element.responsive[device]
+      }
+    ])
+  );
 
   return {
     ...normalized,
@@ -1568,7 +1863,8 @@ export function resolveHomepageSettingsForDevice(config: unknown, device: Homepa
     categories: { ...normalized.categories, ...categoriesDevice },
     infoBlocks: { ...normalized.infoBlocks, ...infoBlocksDevice },
     footer: { ...normalized.footer, ...footerDevice },
-    page: { ...normalized.page, ...pageDevice }
+    page: { ...normalized.page, ...pageDevice },
+    canvas: { elements: canvasElements }
   };
 }
 
@@ -1620,6 +1916,41 @@ function validateEnum<T extends string>(errors: string[], value: unknown, option
   if (!options.includes(value as T)) errors.push(`${label} ni veljaven.`);
 }
 
+function validateCanvasElementDeviceSettingsInput(
+  errors: string[],
+  value: unknown,
+  fallback: HomepageCanvasElementDeviceSettings,
+  label: string
+) {
+  const record = asRecord(value);
+  const padding = asRecord(record.padding);
+  const margin = asRecord(record.margin);
+  const uniformPadding = record.paddingPx;
+  const uniformMargin = record.marginPx;
+
+  validateNumber(errors, record.offsetXPx ?? record.xPx ?? record.x ?? fallback.offsetXPx, `${label} - odmik X`, -5000, 5000);
+  validateNumber(errors, record.offsetYPx ?? record.yPx ?? record.y ?? fallback.offsetYPx, `${label} - odmik Y`, -5000, 5000);
+  validateNumber(errors, record.widthPx ?? record.width ?? fallback.widthPx, `${label} - širina`, 0, 5000);
+  validateNumber(errors, record.heightPx ?? record.height ?? fallback.heightPx, `${label} - višina`, 0, 5000);
+  validateNumber(errors, record.paddingTopPx ?? padding.top ?? uniformPadding ?? fallback.paddingTopPx, `${label} - notranji odmik zgoraj`, 0, 1000);
+  validateNumber(errors, record.paddingRightPx ?? padding.right ?? uniformPadding ?? fallback.paddingRightPx, `${label} - notranji odmik desno`, 0, 1000);
+  validateNumber(errors, record.paddingBottomPx ?? padding.bottom ?? uniformPadding ?? fallback.paddingBottomPx, `${label} - notranji odmik spodaj`, 0, 1000);
+  validateNumber(errors, record.paddingLeftPx ?? padding.left ?? uniformPadding ?? fallback.paddingLeftPx, `${label} - notranji odmik levo`, 0, 1000);
+  validateNumber(errors, record.marginTopPx ?? margin.top ?? uniformMargin ?? fallback.marginTopPx, `${label} - zunanji odmik zgoraj`, -1000, 2000);
+  validateNumber(errors, record.marginRightPx ?? margin.right ?? uniformMargin ?? fallback.marginRightPx, `${label} - zunanji odmik desno`, -1000, 2000);
+  validateNumber(errors, record.marginBottomPx ?? margin.bottom ?? uniformMargin ?? fallback.marginBottomPx, `${label} - zunanji odmik spodaj`, -1000, 2000);
+  validateNumber(errors, record.marginLeftPx ?? margin.left ?? uniformMargin ?? fallback.marginLeftPx, `${label} - zunanji odmik levo`, -1000, 2000);
+  validateNumber(errors, record.zIndex ?? record.layerOrder ?? fallback.zIndex, `${label} - vrstni red plasti`, -100, 1000);
+  validateEnum(errors, record.textAlign ?? fallback.textAlign, HOMEPAGE_ALIGNMENTS, `${label} - poravnava besedila`);
+  validateEnum(errors, record.horizontalAlign ?? record.alignment ?? fallback.horizontalAlign, HOMEPAGE_ALIGNMENTS, `${label} - vodoravna poravnava`);
+  validateText(errors, record.color ?? record.colour ?? fallback.color, COLOR_MAX_LENGTH, `${label} - barva`);
+  validateText(errors, record.fontFamily ?? record.font ?? fallback.fontFamily, 120, `${label} - pisava`);
+  validateNumber(errors, record.fontSizePx ?? record.fontSize ?? fallback.fontSizePx, `${label} - velikost pisave`, 8, 240);
+  validateNumber(errors, record.lineHeight ?? fallback.lineHeight, `${label} - višina vrstice`, 0.5, 4);
+  validateNumber(errors, record.letterSpacingPx ?? record.letterSpacing ?? fallback.letterSpacingPx, `${label} - razmik črk`, -20, 100);
+  validateNumber(errors, record.fontWeight ?? record.weight ?? fallback.fontWeight, `${label} - debelina pisave`, 100, 900);
+}
+
 export function validateLandingPageConfigInput(input: unknown): string[] {
   const errors: string[] = [];
   const config = asRecord(input);
@@ -1628,6 +1959,10 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   const infoBlocks = asRecord(config.infoBlocks);
   const footer = asRecord(config.footer);
   const page = asRecord(config.page);
+  const canvas = asRecord(config.canvas);
+  const canvasElements = Object.prototype.hasOwnProperty.call(canvas, 'elements')
+    ? asRecord(canvas.elements)
+    : canvas;
   const sectionTitles = asRecord(config.sectionTitles);
   const normalized = normalizeLandingPageConfig(input);
 
@@ -1678,6 +2013,7 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   });
   asArray(hero.textBlocks).forEach((block, index) => {
     const record = asRecord(block);
+    validateEnum(errors, record.kind ?? normalized.hero.textBlocks[index]?.kind ?? 'text', HOMEPAGE_HERO_FREEFORM_KINDS, `Hero besedilo ${index + 1} - vrsta`);
     validateText(errors, record.text, DESCRIPTION_MAX_LENGTH, `Hero besedilo ${index + 1}`, true);
     validateUrl(errors, record.href, `Hero besedilo ${index + 1} - povezava`);
     validateNumber(errors, record.xPx ?? normalized.hero.textBlocks[index]?.xPx ?? defaultHeroTextBlockDeviceSettings.xPx, `Hero besedilo ${index + 1} - X`, -1400, 1400);
@@ -1689,6 +2025,7 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
 
   validateText(errors, categories.title, TITLE_MAX_LENGTH, 'Naslov kategorij');
   validateText(errors, categories.subtitle, DESCRIPTION_MAX_LENGTH, 'Podnaslov kategorij');
+  validateText(errors, categories.showAllLabel, SHORT_TEXT_MAX_LENGTH, 'Besedilo povezave za vse kategorije');
   validateUrl(errors, categories.showAllHref, 'Povezava za vse kategorije');
   validateNumber(errors, categories.limit, 'Število kategorij', 1, 24);
   validateNumber(errors, categories.columns, 'Število stolpcev kategorij', 1, 6);
@@ -1696,6 +2033,12 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   validateEnum(errors, categories.containerWidth, HOMEPAGE_CONTAINER_WIDTHS, 'Širina kategorij');
   validateEnum(errors, categories.cardSize, HOMEPAGE_CATEGORY_CARD_SIZES, 'Velikost kartic');
   validateEnum(errors, categories.cardStyle, HOMEPAGE_CATEGORY_CARD_STYLES, 'Slog kartic');
+  validateEnum(
+    errors,
+    categories.categoryOrderMode ?? normalized.categories.categoryOrderMode,
+    HOMEPAGE_CATEGORY_ORDER_MODES,
+    'Vrstni red kategorij'
+  );
 
   validateNumber(errors, infoBlocks.columns, 'Število stolpcev elementov', 1, 6);
   validateNumber(errors, infoBlocks.gap, 'Razmik elementov', 0, 48);
@@ -1739,6 +2082,23 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   validateEnum(errors, page.sectionSpacing, HOMEPAGE_SECTION_SPACINGS, 'Razmik sekcij');
   validateEnum(errors, page.sectionRadius, HOMEPAGE_SECTION_RADII, 'Zaobljenost sekcij');
   validateEnum(errors, page.buttonStyle, HOMEPAGE_BUTTON_STYLES, 'Slog gumbov');
+
+  Object.entries(canvasElements).slice(0, MAX_CANVAS_ELEMENTS).forEach(([elementId, elementValue]) => {
+    const element = asRecord(elementValue);
+    const normalizedElement = normalized.canvas.elements[elementId] ?? normalizeCanvasElement(elementValue);
+    validateText(errors, elementId, 160, `Element platna ${elementId} - ID`, true);
+    validateCanvasElementDeviceSettingsInput(errors, element, normalizedElement, `Element platna ${elementId}`);
+
+    const responsive = asRecord(element.responsive);
+    HOMEPAGE_PREVIEW_DEVICES.forEach((device) => {
+      validateCanvasElementDeviceSettingsInput(
+        errors,
+        responsive[device],
+        normalizedElement.responsive[device],
+        `Element platna ${elementId} - ${homepagePreviewDeviceLabels[device]}`
+      );
+    });
+  });
 
   return errors;
 }

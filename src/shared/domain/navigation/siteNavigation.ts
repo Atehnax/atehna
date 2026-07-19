@@ -1,3 +1,10 @@
+import {
+  DEFAULT_HOMEPAGE_SETTINGS,
+  normalizeHomepageFooterSettings,
+  type HomepageFooterLink,
+  type HomepageFooterSettings
+} from '@/shared/domain/landing/landingPage';
+
 export const SITE_NAVIGATION_SETTINGS_KEY = 'main-navbar';
 
 const defaultIcon = 'box';
@@ -138,6 +145,7 @@ export type SiteNavigationSiteLayoutSettings = {
 export type SiteNavigationConfig = {
   siteLayout: SiteNavigationSiteLayoutSettings;
   items: SiteNavigationTopLevelItem[];
+  footer: HomepageFooterSettings;
   topBarLayout: SiteNavigationTopBarLayout;
   topBarInitialLayout: SiteNavigationTopBarLayout;
   updatedAt?: string | null;
@@ -465,6 +473,7 @@ export const DEFAULT_SITE_NAVIGATION_CONFIG: SiteNavigationConfig = {
       ])
     ])
   ],
+  footer: normalizeHomepageFooterSettings(DEFAULT_HOMEPAGE_SETTINGS.footer),
   topBarLayout: DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT,
   topBarInitialLayout: DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT,
   updatedAt: null
@@ -864,6 +873,76 @@ function sortByPosition<T extends { position: number }>(items: T[]) {
   return [...items].sort((a, b) => a.position - b.position);
 }
 
+type LegacySiteNavigationFooterLink = HomepageFooterLink & {
+  visible: boolean;
+  position: number;
+};
+
+function normalizeLegacySiteNavigationFooterLinks(rawLinks: unknown[]): LegacySiteNavigationFooterLink[] {
+  return rawLinks
+    .map((rawLink, linkIndex): LegacySiteNavigationFooterLink => {
+      const linkRecord = asRecord(rawLink);
+      return {
+        id: asString(linkRecord.id, `footer-link-${linkIndex + 1}`),
+        label: asString(linkRecord.label, `Povezava ${linkIndex + 1}`),
+        href: asString(linkRecord.href ?? linkRecord.url, '#'),
+        visible: asVisible(linkRecord.visible),
+        position: asPosition(linkRecord.position, linkIndex)
+      };
+    })
+    .sort((first, second) => first.position - second.position)
+    .map((link, position) => ({ ...link, position }));
+}
+
+function migrateLegacyFooterLinks(rawLinks: unknown[] | null): HomepageFooterSettings {
+  const footer = normalizeHomepageFooterSettings(DEFAULT_HOMEPAGE_SETTINGS.footer);
+  if (rawLinks === null || rawLinks.length === 0) return footer;
+
+  const legacyLinks = normalizeLegacySiteNavigationFooterLinks(rawLinks);
+  const availableLinks = footer.columns.flatMap((column) =>
+    column.links.map((link) => ({ column, link }))
+  );
+  const matchedLinks = new Set<HomepageFooterLink>();
+  const unmatchedLinks: LegacySiteNavigationFooterLink[] = [];
+
+  legacyLinks.forEach((legacyLink) => {
+    const normalizedLabel = legacyLink.label.toLocaleLowerCase();
+    const exactLabelMatch = availableLinks.find(({ link }) =>
+      !matchedLinks.has(link) &&
+      link.href === legacyLink.href &&
+      link.label.toLocaleLowerCase() === normalizedLabel
+    );
+    const hrefMatch = exactLabelMatch ?? availableLinks.find(({ link }) =>
+      !matchedLinks.has(link) && link.href === legacyLink.href
+    );
+
+    if (!hrefMatch) {
+      unmatchedLinks.push(legacyLink);
+      return;
+    }
+
+    Object.assign(hrefMatch.link, legacyLink);
+    matchedLinks.add(hrefMatch.link);
+  });
+
+  if (unmatchedLinks.length > 0) {
+    const linksColumn = footer.columns.find((column) => column.title.toLocaleLowerCase() === 'povezave');
+    if (linksColumn) {
+      linksColumn.links.push(...unmatchedLinks);
+    } else {
+      footer.columns.push({
+        id: 'legacy-footer-links',
+        title: 'Povezave',
+        visible: true,
+        position: footer.columns.length,
+        links: unmatchedLinks
+      });
+    }
+  }
+
+  return normalizeHomepageFooterSettings(footer);
+}
+
 function getDesktopGroupSpan(group: SiteNavigationGroup) {
   return Math.min(Math.max(group.desktopSpan ?? 1, 1), SITE_NAVIGATION_DESKTOP_COLUMN_COUNT);
 }
@@ -905,15 +984,25 @@ export function cloneDefaultSiteNavigationConfig() {
 export function normalizeSiteNavigationConfig(value: unknown): SiteNavigationConfig {
   const record = asRecord(value);
   const rawItems = Array.isArray(record.items) ? record.items : [];
+  const rawFooterLinks = Array.isArray(record.footerLinks)
+    ? record.footerLinks
+    : Array.isArray(record.footer_links)
+      ? record.footer_links
+      : null;
   const siteLayout = normalizeSiteLayoutSettings(record.siteLayout ?? record.site_layout);
   const topBarLayout = normalizeSiteNavigationTopBarLayout(record.topBarLayout);
   const topBarInitialLayout = normalizeSiteNavigationTopBarLayout(record.topBarInitialLayout);
   const updatedAt = typeof record.updatedAt === 'string' ? record.updatedAt : null;
+  const hasRichFooter = typeof record.footer === 'object' && record.footer !== null && !Array.isArray(record.footer);
+  const footer = hasRichFooter
+    ? normalizeHomepageFooterSettings(record.footer)
+    : migrateLegacyFooterLinks(rawFooterLinks);
 
   if (rawItems.length === 0) {
     return {
       ...cloneDefaultSiteNavigationConfig(),
       siteLayout,
+      footer,
       topBarLayout,
       topBarInitialLayout,
       updatedAt
@@ -973,6 +1062,7 @@ export function normalizeSiteNavigationConfig(value: unknown): SiteNavigationCon
         }))
       }))
     })),
+    footer,
     topBarLayout,
     topBarInitialLayout,
     updatedAt
@@ -999,6 +1089,7 @@ export function toStoredSiteNavigationConfig(config: unknown): SiteNavigationCon
   return {
     siteLayout: normalized.siteLayout,
     items: normalized.items,
+    footer: normalized.footer,
     topBarLayout: normalized.topBarLayout,
     topBarInitialLayout: normalized.topBarInitialLayout
   };

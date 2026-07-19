@@ -5,6 +5,7 @@ import type {
   RecursiveCatalogData,
   RecursiveCatalogSubcategory
 } from '@/shared/domain/catalog/catalogTypes';
+import { normalizeCategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 
 export type {
   RecursiveCatalogCategory,
@@ -49,6 +50,8 @@ function normalizeCategory(raw: unknown): RecursiveCatalogCategory | null {
     summary: typeof category.summary === 'string' ? category.summary : '',
     description: typeof category.description === 'string' ? category.description : '',
     image: normalizeCatalogImage(category.image),
+    presentation: normalizeCategoryShowcaseMediaSettings(category.presentation),
+    revision: typeof category.revision === 'string' ? category.revision : undefined,
     adminNotes: typeof category.adminNotes === 'string' ? category.adminNotes : undefined,
     bannerImage: normalizeCatalogImage(category.bannerImage) || undefined,
     subcategories: subcategoriesSource

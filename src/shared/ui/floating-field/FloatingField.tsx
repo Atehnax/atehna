@@ -5,6 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes
 } from 'react';
+import { adminControlFocusWithinTokenClasses } from '@/shared/ui/theme/tokens';
 
 import './floating-field.css';
 
@@ -39,7 +40,7 @@ const getFieldBackground = (disabled?: boolean, readOnly?: boolean): FieldBackgr
 const toneClasses = {
   order: {
     shell:
-      'group relative rounded-lg border border-slate-300 transition-[border-color,box-shadow] focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100',
+      `group relative rounded-lg border border-slate-300 transition-[border-color,box-shadow] ${adminControlFocusWithinTokenClasses}`,
     input:
       'h-14 w-full rounded-lg border-0 bg-transparent px-3 pb-2 pt-6 text-sm text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     textarea:
@@ -67,7 +68,7 @@ const toneClasses = {
   },
   admin: {
     shell:
-      'group relative rounded-xl border border-slate-300 transition-[border-color,box-shadow] focus-within:border-[color:var(--blue-500)] focus-within:ring-2 focus-within:ring-brand-100',
+      `group relative rounded-xl border border-slate-300 transition-[border-color,box-shadow] ${adminControlFocusWithinTokenClasses}`,
     input:
       'h-10 w-full overflow-visible rounded-xl border-0 bg-transparent px-2.5 pb-1.5 pt-5 text-xs leading-6 text-slate-900 outline-none ring-0 transition-[color] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-default disabled:text-slate-400 read-only:cursor-default read-only:text-slate-500',
     textarea:
@@ -111,7 +112,7 @@ export function FloatingInput({
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
   const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
   const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : tone === 'order' ? 'var(--site-field-bg, rgb(255 255 255))' : 'rgb(255 255 255)' } as CSSProperties);
   const currentValue = props.value ?? props.defaultValue ?? '';
   const hasValue = String(currentValue).length > 0;
 
@@ -119,6 +120,7 @@ export function FloatingInput({
     <div
       className={classNames(
         'ff-root',
+        tone === 'order' && 'site-field-shell',
         classes.shell,
         isStatic && classes.staticShell,
         muted && 'bg-[color:var(--field-locked-bg)]'
@@ -169,7 +171,7 @@ export function FloatingTextarea({
   const muted = getFieldBackground(props.disabled, props.readOnly) === 'muted';
   const fieldBackground = getFieldBackground(props.disabled, props.readOnly);
   const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : tone === 'order' ? 'var(--site-field-bg, rgb(255 255 255))' : 'rgb(255 255 255)' } as CSSProperties);
   const currentValue = props.value ?? props.defaultValue ?? '';
   const hasValue = String(currentValue).length > 0;
 
@@ -177,6 +179,7 @@ export function FloatingTextarea({
     <div
       className={classNames(
         'ff-root',
+        tone === 'order' && 'site-field-shell',
         classes.shell,
         isStatic && classes.staticShell,
         muted && 'bg-[color:var(--field-locked-bg)]'
@@ -228,13 +231,13 @@ export function FloatingSelect({
   const classes = toneClasses[tone];
   const fieldBackground = getFieldBackground(props.disabled, false);
   const fieldBackgroundVariable =
-    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : 'rgb(255 255 255)' } as CSSProperties);
+    ({ '--field-bg': fieldBackground === 'muted' ? 'rgb(245 246 248)' : tone === 'order' ? 'var(--site-field-bg, rgb(255 255 255))' : 'rgb(255 255 255)' } as CSSProperties);
 
   const isStatic = labelMode === 'static';
 
   return (
     <div
-      className={classNames('ff-root', classes.shell, isStatic && classes.staticShell)}
+      className={classNames('ff-root', tone === 'order' && 'site-field-shell', classes.shell, isStatic && classes.staticShell)}
       data-floating-field
       data-has-value={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}

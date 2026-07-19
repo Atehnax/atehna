@@ -43,10 +43,27 @@ export const adminSearchPlaceholderTokenClasses =
   'placeholder:font-normal placeholder:text-slate-500 placeholder:opacity-80';
 
 export const adminControlFocusTokenClasses =
-  'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0';
+  'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
 
-export const adminControlFocusRingTokenClasses =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)]/30';
+export const adminControlFocusWithinTokenClasses =
+  'focus-within:border-[color:var(--blue-500)] focus-within:outline-none';
+
+/**
+ * Shared geometry for full-surface admin previews. Painted preview surfaces
+ * inherit this radius so selection/annotation outlines can follow the frame
+ * without clipping contextual controls that intentionally overflow it.
+ */
+export const adminEditorPreviewFrameTokenClasses =
+  'relative overflow-visible rounded-xl border border-slate-200';
+
+export const adminEditorPreviewSurfaceTokenClasses =
+  'relative rounded-[inherit] [&>footer]:rounded-[inherit]';
+
+export const adminEditorPreviewContentTokenClasses = 'rounded-[inherit]';
+
+/** Shared full-section selection outline used by direct-manipulation editors. */
+export const adminEditorSelectionOutlineTokenClasses =
+  'rounded-xl outline outline-2 outline-offset-[-2px] outline-[color:var(--blue-500)]';
 
 export const adminStatusInfoPillClassName =
   'h-[26px] min-w-[132px] justify-center px-4 text-[11px]';
@@ -234,10 +251,10 @@ export const adminTinyNumberInputTokenClasses =
   `h-6 w-7 rounded-md border border-slate-300 bg-white px-1 text-center text-[12px] leading-none text-slate-700 font-['Inter',system-ui,sans-serif] outline-none transition ${adminControlFocusTokenClasses}`;
 
 export const adminInlineEditTriggerTokenClasses =
-  `pointer-events-auto rounded-md text-left outline-none transition hover:bg-[color:var(--hover-neutral)] ${adminControlFocusRingTokenClasses}`;
+  `pointer-events-auto rounded-md border border-transparent text-left outline-none transition hover:bg-[color:var(--hover-neutral)] ${adminControlFocusTokenClasses}`;
 
 export const adminDragSurfaceTokenClasses =
-  `absolute inset-0 z-0 cursor-grab rounded-lg ${adminControlFocusRingTokenClasses} active:cursor-grabbing`;
+  `absolute inset-0 z-0 cursor-grab rounded-lg border border-transparent ${adminControlFocusTokenClasses} active:cursor-grabbing`;
 
 export const pillTokenClasses = {
   list: 'inline-flex items-center rounded-xl border border-slate-300 bg-transparent',
@@ -287,4 +304,4 @@ export const dateInputTokenClasses = {
 } as const;
 
 export const adminInputFocusTokenClasses =
-  'outline-none focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
+  `outline-none ${adminControlFocusTokenClasses}`;

@@ -3,29 +3,49 @@ import { getPool } from '@/shared/server/db';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
+  normalizeCategoryShowcaseMediaSettings,
+  resolveCategoryShowcaseImage,
+  type CategoryShowcaseItem,
+  type CategoryShowcaseMediaSettings
+} from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import {
   normalizeCatalogData,
   type CatalogData,
   type RecursiveCatalogCategory,
   type RecursiveCatalogSubcategory
 } from '@/shared/server/catalogAdmin';
-import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
+import {
+  CATALOG_ADMIN_TAG,
+  CATALOG_PUBLIC_TAG,
+  CATEGORY_SHOWCASE_TAG
+} from '@/shared/server/catalogCache';
+import {
+  getCategoryShowcaseItemsFromDatabase,
+  type StoredCategoryShowcaseItem
+} from '@/shared/server/categoryShowcase';
 import { fetchCatalogItemsForCategory } from '@/shared/server/catalogItems';
 
-export { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS } from '@/shared/server/catalogCache';
+export {
+  CATALOG_ADMIN_TAG,
+  CATALOG_PUBLIC_TAG,
+  CATALOG_REVALIDATE_PATHS,
+  CATEGORY_SHOWCASE_REVALIDATE_PATHS,
+  CATEGORY_SHOWCASE_TAG
+} from '@/shared/server/catalogCache';
 
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
 type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'items'> & {
   subcategories: CatalogPreviewSubcategory[];
 };
-type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
+type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation' | 'revision' | 'items'> & {
   subcategories: CatalogPreviewSubcategory[];
 };
 type CatalogPreviewData = { categories: CatalogPreviewCategory[] };
 type CatalogPreviewDataWithStatuses = CatalogPreviewData & { statuses: Record<string, CategoryStatus> };
 
-type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'slug' | 'title' | 'summary' | 'image'>;
+export type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation' | 'revision'>;
 type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
-type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'> & {
+type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation' | 'revision' | 'items'> & {
   subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
 };
 type CatalogCategoryPageSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description'> & {
@@ -41,9 +61,9 @@ type CatalogItemsIndex = Array<
   }
 >;
 
-type CategoryCardRow = Pick<CategoryRow, 'slug' | 'title' | 'summary' | 'image'>;
+type CategoryCardRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation_json'>;
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
-type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items'>;
+type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation_json' | 'items'>;
 type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
 type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description'> & { item_count: number };
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
@@ -58,6 +78,7 @@ type CategoryRow = {
   summary: string;
   description: string;
   image: string;
+  presentation_json: unknown;
   admin_notes: string | null;
   banner_image: string | null;
   items: unknown;
@@ -119,7 +140,8 @@ function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: normalizeCatalogImage(row.image),
+    image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+    presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     adminNotes: row.admin_notes ?? undefined,
     bannerImage: normalizeCatalogImage(row.banner_image) || undefined,
     subcategories: [],
@@ -151,7 +173,8 @@ function rowToPreviewCategory(row: CategoryRow): CatalogPreviewCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: normalizeCatalogImage(row.image),
+    image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+    presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     items: getRowItems(row),
     subcategories: []
   };
@@ -196,7 +219,8 @@ async function readCatalogDataFromDatabase(
 
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogDataFromDatabase:allRows', () => pool.query(`
-    select id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, created_at, updated_at
+    select id, parent_id, slug, title, summary, description, image, presentation_json, admin_notes, banner_image, items, position, status, created_at,
+           updated_at::text as updated_at
     from catalog_categories
     ${includeInactive ? '' : "where status = 'active'"}
     order by coalesce(parent_id, ''), position asc, title asc
@@ -234,6 +258,47 @@ async function readCatalogDataFromDatabase(
   return normalizedPayload;
 }
 
+/**
+ * Fresh, lightweight structural snapshot used by write-time audit diffing.
+ * It intentionally bypasses caches and never joins/aggregates product data,
+ * avoiding a full catalogue hydration immediately before every mutation.
+ */
+export async function getCatalogAdminAuditPayloadFromDatabase(
+  diagnosticsContext = '/api/admin/categories:audit-before'
+): Promise<CatalogDataWithStatuses> {
+  return instrumentCatalogLoader('getCatalogAdminAuditPayloadFromDatabase', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const result = await profileRoutePhase('db', 'getCatalogAdminAuditPayloadFromDatabase:rows', () => pool.query(`
+      select id, parent_id, slug, title, summary, description, image, presentation_json,
+             admin_notes, banner_image, position, status, created_at, updated_at::text as updated_at
+      from catalog_categories
+      order by coalesce(parent_id, ''), position asc, title asc
+    `));
+    const rows = result.rows as CategoryRow[];
+    const topLevel = rows.filter((row) => row.parent_id === null);
+    const childrenByParent = new Map<string, CategoryRow[]>();
+    for (const row of rows) {
+      if (!row.parent_id) continue;
+      const children = childrenByParent.get(row.parent_id) ?? [];
+      children.push(row);
+      childrenByParent.set(row.parent_id, children);
+    }
+
+    const statuses: Record<string, CategoryStatus> = {};
+    const categories = topLevel.map((row) => {
+      const category = rowToCategory(row);
+      category.items = [];
+      statuses[`cat:${row.slug}`] = normalizeStatus(row.status);
+      category.subcategories = buildSubcategoryTree(row.id, row.slug, childrenByParent, statuses).map((subcategory) => ({
+        ...subcategory,
+        items: []
+      }));
+      return category;
+    });
+    return { categories, statuses };
+  });
+}
+
 function buildPreviewSubcategoryTree(
   parentId: string,
   topCategorySlug: string,
@@ -261,13 +326,13 @@ async function readCatalogPreviewDataFromDatabase(
 
   const pool = await getPool();
   const result = await profileRoutePhase('db', 'readCatalogPreviewDataFromDatabase:allRows', () => pool.query(`
-    select id, parent_id, slug, title, summary, description, image, items, position, status
+    select id, parent_id, slug, title, summary, description, image, presentation_json, items, position, status
     from catalog_categories
     ${includeInactive ? '' : "where status = 'active'"}
     order by coalesce(parent_id, ''), position asc, title asc
   `));
 
-  const rows = result.rows as Array<Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'items' | 'position' | 'status'>>;
+  const rows = result.rows as Array<Pick<CategoryRow, 'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation_json' | 'items' | 'position' | 'status'>>;
   const topLevel = rows.filter((row) => row.parent_id === null);
   const childrenByParent = new Map<string, CategoryRow[]>();
 
@@ -307,18 +372,6 @@ async function readCatalogPreviewDataFromDatabase(
 }
 
 
-async function readCatalogCategoryCardsFromDatabase(): Promise<CatalogCategoryCard[]> {
-  const pool = await getPool();
-  const result = await pool.query(`
-    select slug, title, summary, image
-    from catalog_categories
-    where parent_id is null and status = 'active'
-    order by position asc, title asc
-  `);
-
-  return (result.rows as CategoryCardRow[]).map(({ slug, title, summary, image }) => ({ slug, title, summary, image }));
-}
-
 async function readCatalogCategorySummariesFromDatabase(): Promise<CatalogCategorySummary[]> {
   const pool = await getPool();
   const result = await pool.query(`
@@ -337,7 +390,7 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
   const pool = await getPool();
   const categoryResult = await pool.query(
     `
-      select id, slug, title, summary, description, image, items
+      select id, slug, title, summary, description, image, presentation_json, items
       from catalog_categories
       where parent_id is null and status = 'active' and slug = $1
       limit 1
@@ -368,7 +421,8 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
     title: categoryRow.title,
     summary: categoryRow.summary,
     description: categoryRow.description,
-    image: categoryRow.image,
+    image: resolveCategoryShowcaseImage(categoryRow.image, categoryRow.slug),
+    presentation: normalizeCategoryShowcaseMediaSettings(categoryRow.presentation_json),
     items: itemsByCategoryId.get(categoryRow.id) ?? [],
     subcategories: subRows.map((row) => ({
       id: row.id,
@@ -418,7 +472,7 @@ async function readCatalogCategoryPageDataFromDatabase(
     title: categoryRow.title,
     summary: categoryRow.summary,
     description: categoryRow.description,
-    image: categoryRow.image,
+    image: resolveCategoryShowcaseImage(categoryRow.image, categoryRow.slug),
     items: subRows.length === 0 ? itemsByCategoryId.get(categoryRow.id) ?? [] : [],
     subcategories: subRows.map((row) => ({
       id: row.id,
@@ -483,7 +537,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
 }> {
   const pool = await getPool();
   const categoryResult = await pool.query(`
-    select id, slug, title, summary, image, items
+    select id, slug, title, summary, image, presentation_json, items
     from catalog_categories
     where parent_id is null and status = 'active'
     order by position asc, title asc
@@ -510,7 +564,14 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
   );
 
   return {
-    categories: categoryRows.map(({ slug, title, summary, image }) => ({ slug, title, summary, image })),
+    categories: categoryRows.map(({ id, slug, title, summary, image, presentation_json }) => ({
+      id,
+      slug,
+      title,
+      summary,
+      image: resolveCategoryShowcaseImage(normalizeCatalogImage(image), slug),
+      presentation: normalizeCategoryShowcaseMediaSettings(presentation_json)
+    })),
     searchItems: [
       ...categoryRows
         .map((row) => ({ categorySlug: row.slug, items: itemsByCategoryId.get(row.id) ?? [] }))
@@ -605,12 +666,6 @@ const getCachedCatalogAdminPreviewDataFromDatabase = unstable_cache(
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
-const getCachedCatalogCategoryCardsFromDatabase = unstable_cache(
-  async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryCardsFromDatabase', 'catalog:category-cards', () => readCatalogCategoryCardsFromDatabase()),
-  ['catalog-category-cards'],
-  { tags: [CATALOG_PUBLIC_TAG] }
-);
-
 const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogCategorySummariesFromDatabase', 'catalog:category-summaries', () => readCatalogCategorySummariesFromDatabase()),
   ['catalog-category-summaries'],
@@ -630,11 +685,27 @@ export async function getCatalogDataFromDatabase(
   const context = diagnosticsContext ?? (includeInactive || includeStatuses ? '/admin/kategorije' : 'catalog:data');
 
   return instrumentCatalogLoader('getCatalogDataFromDatabase', context, async () => {
-    if (includeInactive || includeStatuses) {
-      return getCachedCatalogAdminDataFromDatabase();
-    }
-
-    return getCachedCatalogDataFromDatabase();
+    const [payload, showcaseItems] = await Promise.all([
+      includeInactive || includeStatuses
+        ? getCachedCatalogAdminDataFromDatabase()
+        : getCachedCatalogDataFromDatabase(),
+      getCategoryShowcaseItemsFromDatabase(context)
+    ]);
+    const showcaseById = new Map(showcaseItems.map((item) => [item.id, item]));
+    return {
+      ...payload,
+      categories: payload.categories.map((category) => {
+        const showcase = showcaseById.get(category.id);
+        return showcase
+          ? {
+              ...category,
+              image: showcase.image,
+              presentation: showcase.presentation,
+              revision: showcase.revision
+            }
+          : category;
+      })
+    };
   });
 }
 
@@ -645,115 +716,248 @@ export async function getCatalogPreviewDataFromDatabase(
   const context = diagnosticsContext ?? '/admin/kategorije/predogled';
 
   return instrumentCatalogLoader('getCatalogPreviewDataFromDatabase', context, async () => {
-    if (includeInactive || includeStatuses) {
-      return getCachedCatalogAdminPreviewDataFromDatabase();
-    }
-
-    return readCatalogPreviewDataFromDatabase();
+    const [payload, showcaseItems] = await Promise.all([
+      includeInactive || includeStatuses
+        ? getCachedCatalogAdminPreviewDataFromDatabase()
+        : readCatalogPreviewDataFromDatabase(),
+      getCategoryShowcaseItemsFromDatabase(context)
+    ]);
+    const showcaseById = new Map(showcaseItems.map((item) => [item.id, item]));
+    return {
+      ...payload,
+      categories: payload.categories.map((category) => {
+        const showcase = showcaseById.get(category.id);
+        return showcase
+          ? {
+              ...category,
+              image: showcase.image,
+              presentation: showcase.presentation,
+              revision: showcase.revision
+            }
+          : category;
+      })
+    };
   });
 }
 
-function mapPreviewInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
-  return {
-    id: category.id,
-    slug: category.slug,
-    title: category.title,
-    summary: category.summary,
-    description: category.description,
-    image: category.image,
-    items: category.subcategories.length === 0 ? category.items : [],
-    subcategories: category.subcategories.map((subcategory) => ({
-      id: subcategory.id,
-      slug: subcategory.slug,
-      title: subcategory.title,
-      description: subcategory.description,
-      image: subcategory.image,
-      items: [],
-      subcategories: []
-    }))
+type CatalogAdminInitialRow = Pick<
+  CategoryRow,
+  'id' | 'parent_id' | 'slug' | 'title' | 'summary' | 'description' | 'position' | 'status' | 'created_at' | 'updated_at'
+>;
+
+type CatalogAdminInitialItemRow = {
+  category_id: string;
+  slug: string;
+  item_name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function groupInitialRowsByParent(rows: CatalogAdminInitialRow[]) {
+  const childrenByParent = new Map<string, CatalogAdminInitialRow[]>();
+  for (const row of rows) {
+    if (!row.parent_id) continue;
+    const children = childrenByParent.get(row.parent_id) ?? [];
+    children.push(row);
+    childrenByParent.set(row.parent_id, children);
+  }
+  return childrenByParent;
+}
+
+function buildInitialStatusMap(rows: CatalogAdminInitialRow[]): Record<string, CategoryStatus> {
+  const statuses: Record<string, CategoryStatus> = {};
+  const childrenByParent = groupInitialRowsByParent(rows);
+
+  const visit = (topSlug: string, parentId: string, path: string[]) => {
+    for (const child of childrenByParent.get(parentId) ?? []) {
+      const childPath = [...path, child.slug];
+      statuses[`sub:${topSlug}:${childPath.join('__')}`] = normalizeStatus(child.status);
+      visit(topSlug, child.id, childPath);
+    }
   };
+
+  for (const row of rows) {
+    if (row.parent_id) continue;
+    statuses[`cat:${row.slug}`] = normalizeStatus(row.status);
+    visit(row.slug, row.id, []);
+  }
+  return statuses;
 }
 
-function mapSearchItems(items: CatalogItem[]): CatalogItem[] {
-  return items.map(({ slug, name, description }) => ({ slug, name, description }));
+function mapInitialItemsByCategory(
+  rows: CatalogAdminInitialItemRow[],
+  includeTimestamps: boolean
+): Map<string, CatalogItem[]> {
+  const itemsByCategory = new Map<string, CatalogItem[]>();
+  for (const row of rows) {
+    const items = itemsByCategory.get(row.category_id) ?? [];
+    items.push({
+      slug: row.slug,
+      name: row.item_name,
+      description: includeTimestamps ? '' : row.description,
+      ...(includeTimestamps
+        ? {
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            created_at: row.created_at,
+            updated_at: row.updated_at
+          }
+        : {})
+    });
+    itemsByCategory.set(row.category_id, items);
+  }
+  return itemsByCategory;
 }
 
-function mapTableInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
-  return {
-    id: category.id,
-    slug: category.slug,
-    title: category.title,
-    summary: category.summary,
-    description: category.description,
-    image: '',
-    items: mapSearchItems(category.items ?? []),
-    subcategories: category.subcategories.map((subcategory) => ({
+async function readCatalogAdminInitialRowsFromDatabase(
+  diagnosticsLabel: string,
+  includeItems: boolean
+): Promise<{ rows: CatalogAdminInitialRow[]; itemRows: CatalogAdminInitialItemRow[] }> {
+  const pool = await getPool();
+  const result = await profileRoutePhase('db', `${diagnosticsLabel}:categories`, () => pool.query(`
+    select id, parent_id, slug, title, summary, description, position, status, created_at,
+           updated_at::text as updated_at
+    from catalog_categories
+    order by coalesce(parent_id, ''), position asc, title asc
+  `));
+  const rows = result.rows as CatalogAdminInitialRow[];
+  if (!includeItems || rows.length === 0) return { rows, itemRows: [] };
+
+  const itemResult = await profileRoutePhase('db', `${diagnosticsLabel}:item-identities`, () => pool.query(`
+    select category_id, slug, item_name, description, created_at, updated_at
+    from catalog_items
+    where category_id = any($1::text[])
+    order by category_id, position asc, item_name asc, id asc
+  `, [rows.map((row) => row.id)]));
+
+  return { rows, itemRows: itemResult.rows as CatalogAdminInitialItemRow[] };
+}
+
+async function readCatalogAdminTableInitialPayloadFromDatabase(): Promise<CatalogDataWithStatuses> {
+  const { rows, itemRows } = await readCatalogAdminInitialRowsFromDatabase('catalog-admin-initial-table', true);
+  const childrenByParent = groupInitialRowsByParent(rows);
+  const itemsByCategory = mapInitialItemsByCategory(itemRows, false);
+  const mapSubcategories = (parentId: string): RecursiveCatalogSubcategory[] =>
+    (childrenByParent.get(parentId) ?? []).map((subcategory) => ({
       id: subcategory.id,
       slug: subcategory.slug,
       title: subcategory.title,
       description: subcategory.description,
       image: '',
-      items: mapSearchItems(subcategory.items),
-      subcategories: []
-    }))
-  };
+      items: itemsByCategory.get(subcategory.id) ?? [],
+      subcategories: mapSubcategories(subcategory.id)
+    }));
+  const categories = rows
+    .filter((row) => row.parent_id === null)
+    .map((row): RecursiveCatalogCategory => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      summary: row.summary,
+      description: row.description,
+      image: '',
+      presentation: normalizeCategoryShowcaseMediaSettings(undefined),
+      items: itemsByCategory.get(row.id) ?? [],
+      subcategories: mapSubcategories(row.id)
+    }));
+
+  const payload = { categories, statuses: buildInitialStatusMap(rows) };
+  profilePayloadEstimate('readCatalogAdminTableInitialPayloadFromDatabase:payload', payload);
+  return payload;
 }
 
-function mapMillerInitialCategory(category: RecursiveCatalogCategory): RecursiveCatalogCategory {
-  return {
-    id: category.id,
-    slug: category.slug,
-    title: category.title,
-    summary: '',
-    description: '',
-    image: '',
-    createdAt: category.createdAt,
-    updatedAt: category.updatedAt,
-    items: category.subcategories.length === 0
-      ? category.items.map(({ slug, name, createdAt, updatedAt, created_at, updated_at }) => ({
-          slug,
-          name,
-          description: '',
-          createdAt,
-          updatedAt,
-          created_at,
-          updated_at
-        }))
-      : [],
-    subcategories: category.subcategories.map((subcategory) => ({
+async function readCatalogAdminMillerInitialPayloadFromDatabase(): Promise<CatalogDataWithStatuses> {
+  const { rows, itemRows } = await readCatalogAdminInitialRowsFromDatabase('catalog-admin-initial-miller', true);
+  const childrenByParent = groupInitialRowsByParent(rows);
+  const itemsByCategory = mapInitialItemsByCategory(itemRows, true);
+  const mapSubcategories = (parentId: string): RecursiveCatalogSubcategory[] =>
+    (childrenByParent.get(parentId) ?? []).map((subcategory) => ({
       id: subcategory.id,
       slug: subcategory.slug,
       title: subcategory.title,
       description: '',
       image: '',
-      createdAt: subcategory.createdAt,
-      updatedAt: subcategory.updatedAt,
-      items: [],
-      subcategories: []
-    }))
-  };
+      createdAt: subcategory.created_at,
+      updatedAt: subcategory.updated_at,
+      items: itemsByCategory.get(subcategory.id) ?? [],
+      subcategories: mapSubcategories(subcategory.id)
+    }));
+  const categories = rows
+    .filter((row) => row.parent_id === null)
+    .map((row): RecursiveCatalogCategory => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      summary: '',
+      description: '',
+      image: '',
+      presentation: normalizeCategoryShowcaseMediaSettings(undefined),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      items: itemsByCategory.get(row.id) ?? [],
+      subcategories: mapSubcategories(row.id)
+    }));
+
+  const payload = { categories, statuses: buildInitialStatusMap(rows) };
+  profilePayloadEstimate('readCatalogAdminMillerInitialPayloadFromDatabase:payload', payload);
+  return payload;
 }
+
+async function readCatalogAdminPreviewInitialPayloadFromDatabase(): Promise<CatalogDataWithStatuses> {
+  const showcaseItems = await getCategoryShowcaseItemsFromDatabase('/admin/kategorije/predogled:initial');
+  const categories = showcaseItems.map((item): RecursiveCatalogCategory => ({
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    summary: item.summary,
+    description: item.description,
+    image: item.image,
+    presentation: item.presentation,
+    revision: item.revision,
+    items: [],
+    subcategories: []
+  }));
+  const payload = {
+    categories,
+    statuses: Object.fromEntries(showcaseItems.map((item) => [`cat:${item.slug}`, item.status]))
+  };
+  profilePayloadEstimate('readCatalogAdminPreviewInitialPayloadFromDatabase:payload', payload);
+  return payload;
+}
+
+const getCachedCatalogAdminTableInitialPayloadFromDatabase = unstable_cache(
+  async () => instrumentCatalogCacheMiss(
+    'getCachedCatalogAdminTableInitialPayloadFromDatabase',
+    '/admin/kategorije:initial',
+    readCatalogAdminTableInitialPayloadFromDatabase
+  ),
+  ['catalog-admin-initial-table'],
+  { tags: [CATALOG_ADMIN_TAG] }
+);
+
+const getCachedCatalogAdminMillerInitialPayloadFromDatabase = unstable_cache(
+  async () => instrumentCatalogCacheMiss(
+    'getCachedCatalogAdminMillerInitialPayloadFromDatabase',
+    '/admin/kategorije/miller-view:initial',
+    readCatalogAdminMillerInitialPayloadFromDatabase
+  ),
+  ['catalog-admin-initial-miller'],
+  { tags: [CATALOG_ADMIN_TAG] }
+);
 
 export async function getCatalogAdminInitialPayloadFromDatabase(
   view: CategoriesView,
   diagnosticsContext?: string
 ): Promise<CatalogDataWithStatuses> {
-  const payload = await getCatalogDataFromDatabase({
-    includeInactive: true,
-    includeStatuses: true,
-    diagnosticsContext: diagnosticsContext ?? '/admin/kategorije'
-  }) as CatalogDataWithStatuses;
-
-  return {
-    categories: payload.categories.map((category) =>
-      view === 'table'
-        ? mapTableInitialCategory(category)
-        : view === 'miller'
-          ? mapMillerInitialCategory(category)
-          : mapPreviewInitialCategory(category)
-    ),
-    statuses: payload.statuses
-  };
+  const context = diagnosticsContext ?? `/admin/kategorije${view === 'preview' ? '/predogled' : view === 'miller' ? '/miller-view' : ''}`;
+  return instrumentCatalogLoader('getCatalogAdminInitialPayloadFromDatabase', context, () =>
+    view === 'table'
+      ? getCachedCatalogAdminTableInitialPayloadFromDatabase()
+      : view === 'miller'
+        ? getCachedCatalogAdminMillerInitialPayloadFromDatabase()
+        : readCatalogAdminPreviewInitialPayloadFromDatabase()
+  );
 }
 
 type CatalogRowPatch = {
@@ -763,7 +967,7 @@ type CatalogRowPatch = {
   title: string;
   summary: string;
   description: string;
-  image: string | null;
+  image?: string | null;
   removeImage?: boolean;
   adminNotes?: string | null;
   bannerImage?: string | null;
@@ -786,6 +990,7 @@ export async function patchCategoryTree(
     await client.query('begin');
 
     for (const patch of upserts) {
+      const hasImageUpdate = patch.removeImage === true || Object.prototype.hasOwnProperty.call(patch, 'image');
       await client.query(
         `
           insert into catalog_categories
@@ -798,7 +1003,11 @@ export async function patchCategoryTree(
             title = excluded.title,
             summary = excluded.summary,
             description = excluded.description,
-            image = excluded.image,
+            image = case
+              when catalog_categories.parent_id is null then catalog_categories.image
+              when $13::boolean then excluded.image
+              else catalog_categories.image
+            end,
             admin_notes = excluded.admin_notes,
             banner_image = excluded.banner_image,
             items = excluded.items,
@@ -818,7 +1027,8 @@ export async function patchCategoryTree(
           patch.bannerImage ? normalizeCatalogImage(patch.bannerImage) : null,
           JSON.stringify(Array.isArray(patch.items) ? patch.items : []),
           patch.position,
-          patch.status
+          patch.status,
+          hasImageUpdate
         ]
       );
     }
@@ -830,6 +1040,7 @@ export async function patchCategoryTree(
     await client.query('commit');
     revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     revalidateTag(CATALOG_ADMIN_TAG, { expire: 0 });
+    revalidateTag(CATEGORY_SHOWCASE_TAG, { expire: 0 });
   } catch (error) {
     await client.query('rollback');
     throw error;
@@ -838,8 +1049,145 @@ export async function patchCategoryTree(
   }
 }
 
+export type TopLevelCategoryPresentationUpdate = {
+  categoryId?: string;
+  categorySlug?: string;
+  image?: string | null;
+  presentation?: CategoryShowcaseMediaSettings;
+  expectedRevision?: string;
+};
+
+type UpdatedTopLevelCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation_json'> & {
+  revision: string;
+};
+
+export class CategoryShowcaseConflictError extends Error {
+  readonly statusCode = 409;
+
+  constructor(categoryLabel: string) {
+    super(`Kategorija ${categoryLabel} je bila med urejanjem spremenjena v drugem zavihku. Osvežite podatke in poskusite znova.`);
+    this.name = 'CategoryShowcaseConflictError';
+  }
+}
+
+/**
+ * Canonical top-level category artwork mutation. Image and non-destructive
+ * presentation settings are committed in one transaction so both admin
+ * contexts always observe the same record.
+ */
+export async function updateTopLevelCategoryPresentations(
+  updates: TopLevelCategoryPresentationUpdate[]
+): Promise<CategoryShowcaseItem[]> {
+  if (updates.length === 0) return [];
+
+  const pool = await getPool();
+  const client = await pool.connect();
+  const saved: CategoryShowcaseItem[] = [];
+
+  try {
+    await client.query('begin');
+    for (const update of updates) {
+      const categoryId = update.categoryId?.trim() || null;
+      const categorySlug = update.categorySlug?.trim() || null;
+      const hasImage = Object.prototype.hasOwnProperty.call(update, 'image');
+      const hasPresentation = Object.prototype.hasOwnProperty.call(update, 'presentation');
+      const expectedRevision = typeof update.expectedRevision === 'string'
+        ? update.expectedRevision.trim().toLowerCase()
+        : null;
+      if ((!categoryId && !categorySlug) || (!hasImage && !hasPresentation)) {
+        throw new Error('Sprememba predstavitve kategorije ni veljavna.');
+      }
+
+      const result = await client.query(
+        `
+          update catalog_categories
+          set
+            image = case when $3::boolean then $4::text else image end,
+            presentation_json = case when $5::boolean then $6::jsonb else presentation_json end,
+            updated_at = now()
+          where parent_id is null
+            and ($1::text is null or id = $1)
+            and ($2::text is null or slug = $2)
+            and (
+              $7::text is null
+              or md5(coalesce(image, '') || '|' || coalesce(presentation_json::text, '{}')) = $7::text
+            )
+          returning id, slug, title, summary, description, image, presentation_json,
+                    md5(coalesce(image, '') || '|' || coalesce(presentation_json::text, '{}')) as revision
+        `,
+        [
+          categoryId,
+          categorySlug,
+          hasImage,
+          hasImage && update.image ? normalizeCatalogImage(update.image) : '',
+          hasPresentation,
+          JSON.stringify(normalizeCategoryShowcaseMediaSettings(update.presentation)),
+          expectedRevision
+        ]
+      );
+      if (result.rowCount !== 1) {
+        const categoryLabel = categoryId ?? categorySlug ?? '';
+        if (expectedRevision) {
+          const exists = await client.query(
+            `select 1 from catalog_categories where parent_id is null
+             and ($1::text is null or id = $1)
+             and ($2::text is null or slug = $2)
+             limit 1`,
+            [categoryId, categorySlug]
+          );
+          if (exists.rowCount === 1) throw new CategoryShowcaseConflictError(categoryLabel);
+        }
+        throw new Error(`Kategorija ${categoryLabel} ne obstaja.`);
+      }
+      const row = (result.rows as UpdatedTopLevelCategoryRow[])[0];
+      saved.push({
+        id: row.id,
+        slug: row.slug,
+        title: row.title,
+        summary: row.summary,
+        description: row.description,
+        image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+        presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
+        revision: row.revision
+      });
+    }
+    await client.query('commit');
+    revalidateTag(CATEGORY_SHOWCASE_TAG, { expire: 0 });
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return saved;
+}
+
+/** @deprecated Use updateTopLevelCategoryPresentations for new integrations. */
+export async function updateTopLevelCategoryImages(
+  updates: Array<{ categorySlug: string; image: string | null }>
+): Promise<void> {
+  await updateTopLevelCategoryPresentations(updates);
+}
+
 export async function getCatalogCategoryCardsFromDatabase(diagnosticsContext = 'catalog:category-cards'): Promise<CatalogCategoryCard[]> {
-  return instrumentCatalogLoader('getCatalogCategoryCardsFromDatabase', diagnosticsContext, async () => getCachedCatalogCategoryCardsFromDatabase());
+  return instrumentCatalogLoader('getCatalogCategoryCardsFromDatabase', diagnosticsContext, async () =>
+    (await getCategoryShowcaseItemsFromDatabase(diagnosticsContext))
+      .filter((category) => category.status === 'active')
+      .map(mapStoredCategoryShowcaseToCard)
+  );
+}
+
+function mapStoredCategoryShowcaseToCard(category: StoredCategoryShowcaseItem): CatalogCategoryCard {
+  return {
+    id: category.id,
+    slug: category.slug,
+    title: category.title,
+    summary: category.summary ?? '',
+    image: category.image ?? '',
+    presentation: category.presentation,
+    revision: category.revision
+  };
 }
 
 export async function getCatalogCategorySummariesFromDatabase(diagnosticsContext = 'catalog:category-summaries'): Promise<CatalogCategorySummary[]> {
@@ -858,7 +1206,22 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
-  return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => getCachedCategory());
+  return instrumentCatalogLoader('getCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, async () => {
+    const [category, showcaseItems] = await Promise.all([
+      getCachedCategory(),
+      getCategoryShowcaseItemsFromDatabase(diagnosticsContext)
+    ]);
+    if (!category) return null;
+    const showcase = showcaseItems.find((item) => item.slug === category.slug);
+    return showcase
+      ? {
+          ...category,
+          image: showcase.image,
+          presentation: showcase.presentation,
+          revision: showcase.revision
+        }
+      : category;
+  });
 }
 
 export async function getCatalogCategoryPageDataFromDatabase(
@@ -874,7 +1237,15 @@ export async function getCatalogCategoryPageDataFromDatabase(
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
-  return instrumentCatalogLoader('getCatalogCategoryPageDataFromDatabase', diagnosticsContext, async () => getCachedCategoryPageData());
+  return instrumentCatalogLoader('getCatalogCategoryPageDataFromDatabase', diagnosticsContext, async () => {
+    const [category, showcaseItems] = await Promise.all([
+      getCachedCategoryPageData(),
+      getCategoryShowcaseItemsFromDatabase(diagnosticsContext)
+    ]);
+    if (!category) return null;
+    const showcase = showcaseItems.find((item) => item.slug === category.slug);
+    return showcase ? { ...category, image: showcase.image } : category;
+  });
 }
 
 export async function getCatalogSubcategoryWithCategoryFromDatabase(
@@ -906,7 +1277,20 @@ export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'ca
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
-  return instrumentCatalogLoader('getCatalogSearchIndexFromDatabase', diagnosticsContext, async () => getCachedSearchIndex());
+  return instrumentCatalogLoader('getCatalogSearchIndexFromDatabase', diagnosticsContext, async () => {
+    const [payload, showcaseItems] = await Promise.all([
+      getCachedSearchIndex(),
+      getCategoryShowcaseItemsFromDatabase(diagnosticsContext)
+    ]);
+    const showcaseBySlug = new Map(showcaseItems.map((item) => [item.slug, item]));
+    return {
+      ...payload,
+      categories: payload.categories.map((category) => {
+        const showcase = showcaseBySlug.get(category.slug);
+        return showcase ? mapStoredCategoryShowcaseToCard(showcase) : category;
+      })
+    };
+  });
 }
 
 export async function getCatalogItemsIndexFromDatabase(diagnosticsContext = 'catalog:items-index'): Promise<CatalogItemsIndex> {
@@ -995,7 +1379,7 @@ export async function replaceCategoryTree(
             title = excluded.title,
             summary = excluded.summary,
             description = excluded.description,
-            image = excluded.image,
+            image = catalog_categories.image,
             admin_notes = excluded.admin_notes,
             banner_image = excluded.banner_image,
             items = excluded.items,
@@ -1030,6 +1414,7 @@ export async function replaceCategoryTree(
     await client.query('commit');
     revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     revalidateTag(CATALOG_ADMIN_TAG, { expire: 0 });
+    revalidateTag(CATEGORY_SHOWCASE_TAG, { expire: 0 });
   } catch (error) {
     await client.query('rollback');
     throw error;

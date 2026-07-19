@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import type { CatalogCategory, RecursiveCatalogCategory, RecursiveCatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
+import type { CatalogCategory, CategoriesView, RecursiveCatalogCategory, RecursiveCatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
-import { CATALOG_ADMIN_TAG, CATALOG_PUBLIC_TAG, CATALOG_REVALIDATE_PATHS, getCatalogDataFromDatabase, getCatalogPreviewDataFromDatabase, patchCategoryTree, replaceCategoryTree } from '@/shared/server/catalogCategories';
+import {
+  CATALOG_ADMIN_TAG,
+  CATALOG_PUBLIC_TAG,
+  CATALOG_REVALIDATE_PATHS,
+  CATEGORY_SHOWCASE_TAG,
+  getCatalogAdminAuditPayloadFromDatabase,
+  getCatalogAdminInitialPayloadFromDatabase,
+  getCatalogDataFromDatabase,
+  patchCategoryTree,
+  replaceCategoryTree
+} from '@/shared/server/catalogCategories';
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
 import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
@@ -37,7 +47,7 @@ type CategoryPatchPayload = {
     title: string;
     summary: string;
     description: string;
-    image: string | null;
+    image?: string | null;
     removeImage?: boolean;
     adminNotes?: string | null;
     bannerImage?: string | null;
@@ -114,11 +124,7 @@ function flattenCategoryAuditRows(
 }
 
 async function getCategoryAuditSnapshot() {
-  const payload = await getCatalogDataFromDatabase({
-    includeInactive: true,
-    includeStatuses: true,
-    diagnosticsContext: '/api/admin/categories:audit-before'
-  }) as { categories: RecursiveCatalogCategory[]; statuses?: Record<string, CategoryStatus> };
+  const payload = await getCatalogAdminAuditPayloadFromDatabase('/api/admin/categories:audit-before');
   return flattenCategoryAuditRows(payload.categories, payload.statuses ?? {});
 }
 
@@ -166,12 +172,12 @@ function toCategoryAuditRow(entry: {
   title: string;
   summary: string;
   description: string;
-  image: string | null;
+  image?: string | null;
   adminNotes?: string | null;
   bannerImage?: string | null;
   position: number;
   status: CategoryStatus;
-}): CategoryAuditRow {
+}, before?: CategoryAuditRow): CategoryAuditRow {
   return {
     id: entry.id,
     parentId: entry.parentId,
@@ -179,7 +185,7 @@ function toCategoryAuditRow(entry: {
     title: entry.title,
     summary: entry.summary,
     description: entry.description,
-    image: entry.image,
+    image: Object.prototype.hasOwnProperty.call(entry, 'image') ? entry.image ?? null : before?.image ?? null,
     adminNotes: entry.adminNotes ?? null,
     bannerImage: entry.bannerImage ?? null,
     position: entry.position,
@@ -314,10 +320,17 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const view = url.searchParams.get('view');
-    const catalog = view === 'preview'
-      ? await getCatalogPreviewDataFromDatabase({ includeInactive: true, includeStatuses: true, diagnosticsContext: '/api/admin/categories?view=preview' })
-      : await getCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true });
-    return NextResponse.json(catalog);
+    const isInitialView = view === 'table' || view === 'preview' || view === 'miller';
+    const catalog = isInitialView
+      ? await getCatalogAdminInitialPayloadFromDatabase(view as CategoriesView, `/api/admin/categories?view=${view}`)
+      : await getCatalogDataFromDatabase({
+          includeInactive: true,
+          includeStatuses: true,
+          diagnosticsContext: '/api/admin/categories:full'
+        });
+    return NextResponse.json(isInitialView
+      ? { ...catalog, payloadMode: 'partial', payloadView: view }
+      : { ...catalog, payloadMode: 'full' });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri nalaganju.' }, { status: 500 });
   }
@@ -355,17 +368,10 @@ export async function PUT(request: Request) {
 
     recordCatalogInvalidation({
       context: '/api/admin/categories:save',
-      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
+      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG, CATEGORY_SHOWCASE_TAG],
       revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
     });
-
-    const savedCatalog = await getCatalogDataFromDatabase({
-      includeInactive: true,
-      includeStatuses: true,
-      diagnosticsContext: '/api/admin/categories:save-after'
-    });
-
-    return NextResponse.json({ ok: true, ...savedCatalog });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
   }
@@ -388,7 +394,12 @@ export async function PATCH(request: Request) {
 
     const beforeRows = await getCategoryAuditSnapshot();
     await patchCategoryTree({ upserts, deleteIds });
-    await recordCategoryPatchAudit(request, beforeRows, upserts.map(toCategoryAuditRow), deleteIds);
+    await recordCategoryPatchAudit(
+      request,
+      beforeRows,
+      upserts.map((entry) => toCategoryAuditRow(entry, beforeRows.get(entry.id))),
+      deleteIds
+    );
 
     for (const target of CATALOG_REVALIDATE_PATHS) {
       revalidatePath(target.path, target.type);
@@ -396,17 +407,10 @@ export async function PATCH(request: Request) {
 
     recordCatalogInvalidation({
       context: '/api/admin/categories:patch',
-      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG],
+      tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG, CATEGORY_SHOWCASE_TAG],
       revalidatedPaths: CATALOG_REVALIDATE_PATHS.length
     });
-
-    const savedCatalog = await getCatalogDataFromDatabase({
-      includeInactive: true,
-      includeStatuses: true,
-      diagnosticsContext: '/api/admin/categories:patch-after'
-    });
-
-    return NextResponse.json({ ok: true, ...savedCatalog });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Napaka pri shranjevanju.' }, { status: 500 });
   }

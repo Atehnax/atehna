@@ -6,6 +6,7 @@ import {
 } from '@/shared/domain/landing/landingPage';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 import { getLandingPageConfig } from '@/shared/server/landingPage';
+import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 async function getHomepageCategories(): Promise<HomepageCategoryCardData[]> {
   if (!hasDatabaseConnectionString()) return DEFAULT_HOMEPAGE_CATEGORY_CARDS;
@@ -20,10 +21,11 @@ async function getHomepageCategories(): Promise<HomepageCategoryCardData[]> {
 }
 
 export default async function LandingPage() {
-  const [settings, categories] = await Promise.all([
+  const [settings, categories, navigation] = await Promise.all([
     getLandingPageConfig(),
-    getHomepageCategories()
+    getHomepageCategories(),
+    getSiteNavigationConfig()
   ]);
 
-  return <HomepageRenderer settings={settings} categories={categories} />;
+  return <HomepageRenderer settings={settings} categories={categories} canonicalFooter={navigation.footer} />;
 }

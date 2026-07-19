@@ -192,7 +192,7 @@ function AnalyticsMetricCard({ card }: { card: AnalyticsCard }) {
     <button
       type="button"
       onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(card.focusKey)}`)}
-      className="min-h-[94px] min-w-0 rounded-[11px] border border-[#e5e7eb] bg-white px-5 py-[11px] text-left shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.035)] transition hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(15,23,42,0.07),0_14px_28px_rgba(15,23,42,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f80ed]/25"
+      className="min-h-[94px] min-w-0 rounded-[11px] border border-[#e5e7eb] bg-white px-5 py-[11px] text-left shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.035)] transition hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(15,23,42,0.07),0_14px_28px_rgba(15,23,42,0.05)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
     >
       <p className="min-w-0 whitespace-nowrap text-[11px] font-bold uppercase leading-3 tracking-[0.035em] text-[#6f7784]" title={card.title}>{card.title}</p>
       <p className="mt-2 truncate text-[27px] font-semibold leading-none tracking-[-0.035em] text-[#334155]" title={card.metric}>{card.metric}</p>

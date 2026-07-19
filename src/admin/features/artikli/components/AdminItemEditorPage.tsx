@@ -1366,7 +1366,7 @@ function DimensionVariantInventoryPanel({
                       aria-selected={selected}
                       tabIndex={0}
                       className={classNames(
-                        "grid min-h-[42px] cursor-pointer items-center gap-2 rounded-md px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] outline-none transition hover:text-[color:var(--blue-500)] focus-visible:ring-2 focus-visible:ring-[#1982bf]/35",
+                        "grid min-h-[42px] cursor-pointer items-center gap-2 rounded-md border border-transparent px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[1.2] outline-none transition hover:text-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)] focus-visible:ring-0 focus-visible:shadow-none",
                         editable ? 'grid-cols-[18px_minmax(0,1fr)_58px_24px]' : 'grid-cols-[18px_minmax(0,1fr)_24px]',
                         hoverTokenClasses.neutral,
                         selected ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
@@ -4129,7 +4129,7 @@ export default function AdminItemEditorPage({
           <button
             key={`${slotIndex}-${action.key}`}
             type="button"
-            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${compact ? 'h-[20px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+            className={`inline-flex items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${compact ? 'h-[20px] w-[20px]' : 'h-[25px] min-w-[1.6rem]'} ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
             onPointerDown={(event) => {
               event.stopPropagation();
               event.preventDefault();
@@ -4804,7 +4804,7 @@ export default function AdminItemEditorPage({
                           <button
                             key={action.key}
                             type="button"
-                            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+                            className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${action.tone === 'danger' ? 'border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
                             onPointerDown={(event) => {
                               event.stopPropagation();
                               event.preventDefault();

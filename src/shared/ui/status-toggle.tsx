@@ -21,7 +21,7 @@ export function StatusToggle({
         event.stopPropagation();
         onToggle();
       }}
-      className={`relative inline-flex h-7 w-14 items-center overflow-hidden rounded-full border-[2.25px] border-[#2f3b48] transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`relative inline-flex h-7 w-14 items-center overflow-hidden rounded-full border-[2.25px] border-[#2f3b48] transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] disabled:cursor-not-allowed disabled:opacity-60 ${
         checked ? 'bg-[#afd9bd]' : 'bg-[#d9848f]'
       }`}
     >

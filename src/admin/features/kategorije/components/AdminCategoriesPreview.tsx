@@ -4,7 +4,7 @@ import type {
   MutableRefObject,
   ReactNode,
 } from "react";
-import { memo, useState } from "react";
+import { createContext, memo, useContext, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -31,6 +31,16 @@ import {
   getDiscountedPrice,
 } from "@/commercial/catalog/catalogUtils";
 import AuditHistoryDrawer from "@/admin/components/AuditHistoryDrawer";
+import { CategoryShowcase } from "@/shared/features/category-showcase/CategoryShowcase";
+import {
+  CATEGORY_SHOWCASE_BASE_CAPABILITIES,
+  CategoryShowcaseEditor,
+} from "@/shared/features/category-showcase/CategoryShowcaseEditor";
+import {
+  normalizeCategoryShowcaseMediaSettings,
+  type CategoryShowcaseItem,
+  type CategoryShowcaseMediaSettings,
+} from "@/shared/features/category-showcase/categoryShowcaseSchema";
 import { IconButton } from "@/shared/ui/icon-button";
 import { InlineEditableText, InlineEditFocusFrame } from "@/shared/ui/inline-edit";
 import {
@@ -46,6 +56,8 @@ import type {
 import { categoriesBreadcrumbCurrentTextClassName } from "../common/typography";
 
 type DragHandleProps = Partial<DraggableAttributes> | Partial<NonNullable<DraggableSyntheticListeners>>;
+
+const CategoryShowcaseDragHandleContext = createContext<DragHandleProps>({});
 
 export function AdminCategoriesPreview({
   activeView,
@@ -75,6 +87,10 @@ export function AdminCategoriesPreview({
   onOpenNode,
   onStageStatusChange,
   onRequestCreateCategory,
+  selectedPresentationSlug,
+  onSelectPresentation,
+  onPresentationChange,
+  onResetPresentation,
 }: {
   activeView: "table" | "preview" | "miller";
   tableError: string | null;
@@ -118,6 +134,10 @@ export function AdminCategoriesPreview({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
   onRequestCreateCategory: () => void;
+  selectedPresentationSlug: string | null;
+  onSelectPresentation: (categorySlug: string | null) => void;
+  onPresentationChange: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
+  onResetPresentation: (categorySlug: string) => void;
 }) {
   const previewSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -137,6 +157,31 @@ export function AdminCategoriesPreview({
     ? editingRow.title.trim() !== (activeEditCard?.title ?? "").trim() ||
       editingRow.description !== (activeEditCard?.description ?? "")
     : false;
+  const rootShowcaseItems = useMemo<CategoryShowcaseItem[]>(
+    () =>
+      selectedContext?.kind === "root"
+        ? visibleContent.map((item) => ({
+            id: item.id,
+            slug: item.categorySlug,
+            title: item.title,
+            summary: item.description,
+            description: item.description,
+            image: item.image ?? "",
+            presentation: normalizeCategoryShowcaseMediaSettings(
+              item.presentation,
+            ),
+          }))
+        : [],
+    [selectedContext?.kind, visibleContent],
+  );
+  const rootContentBySlug = useMemo(
+    () => new Map(visibleContent.map((item) => [item.categorySlug, item])),
+    [visibleContent],
+  );
+  const selectedPresentationItem = rootShowcaseItems.find((item) => item.slug === selectedPresentationSlug) ?? null;
+  const selectedPresentationContent = selectedPresentationItem
+    ? rootContentBySlug.get(selectedPresentationItem.slug) ?? null
+    : null;
 
   return (
     <div
@@ -146,7 +191,7 @@ export function AdminCategoriesPreview({
           : "hidden"
       }
     >
-      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <section className="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         {tableError ? (
           <p className="mb-3 rounded-lg border border-[var(--danger-300)] bg-[var(--danger-100)] px-3 py-2 text-xs text-[var(--danger-700)]">
             {tableError}
@@ -208,7 +253,141 @@ export function AdminCategoriesPreview({
           </div>
         </div>
 
-        {selectedContext && visibleContent.length > 0 ? (
+        {selectedContext?.kind === "root" ? (
+          <DndContext
+            sensors={previewSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onBottomReorder}
+          >
+            <SortableContext
+              items={visibleContent.map((item) => item.id)}
+              strategy={rectSortingStrategy}
+            >
+              <CategoryShowcaseEditor
+                context="category-preview"
+                capabilities={CATEGORY_SHOWCASE_BASE_CAPABILITIES}
+                selectedItem={selectedPresentationContent ? selectedPresentationItem : null}
+                onPresentationChange={(updates) => {
+                  if (selectedPresentationItem) {
+                    onPresentationChange(selectedPresentationItem.slug, updates);
+                  }
+                }}
+                onImageChange={selectedPresentationContent
+                  ? (file) => void onImageUpload(file, selectedPresentationContent)
+                  : undefined}
+                onImageRemove={selectedPresentationItem
+                  ? () => onSetImageDeleteTarget({ kind: "category", categorySlug: selectedPresentationItem.slug })
+                  : undefined}
+                onReset={selectedPresentationItem
+                  ? () => onResetPresentation(selectedPresentationItem.slug)
+                  : undefined}
+                onClose={() => onSelectPresentation(null)}
+                controlsClassName="mt-3 ml-auto"
+              >
+                <CategoryShowcase
+                  items={rootShowcaseItems}
+                  tileClassName="!h-auto min-h-[156px] min-[560px]:min-h-[164px] min-[1025px]:min-h-[168px]"
+                  columns={{
+                    desktop: Math.min(8, Math.max(3, lowerViewCount)),
+                    tablet: Math.min(3, Math.max(2, lowerViewCount)),
+                    mobile: 1,
+                  }}
+                  selectedSlug={
+                    selectedPresentationSlug ?? (editingRow?.kind === "category"
+                      ? editingRow.categorySlug
+                      : null)
+                  }
+                  interactive
+                  getTileClassName={(showcaseItem) =>
+                    rootContentBySlug.get(showcaseItem.slug)?.isInactive
+                      ? "opacity-55"
+                      : undefined
+                  }
+                  onItemClick={(showcaseItem) => {
+                    const item = rootContentBySlug.get(showcaseItem.slug);
+                    if (item?.hasChildren) onOpenNode(item);
+                  }}
+                  renderTitle={({ item, defaultTitle }) => {
+                    const contentItem = rootContentBySlug.get(item.slug);
+                    if (!contentItem) return defaultTitle;
+                    return (
+                      <CategoryShowcaseTitleEditor
+                        item={contentItem}
+                        editingRow={editingRow}
+                        onEditingRowTitleChange={onEditingRowTitleChange}
+                        onEditingRowDescriptionChange={
+                          onEditingRowDescriptionChange
+                        }
+                        onCommitEdit={onCommitEdit}
+                        onCancelEdit={onCancelEdit}
+                      />
+                    );
+                  }}
+                  renderActions={({ item }) => {
+                    const contentItem = rootContentBySlug.get(item.slug);
+                    if (!contentItem) return null;
+                    return (
+                      <CategoryShowcaseAdminActions
+                        item={contentItem}
+                        uploadRefs={uploadRefs}
+                        onSetImageDeleteTarget={onSetImageDeleteTarget}
+                        editingRow={editingRow}
+                        onStartEdit={onStartEdit}
+                        onCancelEdit={onCancelEdit}
+                        onStageStatusChange={onStageStatusChange}
+                        onEditPresentation={() => onSelectPresentation(contentItem.categorySlug)}
+                      />
+                    );
+                  }}
+                  renderTile={({ item: showcaseItem, tile }) => {
+                    const contentItem = rootContentBySlug.get(showcaseItem.slug);
+                    if (!contentItem) return tile;
+                    return renderSortableItem(
+                      contentItem.id,
+                      ({ dragHandleProps, setNodeRef, style }) => (
+                        <CategoryShowcaseDragHandleContext.Provider
+                          value={dragHandleProps}
+                        >
+                          <div ref={setNodeRef} style={style} className="h-full">
+                            {tile}
+                            <input
+                              id={`preview-image-upload-${contentItem.id}`}
+                              name={`previewImageUpload-${contentItem.id}`}
+                              ref={(element) => {
+                                uploadRefs.current[contentItem.id] = element;
+                              }}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(event) =>
+                                void onImageUpload(
+                                  event.target.files?.[0] ?? null,
+                                  contentItem,
+                                )
+                              }
+                            />
+                          </div>
+                        </CategoryShowcaseDragHandleContext.Provider>
+                      ),
+                    );
+                  }}
+                  emptyState={null}
+                />
+              </CategoryShowcaseEditor>
+              <div
+                className="mt-3 grid gap-3"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
+                }}
+              >
+                <CreateCategoryCard
+                  onClick={onRequestCreateCategory}
+                  compact
+                />
+              </div>
+            </SortableContext>
+          </DndContext>
+        ) : selectedContext && visibleContent.length > 0 ? (
           <DndContext
             sensors={previewSensors}
             collisionDetection={closestCenter}
@@ -252,21 +431,9 @@ export function AdminCategoriesPreview({
                     )}
                   </div>
                 ))}
-                {selectedContext.kind === "root" ? (
-                  <CreateCategoryCard onClick={onRequestCreateCategory} />
-                ) : null}
               </div>
             </SortableContext>
           </DndContext>
-        ) : selectedContext?.kind === "root" ? (
-          <div
-            className="grid gap-3"
-            style={{
-              gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
-            }}
-          >
-            <CreateCategoryCard onClick={onRequestCreateCategory} />
-          </div>
         ) : null}
 
         {selectedContext?.kind === "category" &&
@@ -291,6 +458,298 @@ export function AdminCategoriesPreview({
         ) : null}
       </section>
     </div>
+  );
+}
+
+function CategoryShowcaseTitleEditor({
+  item,
+  editingRow,
+  onEditingRowTitleChange,
+  onEditingRowDescriptionChange,
+  onCommitEdit,
+  onCancelEdit,
+}: {
+  item: ContentCard;
+  editingRow: EditingRowDraft | null;
+  onEditingRowTitleChange: (value: string) => void;
+  onEditingRowDescriptionChange: (value: string) => void;
+  onCommitEdit: () => void;
+  onCancelEdit: () => void;
+}) {
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
+  const editingDraft = editingRow?.id === item.id ? editingRow : null;
+
+  if (!editingDraft) {
+    return (
+      <h3 className="whitespace-normal break-words text-[15px] font-semibold leading-[1.28] tracking-[-0.012em] text-[#111827] min-[1025px]:text-[16px]">
+        {item.title || "—"}
+      </h3>
+    );
+  }
+
+  const handleBlur = (event: FocusEvent<HTMLElement>) => {
+    const nextTarget = event.relatedTarget as Element | null;
+    if (nextTarget?.closest('[data-inline-edit-field="true"]')) return;
+    onCommitEdit();
+  };
+
+  return (
+    <div
+      className="relative z-40 -mx-1 -my-1 rounded-lg bg-white/90 p-1 shadow-sm backdrop-blur-sm"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="relative min-h-10">
+        {isTitleFocused ? <InlineEditFocusFrame /> : null}
+        <InlineEditableText
+          id={`preview-title-${item.id}`}
+          aria-label="Naziv kategorije"
+          value={editingDraft.title}
+          onChange={onEditingRowTitleChange}
+          onFocus={() => setIsTitleFocused(true)}
+          onBlur={(event) => {
+            setIsTitleFocused(false);
+            handleBlur(event);
+          }}
+          autoFocus
+          placeCaretAtEndOnFocus
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              onCommitEdit();
+            }
+            if (event.key === "Escape") onCancelEdit();
+          }}
+          className="min-h-10 w-full whitespace-pre-wrap break-words bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[15px] font-semibold leading-5 tracking-[-0.012em] text-slate-950"
+        />
+      </div>
+      <div className="relative mt-1 h-10 border-t border-slate-200/80 pt-1">
+        {isDescriptionFocused ? <InlineEditFocusFrame /> : null}
+        <InlineEditableText
+          id={`preview-description-${item.id}`}
+          aria-label="Opis kategorije"
+          value={editingDraft.description}
+          onChange={onEditingRowDescriptionChange}
+          onFocus={() => setIsDescriptionFocused(true)}
+          onBlur={(event) => {
+            setIsDescriptionFocused(false);
+            handleBlur(event);
+          }}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.preventDefault();
+              onCommitEdit();
+            }
+            if (event.key === "Escape") onCancelEdit();
+          }}
+          className="h-full w-full overflow-y-auto whitespace-pre-wrap bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[11px] leading-4 tracking-normal text-slate-700"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CategoryShowcaseAdminActions({
+  item,
+  uploadRefs,
+  onSetImageDeleteTarget,
+  editingRow,
+  onStartEdit,
+  onCancelEdit,
+  onStageStatusChange,
+  onEditPresentation,
+}: {
+  item: ContentCard;
+  uploadRefs: MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onSetImageDeleteTarget: (target: {
+    kind: "category" | "subcategory";
+    categorySlug: string;
+    subcategorySlug?: string;
+  }) => void;
+  editingRow: EditingRowDraft | null;
+  onStartEdit: (item: ContentCard) => void;
+  onCancelEdit: () => void;
+  onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
+  onEditPresentation: () => void;
+}) {
+  const dragHandleProps = useContext(CategoryShowcaseDragHandleContext);
+  const isEditing = editingRow?.id === item.id;
+  const isHidden = item.isInactive;
+  const triggerImagePicker = () => {
+    const input = uploadRefs.current[item.id];
+    if (!input) return;
+    input.value = "";
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // Fall back to click when the browser blocks showPicker.
+      }
+    }
+    input.click();
+  };
+  const actions = [
+    item.image
+      ? {
+          key: "delete-image",
+          label: "Odstrani sliko",
+          onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.stopPropagation();
+            onSetImageDeleteTarget({
+              kind: item.kind,
+              categorySlug: item.categorySlug,
+              subcategorySlug:
+                item.kind === "subcategory"
+                  ? item.subcategoryPath.at(-1)
+                  : undefined,
+            });
+          },
+          icon: (
+            <span aria-hidden="true" className="text-[11px] leading-none">
+              ×
+            </span>
+          ),
+          tone: "light" as const,
+        }
+      : null,
+    {
+      key: "upload-image",
+      label: "Dodaj ali zamenjaj sliko",
+      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        triggerImagePicker();
+      },
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          className="block h-3.5 w-3.5 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2.8" />
+          <path d="m6.5 15.5 3.7-3.8a1 1 0 0 1 1.42 0L15 15l2-2a1 1 0 0 1 1.42 0l2.08 2.08" />
+          <circle cx="15.5" cy="9.3" r="1.5" />
+        </svg>
+      ),
+      tone: "light" as const,
+    },
+    {
+      key: "presentation",
+      label: "Uredi predstavitev slike",
+      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        onEditPresentation();
+      },
+      icon: (
+        <svg viewBox="0 0 20 20" className="block h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <path d="M3 5h8M14 5h3M3 10h3M9 10h8M3 15h7M13 15h4" />
+          <circle cx="12.5" cy="5" r="1.5" />
+          <circle cx="7.5" cy="10" r="1.5" />
+          <circle cx="11.5" cy="15" r="1.5" />
+        </svg>
+      ),
+      tone: "light" as const,
+    },
+    {
+      key: "edit",
+      label: isEditing ? "Zapri urejanje" : "Uredi",
+      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        if (isEditing) {
+          onCancelEdit();
+          return;
+        }
+        onStartEdit(item);
+      },
+      icon: (
+        <svg
+          viewBox="0 0 20 20"
+          className="block h-3.5 w-3.5 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden="true"
+        >
+          <path d="M4 14.5l.5-3L13.5 2.5l3 3L7.5 14.5z" />
+          <path d="M11.5 4.5l3 3" />
+        </svg>
+      ),
+      tone: "light" as const,
+    },
+    {
+      key: "visibility",
+      label: isHidden ? "Prikaži kategorijo" : "Skrij kategorijo",
+      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        onStageStatusChange(item.id, isHidden ? "active" : "inactive");
+      },
+      icon: isHidden ? (
+        <EyeOffIcon className="h-3.5 w-3.5 text-[#d2554a]" />
+      ) : (
+        <EyeIcon className="h-3.5 w-3.5" />
+      ),
+      tone: isHidden ? ("danger" as const) : ("light" as const),
+    },
+    {
+      key: "drag",
+      label: "Premakni kategorijo",
+      icon: <DragHandleIcon className="h-3.5 w-3.5" />,
+      tone: "light" as const,
+      dragHandle: true,
+    },
+  ].filter(Boolean) as Array<{
+    key: string;
+    label: string;
+    onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    icon: React.ReactNode;
+    tone: "light" | "danger";
+    dragHandle?: boolean;
+  }>;
+
+  return (
+    <>
+      <div
+        data-testid="category-showcase-action-stack"
+        className="absolute inset-y-2.5 right-3 flex flex-col items-end justify-center gap-[3px] opacity-0 transition-opacity duration-150 group-hover/category-showcase-tile:opacity-100 group-focus-within/category-showcase-tile:opacity-100"
+      >
+        {actions.map((action) => (
+          <button
+            key={action.key}
+            type="button"
+            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border p-0 leading-none shadow-[0_4px_12px_rgba(15,23,42,0.1)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+            onPointerDown={(event) => {
+              if (!action.dragHandle) {
+                event.stopPropagation();
+                event.preventDefault();
+              }
+            }}
+            onClick={
+              action.dragHandle
+                ? (event) => event.stopPropagation()
+                : action.onClick
+            }
+            aria-label={action.label}
+            title={action.label}
+            {...(action.dragHandle ? dragHandleProps : {})}
+          >
+            <span className="inline-flex h-full w-full items-center justify-center">
+              {action.icon}
+            </span>
+          </button>
+        ))}
+      </div>
+      {isHidden ? (
+        <div className="pointer-events-none absolute left-4 top-3 rounded-full bg-[#d2554a] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white shadow-sm">
+          SKRITO
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -504,7 +963,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             <button
               key={action.key}
               type="button"
-              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`inline-flex h-[25px] min-w-[1.6rem] items-center justify-center rounded-md border px-0 leading-none shadow-[0_6px_18px_rgba(15,23,42,0.12)] transition focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${action.tone === "danger" ? "border-[#f1c1bd] bg-white text-[#d2554a] hover:bg-[#fff7f6]" : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"} ${action.dragHandle ? "cursor-grab active:cursor-grabbing" : ""}`}
               onPointerDown={(event) => {
                 if (!action.dragHandle) {
                   event.stopPropagation();
@@ -543,7 +1002,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
               {item.hasChildren ? (
                 <button
                   type="button"
-                  className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                  className="w-full border border-transparent text-left focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                   onPointerDown={(event) => {
                     event.stopPropagation();
                     event.preventDefault();
@@ -679,12 +1138,18 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
     && prevEditingDraft?.status === nextEditingDraft?.status;
 });
 
-function CreateCategoryCard({ onClick }: { onClick: () => void }) {
+function CreateCategoryCard({
+  onClick,
+  compact = false,
+}: {
+  onClick: () => void;
+  compact?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[225px] flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/40"
+      className={`flex flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${compact ? "min-h-[168px]" : "min-h-[225px]"}`}
       aria-label="Ustvari novo kategorijo"
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">

@@ -36,6 +36,13 @@ const variantClassMap: Record<ButtonVariant, string> = {
 
 const fixedSizeVariants: ButtonVariant[] = ['admin-soft', 'danger', 'restore', 'archive', 'close-x', 'default', 'primary', 'brand', 'outline'];
 
+const storefrontVariantClassMap: Partial<Record<ButtonVariant, string>> = {
+  primary: 'site-button site-button--primary',
+  brand: 'site-button site-button--primary',
+  outline: 'site-button site-button--secondary',
+  default: 'site-button site-button--secondary'
+};
+
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { children, variant, size = 'sm', className, ...props },
   ref
@@ -46,6 +53,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       className={classNames(
         variantClassMap[variant],
+        storefrontVariantClassMap[variant],
         size === 'toolbar' || fixedSizeVariants.includes(variant)
           ? undefined
           : sizeClassMap[size],

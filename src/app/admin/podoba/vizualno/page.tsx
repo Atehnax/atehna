@@ -1,2 +1,5 @@
-export * from '@/admin/pages/podoba/vizualno/page';
-export { default } from '@/admin/pages/podoba/vizualno/page';
+import { permanentRedirect } from 'next/navigation';
+
+export default function LegacyAdminVisualAppearanceRoute() {
+  permanentRedirect('/admin/podoba/logotip');
+}

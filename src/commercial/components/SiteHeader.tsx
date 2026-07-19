@@ -6,7 +6,9 @@ import type { CSSProperties, FormEvent } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
+import { SiteLogo } from '@/commercial/components/SiteLogo';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
+import type { SiteLogoPurposeId } from '@/shared/domain/logo/siteLogo';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
   SITE_NAVIGATION_DESKTOP_COLUMN_COUNT,
@@ -137,6 +139,12 @@ const navbarColorStyle = {
 } as CSSProperties & Record<string, string>;
 const coreNavTextClassName =
   '[font-size:calc(14px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))]';
+const compactNavbarControlSizePx = toCommercialStorefrontLogicalPx(32);
+const compactNavbarControlStyle = {
+  width: `${compactNavbarControlSizePx}px`,
+  minWidth: `${compactNavbarControlSizePx}px`,
+  height: `${compactNavbarControlSizePx}px`
+} satisfies CSSProperties;
 const publicNavNoFocusOutlineClassName =
   'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0';
 const publicDropdownSelectionClassName =
@@ -200,7 +208,9 @@ function getTopBarItemLayoutStyle(
 
   return {
     position: 'absolute',
-    left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))`,
+    ...(item.region === 'edgeRight'
+      ? { left: 'auto', right: 0 }
+      : { left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))` }),
     top: '50%',
     zIndex: item.zIndex,
     width: `${logicalWidthPx}px`,
@@ -242,7 +252,7 @@ async function loadNavbarSearchItems(): Promise<CatalogSearchItem[]> {
   return navbarSearchItemsPromise;
 }
 
-function Brand() {
+function LegacyBrand() {
   return (
     <span className="inline-flex items-center gap-2 text-black">
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-[5px] bg-black text-[15px] font-semibold leading-none text-white">
@@ -250,6 +260,24 @@ function Brand() {
       </span>
       <span className="text-[23px] font-semibold leading-none tracking-normal">Atehna</span>
     </span>
+  );
+}
+
+const headerLogoClassNames: Record<SiteNavigationTopBarDevice, string> = {
+  desktop: 'h-6 w-[88px]',
+  tablet: 'h-[22px] w-[72px]',
+  mobile: 'h-5 w-14'
+};
+
+function Brand({ device }: { device: SiteNavigationTopBarDevice }) {
+  const purposeId = `header-${device}` as SiteLogoPurposeId;
+  return (
+    <SiteLogo
+      purposeId={purposeId}
+      fallback={<LegacyBrand />}
+      className={headerLogoClassNames[device]}
+      alt="Atehna"
+    />
   );
 }
 
@@ -767,8 +795,9 @@ function NavbarSearch({
             ? 'relative'
           : desktopFieldMode
             ? 'relative flex h-[43px] w-full min-w-[240px] shrink-0 justify-end'
-            : 'relative flex h-8 w-8 min-w-8 shrink-0 items-center justify-end'
+            : 'relative flex shrink-0 items-center justify-end'
       }
+      style={!mobile && !desktopFieldMode ? compactNavbarControlStyle : undefined}
     >
       {!mobile && !desktopFieldMode ? (
         <button
@@ -778,9 +807,10 @@ function NavbarSearch({
           tabIndex={desktopExpanded ? -1 : 0}
           onClick={openExpandedSearch}
           onFocus={openExpandedSearch}
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20 ${
+          className={`inline-flex items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] ${
             desktopExpanded ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
+          style={compactNavbarControlStyle}
         >
           <SearchGlyph className="h-[24.3px] w-[24.3px]" />
         </button>
@@ -833,7 +863,7 @@ function NavbarSearch({
           placeholder="Išči"
           className={
             mobile
-              ? 'h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-[38px] pr-3 text-[17px] font-medium leading-none text-[#111111] outline-none transition placeholder:text-[#737373] hover:border-[#dedede] focus:border-[#111111] focus:bg-white focus-visible:ring-2 focus-visible:ring-black/20'
+              ? 'h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-[38px] pr-3 text-[17px] font-medium leading-none text-[#111111] outline-none transition placeholder:text-[#737373] hover:border-[#dedede] focus:border-[#111111] focus:bg-white focus:ring-0 focus:shadow-none'
               : 'h-[43px] w-full appearance-none rounded-lg border border-[color:var(--blue-500)] bg-white pl-[38px] pr-3 text-[19px] font-normal leading-none text-[var(--navbar-link-current)] shadow-none [box-shadow:none] [outline:0] [outline-offset:0] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[color:var(--blue-500)] focus:border-[color:var(--blue-500)] focus:bg-white focus:shadow-none focus:ring-0 focus:[box-shadow:none] focus:[outline:0] focus:[outline-offset:0] focus-visible:border-[color:var(--blue-500)] focus-visible:shadow-none focus-visible:ring-0 focus-visible:[box-shadow:none] focus-visible:[outline:0] focus-visible:[outline-offset:0]'
           }
         />
@@ -884,7 +914,11 @@ function NavbarCartControl() {
       type="button"
       onClick={openDrawer}
       aria-label={visibleCount > 0 ? `Košarica, ${visibleCount} izdelki` : 'Košarica'}
-      className="relative inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] focus-visible:ring-2 focus-visible:ring-black/20"
+      className="relative inline-flex shrink-0 items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)]"
+      style={{
+        width: toCommercialStorefrontLogicalPx(32),
+        height: toCommercialStorefrontLogicalPx(32)
+      }}
     >
       <CartGlyph />
       {visibleCount > 0 ? (
@@ -976,9 +1010,7 @@ export default function SiteHeader({
   const effectivePreviewDevice = isInlinePreview ? previewDevice : adminPreview?.previewDevice;
   const effectivePreviewViewportWidth = isInlinePreview ? previewViewportWidth : adminPreview?.previewViewportWidth;
   const isAdminNavbarPreview = isInlinePreview || (isAdminPath && adminPreview !== null);
-  const [measuredViewportWidth, setMeasuredViewportWidth] = useState<number | null>(
-    typeof previewViewportWidth === 'number' ? previewViewportWidth : null
-  );
+  const [measuredViewportWidth, setMeasuredViewportWidth] = useState<number | null>(null);
   const normalizedNavigation = useMemo(
     () => normalizeSiteNavigationConfig(effectiveNavigation),
     [effectiveNavigation]
@@ -1068,10 +1100,7 @@ export default function SiteHeader({
   }, [activeTopBarDevice, effectivePreviewViewportWidth, isInlinePreview]);
 
   useLayoutEffect(() => {
-    if (typeof effectivePreviewViewportWidth === 'number') {
-      setMeasuredViewportWidth(effectivePreviewViewportWidth);
-      return undefined;
-    }
+    if (typeof effectivePreviewViewportWidth === 'number') return undefined;
 
     const updateMeasuredViewportWidth = () => {
       setMeasuredViewportWidth(window.innerWidth);
@@ -1333,9 +1362,9 @@ export default function SiteHeader({
             aria-label="Atehna home"
             data-navbar-left
             onClick={closeMenus}
-            className="inline-flex shrink-0 rounded-lg px-[5px] py-[5px] transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+            className="inline-flex shrink-0 rounded-lg py-[5px] pl-0 pr-[10px] transition hover:bg-[#f5f5f5]"
           >
-            <Brand />
+            <Brand device={activeTopBarDevice} />
           </Link>
         </div>
       );
@@ -1350,7 +1379,7 @@ export default function SiteHeader({
             aria-expanded={mobileOpen}
             aria-controls={mobileMenuId}
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5] focus-visible:ring-2 focus-visible:ring-black/20"
+            className="inline-flex h-[43px] w-[43px] shrink-0 items-center justify-center rounded-lg text-black transition hover:bg-[#f5f5f5]"
           >
             <MenuIcon open={mobileOpen} />
           </button>
@@ -1630,7 +1659,12 @@ export default function SiteHeader({
 
   if (isAdminNavbarPreview && !isInlinePreview) {
     return (
-      <div className="commercial-storefront-scale admin-site-header-preview-scale" style={adminPreviewWrapperStyle}>
+      <div
+        className="commercial-storefront-scale admin-site-header-preview-scale"
+        data-admin-site-header-preview="true"
+        data-preview-device={activeTopBarDevice}
+        style={adminPreviewWrapperStyle}
+      >
         {siteHeader}
       </div>
     );

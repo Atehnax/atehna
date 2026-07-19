@@ -38,7 +38,7 @@ const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
 
 const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) => getCatalogItemsIndexFromDatabase(diagnosticsContext));
 
-const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> =>
+const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation'>>> =>
   instrumentCatalogCacheMiss('loadCatalogCategoryCardsServer', '/products', () => getCatalogCategoryCardsFromDatabase('/products'))
 );
 
@@ -84,7 +84,7 @@ const loadCatalogSubcategoryDetailsServer = cache(
 );
 
 const loadCatalogHomeDataServer = cache(async (): Promise<{
-  categories: Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>;
+  categories: Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation'>>;
   searchItems: CatalogSearchItem[];
 }> => {
   const payload = await instrumentCatalogCacheMiss('loadCatalogHomeDataServer', '/products', () =>
@@ -237,7 +237,7 @@ export async function getCatalogItemsIndexServer(diagnosticsContext = 'catalog:i
   return instrumentCatalogLoader('getCatalogItemsIndexServer', diagnosticsContext, () => loadCatalogItemsIndexServer(diagnosticsContext));
 }
 
-export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'slug' | 'title' | 'summary' | 'image'>>> {
+export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation'>>> {
   return instrumentCatalogLoader('getCatalogCategoryCardsServer', '/products', () => loadCatalogCategoryCardsServer());
 }
 

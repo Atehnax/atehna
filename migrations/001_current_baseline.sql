@@ -173,6 +173,18 @@ create table if not exists landing_page_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists global_style_settings (
+  key text primary key,
+  config_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists site_logo_settings (
+  key text primary key,
+  config_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists catalog_categories (
   id text primary key,
   parent_id text references catalog_categories(id) on delete cascade,
@@ -181,6 +193,7 @@ create table if not exists catalog_categories (
   summary text not null default '',
   description text not null default '',
   image text not null default '',
+  presentation_json jsonb not null default '{}'::jsonb,
   admin_notes text,
   banner_image text,
   items jsonb not null default '[]'::jsonb,
@@ -191,6 +204,11 @@ create table if not exists catalog_categories (
   constraint catalog_categories_status_check check (status in ('active', 'inactive')),
   constraint catalog_categories_parent_slug_unique unique (parent_id, slug)
 );
+
+-- Keep upgrades from pre-showcase installations additive as well. The CREATE
+-- TABLE declaration above only covers fresh databases.
+alter table catalog_categories
+  add column if not exists presentation_json jsonb not null default '{}'::jsonb;
 
 create index if not exists idx_catalog_categories_parent_position
   on catalog_categories(parent_id, position);

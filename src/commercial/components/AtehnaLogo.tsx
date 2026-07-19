@@ -1,15 +1,16 @@
 type AtehnaLogoProps = {
   markOnly?: boolean;
   className?: string;
+  fluid?: boolean;
 };
 
-export default function AtehnaLogo({ markOnly = false, className = '' }: AtehnaLogoProps) {
+export default function AtehnaLogo({ markOnly = false, className = '', fluid = false }: AtehnaLogoProps) {
   return (
-    <span className={`inline-flex items-center gap-3 text-[color:var(--blue-500)] ${className}`}>
+    <span className={`inline-flex items-center gap-3 text-[color:var(--blue-500)] ${fluid ? 'h-full min-h-0 w-full' : ''} ${className}`}>
       <svg
         aria-hidden="true"
         viewBox="0 0 48 48"
-        className={markOnly ? 'h-11 w-11' : 'h-9 w-9 sm:h-10 sm:w-10'}
+        className={fluid ? 'h-full w-auto shrink-0' : markOnly ? 'h-11 w-11' : 'h-9 w-9 sm:h-10 sm:w-10'}
         fill="none"
       >
         <path d="M24 3 45 45h-9.3L24 20.6 12.3 45H3L24 3Z" fill="currentColor" />
@@ -17,7 +18,7 @@ export default function AtehnaLogo({ markOnly = false, className = '' }: AtehnaL
         <path d="M19 24.7h10l3 6.4H16l3-6.4Z" fill="currentColor" />
       </svg>
       {!markOnly ? (
-        <span className="text-3xl font-bold leading-none tracking-[0.02em] sm:text-[34px]">
+        <span className={fluid ? 'text-[0.78em] font-bold leading-none tracking-[0.02em]' : 'text-3xl font-bold leading-none tracking-[0.02em] sm:text-[34px]'}>
           ATEHNA
         </span>
       ) : null}

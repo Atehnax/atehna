@@ -198,6 +198,12 @@ textarea[readonly] {
   max-width: var(--topbar-inner-max-width);
 }
 
+/* Admin homepage preview only: its RAF controller owns this numeric height so
+   the structural navbar breakpoint and the shell geometry paint together. */
+.homepage-preview-fluid .topbar-inner {
+  --topbar-height: var(--preview-header-inner-height) !important;
+}
+
 .topbar-inner[data-width-mode='full'] {
   max-width: none;
 }
@@ -254,6 +260,13 @@ textarea[readonly] {
     padding-inline: 0;
     transform: translateX(var(--site-admin-content-lane-shift));
   }
+
+  /* Keep the page-level Desktop header preview centred on the same asymmetric
+     admin content lane as the editor. Its own configured gutter remains intact. */
+  .admin-site-header-preview-scale[data-preview-device='desktop'] .topbar-inner {
+    width: calc(100% - var(--site-admin-content-lane-start) - var(--site-admin-content-lane-end));
+    transform: translateX(var(--site-admin-content-lane-shift));
+  }
 }
 
 .commercial-storefront-scale.admin-site-header-preview-scale {
@@ -282,13 +295,10 @@ textarea[readonly] {
     border-color: var(--border);
   }
 
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  summary:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 22%, transparent);
+  :where(button, a, input, select, textarea, summary):focus-visible {
+    outline: 1px solid var(--ring);
+    outline-offset: -1px;
+    box-shadow: none;
   }
 }
 
@@ -330,6 +340,251 @@ textarea[readonly] {
     border: 1px solid var(--border);
     box-shadow: var(--shadow-soft);
   }
+}
+
+/* Public storefront design-token hooks. These are intentionally scoped so the
+   admin UI and the style-locked navigation keep their own visual system. */
+[data-storefront-theme='true'],
+.storefront-theme-preview[data-storefront-theme] {
+  --site-gutter: var(--site-gutter-mobile, 16px);
+  background-color: var(--site-color-page, #fafbfc);
+  color: var(--site-color-text, #111827);
+}
+
+[data-storefront-theme='true'] .site-page-surface,
+[data-storefront-theme='true'] .site-token-scope,
+.storefront-theme-preview[data-storefront-theme] {
+  --bg: var(--site-color-page);
+  --surface: var(--site-color-surface);
+  --surface-1: var(--site-color-surface);
+  --surface-2: var(--site-color-surface-muted);
+  --surface-muted: var(--site-color-surface-muted);
+  --surface-subtle: var(--site-color-surface-muted);
+  --border: var(--site-border-color);
+  --text: var(--site-color-text);
+  --text-muted: var(--site-color-text-muted);
+  --primary: var(--site-color-primary);
+  --primary-hover: var(--site-color-primary-hover);
+  --primary-active: var(--site-color-primary-active);
+  --primary-foreground: var(--site-color-primary-foreground);
+  --blue-50: color-mix(in srgb, var(--site-color-primary) 10%, white);
+  --blue-100: color-mix(in srgb, var(--site-color-primary) 18%, white);
+  --blue-500: var(--site-color-primary);
+  --blue-600: var(--site-color-primary-hover);
+  --blue-700: var(--site-color-primary-active);
+  --semantic-success: var(--site-color-success);
+  --semantic-warning: var(--site-color-warning);
+  --semantic-info: var(--site-color-info);
+  --danger: var(--site-color-danger);
+  background-color: var(--site-color-page);
+  color: var(--site-color-text);
+  font-family: var(--site-font-body);
+  font-size: var(--site-font-size-body);
+  font-weight: var(--site-font-weight-body);
+  line-height: var(--site-line-height-body);
+}
+
+@media (min-width: 768px) {
+  [data-storefront-theme='true'] {
+    --site-gutter: var(--site-gutter-tablet, 24px);
+  }
+}
+
+@media (min-width: 1025px) {
+  [data-storefront-theme='true'] {
+    --site-gutter: var(--site-gutter-desktop, 32px);
+  }
+}
+
+[data-storefront-theme] .site-section {
+  padding-block: var(--site-section-space-current, var(--site-section-space-mobile));
+}
+
+[data-storefront-theme] .site-content-measure {
+  width: min(100%, var(--site-global-content-width));
+}
+
+[data-storefront-theme] .site-heading-1,
+[data-storefront-theme] .site-heading-2,
+[data-storefront-theme] .site-heading-3 {
+  margin: 0;
+  color: var(--site-color-text);
+  font-family: var(--site-font-heading);
+  font-weight: var(--site-font-weight-heading);
+  line-height: var(--site-line-height-heading);
+}
+
+[data-storefront-theme] .site-heading-1 { font-size: var(--site-font-size-h1); }
+[data-storefront-theme] .site-heading-2 { font-size: var(--site-font-size-h2); }
+[data-storefront-theme] .site-heading-3 { font-size: var(--site-font-size-h3); }
+
+[data-storefront-theme] .site-paragraph,
+[data-storefront-theme] .site-prose {
+  color: var(--site-color-text-muted);
+  font-size: var(--site-font-size-paragraph);
+  line-height: var(--site-line-height-paragraph);
+}
+
+[data-storefront-theme] .site-eyebrow {
+  color: var(--site-color-accent);
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-storefront-theme] .site-card {
+  border: var(--site-card-border-width) solid var(--site-border-color);
+  border-radius: var(--site-card-radius);
+  background: var(--site-card-bg);
+  padding: var(--site-card-padding);
+  box-shadow: var(--site-card-shadow);
+  color: var(--site-color-text);
+}
+
+[data-storefront-theme] .site-panel {
+  border: var(--site-card-border-width) solid var(--site-border-color);
+  border-radius: var(--site-card-radius);
+  background: var(--site-card-bg);
+  box-shadow: var(--site-card-shadow);
+}
+
+[data-storefront-theme] .site-radius-sm { border-radius: var(--site-radius-sm); }
+[data-storefront-theme] .site-radius-md { border-radius: var(--site-radius-md); }
+[data-storefront-theme] .site-radius-lg { border-radius: var(--site-radius-lg); }
+[data-storefront-theme] .site-radius-pill { border-radius: var(--site-radius-pill); }
+[data-storefront-theme] .site-gap-xs { gap: var(--site-space-xs); }
+[data-storefront-theme] .site-gap-sm { gap: var(--site-space-sm); }
+[data-storefront-theme] .site-gap-md { gap: var(--site-space-md); }
+[data-storefront-theme] .site-gap-lg { gap: var(--site-space-lg); }
+[data-storefront-theme] .site-gap-xl { gap: var(--site-space-xl); }
+
+[data-storefront-theme] .site-button {
+  height: var(--site-button-height);
+  border-width: var(--site-button-border-width);
+  border-style: solid;
+  border-color: var(--site-button-border);
+  border-radius: var(--site-button-radius);
+  background: var(--site-button-bg);
+  padding-inline: var(--site-button-padding-x);
+  color: var(--site-button-text);
+  box-shadow: var(--site-button-shadow);
+  font-family: var(--site-font-body);
+  font-size: var(--site-button-font-size);
+  font-weight: var(--site-button-font-weight);
+  line-height: 1;
+}
+
+[data-storefront-theme] .site-button:hover {
+  border-color: var(--site-button-border);
+  background: var(--site-button-hover-bg);
+  color: var(--site-button-text);
+}
+
+[data-storefront-theme] .site-button:active {
+  background: var(--site-color-primary-active);
+}
+
+[data-storefront-theme] .site-button:focus-visible {
+  outline: 1px solid var(--site-field-focus);
+  outline-offset: -1px;
+}
+
+[data-storefront-theme] .site-button:disabled,
+[data-storefront-theme] .site-button[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: var(--site-button-disabled-opacity);
+}
+
+[data-storefront-theme] .site-button--secondary {
+  border-color: var(--site-border-color);
+  background: var(--site-color-surface);
+  color: var(--site-color-text);
+  box-shadow: none;
+}
+
+[data-storefront-theme] .site-button--secondary:hover {
+  border-color: var(--site-color-primary);
+  background: var(--site-color-surface-muted);
+  color: var(--site-color-primary);
+}
+
+[data-storefront-theme] .site-field,
+[data-storefront-theme] .site-field-shell {
+  min-height: var(--site-field-height);
+  border-width: var(--site-field-border-width);
+  border-style: solid;
+  border-color: var(--site-border-color);
+  border-radius: var(--site-field-radius);
+  background: var(--site-field-bg);
+  color: var(--site-color-text);
+  font-family: var(--site-font-body);
+  font-size: var(--site-field-font-size);
+}
+
+[data-storefront-theme] .site-field {
+  padding-inline: var(--site-field-padding-x);
+  outline: none;
+}
+
+[data-storefront-theme] .site-field-shell input,
+[data-storefront-theme] .site-field-shell select,
+[data-storefront-theme] .site-field-shell textarea {
+  min-height: calc(var(--site-field-height) - (2 * var(--site-field-border-width)));
+  padding-inline: var(--site-field-padding-x);
+  font-family: var(--site-font-body);
+  font-size: var(--site-field-font-size);
+}
+
+[data-storefront-theme] .site-field::placeholder,
+[data-storefront-theme] .site-field-shell input::placeholder,
+[data-storefront-theme] .site-field-shell textarea::placeholder {
+  color: var(--site-field-placeholder);
+}
+
+[data-storefront-theme] .site-field:focus,
+[data-storefront-theme] .site-field-shell:focus-within {
+  border-color: var(--site-field-focus);
+  outline: 1px solid var(--site-field-focus);
+  outline-offset: -1px;
+  box-shadow: none;
+}
+
+[data-storefront-theme] .site-link {
+  color: var(--site-link-color);
+  font-weight: var(--site-link-weight);
+  text-decoration: var(--site-link-decoration);
+  text-underline-offset: 0.18em;
+}
+
+[data-storefront-theme] .site-link:hover {
+  color: var(--site-link-hover);
+  text-decoration: var(--site-link-hover-decoration);
+}
+
+[data-storefront-theme] .site-link:active { color: var(--site-link-active); }
+
+[data-storefront-theme] .site-divider {
+  border-color: var(--site-divider-color);
+  border-top-width: var(--site-border-width);
+}
+
+[data-storefront-theme] .site-prose a {
+  color: var(--site-link-color);
+  font-weight: var(--site-link-weight);
+  text-decoration: var(--site-link-decoration);
+  text-underline-offset: 0.18em;
+}
+
+[data-storefront-theme] .site-prose a:hover {
+  color: var(--site-link-hover);
+  text-decoration: var(--site-link-hover-decoration);
+}
+
+[data-storefront-theme] .site-footer-surface {
+  border-color: var(--site-divider-color);
+  background: var(--site-color-surface);
+  color: var(--site-color-text);
 }
 
 @keyframes technical-preview-fade {
@@ -456,6 +711,11 @@ textarea[readonly] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .category-showcase-media-motion {
+    transform: none !important;
+    transition-property: none !important;
+  }
+
   .site-menu-viewport-open,
   .site-menu-viewport-close,
   .site-menu-content-from-start,

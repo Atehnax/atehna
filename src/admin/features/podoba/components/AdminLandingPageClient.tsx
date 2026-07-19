@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -13,21 +14,43 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowDown,
+  ArrowUp,
   Bold,
   ChevronDown,
+  Copy,
   Eye,
-  EyeOff,
+  EyeClosed,
+  Grid3X3,
   GripVertical,
   Italic,
+  Layers3,
+  Link as LinkIcon,
+  Lock,
+  Magnet,
+  Maximize2,
   MoreVertical,
+  MousePointer2,
   Pencil,
   Plus,
+  Ruler,
   Save,
+  SlidersHorizontal,
+  SquareDashed,
   Trash2,
   Underline,
-  Upload
+  Unlock,
+  Upload,
+  X
 } from 'lucide-react';
-import HomepageRenderer from '@/commercial/components/landing/HomepageRenderer';
+import HomepageRenderer, {
+  DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
+  HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
+  type HomepageCanvasEditorOptions
+} from '@/commercial/components/landing/HomepageRenderer';
 import { COMMERCIAL_STOREFRONT_SCALE } from '@/commercial/components/commercialStorefrontScale';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import {
@@ -35,6 +58,7 @@ import {
   HOMEPAGE_BUTTON_STYLES,
   HOMEPAGE_CATEGORY_CARD_SIZES,
   HOMEPAGE_CATEGORY_CARD_STYLES,
+  HOMEPAGE_CATEGORY_ORDER_MODES,
   HOMEPAGE_CONTAINER_WIDTHS,
   HOMEPAGE_FOOTER_LOGO_MODES,
   HOMEPAGE_FOOTER_SPACINGS,
@@ -43,14 +67,16 @@ import {
   HOMEPAGE_INFO_ICON_POSITIONS,
   HOMEPAGE_INFO_STYLES,
   HOMEPAGE_PREVIEW_DEVICES,
+  HOMEPAGE_PREVIEW_PROFILES,
   HOMEPAGE_SECTION_IDS,
   HOMEPAGE_SECTION_RADII,
   HOMEPAGE_SECTION_SPACINGS,
-  HOMEPAGE_SOCIAL_TYPES,
+  DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
   cloneDefaultLandingPageConfig,
   homepageButtonStyleLabels,
   homepageCategoryCardSizeLabels,
   homepageCategoryCardStyleLabels,
+  homepageCategoryOrderModeLabels,
   homepageContainerWidthLabels,
   homepageFooterLogoModeLabels,
   homepageFooterSpacingLabels,
@@ -61,15 +87,16 @@ import {
   homepageSectionLabels,
   homepageSectionRadiusLabels,
   homepageSectionSpacingLabels,
-  homepageSocialTypeLabels,
+  getHomepagePreviewDeviceForViewport,
   normalizeLandingPageConfig,
+  orderHomepageCategories,
   resolveHomepageSectionLabel,
+  resolveHomepageCanvasElementDeviceSettings,
+  toStoredLandingPageConfig,
+  type HomepageCanvasElementDeviceSettings,
   type HomepageCategoryCardData,
   type HomepageCategoriesDeviceSettings,
-  type HomepageFooterColumn,
   type HomepageFooterDeviceSettings,
-  type HomepageFooterLink,
-  type HomepageFooterSocialLink,
   type HomepageHeroDeviceSettings,
   type HomepageHeroFontFamily,
   type HomepageHeroSlide,
@@ -81,20 +108,25 @@ import {
   type HomepageSectionId,
   type HomepageSettings
 } from '@/shared/domain/landing/landingPage';
+import { getWebsiteFontFamilyLabel } from '@/shared/domain/style/fontFamilies';
 import { normalizeSiteNavigationConfig, type SiteNavigationConfig } from '@/shared/domain/navigation/siteNavigation';
+import {
+  CATEGORY_SHOWCASE_HOMEPAGE_CAPABILITIES,
+  CategoryShowcaseEditor
+} from '@/shared/features/category-showcase/CategoryShowcaseEditor';
+import { useCategoryShowcaseEditor } from '@/shared/features/category-showcase/useCategoryShowcaseEditor';
+import { subscribeToCategoryDataChanges } from '@/shared/features/category-showcase/categoryShowcaseSync';
+import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { AdminCheckbox } from '@/shared/ui/checkbox';
-import EuiTabs from '@/shared/ui/eui-tabs';
 import {
-  adminTableNeutralIconButtonClassName,
-  adminTablePrimaryButtonClassName,
-  adminTableSelectedDangerIconButtonClassName
+  adminTablePrimaryButtonClassName
 } from '@/shared/ui/admin-table/standards';
 import {
   adminControlFocusTokenClasses,
-  adminFilterInputTokenClasses,
+  adminControlFocusWithinTokenClasses,
+  adminInputFocusTokenClasses,
   adminMiniIconButtonTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
@@ -103,26 +135,18 @@ import AdminPodobaTabs from './AdminPodobaTabs';
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
 const panelClassName = 'rounded-xl border border-slate-200 bg-white';
-const panelInnerClassName = 'min-w-0 p-4';
-const labelClassName = 'text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500';
-const inputClassName = adminFilterInputTokenClasses;
-const textareaClassName = `${inputClassName} min-h-[74px] resize-y py-2 leading-5`;
+const labelClassName = 'text-[11px] font-medium leading-4 text-slate-500';
+const inspectorFieldRowClassName = 'grid min-w-0 grid-cols-[minmax(82px,0.8fr)_minmax(0,1.2fr)] items-center gap-3';
+const inputClassName =
+  `h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-[12px] leading-[1.25] text-slate-800 font-['Inter',system-ui,sans-serif] transition placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:bg-white ${adminInputFocusTokenClasses}`;
+const textareaClassName = `${inputClassName} min-h-[76px] resize-y py-2 leading-5`;
+const segmentedControlClassName = 'flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5';
+const floatingSurfaceClassName =
+  'rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_16px_40px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06)] backdrop-blur-xl';
 const topActionSaveButtonClassName =
   `gap-2 ${adminTablePrimaryButtonClassName} !h-9 !leading-none disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const previewButtonClassName =
   'inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-500)]';
-
-const previewViewportWidths: Record<HomepagePreviewDevice, number> = {
-  desktop: 1440,
-  tablet: 1024,
-  mobile: 390
-};
-
-const previewHeightFallbacks: Record<HomepagePreviewDevice, number> = {
-  desktop: 1120,
-  tablet: 1080,
-  mobile: 1240
-};
 
 type HeroTypographyUpdates = Partial<
   Pick<
@@ -159,13 +183,61 @@ type HeroPositionUpdates = Partial<
   >
 >;
 type HeroTextContentUpdates = Partial<Pick<HomepageSettings['hero'], 'title' | 'description'>>;
+type CategoryTextUpdates = Partial<Pick<HomepageSettings['categories'], 'title' | 'subtitle' | 'showAllLabel'>>;
 type HeroTextBlockUpdates = Partial<HomepageHeroTextBlock>;
 
-type PanelTab = 'sections' | 'page';
+type ToolbarPopover = 'create' | 'structure' | 'section' | 'page' | 'style' | 'layout' | 'spacing' | 'link' | 'view' | 'media' | null;
+type CategoryTitleEditScope = 'all' | 'selected';
 type Option<Value extends string> = { value: Value; label: string };
 
+const categoryTitleCanvasElementPrefix = 'categories:title:';
+const categoryTitleScopedStyleKeys = new Set<keyof HomepageCanvasElementDeviceSettings>([
+  'offsetXPx',
+  'offsetYPx',
+  'widthPx',
+  'heightPx',
+  'paddingTopPx',
+  'paddingRightPx',
+  'paddingBottomPx',
+  'paddingLeftPx',
+  'marginTopPx',
+  'marginRightPx',
+  'marginBottomPx',
+  'marginLeftPx',
+  'horizontalAlign',
+  'textAlign',
+  'color',
+  'fontFamily',
+  'fontSizePx',
+  'lineHeight',
+  'letterSpacingPx',
+  'fontWeight',
+  'italic',
+  'underline'
+]);
+
+function isCategoryTitleCanvasElement(elementId: string | null | undefined) {
+  return Boolean(
+    elementId?.startsWith(categoryTitleCanvasElementPrefix)
+    && elementId !== HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID
+  );
+}
+
 function comparable(config: HomepageSettings) {
-  return JSON.stringify(normalizeLandingPageConfig(config));
+  return JSON.stringify(toStoredLandingPageConfig(config));
+}
+
+function withSectionTitle(config: HomepageSettings, sectionId: HomepageSectionId, title: string) {
+  const trimmedTitle = title.trim();
+  const sectionTitles = { ...config.sectionTitles };
+
+  if (!trimmedTitle || trimmedTitle === homepageSectionLabels[sectionId]) {
+    delete sectionTitles[sectionId];
+  } else {
+    sectionTitles[sectionId] = trimmedTitle;
+  }
+
+  return { ...config, sectionTitles };
 }
 
 function cloneConfig<T>(value: T): T {
@@ -200,15 +272,16 @@ function createOptions<Value extends string>(values: readonly Value[], labels: R
 }
 
 function useMeasuredElementWidth<T extends HTMLElement>() {
-  const [element, setElement] = useState<T | null>(null);
+  const elementRef = useRef<T | null>(null);
   const [width, setWidth] = useState(0);
 
   const measureRef = useCallback((node: T | null) => {
-    setElement(node);
+    elementRef.current = node;
     if (node) setWidth(Math.round(node.getBoundingClientRect().width));
   }, []);
 
   useLayoutEffect(() => {
+    const element = elementRef.current;
     if (!element) return undefined;
 
     const updateWidth = () => {
@@ -237,47 +310,9 @@ function useMeasuredElementWidth<T extends HTMLElement>() {
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
     };
-  }, [element]);
-
-  return [measureRef, width] as const;
-}
-
-function useMeasuredElementHeight<T extends HTMLElement>() {
-  const [element, setElement] = useState<T | null>(null);
-  const [height, setHeight] = useState(0);
-
-  const measureRef = useCallback((node: T | null) => {
-    setElement(node);
-    if (node) setHeight(Math.ceil(node.scrollHeight || node.getBoundingClientRect().height));
   }, []);
 
-  useLayoutEffect(() => {
-    if (!element) return undefined;
-
-    const updateHeight = () => {
-      setHeight(Math.ceil(element.scrollHeight || element.getBoundingClientRect().height));
-    };
-
-    updateHeight();
-    const animationFrame = window.requestAnimationFrame(updateHeight);
-    window.addEventListener('resize', updateHeight);
-
-    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateHeight) : null;
-    resizeObserver?.observe(element);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', updateHeight);
-      resizeObserver?.disconnect();
-    };
-  }, [element]);
-
-  return [measureRef, height] as const;
-}
-
-function getHomepagePreviewScale(availableWidth: number, viewportWidth: number) {
-  if (availableWidth <= 0 || viewportWidth <= 0) return 1;
-  return Math.min(1, availableWidth / viewportWidth);
+  return [measureRef, width] as const;
 }
 
 function formatZoomLabel(scale: number) {
@@ -285,17 +320,566 @@ function formatZoomLabel(scale: number) {
   return `${scaleNumberLabel}x zoom`;
 }
 
+const previewViewportTransitionDurationMs = 420;
+const previewFrameTransitionEasing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+type PreviewViewportGeometry = {
+  logicalWidth: number;
+  renderedWidth: number;
+};
+
+type HomepagePreviewFluidMetrics = {
+  headerInnerHeightPx: number;
+  headerShellHeightPx: number;
+  heroHeightPx: number;
+  heroOverlayStrength: number;
+  heroMediaWidthPercent: number;
+  heroContentOffsetXPx: number;
+  heroContentOffsetYPx: number;
+  heroTextWidthPx: number;
+  heroContentPaddingBlockPx: number;
+  titleOffsetXPx: number;
+  titleOffsetYPx: number;
+  titleFontSizePx: number;
+  titleLineHeight: number;
+  titleLetterSpacingPx: number;
+  titleFontWeight: number;
+  descriptionOffsetXPx: number;
+  descriptionOffsetYPx: number;
+  descriptionFontSizePx: number;
+  descriptionLineHeight: number;
+  descriptionLetterSpacingPx: number;
+  descriptionFontWeight: number;
+  descriptionGapPx: number;
+  actionsGapTopPx: number;
+  actionsGapInlinePx: number;
+  primaryButtonOffsetXPx: number;
+  primaryButtonOffsetYPx: number;
+  secondaryButtonOffsetXPx: number;
+  secondaryButtonOffsetYPx: number;
+};
+
+type HomepagePreviewFluidEndpoints = Record<HomepagePreviewDevice, HomepagePreviewFluidMetrics>;
+
+const previewFluidCssProperties: ReadonlyArray<[
+  keyof HomepagePreviewFluidMetrics,
+  `--preview-${string}`,
+  '' | 'px' | '%'
+]> = [
+  ['headerInnerHeightPx', '--preview-header-inner-height', 'px'],
+  ['headerShellHeightPx', '--preview-header-shell-height', 'px'],
+  ['heroHeightPx', '--preview-hero-height', 'px'],
+  ['heroOverlayStrength', '--preview-hero-overlay-strength', ''],
+  ['heroMediaWidthPercent', '--preview-hero-media-width', '%'],
+  ['heroContentOffsetXPx', '--preview-hero-content-x', 'px'],
+  ['heroContentOffsetYPx', '--preview-hero-content-y', 'px'],
+  ['heroTextWidthPx', '--preview-hero-text-width', 'px'],
+  ['heroContentPaddingBlockPx', '--preview-hero-content-padding-block', 'px'],
+  ['titleOffsetXPx', '--preview-title-offset-x', 'px'],
+  ['titleOffsetYPx', '--preview-title-offset-y', 'px'],
+  ['titleFontSizePx', '--preview-title-size', 'px'],
+  ['titleLineHeight', '--preview-title-line-height', ''],
+  ['titleLetterSpacingPx', '--preview-title-letter-spacing', 'px'],
+  ['titleFontWeight', '--preview-title-weight', ''],
+  ['descriptionOffsetXPx', '--preview-description-offset-x', 'px'],
+  ['descriptionOffsetYPx', '--preview-description-offset-y', 'px'],
+  ['descriptionFontSizePx', '--preview-description-size', 'px'],
+  ['descriptionLineHeight', '--preview-description-line-height', ''],
+  ['descriptionLetterSpacingPx', '--preview-description-letter-spacing', 'px'],
+  ['descriptionFontWeight', '--preview-description-weight', ''],
+  ['descriptionGapPx', '--preview-description-gap', 'px'],
+  ['actionsGapTopPx', '--preview-actions-gap-top', 'px'],
+  ['actionsGapInlinePx', '--preview-actions-gap-inline', 'px'],
+  ['primaryButtonOffsetXPx', '--preview-primary-button-offset-x', 'px'],
+  ['primaryButtonOffsetYPx', '--preview-primary-button-offset-y', 'px'],
+  ['secondaryButtonOffsetXPx', '--preview-secondary-button-offset-x', 'px'],
+  ['secondaryButtonOffsetYPx', '--preview-secondary-button-offset-y', 'px']
+];
+
+function getPreviewFluidLayerMetrics(
+  settings: HomepageSettings,
+  elementId: string,
+  device: HomepagePreviewDevice
+) {
+  const configured = Boolean(settings.canvas.elements[elementId]);
+  return configured
+    ? resolveHomepageCanvasElementDeviceSettings(settings, elementId, device)
+    : null;
+}
+
+function createHomepagePreviewFluidEndpoints(
+  settings: HomepageSettings,
+  navigation: SiteNavigationConfig
+): HomepagePreviewFluidEndpoints {
+  const normalizedSettings = normalizeLandingPageConfig(settings);
+  const normalizedNavigation = normalizeSiteNavigationConfig(navigation);
+
+  return Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => {
+    const hero = normalizedSettings.hero.responsive[device];
+    const titleLayer = getPreviewFluidLayerMetrics(normalizedSettings, 'hero:title', device);
+    const descriptionLayer = getPreviewFluidLayerMetrics(normalizedSettings, 'hero:description', device);
+    const headerInnerHeightPx = normalizedNavigation.topBarLayout.responsive[device].settings.height;
+
+    return [device, {
+      headerInnerHeightPx,
+      headerShellHeightPx: headerInnerHeightPx * COMMERCIAL_STOREFRONT_SCALE,
+      heroHeightPx: hero.heightPx,
+      heroOverlayStrength: normalizedSettings.hero.darkenBackground ? hero.overlayStrength / 100 : 0,
+      heroMediaWidthPercent: hero.mediaWidthPercent,
+      heroContentOffsetXPx: hero.contentOffsetXPx,
+      heroContentOffsetYPx: hero.contentOffsetYPx,
+      heroTextWidthPx: hero.textWidthPx,
+      heroContentPaddingBlockPx: 64,
+      titleOffsetXPx: hero.titleOffsetXPx,
+      titleOffsetYPx: hero.titleOffsetYPx,
+      titleFontSizePx: titleLayer?.fontSizePx ?? hero.titleFontSizePx,
+      titleLineHeight: titleLayer?.lineHeight ?? 1.08,
+      titleLetterSpacingPx: titleLayer?.letterSpacingPx ?? 0,
+      titleFontWeight: titleLayer?.fontWeight ?? (hero.titleBold ? 800 : 600),
+      descriptionOffsetXPx: hero.descriptionOffsetXPx,
+      descriptionOffsetYPx: hero.descriptionOffsetYPx,
+      descriptionFontSizePx: descriptionLayer?.fontSizePx ?? hero.descriptionFontSizePx,
+      descriptionLineHeight: descriptionLayer?.lineHeight ?? 1.65,
+      descriptionLetterSpacingPx: descriptionLayer?.letterSpacingPx ?? 0,
+      descriptionFontWeight: descriptionLayer?.fontWeight ?? (hero.descriptionBold ? 700 : 400),
+      descriptionGapPx: 20,
+      actionsGapTopPx: 32,
+      actionsGapInlinePx: 12,
+      primaryButtonOffsetXPx: hero.primaryButtonOffsetXPx,
+      primaryButtonOffsetYPx: hero.primaryButtonOffsetYPx,
+      secondaryButtonOffsetXPx: hero.secondaryButtonOffsetXPx,
+      secondaryButtonOffsetYPx: hero.secondaryButtonOffsetYPx
+    } satisfies HomepagePreviewFluidMetrics];
+  })) as HomepagePreviewFluidEndpoints;
+}
+
+function getHomepagePreviewFluidSegment(logicalWidth: number) {
+  const mobileWidth = HOMEPAGE_PREVIEW_PROFILES.mobile.viewportWidth;
+  const tabletWidth = HOMEPAGE_PREVIEW_PROFILES.tablet.viewportWidth;
+  const desktopWidth = HOMEPAGE_PREVIEW_PROFILES.desktop.viewportWidth;
+  const from = logicalWidth <= tabletWidth ? 'mobile' : 'tablet';
+  const to = logicalWidth <= tabletWidth ? 'tablet' : 'desktop';
+  const startWidth = from === 'mobile' ? mobileWidth : tabletWidth;
+  const endWidth = to === 'tablet' ? tabletWidth : desktopWidth;
+  const progress = Math.min(1, Math.max(0, (logicalWidth - startWidth) / (endWidth - startWidth)));
+
+  return { from, to, progress } as const;
+}
+
+function interpolateHomepagePreviewFluidMetrics(
+  endpoints: HomepagePreviewFluidEndpoints,
+  geometry: PreviewViewportGeometry,
+  availableWidth: number
+): HomepagePreviewFluidMetrics {
+  const { from, to, progress } = getHomepagePreviewFluidSegment(geometry.logicalWidth);
+  const fromMetrics = endpoints[from];
+  const toMetrics = endpoints[to];
+  const metrics = Object.fromEntries(
+    previewFluidCssProperties.map(([key]) => [
+      key,
+      lerpPreviewWidth(fromMetrics[key], toMetrics[key], progress)
+    ])
+  ) as HomepagePreviewFluidMetrics;
+
+  // The preview is often scaled on Desktop but not on Tablet/Mobile. Interpolate
+  // the perceived endpoint sizes, then derive their logical sizes from the one
+  // authoritative geometry scale. This prevents the old grow-then-contract spike.
+  const currentScale = geometry.logicalWidth > 0 && geometry.renderedWidth > 0
+    ? geometry.renderedWidth / geometry.logicalWidth
+    : 1;
+  const endpointScale = (device: HomepagePreviewDevice) => {
+    const width = HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
+    return availableWidth > 0 ? Math.min(width, availableWidth) / width : 1;
+  };
+  const interpolateRenderedSize = (key: 'titleFontSizePx' | 'descriptionFontSizePx') =>
+    lerpPreviewWidth(
+      fromMetrics[key] * endpointScale(from),
+      toMetrics[key] * endpointScale(to),
+      progress
+    );
+
+  metrics.titleFontSizePx = interpolateRenderedSize('titleFontSizePx') / currentScale;
+  metrics.descriptionFontSizePx = interpolateRenderedSize('descriptionFontSizePx') / currentScale;
+  return metrics;
+}
+
+type PreviewViewportTransitionPhase = 'idle' | 'animating';
+
+type PreviewFluidFontTransition = {
+  startTitleRenderedSizePx: number;
+  targetTitleRenderedSizePx: number;
+  startDescriptionRenderedSizePx: number;
+  targetDescriptionRenderedSizePx: number;
+};
+
+function getPreviewViewportGeometry(device: HomepagePreviewDevice, availableWidth: number): PreviewViewportGeometry {
+  const logicalWidth = HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
+  return {
+    logicalWidth,
+    renderedWidth: availableWidth > 0 ? Math.min(logicalWidth, availableWidth) : 0
+  };
+}
+
+function lerpPreviewWidth(start: number, end: number, progress: number) {
+  return start + (end - start) * progress;
+}
+
+function roundPreviewWidth(width: number) {
+  return Math.round(width * 1_000) / 1_000;
+}
+
+function cubicBezierCoordinate(progress: number, controlPoint1: number, controlPoint2: number) {
+  const inverse = 1 - progress;
+  return 3 * inverse * inverse * progress * controlPoint1
+    + 3 * inverse * progress * progress * controlPoint2
+    + progress * progress * progress;
+}
+
+function easePreviewViewportProgress(progress: number) {
+  const clampedProgress = Math.min(1, Math.max(0, progress));
+  let lower = 0;
+  let upper = 1;
+  let parameter = clampedProgress;
+
+  // Solve cubic-bezier(0.4, 0, 0.2, 1) by its x coordinate so both widths
+  // share exactly the same eased progress without independent CSS animations.
+  for (let iteration = 0; iteration < 12; iteration += 1) {
+    parameter = (lower + upper) / 2;
+    const x = cubicBezierCoordinate(parameter, 0.4, 0.2);
+    if (x < clampedProgress) lower = parameter;
+    else upper = parameter;
+  }
+
+  return cubicBezierCoordinate(parameter, 0, 1);
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useLayoutEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    updatePreference();
+    mediaQuery.addEventListener('change', updatePreference);
+    return () => mediaQuery.removeEventListener('change', updatePreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function useLiveResponsivePreviewViewport({
+  selectedViewport,
+  availableWidth,
+  prefersReducedMotion,
+  fluidEndpoints,
+  stageRef,
+  frameRef,
+  liveLayerRef,
+  viewportRef,
+  contentSizerRef,
+  scrollRegionRef,
+  statusLabelRef
+}: {
+  selectedViewport: HomepagePreviewDevice;
+  availableWidth: number;
+  prefersReducedMotion: boolean;
+  fluidEndpoints: HomepagePreviewFluidEndpoints;
+  stageRef: RefObject<HTMLDivElement | null>;
+  frameRef: RefObject<HTMLDivElement | null>;
+  liveLayerRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  contentSizerRef: RefObject<HTMLDivElement | null>;
+  scrollRegionRef: RefObject<HTMLDivElement | null>;
+  statusLabelRef: RefObject<HTMLSpanElement | null>;
+}) {
+  const initialGeometry = getPreviewViewportGeometry(selectedViewport, availableWidth);
+  const [responsiveMode, setResponsiveMode] = useState<HomepagePreviewDevice>(() =>
+    getHomepagePreviewDeviceForViewport(initialGeometry.logicalWidth)
+  );
+  const [, setRenderRevision] = useState(0);
+  const responsiveModeRef = useRef(responsiveMode);
+  const geometryRef = useRef(initialGeometry);
+  const initializedRef = useRef(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const transitionTokenRef = useRef(0);
+  const transitionPhaseRef = useRef<PreviewViewportTransitionPhase>('idle');
+  const lastFluidMetricsRef = useRef<HomepagePreviewFluidMetrics | null>(null);
+  const fluidFontTransitionRef = useRef<PreviewFluidFontTransition | null>(null);
+
+  const syncContentSizerHeight = useCallback((geometry: PreviewViewportGeometry, mode: HomepagePreviewDevice) => {
+    const viewport = viewportRef.current;
+    const contentSizer = contentSizerRef.current;
+    if (!viewport || !contentSizer) return;
+
+    const scrollRegion = scrollRegionRef.current;
+    const scrollTop = scrollRegion?.scrollTop ?? 0;
+    const scale = geometry.logicalWidth > 0 ? geometry.renderedWidth / geometry.logicalWidth : 1;
+    const logicalHeight = Math.max(
+      viewport.scrollHeight,
+      HOMEPAGE_PREVIEW_PROFILES[mode].fallbackHeight
+    );
+    const scrollPreservingHeight = scrollRegion ? scrollTop + scrollRegion.clientHeight : 0;
+    contentSizer.style.height = `${Math.max(Math.ceil(logicalHeight * scale), scrollPreservingHeight)}px`;
+    if (scrollRegion && scrollRegion.scrollTop !== scrollTop) scrollRegion.scrollTop = scrollTop;
+  }, [contentSizerRef, scrollRegionRef, viewportRef]);
+
+  const applyGeometry = useCallback((
+    geometry: PreviewViewportGeometry,
+    mode: HomepagePreviewDevice,
+    phase: PreviewViewportTransitionPhase,
+    targetViewport: HomepagePreviewDevice,
+    transitionProgress?: number
+  ) => {
+    geometryRef.current = geometry;
+    transitionPhaseRef.current = phase;
+    const scale = geometry.logicalWidth > 0 && geometry.renderedWidth > 0
+      ? geometry.renderedWidth / geometry.logicalWidth
+      : 1;
+    const frame = frameRef.current;
+    const viewport = viewportRef.current;
+    const liveLayer = liveLayerRef.current;
+    const fluidMetrics = interpolateHomepagePreviewFluidMetrics(
+      fluidEndpoints,
+      geometry,
+      availableWidth
+    );
+    const fontTransition = fluidFontTransitionRef.current;
+    if (phase === 'animating' && fontTransition && transitionProgress !== undefined) {
+      fluidMetrics.titleFontSizePx = lerpPreviewWidth(
+        fontTransition.startTitleRenderedSizePx,
+        fontTransition.targetTitleRenderedSizePx,
+        transitionProgress
+      ) / scale;
+      fluidMetrics.descriptionFontSizePx = lerpPreviewWidth(
+        fontTransition.startDescriptionRenderedSizePx,
+        fontTransition.targetDescriptionRenderedSizePx,
+        transitionProgress
+      ) / scale;
+    }
+    lastFluidMetricsRef.current = fluidMetrics;
+
+    if (frame) {
+      frame.style.width = `${geometry.renderedWidth}px`;
+      frame.style.willChange = phase === 'animating' ? 'width' : 'auto';
+    }
+    if (viewport) {
+      viewport.style.width = `${geometry.logicalWidth}px`;
+      viewport.style.transform = `scale(${scale})`;
+      viewport.style.transformOrigin = 'top left';
+      viewport.style.willChange = phase === 'animating' ? 'width, transform' : 'auto';
+      for (const [key, property, unit] of previewFluidCssProperties) {
+        viewport.style.setProperty(property, `${fluidMetrics[key]}${unit}`);
+      }
+    }
+    if (liveLayer) {
+      liveLayer.style.opacity = '1';
+      liveLayer.style.pointerEvents = 'auto';
+      liveLayer.dataset.previewInteractive = 'true';
+    }
+
+    syncContentSizerHeight(geometry, mode);
+
+    const transitionDuration = phase === 'animating' ? previewViewportTransitionDurationMs : 0;
+    const attributeTargets = [stageRef.current, frame, liveLayer, viewport].filter(
+      (element): element is HTMLDivElement => Boolean(element)
+    );
+    for (const element of attributeTargets) {
+      element.dataset.previewSelectedViewport = targetViewport;
+      element.dataset.previewSelectedDevice = targetViewport;
+      element.dataset.previewTargetDevice = targetViewport;
+      element.dataset.previewRenderDevice = mode;
+      element.dataset.previewResponsiveMode = mode;
+      element.dataset.previewLogicalWidth = geometry.logicalWidth.toFixed(3);
+      element.dataset.previewRenderedWidth = geometry.renderedWidth.toFixed(3);
+      element.dataset.previewScale = scale.toFixed(6);
+      element.dataset.previewTransitioning = phase === 'animating' ? 'true' : 'false';
+      element.dataset.previewTransitionPhase = phase;
+      element.dataset.previewLayoutCovered = 'false';
+      element.dataset.previewOpacityTarget = '1.000';
+      element.dataset.previewTransitionDurationMs = transitionDuration.toString();
+      element.dataset.previewTransitionEasing = previewFrameTransitionEasing;
+      element.dataset.previewReducedMotion = prefersReducedMotion ? 'true' : 'false';
+      element.dataset.previewReady = availableWidth > 0 ? 'true' : 'false';
+      element.dataset.previewFluidTitleSize = fluidMetrics.titleFontSizePx.toFixed(3);
+      element.dataset.previewFluidTitleRenderedSize = (fluidMetrics.titleFontSizePx * scale).toFixed(3);
+      element.dataset.previewFluidHeaderHeight = fluidMetrics.headerShellHeightPx.toFixed(3);
+      element.dataset.previewFluidHeroHeight = fluidMetrics.heroHeightPx.toFixed(3);
+    }
+
+    if (statusLabelRef.current) {
+      statusLabelRef.current.textContent = `${homepagePreviewDeviceLabels[mode]} · viewport: ${Math.round(geometry.logicalWidth)} px · ${formatZoomLabel(scale)}`;
+    }
+  }, [availableWidth, fluidEndpoints, frameRef, liveLayerRef, prefersReducedMotion, stageRef, statusLabelRef, syncContentSizerHeight, viewportRef]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === 'undefined') return undefined;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (transitionPhaseRef.current === 'animating') return;
+      syncContentSizerHeight(geometryRef.current, responsiveModeRef.current);
+    });
+    resizeObserver.observe(viewport);
+    return () => resizeObserver.disconnect();
+  }, [syncContentSizerHeight, viewportRef]);
+
+  useLayoutEffect(() => {
+    if (availableWidth <= 0) return undefined;
+
+    transitionTokenRef.current += 1;
+    const token = transitionTokenRef.current;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const targetGeometry = getPreviewViewportGeometry(selectedViewport, availableWidth);
+    const targetMode = getHomepagePreviewDeviceForViewport(targetGeometry.logicalWidth);
+    const commitImmediately = !initializedRef.current || prefersReducedMotion;
+    initializedRef.current = true;
+
+    if (commitImmediately) {
+      fluidFontTransitionRef.current = null;
+      geometryRef.current = targetGeometry;
+      responsiveModeRef.current = targetMode;
+      transitionPhaseRef.current = 'idle';
+      applyGeometry(targetGeometry, targetMode, 'idle', selectedViewport);
+      setResponsiveMode(targetMode);
+      setRenderRevision((revision) => revision + 1);
+      return undefined;
+    }
+
+    const startGeometry = geometryRef.current;
+    const alreadySettled =
+      Math.abs(startGeometry.logicalWidth - targetGeometry.logicalWidth) <= 0.01
+      && Math.abs(startGeometry.renderedWidth - targetGeometry.renderedWidth) <= 0.01;
+    if (alreadySettled) {
+      fluidFontTransitionRef.current = null;
+      applyGeometry(targetGeometry, targetMode, 'idle', selectedViewport);
+      return undefined;
+    }
+
+    transitionPhaseRef.current = 'animating';
+    const startScale = startGeometry.logicalWidth > 0 && startGeometry.renderedWidth > 0
+      ? startGeometry.renderedWidth / startGeometry.logicalWidth
+      : 1;
+    const targetScale = targetGeometry.logicalWidth > 0 && targetGeometry.renderedWidth > 0
+      ? targetGeometry.renderedWidth / targetGeometry.logicalWidth
+      : 1;
+    const startFluidMetrics = lastFluidMetricsRef.current
+      ?? interpolateHomepagePreviewFluidMetrics(fluidEndpoints, startGeometry, availableWidth);
+    const targetFluidMetrics = interpolateHomepagePreviewFluidMetrics(
+      fluidEndpoints,
+      targetGeometry,
+      availableWidth
+    );
+    fluidFontTransitionRef.current = {
+      startTitleRenderedSizePx: startFluidMetrics.titleFontSizePx * startScale,
+      targetTitleRenderedSizePx: targetFluidMetrics.titleFontSizePx * targetScale,
+      startDescriptionRenderedSizePx: startFluidMetrics.descriptionFontSizePx * startScale,
+      targetDescriptionRenderedSizePx: targetFluidMetrics.descriptionFontSizePx * targetScale
+    };
+    applyGeometry(startGeometry, responsiveModeRef.current, 'animating', selectedViewport, 0);
+    const startTime = performance.now();
+
+    const animateFrame = (timestamp: number) => {
+      if (token !== transitionTokenRef.current) return;
+
+      const progress = Math.min(1, Math.max(0, (timestamp - startTime) / previewViewportTransitionDurationMs));
+      const easedProgress = easePreviewViewportProgress(progress);
+      const nextGeometry = {
+        logicalWidth: roundPreviewWidth(
+          lerpPreviewWidth(startGeometry.logicalWidth, targetGeometry.logicalWidth, easedProgress)
+        ),
+        renderedWidth: roundPreviewWidth(
+          lerpPreviewWidth(startGeometry.renderedWidth, targetGeometry.renderedWidth, easedProgress)
+        )
+      };
+      geometryRef.current = nextGeometry;
+      const nextMode = getHomepagePreviewDeviceForViewport(nextGeometry.logicalWidth);
+
+      if (nextMode !== responsiveModeRef.current) {
+        responsiveModeRef.current = nextMode;
+        flushSync(() => setResponsiveMode(nextMode));
+      }
+      applyGeometry(nextGeometry, nextMode, 'animating', selectedViewport, easedProgress);
+
+      if (progress < 1) {
+        animationFrameRef.current = window.requestAnimationFrame(animateFrame);
+        return;
+      }
+
+      animationFrameRef.current = null;
+      transitionPhaseRef.current = 'idle';
+      fluidFontTransitionRef.current = null;
+      geometryRef.current = targetGeometry;
+      responsiveModeRef.current = targetMode;
+      flushSync(() => {
+        setResponsiveMode(targetMode);
+        setRenderRevision((revision) => revision + 1);
+      });
+      applyGeometry(targetGeometry, targetMode, 'idle', selectedViewport);
+    };
+
+    animationFrameRef.current = window.requestAnimationFrame(animateFrame);
+    return () => {
+      if (token !== transitionTokenRef.current) return;
+      transitionTokenRef.current += 1;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [applyGeometry, availableWidth, fluidEndpoints, prefersReducedMotion, selectedViewport]);
+
+  useEffect(() => () => {
+    transitionTokenRef.current += 1;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+    }
+  }, []);
+
+  return {
+    responsiveMode,
+    geometry: geometryRef.current,
+    phase: transitionPhaseRef.current,
+    transitionDurationMs: transitionPhaseRef.current === 'animating' ? previewViewportTransitionDurationMs : 0
+  };
+}
+
 function withPositions<T>(items: T[]) {
   return [...items];
 }
 
-function mergeCategoryOrder(order: string[], categories: HomepageCategoryCardData[]) {
-  const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
-  const slugs = source.map((category) => category.slug);
-  return [
-    ...order.filter((slug) => slugs.includes(slug)),
-    ...slugs.filter((slug) => !order.includes(slug))
-  ];
+function SelectControl<Value extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel
+}: {
+  value: Value;
+  options: Array<Option<Value>>;
+  onChange: (value: Value) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <span className="relative block min-w-0">
+      <select
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(event) => onChange(event.target.value as Value)}
+        className={`${inputClassName} appearance-none pr-8`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+    </span>
+  );
 }
 
 function SelectField<Value extends string>({
@@ -310,19 +894,9 @@ function SelectField<Value extends string>({
   onChange: (value: Value) => void;
 }) {
   return (
-    <label className="grid min-w-0 gap-1.5">
+    <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value as Value)}
-        className={inputClassName}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <SelectControl value={value} options={options} onChange={onChange} ariaLabel={label} />
     </label>
   );
 }
@@ -341,7 +915,7 @@ function TextField({
   type?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-1.5">
+    <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
       <Input
         type={type}
@@ -366,7 +940,7 @@ function TextareaField({
   placeholder?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-1.5">
+    <label className="grid min-w-0 gap-1.5 py-1">
       <span className={labelClassName}>{label}</span>
       <textarea
         value={value}
@@ -396,9 +970,9 @@ function NumberField({
   suffix?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-1.5">
+    <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
-      <span className="flex h-8 min-w-0 overflow-hidden rounded-md border border-slate-300 bg-white">
+      <span className={`flex h-8 min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 transition hover:border-slate-300 hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses}`}>
         <input
           type="number"
           value={value}
@@ -406,15 +980,54 @@ function NumberField({
           max={max}
           step={step}
           onChange={(event) => onChange(Number(event.target.value))}
-          className={`h-full min-w-0 flex-1 border-0 bg-transparent px-2.5 text-[12px] text-slate-700 outline-none ${adminControlFocusTokenClasses}`}
+          className={`h-full min-w-0 flex-1 appearance-none border-0 bg-transparent px-2.5 text-[12px] text-slate-800 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${adminInputFocusTokenClasses}`}
         />
         {suffix ? (
-          <span className="grid min-w-10 place-items-center border-l border-slate-200 bg-slate-50 px-2 text-[11px] font-medium text-slate-500">
+          <span className="grid min-w-8 place-items-center px-2 text-[11px] font-medium text-slate-400">
             {suffix}
           </span>
         ) : null}
       </span>
     </label>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+  fallback = '#ffffff'
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  fallback?: string;
+}) {
+  const swatchColor = /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+
+  return (
+    <div className={inspectorFieldRowClassName}>
+      <span className={labelClassName}>{label}</span>
+      <span className={`flex h-8 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2 transition hover:border-slate-300 hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses}`}>
+        <label className="relative grid h-5 w-5 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-md ring-1 ring-inset ring-slate-200" style={{ backgroundColor: swatchColor }}>
+          <span className="sr-only">{label}: izbirnik barve</span>
+          <input
+            type="color"
+            aria-label={`${label}: izbirnik barve`}
+            value={swatchColor}
+            onChange={(event) => onChange(event.target.value)}
+            className={`absolute inset-0 h-full w-full cursor-pointer opacity-0 ${adminInputFocusTokenClasses}`}
+          />
+        </label>
+        <input
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-full min-w-0 flex-1 border-0 bg-transparent text-[12px] text-slate-800 ${adminInputFocusTokenClasses}`}
+          spellCheck={false}
+        />
+      </span>
+    </div>
   );
 }
 
@@ -430,11 +1043,14 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-w-0 items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-      <AdminCheckbox checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-0.5" />
-      <span className="grid min-w-0 gap-0.5">
-        <span className="text-[12px] font-semibold text-slate-800">{label}</span>
+    <label className="group flex min-h-9 min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition hover:bg-slate-50">
+      <span className="grid min-w-0 flex-1 gap-0.5">
+        <span className="text-[12px] font-medium text-slate-800">{label}</span>
         {description ? <span className="text-[11px] leading-4 text-slate-500">{description}</span> : null}
+      </span>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="peer sr-only" />
+      <span className="relative h-5 w-8 shrink-0 rounded-full border border-transparent bg-slate-200 transition peer-checked:bg-[color:var(--blue-500)] peer-focus-visible:border-[color:var(--blue-500)]" aria-hidden="true">
+        <span className={classNames('absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform', checked && 'translate-x-3')} />
       </span>
     </label>
   );
@@ -456,18 +1072,18 @@ function FieldBlock({
   }, [defaultOpen, title]);
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <section className="min-w-0 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
       <button
         type="button"
-        className={`flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-slate-50 ${adminControlFocusTokenClasses}`}
+        className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-transparent px-1.5 py-2 text-left transition hover:bg-slate-50 ${adminControlFocusTokenClasses}`}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="min-w-0 truncate text-[12px] font-semibold text-slate-900">{title}</span>
-        <ChevronDown className={classNames('h-4 w-4 shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
+        <span className="min-w-0 truncate text-[12px] font-medium text-slate-800">{title}</span>
+        <ChevronDown className={classNames('h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform', !open && '-rotate-90')} />
       </button>
       {open ? (
-        <div className="min-w-0 space-y-3 border-t border-slate-100 bg-slate-50/40 p-3">
+        <div className="min-w-0 space-y-2 px-1.5 pb-2 pt-0.5">
           {children}
         </div>
       ) : null}
@@ -497,10 +1113,103 @@ function SmallIconButton({
       title={title ?? label}
       onClick={onClick}
       disabled={disabled}
-      className={tone === 'danger' ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
+      className={classNames(
+        `grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-transparent text-slate-500 transition hover:bg-slate-100 hover:text-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
+        tone === 'danger' && 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+      )}
     >
       {children}
     </button>
+  );
+}
+
+function ToolbarButton({
+  label,
+  children,
+  onClick,
+  active = false,
+  disabled = false,
+  danger = false,
+  popover = false,
+  pressed,
+  testId
+}: {
+  label: string;
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  danger?: boolean;
+  popover?: boolean;
+  pressed?: boolean;
+  testId?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      data-active={active || undefined}
+      aria-haspopup={popover ? 'dialog' : undefined}
+      aria-expanded={popover ? active : undefined}
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={onClick}
+      className={classNames(
+        `grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-transparent text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
+        active
+          ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-600)] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.16)]'
+          : 'bg-transparent hover:bg-slate-100/80 hover:text-[color:var(--blue-600)]',
+        danger && !active && 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ToolbarDivider() {
+  return <span className="mx-1 h-5 w-px shrink-0 bg-slate-200" aria-hidden="true" />;
+}
+
+function ToolbarPopoverPanel({
+  title,
+  description,
+  children,
+  onClose,
+  wide = false
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-label={title}
+      className={classNames(
+        floatingSurfaceClassName,
+        'absolute left-0 top-[calc(100%+6px)] z-[120] flex max-h-[min(640px,calc(100dvh-160px))] flex-col overflow-hidden text-left max-md:fixed max-md:inset-x-3 max-md:top-24 max-md:max-h-[calc(100dvh-7rem)] max-md:w-auto',
+        wide ? 'w-[min(520px,calc(100vw-32px))]' : 'w-[min(390px,calc(100vw-32px))]'
+      )}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div className="flex shrink-0 items-start justify-between gap-3 px-3.5 pb-2.5 pt-3">
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-semibold text-slate-900">{title}</h2>
+          {description ? <p className="mt-0.5 text-[11px] leading-4 text-slate-500">{description}</p> : null}
+        </div>
+        <button type="button" aria-label="Zapri" title="Zapri" className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${adminControlFocusTokenClasses}`} onClick={onClose}>
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+      <div className="min-h-0 overflow-y-auto overscroll-contain border-t border-slate-100/80 px-3.5 py-2.5">
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -532,83 +1241,197 @@ function PreviewDeviceIcon({ device }: { device: HomepagePreviewDevice }) {
 }
 
 function ScaledHomepagePreview({
-  device,
+  selectedViewport,
   settings,
   categories,
   navigation,
   selectedSectionId,
+  selectedElementId,
   onSelectSection,
+  onSelectElement,
   onHeroTextPositionChange,
   onHeroTextContentChange,
-  onHeroTypographyChange,
-  onHeroTextBlockAdd,
   onHeroTextBlockChange,
-  onHeroMediaFocus,
-  onHeroSettingsFocus
+  onFooterDescriptionChange,
+  onCategoryTextChange,
+  onCategoryImageChange,
+  onCategoryImageRemove,
+  onCategoryPresentationChange,
+  onCategoryMove,
+  onCanvasElementStyleChange,
+  onMoveSection,
+  editorOptionsByDevice
 }: {
-  device: HomepagePreviewDevice;
+  selectedViewport: HomepagePreviewDevice;
   settings: HomepageSettings;
   categories: HomepageCategoryCardData[];
   navigation: SiteNavigationConfig;
-  selectedSectionId: HomepageSectionId;
+  selectedSectionId?: HomepageSectionId;
+  selectedElementId: string | null;
   onSelectSection: (sectionId: HomepageSectionId) => void;
-  onHeroTextPositionChange: (updates: HeroPositionUpdates) => void;
+  onSelectElement: (elementId: string | null) => void;
+  onHeroTextPositionChange: (device: HomepagePreviewDevice, updates: HeroPositionUpdates) => void;
   onHeroTextContentChange: (updates: HeroTextContentUpdates) => void;
-  onHeroTypographyChange: (updates: HeroTypographyUpdates) => void;
-  onHeroTextBlockAdd: () => string | undefined;
   onHeroTextBlockChange: (blockId: string, updates: HeroTextBlockUpdates) => void;
-  onHeroMediaFocus: () => void;
-  onHeroSettingsFocus: () => void;
+  onFooterDescriptionChange: (description: string) => void;
+  onCategoryTextChange: (updates: CategoryTextUpdates) => void;
+  onCategoryImageChange: (categorySlug: string, file: File) => void;
+  onCategoryImageRemove: (categorySlug: string) => void;
+  onCategoryPresentationChange: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
+  onCategoryMove: (sourceSlug: string, targetSlug: string) => void;
+  onCanvasElementStyleChange: (
+    device: HomepagePreviewDevice,
+    elementId: string,
+    updates: Partial<HomepageCanvasElementDeviceSettings>
+  ) => void;
+  onMoveSection: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
+  editorOptionsByDevice: Record<HomepagePreviewDevice, HomepageCanvasEditorOptions>;
 }) {
   const [measureRef, availableWidth] = useMeasuredElementWidth<HTMLDivElement>();
-  const [contentRef, contentHeight] = useMeasuredElementHeight<HTMLDivElement>();
-  const viewportWidth = previewViewportWidths[device];
-  const scale = getHomepagePreviewScale(availableWidth, viewportWidth);
-  const logicalHeight = contentHeight > 0 ? contentHeight : previewHeightFallbacks[device];
-  const scaledWidth = Math.ceil(viewportWidth * scale);
-  const scaledHeight = Math.ceil(logicalHeight * scale);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const liveLayerRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const contentSizerRef = useRef<HTMLDivElement | null>(null);
+  const statusLabelRef = useRef<HTMLSpanElement | null>(null);
+  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const fluidEndpoints = useMemo(
+    () => createHomepagePreviewFluidEndpoints(settings, navigation),
+    [navigation, settings]
+  );
+  const viewportTransition = useLiveResponsivePreviewViewport({
+    selectedViewport,
+    availableWidth,
+    prefersReducedMotion,
+    fluidEndpoints,
+    stageRef,
+    frameRef,
+    liveLayerRef,
+    viewportRef,
+    contentSizerRef,
+    scrollRegionRef,
+    statusLabelRef
+  });
+  const setStageElement = useCallback((element: HTMLDivElement | null) => {
+    stageRef.current = element;
+    measureRef(element);
+  }, [measureRef]);
+  const viewportWidth = viewportTransition.geometry.logicalWidth;
+  const renderedWidth = viewportTransition.geometry.renderedWidth;
+  const scale = viewportWidth > 0 && renderedWidth > 0 ? renderedWidth / viewportWidth : 1;
+  const renderDevice = viewportTransition.responsiveMode;
+  const editorOptions = editorOptionsByDevice[renderDevice];
+  const scaledHeight = Math.ceil(HOMEPAGE_PREVIEW_PROFILES[renderDevice].fallbackHeight * scale);
   const zoomLabel = availableWidth > 0 ? formatZoomLabel(scale) : 'prilagajanje širini';
+  const isTransitioning = viewportTransition.phase === 'animating';
+
+  const previewStateAttributes = {
+    'data-preview-selected-viewport': selectedViewport,
+    'data-preview-selected-device': selectedViewport,
+    'data-preview-target-device': selectedViewport,
+    'data-preview-render-device': renderDevice,
+    'data-preview-responsive-mode': renderDevice,
+    'data-preview-logical-width': viewportWidth.toFixed(3),
+    'data-preview-rendered-width': renderedWidth.toFixed(3),
+    'data-preview-scale': scale.toFixed(6),
+    'data-preview-transitioning': isTransitioning ? 'true' : 'false',
+    'data-preview-transition-phase': viewportTransition.phase,
+    'data-preview-layout-covered': 'false',
+    'data-preview-opacity-target': '1.000',
+    'data-preview-transition-duration-ms': viewportTransition.transitionDurationMs.toString(),
+    'data-preview-transition-easing': previewFrameTransitionEasing,
+    'data-preview-reduced-motion': prefersReducedMotion ? 'true' : 'false',
+    'data-preview-ready': availableWidth > 0 ? 'true' : 'false',
+    'data-selected-element-id': selectedElementId ?? ''
+  };
 
   return (
-    <div className="min-w-0">
+    <div className="w-full min-w-0">
       <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-500">
-        <span>
-          {homepagePreviewDeviceLabels[device]} · viewport: {viewportWidth} px · {zoomLabel}
+        <span ref={statusLabelRef}>
+          {homepagePreviewDeviceLabels[renderDevice]} · viewport: {Math.round(viewportWidth)} px · {zoomLabel}
         </span>
       </div>
-      <div ref={measureRef} className="relative flex min-w-0 justify-center overflow-hidden">
+      <div
+        ref={setStageElement}
+        data-testid="homepage-preview-stage"
+        className="relative flex h-[clamp(480px,calc(100dvh-280px),760px)] w-full min-w-0 items-start justify-center overflow-x-clip"
+        {...previewStateAttributes}
+      >
         <div
-          className="relative overflow-hidden rounded-xl shadow-[0_22px_60px_rgba(15,23,42,0.12)] transition-[width,height] duration-200"
-          style={{ width: scaledWidth, height: scaledHeight }}
+          ref={frameRef}
+          data-testid="homepage-preview-frame"
+          className="relative h-full shrink-0 overflow-hidden rounded-xl bg-white shadow-[0_22px_60px_rgba(15,23,42,0.12)]"
+          style={{
+            width: renderedWidth,
+            visibility: availableWidth > 0 ? 'visible' : 'hidden'
+          }}
+          {...previewStateAttributes}
         >
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-xl ring-1 ring-inset ring-slate-200" />
           <div
-            ref={contentRef}
-            className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl bg-white transition-transform duration-200 ease-out"
+            ref={liveLayerRef}
+            data-testid="homepage-preview-live-layer"
+            data-preview-renderer="interactive"
+            data-preview-interactive="true"
+            className="absolute inset-0 z-10"
             style={{
-              width: viewportWidth,
-              transform: `translate(-50%, -50%) scale(${scale})`,
-              transformOrigin: 'center center'
+              opacity: 1,
+              pointerEvents: 'auto'
             }}
           >
-            <ScaledSiteHeaderPreview navigation={navigation} device={device} viewportWidth={viewportWidth} />
-            <HomepageRenderer
-              settings={settings}
-              categories={categories}
-              selectedSectionId={selectedSectionId}
-              onSelectSection={onSelectSection}
-              onHeroTextPositionChange={onHeroTextPositionChange}
-              onHeroTextContentChange={onHeroTextContentChange}
-              onHeroTypographyChange={onHeroTypographyChange}
-              onHeroTextBlockAdd={onHeroTextBlockAdd}
-              onHeroTextBlockChange={onHeroTextBlockChange}
-              onHeroMediaFocus={onHeroMediaFocus}
-              onHeroSettingsFocus={onHeroSettingsFocus}
-              previewDevice={device}
-              previewViewportWidth={viewportWidth}
-              preview
-            />
+            <div
+              ref={scrollRegionRef}
+              data-testid="homepage-preview-scroll-region"
+              className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <div
+                ref={contentSizerRef}
+                className="relative w-full overflow-x-clip"
+                style={{ height: scaledHeight }}
+              >
+                <div
+                  ref={viewportRef}
+                  data-testid="homepage-preview-viewport"
+                  className="homepage-preview-fluid absolute left-0 top-0 overflow-hidden rounded-xl bg-white"
+                  style={{
+                    width: viewportWidth,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left'
+                  }}
+                  {...previewStateAttributes}
+                >
+                  <ScaledSiteHeaderPreview navigation={navigation} device={renderDevice} viewportWidth={viewportWidth} />
+                  <HomepageRenderer
+                    settings={settings}
+                    categories={categories}
+                    canonicalFooter={navigation.footer}
+                    selectedSectionId={selectedElementId?.startsWith('section:') ? selectedSectionId : undefined}
+                    selectedElementId={selectedElementId}
+                    onSelectSection={onSelectSection}
+                    onSelectElement={onSelectElement}
+                    onHeroTextPositionChange={(updates) => onHeroTextPositionChange(renderDevice, updates)}
+                    onHeroTextContentChange={onHeroTextContentChange}
+                    onHeroTextBlockChange={onHeroTextBlockChange}
+                    onFooterDescriptionChange={onFooterDescriptionChange}
+                    onCategoryTextChange={onCategoryTextChange}
+                    onCategoryImageChange={onCategoryImageChange}
+                    onCategoryImageRemove={onCategoryImageRemove}
+                    onCategoryPresentationChange={onCategoryPresentationChange}
+                    onCategoryMove={onCategoryMove}
+                    onCanvasElementStyleChange={(elementId, updates) =>
+                      onCanvasElementStyleChange(renderDevice, elementId, updates)}
+                    onMoveSection={onMoveSection}
+                    editorOptions={editorOptions}
+                    previewDevice={renderDevice}
+                    previewViewportWidth={viewportWidth}
+                    preview
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+          <div className="pointer-events-none absolute inset-0 z-30 rounded-xl ring-1 ring-inset ring-slate-200" />
         </div>
       </div>
     </div>
@@ -629,11 +1452,15 @@ function ScaledSiteHeaderPreview({
   const headerHeight = normalizedNavigation.topBarLayout.responsive[device].settings.height * COMMERCIAL_STOREFRONT_SCALE;
 
   return (
-    <div className="relative bg-white" style={{ width: viewportWidth, height: headerHeight }}>
+    <div
+      className="relative bg-white"
+      data-preview-header-device={device}
+      style={{ width: '100%', height: `var(--preview-header-shell-height, ${headerHeight}px)` }}
+    >
       <div
         className="absolute left-0 top-0 overflow-visible"
         style={{
-          width: rendererViewportWidth,
+          width: `${100 / COMMERCIAL_STOREFRONT_SCALE}%`,
           transform: `scale(${COMMERCIAL_STOREFRONT_SCALE})`,
           transformOrigin: 'top left'
         }}
@@ -693,9 +1520,11 @@ function SortableSectionRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={classNames(
-        'grid grid-cols-[28px_22px_minmax(0,1fr)_34px] items-center gap-2 rounded-md border px-2 py-1.5 text-[12px] transition',
-        selected ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-50)] text-[color:var(--blue-600)]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-        isDragging && 'relative z-20 opacity-70'
+        'grid grid-cols-[28px_22px_minmax(0,1fr)_34px] items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition',
+        selected
+          ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-700)] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]'
+          : 'text-slate-700 hover:bg-slate-50',
+        isDragging && 'relative z-20 bg-white opacity-90 shadow-lg'
       )}
     >
       <button
@@ -752,7 +1581,7 @@ function SortableSectionRow({
             event.stopPropagation();
             onToggleMenu();
           }}
-          className="grid h-7 w-7 place-items-center rounded-md text-slate-500 transition hover:bg-white hover:text-[color:var(--blue-500)]"
+          className={`grid h-7 w-7 place-items-center rounded-lg border border-transparent text-slate-500 transition hover:bg-white hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
           aria-label="Možnosti sekcije"
           aria-expanded={menuOpen}
           title="Možnosti sekcije"
@@ -760,18 +1589,18 @@ function SortableSectionRow({
           <MoreVertical className="h-4 w-4" />
         </button>
         {menuOpen ? (
-          <div className="absolute right-0 top-8 z-40 w-44 overflow-hidden rounded-md border border-slate-200 bg-white py-1 text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
+          <div className={classNames(floatingSurfaceClassName, 'absolute right-0 top-8 z-40 w-44 overflow-hidden p-1 text-slate-700')}>
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium transition hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]"
+              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
               onClick={onToggleVisibility}
             >
-              {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeClosed className="h-3.5 w-3.5" />}
               <span>{visible ? 'Skrij sekcijo' : 'Prikaži sekcijo'}</span>
             </button>
             <button
               type="button"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium transition hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]"
+              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
               onClick={onStartRename}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -781,7 +1610,7 @@ function SortableSectionRow({
             <button
               type="button"
               disabled={!canDelete}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent ${adminControlFocusTokenClasses}`}
               onClick={onDelete}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -808,8 +1637,8 @@ function SortableCategoryRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={classNames(
-        'grid grid-cols-[26px_24px_minmax(0,1fr)] items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[12px]',
-        isDragging && 'relative z-20 opacity-70'
+        'grid grid-cols-[26px_24px_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition hover:bg-slate-50',
+        isDragging && 'relative z-20 bg-white opacity-90 shadow-lg'
       )}
     >
       <button
@@ -881,7 +1710,7 @@ function SortableSlideEditor({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={classNames('rounded-lg border border-slate-200 bg-white p-3', isDragging && 'relative z-20 opacity-70')}
+      className={classNames('rounded-xl bg-slate-50/80 p-2.5', isDragging && 'relative z-20 bg-white opacity-90 shadow-lg')}
     >
       <div className="mb-3 grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="flex min-w-0 items-center gap-2">
@@ -898,10 +1727,7 @@ function SortableSlideEditor({
           <button
             type="button"
             onClick={() => setMediaDetailsOpen((open) => !open)}
-            className={classNames(
-              'group relative rounded-md outline-none transition',
-              'focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] focus-visible:ring-offset-2'
-            )}
+            className={`group relative rounded-md border border-transparent transition ${adminControlFocusTokenClasses}`}
             aria-label="Uredi medij diapozitiva"
             aria-expanded={mediaDetailsOpen}
             title="Uredi medij"
@@ -965,7 +1791,7 @@ function SortableSlideEditor({
           </div>
         ) : null}
         {mediaDetailsOpen ? (
-          <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+          <div className="grid gap-2.5 rounded-xl bg-white/80 p-2.5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[12px] font-semibold text-slate-800">Medij</span>
               <button
@@ -997,33 +1823,183 @@ function AdminLandingPageClient({
   initialCategories: HomepageCategoryCardData[];
   navigation: SiteNavigationConfig;
 }) {
-  const router = useRouter();
   const { toast } = useToast();
+  const router = useRouter();
   const normalizedInitialConfig = useMemo(() => normalizeLandingPageConfig(initialConfig), [initialConfig]);
-  const categories = initialCategories.length > 0 ? initialCategories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+  const normalizedInitialConfigKey = useMemo(() => comparable(normalizedInitialConfig), [normalizedInitialConfig]);
+  const normalizedInitialNavigation = useMemo(() => normalizeSiteNavigationConfig(navigation), [navigation]);
+  const initialFooterDescription = normalizedInitialNavigation.footer.description;
+  const normalizedInitialCategories = useMemo(
+    () => initialCategories.length > 0 ? initialCategories : DEFAULT_HOMEPAGE_CATEGORY_CARDS,
+    [initialCategories]
+  );
+  const normalizedInitialCategoriesKey = useMemo(() => JSON.stringify(normalizedInitialCategories), [normalizedInitialCategories]);
   const [config, setConfig] = useState(normalizedInitialConfig);
   const [savedConfig, setSavedConfig] = useState(normalizedInitialConfig);
+  const [categories, setCategories] = useState<HomepageCategoryCardData[]>(normalizedInitialCategories);
+  const applyPersistedCategoryUpdates = useCallback((updates: Array<{
+    categorySlug: string;
+    image?: string | null;
+    presentation: CategoryShowcaseMediaSettings;
+    revision?: string;
+  }>) => {
+    const bySlug = new Map(updates.map((update) => [update.categorySlug, update]));
+    setCategories((current) => current.map((category) => {
+      const update = bySlug.get(category.slug);
+      if (!update) return category;
+      return {
+        ...category,
+        ...(Object.prototype.hasOwnProperty.call(update, 'image') ? { image: update.image ?? null } : {}),
+        presentation: update.presentation,
+        ...(update.revision ? { revision: update.revision } : {})
+      };
+    }));
+  }, []);
+  const categoryShowcaseEditor = useCategoryShowcaseEditor({
+    items: categories,
+    onPersisted: applyPersistedCategoryUpdates
+  });
+  const [footerDescription, setFooterDescription] = useState(initialFooterDescription);
+  const [savedFooterDescription, setSavedFooterDescription] = useState(initialFooterDescription);
   const [selectedSectionId, setSelectedSectionId] = useState<HomepageSectionId>(normalizedInitialConfig.sectionOrder[0] ?? 'hero');
-  const [panelTab, setPanelTab] = useState<PanelTab>('sections');
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [categoryTitleEditScope, setCategoryTitleEditScope] = useState<CategoryTitleEditScope>('selected');
+  const [activeToolbarPopover, setActiveToolbarPopover] = useState<ToolbarPopover>(null);
   const [previewDevice, setPreviewDevice] = useState<HomepagePreviewDevice>('desktop');
+  const [editorOptionsByDevice, setEditorOptionsByDevice] = useState<Record<HomepagePreviewDevice, HomepageCanvasEditorOptions>>(() => ({
+    desktop: { ...DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS },
+    tablet: { ...DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS, gridSize: 8 },
+    mobile: { ...DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS, gridSize: 4 }
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null);
   const [addSectionMenuOpen, setAddSectionMenuOpen] = useState(false);
   const [openSectionMenuId, setOpenSectionMenuId] = useState<HomepageSectionId | null>(null);
   const [renamingSectionId, setRenamingSectionId] = useState<HomepageSectionId | null>(null);
   const [sectionRenameValue, setSectionRenameValue] = useState('');
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
+  const appliedInitialFooterDescriptionRef = useRef(initialFooterDescription);
+  const appliedInitialCategoriesKeyRef = useRef(normalizedInitialCategoriesKey);
+  const saveInFlightRef = useRef(false);
+  const isDirtyRef = useRef(false);
+  const pendingRemoteCategoryRevisionRef = useRef<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
+    if (appliedInitialConfigKeyRef.current === normalizedInitialConfigKey) return;
+    appliedInitialConfigKeyRef.current = normalizedInitialConfigKey;
     setConfig(normalizedInitialConfig);
     setSavedConfig(normalizedInitialConfig);
     setSelectedSectionId((current) => normalizedInitialConfig.sectionOrder.includes(current) ? current : normalizedInitialConfig.sectionOrder[0] ?? 'hero');
+    setSelectedElementId(null);
+    setCategoryTitleEditScope('selected');
+    setActiveToolbarPopover(null);
     setOpenSectionMenuId(null);
     setRenamingSectionId(null);
     setSectionRenameValue('');
-  }, [normalizedInitialConfig]);
+  }, [normalizedInitialConfig, normalizedInitialConfigKey]);
 
-  const isDirty = useMemo(() => comparable(config) !== comparable(savedConfig), [config, savedConfig]);
+  useEffect(() => {
+    if (appliedInitialFooterDescriptionRef.current === initialFooterDescription) return;
+    appliedInitialFooterDescriptionRef.current = initialFooterDescription;
+    setFooterDescription(initialFooterDescription);
+    setSavedFooterDescription(initialFooterDescription);
+  }, [initialFooterDescription]);
+
+  useEffect(() => {
+    if (appliedInitialCategoriesKeyRef.current === normalizedInitialCategoriesKey) return;
+    appliedInitialCategoriesKeyRef.current = normalizedInitialCategoriesKey;
+    categoryShowcaseEditor.resetAll();
+    setCategories(normalizedInitialCategories);
+  }, [categoryShowcaseEditor, normalizedInitialCategories, normalizedInitialCategoriesKey]);
+
+  useEffect(() => {
+    if (!activeToolbarPopover) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (toolbarRef.current?.contains(event.target as Node)) return;
+      setActiveToolbarPopover(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActiveToolbarPopover(null);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeToolbarPopover]);
+
+  const configWithPendingEdits = useMemo(
+    () => renamingSectionId
+      ? normalizeLandingPageConfig(withSectionTitle(config, renamingSectionId, sectionRenameValue))
+      : config,
+    [config, renamingSectionId, sectionRenameValue]
+  );
+  const landingIsDirty = useMemo(
+    () => comparable(configWithPendingEdits) !== comparable(savedConfig),
+    [configWithPendingEdits, savedConfig]
+  );
+  const footerDescriptionIsDirty = footerDescription !== savedFooterDescription;
+  const categoryPresentationIsDirty = categoryShowcaseEditor.isDirty;
+  const isDirty = landingIsDirty || footerDescriptionIsDirty || categoryPresentationIsDirty;
+
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
+
+  useEffect(() => {
+    const refreshIfReady = () => {
+      if (
+        pendingRemoteCategoryRevisionRef.current === null
+        || isDirtyRef.current
+        || document.visibilityState !== 'visible'
+      ) {
+        return;
+      }
+
+      pendingRemoteCategoryRevisionRef.current = null;
+      router.refresh();
+    };
+
+    const unsubscribe = subscribeToCategoryDataChanges((message) => {
+      pendingRemoteCategoryRevisionRef.current = message.revision;
+      refreshIfReady();
+    });
+    const handleFocus = () => refreshIfReady();
+    const handleVisibilityChange = () => refreshIfReady();
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (
+      isDirty
+      || pendingRemoteCategoryRevisionRef.current === null
+      || document.visibilityState !== 'visible'
+    ) {
+      return;
+    }
+
+    pendingRemoteCategoryRevisionRef.current = null;
+    router.refresh();
+  }, [isDirty, router]);
+  const previewNavigation = useMemo(
+    () => normalizeSiteNavigationConfig({
+      ...normalizedInitialNavigation,
+      footer: { ...normalizedInitialNavigation.footer, description: footerDescription }
+    }),
+    [footerDescription, normalizedInitialNavigation]
+  );
   const sectionIds = config.sectionOrder;
   const availableSectionIds = HOMEPAGE_SECTION_IDS.filter((sectionId) => !sectionIds.includes(sectionId));
 
@@ -1075,6 +2051,19 @@ function AdminLandingPageClient({
     updateConfig((current) => ({ ...current, categories: { ...current.categories, ...updates } }));
   }
 
+  function replaceCategoryImage(categorySlug: string, file: File) {
+    categoryShowcaseEditor.stageImage(categorySlug, file);
+    setSelectedSectionId('categories');
+    setSelectedElementId(`categories:image:${categorySlug}`);
+  }
+
+  function removeCategoryImage(categorySlug: string) {
+    if (!window.confirm('Odstranim sliko te kategorije? Sprememba bo potrjena ob shranjevanju.')) return;
+    categoryShowcaseEditor.stageImage(categorySlug, null);
+    setSelectedSectionId('categories');
+    setSelectedElementId(`categories:image:${categorySlug}`);
+  }
+
   function updateInfoBlocks(updates: Partial<HomepageSettings['infoBlocks']>) {
     updateConfig((current) => ({ ...current, infoBlocks: { ...current.infoBlocks, ...updates } }));
   }
@@ -1092,18 +2081,7 @@ function AdminLandingPageClient({
   }
 
   function setSectionTitle(sectionId: HomepageSectionId, title: string) {
-    updateConfig((current) => {
-      const trimmedTitle = title.trim();
-      const sectionTitles = { ...current.sectionTitles };
-
-      if (!trimmedTitle || trimmedTitle === homepageSectionLabels[sectionId]) {
-        delete sectionTitles[sectionId];
-      } else {
-        sectionTitles[sectionId] = trimmedTitle;
-      }
-
-      return { ...current, sectionTitles };
-    });
+    updateConfig((current) => withSectionTitle(current, sectionId, title));
   }
 
   function startSectionRename(sectionId: HomepageSectionId) {
@@ -1125,17 +2103,28 @@ function AdminLandingPageClient({
     setSectionRenameValue('');
   }
 
-  function updateHeroView(updates: Partial<HomepageHeroDeviceSettings>) {
-    updateHero({
-      responsive: {
-        ...config.hero.responsive,
-        [previewDevice]: { ...config.hero.responsive[previewDevice], ...updates }
+  function updateHeroViewForDevice(
+    device: HomepagePreviewDevice,
+    updates: Partial<HomepageHeroDeviceSettings>
+  ) {
+    updateConfig((current) => ({
+      ...current,
+      hero: {
+        ...current.hero,
+        responsive: {
+          ...current.hero.responsive,
+          [device]: { ...current.hero.responsive[device], ...updates }
+        }
       }
-    });
+    }));
   }
 
-  function addHeroTextBlock() {
-    const blockId = createId('hero-text');
+  function updateHeroView(updates: Partial<HomepageHeroDeviceSettings>) {
+    updateHeroViewForDevice(previewDevice, updates);
+  }
+
+  function addHeroTextBlock(kind: HomepageHeroTextBlock['kind'] = 'text') {
+    const blockId = createId(kind === 'button' ? 'hero-button' : 'hero-text');
     const desktopDefaults = {
       xPx: 240,
       yPx: Math.min(Math.max(heroViewSettings.heightPx - 210, 230), 360),
@@ -1148,9 +2137,10 @@ function AdminLandingPageClient({
     };
     const block: HomepageHeroTextBlock = {
       id: blockId,
-      text: 'Novo besedilo',
+      kind,
+      text: kind === 'button' ? 'Nov gumb' : 'Novo besedilo',
       visible: true,
-      href: '',
+      href: kind === 'button' ? '#' : '',
       ...desktopDefaults,
       responsive: {
         desktop: desktopDefaults,
@@ -1161,7 +2151,8 @@ function AdminLandingPageClient({
 
     updateHero({ textBlocks: [...config.hero.textBlocks, block] });
     setSelectedSectionId('hero');
-    setPanelTab('sections');
+    setSelectedElementId(`hero:textBlock:${blockId}`);
+    setActiveToolbarPopover(kind === 'button' ? 'link' : 'style');
     return blockId;
   }
 
@@ -1173,11 +2164,6 @@ function AdminLandingPageClient({
         textBlocks: current.hero.textBlocks.map((block) => (block.id === blockId ? { ...block, ...updates } : block))
       }
     }));
-  }
-
-  function focusHeroEditor() {
-    setSelectedSectionId('hero');
-    setPanelTab('sections');
   }
 
   function updateCategoriesView(updates: Partial<HomepageCategoriesDeviceSettings>) {
@@ -1242,7 +2228,8 @@ function AdminLandingPageClient({
       return withSectionVisibility({ ...current, sectionOrder: [...current.sectionOrder, sectionId] }, sectionId, true);
     });
     setSelectedSectionId(sectionId);
-    setPanelTab('sections');
+    setSelectedElementId(`section:${sectionId}`);
+    setActiveToolbarPopover('section');
     setAddSectionMenuOpen(false);
   }
 
@@ -1264,6 +2251,19 @@ function AdminLandingPageClient({
     if (selectedSectionId === sectionId) {
       setSelectedSectionId(nextSectionIds[Math.min(sectionIndex, nextSectionIds.length - 1)] ?? nextSectionIds[0] ?? 'hero');
     }
+    if (selectedElementId === `section:${sectionId}`) {
+      setSelectedElementId(null);
+      setActiveToolbarPopover(null);
+    }
+  }
+
+  function moveSection(sectionId: HomepageSectionId, direction: -1 | 1) {
+    updateConfig((current) => {
+      const currentIndex = current.sectionOrder.indexOf(sectionId);
+      const nextIndex = Math.min(current.sectionOrder.length - 1, Math.max(0, currentIndex + direction));
+      if (currentIndex < 0 || nextIndex === currentIndex) return current;
+      return { ...current, sectionOrder: arrayMove(current.sectionOrder, currentIndex, nextIndex) };
+    });
   }
 
   function handleSectionDragEnd(event: DragEndEvent) {
@@ -1289,11 +2289,32 @@ function AdminLandingPageClient({
   function handleCategoryDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const ordered = mergeCategoryOrder(config.categories.categoryOrder, categories);
-    const oldIndex = ordered.indexOf(String(active.id));
-    const newIndex = ordered.indexOf(String(over.id));
+    moveCategory(String(active.id), String(over.id));
+  }
+
+  function moveCategory(sourceSlug: string, targetSlug: string) {
+    const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    const orderedSlugs = orderHomepageCategories(source, config.categories).map((category) => category.slug);
+    const oldIndex = orderedSlugs.indexOf(sourceSlug);
+    const newIndex = orderedSlugs.indexOf(targetSlug);
     if (oldIndex < 0 || newIndex < 0) return;
-    updateCategories({ categoryOrder: arrayMove(ordered, oldIndex, newIndex) });
+    updateCategories({
+      categoryOrderMode: 'custom',
+      categoryOrder: arrayMove(orderedSlugs, oldIndex, newIndex)
+    });
+  }
+
+  function updateCategoryOrderMode(categoryOrderMode: HomepageSettings['categories']['categoryOrderMode']) {
+    if (categoryOrderMode === 'catalog') {
+      updateCategories({ categoryOrderMode, categoryOrder: [] });
+      return;
+    }
+
+    const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    updateCategories({
+      categoryOrderMode,
+      categoryOrder: orderHomepageCategories(source, config.categories).map((category) => category.slug)
+    });
   }
 
   function updateSlide(slideId: string, updates: Partial<HomepageHeroSlide>) {
@@ -1416,108 +2437,541 @@ function AdminLandingPageClient({
     updateInfoBlocks({ items: items.slice(0, nextCount) });
   }
 
-  function updateFooterColumn(columnId: string, updates: Partial<HomepageFooterColumn>) {
-    updateFooter({
-      columns: config.footer.columns.map((column) => (column.id === columnId ? { ...column, ...updates } : column))
-    });
-  }
-
-  function setFooterColumnCount(count: number) {
-    const nextCount = Math.min(6, Math.max(1, Math.round(count)));
-    const columns = [...config.footer.columns];
-    while (columns.length < nextCount) {
-      columns.push({
-        id: createId('footer-column'),
-        title: `Stolpec ${columns.length + 1}`,
-        links: []
-      });
-    }
-    updateFooter({ columns: columns.slice(0, nextCount) });
-  }
-
-  function addFooterLink(columnId: string) {
-    updateFooter({
-      columns: config.footer.columns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              links: [...column.links, { id: createId('footer-link'), label: 'Nova povezava', href: '#' }]
-            }
-          : column
-      )
-    });
-  }
-
-  function updateFooterLink(columnId: string, linkId: string, updates: Partial<HomepageFooterLink>) {
-    updateFooter({
-      columns: config.footer.columns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              links: column.links.map((link) => (link.id === linkId ? { ...link, ...updates } : link))
-            }
-          : column
-      )
-    });
-  }
-
-  function deleteFooterLink(columnId: string, linkId: string) {
-    updateFooter({
-      columns: config.footer.columns.map((column) =>
-        column.id === columnId
-          ? { ...column, links: column.links.filter((link) => link.id !== linkId) }
-          : column
-      )
-    });
-  }
-
-  function addSocialLink() {
-    const link: HomepageFooterSocialLink = {
-      id: createId('social'),
-      type: 'custom',
-      label: 'Profil',
-      href: '#'
+  function createCanvasStyleSeed(current: HomepageSettings, elementId: string, device: HomepagePreviewDevice): HomepageCanvasElementDeviceSettings {
+    const base = {
+      ...DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
+      zIndex: elementId.startsWith('hero:') ? 20 : DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS.zIndex
     };
-    updateFooter({ socialLinks: [...config.footer.socialLinks, link] });
+    const hero = { ...current.hero, ...current.hero.responsive[device] };
+
+    if (elementId === 'hero:title') {
+      return { ...base, color: '#ffffff', fontFamily: hero.titleFontFamily, fontSizePx: hero.titleFontSizePx, lineHeight: 1.08, fontWeight: hero.titleBold ? 800 : 600, horizontalAlign: hero.contentAlign, textAlign: hero.contentAlign };
+    }
+    if (elementId === 'hero:description') {
+      return { ...base, color: '#ffffff', fontFamily: hero.descriptionFontFamily, fontSizePx: hero.descriptionFontSizePx, lineHeight: 1.65, fontWeight: hero.descriptionBold ? 700 : 400, horizontalAlign: hero.contentAlign, textAlign: hero.contentAlign };
+    }
+    if (elementId === 'hero:primaryButton' || elementId === 'hero:secondaryButton') {
+      return { ...base, color: '#ffffff', fontFamily: 'Inter', fontSizePx: 15, lineHeight: 1.2, fontWeight: 600 };
+    }
+    if (elementId.startsWith('hero:textBlock:')) {
+      const blockId = elementId.slice('hero:textBlock:'.length);
+      const block = current.hero.textBlocks.find((candidate) => candidate.id === blockId);
+      const resolved = block ? { ...block, ...block.responsive[device] } : null;
+      return {
+        ...base,
+        visible: block?.visible ?? true,
+        widthPx: resolved?.widthPx ?? 0,
+        color: '#ffffff',
+        fontFamily: resolved?.fontFamily ?? 'Inter',
+        fontSizePx: resolved?.fontSizePx ?? (block?.kind === 'button' ? 15 : 24),
+        lineHeight: block?.kind === 'button' ? 1.2 : 1.25,
+        fontWeight: resolved?.bold ? 800 : block?.kind === 'button' ? 600 : 500
+      };
+    }
+    if (elementId === 'categories:heading' || elementId.startsWith('categories:title:')) {
+      return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };
+    }
+    if (elementId === 'categories:subtitle') {
+      return { ...base, color: '#536070', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };
+    }
+    if (elementId === 'categories:showAll') {
+      return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 3 };
+    }
+    if (elementId.startsWith('categories:image:')) return { ...base, zIndex: 1 };
+    if (elementId.startsWith('categories:card:')) return { ...base, zIndex: 0 };
+    if (elementId === 'footer:logo') {
+      return { ...base, fontSizePx: 40, lineHeight: 1, horizontalAlign: 'left', textAlign: 'left', zIndex: 10 };
+    }
+    if (elementId === 'footer:description') {
+      return {
+        ...base,
+        color: '',
+        fontFamily: 'Inter',
+        fontSizePx: 13,
+        lineHeight: 1.85,
+        fontWeight: 400,
+        horizontalAlign: 'left',
+        textAlign: 'left',
+        zIndex: 10
+      };
+    }
+    return base;
   }
 
-  function updateSocialLink(linkId: string, updates: Partial<HomepageFooterSocialLink>) {
-    updateFooter({
-      socialLinks: config.footer.socialLinks.map((link) => (link.id === linkId ? { ...link, ...updates } : link))
+  function resolveCanvasStyleForDevice(
+    current: HomepageSettings,
+    elements: HomepageSettings['canvas']['elements'],
+    elementId: string,
+    device: HomepagePreviewDevice
+  ) {
+    const canvas = { ...current.canvas, elements };
+    if (elements[elementId]) {
+      return resolveHomepageCanvasElementDeviceSettings(canvas, elementId, device);
+    }
+    if (
+      isCategoryTitleCanvasElement(elementId)
+      && elements[HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID]
+    ) {
+      return resolveHomepageCanvasElementDeviceSettings(
+        canvas,
+        HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
+        device
+      );
+    }
+    return createCanvasStyleSeed(current, elementId, device);
+  }
+
+  function applyCanvasElementStyleUpdates(
+    current: HomepageSettings,
+    elements: HomepageSettings['canvas']['elements'],
+    device: HomepagePreviewDevice,
+    elementId: string,
+    updates: Partial<HomepageCanvasElementDeviceSettings>
+  ) {
+    const existing = elements[elementId];
+    const responsive = existing?.responsive ?? {
+      desktop: resolveCanvasStyleForDevice(current, elements, elementId, 'desktop'),
+      tablet: resolveCanvasStyleForDevice(current, elements, elementId, 'tablet'),
+      mobile: resolveCanvasStyleForDevice(current, elements, elementId, 'mobile')
+    };
+    const nextResponsive = {
+      ...responsive,
+      [device]: { ...responsive[device], ...updates }
+    };
+
+    return {
+      ...(existing ?? nextResponsive.desktop),
+      ...(device === 'desktop' ? updates : {}),
+      responsive: nextResponsive
+    };
+  }
+
+  function getAllCategoryTitleElementIds() {
+    const categorySource = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return Array.from(new Set([
+      HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
+      ...categorySource.map((category) => `${categoryTitleCanvasElementPrefix}${category.slug}`)
+    ]));
+  }
+
+  function updateCanvasElementStyleForDevice(
+    device: HomepagePreviewDevice,
+    elementId: string,
+    updates: Partial<HomepageCanvasElementDeviceSettings>
+  ) {
+    updateConfig((current) => {
+      const updateKeys = Object.keys(updates) as Array<keyof HomepageCanvasElementDeviceSettings>;
+      const appliesToAllCategoryTitles = categoryTitleEditScope === 'all'
+        && isCategoryTitleCanvasElement(elementId)
+        && updateKeys.length > 0
+        && updateKeys.every((key) => categoryTitleScopedStyleKeys.has(key));
+      const targetElementIds = appliesToAllCategoryTitles
+        ? getAllCategoryTitleElementIds()
+        : [elementId];
+      let elements = current.canvas.elements;
+
+      targetElementIds.forEach((targetElementId) => {
+        const nextElement = applyCanvasElementStyleUpdates(
+          current,
+          elements,
+          device,
+          targetElementId,
+          updates
+        );
+        elements = { ...elements, [targetElementId]: nextElement };
+      });
+
+      return {
+        ...current,
+        canvas: {
+          ...current.canvas,
+          elements
+        }
+      };
     });
   }
 
-  function deleteSocialLink(linkId: string) {
-    updateFooter({ socialLinks: config.footer.socialLinks.filter((link) => link.id !== linkId) });
+  function updateCanvasElementStyleFromPreview(
+    device: HomepagePreviewDevice,
+    elementId: string,
+    updates: Partial<HomepageCanvasElementDeviceSettings>
+  ) {
+    const updateKeys = Object.keys(updates) as Array<keyof HomepageCanvasElementDeviceSettings>;
+    const movingAllCategoryTitles = categoryTitleEditScope === 'all'
+      && isCategoryTitleCanvasElement(elementId)
+      && updateKeys.length > 0
+      && updateKeys.every((key) => key === 'offsetXPx' || key === 'offsetYPx');
+
+    if (!movingAllCategoryTitles) {
+      updateCanvasElementStyleForDevice(device, elementId, updates);
+      return;
+    }
+
+    updateConfig((current) => {
+      const originalElements = current.canvas.elements;
+      const selectedStyle = resolveCanvasStyleForDevice(current, originalElements, elementId, device);
+      const deltaX = updates.offsetXPx === undefined ? 0 : updates.offsetXPx - selectedStyle.offsetXPx;
+      const deltaY = updates.offsetYPx === undefined ? 0 : updates.offsetYPx - selectedStyle.offsetYPx;
+      let elements = originalElements;
+
+      getAllCategoryTitleElementIds().forEach((targetElementId) => {
+        const targetStyle = resolveCanvasStyleForDevice(current, originalElements, targetElementId, device);
+        const nextElement = applyCanvasElementStyleUpdates(
+          current,
+          elements,
+          device,
+          targetElementId,
+          {
+            ...(updates.offsetXPx !== undefined ? { offsetXPx: targetStyle.offsetXPx + deltaX } : {}),
+            ...(updates.offsetYPx !== undefined ? { offsetYPx: targetStyle.offsetYPx + deltaY } : {})
+          }
+        );
+        elements = { ...elements, [targetElementId]: nextElement };
+      });
+
+      return {
+        ...current,
+        canvas: { ...current.canvas, elements }
+      };
+    });
   }
 
-  function updateLegalLink(linkId: string, updates: Partial<HomepageFooterLink>) {
-    updateFooter({
-      legalLinks: config.footer.legalLinks.map((link) => (link.id === linkId ? { ...link, ...updates } : link))
+  function updateCanvasElementStyle(elementId: string, updates: Partial<HomepageCanvasElementDeviceSettings>) {
+    updateCanvasElementStyleForDevice(previewDevice, elementId, updates);
+  }
+
+  function updateEditorOptions(updates: Partial<HomepageCanvasEditorOptions>) {
+    setEditorOptionsByDevice((current) => ({
+      ...current,
+      [previewDevice]: { ...current[previewDevice], ...updates }
+    }));
+  }
+
+  function selectCanvasElement(elementId: string | null) {
+    setSelectedElementId(elementId);
+    setActiveToolbarPopover(null);
+    if (!elementId) return;
+    if (elementId.startsWith('section:')) {
+      const sectionId = elementId.slice('section:'.length) as HomepageSectionId;
+      if (HOMEPAGE_SECTION_IDS.includes(sectionId)) setSelectedSectionId(sectionId);
+    } else if (elementId.startsWith('hero:')) {
+      setSelectedSectionId('hero');
+    } else if (elementId.startsWith('categories:')) {
+      setSelectedSectionId('categories');
+    } else if (elementId.startsWith('footer:')) {
+      setSelectedSectionId('footer');
+    }
+  }
+
+  function updateSelectedTypography(updates: {
+    fontFamily?: HomepageHeroFontFamily;
+    fontSizePx?: number;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+  }) {
+    if (!selectedElementId) return;
+    if (selectedElementId === 'hero:title') {
+      updateHeroView({
+        titleFontFamily: updates.fontFamily ?? heroViewSettings.titleFontFamily,
+        titleFontSizePx: updates.fontSizePx ?? heroViewSettings.titleFontSizePx,
+        titleBold: updates.bold ?? heroViewSettings.titleBold,
+        titleItalic: updates.italic ?? heroViewSettings.titleItalic,
+        titleUnderline: updates.underline ?? heroViewSettings.titleUnderline
+      });
+      return;
+    }
+    if (selectedElementId === 'hero:description') {
+      updateHeroView({
+        descriptionFontFamily: updates.fontFamily ?? heroViewSettings.descriptionFontFamily,
+        descriptionFontSizePx: updates.fontSizePx ?? heroViewSettings.descriptionFontSizePx,
+        descriptionBold: updates.bold ?? heroViewSettings.descriptionBold,
+        descriptionItalic: updates.italic ?? heroViewSettings.descriptionItalic,
+        descriptionUnderline: updates.underline ?? heroViewSettings.descriptionUnderline
+      });
+      return;
+    }
+    if (
+      selectedElementId === 'categories:heading'
+      || selectedElementId === 'categories:subtitle'
+      || selectedElementId === 'categories:showAll'
+      || isCategoryTitleCanvasElement(selectedElementId)
+    ) {
+      const styleElementId = isCategoryTitleCanvasElement(selectedElementId) && categoryTitleEditScope === 'all'
+        ? HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID
+        : selectedElementId;
+      const currentStyle = resolveCanvasStyleForDevice(config, config.canvas.elements, styleElementId, previewDevice);
+      updateCanvasElementStyle(selectedElementId, {
+        fontFamily: updates.fontFamily ?? currentStyle.fontFamily,
+        fontSizePx: updates.fontSizePx ?? currentStyle.fontSizePx,
+        fontWeight: updates.bold === undefined ? currentStyle.fontWeight : updates.bold ? 700 : 400,
+        italic: updates.italic ?? currentStyle.italic,
+        underline: updates.underline ?? currentStyle.underline
+      });
+      return;
+    }
+    if (selectedElementId === 'footer:description') {
+      const currentStyle = config.canvas.elements[selectedElementId]
+        ? resolveHomepageCanvasElementDeviceSettings(config.canvas, selectedElementId, previewDevice)
+        : createCanvasStyleSeed(config, selectedElementId, previewDevice);
+      updateCanvasElementStyle(selectedElementId, {
+        fontFamily: updates.fontFamily ?? currentStyle.fontFamily,
+        fontSizePx: updates.fontSizePx ?? currentStyle.fontSizePx,
+        fontWeight: updates.bold === undefined ? currentStyle.fontWeight : updates.bold ? 700 : 400,
+        italic: updates.italic ?? currentStyle.italic,
+        underline: updates.underline ?? currentStyle.underline
+      });
+      return;
+    }
+    if (!selectedElementId.startsWith('hero:textBlock:')) return;
+    const blockId = selectedElementId.slice('hero:textBlock:'.length);
+    const block = config.hero.textBlocks.find((candidate) => candidate.id === blockId);
+    if (!block) return;
+    updateHeroTextBlock(blockId, {
+      responsive: {
+        ...block.responsive,
+        [previewDevice]: { ...block.responsive[previewDevice], ...updates }
+      }
     });
+  }
+
+  function duplicateSelectedElement() {
+    if (!selectedElementId || selectedElementId.startsWith('section:') || selectedElementId.startsWith('footer:') || selectedElementId.startsWith('categories:')) return;
+    const newId = createId(selectedElementId.includes('Button') ? 'hero-button' : 'hero-text');
+    updateConfig((current) => {
+      const sourceBlockId = selectedElementId.startsWith('hero:textBlock:')
+        ? selectedElementId.slice('hero:textBlock:'.length)
+        : null;
+      const sourceBlock = sourceBlockId ? current.hero.textBlocks.find((block) => block.id === sourceBlockId) : null;
+      const sourceKind: HomepageHeroTextBlock['kind'] = sourceBlock?.kind ?? (selectedElementId.toLowerCase().includes('button') ? 'button' : 'text');
+      const sourceText = sourceBlock?.text
+        ?? (selectedElementId === 'hero:title'
+          ? current.hero.title
+          : selectedElementId === 'hero:description'
+            ? current.hero.description
+            : selectedElementId === 'hero:primaryButton'
+              ? current.hero.primaryButton.label
+              : current.hero.secondaryButton.label);
+      const sourceHref = sourceBlock?.href
+        ?? (selectedElementId === 'hero:primaryButton'
+          ? current.hero.primaryButton.href
+          : selectedElementId === 'hero:secondaryButton'
+            ? current.hero.secondaryButton.href
+            : '');
+      const defaults = {
+        xPx: 260,
+        yPx: Math.min(current.hero.responsive.desktop.heightPx - 160, 390),
+        widthPx: sourceBlock?.responsive.desktop.widthPx ?? 360,
+        fontFamily: sourceBlock?.responsive.desktop.fontFamily ?? current.hero.responsive.desktop.titleFontFamily,
+        fontSizePx: sourceBlock?.responsive.desktop.fontSizePx ?? (sourceKind === 'button' ? 15 : 24),
+        bold: sourceBlock?.responsive.desktop.bold ?? sourceKind === 'button',
+        italic: sourceBlock?.responsive.desktop.italic ?? false,
+        underline: sourceBlock?.responsive.desktop.underline ?? false
+      };
+      const cloneBlock: HomepageHeroTextBlock = sourceBlock
+        ? {
+            ...cloneConfig(sourceBlock),
+            id: newId,
+            responsive: {
+              desktop: { ...sourceBlock.responsive.desktop, xPx: sourceBlock.responsive.desktop.xPx + 16, yPx: sourceBlock.responsive.desktop.yPx + 16 },
+              tablet: { ...sourceBlock.responsive.tablet, xPx: sourceBlock.responsive.tablet.xPx + 16, yPx: sourceBlock.responsive.tablet.yPx + 16 },
+              mobile: { ...sourceBlock.responsive.mobile, xPx: sourceBlock.responsive.mobile.xPx + 12, yPx: sourceBlock.responsive.mobile.yPx + 12 }
+            }
+          }
+        : {
+            id: newId,
+            kind: sourceKind,
+            text: sourceText || (sourceKind === 'button' ? 'Nov gumb' : 'Novo besedilo'),
+            visible: true,
+            href: sourceHref || (sourceKind === 'button' ? '#' : ''),
+            ...defaults,
+            responsive: {
+              desktop: defaults,
+              tablet: { ...defaults, xPx: 120, yPx: 280, widthPx: Math.min(defaults.widthPx, 320), fontSizePx: Math.min(defaults.fontSizePx, 22) },
+              mobile: { ...defaults, xPx: 24, yPx: 260, widthPx: Math.min(defaults.widthPx, 300), fontSizePx: Math.min(defaults.fontSizePx, 18) }
+            }
+          };
+      const sourceCanvas = current.canvas.elements[selectedElementId];
+      const nextElements = sourceCanvas
+        ? { ...current.canvas.elements, [`hero:textBlock:${newId}`]: cloneConfig(sourceCanvas) }
+        : current.canvas.elements;
+      return {
+        ...current,
+        hero: { ...current.hero, textBlocks: [...current.hero.textBlocks, cloneBlock] },
+        canvas: { ...current.canvas, elements: nextElements }
+      };
+    });
+    setSelectedElementId(`hero:textBlock:${newId}`);
+  }
+
+  function deleteSelectedElement() {
+    if (!selectedElementId) return;
+    if (selectedElementId.startsWith('categories:image:')) {
+      removeCategoryImage(selectedElementId.slice('categories:image:'.length));
+      setSelectedElementId(null);
+      setActiveToolbarPopover(null);
+      return;
+    }
+    if (selectedElementId.startsWith('section:')) {
+      deleteSection(selectedElementId.slice('section:'.length) as HomepageSectionId);
+      return;
+    }
+    if (selectedElementId.startsWith('hero:textBlock:')) {
+      const blockId = selectedElementId.slice('hero:textBlock:'.length);
+      updateConfig((current) => {
+        const elements = { ...current.canvas.elements };
+        delete elements[selectedElementId];
+        return {
+          ...current,
+          hero: { ...current.hero, textBlocks: current.hero.textBlocks.filter((block) => block.id !== blockId) },
+          canvas: { ...current.canvas, elements }
+        };
+      });
+    } else {
+      updateCanvasElementStyle(selectedElementId, { visible: false });
+    }
+    setSelectedElementId(null);
+    setActiveToolbarPopover(null);
+  }
+
+  function selectedElementLink() {
+    if (selectedElementId === 'hero:primaryButton') return config.hero.primaryButton.href;
+    if (selectedElementId === 'hero:secondaryButton') return config.hero.secondaryButton.href;
+    if (selectedElementId?.startsWith('hero:textBlock:')) {
+      return config.hero.textBlocks.find((block) => block.id === selectedElementId.slice('hero:textBlock:'.length))?.href ?? '';
+    }
+    if (selectedElementId === 'categories:showAll') return config.categories.showAllHref;
+    return '';
+  }
+
+  function updateSelectedElementLink(href: string) {
+    if (selectedElementId === 'hero:primaryButton') updateHero({ primaryButton: { ...config.hero.primaryButton, href } });
+    else if (selectedElementId === 'hero:secondaryButton') updateHero({ secondaryButton: { ...config.hero.secondaryButton, href } });
+    else if (selectedElementId?.startsWith('hero:textBlock:')) updateHeroTextBlock(selectedElementId.slice('hero:textBlock:'.length), { href });
+    else if (selectedElementId === 'categories:showAll') updateCategories({ showAllHref: href });
+  }
+
+  function toggleSelectedVisibility() {
+    if (!selectedElementId) return;
+    if (selectedElementId.startsWith('section:')) {
+      const sectionId = selectedElementId.slice('section:'.length) as HomepageSectionId;
+      if (!isSectionVisible(sectionId)) {
+        updateConfig((current) => {
+          const responsive = Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => [
+            device,
+            {
+              ...(current.canvas.elements[selectedElementId]?.responsive[device]
+                ?? createCanvasStyleSeed(current, selectedElementId, device)),
+              visible: device === previewDevice
+            }
+          ])) as HomepageSettings['canvas']['elements'][string]['responsive'];
+          const globallyVisible = withSectionVisibility(current, sectionId, true);
+          return {
+            ...globallyVisible,
+            canvas: {
+              ...globallyVisible.canvas,
+              elements: {
+                ...globallyVisible.canvas.elements,
+                [selectedElementId]: { ...responsive.desktop, responsive }
+              }
+            }
+          };
+        });
+        return;
+      }
+      updateCanvasElementStyle(selectedElementId, { visible: !selectedEffectiveVisible });
+      return;
+    }
+    if (selectedTextBlock && !selectedTextBlock.visible) {
+      updateConfig((current) => {
+        const responsive = Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => [
+          device,
+          {
+            ...(current.canvas.elements[selectedElementId]?.responsive[device]
+              ?? createCanvasStyleSeed(current, selectedElementId, device)),
+            visible: device === previewDevice
+          }
+        ])) as HomepageSettings['canvas']['elements'][string]['responsive'];
+        return {
+          ...current,
+          hero: {
+            ...current.hero,
+            textBlocks: current.hero.textBlocks.map((block) => block.id === selectedTextBlock.id ? { ...block, visible: true } : block)
+          },
+          canvas: {
+            ...current.canvas,
+            elements: {
+              ...current.canvas.elements,
+              [selectedElementId]: { ...responsive.desktop, responsive }
+            }
+          }
+        };
+      });
+      return;
+    }
+    updateCanvasElementStyle(selectedElementId, { visible: !selectedEffectiveVisible });
+  }
+
+  function toggleToolbarPopover(popover: Exclude<ToolbarPopover, null>) {
+    setActiveToolbarPopover((current) => current === popover ? null : popover);
   }
 
   async function save() {
-    const payloadConfig = normalizeLandingPageConfig(config);
+    if (saveInFlightRef.current) return;
+    const payloadConfig = normalizeLandingPageConfig(configWithPendingEdits);
+    const submittedConfigKey = comparable(payloadConfig);
+    const submittedFooterDescription = footerDescription;
+    if (renamingSectionId && landingIsDirty) {
+      setConfig(payloadConfig);
+      setRenamingSectionId(null);
+      setSectionRenameValue('');
+    }
+    saveInFlightRef.current = true;
     setIsSaving(true);
     try {
-      const response = await fetch('/api/admin/landing-page', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: payloadConfig })
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof body.message === 'string' ? body.message : 'Shranjevanje glavne strani ni uspelo.');
+      if (landingIsDirty) {
+        const response = await fetch('/api/admin/landing-page', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: payloadConfig })
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof body.message === 'string' ? body.message : 'Shranjevanje glavne strani ni uspelo.');
+        }
+        const persistedConfig = normalizeLandingPageConfig(body.config ?? payloadConfig);
+        appliedInitialConfigKeyRef.current = comparable(persistedConfig);
+        setSavedConfig(persistedConfig);
+        setConfig((current) => {
+          if (comparable(current) === submittedConfigKey) return persistedConfig;
+          return normalizeLandingPageConfig({ ...current, updatedAt: persistedConfig.updatedAt });
+        });
       }
-      const persistedConfig = normalizeLandingPageConfig(body.config ?? payloadConfig);
-      setConfig(persistedConfig);
-      setSavedConfig(persistedConfig);
-      toast.success('Glavna stran je shranjena.');
-      router.refresh();
+
+      if (categoryPresentationIsDirty) await categoryShowcaseEditor.save();
+
+      if (footerDescriptionIsDirty) {
+        const response = await fetch('/api/admin/site-navigation', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ footer: { description: submittedFooterDescription } })
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof body.message === 'string' ? body.message : 'Shranjevanje opisa noge ni uspelo.');
+        }
+        const persistedNavigation = normalizeSiteNavigationConfig(body.config ?? previewNavigation);
+        const persistedDescription = persistedNavigation.footer.description;
+        appliedInitialFooterDescriptionRef.current = persistedDescription;
+        setSavedFooterDescription(persistedDescription);
+        setFooterDescription((current) => current === submittedFooterDescription ? persistedDescription : current);
+      }
+
+      toast.success('Spremembe glavne strani so shranjene.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje glavne strani ni uspelo.');
     } finally {
+      saveInFlightRef.current = false;
       setIsSaving(false);
     }
   }
@@ -1527,15 +2981,15 @@ function AdminLandingPageClient({
     const defaults = normalizeLandingPageConfig(cloneDefaultLandingPageConfig());
     setConfig(defaults);
     setSelectedSectionId(defaults.sectionOrder[0] ?? 'hero');
+    setSelectedElementId(null);
+    setCategoryTitleEditScope('selected');
+    setActiveToolbarPopover(null);
   }
 
   const categoryRows = useMemo(() => {
-    const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
-    const bySlug = new Map(source.map((category) => [category.slug, category]));
-    return mergeCategoryOrder(config.categories.categoryOrder, source)
-      .map((slug) => bySlug.get(slug))
-      .filter((category): category is HomepageCategoryCardData => Boolean(category));
-  }, [categories, config.categories.categoryOrder]);
+    const source = categoryShowcaseEditor.items.length > 0 ? categoryShowcaseEditor.items : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return orderHomepageCategories(source, config.categories);
+  }, [categoryShowcaseEditor.items, config.categories]);
 
   const sectionVisibilitySummary = HOMEPAGE_SECTION_IDS
     .map((sectionId) => `${getSectionLabel(sectionId)}: ${isSectionVisible(sectionId) ? 'vidno' : 'skrito'}`)
@@ -1547,6 +3001,182 @@ function AdminLandingPageClient({
   const infoViewSettings = config.infoBlocks.responsive[previewDevice];
   const footerViewSettings = config.footer.responsive[previewDevice];
   const pageViewSettings = config.page.responsive[previewDevice];
+  const editorOptions = editorOptionsByDevice[previewDevice];
+  const selectedIsCategoryTitle = isCategoryTitleCanvasElement(selectedElementId);
+  const selectedCanvasStyleElementId = selectedIsCategoryTitle && categoryTitleEditScope === 'all'
+    ? HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID
+    : selectedElementId;
+  const selectedCanvasStyle = selectedCanvasStyleElementId
+    ? resolveCanvasStyleForDevice(config, config.canvas.elements, selectedCanvasStyleElementId, previewDevice)
+    : DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS;
+  const selectedIsSection = Boolean(selectedElementId?.startsWith('section:'));
+  const selectedIsFixedFooterElement = Boolean(selectedElementId?.startsWith('footer:'));
+  const selectedIsCategoryElement = Boolean(selectedElementId?.startsWith('categories:'));
+  const selectedCategoryMediaSlug = selectedElementId?.startsWith('categories:image:')
+    ? selectedElementId.slice('categories:image:'.length)
+    : null;
+  const selectedCategoryMediaItem = selectedCategoryMediaSlug
+    ? categoryShowcaseEditor.items.find((category) => category.slug === selectedCategoryMediaSlug) ?? null
+    : null;
+  const selectedIsCategoryText = selectedElementId === 'categories:heading'
+    || selectedElementId === 'categories:subtitle'
+    || selectedElementId === 'categories:showAll'
+    || selectedIsCategoryTitle;
+  const selectedTextBlockId = selectedElementId?.startsWith('hero:textBlock:')
+    ? selectedElementId.slice('hero:textBlock:'.length)
+    : null;
+  const selectedTextBlock = selectedTextBlockId
+    ? config.hero.textBlocks.find((block) => block.id === selectedTextBlockId) ?? null
+    : null;
+  const selectedIsButton = selectedElementId === 'hero:primaryButton'
+    || selectedElementId === 'hero:secondaryButton'
+    || selectedTextBlock?.kind === 'button';
+  const selectedIsText = selectedElementId === 'hero:title'
+    || selectedElementId === 'hero:description'
+    || selectedElementId === 'footer:description'
+    || selectedIsCategoryText
+    || Boolean(selectedTextBlock);
+  const selectedCanLink = selectedIsButton || Boolean(selectedTextBlock) || selectedElementId === 'categories:showAll';
+  const selectedSectionElementId = selectedIsSection
+    ? selectedElementId?.slice('section:'.length) as HomepageSectionId
+    : null;
+  const selectedEffectiveVisible = selectedSectionElementId
+    ? isSectionVisible(selectedSectionElementId) && selectedCanvasStyle.visible
+    : selectedTextBlock
+      ? selectedTextBlock.visible && selectedCanvasStyle.visible
+      : selectedCanvasStyle.visible;
+  const selectedElementLabel = !selectedElementId
+    ? 'Stran'
+    : selectedElementId.startsWith('section:')
+      ? getSectionLabel(selectedElementId.slice('section:'.length) as HomepageSectionId)
+      : selectedElementId === 'hero:title'
+        ? 'Naslov'
+        : selectedElementId === 'hero:description'
+          ? 'Opis'
+          : selectedElementId === 'footer:logo'
+            ? 'Logotip noge'
+          : selectedElementId === 'footer:description'
+              ? 'Opis noge'
+          : selectedElementId === 'categories:heading'
+            ? 'Naslov kategorij'
+            : selectedElementId === 'categories:subtitle'
+              ? 'Podnaslov kategorij'
+              : selectedElementId === 'categories:showAll'
+                ? 'Povezava do vseh kategorij'
+                : selectedElementId.startsWith('categories:title:')
+                  ? categories.find((category) => category.slug === selectedElementId.slice('categories:title:'.length))?.title || 'Naslov kategorije'
+                  : selectedElementId.startsWith('categories:image:')
+                    ? `Slika · ${categories.find((category) => category.slug === selectedElementId.slice('categories:image:'.length))?.title || 'Kategorija'}`
+                    : selectedElementId.startsWith('categories:card:')
+                      ? `Kartica · ${categories.find((category) => category.slug === selectedElementId.slice('categories:card:'.length))?.title || 'Kategorija'}`
+          : selectedElementId === 'hero:primaryButton'
+            ? 'Primarni gumb'
+            : selectedElementId === 'hero:secondaryButton'
+              ? 'Sekundarni gumb'
+              : selectedTextBlock?.kind === 'button'
+                ? selectedTextBlock.text || 'Gumb'
+                : selectedTextBlock?.text || 'Besedilo';
+  const selectedEditTargetLabel = selectedIsCategoryTitle && categoryTitleEditScope === 'all'
+    ? 'Vsa imena kategorij'
+    : selectedElementLabel;
+  const selectedTypography = selectedElementId === 'hero:title'
+    ? {
+        fontFamily: heroViewSettings.titleFontFamily,
+        fontSizePx: heroViewSettings.titleFontSizePx,
+        bold: heroViewSettings.titleBold,
+        italic: heroViewSettings.titleItalic,
+        underline: heroViewSettings.titleUnderline
+      }
+    : selectedElementId === 'hero:description'
+      ? {
+          fontFamily: heroViewSettings.descriptionFontFamily,
+          fontSizePx: heroViewSettings.descriptionFontSizePx,
+          bold: heroViewSettings.descriptionBold,
+          italic: heroViewSettings.descriptionItalic,
+          underline: heroViewSettings.descriptionUnderline
+        }
+      : selectedTextBlock
+        ? {
+            fontFamily: selectedTextBlock.responsive[previewDevice].fontFamily,
+            fontSizePx: selectedTextBlock.responsive[previewDevice].fontSizePx,
+            bold: selectedTextBlock.responsive[previewDevice].bold,
+            italic: selectedTextBlock.responsive[previewDevice].italic,
+            underline: selectedTextBlock.responsive[previewDevice].underline
+          }
+        : selectedElementId === 'footer:description'
+          ? {
+              fontFamily: selectedCanvasStyle.fontFamily as HomepageHeroFontFamily,
+              fontSizePx: selectedCanvasStyle.fontSizePx,
+              bold: selectedCanvasStyle.fontWeight >= 600,
+              italic: selectedCanvasStyle.italic,
+              underline: selectedCanvasStyle.underline
+            }
+        : selectedIsCategoryText
+          ? {
+              fontFamily: selectedCanvasStyle.fontFamily as HomepageHeroFontFamily,
+              fontSizePx: selectedCanvasStyle.fontSizePx,
+              bold: selectedCanvasStyle.fontWeight >= 600,
+              italic: selectedCanvasStyle.italic,
+              underline: selectedCanvasStyle.underline
+            }
+        : null;
+  const selectedPosition = selectedTextBlock
+    ? {
+        xPx: selectedTextBlock.responsive[previewDevice].xPx,
+        yPx: selectedTextBlock.responsive[previewDevice].yPx
+      }
+    : selectedElementId === 'hero:title'
+      ? { xPx: heroViewSettings.titleOffsetXPx, yPx: heroViewSettings.titleOffsetYPx }
+      : selectedElementId === 'hero:description'
+        ? { xPx: heroViewSettings.descriptionOffsetXPx, yPx: heroViewSettings.descriptionOffsetYPx }
+        : selectedElementId === 'hero:primaryButton'
+          ? { xPx: heroViewSettings.primaryButtonOffsetXPx, yPx: heroViewSettings.primaryButtonOffsetYPx }
+          : selectedElementId === 'hero:secondaryButton'
+            ? { xPx: heroViewSettings.secondaryButtonOffsetXPx, yPx: heroViewSettings.secondaryButtonOffsetYPx }
+            : selectedElementId?.startsWith('footer:') || selectedElementId?.startsWith('categories:')
+              ? { xPx: selectedCanvasStyle.offsetXPx, yPx: selectedCanvasStyle.offsetYPx }
+            : null;
+
+  function updateSelectedPosition(updates: Partial<{ xPx: number; yPx: number }>) {
+    if (selectedTextBlock) {
+      updateHeroTextBlock(selectedTextBlock.id, {
+        responsive: {
+          ...selectedTextBlock.responsive,
+          [previewDevice]: {
+            ...selectedTextBlock.responsive[previewDevice],
+            ...updates
+          }
+        }
+      });
+      return;
+    }
+    if (selectedElementId === 'hero:title') {
+      updateHeroView({
+        ...(updates.xPx !== undefined ? { titleOffsetXPx: updates.xPx } : {}),
+        ...(updates.yPx !== undefined ? { titleOffsetYPx: updates.yPx } : {})
+      });
+    } else if (selectedElementId === 'hero:description') {
+      updateHeroView({
+        ...(updates.xPx !== undefined ? { descriptionOffsetXPx: updates.xPx } : {}),
+        ...(updates.yPx !== undefined ? { descriptionOffsetYPx: updates.yPx } : {})
+      });
+    } else if (selectedElementId === 'hero:primaryButton') {
+      updateHeroView({
+        ...(updates.xPx !== undefined ? { primaryButtonOffsetXPx: updates.xPx } : {}),
+        ...(updates.yPx !== undefined ? { primaryButtonOffsetYPx: updates.yPx } : {})
+      });
+    } else if (selectedElementId === 'hero:secondaryButton') {
+      updateHeroView({
+        ...(updates.xPx !== undefined ? { secondaryButtonOffsetXPx: updates.xPx } : {}),
+        ...(updates.yPx !== undefined ? { secondaryButtonOffsetYPx: updates.yPx } : {})
+      });
+    } else if (selectedElementId?.startsWith('footer:') || selectedElementId?.startsWith('categories:')) {
+      updateCanvasElementStyle(selectedElementId, {
+        ...(updates.xPx !== undefined ? { offsetXPx: updates.xPx } : {}),
+        ...(updates.yPx !== undefined ? { offsetYPx: updates.yPx } : {})
+      });
+    }
+  }
 
   function renderHeroSettings() {
     return (
@@ -1610,13 +3240,6 @@ function AdminLandingPageClient({
   function renderCategorySettings() {
     return (
       <div className="space-y-3">
-        <FieldBlock title="Tekst in povezava">
-          <TextField label="Naslov" value={config.categories.title} onChange={(title) => updateCategories({ title })} />
-          <TextareaField label="Podnaslov" value={config.categories.subtitle} onChange={(subtitle) => updateCategories({ subtitle })} />
-          <ToggleRow label="Prikaži povezavo do vseh kategorij" checked={config.categories.showAllLink} onChange={(showAllLink) => updateCategories({ showAllLink })} />
-          <TextField label="Cilj povezave" value={config.categories.showAllHref} onChange={(showAllHref) => updateCategories({ showAllHref })} />
-        </FieldBlock>
-
         <FieldBlock title="Postavitev in kartice">
           <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1627,20 +3250,35 @@ function AdminLandingPageClient({
             <SelectField label="Velikost kartic" value={categoryViewSettings.cardSize} options={createOptions(HOMEPAGE_CATEGORY_CARD_SIZES, homepageCategoryCardSizeLabels)} onChange={(cardSize) => updateCategoriesView({ cardSize })} />
             <SelectField label="Slog kartic" value={categoryViewSettings.cardStyle} options={createOptions(HOMEPAGE_CATEGORY_CARD_STYLES, homepageCategoryCardStyleLabels)} onChange={(cardStyle) => updateCategoriesView({ cardStyle })} />
           </div>
+          <ToggleRow label="Povezava do vseh kategorij" checked={config.categories.showAllLink} onChange={(showAllLink) => updateCategories({ showAllLink })} />
           <ToggleRow label="Puščica v karticah" checked={categoryViewSettings.showCardArrow} onChange={(showCardArrow) => updateCategoriesView({ showCardArrow })} />
         </FieldBlock>
 
         <FieldBlock title="Vrstni red kategorij" defaultOpen={false}>
-          <p className="text-[11px] leading-4 text-slate-500">Slike in vsebina kategorij ostanejo na strani Kategorije.</p>
-          <DndContext id="homepage-category-order" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
-            <SortableContext items={categoryRows.map((category) => category.slug)} strategy={verticalListSortingStrategy}>
-              <div className="grid gap-2">
-                {categoryRows.map((category, index) => (
-                  <SortableCategoryRow key={category.slug} category={category} index={index} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <SelectField
+            label="Vir vrstnega reda"
+            value={config.categories.categoryOrderMode}
+            options={createOptions(HOMEPAGE_CATEGORY_ORDER_MODES, homepageCategoryOrderModeLabels)}
+            onChange={updateCategoryOrderMode}
+          />
+          {config.categories.categoryOrderMode === 'catalog' ? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+              Kategorije sledijo kanoničnemu vrstnemu redu iz Kategorij oziroma Millerjevega pogleda. Povlek kategorije v predogledu samodejno vključi vrstni red po meri.
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] leading-4 text-slate-500">Povlecite kategorije v želeni vrstni red. Nove kategorije se samodejno dodajo na konec.</p>
+              <DndContext id="homepage-category-order" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+                <SortableContext items={categoryRows.map((category) => category.slug)} strategy={verticalListSortingStrategy}>
+                  <div className="grid gap-2">
+                    {categoryRows.map((category, index) => (
+                      <SortableCategoryRow key={category.slug} category={category} index={index} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </>
+          )}
         </FieldBlock>
       </div>
     );
@@ -1671,7 +3309,7 @@ function AdminLandingPageClient({
           </div>
           <div className="grid gap-3">
             {config.infoBlocks.items.map((item, index) => (
-              <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3">
+              <div key={item.id} className="rounded-xl bg-slate-50/80 p-2.5">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <span className="text-[12px] font-semibold text-slate-800">Element {index + 1}</span>
                   <SmallIconButton label="Odstrani element" tone="danger" onClick={() => deleteInfoItem(item.id)}>
@@ -1695,13 +3333,11 @@ function AdminLandingPageClient({
   function renderFooterSettings() {
     return (
       <div className="space-y-3">
-        <FieldBlock title="Osnovno in prikaz">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <SelectField label="Logotip" value={config.footer.logoMode} options={createOptions(HOMEPAGE_FOOTER_LOGO_MODES, homepageFooterLogoModeLabels)} onChange={(logoMode) => updateFooter({ logoMode })} />
-            <TextField label="Besedilo logotipa" value={config.footer.logoText} onChange={(logoText) => updateFooter({ logoText })} />
-            <NumberField label="Število stolpcev" value={config.footer.columns.length} onChange={setFooterColumnCount} min={1} max={6} />
-          </div>
-          <TextareaField label="Opis" value={config.footer.description} onChange={(description) => updateFooter({ description })} />
+        <FieldBlock title="Prikaz noge">
+          <p className="rounded-lg bg-slate-50/80 px-2.5 py-2 text-[11px] leading-5 text-slate-600">
+            Vsebino noge, povezave in kontaktne podatke urejate v zavihku Navigacija.
+          </p>
+          <SelectField label="Logotip" value={config.footer.logoMode} options={createOptions(HOMEPAGE_FOOTER_LOGO_MODES, homepageFooterLogoModeLabels)} onChange={(logoMode) => updateFooter({ logoMode })} />
           <div className="space-y-3 border-t border-slate-200 pt-3">
             <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1711,91 +3347,13 @@ function AdminLandingPageClient({
             <ToggleRow label="Zgornja obroba" checked={footerViewSettings.topBorder} onChange={(topBorder) => updateFooterView({ topBorder })} />
           </div>
         </FieldBlock>
-
-        <FieldBlock title="Stolpci in povezave" defaultOpen={false}>
-          <div className="grid gap-3">
-            {config.footer.columns.map((column, columnIndex) => (
-              <div key={column.id} className="rounded-lg border border-slate-200 bg-white p-3">
-                <TextField label={`Naslov stolpca ${columnIndex + 1}`} value={column.title} onChange={(title) => updateFooterColumn(column.id, { title })} />
-                <div className="mt-3 grid gap-2">
-                  {column.links.map((link) => (
-                    <div key={link.id} className="grid min-w-0 gap-2">
-                      <Input value={link.label} onChange={(event) => updateFooterLink(column.id, link.id, { label: event.target.value })} className={inputClassName} placeholder="Oznaka" />
-                      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_36px] gap-2">
-                        <Input value={link.href} onChange={(event) => updateFooterLink(column.id, link.id, { href: event.target.value })} className={inputClassName} placeholder="/povezava" />
-                        <SmallIconButton label="Odstrani povezavo" tone="danger" onClick={() => deleteFooterLink(column.id, link.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </SmallIconButton>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button type="button" variant="default" size="toolbar" className="mt-3 !h-8 !rounded-md !px-2.5" onClick={() => addFooterLink(column.id)}>
-                  <Plus className="h-4 w-4" />
-                  Povezava
-                </Button>
-              </div>
-            ))}
-          </div>
-        </FieldBlock>
-
-        <FieldBlock title="Kontakt" defaultOpen={false}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TextField label="E-pošta" value={config.footer.contact.email} onChange={(email) => updateFooter({ contact: { ...config.footer.contact, email } })} />
-            <TextField label="Telefon" value={config.footer.contact.phone} onChange={(phone) => updateFooter({ contact: { ...config.footer.contact, phone } })} />
-            <TextField label="Naslov" value={config.footer.contact.address} onChange={(address) => updateFooter({ contact: { ...config.footer.contact, address } })} />
-            <TextField label="Delovni čas" value={config.footer.contact.workingHours} onChange={(workingHours) => updateFooter({ contact: { ...config.footer.contact, workingHours } })} />
-          </div>
-        </FieldBlock>
-
-        <FieldBlock title="Družbena omrežja" defaultOpen={false}>
-          <div className="flex justify-end">
-            <Button type="button" variant="primary" size="toolbar" className={`${adminTablePrimaryButtonClassName} !h-8 !px-2.5`} onClick={addSocialLink}>
-              <Plus className="h-4 w-4" />
-              Dodaj
-            </Button>
-          </div>
-          <div className="grid gap-2">
-            {config.footer.socialLinks.map((link) => (
-              <div key={link.id} className="grid min-w-0 gap-2">
-                <select value={link.type} onChange={(event) => updateSocialLink(link.id, { type: event.target.value as HomepageFooterSocialLink['type'] })} className={inputClassName}>
-                  {HOMEPAGE_SOCIAL_TYPES.map((type) => (
-                    <option key={type} value={type}>{homepageSocialTypeLabels[type]}</option>
-                  ))}
-                </select>
-                <Input value={link.label} onChange={(event) => updateSocialLink(link.id, { label: event.target.value })} className={inputClassName} placeholder="Oznaka" />
-                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_36px] gap-2">
-                  <Input value={link.href} onChange={(event) => updateSocialLink(link.id, { href: event.target.value })} className={inputClassName} placeholder="https://..." />
-                  <SmallIconButton label="Odstrani profil" tone="danger" onClick={() => deleteSocialLink(link.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </SmallIconButton>
-                </div>
-              </div>
-            ))}
-          </div>
-        </FieldBlock>
-
-        <FieldBlock title="Spodnja vrstica" defaultOpen={false}>
-          <TextField label="Copyright" value={config.footer.copyright} onChange={(copyright) => updateFooter({ copyright })} />
-          <div className="grid gap-2">
-            {config.footer.legalLinks.map((link) => (
-              <div key={link.id} className="grid min-w-0 gap-2">
-                <Input value={link.label} onChange={(event) => updateLegalLink(link.id, { label: event.target.value })} className={inputClassName} />
-                <Input value={link.href} onChange={(event) => updateLegalLink(link.id, { href: event.target.value })} className={inputClassName} />
-              </div>
-            ))}
-          </div>
-        </FieldBlock>
       </div>
     );
   }
 
   function renderSelectedSectionSettings() {
     return (
-      <div className="space-y-3">
-        <div className="border-t border-slate-200 pt-4">
-          <h2 className="text-[13px] font-semibold text-slate-900">Uredi sekcijo: {getSectionLabel(selectedSectionId)}</h2>
-        </div>
+      <div className="space-y-2">
         {selectedSectionId === 'hero' ? renderHeroSettings() : null}
         {selectedSectionId === 'categories' ? renderCategorySettings() : null}
         {selectedSectionId === 'infoBlocks' ? renderInfoSettings() : null}
@@ -1806,21 +3364,302 @@ function AdminLandingPageClient({
 
   function renderPageSettings() {
     return (
-      <div className="space-y-3">
-        <FieldBlock title="Stran">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-2">
+        <FieldBlock title="Splošno">
+          <div className="grid gap-1">
             <SelectField label="Širina vsebine" value={pageViewSettings.containerWidth} options={createOptions(HOMEPAGE_CONTAINER_WIDTHS, homepageContainerWidthLabels)} onChange={(containerWidth) => updatePageView({ containerWidth })} />
             <SelectField label="Razmik sekcij" value={pageViewSettings.sectionSpacing} options={createOptions(HOMEPAGE_SECTION_SPACINGS, homepageSectionSpacingLabels)} onChange={(sectionSpacing) => updatePageView({ sectionSpacing })} />
             <SelectField label="Zaobljenost" value={pageViewSettings.sectionRadius} options={createOptions(HOMEPAGE_SECTION_RADII, homepageSectionRadiusLabels)} onChange={(sectionRadius) => updatePageView({ sectionRadius })} />
             <SelectField label="Slog gumbov" value={config.page.buttonStyle} options={createOptions(HOMEPAGE_BUTTON_STYLES, homepageButtonStyleLabels)} onChange={(buttonStyle) => updatePage({ buttonStyle })} />
           </div>
-          <TextField label="Barva ozadja" value={config.page.backgroundColor} onChange={(backgroundColor) => updatePage({ backgroundColor })} placeholder="#ffffff" />
+          <ColorField label="Barva ozadja" value={config.page.backgroundColor} onChange={(backgroundColor) => updatePage({ backgroundColor })} />
         </FieldBlock>
-        <FieldBlock title="Povzetek vidnosti">
-          <p className="text-[12px] leading-5 text-slate-600">{sectionVisibilitySummary}</p>
+        <FieldBlock title="Vidnost">
+          <p className="rounded-lg bg-slate-50/80 px-2.5 py-2 text-[11px] leading-5 text-slate-600">{sectionVisibilitySummary}</p>
         </FieldBlock>
       </div>
     );
+  }
+
+  function renderSectionStructure() {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] leading-4 text-slate-500">Izberi, preimenuj ali prerazporedi sekcije. Izbrano sekcijo lahko premikaš tudi neposredno v predogledu.</p>
+          <div className="relative shrink-0">
+            <ToolbarButton label="Dodaj sekcijo" disabled={availableSectionIds.length === 0} active={addSectionMenuOpen} onClick={() => setAddSectionMenuOpen((open) => !open)}>
+              <Plus className="h-4 w-4" />
+            </ToolbarButton>
+            {addSectionMenuOpen ? (
+              <div className={classNames(floatingSurfaceClassName, 'absolute right-0 top-9 z-30 w-56 overflow-hidden p-1')}>
+                {availableSectionIds.map((sectionId) => (
+                  <button key={sectionId} type="button" className={`flex w-full items-center justify-between gap-3 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`} onClick={() => addSection(sectionId)}>
+                    {resolveHomepageSectionLabel(sectionId, config.sectionTitles)}
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DndContext id="homepage-sections-popover" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+          <SortableContext items={sectionIds} strategy={verticalListSortingStrategy}>
+            <div className="grid gap-1.5">
+              {config.sectionOrder.map((sectionId, index) => (
+                <SortableSectionRow
+                  key={sectionId}
+                  sectionId={sectionId}
+                  index={index}
+                  label={getSectionLabel(sectionId)}
+                  selected={selectedElementId === `section:${sectionId}`}
+                  visible={isSectionVisible(sectionId)}
+                  canDelete={config.sectionOrder.length > 1}
+                  menuOpen={openSectionMenuId === sectionId}
+                  renaming={renamingSectionId === sectionId}
+                  renameValue={renamingSectionId === sectionId ? sectionRenameValue : getSectionLabel(sectionId)}
+                  onSelect={() => selectCanvasElement(`section:${sectionId}`)}
+                  onToggleVisibility={() => setSectionVisible(sectionId, !isSectionVisible(sectionId))}
+                  onDelete={() => deleteSection(sectionId)}
+                  onToggleMenu={() => {
+                    setRenamingSectionId(null);
+                    setOpenSectionMenuId((current) => current === sectionId ? null : sectionId);
+                  }}
+                  onStartRename={() => startSectionRename(sectionId)}
+                  onRenameValueChange={setSectionRenameValue}
+                  onRenameCommit={() => commitSectionRename(sectionId)}
+                  onRenameCancel={cancelSectionRename}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
+    );
+  }
+
+  function renderCategoryTitleScopeControl() {
+    if (!selectedIsCategoryTitle) return null;
+
+    const scopeOptions: Array<{ value: CategoryTitleEditScope; label: string; testId: string }> = [
+      { value: 'all', label: 'Vsa imena', testId: 'homepage-category-title-scope-all' },
+      { value: 'selected', label: 'Samo izbrano', testId: 'homepage-category-title-scope-selected' }
+    ];
+
+    return (
+      <div
+        className="rounded-xl bg-slate-50/80 p-2.5"
+        role="group"
+        aria-label="Obseg urejanja imen kategorij"
+        data-testid="homepage-category-title-scope"
+      >
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-[12px] font-semibold text-slate-800">Uporabi za</span>
+          <span className="text-[11px] font-medium text-slate-500">{selectedViewLabel}</span>
+        </div>
+        <div className={`${segmentedControlClassName} grid grid-cols-2`}>
+          {scopeOptions.map((option) => {
+            const active = categoryTitleEditScope === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={active}
+                data-testid={option.testId}
+                data-category-label-scope={option.value}
+                className={classNames(
+                  `h-8 rounded-md px-2.5 text-[12px] font-semibold transition ${adminControlFocusTokenClasses}`,
+                  active
+                    ? 'bg-white text-[color:var(--blue-600)] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                )}
+                onClick={() => setCategoryTitleEditScope(option.value)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[11px] leading-4 text-slate-500">
+          Imena ostanejo vezana na Kategorije; tukaj urejaš samo njihov videz in postavitev.
+        </p>
+      </div>
+    );
+  }
+
+  function renderStyleControls() {
+    return (
+      <div className="space-y-2.5">
+        {renderCategoryTitleScopeControl()}
+        <div className="grid gap-1">
+          <label className={inspectorFieldRowClassName}>
+            <span className={labelClassName}>Pisava</span>
+            <SelectControl<HomepageHeroFontFamily>
+              value={selectedCanvasStyle.fontFamily as HomepageHeroFontFamily}
+              options={HOMEPAGE_HERO_FONT_FAMILIES.map((font) => ({ value: font, label: getWebsiteFontFamilyLabel(font) }))}
+              ariaLabel="Pisava"
+              onChange={(fontFamily) => {
+                if (selectedTypography) updateSelectedTypography({ fontFamily });
+                if (selectedElementId) updateCanvasElementStyle(selectedElementId, { fontFamily });
+              }}
+            />
+          </label>
+          <NumberField
+            label="Velikost"
+            value={selectedCanvasStyle.fontSizePx}
+            onChange={(fontSizePx) => {
+              if (selectedTypography) updateSelectedTypography({ fontSizePx });
+              if (selectedElementId) updateCanvasElementStyle(selectedElementId, { fontSizePx });
+            }}
+            min={8}
+            max={240}
+            suffix="px"
+          />
+        </div>
+        <div className={segmentedControlClassName}>
+          <ToolbarButton label="Krepko" active={selectedCanvasStyle.fontWeight >= 600} pressed={selectedCanvasStyle.fontWeight >= 600} onClick={() => {
+            const bold = selectedCanvasStyle.fontWeight < 600;
+            if (selectedTypography) updateSelectedTypography({ bold });
+            if (selectedElementId) updateCanvasElementStyle(selectedElementId, { fontWeight: bold ? 700 : 400 });
+          }}><Bold className="h-4 w-4" /></ToolbarButton>
+          {selectedTypography ? <ToolbarButton label="Ležeče" active={selectedTypography.italic} pressed={selectedTypography.italic} onClick={() => updateSelectedTypography({ italic: !selectedTypography.italic })}><Italic className="h-4 w-4" /></ToolbarButton> : null}
+          {selectedTypography ? <ToolbarButton label="Podčrtano" active={selectedTypography.underline} pressed={selectedTypography.underline} onClick={() => updateSelectedTypography({ underline: !selectedTypography.underline })}><Underline className="h-4 w-4" /></ToolbarButton> : null}
+          <ToolbarDivider />
+          <ToolbarButton label="Poravnaj levo" active={selectedCanvasStyle.textAlign === 'left'} pressed={selectedCanvasStyle.textAlign === 'left'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'left' })}><AlignLeft className="h-4 w-4" /></ToolbarButton>
+          <ToolbarButton label="Poravnaj na sredino" active={selectedCanvasStyle.textAlign === 'center'} pressed={selectedCanvasStyle.textAlign === 'center'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'center' })}><AlignCenter className="h-4 w-4" /></ToolbarButton>
+          <ToolbarButton label="Poravnaj desno" active={selectedCanvasStyle.textAlign === 'right'} pressed={selectedCanvasStyle.textAlign === 'right'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'right' })}><AlignRight className="h-4 w-4" /></ToolbarButton>
+        </div>
+        <div className="grid gap-1">
+          <ColorField
+            label="Barva"
+            value={selectedCanvasStyle.color || (
+              selectedElementId === 'categories:subtitle'
+                ? '#536070'
+                : selectedIsCategoryText || selectedElementId === 'footer:description'
+                  ? '#111827'
+                  : '#ffffff'
+            )}
+            onChange={(color) => selectedElementId && updateCanvasElementStyle(selectedElementId, { color })}
+          />
+          <NumberField label="Debelina" value={selectedCanvasStyle.fontWeight} onChange={(fontWeight) => selectedElementId && updateCanvasElementStyle(selectedElementId, { fontWeight })} min={100} max={900} step={100} />
+          <NumberField label="Višina vrstice" value={selectedCanvasStyle.lineHeight} onChange={(lineHeight) => selectedElementId && updateCanvasElementStyle(selectedElementId, { lineHeight })} min={0.5} max={4} step={0.05} />
+          <NumberField label="Razmik črk" value={selectedCanvasStyle.letterSpacingPx} onChange={(letterSpacingPx) => selectedElementId && updateCanvasElementStyle(selectedElementId, { letterSpacingPx })} min={-10} max={40} step={0.25} suffix="px" />
+        </div>
+      </div>
+    );
+  }
+
+  function renderLayoutControls() {
+    return (
+      <div className="space-y-2.5">
+        {renderCategoryTitleScopeControl()}
+        <p className="text-[11px] leading-4 text-slate-500">Vrednost 0 pomeni samodejno velikost. Ročico v spodnjem desnem kotu izbranega elementa lahko povlečeš neposredno.</p>
+        {selectedPosition ? (
+          <div className="rounded-xl bg-slate-50/80 p-2.5">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-[12px] font-semibold text-slate-800">Položaj</span>
+              <button type="button" className="text-[11px] font-semibold text-[color:var(--blue-600)] hover:text-[color:var(--blue-700)]" onClick={() => updateSelectedPosition({ xPx: 0, yPx: 0 })}>Ponastavi</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <NumberField label="X" value={selectedPosition.xPx} onChange={(xPx) => updateSelectedPosition({ xPx })} min={-200} max={HOMEPAGE_PREVIEW_PROFILES[previewDevice].viewportWidth - 48} suffix="px" />
+              <NumberField
+                label="Y"
+                value={selectedPosition.yPx}
+                onChange={(yPx) => updateSelectedPosition({ yPx })}
+                min={-900}
+                max={selectedElementId?.startsWith('hero:') ? heroViewSettings.heightPx - 24 : 1200}
+                suffix="px"
+              />
+            </div>
+          </div>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Širina" value={selectedCanvasStyle.widthPx} onChange={(widthPx) => selectedElementId && updateCanvasElementStyle(selectedElementId, { widthPx })} min={0} max={1440} suffix="px" />
+          <NumberField label="Višina" value={selectedCanvasStyle.heightPx} onChange={(heightPx) => selectedElementId && updateCanvasElementStyle(selectedElementId, { heightPx })} min={0} max={900} suffix="px" />
+        </div>
+        <div>
+          <span className={labelClassName}>Poravnava elementa</span>
+          <div className={`mt-1.5 ${segmentedControlClassName}`}>
+            <ToolbarButton label="Levo" active={selectedCanvasStyle.horizontalAlign === 'left'} pressed={selectedCanvasStyle.horizontalAlign === 'left'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'left' })}><AlignLeft className="h-4 w-4" /></ToolbarButton>
+            <ToolbarButton label="Sredina" active={selectedCanvasStyle.horizontalAlign === 'center'} pressed={selectedCanvasStyle.horizontalAlign === 'center'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'center' })}><AlignCenter className="h-4 w-4" /></ToolbarButton>
+            <ToolbarButton label="Desno" active={selectedCanvasStyle.horizontalAlign === 'right'} pressed={selectedCanvasStyle.horizontalAlign === 'right'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'right' })}><AlignRight className="h-4 w-4" /></ToolbarButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSpacingControls() {
+    const paddingFields: Array<[string, keyof HomepageCanvasElementDeviceSettings]> = [['Zgoraj', 'paddingTopPx'], ['Desno', 'paddingRightPx'], ['Spodaj', 'paddingBottomPx'], ['Levo', 'paddingLeftPx']];
+    const marginFields: Array<[string, keyof HomepageCanvasElementDeviceSettings]> = [['Zgoraj', 'marginTopPx'], ['Desno', 'marginRightPx'], ['Spodaj', 'marginBottomPx'], ['Levo', 'marginLeftPx']];
+    return (
+      <div className="space-y-4">
+        {renderCategoryTitleScopeControl()}
+        <div>
+          <h3 className="mb-2 text-[12px] font-semibold text-slate-800">Notranji odmik</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {paddingFields.map(([label, key]) => <NumberField key={key} label={label} value={selectedCanvasStyle[key] as number} onChange={(value) => selectedElementId && updateCanvasElementStyle(selectedElementId, { [key]: value })} min={0} max={240} suffix="px" />)}
+          </div>
+        </div>
+        <div className="border-t border-slate-100 pt-3">
+          <h3 className="mb-2 text-[12px] font-semibold text-slate-800">Zunanji razmik</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {marginFields.map(([label, key]) => <NumberField key={key} label={label} value={selectedCanvasStyle[key] as number} onChange={(value) => selectedElementId && updateCanvasElementStyle(selectedElementId, { [key]: value })} min={-240} max={480} suffix="px" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderViewControls() {
+    return (
+      <div className="space-y-0.5">
+        <ToggleRow label="Mreža" description="Prikaži pomožno mrežo v trenutnem pogledu." checked={editorOptions.grid} onChange={(grid) => updateEditorOptions({ grid })} />
+        <NumberField label="Korak mreže" value={editorOptions.gridSize} onChange={(gridSize) => updateEditorOptions({ gridSize })} min={2} max={64} suffix="px" />
+        <ToggleRow label="Pripni na mrežo" checked={editorOptions.snapToGrid} onChange={(snapToGrid) => updateEditorOptions({ snapToGrid })} />
+        <ToggleRow label="Pripni na elemente" checked={editorOptions.snapToElements} onChange={(snapToElements) => updateEditorOptions({ snapToElements })} />
+        <ToggleRow label="Vodila" description="Vodila se poudarijo med premikanjem." checked={editorOptions.guides} onChange={(guides) => updateEditorOptions({ guides })} />
+        <ToggleRow label="Ravnila" checked={editorOptions.rulers} onChange={(rulers) => updateEditorOptions({ rulers })} />
+        <ToggleRow label="Meritve" description="Razdalje do robov in najbližjega elementa." checked={editorOptions.measurements} onChange={(measurements) => updateEditorOptions({ measurements })} />
+      </div>
+    );
+  }
+
+  function renderActiveToolbarPopover() {
+    if (!activeToolbarPopover) return null;
+    const close = () => setActiveToolbarPopover(null);
+    if (activeToolbarPopover === 'create') return (
+      <ToolbarPopoverPanel title="Dodaj v predogled" description="Novi prosti elementi se dodajo v hero sekcijo in imajo ločeno postavitev za vsak pogled." onClose={close}>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-slate-50/80 p-2.5 text-left text-[12px] font-medium text-slate-700 transition hover:bg-[color:var(--blue-50)] hover:text-[color:var(--blue-700)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('text')}><Plus className="h-4 w-4" />Besedilo</button>
+          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-slate-50/80 p-2.5 text-left text-[12px] font-medium text-slate-700 transition hover:bg-[color:var(--blue-50)] hover:text-[color:var(--blue-700)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('button')}><Plus className="h-4 w-4" />Gumb</button>
+        </div>
+        {availableSectionIds.length > 0 ? <div className="mt-2 pt-2"><p className="mb-1 px-2 text-[11px] font-medium text-slate-500">Sekcije</p><div className="grid gap-0.5">{availableSectionIds.map((sectionId) => <button key={sectionId} type="button" className={`flex items-center justify-between rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`} onClick={() => addSection(sectionId)}>{getSectionLabel(sectionId)}<Plus className="h-3.5 w-3.5" /></button>)}</div></div> : null}
+      </ToolbarPopoverPanel>
+    );
+    if (activeToolbarPopover === 'structure') return <ToolbarPopoverPanel title="Struktura strani" description="Sekcije niso več stalno prikazane ob predogledu." onClose={close}>{renderSectionStructure()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'section') return <ToolbarPopoverPanel title={`Nastavitve · ${getSectionLabel(selectedSectionId)}`} description={`Odzivne nastavitve za pogled ${selectedViewLabel}.`} onClose={close} wide>{renderSelectedSectionSettings()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'page') return <ToolbarPopoverPanel title="Nastavitve strani" description={`Nastavitve glavne strani za pogled ${selectedViewLabel}.`} onClose={close}>{renderPageSettings()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'style') return <ToolbarPopoverPanel title={`Besedilo · ${selectedEditTargetLabel}`} description={`Slog za pogled ${selectedViewLabel}.`} onClose={close}>{renderStyleControls()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'layout') return <ToolbarPopoverPanel title={`Mere in poravnava · ${selectedEditTargetLabel}`} onClose={close}>{renderLayoutControls()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'spacing') return <ToolbarPopoverPanel title={`Razmiki · ${selectedEditTargetLabel}`} onClose={close}>{renderSpacingControls()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'link') return <ToolbarPopoverPanel title={`Povezava · ${selectedElementLabel}`} onClose={close}><TextField label="Cilj povezave" value={selectedElementLink()} onChange={updateSelectedElementLink} placeholder="/povezava ali https://..." /></ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'media' && selectedCategoryMediaItem) return (
+      <ToolbarPopoverPanel title={`Slika · ${selectedCategoryMediaItem.title}`} description="Iste nastavitve slike se uporabljajo v obeh urednikih in na javni strani." onClose={close}>
+        <CategoryShowcaseEditor
+          context="homepage"
+          capabilities={CATEGORY_SHOWCASE_HOMEPAGE_CAPABILITIES}
+          selectedItem={selectedCategoryMediaItem}
+          controlsClassName="w-full border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+          onPresentationChange={(updates) => categoryShowcaseEditor.updatePresentation(selectedCategoryMediaItem.slug, updates)}
+          onImageChange={(file) => replaceCategoryImage(selectedCategoryMediaItem.slug, file)}
+          onImageRemove={() => removeCategoryImage(selectedCategoryMediaItem.slug)}
+          onReset={() => categoryShowcaseEditor.resetPresentation(selectedCategoryMediaItem.slug)}
+        >
+          {null}
+        </CategoryShowcaseEditor>
+      </ToolbarPopoverPanel>
+    );
+    return <ToolbarPopoverPanel title={`Mreža in vodila · ${selectedViewLabel}`} description="Nastavitve veljajo samo za trenutno uredniško platno." onClose={close}>{renderViewControls()}</ToolbarPopoverPanel>;
   }
 
   return (
@@ -1849,138 +3688,176 @@ function AdminLandingPageClient({
       />
       <AdminPodobaTabs />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <main className="min-w-0 space-y-3">
-          <div className={`${panelClassName} overflow-hidden`}>
-            <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-              <div className="flex items-center gap-2">
-                {HOMEPAGE_PREVIEW_DEVICES.map((device) => (
-                  <button
-                    key={device}
-                    type="button"
-                    onClick={() => setPreviewDevice(device)}
-                    className={classNames(
-                      `inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses}`,
-                      previewDevice === device ? 'text-[color:var(--blue-500)]' : 'text-slate-500 hover:text-[color:var(--blue-500)]'
-                    )}
-                  >
-                    <PreviewDeviceIcon device={device} />
-                    {homepagePreviewDeviceLabels[device]}
-                  </button>
-                ))}
+      <main className="min-w-0">
+        <div className={`${panelClassName} overflow-visible`}>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 px-4 py-3">
+            <div
+              className="flex shrink-0 items-center gap-2"
+              role="group"
+              aria-label="Odzivni predogled"
+              data-homepage-preview-controls
+            >
+              {HOMEPAGE_PREVIEW_DEVICES.map((device) => (
+                <button
+                  key={device}
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => setPreviewDevice(device)}
+                  aria-pressed={previewDevice === device}
+                  className={classNames(
+                    `inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses}`,
+                    previewDevice === device
+                      ? 'text-[color:var(--blue-500)]'
+                      : 'text-slate-500 hover:text-[color:var(--blue-500)]'
+                  )}
+                >
+                  <PreviewDeviceIcon device={device} />
+                  {homepagePreviewDeviceLabels[device]}
+                </button>
+              ))}
+            </div>
+
+            <span className="hidden lg:block"><ToolbarDivider /></span>
+
+            <div
+              ref={toolbarRef}
+              className="relative min-w-0 flex-1 max-lg:w-full max-lg:flex-none"
+              data-testid="homepage-context-toolbar"
+              data-selected-element-id={selectedElementId ?? ''}
+              role="toolbar"
+              aria-label="Orodna vrstica predogleda"
+            >
+              <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="mr-1 inline-flex h-7 max-w-40 shrink-0 items-center gap-1.5 rounded-lg bg-slate-100/70 px-2 text-[11px] font-medium text-slate-600" title={selectedElementLabel}>
+                <MousePointer2 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{selectedElementLabel}</span>
+              </span>
+
+              <ToolbarButton label="Dodaj besedilo, gumb ali sekcijo" active={activeToolbarPopover === 'create'} popover onClick={() => toggleToolbarPopover('create')} testId="homepage-toolbar-add">
+                <Plus className="h-4 w-4" />
+              </ToolbarButton>
+
+              {!selectedElementId ? (
+                <>
+                  <ToolbarButton label="Struktura strani" active={activeToolbarPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure')}>
+                    <Layers3 className="h-4 w-4" />
+                  </ToolbarButton>
+                  <ToolbarButton label="Nastavitve strani" active={activeToolbarPopover === 'page'} popover onClick={() => toggleToolbarPopover('page')}>
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </ToolbarButton>
+                  <ToolbarButton label="Mreža, pripenjanje in vodila" active={activeToolbarPopover === 'view'} popover onClick={() => toggleToolbarPopover('view')}>
+                    <Grid3X3 className="h-4 w-4" />
+                  </ToolbarButton>
+                </>
+              ) : (
+                <>
+                  <ToolbarDivider />
+                  <ToolbarButton label="Počisti izbor" onClick={() => selectCanvasElement(null)}>
+                    <MousePointer2 className="h-4 w-4" />
+                  </ToolbarButton>
+                  {!selectedCategoryMediaItem ? (
+                    <ToolbarButton label="Podvoji" disabled={selectedIsSection || selectedIsFixedFooterElement || selectedIsCategoryElement} onClick={duplicateSelectedElement}>
+                      <Copy className="h-4 w-4" />
+                    </ToolbarButton>
+                  ) : null}
+                  {!selectedCategoryMediaItem ? (
+                    <ToolbarButton label={selectedEffectiveVisible ? 'Skrij' : 'Prikaži'} onClick={toggleSelectedVisibility}>
+                      {selectedEffectiveVisible ? <Eye className="h-4 w-4" /> : <EyeClosed className="h-4 w-4" />}
+                    </ToolbarButton>
+                  ) : null}
+                  <ToolbarButton label={selectedCategoryMediaItem ? 'Odstrani sliko' : 'Izbriši'} danger onClick={deleteSelectedElement}>
+                    <Trash2 className="h-4 w-4" />
+                  </ToolbarButton>
+
+                  <ToolbarDivider />
+
+                  {selectedIsSection ? (
+                    <>
+                      <ToolbarButton label="Nastavitve sekcije" active={activeToolbarPopover === 'section'} popover onClick={() => toggleToolbarPopover('section')}>
+                        <SlidersHorizontal className="h-4 w-4" />
+                      </ToolbarButton>
+                      <ToolbarButton label="Struktura in vrstni red sekcij" active={activeToolbarPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure')}>
+                        <Layers3 className="h-4 w-4" />
+                      </ToolbarButton>
+                    </>
+                  ) : (
+                    <>
+                      {selectedCategoryMediaItem ? (
+                        <ToolbarButton label="Obrez, fokus in postavitev slike" active={activeToolbarPopover === 'media'} popover onClick={() => toggleToolbarPopover('media')}>
+                          <SlidersHorizontal className="h-4 w-4" />
+                        </ToolbarButton>
+                      ) : (
+                        <>
+                          {selectedIsText || selectedIsButton ? (
+                            <ToolbarButton label="Slog besedila" active={activeToolbarPopover === 'style'} popover onClick={() => toggleToolbarPopover('style')}>
+                              <Bold className="h-4 w-4" />
+                            </ToolbarButton>
+                          ) : null}
+                          <ToolbarButton label="Mere in poravnava" active={activeToolbarPopover === 'layout'} popover onClick={() => toggleToolbarPopover('layout')}>
+                            <Maximize2 className="h-4 w-4" />
+                          </ToolbarButton>
+                          <ToolbarButton label="Notranji in zunanji razmiki" active={activeToolbarPopover === 'spacing'} popover onClick={() => toggleToolbarPopover('spacing')}>
+                            <SquareDashed className="h-4 w-4" />
+                          </ToolbarButton>
+                          <ToolbarButton label="Premakni plast nazaj" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex - 1 })}>
+                            <ArrowDown className="h-4 w-4" />
+                          </ToolbarButton>
+                          <ToolbarButton label="Premakni plast naprej" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex + 1 })}>
+                            <ArrowUp className="h-4 w-4" />
+                          </ToolbarButton>
+                          <ToolbarButton label={selectedCanvasStyle.locked ? 'Odkleni položaj' : 'Zakleni položaj'} active={selectedCanvasStyle.locked} pressed={selectedCanvasStyle.locked} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { locked: !selectedCanvasStyle.locked })}>
+                            {selectedCanvasStyle.locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                          </ToolbarButton>
+                          {selectedCanLink ? (
+                            <ToolbarButton label="Nastavitve povezave" active={activeToolbarPopover === 'link'} popover onClick={() => toggleToolbarPopover('link')}>
+                              <LinkIcon className="h-4 w-4" />
+                            </ToolbarButton>
+                          ) : null}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  <ToolbarDivider />
+                  <ToolbarButton label="Mreža, pripenjanje in vodila" active={activeToolbarPopover === 'view'} popover onClick={() => toggleToolbarPopover('view')}>
+                    {editorOptions.snapToGrid || editorOptions.snapToElements ? <Magnet className="h-4 w-4" /> : editorOptions.rulers ? <Ruler className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+                  </ToolbarButton>
+                </>
+              )}
+
               </div>
-            </div>
-            <div className="mx-4 h-px bg-slate-200" />
-            <div className="overflow-auto p-4">
-              <ScaledHomepagePreview
-                device={previewDevice}
-                settings={config}
-                categories={categories}
-                navigation={navigation}
-                selectedSectionId={selectedSectionId}
-                onSelectSection={(sectionId) => {
-                  setSelectedSectionId(sectionId);
-                  setPanelTab('sections');
-                }}
-                onHeroTextPositionChange={(updates) => updateHeroView(updates)}
-                onHeroTextContentChange={(updates) => updateHero(updates)}
-                onHeroTypographyChange={(updates) => updateHeroView(updates)}
-                onHeroTextBlockAdd={addHeroTextBlock}
-                onHeroTextBlockChange={updateHeroTextBlock}
-                onHeroMediaFocus={focusHeroEditor}
-                onHeroSettingsFocus={focusHeroEditor}
-              />
+              {renderActiveToolbarPopover()}
             </div>
           </div>
-        </main>
 
-        <aside className="min-w-0 xl:sticky xl:top-5 xl:self-start">
-          <div className={`${panelClassName} overflow-hidden`}>
-            <div className="px-3 pt-3">
-              <EuiTabs
-                value={panelTab}
-                onChange={(value) => setPanelTab(value as PanelTab)}
-                tabs={[
-                  { value: 'sections', label: 'Sekcije' },
-                  { value: 'page', label: 'Nastavitve strani' }
-                ]}
-                surface="panel"
-              />
-            </div>
-
-            <div className={`${panelInnerClassName} max-h-[calc(100vh-180px)] overflow-x-hidden overflow-y-auto`}>
-              {panelTab === 'sections' ? (
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <h2 className="text-[13px] font-semibold text-slate-900">Sekcije</h2>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          aria-label="Dodaj sekcijo"
-                          title={availableSectionIds.length > 0 ? 'Dodaj sekcijo' : 'Vse sekcije so že dodane'}
-                          disabled={availableSectionIds.length === 0}
-                          onClick={() => setAddSectionMenuOpen((open) => !open)}
-                          className={adminTableNeutralIconButtonClassName}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                        {addSectionMenuOpen ? (
-                          <div className="absolute right-0 top-9 z-30 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-                            {availableSectionIds.map((sectionId) => (
-                              <button
-                                key={sectionId}
-                                type="button"
-                                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[12px] font-medium text-slate-700 transition hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]"
-                                onClick={() => addSection(sectionId)}
-                              >
-                                <span>{resolveHomepageSectionLabel(sectionId, config.sectionTitles)}</span>
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <DndContext id="homepage-sections" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-                      <SortableContext items={sectionIds} strategy={verticalListSortingStrategy}>
-                        <div className="grid gap-1.5">
-                          {config.sectionOrder.map((sectionId, index) => (
-                            <SortableSectionRow
-                              key={sectionId}
-                              sectionId={sectionId}
-                              index={index}
-                              label={getSectionLabel(sectionId)}
-                              selected={selectedSectionId === sectionId}
-                              visible={isSectionVisible(sectionId)}
-                              canDelete={config.sectionOrder.length > 1}
-                              menuOpen={openSectionMenuId === sectionId}
-                              renaming={renamingSectionId === sectionId}
-                              renameValue={renamingSectionId === sectionId ? sectionRenameValue : getSectionLabel(sectionId)}
-                              onSelect={() => setSelectedSectionId(sectionId)}
-                              onToggleVisibility={() => setSectionVisible(sectionId, !isSectionVisible(sectionId))}
-                              onDelete={() => deleteSection(sectionId)}
-                              onToggleMenu={() => {
-                                setRenamingSectionId(null);
-                                setOpenSectionMenuId((current) => current === sectionId ? null : sectionId);
-                              }}
-                              onStartRename={() => startSectionRename(sectionId)}
-                              onRenameValueChange={setSectionRenameValue}
-                              onRenameCommit={() => commitSectionRename(sectionId)}
-                              onRenameCancel={cancelSectionRename}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  </div>
-                  {renderSelectedSectionSettings()}
-                </div>
-              ) : renderPageSettings()}
-            </div>
+          <div className="mx-4 h-px bg-slate-200" />
+          <div className="overflow-x-clip p-4">
+            <ScaledHomepagePreview
+              selectedViewport={previewDevice}
+              settings={config}
+              categories={categoryShowcaseEditor.items}
+              navigation={previewNavigation}
+              selectedSectionId={selectedSectionId}
+              selectedElementId={selectedElementId}
+              onSelectSection={(sectionId) => selectCanvasElement(`section:${sectionId}`)}
+              onSelectElement={selectCanvasElement}
+              onHeroTextPositionChange={updateHeroViewForDevice}
+              onHeroTextContentChange={(updates) => updateHero(updates)}
+              onHeroTextBlockChange={updateHeroTextBlock}
+              onFooterDescriptionChange={setFooterDescription}
+              onCategoryTextChange={updateCategories}
+              onCategoryImageChange={replaceCategoryImage}
+              onCategoryImageRemove={removeCategoryImage}
+              onCategoryPresentationChange={categoryShowcaseEditor.updatePresentation}
+              onCategoryMove={moveCategory}
+              onCanvasElementStyleChange={updateCanvasElementStyleFromPreview}
+              onMoveSection={moveSection}
+              editorOptionsByDevice={editorOptionsByDevice}
+            />
           </div>
-        </aside>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -31,7 +31,17 @@ const SITE_NAVIGATION_CACHE_TAG = 'site-navigation-config';
 
 let siteNavigationTableReadyPromise: Promise<void> | null = null;
 
-type SiteNavigationEntityKind = 'topLevel' | 'group' | 'link' | 'topBar';
+type SiteNavigationEntityKind =
+  | 'topLevel'
+  | 'group'
+  | 'link'
+  | 'footerColumn'
+  | 'footerLink'
+  | 'footerContact'
+  | 'footerSocialLink'
+  | 'footerLegalLink'
+  | 'footerSettings'
+  | 'topBar';
 type SiteNavigationDisplayAction = 'created' | 'updated' | 'deleted' | 'hidden' | 'shown' | 'reordered';
 type SiteNavigationAuditAction = 'created' | 'updated' | 'deleted' | 'reordered';
 
@@ -83,6 +93,12 @@ const navigationEntityLabels: Record<SiteNavigationEntityKind, string> = {
   topLevel: 'Element navigacije',
   group: 'Skupina',
   link: 'Povezava',
+  footerColumn: 'Stolpec v nogi',
+  footerLink: 'Povezava v nogi',
+  footerContact: 'Kontaktni podatki v nogi',
+  footerSocialLink: 'DruÅ¾beno omreÅ¾je v nogi',
+  footerLegalLink: 'Pravna povezava v nogi',
+  footerSettings: 'Nastavitve noge',
   topBar: 'Zgornja vrstica'
 };
 
@@ -108,7 +124,19 @@ const navigationFieldLabels: Record<string, string> = {
   label: 'Naziv',
   href: 'URL',
   description: 'Opis',
+  title: 'Naslov',
   icon: 'Ikona',
+  email: 'E-poÅ¡ta',
+  phone: 'Telefon',
+  address: 'Naslov',
+  workingHours: 'Delovni Äas',
+  type: 'Vrsta',
+  copyright: 'Copyright',
+  logoMode: 'Logotip',
+  logoText: 'Besedilo logotipa',
+  layoutColumns: 'Å tevilo stolpcev',
+  spacing: 'Odmik',
+  topBorder: 'Zgornja obroba',
   visible: 'Vidnost',
   desktopSpan: 'Širina',
   order: 'Vrstni red',
@@ -161,7 +189,15 @@ const topBarSettingAuditLabels: Record<string, string> = {
 
 function topBarAuditFieldLabel(field: string) {
   const match = /^(initialResponsive|responsive)\.([^.]+)\.(items|settings)\.([^.]+)(?:\.(.+))?$/.exec(field);
-  if (!match) return navigationFieldLabels[field] ?? field;
+  if (!match) {
+    const footerResponsiveMatch = /^footerResponsive\.([^.]+)\.([^.]+)$/.exec(field);
+    if (footerResponsiveMatch) {
+      const [, device, setting] = footerResponsiveMatch;
+      const deviceLabel = topBarDeviceAuditLabels[device as keyof typeof topBarDeviceAuditLabels] ?? device;
+      return `${deviceLabel}: ${navigationFieldLabels[setting] ?? setting}`;
+    }
+    return navigationFieldLabels[field] ?? field;
+  }
 
   const [, prefix, device, scope, key, property] = match;
   const deviceLabel = topBarDeviceAuditLabels[device as keyof typeof topBarDeviceAuditLabels] ?? device;
@@ -197,6 +233,7 @@ function visibleLabel(value: unknown) {
 
 function auditValueLabel(field: string, value: unknown) {
   if (value === null || value === undefined || value === '') return '';
+  if (field === 'topBorder' || field.endsWith('.topBorder')) return value === false ? 'Ne' : 'Da';
   if (field.includes('.visible') || field.endsWith('.cartBadge') || field.endsWith('.sticky') || field.endsWith('.shadow') || field.endsWith('.safeArea')) {
     return visibleLabel(value);
   }
@@ -340,6 +377,186 @@ function flatLink(item: SiteNavigationTopLevelItem, group: SiteNavigationGroup, 
   };
 }
 
+type SiteFooterSettings = SiteNavigationConfig['footer'];
+type SiteFooterColumn = SiteFooterSettings['columns'][number];
+type SiteFooterLink = SiteFooterColumn['links'][number];
+type SiteFooterSocialLink = SiteFooterSettings['socialLinks'][number];
+
+function footerLinkAuditId(columnId: string, linkId: string) {
+  return `${columnId}/${linkId}`;
+}
+
+function flatFooterColumn(column: SiteFooterColumn, includeOrder: boolean): SiteNavigationFlatEntity {
+  return {
+    key: auditEntityKey('footerColumn', column.id),
+    kind: 'footerColumn',
+    id: column.id,
+    label: column.title || 'Stolpec v nogi',
+    parentLabel: 'Noga',
+    values: {
+      title: column.title,
+      visible: column.visible !== false,
+      ...(includeOrder ? { order: (column.position ?? 0) + 1 } : {})
+    }
+  };
+}
+
+function flatFooterLink(column: SiteFooterColumn, link: SiteFooterLink, includeOrder: boolean): SiteNavigationFlatEntity {
+  const scopedId = footerLinkAuditId(column.id, link.id);
+  return {
+    key: auditEntityKey('footerLink', scopedId),
+    kind: 'footerLink',
+    id: link.id,
+    label: link.label || 'Povezava v nogi',
+    parentLabel: column.title || 'Noga',
+    values: {
+      label: link.label,
+      href: link.href,
+      visible: link.visible !== false,
+      ...(includeOrder ? { order: (link.position ?? 0) + 1 } : {})
+    }
+  };
+}
+
+function flatFooterContact(footer: SiteFooterSettings): SiteNavigationFlatEntity {
+  return {
+    key: auditEntityKey('footerContact', 'contact'),
+    kind: 'footerContact',
+    id: 'contact',
+    label: 'Kontakt',
+    parentLabel: 'Noga',
+    values: {
+      email: footer.contact.email,
+      phone: footer.contact.phone,
+      address: footer.contact.address,
+      workingHours: footer.contact.workingHours
+    }
+  };
+}
+
+function flatFooterSocialLink(link: SiteFooterSocialLink, includeOrder: boolean): SiteNavigationFlatEntity {
+  return {
+    key: auditEntityKey('footerSocialLink', link.id),
+    kind: 'footerSocialLink',
+    id: link.id,
+    label: link.label || 'DruÅ¾beno omreÅ¾je',
+    parentLabel: 'Noga / DruÅ¾bena omreÅ¾ja',
+    values: {
+      type: link.type,
+      label: link.label,
+      href: link.href,
+      visible: link.visible !== false,
+      ...(includeOrder ? { order: (link.position ?? 0) + 1 } : {})
+    }
+  };
+}
+
+function flatFooterLegalLink(link: SiteFooterSettings['legalLinks'][number], includeOrder: boolean): SiteNavigationFlatEntity {
+  return {
+    key: auditEntityKey('footerLegalLink', link.id),
+    kind: 'footerLegalLink',
+    id: link.id,
+    label: link.label || 'Pravna povezava',
+    parentLabel: 'Noga / Pravne povezave',
+    values: {
+      label: link.label,
+      href: link.href,
+      visible: link.visible !== false,
+      ...(includeOrder ? { order: (link.position ?? 0) + 1 } : {})
+    }
+  };
+}
+
+function flatFooterSettings(footer: SiteFooterSettings): SiteNavigationFlatEntity {
+  const values: Record<string, unknown> = {
+    visible: footer.visible,
+    logoMode: footer.logoMode,
+    logoText: footer.logoText,
+    description: footer.description,
+    copyright: footer.copyright,
+    layoutColumns: footer.layoutColumns,
+    spacing: footer.spacing,
+    topBorder: footer.topBorder
+  };
+
+  Object.entries(footer.responsive).forEach(([device, settings]) => {
+    Object.entries(settings).forEach(([key, value]) => {
+      values[`footerResponsive.${device}.${key}`] = value;
+    });
+  });
+
+  return {
+    key: auditEntityKey('footerSettings', 'settings'),
+    kind: 'footerSettings',
+    id: 'settings',
+    label: 'Noga spletnega mesta',
+    parentLabel: null,
+    values
+  };
+}
+
+function footerColumnIds(footer: SiteFooterSettings) {
+  return footer.columns.map((column) => column.id);
+}
+
+function footerSocialLinkIds(footer: SiteFooterSettings) {
+  return footer.socialLinks.map((link) => link.id);
+}
+
+function footerLegalLinkIds(footer: SiteFooterSettings) {
+  return footer.legalLinks.map((link) => link.id);
+}
+
+function footerNestedLinkIds(column: SiteFooterColumn) {
+  return column.links.map((link) => footerLinkAuditId(column.id, link.id));
+}
+
+function addFooterEntities(
+  entities: Map<string, SiteNavigationFlatEntity>,
+  config: SiteNavigationConfig,
+  reorderedIds: Set<string>
+) {
+  const settingsEntity = flatFooterSettings(config.footer);
+  entities.set(settingsEntity.key, settingsEntity);
+
+  const contactEntity = flatFooterContact(config.footer);
+  entities.set(contactEntity.key, contactEntity);
+
+  config.footer.columns.forEach((column) => {
+    const columnEntity = flatFooterColumn(
+      column,
+      reorderedIds.has(auditEntityKey('footerColumn', column.id))
+    );
+    entities.set(columnEntity.key, columnEntity);
+
+    column.links.forEach((link) => {
+      const scopedId = footerLinkAuditId(column.id, link.id);
+      const linkEntity = flatFooterLink(
+        column,
+        link,
+        reorderedIds.has(auditEntityKey('footerLink', scopedId))
+      );
+      entities.set(linkEntity.key, linkEntity);
+    });
+  });
+
+  config.footer.socialLinks.forEach((link) => {
+    const entity = flatFooterSocialLink(
+      link,
+      reorderedIds.has(auditEntityKey('footerSocialLink', link.id))
+    );
+    entities.set(entity.key, entity);
+  });
+
+  config.footer.legalLinks.forEach((link) => {
+    const entity = flatFooterLegalLink(
+      link,
+      reorderedIds.has(auditEntityKey('footerLegalLink', link.id))
+    );
+    entities.set(entity.key, entity);
+  });
+}
+
 function markReorderedIds(
   reorderedIds: Set<string>,
   kind: SiteNavigationEntityKind,
@@ -367,7 +584,6 @@ function collectReorderedIds(before: SiteNavigationConfig, after: SiteNavigation
     before.items.map((item) => item.id),
     after.items.map((item) => item.id)
   );
-
   const beforeItems = new Map(before.items.map((item) => [item.id, item]));
   after.items.forEach((afterItem) => {
     const beforeItem = beforeItems.get(afterItem.id);
@@ -393,6 +609,38 @@ function collectReorderedIds(before: SiteNavigationConfig, after: SiteNavigation
     });
   });
 
+  markReorderedIds(
+    reorderedIds,
+    'footerColumn',
+    footerColumnIds(before.footer),
+    footerColumnIds(after.footer)
+  );
+
+  const beforeFooterColumns = new Map(before.footer.columns.map((column) => [column.id, column]));
+  after.footer.columns.forEach((afterColumn) => {
+    const beforeColumn = beforeFooterColumns.get(afterColumn.id);
+    if (!beforeColumn) return;
+    markReorderedIds(
+      reorderedIds,
+      'footerLink',
+      footerNestedLinkIds(beforeColumn),
+      footerNestedLinkIds(afterColumn)
+    );
+  });
+
+  markReorderedIds(
+    reorderedIds,
+    'footerSocialLink',
+    footerSocialLinkIds(before.footer),
+    footerSocialLinkIds(after.footer)
+  );
+  markReorderedIds(
+    reorderedIds,
+    'footerLegalLink',
+    footerLegalLinkIds(before.footer),
+    footerLegalLinkIds(after.footer)
+  );
+
   return reorderedIds;
 }
 
@@ -416,6 +664,8 @@ function flattenNavigationConfig(config: SiteNavigationConfig, reorderedIds: Set
       });
     });
   });
+
+  addFooterEntities(entities, config, reorderedIds);
 
   return entities;
 }
@@ -556,6 +806,7 @@ function serializeStoredSiteNavigationConfig(config: SiteNavigationConfig) {
   return JSON.stringify({
     siteLayout: config.siteLayout,
     items: config.items,
+    footer: config.footer,
     topBarLayout: config.topBarLayout,
     topBarInitialLayout: config.topBarInitialLayout
   });
@@ -568,12 +819,32 @@ async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationCon
     [SITE_NAVIGATION_SETTINGS_KEY]
   );
   const row = result.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
+  const rawConfig = asRecord(row?.config_json);
+  const hasStoredRichFooter = typeof rawConfig.footer === 'object'
+    && rawConfig.footer !== null
+    && !Array.isArray(rawConfig.footer);
+  const config = row
+    ? normalizeSiteNavigationConfig(row.config_json)
+    : cloneDefaultSiteNavigationConfig();
 
-  if (!row) return cloneDefaultSiteNavigationConfig();
+  // Before the footer became part of navigation it lived in the landing-page
+  // record. Use that value as a one-time read fallback so existing contact and
+  // link customisations are not replaced during the schema transition. The next
+  // navigation save persists the rich footer in its canonical record.
+  if (!hasStoredRichFooter) {
+    try {
+      const { getLandingPageConfig } = await import('@/shared/server/landingPage');
+      config.footer = (await getLandingPageConfig()).footer;
+    } catch (error) {
+      if (!isDatabaseUnavailableError(error)) {
+        console.error('Failed to migrate legacy footer settings', error);
+      }
+    }
+  }
 
   return {
-    ...normalizeSiteNavigationConfig(row.config_json),
-    updatedAt: toIso(row.updated_at)
+    ...config,
+    updatedAt: toIso(row?.updated_at)
   };
 }
 
@@ -673,7 +944,7 @@ async function insertSiteNavigationAuditRows(client: PoolClient, rows: SiteNavig
 
 export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
   try {
-    return await getCachedSiteNavigationConfigFromDatabase();
+    return normalizeSiteNavigationConfig(await getCachedSiteNavigationConfigFromDatabase());
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) {
       console.error('Failed to load site navigation config', error);

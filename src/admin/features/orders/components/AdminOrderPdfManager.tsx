@@ -209,7 +209,7 @@ export default function AdminOrderPdfManager({
                                 [pdfType.key]: !previousState[pdfType.key]
                               }))
                             }
-                            className="font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]"
+                            className="border border-transparent font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
                             aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
                             aria-expanded={isExpanded}
                             aria-controls={`pdf-versions-${pdfType.key}`}

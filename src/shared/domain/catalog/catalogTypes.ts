@@ -1,3 +1,5 @@
+import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+
 export type CatalogItem = {
   slug: string;
   name: string;
@@ -32,6 +34,8 @@ export type CatalogCategory = {
   summary: string;
   description: string;
   image: string;
+  presentation: CategoryShowcaseMediaSettings;
+  revision?: string;
   adminNotes?: string;
   bannerImage?: string;
   subcategories: CatalogSubcategory[];

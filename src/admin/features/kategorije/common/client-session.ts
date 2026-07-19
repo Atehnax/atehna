@@ -13,6 +13,6 @@ export const setAdminCategoriesSessionPayload = (payload: AdminCategoriesPayload
   };
 };
 
-const clearAdminCategoriesSessionPayload = () => {
+export const clearAdminCategoriesSessionPayload = () => {
   cachedPayload = null;
 };

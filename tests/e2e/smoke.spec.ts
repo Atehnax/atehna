@@ -58,6 +58,14 @@ test('admin landing appearance route is accessible or protected', async ({ page 
   await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/glavna-stran');
 });
 
+test('admin logo route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/logotip');
+});
+
+test('admin global parameters route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/globalni-parametri');
+});
+
 test('admin podoba tabs put landing before navigation when loaded', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/glavna-stran');
 

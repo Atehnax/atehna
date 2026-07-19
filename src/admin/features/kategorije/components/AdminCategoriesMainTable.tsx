@@ -18,6 +18,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
+import { useCategoryShowcaseEditor, type CategoryShowcasePersistedUpdate } from '@/shared/features/category-showcase/useCategoryShowcaseEditor';
+import { cloneDefaultCategoryShowcaseMediaSettings, type CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import { publishCategoryDataChange, subscribeToCategoryDataChanges } from '@/shared/features/category-showcase/categoryShowcaseSync';
 import type {
   AdminCategoriesPayload,
   CatalogData,
@@ -62,7 +65,7 @@ import {
   updateSubcategoryTree,
   removeSubcategoryTree
 } from '../common/catalog-helpers';
-import { getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
+import { clearAdminCategoriesSessionPayload, getAdminCategoriesSessionPayload, setAdminCategoriesSessionPayload } from '../common/client-session';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -143,6 +146,10 @@ type CatalogRowSnapshot = {
   items: CatalogItem[];
   position: number;
   status: CategoryStatus;
+};
+
+type CatalogRowPatch = Omit<CatalogRowSnapshot, 'image'> & {
+  image?: string | null;
 };
 
 type PendingImageUpload = {
@@ -449,21 +456,49 @@ function buildCatalogPatchPayload(
 ) {
   const previousRows = flattenCatalogRows(previous, previousStatuses);
   const nextRows = flattenCatalogRows(next, statuses);
-  const upserts: CatalogRowSnapshot[] = [];
+  const upserts: CatalogRowPatch[] = [];
 
   nextRows.forEach((row, id) => {
     const previousRow = previousRows.get(id);
     if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
-      upserts.push(
-        row.image === '' && !!previousRow?.image
-          ? { ...row, image: null, removeImage: true }
-          : { ...row, removeImage: false }
-      );
+      const isExistingTopLevelCategory = row.parentId === null && previousRow !== undefined;
+      if (isExistingTopLevelCategory) {
+        const { image: _staleImage, ...structuralFields } = row;
+        upserts.push({ ...structuralFields, removeImage: false });
+      } else {
+        upserts.push(
+          row.image === '' && !!previousRow?.image
+            ? { ...row, image: null, removeImage: true }
+            : { ...row, removeImage: false }
+        );
+      }
     }
   });
 
   const deleteIds = [...previousRows.keys()].filter((id) => !nextRows.has(id));
   return { upserts, deleteIds };
+}
+
+function applyCategoryShowcaseUpdates(
+  source: CatalogData,
+  updates: CategoryShowcasePersistedUpdate[]
+): CatalogData {
+  if (updates.length === 0) return source;
+  const byId = new Map(updates.filter((update) => update.categoryId).map((update) => [update.categoryId as string, update]));
+  const bySlug = new Map(updates.map((update) => [update.categorySlug, update]));
+
+  return {
+    categories: source.categories.map((category) => {
+      const update = byId.get(category.id) ?? bySlug.get(category.slug);
+      if (!update) return category;
+      return {
+        ...category,
+        ...(Object.prototype.hasOwnProperty.call(update, 'image') ? { image: update.image ?? '' } : {}),
+        presentation: update.presentation,
+        ...(update.revision ? { revision: update.revision } : {})
+      };
+    })
+  };
 }
 
 
@@ -499,7 +534,7 @@ export default function AdminCategoriesMainTable({
   const [tableDirty, setTableDirty] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
   const [isTableSaveDialogOpen, setIsTableSaveDialogOpen] = useState(false);
-  const [lowerViewCount, setLowerViewCount] = useState(5);
+  const [lowerViewCount, setLowerViewCount] = useState(4);
   const [millerCatalog, setMillerCatalog] = useState<CatalogData>({ categories: [] });
   const [millerSelection, setMillerSelection] = useState<string[]>([]);
   const [millerDropTarget, setMillerDropTarget] = useState<MillerDropLocation | null>(null);
@@ -548,6 +583,28 @@ export default function AdminCategoriesMainTable({
   const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
+  const pendingRemoteRevisionRef = useRef<string | null>(null);
+  const hasUnsavedChangesRef = useRef(false);
+  const handleCategoryShowcasePersisted = useCallback((updates: CategoryShowcasePersistedUpdate[]) => {
+    setCatalog((current) => {
+      const next = applyCategoryShowcaseUpdates(current, updates);
+      catalogRef.current = next;
+      return next;
+    });
+    setMillerCatalog((current) => {
+      const next = applyCategoryShowcaseUpdates(current, updates);
+      millerCatalogRef.current = next;
+      return next;
+    });
+  }, []);
+  const categoryShowcaseItems = useMemo(
+    () => activeView === 'preview' ? catalog.categories : [],
+    [activeView, catalog.categories]
+  );
+  const categoryShowcaseEditor = useCategoryShowcaseEditor({
+    items: categoryShowcaseItems,
+    onPersisted: handleCategoryShowcasePersisted
+  });
   const canUndoStagedChanges =
     activeView === 'miller'
       ? stagedMillerHistoryRef.current.length > 0
@@ -603,6 +660,7 @@ export default function AdminCategoriesMainTable({
     committedHistoryRef.current = [initialSnapshot];
     committedHistoryIndexRef.current = 0;
     partialPayloadRef.current = payloadRaw.payloadMode === 'partial';
+    hydrationPromiseRef.current = null;
     if (options?.persistSession ?? payloadRaw.payloadMode !== 'partial') {
       setAdminCategoriesSessionPayload({
         categories: payload.categories,
@@ -640,8 +698,23 @@ export default function AdminCategoriesMainTable({
   const ensureFullPayloadLoaded = useCallback(async (): Promise<CatalogData> => {
     if (!partialPayloadRef.current) return catalogRef.current;
 
+    const catalogAtRequest = catalogRef.current;
+    const millerCatalogAtRequest = millerCatalogRef.current;
+    const statusesAtRequest = statusByRowRef.current;
+    const mutationVersionAtRequest = tableMutationVersionRef.current;
     const payload = await prefetchFullPayload();
     if (!payload) return catalogRef.current;
+
+    if (
+      catalogRef.current !== catalogAtRequest ||
+      millerCatalogRef.current !== millerCatalogAtRequest ||
+      statusByRowRef.current !== statusesAtRequest ||
+      tableMutationVersionRef.current !== mutationVersionAtRequest ||
+      hasUnsavedChangesRef.current
+    ) {
+      hydrationPromiseRef.current = null;
+      return catalogRef.current;
+    }
 
     const fullPayload = {
       ...payload,
@@ -655,10 +728,13 @@ export default function AdminCategoriesMainTable({
 
   const load = useCallback(async ({ silent = false, view = activeView }: { silent?: boolean; view?: CategoriesView } = {}) => {
     if (!silent) setLoading(true);
+    const catalogAtRequest = catalogRef.current;
+    const millerCatalogAtRequest = millerCatalogRef.current;
+    const statusesAtRequest = statusByRowRef.current;
 
     try {
       const response = await fetch(
-        view === 'preview' ? '/api/admin/categories?view=preview' : '/api/admin/categories',
+        `/api/admin/categories?view=${view}`,
         { cache: 'no-store' }
       );
 
@@ -668,6 +744,14 @@ export default function AdminCategoriesMainTable({
       }
 
       const payloadRaw = (await response.json()) as AdminCategoriesPayload;
+      if (
+        catalogRef.current !== catalogAtRequest ||
+        millerCatalogRef.current !== millerCatalogAtRequest ||
+        statusByRowRef.current !== statusesAtRequest ||
+        hasUnsavedChangesRef.current
+      ) {
+        return;
+      }
       applyPayloadState({ ...payloadRaw, payloadView: view });
     } catch {
       toastRef.current.error('Napaka pri nalaganju kategorij');
@@ -720,48 +804,6 @@ export default function AdminCategoriesMainTable({
     }
     setActiveView('table');
   }, [pathname]);
-
-  useEffect(() => {
-    if (activeView === 'miller' || !partialPayloadRef.current) return;
-    void ensureFullPayloadLoaded();
-  }, [activeView, ensureFullPayloadLoaded]);
-
-  const enteredMillerViewRef = useRef(false);
-
-  useEffect(() => {
-    if (activeView !== 'miller') {
-      enteredMillerViewRef.current = false;
-      return;
-    }
-
-    if (enteredMillerViewRef.current || saving || editingRow) return;
-    enteredMillerViewRef.current = true;
-
-    if (tableDirty) {
-      const normalized = normalizeCatalogData(catalogRef.current);
-      setMillerCatalog(normalized);
-      millerCatalogRef.current = normalized;
-      setMillerDirty(
-        !areMillerCatalogsEqual(normalized, persistedMillerRef.current) ||
-          !areStatusesEqual(statusByRowRef.current, persistedStatusRef.current)
-      );
-      setMillerError(null);
-      return;
-    }
-
-    if (!millerDirty) {
-      void (async () => {
-        const currentCatalog = normalizeCatalogData(await ensureFullPayloadLoaded());
-        setMillerCatalog(currentCatalog);
-        millerCatalogRef.current = currentCatalog;
-        setMillerDirty(
-          !areMillerCatalogsEqual(currentCatalog, persistedMillerRef.current) ||
-            !areStatusesEqual(statusByRowRef.current, persistedStatusRef.current)
-        );
-        setMillerError(null);
-      })();
-    }
-  }, [activeView, editingRow, ensureFullPayloadLoaded, millerDirty, saving, tableDirty]);
 
   useEffect(() => {
     return () => {
@@ -888,6 +930,14 @@ export default function AdminCategoriesMainTable({
 
     try {
       const patchPayload = buildCatalogPatchPayload(previousPersistedCatalog, requestCatalog, previousStatuses, statuses);
+      if (patchPayload.upserts.length === 0 && patchPayload.deleteIds.length === 0) {
+        toast.success(message);
+        return {
+          categories: requestCatalog.categories,
+          statuses: { ...statuses },
+          didWrite: false
+        } as AdminCategoriesPayload & { didWrite: boolean };
+      }
       const response = await fetch('/api/admin/categories', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -907,8 +957,9 @@ export default function AdminCategoriesMainTable({
       toast.success(message);
       return {
         categories: savedPayload.categories ? normalizeCatalogData(savedPayload).categories : requestCatalog.categories,
-        statuses: savedPayload.statuses ?? { ...statuses }
-      } as AdminCategoriesPayload;
+        statuses: savedPayload.statuses ?? { ...statuses },
+        didWrite: true
+      } as AdminCategoriesPayload & { didWrite: boolean };
     } catch {
       setCatalog(previousTableCatalog);
       setMillerCatalog(previousMillerCatalog);
@@ -1072,7 +1123,55 @@ export default function AdminCategoriesMainTable({
     statusByRowRef.current = nextStatuses;
   }, [activeView]);
 
-  const hasUnsavedChanges = tableDirty || millerDirty;
+  const hasUnsavedChanges = tableDirty || millerDirty || categoryShowcaseEditor.isDirty;
+
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    const refreshIfReady = () => {
+      if (
+        pendingRemoteRevisionRef.current === null ||
+        hasUnsavedChangesRef.current ||
+        document.visibilityState !== 'visible'
+      ) {
+        return;
+      }
+
+      pendingRemoteRevisionRef.current = null;
+      void load({ silent: true, view: activeView });
+    };
+
+    const unsubscribe = subscribeToCategoryDataChanges((message) => {
+      clearAdminCategoriesSessionPayload();
+      pendingRemoteRevisionRef.current = message.revision;
+      refreshIfReady();
+    });
+    const handleFocus = () => refreshIfReady();
+    const handleVisibilityChange = () => refreshIfReady();
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeView, load]);
+
+  useEffect(() => {
+    if (
+      hasUnsavedChanges ||
+      pendingRemoteRevisionRef.current === null ||
+      document.visibilityState !== 'visible'
+    ) {
+      return;
+    }
+
+    pendingRemoteRevisionRef.current = null;
+    void load({ silent: true, view: activeView });
+  }, [activeView, hasUnsavedChanges, load]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -1208,6 +1307,7 @@ export default function AdminCategoriesMainTable({
       summary: title,
       description: '',
       image: '',
+      presentation: cloneDefaultCategoryShowcaseMediaSettings(),
       subcategories: [],
       items: []
     };
@@ -1459,6 +1559,7 @@ export default function AdminCategoriesMainTable({
         ...movingSubcategory,
         summary: '',
         image: movingSubcategory.image ?? '',
+        presentation: cloneDefaultCategoryShowcaseMediaSettings(),
         subcategories: []
       });
 
@@ -1833,6 +1934,7 @@ export default function AdminCategoriesMainTable({
               summary: subcategory.title,
               description: subcategory.description,
               image: subcategory.image ?? '',
+              presentation: cloneDefaultCategoryShowcaseMediaSettings(),
               adminNotes: subcategory.adminNotes,
               bannerImage: undefined,
               createdAt: subcategory.createdAt,
@@ -2068,8 +2170,19 @@ export default function AdminCategoriesMainTable({
       return;
     }
 
-    const canonicalCatalog = normalizeCatalogData(savedPayload);
+    let showcaseUpdates: CategoryShowcasePersistedUpdate[] = [];
+    try {
+      if (categoryShowcaseEditor.isDirty) {
+        showcaseUpdates = await categoryShowcaseEditor.save();
+      }
+    } catch (error) {
+      setMillerError(error instanceof Error ? error.message : 'Shranjevanje predstavitve kategorij ni uspelo.');
+      return;
+    }
+
+    const canonicalCatalog = applyCategoryShowcaseUpdates(normalizeCatalogData(savedPayload), showcaseUpdates);
     const canonicalStatuses = savedPayload.statuses ?? {};
+    if (savedPayload.didWrite && showcaseUpdates.length === 0) publishCategoryDataChange('catalog');
 
     persistedTableRef.current = canonicalCatalog;
     persistedMillerRef.current = canonicalCatalog;
@@ -2105,6 +2218,37 @@ export default function AdminCategoriesMainTable({
     tableSaveInFlightRef.current = true;
 
     try {
+      if (!tableDirty && categoryShowcaseEditor.isDirty) {
+        try {
+          const showcaseUpdates = await categoryShowcaseEditor.save();
+          const canonicalCatalog = applyCategoryShowcaseUpdates(catalogRef.current, showcaseUpdates);
+          const canonicalMillerCatalog = applyCategoryShowcaseUpdates(millerCatalogRef.current, showcaseUpdates);
+          const persistedTable = applyCategoryShowcaseUpdates(persistedTableRef.current, showcaseUpdates);
+          const persistedMiller = applyCategoryShowcaseUpdates(persistedMillerRef.current, showcaseUpdates);
+
+          catalogRef.current = canonicalCatalog;
+          millerCatalogRef.current = canonicalMillerCatalog;
+          persistedTableRef.current = persistedTable;
+          persistedMillerRef.current = persistedMiller;
+          setCatalog(canonicalCatalog);
+          setMillerCatalog(canonicalMillerCatalog);
+          if (!partialPayloadRef.current) {
+            setAdminCategoriesSessionPayload({
+              categories: canonicalCatalog.categories,
+              statuses: { ...statusByRowRef.current },
+              payloadMode: 'full',
+              payloadView: 'preview'
+            });
+          }
+          setTableError(null);
+          toast.success('Spremembe shranjene');
+          return true;
+        } catch (error) {
+          setTableError(error instanceof Error ? error.message : 'Shranjevanje predstavitve kategorij ni uspelo.');
+          return false;
+        }
+      }
+
       await ensureFullPayloadLoaded();
       const saveMutationVersion = tableMutationVersionRef.current;
       const savedCatalog = normalizeCatalogData(catalogRef.current);
@@ -2116,8 +2260,19 @@ export default function AdminCategoriesMainTable({
         return false;
       }
 
-      const canonicalCatalog = normalizeCatalogData(savedPayload);
+      let showcaseUpdates: CategoryShowcasePersistedUpdate[] = [];
+      try {
+        if (categoryShowcaseEditor.isDirty) {
+          showcaseUpdates = await categoryShowcaseEditor.save();
+        }
+      } catch (error) {
+        setTableError(error instanceof Error ? error.message : 'Shranjevanje predstavitve kategorij ni uspelo.');
+        return false;
+      }
+
+      const canonicalCatalog = applyCategoryShowcaseUpdates(normalizeCatalogData(savedPayload), showcaseUpdates);
       const canonicalStatuses = savedPayload.statuses ?? {};
+      if (savedPayload.didWrite && showcaseUpdates.length === 0) publishCategoryDataChange('catalog');
 
       const hasNewerLocalState =
         tableMutationVersionRef.current !== saveMutationVersion ||
@@ -2172,19 +2327,20 @@ export default function AdminCategoriesMainTable({
     } finally {
       tableSaveInFlightRef.current = false;
     }
-  }, [ensureFullPayloadLoaded, persist]);
+  }, [categoryShowcaseEditor, ensureFullPayloadLoaded, persist, tableDirty, toast]);
 
   const openTableSaveDialog = useCallback(async () => {
-    const currentCatalog = await ensureFullPayloadLoaded();
+    const currentCatalog = tableDirty ? await ensureFullPayloadLoaded() : catalogRef.current;
     const summary = summarizeCatalogChanges(
       persistedTableRef.current,
       currentCatalog,
       persistedStatusRef.current,
       statusByRowRef.current
     );
+    if (categoryShowcaseEditor.isDirty) summary.push('Predstavitev in slike kategorij');
     setTableSaveSummary(summary);
     setIsTableSaveDialogOpen(true);
-  }, [ensureFullPayloadLoaded]);
+  }, [categoryShowcaseEditor.isDirty, ensureFullPayloadLoaded, tableDirty]);
 
   const openMillerSaveDialog = useCallback(async () => {
     await ensureFullPayloadLoaded();
@@ -2464,18 +2620,13 @@ export default function AdminCategoriesMainTable({
 
   const onImageUpload = async (file: File | null, item: ContentCard, _categorySlug?: string) => {
     if (!file) return;
+    if (item.kind === 'category') {
+      categoryShowcaseEditor.stageImage(item.categorySlug, file);
+      return;
+    }
     const nextObjectUrl = URL.createObjectURL(file);
     clearPendingImageUpload(item.id);
     pendingImageUploadsRef.current[item.id] = { file, objectUrl: nextObjectUrl };
-
-    if (item.kind === 'category') {
-      stageTableCatalog({
-        categories: catalog.categories.map((entry) =>
-          entry.slug === item.categorySlug ? { ...entry, image: nextObjectUrl } : entry
-        )
-      });
-      return;
-    }
 
     updateSubcategory(item.categorySlug, item.subcategoryPath, { image: nextObjectUrl });
   };
@@ -2484,12 +2635,7 @@ export default function AdminCategoriesMainTable({
     if (!imageDeleteTarget) return;
 
     if (imageDeleteTarget.kind === 'category') {
-      clearPendingImageUpload(catId(imageDeleteTarget.categorySlug));
-      stageTableCatalog({
-        categories: catalog.categories.map((entry) =>
-          entry.slug === imageDeleteTarget.categorySlug ? { ...entry, image: '' } : entry
-        )
-      });
+      categoryShowcaseEditor.stageImage(imageDeleteTarget.categorySlug, null);
       setImageDeleteTarget(null);
       toast.info('Slika je odstranjena. Shrani spremembe za potrditev.');
       return;
@@ -2560,11 +2706,13 @@ export default function AdminCategoriesMainTable({
   const visibleContent = useMemo(() => {
     if (activeView !== 'preview') return [];
     if (selectedContext?.kind === 'root') {
+      const showcaseBySlug = new Map(categoryShowcaseEditor.items.map((entry) => [entry.slug, entry]));
       return catalog.categories.map((entry) => ({
         id: catId(entry.slug),
         title: entry.title,
         description: entry.summary,
-        image: entry.image,
+        image: showcaseBySlug.get(entry.slug)?.image ?? entry.image,
+        presentation: showcaseBySlug.get(entry.slug)?.presentation ?? entry.presentation,
         kind: 'category' as const,
         categorySlug: entry.slug,
         subcategoryPath: [],
@@ -2609,7 +2757,7 @@ export default function AdminCategoriesMainTable({
     }
 
     return [];
-  }, [activeView, catalog.categories, selected, selectedContext, statusByRow]);
+  }, [activeView, catalog.categories, categoryShowcaseEditor.items, selected, selectedContext, statusByRow]);
 
   const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
   const openingRowIdSet = useMemo(() => new Set(openingRowIds), [openingRowIds]);
@@ -3514,7 +3662,8 @@ export default function AdminCategoriesMainTable({
                       label: 'Izbriši',
                       icon: <TrashCanIcon />,
                       className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
-                      onSelect: () => {
+                      onSelect: async () => {
+                        const sourceCatalog = await ensureFullPayloadLoaded();
                         if (kind === 'root') {
                           stageTableCatalog({ categories: [] });
                           setSelected({ kind: 'root' });
@@ -3523,7 +3672,7 @@ export default function AdminCategoriesMainTable({
 
                         if (kind === 'category' && categorySlug) {
                           stageTableCatalog({
-                            categories: catalog.categories.filter((entry) => entry.slug !== categorySlug)
+                            categories: sourceCatalog.categories.filter((entry) => entry.slug !== categorySlug)
                           });
                           setSelected({ kind: 'root' });
                           return;
@@ -3531,7 +3680,7 @@ export default function AdminCategoriesMainTable({
 
                         if (kind === 'subcategory' && categorySlug) {
                           stageTableCatalog({
-                            categories: catalog.categories.map((entry) =>
+                            categories: sourceCatalog.categories.map((entry) =>
                               entry.slug === categorySlug
                                 ? {
                                     ...entry,
@@ -3570,7 +3719,6 @@ export default function AdminCategoriesMainTable({
       })()
     );
   }, [
-    catalog.categories,
     closingRowIdSet,
     editingRow,
     ensureFullPayloadLoaded,
@@ -3706,7 +3854,6 @@ export default function AdminCategoriesMainTable({
         value={activeView}
         onChange={(next) => {
           const nextView = next as CategoriesView;
-          setActiveView(nextView);
           guardedNavigate(
             nextView === 'table'
               ? '/admin/kategorije'
@@ -3872,7 +4019,8 @@ export default function AdminCategoriesMainTable({
           }}
           isStatusHeaderMenuOpen={isStatusHeaderMenuOpen}
           statusByRow={statusByRow}
-          onStageStatusChange={(nextStatuses) => {
+          onStageStatusChange={async (nextStatuses) => {
+            await ensureFullPayloadLoaded();
             stageStatusChange(nextStatuses);
             setIsStatusHeaderMenuOpen(false);
           }}
@@ -3899,8 +4047,8 @@ export default function AdminCategoriesMainTable({
         }}
         canNavigateUp={selected.kind !== 'root'}
         onNavigateUp={navigatePreviewUp}
-        tableDirty={tableDirty}
-        saving={saving}
+        tableDirty={tableDirty || categoryShowcaseEditor.isDirty}
+        saving={saving || categoryShowcaseEditor.isSaving}
         selectedContext={selectedContext}
         visibleContent={visibleContent}
         onBottomReorder={onBottomReorder}
@@ -3921,10 +4069,17 @@ export default function AdminCategoriesMainTable({
         onCommitEdit={() => saveInlineEditRef.current()}
         onCancelEdit={() => setEditingRow(null)}
         onOpenNode={openPreviewNode}
-        onStageStatusChange={(rowId, status) => stageStatusChange({ ...statusByRow, [rowId]: status })}
+        onStageStatusChange={async (rowId, status) => {
+          await ensureFullPayloadLoaded();
+          stageStatusChange({ ...statusByRowRef.current, [rowId]: status });
+        }}
         onRequestCreateCategory={() => {
           void openCreateDialog({ kind: 'category' });
         }}
+        selectedPresentationSlug={categoryShowcaseEditor.selectedSlug}
+        onSelectPresentation={categoryShowcaseEditor.setSelectedSlug}
+        onPresentationChange={(categorySlug, updates: Partial<CategoryShowcaseMediaSettings>) => categoryShowcaseEditor.updatePresentation(categorySlug, updates)}
+        onResetPresentation={categoryShowcaseEditor.resetPresentation}
         />
       ) : null}
 

@@ -66,6 +66,17 @@ export function buildLandingPageMediaBlobPath(elementId: string, fileName: strin
   return ['landing-page', safeElementId, safeFileName].join('/');
 }
 
+export function buildSiteLogoBlobPath(masterId: string, fileName: string): string {
+  const safeMasterId = sanitizeBlobSegment(masterId) || 'master';
+  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+
+  if (!safeFileName || safeFileName.endsWith('/')) {
+    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+  }
+
+  return ['site-logo', 'masters', safeMasterId, safeFileName].join('/');
+}
+
 export async function uploadBlob(
   pathname: string,
   data: Buffer | Uint8Array,

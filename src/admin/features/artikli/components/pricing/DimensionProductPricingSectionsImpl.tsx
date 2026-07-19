@@ -952,7 +952,7 @@ function FractionInventoryPanel({
                       aria-selected={selected}
                       tabIndex={0}
                       className={classNames(
-                        "grid min-h-[42px] cursor-pointer items-center gap-2 rounded-md px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-normal leading-[1.2] outline-none transition hover:text-[color:var(--blue-500)] focus-visible:ring-2 focus-visible:ring-[#1982bf]/35",
+                        "grid min-h-[42px] cursor-pointer items-center gap-2 rounded-md border border-transparent px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-normal leading-[1.2] outline-none transition hover:text-[color:var(--blue-500)] focus-visible:border-[color:var(--blue-500)] focus-visible:ring-0 focus-visible:shadow-none",
                         fractionMenuGridClassName,
                         hoverTokenClasses.neutral,
                         selected ? 'bg-slate-100 text-slate-900' : 'text-slate-600'

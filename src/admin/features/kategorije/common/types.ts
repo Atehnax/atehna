@@ -5,6 +5,7 @@ import type {
   CategoryStatus,
   RecursiveCatalogData as CatalogData
 } from '@/shared/domain/catalog/catalogTypes';
+import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 
 export type {
   CategoriesView,
@@ -41,6 +42,7 @@ export type ContentCard = {
   title: string;
   description: string;
   image?: string;
+  presentation?: CategoryShowcaseMediaSettings;
   kind: 'category' | 'subcategory';
   categorySlug: string;
   subcategoryPath: string[];

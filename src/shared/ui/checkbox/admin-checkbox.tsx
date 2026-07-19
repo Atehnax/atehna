@@ -11,7 +11,6 @@ const AdminCheckbox = forwardRef<HTMLInputElement, AdminCheckboxProps>(function 
       type="checkbox"
       className={classNames(
         'h-3.5 w-3.5 rounded-[3px] border border-slate-300 bg-white align-middle accent-[color:var(--blue-500)]',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--blue-500)]/35',
         className
       )}
       {...props}

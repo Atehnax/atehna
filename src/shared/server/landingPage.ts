@@ -43,7 +43,8 @@ function serializeStoredLandingPageConfig(config: LandingPageConfig) {
     categories: config.categories,
     infoBlocks: config.infoBlocks,
     footer: config.footer,
-    page: config.page
+    page: config.page,
+    canvas: config.canvas
   });
 }
 

@@ -14,7 +14,6 @@ import {
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
 import {
   DndContext,
   PointerSensor,
@@ -23,7 +22,7 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   cloneDefaultSiteNavigationConfig,
@@ -59,8 +58,21 @@ import {
   type SiteNavigationTopBarZoneSettings,
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
+import {
+  HOMEPAGE_FOOTER_LOGO_MODES,
+  HOMEPAGE_SOCIAL_TYPES,
+  homepageFooterLogoModeLabels,
+  homepageSocialTypeLabels,
+  type HomepageFooterColumn,
+  type HomepageFooterContact,
+  type HomepageFooterLink,
+  type HomepageFooterSettings,
+  type HomepageFooterSocialLink
+} from '@/shared/domain/landing/landingPage';
+import { toGlobalStyleCssVariables, type GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Input } from '@/shared/ui/input';
 import { ActionUndoIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -80,6 +92,9 @@ import {
   adminActionMenuItemTokenClasses,
   adminControlFocusTokenClasses,
   adminDragSurfaceTokenClasses,
+  adminEditorPreviewContentTokenClasses,
+  adminEditorPreviewFrameTokenClasses,
+  adminEditorPreviewSurfaceTokenClasses,
   adminFilterInputTokenClasses,
   adminInlineEditTriggerTokenClasses,
   adminMiniIconButtonTokenClasses,
@@ -88,6 +103,11 @@ import {
   iconButtonTokenClasses
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
+import SiteFooter, {
+  type SiteFooterContactField,
+  type SiteFooterEditorAdapter,
+  type SiteFooterLinkPlacement
+} from '@/commercial/components/SiteFooter';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import AdminPodobaTabs from './AdminPodobaTabs';
@@ -95,8 +115,8 @@ import AdminPodobaTabs from './AdminPodobaTabs';
 const compactInputClassName = adminFilterInputTokenClasses;
 const numberInputNoSpinnerClassName =
   '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const topBarElementRowGridClassName = 'grid-cols-[34px_minmax(140px,1fr)_96px_104px_138px_56px_56px]';
-const topBarElementRowMinWidthClassName = 'min-w-[706px]';
+const topBarElementRowGridClassName = 'grid-cols-[34px_minmax(140px,1fr)_128px_104px_138px_56px_56px]';
+const topBarElementRowMinWidthClassName = 'min-w-[738px]';
 const topBarUnitAdornmentBaseClassName =
   'ml-auto inline-flex h-full min-w-8 shrink-0 items-center justify-center whitespace-nowrap border-l border-slate-200 bg-slate-50 px-2 font-[\'Inter\',system-ui,sans-serif] text-[12px] font-medium leading-none !text-slate-500';
 const topBarUnitAdornmentSuffixClassName = topBarUnitAdornmentBaseClassName;
@@ -237,16 +257,17 @@ function comparable(config: SiteNavigationConfig) {
   return JSON.stringify({
     siteLayout: normalized.siteLayout,
     items: normalized.items,
+    footer: normalized.footer,
     topBarLayout: normalized.topBarLayout,
     topBarInitialLayout: normalized.topBarInitialLayout
   });
 }
 
-function withPositions<T extends { position: number }>(items: T[]) {
+function withPositions<T extends { position?: number }>(items: T[]) {
   return items.map((item, index) => ({ ...item, position: index }));
 }
 
-function reorderById<T extends { id: string; position: number }>(items: T[], activeId: string, overId: string) {
+function reorderById<T extends { id: string; position?: number }>(items: T[], activeId: string, overId: string) {
   const oldIndex = items.findIndex((item) => item.id === activeId);
   const newIndex = items.findIndex((item) => item.id === overId);
   if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return items;
@@ -1507,6 +1528,112 @@ function TopBarUnitNumberInput({
   );
 }
 
+function TopBarUnitRangeInput({
+  startValue,
+  endValue,
+  min = 0,
+  max = 1920,
+  suffix = 'px',
+  ariaLabel,
+  className = 'w-full',
+  stopPropagation = false,
+  active = false,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
+  onChange
+}: {
+  startValue: number;
+  endValue: number;
+  min?: number;
+  max?: number;
+  suffix?: string;
+  ariaLabel: string;
+  className?: string;
+  stopPropagation?: boolean;
+  active?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onChange: (startValue: number) => void;
+}) {
+  const roundedStartValue = Math.round(startValue);
+  const roundedEndValue = Math.round(endValue);
+  const formattedValue = `${roundedStartValue}-${roundedEndValue}`;
+  const [draftValue, setDraftValue] = useState(formattedValue);
+
+  useEffect(() => {
+    setDraftValue(formattedValue);
+  }, [formattedValue]);
+
+  const commitDraftValue = (candidateValue = draftValue) => {
+    const match = candidateValue.match(/^\s*(\d+)\s*[-–—]\s*(\d+)\s*$/);
+    if (!match) {
+      setDraftValue(formattedValue);
+      return;
+    }
+
+    const parsedStartValue = Number(match[1]);
+    const parsedEndValue = Number(match[2]);
+    if (parsedEndValue < parsedStartValue) {
+      setDraftValue(formattedValue);
+      return;
+    }
+
+    const nextStartValue = Math.round(clampTopBarNumber(parsedStartValue, min, max));
+    const nextEndValue = nextStartValue + Math.max(0, roundedEndValue - roundedStartValue);
+    const nextFormattedValue = `${nextStartValue}-${nextEndValue}`;
+    setDraftValue(nextFormattedValue);
+
+    if (nextStartValue !== roundedStartValue) {
+      onChange(nextStartValue);
+    }
+  };
+
+  return (
+    <span
+      className={`inline-flex h-7 items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
+        active ? topBarActiveFieldClassName : ''
+      } ${className}`}
+      onClick={(event) => {
+        if (stopPropagation) event.stopPropagation();
+        onFocus?.();
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onPointerDown={onFocus}
+    >
+      <input
+        type="text"
+        inputMode="text"
+        value={draftValue}
+        onBlur={(event) => {
+          commitDraftValue(event.currentTarget.value);
+          onBlur?.();
+        }}
+        onChange={(event) => setDraftValue(event.target.value)}
+        onFocus={onFocus}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            commitDraftValue(event.currentTarget.value);
+            event.currentTarget.blur();
+          } else if (event.key === 'Escape') {
+            event.currentTarget.value = formattedValue;
+            setDraftValue(formattedValue);
+            event.currentTarget.blur();
+          }
+        }}
+        className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-right font-['Inter',system-ui,sans-serif] text-[12px] font-medium leading-none text-slate-700 outline-none focus:ring-0"
+        aria-label={ariaLabel}
+      />
+      {suffix ? <span className={topBarUnitAdornmentSuffixClassName}>{suffix}</span> : null}
+    </span>
+  );
+}
+
 function TopBarOffsetPairInput({
   leftValue,
   rightValue,
@@ -1744,6 +1871,7 @@ function TopBarMiniRangeField({
   min = 0,
   max = 1920,
   suffix = 'px',
+  allowSingleValue = false,
   layout = 'stack',
   className = '',
   active = false,
@@ -1760,6 +1888,7 @@ function TopBarMiniRangeField({
   min?: number;
   max?: number;
   suffix?: string;
+  allowSingleValue?: boolean;
   layout?: 'stack' | 'row';
   className?: string;
   active?: boolean;
@@ -1778,15 +1907,16 @@ function TopBarMiniRangeField({
   }, [formattedValue]);
 
   const commitDraftValue = () => {
-    const match = draftValue.match(/^\s*(\d+)\s*[-–—]\s*(\d+)\s*$/);
+    const rangeMatch = draftValue.match(/^\s*(\d+)\s*[-–—]\s*(\d+)\s*$/);
+    const singleMatch = allowSingleValue ? draftValue.match(/^\s*(\d+)\s*$/) : null;
 
-    if (!match) {
+    if (!rangeMatch && !singleMatch) {
       setDraftValue(formattedValue);
       return;
     }
 
-    const firstValue = clampTopBarNumber(Number(match[1]), min, max);
-    const secondValue = clampTopBarNumber(Number(match[2]), min, max);
+    const firstValue = clampTopBarNumber(Number(rangeMatch?.[1] ?? singleMatch?.[1]), min, max);
+    const secondValue = clampTopBarNumber(Number(rangeMatch?.[2] ?? singleMatch?.[1]), min, max);
     const nextStartValue = Math.min(firstValue, secondValue);
     const nextEndValue = Math.max(firstValue, secondValue);
 
@@ -2201,8 +2331,14 @@ function getTopBarElementRenderedPlacementWidth({
 }
 
 function getTopBarElementXInBounds(item: SiteNavigationTopBarResponsiveItem, placementBoundsWidth: number, elementWidth: number) {
+  const maxXPx = Math.max(0, placementBoundsWidth - elementWidth);
+
+  if (item.region === 'edgeRight') {
+    return Math.round(maxXPx);
+  }
+
   const ratioX = item.xRatio * placementBoundsWidth;
-  return Math.round(clampTopBarNumber(ratioX, 0, Math.max(0, placementBoundsWidth - elementWidth)));
+  return Math.round(clampTopBarNumber(ratioX, 0, maxXPx));
 }
 
 function isTopBarPlacementItemRendered(
@@ -4142,6 +4278,7 @@ function TopBarElementRow({
   const leftOffsetActive = activeEdit.elementId === item.id && activeEdit.kind === 'gap-before';
   const rightOffsetActive = activeEdit.elementId === item.id && activeEdit.kind === 'gap-after';
   const maxXPx = Math.max(0, Math.round(placementBoundsWidth - placementWidth));
+  const rangeEndXPx = Math.round(currentXPx + resolvedWidth);
   const offsetMinPx = -placementBoundsWidth;
   const offsetMaxPx = placementBoundsWidth;
 
@@ -4169,7 +4306,13 @@ function TopBarElementRow({
     const clampedXPx = Math.round(clampTopBarNumber(nextXPx, 0, maxXPx));
     onChange({
       xPx: clampedXPx,
-      xRatio: placementBoundsWidth > 0 ? clampedXPx / placementBoundsWidth : 0
+      xRatio: placementBoundsWidth > 0 ? clampedXPx / placementBoundsWidth : 0,
+      region:
+        item.id === 'cart' || item.region === 'edgeRight'
+          ? Math.abs(clampedXPx - maxXPx) <= 1
+            ? 'edgeRight'
+            : 'right'
+          : item.region
     });
   };
   const changeOffset = (side: 'left' | 'right', value: number) => {
@@ -4264,12 +4407,12 @@ function TopBarElementRow({
           <span className={`block truncate font-semibold ${item.visible ? 'text-slate-900' : 'text-slate-400'}`}>{topBarLayoutLabels[item.id]}</span>
         </span>
       </span>
-      <TopBarUnitNumberInput
-        value={Math.round(currentXPx)}
+      <TopBarUnitRangeInput
+        startValue={Math.round(currentXPx)}
+        endValue={rangeEndXPx}
         min={0}
         max={maxXPx}
-        className="w-[84px]"
-        inputClassName="w-10"
+        className="w-[128px]"
         ariaLabel={`X za ${topBarLayoutLabels[item.id]}`}
         stopPropagation
         active={xActive}
@@ -4277,10 +4420,9 @@ function TopBarElementRow({
         onFocus={() => activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' })}
         onMouseEnter={() => activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' })}
         onMouseLeave={onClearActiveEditSoon}
-        onChange={(xPx) => {
-          const clampedXPx = Math.round(clampTopBarNumber(xPx, 0, maxXPx));
+        onChange={(startXPx) => {
           activateEdit({ kind: 'position', elementId: item.id, fieldName: 'x' });
-          moveElementToXPx(clampedXPx);
+          moveElementToXPx(startXPx);
         }}
       />
       <TopBarUnitNumberInput
@@ -4421,6 +4563,7 @@ function TopBarLayoutEditor({
   layout,
   initialLayout,
   items,
+  footer,
   isSaving,
   onChange,
   onSiteLayoutChange,
@@ -4430,6 +4573,7 @@ function TopBarLayoutEditor({
   layout: SiteNavigationTopBarLayout;
   initialLayout: SiteNavigationTopBarLayout;
   items: SiteNavigationTopLevelItem[];
+  footer: HomepageFooterSettings;
   isSaving: boolean;
   onChange: (updater: (current: SiteNavigationTopBarLayout) => SiteNavigationTopBarLayout) => void;
   onSiteLayoutChange: (updates: Partial<SiteNavigationSiteLayoutSettings>) => void;
@@ -4453,11 +4597,12 @@ function TopBarLayoutEditor({
     () => ({
       siteLayout,
       items,
+      footer,
       topBarLayout: layout,
       topBarInitialLayout: initialLayout,
       updatedAt: null
     }),
-    [initialLayout, items, layout, siteLayout]
+    [footer, initialLayout, items, layout, siteLayout]
   );
   const selectedDevicePreviewWidth = getTopBarPreviewViewportWidth(device, deviceLayout.settings, siteLayout);
   const selectedRendererPreviewViewportWidth = selectedDevicePreviewWidth / COMMERCIAL_STOREFRONT_SCALE;
@@ -4615,19 +4760,33 @@ function TopBarLayoutEditor({
 
       return {
         ...current,
-        items: current.items.map((item) =>
-          item.id === id
-            ? normalizeDeviceItemWidth(
-                {
-                  ...item,
-                  xPx,
-                  xRatio,
-                  zIndex: maxZIndex + 1
-                },
-                current.settings
-              )
-            : item
-        )
+        items: current.items.map((item) => {
+          if (item.id !== id) return item;
+
+          const placementWidth = getTopBarElementRenderedPlacementWidth({
+            item,
+            items,
+            device,
+            settings: current.settings
+          });
+          const maxXPx = Math.max(0, placementBoundsWidth - placementWidth);
+
+          return normalizeDeviceItemWidth(
+            {
+              ...item,
+              xPx,
+              xRatio,
+              region:
+                item.id === 'cart' || item.region === 'edgeRight'
+                  ? Math.abs(xPx - maxXPx) <= 1
+                    ? 'edgeRight'
+                    : 'right'
+                  : item.region,
+              zIndex: maxZIndex + 1
+            },
+            current.settings
+          );
+        })
       };
     });
   };
@@ -4956,6 +5115,7 @@ function TopBarLayoutEditor({
                     endValue={siteLayout.siteGutterMaxPx}
                     min={0}
                     max={96}
+                    allowSingleValue
                     active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'siteGutterRangePx'}
                     onBlur={clearActiveEditSoon}
                     onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'siteGutterRangePx' })}
@@ -5128,12 +5288,14 @@ function LegacyTopBarLayoutEditor({
   layout,
   initialLayout,
   items,
+  footer,
   onChange,
   onSetInitialLayout
 }: {
   layout: SiteNavigationTopBarLayout;
   initialLayout: SiteNavigationTopBarLayout;
   items: SiteNavigationTopLevelItem[];
+  footer: HomepageFooterSettings;
   onChange: (updater: (current: SiteNavigationTopBarLayout) => SiteNavigationTopBarLayout) => void;
   onSetInitialLayout: (layout: SiteNavigationTopBarLayout) => void;
 }) {
@@ -5169,6 +5331,7 @@ function LegacyTopBarLayoutEditor({
               navigation: {
                 siteLayout: DEFAULT_SITE_LAYOUT_SETTINGS,
                 items,
+                footer,
                 topBarLayout: layout,
                 topBarInitialLayout: initialLayout,
                 updatedAt: null
@@ -5177,7 +5340,7 @@ function LegacyTopBarLayoutEditor({
           : { enabled: false }
       })
     );
-  }, [initialLayout, items, layout, showHeaderPreview]);
+  }, [footer, initialLayout, items, layout, showHeaderPreview]);
 
   useEffect(() => {
     return () => {
@@ -5757,7 +5920,8 @@ function InlineEditableText({
   inputClassName,
   style,
   placeholder = 'Vnesite besedilo',
-  ariaLabel
+  ariaLabel,
+  displayValue
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -5766,18 +5930,17 @@ function InlineEditableText({
   style?: CSSProperties;
   placeholder?: string;
   ariaLabel: string;
+  displayValue?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const initialValueRef = useRef(value);
 
   useEffect(() => {
     if (!editing) setDraft(value);
   }, [editing, value]);
 
-  const commit = () => {
-    onChange(draft);
-    setEditing(false);
-  };
+  const commit = () => setEditing(false);
 
   if (editing) {
     return (
@@ -5787,12 +5950,17 @@ function InlineEditableText({
         placeholder={placeholder}
         aria-label={ariaLabel}
         onPointerDown={(event) => event.stopPropagation()}
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setDraft(nextValue);
+          onChange(nextValue);
+        }}
         onBlur={commit}
         onKeyDown={(event) => {
           if (event.key === 'Enter') commit();
           if (event.key === 'Escape') {
-            setDraft(value);
+            onChange(initialValueRef.current);
+            setDraft(initialValueRef.current);
             setEditing(false);
           }
         }}
@@ -5809,11 +5977,12 @@ function InlineEditableText({
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
+        initialValueRef.current = value;
         setEditing(true);
       }}
-      title={value}
+      title={displayValue ?? value}
     >
-      {value || placeholder}
+      {value ? displayValue ?? value : placeholder}
     </button>
   );
 }
@@ -6112,6 +6281,417 @@ function LinkEditor({
   );
 }
 
+function FooterLinkEditor({
+  link,
+  placement,
+  hidden,
+  onChange,
+  onDelete
+}: {
+  link: HomepageFooterLink;
+  placement: SiteFooterLinkPlacement;
+  hidden: boolean;
+  onChange: (updates: Partial<HomepageFooterLink>) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: link.id });
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [urlOpen, setUrlOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuDismissRefs = useMemo(() => [menuRef], []);
+
+  useDropdownDismiss({
+    open: menuOpen || urlOpen,
+    refs: menuDismissRefs,
+    onClose: () => {
+      setMenuOpen(false);
+      setUrlOpen(false);
+    }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setMenuOpen(true);
+      }}
+      className={`group/footer-link relative max-w-full items-center gap-1 rounded-md border border-transparent px-1 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${
+        placement === 'column'
+          ? '-ml-1 grid min-h-7 w-full grid-cols-[minmax(0,1fr)_24px]'
+          : 'grid min-h-7 grid-cols-[minmax(0,1fr)_24px]'
+      } ${hidden ? 'opacity-50' : ''} ${isDragging ? 'z-20 bg-white opacity-80 shadow-sm' : ''}`}
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        aria-label={`Premakni ${link.label || 'povezavo v nogi'}`}
+        className={adminDragSurfaceTokenClasses}
+        {...attributes}
+        {...listeners}
+      />
+      <div className="pointer-events-none relative z-10 flex min-w-0 items-center gap-1">
+        <InlineEditableText
+          value={link.label}
+          onChange={(label) => onChange({ label })}
+          ariaLabel="Naziv povezave v nogi"
+          className={`site-link block min-w-0 max-w-full truncate px-0.5 py-0 hover:!bg-transparent ${placement === 'column' ? 'text-[13px] leading-5' : 'text-[12px] leading-5'}`}
+          inputClassName={placement === 'column' ? 'h-7 w-40 text-[13px]' : 'h-7 w-44 text-[12px]'}
+          placeholder="Nova povezava"
+        />
+        {hidden ? <span className="shrink-0 text-[10px] font-semibold text-slate-500">Skrito</span> : null}
+      </div>
+      <div
+        ref={menuRef}
+        className={`relative self-center ${menuOpen || urlOpen ? 'z-[80]' : 'z-10'}`}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          aria-label={`Možnosti povezave v nogi ${link.label || ''}`.trim()}
+          aria-expanded={menuOpen}
+          className={`${adminMiniIconButtonTokenClasses} opacity-75 hover:opacity-100 ${menuOpen || urlOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((current) => !current);
+            setUrlOpen(false);
+          }}
+        >
+          <DotsGlyph className="h-3.5 w-3.5" />
+        </button>
+        {menuOpen ? (
+          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-36">
+            <button
+              type="button"
+              className={adminActionMenuItemTokenClasses.base}
+              onClick={(event) => {
+                event.stopPropagation();
+                setUrlOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              Uredi povezavo
+            </button>
+            <button
+              type="button"
+              className={adminActionMenuItemTokenClasses.flex}
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange({ visible: link.visible === false });
+                setMenuOpen(false);
+              }}
+            >
+              <span>{link.visible !== false ? 'Skrij' : 'Prikaži'}</span>
+              <EyeGlyph visible={link.visible !== false} className="h-3.5 w-3.5" />
+            </button>
+            <DeleteButton label="Izbriši" onDelete={onDelete} menu />
+          </MenuPanel>
+        ) : null}
+        {urlOpen ? (
+          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-64 p-2.5">
+            <label className="grid gap-1.5">
+              <span className="text-[11px] font-medium text-slate-500">Povezava</span>
+              <Input
+                autoFocus
+                value={link.href}
+                onChange={(event) => onChange({ href: event.target.value })}
+                className={compactInputClassName}
+                aria-label={`Povezava za ${link.label || 'element v nogi'}`}
+                placeholder="/povezava"
+              />
+            </label>
+          </MenuPanel>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FooterColumnEditor({
+  column,
+  children,
+  sensors,
+  onChange,
+  onDelete,
+  onAddLink,
+  onReorderLink
+}: {
+  column: HomepageFooterColumn;
+  children: ReactNode;
+  sensors: ReturnType<typeof useSensors>;
+  onChange: (updates: Partial<HomepageFooterColumn>) => void;
+  onDelete: () => void;
+  onAddLink: () => void;
+  onReorderLink: (event: DragEndEvent) => void;
+}) {
+  const linkIds = useMemo(() => column.links.map((link) => link.id), [column.links]);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuDismissRefs = useMemo(() => [menuRef], []);
+
+  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
+
+  return (
+    <div
+      className={`group/footer-column relative -m-2 min-w-0 rounded-lg border border-transparent p-2 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${
+        column.visible === false ? 'opacity-50' : ''
+      }`}
+    >
+      {column.visible === false ? (
+        <span className="absolute -top-2 left-1 rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+          Skrito
+        </span>
+      ) : null}
+      <div className="absolute right-4 top-1.5 z-30 flex items-center">
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            aria-label={`Možnosti stolpca ${column.title || ''}`.trim()}
+            aria-expanded={menuOpen}
+            className={adminMiniIconButtonTokenClasses}
+            onClick={() => setMenuOpen((current) => !current)}
+          >
+            <DotsGlyph className="h-3.5 w-3.5" />
+          </button>
+          {menuOpen ? (
+            <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-36">
+              <button
+                type="button"
+                className={adminActionMenuItemTokenClasses.flex}
+                onClick={() => {
+                  onChange({ visible: column.visible === false });
+                  setMenuOpen(false);
+                }}
+              >
+                <span>{column.visible !== false ? 'Skrij' : 'Prikaži'}</span>
+                <EyeGlyph visible={column.visible !== false} className="h-3.5 w-3.5" />
+              </button>
+              <DeleteButton label="Izbriši" onDelete={onDelete} menu />
+            </MenuPanel>
+          ) : null}
+        </div>
+      </div>
+
+      <DndContext
+        id={`site-footer-column-links-${column.id}`}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onReorderLink}
+      >
+        <SortableContext items={linkIds} strategy={verticalListSortingStrategy}>
+          <div>{children}</div>
+        </SortableContext>
+      </DndContext>
+
+      <IconButton
+        type="button"
+        size="sm"
+        tone="neutral"
+        className={`mt-3 !h-7 !w-7 ${adminTableNeutralIconButtonClassName}`}
+        aria-label={`Dodaj povezavo v ${column.title || 'stolpec'}`}
+        title="Dodaj povezavo"
+        onClick={onAddLink}
+      >
+        <PlusIcon />
+      </IconButton>
+    </div>
+  );
+}
+
+function FooterSocialLinkEditor({
+  link,
+  icon,
+  hidden,
+  onChange,
+  onDelete
+}: {
+  link: HomepageFooterSocialLink;
+  icon: ReactNode;
+  hidden: boolean;
+  onChange: (updates: Partial<HomepageFooterSocialLink>) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: link.id });
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuDismissRefs = useMemo(() => [menuRef], []);
+
+  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setMenuOpen(true);
+      }}
+      className={`group/footer-social relative inline-grid grid-cols-[32px_24px] items-center justify-items-center gap-0.5 rounded-md border border-transparent p-0.5 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${hidden ? 'opacity-50' : ''} ${isDragging ? 'z-20 bg-white opacity-80 shadow-sm' : ''}`}
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        aria-label={`Premakni družbeno omrežje ${link.label || homepageSocialTypeLabels[link.type]}`}
+        className={adminDragSurfaceTokenClasses}
+        {...attributes}
+        {...listeners}
+      />
+      <div
+        aria-hidden="true"
+        className={`site-link pointer-events-none relative z-10 grid h-8 w-8 place-items-center rounded-[var(--site-radius-md,0.5rem)] border border-[color:var(--site-divider-color)] no-underline transition ${menuOpen ? '!border-[color:var(--site-link-hover)]' : ''}`}
+      >
+        {icon}
+      </div>
+      {hidden ? (
+        <span className="pointer-events-none absolute -top-2 left-1/2 z-20 -translate-x-1/2 rounded-md bg-slate-700 px-1 py-0.5 text-[9px] font-semibold leading-none text-white">
+          Skrito
+        </span>
+      ) : null}
+      <div ref={menuRef} className="relative z-30 self-center">
+        <button
+          type="button"
+          aria-label={`Možnosti družbenega omrežja ${link.label || homepageSocialTypeLabels[link.type]}`}
+          aria-expanded={menuOpen}
+          className={`${adminMiniIconButtonTokenClasses} opacity-75 hover:opacity-100 ${menuOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((current) => !current);
+          }}
+        >
+          <DotsGlyph className="h-3 w-3" />
+        </button>
+        {menuOpen ? (
+          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-64 p-2.5">
+            <div className="grid gap-2.5">
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-medium text-slate-500">Omrežje</span>
+                <select
+                  value={link.type}
+                  onChange={(event) => onChange({ type: event.target.value as HomepageFooterSocialLink['type'] })}
+                  className={`${compactInputClassName} min-w-0`}
+                  aria-label={`Omrežje za ${link.label || 'profil'}`}
+                >
+                  {HOMEPAGE_SOCIAL_TYPES.map((type) => (
+                    <option key={type} value={type}>{homepageSocialTypeLabels[type]}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-medium text-slate-500">Naziv</span>
+                <Input
+                  value={link.label}
+                  onChange={(event) => onChange({ label: event.target.value })}
+                  className={compactInputClassName}
+                  aria-label="Naziv družbenega profila"
+                  placeholder="Naziv"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-medium text-slate-500">Povezava</span>
+                <Input
+                  value={link.href}
+                  onChange={(event) => onChange({ href: event.target.value })}
+                  className={compactInputClassName}
+                  aria-label={`Povezava za ${link.label || 'profil'}`}
+                  placeholder="https://..."
+                />
+              </label>
+              <div className="border-t border-slate-100 pt-1">
+                <button
+                  type="button"
+                  className={adminActionMenuItemTokenClasses.flex}
+                  onClick={() => {
+                    onChange({ visible: link.visible === false });
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span>{link.visible !== false ? 'Skrij' : 'Prikaži'}</span>
+                  <EyeGlyph visible={link.visible !== false} className="h-3.5 w-3.5" />
+                </button>
+                <DeleteButton label="Izbriši" onDelete={onDelete} menu />
+              </div>
+            </div>
+          </MenuPanel>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FooterLogoEditor({
+  settings,
+  logo,
+  onChange
+}: {
+  settings: HomepageFooterSettings;
+  logo: ReactNode;
+  onChange: (updates: Partial<HomepageFooterSettings>) => void;
+}) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuDismissRefs = useMemo(() => [menuRef], []);
+
+  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
+
+  return (
+    <div ref={menuRef} className="group/footer-logo relative inline-flex max-w-full">
+      <button
+        type="button"
+        aria-label="Uredi logotip v nogi"
+        aria-expanded={menuOpen}
+        className={`inline-flex min-h-10 min-w-10 items-center rounded-md border border-transparent p-1 text-left transition hover:border-[color:var(--blue-500)]/30 focus-visible:border-[color:var(--blue-500)] ${menuOpen ? 'border-[color:var(--blue-500)]/40' : ''}`}
+        onClick={() => setMenuOpen((current) => !current)}
+      >
+        {logo ?? <span className="text-[12px] font-medium text-slate-400">Logotip je skrit</span>}
+      </button>
+      {settings.logoMode === 'hidden' ? (
+        <span className="pointer-events-none absolute -right-2 -top-2 rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+          Skrito
+        </span>
+      ) : null}
+      {menuOpen ? (
+        <MenuPanel className="absolute left-0 top-full z-[90] mt-1 w-64 p-2.5">
+          <div className="grid gap-2.5">
+            <label className="grid gap-1.5">
+              <span className="text-[11px] font-medium text-slate-500">Prikaz logotipa</span>
+              <select
+                value={settings.logoMode}
+                onChange={(event) => onChange({ logoMode: event.target.value as HomepageFooterSettings['logoMode'] })}
+                className={compactInputClassName}
+                aria-label="Prikaz logotipa v nogi"
+              >
+                {HOMEPAGE_FOOTER_LOGO_MODES.map((mode) => (
+                  <option key={mode} value={mode}>{homepageFooterLogoModeLabels[mode]}</option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-[11px] font-medium text-slate-500">Besedilo logotipa</span>
+              <Input
+                value={settings.logoText}
+                onChange={(event) => onChange({ logoText: event.target.value })}
+                className={compactInputClassName}
+                aria-label="Besedilo logotipa"
+                placeholder="ATEHNA"
+              />
+            </label>
+          </div>
+        </MenuPanel>
+      ) : null}
+    </div>
+  );
+}
+
+const footerContactFieldMeta: Record<SiteFooterContactField, { label: string; placeholder: string }> = {
+  email: { label: 'E-pošta', placeholder: 'info@atehna.si' },
+  phone: { label: 'Telefon', placeholder: '+386 1 234 56 78' },
+  address: { label: 'Naslov', placeholder: 'Ulica in kraj' },
+  workingHours: { label: 'Delovni čas', placeholder: 'Pon–Pet 8.00–16.00' }
+};
+
 function GroupEditor({
   group,
   desktopPageNumber,
@@ -6288,25 +6868,35 @@ function GroupEditor({
   );
 }
 
-export default function AdminNavigationPageClient({ initialConfig }: { initialConfig: SiteNavigationConfig }) {
-  const router = useRouter();
+export default function AdminNavigationPageClient({
+  initialConfig,
+  initialGlobalStyle
+}: {
+  initialConfig: SiteNavigationConfig;
+  initialGlobalStyle: GlobalStyleConfig;
+}) {
   const { toast } = useToast();
   const normalizedInitialConfig = useMemo(() => normalizeSiteNavigationConfig(initialConfig), [initialConfig]);
+  const normalizedInitialConfigKey = useMemo(() => comparable(normalizedInitialConfig), [normalizedInitialConfig]);
   const [config, setConfig] = useState(normalizedInitialConfig);
   const [savedConfig, setSavedConfig] = useState(normalizedInitialConfig);
   const [selectedItemId, setSelectedItemId] = useState(() => normalizedInitialConfig.items[0]?.id ?? '');
   const [topLinkEditorId, setTopLinkEditorId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
+  const saveInFlightRef = useRef(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
+    if (appliedInitialConfigKeyRef.current === normalizedInitialConfigKey) return;
+    appliedInitialConfigKeyRef.current = normalizedInitialConfigKey;
     setConfig(normalizedInitialConfig);
     setSavedConfig(normalizedInitialConfig);
     setSelectedItemId((current) => {
       if (normalizedInitialConfig.items.some((item) => item.id === current)) return current;
       return normalizedInitialConfig.items[0]?.id ?? '';
     });
-  }, [normalizedInitialConfig]);
+  }, [normalizedInitialConfig, normalizedInitialConfigKey]);
 
   const selectedItem = useMemo(
     () => config.items.find((item) => item.id === selectedItemId) ?? config.items[0] ?? null,
@@ -6316,6 +6906,15 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
   const savedConfigComparable = useMemo(() => comparable(savedConfig), [savedConfig]);
   const isDirty = configComparable !== savedConfigComparable;
   const topLevelIds = useMemo(() => config.items.map((item) => item.id), [config.items]);
+  const footerSocialLinkIds = useMemo(() => config.footer.socialLinks.map((link) => link.id), [config.footer.socialLinks]);
+  const footerLegalLinkIds = useMemo(() => config.footer.legalLinks.map((link) => link.id), [config.footer.legalLinks]);
+  const footerPreviewVars = useMemo(() => ({
+    ...toGlobalStyleCssVariables(initialGlobalStyle),
+    '--site-content-max-width': `${config.siteLayout.siteContentMaxWidthPx}px`,
+    '--site-gutter-min': `${config.siteLayout.siteGutterMinPx}px`,
+    '--site-gutter-max': `${config.siteLayout.siteGutterMaxPx}px`,
+    '--site-gutter': `clamp(${config.siteLayout.siteGutterMinPx}px, 4vw, ${config.siteLayout.siteGutterMaxPx}px)`
+  }) as CSSProperties, [config.siteLayout, initialGlobalStyle]);
   const selectedGroupIds = useMemo(() => selectedItem?.groups.map((group) => group.id) ?? [], [selectedItem]);
   const selectedGroupEntries = useMemo(() => {
     if (!selectedItem) return [];
@@ -6375,6 +6974,189 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
     updateConfig((current) => ({
       ...current,
       items: current.items.map((item) => (item.id === itemId ? { ...item, ...updates } : item))
+    }));
+  }
+
+  function updateFooter(updates: Partial<HomepageFooterSettings>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: { ...current.footer, ...updates }
+    }));
+  }
+
+  function updateFooterContact(updates: Partial<HomepageFooterContact>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        contact: { ...current.footer.contact, ...updates }
+      }
+    }));
+  }
+
+  function updateFooterColumn(columnId: string, updates: Partial<HomepageFooterColumn>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: current.footer.columns.map((column) => column.id === columnId ? { ...column, ...updates } : column)
+      }
+    }));
+  }
+
+  function addFooterColumn() {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: [
+          ...current.footer.columns,
+          {
+            id: createId('footer-column'),
+            title: 'Nov stolpec',
+            links: [],
+            visible: true,
+            position: current.footer.columns.length
+          }
+        ]
+      }
+    }));
+  }
+
+  function deleteFooterColumn(columnId: string) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: withPositions(current.footer.columns.filter((column) => column.id !== columnId))
+      }
+    }));
+  }
+
+  function updateFooterColumnLink(columnId: string, linkId: string, updates: Partial<HomepageFooterLink>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: current.footer.columns.map((column) => column.id === columnId
+          ? { ...column, links: column.links.map((link) => link.id === linkId ? { ...link, ...updates } : link) }
+          : column)
+      }
+    }));
+  }
+
+  function addFooterColumnLink(columnId: string) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: current.footer.columns.map((column) => column.id === columnId
+          ? {
+              ...column,
+              links: [
+                ...column.links,
+                {
+                  id: createId('footer-link'),
+                  label: 'Nova povezava',
+                  href: '#',
+                  visible: true,
+                  position: column.links.length
+                }
+              ]
+            }
+          : column)
+      }
+    }));
+  }
+
+  function deleteFooterColumnLink(columnId: string, linkId: string) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        columns: current.footer.columns.map((column) => column.id === columnId
+          ? { ...column, links: withPositions(column.links.filter((link) => link.id !== linkId)) }
+          : column)
+      }
+    }));
+  }
+
+  function updateFooterSocialLink(linkId: string, updates: Partial<HomepageFooterSocialLink>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        socialLinks: current.footer.socialLinks.map((link) => link.id === linkId ? { ...link, ...updates } : link)
+      }
+    }));
+  }
+
+  function addFooterSocialLink() {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        socialLinks: [
+          ...current.footer.socialLinks,
+          {
+            id: createId('footer-social'),
+            type: 'custom',
+            label: 'Nov profil',
+            href: '#',
+            visible: true,
+            position: current.footer.socialLinks.length
+          }
+        ]
+      }
+    }));
+  }
+
+  function deleteFooterSocialLink(linkId: string) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        socialLinks: withPositions(current.footer.socialLinks.filter((link) => link.id !== linkId))
+      }
+    }));
+  }
+
+  function updateFooterLegalLink(linkId: string, updates: Partial<HomepageFooterLink>) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        legalLinks: current.footer.legalLinks.map((link) => link.id === linkId ? { ...link, ...updates } : link)
+      }
+    }));
+  }
+
+  function addFooterLegalLink() {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        legalLinks: [
+          ...current.footer.legalLinks,
+          {
+            id: createId('footer-legal'),
+            label: 'Nova pravna povezava',
+            href: '#',
+            visible: true,
+            position: current.footer.legalLinks.length
+          }
+        ]
+      }
+    }));
+  }
+
+  function deleteFooterLegalLink(linkId: string) {
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        legalLinks: withPositions(current.footer.legalLinks.filter((link) => link.id !== linkId))
+      }
     }));
   }
 
@@ -6553,6 +7335,46 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
     }));
   }
 
+  function handleFooterColumnLinkDragEnd(columnId: string) {
+    return (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      updateConfig((current) => ({
+        ...current,
+        footer: {
+          ...current.footer,
+          columns: current.footer.columns.map((column) => column.id === columnId
+            ? { ...column, links: reorderById(column.links, String(active.id), String(over.id)) }
+            : column)
+        }
+      }));
+    };
+  }
+
+  function handleFooterSocialLinkDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        socialLinks: reorderById(current.footer.socialLinks, String(active.id), String(over.id))
+      }
+    }));
+  }
+
+  function handleFooterLegalLinkDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    updateConfig((current) => ({
+      ...current,
+      footer: {
+        ...current.footer,
+        legalLinks: reorderById(current.footer.legalLinks, String(active.id), String(over.id))
+      }
+    }));
+  }
+
   function handleGroupDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!selectedItem || !over || active.id === over.id) return;
@@ -6594,16 +7416,25 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
     };
   }
 
-  function resetToDefaults() {
+  function resetMainMenuToDefaults() {
     const defaults = normalizeSiteNavigationConfig(cloneDefaultSiteNavigationConfig());
-    setConfig(defaults);
+    updateConfig((current) => ({ ...current, items: defaults.items }));
     setSelectedItemId(defaults.items[0]?.id ?? '');
   }
 
-  async function persistConfig(nextConfig: SiteNavigationConfig, successMessage: string) {
+  async function persistConfig(
+    nextConfig: SiteNavigationConfig,
+    successMessage: string,
+    mergePersistedIntoCurrent?: (
+      current: SiteNavigationConfig,
+      persisted: SiteNavigationConfig
+    ) => SiteNavigationConfig
+  ) {
+    if (saveInFlightRef.current) return;
     const payloadConfig = normalizeSiteNavigationConfig(nextConfig);
+    const sourceConfigKey = comparable(config);
 
-    setConfig(payloadConfig);
+    saveInFlightRef.current = true;
     setIsSaving(true);
     try {
       const response = await fetch('/api/admin/site-navigation', {
@@ -6618,17 +7449,20 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
       }
 
       const persistedConfig = normalizeSiteNavigationConfig(body.config ?? payloadConfig);
-      setConfig(persistedConfig);
+      appliedInitialConfigKeyRef.current = comparable(persistedConfig);
       setSavedConfig(persistedConfig);
-      setSelectedItemId((current) => {
-        if (persistedConfig.items.some((item) => item.id === current)) return current;
-        return persistedConfig.items[0]?.id ?? '';
+      setConfig((current) => {
+        if (comparable(current) === sourceConfigKey) return persistedConfig;
+        if (mergePersistedIntoCurrent) {
+          return normalizeSiteNavigationConfig(mergePersistedIntoCurrent(current, persistedConfig));
+        }
+        return normalizeSiteNavigationConfig({ ...current, updatedAt: persistedConfig.updatedAt });
       });
       toast.success(successMessage);
-      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje navigacije ni uspelo.');
     } finally {
+      saveInFlightRef.current = false;
       setIsSaving(false);
     }
   }
@@ -6643,9 +7477,190 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
         ...config,
         topBarInitialLayout: cloneTopBarLayout(layout)
       },
-      'Privzete nastavitve zgornje vrstice so shranjene.'
+      'Privzete nastavitve zgornje vrstice so shranjene.',
+      (current, persisted) => ({
+        ...current,
+        topBarInitialLayout: cloneTopBarLayout(persisted.topBarInitialLayout),
+        updatedAt: persisted.updatedAt
+      })
     );
   }
+
+  const footerEditorAdapter = {
+    forceVisible: true,
+    showHidden: true,
+    showEmpty: true,
+    renderSurface: ({ defaultNode, hidden }) => (
+      <div
+        data-admin-editor-preview-surface="true"
+        className={`${adminEditorPreviewSurfaceTokenClasses} ${hidden ? '[&>footer]:opacity-50' : ''}`}
+      >
+        {defaultNode}
+        {hidden ? (
+          <span className="absolute right-3 top-3 z-20 rounded-md bg-slate-800 px-2 py-1 text-[11px] font-semibold leading-none text-white">
+            Skrito na spletni strani
+          </span>
+        ) : null}
+      </div>
+    ),
+    renderLogo: ({ settings, logo }) => (
+      <FooterLogoEditor settings={settings} logo={logo} onChange={updateFooter} />
+    ),
+    renderDescription: ({ value }) => (
+      <InlineEditableText
+        value={value}
+        onChange={(description) => updateFooter({ description })}
+        ariaLabel="Opis noge"
+        className="site-paragraph mt-4 block max-w-xs px-1 py-0 text-[13px] leading-6"
+        inputClassName="h-8 w-full max-w-xs text-[13px]"
+        placeholder="Dodajte kratek opis podjetja"
+      />
+    ),
+    renderColumns: ({ defaultNode }) => (
+      <div className="flex min-w-0 items-start gap-1.5">
+        <div className="min-w-0 flex-1">{defaultNode}</div>
+        <IconButton
+          type="button"
+          size="sm"
+          tone="neutral"
+          className={`-mt-1 !h-7 !w-7 shrink-0 ${adminTableNeutralIconButtonClassName}`}
+          aria-label="Dodaj stolpec v nogo"
+          title="Dodaj stolpec"
+          onClick={addFooterColumn}
+        >
+          <PlusIcon />
+        </IconButton>
+      </div>
+    ),
+    renderColumn: ({ column, children }) => (
+      <FooterColumnEditor
+        column={column}
+        sensors={sensors}
+        onChange={(updates) => updateFooterColumn(column.id, updates)}
+        onDelete={() => deleteFooterColumn(column.id)}
+        onAddLink={() => addFooterColumnLink(column.id)}
+        onReorderLink={handleFooterColumnLinkDragEnd(column.id)}
+      >
+        {children}
+      </FooterColumnEditor>
+    ),
+    renderColumnTitle: ({ column, value }) => (
+      <h2 className="pr-7 text-[13px] font-semibold text-[color:var(--site-color-text)]">
+        <InlineEditableText
+          value={value}
+          onChange={(title) => updateFooterColumn(column.id, { title })}
+          ariaLabel="Naslov stolpca v nogi"
+          className="block max-w-full truncate px-0.5 py-0 text-[13px] font-semibold leading-5"
+          inputClassName="h-7 w-full font-semibold"
+          placeholder="Naslov stolpca"
+        />
+      </h2>
+    ),
+    renderLink: ({ placement, link, column, hidden }) => (
+      <FooterLinkEditor
+        link={link}
+        placement={placement}
+        hidden={hidden}
+        onChange={(updates) => {
+          if (placement === 'column' && column) updateFooterColumnLink(column.id, link.id, updates);
+          else updateFooterLegalLink(link.id, updates);
+        }}
+        onDelete={() => {
+          if (placement === 'column' && column) deleteFooterColumnLink(column.id, link.id);
+          else deleteFooterLegalLink(link.id);
+        }}
+      />
+    ),
+    renderContact: ({ defaultNode }) => defaultNode,
+    renderContactField: ({ field, value }) => {
+      const meta = footerContactFieldMeta[field];
+      return (
+        <InlineEditableText
+          value={value}
+          onChange={(nextValue) => updateFooterContact({ [field]: nextValue })}
+          ariaLabel={meta.label}
+          className={`block max-w-[220px] truncate px-0.5 py-0 text-[13px] leading-5 ${field === 'email' ? 'site-link hover:!bg-transparent' : ''}`}
+          inputClassName="h-7 w-[220px] text-[13px]"
+          placeholder={meta.placeholder}
+        />
+      );
+    },
+    renderSocial: ({ headingNode, linkNodes }) => (
+      <section className="relative mt-5" aria-labelledby="site-footer-social-heading">
+        {headingNode}
+        <DndContext
+          id="site-navigation-footer-social-links"
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleFooterSocialLinkDragEnd}
+        >
+          <SortableContext items={footerSocialLinkIds} strategy={rectSortingStrategy}>
+            <div className="mt-3 flex min-h-9 flex-wrap items-center gap-1.5">
+              {linkNodes}
+              <IconButton
+                type="button"
+                size="sm"
+                tone="neutral"
+                className="!h-9 !w-9 shrink-0 self-start"
+                aria-label="Dodaj družbeni profil"
+                title="Dodaj profil"
+                onClick={addFooterSocialLink}
+              >
+                <PlusIcon />
+              </IconButton>
+            </div>
+          </SortableContext>
+        </DndContext>
+      </section>
+    ),
+    renderSocialLink: ({ link, icon, hidden }) => (
+      <FooterSocialLinkEditor
+        link={link}
+        icon={icon}
+        hidden={hidden}
+        onChange={(updates) => updateFooterSocialLink(link.id, updates)}
+        onDelete={() => deleteFooterSocialLink(link.id)}
+      />
+    ),
+    renderCopyright: ({ rawValue, resolvedValue }) => (
+      <InlineEditableText
+        value={rawValue}
+        displayValue={resolvedValue}
+        onChange={(copyright) => updateFooter({ copyright })}
+        ariaLabel="Copyright"
+        className="inline-flex min-h-7 max-w-[420px] items-center truncate px-0.5 py-0 text-[12px] leading-5"
+        inputClassName="h-7 w-[320px] text-[12px]"
+        placeholder="© {year} Podjetje"
+      />
+    ),
+    renderLegal: ({ children }) => (
+      <DndContext
+        id="site-navigation-footer-legal-links"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleFooterLegalLinkDragEnd}
+      >
+        <div className="flex min-h-7 items-center justify-end gap-1 pr-1">
+          <SortableContext items={footerLegalLinkIds} strategy={rectSortingStrategy}>
+            <nav aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
+              {children}
+            </nav>
+          </SortableContext>
+          <IconButton
+            type="button"
+            size="sm"
+            tone="neutral"
+            className="!h-7 !w-7 shrink-0"
+            aria-label="Dodaj pravno povezavo"
+            title="Dodaj pravno povezavo"
+            onClick={addFooterLegalLink}
+          >
+            <PlusIcon />
+          </IconButton>
+        </div>
+      </DndContext>
+    )
+  } satisfies SiteFooterEditorAdapter;
 
   return (
     <div className="space-y-5" style={editorVars}>
@@ -6668,6 +7683,7 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
         layout={config.topBarLayout}
         initialLayout={config.topBarInitialLayout}
         items={config.items}
+        footer={config.footer}
         isSaving={isSaving}
         onChange={updateTopBarLayout}
         onSiteLayoutChange={updateSiteLayout}
@@ -6685,7 +7701,7 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
               className={adminTableNeutralIconButtonClassName}
               aria-label="Privzete nastavitve"
               title="Privzete nastavitve"
-              onClick={resetToDefaults}
+              onClick={resetMainMenuToDefaults}
               disabled={isSaving}
             >
               <ActionUndoIcon />
@@ -6782,6 +7798,41 @@ export default function AdminNavigationPageClient({ initialConfig }: { initialCo
             Najprej dodajte element glavne navigacije.
           </div>
         )}
+      </section>
+
+      <section
+        className="rounded-xl border border-slate-200 bg-white p-4"
+        data-testid="site-footer-links-editor"
+      >
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Noga spletnega mesta</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Iste povezave in kontaktni podatki so prikazani na vseh javnih straneh.
+            </p>
+          </div>
+          <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
+            <AdminCheckbox
+              checked={config.footer.visible}
+              onChange={(event) => updateFooter({ visible: event.target.checked })}
+            />
+            Prikaži nogo
+          </label>
+        </div>
+
+        <div
+          data-testid="site-footer-editor-preview"
+          data-admin-editor-preview-frame="true"
+          data-storefront-theme="true"
+          className={`storefront-theme-preview site-page-surface ${adminEditorPreviewFrameTokenClasses} bg-[color:var(--site-color-surface)]`}
+          style={footerPreviewVars}
+        >
+          <SiteFooter
+            settings={config.footer}
+            editorAdapter={footerEditorAdapter}
+            containerClassName={`site-container ${adminEditorPreviewContentTokenClasses}`}
+          />
+        </div>
       </section>
     </div>
   );

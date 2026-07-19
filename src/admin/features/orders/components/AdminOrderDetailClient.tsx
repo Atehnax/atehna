@@ -42,7 +42,11 @@ import {
   adminWindowCardClassName,
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
-import { adminInputFocusTokenClasses, adminStatusInfoPillGroupClassName } from '@/shared/ui/theme/tokens';
+import {
+  adminControlFocusTokenClasses,
+  adminInputFocusTokenClasses,
+  adminStatusInfoPillGroupClassName
+} from '@/shared/ui/theme/tokens';
 import {
   adminCompactExpandableTextareaClassName,
   adminCompactIconFieldInputClassName,
@@ -383,7 +387,7 @@ function OrderDatePickerField({
           disabled={disabled || !isEditing}
           aria-label="Odpri izbirnik datuma"
           title="Odpri izbirnik datuma"
-          className="inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3e67d6] disabled:cursor-default"
+          className={`inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-sm border border-transparent disabled:cursor-default ${adminControlFocusTokenClasses}`}
         >
           <DetailFieldIcon icon="calendar" />
         </button>
@@ -410,7 +414,7 @@ function OrderDatePickerField({
             <button
               type="button"
               aria-label="Prejšnji mesec"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 hover:bg-[color:var(--hover-neutral)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3e67d6]"
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-slate-600 hover:bg-[color:var(--hover-neutral)] ${adminControlFocusTokenClasses}`}
               onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
             >
               ‹
@@ -418,7 +422,7 @@ function OrderDatePickerField({
             <button
               type="button"
               aria-label="Naslednji mesec"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 hover:bg-[color:var(--hover-neutral)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3e67d6]"
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-slate-600 hover:bg-[color:var(--hover-neutral)] ${adminControlFocusTokenClasses}`}
               onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
             >
               ›
@@ -437,11 +441,11 @@ function OrderDatePickerField({
                 <button
                   key={key}
                   type="button"
-                  className={`h-7 rounded-md text-[12px] leading-7 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3e67d6] ${
+                  className={`h-7 rounded-md border border-transparent text-[12px] leading-7 transition ${adminControlFocusTokenClasses} ${
                     isSelected
                       ? 'bg-[color:var(--blue-500)] font-semibold text-white'
                       : isToday
-                        ? 'border border-slate-300 text-slate-900 hover:bg-[color:var(--hover-neutral)]'
+                        ? 'border-slate-300 text-slate-900 hover:bg-[color:var(--hover-neutral)]'
                         : `${isCurrentMonth ? 'text-slate-900' : 'text-slate-400'} hover:bg-[color:var(--hover-neutral)]`
                   }`}
                   onClick={() => selectDate(date)}

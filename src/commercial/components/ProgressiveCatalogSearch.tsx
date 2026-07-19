@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 function CatalogSearchShell() {
   return (
-    <div className="relative w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
+    <div className="site-field relative w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-400 shadow-sm">
       Poiščite izdelek...
     </div>
   );

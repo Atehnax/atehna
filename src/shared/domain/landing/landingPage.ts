@@ -1,7 +1,11 @@
 import { HOMEPAGE_WEBSITE_FONT_FAMILIES } from '@/shared/domain/style/fontFamilies';
-import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import {
+  normalizeCategoryShowcaseMediaSettings,
+  type CategoryShowcaseMediaSettings
+} from '@/shared/features/category-showcase/categoryShowcaseSchema';
 
 export const LANDING_PAGE_SETTINGS_KEY = 'main-landing-page';
+export const LANDING_PAGE_DEFAULTS_KEY = 'main-landing-page-defaults';
 
 export const HOMEPAGE_SECTION_IDS = ['hero', 'categories', 'infoBlocks', 'footer'] as const;
 export const HOMEPAGE_PREVIEW_DEVICES = ['desktop', 'tablet', 'mobile'] as const;
@@ -217,6 +221,7 @@ export type HomepageCanvasElementSettings = HomepageCanvasElementDeviceSettings 
 
 export type HomepageCanvasSettings = {
   elements: Record<string, HomepageCanvasElementSettings>;
+  deletedElementIds: string[];
 };
 
 export const DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS: HomepageCanvasElementDeviceSettings = {
@@ -420,6 +425,57 @@ export type HomepageCategoryCardData = {
 };
 
 export type LandingPageConfig = HomepageSettings;
+
+export const HOMEPAGE_DELETABLE_CANVAS_ELEMENT_PREFIX = 'hero:textBlock:' as const;
+const HOMEPAGE_DELETABLE_CANVAS_ELEMENT_NAMESPACES = ['hero:', 'categories:', 'footer:'] as const;
+const HOMEPAGE_NON_DELETABLE_CANVAS_ELEMENT_PREFIXES = ['categories:image:', 'section:'] as const;
+
+export function isDeletableHomepageCanvasElementId(
+  elementId: string | null | undefined
+): elementId is string {
+  return Boolean(
+    elementId
+    && HOMEPAGE_DELETABLE_CANVAS_ELEMENT_NAMESPACES.some((namespace) => elementId.startsWith(namespace))
+    && !HOMEPAGE_NON_DELETABLE_CANVAS_ELEMENT_PREFIXES.some((prefix) => elementId.startsWith(prefix))
+  );
+}
+
+export function isHomepageCanvasElementDeleted(
+  canvas: HomepageCanvasSettings,
+  elementId: string
+) {
+  return canvas.deletedElementIds.includes(elementId);
+}
+
+export function removeDeletableHomepageCanvasElement(
+  config: HomepageSettings,
+  elementId: string
+): HomepageSettings {
+  if (!isDeletableHomepageCanvasElementId(elementId)) return config;
+
+  const isHeroTextBlock = elementId.startsWith(HOMEPAGE_DELETABLE_CANVAS_ELEMENT_PREFIX);
+  const blockId = isHeroTextBlock
+    ? elementId.slice(HOMEPAGE_DELETABLE_CANVAS_ELEMENT_PREFIX.length)
+    : null;
+  const textBlocks = blockId
+    ? config.hero.textBlocks.filter((block) => block.id !== blockId)
+    : config.hero.textBlocks;
+  const hasCanvasSettings = Object.prototype.hasOwnProperty.call(config.canvas.elements, elementId);
+  const alreadyDeleted = isHomepageCanvasElementDeleted(config.canvas, elementId);
+  if (textBlocks.length === config.hero.textBlocks.length && !hasCanvasSettings && alreadyDeleted) return config;
+
+  const elements = { ...config.canvas.elements };
+  delete elements[elementId];
+  const deletedElementIds = alreadyDeleted
+    ? config.canvas.deletedElementIds
+    : [...config.canvas.deletedElementIds, elementId];
+
+  return {
+    ...config,
+    hero: { ...config.hero, textBlocks },
+    canvas: { ...config.canvas, elements, deletedElementIds }
+  };
+}
 
 export const homepageSectionLabels: Record<HomepageSectionId, string> = {
   hero: 'Hero',
@@ -893,7 +949,8 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
     }
   },
   canvas: {
-    elements: {}
+    elements: {},
+    deletedElementIds: []
   },
   updatedAt: null
 };
@@ -907,7 +964,7 @@ const BUTTON_LABEL_MAX_LENGTH = 80;
 const URL_MAX_LENGTH = 700;
 const SHORT_TEXT_MAX_LENGTH = 180;
 const COLOR_MAX_LENGTH = 32;
-const MAX_SLIDES = 12;
+export const MAX_HOMEPAGE_HERO_SLIDES = 12;
 const MAX_HERO_TEXT_BLOCKS = 12;
 const MAX_INFO_ITEMS = 12;
 const MAX_FOOTER_COLUMNS = 6;
@@ -1156,7 +1213,7 @@ function normalizeHero(value: unknown): HomepageHeroSettings {
   const record = asRecord(value);
   const fallback = DEFAULT_HOMEPAGE_SETTINGS.hero;
   const slides = asArray(record.slides)
-    .slice(0, MAX_SLIDES)
+    .slice(0, MAX_HOMEPAGE_HERO_SLIDES)
     .map(normalizeSlide)
     .filter((slide, index) => index === 0 || slide.src || slide.title);
   const textBlocks = asArray(record.textBlocks)
@@ -1288,6 +1345,27 @@ export function orderHomepageCategories<T extends { slug: string }>(
       .filter((category): category is T => Boolean(category)),
     ...source.filter((category) => !customSlugs.has(category.slug))
   ];
+}
+
+export function resolveHomepageCategoryCardHeight(
+  settings: Pick<HomepageCategoriesSettings, 'cardSize' | 'cardStyle'>,
+  categories: readonly Pick<HomepageCategoryCardData, 'presentation'>[]
+) {
+  const baseHeight = settings.cardStyle === 'compact'
+    ? 132
+    : settings.cardSize === 'small'
+      ? 150
+      : settings.cardSize === 'large'
+        ? 198
+        : 168;
+  const largestOrdinalBoxHeight = categories.reduce((largest, category) => {
+    const { ordinalFontSizePx } = normalizeCategoryShowcaseMediaSettings(category.presentation);
+    return Math.max(largest, Math.max(16, Math.ceil(ordinalFontSizePx * 1.35)));
+  }, 16);
+
+  // Reserve the shared vertical padding, divider/gaps, and two title lines.
+  // Only compact cards need to grow at the largest supported ordinal sizes.
+  return Math.max(baseHeight, largestOrdinalBoxHeight + 92);
 }
 
 function normalizeCategoriesDeviceSettings(value: unknown, fallback: HomepageCategoriesDeviceSettings): HomepageCategoriesDeviceSettings {
@@ -1719,6 +1797,12 @@ function normalizeCanvasElement(value: unknown): HomepageCanvasElementSettings {
 
 function normalizeCanvas(value: unknown): HomepageCanvasSettings {
   const record = asRecord(value);
+  const deletedElementIds = asArray(record.deletedElementIds ?? record.deleted_element_ids)
+    .slice(0, MAX_CANVAS_ELEMENTS)
+    .map((elementId) => asString(elementId, '', 160))
+    .filter(isDeletableHomepageCanvasElementId)
+    .filter((elementId, index, all) => all.indexOf(elementId) === index);
+  const deletedElementIdSet = new Set(deletedElementIds);
   const elementSource = Object.prototype.hasOwnProperty.call(record, 'elements')
     ? asRecord(record.elements)
     : record;
@@ -1726,10 +1810,14 @@ function normalizeCanvas(value: unknown): HomepageCanvasSettings {
     Object.entries(elementSource)
       .slice(0, MAX_CANVAS_ELEMENTS)
       .map(([rawElementId, element]) => [asString(rawElementId, '', 160), normalizeCanvasElement(element)] as const)
-      .filter(([elementId]) => Boolean(elementId) && !['__proto__', 'prototype', 'constructor'].includes(elementId))
+      .filter(([elementId]) => (
+        Boolean(elementId)
+        && !['__proto__', 'prototype', 'constructor', 'deletedElementIds', 'deleted_element_ids'].includes(elementId)
+        && !deletedElementIdSet.has(elementId)
+      ))
   );
 
-  return { elements };
+  return { elements, deletedElementIds };
 }
 
 function normalizeSectionOrder(value: unknown, fillMissing = !Array.isArray(value)): HomepageSectionId[] {
@@ -1864,7 +1952,10 @@ export function resolveHomepageSettingsForDevice(config: unknown, device: Homepa
     infoBlocks: { ...normalized.infoBlocks, ...infoBlocksDevice },
     footer: { ...normalized.footer, ...footerDevice },
     page: { ...normalized.page, ...pageDevice },
-    canvas: { elements: canvasElements }
+    canvas: {
+      elements: canvasElements,
+      deletedElementIds: normalized.canvas.deletedElementIds
+    }
   };
 }
 
@@ -1963,8 +2054,23 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   const canvasElements = Object.prototype.hasOwnProperty.call(canvas, 'elements')
     ? asRecord(canvas.elements)
     : canvas;
+  const deletedCanvasElementIds = canvas.deletedElementIds ?? canvas.deleted_element_ids;
   const sectionTitles = asRecord(config.sectionTitles);
   const normalized = normalizeLandingPageConfig(input);
+
+  if (deletedCanvasElementIds !== undefined && !Array.isArray(deletedCanvasElementIds)) {
+    errors.push('Seznam izbrisanih elementov platna ni veljaven.');
+  } else if (Array.isArray(deletedCanvasElementIds)) {
+    if (deletedCanvasElementIds.length > MAX_CANVAS_ELEMENTS) {
+      errors.push(`Platno lahko vsebuje največ ${MAX_CANVAS_ELEMENTS} izbrisanih elementov.`);
+    }
+    deletedCanvasElementIds.slice(0, MAX_CANVAS_ELEMENTS).forEach((elementId, index) => {
+      validateText(errors, elementId, 160, `Izbrisani element platna ${index + 1}`, true);
+      if (typeof elementId === 'string' && !isDeletableHomepageCanvasElementId(elementId.trim())) {
+        errors.push(`Izbrisani element platna ${index + 1} ni podprt.`);
+      }
+    });
+  }
 
   for (const sectionId of HOMEPAGE_SECTION_IDS) {
     validateText(errors, sectionTitles[sectionId], SECTION_TITLE_MAX_LENGTH, `${homepageSectionLabels[sectionId]} - ime sekcije`);

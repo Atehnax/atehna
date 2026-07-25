@@ -78,7 +78,10 @@ const getCachedCategoryShowcaseItemsFromDatabase = unstable_cache(
     'category-showcase:shared',
     readCategoryShowcaseItemsFromDatabase
   ),
-  ['category-showcase-shared-v2'],
+  // Keep the persistent cache namespace versioned. V4 matches the extended
+  // presentation schema and the revision baseline consumed by both editors,
+  // so an older on-disk entry is not reused after a server/build restart.
+  ['category-showcase-shared-v4'],
   { tags: [CATEGORY_SHOWCASE_TAG] }
 );
 

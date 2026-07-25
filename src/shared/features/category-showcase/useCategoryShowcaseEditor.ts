@@ -47,7 +47,25 @@ function presentationsEqual(
   left: CategoryShowcaseMediaSettings,
   right: CategoryShowcaseMediaSettings
 ): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return left.scale === right.scale
+    && left.offsetOriginX === right.offsetOriginX
+    && left.offsetOriginY === right.offsetOriginY
+    && left.offsetX === right.offsetX
+    && left.offsetY === right.offsetY
+    && left.fit === right.fit
+    && left.titleColor === right.titleColor
+    && left.titleHoverColor === right.titleHoverColor
+    && left.backgroundColor === right.backgroundColor
+    && left.backgroundHoverColor === right.backgroundHoverColor
+    && left.ordinalFontSizePx === right.ordinalFontSizePx
+    && left.ordinalColor === right.ordinalColor
+    && left.ordinalHoverColor === right.ordinalHoverColor
+    && left.crop.x === right.crop.x
+    && left.crop.y === right.crop.y
+    && left.crop.width === right.crop.width
+    && left.crop.height === right.crop.height
+    && left.focalPoint.x === right.focalPoint.x
+    && left.focalPoint.y === right.focalPoint.y;
 }
 
 export function useCategoryShowcaseEditor({
@@ -68,6 +86,15 @@ export function useCategoryShowcaseEditor({
   useEffect(() => () => {
     Object.values(pendingRef.current).forEach((edit) => revokeObjectUrl(edit.objectUrl));
   }, []);
+
+  const itemsBySlug = useMemo(
+    () => new Map(items.map((item) => [item.slug, item])),
+    [items]
+  );
+  const itemsByKey = useMemo(
+    () => new Map(items.map((item) => [itemKey(item), item])),
+    [items]
+  );
 
   const displayedItems = useMemo(() => items.map((item) => {
     const draft = pending[itemKey(item)];
@@ -91,7 +118,7 @@ export function useCategoryShowcaseEditor({
   );
 
   const updatePresentation = useCallback((categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => {
-    const source = items.find((item) => item.slug === categorySlug);
+    const source = itemsBySlug.get(categorySlug);
     if (!source) return;
     const key = itemKey(source);
 
@@ -123,10 +150,10 @@ export function useCategoryShowcaseEditor({
         }
       };
     });
-  }, [items]);
+  }, [itemsBySlug]);
 
   const stageImage = useCallback((categorySlug: string, file: File | null) => {
-    const source = items.find((item) => item.slug === categorySlug);
+    const source = itemsBySlug.get(categorySlug);
     if (!source) return;
     const key = itemKey(source);
     const objectUrl = file ? URL.createObjectURL(file) : null;
@@ -146,10 +173,10 @@ export function useCategoryShowcaseEditor({
         }
       };
     });
-  }, [items]);
+  }, [itemsBySlug]);
 
   const resetItem = useCallback((categorySlug: string) => {
-    const source = items.find((item) => item.slug === categorySlug);
+    const source = itemsBySlug.get(categorySlug);
     if (!source) return;
     const key = itemKey(source);
     setPending((current) => {
@@ -160,7 +187,7 @@ export function useCategoryShowcaseEditor({
       delete next[key];
       return next;
     });
-  }, [items]);
+  }, [itemsBySlug]);
 
   const resetPresentation = useCallback((categorySlug: string) => {
     updatePresentation(categorySlug, cloneDefaultCategoryShowcaseMediaSettings());
@@ -173,7 +200,7 @@ export function useCategoryShowcaseEditor({
     });
   }, []);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async ({ publish = true }: { publish?: boolean } = {}) => {
     const snapshot = pendingRef.current;
     const entries = Object.entries(snapshot);
     if (entries.length === 0) return [] as CategoryShowcasePersistedUpdate[];
@@ -181,7 +208,7 @@ export function useCategoryShowcaseEditor({
     setIsSaving(true);
     try {
       const updates = await Promise.all(entries.map(async ([key, edit]) => {
-        const item = items.find((candidate) => itemKey(candidate) === key);
+        const item = itemsByKey.get(key);
         if (!item) throw new Error('Kategorija za shranjevanje ne obstaja.');
 
         let image: string | null | undefined;
@@ -261,12 +288,14 @@ export function useCategoryShowcaseEditor({
         return next;
       });
       onPersisted?.(persistedUpdates);
-      publishCategoryDataChange('showcase');
+      if (publish) {
+        publishCategoryDataChange('showcase', persistedUpdates.map((update) => update.categorySlug));
+      }
       return persistedUpdates;
     } finally {
       setIsSaving(false);
     }
-  }, [endpoint, items, onPersisted]);
+  }, [endpoint, itemsByKey, onPersisted]);
 
   return {
     items: displayedItems,

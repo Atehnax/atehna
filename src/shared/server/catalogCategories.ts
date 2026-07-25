@@ -1057,9 +1057,14 @@ export type TopLevelCategoryPresentationUpdate = {
   expectedRevision?: string;
 };
 
-type UpdatedTopLevelCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation_json'> & {
+type UpdatedTopLevelCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'image' | 'presentation_json'> & {
   revision: string;
 };
+
+export type UpdatedTopLevelCategoryPresentation = Pick<
+  CategoryShowcaseItem,
+  'id' | 'slug' | 'image' | 'presentation' | 'revision'
+>;
 
 export class CategoryShowcaseConflictError extends Error {
   readonly statusCode = 409;
@@ -1077,12 +1082,12 @@ export class CategoryShowcaseConflictError extends Error {
  */
 export async function updateTopLevelCategoryPresentations(
   updates: TopLevelCategoryPresentationUpdate[]
-): Promise<CategoryShowcaseItem[]> {
+): Promise<UpdatedTopLevelCategoryPresentation[]> {
   if (updates.length === 0) return [];
 
   const pool = await getPool();
   const client = await pool.connect();
-  const saved: CategoryShowcaseItem[] = [];
+  const saved: UpdatedTopLevelCategoryPresentation[] = [];
 
   try {
     await client.query('begin');
@@ -1112,7 +1117,7 @@ export async function updateTopLevelCategoryPresentations(
               $7::text is null
               or md5(coalesce(image, '') || '|' || coalesce(presentation_json::text, '{}')) = $7::text
             )
-          returning id, slug, title, summary, description, image, presentation_json,
+          returning id, slug, image, presentation_json,
                     md5(coalesce(image, '') || '|' || coalesce(presentation_json::text, '{}')) as revision
         `,
         [
@@ -1143,9 +1148,6 @@ export async function updateTopLevelCategoryPresentations(
       saved.push({
         id: row.id,
         slug: row.slug,
-        title: row.title,
-        summary: row.summary,
-        description: row.description,
         image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
         presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
         revision: row.revision

@@ -70,6 +70,10 @@ import {
   type HomepageFooterSocialLink
 } from '@/shared/domain/landing/landingPage';
 import { toGlobalStyleCssVariables, type GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
+import {
+  HOMEPAGE_WEBSITE_FONT_FAMILIES,
+  type WebsiteFontFamily
+} from '@/shared/domain/style/fontFamilies';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
 import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
@@ -394,6 +398,24 @@ const topBarWidthModeLabels: Record<SiteNavigationTopBarWidthMode, string> = {
   custom: 'Po meri',
   full: 'Celotna stran'
 };
+
+const topBarFontWeightOptions = [
+  { value: 300, label: '300' },
+  { value: 400, label: '400' },
+  { value: 500, label: '500' },
+  { value: 600, label: '600' },
+  { value: 700, label: '700' },
+  { value: 800, label: '800' },
+  { value: 900, label: '900' }
+] as const;
+
+const topBarFontStyleOptions: Array<{
+  value: SiteNavigationTopBarResponsiveSettings['fontStyle'];
+  label: string;
+}> = [
+  { value: 'normal', label: 'Navadno' },
+  { value: 'italic', label: 'Ležeče' }
+];
 
 const topBarItemWidthModeLabels: Record<SiteNavigationTopBarItemWidthMode, string> = {
   auto: 'Samodejno',
@@ -1401,6 +1423,7 @@ function TopBarSegmentedControl<T extends string>({
   value,
   options,
   activeValue,
+  compact = false,
   onChange,
   onOptionActive,
   onOptionInactive
@@ -1408,18 +1431,21 @@ function TopBarSegmentedControl<T extends string>({
   value: T;
   options: Array<{ value: T; label: string; disabled?: boolean }>;
   activeValue?: T | null;
+  compact?: boolean;
   onChange: (value: T) => void;
   onOptionActive?: (value: T) => void;
   onOptionInactive?: () => void;
 }) {
   return (
-    <div className="inline-flex min-h-9 min-w-0 flex-wrap items-center gap-1">
+    <div className={compact ? 'inline-flex min-h-7 w-full min-w-0 items-center gap-1' : 'inline-flex min-h-9 min-w-0 flex-wrap items-center gap-1'}>
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           disabled={option.disabled}
-          className={`inline-flex h-8 items-center rounded-md border px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses} ${
+          className={`inline-flex items-center justify-center rounded-md border font-medium leading-none transition ${adminControlFocusTokenClasses} ${
+            compact ? 'h-7 min-w-0 flex-1 px-1.5 text-[11px]' : 'h-8 px-2.5 text-[12px]'
+          } ${
             value === option.value
               ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
               : activeValue === option.value
@@ -2137,6 +2163,87 @@ function TopBarToggle({
         />
       </span>
     </button>
+  );
+}
+
+function TopBarAppearanceColorField({
+  label,
+  ariaLabel,
+  value,
+  fallback,
+  hideLabel = false,
+  onChange
+}: {
+  label: string;
+  ariaLabel: string;
+  value: string;
+  fallback: string;
+  hideLabel?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const normalizedFallback = /^#[0-9A-F]{6}$/i.test(fallback) ? fallback.toUpperCase() : '#FFFFFF';
+  const normalizedValue = /^#[0-9A-F]{6}$/i.test(value) ? value.toUpperCase() : normalizedFallback;
+  const [draftValue, setDraftValue] = useState(normalizedValue);
+  const isValidDraft = /^#[0-9A-F]{6}$/.test(draftValue);
+
+  useEffect(() => {
+    setDraftValue(normalizedValue);
+  }, [normalizedValue]);
+
+  const commitDraft = (candidate: string) => {
+    const nextValue = candidate.toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(nextValue)) {
+      setDraftValue(normalizedValue);
+      return;
+    }
+
+    setDraftValue(nextValue);
+    onChange(nextValue);
+  };
+
+  return (
+    <div className="grid min-w-0 gap-1">
+      <span className={hideLabel ? 'sr-only' : 'text-[11px] font-medium leading-4 text-slate-500'}>{label}</span>
+      <span
+        className={`flex h-7 min-w-0 items-center overflow-hidden rounded-md border bg-slate-50/70 transition hover:bg-white focus-within:border-[color:var(--blue-500)] focus-within:bg-white ${
+          isValidDraft ? 'border-slate-200 hover:border-slate-300' : 'border-rose-300'
+        }`}
+      >
+        <input
+          type="color"
+          value={normalizedValue}
+          onChange={(event) => commitDraft(event.target.value)}
+          className="ml-1 h-5 w-5 shrink-0 cursor-pointer appearance-none overflow-hidden rounded border-0 bg-transparent p-0 ring-1 ring-inset ring-slate-300/80 outline-none [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-0"
+          aria-label={`${ariaLabel}: izberi barvo`}
+        />
+        <input
+          type="text"
+          value={draftValue}
+          maxLength={7}
+          spellCheck={false}
+          autoCapitalize="characters"
+          aria-label={ariaLabel}
+          aria-invalid={!isValidDraft}
+          onBlur={(event) => commitDraft(event.currentTarget.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value.toUpperCase();
+            setDraftValue(nextValue);
+            if (/^#[0-9A-F]{6}$/.test(nextValue)) onChange(nextValue);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              commitDraft(event.currentTarget.value);
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              setDraftValue(normalizedValue);
+              event.currentTarget.blur();
+            }
+          }}
+          className="h-full min-w-0 flex-1 border-0 bg-transparent px-1 font-mono text-[10px] uppercase tracking-[0.01em] text-slate-700 outline-none focus:ring-0"
+        />
+      </span>
+    </div>
   );
 }
 
@@ -4498,59 +4605,60 @@ function TopBarDeviceSettingsPanel({
 
   if (device === 'tablet' && scope === 'navigation') {
     return (
-      <div className="min-w-0">
-        <div className={`mb-2 grid min-w-0 items-center gap-2 ${settings.navigationMode === 'condensed' ? 'grid-cols-[minmax(0,1fr)_max-content]' : 'grid-cols-1'}`}>
-          <TopBarHelpLabel help={topBarHelpCopy.tabletNavigation} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
-            Navigacija
-          </TopBarHelpLabel>
-          {settings.navigationMode === 'condensed' ? (
-            <TopBarHelpLabel help={topBarHelpCopy.maxVisibleLinks} align="right" className="justify-self-end whitespace-nowrap text-right text-[12px] font-semibold leading-none text-slate-600">
-              Št. povezav
-            </TopBarHelpLabel>
-          ) : null}
-        </div>
-        <div className={`grid min-w-0 items-end gap-2 ${settings.navigationMode === 'condensed' ? 'grid-cols-[minmax(0,1fr)_84px]' : 'grid-cols-1'}`}>
-          <TopBarSegmentedControl<SiteNavigationTopBarNavigationMode>
-            value={settings.navigationMode ?? 'condensed'}
-            options={[
-              { value: 'full', label: 'Polna' },
-              { value: 'condensed', label: 'Strnjena' },
-              { value: 'hamburger', label: 'Meni' }
-            ]}
-            onChange={(navigationMode) => onChange({ navigationMode })}
-          />
-          {settings.navigationMode === 'condensed' ? (
+      <div
+        className={`grid h-7 min-w-0 items-center gap-1.5 ${
+          settings.navigationMode === 'condensed'
+            ? 'grid-cols-[72px_minmax(0,1fr)_52px]'
+            : 'grid-cols-[72px_minmax(0,1fr)]'
+        }`}
+        data-testid="top-bar-tablet-navigation-settings"
+      >
+        <TopBarHelpLabel help={topBarHelpCopy.tabletNavigation} align="right" className="text-[11px] font-semibold leading-none text-slate-600">
+          Navigacija
+        </TopBarHelpLabel>
+        <TopBarSegmentedControl<SiteNavigationTopBarNavigationMode>
+          value={settings.navigationMode ?? 'condensed'}
+          compact
+          options={[
+            { value: 'full', label: 'Polna' },
+            { value: 'condensed', label: 'Strnjena' },
+            { value: 'hamburger', label: 'Meni' }
+          ]}
+          onChange={(navigationMode) => onChange({ navigationMode })}
+        />
+        {settings.navigationMode === 'condensed' ? (
+          <span title={topBarHelpCopy.maxVisibleLinks}>
             <TopBarUnitNumberInput
               value={settings.maxVisibleLinks ?? 3}
               min={1}
               max={8}
               suffix=""
-              className="ml-auto w-[84px]"
-              inputClassName="w-full px-2"
+              className="w-[52px]"
+              inputClassName="w-full px-1.5"
               ariaLabel="Št. povezav"
               onChange={updateNumber('maxVisibleLinks')}
             />
-          ) : null}
-        </div>
+          </span>
+        ) : null}
       </div>
     );
   }
 
   if (device === 'mobile' && scope === 'navigation') {
     return (
-      <div className="grid min-w-0 gap-2">
-        <div className="min-w-0">
-          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-            <TopBarHelpLabel help={topBarHelpCopy.mobileNavigation} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
-              Navigacija
-            </TopBarHelpLabel>
-          </div>
-          <TopBarSegmentedControl<NonNullable<SiteNavigationTopBarResponsiveSettings['menuOpenMode']>>
-            value={settings.menuOpenMode ?? 'drawer'}
-            options={[{ value: 'drawer', label: 'Z leve' }, { value: 'fullscreen', label: 'Celozaslonsko' }]}
-            onChange={(menuOpenMode) => onChange({ menuOpenMode })}
-          />
-        </div>
+      <div
+        className="grid h-7 min-w-0 grid-cols-[72px_minmax(0,1fr)] items-center gap-1.5"
+        data-testid="top-bar-mobile-navigation-settings"
+      >
+        <TopBarHelpLabel help={topBarHelpCopy.mobileNavigation} align="right" className="text-[11px] font-semibold leading-none text-slate-600">
+          Navigacija
+        </TopBarHelpLabel>
+        <TopBarSegmentedControl<NonNullable<SiteNavigationTopBarResponsiveSettings['menuOpenMode']>>
+          value={settings.menuOpenMode ?? 'drawer'}
+          compact
+          options={[{ value: 'drawer', label: 'Z leve' }, { value: 'fullscreen', label: 'Celozaslonsko' }]}
+          onChange={(menuOpenMode) => onChange({ menuOpenMode })}
+        />
       </div>
     );
   }
@@ -4914,7 +5022,7 @@ function TopBarLayoutEditor({
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-lg font-semibold text-slate-900">Zgornja vrstica</h2>
         </div>
@@ -4949,7 +5057,7 @@ function TopBarLayoutEditor({
       <div className="grid min-w-0 items-start gap-4">
         <div className="grid min-w-0 gap-4 min-[1180px]:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)]">
           <div className="col-span-full flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
               {(Object.keys(topBarDeviceLabels) as SiteNavigationTopBarDevice[]).map((currentDevice) => (
                 <button
                   key={currentDevice}
@@ -4989,36 +5097,157 @@ function TopBarLayoutEditor({
           </div>
 
           <div className="min-w-0 self-stretch border-t border-slate-100 pt-4 min-[1180px]:col-start-2 min-[1180px]:row-start-3 min-[1180px]:border-t-0 min-[1180px]:pt-0">
-            <aside className="grid h-full min-w-0 content-start gap-4 rounded-xl border border-slate-200 bg-white p-4">
-              <section className="min-w-0">
-                <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
-                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[12px] font-semibold leading-none text-slate-600">
+            <aside
+              className={`grid h-full min-w-0 content-start rounded-xl border border-slate-200 bg-white p-3 ${
+                device === 'desktop' ? 'gap-3' : 'gap-2'
+              }`}
+              data-testid="top-bar-settings-panel"
+            >
+              <section
+                className={`min-w-0 border-b border-slate-100 ${
+                  device === 'desktop' ? 'pb-2.5' : 'pb-1.5'
+                }`}
+                data-testid="top-bar-appearance-settings"
+              >
+                <h3 className={`text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 ${
+                  device === 'desktop' ? 'mb-2' : 'mb-1'
+                }`}>
+                  Videz
+                </h3>
+                <div className={`grid min-w-0 ${device === 'desktop' ? 'gap-2.5' : 'gap-1.5'}`}>
+                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
+                    <span className="truncate text-[11px] font-medium text-slate-500">Ozadje</span>
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_68px] gap-1.5">
+                      <TopBarAppearanceColorField
+                        label="Barva ozadja"
+                        ariaLabel="Ozadje zgornje vrstice"
+                        value={deviceLayout.settings.backgroundColor}
+                        fallback="#FFFFFF"
+                        hideLabel
+                        onChange={(backgroundColor) => updateSettings({ backgroundColor })}
+                      />
+                      <TopBarUnitNumberInput
+                        value={deviceLayout.settings.backgroundOpacityPercent}
+                        min={0}
+                        max={100}
+                        step={1}
+                        suffix="%"
+                        className="w-full"
+                        inputClassName="min-w-0 flex-1 px-1 text-[11px]"
+                        ariaLabel="Prosojnost ozadja zgornje vrstice"
+                        onChange={(backgroundOpacityPercent) => updateSettings({ backgroundOpacityPercent })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
+                    <span className="truncate text-[11px] font-medium text-slate-500">Besedilo</span>
+                    <div className="grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(82px,1.1fr)] gap-1.5">
+                      <TopBarAppearanceColorField
+                        label="Barva besedila"
+                        ariaLabel="Barva besedila zgornje vrstice"
+                        value={deviceLayout.settings.textColor}
+                        fallback="#4D4D4D"
+                        hideLabel
+                        onChange={(textColor) => updateSettings({ textColor })}
+                      />
+                      <select
+                        value={deviceLayout.settings.fontFamily}
+                        onChange={(event) => updateSettings({ fontFamily: event.target.value as WebsiteFontFamily })}
+                        className={`${compactInputClassName} min-w-0 !h-7 !px-1.5 text-[11px]`}
+                        aria-label="Pisava zgornje vrstice"
+                      >
+                        {HOMEPAGE_WEBSITE_FONT_FAMILIES.map((fontFamily) => (
+                          <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
+                    <span className="truncate text-[11px] font-medium text-slate-500">Tipografija</span>
+                    <div className="grid min-w-0 grid-cols-[66px_minmax(72px,1.05fr)_minmax(58px,0.95fr)] gap-1.5">
+                      <TopBarUnitNumberInput
+                        value={deviceLayout.settings.fontSizePx}
+                        min={10}
+                        max={24}
+                        step={1}
+                        suffix="px"
+                        className="w-full"
+                        inputClassName="min-w-0 flex-1 px-1 text-[11px]"
+                        ariaLabel="Velikost pisave zgornje vrstice"
+                        onChange={(fontSizePx) => updateSettings({ fontSizePx })}
+                      />
+                      <select
+                        value={deviceLayout.settings.fontWeight}
+                        onChange={(event) => updateSettings({ fontWeight: Number(event.target.value) })}
+                        className={`${compactInputClassName} min-w-0 !h-7 !pl-1.5 !pr-6 text-[11px]`}
+                        aria-label="Debelina pisave zgornje vrstice"
+                      >
+                        {topBarFontWeightOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={deviceLayout.settings.fontStyle}
+                        onChange={(event) => updateSettings({
+                          fontStyle: event.target.value as SiteNavigationTopBarResponsiveSettings['fontStyle']
+                        })}
+                        className={`${compactInputClassName} min-w-0 !h-7 !px-1.5 text-[11px]`}
+                        aria-label="Slog pisave zgornje vrstice"
+                      >
+                        {topBarFontStyleOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="min-w-0" data-testid="top-bar-width-settings">
+                <div className={`flex min-w-0 items-center justify-between gap-2 ${
+                  device === 'desktop' ? 'mb-2' : 'mb-1'
+                }`}>
+                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[11px] font-semibold leading-none text-slate-600">
                     Širina zgornje vrstice
                   </TopBarHelpLabel>
-                </div>
-                <div className="grid min-w-0 gap-2">
-                  <TopBarSegmentedControl<SiteNavigationTopBarWidthMode>
-                    value={deviceLayout.settings.widthMode}
-                    activeValue={activeEdit.kind === 'width-mode' ? activeEdit.fieldName as SiteNavigationTopBarWidthMode : null}
-                    options={[
-                      { value: 'match_content', label: topBarWidthModeLabels.match_content },
-                      { value: 'custom', label: topBarWidthModeLabels.custom },
-                      { value: 'full', label: topBarWidthModeLabels.full }
-                    ]}
-                    onChange={(widthMode) => {
-                      setActiveEdit({ kind: 'width-mode', fieldName: widthMode });
-                      updateSettings({ widthMode });
-                    }}
-                    onOptionActive={(widthMode) => setActiveEdit({ kind: 'width-mode', fieldName: widthMode })}
-                    onOptionInactive={clearActiveEditSoon}
-                  />
                   {deviceLayout.settings.widthMode === 'custom' ? (
-                    <TopBarMiniNumberField
-                      label="Po meri"
-                      help={topBarHelpCopy.customWidth}
+                    <TopBarHelpLabel help={topBarHelpCopy.customWidth} align="right" className="shrink-0 text-[10px] font-medium leading-none text-slate-500">
+                      Po meri
+                    </TopBarHelpLabel>
+                  ) : null}
+                </div>
+                <div className="grid min-w-0 gap-1.5">
+                  <div className={`grid min-w-0 items-center gap-1.5 ${
+                    deviceLayout.settings.widthMode === 'custom'
+                      ? 'grid-cols-[minmax(0,1fr)_84px]'
+                      : 'grid-cols-1'
+                  }`}>
+                    <TopBarSegmentedControl<SiteNavigationTopBarWidthMode>
+                      value={deviceLayout.settings.widthMode}
+                      activeValue={activeEdit.kind === 'width-mode' ? activeEdit.fieldName as SiteNavigationTopBarWidthMode : null}
+                      compact
+                      options={[
+                        { value: 'match_content', label: topBarWidthModeLabels.match_content },
+                        { value: 'custom', label: topBarWidthModeLabels.custom },
+                        { value: 'full', label: topBarWidthModeLabels.full }
+                      ]}
+                      onChange={(widthMode) => {
+                        setActiveEdit({ kind: 'width-mode', fieldName: widthMode });
+                        updateSettings({ widthMode });
+                      }}
+                      onOptionActive={(widthMode) => setActiveEdit({ kind: 'width-mode', fieldName: widthMode })}
+                      onOptionInactive={clearActiveEditSoon}
+                    />
+                    {deviceLayout.settings.widthMode === 'custom' ? (
+                      <TopBarUnitNumberInput
                       value={deviceLayout.settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx}
                       min={640}
                       max={2400}
+                      className="w-[84px]"
+                      inputClassName="w-10 shrink-0 px-1"
+                      ariaLabel="Po meri"
                       active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'customMaxWidthPx'}
                       onBlur={clearActiveEditSoon}
                       onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
@@ -5028,18 +5257,19 @@ function TopBarLayoutEditor({
                         setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' });
                         updateSettings({ customMaxWidthPx });
                       }}
-                    />
-                  ) : null}
+                      />
+                    ) : null}
+                  </div>
                   {device !== 'desktop' ? (
-                    <div className="mt-2">
+                    <div>
                       <TopBarDeviceSettingsPanel device={device} settings={deviceLayout.settings} onChange={updateSettings} scope="navigation" />
                     </div>
                   ) : null}
                 </div>
               </section>
 
-              <section className="min-w-0">
-                <div className="grid min-w-0 gap-2">
+              <section className="min-w-0" data-testid="top-bar-dimensions-settings">
+                <div className={`grid min-w-0 ${device === 'desktop' ? 'gap-2' : 'gap-1.5'}`}>
                   <TopBarMiniNumberField
                     layout="row"
                     label="Višina"
@@ -5137,7 +5367,7 @@ function TopBarLayoutEditor({
           </div>
 
           <div className="min-w-0 min-[1180px]:col-start-1 min-[1180px]:row-start-3">
-            <div className="relative overflow-visible rounded-xl bg-white">
+            <div className="relative overflow-visible rounded-xl bg-white" data-testid="top-bar-elements-table">
               <div className="flex min-h-[58px] items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <h3 className="text-base font-semibold text-slate-900">Elementi v vrstici</h3>
                 <div className="flex items-center gap-2">
@@ -7692,7 +7922,7 @@ export default function AdminNavigationPageClient({
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-slate-900">Glavni meni</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Glavni meni</h2>
           <div className="flex items-center gap-2">
             <IconButton
               type="button"

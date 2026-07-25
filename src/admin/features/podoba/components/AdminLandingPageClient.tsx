@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from 'react';
-import { flushSync } from 'react-dom';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -26,6 +26,7 @@ import {
   EyeClosed,
   Grid3X3,
   GripVertical,
+  Images,
   Italic,
   Layers3,
   Link as LinkIcon,
@@ -51,7 +52,7 @@ import HomepageRenderer, {
   HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
   type HomepageCanvasEditorOptions
 } from '@/commercial/components/landing/HomepageRenderer';
-import { COMMERCIAL_STOREFRONT_SCALE } from '@/commercial/components/commercialStorefrontScale';
+import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import {
   DEFAULT_HOMEPAGE_CATEGORY_CARDS,
@@ -66,13 +67,13 @@ import {
   HOMEPAGE_INFO_ICONS,
   HOMEPAGE_INFO_ICON_POSITIONS,
   HOMEPAGE_INFO_STYLES,
+  MAX_HOMEPAGE_HERO_SLIDES,
   HOMEPAGE_PREVIEW_DEVICES,
   HOMEPAGE_PREVIEW_PROFILES,
   HOMEPAGE_SECTION_IDS,
   HOMEPAGE_SECTION_RADII,
   HOMEPAGE_SECTION_SPACINGS,
   DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
-  cloneDefaultLandingPageConfig,
   homepageButtonStyleLabels,
   homepageCategoryCardSizeLabels,
   homepageCategoryCardStyleLabels,
@@ -88,8 +89,10 @@ import {
   homepageSectionRadiusLabels,
   homepageSectionSpacingLabels,
   getHomepagePreviewDeviceForViewport,
+  isDeletableHomepageCanvasElementId,
   normalizeLandingPageConfig,
   orderHomepageCategories,
+  removeDeletableHomepageCanvasElement,
   resolveHomepageSectionLabel,
   resolveHomepageCanvasElementDeviceSettings,
   toStoredLandingPageConfig,
@@ -109,13 +112,19 @@ import {
   type HomepageSettings
 } from '@/shared/domain/landing/landingPage';
 import { getWebsiteFontFamilyLabel } from '@/shared/domain/style/fontFamilies';
+import { toGlobalStyleCssVariables, type GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
 import { normalizeSiteNavigationConfig, type SiteNavigationConfig } from '@/shared/domain/navigation/siteNavigation';
 import {
-  CATEGORY_SHOWCASE_HOMEPAGE_CAPABILITIES,
+  CATEGORY_SHOWCASE_BASE_CAPABILITIES,
   CategoryShowcaseEditor
 } from '@/shared/features/category-showcase/CategoryShowcaseEditor';
 import { useCategoryShowcaseEditor } from '@/shared/features/category-showcase/useCategoryShowcaseEditor';
-import { subscribeToCategoryDataChanges } from '@/shared/features/category-showcase/categoryShowcaseSync';
+import {
+  fetchCategoryShowcaseUpdates,
+  mergeCategoryDataChangeMessages,
+  subscribeToCategoryDataChanges,
+  type CategoryDataChangeMessage
+} from '@/shared/features/category-showcase/categoryShowcaseSync';
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
@@ -135,18 +144,19 @@ import AdminPodobaTabs from './AdminPodobaTabs';
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
 const panelClassName = 'rounded-xl border border-slate-200 bg-white';
-const labelClassName = 'text-[11px] font-medium leading-4 text-slate-500';
-const inspectorFieldRowClassName = 'grid min-w-0 grid-cols-[minmax(82px,0.8fr)_minmax(0,1.2fr)] items-center gap-3';
+const labelClassName =
+  'text-[10px] font-medium leading-3.5 text-[color:var(--homepage-inspector-muted,#64748b)]';
+const inspectorFieldRowClassName = 'grid min-w-0 grid-cols-[minmax(68px,0.72fr)_minmax(0,1.28fr)] items-center gap-2';
 const inputClassName =
-  `h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-[12px] leading-[1.25] text-slate-800 font-['Inter',system-ui,sans-serif] transition placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:bg-white ${adminInputFocusTokenClasses}`;
-const textareaClassName = `${inputClassName} min-h-[76px] resize-y py-2 leading-5`;
-const segmentedControlClassName = 'flex items-center gap-0.5 rounded-lg bg-slate-100/80 p-0.5';
-const floatingSurfaceClassName =
-  'rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_16px_40px_rgba(15,23,42,0.12),0_2px_8px_rgba(15,23,42,0.06)] backdrop-blur-xl';
+  `h-7 w-full rounded-md border !border-[color:var(--homepage-inspector-input-border,#e2e8f0)] !bg-[color:var(--homepage-inspector-input-bg,#f8fafc)] px-2 text-[11px] leading-[1.2] !text-[color:var(--homepage-inspector-input-text,#1e293b)] font-['Inter',system-ui,sans-serif] transition placeholder:!text-[color:var(--homepage-inspector-input-placeholder,#94a3b8)] hover:!border-[color:var(--homepage-inspector-input-border-hover,#cbd5e1)] hover:!bg-[color:var(--homepage-inspector-input-hover,#ffffff)] focus:!bg-[color:var(--homepage-inspector-input-focus,#ffffff)] ${adminInputFocusTokenClasses}`;
+const textareaClassName = `${inputClassName} min-h-[52px] resize-y py-1.5 leading-4`;
+const segmentedControlClassName = 'flex items-center gap-0.5 rounded-md bg-[color:var(--homepage-inspector-control-bg,#f1f5f9)] p-0.5';
+const homepageDarkGlassFrameClassName =
+  'border-white/15 shadow-[0_16px_40px_rgba(30,41,53,0.38),0_3px_12px_rgba(30,41,53,0.28)] backdrop-blur-xl';
+const homepageToolbarPopoverSurfaceClassName =
+  `rounded-xl border bg-black/90 ${homepageDarkGlassFrameClassName}`;
 const topActionSaveButtonClassName =
   `gap-2 ${adminTablePrimaryButtonClassName} !h-9 !leading-none disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
-const previewButtonClassName =
-  'inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-500)]';
 
 type HeroTypographyUpdates = Partial<
   Pick<
@@ -186,7 +196,8 @@ type HeroTextContentUpdates = Partial<Pick<HomepageSettings['hero'], 'title' | '
 type CategoryTextUpdates = Partial<Pick<HomepageSettings['categories'], 'title' | 'subtitle' | 'showAllLabel'>>;
 type HeroTextBlockUpdates = Partial<HomepageHeroTextBlock>;
 
-type ToolbarPopover = 'create' | 'structure' | 'section' | 'page' | 'style' | 'layout' | 'spacing' | 'link' | 'view' | 'media' | null;
+type ToolbarPopover = 'create' | 'structure' | 'section' | 'carousel' | 'page' | 'style' | 'layout' | 'spacing' | 'link' | 'view' | 'media' | null;
+type HomepageToolbarHost = 'inline' | 'floating';
 type CategoryTitleEditScope = 'all' | 'selected';
 type Option<Value extends string> = { value: Value; label: string };
 
@@ -315,9 +326,71 @@ function useMeasuredElementWidth<T extends HTMLElement>() {
   return [measureRef, width] as const;
 }
 
+function useCurrentDesktopPreviewWidth() {
+  const [width, setWidth] = useState(HOMEPAGE_PREVIEW_PROFILES.desktop.viewportWidth);
+
+  useLayoutEffect(() => {
+    const minimumDesktopWidth = HOMEPAGE_PREVIEW_PROFILES.tablet.viewportWidth + 1;
+    const updateWidth = () => {
+      const currentViewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      const nextWidth = Math.max(minimumDesktopWidth, Math.round(currentViewportWidth));
+      setWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(document.documentElement);
+
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  return width;
+}
+
 function formatZoomLabel(scale: number) {
   const scaleNumberLabel = scale === 1 ? '1' : scale.toFixed(2).replace('.', ',');
   return `${scaleNumberLabel}x zoom`;
+}
+
+type HomepagePreviewStorefrontStyle = CSSProperties & Record<`--${string}`, string | number>;
+
+function createHomepagePreviewHeroStorefrontStyle(
+  globalStyle: GlobalStyleConfig,
+  device: HomepagePreviewDevice
+): HomepagePreviewStorefrontStyle {
+  const variables = toGlobalStyleCssVariables(globalStyle, toCommercialStorefrontLogicalPx(1));
+  const gutter = device === 'mobile'
+    ? variables['--site-gutter-mobile']
+    : device === 'tablet'
+      ? variables['--site-gutter-tablet']
+      : variables['--site-gutter-desktop'];
+  const sectionSpacing = device === 'mobile'
+    ? variables['--site-section-space-mobile']
+    : device === 'tablet'
+      ? variables['--site-section-space-tablet']
+      : variables['--site-section-space-desktop'];
+
+  return {
+    ...variables,
+    '--site-content-max-width': variables['--site-global-max-width'],
+    '--site-gutter-min': variables['--site-gutter-mobile'],
+    '--site-gutter-max': variables['--site-gutter-desktop'],
+    '--site-gutter': gutter,
+    '--site-section-space-current': sectionSpacing,
+    '--site-admin-content-lane-start': '128px',
+    '--site-admin-content-lane-end': '37.3333px',
+    '--site-admin-content-lane-shift': '45.3333px',
+    minHeight: 0
+  };
 }
 
 const previewViewportTransitionDurationMs = 420;
@@ -453,10 +526,13 @@ function createHomepagePreviewFluidEndpoints(
   })) as HomepagePreviewFluidEndpoints;
 }
 
-function getHomepagePreviewFluidSegment(logicalWidth: number) {
+function getHomepagePreviewFluidSegment(
+  logicalWidth: number,
+  desktopViewportWidth = HOMEPAGE_PREVIEW_PROFILES.desktop.viewportWidth
+) {
   const mobileWidth = HOMEPAGE_PREVIEW_PROFILES.mobile.viewportWidth;
   const tabletWidth = HOMEPAGE_PREVIEW_PROFILES.tablet.viewportWidth;
-  const desktopWidth = HOMEPAGE_PREVIEW_PROFILES.desktop.viewportWidth;
+  const desktopWidth = Math.max(tabletWidth + 1, desktopViewportWidth);
   const from = logicalWidth <= tabletWidth ? 'mobile' : 'tablet';
   const to = logicalWidth <= tabletWidth ? 'tablet' : 'desktop';
   const startWidth = from === 'mobile' ? mobileWidth : tabletWidth;
@@ -469,9 +545,13 @@ function getHomepagePreviewFluidSegment(logicalWidth: number) {
 function interpolateHomepagePreviewFluidMetrics(
   endpoints: HomepagePreviewFluidEndpoints,
   geometry: PreviewViewportGeometry,
-  availableWidth: number
+  availableWidth: number,
+  desktopViewportWidth: number
 ): HomepagePreviewFluidMetrics {
-  const { from, to, progress } = getHomepagePreviewFluidSegment(geometry.logicalWidth);
+  const { from, to, progress } = getHomepagePreviewFluidSegment(
+    geometry.logicalWidth,
+    desktopViewportWidth
+  );
   const fromMetrics = endpoints[from];
   const toMetrics = endpoints[to];
   const metrics = Object.fromEntries(
@@ -488,7 +568,9 @@ function interpolateHomepagePreviewFluidMetrics(
     ? geometry.renderedWidth / geometry.logicalWidth
     : 1;
   const endpointScale = (device: HomepagePreviewDevice) => {
-    const width = HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
+    const width = device === 'desktop'
+      ? desktopViewportWidth
+      : HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
     return availableWidth > 0 ? Math.min(width, availableWidth) / width : 1;
   };
   const interpolateRenderedSize = (key: 'titleFontSizePx' | 'descriptionFontSizePx') =>
@@ -512,8 +594,14 @@ type PreviewFluidFontTransition = {
   targetDescriptionRenderedSizePx: number;
 };
 
-function getPreviewViewportGeometry(device: HomepagePreviewDevice, availableWidth: number): PreviewViewportGeometry {
-  const logicalWidth = HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
+function getPreviewViewportGeometry(
+  device: HomepagePreviewDevice,
+  availableWidth: number,
+  desktopViewportWidth = HOMEPAGE_PREVIEW_PROFILES.desktop.viewportWidth
+): PreviewViewportGeometry {
+  const logicalWidth = device === 'desktop'
+    ? desktopViewportWidth
+    : HOMEPAGE_PREVIEW_PROFILES[device].viewportWidth;
   return {
     logicalWidth,
     renderedWidth: availableWidth > 0 ? Math.min(logicalWidth, availableWidth) : 0
@@ -571,6 +659,7 @@ function usePrefersReducedMotion() {
 function useLiveResponsivePreviewViewport({
   selectedViewport,
   availableWidth,
+  desktopViewportWidth,
   prefersReducedMotion,
   fluidEndpoints,
   stageRef,
@@ -583,6 +672,7 @@ function useLiveResponsivePreviewViewport({
 }: {
   selectedViewport: HomepagePreviewDevice;
   availableWidth: number;
+  desktopViewportWidth: number;
   prefersReducedMotion: boolean;
   fluidEndpoints: HomepagePreviewFluidEndpoints;
   stageRef: RefObject<HTMLDivElement | null>;
@@ -593,7 +683,11 @@ function useLiveResponsivePreviewViewport({
   scrollRegionRef: RefObject<HTMLDivElement | null>;
   statusLabelRef: RefObject<HTMLSpanElement | null>;
 }) {
-  const initialGeometry = getPreviewViewportGeometry(selectedViewport, availableWidth);
+  const initialGeometry = getPreviewViewportGeometry(
+    selectedViewport,
+    availableWidth,
+    desktopViewportWidth
+  );
   const [responsiveMode, setResponsiveMode] = useState<HomepagePreviewDevice>(() =>
     getHomepagePreviewDeviceForViewport(initialGeometry.logicalWidth)
   );
@@ -639,11 +733,14 @@ function useLiveResponsivePreviewViewport({
     const frame = frameRef.current;
     const viewport = viewportRef.current;
     const liveLayer = liveLayerRef.current;
-    const fluidMetrics = interpolateHomepagePreviewFluidMetrics(
-      fluidEndpoints,
-      geometry,
-      availableWidth
-    );
+    const fluidMetrics = phase === 'idle'
+      ? { ...fluidEndpoints[mode] }
+      : interpolateHomepagePreviewFluidMetrics(
+          fluidEndpoints,
+          geometry,
+          availableWidth,
+          desktopViewportWidth
+        );
     const fontTransition = fluidFontTransitionRef.current;
     if (phase === 'animating' && fontTransition && transitionProgress !== undefined) {
       fluidMetrics.titleFontSizePx = lerpPreviewWidth(
@@ -674,8 +771,8 @@ function useLiveResponsivePreviewViewport({
     }
     if (liveLayer) {
       liveLayer.style.opacity = '1';
-      liveLayer.style.pointerEvents = 'auto';
-      liveLayer.dataset.previewInteractive = 'true';
+      liveLayer.style.pointerEvents = phase === 'animating' ? 'none' : 'auto';
+      liveLayer.dataset.previewInteractive = phase === 'animating' ? 'false' : 'true';
     }
 
     syncContentSizerHeight(geometry, mode);
@@ -710,7 +807,7 @@ function useLiveResponsivePreviewViewport({
     if (statusLabelRef.current) {
       statusLabelRef.current.textContent = `${homepagePreviewDeviceLabels[mode]} · viewport: ${Math.round(geometry.logicalWidth)} px · ${formatZoomLabel(scale)}`;
     }
-  }, [availableWidth, fluidEndpoints, frameRef, liveLayerRef, prefersReducedMotion, stageRef, statusLabelRef, syncContentSizerHeight, viewportRef]);
+  }, [availableWidth, desktopViewportWidth, fluidEndpoints, frameRef, liveLayerRef, prefersReducedMotion, stageRef, statusLabelRef, syncContentSizerHeight, viewportRef]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -734,7 +831,11 @@ function useLiveResponsivePreviewViewport({
       animationFrameRef.current = null;
     }
 
-    const targetGeometry = getPreviewViewportGeometry(selectedViewport, availableWidth);
+    const targetGeometry = getPreviewViewportGeometry(
+      selectedViewport,
+      availableWidth,
+      desktopViewportWidth
+    );
     const targetMode = getHomepagePreviewDeviceForViewport(targetGeometry.logicalWidth);
     const commitImmediately = !initializedRef.current || prefersReducedMotion;
     initializedRef.current = true;
@@ -768,12 +869,8 @@ function useLiveResponsivePreviewViewport({
       ? targetGeometry.renderedWidth / targetGeometry.logicalWidth
       : 1;
     const startFluidMetrics = lastFluidMetricsRef.current
-      ?? interpolateHomepagePreviewFluidMetrics(fluidEndpoints, startGeometry, availableWidth);
-    const targetFluidMetrics = interpolateHomepagePreviewFluidMetrics(
-      fluidEndpoints,
-      targetGeometry,
-      availableWidth
-    );
+      ?? { ...fluidEndpoints[responsiveModeRef.current] };
+    const targetFluidMetrics = { ...fluidEndpoints[targetMode] };
     fluidFontTransitionRef.current = {
       startTitleRenderedSizePx: startFluidMetrics.titleFontSizePx * startScale,
       targetTitleRenderedSizePx: targetFluidMetrics.titleFontSizePx * targetScale,
@@ -831,7 +928,7 @@ function useLiveResponsivePreviewViewport({
         animationFrameRef.current = null;
       }
     };
-  }, [applyGeometry, availableWidth, fluidEndpoints, prefersReducedMotion, selectedViewport]);
+  }, [applyGeometry, availableWidth, desktopViewportWidth, fluidEndpoints, prefersReducedMotion, selectedViewport]);
 
   useEffect(() => () => {
     transitionTokenRef.current += 1;
@@ -877,7 +974,7 @@ function SelectControl<Value extends string>({
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--homepage-inspector-input-muted,#94a3b8)]" aria-hidden="true" />
     </span>
   );
 }
@@ -940,7 +1037,7 @@ function TextareaField({
   placeholder?: string;
 }) {
   return (
-    <label className="grid min-w-0 gap-1.5 py-1">
+    <label className="grid min-w-0 gap-1 py-0.5">
       <span className={labelClassName}>{label}</span>
       <textarea
         value={value}
@@ -959,7 +1056,8 @@ function NumberField({
   min,
   max,
   step = 1,
-  suffix
+  suffix,
+  inputAriaLabel
 }: {
   label: string;
   value: number;
@@ -968,22 +1066,24 @@ function NumberField({
   max?: number;
   step?: number;
   suffix?: string;
+  inputAriaLabel?: string;
 }) {
   return (
     <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
-      <span className={`flex h-8 min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 transition hover:border-slate-300 hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses}`}>
+      <span className={`flex h-7 min-w-0 overflow-hidden rounded-md border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-input-bg,#f8fafc)] transition hover:border-[color:var(--homepage-inspector-input-border-hover,#cbd5e1)] hover:bg-[color:var(--homepage-inspector-input-hover,#ffffff)] focus-within:bg-[color:var(--homepage-inspector-input-focus,#ffffff)] ${adminControlFocusWithinTokenClasses}`}>
         <input
           type="number"
           value={value}
           min={min}
           max={max}
           step={step}
+          aria-label={inputAriaLabel}
           onChange={(event) => onChange(Number(event.target.value))}
-          className={`h-full min-w-0 flex-1 appearance-none border-0 bg-transparent px-2.5 text-[12px] text-slate-800 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${adminInputFocusTokenClasses}`}
+          className={`h-full min-w-0 flex-1 appearance-none border-0 bg-transparent px-2 text-[11px] text-[color:var(--homepage-inspector-input-text,#1e293b)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${adminInputFocusTokenClasses}`}
         />
         {suffix ? (
-          <span className="grid min-w-8 place-items-center px-2 text-[11px] font-medium text-slate-400">
+          <span className="grid min-w-7 place-items-center px-1.5 text-[10px] font-medium text-[color:var(--homepage-inspector-input-muted,#94a3b8)]">
             {suffix}
           </span>
         ) : null}
@@ -1008,8 +1108,8 @@ function ColorField({
   return (
     <div className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
-      <span className={`flex h-8 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-2 transition hover:border-slate-300 hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses}`}>
-        <label className="relative grid h-5 w-5 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-md ring-1 ring-inset ring-slate-200" style={{ backgroundColor: swatchColor }}>
+      <span className={`flex h-7 min-w-0 items-center gap-1.5 rounded-md border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-input-bg,#f8fafc)] px-1.5 transition hover:border-[color:var(--homepage-inspector-input-border-hover,#cbd5e1)] hover:bg-[color:var(--homepage-inspector-input-hover,#ffffff)] focus-within:bg-[color:var(--homepage-inspector-input-focus,#ffffff)] ${adminControlFocusWithinTokenClasses}`}>
+        <label className="relative grid h-4.5 w-4.5 shrink-0 cursor-pointer place-items-center overflow-hidden rounded ring-1 ring-inset ring-[color:var(--homepage-inspector-input-border,#e2e8f0)]" style={{ backgroundColor: swatchColor }}>
           <span className="sr-only">{label}: izbirnik barve</span>
           <input
             type="color"
@@ -1023,7 +1123,7 @@ function ColorField({
           aria-label={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className={`h-full min-w-0 flex-1 border-0 bg-transparent text-[12px] text-slate-800 ${adminInputFocusTokenClasses}`}
+          className={`h-full min-w-0 flex-1 border-0 bg-transparent text-[11px] text-[color:var(--homepage-inspector-input-text,#1e293b)] ${adminInputFocusTokenClasses}`}
           spellCheck={false}
         />
       </span>
@@ -1043,13 +1143,13 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="group flex min-h-9 min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition hover:bg-slate-50">
+    <label className="group flex min-h-8 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)]">
       <span className="grid min-w-0 flex-1 gap-0.5">
-        <span className="text-[12px] font-medium text-slate-800">{label}</span>
-        {description ? <span className="text-[11px] leading-4 text-slate-500">{description}</span> : null}
+        <span className="text-[11px] font-medium text-[color:var(--homepage-inspector-strong,#1e293b)]">{label}</span>
+        {description ? <span className="text-[10px] leading-3.5 text-[color:var(--homepage-inspector-muted,#64748b)]">{description}</span> : null}
       </span>
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="peer sr-only" />
-      <span className="relative h-5 w-8 shrink-0 rounded-full border border-transparent bg-slate-200 transition peer-checked:bg-[color:var(--blue-500)] peer-focus-visible:border-[color:var(--blue-500)]" aria-hidden="true">
+      <span className="relative h-5 w-8 shrink-0 rounded-full border border-transparent bg-[color:var(--homepage-inspector-toggle-bg,#e2e8f0)] transition peer-checked:bg-[color:var(--blue-500)] peer-focus-visible:border-[color:var(--blue-500)]" aria-hidden="true">
         <span className={classNames('absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform', checked && 'translate-x-3')} />
       </span>
     </label>
@@ -1072,18 +1172,18 @@ function FieldBlock({
   }, [defaultOpen, title]);
 
   return (
-    <section className="min-w-0 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
+    <section className="min-w-0 border-b border-[color:var(--homepage-inspector-divider,#f1f5f9)] pb-1 last:border-b-0 last:pb-0">
       <button
         type="button"
-        className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-transparent px-1.5 py-2 text-left transition hover:bg-slate-50 ${adminControlFocusTokenClasses}`}
+        className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-md border border-transparent px-1.5 py-1.5 text-left transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)] ${adminControlFocusTokenClasses}`}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="min-w-0 truncate text-[12px] font-medium text-slate-800">{title}</span>
-        <ChevronDown className={classNames('h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform', !open && '-rotate-90')} />
+        <span className="min-w-0 truncate text-[11px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">{title}</span>
+        <ChevronDown className={classNames('h-3.5 w-3.5 shrink-0 text-[color:var(--homepage-inspector-muted,#94a3b8)] transition-transform', !open && '-rotate-90')} />
       </button>
       {open ? (
-        <div className="min-w-0 space-y-2 px-1.5 pb-2 pt-0.5">
+        <div className="min-w-0 space-y-1.5 px-1.5 pb-1.5 pt-0.5">
           {children}
         </div>
       ) : null}
@@ -1097,7 +1197,8 @@ function SmallIconButton({
   children,
   onClick,
   tone = 'neutral',
-  disabled
+  disabled,
+  testId
 }: {
   label: string;
   title?: string;
@@ -1105,6 +1206,7 @@ function SmallIconButton({
   onClick: () => void;
   tone?: 'neutral' | 'danger';
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
@@ -1113,15 +1215,19 @@ function SmallIconButton({
       title={title ?? label}
       onClick={onClick}
       disabled={disabled}
+      data-testid={testId}
       className={classNames(
-        `grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-transparent text-slate-500 transition hover:bg-slate-100 hover:text-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
-        tone === 'danger' && 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+        `grid h-7 w-7 shrink-0 place-items-center rounded-md border border-transparent text-[color:var(--homepage-inspector-muted,#64748b)] transition hover:bg-[color:var(--homepage-inspector-hover,#f1f5f9)] hover:text-[color:var(--homepage-inspector-strong,var(--blue-600))] disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
+        tone === 'danger' && 'text-rose-400 hover:bg-rose-500/15 hover:text-rose-300'
       )}
     >
       {children}
     </button>
   );
 }
+
+const HomepageToolbarToneContext = createContext<'light' | 'dark'>('light');
+const HomepageToolbarPopoverPlacementContext = createContext<'inline' | 'top' | 'bottom'>('inline');
 
 function ToolbarButton({
   label,
@@ -1144,6 +1250,8 @@ function ToolbarButton({
   pressed?: boolean;
   testId?: string;
 }) {
+  const tone = useContext(HomepageToolbarToneContext);
+  const dark = tone === 'dark';
   return (
     <button
       type="button"
@@ -1157,11 +1265,18 @@ function ToolbarButton({
       disabled={disabled}
       onClick={onClick}
       className={classNames(
-        `grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-transparent text-slate-600 transition disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
-        active
-          ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-600)] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.16)]'
-          : 'bg-transparent hover:bg-slate-100/80 hover:text-[color:var(--blue-600)]',
-        danger && !active && 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+        `grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-transparent transition disabled:cursor-not-allowed disabled:opacity-35 ${adminControlFocusTokenClasses}`,
+        dark
+          ? active
+            ? 'bg-white/20 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.2)]'
+            : danger
+              ? 'bg-transparent text-rose-200 hover:bg-rose-500/20 hover:text-rose-100'
+              : 'bg-transparent text-white/80 hover:bg-white/15 hover:text-white'
+          : active
+            ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-600)] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.16)]'
+            : danger
+              ? 'bg-transparent text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+              : 'bg-transparent text-slate-600 hover:bg-slate-100/80 hover:text-[color:var(--blue-600)]'
       )}
     >
       {children}
@@ -1170,7 +1285,8 @@ function ToolbarButton({
 }
 
 function ToolbarDivider() {
-  return <span className="mx-1 h-5 w-px shrink-0 bg-slate-200" aria-hidden="true" />;
+  const tone = useContext(HomepageToolbarToneContext);
+  return <span className={classNames('mx-1 h-5 w-px shrink-0', tone === 'dark' ? 'bg-white/20' : 'bg-slate-200')} aria-hidden="true" />;
 }
 
 function ToolbarPopoverPanel({
@@ -1186,27 +1302,111 @@ function ToolbarPopoverPanel({
   onClose: () => void;
   wide?: boolean;
 }) {
+  const toolbarPlacement = useContext(HomepageToolbarPopoverPlacementContext);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const preferredSide = toolbarPlacement === 'bottom' ? 'above' : 'below';
+  const [panelLayout, setPanelLayout] = useState<{ side: 'above' | 'below'; maxHeight: number }>({
+    side: preferredSide,
+    maxHeight: 540
+  });
+
+  const updatePanelLayout = useCallback(() => {
+    const panel = panelRef.current;
+    const toolbar = panel?.parentElement;
+    if (!panel || !toolbar || typeof window === 'undefined') return;
+
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      const maxHeight = Math.max(180, window.innerHeight - 96);
+      setPanelLayout((current) => current.side === 'below' && current.maxHeight === maxHeight
+        ? current
+        : { side: 'below', maxHeight });
+      return;
+    }
+
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const header = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-header"]');
+    const body = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-body"]');
+    const viewportMargin = 8;
+    const anchorGap = 6;
+    const minimumHeight = 180;
+    const desiredHeight = Math.min(540, (header?.offsetHeight ?? 0) + (body?.scrollHeight ?? panel.scrollHeight) + 2);
+    const available = {
+      above: Math.max(minimumHeight, toolbarRect.top - viewportMargin - anchorGap),
+      below: Math.max(minimumHeight, window.innerHeight - toolbarRect.bottom - viewportMargin - anchorGap)
+    };
+    const alternateSide = preferredSide === 'above' ? 'below' : 'above';
+    const side = available[preferredSide] >= desiredHeight || available[preferredSide] >= available[alternateSide]
+      ? preferredSide
+      : alternateSide;
+    const maxHeight = Math.min(540, available[side]);
+
+    setPanelLayout((current) => current.side === side && Math.abs(current.maxHeight - maxHeight) < 0.5
+      ? current
+      : { side, maxHeight });
+  }, [preferredSide]);
+
+  useLayoutEffect(() => {
+    updatePanelLayout();
+    const panel = panelRef.current;
+    if (!panel || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updatePanelLayout);
+    observer.observe(panel);
+    const body = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-body"]');
+    if (body) observer.observe(body);
+    window.addEventListener('resize', updatePanelLayout);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updatePanelLayout);
+    };
+  }, [title, updatePanelLayout, wide]);
+
   return (
     <div
+      ref={panelRef}
       role="dialog"
       aria-label={title}
+      data-testid="homepage-toolbar-popover"
+      data-homepage-toolbar-popover-surface
+      data-homepage-toolbar-popover-size={wide ? 'wide' : 'standard'}
       className={classNames(
-        floatingSurfaceClassName,
-        'absolute left-0 top-[calc(100%+6px)] z-[120] flex max-h-[min(640px,calc(100dvh-160px))] flex-col overflow-hidden text-left max-md:fixed max-md:inset-x-3 max-md:top-24 max-md:max-h-[calc(100dvh-7rem)] max-md:w-auto',
-        wide ? 'w-[min(520px,calc(100vw-32px))]' : 'w-[min(390px,calc(100vw-32px))]'
+        homepageToolbarPopoverSurfaceClassName,
+        'absolute left-0 z-[120] flex flex-col overflow-hidden text-left max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:max-h-[calc(100dvh-6rem)] max-md:w-auto',
+        panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]',
+        wide ? 'w-[min(440px,calc(100vw-32px))]' : 'w-[min(360px,calc(100vw-32px))]'
       )}
+      style={{
+        '--homepage-inspector-strong': 'rgba(255,255,255,0.92)',
+        '--homepage-inspector-muted': 'rgba(255,255,255,0.75)',
+        '--homepage-inspector-divider': 'rgba(255,255,255,0.15)',
+        '--homepage-inspector-hover': 'rgba(255,255,255,0.1)',
+        '--homepage-inspector-input-bg': 'rgba(47,59,72,0.96)',
+        '--homepage-inspector-input-hover': 'rgba(54,67,81,0.98)',
+        '--homepage-inspector-input-focus': 'rgba(42,53,65,1)',
+        '--homepage-inspector-input-border': 'rgba(255,255,255,0.15)',
+        '--homepage-inspector-input-border-hover': 'rgba(255,255,255,0.28)',
+        '--homepage-inspector-input-text': 'rgba(255,255,255,0.94)',
+        '--homepage-inspector-input-placeholder': 'rgba(255,255,255,0.58)',
+        '--homepage-inspector-input-muted': 'rgba(255,255,255,0.62)',
+        '--homepage-inspector-control-bg': 'rgba(47,59,72,0.78)',
+        '--homepage-inspector-subsurface': 'rgba(47,59,72,0.62)',
+        '--homepage-inspector-subsurface-strong': 'rgba(47,59,72,0.9)',
+        '--homepage-inspector-selected-bg': 'rgba(255,255,255,0.14)',
+        '--homepage-inspector-selected-text': 'rgba(255,255,255,0.96)',
+        '--homepage-inspector-toggle-bg': 'rgba(30,41,53,0.82)',
+        maxHeight: panelLayout.maxHeight
+      } as CSSProperties}
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <div className="flex shrink-0 items-start justify-between gap-3 px-3.5 pb-2.5 pt-3">
-        <div className="min-w-0">
-          <h2 className="text-[13px] font-semibold text-slate-900">{title}</h2>
-          {description ? <p className="mt-0.5 text-[11px] leading-4 text-slate-500">{description}</p> : null}
+      <div data-testid="homepage-toolbar-popover-header" className="flex shrink-0 items-start justify-between gap-2.5 px-3 pb-1.5 pt-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[12px] font-semibold leading-4 text-white" title={title}>{title}</h2>
+          {description ? <p className="mt-0.5 truncate text-[10px] leading-3.5 text-white/75" title={description}>{description}</p> : null}
         </div>
-        <button type="button" aria-label="Zapri" title="Zapri" className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 ${adminControlFocusTokenClasses}`} onClick={onClose}>
+        <button type="button" aria-label="Zapri" title="Zapri" className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border border-transparent text-white/75 transition hover:bg-white/10 hover:text-white ${adminControlFocusTokenClasses}`} onClick={onClose}>
           <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
-      <div className="min-h-0 overflow-y-auto overscroll-contain border-t border-slate-100/80 px-3.5 py-2.5">
+      <div data-testid="homepage-toolbar-popover-body" className="min-h-0 overflow-y-auto overscroll-contain border-t border-white/15 px-3 py-2">
         {children}
       </div>
     </div>
@@ -1240,11 +1440,282 @@ function PreviewDeviceIcon({ device }: { device: HomepagePreviewDevice }) {
   );
 }
 
+type HomepageToolbarPlacement = 'top' | 'bottom';
+
+type HomepageToolbarPosition = {
+  left: number;
+  top: number;
+  maxWidth: number;
+  placement: HomepageToolbarPlacement;
+  ready: boolean;
+};
+
+const homepageToolbarEdgeGapPx = 8;
+const homepageToolbarAnchorGapPx = 8;
+const homepageContextToolbarBaseClassName =
+  'w-max max-w-full rounded-xl border p-1 backdrop-blur-xl';
+const homepageContextToolbarDarkSurfaceClassName =
+  `${homepageContextToolbarBaseClassName} bg-black/90 ${homepageDarkGlassFrameClassName}`;
+
+function findHomepageToolbarAnchor(viewport: HTMLElement, selectedElementId: string | null) {
+  if (!selectedElementId) return null;
+  if (selectedElementId.startsWith('section:')) {
+    const sectionId = selectedElementId.slice('section:'.length);
+    return Array.from(viewport.querySelectorAll<HTMLElement>('[data-homepage-section]'))
+      .find((element) => element.dataset.homepageSection === sectionId) ?? null;
+  }
+
+  return Array.from(viewport.querySelectorAll<HTMLElement>('[data-canvas-element-id]'))
+    .find((element) => element.dataset.canvasElementId === selectedElementId) ?? null;
+}
+
+function FloatingHomepageContextToolbar({
+  selectedElementId,
+  transitioning,
+  frameRef,
+  viewportRef,
+  scrollRegionRef,
+  externalRef,
+  children
+}: {
+  selectedElementId: string | null;
+  transitioning: boolean;
+  frameRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  scrollRegionRef: RefObject<HTMLDivElement | null>;
+  externalRef: RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+}) {
+  const toolbarElementRef = useRef<HTMLDivElement | null>(null);
+  const scheduledFrameRef = useRef<number | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
+  const [toolbarMounted, setToolbarMounted] = useState(false);
+  const [position, setPosition] = useState<HomepageToolbarPosition>({
+    left: 0,
+    top: 0,
+    maxWidth: 0,
+    placement: 'bottom',
+    ready: false
+  });
+
+  const setToolbarElement = useCallback((element: HTMLDivElement | null) => {
+    toolbarElementRef.current = element;
+    externalRef.current = element;
+    if (element) setToolbarMounted(true);
+  }, [externalRef]);
+
+  const updatePosition = useCallback(() => {
+    const frame = frameRef.current;
+    const viewport = viewportRef.current;
+    const toolbar = toolbarElementRef.current;
+    if (!frame || !viewport || !toolbar) return;
+
+    const frameRect = frame.getBoundingClientRect();
+    if (frameRect.width <= 0 || frameRect.height <= 0) return;
+
+    const boundsLeft = Math.max(frameRect.left, homepageToolbarEdgeGapPx);
+    const boundsRight = Math.min(frameRect.right, window.innerWidth - homepageToolbarEdgeGapPx);
+    const boundsTop = Math.max(frameRect.top, homepageToolbarEdgeGapPx);
+    const boundsBottom = Math.min(frameRect.bottom, window.innerHeight - homepageToolbarEdgeGapPx);
+    const maxWidth = Math.max(1, boundsRight - boundsLeft - homepageToolbarEdgeGapPx * 2);
+    const toolbarWidth = Math.min(Math.max(1, toolbar.scrollWidth), maxWidth);
+    const toolbarHeight = Math.max(1, toolbar.getBoundingClientRect().height);
+    const anchor = findHomepageToolbarAnchor(viewport, selectedElementId);
+    const anchorRect = anchor?.getBoundingClientRect() ?? null;
+
+    if (
+      anchorRect
+      && (
+        anchorRect.right <= frameRect.left
+        || anchorRect.left >= frameRect.right
+        || anchorRect.bottom <= frameRect.top
+        || anchorRect.top >= frameRect.bottom
+      )
+    ) {
+      setPosition((current) => current.ready ? { ...current, ready: false } : current);
+      return;
+    }
+
+    let placement: HomepageToolbarPlacement = 'bottom';
+    let toolbarLeft = frameRect.left + (frameRect.width - toolbarWidth) / 2;
+    let toolbarTop = boundsTop + homepageToolbarEdgeGapPx;
+
+    if (anchorRect) {
+      const availableAbove = anchorRect.top - frameRect.top;
+      const availableBelow = frameRect.bottom - anchorRect.bottom;
+      const requiredSpace = toolbarHeight + homepageToolbarAnchorGapPx + homepageToolbarEdgeGapPx;
+      placement = availableAbove >= requiredSpace
+        ? 'top'
+        : availableBelow >= requiredSpace
+          ? 'bottom'
+          : availableAbove >= availableBelow ? 'top' : 'bottom';
+      toolbarLeft = anchorRect.left + (anchorRect.width - toolbarWidth) / 2;
+      toolbarTop = placement === 'top'
+        ? anchorRect.top - toolbarHeight - homepageToolbarAnchorGapPx
+        : anchorRect.bottom + homepageToolbarAnchorGapPx;
+    }
+
+    const minimumLeft = boundsLeft + homepageToolbarEdgeGapPx;
+    const maximumLeft = boundsRight - toolbarWidth - homepageToolbarEdgeGapPx;
+    const minimumTop = boundsTop + homepageToolbarEdgeGapPx;
+    const maximumTop = boundsBottom - toolbarHeight - homepageToolbarEdgeGapPx;
+    const nextPosition = {
+      left: Math.round(Math.min(Math.max(toolbarLeft, minimumLeft), Math.max(minimumLeft, maximumLeft))),
+      top: Math.round(Math.min(Math.max(toolbarTop, minimumTop), Math.max(minimumTop, maximumTop))),
+      maxWidth: Math.round(maxWidth),
+      placement,
+      ready: true
+    } satisfies HomepageToolbarPosition;
+
+    setPosition((current) => (
+      current.left === nextPosition.left
+      && current.top === nextPosition.top
+      && current.maxWidth === nextPosition.maxWidth
+      && current.placement === nextPosition.placement
+      && current.ready === nextPosition.ready
+        ? current
+        : nextPosition
+    ));
+  }, [frameRef, selectedElementId, viewportRef]);
+
+  const schedulePosition = useCallback(() => {
+    if (scheduledFrameRef.current !== null) return;
+    scheduledFrameRef.current = window.requestAnimationFrame(() => {
+      scheduledFrameRef.current = null;
+      updatePosition();
+    });
+  }, [updatePosition]);
+
+  useLayoutEffect(() => {
+    if (!portalReady || !toolbarMounted) return;
+    updatePosition();
+  }, [children, portalReady, toolbarMounted, updatePosition]);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    const viewport = viewportRef.current;
+    const toolbar = toolbarElementRef.current;
+    const scrollRegion = scrollRegionRef.current;
+    if (!portalReady || !toolbarMounted || !frame || !viewport || !toolbar || !scrollRegion) return undefined;
+
+    const anchor = findHomepageToolbarAnchor(viewport, selectedElementId);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(schedulePosition);
+    resizeObserver?.observe(frame);
+    resizeObserver?.observe(viewport);
+    resizeObserver?.observe(toolbar);
+    if (anchor) resizeObserver?.observe(anchor);
+
+    const mutationObserver = typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(schedulePosition);
+    mutationObserver?.observe(viewport, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ['style', 'class', 'data-canvas-element-selected']
+    });
+
+    scrollRegion.addEventListener('scroll', schedulePosition, { passive: true });
+    viewport.addEventListener('pointermove', schedulePosition, { passive: true });
+    window.addEventListener('resize', schedulePosition);
+    window.addEventListener('scroll', schedulePosition, true);
+    window.visualViewport?.addEventListener('resize', schedulePosition);
+    window.visualViewport?.addEventListener('scroll', schedulePosition);
+    schedulePosition();
+
+    return () => {
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      scrollRegion.removeEventListener('scroll', schedulePosition);
+      viewport.removeEventListener('pointermove', schedulePosition);
+      window.removeEventListener('resize', schedulePosition);
+      window.removeEventListener('scroll', schedulePosition, true);
+      window.visualViewport?.removeEventListener('resize', schedulePosition);
+      window.visualViewport?.removeEventListener('scroll', schedulePosition);
+    };
+  }, [frameRef, portalReady, schedulePosition, scrollRegionRef, selectedElementId, toolbarMounted, viewportRef]);
+
+  useEffect(() => {
+    if (!portalReady || !toolbarMounted || position.ready) return undefined;
+
+    let attempts = 0;
+    let retryTimer = 0;
+    const retryUntilMeasured = () => {
+      updatePosition();
+      attempts += 1;
+      if (attempts < 40) retryTimer = window.setTimeout(retryUntilMeasured, 50);
+    };
+    retryUntilMeasured();
+
+    return () => window.clearTimeout(retryTimer);
+  }, [portalReady, position.ready, toolbarMounted, updatePosition]);
+
+  useEffect(() => {
+    if (!portalReady || !toolbarMounted) return undefined;
+    if (!transitioning) {
+      schedulePosition();
+      return undefined;
+    }
+
+    let animationFrame = 0;
+    const followTransition = () => {
+      updatePosition();
+      animationFrame = window.requestAnimationFrame(followTransition);
+    };
+    animationFrame = window.requestAnimationFrame(followTransition);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [portalReady, schedulePosition, toolbarMounted, transitioning, updatePosition]);
+
+  useEffect(() => () => {
+    if (scheduledFrameRef.current !== null) {
+      window.cancelAnimationFrame(scheduledFrameRef.current);
+      scheduledFrameRef.current = null;
+    }
+  }, []);
+
+  if (!portalReady || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      ref={setToolbarElement}
+      data-testid="homepage-context-toolbar"
+      data-selected-element-id={selectedElementId ?? ''}
+      data-homepage-toolbar-anchor-id={selectedElementId ?? 'page'}
+      data-toolbar-placement={position.placement}
+      data-toolbar-ready={position.ready ? 'true' : 'false'}
+      data-toolbar-mode="floating"
+      role="toolbar"
+      aria-label="Orodna vrstica predogleda"
+      className={`${homepageContextToolbarDarkSurfaceClassName} fixed z-[200] transition-[opacity,box-shadow] duration-150`}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxWidth: position.maxWidth > 0 ? position.maxWidth : undefined,
+        opacity: position.ready ? 1 : 0,
+        visibility: position.ready ? 'visible' : 'hidden',
+        pointerEvents: position.ready ? 'auto' : 'none'
+      }}
+    >
+      <HomepageToolbarPopoverPlacementContext.Provider value={position.placement}>
+        {children}
+      </HomepageToolbarPopoverPlacementContext.Provider>
+    </div>,
+    document.body
+  );
+}
+
 function ScaledHomepagePreview({
   selectedViewport,
   settings,
   categories,
   navigation,
+  globalStyle,
   selectedSectionId,
   selectedElementId,
   onSelectSection,
@@ -1256,16 +1727,20 @@ function ScaledHomepagePreview({
   onCategoryTextChange,
   onCategoryImageChange,
   onCategoryImageRemove,
+  onEditCategoryAppearance,
   onCategoryPresentationChange,
   onCategoryMove,
   onCanvasElementStyleChange,
   onMoveSection,
-  editorOptionsByDevice
+  editorOptionsByDevice,
+  contextToolbar,
+  contextToolbarRef
 }: {
   selectedViewport: HomepagePreviewDevice;
   settings: HomepageSettings;
   categories: HomepageCategoryCardData[];
   navigation: SiteNavigationConfig;
+  globalStyle: GlobalStyleConfig;
   selectedSectionId?: HomepageSectionId;
   selectedElementId: string | null;
   onSelectSection: (sectionId: HomepageSectionId) => void;
@@ -1277,6 +1752,7 @@ function ScaledHomepagePreview({
   onCategoryTextChange: (updates: CategoryTextUpdates) => void;
   onCategoryImageChange: (categorySlug: string, file: File) => void;
   onCategoryImageRemove: (categorySlug: string) => void;
+  onEditCategoryAppearance: (categorySlug: string) => void;
   onCategoryPresentationChange: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
   onCategoryMove: (sourceSlug: string, targetSlug: string) => void;
   onCanvasElementStyleChange: (
@@ -1286,8 +1762,11 @@ function ScaledHomepagePreview({
   ) => void;
   onMoveSection: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
   editorOptionsByDevice: Record<HomepagePreviewDevice, HomepageCanvasEditorOptions>;
+  contextToolbar: ReactNode;
+  contextToolbarRef: RefObject<HTMLDivElement | null>;
 }) {
   const [measureRef, availableWidth] = useMeasuredElementWidth<HTMLDivElement>();
+  const desktopViewportWidth = useCurrentDesktopPreviewWidth();
   const stageRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const liveLayerRef = useRef<HTMLDivElement | null>(null);
@@ -1303,6 +1782,7 @@ function ScaledHomepagePreview({
   const viewportTransition = useLiveResponsivePreviewViewport({
     selectedViewport,
     availableWidth,
+    desktopViewportWidth,
     prefersReducedMotion,
     fluidEndpoints,
     stageRef,
@@ -1322,6 +1802,10 @@ function ScaledHomepagePreview({
   const scale = viewportWidth > 0 && renderedWidth > 0 ? renderedWidth / viewportWidth : 1;
   const renderDevice = viewportTransition.responsiveMode;
   const editorOptions = editorOptionsByDevice[renderDevice];
+  const heroPreviewStorefrontStyle = useMemo(
+    () => createHomepagePreviewHeroStorefrontStyle(globalStyle, renderDevice),
+    [globalStyle, renderDevice]
+  );
   const scaledHeight = Math.ceil(HOMEPAGE_PREVIEW_PROFILES[renderDevice].fallbackHeight * scale);
   const zoomLabel = availableWidth > 0 ? formatZoomLabel(scale) : 'prilagajanje širini';
   const isTransitioning = viewportTransition.phase === 'animating';
@@ -1343,7 +1827,8 @@ function ScaledHomepagePreview({
     'data-preview-transition-easing': previewFrameTransitionEasing,
     'data-preview-reduced-motion': prefersReducedMotion ? 'true' : 'false',
     'data-preview-ready': availableWidth > 0 ? 'true' : 'false',
-    'data-selected-element-id': selectedElementId ?? ''
+    'data-selected-element-id': selectedElementId ?? '',
+    'data-selected-section-id': selectedSectionId ?? ''
   };
 
   return (
@@ -1362,6 +1847,7 @@ function ScaledHomepagePreview({
         <div
           ref={frameRef}
           data-testid="homepage-preview-frame"
+          data-homepage-preview-bounds
           className="relative h-full shrink-0 overflow-hidden rounded-xl bg-white shadow-[0_22px_60px_rgba(15,23,42,0.12)]"
           style={{
             width: renderedWidth,
@@ -1407,6 +1893,7 @@ function ScaledHomepagePreview({
                     categories={categories}
                     canonicalFooter={navigation.footer}
                     selectedSectionId={selectedElementId?.startsWith('section:') ? selectedSectionId : undefined}
+                    editorSectionId={selectedSectionId}
                     selectedElementId={selectedElementId}
                     onSelectSection={onSelectSection}
                     onSelectElement={onSelectElement}
@@ -1417,6 +1904,7 @@ function ScaledHomepagePreview({
                     onCategoryTextChange={onCategoryTextChange}
                     onCategoryImageChange={onCategoryImageChange}
                     onCategoryImageRemove={onCategoryImageRemove}
+                    onEditCategoryAppearance={onEditCategoryAppearance}
                     onCategoryPresentationChange={onCategoryPresentationChange}
                     onCategoryMove={onCategoryMove}
                     onCanvasElementStyleChange={(elementId, updates) =>
@@ -1425,6 +1913,7 @@ function ScaledHomepagePreview({
                     editorOptions={editorOptions}
                     previewDevice={renderDevice}
                     previewViewportWidth={viewportWidth}
+                    previewHeroStorefrontStyle={heroPreviewStorefrontStyle}
                     preview
                   />
                 </div>
@@ -1433,6 +1922,18 @@ function ScaledHomepagePreview({
           </div>
           <div className="pointer-events-none absolute inset-0 z-30 rounded-xl ring-1 ring-inset ring-slate-200" />
         </div>
+        {selectedElementId ? (
+          <FloatingHomepageContextToolbar
+            selectedElementId={selectedElementId}
+            transitioning={isTransitioning}
+            frameRef={frameRef}
+            viewportRef={viewportRef}
+            scrollRegionRef={scrollRegionRef}
+            externalRef={contextToolbarRef}
+          >
+            {contextToolbar}
+          </FloatingHomepageContextToolbar>
+        ) : null}
       </div>
     </div>
   );
@@ -1523,13 +2024,13 @@ function SortableSectionRow({
         'grid grid-cols-[28px_22px_minmax(0,1fr)_34px] items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition',
         selected
           ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-700)] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]'
-          : 'text-slate-700 hover:bg-slate-50',
+          : 'text-[color:var(--homepage-inspector-strong,#334155)] hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)]',
         isDragging && 'relative z-20 bg-white opacity-90 shadow-lg'
       )}
     >
       <button
         type="button"
-        className={`${adminMiniIconButtonTokenClasses} cursor-grab active:cursor-grabbing`}
+        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing`}
         aria-label="Premakni sekcijo"
         title="Premakni sekcijo"
         {...attributes}
@@ -1537,7 +2038,7 @@ function SortableSectionRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <span className="text-center text-[11px] font-semibold text-slate-400">{index + 1}</span>
+      <span className="text-center text-[11px] font-semibold text-[color:var(--homepage-inspector-muted,#94a3b8)]">{index + 1}</span>
       {renaming ? (
         <form
           className="min-w-0"
@@ -1568,7 +2069,7 @@ function SortableSectionRow({
           onClick={onSelect}
           className={classNames(
             'min-w-0 truncate rounded-md px-1 py-1 text-left font-semibold',
-            !visible && 'text-slate-400 line-through decoration-slate-300'
+            !visible && 'text-[color:var(--homepage-inspector-muted,#94a3b8)] line-through decoration-slate-300'
           )}
         >
           {label}
@@ -1581,7 +2082,7 @@ function SortableSectionRow({
             event.stopPropagation();
             onToggleMenu();
           }}
-          className={`grid h-7 w-7 place-items-center rounded-lg border border-transparent text-slate-500 transition hover:bg-white hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
+          className={`grid h-7 w-7 place-items-center rounded-lg border border-transparent text-[color:var(--homepage-inspector-muted,#64748b)] transition hover:bg-[color:var(--homepage-inspector-hover,#fff)] hover:text-[color:var(--homepage-inspector-strong,var(--blue-600))] ${adminControlFocusTokenClasses}`}
           aria-label="Možnosti sekcije"
           aria-expanded={menuOpen}
           title="Možnosti sekcije"
@@ -1589,10 +2090,10 @@ function SortableSectionRow({
           <MoreVertical className="h-4 w-4" />
         </button>
         {menuOpen ? (
-          <div className={classNames(floatingSurfaceClassName, 'absolute right-0 top-8 z-40 w-44 overflow-hidden p-1 text-slate-700')}>
+          <div className="absolute right-0 top-8 z-40 w-44 overflow-hidden rounded-lg border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-subsurface-strong,#ffffff)] p-1 text-[color:var(--homepage-inspector-strong,#334155)] shadow-lg">
             <button
               type="button"
-              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
+              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)] ${adminControlFocusTokenClasses}`}
               onClick={onToggleVisibility}
             >
               {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeClosed className="h-3.5 w-3.5" />}
@@ -1600,7 +2101,7 @@ function SortableSectionRow({
             </button>
             <button
               type="button"
-              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`}
+              className={`flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)] ${adminControlFocusTokenClasses}`}
               onClick={onStartRename}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -1637,13 +2138,13 @@ function SortableCategoryRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={classNames(
-        'grid grid-cols-[26px_24px_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition hover:bg-slate-50',
+        'grid grid-cols-[26px_24px_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)]',
         isDragging && 'relative z-20 bg-white opacity-90 shadow-lg'
       )}
     >
       <button
         type="button"
-        className={`${adminMiniIconButtonTokenClasses} cursor-grab active:cursor-grabbing`}
+        className={`${adminMiniIconButtonTokenClasses} cursor-grab !text-[color:var(--homepage-inspector-muted,#94a3b8)] active:cursor-grabbing`}
         aria-label="Premakni kategorijo"
         title="Premakni kategorijo"
         {...attributes}
@@ -1651,8 +2152,8 @@ function SortableCategoryRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <span className="text-center text-[11px] font-semibold text-slate-400">{index + 1}</span>
-      <span className="truncate font-medium text-slate-700">{category.title}</span>
+      <span className="text-center text-[11px] font-semibold text-[color:var(--homepage-inspector-muted,#94a3b8)]">{index + 1}</span>
+      <span className="truncate font-medium text-[color:var(--homepage-inspector-strong,#334155)]">{category.title}</span>
     </div>
   );
 }
@@ -1660,19 +2161,19 @@ function SortableCategoryRow({
 function SlidePreview({ slide }: { slide: HomepageHeroSlide }) {
   if (slide.type === 'video') {
     return (
-      <div className="grid h-12 w-20 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-900 text-[10px] font-semibold text-white">
+      <div className="grid h-10 w-16 place-items-center overflow-hidden rounded border border-slate-200 bg-slate-900 text-[9px] font-semibold text-white">
         VIDEO
       </div>
     );
   }
 
   if (!slide.src) {
-    return <div className="grid h-12 w-20 place-items-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-[10px] text-slate-400">Medij</div>;
+    return <div className="grid h-10 w-16 place-items-center rounded border border-dashed border-slate-300 bg-slate-50 text-[9px] text-slate-400">Medij</div>;
   }
 
   return (
     <div
-      className="h-12 w-20 rounded-md border border-slate-200 bg-cover bg-center"
+      className="h-10 w-16 rounded border border-slate-200 bg-cover bg-center"
       role="img"
       aria-label={slide.alt || slide.title || 'Predogled diapozitiva'}
       style={{ backgroundImage: `url("${slide.src}")` }}
@@ -1684,41 +2185,57 @@ function SortableSlideEditor({
   slide,
   index,
   uploading,
-  addingSlide,
-  showAddUpload,
+  controlsDisabled,
+  canMoveUp,
+  canMoveDown,
   onChange,
   onDelete,
-  onAddUpload,
+  onMoveUp,
+  onMoveDown,
   onUpload
 }: {
   slide: HomepageHeroSlide;
   index: number;
   uploading: boolean;
-  addingSlide: boolean;
-  showAddUpload: boolean;
+  controlsDisabled: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onChange: (updates: Partial<HomepageHeroSlide>) => void;
   onDelete: () => void;
-  onAddUpload: (file: File) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onUpload: (file: File) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const addFileInputRef = useRef<HTMLInputElement | null>(null);
   const [mediaDetailsOpen, setMediaDetailsOpen] = useState(false);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: slide.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: slide.id,
+    disabled: controlsDisabled
+  });
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={classNames('rounded-xl bg-slate-50/80 p-2.5', isDragging && 'relative z-20 bg-white opacity-90 shadow-lg')}
+      data-testid="homepage-hero-carousel-slide"
+      data-slide-id={slide.id}
+      data-slide-index={index}
+      data-uploading={uploading ? 'true' : 'false'}
+      className={classNames(
+        'rounded-lg border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-1.5 transition',
+        uploading && 'border-[color:var(--blue-200)] bg-[color:var(--blue-50)]/45',
+        isDragging && 'relative z-20 bg-white opacity-90 shadow-lg'
+      )}
     >
-      <div className="mb-3 grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="grid min-w-0 gap-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <div className="flex min-w-0 items-center gap-1.5">
           <button
             type="button"
-            className={`${adminMiniIconButtonTokenClasses} cursor-grab active:cursor-grabbing`}
+            className={`${adminMiniIconButtonTokenClasses} cursor-grab active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-35`}
             aria-label="Premakni diapozitiv"
             title="Premakni diapozitiv"
+            disabled={controlsDisabled}
+            data-testid="homepage-hero-carousel-slide-handle"
             {...attributes}
             {...listeners}
           >
@@ -1738,66 +2255,60 @@ function SortableSlideEditor({
             </span>
           </button>
           <div className="min-w-0">
-            <p className="truncate text-[12px] font-semibold text-slate-800">Diapozitiv {index + 1}</p>
-            <p className="truncate text-[11px] text-slate-500">{slide.title || slide.src || 'Brez medija'}</p>
+            <p className="flex min-w-0 items-center gap-1 truncate text-[11px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">
+              <span className="truncate">Diapozitiv {index + 1}</span>
+              {uploading ? <span className="shrink-0 text-[10px] font-medium text-[color:var(--blue-600)]">Nalaganje ...</span> : null}
+            </p>
+            <p className="truncate text-[10px] text-[color:var(--homepage-inspector-muted,#64748b)]">{slide.title || slide.src || 'Brez medija'}</p>
           </div>
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-1 sm:justify-end">
+        <div className="flex min-w-0 flex-wrap items-center gap-0.5 sm:justify-end">
+          <SmallIconButton
+            label="Premakni diapozitiv navzgor"
+            onClick={onMoveUp}
+            disabled={controlsDisabled || !canMoveUp}
+            testId="homepage-hero-carousel-slide-up"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </SmallIconButton>
+          <SmallIconButton
+            label="Premakni diapozitiv navzdol"
+            onClick={onMoveDown}
+            disabled={controlsDisabled || !canMoveDown}
+            testId="homepage-hero-carousel-slide-down"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </SmallIconButton>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,video/*"
             className="hidden"
+            data-testid="homepage-hero-carousel-replace-input"
+            disabled={controlsDisabled}
             onChange={(event: ChangeEvent<HTMLInputElement>) => {
               const file = event.target.files?.[0];
               event.target.value = '';
               if (file) onUpload(file);
             }}
           />
-          <SmallIconButton label="Zamenjaj medij" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          <SmallIconButton label="Zamenjaj medij" onClick={() => fileInputRef.current?.click()} disabled={controlsDisabled}>
             <Upload className="h-4 w-4" />
           </SmallIconButton>
-          <SmallIconButton label="Odstrani" tone="danger" onClick={onDelete}>
+          <SmallIconButton label="Odstrani" tone="danger" onClick={onDelete} disabled={controlsDisabled}>
             <Trash2 className="h-4 w-4" />
           </SmallIconButton>
         </div>
       </div>
 
-      <div className="grid gap-3">
-        {showAddUpload ? (
-          <div className="flex min-w-0">
-            <input
-              ref={addFileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                if (file) onAddUpload(file);
-              }}
-            />
-            <Button
-              type="button"
-              variant="primary"
-              size="toolbar"
-              className={`${adminTablePrimaryButtonClassName} !h-8 !px-2.5`}
-              onClick={() => addFileInputRef.current?.click()}
-              disabled={addingSlide}
-            >
-              <Upload className="h-4 w-4" />
-              Naloži
-            </Button>
-          </div>
-        ) : null}
-        {mediaDetailsOpen ? (
-          <div className="grid gap-2.5 rounded-xl bg-white/80 p-2.5 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)]">
+      {mediaDetailsOpen ? (
+        <div className="mt-1.5 grid gap-2 rounded-md border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-subsurface-strong,#ffffff)] p-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[12px] font-semibold text-slate-800">Medij</span>
+              <span className="text-[12px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Medij</span>
               <button
                 type="button"
                 onClick={() => setMediaDetailsOpen(false)}
-                className="text-[11px] font-semibold text-slate-500 transition hover:text-[color:var(--blue-500)]"
+                className="text-[11px] font-semibold text-[color:var(--homepage-inspector-muted,#64748b)] transition hover:text-white"
               >
                 Zapri
               </button>
@@ -1807,26 +2318,31 @@ function SortableSlideEditor({
             {slide.type === 'video' ? (
               <TextField label="Poster slika" value={slide.poster} onChange={(poster) => onChange({ poster })} placeholder="/images/..." />
             ) : null}
-          </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function AdminLandingPageClient({
   initialConfig,
+  initialDefaults,
   initialCategories,
-  navigation
+  navigation,
+  globalStyle
 }: {
   initialConfig: HomepageSettings;
+  initialDefaults: HomepageSettings;
   initialCategories: HomepageCategoryCardData[];
   navigation: SiteNavigationConfig;
+  globalStyle: GlobalStyleConfig;
 }) {
   const { toast } = useToast();
   const router = useRouter();
   const normalizedInitialConfig = useMemo(() => normalizeLandingPageConfig(initialConfig), [initialConfig]);
   const normalizedInitialConfigKey = useMemo(() => comparable(normalizedInitialConfig), [normalizedInitialConfig]);
+  const normalizedInitialDefaults = useMemo(() => normalizeLandingPageConfig(initialDefaults), [initialDefaults]);
+  const normalizedInitialDefaultsKey = useMemo(() => comparable(normalizedInitialDefaults), [normalizedInitialDefaults]);
   const normalizedInitialNavigation = useMemo(() => normalizeSiteNavigationConfig(navigation), [navigation]);
   const initialFooterDescription = normalizedInitialNavigation.footer.description;
   const normalizedInitialCategories = useMemo(
@@ -1836,6 +2352,7 @@ function AdminLandingPageClient({
   const normalizedInitialCategoriesKey = useMemo(() => JSON.stringify(normalizedInitialCategories), [normalizedInitialCategories]);
   const [config, setConfig] = useState(normalizedInitialConfig);
   const [savedConfig, setSavedConfig] = useState(normalizedInitialConfig);
+  const [savedDefaults, setSavedDefaults] = useState(normalizedInitialDefaults);
   const [categories, setCategories] = useState<HomepageCategoryCardData[]>(normalizedInitialCategories);
   const applyPersistedCategoryUpdates = useCallback((updates: Array<{
     categorySlug: string;
@@ -1865,6 +2382,7 @@ function AdminLandingPageClient({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [categoryTitleEditScope, setCategoryTitleEditScope] = useState<CategoryTitleEditScope>('selected');
   const [activeToolbarPopover, setActiveToolbarPopover] = useState<ToolbarPopover>(null);
+  const [activeToolbarHost, setActiveToolbarHost] = useState<HomepageToolbarHost | null>(null);
   const [previewDevice, setPreviewDevice] = useState<HomepagePreviewDevice>('desktop');
   const [editorOptionsByDevice, setEditorOptionsByDevice] = useState<Record<HomepagePreviewDevice, HomepageCanvasEditorOptions>>(() => ({
     desktop: { ...DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS },
@@ -1873,17 +2391,20 @@ function AdminLandingPageClient({
   }));
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null);
+  const addHeroSlideInputRef = useRef<HTMLInputElement | null>(null);
   const [addSectionMenuOpen, setAddSectionMenuOpen] = useState(false);
   const [openSectionMenuId, setOpenSectionMenuId] = useState<HomepageSectionId | null>(null);
   const [renamingSectionId, setRenamingSectionId] = useState<HomepageSectionId | null>(null);
   const [sectionRenameValue, setSectionRenameValue] = useState('');
-  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
+  const floatingToolbarRef = useRef<HTMLDivElement | null>(null);
   const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
+  const appliedInitialDefaultsKeyRef = useRef(normalizedInitialDefaultsKey);
   const appliedInitialFooterDescriptionRef = useRef(initialFooterDescription);
   const appliedInitialCategoriesKeyRef = useRef(normalizedInitialCategoriesKey);
   const saveInFlightRef = useRef(false);
   const isDirtyRef = useRef(false);
-  const pendingRemoteCategoryRevisionRef = useRef<string | null>(null);
+  const pendingRemoteCategoryChangeRef = useRef<CategoryDataChangeMessage | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
@@ -1899,6 +2420,12 @@ function AdminLandingPageClient({
     setRenamingSectionId(null);
     setSectionRenameValue('');
   }, [normalizedInitialConfig, normalizedInitialConfigKey]);
+
+  useEffect(() => {
+    if (appliedInitialDefaultsKeyRef.current === normalizedInitialDefaultsKey) return;
+    appliedInitialDefaultsKeyRef.current = normalizedInitialDefaultsKey;
+    setSavedDefaults(normalizedInitialDefaults);
+  }, [normalizedInitialDefaults, normalizedInitialDefaultsKey]);
 
   useEffect(() => {
     if (appliedInitialFooterDescriptionRef.current === initialFooterDescription) return;
@@ -1918,11 +2445,16 @@ function AdminLandingPageClient({
     if (!activeToolbarPopover) return undefined;
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (toolbarRef.current?.contains(event.target as Node)) return;
+      if (inlineToolbarRef.current?.contains(event.target as Node)) return;
+      if (floatingToolbarRef.current?.contains(event.target as Node)) return;
       setActiveToolbarPopover(null);
+      setActiveToolbarHost(null);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveToolbarPopover(null);
+      if (event.key === 'Escape') {
+        setActiveToolbarPopover(null);
+        setActiveToolbarHost(null);
+      }
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
@@ -1951,22 +2483,54 @@ function AdminLandingPageClient({
     isDirtyRef.current = isDirty;
   }, [isDirty]);
 
+  const applyRemoteCategoryChange = useCallback(async (message: CategoryDataChangeMessage) => {
+    if (message.scope !== 'showcase' || message.changedSlugs.length === 0) {
+      router.refresh();
+      return;
+    }
+
+    try {
+      const updates = await fetchCategoryShowcaseUpdates(message.changedSlugs);
+      if (isDirtyRef.current || document.visibilityState !== 'visible') {
+        pendingRemoteCategoryChangeRef.current = mergeCategoryDataChangeMessages(
+          pendingRemoteCategoryChangeRef.current,
+          message
+        );
+        return;
+      }
+      applyPersistedCategoryUpdates(updates);
+    } catch {
+      if (isDirtyRef.current || document.visibilityState !== 'visible') {
+        pendingRemoteCategoryChangeRef.current = mergeCategoryDataChangeMessages(
+          pendingRemoteCategoryChangeRef.current,
+          message
+        );
+        return;
+      }
+      router.refresh();
+    }
+  }, [applyPersistedCategoryUpdates, router]);
+
   useEffect(() => {
     const refreshIfReady = () => {
+      const pendingChange = pendingRemoteCategoryChangeRef.current;
       if (
-        pendingRemoteCategoryRevisionRef.current === null
+        pendingChange === null
         || isDirtyRef.current
         || document.visibilityState !== 'visible'
       ) {
         return;
       }
 
-      pendingRemoteCategoryRevisionRef.current = null;
-      router.refresh();
+      pendingRemoteCategoryChangeRef.current = null;
+      void applyRemoteCategoryChange(pendingChange);
     };
 
     const unsubscribe = subscribeToCategoryDataChanges((message) => {
-      pendingRemoteCategoryRevisionRef.current = message.revision;
+      pendingRemoteCategoryChangeRef.current = mergeCategoryDataChangeMessages(
+        pendingRemoteCategoryChangeRef.current,
+        message
+      );
       refreshIfReady();
     });
     const handleFocus = () => refreshIfReady();
@@ -1979,20 +2543,21 @@ function AdminLandingPageClient({
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [router]);
+  }, [applyRemoteCategoryChange]);
 
   useEffect(() => {
+    const pendingChange = pendingRemoteCategoryChangeRef.current;
     if (
       isDirty
-      || pendingRemoteCategoryRevisionRef.current === null
+      || pendingChange === null
       || document.visibilityState !== 'visible'
     ) {
       return;
     }
 
-    pendingRemoteCategoryRevisionRef.current = null;
-    router.refresh();
-  }, [isDirty, router]);
+    pendingRemoteCategoryChangeRef.current = null;
+    void applyRemoteCategoryChange(pendingChange);
+  }, [applyRemoteCategoryChange, isDirty]);
   const previewNavigation = useMemo(
     () => normalizeSiteNavigationConfig({
       ...normalizedInitialNavigation,
@@ -2062,6 +2627,13 @@ function AdminLandingPageClient({
     categoryShowcaseEditor.stageImage(categorySlug, null);
     setSelectedSectionId('categories');
     setSelectedElementId(`categories:image:${categorySlug}`);
+  }
+
+  function editCategoryAppearance(categorySlug: string) {
+    setSelectedSectionId('categories');
+    setSelectedElementId(`categories:image:${categorySlug}`);
+    setActiveToolbarHost('floating');
+    setActiveToolbarPopover('media');
   }
 
   function updateInfoBlocks(updates: Partial<HomepageSettings['infoBlocks']>) {
@@ -2152,6 +2724,7 @@ function AdminLandingPageClient({
     updateHero({ textBlocks: [...config.hero.textBlocks, block] });
     setSelectedSectionId('hero');
     setSelectedElementId(`hero:textBlock:${blockId}`);
+    setActiveToolbarHost('floating');
     setActiveToolbarPopover(kind === 'button' ? 'link' : 'style');
     return blockId;
   }
@@ -2229,6 +2802,7 @@ function AdminLandingPageClient({
     });
     setSelectedSectionId(sectionId);
     setSelectedElementId(`section:${sectionId}`);
+    setActiveToolbarHost('floating');
     setActiveToolbarPopover('section');
     setAddSectionMenuOpen(false);
   }
@@ -2278,12 +2852,21 @@ function AdminLandingPageClient({
   }
 
   function handleSlideDragEnd(event: DragEndEvent) {
+    if (uploadingSlideId !== null) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = config.hero.slides.findIndex((slide) => slide.id === active.id);
     const newIndex = config.hero.slides.findIndex((slide) => slide.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     updateHero({ slides: arrayMove(config.hero.slides, oldIndex, newIndex) });
+  }
+
+  function moveSlide(slideId: string, direction: -1 | 1) {
+    if (uploadingSlideId !== null) return;
+    const currentIndex = config.hero.slides.findIndex((slide) => slide.id === slideId);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= config.hero.slides.length) return;
+    updateHero({ slides: arrayMove(config.hero.slides, currentIndex, nextIndex) });
   }
 
   function handleCategoryDragEnd(event: DragEndEvent) {
@@ -2336,6 +2919,7 @@ function AdminLandingPageClient({
   }
 
   async function uploadSlideMedia(slideId: string, file: File, options: { removeOnFailure?: boolean } = {}) {
+    if (uploadingSlideId !== null) return;
     const formData = new FormData();
     formData.append('file', file);
     formData.append('elementId', `hero-${slideId}`);
@@ -2378,6 +2962,11 @@ function AdminLandingPageClient({
   }
 
   function uploadNewSlideMedia(file: File) {
+    if (uploadingSlideId !== null) return;
+    if (config.hero.slides.length >= MAX_HOMEPAGE_HERO_SLIDES) {
+      toast.error(`Dodate lahko največ ${MAX_HOMEPAGE_HERO_SLIDES} diapozitivov.`);
+      return;
+    }
     const mediaType = detectHeroMediaTypeFromFile(file);
     const fileBaseName = getFileBaseName(file.name);
     const slideId = createId('slide');
@@ -2816,20 +3405,8 @@ function AdminLandingPageClient({
       deleteSection(selectedElementId.slice('section:'.length) as HomepageSectionId);
       return;
     }
-    if (selectedElementId.startsWith('hero:textBlock:')) {
-      const blockId = selectedElementId.slice('hero:textBlock:'.length);
-      updateConfig((current) => {
-        const elements = { ...current.canvas.elements };
-        delete elements[selectedElementId];
-        return {
-          ...current,
-          hero: { ...current.hero, textBlocks: current.hero.textBlocks.filter((block) => block.id !== blockId) },
-          canvas: { ...current.canvas, elements }
-        };
-      });
-    } else {
-      updateCanvasElementStyle(selectedElementId, { visible: false });
-    }
+    if (!isDeletableHomepageCanvasElementId(selectedElementId)) return;
+    updateConfig((current) => removeDeletableHomepageCanvasElement(current, selectedElementId));
     setSelectedElementId(null);
     setActiveToolbarPopover(null);
   }
@@ -2912,12 +3489,14 @@ function AdminLandingPageClient({
     updateCanvasElementStyle(selectedElementId, { visible: !selectedEffectiveVisible });
   }
 
-  function toggleToolbarPopover(popover: Exclude<ToolbarPopover, null>) {
-    setActiveToolbarPopover((current) => current === popover ? null : popover);
+  function toggleToolbarPopover(popover: Exclude<ToolbarPopover, null>, host: HomepageToolbarHost) {
+    const shouldClose = activeToolbarPopover === popover && activeToolbarHost === host;
+    setActiveToolbarHost(shouldClose ? null : host);
+    setActiveToolbarPopover(shouldClose ? null : popover);
   }
 
   async function save() {
-    if (saveInFlightRef.current) return;
+    if (saveInFlightRef.current || uploadingSlideId !== null) return;
     const payloadConfig = normalizeLandingPageConfig(configWithPendingEdits);
     const submittedConfigKey = comparable(payloadConfig);
     const submittedFooterDescription = footerDescription;
@@ -2976,9 +3555,62 @@ function AdminLandingPageClient({
     }
   }
 
+  async function setCurrentConfigAsDefaults() {
+    if (saveInFlightRef.current || uploadingSlideId !== null) return;
+    const payloadConfig = normalizeLandingPageConfig(configWithPendingEdits);
+    const submittedConfigKey = comparable(payloadConfig);
+    if (renamingSectionId && landingIsDirty) {
+      setConfig(payloadConfig);
+      setRenamingSectionId(null);
+      setSectionRenameValue('');
+    }
+    saveInFlightRef.current = true;
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/landing-page/defaults', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: payloadConfig,
+          expectedUpdatedAt: savedConfig.updatedAt ?? null
+        })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          typeof body.message === 'string'
+            ? body.message
+            : 'Shranjevanje privzetih nastavitev glavne strani ni uspelo.'
+        );
+      }
+
+      const persistedConfig = normalizeLandingPageConfig(body.config ?? payloadConfig);
+      const persistedDefaults = normalizeLandingPageConfig(body.defaults ?? persistedConfig);
+      appliedInitialConfigKeyRef.current = comparable(persistedConfig);
+      appliedInitialDefaultsKeyRef.current = comparable(persistedDefaults);
+      setSavedConfig(persistedConfig);
+      setSavedDefaults(persistedDefaults);
+      setConfig((current) => {
+        if (comparable(current) === submittedConfigKey) return persistedConfig;
+        return normalizeLandingPageConfig({ ...current, updatedAt: persistedConfig.updatedAt });
+      });
+      toast.success('Privzete nastavitve glavne strani so shranjene.');
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Shranjevanje privzetih nastavitev glavne strani ni uspelo.'
+      );
+    } finally {
+      saveInFlightRef.current = false;
+      setIsSaving(false);
+    }
+  }
+
   function restoreDefaults() {
-    if (!window.confirm('Ponastavim glavno stran na privzeto vsebino?')) return;
-    const defaults = normalizeLandingPageConfig(cloneDefaultLandingPageConfig());
+    if (uploadingSlideId !== null) return;
+    if (!window.confirm('Ponastavim glavno stran na shranjene privzete nastavitve?')) return;
+    const defaults = normalizeLandingPageConfig(savedDefaults);
     setConfig(defaults);
     setSelectedSectionId(defaults.sectionOrder[0] ?? 'hero');
     setSelectedElementId(null);
@@ -3018,6 +3650,12 @@ function AdminLandingPageClient({
   const selectedCategoryMediaItem = selectedCategoryMediaSlug
     ? categoryShowcaseEditor.items.find((category) => category.slug === selectedCategoryMediaSlug) ?? null
     : null;
+  const selectedCategoryTitleSlug = selectedIsCategoryTitle && selectedElementId
+    ? selectedElementId.slice(categoryTitleCanvasElementPrefix.length)
+    : null;
+  const selectedCategoryTitleItem = selectedCategoryTitleSlug
+    ? categoryShowcaseEditor.items.find((category) => category.slug === selectedCategoryTitleSlug) ?? null
+    : null;
   const selectedIsCategoryText = selectedElementId === 'categories:heading'
     || selectedElementId === 'categories:subtitle'
     || selectedElementId === 'categories:showAll'
@@ -3037,6 +3675,7 @@ function AdminLandingPageClient({
     || selectedIsCategoryText
     || Boolean(selectedTextBlock);
   const selectedCanLink = selectedIsButton || Boolean(selectedTextBlock) || selectedElementId === 'categories:showAll';
+  const selectedCanDelete = isDeletableHomepageCanvasElementId(selectedElementId);
   const selectedSectionElementId = selectedIsSection
     ? selectedElementId?.slice('section:'.length) as HomepageSectionId
     : null;
@@ -3178,13 +3817,149 @@ function AdminLandingPageClient({
     }
   }
 
+  function renderHeroCarouselSettings() {
+    const uploadInProgress = uploadingSlideId !== null;
+    const readySlideCount = config.hero.slides.filter((slide) => slide.src.trim()).length;
+    const canAddSlide = config.hero.slides.length < MAX_HOMEPAGE_HERO_SLIDES;
+
+    return (
+      <div
+        className="space-y-2"
+        data-testid="homepage-hero-carousel-settings"
+        data-carousel-media-count={readySlideCount}
+        data-carousel-uploading={uploadInProgress ? 'true' : 'false'}
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Mediji</p>
+            <p className="text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">
+              {config.hero.slides.length} / {MAX_HOMEPAGE_HERO_SLIDES} · povlecite ali uporabite puščice za vrstni red
+            </p>
+          </div>
+          <input
+            ref={addHeroSlideInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            data-testid="homepage-hero-carousel-add-input"
+            disabled={uploadInProgress || !canAddSlide}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) uploadNewSlideMedia(file);
+            }}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="toolbar"
+            className={`${adminTablePrimaryButtonClassName} !h-8 shrink-0 !px-2.5`}
+            onClick={() => addHeroSlideInputRef.current?.click()}
+            disabled={uploadInProgress || !canAddSlide}
+            data-testid="homepage-hero-carousel-add"
+          >
+            <Plus className="h-4 w-4" />
+            Dodaj medij
+          </Button>
+        </div>
+
+        <DndContext id="homepage-hero-slides" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSlideDragEnd}>
+          <SortableContext items={config.hero.slides.map((slide) => slide.id)} strategy={verticalListSortingStrategy}>
+            <div className="grid gap-1.5" data-testid="homepage-hero-carousel-slide-list">
+              {config.hero.slides.map((slide, index) => (
+                <SortableSlideEditor
+                  key={slide.id}
+                  slide={slide}
+                  index={index}
+                  uploading={uploadingSlideId === slide.id}
+                  controlsDisabled={uploadInProgress}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < config.hero.slides.length - 1}
+                  onChange={(updates) => updateSlide(slide.id, updates)}
+                  onDelete={() => deleteSlide(slide.id)}
+                  onMoveUp={() => moveSlide(slide.id, -1)}
+                  onMoveDown={() => moveSlide(slide.id, 1)}
+                  onUpload={(file) => void uploadSlideMedia(slide.id, file)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        <div className="space-y-1.5 border-t border-[color:var(--homepage-inspector-divider,#e2e8f0)] pt-2">
+          <div className="grid gap-1.5 sm:grid-cols-[112px_minmax(0,1fr)] sm:items-center">
+            <span className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#475569)]">Način menjave</span>
+            <div
+              className="grid grid-cols-2 rounded-lg bg-[color:var(--homepage-inspector-control-bg,#f1f5f9)] p-0.5"
+              role="group"
+              aria-label="Način menjave diapozitivov"
+              data-testid="homepage-hero-carousel-mode"
+            >
+              <button
+                type="button"
+                aria-pressed={!config.hero.autoplay}
+                className={classNames(
+                  `h-7 rounded-md px-2 text-[11px] font-semibold transition ${adminControlFocusTokenClasses}`,
+                  !config.hero.autoplay
+                    ? 'bg-[color:var(--homepage-inspector-selected-bg,#ffffff)] text-[color:var(--homepage-inspector-selected-text,#2563eb)] shadow-sm'
+                    : 'text-[color:var(--homepage-inspector-muted,#64748b)] hover:text-[color:var(--homepage-inspector-strong,#1e293b)]'
+                )}
+                onClick={() => updateHero({ autoplay: false })}
+                data-testid="homepage-hero-carousel-mode-manual"
+              >
+                Ročno
+              </button>
+              <button
+                type="button"
+                aria-pressed={config.hero.autoplay}
+                className={classNames(
+                  `h-7 rounded-md px-2 text-[11px] font-semibold transition ${adminControlFocusTokenClasses}`,
+                  config.hero.autoplay
+                    ? 'bg-[color:var(--homepage-inspector-selected-bg,#ffffff)] text-[color:var(--homepage-inspector-selected-text,#2563eb)] shadow-sm'
+                    : 'text-[color:var(--homepage-inspector-muted,#64748b)] hover:text-[color:var(--homepage-inspector-strong,#1e293b)]'
+                )}
+                onClick={() => updateHero({ autoplay: true })}
+                data-testid="homepage-hero-carousel-mode-autoplay"
+              >
+                Samodejno
+              </button>
+            </div>
+          </div>
+
+          {config.hero.autoplay ? (
+            <div data-testid="homepage-hero-carousel-interval">
+              <NumberField
+                label="Čas menjave"
+                value={config.hero.autoplayInterval / 1000}
+                onChange={(seconds) => updateHero({ autoplayInterval: Math.round(seconds * 1000) })}
+                min={1.5}
+                max={30}
+                step={0.5}
+                suffix="s"
+                inputAriaLabel="Čas menjave"
+              />
+            </div>
+          ) : null}
+
+          <div className="grid gap-1 sm:grid-cols-2">
+            <ToggleRow label="Puščice" checked={config.hero.showArrows} onChange={(showArrows) => updateHero({ showArrows })} />
+            <ToggleRow label="Navigacijske pike" checked={config.hero.showDots} onChange={(showDots) => updateHero({ showDots })} />
+          </div>
+          <p className="rounded-md bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] px-2 py-1.5 text-[10px] leading-3.5 text-[color:var(--homepage-inspector-muted,#64748b)]" data-testid="homepage-hero-carousel-multiple-media-hint">
+            Puščice in pike se prikažejo, ko sta dodana najmanj dva veljavna medija.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   function renderHeroSettings() {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <FieldBlock title="Tekst in gumbi">
           <TextField label="Naslov" value={config.hero.title} onChange={(title) => updateHero({ title })} />
           <TextareaField label="Opis" value={config.hero.description} onChange={(description) => updateHero({ description })} />
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <TextField label="Primarni gumb" value={config.hero.primaryButton.label} onChange={(label) => updateHero({ primaryButton: { ...config.hero.primaryButton, label } })} />
             <TextField label="Povezava" value={config.hero.primaryButton.href} onChange={(href) => updateHero({ primaryButton: { ...config.hero.primaryButton, href } })} />
             <TextField label="Sekundarni gumb" value={config.hero.secondaryButton.label} onChange={(label) => updateHero({ secondaryButton: { ...config.hero.secondaryButton, label } })} />
@@ -3192,43 +3967,18 @@ function AdminLandingPageClient({
           </div>
         </FieldBlock>
 
-        <FieldBlock title="Mediji in prikazne nastavitve">
-          <DndContext id="homepage-hero-slides" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSlideDragEnd}>
-            <SortableContext items={config.hero.slides.map((slide) => slide.id)} strategy={verticalListSortingStrategy}>
-              <div className="grid gap-3">
-                {config.hero.slides.map((slide, index) => (
-                  <SortableSlideEditor
-                    key={slide.id}
-                    slide={slide}
-                    index={index}
-                    uploading={uploadingSlideId === slide.id}
-                    addingSlide={uploadingSlideId !== null}
-                    showAddUpload={index === config.hero.slides.length - 1}
-                    onChange={(updates) => updateSlide(slide.id, updates)}
-                    onDelete={() => deleteSlide(slide.id)}
-                    onAddUpload={uploadNewSlideMedia}
-                    onUpload={(file) => void uploadSlideMedia(slide.id, file)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-
-          <div className="space-y-3 border-t border-slate-200 pt-3">
-            <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+        <FieldBlock title="Postavitev in ozadje" defaultOpen={false}>
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
+            <div className="grid gap-2 sm:grid-cols-2">
               <NumberField label="Višina sekcije" value={heroViewSettings.heightPx} onChange={(heightPx) => updateHeroView({ heightPx })} min={280} max={900} step={10} suffix="px" />
               <NumberField label="Odmik besedila X" value={heroViewSettings.contentOffsetXPx} onChange={(contentOffsetXPx) => updateHeroView({ contentOffsetXPx })} min={0} max={1400} step={10} suffix="px" />
               <NumberField label="Odmik besedila Y" value={heroViewSettings.contentOffsetYPx} onChange={(contentOffsetYPx) => updateHeroView({ contentOffsetYPx })} min={-450} max={450} step={10} suffix="px" />
               <NumberField label="Širina besedila" value={heroViewSettings.textWidthPx} onChange={(textWidthPx) => updateHeroView({ textWidthPx })} min={260} max={1200} step={10} suffix="px" />
               <NumberField label="Širina medija" value={heroViewSettings.mediaWidthPercent} onChange={(mediaWidthPercent) => updateHeroView({ mediaWidthPercent })} min={50} max={160} step={5} suffix="%" />
               <NumberField label="Zatemnitev" value={heroViewSettings.overlayStrength} onChange={(overlayStrength) => updateHeroView({ overlayStrength })} min={0} max={85} suffix="%" />
-              <NumberField label="Autoplay interval" value={config.hero.autoplayInterval} onChange={(autoplayInterval) => updateHero({ autoplayInterval })} min={1500} max={30000} step={500} suffix="ms" />
             </div>
             <div className="grid gap-2">
-              <ToggleRow label="Puščice levo/desno" checked={config.hero.showArrows} onChange={(showArrows) => updateHero({ showArrows })} />
-              <ToggleRow label="Pike" checked={config.hero.showDots} onChange={(showDots) => updateHero({ showDots })} />
-              <ToggleRow label="Samodejno predvajanje" checked={config.hero.autoplay} onChange={(autoplay) => updateHero({ autoplay })} />
               <ToggleRow label="Zatemni ozadje za berljivost" checked={config.hero.darkenBackground} onChange={(darkenBackground) => updateHero({ darkenBackground })} />
             </div>
           </div>
@@ -3239,10 +3989,10 @@ function AdminLandingPageClient({
 
   function renderCategorySettings() {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <FieldBlock title="Postavitev in kartice">
-          <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <p className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
             <NumberField label="Število prikazanih" value={categoryViewSettings.limit} onChange={(limit) => updateCategoriesView({ limit })} min={1} max={24} />
             <NumberField label="Stolpci" value={categoryViewSettings.columns} onChange={(columns) => updateCategoriesView({ columns })} min={1} max={6} />
             <NumberField label="Razmik" value={categoryViewSettings.gap} onChange={(gap) => updateCategoriesView({ gap })} min={0} max={48} suffix="px" />
@@ -3262,12 +4012,12 @@ function AdminLandingPageClient({
             onChange={updateCategoryOrderMode}
           />
           {config.categories.categoryOrderMode === 'catalog' ? (
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+            <p className="rounded-lg bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] px-3 py-2 text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">
               Kategorije sledijo kanoničnemu vrstnemu redu iz Kategorij oziroma Millerjevega pogleda. Povlek kategorije v predogledu samodejno vključi vrstni red po meri.
             </p>
           ) : (
             <>
-              <p className="text-[11px] leading-4 text-slate-500">Povlecite kategorije v želeni vrstni red. Nove kategorije se samodejno dodajo na konec.</p>
+              <p className="text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">Povlecite kategorije v želeni vrstni red. Nove kategorije se samodejno dodajo na konec.</p>
               <DndContext id="homepage-category-order" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
                 <SortableContext items={categoryRows.map((category) => category.slug)} strategy={verticalListSortingStrategy}>
                   <div className="grid gap-2">
@@ -3286,10 +4036,10 @@ function AdminLandingPageClient({
 
   function renderInfoSettings() {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <FieldBlock title="Prikazne nastavitve">
-          <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <p className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
             <NumberField label="Število elementov" value={config.infoBlocks.items.length} onChange={setInfoItemCount} min={1} max={12} />
             <NumberField label="Stolpci" value={infoViewSettings.columns} onChange={(columns) => updateInfoBlocksView({ columns })} min={1} max={6} />
             <NumberField label="Razmik" value={infoViewSettings.gap} onChange={(gap) => updateInfoBlocksView({ gap })} min={0} max={48} suffix="px" />
@@ -3300,23 +4050,23 @@ function AdminLandingPageClient({
           <ToggleRow label="Ločilne črte" checked={infoViewSettings.dividers} onChange={(dividers) => updateInfoBlocksView({ dividers })} />
         </FieldBlock>
 
-        <FieldBlock title="Elementi">
+        <FieldBlock title="Elementi" defaultOpen={false}>
           <div className="flex justify-end">
             <Button type="button" variant="primary" size="toolbar" className={`${adminTablePrimaryButtonClassName} !h-8 !px-2.5`} onClick={addInfoItem}>
               <Plus className="h-4 w-4" />
               Dodaj
             </Button>
           </div>
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             {config.infoBlocks.items.map((item, index) => (
-              <div key={item.id} className="rounded-xl bg-slate-50/80 p-2.5">
+              <div key={item.id} className="rounded-lg bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-2">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <span className="text-[12px] font-semibold text-slate-800">Element {index + 1}</span>
+                  <span className="text-[12px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Element {index + 1}</span>
                   <SmallIconButton label="Odstrani element" tone="danger" onClick={() => deleteInfoItem(item.id)}>
                     <Trash2 className="h-4 w-4" />
                   </SmallIconButton>
                 </div>
-                <div className="grid gap-3">
+                <div className="grid gap-2">
                   <SelectField label="Ikona" value={item.icon} options={createOptions(HOMEPAGE_INFO_ICONS, homepageInfoIconLabels)} onChange={(icon) => updateInfoItem(item.id, { icon })} />
                   <TextField label="Naslov" value={item.title} onChange={(title) => updateInfoItem(item.id, { title })} />
                   <TextareaField label="Kratek opis" value={item.description} onChange={(description) => updateInfoItem(item.id, { description })} />
@@ -3332,15 +4082,15 @@ function AdminLandingPageClient({
 
   function renderFooterSettings() {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <FieldBlock title="Prikaz noge">
-          <p className="rounded-lg bg-slate-50/80 px-2.5 py-2 text-[11px] leading-5 text-slate-600">
+          <p className="rounded-lg bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] px-2.5 py-2 text-[11px] leading-5 text-[color:var(--homepage-inspector-muted,#475569)]">
             Vsebino noge, povezave in kontaktne podatke urejate v zavihku Navigacija.
           </p>
           <SelectField label="Logotip" value={config.footer.logoMode} options={createOptions(HOMEPAGE_FOOTER_LOGO_MODES, homepageFooterLogoModeLabels)} onChange={(logoMode) => updateFooter({ logoMode })} />
-          <div className="space-y-3 border-t border-slate-200 pt-3">
-            <p className="text-[11px] font-medium text-slate-500">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2 border-t border-[color:var(--homepage-inspector-divider,#e2e8f0)] pt-2">
+            <p className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
+            <div className="grid gap-2 sm:grid-cols-2">
               <NumberField label="Stolpci prikaza" value={footerViewSettings.layoutColumns} onChange={(layoutColumns) => updateFooterView({ layoutColumns })} min={1} max={6} />
               <SelectField label="Odmik" value={footerViewSettings.spacing} options={createOptions(HOMEPAGE_FOOTER_SPACINGS, homepageFooterSpacingLabels)} onChange={(spacing) => updateFooterView({ spacing })} />
             </div>
@@ -3374,8 +4124,8 @@ function AdminLandingPageClient({
           </div>
           <ColorField label="Barva ozadja" value={config.page.backgroundColor} onChange={(backgroundColor) => updatePage({ backgroundColor })} />
         </FieldBlock>
-        <FieldBlock title="Vidnost">
-          <p className="rounded-lg bg-slate-50/80 px-2.5 py-2 text-[11px] leading-5 text-slate-600">{sectionVisibilitySummary}</p>
+        <FieldBlock title="Vidnost" defaultOpen={false}>
+          <p className="rounded-lg bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] px-2.5 py-2 text-[11px] leading-5 text-[color:var(--homepage-inspector-muted,#475569)]">{sectionVisibilitySummary}</p>
         </FieldBlock>
       </div>
     );
@@ -3383,17 +4133,19 @@ function AdminLandingPageClient({
 
   function renderSectionStructure() {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] leading-4 text-slate-500">Izberi, preimenuj ali prerazporedi sekcije. Izbrano sekcijo lahko premikaš tudi neposredno v predogledu.</p>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">Izberi, preimenuj ali prerazporedi sekcije. Izbrano sekcijo lahko premikaš tudi neposredno v predogledu.</p>
           <div className="relative shrink-0">
-            <ToolbarButton label="Dodaj sekcijo" disabled={availableSectionIds.length === 0} active={addSectionMenuOpen} onClick={() => setAddSectionMenuOpen((open) => !open)}>
-              <Plus className="h-4 w-4" />
-            </ToolbarButton>
+            <HomepageToolbarToneContext.Provider value="dark">
+              <ToolbarButton label="Dodaj sekcijo" disabled={availableSectionIds.length === 0} active={addSectionMenuOpen} onClick={() => setAddSectionMenuOpen((open) => !open)}>
+                <Plus className="h-4 w-4" />
+              </ToolbarButton>
+            </HomepageToolbarToneContext.Provider>
             {addSectionMenuOpen ? (
-              <div className={classNames(floatingSurfaceClassName, 'absolute right-0 top-9 z-30 w-56 overflow-hidden p-1')}>
+              <div className="absolute right-0 top-9 z-30 w-56 overflow-hidden rounded-lg border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-subsurface-strong,#ffffff)] p-1 shadow-lg">
                 {availableSectionIds.map((sectionId) => (
-                  <button key={sectionId} type="button" className={`flex w-full items-center justify-between gap-3 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`} onClick={() => addSection(sectionId)}>
+                  <button key={sectionId} type="button" className={`flex w-full items-center justify-between gap-3 rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] font-medium text-[color:var(--homepage-inspector-strong,#334155)] transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)] ${adminControlFocusTokenClasses}`} onClick={() => addSection(sectionId)}>
                     {resolveHomepageSectionLabel(sectionId, config.sectionTitles)}
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -3447,14 +4199,14 @@ function AdminLandingPageClient({
 
     return (
       <div
-        className="rounded-xl bg-slate-50/80 p-2.5"
+        className="rounded-xl bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-2.5"
         role="group"
         aria-label="Obseg urejanja imen kategorij"
         data-testid="homepage-category-title-scope"
       >
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-[12px] font-semibold text-slate-800">Uporabi za</span>
-          <span className="text-[11px] font-medium text-slate-500">{selectedViewLabel}</span>
+          <span className="text-[12px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Uporabi za</span>
+          <span className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">{selectedViewLabel}</span>
         </div>
         <div className={`${segmentedControlClassName} grid grid-cols-2`}>
           {scopeOptions.map((option) => {
@@ -3469,8 +4221,8 @@ function AdminLandingPageClient({
                 className={classNames(
                   `h-8 rounded-md px-2.5 text-[12px] font-semibold transition ${adminControlFocusTokenClasses}`,
                   active
-                    ? 'bg-white text-[color:var(--blue-600)] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-[color:var(--homepage-inspector-selected-bg,#ffffff)] text-[color:var(--homepage-inspector-selected-text,#2563eb)] shadow-sm'
+                    : 'text-[color:var(--homepage-inspector-muted,#64748b)] hover:text-[color:var(--homepage-inspector-strong,#1e293b)]'
                 )}
                 onClick={() => setCategoryTitleEditScope(option.value)}
               >
@@ -3479,7 +4231,7 @@ function AdminLandingPageClient({
             );
           })}
         </div>
-        <p className="mt-2 text-[11px] leading-4 text-slate-500">
+        <p className="mt-2 text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">
           Imena ostanejo vezana na Kategorije; tukaj urejaš samo njihov videz in postavitev.
         </p>
       </div>
@@ -3487,6 +4239,14 @@ function AdminLandingPageClient({
   }
 
   function renderStyleControls() {
+    const updateSharedCategoryTitleColors = (updates: Pick<Partial<CategoryShowcaseMediaSettings>, 'titleColor' | 'titleHoverColor'>) => {
+      if (!selectedCategoryTitleItem) return;
+      const targetSlugs = categoryTitleEditScope === 'all'
+        ? categoryShowcaseEditor.items.map((category) => category.slug)
+        : [selectedCategoryTitleItem.slug];
+      targetSlugs.forEach((categorySlug) => categoryShowcaseEditor.updatePresentation(categorySlug, updates));
+    };
+
     return (
       <div className="space-y-2.5">
         {renderCategoryTitleScopeControl()}
@@ -3529,17 +4289,32 @@ function AdminLandingPageClient({
           <ToolbarButton label="Poravnaj desno" active={selectedCanvasStyle.textAlign === 'right'} pressed={selectedCanvasStyle.textAlign === 'right'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'right' })}><AlignRight className="h-4 w-4" /></ToolbarButton>
         </div>
         <div className="grid gap-1">
-          <ColorField
-            label="Barva"
-            value={selectedCanvasStyle.color || (
-              selectedElementId === 'categories:subtitle'
-                ? '#536070'
-                : selectedIsCategoryText || selectedElementId === 'footer:description'
-                  ? '#111827'
-                  : '#ffffff'
-            )}
-            onChange={(color) => selectedElementId && updateCanvasElementStyle(selectedElementId, { color })}
-          />
+          {selectedIsCategoryTitle && selectedCategoryTitleItem?.presentation ? (
+            <>
+              <ColorField
+                label="Barva"
+                value={selectedCategoryTitleItem.presentation.titleColor}
+                onChange={(titleColor) => updateSharedCategoryTitleColors({ titleColor })}
+              />
+              <ColorField
+                label="Barva ob lebdenju"
+                value={selectedCategoryTitleItem.presentation.titleHoverColor}
+                onChange={(titleHoverColor) => updateSharedCategoryTitleColors({ titleHoverColor })}
+              />
+            </>
+          ) : (
+            <ColorField
+              label="Barva"
+              value={selectedCanvasStyle.color || (
+                selectedElementId === 'categories:subtitle'
+                  ? '#536070'
+                  : selectedIsCategoryText || selectedElementId === 'footer:description'
+                    ? '#111827'
+                    : '#ffffff'
+              )}
+              onChange={(color) => selectedElementId && updateCanvasElementStyle(selectedElementId, { color })}
+            />
+          )}
           <NumberField label="Debelina" value={selectedCanvasStyle.fontWeight} onChange={(fontWeight) => selectedElementId && updateCanvasElementStyle(selectedElementId, { fontWeight })} min={100} max={900} step={100} />
           <NumberField label="Višina vrstice" value={selectedCanvasStyle.lineHeight} onChange={(lineHeight) => selectedElementId && updateCanvasElementStyle(selectedElementId, { lineHeight })} min={0.5} max={4} step={0.05} />
           <NumberField label="Razmik črk" value={selectedCanvasStyle.letterSpacingPx} onChange={(letterSpacingPx) => selectedElementId && updateCanvasElementStyle(selectedElementId, { letterSpacingPx })} min={-10} max={40} step={0.25} suffix="px" />
@@ -3552,12 +4327,12 @@ function AdminLandingPageClient({
     return (
       <div className="space-y-2.5">
         {renderCategoryTitleScopeControl()}
-        <p className="text-[11px] leading-4 text-slate-500">Vrednost 0 pomeni samodejno velikost. Ročico v spodnjem desnem kotu izbranega elementa lahko povlečeš neposredno.</p>
+        <p className="text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">Vrednost 0 pomeni samodejno velikost. Ročico v spodnjem desnem kotu izbranega elementa lahko povlečeš neposredno.</p>
         {selectedPosition ? (
-          <div className="rounded-xl bg-slate-50/80 p-2.5">
+          <div className="rounded-xl bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-2.5">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-[12px] font-semibold text-slate-800">Položaj</span>
-              <button type="button" className="text-[11px] font-semibold text-[color:var(--blue-600)] hover:text-[color:var(--blue-700)]" onClick={() => updateSelectedPosition({ xPx: 0, yPx: 0 })}>Ponastavi</button>
+              <span className="text-[12px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Položaj</span>
+              <button type="button" className="text-[11px] font-semibold text-[color:var(--homepage-inspector-muted,var(--blue-600))] hover:text-[color:var(--homepage-inspector-strong,var(--blue-700))]" onClick={() => updateSelectedPosition({ xPx: 0, yPx: 0 })}>Ponastavi</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <NumberField label="X" value={selectedPosition.xPx} onChange={(xPx) => updateSelectedPosition({ xPx })} min={-200} max={HOMEPAGE_PREVIEW_PROFILES[previewDevice].viewportWidth - 48} suffix="px" />
@@ -3592,16 +4367,16 @@ function AdminLandingPageClient({
     const paddingFields: Array<[string, keyof HomepageCanvasElementDeviceSettings]> = [['Zgoraj', 'paddingTopPx'], ['Desno', 'paddingRightPx'], ['Spodaj', 'paddingBottomPx'], ['Levo', 'paddingLeftPx']];
     const marginFields: Array<[string, keyof HomepageCanvasElementDeviceSettings]> = [['Zgoraj', 'marginTopPx'], ['Desno', 'marginRightPx'], ['Spodaj', 'marginBottomPx'], ['Levo', 'marginLeftPx']];
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         {renderCategoryTitleScopeControl()}
         <div>
-          <h3 className="mb-2 text-[12px] font-semibold text-slate-800">Notranji odmik</h3>
+          <h3 className="mb-1.5 text-[11px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Notranji odmik</h3>
           <div className="grid grid-cols-2 gap-2">
             {paddingFields.map(([label, key]) => <NumberField key={key} label={label} value={selectedCanvasStyle[key] as number} onChange={(value) => selectedElementId && updateCanvasElementStyle(selectedElementId, { [key]: value })} min={0} max={240} suffix="px" />)}
           </div>
         </div>
-        <div className="border-t border-slate-100 pt-3">
-          <h3 className="mb-2 text-[12px] font-semibold text-slate-800">Zunanji razmik</h3>
+        <div className="border-t border-[color:var(--homepage-inspector-divider,#f1f5f9)] pt-2">
+          <h3 className="mb-1.5 text-[11px] font-semibold text-[color:var(--homepage-inspector-strong,#1e293b)]">Zunanji razmik</h3>
           <div className="grid grid-cols-2 gap-2">
             {marginFields.map(([label, key]) => <NumberField key={key} label={label} value={selectedCanvasStyle[key] as number} onChange={(value) => selectedElementId && updateCanvasElementStyle(selectedElementId, { [key]: value })} min={-240} max={480} suffix="px" />)}
           </div>
@@ -3613,30 +4388,51 @@ function AdminLandingPageClient({
   function renderViewControls() {
     return (
       <div className="space-y-0.5">
-        <ToggleRow label="Mreža" description="Prikaži pomožno mrežo v trenutnem pogledu." checked={editorOptions.grid} onChange={(grid) => updateEditorOptions({ grid })} />
+        <ToggleRow label="Mreža" description="Prikaži pomožno mrežo v izbrani sekciji." checked={editorOptions.grid} onChange={(grid) => updateEditorOptions({ grid })} />
         <NumberField label="Korak mreže" value={editorOptions.gridSize} onChange={(gridSize) => updateEditorOptions({ gridSize })} min={2} max={64} suffix="px" />
         <ToggleRow label="Pripni na mrežo" checked={editorOptions.snapToGrid} onChange={(snapToGrid) => updateEditorOptions({ snapToGrid })} />
         <ToggleRow label="Pripni na elemente" checked={editorOptions.snapToElements} onChange={(snapToElements) => updateEditorOptions({ snapToElements })} />
-        <ToggleRow label="Vodila" description="Vodila se poudarijo med premikanjem." checked={editorOptions.guides} onChange={(guides) => updateEditorOptions({ guides })} />
+        <ToggleRow label="Vodila" description="Poudarijo poravnavo in pripenjanje v izbrani sekciji." checked={editorOptions.guides} onChange={(guides) => updateEditorOptions({ guides })} />
         <ToggleRow label="Ravnila" checked={editorOptions.rulers} onChange={(rulers) => updateEditorOptions({ rulers })} />
         <ToggleRow label="Meritve" description="Razdalje do robov in najbližjega elementa." checked={editorOptions.measurements} onChange={(measurements) => updateEditorOptions({ measurements })} />
       </div>
     );
   }
 
-  function renderActiveToolbarPopover() {
-    if (!activeToolbarPopover) return null;
-    const close = () => setActiveToolbarPopover(null);
+  function renderActiveToolbarPopover(host: HomepageToolbarHost) {
+    if (!activeToolbarPopover || activeToolbarHost !== host) return null;
+    const close = () => {
+      setActiveToolbarPopover(null);
+      setActiveToolbarHost(null);
+    };
     if (activeToolbarPopover === 'create') return (
       <ToolbarPopoverPanel title="Dodaj v predogled" description="Novi prosti elementi se dodajo v hero sekcijo in imajo ločeno postavitev za vsak pogled." onClose={close}>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-slate-50/80 p-2.5 text-left text-[12px] font-medium text-slate-700 transition hover:bg-[color:var(--blue-50)] hover:text-[color:var(--blue-700)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('text')}><Plus className="h-4 w-4" />Besedilo</button>
-          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-slate-50/80 p-2.5 text-left text-[12px] font-medium text-slate-700 transition hover:bg-[color:var(--blue-50)] hover:text-[color:var(--blue-700)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('button')}><Plus className="h-4 w-4" />Gumb</button>
+          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-2.5 text-left text-[12px] font-medium text-[color:var(--homepage-inspector-strong,#334155)] transition hover:bg-[color:var(--homepage-inspector-hover,#f1f5f9)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('text')}><Plus className="h-4 w-4" />Besedilo</button>
+          <button type="button" className={`flex items-center gap-2 rounded-xl border border-transparent bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] p-2.5 text-left text-[12px] font-medium text-[color:var(--homepage-inspector-strong,#334155)] transition hover:bg-[color:var(--homepage-inspector-hover,#f1f5f9)] ${adminControlFocusTokenClasses}`} onClick={() => addHeroTextBlock('button')}><Plus className="h-4 w-4" />Gumb</button>
         </div>
-        {availableSectionIds.length > 0 ? <div className="mt-2 pt-2"><p className="mb-1 px-2 text-[11px] font-medium text-slate-500">Sekcije</p><div className="grid gap-0.5">{availableSectionIds.map((sectionId) => <button key={sectionId} type="button" className={`flex items-center justify-between rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] text-slate-700 transition hover:bg-slate-50 hover:text-[color:var(--blue-600)] ${adminControlFocusTokenClasses}`} onClick={() => addSection(sectionId)}>{getSectionLabel(sectionId)}<Plus className="h-3.5 w-3.5" /></button>)}</div></div> : null}
+        {availableSectionIds.length > 0 ? (
+          <div className="mt-2 pt-2">
+            <p className="mb-1 px-2 text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Sekcije</p>
+            <div className="grid gap-0.5">
+              {availableSectionIds.map((sectionId) => (
+                <button
+                  key={sectionId}
+                  type="button"
+                  className={`flex items-center justify-between rounded-lg border border-transparent px-2.5 py-2 text-left text-[12px] text-[color:var(--homepage-inspector-strong,#334155)] transition hover:bg-[color:var(--homepage-inspector-hover,#f8fafc)] ${adminControlFocusTokenClasses}`}
+                  onClick={() => addSection(sectionId)}
+                >
+                  {getSectionLabel(sectionId)}
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </ToolbarPopoverPanel>
     );
     if (activeToolbarPopover === 'structure') return <ToolbarPopoverPanel title="Struktura strani" description="Sekcije niso več stalno prikazane ob predogledu." onClose={close}>{renderSectionStructure()}</ToolbarPopoverPanel>;
+    if (activeToolbarPopover === 'carousel') return <ToolbarPopoverPanel title="Slike in vrtiljak" description="Naložite medije, uredite njihov vrstni red in način menjave." onClose={close} wide>{renderHeroCarouselSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'section') return <ToolbarPopoverPanel title={`Nastavitve · ${getSectionLabel(selectedSectionId)}`} description={`Odzivne nastavitve za pogled ${selectedViewLabel}.`} onClose={close} wide>{renderSelectedSectionSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'page') return <ToolbarPopoverPanel title="Nastavitve strani" description={`Nastavitve glavne strani za pogled ${selectedViewLabel}.`} onClose={close}>{renderPageSettings()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'style') return <ToolbarPopoverPanel title={`Besedilo · ${selectedEditTargetLabel}`} description={`Slog za pogled ${selectedViewLabel}.`} onClose={close}>{renderStyleControls()}</ToolbarPopoverPanel>;
@@ -3644,12 +4440,13 @@ function AdminLandingPageClient({
     if (activeToolbarPopover === 'spacing') return <ToolbarPopoverPanel title={`Razmiki · ${selectedEditTargetLabel}`} onClose={close}>{renderSpacingControls()}</ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'link') return <ToolbarPopoverPanel title={`Povezava · ${selectedElementLabel}`} onClose={close}><TextField label="Cilj povezave" value={selectedElementLink()} onChange={updateSelectedElementLink} placeholder="/povezava ali https://..." /></ToolbarPopoverPanel>;
     if (activeToolbarPopover === 'media' && selectedCategoryMediaItem) return (
-      <ToolbarPopoverPanel title={`Slika · ${selectedCategoryMediaItem.title}`} description="Iste nastavitve slike se uporabljajo v obeh urednikih in na javni strani." onClose={close}>
+      <ToolbarPopoverPanel title="Uredi videz kategorije" description="Slika ter barve naslova, številke in ozadja so skupne v obeh urednikih in na javni strani." onClose={close}>
         <CategoryShowcaseEditor
           context="homepage"
-          capabilities={CATEGORY_SHOWCASE_HOMEPAGE_CAPABILITIES}
+          capabilities={CATEGORY_SHOWCASE_BASE_CAPABILITIES}
           selectedItem={selectedCategoryMediaItem}
-          controlsClassName="w-full border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+          controlsTone="dark"
+          controlsClassName="!w-full !border-0 !bg-transparent !p-0 !shadow-none !backdrop-blur-none"
           onPresentationChange={(updates) => categoryShowcaseEditor.updatePresentation(selectedCategoryMediaItem.slug, updates)}
           onImageChange={(file) => replaceCategoryImage(selectedCategoryMediaItem.slug, file)}
           onImageRemove={() => removeCategoryImage(selectedCategoryMediaItem.slug)}
@@ -3659,7 +4456,139 @@ function AdminLandingPageClient({
         </CategoryShowcaseEditor>
       </ToolbarPopoverPanel>
     );
-    return <ToolbarPopoverPanel title={`Mreža in vodila · ${selectedViewLabel}`} description="Nastavitve veljajo samo za trenutno uredniško platno." onClose={close}>{renderViewControls()}</ToolbarPopoverPanel>;
+    return <ToolbarPopoverPanel title={`Mreža in vodila · ${getSectionLabel(selectedSectionId)} · ${selectedViewLabel}`} description="Nastavitve se uporabijo na izbrani sekciji v trenutnem pogledu." onClose={close}>{renderViewControls()}</ToolbarPopoverPanel>;
+  }
+
+  function renderContextToolbar(host: HomepageToolbarHost) {
+    const inline = host === 'inline';
+    const tone = inline ? 'light' : 'dark';
+    const toolbarLabel = inline ? 'Stran' : selectedElementLabel;
+    const hostPopover = activeToolbarHost === host ? activeToolbarPopover : null;
+    return (
+      <>
+        <HomepageToolbarToneContext.Provider value={tone}>
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span
+              className={classNames(
+                'mr-1 inline-flex h-8 max-w-40 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold',
+                tone === 'dark' ? 'bg-white/10 text-white' : 'bg-transparent text-slate-700'
+              )}
+              title={toolbarLabel}
+              data-homepage-toolbar-label
+            >
+              <MousePointer2 className={classNames('h-3.5 w-3.5 shrink-0', tone === 'dark' ? 'text-white/80' : 'text-[color:var(--blue-500)]')} />
+              <span className="truncate">{toolbarLabel}</span>
+            </span>
+
+            <ToolbarButton label="Dodaj besedilo, gumb ali sekcijo" active={hostPopover === 'create'} popover onClick={() => toggleToolbarPopover('create', host)} testId={inline && selectedElementId ? 'homepage-page-toolbar-add' : 'homepage-toolbar-add'}>
+              <Plus className="h-4 w-4" />
+            </ToolbarButton>
+
+          {inline ? (
+            <>
+              <ToolbarButton label="Struktura strani" active={hostPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure', host)}>
+                <Layers3 className="h-4 w-4" />
+              </ToolbarButton>
+              <ToolbarButton label="Nastavitve strani" active={hostPopover === 'page'} popover onClick={() => toggleToolbarPopover('page', host)}>
+                <SlidersHorizontal className="h-4 w-4" />
+              </ToolbarButton>
+              <ToolbarButton label="Mreža, pripenjanje in vodila" active={hostPopover === 'view'} popover onClick={() => toggleToolbarPopover('view', host)}>
+                <Grid3X3 className="h-4 w-4" />
+              </ToolbarButton>
+            </>
+          ) : (
+            <>
+              <ToolbarDivider />
+              <ToolbarButton label="Počisti izbor" onClick={() => selectCanvasElement(null)}>
+                <MousePointer2 className="h-4 w-4" />
+              </ToolbarButton>
+              {!selectedCategoryMediaItem ? (
+                <ToolbarButton label="Podvoji" disabled={selectedIsSection || selectedIsFixedFooterElement || selectedIsCategoryElement} onClick={duplicateSelectedElement}>
+                  <Copy className="h-4 w-4" />
+                </ToolbarButton>
+              ) : null}
+              {!selectedCategoryMediaItem ? (
+                <ToolbarButton label={selectedEffectiveVisible ? 'Skrij' : 'Prikaži'} onClick={toggleSelectedVisibility}>
+                  {selectedEffectiveVisible ? <Eye className="h-4 w-4" /> : <EyeClosed className="h-4 w-4" />}
+                </ToolbarButton>
+              ) : null}
+              {selectedCategoryMediaItem || selectedIsSection || selectedCanDelete ? (
+                <ToolbarButton label={selectedCategoryMediaItem ? 'Odstrani sliko' : 'Izbriši'} danger onClick={deleteSelectedElement}>
+                  <Trash2 className="h-4 w-4" />
+                </ToolbarButton>
+              ) : null}
+
+              <ToolbarDivider />
+
+              {selectedIsSection ? (
+                <>
+                  {selectedSectionId === 'hero' ? (
+                    <ToolbarButton
+                      label="Slike in vrtiljak"
+                      active={hostPopover === 'carousel'}
+                      popover
+                      onClick={() => toggleToolbarPopover('carousel', host)}
+                      testId="homepage-hero-carousel-toolbar-button"
+                    >
+                      <Images className="h-4 w-4" />
+                    </ToolbarButton>
+                  ) : null}
+                  <ToolbarButton label="Nastavitve sekcije" active={hostPopover === 'section'} popover onClick={() => toggleToolbarPopover('section', host)}>
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </ToolbarButton>
+                  <ToolbarButton label="Struktura in vrstni red sekcij" active={hostPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure', host)}>
+                    <Layers3 className="h-4 w-4" />
+                  </ToolbarButton>
+                </>
+              ) : (
+                <>
+                  {selectedCategoryMediaItem ? (
+                    <ToolbarButton label="Uredi videz kategorije" active={hostPopover === 'media'} popover onClick={() => toggleToolbarPopover('media', host)}>
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </ToolbarButton>
+                  ) : (
+                    <>
+                      {selectedIsText || selectedIsButton ? (
+                        <ToolbarButton label="Slog besedila" active={hostPopover === 'style'} popover onClick={() => toggleToolbarPopover('style', host)}>
+                          <Bold className="h-4 w-4" />
+                        </ToolbarButton>
+                      ) : null}
+                      <ToolbarButton label="Mere in poravnava" active={hostPopover === 'layout'} popover onClick={() => toggleToolbarPopover('layout', host)}>
+                        <Maximize2 className="h-4 w-4" />
+                      </ToolbarButton>
+                      <ToolbarButton label="Notranji in zunanji razmiki" active={hostPopover === 'spacing'} popover onClick={() => toggleToolbarPopover('spacing', host)}>
+                        <SquareDashed className="h-4 w-4" />
+                      </ToolbarButton>
+                      <ToolbarButton label="Premakni plast nazaj" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex - 1 })}>
+                        <ArrowDown className="h-4 w-4" />
+                      </ToolbarButton>
+                      <ToolbarButton label="Premakni plast naprej" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex + 1 })}>
+                        <ArrowUp className="h-4 w-4" />
+                      </ToolbarButton>
+                      <ToolbarButton label={selectedCanvasStyle.locked ? 'Odkleni položaj' : 'Zakleni položaj'} active={selectedCanvasStyle.locked} pressed={selectedCanvasStyle.locked} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { locked: !selectedCanvasStyle.locked })}>
+                        {selectedCanvasStyle.locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                      </ToolbarButton>
+                      {selectedCanLink ? (
+                        <ToolbarButton label="Nastavitve povezave" active={hostPopover === 'link'} popover onClick={() => toggleToolbarPopover('link', host)}>
+                          <LinkIcon className="h-4 w-4" />
+                        </ToolbarButton>
+                      ) : null}
+                    </>
+                  )}
+                </>
+              )}
+
+              <ToolbarDivider />
+              <ToolbarButton label="Mreža, pripenjanje in vodila" active={hostPopover === 'view'} popover onClick={() => toggleToolbarPopover('view', host)}>
+                {editorOptions.snapToGrid || editorOptions.snapToElements ? <Magnet className="h-4 w-4" /> : editorOptions.rulers ? <Ruler className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+              </ToolbarButton>
+            </>
+            )}
+          </div>
+        </HomepageToolbarToneContext.Provider>
+        {renderActiveToolbarPopover(host)}
+      </>
+    );
   }
 
   return (
@@ -3672,14 +4601,10 @@ function AdminLandingPageClient({
             <span className={classNames('inline-flex h-8 items-center rounded-full border px-3 text-[12px] font-semibold', isDirty ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
               {isDirty ? 'Neshranjeno' : 'Objavljeno'}
             </span>
-            <a href="/" target="_blank" rel="noreferrer" className={previewButtonClassName}>
-              <Eye className="h-4 w-4" />
-              Predogled
-            </a>
-            <Button type="button" variant="default" size="toolbar" onClick={restoreDefaults} className="!h-9 !rounded-md !px-3" disabled={isSaving}>
+            <Button type="button" variant="default" size="toolbar" onClick={restoreDefaults} className="!h-9 !rounded-md !px-3" disabled={isSaving || uploadingSlideId !== null}>
               Privzeto
             </Button>
-            <Button type="button" variant="primary" size="toolbar" className={topActionSaveButtonClassName} onClick={save} disabled={!isDirty || isSaving}>
+            <Button type="button" variant="primary" size="toolbar" className={topActionSaveButtonClassName} onClick={save} disabled={!isDirty || isSaving || uploadingSlideId !== null}>
               <Save className="h-4 w-4" />
               Shrani spremembe
             </Button>
@@ -3718,116 +4643,37 @@ function AdminLandingPageClient({
               ))}
             </div>
 
-            <span className="hidden lg:block"><ToolbarDivider /></span>
-
             <div
-              ref={toolbarRef}
-              className="relative min-w-0 flex-1 max-lg:w-full max-lg:flex-none"
-              data-testid="homepage-context-toolbar"
-              data-selected-element-id={selectedElementId ?? ''}
+              ref={inlineToolbarRef}
+              data-testid={selectedElementId ? 'homepage-page-toolbar' : 'homepage-context-toolbar'}
+              data-homepage-page-toolbar
+              data-selected-element-id=""
+              data-homepage-toolbar-anchor-id="preview-controls"
+              data-toolbar-placement="inline"
+              data-toolbar-ready="true"
+              data-toolbar-mode="inline"
               role="toolbar"
               aria-label="Orodna vrstica predogleda"
+              className="relative z-[110] ml-1 w-max max-w-full min-w-0 border-0 bg-transparent p-0 shadow-none"
             >
-              <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span className="mr-1 inline-flex h-7 max-w-40 shrink-0 items-center gap-1.5 rounded-lg bg-slate-100/70 px-2 text-[11px] font-medium text-slate-600" title={selectedElementLabel}>
-                <MousePointer2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{selectedElementLabel}</span>
-              </span>
+              {renderContextToolbar('inline')}
+            </div>
 
-              <ToolbarButton label="Dodaj besedilo, gumb ali sekcijo" active={activeToolbarPopover === 'create'} popover onClick={() => toggleToolbarPopover('create')} testId="homepage-toolbar-add">
-                <Plus className="h-4 w-4" />
-              </ToolbarButton>
-
-              {!selectedElementId ? (
-                <>
-                  <ToolbarButton label="Struktura strani" active={activeToolbarPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure')}>
-                    <Layers3 className="h-4 w-4" />
-                  </ToolbarButton>
-                  <ToolbarButton label="Nastavitve strani" active={activeToolbarPopover === 'page'} popover onClick={() => toggleToolbarPopover('page')}>
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </ToolbarButton>
-                  <ToolbarButton label="Mreža, pripenjanje in vodila" active={activeToolbarPopover === 'view'} popover onClick={() => toggleToolbarPopover('view')}>
-                    <Grid3X3 className="h-4 w-4" />
-                  </ToolbarButton>
-                </>
-              ) : (
-                <>
-                  <ToolbarDivider />
-                  <ToolbarButton label="Počisti izbor" onClick={() => selectCanvasElement(null)}>
-                    <MousePointer2 className="h-4 w-4" />
-                  </ToolbarButton>
-                  {!selectedCategoryMediaItem ? (
-                    <ToolbarButton label="Podvoji" disabled={selectedIsSection || selectedIsFixedFooterElement || selectedIsCategoryElement} onClick={duplicateSelectedElement}>
-                      <Copy className="h-4 w-4" />
-                    </ToolbarButton>
-                  ) : null}
-                  {!selectedCategoryMediaItem ? (
-                    <ToolbarButton label={selectedEffectiveVisible ? 'Skrij' : 'Prikaži'} onClick={toggleSelectedVisibility}>
-                      {selectedEffectiveVisible ? <Eye className="h-4 w-4" /> : <EyeClosed className="h-4 w-4" />}
-                    </ToolbarButton>
-                  ) : null}
-                  <ToolbarButton label={selectedCategoryMediaItem ? 'Odstrani sliko' : 'Izbriši'} danger onClick={deleteSelectedElement}>
-                    <Trash2 className="h-4 w-4" />
-                  </ToolbarButton>
-
-                  <ToolbarDivider />
-
-                  {selectedIsSection ? (
-                    <>
-                      <ToolbarButton label="Nastavitve sekcije" active={activeToolbarPopover === 'section'} popover onClick={() => toggleToolbarPopover('section')}>
-                        <SlidersHorizontal className="h-4 w-4" />
-                      </ToolbarButton>
-                      <ToolbarButton label="Struktura in vrstni red sekcij" active={activeToolbarPopover === 'structure'} popover onClick={() => toggleToolbarPopover('structure')}>
-                        <Layers3 className="h-4 w-4" />
-                      </ToolbarButton>
-                    </>
-                  ) : (
-                    <>
-                      {selectedCategoryMediaItem ? (
-                        <ToolbarButton label="Obrez, fokus in postavitev slike" active={activeToolbarPopover === 'media'} popover onClick={() => toggleToolbarPopover('media')}>
-                          <SlidersHorizontal className="h-4 w-4" />
-                        </ToolbarButton>
-                      ) : (
-                        <>
-                          {selectedIsText || selectedIsButton ? (
-                            <ToolbarButton label="Slog besedila" active={activeToolbarPopover === 'style'} popover onClick={() => toggleToolbarPopover('style')}>
-                              <Bold className="h-4 w-4" />
-                            </ToolbarButton>
-                          ) : null}
-                          <ToolbarButton label="Mere in poravnava" active={activeToolbarPopover === 'layout'} popover onClick={() => toggleToolbarPopover('layout')}>
-                            <Maximize2 className="h-4 w-4" />
-                          </ToolbarButton>
-                          <ToolbarButton label="Notranji in zunanji razmiki" active={activeToolbarPopover === 'spacing'} popover onClick={() => toggleToolbarPopover('spacing')}>
-                            <SquareDashed className="h-4 w-4" />
-                          </ToolbarButton>
-                          <ToolbarButton label="Premakni plast nazaj" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex - 1 })}>
-                            <ArrowDown className="h-4 w-4" />
-                          </ToolbarButton>
-                          <ToolbarButton label="Premakni plast naprej" onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { zIndex: selectedCanvasStyle.zIndex + 1 })}>
-                            <ArrowUp className="h-4 w-4" />
-                          </ToolbarButton>
-                          <ToolbarButton label={selectedCanvasStyle.locked ? 'Odkleni položaj' : 'Zakleni položaj'} active={selectedCanvasStyle.locked} pressed={selectedCanvasStyle.locked} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { locked: !selectedCanvasStyle.locked })}>
-                            {selectedCanvasStyle.locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                          </ToolbarButton>
-                          {selectedCanLink ? (
-                            <ToolbarButton label="Nastavitve povezave" active={activeToolbarPopover === 'link'} popover onClick={() => toggleToolbarPopover('link')}>
-                              <LinkIcon className="h-4 w-4" />
-                            </ToolbarButton>
-                          ) : null}
-                        </>
-                      )}
-                    </>
-                  )}
-
-                  <ToolbarDivider />
-                  <ToolbarButton label="Mreža, pripenjanje in vodila" active={activeToolbarPopover === 'view'} popover onClick={() => toggleToolbarPopover('view')}>
-                    {editorOptions.snapToGrid || editorOptions.snapToElements ? <Magnet className="h-4 w-4" /> : editorOptions.rulers ? <Ruler className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                  </ToolbarButton>
-                </>
-              )}
-
-              </div>
-              {renderActiveToolbarPopover()}
+            <div className="ml-auto shrink-0">
+              <Button
+                type="button"
+                variant="primary"
+                size="toolbar"
+                className={`gap-2 whitespace-nowrap ${adminTablePrimaryButtonClassName}`}
+                onClick={() => {
+                  void setCurrentConfigAsDefaults();
+                }}
+                disabled={isSaving || uploadingSlideId !== null}
+                data-testid="homepage-set-defaults"
+              >
+                <Save className="h-4 w-4" />
+                Nastavi kot privzete nastavitve
+              </Button>
             </div>
           </div>
 
@@ -3838,6 +4684,7 @@ function AdminLandingPageClient({
               settings={config}
               categories={categoryShowcaseEditor.items}
               navigation={previewNavigation}
+              globalStyle={globalStyle}
               selectedSectionId={selectedSectionId}
               selectedElementId={selectedElementId}
               onSelectSection={(sectionId) => selectCanvasElement(`section:${sectionId}`)}
@@ -3849,11 +4696,14 @@ function AdminLandingPageClient({
               onCategoryTextChange={updateCategories}
               onCategoryImageChange={replaceCategoryImage}
               onCategoryImageRemove={removeCategoryImage}
+              onEditCategoryAppearance={editCategoryAppearance}
               onCategoryPresentationChange={categoryShowcaseEditor.updatePresentation}
               onCategoryMove={moveCategory}
               onCanvasElementStyleChange={updateCanvasElementStyleFromPreview}
               onMoveSection={moveSection}
               editorOptionsByDevice={editorOptionsByDevice}
+              contextToolbar={renderContextToolbar('floating')}
+              contextToolbarRef={floatingToolbarRef}
             />
           </div>
         </div>

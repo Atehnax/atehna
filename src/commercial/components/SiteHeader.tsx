@@ -18,6 +18,8 @@ import {
   getVisibleSiteNavigationItems,
   getSiteNavigationDesktopGroupPlacements,
   normalizeSiteNavigationConfig,
+  toSiteNavigationTopBarBackgroundCssColor,
+  toSiteNavigationTopBarAppearanceCssVariables,
   type SiteNavigationConfig,
   type SiteNavigationGroup,
   type SiteNavigationItemIcon,
@@ -53,6 +55,13 @@ type TopBarCssProperties = CSSProperties & {
   '--site-gutter'?: string;
   '--topbar-height'?: string;
   '--topbar-inner-max-width'?: string;
+  '--topbar-background'?: string;
+  '--topbar-background-opacity'?: string;
+  '--topbar-text-color'?: string;
+  '--topbar-font-family'?: string;
+  '--topbar-font-size'?: string;
+  '--topbar-font-weight'?: string;
+  '--topbar-font-style'?: string;
 };
 
 const desktopPanelId = 'site-desktop-mega-menu';
@@ -69,13 +78,21 @@ type AdminSiteNavigationPreviewState = {
   previewDevice?: SiteNavigationTopBarDevice;
   previewViewportWidth?: number;
 };
+const legacyDropdownFontFamily = 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 const coreNavTextRenderingStyle: CSSProperties = {
-  fontFamily: 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamily: 'var(--topbar-font-family)',
+  fontStyle: 'var(--topbar-font-style)',
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale'
 };
+const logoTextRenderingStyle: CSSProperties = {
+  fontFamily: 'var(--site-font-body, "Noto Sans", Inter, system-ui, sans-serif)',
+  fontSize: 'var(--site-font-size-body, 16px)',
+  fontWeight: 'var(--site-font-weight-body, 400)',
+  fontStyle: 'normal'
+};
 const dropdownTextRenderingStyle: CSSProperties = {
-  fontFamily: coreNavTextRenderingStyle.fontFamily,
+  fontFamily: legacyDropdownFontFamily,
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale',
   textRendering: 'optimizeLegibility',
@@ -138,7 +155,7 @@ const navbarColorStyle = {
   '--navbar-dropdown-divider-lane-width': '1px'
 } as CSSProperties & Record<string, string>;
 const coreNavTextClassName =
-  '[font-size:calc(14px/var(--commercial-storefront-scale))] font-normal [line-height:calc(20px/var(--commercial-storefront-scale))]';
+  '[font-size:calc(var(--topbar-font-size)/var(--commercial-storefront-scale))] [font-weight:var(--topbar-font-weight)] [font-style:var(--topbar-font-style)] leading-[1.4286]';
 const compactNavbarControlSizePx = toCommercialStorefrontLogicalPx(32);
 const compactNavbarControlStyle = {
   width: `${compactNavbarControlSizePx}px`,
@@ -864,7 +881,7 @@ function NavbarSearch({
           className={
             mobile
               ? 'h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-[38px] pr-3 text-[17px] font-medium leading-none text-[#111111] outline-none transition placeholder:text-[#737373] hover:border-[#dedede] focus:border-[#111111] focus:bg-white focus:ring-0 focus:shadow-none'
-              : 'h-[43px] w-full appearance-none rounded-lg border border-[color:var(--blue-500)] bg-white pl-[38px] pr-3 text-[19px] font-normal leading-none text-[var(--navbar-link-current)] shadow-none [box-shadow:none] [outline:0] [outline-offset:0] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[color:var(--blue-500)] focus:border-[color:var(--blue-500)] focus:bg-white focus:shadow-none focus:ring-0 focus:[box-shadow:none] focus:[outline:0] focus:[outline-offset:0] focus-visible:border-[color:var(--blue-500)] focus-visible:shadow-none focus-visible:ring-0 focus-visible:[box-shadow:none] focus-visible:[outline:0] focus-visible:[outline-offset:0]'
+              : `site-topbar-typography-input h-[43px] w-full appearance-none rounded-lg border border-[color:var(--blue-500)] bg-white pl-[38px] pr-3 ${coreNavTextClassName} text-[var(--navbar-link-current)] shadow-none [box-shadow:none] [outline:0] [outline-offset:0] transition-colors placeholder:text-[var(--navbar-dropdown-description)] hover:border-[color:var(--blue-500)] focus:border-[color:var(--blue-500)] focus:bg-white focus:shadow-none focus:ring-0 focus:[box-shadow:none] focus:[outline:0] focus:[outline-offset:0] focus-visible:border-[color:var(--blue-500)] focus-visible:shadow-none focus-visible:ring-0 focus-visible:[box-shadow:none] focus-visible:[outline:0] focus-visible:[outline-offset:0]`
           }
         />
         {open && hasQuery ? (
@@ -1065,6 +1082,18 @@ export default function SiteHeader({
     siteLayout.siteGutterMaxPx,
     siteLayout.siteGutterMinPx
   ]);
+  const topBarAppearanceStyle = useMemo<TopBarCssProperties>(() => {
+    const appearanceVariables = toSiteNavigationTopBarAppearanceCssVariables(activeTopBarLayout.settings);
+    const textColor = appearanceVariables['--topbar-text-color'];
+
+    return {
+      ...navbarColorStyle,
+      ...appearanceVariables,
+      '--navbar-link-default': textColor,
+      '--navbar-link-current': textColor,
+      backgroundColor: toSiteNavigationTopBarBackgroundCssColor(activeTopBarLayout.settings)
+    };
+  }, [activeTopBarLayout.settings]);
   const dropdownItems = useMemo(
     () => navigationItems.filter((item) => item.groups.length > 0),
     [navigationItems]
@@ -1363,6 +1392,7 @@ export default function SiteHeader({
             data-navbar-left
             onClick={closeMenus}
             className="inline-flex shrink-0 rounded-lg py-[5px] pl-0 pr-[10px] transition hover:bg-[#f5f5f5]"
+            style={logoTextRenderingStyle}
           >
             <Brand device={activeTopBarDevice} />
           </Link>
@@ -1533,8 +1563,8 @@ export default function SiteHeader({
   const siteHeader = (
     <header
       ref={headerRef}
-      style={navbarColorStyle}
-      className="relative z-50 border-b border-[#e5e5e5] bg-white text-black [font-family:Inter,Geist,system-ui,sans-serif]"
+      style={topBarAppearanceStyle}
+      className="relative z-50 border-b border-[#e5e5e5] text-black"
     >
       <div
         className="topbar-inner topbar-inner-freeform"
@@ -1542,7 +1572,10 @@ export default function SiteHeader({
         data-width-mode={activeTopBarLayout.settings.widthMode}
         style={topBarShellStyle}
       >
-        <div className="topbar-placement-bounds">
+        <div
+          className={`topbar-placement-bounds ${coreNavTextClassName}`}
+          style={coreNavTextRenderingStyle}
+        >
           {activeTopBarPlacementItems.map(renderTopBarPlacementElement)}
         </div>
       </div>

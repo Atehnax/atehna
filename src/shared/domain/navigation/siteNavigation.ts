@@ -4,6 +4,11 @@ import {
   type HomepageFooterLink,
   type HomepageFooterSettings
 } from '@/shared/domain/landing/landingPage';
+import {
+  HOMEPAGE_WEBSITE_FONT_FAMILIES,
+  resolveWebsiteFontStack,
+  type WebsiteFontFamily
+} from '@/shared/domain/style/fontFamilies';
 
 export const SITE_NAVIGATION_SETTINGS_KEY = 'main-navbar';
 
@@ -50,6 +55,8 @@ export type SiteNavigationTopLevelItem = {
 
 export const SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS = ['logo', 'navigation', 'search', 'ai', 'cart'] as const;
 export const SITE_NAVIGATION_TOP_BAR_DEVICES = ['desktop', 'tablet', 'mobile'] as const;
+export const SITE_NAVIGATION_TOP_BAR_FONT_FAMILIES = HOMEPAGE_WEBSITE_FONT_FAMILIES;
+export const SITE_NAVIGATION_TOP_BAR_FONT_STYLES = ['normal', 'italic'] as const;
 
 export type SiteNavigationTopBarElementId = (typeof SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS)[number];
 export type SiteNavigationTopBarDevice = (typeof SITE_NAVIGATION_TOP_BAR_DEVICES)[number];
@@ -65,6 +72,8 @@ export type SiteNavigationTopBarSearchMode = 'icon' | 'field' | 'menu';
 export type SiteNavigationTopBarAiMode = 'button' | 'icon';
 export type SiteNavigationTopBarMenuOpenMode = 'drawer' | 'fullscreen';
 export type SiteNavigationTopBarActionId = 'cart' | 'search' | 'ai';
+export type SiteNavigationTopBarFontFamily = WebsiteFontFamily;
+export type SiteNavigationTopBarFontStyle = (typeof SITE_NAVIGATION_TOP_BAR_FONT_STYLES)[number];
 
 export type SiteNavigationTopBarLayoutItem = {
   id: SiteNavigationTopBarElementId;
@@ -106,6 +115,13 @@ export type SiteNavigationTopBarResponsiveSettings = {
   layoutMode: SiteNavigationTopBarConstraintLayoutMode;
   columnGapPx: number;
   itemGapPx: number;
+  backgroundColor: string;
+  backgroundOpacityPercent: number;
+  textColor: string;
+  fontFamily: SiteNavigationTopBarFontFamily;
+  fontSizePx: number;
+  fontWeight: number;
+  fontStyle: SiteNavigationTopBarFontStyle;
   zones?: SiteNavigationTopBarZoneSettings;
   breakpointFrom?: number;
   breakpointTo?: number;
@@ -135,6 +151,51 @@ export type SiteNavigationTopBarLayout = {
   items: SiteNavigationTopBarLayoutItem[];
   responsive: SiteNavigationTopBarResponsiveLayouts;
 };
+
+export type SiteNavigationTopBarAppearanceCssVariables = {
+  '--topbar-background': string;
+  '--topbar-background-opacity': string;
+  '--topbar-text-color': string;
+  '--topbar-font-family': string;
+  '--topbar-font-size': string;
+  '--topbar-font-weight': string;
+  '--topbar-font-style': SiteNavigationTopBarFontStyle;
+};
+
+export function toSiteNavigationTopBarAppearanceCssVariables(
+  settings: Pick<
+    SiteNavigationTopBarResponsiveSettings,
+    | 'backgroundColor'
+    | 'backgroundOpacityPercent'
+    | 'textColor'
+    | 'fontFamily'
+    | 'fontSizePx'
+    | 'fontWeight'
+    | 'fontStyle'
+  >
+): SiteNavigationTopBarAppearanceCssVariables {
+  return {
+    '--topbar-background': settings.backgroundColor,
+    '--topbar-background-opacity': `${settings.backgroundOpacityPercent}%`,
+    '--topbar-text-color': settings.textColor,
+    '--topbar-font-family': resolveWebsiteFontStack(settings.fontFamily),
+    '--topbar-font-size': `${settings.fontSizePx}px`,
+    '--topbar-font-weight': String(settings.fontWeight),
+    '--topbar-font-style': settings.fontStyle
+  };
+}
+
+export function toSiteNavigationTopBarBackgroundCssColor(
+  settings: Pick<SiteNavigationTopBarResponsiveSettings, 'backgroundColor' | 'backgroundOpacityPercent'>
+) {
+  const color = asTopBarBackgroundColor(settings.backgroundColor, DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE.backgroundColor);
+  const opacity = asBoundedNumber(settings.backgroundOpacityPercent, 100, 0, 100) / 100;
+  const red = Number.parseInt(color.slice(1, 3), 16);
+  const green = Number.parseInt(color.slice(3, 5), 16);
+  const blue = Number.parseInt(color.slice(5, 7), 16);
+
+  return `rgb(${red} ${green} ${blue} / ${opacity})`;
+}
 
 export type SiteNavigationSiteLayoutSettings = {
   siteContentMaxWidthPx: number;
@@ -171,6 +232,25 @@ export const DEFAULT_SITE_LAYOUT_SETTINGS: SiteNavigationSiteLayoutSettings = {
   siteGutterMinPx: 16,
   siteGutterMaxPx: 32
 };
+
+export const DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE = {
+  backgroundColor: '#FFFFFF',
+  backgroundOpacityPercent: 100,
+  textColor: '#4D4D4D',
+  fontFamily: 'system-ui',
+  fontSizePx: 14,
+  fontWeight: 400,
+  fontStyle: 'normal'
+} as const satisfies Pick<
+  SiteNavigationTopBarResponsiveSettings,
+  | 'backgroundColor'
+  | 'backgroundOpacityPercent'
+  | 'textColor'
+  | 'fontFamily'
+  | 'fontSizePx'
+  | 'fontWeight'
+  | 'fontStyle'
+>;
 
 const TOP_BAR_CENTERED_NAV_ZONE_SETTINGS: SiteNavigationTopBarZoneSettings = {
   left: { widthMode: 'fill', widthPx: null },
@@ -311,6 +391,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'centered_nav',
         columnGapPx: 24,
         itemGapPx: 12,
+        ...DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE,
         zones: defaultTopBarZoneSettings('centered_nav'),
         searchMode: 'icon',
         height: 85,
@@ -334,6 +415,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'flow',
         columnGapPx: 20,
         itemGapPx: 12,
+        ...DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE,
         zones: defaultTopBarZoneSettings('flow'),
         breakpointFrom: 768,
         breakpointTo: 1024,
@@ -362,6 +444,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         layoutMode: 'flow',
         columnGapPx: 16,
         itemGapPx: 10,
+        ...DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE,
         zones: defaultTopBarZoneSettings('flow'),
         breakpointTo: 767,
         navigationMode: 'hamburger',
@@ -549,6 +632,30 @@ function asMenuOpenMode(value: unknown, fallback: SiteNavigationTopBarMenuOpenMo
   return value === 'drawer' || value === 'fullscreen' ? value : fallback;
 }
 
+function asTopBarBackgroundColor(value: unknown, fallback: string) {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().toUpperCase();
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : fallback;
+}
+
+function asTopBarFontFamily(
+  value: unknown,
+  fallback: SiteNavigationTopBarFontFamily
+): SiteNavigationTopBarFontFamily {
+  return SITE_NAVIGATION_TOP_BAR_FONT_FAMILIES.includes(value as SiteNavigationTopBarFontFamily)
+    ? value as SiteNavigationTopBarFontFamily
+    : fallback;
+}
+
+function asTopBarFontStyle(
+  value: unknown,
+  fallback: SiteNavigationTopBarFontStyle
+): SiteNavigationTopBarFontStyle {
+  return SITE_NAVIGATION_TOP_BAR_FONT_STYLES.includes(value as SiteNavigationTopBarFontStyle)
+    ? value as SiteNavigationTopBarFontStyle
+    : fallback;
+}
+
 function asBoundedNumber(value: unknown, fallback: number, min: number, max: number, step = 1) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -654,7 +761,49 @@ function normalizeTopBarResponsiveSettings(
     ),
     layoutMode: asTopBarConstraintLayoutMode(record.layoutMode ?? record.topbar_layout_mode, fallback.layoutMode ?? 'centered_nav'),
     columnGapPx: asBoundedNumber(record.columnGapPx ?? record.topbar_column_gap_px, fallback.columnGapPx ?? 24, 0, 96),
-    itemGapPx: asBoundedNumber(record.itemGapPx ?? record.topbar_item_gap_px, fallback.itemGapPx ?? 12, 0, 64)
+    itemGapPx: asBoundedNumber(record.itemGapPx ?? record.topbar_item_gap_px, fallback.itemGapPx ?? 12, 0, 64),
+    backgroundColor: asTopBarBackgroundColor(
+      record.backgroundColor ?? record.background_color ?? record.topbar_background_color,
+      fallback.backgroundColor
+    ),
+    backgroundOpacityPercent: asBoundedNumber(
+      record.backgroundOpacityPercent
+        ?? record.background_opacity_percent
+        ?? record.topbar_background_opacity_percent,
+      fallback.backgroundOpacityPercent,
+      0,
+      100
+    ),
+    textColor: asTopBarBackgroundColor(
+      record.textColor
+        ?? record.text_color
+        ?? record.fontColor
+        ?? record.font_color
+        ?? record.topbar_text_color
+        ?? record.topbar_font_color,
+      fallback.textColor
+    ),
+    fontFamily: asTopBarFontFamily(
+      record.fontFamily ?? record.font_family ?? record.topbar_font_family,
+      fallback.fontFamily
+    ),
+    fontSizePx: asBoundedNumber(
+      record.fontSizePx ?? record.font_size_px ?? record.topbar_font_size_px,
+      fallback.fontSizePx,
+      10,
+      24
+    ),
+    fontWeight: asBoundedNumber(
+      record.fontWeight ?? record.font_weight ?? record.topbar_font_weight,
+      fallback.fontWeight,
+      300,
+      900,
+      100
+    ),
+    fontStyle: asTopBarFontStyle(
+      record.fontStyle ?? record.font_style ?? record.topbar_font_style,
+      fallback.fontStyle
+    )
   };
   const baseSettingsWithZones = {
     ...baseSettings,

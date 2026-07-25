@@ -22,11 +22,12 @@ export const CATALOG_REVALIDATE_PATHS = [
   { path: '/admin/artikli', type: 'page' }
 ] as const;
 
-/** Pages whose rendered output actually contains category-showcase artwork. */
+/**
+ * Static catalogue pages whose rendered output contains the shared top-level
+ * category image. Force-dynamic landing/admin pages only need the showcase tag
+ * invalidation and must not be regenerated for presentation-only edits.
+ */
 export const CATEGORY_SHOWCASE_REVALIDATE_PATHS = [
-  { path: '/', type: 'page' },
   { path: '/products', type: 'page' },
-  { path: '/products/[category]', type: 'page' },
-  { path: '/admin/kategorije/predogled', type: 'page' },
-  { path: '/admin/podoba/glavna-stran', type: 'page' }
+  { path: '/products/[category]', type: 'page' }
 ] as const;

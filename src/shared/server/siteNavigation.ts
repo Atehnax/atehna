@@ -171,6 +171,13 @@ const topBarRegionAuditLabels = {
 } as const;
 
 const topBarSettingAuditLabels: Record<string, string> = {
+  backgroundColor: 'Barva ozadja',
+  backgroundOpacityPercent: 'Prosojnost ozadja',
+  textColor: 'Barva besedila',
+  fontFamily: 'Pisava',
+  fontSizePx: 'Velikost pisave',
+  fontWeight: 'Debelina pisave',
+  fontStyle: 'Slog pisave',
   breakpointFrom: 'Prelom od',
   breakpointTo: 'Prelom do',
   navigationMode: 'Navigacija',
@@ -240,11 +247,19 @@ function auditValueLabel(field: string, value: unknown) {
   if (field.endsWith('.region')) {
     return topBarRegionAuditLabels[value as keyof typeof topBarRegionAuditLabels] ?? String(value);
   }
+  if (field.endsWith('.fontStyle')) {
+    return value === 'italic' ? 'Ležeče' : 'Navadno';
+  }
+  if (field.endsWith('.backgroundOpacityPercent')) {
+    const numeric = Number(value);
+    return `${Number.isFinite(numeric) ? numeric : 0} %`;
+  }
   if (Array.isArray(value)) {
     return value.map((item) => topBarElementAuditLabels[item as keyof typeof topBarElementAuditLabels] ?? String(item)).join(', ');
   }
   if (
     field.endsWith('.offsetFromCenter') ||
+    field.endsWith('.fontSizePx') ||
     field.endsWith('.height') ||
     field.endsWith('.paddingX') ||
     field.endsWith('.breakpointFrom') ||

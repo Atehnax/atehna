@@ -38,9 +38,10 @@ const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
 
 const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) => getCatalogItemsIndexFromDatabase(diagnosticsContext));
 
-const loadCatalogCategoryCardsServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation'>>> =>
-  instrumentCatalogCacheMiss('loadCatalogCategoryCardsServer', '/products', () => getCatalogCategoryCardsFromDatabase('/products'))
-);
+// The database loader already owns the canonical tag-aware showcase cache.
+// An outer React cache can outlive tag invalidation and retain a stale revision.
+const loadCatalogCategoryCardsServer = async (): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation' | 'revision'>>> =>
+  getCatalogCategoryCardsFromDatabase('/products');
 
 const loadCatalogCategorySummariesServer = cache(async (): Promise<Array<Pick<CatalogCategory, 'slug' | 'title'>>> =>
   instrumentCatalogCacheMiss('loadCatalogCategorySummariesServer', '/products/[category]', () =>
@@ -237,7 +238,7 @@ export async function getCatalogItemsIndexServer(diagnosticsContext = 'catalog:i
   return instrumentCatalogLoader('getCatalogItemsIndexServer', diagnosticsContext, () => loadCatalogItemsIndexServer(diagnosticsContext));
 }
 
-export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation'>>> {
+export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation' | 'revision'>>> {
   return instrumentCatalogLoader('getCatalogCategoryCardsServer', '/products', () => loadCatalogCategoryCardsServer());
 }
 

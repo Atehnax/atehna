@@ -283,7 +283,7 @@ export function AdminCategoriesMiller({
                   ? 'compact'
                   : 'full';
             const gridDateWidth = canUseFullColumnLabels
-              ? 72
+              ? 80
               : millerColumns.length === 5
                 ? 52
                 : millerColumns.length === 6

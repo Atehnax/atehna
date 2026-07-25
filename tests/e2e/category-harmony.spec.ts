@@ -7,16 +7,26 @@ import {
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
   orderHomepageCategories,
+  resolveHomepageCategoryCardHeight,
 } from "../../src/shared/domain/landing/landingPage";
+import { DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS } from "../../src/shared/features/category-showcase/categoryShowcaseSchema";
+import {
+  mergeCategoryDataChangeMessages,
+  type CategoryDataChangeMessage,
+} from "../../src/shared/features/category-showcase/categoryShowcaseSync";
 
 type CategoryPresentation = {
   crop: { x: number; y: number; width: number; height: number };
   focalPoint: { x: number; y: number };
   scale: number;
+  offsetOriginX: number;
+  offsetOriginY: number;
   offsetX: number;
   offsetY: number;
   fit: "contain" | "cover" | "fill";
   backgroundColor: string;
+  ordinalFontSizePx: number;
+  ordinalColor: string;
 };
 
 type PreviewCategory = {
@@ -66,9 +76,11 @@ async function patchPresentation(
 }
 
 function changedOffset(presentation: CategoryPresentation) {
-  return presentation.offsetX >= 95
-    ? presentation.offsetX - 1
-    : presentation.offsetX + 1;
+  const displayedOffset = Math.round(presentation.offsetX);
+  const effectiveOffset = (presentation.offsetOriginX ?? 0) + displayedOffset;
+  return effectiveOffset >= 95
+    ? displayedOffset - 1
+    : displayedOffset + 1;
 }
 
 async function openCategoryPresentationEditor(page: Page, categorySlug: string) {
@@ -76,7 +88,7 @@ async function openCategoryPresentationEditor(page: Page, categorySlug: string) 
   await expect(tile).toBeVisible({ timeout: 15_000 });
   await tile.hover();
   await tile
-    .getByRole("button", { name: "Uredi predstavitev slike", exact: true })
+    .getByRole("button", { name: "Uredi videz kategorije", exact: true })
     .click();
   const controls = page.locator("[data-category-media-controls]");
   await expect(controls).toBeVisible();
@@ -84,6 +96,57 @@ async function openCategoryPresentationEditor(page: Page, categorySlug: string) 
 }
 
 test.describe("category data harmony", () => {
+  test("queued category updates union showcase slugs while catalog refreshes dominate", () => {
+    const message = (
+      scope: CategoryDataChangeMessage["scope"],
+      changedSlugs: string[],
+      sentAt: number,
+    ): CategoryDataChangeMessage => ({
+      type: "category-data-saved",
+      scope,
+      changedSlugs,
+      revision: `revision-${sentAt}`,
+      sourceId: `source-${sentAt}`,
+      sentAt,
+    });
+
+    const firstShowcase = message("showcase", ["first"], 1);
+    const secondShowcase = message("showcase", ["second", "first"], 2);
+    const mergedShowcase = mergeCategoryDataChangeMessages(
+      firstShowcase,
+      secondShowcase,
+    );
+    expect(mergedShowcase.scope).toBe("showcase");
+    expect(mergedShowcase.changedSlugs).toEqual(["first", "second"]);
+
+    const catalogRefresh = message("catalog", [], 3);
+    expect(
+      mergeCategoryDataChangeMessages(mergedShowcase, catalogRefresh),
+    ).toMatchObject({ scope: "catalog", changedSlugs: [] });
+    expect(
+      mergeCategoryDataChangeMessages(catalogRefresh, secondShowcase),
+    ).toMatchObject({ scope: "catalog", changedSlugs: [] });
+
+    expect(resolveHomepageCategoryCardHeight(
+      { cardSize: "medium", cardStyle: "compact" },
+      [{
+        presentation: {
+          ...DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS,
+          ordinalFontSizePx: 32,
+        },
+      }],
+    )).toBe(136);
+    expect(resolveHomepageCategoryCardHeight(
+      { cardSize: "medium", cardStyle: "image-title" },
+      [{
+        presentation: {
+          ...DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS,
+          ordinalFontSizePx: 32,
+        },
+      }],
+    )).toBe(168);
+  });
+
   test("category preview keeps complete category names visible while viewing and editing", async ({
     page,
     request,
@@ -139,42 +202,193 @@ test.describe("category data harmony", () => {
     );
   });
 
-  test("category image offsets can be reset to zero independently", async ({
+  test("category image axes recalibrate to zero without moving the artwork", async ({
     page,
     request,
   }) => {
     const payload = await readPreviewPayload(request);
     const category = payload.categories[0];
     expect(category).toBeDefined();
+    let submittedPresentation: CategoryPresentation | null = null;
+    await page.route("**/api/admin/categories/images", async (route) => {
+      if (route.request().method() !== "PATCH") {
+        await route.continue();
+        return;
+      }
+      const body = route.request().postDataJSON() as {
+        updates: Array<{ categorySlug: string; presentation: CategoryPresentation }>;
+      };
+      submittedPresentation = body.updates.find(
+        (update) => update.categorySlug === category.slug,
+      )?.presentation ?? null;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, updates: body.updates }),
+      });
+    });
 
     await page.goto("/admin/kategorije/predogled");
     const controls = await openCategoryPresentationEditor(page, category.slug);
-    const offsetXInput = controls.locator('input[aria-label^="Odmik X"]');
-    const offsetYInput = controls.locator('input[aria-label^="Odmik Y"]');
+    const tile = page.locator(`[data-category-slug="${category.slug}"]`).first();
+    const presentationLayer = tile.locator("[data-category-showcase-presentation]");
+    const offsetXInput = controls.locator('[data-category-media-field="offset-x"]');
+    const offsetYInput = controls.locator('[data-category-media-field="offset-y"]');
     const resetXButton = controls.getByRole("button", {
-      name: "Nastavi odmik X na 0",
+      name: "Nastavi trenutno lego X kot 0",
       exact: true,
     });
     const resetYButton = controls.getByRole("button", {
-      name: "Nastavi odmik Y na 0",
+      name: "Nastavi trenutno lego Y kot 0",
       exact: true,
+    });
+    const readArtworkGeometry = () => presentationLayer.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        transform: (element as HTMLElement).style.transform,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      };
     });
 
     await offsetXInput.fill("18");
     await offsetYInput.fill("-12");
+    await offsetYInput.click();
+    await page.waitForTimeout(350);
     await expect(resetXButton).toBeEnabled();
     await expect(resetYButton).toBeEnabled();
+    const beforeXCalibration = await readArtworkGeometry();
 
     await resetXButton.click();
     await expect(offsetXInput).toHaveValue("0");
     await expect(offsetYInput).toHaveValue("-12");
     await expect(resetXButton).toBeDisabled();
     await expect(resetYButton).toBeEnabled();
+    expect(await readArtworkGeometry()).toEqual(beforeXCalibration);
+
+    const beforeYCalibration = await readArtworkGeometry();
 
     await resetYButton.click();
     await expect(offsetXInput).toHaveValue("0");
     await expect(offsetYInput).toHaveValue("0");
     await expect(resetYButton).toBeDisabled();
+    expect(await readArtworkGeometry()).toEqual(beforeYCalibration);
+
+    await page.getByRole("button", { name: "Shrani", exact: true }).first().click();
+    const saveDialog = page.getByRole("dialog");
+    await expect(
+      saveDialog.getByText("Videz kategorij", { exact: true }),
+    ).toBeVisible();
+    await saveDialog.getByRole("button", { name: "Shrani", exact: true }).click();
+    await expect.poll(() => submittedPresentation).not.toBeNull();
+    expect(submittedPresentation!.offsetX).toBe(0);
+    expect(submittedPresentation!.offsetY).toBe(0);
+    expect(submittedPresentation!.offsetOriginX).toBeCloseTo(
+      (category.presentation.offsetOriginX ?? 0) + 18,
+      4,
+    );
+    expect(submittedPresentation!.offsetOriginY).toBeCloseTo(
+      (category.presentation.offsetOriginY ?? 0) - 12,
+      4,
+    );
+  });
+
+  test("category image transfer hints follow the selected column density", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/admin/kategorije/predogled");
+    const columns = page.getByLabel("Elementov na vrstico", { exact: true });
+    const firstImage = page.getByTestId("category-showcase-tile").first().locator("img");
+    await expect(firstImage).toBeVisible({ timeout: 15_000 });
+
+    await columns.fill("8");
+    await expect(firstImage).toHaveAttribute(
+      "sizes",
+      "(min-width: 1025px) 8vw, (min-width: 560px) 21vw, 61vw",
+    );
+
+    await columns.fill("3");
+    await expect(firstImage).toHaveAttribute(
+      "sizes",
+      "(min-width: 1025px) 21vw, (min-width: 560px) 21vw, 61vw",
+    );
+  });
+
+  test("category image editor is compact, clear, and flips beside edge tiles", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/admin/kategorije/predogled");
+    const tiles = page.getByTestId("category-showcase-tile");
+    await expect(tiles.first()).toBeVisible({ timeout: 15_000 });
+    expect(await tiles.count()).toBeGreaterThanOrEqual(4);
+
+    const editorRectBefore = await page
+      .locator('[data-category-showcase-editor="category-preview"]')
+      .boundingBox();
+    const firstControls = await openCategoryPresentationEditor(
+      page,
+      (await tiles.first().getAttribute("data-category-slug"))!,
+    );
+    const firstPanel = page.locator("[data-category-media-controls-placement]");
+    await expect(firstPanel).toHaveAttribute(
+      "data-category-media-controls-placement",
+      "right",
+    );
+
+    const primaryControlTops = await firstControls
+      .locator("[data-category-media-primary-controls] > div")
+      .evaluateAll((elements) =>
+        elements.map((element) => Math.round(element.getBoundingClientRect().top)),
+      );
+    expect(primaryControlTops).toHaveLength(3);
+    expect(new Set(primaryControlTops).size).toBe(1);
+    await expect(firstControls.getByRole("button", { name: "Cela slika" })).toBeVisible();
+    await expect(firstControls.getByRole("button", { name: "Zapolni" })).toBeVisible();
+    await expect(firstControls.getByRole("button", { name: "Raztegni" })).toBeVisible();
+    await expect(firstControls.getByText("Fokus slike", { exact: true })).toBeVisible();
+    await expect(firstControls.getByText("Območje obreza", { exact: true })).toBeVisible();
+
+    const firstPlacement = await Promise.all([
+      tiles.first().boundingBox(),
+      firstPanel.boundingBox(),
+    ]);
+    expect(firstPlacement[0]).not.toBeNull();
+    expect(firstPlacement[1]).not.toBeNull();
+    expect(firstPlacement[1]!.x).toBeGreaterThanOrEqual(
+      firstPlacement[0]!.x + firstPlacement[0]!.width,
+    );
+    expect(firstPlacement[1]!.height).toBeLessThan(430);
+    expect(await page.locator('[data-category-showcase-editor="category-preview"]').boundingBox())
+      .toEqual(editorRectBefore);
+
+    await firstControls.getByRole("button", { name: /Zapri nastavitve/ }).click();
+    const fourthTile = tiles.nth(3);
+    await fourthTile.hover();
+    await fourthTile
+      .getByRole("button", { name: "Uredi videz kategorije", exact: true })
+      .click();
+    const fourthPanel = page.locator("[data-category-media-controls-placement]");
+    await expect(fourthPanel).toHaveAttribute(
+      "data-category-media-controls-placement",
+      "left",
+    );
+    const fourthPlacement = await Promise.all([
+      fourthTile.boundingBox(),
+      fourthPanel.boundingBox(),
+    ]);
+    expect(fourthPlacement[0]).not.toBeNull();
+    expect(fourthPlacement[1]).not.toBeNull();
+    expect(fourthPlacement[1]!.x + fourthPlacement[1]!.width).toBeLessThanOrEqual(
+      fourthPlacement[0]!.x,
+    );
+    expect(fourthPlacement[1]!.x).toBeGreaterThanOrEqual(8);
+    expect(fourthPlacement[1]!.y).toBeGreaterThanOrEqual(8);
+    expect(fourthPlacement[1]!.x + fourthPlacement[1]!.width).toBeLessThanOrEqual(1592);
+    expect(fourthPlacement[1]!.y + fourthPlacement[1]!.height).toBeLessThanOrEqual(992);
   });
 
   test("category preview action stack stays comfortably inset from every tile edge", async ({
@@ -209,6 +423,18 @@ test.describe("category data harmony", () => {
     expect(geometry.top).toBeGreaterThanOrEqual(10);
     expect(geometry.right).toBeGreaterThanOrEqual(10);
     expect(geometry.bottom).toBeGreaterThanOrEqual(10);
+  });
+
+  test("Miller date columns show the full changed header", async ({ page }) => {
+    await page.setViewportSize({ width: 1329, height: 920 });
+    await page.goto("/admin/kategorije/miller-view");
+
+    const changedHeader = page.locator('span[title="Spremenjeno"]').first();
+    await expect(changedHeader).toBeVisible({ timeout: 15_000 });
+    await expect(changedHeader).toHaveText("Spremenjeno");
+    await expect.poll(() => changedHeader.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    )).toBe(true);
   });
 
   test("category admin entry routes do not immediately fetch the full unscoped catalog", async ({
@@ -258,7 +484,7 @@ test.describe("category data harmony", () => {
     }
   });
 
-  test("a presentation-only preview save sends one media patch and no structural patch", async ({
+  test("presentation-only preview edits stay local and batch into one media patch", async ({
     page,
   }) => {
     const imagePatches: Array<Record<string, unknown>> = [];
@@ -317,16 +543,34 @@ test.describe("category data harmony", () => {
     const currentOffset = Number(await offsetInput.inputValue());
     await offsetInput.fill(String(currentOffset >= 95 ? currentOffset - 1 : currentOffset + 1));
 
+    await controls.getByRole("button", { name: /Zapri nastavitve/ }).click();
+    const secondTile = page.getByTestId("category-showcase-tile").nth(1);
+    const secondCategorySlug = await secondTile.getAttribute("data-category-slug");
+    expect(secondCategorySlug).toBeTruthy();
+    const secondControls = await openCategoryPresentationEditor(page, secondCategorySlug!);
+    const secondOffsetInput = secondControls.locator('input[aria-label^="Odmik X"]');
+    const secondCurrentOffset = Number(await secondOffsetInput.inputValue());
+    await secondOffsetInput.fill(String(secondCurrentOffset >= 95 ? secondCurrentOffset - 1 : secondCurrentOffset + 1));
+
+    expect(imagePatches).toEqual([]);
+    expect(structuralPatches).toEqual([]);
+    expect(unscopedCatalogGets).toEqual([]);
+
     const saveButton = page.getByRole("button", { name: "Shrani", exact: true }).first();
     await expect(saveButton).toBeEnabled();
     await saveButton.click();
     const dialog = page.getByRole("dialog");
     await expect(
-      dialog.getByText("Predstavitev in slike kategorij", { exact: true }),
+      dialog.getByText("Videz kategorij", { exact: true }),
     ).toBeVisible();
     await dialog.getByRole("button", { name: "Shrani", exact: true }).click();
 
     await expect.poll(() => imagePatches.length).toBe(1);
+    const submittedUpdates = imagePatches[0].updates as Array<{ categorySlug?: string }>;
+    expect(submittedUpdates).toHaveLength(2);
+    expect(submittedUpdates.map((update) => update.categorySlug).sort()).toEqual(
+      [categorySlug, secondCategorySlug].sort(),
+    );
     expect(structuralPatches).toEqual([]);
     expect(unscopedCatalogGets).toEqual([]);
   });
@@ -522,8 +766,8 @@ test.describe("category data harmony", () => {
       const secondPageRefresh = secondPage.waitForResponse(
         (response) =>
           response.request().method() === "GET" &&
-          new URL(response.url()).pathname === "/api/admin/categories" &&
-          new URL(response.url()).searchParams.get("view") === "preview",
+          new URL(response.url()).pathname === "/api/admin/categories/images" &&
+          new URL(response.url()).searchParams.get("slugs")?.split(",").includes(category.slug) === true,
         { timeout: 15_000 },
       );
       const saveResponse = page.waitForResponse(

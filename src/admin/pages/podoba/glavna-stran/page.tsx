@@ -2,7 +2,8 @@ import AdminLandingPageClient from '@/admin/features/podoba/components/AdminLand
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import { DEFAULT_HOMEPAGE_CATEGORY_CARDS } from '@/shared/domain/landing/landingPage';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
-import { getLandingPageConfig } from '@/shared/server/landingPage';
+import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
+import { getLandingPageConfig, getLandingPageDefaults } from '@/shared/server/landingPage';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +25,21 @@ async function getHomepageCategoriesForAdmin() {
 }
 
 export default async function AdminPodobaGlavnaStranPage() {
-  const [config, categories, navigation] = await Promise.all([
+  const [config, defaults, categories, navigation, globalStyle] = await Promise.all([
     getLandingPageConfig(),
+    getLandingPageDefaults(),
     getHomepageCategoriesForAdmin(),
-    getSiteNavigationConfig()
+    getSiteNavigationConfig(),
+    getGlobalStyleConfig()
   ]);
 
-  return <AdminLandingPageClient initialConfig={config} initialCategories={categories} navigation={navigation} />;
+  return (
+    <AdminLandingPageClient
+      initialConfig={config}
+      initialDefaults={defaults}
+      initialCategories={categories}
+      navigation={navigation}
+      globalStyle={globalStyle}
+    />
+  );
 }

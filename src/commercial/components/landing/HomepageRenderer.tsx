@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { createElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { createElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BadgeCheck,
   ChevronDown,
@@ -17,11 +18,16 @@ import {
   PackageCheck,
   School,
   ShieldCheck,
+  SlidersHorizontal,
   Truck,
   Wrench,
   type LucideIcon
 } from 'lucide-react';
 import { catalogCategoryHref } from '@/commercial/catalog/catalogRoutes';
+import {
+  COMMERCIAL_STOREFRONT_SCALE,
+  toCommercialStorefrontLogicalPx
+} from '@/commercial/components/commercialStorefrontScale';
 import SiteFooter, { renderSiteFooterLogo, type SiteFooterEditorAdapter } from '@/commercial/components/SiteFooter';
 import {
   DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
@@ -40,22 +46,27 @@ import {
   type HomepageSectionId,
   type HomepageSettings,
   getHomepagePreviewDeviceForViewport,
+  isHomepageCanvasElementDeleted,
   normalizeLandingPageConfig,
   orderHomepageCategories,
+  resolveHomepageCategoryCardHeight,
   resolveHomepageCanvasElementDeviceSettings,
   resolveHomepageSettingsForDevice
 } from '@/shared/domain/landing/landingPage';
 import { resolveWebsiteFontStack } from '@/shared/domain/style/fontFamilies';
 import CategoryShowcase from '@/shared/features/category-showcase/CategoryShowcase';
-import {
-  normalizeCategoryShowcaseMediaSettings,
-  type CategoryShowcaseMediaSettings
-} from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/tokens';
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
 export const HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID = 'categories:title:all';
+
+// The public storefront is zoomed down globally; counter-zoom only this shared
+// showcase so its physical geometry stays identical to both admin previews.
+const publicCategoryShowcaseStyle: CSSProperties = {
+  zoom: toCommercialStorefrontLogicalPx(1)
+};
 
 const sectionGapClassNames: Record<HomepagePageSettings['sectionSpacing'], string> = {
   compact: 'gap-3',
@@ -90,6 +101,11 @@ const infoIconMap: Record<HomepageInfoIcon, LucideIcon> = {
 const siteContentMaxWidthPx = 1280;
 const siteWideContentMaxWidthPx = siteContentMaxWidthPx + 160;
 const heroMinimumTextWidthPx = 180;
+
+type HeroContentBounds = {
+  contentLeft: number;
+  contentWidth: number;
+};
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -128,8 +144,23 @@ function getHeroContainerMetrics(page: HomepagePageSettings, viewportWidth: numb
   };
 }
 
-function getHeroTextMetrics(hero: HomepageHeroSettings, page: HomepagePageSettings, viewportWidth: number) {
-  const container = getHeroContainerMetrics(page, viewportWidth);
+function getHeroTextMetrics(
+  hero: HomepageHeroSettings,
+  page: HomepagePageSettings,
+  viewportWidth: number,
+  measuredContent?: HeroContentBounds | null
+) {
+  const fallbackContainer = getHeroContainerMetrics(page, viewportWidth);
+  const container = measuredContent
+    ? {
+        ...fallbackContainer,
+        outerLeft: measuredContent.contentLeft,
+        outerWidth: measuredContent.contentWidth,
+        contentLeft: measuredContent.contentLeft,
+        contentWidth: measuredContent.contentWidth,
+        contentRight: measuredContent.contentLeft + measuredContent.contentWidth
+      }
+    : fallbackContainer;
   const offset = clampNumber(hero.contentOffsetXPx, 0, Math.max(0, container.contentWidth - heroMinimumTextWidthPx));
   const width = clampNumber(hero.textWidthPx, heroMinimumTextWidthPx, Math.max(heroMinimumTextWidthPx, container.contentWidth - offset));
   const left = container.contentLeft + offset;
@@ -149,6 +180,25 @@ function getHeroTextMetrics(hero: HomepageHeroSettings, page: HomepagePageSettin
     mediaWidthPx: Math.round(viewportWidth * (hero.mediaWidthPercent / 100)),
     mediaLeft: (viewportWidth - viewportWidth * (hero.mediaWidthPercent / 100)) / 2
   };
+}
+
+function measureHeroContentBounds(root: HTMLElement, logicalWidth: number): HeroContentBounds | null {
+  const content = root.querySelector<HTMLElement>('[data-homepage-hero-content]');
+  if (!content || logicalWidth <= 0) return null;
+
+  const rootRect = root.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
+  const scaleX = rootRect.width > 0 ? rootRect.width / logicalWidth : 1;
+  const contentStyle = window.getComputedStyle(content);
+  const paddingLeft = Number.parseFloat(contentStyle.paddingLeft) || 0;
+  const paddingRight = Number.parseFloat(contentStyle.paddingRight) || 0;
+  const contentLeft = (contentRect.left - rootRect.left) / (scaleX || 1) + paddingLeft;
+  const contentWidth = Math.max(
+    heroMinimumTextWidthPx,
+    contentRect.width / (scaleX || 1) - paddingLeft - paddingRight
+  );
+
+  return { contentLeft, contentWidth };
 }
 
 function useHomepageRenderDevice(previewDevice?: HomepagePreviewDevice) {
@@ -182,6 +232,7 @@ type HomepageRendererProps = {
   onCategoryTextChange?: (updates: CategoryTextUpdates) => void;
   onCategoryImageChange?: (categorySlug: string, file: File) => void;
   onCategoryImageRemove?: (categorySlug: string) => void;
+  onEditCategoryAppearance?: (categorySlug: string) => void;
   onCategoryPresentationChange?: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
   onCategoryMove?: (sourceSlug: string, targetSlug: string) => void;
   selectedElementId?: string | null;
@@ -189,9 +240,11 @@ type HomepageRendererProps = {
   onCanvasElementStyleChange?: (elementId: string, updates: Partial<HomepageCanvasElementDeviceSettings>) => void;
   onMoveSection?: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
   editorOptions?: HomepageCanvasEditorOptions;
+  editorSectionId?: HomepageSectionId;
   preview?: boolean;
   previewDevice?: HomepagePreviewDevice;
   previewViewportWidth?: number;
+  previewHeroStorefrontStyle?: CSSProperties;
 };
 
 export type HomepageCanvasEditorOptions = {
@@ -269,6 +322,9 @@ type SectionFrameProps = {
   canMoveDown?: boolean;
   hidden?: boolean;
   preview?: boolean;
+  editorActive?: boolean;
+  editorOptions?: HomepageCanvasEditorOptions;
+  editorContentScale?: number;
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -294,6 +350,7 @@ type HomepageCanvasElementProps = {
   textClassName?: string;
   textLabel?: string;
   textPlaceholder?: string;
+  inheritTextColor?: boolean;
   href?: string;
   linkClassName?: string;
   trailingContent?: ReactNode;
@@ -316,13 +373,118 @@ type HomepageCanvasInteraction = {
   startOffsetY: number;
   startWidth: number;
   startHeight: number;
+  startLeft: number;
+  startTop: number;
+  visualWidth: number;
+  visualHeight: number;
+  snapTargetsX: number[];
+  snapTargetsY: number[];
+  sectionElement: HTMLElement | null;
   scale: number;
   moved: boolean;
 };
 
+type HomepageCanvasSnapResult = {
+  value: number;
+  guide: number | null;
+};
+
+type HomepageSectionMeasurement = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  nearest: number | null;
+};
+
+type HomepageCanvasGuideDetail = {
+  x: number | null;
+  y: number | null;
+};
+
+const HOMEPAGE_CANVAS_GUIDE_EVENT = 'atehna:homepage-canvas-guides';
+
 function snapCanvasValue(value: number, options: HomepageCanvasEditorOptions) {
   if (!options.snapToGrid || options.gridSize <= 0) return Math.round(value);
   return Math.round(value / options.gridSize) * options.gridSize;
+}
+
+function snapCanvasOffsetToElements({
+  startOffset,
+  startPosition,
+  delta,
+  size,
+  targets,
+  options
+}: {
+  startOffset: number;
+  startPosition: number;
+  delta: number;
+  size: number;
+  targets: number[];
+  options: HomepageCanvasEditorOptions;
+}): HomepageCanvasSnapResult {
+  let value = snapCanvasValue(startOffset + delta, options);
+  if (!options.snapToElements || targets.length === 0) return { value, guide: null };
+
+  const threshold = Math.max(4, Math.min(12, options.gridSize / 2));
+  const position = startPosition + value - startOffset;
+  const anchors = [0, size / 2, size];
+  let bestDistance = threshold + 1;
+  let bestDelta = 0;
+  let guide: number | null = null;
+
+  targets.forEach((target) => {
+    anchors.forEach((anchor) => {
+      const candidateDelta = target - (position + anchor);
+      const distance = Math.abs(candidateDelta);
+      if (distance <= threshold && distance < bestDistance) {
+        bestDistance = distance;
+        bestDelta = candidateDelta;
+        guide = target;
+      }
+    });
+  });
+
+  value = Math.round(value + bestDelta);
+  return { value, guide };
+}
+
+function snapCanvasSizeToElements({
+  value,
+  startPosition,
+  targets,
+  options
+}: {
+  value: number;
+  startPosition: number;
+  targets: number[];
+  options: HomepageCanvasEditorOptions;
+}): HomepageCanvasSnapResult {
+  let next = Math.max(24, snapCanvasValue(value, options));
+  if (!options.snapToElements || targets.length === 0) return { value: next, guide: null };
+
+  const threshold = Math.max(4, Math.min(12, options.gridSize / 2));
+  const edge = startPosition + next;
+  let bestDistance = threshold + 1;
+  let guide: number | null = null;
+
+  targets.forEach((target) => {
+    const distance = Math.abs(target - edge);
+    if (distance <= threshold && distance < bestDistance) {
+      bestDistance = distance;
+      guide = target;
+    }
+  });
+
+  if (guide !== null) next = Math.max(24, Math.round(guide - startPosition));
+  return { value: next, guide };
+}
+
+function reportHomepageCanvasGuides(section: HTMLElement | null, detail: HomepageCanvasGuideDetail) {
+  section?.dispatchEvent(new CustomEvent<HomepageCanvasGuideDetail>(HOMEPAGE_CANVAS_GUIDE_EVENT, { detail }));
 }
 
 function getCanvasPreviewScale(element: HTMLElement) {
@@ -344,6 +506,7 @@ function HomepageCanvasElement({
   textClassName,
   textLabel,
   textPlaceholder,
+  inheritTextColor = false,
   href,
   linkClassName,
   trailingContent,
@@ -374,6 +537,34 @@ function HomepageCanvasElement({
   const beginInteraction = (kind: HomepageCanvasInteraction['kind'], event: ReactPointerEvent<HTMLElement>) => {
     const root = rootRef.current;
     if (!preview || settings.locked || !onStyleChange || !root || event.button !== 0 || editing) return;
+    const scale = getCanvasPreviewScale(root);
+    const sectionElement = root.closest<HTMLElement>('[data-homepage-section]');
+    const sectionRect = sectionElement?.getBoundingClientRect() ?? null;
+    const rootRect = root.getBoundingClientRect();
+    const startLeft = sectionRect ? (rootRect.left - sectionRect.left) / scale : 0;
+    const startTop = sectionRect ? (rootRect.top - sectionRect.top) / scale : 0;
+    const visualWidth = rootRect.width / scale;
+    const visualHeight = rootRect.height / scale;
+    const snapTargetsX: number[] = [];
+    const snapTargetsY: number[] = [];
+
+    if (sectionElement && sectionRect) {
+      const sectionWidth = sectionRect.width / scale;
+      const sectionHeight = sectionRect.height / scale;
+      snapTargetsX.push(0, sectionWidth / 2, sectionWidth);
+      snapTargetsY.push(0, sectionHeight / 2, sectionHeight);
+      sectionElement.querySelectorAll<HTMLElement>('[data-homepage-canvas-element]').forEach((candidate) => {
+        if (candidate === root || candidate.contains(root) || root.contains(candidate)) return;
+        const candidateRect = candidate.getBoundingClientRect();
+        const left = (candidateRect.left - sectionRect.left) / scale;
+        const top = (candidateRect.top - sectionRect.top) / scale;
+        const right = (candidateRect.right - sectionRect.left) / scale;
+        const bottom = (candidateRect.bottom - sectionRect.top) / scale;
+        snapTargetsX.push(left, (left + right) / 2, right);
+        snapTargetsY.push(top, (top + bottom) / 2, bottom);
+      });
+    }
+
     event.preventDefault();
     event.stopPropagation();
     onSelect?.(elementId);
@@ -387,7 +578,14 @@ function HomepageCanvasElement({
       startOffsetY: settings.offsetYPx,
       startWidth: settings.widthPx > 0 ? settings.widthPx : root.offsetWidth,
       startHeight: settings.heightPx > 0 ? settings.heightPx : root.offsetHeight,
-      scale: getCanvasPreviewScale(root),
+      startLeft,
+      startTop,
+      visualWidth,
+      visualHeight,
+      snapTargetsX,
+      snapTargetsY,
+      sectionElement,
+      scale,
       moved: false
     };
   };
@@ -400,17 +598,47 @@ function HomepageCanvasElement({
     if (Math.abs(deltaX) + Math.abs(deltaY) > 2) interaction.moved = true;
 
     if (interaction.kind === 'move') {
-      onStyleChange(elementId, {
-        offsetXPx: snapCanvasValue(interaction.startOffsetX + deltaX, editorOptions),
-        offsetYPx: snapCanvasValue(interaction.startOffsetY + deltaY, editorOptions)
+      const snappedX = snapCanvasOffsetToElements({
+        startOffset: interaction.startOffsetX,
+        startPosition: interaction.startLeft,
+        delta: deltaX,
+        size: interaction.visualWidth,
+        targets: interaction.snapTargetsX,
+        options: editorOptions
       });
+      const snappedY = snapCanvasOffsetToElements({
+        startOffset: interaction.startOffsetY,
+        startPosition: interaction.startTop,
+        delta: deltaY,
+        size: interaction.visualHeight,
+        targets: interaction.snapTargetsY,
+        options: editorOptions
+      });
+      onStyleChange(elementId, {
+        offsetXPx: snappedX.value,
+        offsetYPx: snappedY.value
+      });
+      reportHomepageCanvasGuides(interaction.sectionElement, { x: snappedX.guide, y: snappedY.guide });
       return;
     }
 
-    onStyleChange(elementId, {
-      widthPx: Math.max(24, snapCanvasValue(interaction.startWidth + deltaX, editorOptions)),
-      heightPx: Math.max(24, snapCanvasValue(interaction.startHeight + deltaY, editorOptions))
+    const snappedWidth = snapCanvasSizeToElements({
+      value: interaction.startWidth + deltaX,
+      startPosition: interaction.startLeft,
+      targets: interaction.snapTargetsX,
+      options: editorOptions
     });
+    const snappedHeight = snapCanvasSizeToElements({
+      value: interaction.startHeight + deltaY,
+      startPosition: interaction.startTop,
+      targets: interaction.snapTargetsY,
+      options: editorOptions
+    });
+    onStyleChange(elementId, {
+      widthPx: snappedWidth.value,
+      heightPx: snappedHeight.value
+    });
+    reportHomepageCanvasGuides(interaction.sectionElement, { x: snappedWidth.guide, y: snappedHeight.guide });
   };
 
   const endInteraction = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -418,6 +646,7 @@ function HomepageCanvasElement({
     if (!interaction || interaction.pointerId !== event.pointerId) return;
     suppressClickRef.current = interaction.moved;
     interactionRef.current = null;
+    reportHomepageCanvasGuides(interaction.sectionElement, { x: null, y: null });
     rootRef.current?.releasePointerCapture?.(event.pointerId);
   };
 
@@ -460,7 +689,7 @@ function HomepageCanvasElement({
     marginBottom: settings.marginBottomPx,
     marginLeft: settings.marginLeftPx,
     zIndex: settings.zIndex,
-    color: settings.color || undefined,
+    color: inheritTextColor ? 'inherit' : settings.color || undefined,
     fontFamily: resolveWebsiteFontStack(settings.fontFamily),
     fontSize: isText ? settings.fontSizePx : visualScaleWithHeight && settings.heightPx > 0 ? settings.heightPx : undefined,
     fontWeight: settings.fontWeight,
@@ -600,17 +829,103 @@ function SectionFrame({
   canMoveDown = false,
   hidden = false,
   preview,
+  editorActive = false,
+  editorOptions = DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
+  editorContentScale = 1,
   children,
   className,
   style
 }: SectionFrameProps) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [snapGuides, setSnapGuides] = useState<HomepageCanvasGuideDetail>({ x: null, y: null });
+  const [sectionMeasurement, setSectionMeasurement] = useState<HomepageSectionMeasurement | null>(null);
   const selected = preview && (selectedElementId === `section:${sectionId}` || (!selectedElementId && selectedSectionId === sectionId));
+  const selectedChild = Boolean(selectedElementId && selectedElementId !== `section:${sectionId}`);
+  const visualEditorGridSize = Math.max(2, editorOptions.gridSize) * editorContentScale;
+  const visualRulerStep = 8 * editorContentScale;
+  const visualRulerTickStart = Math.max(0, visualRulerStep - 1);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return undefined;
+    const handleGuides = (event: Event) => {
+      setSnapGuides((event as CustomEvent<HomepageCanvasGuideDetail>).detail);
+    };
+    section.addEventListener(HOMEPAGE_CANVAS_GUIDE_EVENT, handleGuides);
+    return () => section.removeEventListener(HOMEPAGE_CANVAS_GUIDE_EVENT, handleGuides);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!preview || !editorActive || sectionId === 'hero' || !editorOptions.measurements || !selectedChild || !selectedElementId) {
+      setSectionMeasurement(null);
+      return undefined;
+    }
+
+    const section = sectionRef.current;
+    const selectedNode = Array.from(section?.querySelectorAll<HTMLElement>('[data-canvas-element-id]') ?? [])
+      .find((node) => node.dataset.canvasElementId === selectedElementId);
+    if (!section || !selectedNode) {
+      setSectionMeasurement(null);
+      return undefined;
+    }
+
+    const updateMeasurement = () => {
+      const sectionRect = section.getBoundingClientRect();
+      const selectedRect = selectedNode.getBoundingClientRect();
+      const scaleX = section.offsetWidth > 0 ? sectionRect.width / section.offsetWidth : 1;
+      const scaleY = section.offsetHeight > 0 ? sectionRect.height / section.offsetHeight : scaleX;
+      const selectedLogical = {
+        left: (selectedRect.left - sectionRect.left) / (scaleX || 1),
+        top: (selectedRect.top - sectionRect.top) / (scaleY || 1),
+        right: (selectedRect.right - sectionRect.left) / (scaleX || 1),
+        bottom: (selectedRect.bottom - sectionRect.top) / (scaleY || 1)
+      };
+      const nearestDistances: number[] = [];
+
+      section.querySelectorAll<HTMLElement>('[data-homepage-canvas-element]').forEach((candidate) => {
+        if (candidate === selectedNode || candidate.contains(selectedNode) || selectedNode.contains(candidate)) return;
+        const candidateRect = candidate.getBoundingClientRect();
+        const candidateLogical = {
+          left: (candidateRect.left - sectionRect.left) / (scaleX || 1),
+          top: (candidateRect.top - sectionRect.top) / (scaleY || 1),
+          right: (candidateRect.right - sectionRect.left) / (scaleX || 1),
+          bottom: (candidateRect.bottom - sectionRect.top) / (scaleY || 1)
+        };
+        const horizontalGap = Math.max(candidateLogical.left - selectedLogical.right, selectedLogical.left - candidateLogical.right, 0);
+        const verticalGap = Math.max(candidateLogical.top - selectedLogical.bottom, selectedLogical.top - candidateLogical.bottom, 0);
+        const gap = Math.max(horizontalGap, verticalGap);
+        if (gap > 0) nearestDistances.push(gap);
+      });
+
+      setSectionMeasurement({
+        left: Math.max(0, Math.round(selectedLogical.left)),
+        top: Math.max(0, Math.round(selectedLogical.top)),
+        right: Math.max(0, Math.round(section.offsetWidth - selectedLogical.right)),
+        bottom: Math.max(0, Math.round(section.offsetHeight - selectedLogical.bottom)),
+        width: Math.max(0, Math.round(selectedLogical.right - selectedLogical.left)),
+        height: Math.max(0, Math.round(selectedLogical.bottom - selectedLogical.top)),
+        nearest: nearestDistances.length > 0 ? Math.round(Math.min(...nearestDistances)) : null
+      });
+    };
+
+    updateMeasurement();
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateMeasurement);
+    resizeObserver?.observe(section);
+    resizeObserver?.observe(selectedNode);
+    window.addEventListener('resize', updateMeasurement);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateMeasurement);
+    };
+  }, [children, editorActive, editorOptions.measurements, preview, sectionId, selectedChild, selectedElementId]);
 
   return (
     <section
+      ref={sectionRef}
       data-homepage-section={sectionId}
       data-homepage-section-hidden={hidden || undefined}
       data-admin-editor-selection-frame={selected || undefined}
+      data-homepage-editor-active={editorActive || undefined}
       onClickCapture={(event) => {
         const target = event.target instanceof Element ? event.target : null;
         if (target?.closest('[data-homepage-canvas-element], [data-homepage-section-controls]')) return;
@@ -627,6 +942,83 @@ function SectionFrame({
       )}
       style={style}
     >
+      {preview && editorActive && editorOptions.grid ? (
+        <div
+          aria-hidden="true"
+          data-homepage-editor-aid="grid"
+          data-editor-section={sectionId}
+          data-editor-grid-size={Math.max(2, editorOptions.gridSize)}
+          className="pointer-events-none absolute inset-0 z-[31] opacity-40"
+          style={{
+            backgroundImage: 'linear-gradient(to right, rgba(56,189,248,.22) 1px, transparent 1px), linear-gradient(to bottom, rgba(56,189,248,.22) 1px, transparent 1px)',
+            backgroundSize: `${visualEditorGridSize}px ${visualEditorGridSize}px`
+          }}
+        />
+      ) : null}
+      {preview && editorActive && editorOptions.guides && selectedChild && sectionId !== 'hero' ? (
+        <div
+          aria-hidden="true"
+          data-homepage-editor-aid="guides"
+          data-editor-section={sectionId}
+          className="pointer-events-none absolute inset-0 z-[32] text-[9px] font-bold text-fuchsia-700"
+          style={{ textShadow: '0 1px 2px rgba(255,255,255,.95), 0 0 4px rgba(255,255,255,.8)' }}
+        >
+          <span className="absolute inset-y-0 left-1/2 w-px bg-fuchsia-500/25" />
+          <span className="absolute inset-x-0 top-1/2 h-px bg-fuchsia-500/25" />
+          {snapGuides.x !== null ? (
+            <>
+              <span className="absolute inset-y-0 w-px bg-fuchsia-500/80" style={{ left: `${snapGuides.x}px` }} />
+              <span className="absolute top-3 translate-x-2 whitespace-nowrap" style={{ left: `${snapGuides.x}px` }}>{Math.round(snapGuides.x)} px</span>
+            </>
+          ) : null}
+          {snapGuides.y !== null ? (
+            <>
+              <span className="absolute inset-x-0 h-px bg-fuchsia-500/80" style={{ top: `${snapGuides.y}px` }} />
+              <span className="absolute left-3 whitespace-nowrap" style={{ top: `${snapGuides.y}px`, transform: 'translateY(calc(-100% - 6px))' }}>{Math.round(snapGuides.y)} px</span>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      {preview && editorActive && editorOptions.rulers ? (
+        <div
+          aria-hidden="true"
+          data-homepage-editor-aid="rulers"
+          data-editor-section={sectionId}
+          className="pointer-events-none absolute inset-0 z-[33] text-[9px] font-semibold text-sky-50"
+        >
+          <span
+            className="absolute inset-x-0 top-0 h-5 border-b border-sky-300/45 bg-slate-950/30"
+            style={{ backgroundImage: `repeating-linear-gradient(to right, transparent 0, transparent ${visualRulerTickStart}px, rgba(125,211,252,.62) ${visualRulerTickStart}px, rgba(125,211,252,.62) ${visualRulerStep}px)` }}
+          />
+          <span
+            className="absolute inset-y-0 left-0 w-5 border-r border-sky-300/45 bg-slate-950/30"
+            style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${visualRulerTickStart}px, rgba(125,211,252,.62) ${visualRulerTickStart}px, rgba(125,211,252,.62) ${visualRulerStep}px)` }}
+          />
+          <span className="absolute left-1 top-1">0</span>
+        </div>
+      ) : null}
+      {preview && editorActive && sectionMeasurement ? (
+        <div
+          aria-hidden="true"
+          data-homepage-editor-aid="measurements"
+          data-editor-section={sectionId}
+          className="pointer-events-none absolute inset-0 z-[64] text-[10px] font-bold leading-none text-sky-700"
+          style={{ textShadow: '0 1px 2px rgba(255,255,255,.98), 0 0 4px rgba(255,255,255,.85)' }}
+        >
+          <span className="absolute whitespace-nowrap rounded bg-white/80 px-1 py-0.5" style={{ left: sectionMeasurement.left, top: Math.max(2, sectionMeasurement.top - 18) }}>
+            {sectionMeasurement.width} × {sectionMeasurement.height} px
+          </span>
+          <span className="absolute h-px border-t border-dashed border-sky-500/55" style={{ left: 0, top: sectionMeasurement.top + sectionMeasurement.height / 2, width: sectionMeasurement.left }} />
+          <span className="absolute h-px border-t border-dashed border-sky-500/55" style={{ left: sectionMeasurement.left + sectionMeasurement.width, right: 0, top: sectionMeasurement.top + sectionMeasurement.height / 2 }} />
+          <span className="absolute w-px border-l border-dashed border-sky-500/55" style={{ left: sectionMeasurement.left + sectionMeasurement.width / 2, top: 0, height: sectionMeasurement.top }} />
+          <span className="absolute w-px border-l border-dashed border-sky-500/55" style={{ left: sectionMeasurement.left + sectionMeasurement.width / 2, top: sectionMeasurement.top + sectionMeasurement.height, bottom: 0 }} />
+          <span className="absolute whitespace-nowrap" style={{ left: Math.max(22, sectionMeasurement.left / 2), top: sectionMeasurement.top + sectionMeasurement.height / 2 - 14, transform: 'translateX(-50%)' }}>{sectionMeasurement.left}px</span>
+          <span className="absolute whitespace-nowrap" style={{ right: Math.max(22, sectionMeasurement.right / 2), top: sectionMeasurement.top + sectionMeasurement.height / 2 - 14, transform: 'translateX(50%)' }}>{sectionMeasurement.right}px</span>
+          <span className="absolute whitespace-nowrap" style={{ left: sectionMeasurement.left + sectionMeasurement.width / 2 + 6, top: Math.max(14, sectionMeasurement.top / 2), transform: 'translateY(-50%)' }}>{sectionMeasurement.top}px</span>
+          <span className="absolute whitespace-nowrap" style={{ left: sectionMeasurement.left + sectionMeasurement.width / 2 + 6, bottom: Math.max(14, sectionMeasurement.bottom / 2), transform: 'translateY(50%)' }}>{sectionMeasurement.bottom}px</span>
+          {sectionMeasurement.nearest !== null ? <span className="absolute bottom-2 right-2 rounded bg-white/85 px-1.5 py-1">Najbližje: {sectionMeasurement.nearest}px</span> : null}
+        </div>
+      ) : null}
       {preview && hidden ? (
         <span className="pointer-events-none absolute right-3 top-3 z-[70] rounded-md border border-amber-300 bg-amber-50/95 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-800 shadow-sm">
           Skrito
@@ -635,11 +1027,11 @@ function SectionFrame({
       {selected && onMoveSection ? (
         <div
           data-homepage-section-controls
-          className="absolute left-3 top-3 z-[75] inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white/95 p-1 text-slate-600 shadow-[0_8px_22px_rgba(15,23,42,0.14)] backdrop-blur"
+          className="absolute left-3 top-3 z-[75] inline-flex items-center gap-0.5 rounded-xl border border-white/15 bg-black/90 p-1 text-slate-200 shadow-[0_16px_40px_rgba(30,41,53,0.38),0_3px_12px_rgba(30,41,53,0.28)] backdrop-blur-xl"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <span className="grid h-7 w-7 place-items-center text-slate-400" title="Izbrana sekcija">
+          <span className="grid h-7 w-7 place-items-center text-slate-300" title="Izbrana sekcija">
             <GripVertical className="h-4 w-4" />
           </span>
           <button
@@ -647,7 +1039,7 @@ function SectionFrame({
             aria-label="Premakni sekcijo navzgor"
             title="Premakni sekcijo navzgor"
             disabled={!canMoveUp}
-            className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-slate-100 hover:text-[color:var(--blue-500)] disabled:opacity-30"
+            className="grid h-7 w-7 place-items-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
             onClick={() => onMoveSection(sectionId, -1)}
           >
             <ChevronUp className="h-4 w-4" />
@@ -657,7 +1049,7 @@ function SectionFrame({
             aria-label="Premakni sekcijo navzdol"
             title="Premakni sekcijo navzdol"
             disabled={!canMoveDown}
-            className="grid h-7 w-7 place-items-center rounded-md transition hover:bg-slate-100 hover:text-[color:var(--blue-500)] disabled:opacity-30"
+            className="grid h-7 w-7 place-items-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
             onClick={() => onMoveSection(sectionId, 1)}
           >
             <ChevronDown className="h-4 w-4" />
@@ -744,13 +1136,51 @@ function getHeroTextBlockStyle(block: HomepageHeroTextBlock, device?: HomepagePr
 function HeroTechnicalGuides({
   hero,
   page,
-  viewportWidth
+  viewportWidth,
+  editorContentScale = 1
 }: {
   hero: HomepageHeroSettings;
   page: HomepagePageSettings;
   viewportWidth: number;
+  editorContentScale?: number;
 }) {
-  const metrics = getHeroTextMetrics(hero, page, viewportWidth);
+  const guideRef = useRef<HTMLDivElement | null>(null);
+  const [measuredContent, setMeasuredContent] = useState<HeroContentBounds | null>(null);
+
+  useLayoutEffect(() => {
+    const guide = guideRef.current;
+    const root = guide?.closest<HTMLElement>('[data-homepage-hero-root]');
+    const content = root?.querySelector<HTMLElement>('[data-homepage-hero-content]');
+    if (!root || !content) return undefined;
+
+    const updateMeasuredContent = () => {
+      const logicalWidth = getCurrentLogicalViewportWidth(root, viewportWidth);
+      const next = measureHeroContentBounds(root, logicalWidth);
+      setMeasuredContent((current) => {
+        if (!next) return current === null ? current : null;
+        if (
+          current
+          && Math.abs(current.contentLeft - next.contentLeft) < 0.1
+          && Math.abs(current.contentWidth - next.contentWidth) < 0.1
+        ) return current;
+        return next;
+      });
+    };
+
+    updateMeasuredContent();
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updateMeasuredContent);
+    resizeObserver?.observe(root);
+    resizeObserver?.observe(content);
+    window.addEventListener('resize', updateMeasuredContent);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateMeasuredContent);
+    };
+  }, [viewportWidth]);
+
+  const metrics = getHeroTextMetrics(hero, page, viewportWidth, measuredContent);
   const percent = (value: number) => `${(value / viewportWidth) * 100}%`;
   const mediaRight = metrics.mediaLeft + metrics.mediaWidthPx;
   const mediaDelta = hero.mediaWidthPercent - 100;
@@ -766,9 +1196,13 @@ function HeroTechnicalGuides({
 
   return (
     <div
+      ref={guideRef}
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 z-30 text-[11px] font-semibold leading-none"
-      style={{ textShadow: '0 1px 2px rgba(2, 6, 23, .95), 0 0 4px rgba(2, 6, 23, .65)' }}
+      style={{
+        fontSize: `${11 / editorContentScale}px`,
+        textShadow: '0 1px 2px rgba(2, 6, 23, .95), 0 0 4px rgba(2, 6, 23, .65)'
+      }}
     >
       <div className="absolute inset-y-0 w-px bg-sky-300/25" style={{ left: percent(viewportWidth / 2) }} />
       <div className={classNames(guideLabelClassName, 'translate-x-2')} style={{ left: percent(viewportWidth / 2), top: 12 }}>
@@ -827,6 +1261,7 @@ function HomepageHero({
   showTechnicalGuides,
   previewViewportWidth,
   previewDevice,
+  editorContentScale = 1,
   selectedElementId,
   onSelect,
   onSelectElement,
@@ -843,6 +1278,7 @@ function HomepageHero({
   showTechnicalGuides?: boolean;
   previewViewportWidth?: number;
   previewDevice?: HomepagePreviewDevice;
+  editorContentScale?: number;
   selectedElementId?: string | null;
   onSelect?: () => void;
   onSelectElement?: (elementId: string | null) => void;
@@ -930,11 +1366,11 @@ function HomepageHero({
 
   useEffect(() => {
     if (!hero.autoplay || !hasMultipleSlides) return undefined;
-    const timer = window.setInterval(() => {
+    const timer = window.setTimeout(() => {
       setActiveIndex((current) => (current + 1) % slides.length);
     }, hero.autoplayInterval);
-    return () => window.clearInterval(timer);
-  }, [hero.autoplay, hero.autoplayInterval, hasMultipleSlides, slides.length]);
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, hero.autoplay, hero.autoplayInterval, hasMultipleSlides, slides.length]);
 
   useEffect(() => {
     if (!inlineEditorEnabled) return undefined;
@@ -1352,11 +1788,14 @@ function HomepageHero({
     if (logicalWidth <= 0) return;
     const scaleX = rootRect.width > 0 ? rootRect.width / logicalWidth : 1;
     const scaleY = rootRect.height > 0 ? rootRect.height / hero.heightPx : scaleX;
-    const metrics = getHeroTextMetrics(hero, page, logicalWidth);
     const isBlock = target === 'block';
-    const elementOffset = isBlock ? { x: metrics.leftDistance, y: hero.contentOffsetYPx } : getElementOffset(target);
     const logicalLeft = (nodeRect.left - rootRect.left) / (scaleX || 1);
     const logicalTop = (nodeRect.top - rootRect.top) / (scaleY || 1);
+    const measuredContent = isBlock ? measureHeroContentBounds(heroRoot, logicalWidth) : null;
+    const contentLeft = measuredContent?.contentLeft ?? getHeroContainerMetrics(page, logicalWidth).contentLeft;
+    const elementOffset = isBlock
+      ? { x: Math.max(0, logicalLeft - contentLeft), y: hero.contentOffsetYPx }
+      : getElementOffset(target);
     const excludedLayers: HeroCanvasLayer[] = isBlock
       ? ['description', 'primaryButton', 'secondaryButton']
       : [];
@@ -1625,13 +2064,17 @@ function HomepageHero({
   const renderSelectionFrame = (layer: HeroCanvasLayer) => {
     if (!inlineEditorEnabled || selectedLayer !== layer) return null;
     const element = getLayerCanvasSettings(layer);
-    const handleClassName = 'absolute h-3 w-3 rounded-full border-2 border-white bg-[color:var(--blue-500)] shadow-[0_1px_4px_rgba(15,23,42,0.22)]';
+    const handleClassName = 'absolute rounded-full border-2 border-white bg-[color:var(--blue-500)] shadow-[0_1px_4px_rgba(15,23,42,0.22)]';
+    const handleStyle = {
+      height: `${12 / editorContentScale}px`,
+      width: `${12 / editorContentScale}px`
+    };
 
     return (
       <span className="pointer-events-none absolute inset-[-6px] z-[65] rounded-sm border-2 border-[color:var(--blue-500)]">
-        <span className={classNames(handleClassName, '-left-2 -top-2')} />
-        <span className={classNames(handleClassName, '-right-2 -top-2')} />
-        <span className={classNames(handleClassName, '-bottom-2 -left-2')} />
+        <span className={classNames(handleClassName, '-left-2 -top-2')} style={handleStyle} />
+        <span className={classNames(handleClassName, '-right-2 -top-2')} style={handleStyle} />
+        <span className={classNames(handleClassName, '-bottom-2 -left-2')} style={handleStyle} />
         {!element.locked ? (
           <span
             role="button"
@@ -1639,13 +2082,14 @@ function HomepageHero({
             title="Povleci za spremembo velikosti"
             tabIndex={0}
             className={classNames(handleClassName, 'pointer-events-auto -bottom-2 -right-2 cursor-nwse-resize')}
+            style={handleStyle}
             onPointerDown={startResize(layer)}
             onPointerMove={moveResize}
             onPointerUp={endResize}
             onPointerCancel={endResize}
           />
         ) : (
-          <span className={classNames(handleClassName, '-bottom-2 -right-2 bg-slate-400')} />
+          <span className={classNames(handleClassName, '-bottom-2 -right-2 bg-slate-400')} style={handleStyle} />
         )}
       </span>
     );
@@ -1681,12 +2125,19 @@ function HomepageHero({
     );
   };
   const layerIsVisible = (layer: HeroCanvasLayer) => getLayerCanvasSettings(layer).visible;
-  const shouldRenderLayer = (layer: HeroCanvasLayer) => preview || layerIsVisible(layer);
+  const layerIsDeleted = (layer: HeroCanvasLayer) => (
+    isHomepageCanvasElementDeleted(canvas, getLayerElementId(layer))
+  );
+  const shouldRenderLayer = (layer: HeroCanvasLayer) => (
+    !layerIsDeleted(layer) && (preview || layerIsVisible(layer))
+  );
 
   return (
     <div
       ref={heroRootRef}
       data-homepage-hero-root
+      data-homepage-hero-carousel
+      data-homepage-hero-slide-count={slides.length}
       className="relative isolate overflow-hidden bg-[#0d1117]"
       style={{ minHeight: preview ? `var(--preview-hero-height, ${hero.heightPx}px)` : `${hero.heightPx}px` }}
       onClick={(event) => {
@@ -1701,6 +2152,8 @@ function HomepageHero({
       {activeSlide?.type === 'video' ? (
         <video
           key={activeSlide.id}
+          data-homepage-hero-carousel-media
+          data-homepage-hero-slide-id={activeSlide.id}
           className="absolute top-0 h-full object-cover"
           style={mediaFrameStyle}
           src={activeSlide.src}
@@ -1713,6 +2166,8 @@ function HomepageHero({
       ) : activeSlide?.src ? (
         <div
           key={activeSlide.id}
+          data-homepage-hero-carousel-media
+          data-homepage-hero-slide-id={activeSlide.id}
           className="absolute top-0 h-full object-cover"
           role="img"
           aria-label={activeSlide.alt || activeSlide.title || undefined}
@@ -1724,19 +2179,11 @@ function HomepageHero({
 
       <div className="absolute inset-0" style={overlayStyle} />
 
-      {preview && editorOptions.grid ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[31] opacity-40"
-          style={{
-            backgroundImage: 'linear-gradient(to right, rgba(56,189,248,.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(56,189,248,.16) 1px, transparent 1px)',
-            backgroundSize: `${Math.max(2, editorOptions.gridSize)}px ${Math.max(2, editorOptions.gridSize)}px`
-          }}
-        />
-      ) : null}
       {preview && editorOptions.guides && (activeManipulation || selectedLayer) ? (
         <div
           aria-hidden="true"
+          data-homepage-editor-aid="guides"
+          data-editor-section="hero"
           className="pointer-events-none absolute inset-0 z-[32] text-[9px] font-bold text-fuchsia-100"
           style={{ textShadow: '0 1px 2px rgba(2, 6, 23, .95), 0 0 4px rgba(2, 6, 23, .65)' }}
         >
@@ -1760,16 +2207,11 @@ function HomepageHero({
           ) : null}
         </div>
       ) : null}
-      {preview && editorOptions.rulers ? (
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[33] text-[9px] font-semibold text-sky-100">
-          <span className="absolute inset-x-0 top-0 h-5 border-b border-sky-300/35 bg-slate-950/25" style={{ backgroundImage: 'repeating-linear-gradient(to right, transparent 0, transparent 7px, rgba(125,211,252,.48) 7px, rgba(125,211,252,.48) 8px)' }} />
-          <span className="absolute inset-y-0 left-0 w-5 border-r border-sky-300/35 bg-slate-950/25" style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 7px, rgba(125,211,252,.48) 7px, rgba(125,211,252,.48) 8px)' }} />
-          <span className="absolute left-1 top-1">0</span>
-        </div>
-      ) : null}
       {preview && measurement ? (
         <div
           aria-hidden="true"
+          data-homepage-editor-aid="measurements"
+          data-editor-section="hero"
           className="pointer-events-none absolute inset-0 z-[64] text-[10px] font-bold leading-none text-sky-200"
           style={{ textShadow: '0 1px 2px rgba(2, 6, 23, .95), 0 0 4px rgba(2, 6, 23, .65)' }}
         >
@@ -1948,6 +2390,7 @@ function HomepageHero({
       {hero.textBlocks.map((block) => {
         const resolvedBlock = resolveHeroTextBlockForDevice(block, previewDevice);
         const layer = `textBlock:${block.id}` as const;
+        if (layerIsDeleted(layer)) return null;
         const visible = block.visible && layerIsVisible(layer);
         if (!preview && !visible) return null;
         const layerCanvasSettings = getLayerCanvasSettings(layer);
@@ -2021,41 +2464,68 @@ function HomepageHero({
       })}
 
       {preview && showTechnicalGuides && previewViewportWidth ? (
-        <HeroTechnicalGuides hero={hero} page={page} viewportWidth={previewViewportWidth} />
+        <HeroTechnicalGuides
+          hero={hero}
+          page={page}
+          viewportWidth={previewViewportWidth}
+          editorContentScale={editorContentScale}
+        />
       ) : null}
 
       {hero.showArrows && hasMultipleSlides ? (
-        <>
+        <div data-homepage-hero-carousel-arrows>
           <button
             type="button"
             aria-label="Prejšnji diapozitiv"
             onClick={goToPrevious}
-            className="absolute left-5 top-1/2 z-20 inline-grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition hover:bg-black/35 focus-visible:border-white focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            data-homepage-hero-carousel-arrow="previous"
+            className={classNames(
+              'absolute top-1/2 z-20 inline-grid -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-black/25 text-white shadow-[0_5px_18px_rgba(0,0,0,0.22)] backdrop-blur-sm transition hover:border-white/90 hover:bg-black/40 focus-visible:border-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30',
+              preview
+                ? previewDevice === 'mobile' ? 'left-5 h-12 w-12' : 'left-6 h-14 w-14'
+                : 'left-5 h-12 w-12 sm:left-6 sm:h-14 sm:w-14'
+            )}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-6 w-6" />
           </button>
           <button
             type="button"
             aria-label="Naslednji diapozitiv"
             onClick={goToNext}
-            className="absolute right-5 top-1/2 z-20 inline-grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition hover:bg-black/35 focus-visible:border-white focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            data-homepage-hero-carousel-arrow="next"
+            className={classNames(
+              'absolute top-1/2 z-20 inline-grid -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-black/25 text-white shadow-[0_5px_18px_rgba(0,0,0,0.22)] backdrop-blur-sm transition hover:border-white/90 hover:bg-black/40 focus-visible:border-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30',
+              preview
+                ? previewDevice === 'mobile' ? 'right-5 h-12 w-12' : 'right-6 h-14 w-14'
+                : 'right-5 h-12 w-12 sm:right-6 sm:h-14 sm:w-14'
+            )}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-6 w-6" />
           </button>
-        </>
+        </div>
       ) : null}
 
       {hero.showDots && hasMultipleSlides ? (
-        <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+        <div
+          className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5"
+          data-homepage-hero-carousel-dots
+          role="group"
+          aria-label="Izbira diapozitiva"
+        >
           {slides.map((slide, index) => (
             <button
               key={slide.id}
               type="button"
               aria-label={`Prikaži diapozitiv ${index + 1}`}
+              aria-current={index === activeIndex ? 'true' : undefined}
               onClick={() => setActiveIndex(index)}
+              data-homepage-hero-carousel-dot={index}
+              data-active={index === activeIndex ? 'true' : 'false'}
               className={classNames(
-                'h-2.5 rounded-full border border-white/60 transition',
-                index === activeIndex ? 'w-7 bg-white' : 'w-2.5 bg-white/35 hover:bg-white/70'
+                'h-3 w-3 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/30',
+                index === activeIndex
+                  ? 'border-white bg-white shadow-[0_1px_6px_rgba(0,0,0,0.28)]'
+                  : 'border-white/75 bg-white/15 hover:border-white hover:bg-white/35'
               )}
             />
           ))}
@@ -2107,8 +2577,207 @@ function resolveCategoryCanvasSettings(
   return createCategoryCanvasSettings(elementId);
 }
 
+const categoryImageTransformHandles = [
+  { position: 'north-west', className: 'left-0 top-0' },
+  { position: 'north', className: 'left-1/2 top-0 -translate-x-1/2' },
+  { position: 'north-east', className: 'right-0 top-0' },
+  { position: 'east', className: 'right-0 top-1/2 -translate-y-1/2' },
+  { position: 'south-east', className: 'bottom-0 right-0' },
+  { position: 'south', className: 'bottom-0 left-1/2 -translate-x-1/2' },
+  { position: 'south-west', className: 'bottom-0 left-0' },
+  { position: 'west', className: 'left-0 top-1/2 -translate-y-1/2' }
+] as const;
+
+function CategoryImageTransformBox({
+  categorySlug,
+  className,
+  style
+}: {
+  categorySlug: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      data-category-image-transform-box={categorySlug}
+      className={classNames(
+        adminEditorSelectionOutlineTokenClasses,
+        'pointer-events-none z-30',
+        className ?? 'absolute inset-0'
+      )}
+      style={{ borderRadius: 0, ...style }}
+    >
+      {categoryImageTransformHandles.map((handle) => (
+        <span
+          key={handle.position}
+          data-category-image-transform-handle={handle.position}
+          className={classNames(
+            'absolute block h-[9px] w-[9px] rounded-[2px] border-[1.5px] border-[color:var(--blue-500)] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.18)]',
+            handle.className
+          )}
+        />
+      ))}
+
+      <span
+        data-category-image-transform-center
+        className="absolute left-1/2 top-1/2 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[1.5px] border-[color:var(--blue-500)] bg-white shadow-[0_2px_6px_rgba(15,23,42,0.18)]"
+      >
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-[color:var(--blue-500)]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+          <path d="M8 3.5v9M3.5 8h9" />
+        </svg>
+      </span>
+
+      <span
+        data-category-image-transform-rotate
+        className="absolute left-3 top-3 grid h-5 w-5 place-items-center rounded-full border-[1.5px] border-[color:var(--blue-500)] bg-white shadow-[0_2px_5px_rgba(15,23,42,0.16)]"
+      >
+        <svg viewBox="0 0 16 16" className="h-3 w-3 text-[color:var(--blue-500)]" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12.5 5.4A5 5 0 1 0 13 9" />
+          <path d="M9.7 3.2h3v3" />
+        </svg>
+      </span>
+    </div>
+  );
+}
+
+type CategoryImageTransformRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+function CategoryImageTransformOverlay({
+  categorySlug,
+  sourceRef
+}: {
+  categorySlug: string;
+  sourceRef: RefObject<HTMLDivElement | null>;
+}) {
+  const scheduledFrameRef = useRef<number | null>(null);
+  const [rect, setRect] = useState<CategoryImageTransformRect | null>(null);
+
+  const updateRect = useCallback(() => {
+    const source = sourceRef.current;
+    if (!source) return;
+    const bounds = source.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+    const nextRect = {
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height
+    };
+    setRect((current) => (
+      current
+      && Math.abs(current.left - nextRect.left) < 0.25
+      && Math.abs(current.top - nextRect.top) < 0.25
+      && Math.abs(current.width - nextRect.width) < 0.25
+      && Math.abs(current.height - nextRect.height) < 0.25
+        ? current
+        : nextRect
+    ));
+  }, [sourceRef]);
+
+  const scheduleRectUpdate = useCallback(() => {
+    if (scheduledFrameRef.current !== null) return;
+    scheduledFrameRef.current = window.requestAnimationFrame(() => {
+      scheduledFrameRef.current = null;
+      updateRect();
+    });
+  }, [updateRect]);
+
+  useLayoutEffect(() => {
+    updateRect();
+  }, [categorySlug, updateRect]);
+
+  useEffect(() => {
+    const source = sourceRef.current;
+    if (!source) return undefined;
+    const previewFrame = source.closest<HTMLElement>('[data-testid="homepage-preview-frame"]');
+    const cropLayer = source.parentElement;
+    const presentationLayer = source.closest<HTMLElement>('[data-category-showcase-presentation]');
+    const mediaMotionLayer = source.closest<HTMLElement>('.category-showcase-media-motion');
+    let transitionFrame = 0;
+    const followTransition = () => {
+      updateRect();
+      transitionFrame = window.requestAnimationFrame(followTransition);
+    };
+    const startFollowingTransition = () => {
+      if (transitionFrame !== 0) return;
+      transitionFrame = window.requestAnimationFrame(followTransition);
+    };
+    const stopFollowingTransition = () => {
+      if (transitionFrame !== 0) window.cancelAnimationFrame(transitionFrame);
+      transitionFrame = 0;
+      updateRect();
+    };
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleRectUpdate);
+    resizeObserver?.observe(source);
+    if (previewFrame) resizeObserver?.observe(previewFrame);
+
+    const mutationObserver = typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(scheduleRectUpdate);
+    [cropLayer, presentationLayer].forEach((element) => {
+      if (!element) return;
+      mutationObserver?.observe(element, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+    });
+
+    source.addEventListener('pointermove', scheduleRectUpdate, { passive: true });
+    [previewFrame, mediaMotionLayer].forEach((element) => {
+      element?.addEventListener('transitionrun', startFollowingTransition);
+      element?.addEventListener('transitionend', stopFollowingTransition);
+      element?.addEventListener('transitioncancel', stopFollowingTransition);
+    });
+    window.addEventListener('resize', scheduleRectUpdate);
+    window.addEventListener('scroll', scheduleRectUpdate, true);
+    window.visualViewport?.addEventListener('resize', scheduleRectUpdate);
+    window.visualViewport?.addEventListener('scroll', scheduleRectUpdate);
+    scheduleRectUpdate();
+
+    return () => {
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      source.removeEventListener('pointermove', scheduleRectUpdate);
+      [previewFrame, mediaMotionLayer].forEach((element) => {
+        element?.removeEventListener('transitionrun', startFollowingTransition);
+        element?.removeEventListener('transitionend', stopFollowingTransition);
+        element?.removeEventListener('transitioncancel', stopFollowingTransition);
+      });
+      if (transitionFrame !== 0) window.cancelAnimationFrame(transitionFrame);
+      window.removeEventListener('resize', scheduleRectUpdate);
+      window.removeEventListener('scroll', scheduleRectUpdate, true);
+      window.visualViewport?.removeEventListener('resize', scheduleRectUpdate);
+      window.visualViewport?.removeEventListener('scroll', scheduleRectUpdate);
+      if (scheduledFrameRef.current !== null) {
+        window.cancelAnimationFrame(scheduledFrameRef.current);
+        scheduledFrameRef.current = null;
+      }
+    };
+  }, [scheduleRectUpdate, sourceRef, updateRect]);
+
+  if (!rect || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <CategoryImageTransformBox
+      categorySlug={categorySlug}
+      className="fixed z-[190]"
+      style={rect}
+    />,
+    document.body
+  );
+}
+
 function CategoryImageCanvas({
   category,
+  presentation,
   children,
   selectedElementId,
   preview,
@@ -2116,12 +2785,14 @@ function CategoryImageCanvas({
   onCategoryPresentationChange
 }: {
   category: HomepageCategoryCardData;
+  presentation: CategoryShowcaseMediaSettings;
   children: ReactNode;
   selectedElementId?: string | null;
   preview: boolean;
   onSelectElement?: (elementId: string | null) => void;
   onCategoryPresentationChange?: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
 }) {
+  const imageCanvasRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -2133,18 +2804,16 @@ function CategoryImageCanvas({
   } | null>(null);
   const imageElementId = `categories:image:${category.slug}`;
   const selected = preview && selectedElementId === imageElementId;
-  const presentation = normalizeCategoryShowcaseMediaSettings(category.presentation);
-
   return (
     <div
+      ref={imageCanvasRef}
       data-homepage-canvas-element
       data-canvas-element-id={imageElementId}
       data-canvas-element-selected={selected || undefined}
       aria-label={`Slika kategorije ${category.title}`}
       className={classNames(
         'group/category-image absolute inset-0 touch-none',
-        preview && 'cursor-move',
-        selected && adminEditorSelectionOutlineTokenClasses
+        preview && 'cursor-move'
       )}
       onClick={(event) => {
         if (!preview || (event.target as Element).closest('[data-canvas-action]')) return;
@@ -2174,8 +2843,14 @@ function CategoryImageCanvas({
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) return;
         event.preventDefault();
-        const offsetX = Math.max(-100, Math.min(100, drag.startOffsetX + ((event.clientX - drag.startX) / drag.width) * 100));
-        const offsetY = Math.max(-100, Math.min(100, drag.startOffsetY + ((event.clientY - drag.startY) / drag.height) * 100));
+        const offsetX = Math.max(
+          -100 - presentation.offsetOriginX,
+          Math.min(100 - presentation.offsetOriginX, drag.startOffsetX + ((event.clientX - drag.startX) / drag.width) * 100)
+        );
+        const offsetY = Math.max(
+          -100 - presentation.offsetOriginY,
+          Math.min(100 - presentation.offsetOriginY, drag.startOffsetY + ((event.clientY - drag.startY) / drag.height) * 100)
+        );
         onCategoryPresentationChange?.(category.slug, { offsetX, offsetY });
       }}
       onPointerUp={(event) => {
@@ -2191,6 +2866,7 @@ function CategoryImageCanvas({
       >
         {children}
       </div>
+      {selected ? <CategoryImageTransformOverlay categorySlug={category.slug} sourceRef={imageCanvasRef} /> : null}
     </div>
   );
 }
@@ -2208,7 +2884,8 @@ function CategoryImageAdminActions({
   onSelectElement,
   onCanvasElementStyleChange,
   onCategoryImageChange,
-  onCategoryImageRemove
+  onCategoryImageRemove,
+  onEditCategoryAppearance
 }: {
   category: HomepageCategoryCardData;
   canvas: HomepageSettings['canvas'];
@@ -2218,6 +2895,7 @@ function CategoryImageAdminActions({
   onCanvasElementStyleChange?: (elementId: string, updates: Partial<HomepageCanvasElementDeviceSettings>) => void;
   onCategoryImageChange?: (categorySlug: string, file: File) => void;
   onCategoryImageRemove?: (categorySlug: string) => void;
+  onEditCategoryAppearance?: (categorySlug: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageElementId = `categories:image:${category.slug}`;
@@ -2282,6 +2960,24 @@ function CategoryImageAdminActions({
             <circle cx="15.5" cy="9.3" r="1.5" />
           </svg>
         </button>
+        {onEditCategoryAppearance ? (
+          <button
+            type="button"
+            data-canvas-action
+            data-testid={`homepage-category-edit-appearance-${category.slug}`}
+            aria-label={`Uredi videz kategorije ${category.title}`}
+            title="Uredi videz kategorije"
+            className={homepageCategoryActionLightClassName}
+            onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onEditCategoryAppearance(category.slug);
+            }}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
         <button
           type="button"
           data-canvas-action
@@ -2360,6 +3056,7 @@ function HomepageCategories({
   onCategoryTextChange,
   onCategoryImageChange,
   onCategoryImageRemove,
+  onEditCategoryAppearance,
   onCategoryPresentationChange,
   onCategoryMove
 }: {
@@ -2375,10 +3072,25 @@ function HomepageCategories({
   onCategoryTextChange?: (updates: CategoryTextUpdates) => void;
   onCategoryImageChange?: (categorySlug: string, file: File) => void;
   onCategoryImageRemove?: (categorySlug: string) => void;
+  onEditCategoryAppearance?: (categorySlug: string) => void;
   onCategoryPresentationChange?: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
   onCategoryMove?: (sourceSlug: string, targetSlug: string) => void;
 }) {
-  const visibleCategories = useMemo(() => getCategoryList(categories, settings), [categories, settings]);
+  const visibleCategories = useMemo(
+    () => getCategoryList(categories, settings).filter((category) => (
+      !isHomepageCanvasElementDeleted(canvas, `categories:card:${category.slug}`)
+    )),
+    [canvas, categories, settings]
+  );
+  const categoryCardSize = settings.cardSize;
+  const categoryCardStyle = settings.cardStyle;
+  const categoryCardHeight = useMemo(
+    () => resolveHomepageCategoryCardHeight(
+      { cardSize: categoryCardSize, cardStyle: categoryCardStyle },
+      visibleCategories
+    ),
+    [categoryCardSize, categoryCardStyle, visibleCategories]
+  );
   const handleCategoryDrop = (event: ReactDragEvent<HTMLElement>, targetSlug: string) => {
     const sourceSlug = event.dataTransfer.getData('application/x-atehna-homepage-category');
     if (!sourceSlug || sourceSlug === targetSlug) return;
@@ -2393,7 +3105,7 @@ function HomepageCategories({
     <div className={classNames(containerClassNames[settings.containerWidth], 'py-2')}>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          {settings.title || preview ? (
+          {!isHomepageCanvasElementDeleted(canvas, 'categories:heading') && (settings.title || preview) ? (
             <HomepageCanvasElement
               elementId="categories:heading"
               settings={resolveCategoryCanvasSettings(canvas, 'categories:heading', device)}
@@ -2411,7 +3123,7 @@ function HomepageCategories({
               onStyleChange={onCanvasElementStyleChange}
             />
           ) : null}
-          {settings.subtitle || preview ? (
+          {!isHomepageCanvasElementDeleted(canvas, 'categories:subtitle') && (settings.subtitle || preview) ? (
             <HomepageCanvasElement
               elementId="categories:subtitle"
               settings={resolveCategoryCanvasSettings(canvas, 'categories:subtitle', device)}
@@ -2431,7 +3143,7 @@ function HomepageCategories({
             />
           ) : null}
         </div>
-        {settings.showAllLink && settings.showAllHref ? (
+        {!isHomepageCanvasElementDeleted(canvas, 'categories:showAll') && settings.showAllLink && settings.showAllHref ? (
           <HomepageCanvasElement
             elementId="categories:showAll"
             settings={resolveCategoryCanvasSettings(canvas, 'categories:showAll', device)}
@@ -2457,6 +3169,7 @@ function HomepageCategories({
         items={visibleCategories}
         columns={settings.columns}
         gap={settings.gap}
+        style={preview ? undefined : publicCategoryShowcaseStyle}
         interactive={preview}
         showDirectionIndicator={settings.showCardArrow}
         selectedSlug={selectedElementId?.startsWith('categories:') ? selectedElementId.split(':').at(-1) : null}
@@ -2470,13 +3183,7 @@ function HomepageCategories({
           },
           onDrop: (event) => handleCategoryDrop(event, category.slug),
           style: {
-            height: settings.cardStyle === 'compact'
-              ? 132
-              : settings.cardSize === 'small'
-                ? 150
-                : settings.cardSize === 'large'
-                  ? 198
-                  : 168
+            height: categoryCardHeight
           }
         })}
         onSelectItem={(category, _index, event) => {
@@ -2485,6 +3192,7 @@ function HomepageCategories({
         }}
         renderTitle={({ item: category }) => {
           const titleElementId = `categories:title:${category.slug}`;
+          if (isHomepageCanvasElementDeleted(canvas, titleElementId)) return <></>;
           return (
             <HomepageCanvasElement
               elementId={titleElementId}
@@ -2497,15 +3205,17 @@ function HomepageCategories({
               textTag="h3"
               textClassName="site-heading-3 line-clamp-2"
               textLabel={`Naslov kategorije ${category.title}`}
+              inheritTextColor
               className="relative z-[2] min-w-0"
               onSelect={onSelectElement}
               onStyleChange={onCanvasElementStyleChange}
             />
           );
         }}
-        renderMedia={({ item: category, defaultMedia }) => settings.cardStyle === 'title-only' ? null : (
+        renderMedia={({ item: category, presentation, defaultMedia }) => settings.cardStyle === 'title-only' ? null : (
           <CategoryImageCanvas
             category={category}
+            presentation={presentation}
             selectedElementId={selectedElementId}
             preview={preview}
             onSelectElement={onSelectElement}
@@ -2524,6 +3234,7 @@ function HomepageCategories({
             onCanvasElementStyleChange={onCanvasElementStyleChange}
             onCategoryImageChange={onCategoryImageChange}
             onCategoryImageRemove={onCategoryImageRemove}
+            onEditCategoryAppearance={onEditCategoryAppearance}
           />
         ) : null}
         renderTile={({ item: category, tile }) => {
@@ -2622,6 +3333,7 @@ export default function HomepageRenderer({
   onCategoryTextChange,
   onCategoryImageChange,
   onCategoryImageRemove,
+  onEditCategoryAppearance,
   onCategoryPresentationChange,
   onCategoryMove,
   selectedElementId,
@@ -2629,9 +3341,11 @@ export default function HomepageRenderer({
   onCanvasElementStyleChange,
   onMoveSection,
   editorOptions = DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
+  editorSectionId,
   preview = false,
   previewDevice,
-  previewViewportWidth
+  previewViewportWidth,
+  previewHeroStorefrontStyle
 }: HomepageRendererProps) {
   const normalizedSettings = useMemo(() => normalizeLandingPageConfig(settings), [settings]);
   const renderDevice = useHomepageRenderDevice(previewDevice);
@@ -2639,12 +3353,15 @@ export default function HomepageRenderer({
     () => resolveHomepageSettingsForDevice(normalizedSettings, renderDevice),
     [normalizedSettings, renderDevice]
   );
+  const activeEditorSectionId = editorSectionId ?? selectedSectionId;
   const rootStyle = {
     backgroundColor: resolvedSettings.page.backgroundColor || '#ffffff'
   };
   const footerSettings = canonicalFooter ?? resolvedSettings.footer;
   const footerLogoElementId = 'footer:logo';
   const footerDescriptionElementId = 'footer:description';
+  const footerLogoDeleted = isHomepageCanvasElementDeleted(normalizedSettings.canvas, footerLogoElementId);
+  const footerDescriptionDeleted = isHomepageCanvasElementDeleted(normalizedSettings.canvas, footerDescriptionElementId);
   const footerLogoConfigured = Boolean(normalizedSettings.canvas.elements[footerLogoElementId]);
   const footerDescriptionConfigured = Boolean(normalizedSettings.canvas.elements[footerDescriptionElementId]);
   const footerLogoCanvasSettings = footerLogoConfigured
@@ -2658,12 +3375,16 @@ export default function HomepageRenderer({
         lineHeight: 1.85,
         fontWeight: 400
       };
-  const footerEditorAdapter: SiteFooterEditorAdapter | undefined = preview || footerLogoConfigured || footerDescriptionConfigured
+  const footerEditorAdapter: SiteFooterEditorAdapter | undefined = preview
+    || footerLogoConfigured
+    || footerDescriptionConfigured
+    || footerLogoDeleted
+    || footerDescriptionDeleted
     ? {
         editorMode: preview,
         forceVisible: preview,
         showEmpty: false,
-        renderLogo: ({ settings: currentFooter, logoMode, logo, defaultNode }) => (
+        renderLogo: ({ settings: currentFooter, logoMode, logo, defaultNode }) => footerLogoDeleted ? null : (
           <HomepageCanvasElement
             elementId={footerLogoElementId}
             settings={footerLogoCanvasSettings}
@@ -2685,7 +3406,7 @@ export default function HomepageRenderer({
             {preview ? <span aria-label="Logotip Atehna" className="inline-flex">{logo}</span> : defaultNode}
           </HomepageCanvasElement>
         ),
-        renderDescription: ({ value }) => (
+        renderDescription: ({ value }) => footerDescriptionDeleted ? null : (
           <HomepageCanvasElement
             elementId={footerDescriptionElementId}
             settings={footerDescriptionCanvasSettings}
@@ -2732,32 +3453,57 @@ export default function HomepageRenderer({
           canMoveUp: sectionIndex > 0,
           canMoveDown: sectionIndex < resolvedSettings.sectionOrder.length - 1,
           hidden: !sectionVisible,
-          preview
+          preview,
+          editorActive: preview && activeEditorSectionId === sectionId,
+          editorOptions,
+          editorContentScale: sectionId === 'hero' && previewHeroStorefrontStyle
+            ? COMMERCIAL_STOREFRONT_SCALE
+            : 1
         };
 
         if (sectionId === 'hero') {
+          const storefrontScaledPreview = preview && Boolean(previewHeroStorefrontStyle);
+          const heroPreviewViewportWidth = storefrontScaledPreview && previewViewportWidth
+            ? previewViewportWidth / COMMERCIAL_STOREFRONT_SCALE
+            : previewViewportWidth;
+          const heroNode = (
+            <HomepageHero
+              hero={resolvedSettings.hero}
+              page={resolvedSettings.page}
+              canvas={resolvedSettings.canvas}
+              preview={preview}
+              showTechnicalGuides={preview && editorOptions.measurements && selectedElementId === 'section:hero'}
+              previewViewportWidth={heroPreviewViewportWidth}
+              previewDevice={renderDevice}
+              editorContentScale={storefrontScaledPreview ? COMMERCIAL_STOREFRONT_SCALE : 1}
+              selectedElementId={selectedElementId}
+              onSelect={() => onSelectSection?.('hero')}
+              onSelectElement={onSelectElement}
+              onCanvasElementStyleChange={onCanvasElementStyleChange}
+              editorOptions={editorOptions}
+              onTextPositionChange={onHeroTextPositionChange}
+              onTextContentChange={onHeroTextContentChange}
+              onTextBlockChange={onHeroTextBlockChange}
+            />
+          );
+
           return (
             <SectionFrame
               key={sectionId}
               {...sectionFrameProps}
             >
-              <HomepageHero
-                hero={resolvedSettings.hero}
-                page={resolvedSettings.page}
-                canvas={resolvedSettings.canvas}
-                preview={preview}
-                showTechnicalGuides={preview && editorOptions.measurements && selectedElementId === 'section:hero'}
-                previewViewportWidth={previewViewportWidth}
-                previewDevice={renderDevice}
-                selectedElementId={selectedElementId}
-                onSelect={() => onSelectSection?.('hero')}
-                onSelectElement={onSelectElement}
-                onCanvasElementStyleChange={onCanvasElementStyleChange}
-                editorOptions={editorOptions}
-                onTextPositionChange={onHeroTextPositionChange}
-                onTextContentChange={onHeroTextContentChange}
-                onTextBlockChange={onHeroTextBlockChange}
-              />
+              {storefrontScaledPreview ? (
+                <div
+                  data-testid="homepage-preview-hero-storefront-scale"
+                  data-preview-device={renderDevice}
+                  data-preview-wide-lane={(previewViewportWidth ?? 0) >= 1024 ? 'true' : 'false'}
+                  data-storefront-theme="true"
+                  className="commercial-storefront-scale homepage-preview-hero-storefront-scale storefront-theme-preview site-page-surface"
+                  style={previewHeroStorefrontStyle}
+                >
+                  {heroNode}
+                </div>
+              ) : heroNode}
             </SectionFrame>
           );
         }
@@ -2781,6 +3527,7 @@ export default function HomepageRenderer({
                 onCategoryTextChange={onCategoryTextChange}
                 onCategoryImageChange={onCategoryImageChange}
                 onCategoryImageRemove={onCategoryImageRemove}
+                onEditCategoryAppearance={onEditCategoryAppearance}
                 onCategoryPresentationChange={onCategoryPresentationChange}
                 onCategoryMove={onCategoryMove}
               />

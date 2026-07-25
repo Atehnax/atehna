@@ -20,7 +20,13 @@ import { CSS } from '@dnd-kit/utilities';
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 import { useCategoryShowcaseEditor, type CategoryShowcasePersistedUpdate } from '@/shared/features/category-showcase/useCategoryShowcaseEditor';
 import { cloneDefaultCategoryShowcaseMediaSettings, type CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
-import { publishCategoryDataChange, subscribeToCategoryDataChanges } from '@/shared/features/category-showcase/categoryShowcaseSync';
+import {
+  fetchCategoryShowcaseUpdates,
+  mergeCategoryDataChangeMessages,
+  publishCategoryDataChange,
+  subscribeToCategoryDataChanges,
+  type CategoryDataChangeMessage
+} from '@/shared/features/category-showcase/categoryShowcaseSync';
 import type {
   AdminCategoriesPayload,
   CatalogData,
@@ -583,7 +589,7 @@ export default function AdminCategoriesMainTable({
   const committedHistoryRef = useRef<HistorySnapshot[]>([]);
   const committedHistoryIndexRef = useRef(0);
   const millerViewportRef = useRef<HTMLDivElement | null>(null);
-  const pendingRemoteRevisionRef = useRef<string | null>(null);
+  const pendingRemoteChangeRef = useRef<CategoryDataChangeMessage | null>(null);
   const hasUnsavedChangesRef = useRef(false);
   const handleCategoryShowcasePersisted = useCallback((updates: CategoryShowcasePersistedUpdate[]) => {
     setCatalog((current) => {
@@ -596,6 +602,16 @@ export default function AdminCategoriesMainTable({
       millerCatalogRef.current = next;
       return next;
     });
+  }, []);
+  const applyRemoteCategoryShowcaseUpdates = useCallback((updates: CategoryShowcasePersistedUpdate[]) => {
+    const nextCatalog = applyCategoryShowcaseUpdates(catalogRef.current, updates);
+    const nextMillerCatalog = applyCategoryShowcaseUpdates(millerCatalogRef.current, updates);
+    catalogRef.current = nextCatalog;
+    millerCatalogRef.current = nextMillerCatalog;
+    persistedTableRef.current = applyCategoryShowcaseUpdates(persistedTableRef.current, updates);
+    persistedMillerRef.current = applyCategoryShowcaseUpdates(persistedMillerRef.current, updates);
+    setCatalog(nextCatalog);
+    setMillerCatalog(nextMillerCatalog);
   }, []);
   const categoryShowcaseItems = useMemo(
     () => activeView === 'preview' ? catalog.categories : [],
@@ -1129,23 +1145,55 @@ export default function AdminCategoriesMainTable({
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
 
+  const applyRemoteCategoryChange = useCallback(async (message: CategoryDataChangeMessage) => {
+    clearAdminCategoriesSessionPayload();
+    if (message.scope === 'showcase' && message.changedSlugs.length > 0) {
+      try {
+        const updates = await fetchCategoryShowcaseUpdates(message.changedSlugs);
+        if (hasUnsavedChangesRef.current || document.visibilityState !== 'visible') {
+          pendingRemoteChangeRef.current = mergeCategoryDataChangeMessages(
+            pendingRemoteChangeRef.current,
+            message
+          );
+          return;
+        }
+        applyRemoteCategoryShowcaseUpdates(updates);
+        return;
+      } catch {
+        // A full active-view refresh remains the safe fallback for a failed narrow sync.
+      }
+    }
+
+    if (hasUnsavedChangesRef.current || document.visibilityState !== 'visible') {
+      pendingRemoteChangeRef.current = mergeCategoryDataChangeMessages(
+        pendingRemoteChangeRef.current,
+        message
+      );
+      return;
+    }
+    await load({ silent: true, view: activeView });
+  }, [activeView, applyRemoteCategoryShowcaseUpdates, load]);
+
   useEffect(() => {
     const refreshIfReady = () => {
+      const pendingChange = pendingRemoteChangeRef.current;
       if (
-        pendingRemoteRevisionRef.current === null ||
+        pendingChange === null ||
         hasUnsavedChangesRef.current ||
         document.visibilityState !== 'visible'
       ) {
         return;
       }
 
-      pendingRemoteRevisionRef.current = null;
-      void load({ silent: true, view: activeView });
+      pendingRemoteChangeRef.current = null;
+      void applyRemoteCategoryChange(pendingChange);
     };
 
     const unsubscribe = subscribeToCategoryDataChanges((message) => {
-      clearAdminCategoriesSessionPayload();
-      pendingRemoteRevisionRef.current = message.revision;
+      pendingRemoteChangeRef.current = mergeCategoryDataChangeMessages(
+        pendingRemoteChangeRef.current,
+        message
+      );
       refreshIfReady();
     });
     const handleFocus = () => refreshIfReady();
@@ -1158,20 +1206,21 @@ export default function AdminCategoriesMainTable({
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [activeView, load]);
+  }, [applyRemoteCategoryChange]);
 
   useEffect(() => {
+    const pendingChange = pendingRemoteChangeRef.current;
     if (
       hasUnsavedChanges ||
-      pendingRemoteRevisionRef.current === null ||
+      pendingChange === null ||
       document.visibilityState !== 'visible'
     ) {
       return;
     }
 
-    pendingRemoteRevisionRef.current = null;
-    void load({ silent: true, view: activeView });
-  }, [activeView, hasUnsavedChanges, load]);
+    pendingRemoteChangeRef.current = null;
+    void applyRemoteCategoryChange(pendingChange);
+  }, [applyRemoteCategoryChange, hasUnsavedChanges]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -2173,7 +2222,7 @@ export default function AdminCategoriesMainTable({
     let showcaseUpdates: CategoryShowcasePersistedUpdate[] = [];
     try {
       if (categoryShowcaseEditor.isDirty) {
-        showcaseUpdates = await categoryShowcaseEditor.save();
+        showcaseUpdates = await categoryShowcaseEditor.save({ publish: !savedPayload.didWrite });
       }
     } catch (error) {
       setMillerError(error instanceof Error ? error.message : 'Shranjevanje predstavitve kategorij ni uspelo.');
@@ -2182,7 +2231,7 @@ export default function AdminCategoriesMainTable({
 
     const canonicalCatalog = applyCategoryShowcaseUpdates(normalizeCatalogData(savedPayload), showcaseUpdates);
     const canonicalStatuses = savedPayload.statuses ?? {};
-    if (savedPayload.didWrite && showcaseUpdates.length === 0) publishCategoryDataChange('catalog');
+    if (savedPayload.didWrite) publishCategoryDataChange('catalog');
 
     persistedTableRef.current = canonicalCatalog;
     persistedMillerRef.current = canonicalCatalog;
@@ -2263,7 +2312,7 @@ export default function AdminCategoriesMainTable({
       let showcaseUpdates: CategoryShowcasePersistedUpdate[] = [];
       try {
         if (categoryShowcaseEditor.isDirty) {
-          showcaseUpdates = await categoryShowcaseEditor.save();
+          showcaseUpdates = await categoryShowcaseEditor.save({ publish: !savedPayload.didWrite });
         }
       } catch (error) {
         setTableError(error instanceof Error ? error.message : 'Shranjevanje predstavitve kategorij ni uspelo.');
@@ -2272,7 +2321,7 @@ export default function AdminCategoriesMainTable({
 
       const canonicalCatalog = applyCategoryShowcaseUpdates(normalizeCatalogData(savedPayload), showcaseUpdates);
       const canonicalStatuses = savedPayload.statuses ?? {};
-      if (savedPayload.didWrite && showcaseUpdates.length === 0) publishCategoryDataChange('catalog');
+      if (savedPayload.didWrite) publishCategoryDataChange('catalog');
 
       const hasNewerLocalState =
         tableMutationVersionRef.current !== saveMutationVersion ||
@@ -2337,7 +2386,7 @@ export default function AdminCategoriesMainTable({
       persistedStatusRef.current,
       statusByRowRef.current
     );
-    if (categoryShowcaseEditor.isDirty) summary.push('Predstavitev in slike kategorij');
+    if (categoryShowcaseEditor.isDirty) summary.push('Videz kategorij');
     setTableSaveSummary(summary);
     setIsTableSaveDialogOpen(true);
   }, [categoryShowcaseEditor.isDirty, ensureFullPayloadLoaded, tableDirty]);

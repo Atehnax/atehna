@@ -50,8 +50,12 @@ test('admin artikli route is accessible or protected', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/artikli');
 });
 
-test('admin podoba route is accessible or protected', async ({ page }) => {
-  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/navigacija');
+test('admin podoba entry defaults to landing appearance or is protected', async ({ page }) => {
+  await page.goto('/admin/podoba');
+  await expect.poll(() => {
+    const pathname = new URL(page.url()).pathname.replace(/\/$/, '');
+    return pathname === '/admin/podoba/glavna-stran' || pathname === '/admin';
+  }, { timeout: 15000 }).toBeTruthy();
 });
 
 test('admin landing appearance route is accessible or protected', async ({ page }) => {
@@ -72,6 +76,7 @@ test('admin podoba tabs put landing before navigation when loaded', async ({ pag
   const finalPath = new URL(page.url()).pathname.replace(/\/$/, '');
   if (finalPath !== '/admin/podoba/glavna-stran') return;
 
+  await expect(page.locator('nav a[href="/admin/podoba/glavna-stran"]')).toHaveCount(1);
   await expect(page.getByRole('tab').nth(0)).toHaveText('Glavna stran');
   await expect(page.getByRole('tab').nth(1)).toHaveText('Navigacija');
 });

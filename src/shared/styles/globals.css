@@ -269,6 +269,23 @@ textarea[readonly] {
   }
 }
 
+/* The homepage editor renders device viewports inside a desktop admin page.
+   Keep the Hero's public content lane tied to the selected preview width
+   instead of the host window's media query. */
+.commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='false'] .container-base,
+.commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='false'] .site-container {
+  width: 100%;
+  padding-inline: var(--site-gutter);
+  transform: none;
+}
+
+.commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='true'] .container-base,
+.commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='true'] .site-container {
+  width: calc(100% - var(--site-admin-content-lane-start) - var(--site-admin-content-lane-end));
+  padding-inline: 0;
+  transform: translateX(var(--site-admin-content-lane-shift));
+}
+
 .commercial-storefront-scale.admin-site-header-preview-scale {
   position: relative;
   z-index: 70;
@@ -343,7 +360,8 @@ textarea[readonly] {
 }
 
 /* Public storefront design-token hooks. These are intentionally scoped so the
-   admin UI and the style-locked navigation keep their own visual system. */
+   admin UI and the independently configurable navigation top bar keep their own
+   visual systems. */
 [data-storefront-theme='true'],
 .storefront-theme-preview[data-storefront-theme] {
   --site-gutter: var(--site-gutter-mobile, 16px);
@@ -824,11 +842,21 @@ textarea[readonly] {
 .admin-scope .euiTextArea,
 .admin-scope .euiSelect,
 .admin-scope .euiSelect__button,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input),
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input):not(.site-topbar-typography-input),
 .admin-scope select,
 .admin-scope textarea {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 11px !important;
+}
+
+/* Shared storefront-header previews keep their configured top-bar typography
+   even when they are rendered inside the admin form scope. */
+.admin-scope input.site-topbar-typography-input {
+  font-family: var(--topbar-font-family) !important;
+  font-size: calc(var(--topbar-font-size) / var(--commercial-storefront-scale)) !important;
+  font-weight: var(--topbar-font-weight) !important;
+  font-style: var(--topbar-font-style) !important;
+  line-height: 1.4286 !important;
 }
 
 input.admin-item-name-input,

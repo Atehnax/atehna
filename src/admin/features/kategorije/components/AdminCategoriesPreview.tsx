@@ -37,7 +37,6 @@ import {
   CategoryShowcaseEditor,
 } from "@/shared/features/category-showcase/CategoryShowcaseEditor";
 import {
-  normalizeCategoryShowcaseMediaSettings,
   type CategoryShowcaseItem,
   type CategoryShowcaseMediaSettings,
 } from "@/shared/features/category-showcase/categoryShowcaseSchema";
@@ -167,9 +166,7 @@ export function AdminCategoriesPreview({
             summary: item.description,
             description: item.description,
             image: item.image ?? "",
-            presentation: normalizeCategoryShowcaseMediaSettings(
-              item.presentation,
-            ),
+            presentation: item.presentation,
           }))
         : [],
     [selectedContext?.kind, visibleContent],
@@ -282,10 +279,10 @@ export function AdminCategoriesPreview({
                   ? () => onResetPresentation(selectedPresentationItem.slug)
                   : undefined}
                 onClose={() => onSelectPresentation(null)}
-                controlsClassName="mt-3 ml-auto"
               >
                 <CategoryShowcase
                   items={rootShowcaseItems}
+                  gap={16}
                   tileClassName="!h-auto min-h-[156px] min-[560px]:min-h-[164px] min-[1025px]:min-h-[168px]"
                   columns={{
                     desktop: Math.min(8, Math.max(3, lowerViewCount)),
@@ -482,7 +479,7 @@ function CategoryShowcaseTitleEditor({
 
   if (!editingDraft) {
     return (
-      <h3 className="whitespace-normal break-words text-[15px] font-semibold leading-[1.28] tracking-[-0.012em] text-[#111827] min-[1025px]:text-[16px]">
+      <h3 className="whitespace-normal break-words text-[15px] font-semibold leading-[1.28] tracking-[-0.012em] min-[1025px]:text-[16px]">
         {item.title || "—"}
       </h3>
     );
@@ -521,7 +518,7 @@ function CategoryShowcaseTitleEditor({
             }
             if (event.key === "Escape") onCancelEdit();
           }}
-          className="min-h-10 w-full whitespace-pre-wrap break-words bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[15px] font-semibold leading-5 tracking-[-0.012em] text-slate-950"
+          className="min-h-10 w-full whitespace-pre-wrap break-words bg-transparent px-0 py-0 font-['Inter',system-ui,sans-serif] text-[15px] font-semibold leading-5 tracking-[-0.012em] [color:inherit]"
         />
       </div>
       <div className="relative mt-1 h-10 border-t border-slate-200/80 pt-1">
@@ -641,7 +638,7 @@ function CategoryShowcaseAdminActions({
     },
     {
       key: "presentation",
-      label: "Uredi predstavitev slike",
+      label: "Uredi videz kategorije",
       onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         onEditPresentation();

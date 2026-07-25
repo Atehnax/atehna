@@ -13,6 +13,7 @@ import {
   type TopLevelCategoryPresentationUpdate
 } from '@/shared/server/catalogCategories';
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
+import { getCategoryShowcaseItemsFromDatabase } from '@/shared/server/categoryShowcase';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const runtime = 'nodejs';
@@ -44,6 +45,37 @@ function getImageExtension(file: File): string {
       return 'svg';
     default:
       return 'bin';
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const requestedSlugs = Array.from(new Set(
+      new URL(request.url).searchParams.get('slugs')
+        ?.split(',')
+        .map(sanitizeSlug)
+        .filter(Boolean) ?? []
+    )).slice(0, 24);
+    if (requestedSlugs.length === 0) {
+      return NextResponse.json({ message: 'Manjkajo kategorije za osvežitev.' }, { status: 400 });
+    }
+
+    const requested = new Set(requestedSlugs);
+    const updates = (await getCategoryShowcaseItemsFromDatabase('/api/admin/categories/images:get'))
+      .filter((item) => requested.has(item.slug))
+      .map((item) => ({
+        categoryId: item.id,
+        categorySlug: item.slug,
+        image: item.image,
+        presentation: item.presentation,
+        revision: item.revision
+      }));
+    return NextResponse.json({ ok: true, updates });
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Osveževanje videza kategorij ni uspelo.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -155,11 +187,13 @@ export async function PATCH(request: Request) {
     }
 
     const saved = await updateTopLevelCategoryPresentations(updates);
-    for (const target of CATEGORY_SHOWCASE_REVALIDATE_PATHS) revalidatePath(target.path, target.type);
+    const imageChanged = updates.some((update) => Object.prototype.hasOwnProperty.call(update, 'image'));
+    const revalidatedPaths = imageChanged ? CATEGORY_SHOWCASE_REVALIDATE_PATHS : [];
+    for (const target of revalidatedPaths) revalidatePath(target.path, target.type);
     recordCatalogInvalidation({
       context: '/api/admin/categories/images:patch',
       tags: [CATEGORY_SHOWCASE_TAG],
-      revalidatedPaths: CATEGORY_SHOWCASE_REVALIDATE_PATHS.length
+      revalidatedPaths: revalidatedPaths.length
     });
 
     return NextResponse.json({ ok: true, updates: saved });

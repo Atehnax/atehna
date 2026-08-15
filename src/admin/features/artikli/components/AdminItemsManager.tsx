@@ -69,7 +69,7 @@ import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import { CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
-import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
+import { EuiTablePagination, useTablePagination, type PageSizeValue } from '@/shared/ui/pagination';
 import AdminRangeFilterPanel from '@/shared/ui/admin-range-filter-panel';
 import {
   HeaderFilterPortal,
@@ -882,7 +882,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   }, [filteredRows, hasExportSelection, selectedFamilyIds, selectedVariantIds]);
 
   const paginationTotal = filteredRows.length;
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+  const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: paginationTotal,
     storageKey: 'adminArtikli.families.pageSize',
     defaultPageSize: 20,
@@ -1737,7 +1737,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
 
   const handlePageChange = (nextPage: number) =>
     requestCurrentEditResolution('menjavo strani', () => setPage(nextPage));
-  const handlePageSizeChange = (nextPageSize: number) =>
+  const handlePageSizeChange = (nextPageSize: PageSizeValue) =>
     requestCurrentEditResolution('spremembo števila vrstic na stran', () => setPageSize(nextPageSize));
   const handleSearchInputChange = (nextValue: string) =>
     requestCurrentEditResolution('iskanjem po artiklih', () => setSearch(nextValue));
@@ -1945,9 +1945,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
             ) : null}
           </div>
         }
-        filterRowRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        filterRowRight={<EuiTablePagination allowAll page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSizeSelection} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         contentClassName="overflow-x-auto overflow-y-visible bg-white"
-        footerRight={<EuiTablePagination page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSize} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
+        footerRight={<EuiTablePagination allowAll page={page} pageCount={pageCount} onPageChange={handlePageChange} itemsPerPage={pageSizeSelection} onChangeItemsPerPage={handlePageSizeChange} itemsPerPageOptions={PAGE_SIZE_OPTIONS} />}
         showDivider={false}
       >
         <Table className="w-full min-w-[1208px] table-fixed text-[12px] [&>thead>tr>th]:!h-12 [&>thead>tr>th]:!border-slate-200 [&>thead>tr>th]:!py-0">
@@ -1978,7 +1978,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </button>
                 </TH>
                 <TH className={PRODUCT_TYPE_COLUMN_CLASS}>
-                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className={`relative inline-flex items-center gap-2 ${MAIN_HEADER_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('productType')} onClick={() => cycleSort('productType')}>
                       Tip artikla
                     </button>
@@ -1999,7 +1999,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={CATEGORY_COLUMN_CLASS}>
-                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className={`relative inline-flex items-center gap-2 ${MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" className={getSortTitleClass('category')} onClick={() => cycleSort('category')}>
                       Kategorija
                     </button>
@@ -2020,7 +2020,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={`${PRICE_COLUMN_CLASS} text-right`}>
-                  <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className={`relative inline-flex items-center gap-2 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" title="Prodajna cena brez DDV" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena brez DDV
                     </button>
@@ -2073,7 +2073,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         ) : null}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                      <div className="relative inline-flex items-center gap-2" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" className={getSortTitleClass('status')} onClick={() => cycleSort('status')}>
                           Status
                         </button>
@@ -2127,7 +2127,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                         ) : null}
                       </>
                     ) : (
-                      <div className="relative inline-flex items-center gap-1" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                      <div className="relative inline-flex items-center gap-2" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                         <button type="button" className={getSortTitleClass('note')} onClick={() => cycleSort('note')}>
                           Opombe
                         </button>

@@ -1,11 +1,18 @@
 'use client';
 
 import CustomSelect from '../select/custom-select';
+import {
+  ALL_PAGE_SIZE,
+  normalizePageSizeOptions,
+  parsePageSizeValue,
+  type PageSizeValue
+} from '@/shared/domain/pagination';
 
 type PageSizeSelectProps = {
-  value: number;
-  options: number[];
-  onChange: (value: number) => void;
+  value: PageSizeValue;
+  options: readonly number[];
+  onChange: (value: PageSizeValue) => void;
+  includeAll?: boolean;
   label?: string;
   className?: string;
   size?: 'sm' | 'md';
@@ -29,19 +36,28 @@ export default function PageSizeSelect({
   value,
   options,
   onChange,
+  includeAll = true,
   label = 'Vrstic na stran',
   className,
   size = 'sm'
 }: PageSizeSelectProps) {
   const sizeClasses = triggerSizeClassMap[size];
+  const normalizedOptions = normalizePageSizeOptions(options);
+  const selectOptions = [
+    ...normalizedOptions.map((option) => ({ value: String(option), label: String(option) })),
+    ...(includeAll ? [{ value: ALL_PAGE_SIZE, label: 'Vse' }] : [])
+  ];
 
   return (
     <div className={className}>
       <label className="sr-only">{label}</label>
       <CustomSelect
         value={String(value)}
-        onChange={(next) => onChange(Number(next))}
-        options={options.map((option) => ({ value: String(option), label: String(option) }))}
+        onChange={(next) => {
+          const parsedValue = parsePageSizeValue(next, normalizedOptions);
+          if (parsedValue !== null) onChange(parsedValue);
+        }}
+        options={selectOptions}
         className={sizeClasses.className}
         triggerClassName={sizeClasses.triggerClassName}
         valueClassName={sizeClasses.valueClassName}

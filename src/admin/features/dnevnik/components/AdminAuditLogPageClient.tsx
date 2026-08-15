@@ -69,6 +69,7 @@ import {
   type AuditEventGroup
 } from '@/shared/audit/auditPresentation';
 import type { AuditAction, AuditEntityType, AuditEventListResult, AuditLoggingSettingsResponse } from '@/shared/audit/auditTypes';
+import { isAllPageSize, parsePageSizeValue, type PageSizeValue } from '@/shared/domain/pagination';
 
 type Filters = {
   q: string;
@@ -82,7 +83,7 @@ type Filters = {
   deletionFrom: string;
   deletionTo: string;
   page: number;
-  pageSize: number;
+  pageSize: PageSizeValue;
 };
 
 type AuditHeaderFilter = 'date' | 'actor' | 'type' | 'location' | 'action' | 'deletion' | null;
@@ -236,6 +237,7 @@ function getInitialFilters(searchParams: URLSearchParams): Filters {
   const entityType = entityOptions.some((option) => option.value === searchParams.get('entity_type'))
     ? searchParams.get('entity_type') as Filters['entityType']
     : '';
+  const pageSize = parsePageSizeValue(searchParams.get('page_size'), PAGE_SIZE_OPTIONS) ?? 25;
   return {
     q: searchParams.get('q') ?? '',
     entityType,
@@ -247,8 +249,8 @@ function getInitialFilters(searchParams: URLSearchParams): Filters {
     dateTo: searchParams.get('date_to') ?? '',
     deletionFrom: searchParams.get('deletion_from') ?? '',
     deletionTo: searchParams.get('deletion_to') ?? '',
-    page: Math.max(1, Number(searchParams.get('page') ?? 1) || 1),
-    pageSize: PAGE_SIZE_OPTIONS.includes(Number(searchParams.get('page_size'))) ? Number(searchParams.get('page_size')) : 25
+    page: isAllPageSize(pageSize) ? 1 : Math.max(1, Number(searchParams.get('page') ?? 1) || 1),
+    pageSize
   };
 }
 
@@ -570,7 +572,14 @@ export default function AdminAuditLogPageClient() {
   };
 
   const updateFilters = (updates: Partial<Filters>) => {
-    setFilters((current) => ({ ...current, ...updates, page: updates.page ?? 1 }));
+    setFilters((current) => {
+      const pageSize = updates.pageSize ?? current.pageSize;
+      return {
+        ...current,
+        ...updates,
+        page: isAllPageSize(pageSize) ? 1 : updates.page ?? 1
+      };
+    });
   };
 
   const toggleHeaderFilter = (filter: AuditHeaderFilter) => {
@@ -771,7 +780,7 @@ export default function AdminAuditLogPageClient() {
         <button
           ref={filterButtonRef}
           type="button"
-          className={`${HEADER_FILTER_BUTTON_CLASS} ${isCentered ? 'col-start-3 ml-1.5 justify-self-start' : ''}`}
+          className={`${HEADER_FILTER_BUTTON_CLASS} ${isCentered ? 'col-start-3 ml-2 justify-self-start' : ''}`}
           data-active={openHeaderFilter === key}
           aria-label={`Filtriraj ${label}`}
           onClick={(event) => {
@@ -898,6 +907,7 @@ export default function AdminAuditLogPageClient() {
         }
         filterRowRight={
           <EuiTablePagination
+            allowAll
             page={filters.page}
             pageCount={pageCount}
             onPageChange={(page) => updateFilters({ page })}
@@ -908,6 +918,7 @@ export default function AdminAuditLogPageClient() {
         }
         footerRight={
           <EuiTablePagination
+            allowAll
             page={filters.page}
             pageCount={pageCount}
             onPageChange={(page) => updateFilters({ page })}
@@ -919,7 +930,7 @@ export default function AdminAuditLogPageClient() {
       >
         {loading ? (
           <div className="p-4">
-            <TableSkeleton rows={filters.pageSize > 25 ? 12 : 8} cols={8} />
+            <TableSkeleton rows={isAllPageSize(filters.pageSize) || filters.pageSize > 25 ? 12 : 8} cols={8} />
           </div>
         ) : (
           <Table className="w-full min-w-[1220px] table-fixed text-[12px] font-['Inter',system-ui,sans-serif] [&>thead>tr>th]:!h-12 [&>thead>tr>th]:!border-slate-200 [&>thead>tr>th]:!py-0">

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import type { PageSizeValue } from '@/shared/domain/pagination';
 import { deleteAuditEventsByIds, fetchAuditEvents, normalizeAuditFilters } from '@/shared/server/audit';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export async function GET(request: Request) {
+  let requestedPageSize: PageSizeValue = 25;
   try {
     const { searchParams } = new URL(request.url);
     const filters = normalizeAuditFilters({
@@ -20,6 +22,7 @@ export async function GET(request: Request) {
       page: searchParams.get('page'),
       page_size: searchParams.get('page_size')
     });
+    requestedPageSize = filters.pageSize;
     const result = await fetchAuditEvents(filters);
     return NextResponse.json(result);
   } catch (error) {
@@ -28,7 +31,7 @@ export async function GET(request: Request) {
         events: [],
         total: 0,
         page: 1,
-        pageSize: 25,
+        pageSize: requestedPageSize,
         pageCount: 1,
         warning: 'Dnevnika sprememb trenutno ni mogoče naložiti, ker baza ni dosegljiva.'
       });

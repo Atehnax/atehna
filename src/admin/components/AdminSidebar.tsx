@@ -11,10 +11,10 @@ const primaryLinks = [
   { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
   { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
-  { href: '/admin/kupci', label: 'Seznam kupcev', icon: UsersIcon },
+  { href: '/admin/stranke', label: 'Seznam strank', icon: UsersIcon },
   { href: '/admin/podoba/glavna-stran', label: 'Podoba', icon: PaletteIcon },
   { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
-  { href: '/admin/urejevalnik', label: 'Urejevalnik dokumentov', icon: FilePenLineIcon },
+  { href: '/admin/urejevalnik', label: 'Urejevalnik', icon: FilePenLineIcon },
   { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
   { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
 ] as const;

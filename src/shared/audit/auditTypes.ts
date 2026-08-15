@@ -1,3 +1,5 @@
+import type { PageSizeValue } from '@/shared/domain/pagination';
+
 export const AUDIT_ENTITY_TYPES = ['item', 'order', 'category', 'media', 'system'] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -112,14 +114,14 @@ export type AuditEventFilters = {
   deletionFrom?: string;
   deletionTo?: string;
   page?: number;
-  pageSize?: number;
+  pageSize?: PageSizeValue;
 };
 
 export type AuditEventListResult = {
   events: AuditEventRecord[];
   total: number;
   page: number;
-  pageSize: number;
+  pageSize: PageSizeValue;
   pageCount: number;
 };
 

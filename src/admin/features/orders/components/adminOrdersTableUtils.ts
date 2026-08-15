@@ -71,14 +71,14 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 export const columnWidths = {
   selectAndDelete: '40px',
-  order: '60px',
+  order: '88px',
   customer: '150px',
-  address: '188px',
-  type: '88px',
+  address: '136px',
+  type: '100px',
   status: adminStatusInfoPillTableColumnWidth,
   payment: adminStatusInfoPillTableColumnWidth,
   total: '92px',
-  date: '128px',
+  date: '140px',
   documents: '144px',
   edit: '64px'
 };

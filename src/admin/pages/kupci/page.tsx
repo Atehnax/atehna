@@ -1,10 +1,9 @@
-import { AdminPlaceholderCard } from '@/shared/ui/admin-primitives';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: 'Administracija kupci'
+  title: 'Seznam strank'
 };
 
-
 export default function AdminKupciPage() {
-  return <AdminPlaceholderCard title="Seznam kupcev" description="Ta modul je v pripravi." />;
+  redirect('/admin/stranke/vse');
 }

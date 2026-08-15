@@ -1,56 +1,83 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ALL_PAGE_SIZE,
+  isAllPageSize,
+  normalizePageSizeOptions,
+  parsePageSizeValue,
+  resolvePageSize,
+  type PageSizeValue
+} from '@/shared/domain/pagination';
 
 type Params = {
   totalCount: number;
   storageKey: string;
   defaultPageSize: number;
-  pageSizeOptions: number[];
+  pageSizeOptions: readonly number[];
 };
 
 type Result = {
   page: number;
   pageSize: number;
+  pageSizeSelection: PageSizeValue;
   pageCount: number;
   setPage: (page: number) => void;
-  setPageSize: (pageSize: number) => void;
+  setPageSize: (pageSize: PageSizeValue) => void;
 };
 
 export default function useTablePagination({ totalCount, storageKey, defaultPageSize, pageSizeOptions }: Params): Result {
   const normalizedPageSizeOptions = useMemo(
-    () => Array.from(new Set(pageSizeOptions.filter((option) => Number.isFinite(option) && option > 0))).sort((left, right) => left - right),
+    () => normalizePageSizeOptions(pageSizeOptions),
     [pageSizeOptions]
   );
 
-  const fallbackPageSize = normalizedPageSizeOptions[0] ?? 50;
-
-  const clampPageSize = useCallback(
-    (nextPageSize: number) => (normalizedPageSizeOptions.includes(nextPageSize) ? nextPageSize : fallbackPageSize),
-    [fallbackPageSize, normalizedPageSizeOptions]
-  );
-
-  const safeDefaultPageSize = clampPageSize(defaultPageSize);
+  const safeDefaultPageSize = parsePageSizeValue(defaultPageSize, normalizedPageSizeOptions);
+  const fallbackPageSize = isAllPageSize(safeDefaultPageSize)
+    ? (normalizedPageSizeOptions[0] ?? 50)
+    : (safeDefaultPageSize ?? normalizedPageSizeOptions[0] ?? 50);
   const [page, setPageState] = useState(1);
-  const [pageSize, setPageSizeState] = useState(safeDefaultPageSize);
+  const [pageSizeSelection, setPageSizeSelection] = useState<PageSizeValue>(fallbackPageSize);
+  const [restoredStorageKey, setRestoredStorageKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const rawValue = window.localStorage.getItem(storageKey);
-    const parsedValue = Number(rawValue);
-    setPageSizeState(clampPageSize(parsedValue));
-  }, [clampPageSize, storageKey]);
+    try {
+      const rawValue = window.localStorage.getItem(storageKey);
+      if (rawValue !== null) {
+        const parsedValue = parsePageSizeValue(rawValue, normalizedPageSizeOptions);
+        if (parsedValue !== null) setPageSizeSelection(parsedValue);
+      }
+    } catch {
+      // Browsers may block local storage; the configured default remains usable.
+    } finally {
+      setRestoredStorageKey(storageKey);
+    }
+  }, [normalizedPageSizeOptions, storageKey]);
 
   useEffect(() => {
-    setPageSizeState((currentPageSize) => clampPageSize(currentPageSize));
-  }, [clampPageSize]);
+    setPageSizeSelection((currentPageSize) => {
+      if (isAllPageSize(currentPageSize)) return ALL_PAGE_SIZE;
+      return parsePageSizeValue(currentPageSize, normalizedPageSizeOptions) ?? fallbackPageSize;
+    });
+  }, [fallbackPageSize, normalizedPageSizeOptions]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(storageKey, String(pageSize));
-  }, [pageSize, storageKey]);
+    if (typeof window === 'undefined' || restoredStorageKey !== storageKey) return;
+    try {
+      window.localStorage.setItem(storageKey, String(pageSizeSelection));
+    } catch {
+      // Pagination remains functional when local storage is unavailable.
+    }
+  }, [pageSizeSelection, restoredStorageKey, storageKey]);
 
-  const pageCount = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [pageSize, totalCount]);
+  const safeTotalCount = Number.isFinite(totalCount) ? Math.max(0, Math.floor(totalCount)) : 0;
+  const pageSize = resolvePageSize(pageSizeSelection, safeTotalCount);
+
+  const pageCount = useMemo(
+    () => (isAllPageSize(pageSizeSelection) ? 1 : Math.max(1, Math.ceil(safeTotalCount / pageSize))),
+    [pageSize, pageSizeSelection, safeTotalCount]
+  );
 
   useEffect(() => {
     setPageState((currentPage) => Math.min(Math.max(currentPage, 1), pageCount));
@@ -60,15 +87,17 @@ export default function useTablePagination({ totalCount, storageKey, defaultPage
     setPageState(Math.max(1, nextPage));
   }, []);
 
-  const setPageSize = useCallback((nextPageSize: number) => {
-    if (!Number.isFinite(nextPageSize) || nextPageSize <= 0) return;
-    setPageSizeState(clampPageSize(nextPageSize));
+  const setPageSize = useCallback((nextPageSize: PageSizeValue) => {
+    const parsedPageSize = parsePageSizeValue(nextPageSize, normalizedPageSizeOptions);
+    if (parsedPageSize === null) return;
+    setPageSizeSelection(parsedPageSize);
     setPageState(1);
-  }, [clampPageSize]);
+  }, [normalizedPageSizeOptions]);
 
   return {
     page,
     pageSize,
+    pageSizeSelection,
     pageCount,
     setPage,
     setPageSize

@@ -160,7 +160,7 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
     return sorted;
   }, [filteredEntries, sortState]);
 
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+  const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: sortedEntries.length,
     storageKey: 'adminArhivPodoba.pageSize',
     defaultPageSize: 50,
@@ -276,7 +276,7 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
             visibleMap={visibleColumns}
             onToggle={(key) => toggleColumnVisibility(key as PodobaArchiveColumnKey)}
             showLabel={false}
-            menuClassName="!w-[164px]"
+            menuWidth={164}
             triggerClassName={adminTableNeutralIconButtonClassName}
             icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
           />
@@ -300,20 +300,22 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
       }
       filterRowRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />
       }
       footerRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />

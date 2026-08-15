@@ -11,6 +11,7 @@ import type {
   OrderRow,
   PaymentLogRow
 } from '@/shared/domain/order/orderTypes';
+import { isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
 
 const PAGED_ORDER_NUMBER_DESC_SQL =
   "nullif(regexp_replace(order_number::text, '\\D', '', 'g'), '')::bigint desc nulls last, id desc";
@@ -376,7 +377,7 @@ export async function fetchOrdersListPage(
     status?: string | null;
     documentType?: string | null;
     page?: number;
-    pageSize?: number;
+    pageSize?: PageSizeValue;
   },
   diagnosticsContext = '/admin/orders'
 ): Promise<OrderListPageResult> {
@@ -436,12 +437,23 @@ export async function fetchOrdersListPage(
       )`);
     }
 
-    const pageSize = Math.min(100, Math.max(10, options?.pageSize ?? 50));
-    const page = Math.max(1, options?.page ?? 1);
-    const offset = (page - 1) * pageSize;
-    queryParams.push(pageSize, offset);
-    const limitParam = `$${queryParams.length - 1}`;
-    const offsetParam = `$${queryParams.length}`;
+    const requestedPageSize = options?.pageSize ?? 50;
+    const showAllRows = isAllPageSize(requestedPageSize);
+    const numericPageSize = showAllRows
+      ? null
+      : Math.min(
+          100,
+          Math.max(10, Number.isFinite(requestedPageSize) ? Math.floor(requestedPageSize) : 50)
+        );
+    const page = showAllRows ? 1 : Math.max(1, options?.page ?? 1);
+    let paginationClause = '';
+    if (numericPageSize !== null) {
+      const offset = (page - 1) * numericPageSize;
+      queryParams.push(numericPageSize, offset);
+      const limitParam = `$${queryParams.length - 1}`;
+      const offsetParam = `$${queryParams.length}`;
+      paginationClause = `limit ${limitParam}\n        offset ${offsetParam}`;
+    }
     const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
 
     const query = `
@@ -492,8 +504,7 @@ export async function fetchOrdersListPage(
       paged_orders as (
         select * from filtered_orders
         order by ${PAGED_ORDER_NUMBER_DESC_SQL}
-        limit ${limitParam}
-        offset ${offsetParam}
+        ${paginationClause}
       ),
       latest_documents as (
         select distinct on (order_id, type)

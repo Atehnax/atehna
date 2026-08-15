@@ -6,6 +6,7 @@ import { getPool } from '@/shared/server/db';
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, type AuditCollectionDiff, type AuditDiff, type AuditDiffEntry, type AuditEntityType, type AuditEventFilters, type AuditEventInput, type AuditEventListResult, type AuditEventRecord, type AuditLoggingSettingsResponse, type AuditMetadata } from '@/shared/audit/auditTypes';
 import { AUDIT_ACTION_LABELS } from '@/shared/audit/auditLabels';
 import { getAuditRetentionUntil } from '@/shared/audit/auditRetention';
+import { ALL_PAGE_SIZE, isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import {
   ADMIN_SESSION_COOKIE,
   getAdminAuthConfig,
@@ -410,8 +411,11 @@ export function normalizeAuditFilters(raw: Record<string, string | null | undefi
     .map((value) => value.trim())
     .filter((value): value is AuditAction => AUDIT_ACTIONS.includes(value as AuditAction));
   const action = actions.length > 1 ? actions : actions[0];
-  const page = parsePage(raw.page, 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, parsePage(raw.page_size ?? raw.pageSize, 25));
+  const rawPageSize = raw.page_size ?? raw.pageSize;
+  const pageSize: PageSizeValue = isAllPageSize(rawPageSize)
+    ? ALL_PAGE_SIZE
+    : Math.min(MAX_PAGE_SIZE, parsePage(rawPageSize, 25));
+  const page = isAllPageSize(pageSize) ? 1 : parsePage(raw.page, 1);
   return {
     q: raw.q?.trim() || undefined,
     entityType,
@@ -429,9 +433,10 @@ export function normalizeAuditFilters(raw: Record<string, string | null | undefi
 }
 
 export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise<AuditEventListResult> {
-  const page = parsePage(filters.page, 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, parsePage(filters.pageSize, 25));
-  const offset = (page - 1) * pageSize;
+  const pageSize: PageSizeValue = isAllPageSize(filters.pageSize)
+    ? ALL_PAGE_SIZE
+    : Math.min(MAX_PAGE_SIZE, parsePage(filters.pageSize, 25));
+  const page = isAllPageSize(pageSize) ? 1 : parsePage(filters.page, 1);
   const where: string[] = [];
   const params: unknown[] = [];
 
@@ -470,9 +475,12 @@ export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise
   const whereSql = where.length > 0 ? `where ${where.join(' and ')}` : '';
   const pool = await getPool();
 
-  const limitPlaceholder = `$${params.length + 1}`;
-  const offsetPlaceholder = `$${params.length + 2}`;
-  const eventParams = [...params, pageSize, offset];
+  const paginationSql = isAllPageSize(pageSize)
+    ? ''
+    : `limit $${params.length + 1}\n      offset $${params.length + 2}`;
+  const eventParams = isAllPageSize(pageSize)
+    ? params
+    : [...params, pageSize, (page - 1) * pageSize];
 
   const [countResult, eventsResult] = await Promise.all([
     pool.query(`select count(*)::int as total from audit_events ${whereSql}`, params),
@@ -482,8 +490,7 @@ export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise
       from audit_events
       ${whereSql}
       order by occurred_at desc, created_at desc
-      limit ${limitPlaceholder}
-      offset ${offsetPlaceholder}
+      ${paginationSql}
       `,
       eventParams
     )
@@ -495,7 +502,7 @@ export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise
     total,
     page,
     pageSize,
-    pageCount: Math.max(1, Math.ceil(total / pageSize))
+    pageCount: isAllPageSize(pageSize) ? 1 : Math.max(1, Math.ceil(total / pageSize))
   };
 }
 

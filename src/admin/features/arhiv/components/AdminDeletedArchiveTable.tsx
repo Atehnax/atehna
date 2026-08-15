@@ -254,7 +254,7 @@ export default function AdminDeletedArchiveTable({
     return sortedRows;
   }, [filtered, sortState, typeFilter]);
 
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+  const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: displayRows.length,
     storageKey: 'adminArhiv.pageSize',
     defaultPageSize: 50,
@@ -546,7 +546,7 @@ export default function AdminDeletedArchiveTable({
             visibleMap={visibleColumns}
             onToggle={(key) => toggleColumnVisibility(key as ArchiveColumnKey)}
             showLabel={false}
-            menuClassName="!w-[156px]"
+            menuWidth={156}
             triggerClassName={adminTableNeutralIconButtonClassName}
             icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
           />
@@ -606,10 +606,11 @@ export default function AdminDeletedArchiveTable({
       }
       filterRowRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />
@@ -618,10 +619,11 @@ export default function AdminDeletedArchiveTable({
       showDivider={false}
       footerRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />

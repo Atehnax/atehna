@@ -26,7 +26,6 @@ const tableSql = `
 
 const SITE_NAVIGATION_AUDIT_ENTITY_ID = 'site-navigation';
 const SITE_NAVIGATION_AUDIT_SOURCE = 'admin-site-navigation';
-const SITE_NAVIGATION_AUDIT_PAGE_SIZE = 200;
 const SITE_NAVIGATION_CACHE_TAG = 'site-navigation-config';
 
 let siteNavigationTableReadyPromise: Promise<void> | null = null;
@@ -1026,12 +1025,11 @@ export async function updateSiteNavigationConfig(input: unknown, options: { requ
   }
 }
 
-export async function fetchSiteNavigationChangeLog(limit = SITE_NAVIGATION_AUDIT_PAGE_SIZE): Promise<SiteNavigationChangeLogEntry[]> {
+export async function fetchSiteNavigationChangeLog(): Promise<SiteNavigationChangeLogEntry[]> {
   noStore();
 
   try {
     const pool = await getPool();
-    const boundedLimit = Math.min(SITE_NAVIGATION_AUDIT_PAGE_SIZE, Math.max(1, Math.floor(limit)));
     const result: QueryResult<Record<string, unknown>> = await pool.query(
       `
       select id, occurred_at, actor_name, action, entity_label, summary, diff_json, metadata_json
@@ -1040,9 +1038,8 @@ export async function fetchSiteNavigationChangeLog(limit = SITE_NAVIGATION_AUDIT
         and entity_id = $1
         and source = $2
       order by occurred_at desc, created_at desc
-      limit $3
       `,
-      [SITE_NAVIGATION_AUDIT_ENTITY_ID, SITE_NAVIGATION_AUDIT_SOURCE, boundedLimit]
+      [SITE_NAVIGATION_AUDIT_ENTITY_ID, SITE_NAVIGATION_AUDIT_SOURCE]
     );
 
     return result.rows.map(mapSiteNavigationChangeLogRow);

@@ -2,19 +2,31 @@
 
 import PageSizeSelect from './page-size-select';
 import Pagination from './pagination';
+import type { PageSizeValue } from '@/shared/domain/pagination';
 
 const PAGINATION_FOOTPRINT_CLASS = 'inline-flex h-7 min-w-[112px] items-center justify-end';
 
-type EuiTablePaginationProps = {
+type EuiTablePaginationBaseProps = {
   page: number;
   pageCount: number;
   onPageChange: (page: number) => void;
-  itemsPerPage: number;
-  onChangeItemsPerPage: (size: number) => void;
-  itemsPerPageOptions: number[];
+  itemsPerPageOptions: readonly number[];
   className?: string;
   size?: 'sm' | 'md';
 };
+
+type EuiTablePaginationProps = EuiTablePaginationBaseProps & (
+  | {
+      allowAll: true;
+      itemsPerPage: PageSizeValue;
+      onChangeItemsPerPage: (size: PageSizeValue) => void;
+    }
+  | {
+      allowAll?: false;
+      itemsPerPage: number;
+      onChangeItemsPerPage: (size: number) => void;
+    }
+);
 
 const paginationSizeClassMap = {
   sm: {
@@ -31,19 +43,26 @@ const paginationSizeClassMap = {
   }
 } as const;
 
-export default function EuiTablePagination({
-  page,
-  pageCount,
-  onPageChange,
-  itemsPerPage,
-  onChangeItemsPerPage,
-  itemsPerPageOptions,
-  className,
-  size = 'sm'
-}: EuiTablePaginationProps) {
+export default function EuiTablePagination(props: EuiTablePaginationProps) {
+  const {
+    page,
+    pageCount,
+    onPageChange,
+    itemsPerPage,
+    itemsPerPageOptions,
+    className,
+    size = 'sm'
+  } = props;
   const safePageCount = Math.max(pageCount, 1);
   const safePage = Math.min(Math.max(page, 1), safePageCount);
   const sizeClasses = paginationSizeClassMap[size];
+  const handleItemsPerPageChange = (nextPageSize: PageSizeValue) => {
+    if (props.allowAll) {
+      props.onChangeItemsPerPage(nextPageSize);
+      return;
+    }
+    if (typeof nextPageSize === 'number') props.onChangeItemsPerPage(nextPageSize);
+  };
 
   return (
     <div
@@ -56,7 +75,8 @@ export default function EuiTablePagination({
       <PageSizeSelect
         value={itemsPerPage}
         options={itemsPerPageOptions}
-        onChange={onChangeItemsPerPage}
+        onChange={handleItemsPerPageChange}
+        includeAll={props.allowAll === true}
         className={sizeClasses.pageSizeClassName}
         size={size}
       />

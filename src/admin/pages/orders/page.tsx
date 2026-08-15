@@ -2,6 +2,7 @@ import AdminOrdersTableLoader from '@/admin/features/orders/components/AdminOrde
 import AdminCreateDraftOrderButton from '@/admin/features/orders/components/AdminCreateDraftOrderButton';
 import { fetchOrdersAnalyticsRows, fetchOrdersListPage } from '@/shared/server/orders';
 import type { OrderAnalyticsRow, OrderRow } from '@/shared/domain/order/orderTypes';
+import { isAllPageSize, parsePageSizeValue } from '@/shared/domain/pagination';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
@@ -13,6 +14,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 const DATE_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ORDERS_PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 function normalizeSearchParam(value: string | string[] | undefined): string {
   if (typeof value === 'string') return value;
@@ -63,10 +65,13 @@ async function AdminOrdersTableSection({
     const query = normalizeSearchParam(searchParams?.q).trim();
     const status = normalizeSearchParam(searchParams?.status).trim() || 'all';
     const documentType = normalizeSearchParam(searchParams?.docType).trim() || 'all';
-    const page = Math.max(1, Number(normalizeSearchParam(searchParams?.page)) || 1);
-    const pageSize = [25, 50, 100].includes(Number(normalizeSearchParam(searchParams?.pageSize)))
-      ? Number(normalizeSearchParam(searchParams?.pageSize))
-      : 25;
+    const pageSize = parsePageSizeValue(
+      normalizeSearchParam(searchParams?.pageSize),
+      ORDERS_PAGE_SIZE_OPTIONS
+    ) ?? 25;
+    const page = isAllPageSize(pageSize)
+      ? 1
+      : Math.max(1, Number(normalizeSearchParam(searchParams?.page)) || 1);
   let orders: OrderRow[] = [];
   let analyticsOrders: OrderAnalyticsRow[] = [];
   let documents: Array<{

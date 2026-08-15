@@ -65,7 +65,10 @@ export const adminTableHeaderCellCenterClassName = `${adminTableHeaderCellBaseCl
 export const adminTableHeaderCellLeftClassName = `${adminTableHeaderCellBaseClassName} text-left`;
 
 export const adminTableHeaderContentClassName =
-  'relative inline-flex h-11 items-center gap-1.5 align-middle';
+  'relative inline-flex h-11 items-center gap-2 align-middle';
+
+export const adminTableHeaderAdjacentControlsClassName =
+  'inline-flex shrink-0 items-center gap-1';
 
 export const adminTableBodyCellBaseClassName =
   'h-12 px-3 py-0 align-middle text-[12px] text-slate-700';
@@ -83,7 +86,7 @@ export const adminExpandableTableHeaderCellLeftClassName =
 export const adminExpandableTableHeaderCellCenterClassName =
   `${adminExpandableTableHeaderCellBaseClassName} text-center`;
 export const adminExpandableTableHeaderContentClassName =
-  'relative inline-flex h-11 items-center gap-1.5 align-middle';
+  'relative inline-flex h-11 items-center gap-2 align-middle';
 export const adminExpandableTableHeaderValueAlignClassName = 'ml-2.5';
 export const adminExpandableTableHeaderTightValueAlignClassName = 'ml-1.5';
 export const adminExpandableTableHeaderFirstValueAlignClassName = 'ml-[39px]';

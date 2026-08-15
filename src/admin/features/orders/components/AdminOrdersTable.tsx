@@ -86,6 +86,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } f
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
+import { isAllPageSize, resolvePageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 
@@ -206,7 +207,7 @@ const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) 
 const ORDERS_HEADER_CELL_BASE_CLASS = 'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
 const ORDERS_HEADER_CELL_CENTER_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-center`;
 const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-left`;
-const ORDERS_HEADER_CONTENT_CLASS = 'relative inline-flex h-11 items-center gap-1.5 align-middle';
+const ORDERS_HEADER_CONTENT_CLASS = 'relative inline-flex h-11 items-center gap-2 align-middle';
 const ORDERS_BODY_CELL_BASE_CLASS = 'h-12 px-3 py-0 align-middle text-[12px] text-slate-700';
 const ORDERS_BODY_CELL_CENTER_CLASS = `${ORDERS_BODY_CELL_BASE_CLASS} text-center`;
 const ORDERS_STATUS_INFO_HEADER_CELL_CLASS =
@@ -425,7 +426,7 @@ export default function AdminOrdersTable({
   initialStatusFilter?: StatusTab | string;
   initialDocumentType?: DocumentType | string;
   initialPage?: number;
-  initialPageSize?: number;
+  initialPageSize?: PageSizeValue;
   totalCount?: number;
   topAction?: ReactNode;
   analyticsAppearance?: AnalyticsGlobalAppearance;
@@ -1053,16 +1054,32 @@ export default function AdminOrdersTable({
     sortState
   ]);
 
-  const { page: clientPage, pageSize: clientPageSize, pageCount: clientPageCount, setPage, setPageSize } = useTablePagination({
+  const {
+    page: clientPage,
+    pageSize: clientPageSize,
+    pageSizeSelection: clientPageSizeSelection,
+    pageCount: clientPageCount,
+    setPage,
+    setPageSize
+  } = useTablePagination({
     totalCount: filteredAndSortedOrders.length,
     storageKey: 'adminOrders.pageSize',
     defaultPageSize: 50,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
-  const page = isServerFilteredMode ? Math.max(1, initialPage) : clientPage;
-  const pageSize = isServerFilteredMode ? initialPageSize : clientPageSize;
-  const pageCount = isServerFilteredMode ? Math.max(1, Math.ceil((totalCount ?? orders.length) / Math.max(1, pageSize))) : clientPageCount;
+  const page = isServerFilteredMode
+    ? (isAllPageSize(initialPageSize) ? 1 : Math.max(1, initialPage))
+    : clientPage;
+  const pageSizeSelection = isServerFilteredMode ? initialPageSize : clientPageSizeSelection;
+  const pageSize = isServerFilteredMode
+    ? resolvePageSize(pageSizeSelection, totalCount ?? orders.length)
+    : clientPageSize;
+  const pageCount = isServerFilteredMode
+    ? (isAllPageSize(pageSizeSelection)
+      ? 1
+      : Math.max(1, Math.ceil((totalCount ?? orders.length) / Math.max(1, pageSize))))
+    : clientPageCount;
 
   const updateServerFilters = useCallback(
     (updates: Partial<Record<'from' | 'to' | 'q' | 'status' | 'docType' | 'page' | 'pageSize', string>>) => {
@@ -1078,11 +1095,11 @@ export default function AdminOrdersTable({
       applyValue('status', statusFilter === 'all' ? '' : statusFilter);
       applyValue('docType', documentType === 'all' ? '' : documentType);
       applyValue('page', String(page));
-      applyValue('pageSize', String(pageSize));
+      applyValue('pageSize', String(pageSizeSelection));
 
       router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
     },
-    [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, page, pageSize, pathname, router, statusFilter]
+    [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, page, pageSizeSelection, pathname, router, statusFilter]
   );
   const handlePageChange = useCallback(
     (nextPage: number) => {
@@ -1096,7 +1113,7 @@ export default function AdminOrdersTable({
   );
 
   const handlePageSizeChange = useCallback(
-    (nextPageSize: number) => {
+    (nextPageSize: PageSizeValue) => {
       if (isServerFilteredMode) {
         updateServerFilters({ pageSize: String(nextPageSize), page: '1' });
         return;
@@ -1108,9 +1125,10 @@ export default function AdminOrdersTable({
 
   const pagedOrders = useMemo(() => {
     if (isServerFilteredMode) return filteredAndSortedOrders;
+    if (isAllPageSize(pageSizeSelection)) return filteredAndSortedOrders;
     const startIndex = (page - 1) * pageSize;
     return filteredAndSortedOrders.slice(startIndex, startIndex + pageSize);
-  }, [filteredAndSortedOrders, isServerFilteredMode, page, pageSize]);
+  }, [filteredAndSortedOrders, isServerFilteredMode, page, pageSize, pageSizeSelection]);
 
   const visibleOrderIds = useMemo(() => pagedOrders.map((order) => order.id), [pagedOrders]);
   const selectedOrderIds = useMemo(() => new Set(selected), [selected]);
@@ -1954,7 +1972,7 @@ export default function AdminOrdersTable({
                   showLabel={false}
                   triggerClassName={adminTableNeutralIconButtonClassName}
                   icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
-                  menuClassName="!w-32"
+                  menuWidth={128}
                 />
                 <IconButton
                   type="button"
@@ -1993,20 +2011,22 @@ export default function AdminOrdersTable({
           }
           filterRowRight={
             <EuiTablePagination
+              allowAll
               page={page}
               pageCount={pageCount}
               onPageChange={handlePageChange}
-              itemsPerPage={pageSize}
+              itemsPerPage={pageSizeSelection}
               onChangeItemsPerPage={handlePageSizeChange}
               itemsPerPageOptions={PAGE_SIZE_OPTIONS}
             />
           }
           footerRight={
             <EuiTablePagination
+              allowAll
               page={page}
               pageCount={pageCount}
               onPageChange={handlePageChange}
-              itemsPerPage={pageSize}
+              itemsPerPage={pageSizeSelection}
               onChangeItemsPerPage={handlePageSizeChange}
               itemsPerPageOptions={PAGE_SIZE_OPTIONS}
             />
@@ -2432,7 +2452,7 @@ export default function AdminOrdersTable({
                           </div>
                         ) : (
                           <span
-                            className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('type', typeLabel)}`}
+                            className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('type', typeLabel)}`}
                             onMouseEnter={() => setHoveredCellMatch({ column: 'type', value: getComparableCellValue(typeLabel) })}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >

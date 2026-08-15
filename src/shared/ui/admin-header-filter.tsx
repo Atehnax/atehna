@@ -7,7 +7,7 @@ import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 export const HEADER_FILTER_ROOT_ATTR = 'data-header-filter-root';
 const HEADER_FILTER_ROOT_SELECTOR = `[${HEADER_FILTER_ROOT_ATTR}="true"]`;
 export const HEADER_FILTER_BUTTON_CLASS =
-  'group inline-flex h-[12px] w-[12px] shrink-0 self-center items-center justify-center text-slate-500';
+  'group inline-flex h-5 w-5 shrink-0 self-center items-center justify-center text-slate-500';
 
 type UseHeaderFilterDismissOptions = {
   isOpen: boolean;

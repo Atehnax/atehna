@@ -303,7 +303,7 @@ export default function AdminArchivedItemsTable() {
     return sortedItems;
   }, [filteredArchivedItems, sortState]);
 
-  const { page, pageSize, pageCount, setPage, setPageSize } = useTablePagination({
+  const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: sortedArchivedItems.length,
     storageKey: 'adminArhivArtikli.pageSize',
     defaultPageSize: 50,
@@ -590,7 +590,7 @@ export default function AdminArchivedItemsTable() {
             visibleMap={visibleColumns}
             onToggle={(key) => toggleColumnVisibility(key as ArchivedItemsColumnKey)}
             showLabel={false}
-            menuClassName="!w-[156px]"
+            menuWidth={156}
             triggerClassName={adminTableNeutralIconButtonClassName}
             icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
           />
@@ -638,20 +638,22 @@ export default function AdminArchivedItemsTable() {
       }
       filterRowRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />
       }
       footerRight={
         <EuiTablePagination
+          allowAll
           page={page}
           pageCount={pageCount}
           onPageChange={setPage}
-          itemsPerPage={pageSize}
+          itemsPerPage={pageSizeSelection}
           onChangeItemsPerPage={setPageSize}
           itemsPerPageOptions={PAGE_SIZE_OPTIONS}
         />

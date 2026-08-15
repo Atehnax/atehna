@@ -59,6 +59,8 @@ Apply the numbered migrations in order:
 4. `migrations/004_product_appearance.sql`
 5. `migrations/005_archive_retention.sql`
 6. `migrations/006_product_reference_design.sql`
+7. `migrations/007_school_directory.sql`
+8. `migrations/008_customer_directory_profiles.sql`
 
 The migrations are additive/idempotent where practical, but should still be
 run once in sequence. Do not expose a deployment until every migration has

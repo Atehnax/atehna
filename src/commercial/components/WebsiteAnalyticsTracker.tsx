@@ -4,10 +4,15 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 function inferProductId(pathname: string): string | null {
-  if (!pathname.startsWith('/products/')) return null;
   const parts = pathname.split('/').filter(Boolean);
-  if (parts.length < 3) return null;
-  return parts[parts.length - 1] || null;
+  if (
+    parts.length !== 4 ||
+    parts[0] !== 'products' ||
+    parts[2] !== 'items'
+  ) {
+    return null;
+  }
+  return parts[3] || null;
 }
 
 export default function WebsiteAnalyticsTracker() {

@@ -26,10 +26,13 @@ import { formatEuro } from '@/shared/domain/formatting';
 import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
 type CatalogChoice = {
+  catalogItemId: number;
+  catalogVariantId: number;
   sku: string;
   name: string;
   unit: string;
   unitPrice: number;
+  discountPercentage: number;
 };
 
 type EditableItem = {
@@ -41,6 +44,8 @@ type EditableItem = {
   quantity: number;
   unitPrice: number;
   discountPercentage: number;
+  catalogItemId?: number | null;
+  catalogVariantId?: number | null;
 };
 
 type ItemsSectionMode = 'read' | 'edit';
@@ -59,6 +64,15 @@ const parseLocaleNumber = (value: string) => {
 
 const formatDecimalInput = (value: number) => decimalFormatter.format(value);
 
+const getEditableLineNet = (item: EditableItem) => {
+  const baseUnitNet = toMoney(item.unitPrice);
+  const discountPercentage = toMoney(item.discountPercentage);
+  const effectiveUnitNet = toMoney(
+    baseUnitNet * (1 - discountPercentage / 100)
+  );
+  return toMoney(effectiveUnitNet * item.quantity);
+};
+
 const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
   sourceItems.map((item) => ({
     id: `saved-${item.id}`,
@@ -68,7 +82,9 @@ const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
     unit: item.unit ?? 'kos',
     quantity: item.quantity,
     unitPrice: item.unit_price ?? 0,
-    discountPercentage: item.discount_percentage ?? 0
+    discountPercentage: item.discount_percentage ?? 0,
+    catalogItemId: item.catalog_item_id,
+    catalogVariantId: item.catalog_variant_id
   }));
 
 const cloneEditableItems = (sourceItems: EditableItem[]): EditableItem[] =>
@@ -87,7 +103,9 @@ const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
       leftItem.unit !== rightItem.unit ||
       leftItem.quantity !== rightItem.quantity ||
       leftItem.unitPrice !== rightItem.unitPrice ||
-      leftItem.discountPercentage !== rightItem.discountPercentage
+      leftItem.discountPercentage !== rightItem.discountPercentage ||
+      leftItem.catalogItemId !== rightItem.catalogItemId ||
+      leftItem.catalogVariantId !== rightItem.catalogVariantId
     ) {
       return false;
     }
@@ -99,7 +117,6 @@ const orderItemsEditInputClassName =
   `${adminTableInlineEditInputClassName} !h-8 !px-2 !text-[12px] !leading-none`;
 
 const centeredEditInputClassName = `${orderItemsEditInputClassName} !text-center`;
-const rightAlignedEditInputClassName = `${orderItemsEditInputClassName} !text-right`;
 const readonlyCellFrameClassName =
   'inline-flex h-8 items-center justify-center rounded-md border border-transparent px-2 text-[12px] text-slate-900';
 
@@ -108,7 +125,7 @@ export default function AdminOrderItemsEditor({
   items,
   initialSubtotal = 0,
   initialTax = 0,
-  initialTotal = 0,
+  initialTaxRate,
   externalEditMode,
   hideSectionEditControls = false,
   onDirtyChange,
@@ -119,7 +136,7 @@ export default function AdminOrderItemsEditor({
   items: OrderItemInput[];
   initialSubtotal?: number;
   initialTax?: number;
-  initialTotal?: number;
+  initialTaxRate?: number;
   externalEditMode?: boolean;
   hideSectionEditControls?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
@@ -131,9 +148,6 @@ export default function AdminOrderItemsEditor({
   const [itemsSectionMode, setItemsSectionMode] = useState<ItemsSectionMode>(externalEditMode ? 'edit' : 'read');
   const [persistedItems, setPersistedItems] = useState<EditableItem[]>(initialMappedItems);
   const [draftItems, setDraftItems] = useState<EditableItem[]>(() => cloneEditableItems(initialMappedItems));
-  const initialShipping = Math.max(0, toMoney(initialTotal - initialSubtotal - initialTax));
-  const [persistedShipping, setPersistedShipping] = useState(initialShipping);
-  const [draftShipping, setDraftShipping] = useState(initialShipping);
   const [isItemsSaving, setIsItemsSaving] = useState(false);
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
@@ -143,10 +157,23 @@ export default function AdminOrderItemsEditor({
   const saveItemsRef = useRef<() => Promise<boolean>>(async () => true);
 
   const itemsEditable = hasExternalEditMode ? Boolean(externalEditMode) : itemsSectionMode === 'edit';
+  const taxRate =
+    typeof initialTaxRate === 'number' &&
+    Number.isFinite(initialTaxRate) &&
+    initialTaxRate >= 0 &&
+    initialTaxRate <= 1
+      ? initialTaxRate
+      : initialSubtotal > 0 && initialTax >= 0
+        ? Math.min(1, initialTax / initialSubtotal)
+        : TAX_RATE;
+  const taxRateLabel = new Intl.NumberFormat('sl-SI', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(taxRate * 100);
 
   const isItemsDirty = useMemo(
-    () => !areEditableItemsEqual(draftItems, persistedItems) || toMoney(draftShipping) !== toMoney(persistedShipping),
-    [draftItems, persistedItems, draftShipping, persistedShipping]
+    () => !areEditableItemsEqual(draftItems, persistedItems),
+    [draftItems, persistedItems]
   );
 
   const itemsSaveDisabled = !itemsEditable || isItemsSaving || !isItemsDirty;
@@ -157,14 +184,15 @@ export default function AdminOrderItemsEditor({
     activeItems.length > 0 && activeItems.every((item) => selectedDraftItemIds.includes(item.id));
 
   const totals = useMemo(() => {
-    const subtotal = toMoney(
-      activeItems.reduce((sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercentage / 100), 0)
+    const lineNets = activeItems.map(getEditableLineNet);
+    const subtotal = toMoney(lineNets.reduce((sum, lineNet) => sum + lineNet, 0));
+    const tax = toMoney(
+      lineNets.reduce((sum, lineNet) => sum + toMoney(lineNet * taxRate), 0)
     );
-    const taxIncludedInfo = toMoney((subtotal * TAX_RATE) / (1 + TAX_RATE));
-    const shipping = toMoney(itemsEditable ? draftShipping : persistedShipping);
-    const total = toMoney(subtotal + shipping);
-    return { subtotal, taxIncludedInfo, shipping, total };
-  }, [activeItems, draftShipping, itemsEditable, persistedShipping]);
+    const shipping = 0;
+    const total = toMoney(subtotal + tax);
+    return { subtotal, tax, shipping, total };
+  }, [activeItems, taxRate]);
 
   const filteredChoices = useMemo(() => {
     const normalizedQuery = catalogQuery.trim().toLocaleLowerCase('sl');
@@ -197,19 +225,17 @@ export default function AdminOrderItemsEditor({
 
   const startItemsEdit = () => {
     setDraftItems(cloneEditableItems(persistedItems));
-    setDraftShipping(persistedShipping);
     setSelectedDraftItemIds([]);
     setItemsSectionMode('edit');
   };
 
   const cancelItemsEdit = useCallback(() => {
     setDraftItems(cloneEditableItems(persistedItems));
-    setDraftShipping(persistedShipping);
     setSelectedDraftItemIds([]);
     setItemsSectionMode('read');
     setIsPickerOpen(false);
     setCatalogQuery('');
-  }, [persistedItems, persistedShipping]);
+  }, [persistedItems]);
 
   const openAddItem = async () => {
     if (addItemDisabled) return;
@@ -226,7 +252,10 @@ export default function AdminOrderItemsEditor({
     if (!itemsEditable) return;
 
     setDraftItems((currentItems) => {
-      const existing = currentItems.find((item) => item.sku === choice.sku);
+      const existing = currentItems.find((item) =>
+        item.catalogVariantId === choice.catalogVariantId ||
+        (!item.catalogVariantId && item.sku === choice.sku)
+      );
       if (existing) {
         return currentItems.map((item) =>
           item.id === existing.id ? { ...item, quantity: item.quantity + 1 } : item
@@ -241,7 +270,9 @@ export default function AdminOrderItemsEditor({
           unit: choice.unit,
           quantity: 1,
           unitPrice: choice.unitPrice,
-          discountPercentage: 0
+          discountPercentage: choice.discountPercentage,
+          catalogItemId: choice.catalogItemId,
+          catalogVariantId: choice.catalogVariantId
         }
       ];
     });
@@ -268,9 +299,10 @@ export default function AdminOrderItemsEditor({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipping: toMoney(draftShipping),
           items: draftItems.map((item) => ({
             id: item.persistedId,
+            catalogItemId: item.catalogItemId,
+            catalogVariantId: item.catalogVariantId,
             sku: item.sku,
             name: item.name,
             unit: item.unit,
@@ -286,9 +318,32 @@ export default function AdminOrderItemsEditor({
         throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
       }
 
-      const nextItems = cloneEditableItems(draftItems);
+      const payload = (await response.json()) as {
+        items?: Array<{
+          id: number;
+          catalogItemId?: number | null;
+          catalogVariantId?: number | null;
+          sku: string;
+          name: string;
+          unit: string | null;
+          quantity: number;
+          unitPrice: number;
+          discountPercentage: number;
+        }>;
+      };
+      const nextItems = payload.items?.map((item) => ({
+        id: `saved-${item.id}`,
+        persistedId: item.id,
+        sku: item.sku,
+        name: item.name,
+        unit: item.unit ?? 'kos',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discountPercentage: item.discountPercentage,
+        catalogItemId: item.catalogItemId,
+        catalogVariantId: item.catalogVariantId
+      })) ?? cloneEditableItems(draftItems);
       setPersistedItems(nextItems);
-      setPersistedShipping(toMoney(draftShipping));
       setDraftItems(cloneEditableItems(nextItems));
       setSelectedDraftItemIds([]);
       if (!hasExternalEditMode) {
@@ -304,7 +359,6 @@ export default function AdminOrderItemsEditor({
     }
   }, [
     draftItems,
-    draftShipping,
     cancelItemsEdit,
     hasExternalEditMode,
     isItemsDirty,
@@ -318,14 +372,13 @@ export default function AdminOrderItemsEditor({
     if (!hasExternalEditMode) return;
 
     setDraftItems(cloneEditableItems(persistedItems));
-    setDraftShipping(persistedShipping);
     setSelectedDraftItemIds([]);
     setItemsSectionMode(externalEditMode ? 'edit' : 'read');
     if (!externalEditMode) {
       setIsPickerOpen(false);
       setCatalogQuery('');
     }
-  }, [externalEditMode, hasExternalEditMode, persistedItems, persistedShipping]);
+  }, [externalEditMode, hasExternalEditMode, persistedItems]);
 
   useEffect(() => {
     onDirtyChange?.(isItemsDirty);
@@ -497,14 +550,14 @@ export default function AdminOrderItemsEditor({
                 </th>
                 <th className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold align-middle">Artikel</th>
                 <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Količina</th>
-                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Cena</th>
+                <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Cena brez DDV</th>
                 <th className="border-b border-slate-200 px-2 py-4 text-center text-[12px] font-semibold align-middle">Popust %</th>
-                <th className="border-b border-slate-200 py-4 pl-2 pr-4 text-right text-[12px] font-semibold align-middle">Skupaj</th>
+                <th className="border-b border-slate-200 py-4 pl-2 pr-4 text-right text-[12px] font-semibold align-middle">Skupaj brez DDV</th>
               </tr>
             </thead>
             <tbody>
               {activeItems.map((item) => {
-                const lineTotal = toMoney(item.quantity * item.unitPrice * (1 - item.discountPercentage / 100));
+                const lineTotal = getEditableLineNet(item);
                 return (
                   <tr key={item.id} className={`border-t border-slate-200/90 bg-white align-middle ${adminTableRowToneClasses.hover}`}>
                     <td className="py-3 pl-4 pr-2 text-left">
@@ -543,7 +596,7 @@ export default function AdminOrderItemsEditor({
                             inputMode="decimal"
                             value={formatDecimalInput(item.unitPrice)}
                             onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                            aria-label="Cena"
+                            aria-label="Cena brez DDV"
                             className={`${centeredEditInputClassName} w-[62px]`}
                           />
                           <span className="text-[12px] text-slate-700">€</span>
@@ -579,39 +632,23 @@ export default function AdminOrderItemsEditor({
 
         <div className={`space-y-2 bg-slate-50/50 px-4 py-4 text-[12px] text-slate-700 ${activeItems.length > 0 ? 'border-t border-slate-200' : ''}`}>
           <div className="flex items-center justify-between">
-            <span>Vmesni seštevek</span>
+            <span>Vmesni seštevek brez DDV</span>
             <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
           </div>
           <div className="flex min-h-8 items-center justify-between">
             <span>Poštnina</span>
-            <span className="inline-flex w-[60px] items-center justify-end gap-1">
-              {itemsEditable ? (
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={formatDecimalInput(draftShipping)}
-                  onChange={(event) => {
-                    const sanitized = event.target.value.replace(/[^0-9,]/g, '').slice(0, 5);
-                    setDraftShipping(Math.max(0, parseLocaleNumber(sanitized)));
-                  }}
-                  aria-label="Poštnina"
-                  className={`${rightAlignedEditInputClassName} !w-[44px]`}
-                />
-              ) : (
-                <span className="inline-flex h-8 w-[44px] items-center justify-end rounded-md border border-transparent px-0 text-right text-[12px] font-semibold text-slate-700">
-                  {formatDecimalInput(totals.shipping)}
-                </span>
-              )}
-              <span className={`text-[12px] text-slate-700 ${itemsEditable ? '' : 'font-semibold'}`}>€</span>
+            <span className="inline-flex items-center justify-end gap-2 font-semibold text-slate-700">
+              <span>Brezplačna</span>
+              <span>{formatCurrency(totals.shipping)}</span>
             </span>
           </div>
           <div className="flex items-center justify-between text-slate-500">
-            <span>DDV (22 %)</span>
-            <span className="font-semibold">{formatCurrency(totals.taxIncludedInfo)}</span>
+            <span>DDV ({taxRateLabel} %)</span>
+            <span className="font-semibold">{formatCurrency(totals.tax)}</span>
           </div>
           <div className="border-t border-slate-200 pt-2">
             <div className="flex items-center justify-between text-[13px] font-semibold text-slate-900">
-              <span>Skupaj</span>
+              <span>Skupaj z DDV</span>
               <span>{formatCurrency(totals.total)}</span>
             </div>
           </div>

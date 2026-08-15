@@ -1057,6 +1057,9 @@ export default function SiteHeader({
     const logicalSiteContentMaxWidthPx = toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx);
     const logicalSiteGutterMinPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMinPx);
     const logicalSiteGutterMaxPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMaxPx);
+    const logicalTopBarPaddingPx = toCommercialStorefrontLogicalPx(
+      activeTopBarLayout.settings.paddingX
+    );
     const logicalCustomMaxWidthPx = activeTopBarLayout.settings.customMaxWidthPx
       ? toCommercialStorefrontLogicalPx(activeTopBarLayout.settings.customMaxWidthPx)
       : null;
@@ -1066,6 +1069,7 @@ export default function SiteHeader({
       '--site-gutter-min': `${logicalSiteGutterMinPx}px`,
       '--site-gutter-max': `${logicalSiteGutterMaxPx}px`,
       '--site-gutter': `clamp(${logicalSiteGutterMinPx}px, 4vw, ${logicalSiteGutterMaxPx}px)`,
+      paddingInline: `${logicalTopBarPaddingPx}px`,
       '--topbar-height': `${activeTopBarLayout.settings.height}px`,
       '--topbar-inner-max-width':
         activeTopBarLayout.settings.widthMode === 'full'
@@ -1077,6 +1081,7 @@ export default function SiteHeader({
   }, [
     activeTopBarLayout.settings.customMaxWidthPx,
     activeTopBarLayout.settings.height,
+    activeTopBarLayout.settings.paddingX,
     activeTopBarLayout.settings.widthMode,
     siteLayout.siteContentMaxWidthPx,
     siteLayout.siteGutterMaxPx,

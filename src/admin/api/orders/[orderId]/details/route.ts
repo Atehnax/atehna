@@ -25,7 +25,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       contactName,
       email,
       deliveryAddress,
+      addressLine1,
       postalCode,
+      city,
       reference,
       notes,
       orderDate,
@@ -73,14 +75,16 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       'contact_name',
       'email',
       'delivery_address',
+      'address_line1',
       'postal_code',
+      'city',
       'reference',
       'notes',
       'created_at'
     ];
     const beforeResult = await pool.query(
       `
-      select order_number, customer_type, organization_name, contact_name, email, delivery_address, postal_code, reference, notes, created_at
+      select order_number, customer_type, organization_name, contact_name, email, delivery_address, address_line1, postal_code, city, reference, notes, created_at
       from orders
       where id = $1
       `,
@@ -106,6 +110,19 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
 
     const normalizedOrderNumber = orderNumberAvailability?.formattedOrderNumber ?? null;
+    const normalizedAddressLine1 =
+      typeof addressLine1 === 'string' ? addressLine1.trim() || null : null;
+    const normalizedPostalCode =
+      typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null;
+    const normalizedCity = typeof city === 'string' ? city.trim() || null : null;
+    const composedDeliveryAddress = normalizedAddressLine1
+      ? [
+          normalizedAddressLine1,
+          [normalizedPostalCode, normalizedCity].filter(Boolean).join(' ')
+        ].filter(Boolean).join(', ')
+      : typeof deliveryAddress === 'string'
+        ? deliveryAddress.trim() || null
+        : null;
 
     await pool.query(
       `
@@ -115,21 +132,25 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           contact_name = $3,
           email = $4,
           delivery_address = $5,
-          postal_code = $6,
-          reference = $7,
-          notes = $8,
-          order_number = coalesce(nullif($9::text, ''), order_number),
-          created_at = coalesce($10::timestamptz, created_at),
+          address_line1 = coalesce($6, address_line1),
+          postal_code = $7,
+          city = coalesce($8, city),
+          reference = $9,
+          notes = $10,
+          order_number = coalesce(nullif($11::text, ''), order_number),
+          created_at = coalesce($12::timestamptz, created_at),
           is_draft = false
-      WHERE id = $11
+      WHERE id = $13
       `,
       [
         customerType,
         organizationName || null,
         contactName,
         email,
-        deliveryAddress || null,
-        typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null,
+        composedDeliveryAddress,
+        normalizedAddressLine1,
+        normalizedPostalCode,
+        normalizedCity,
         reference || null,
         notes || null,
         normalizedOrderNumber,
@@ -140,7 +161,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const afterResult = await pool.query(
       `
-      select order_number, customer_type, organization_name, contact_name, email, delivery_address, postal_code, reference, notes, created_at
+      select order_number, customer_type, organization_name, contact_name, email, delivery_address, address_line1, postal_code, city, reference, notes, created_at
       from orders
       where id = $1
       `,

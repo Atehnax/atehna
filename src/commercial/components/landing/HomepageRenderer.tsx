@@ -31,7 +31,6 @@ import {
 import SiteFooter, { renderSiteFooterLogo, type SiteFooterEditorAdapter } from '@/commercial/components/SiteFooter';
 import {
   DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
-  DEFAULT_HOMEPAGE_CATEGORY_CARDS,
   type HomepageButtonStyle,
   type HomepageCanvasElementDeviceSettings,
   type HomepageCategoryCardData,
@@ -56,6 +55,7 @@ import {
 import { resolveWebsiteFontStack } from '@/shared/domain/style/fontFamilies';
 import CategoryShowcase from '@/shared/features/category-showcase/CategoryShowcase';
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import CanvasHiddenElementFlag from '@/shared/ui/product-canvas/CanvasHiddenElementFlag';
 import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/tokens';
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
@@ -85,6 +85,13 @@ const sectionRadiusClassNames: Record<HomepagePageSettings['sectionRadius'], str
   small: 'rounded-md',
   medium: 'rounded-[10px]',
   large: 'rounded-2xl'
+};
+
+const homepageSectionLabels: Record<HomepageSectionId, string> = {
+  hero: 'Uvodna sekcija',
+  categories: 'Kategorije',
+  infoBlocks: 'Informacijski bloki',
+  footer: 'Noga strani'
 };
 
 const infoIconMap: Record<HomepageInfoIcon, LucideIcon> = {
@@ -238,6 +245,7 @@ type HomepageRendererProps = {
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
   onCanvasElementStyleChange?: (elementId: string, updates: Partial<HomepageCanvasElementDeviceSettings>) => void;
+  onRestoreHiddenElement?: (elementId: string) => void;
   onMoveSection?: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
   editorOptions?: HomepageCanvasEditorOptions;
   editorSectionId?: HomepageSectionId;
@@ -321,6 +329,7 @@ type SectionFrameProps = {
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   hidden?: boolean;
+  onRestoreHidden?: () => void;
   preview?: boolean;
   editorActive?: boolean;
   editorOptions?: HomepageCanvasEditorOptions;
@@ -331,8 +340,7 @@ type SectionFrameProps = {
 };
 
 function getCategoryList(categories: HomepageCategoryCardData[], settings: HomepageCategoriesSettings) {
-  const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
-  return orderHomepageCategories(source, settings).slice(0, settings.limit);
+  return orderHomepageCategories(categories, settings).slice(0, settings.limit);
 }
 
 type HomepageCanvasElementLayout = 'fit' | 'fill' | 'absolute-fill';
@@ -533,6 +541,16 @@ function HomepageCanvasElement({
   }, [editing, isText, text]);
 
   if (!preview && !settings.visible) return null;
+  if (preview && !settings.visible) {
+    return (
+      <CanvasHiddenElementFlag
+        elementId={elementId}
+        label={textLabel || elementId}
+        kind="homepage"
+        onRestore={() => onStyleChange?.(elementId, { visible: true })}
+      />
+    );
+  }
 
   const beginInteraction = (kind: HomepageCanvasInteraction['kind'], event: ReactPointerEvent<HTMLElement>) => {
     const root = rootRef.current;
@@ -698,7 +716,7 @@ function HomepageCanvasElement({
     lineHeight: settings.lineHeight,
     letterSpacing: settings.letterSpacingPx,
     textAlign: settings.textAlign,
-    opacity: preview && !settings.visible ? 0.42 : 1,
+    opacity: 1,
     cursor: preview ? settings.locked ? 'default' : editing ? 'text' : 'move' : undefined,
     touchAction: preview ? 'none' : undefined
   };
@@ -798,12 +816,6 @@ function HomepageCanvasElement({
         return <>{textNode}{trailingContent}</>;
       })() : content}
 
-      {preview && !settings.visible ? (
-        <span className="pointer-events-none absolute left-1 top-1 z-[72] rounded-md border border-amber-300 bg-amber-50/95 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-800">
-          Skrito
-        </span>
-      ) : null}
-
       {preview && selected && !settings.locked ? (
         <span
           data-canvas-resize-handle
@@ -828,6 +840,7 @@ function SectionFrame({
   canMoveUp = false,
   canMoveDown = false,
   hidden = false,
+  onRestoreHidden,
   preview,
   editorActive = false,
   editorOptions = DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
@@ -919,6 +932,17 @@ function SectionFrame({
     };
   }, [children, editorActive, editorOptions.measurements, preview, sectionId, selectedChild, selectedElementId]);
 
+  if (preview && hidden) {
+    return (
+      <CanvasHiddenElementFlag
+        elementId={`section:${sectionId}`}
+        label={homepageSectionLabels[sectionId]}
+        kind="homepage"
+        onRestore={() => onRestoreHidden?.()}
+      />
+    );
+  }
+
   return (
     <section
       ref={sectionRef}
@@ -928,7 +952,7 @@ function SectionFrame({
       data-homepage-editor-active={editorActive || undefined}
       onClickCapture={(event) => {
         const target = event.target instanceof Element ? event.target : null;
-        if (target?.closest('[data-homepage-canvas-element], [data-homepage-section-controls]')) return;
+        if (target?.closest('[data-homepage-canvas-element], [data-homepage-section-controls], [data-canvas-hidden-flag], [data-canvas-hidden-popover]')) return;
         if (preview && onSelectSection) event.preventDefault();
         onSelectSection?.(sectionId);
         onSelectElement?.(`section:${sectionId}`);
@@ -937,7 +961,6 @@ function SectionFrame({
         'group/section relative',
         preview && onSelectSection && 'cursor-pointer',
         selected && adminEditorSelectionOutlineTokenClasses,
-        preview && hidden && 'opacity-40 saturate-50',
         className
       )}
       style={style}
@@ -1018,11 +1041,6 @@ function SectionFrame({
           <span className="absolute whitespace-nowrap" style={{ left: sectionMeasurement.left + sectionMeasurement.width / 2 + 6, bottom: Math.max(14, sectionMeasurement.bottom / 2), transform: 'translateY(50%)' }}>{sectionMeasurement.bottom}px</span>
           {sectionMeasurement.nearest !== null ? <span className="absolute bottom-2 right-2 rounded bg-white/85 px-1.5 py-1">Najbližje: {sectionMeasurement.nearest}px</span> : null}
         </div>
-      ) : null}
-      {preview && hidden ? (
-        <span className="pointer-events-none absolute right-3 top-3 z-[70] rounded-md border border-amber-300 bg-amber-50/95 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-800 shadow-sm">
-          Skrito
-        </span>
       ) : null}
       {selected && onMoveSection ? (
         <div
@@ -1266,6 +1284,7 @@ function HomepageHero({
   onSelect,
   onSelectElement,
   onCanvasElementStyleChange,
+  onRestoreHiddenElement,
   editorOptions = DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
   onTextPositionChange,
   onTextContentChange,
@@ -1283,6 +1302,7 @@ function HomepageHero({
   onSelect?: () => void;
   onSelectElement?: (elementId: string | null) => void;
   onCanvasElementStyleChange?: (elementId: string, updates: Partial<HomepageCanvasElementDeviceSettings>) => void;
+  onRestoreHiddenElement?: (elementId: string) => void;
   editorOptions?: HomepageCanvasEditorOptions;
   onTextPositionChange?: (updates: HeroPositionUpdates) => void;
   onTextContentChange?: (updates: HeroTextContentUpdates) => void;
@@ -2116,12 +2136,25 @@ function HomepageHero({
       selectLayer(layer);
     }
   });
-  const renderHiddenElementBadge = (layer: HeroCanvasLayer, hidden = !getLayerCanvasSettings(layer).visible) => {
+  const renderHiddenElementFlag = (
+    layer: HeroCanvasLayer,
+    label: string,
+    hidden = !getLayerCanvasSettings(layer).visible,
+    markerStyle?: CSSProperties
+  ) => {
     if (!preview || !hidden) return null;
+    const elementId = getLayerElementId(layer);
     return (
-      <span className="pointer-events-none absolute right-0 top-0 z-[66] -translate-y-[calc(100%+4px)] rounded border border-amber-300 bg-amber-50/95 px-1.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-amber-800 shadow-sm">
-        Skrito
-      </span>
+      <CanvasHiddenElementFlag
+        elementId={elementId}
+        label={label}
+        kind="homepage"
+        markerStyle={markerStyle}
+        onRestore={() => {
+          if (onRestoreHiddenElement) onRestoreHiddenElement(elementId);
+          else onCanvasElementStyleChange?.(elementId, { visible: true });
+        }}
+      />
     );
   };
   const layerIsVisible = (layer: HeroCanvasLayer) => getLayerCanvasSettings(layer).visible;
@@ -2130,6 +2163,15 @@ function HomepageHero({
   );
   const shouldRenderLayer = (layer: HeroCanvasLayer) => (
     !layerIsDeleted(layer) && (preview || layerIsVisible(layer))
+  );
+  const hasVisibleHeroAction = Boolean(
+    hero.primaryButton.label
+      && hero.primaryButton.href
+      && layerIsVisible('primaryButton')
+  ) || Boolean(
+    hero.secondaryButton.label
+      && hero.secondaryButton.href
+      && layerIsVisible('secondaryButton')
   );
 
   return (
@@ -2257,12 +2299,12 @@ function HomepageHero({
             onPointerUp={endTextDrag}
             onPointerCancel={endTextDrag}
           >
-            {shouldRenderLayer('title') ? (
+            {shouldRenderLayer('title') ? layerIsVisible('title') ? (
               <div
                 ref={registerCanvasElement('title') as (node: HTMLDivElement | null) => void}
                 data-hero-element="title"
                 {...editableLayerProps('title')}
-                className={classNames(elementDragClassName, 'w-fit max-w-full outline-offset-2 hover:outline-[color:var(--blue-400)]/70', !layerIsVisible('title') && 'opacity-40')}
+                className={classNames(elementDragClassName, 'w-fit max-w-full outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                 style={{ ...getElementOffsetStyle('title'), ...getLayerBoxStyle('title'), ...getPreviewLayerBoxStyle('title') }}
                 onPointerDown={startTextDrag('title')}
                 onPointerMove={moveTextDrag}
@@ -2271,7 +2313,6 @@ function HomepageHero({
               >
                 {renderElementOffsetBadge('title')}
                 {renderSelectionFrame('title')}
-                {renderHiddenElementBadge('title')}
                 <h1
                   ref={titleEditRef}
                   contentEditable={editingLayer === 'title'}
@@ -2287,13 +2328,13 @@ function HomepageHero({
                   <span style={getHighlightedTextStyle(hero.titleHighlight, hero.titleHighlightColor)}>{hero.title}</span>
                 </h1>
               </div>
-            ) : null}
-            {hero.description && shouldRenderLayer('description') ? (
+            ) : renderHiddenElementFlag('title', 'Naslov') : null}
+            {hero.description && shouldRenderLayer('description') ? layerIsVisible('description') ? (
               <div
                 ref={registerCanvasElement('description') as (node: HTMLDivElement | null) => void}
                 data-hero-element="description"
                 {...editableLayerProps('description')}
-                className={classNames(elementDragClassName, 'mt-5 w-fit max-w-full outline-offset-2 hover:outline-[color:var(--blue-400)]/70', !layerIsVisible('description') && 'opacity-40')}
+                className={classNames(elementDragClassName, 'mt-5 w-fit max-w-full outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                 style={{ ...getElementOffsetStyle('description'), ...getLayerBoxStyle('description'), ...getPreviewLayerBoxStyle('description') }}
                 onPointerDown={startTextDrag('description')}
                 onPointerMove={moveTextDrag}
@@ -2302,7 +2343,6 @@ function HomepageHero({
               >
                 {renderElementOffsetBadge('description')}
                 {renderSelectionFrame('description')}
-                {renderHiddenElementBadge('description')}
                 <p
                   ref={descriptionEditRef}
                   contentEditable={editingLayer === 'description'}
@@ -2318,23 +2358,25 @@ function HomepageHero({
                   <span style={getHighlightedTextStyle(hero.descriptionHighlight, hero.descriptionHighlightColor)}>{hero.description}</span>
                 </p>
               </div>
-            ) : null}
+            ) : renderHiddenElementFlag('description', 'Opis') : null}
             <div
               data-homepage-hero-actions
-              className="mt-8 flex flex-wrap gap-3"
+              className={classNames('flex flex-wrap gap-3', hasVisibleHeroAction && 'mt-8')}
               style={preview
                 ? {
-                    marginTop: 'var(--preview-actions-gap-top, 32px)',
+                    marginTop: hasVisibleHeroAction
+                      ? 'var(--preview-actions-gap-top, 32px)'
+                      : 0,
                     gap: 'var(--preview-actions-gap-inline, 12px)'
                   }
                 : undefined}
             >
-              {hero.primaryButton.label && hero.primaryButton.href && shouldRenderLayer('primaryButton') ? (
+              {hero.primaryButton.label && hero.primaryButton.href && shouldRenderLayer('primaryButton') ? layerIsVisible('primaryButton') ? (
                 <div
                   ref={registerCanvasElement('primaryButton') as (node: HTMLDivElement | null) => void}
                   data-hero-element="primary-button"
                   {...selectableLayerProps('primaryButton')}
-                  className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70', !layerIsVisible('primaryButton') && 'opacity-40')}
+                  className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                   style={{ ...getElementOffsetStyle('primaryButton'), ...getLayerBoxStyle('primaryButton'), ...getPreviewLayerBoxStyle('primaryButton'), ...getButtonAlignmentStyle('primaryButton') }}
                   onPointerDown={startTextDrag('primaryButton')}
                   onPointerMove={moveTextDrag}
@@ -2343,7 +2385,6 @@ function HomepageHero({
                 >
                   {renderElementOffsetBadge('primaryButton')}
                   {renderSelectionFrame('primaryButton')}
-                  {renderHiddenElementBadge('primaryButton')}
                   <Link
                     href={hero.primaryButton.href}
                     prefetch={false}
@@ -2355,13 +2396,13 @@ function HomepageHero({
                     <ChevronRight className="h-4 w-4" strokeWidth={2} />
                   </Link>
                 </div>
-              ) : null}
-              {hero.secondaryButton.label && hero.secondaryButton.href && shouldRenderLayer('secondaryButton') ? (
+              ) : renderHiddenElementFlag('primaryButton', 'Primarni gumb') : null}
+              {hero.secondaryButton.label && hero.secondaryButton.href && shouldRenderLayer('secondaryButton') ? layerIsVisible('secondaryButton') ? (
                 <div
                   ref={registerCanvasElement('secondaryButton') as (node: HTMLDivElement | null) => void}
                   data-hero-element="secondary-button"
                   {...selectableLayerProps('secondaryButton')}
-                  className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70', !layerIsVisible('secondaryButton') && 'opacity-40')}
+                  className={classNames(elementDragClassName, 'inline-flex outline-offset-2 hover:outline-[color:var(--blue-400)]/70')}
                   style={{ ...getElementOffsetStyle('secondaryButton'), ...getLayerBoxStyle('secondaryButton'), ...getPreviewLayerBoxStyle('secondaryButton'), ...getButtonAlignmentStyle('secondaryButton') }}
                   onPointerDown={startTextDrag('secondaryButton')}
                   onPointerMove={moveTextDrag}
@@ -2370,7 +2411,6 @@ function HomepageHero({
                 >
                   {renderElementOffsetBadge('secondaryButton')}
                   {renderSelectionFrame('secondaryButton')}
-                  {renderHiddenElementBadge('secondaryButton')}
                   <Link
                     href={hero.secondaryButton.href}
                     prefetch={false}
@@ -2381,7 +2421,7 @@ function HomepageHero({
                     <span>{hero.secondaryButton.label}</span>
                   </Link>
                 </div>
-              ) : null}
+              ) : renderHiddenElementFlag('secondaryButton', 'Sekundarni gumb') : null}
             </div>
           </div>
         </div>
@@ -2408,6 +2448,26 @@ function HomepageHero({
           top: `${resolvedBlock.yPx}px`,
           width: `${blockWidthPx}px`
         };
+        if (preview && !visible) {
+          const elementId = getLayerElementId(layer);
+          return (
+            <CanvasHiddenElementFlag
+              key={block.id}
+              elementId={elementId}
+              label={block.kind === 'button' ? 'Gumb' : 'Besedilni blok'}
+              kind="homepage"
+              markerStyle={{
+                left: alignedLeft,
+                top: `${resolvedBlock.yPx}px`,
+                transform: blockStyle.transform
+              }}
+              onRestore={() => {
+                if (onRestoreHiddenElement) onRestoreHiddenElement(elementId);
+                else onCanvasElementStyleChange?.(elementId, { visible: true });
+              }}
+            />
+          );
+        }
         const content = (
           <div
             ref={(node) => {
@@ -2433,8 +2493,7 @@ function HomepageHero({
             {...editableLayerProps(layer)}
             className={classNames(
               'absolute z-20 cursor-move rounded-sm text-white outline outline-1 outline-transparent transition hover:outline-white/45',
-              'outline-offset-2 hover:outline-[color:var(--blue-400)]/70',
-              !visible && 'opacity-40'
+              'outline-offset-2 hover:outline-[color:var(--blue-400)]/70'
             )}
             style={blockStyle}
             onPointerDown={startTextBlockDrag(block)}
@@ -2443,7 +2502,6 @@ function HomepageHero({
             onPointerCancel={endTextBlockDrag}
           >
             {renderSelectionFrame(layer)}
-            {renderHiddenElementBadge(layer, !visible)}
             {block.kind === 'button' ? (
               <Link
                 href={block.href || '#'}
@@ -3076,11 +3134,33 @@ function HomepageCategories({
   onCategoryPresentationChange?: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
   onCategoryMove?: (sourceSlug: string, targetSlug: string) => void;
 }) {
-  const visibleCategories = useMemo(
+  const availableCategories = useMemo(
     () => getCategoryList(categories, settings).filter((category) => (
       !isHomepageCanvasElementDeleted(canvas, `categories:card:${category.slug}`)
     )),
     [canvas, categories, settings]
+  );
+  const visibleCategories = useMemo(
+    () => availableCategories.filter((category) => (
+      resolveCategoryCanvasSettings(
+        canvas,
+        `categories:card:${category.slug}`,
+        device
+      ).visible
+    )),
+    [availableCategories, canvas, device]
+  );
+  const hiddenCategories = useMemo(
+    () => preview
+      ? availableCategories.filter((category) => (
+          !resolveCategoryCanvasSettings(
+            canvas,
+            `categories:card:${category.slug}`,
+            device
+          ).visible
+        ))
+      : [],
+    [availableCategories, canvas, device, preview]
   );
   const categoryCardSize = settings.cardSize;
   const categoryCardStyle = settings.cardStyle;
@@ -3099,10 +3179,22 @@ function HomepageCategories({
     onCategoryMove?.(sourceSlug, targetSlug);
   };
 
-  if (visibleCategories.length === 0) return null;
+  if (visibleCategories.length === 0 && hiddenCategories.length === 0) return null;
 
   return (
-    <div className={classNames(containerClassNames[settings.containerWidth], 'py-2')}>
+    <div className={classNames(containerClassNames[settings.containerWidth], 'relative py-2')}>
+      {hiddenCategories.map((category) => {
+        const elementId = `categories:card:${category.slug}`;
+        return (
+          <CanvasHiddenElementFlag
+            key={elementId}
+            elementId={elementId}
+            label={`Kartica kategorije ${category.title}`}
+            kind="homepage"
+            onRestore={() => onCanvasElementStyleChange?.(elementId, { visible: true })}
+          />
+        );
+      })}
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           {!isHomepageCanvasElementDeleted(canvas, 'categories:heading') && (settings.title || preview) ? (
@@ -3165,7 +3257,7 @@ function HomepageCategories({
         ) : null}
       </div>
 
-      <CategoryShowcase
+      {visibleCategories.length > 0 ? <CategoryShowcase
         items={visibleCategories}
         columns={settings.columns}
         gap={settings.gap}
@@ -3256,7 +3348,7 @@ function HomepageCategories({
             </HomepageCanvasElement>
           );
         }}
-      />
+      /> : null}
     </div>
   );
 }
@@ -3339,6 +3431,7 @@ export default function HomepageRenderer({
   selectedElementId,
   onSelectElement,
   onCanvasElementStyleChange,
+  onRestoreHiddenElement,
   onMoveSection,
   editorOptions = DEFAULT_HOMEPAGE_CANVAS_EDITOR_OPTIONS,
   editorSectionId,
@@ -3453,6 +3546,7 @@ export default function HomepageRenderer({
           canMoveUp: sectionIndex > 0,
           canMoveDown: sectionIndex < resolvedSettings.sectionOrder.length - 1,
           hidden: !sectionVisible,
+          onRestoreHidden: () => onRestoreHiddenElement?.(`section:${sectionId}`),
           preview,
           editorActive: preview && activeEditorSectionId === sectionId,
           editorOptions,
@@ -3480,6 +3574,7 @@ export default function HomepageRenderer({
               onSelect={() => onSelectSection?.('hero')}
               onSelectElement={onSelectElement}
               onCanvasElementStyleChange={onCanvasElementStyleChange}
+              onRestoreHiddenElement={onRestoreHiddenElement}
               editorOptions={editorOptions}
               onTextPositionChange={onHeroTextPositionChange}
               onTextContentChange={onHeroTextContentChange}

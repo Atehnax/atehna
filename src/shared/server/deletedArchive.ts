@@ -19,6 +19,172 @@ type ArchiveEntryRow = {
   expires_at: DatabaseDateValue;
 };
 
+type ArchiveBlobOutboxRow = {
+  id: number | string;
+  blob_target: string;
+};
+
+type ArchiveTransactionClient = {
+  query: (
+    text: string,
+    params?: unknown[]
+  ) => Promise<{ rows: Array<Record<string, unknown>> }>;
+};
+
+async function queueDocumentBlobsForOrder(
+  client: ArchiveTransactionClient,
+  orderId: number
+) {
+  await client.query(
+    `
+    insert into archive_blob_deletion_outbox (
+      blob_target,
+      source_item_type,
+      source_order_id,
+      source_document_id
+    )
+    select
+      coalesce(nullif(blob_pathname, ''), nullif(blob_url, '')),
+      'order',
+      order_id,
+      id
+    from order_documents
+    where order_id = $1
+      and coalesce(nullif(blob_pathname, ''), nullif(blob_url, '')) is not null
+    on conflict (blob_target) do nothing
+    `,
+    [orderId]
+  );
+}
+
+async function queueDocumentBlob(
+  client: ArchiveTransactionClient,
+  {
+    orderId,
+    documentId,
+    fallbackTarget
+  }: {
+    orderId: number | null;
+    documentId: number;
+    fallbackTarget: string | null;
+  }
+) {
+  await client.query(
+    `
+    insert into archive_blob_deletion_outbox (
+      blob_target,
+      source_item_type,
+      source_order_id,
+      source_document_id
+    )
+    select
+      coalesce(
+        nullif(d.blob_pathname, ''),
+        nullif(d.blob_url, ''),
+        nullif($3::text, '')
+      ),
+      'pdf',
+      coalesce(d.order_id, $1::bigint),
+      $2::bigint
+    from (values (1)) as seed(value)
+    left join order_documents d on d.id = $2
+    where coalesce(
+      nullif(d.blob_pathname, ''),
+      nullif(d.blob_url, ''),
+      nullif($3::text, '')
+    ) is not null
+    on conflict (blob_target) do nothing
+    `,
+    [orderId, documentId, fallbackTarget]
+  );
+}
+
+export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
+  deletedCount: number;
+  failedCount: number;
+  skippedCount: number;
+}> {
+  const safeLimit = Math.max(1, Math.min(500, Math.trunc(limit)));
+  const pool = await getPool();
+  const result = await pool.query<ArchiveBlobOutboxRow>(
+    `
+    select id, blob_target
+    from archive_blob_deletion_outbox
+    order by queued_at asc, id asc
+    limit $1
+    `,
+    [safeLimit]
+  );
+
+  let deletedCount = 0;
+  let failedCount = 0;
+  let skippedCount = 0;
+
+  for (const row of result.rows) {
+    const id = Number(row.id);
+    if (!Number.isFinite(id) || !row.blob_target) continue;
+
+    try {
+      const referenceResult = await pool.query<{ still_referenced: boolean }>(
+        `
+        select (
+          exists (
+            select 1
+            from order_documents
+            where blob_pathname = $1
+               or blob_url = $1
+          )
+          or exists (
+            select 1
+            from catalog_media
+            where blob_pathname = $1
+               or blob_url = $1
+          )
+        ) as still_referenced
+        `,
+        [row.blob_target]
+      );
+
+      if (referenceResult.rows[0]?.still_referenced) {
+        await pool.query(
+          `
+          update archive_blob_deletion_outbox
+          set
+            last_attempt_at = now(),
+            last_error = 'Blob deletion deferred while the target is still referenced.'
+          where id = $1
+          `,
+          [id]
+        );
+        skippedCount += 1;
+        continue;
+      }
+
+      await deleteBlob(row.blob_target);
+      await pool.query('delete from archive_blob_deletion_outbox where id = $1', [id]);
+      deletedCount += 1;
+    } catch (error) {
+      failedCount += 1;
+      await pool.query(
+        `
+        update archive_blob_deletion_outbox
+        set
+          attempt_count = attempt_count + 1,
+          last_attempt_at = now(),
+          last_error = $2
+        where id = $1
+        `,
+        [
+          id,
+          (error instanceof Error ? error.message : 'Unknown blob deletion error').slice(0, 2000)
+        ]
+      );
+    }
+  }
+
+  return { deletedCount, failedCount, skippedCount };
+}
+
 async function enforceParentOrderRestoreForDeletedPdfChildren(
   client: { query: (text: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
   selectedOrderIds: number[],
@@ -228,9 +394,17 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
 
     const entriesResult = await client.query(
       `
-      select id, item_type, order_id, document_id, payload
+      select
+        id,
+        item_type,
+        order_id,
+        document_id,
+        payload,
+        expires_at,
+        expires_at <= now() as retention_expired
       from deleted_archive_entries
       where id = any($1::bigint[])
+      for update
       `,
       [entryIds]
     );
@@ -241,31 +415,85 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
       order_id: number | null;
       document_id: number | null;
       payload: { blobPathname?: string; blobUrl?: string } | null;
+      expires_at: DatabaseDateValue;
+      retention_expired: boolean;
     }>;
 
-    for (const entry of entries) {
-      if (entry.item_type === 'order' && entry.order_id) {
-        await client.query('delete from order_items where order_id = $1', [entry.order_id]);
-        await client.query('delete from order_documents where order_id = $1', [entry.order_id]);
-        await client.query('delete from orders where id = $1', [entry.order_id]);
-      }
+    const retentionLockedEntry = entries.find((entry) => !entry.retention_expired);
+    if (retentionLockedEntry) {
+      throw new Error(
+        'Trajni izbris je dovoljen šele po poteku 90-dnevne hrambe.'
+      );
+    }
 
-      if (entry.item_type === 'pdf' && entry.document_id) {
-        await client.query('delete from order_documents where id = $1', [entry.document_id]);
-      }
+    const selectedOrderIds = Array.from(new Set(
+      entries
+        .filter((entry) => entry.item_type === 'order' && entry.order_id)
+        .map((entry) => Number(entry.order_id))
+    ));
+    const selectedOrderIdSet = new Set(selectedOrderIds);
 
-      const blobTarget = entry.payload?.blobPathname || entry.payload?.blobUrl;
-      if (blobTarget) {
-        try {
-          await deleteBlob(blobTarget);
-        } catch {
-          // Blob cleanup must not block permanent archive deletion.
-        }
+    if (selectedOrderIds.length > 0) {
+      const protectedChildrenResult = await client.query(
+        `
+        select id
+        from deleted_archive_entries
+        where item_type = 'pdf'
+          and order_id = any($1::bigint[])
+          and expires_at > now()
+        limit 1
+        `,
+        [selectedOrderIds]
+      );
+      if (protectedChildrenResult.rows.length > 0) {
+        throw new Error(
+          'Trajni izbris naročila je dovoljen šele po poteku hrambe vseh pripadajočih dokumentov.'
+        );
       }
+    }
+
+    const selectedPdfEntries = entries.filter(
+      (entry) =>
+        entry.item_type === 'pdf'
+        && entry.document_id
+        && !(entry.order_id && selectedOrderIdSet.has(Number(entry.order_id)))
+    );
+
+    for (const entry of selectedPdfEntries) {
+      if (!entry.order_id) continue;
+      const deletedParentResult = await client.query(
+        'select id from orders where id = $1 and deleted_at is not null limit 1',
+        [entry.order_id]
+      );
+      if (deletedParentResult.rows.length > 0) {
+        throw new Error(
+          'Dokument pod izbrisanim naročilom se trajno izbriše skupaj s pripadajočim naročilom.'
+        );
+      }
+    }
+
+    for (const orderId of selectedOrderIds) {
+      await queueDocumentBlobsForOrder(client, orderId);
+      await client.query('delete from orders where id = $1', [orderId]);
+      await client.query('delete from deleted_archive_entries where order_id = $1', [orderId]);
+    }
+
+    for (const entry of selectedPdfEntries) {
+      const fallbackTarget = entry.payload?.blobPathname || entry.payload?.blobUrl || null;
+      await queueDocumentBlob(client, {
+        orderId: entry.order_id,
+        documentId: Number(entry.document_id),
+        fallbackTarget
+      });
+      await client.query('delete from order_documents where id = $1', [entry.document_id]);
     }
 
     await client.query('delete from deleted_archive_entries where id = any($1::bigint[])', [entryIds]);
     await client.query('COMMIT');
+
+    await processArchiveBlobDeletionOutbox().catch(() => {
+      // The durable outbox preserves failed targets for the next cleanup run.
+    });
 
     return entries.length;
   } catch (error) {
@@ -278,9 +506,37 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
 
 export async function cleanupExpiredArchiveEntries(): Promise<number> {
   const pool = await getPool();
-  const result = await pool.query('select id from deleted_archive_entries where expires_at <= now() order by id asc limit 200');
+  const result = await pool.query(
+    `
+    select e.id
+    from deleted_archive_entries e
+    where e.expires_at <= now()
+      and not (
+        e.item_type = 'order'
+        and exists (
+          select 1
+          from deleted_archive_entries child
+          where child.item_type = 'pdf'
+            and child.order_id = e.order_id
+            and child.expires_at > now()
+        )
+      )
+      and (
+        e.item_type = 'order'
+        or not exists (
+          select 1
+          from orders o
+          where o.id = e.order_id
+            and o.deleted_at is not null
+        )
+      )
+    order by e.id asc
+    limit 200
+    `
+  );
 
   const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
-  if (ids.length === 0) return 0;
-  return permanentlyDeleteArchiveEntries(ids);
+  const deletedCount = ids.length === 0 ? 0 : await permanentlyDeleteArchiveEntries(ids);
+  await processArchiveBlobDeletionOutbox();
+  return deletedCount;
 }

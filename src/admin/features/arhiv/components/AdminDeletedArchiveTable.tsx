@@ -143,6 +143,7 @@ export default function AdminDeletedArchiveTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [retentionReferenceTime] = useState(() => Date.now());
   const { toast } = useToast();
 
   const filtered = useMemo(() => {
@@ -344,6 +345,14 @@ export default function AdminDeletedArchiveTable({
         ),
     [displayRows, selectedIdSet]
   );
+  const selectedHasRetentionLock = useMemo(
+    () =>
+      selectedEntriesFromRows.some(
+        (entry) =>
+          new Date(entry.expires_at).getTime() > retentionReferenceTime
+      ),
+    [retentionReferenceTime, selectedEntriesFromRows]
+  );
 
   const toggleOne = (row: DisplayRow) => {
     const { entry, isChild, parentOrderId } = row;
@@ -438,6 +447,10 @@ export default function AdminDeletedArchiveTable({
   };
 
   const bulkDelete = () => {
+    if (selectedHasRetentionLock) {
+      toast.error('Trajni izbris je na voljo šele po poteku 90-dnevne hrambe.');
+      return;
+    }
     const deletableIds = selected.filter((id) => id > 0);
     if (deletableIds.length === 0) {
       toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
@@ -559,9 +572,13 @@ export default function AdminDeletedArchiveTable({
             tone={hasSelectedRows ? 'danger' : 'neutral'}
             className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={bulkDelete}
-            disabled={!hasSelectedRows || isDeleting || isRestoring}
+            disabled={!hasSelectedRows || selectedHasRetentionLock || isDeleting || isRestoring}
             aria-label="Trajno izbriši izbrano"
-            title="Trajno izbriši"
+            title={
+              selectedHasRetentionLock
+                ? 'Trajni izbris je na voljo po poteku 90-dnevne hrambe'
+                : 'Trajno izbriši'
+            }
           >
             {isDeleting ? (
               <Spinner size="sm" className="text-rose-700" />

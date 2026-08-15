@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Editor, Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -16,11 +16,31 @@ import Highlight from '@tiptap/extension-highlight';
 import Color from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type KeyboardCoordinateGetter,
+  type UniqueIdentifier
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS as DndCss } from '@dnd-kit/utilities';
 import { Button } from '@/shared/ui/button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ActionUndoIcon, ArchiveIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, ApplyToAllIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
@@ -32,6 +52,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
+import SegmentedControl from '@/shared/ui/segmented/segmented-control';
 import {
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
@@ -58,10 +79,14 @@ import {
   computeSalePrice,
   createFamily,
   createVariant,
+  applyVariantValueToAll,
+  duplicateSelectedVariant,
   formatCurrency,
   toSlug,
+  type ProductOptionAxisDraft,
   type ProductFamily,
-  type Variant
+  type Variant,
+  type VariantBulkApplyField
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatEuroAmount } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
@@ -69,6 +94,7 @@ import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBread
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
+import ProductVariantOptionsCard from '@/admin/features/artikli/components/ProductVariantOptionsCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
   CommercialToolsPanel,
@@ -121,10 +147,6 @@ import {
   articleNameInputClassName,
   compactSideInputClassName,
   compactSideInputWrapClassName,
-  compactTableAdornmentClassName,
-  compactTableAlignedInputClassName,
-  compactTableAlignedTextInputClassName,
-  compactTableValueUnitShellClassName,
   numberInputClass,
   topBarArticleNameInputClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
@@ -132,15 +154,13 @@ import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
-import { classNames, fieldUnitAdornmentClassName } from '@/admin/features/artikli/components/pricing/PricingFieldControls';
+import {
+  classNames,
+  CompactSegmentedField,
+  fieldUnitAdornmentClassName
+} from '@/admin/features/artikli/components/pricing/PricingFieldControls';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
-const compactTableReadOnlyNumberClassName = "inline-flex h-[30px] min-h-[30px] shrink-0 items-center justify-end rounded-md border border-transparent bg-transparent px-0.5 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700";
-const compactTableReadOnlyCenteredNumberClassName = "inline-flex h-[30px] min-h-[30px] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-0.5 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700";
-const compactTableNumericSlotClassName = `${compactTableReadOnlyNumberClassName} w-[7ch]`;
-const compactTableSixDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[6ch]`;
-const compactTableFourDigitSlotClassName = `${compactTableReadOnlyNumberClassName} w-[5ch]`;
-const compactTableThreeDigitCenteredSlotClassName = `${compactTableReadOnlyCenteredNumberClassName} w-[3ch]`;
 const dimensionEditorInputHeightClassName =
   '[&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!min-h-[30px] [&_input:not([type=checkbox]):not(.admin-discount-target-input)]:!leading-[30px] [&_.h-6]:!h-[30px] [&_.min-h-6]:!min-h-[30px]';
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
@@ -175,6 +195,107 @@ type MediaTab = 'slike' | 'video' | 'tehnicni';
 type VariantTag = NoteTag;
 type GeneratorDimension = 'length' | 'width' | 'thickness';
 type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
+type DimensionVariantViewMode = 'columns' | 'rows';
+type DimensionVariantMatrixRowKey =
+  | 'default'
+  | 'thickness'
+  | 'length'
+  | 'width'
+  | 'weight'
+  | 'tolerance'
+  | 'cost'
+  | 'price'
+  | 'priceGross'
+  | 'discount'
+  | 'salePrice'
+  | 'salePriceGross'
+  | 'stock'
+  | 'minOrder'
+  | 'delivery'
+  | 'sku'
+  | 'status'
+  | 'note';
+
+const DIMENSION_VARIANT_MATRIX_ROWS: ReadonlyArray<{
+  key: DimensionVariantMatrixRowKey;
+  label: string;
+  help: string;
+}> = [
+  { key: 'default', label: 'Privzeta različica', help: 'Različica, ki je izbrana ob odprtju izdelka.' },
+  { key: 'thickness', label: 'Debelina/fi', help: 'Debelina ali premer v milimetrih.' },
+  { key: 'length', label: 'Dolžina', help: 'Dolžina različice v milimetrih.' },
+  { key: 'width', label: 'Širina', help: 'Širina različice v milimetrih.' },
+  { key: 'weight', label: 'Masa', help: 'Masa ene prodajne enote v gramih.' },
+  { key: 'tolerance', label: 'Toleranca', help: 'Dovoljeno odstopanje mere v milimetrih.' },
+  { key: 'cost', label: 'Nabavna cena brez DDV', help: 'Interna nabavna cena različice brez DDV.' },
+  { key: 'price', label: 'Prodajna cena brez DDV', help: 'Prodajna cena različice brez DDV.' },
+  { key: 'priceGross', label: 'Prodajna cena z DDV', help: 'Prodajna cena z vključeno nastavljeno stopnjo DDV.' },
+  { key: 'discount', label: 'Popust', help: 'Odstotek popusta za različico.' },
+  { key: 'salePrice', label: 'Akcijska cena brez DDV', help: 'Izračunana cena po popustu.' },
+  { key: 'salePriceGross', label: 'Akcijska cena z DDV', help: 'Izračunana akcijska cena z vključeno nastavljeno stopnjo DDV.' },
+  { key: 'stock', label: 'Zaloga', help: 'Trenutna razpoložljiva količina.' },
+  { key: 'minOrder', label: 'Minimalno naročilo', help: 'Najmanjša dovoljena količina naročila.' },
+  { key: 'delivery', label: 'Dobavni rok', help: 'Predvideni dobavni rok v delovnih dneh.' },
+  { key: 'sku', label: 'SKU', help: 'Enolična oznaka različice.' },
+  { key: 'status', label: 'Status', help: 'Samo aktivne različice so na voljo kupcem.' },
+  { key: 'note', label: 'Opomba', help: 'Prodajna oznaka oziroma stanje različice.' }
+];
+
+type DimensionVariantBulkApplyRowKey =
+  | 'weight'
+  | 'tolerance'
+  | 'cost'
+  | 'price'
+  | 'discount'
+  | 'stock'
+  | 'minOrder'
+  | 'delivery'
+  | 'status'
+  | 'note';
+
+const DIMENSION_VARIANT_BULK_APPLY_FIELDS: Readonly<
+  Partial<Record<DimensionVariantBulkApplyRowKey, VariantBulkApplyField>>
+> = {
+  weight: 'weight',
+  tolerance: 'errorTolerance',
+  cost: 'costNet',
+  price: 'price',
+  discount: 'discountPct',
+  stock: 'stock',
+  minOrder: 'minOrder',
+  delivery: 'deliveryEstimate',
+  status: 'active'
+};
+
+const DIMENSION_VARIANT_BULK_DRAFT_FIELDS: Readonly<
+  Partial<Record<DimensionVariantBulkApplyRowKey, string>>
+> = {
+  weight: 'weight',
+  tolerance: 'errorTolerance',
+  cost: 'costNet',
+  price: 'price',
+  discount: 'discountPct',
+  delivery: 'deliveryTime'
+};
+
+const DIMENSION_VARIANT_BULK_APPLY_ROW_KEYS = new Set<DimensionVariantMatrixRowKey>([
+  'weight',
+  'tolerance',
+  'cost',
+  'price',
+  'discount',
+  'stock',
+  'minOrder',
+  'delivery',
+  'status',
+  'note'
+]);
+
+const isDimensionVariantBulkApplyRow = (
+  rowKey: DimensionVariantMatrixRowKey
+): rowKey is DimensionVariantBulkApplyRowKey =>
+  DIMENSION_VARIANT_BULK_APPLY_ROW_KEYS.has(rowKey);
+
 type DimensionInventoryEntry = {
   id: string;
   thickness: number | null;
@@ -192,6 +313,7 @@ type SideSettingsState = {
   material: string;
   surface: string;
   color: string;
+  taxRatePercent: string;
   thicknessTolerance: string;
   moq: number;
   weightPerUnit: string;
@@ -220,7 +342,9 @@ function mapProductTypeToCatalogItemType(productType: ProductEditorType): Catalo
   if (productType === 'weight') return 'bulk';
   return 'unit';
 }
+
 type StagedImageSlot = {
+  persistedId?: number | null;
   previewUrl: string;
   uploadedUrl: string | null;
   blobPathname: string | null;
@@ -231,6 +355,7 @@ type StagedImageSlot = {
   localId: string | null;
 };
 type StagedVideoState = {
+  persistedId?: number | null;
   source: 'upload' | 'youtube';
   label: string;
   previewUrl: string;
@@ -354,8 +479,32 @@ function isEditablePasteTarget(target: EventTarget | null) {
 function cloneVariant(variant: Variant): Variant {
   return {
     ...variant,
-    imageAssignments: [...(variant.imageAssignments ?? [])]
+    contentOverride: variant.contentOverride
+      ? {
+          ...variant.contentOverride,
+          specifications: variant.contentOverride.specifications ? { ...variant.contentOverride.specifications } : undefined,
+          attributes: variant.contentOverride.attributes ? { ...variant.contentOverride.attributes } : undefined,
+          includedItems: variant.contentOverride.includedItems ? [...variant.contentOverride.includedItems] : undefined,
+          documentIds: variant.contentOverride.documentIds ? [...variant.contentOverride.documentIds] : undefined
+        }
+      : null,
+    imageAssignments: [...(variant.imageAssignments ?? [])],
+    optionValueIds: [...(variant.optionValueIds ?? [])],
+    optionSelections: { ...(variant.optionSelections ?? {}) }
   };
+}
+
+function findFirstActiveVariant(variants: readonly Variant[]): Variant | undefined {
+  return variants
+    .filter((variant) => variant.active)
+    .sort((left, right) => (left.sort ?? 0) - (right.sort ?? 0))[0];
+}
+
+function cloneOptionAxes(optionAxes: readonly ProductOptionAxisDraft[]): ProductOptionAxisDraft[] {
+  return optionAxes.map((axis) => ({
+    ...axis,
+    values: axis.values.map((value) => ({ ...value }))
+  }));
 }
 
 function cloneSideSettings(settings: SideSettingsState): SideSettingsState {
@@ -381,6 +530,7 @@ function cloneEditorPersistedState(state: EditorPersistedState): EditorPersisted
   return {
     draft: {
       ...state.draft,
+      optionAxes: cloneOptionAxes(state.draft.optionAxes),
       variants: state.draft.variants.map(cloneVariant)
     },
     productType: state.productType,
@@ -424,9 +574,12 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
   return JSON.stringify({
     draft: {
       ...state.draft,
+      optionAxes: cloneOptionAxes(state.draft.optionAxes),
       variants: state.draft.variants.map((variant) => ({
         ...variant,
-        imageAssignments: [...(variant.imageAssignments ?? [])]
+        imageAssignments: [...(variant.imageAssignments ?? [])],
+        optionValueIds: [...(variant.optionValueIds ?? [])],
+        optionSelections: { ...(variant.optionSelections ?? {}) }
       }))
     },
     productType: state.productType,
@@ -573,6 +726,132 @@ function serializeQuantityDiscountForSaveDiff(rule: QuantityDiscountDraft) {
 function buildVariantSaveDiffLabel(variant: Variant, index: number) {
   const label = variant.label.trim();
   return label || `Različica ${index + 1}`;
+}
+
+function buildDimensionVariantHeaderLabel(variant: Variant, index: number, includeUnits = false) {
+  const dimensions = [variant.thickness, variant.length, variant.width]
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    .map(formatDecimalForDisplay);
+  if (dimensions.length > 0) {
+    return includeUnits
+      ? dimensions.map((dimension) => `${dimension} mm`).join(' × ')
+      : dimensions.join(' × ');
+  }
+  return variant.label.trim() || variant.sku.trim() || `Različica ${index + 1}`;
+}
+
+function computeGrossPrice(netPrice: number, taxRate: number) {
+  const netCents = Math.round(netPrice * 100);
+  const taxCents = Math.round(netCents * Math.min(1, Math.max(0, taxRate)));
+  return (netCents + taxCents) / 100;
+}
+
+function getVariantTagSummaryDotClassName(tag: VariantTag) {
+  if (tag === 'akcija') return 'bg-rose-500';
+  if (tag === 'novo') return 'bg-sky-500';
+  if (tag === 'zadnji-kosi') return 'bg-violet-500';
+  if (tag === 'ni-na-zalogi') return 'bg-slate-400';
+  return 'bg-emerald-500';
+}
+
+type SortableKeyboardMetadata = {
+  sortable?: {
+    items?: UniqueIdentifier[];
+  };
+};
+
+const adjacentDimensionVariantKeyboardCoordinates: KeyboardCoordinateGetter = (
+  event,
+  { active, context }
+) => {
+  if (event.code !== 'ArrowLeft' && event.code !== 'ArrowRight') return undefined;
+  event.preventDefault();
+
+  const activeContainer = context.droppableContainers.get(active);
+  const sortable = (activeContainer?.data.current ?? {}) as SortableKeyboardMetadata;
+  const items = sortable.sortable?.items;
+  if (!items?.length || !context.collisionRect) return undefined;
+
+  const activeIndex = items.indexOf(active);
+  const overIndex = context.over ? items.indexOf(context.over.id) : -1;
+  const currentIndex = overIndex >= 0 ? overIndex : activeIndex;
+  const targetIndex = currentIndex + (event.code === 'ArrowRight' ? 1 : -1);
+  const targetId = items[targetIndex];
+  const targetRect = targetId === undefined ? null : context.droppableRects.get(targetId);
+  if (!targetRect) return undefined;
+
+  return {
+    x: targetRect.left + (targetRect.width - context.collisionRect.width) / 2,
+    y: targetRect.top + (targetRect.height - context.collisionRect.height) / 2
+  };
+};
+
+function DimensionVariantSortableHeader({
+  id,
+  label,
+  disabled,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+  children
+}: {
+  id: string;
+  label: string;
+  disabled: boolean;
+  className: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  children: (dragHandle: ReactNode, state: { isDragging: boolean; isOver: boolean }) => ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver
+  } = useSortable({ id, disabled });
+  const dragHandle = disabled ? null : (
+    <button
+      ref={setActivatorNodeRef}
+      type="button"
+      {...attributes}
+      {...listeners}
+      className="relative z-30 inline-flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 transition hover:bg-white hover:text-[color:var(--blue-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] active:cursor-grabbing"
+      aria-label={`Premakni različico ${label}`}
+      title="Povleci za spremembo vrstnega reda. S tipkovnico: presledek, puščici levo/desno, presledek."
+      onClick={(event) => event.stopPropagation()}
+    >
+      <svg viewBox="0 0 12 16" className="h-3 w-2.5" fill="currentColor" aria-hidden="true">
+        <circle cx="3" cy="3" r="1" />
+        <circle cx="9" cy="3" r="1" />
+        <circle cx="3" cy="8" r="1" />
+        <circle cx="9" cy="8" r="1" />
+        <circle cx="3" cy="13" r="1" />
+        <circle cx="9" cy="13" r="1" />
+      </svg>
+    </button>
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      role="columnheader"
+      className={`${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
+        isOver && !isDragging ? 'z-30 ring-2 ring-inset ring-[color:var(--blue-500)]' : ''
+      }`}
+      style={{
+        transform: DndCss.Transform.toString(transform),
+        transition
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children(dragHandle, { isDragging, isOver })}
+    </div>
+  );
 }
 
 function describeStagedImageSlot(slot: StagedImageSlot) {
@@ -850,6 +1129,26 @@ function buildArchiveRecord(state: EditorPersistedState, identifier: string, res
 }
 
 function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydration | null, createType: CreateType): EditorPersistedState {
+  const optionAxes: ProductOptionAxisDraft[] = (initialData?.optionAxes ?? []).map((axis, axisIndex) => ({
+    id: axis.id ? String(axis.id) : `axis-${axisIndex}`,
+    name: axis.name,
+    slug: axis.slug,
+    position: axis.position ?? axisIndex,
+    values: axis.values.map((value, valueIndex) => ({
+      id: value.id ? String(value.id) : `value-${axisIndex}-${valueIndex}`,
+      value: value.value,
+      slug: value.slug,
+      swatch: value.swatch ?? null,
+      position: value.position ?? valueIndex
+    }))
+  }));
+  const optionSelectionByValueId = new Map<number, { axisId: string; valueId: string }>();
+  for (const axis of optionAxes) {
+    for (const value of axis.values) {
+      const persistedValueId = /^\d+$/.test(value.id) ? Number(value.id) : null;
+      if (persistedValueId !== null) optionSelectionByValueId.set(persistedValueId, { axisId: axis.id, valueId: value.id });
+    }
+  }
   const family = initialData
     ? createFamily({
         id: String(initialData.id),
@@ -868,6 +1167,8 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
         sort: initialData.position,
         notes: initialData.adminNotes ?? '',
         slug: initialData.slug,
+        defaultVariantId: initialData.defaultVariantId == null ? null : String(initialData.defaultVariantId),
+        optionAxes,
         variants: (initialData.variants.length > 0
           ? initialData.variants.map((variant, index) =>
               createVariant({
@@ -883,10 +1184,20 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
                 sku: variant.variantSku ?? '',
                 skuAutoGenerated: false,
                 price: variant.price,
+                costNet: variant.costNet ?? null,
+                contentOverride: variant.contentOverride ?? null,
                 discountPct: variant.discountPct ?? 0,
                 stock: variant.inventory ?? 0,
                 active: (variant.status ?? 'active') === 'active',
-                sort: variant.position ?? index + 1
+                sort: index + 1,
+                imageAssignments: [...(variant.imageAssignments ?? [])],
+                optionValueIds: [...(variant.optionValueIds ?? [])],
+                optionSelections: Object.fromEntries(
+                  (variant.optionValueIds ?? [])
+                    .map((valueId) => optionSelectionByValueId.get(valueId))
+                    .filter((selection): selection is { axisId: string; valueId: string } => Boolean(selection))
+                    .map((selection) => [selection.axisId, selection.valueId])
+                )
               })
             )
           : [createVariant({ label: 'Osnovni artikel' })])
@@ -896,12 +1207,18 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
         active: true
       });
 
+  const configuredDefaultVariant = family.variants.find((variant) => variant.id === family.defaultVariantId);
+  if (!configuredDefaultVariant?.active) {
+    family.defaultVariantId = findFirstActiveVariant(family.variants)?.id ?? null;
+  }
+
   const mediaImages = (initialData?.media
     .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
     .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
     .map((media) => {
       const url = media.blobUrl || media.externalUrl || '';
       return {
+        persistedId: media.id ?? null,
         previewUrl: url,
         uploadedUrl: url || null,
         blobPathname: media.blobPathname ?? null,
@@ -917,6 +1234,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
   const videoMedia = initialData?.media.find((media) => media.mediaKind === 'video') ?? null;
   const video = videoMedia
     ? {
+        persistedId: videoMedia.id ?? null,
         source: videoMedia.sourceKind === 'youtube' ? 'youtube' : 'upload',
         label: videoMedia.filename || 'Video',
         previewUrl: videoMedia.externalUrl || videoMedia.blobUrl || '',
@@ -939,6 +1257,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     material: initialData?.material ?? '',
     surface: initialData?.shape ?? '',
     color: initialData?.colour ?? '',
+    taxRatePercent: String(Number(((initialData?.taxRate ?? 0.22) * 100).toFixed(2))),
     thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
     moq: initialData?.variants[0]?.minOrder ?? 1,
     weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
@@ -1167,6 +1486,8 @@ function normalizeDimensionSalesData(value: unknown): {
 function getDimensionVariantDeliveryTime(data: unknown, variant: Variant | null | undefined): string {
   const normalized = normalizeDimensionSalesData(data);
   if (!variant) return normalized.defaultDeliveryTime;
+  const contentOverrideDeliveryTime = variant.contentOverride?.deliveryEstimate?.trim();
+  if (contentOverrideDeliveryTime) return contentOverrideDeliveryTime;
   return (
     normalized.variantDeliveryTimes[variant.id] ||
     normalized.variantDeliveryTimes[getDimensionVariantKey(variant)] ||
@@ -1227,17 +1548,6 @@ function setDimensionInventoryRows(data: unknown, rows: readonly DimensionInvent
       ...Object.fromEntries(variantInventory.map((row) => [getDimensionVariantKey(row), row.deliveryTime]))
     },
     variantInventory
-  };
-}
-
-function setDimensionDefaultDeliveryTime(data: unknown, deliveryTime: string): Record<string, unknown> {
-  const record = asPlainRecord(data);
-  const normalized = normalizeDimensionSalesData(record);
-  return {
-    ...record,
-    defaultDeliveryTime: deliveryTime.trim() || normalized.defaultDeliveryTime,
-    variantDeliveryTimes: normalized.variantDeliveryTimes,
-    variantInventory: normalized.variantInventory
   };
 }
 
@@ -2309,11 +2619,24 @@ export default function AdminItemEditorPage({
 
   const [draft, setDraft] = useState<ProductFamily>(() => ({
     ...initialPersistedState.draft,
+    optionAxes: cloneOptionAxes(initialPersistedState.draft.optionAxes),
     variants: initialPersistedState.draft.variants.map(cloneVariant)
   }));
   const [productType, setProductType] = useState<ProductEditorType>(initialPersistedState.productType);
   const [typeSpecificData, setTypeSpecificData] = useState<UniversalProductSpecificData>(() => cloneTypeSpecificData(initialPersistedState.typeSpecificData));
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
+  const [dimensionVariantViewMode, setDimensionVariantViewMode] = useState<DimensionVariantViewMode>('rows');
+  const [expandedDimensionVariantId, setExpandedDimensionVariantId] = useState<string | null>(
+    () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
+  );
+  const [hoveredDimensionVariantId, setHoveredDimensionVariantId] = useState<string | null>(null);
+  const [collapseInactiveDimensionVariants, setCollapseInactiveDimensionVariants] = useState(true);
+  const [draggedDimensionVariantId, setDraggedDimensionVariantId] = useState<string | null>(null);
+  const dimensionVariantScrollRef = useRef<HTMLDivElement | null>(null);
+  const dimensionVariantSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: adjacentDimensionVariantKeyboardCoordinates })
+  );
   const [generatorInput, setGeneratorInput] = useState('');
   const [generatorChips, setGeneratorChips] = useState<GeneratorChip[]>([]);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
@@ -2369,16 +2692,30 @@ export default function AdminItemEditorPage({
   const [simulatorQuantity, setSimulatorQuantity] = useState(30);
   const [simulatorAppliesQuantityDiscounts, setSimulatorAppliesQuantityDiscounts] = useState(true);
   const mediaImagesDraft = useMemo(() => mediaImageSlots.map((slot) => slot.previewUrl).filter(Boolean), [mediaImageSlots]);
-  const dimensionProductData = typeSpecificData.dimensions;
   const simpleProductData = typeSpecificData.simple;
   const weightProductData = typeSpecificData.weight;
   const machineProductData = typeSpecificData.uniqueMachine;
-  const normalizedDimensionSalesData = useMemo(
-    () => normalizeDimensionSalesData(dimensionProductData),
-    [dimensionProductData]
+  const normalizedWeightProductData = useMemo(
+    () => normalizeWeightProductData(weightProductData, {
+      variants: draft.variants,
+      baseSku: sideSettings.sku || draft.variants[0]?.sku || 'SKU'
+    }),
+    [draft.variants, sideSettings.sku, weightProductData]
   );
-  const dimensionDefaultDeliveryDayAmount = getDeliveryDayAmount(normalizedDimensionSalesData.defaultDeliveryTime);
-  const dimensionDefaultDeliveryDayUnit = getWorkingDayUnit(dimensionDefaultDeliveryDayAmount);
+  const weightLocalDefaultVariantId = useMemo(() => {
+    const configuredDefaultId = draft.defaultVariantId;
+    if (!configuredDefaultId) return null;
+    return normalizedWeightProductData.variants.find(
+      (variant) => variant.id === configuredDefaultId
+    )?.id ?? null;
+  }, [draft.defaultVariantId, normalizedWeightProductData.variants]);
+  const selectDefaultWeightVariant = useCallback((weightVariantId: string | null) => {
+    setDraft((current) =>
+      current.defaultVariantId === weightVariantId
+        ? current
+        : { ...current, defaultVariantId: weightVariantId }
+    );
+  }, []);
   const simulatorOptions = useMemo<SimulatorOption[]>(() => {
     if (productType === 'dimensions') return getDimensionSimulatorOptions(draft.variants);
     if (productType === 'weight') return getWeightSimulatorOptions(weightProductData);
@@ -2425,6 +2762,13 @@ export default function AdminItemEditorPage({
   }, [simulatorOptions, simulatorVariantId]);
 
   useEffect(() => {
+    setExpandedDimensionVariantId((current) => {
+      if (current && draft.variants.some((variant) => variant.id === current)) return current;
+      return draft.defaultVariantId ?? draft.variants[0]?.id ?? null;
+    });
+  }, [draft.defaultVariantId, draft.variants]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const hydrateCategoryTree = async () => {
@@ -2455,6 +2799,7 @@ export default function AdminItemEditorPage({
       draft: {
         ...nextDraft,
         category: selectedCategoryPath.join(' / '),
+        optionAxes: cloneOptionAxes(nextDraft.optionAxes),
         variants: nextDraft.variants.map(cloneVariant)
       },
       productType,
@@ -2501,6 +2846,19 @@ export default function AdminItemEditorPage({
         state.draft.name
       );
     }
+    const originalVariantById = new Map(state.draft.variants.map((variant) => [variant.id, variant]));
+    variants = variants.map((variant) => {
+      const original = originalVariantById.get(variant.id);
+      return original
+        ? {
+            ...variant,
+            costNet: original.costNet ?? null,
+            contentOverride: original.contentOverride ?? null,
+            optionValueIds: [...(original.optionValueIds ?? [])],
+            optionSelections: { ...(original.optionSelections ?? {}) }
+          }
+        : variant;
+    });
     return {
       ...state,
       typeSpecificData,
@@ -2642,6 +3000,7 @@ export default function AdminItemEditorPage({
     resumeTextUndoSessionRef.current = null;
     setDraft({
       ...snapshot.persistedState.draft,
+      optionAxes: cloneOptionAxes(snapshot.persistedState.draft.optionAxes),
       variants: snapshot.persistedState.draft.variants.map(cloneVariant)
     });
     setProductType(snapshot.persistedState.productType);
@@ -2709,6 +3068,10 @@ export default function AdminItemEditorPage({
   const isTableEditable = isEditable;
   const isMediaEditable = isEditable;
   const isDimensionBasedMode = productType === 'dimensions';
+  const configuredDefaultVariant = draft.variants.find((variant) => variant.id === draft.defaultVariantId);
+  const resolvedDefaultVariantId = configuredDefaultVariant?.active
+    ? configuredDefaultVariant.id
+    : findFirstActiveVariant(draft.variants)?.id ?? null;
   const applyProductTypeChange = useCallback((nextProductType: ProductEditorType) => {
     setProductType(nextProductType);
     setSimulatorVariantId('');
@@ -2742,15 +3105,6 @@ export default function AdminItemEditorPage({
   const updateMachineProductData = (nextData: typeof machineProductData) => {
     setTypeSpecificData((current) => ({ ...current, uniqueMachine: nextData }));
   };
-  const updateDimensionDefaultDeliveryTime = (amount: string) => {
-    const deliveryTime = formatDeliveryTimeFromAmount(amount);
-    if (!deliveryTime) return;
-    setTypeSpecificData((current) => ({
-      ...current,
-      dimensions: setDimensionDefaultDeliveryTime(current.dimensions, deliveryTime)
-    }));
-  };
-
   const isToleranceLocked = false;
   const isDimensionLockActive = false;
   const isThicknessLockActive = false;
@@ -2820,6 +3174,7 @@ export default function AdminItemEditorPage({
       width: { emptyFallback: null, apply: (value) => ({ width: value }) },
       thickness: { emptyFallback: null, apply: (value) => ({ thickness: value }) },
       weight: { emptyFallback: null, apply: (value) => ({ weight: value }) },
+      costNet: { emptyFallback: null, apply: (value) => ({ costNet: value === null ? null : Math.max(0, value) }) },
       price: { emptyFallback: 0, apply: (value) => ({ price: value ?? 0 }) },
       discountPct: { emptyFallback: 0, apply: (value) => ({ discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }) }
     };
@@ -2844,6 +3199,18 @@ export default function AdminItemEditorPage({
           const nextValue = parsed === null ? null : formatDecimalForDisplay(parsed);
           if (nextVariant.errorTolerance !== nextValue) {
             nextVariant = { ...nextVariant, errorTolerance: nextValue };
+            changed = true;
+          }
+          continue;
+        }
+        if (field === 'deliveryTime') {
+          const deliveryTime = formatDeliveryTimeFromAmount(trimmed);
+          const contentOverride = { ...(nextVariant.contentOverride ?? {}) };
+          if (deliveryTime) contentOverride.deliveryEstimate = deliveryTime;
+          else delete contentOverride.deliveryEstimate;
+          const nextContentOverride = Object.keys(contentOverride).length > 0 ? contentOverride : null;
+          if (JSON.stringify(nextVariant.contentOverride ?? null) !== JSON.stringify(nextContentOverride)) {
+            nextVariant = { ...nextVariant, contentOverride: nextContentOverride };
             changed = true;
           }
           continue;
@@ -2895,6 +3262,7 @@ export default function AdminItemEditorPage({
     suppressUndoTrackingRef.current = true;
     setDraft({
       ...nextDraft,
+      optionAxes: cloneOptionAxes(nextDraft.optionAxes),
       variants: nextDraft.variants.map(cloneVariant)
     });
     setProductType(preparedState.productType);
@@ -3000,31 +3368,76 @@ export default function AdminItemEditorPage({
         description: nextDraft.description || '',
         adminNotes: initialData?.adminNotes ?? null,
         position: nextDraft.sort ?? 0,
-        variants: nextDraft.variants.map((variant, index) => ({
-          variantName: buildPersistedVariantName({
-            ...variant,
-            weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null)
-          }, {
-            baseName: nextDraft.name,
-            variantCount: nextDraft.variants.length,
-            index
-          }),
-          length: variant.length,
-          width: variant.width,
-          thickness: variant.thickness,
-          weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null),
-          errorTolerance: (variant.errorTolerance ?? preparedState.sideSettings.thicknessTolerance) || null,
-          price: variant.price,
-          discountPct: variant.discountPct,
-          inventory: variant.stock,
-          minOrder: Math.max(1, variant.minOrder ?? Number(preparedState.sideSettings.moq || 1)),
-          variantSku: variant.sku || null,
-          unit: null,
-          status: variant.active ? 'active' : 'inactive',
-          badge: preparedState.variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
-          position: variant.sort ?? index,
-          imageAssignments: variant.imageAssignments ?? []
+        taxRate: Math.min(
+          1,
+          Math.max(0, (parseDecimalInput(preparedState.sideSettings.taxRatePercent) ?? 22) / 100)
+        ),
+        appearanceOverride: initialData?.appearanceOverride ?? null,
+        defaultVariantId:
+          nextDraft.defaultVariantId != null
+          && /^\d+$/.test(nextDraft.defaultVariantId)
+            ? Number(nextDraft.defaultVariantId)
+            : null,
+        defaultVariantIndex: Math.max(
+          0,
+          nextDraft.defaultVariantId == null
+            ? 0
+            : nextDraft.variants.findIndex((variant) => variant.id === nextDraft.defaultVariantId)
+        ),
+        optionAxes: nextDraft.optionAxes.map((axis, axisIndex) => ({
+          id: /^\d+$/.test(axis.id) ? Number(axis.id) : undefined,
+          name: axis.name.trim(),
+          slug: axis.slug.trim(),
+          position: axisIndex,
+          values: axis.values.map((value, valueIndex) => ({
+            id: /^\d+$/.test(value.id) ? Number(value.id) : undefined,
+            value: value.value.trim(),
+            slug: value.slug.trim(),
+            swatch: value.swatch || null,
+            position: valueIndex
+          }))
         })),
+        variants: nextDraft.variants.map((variant, index) => {
+          const optionValueIds: number[] = [];
+          const optionSelections: Record<string, string> = {};
+          for (const axis of nextDraft.optionAxes) {
+            const selectedValueId = variant.optionSelections?.[axis.id];
+            const selectedValue = axis.values.find((value) => value.id === selectedValueId);
+            if (!selectedValue) continue;
+            if (/^\d+$/.test(selectedValue.id)) optionValueIds.push(Number(selectedValue.id));
+            optionSelections[axis.slug] = selectedValue.slug;
+          }
+          return {
+            id: /^\d+$/.test(variant.id) ? Number(variant.id) : undefined,
+            variantName: buildPersistedVariantName({
+              ...variant,
+              weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null)
+            }, {
+              baseName: nextDraft.name,
+              variantCount: nextDraft.variants.length,
+              index
+            }),
+            length: variant.length,
+            width: variant.width,
+            thickness: variant.thickness,
+            weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null),
+            errorTolerance: (variant.errorTolerance ?? preparedState.sideSettings.thicknessTolerance) || null,
+            price: variant.price,
+            costNet: variant.costNet ?? null,
+            contentOverride: variant.contentOverride ?? null,
+            discountPct: variant.discountPct,
+            inventory: variant.stock,
+            minOrder: Math.max(1, variant.minOrder ?? Number(preparedState.sideSettings.moq || 1)),
+            variantSku: variant.sku || null,
+            unit: null,
+            status: variant.active ? 'active' : 'inactive',
+            badge: preparedState.variantTags[variant.id] ?? (normalizeVariantTag(variant.badge) || null),
+            position: index + 1,
+            imageAssignments: variant.imageAssignments ?? [],
+            optionValueIds,
+            optionSelections
+          };
+        }),
         quantityDiscounts: persistableQuantityDiscounts.map((rule, index) => ({
           id: rule.persistedId ?? undefined,
           minQuantity: Math.max(1, Math.floor(rule.minQuantity)),
@@ -3035,6 +3448,7 @@ export default function AdminItemEditorPage({
         })),
         media: [
           ...uploadedImages.map((entry, index) => ({
+            id: entry.persistedId ?? undefined,
             mediaKind: 'image' as const,
             role: 'gallery' as const,
             sourceKind: 'upload' as const,
@@ -3048,6 +3462,7 @@ export default function AdminItemEditorPage({
           ...(uploadedVideo
             ? [
                 {
+                  id: uploadedVideo.persistedId ?? undefined,
                   mediaKind: 'video' as const,
                   role: 'gallery' as const,
                   sourceKind: uploadedVideo.source === 'youtube' ? ('youtube' as const) : ('upload' as const),
@@ -3064,6 +3479,7 @@ export default function AdminItemEditorPage({
               ]
             : []),
           ...uploadedDocuments.map((documentEntry, index) => ({
+            id: /^\d+$/.test(documentEntry.id) ? Number(documentEntry.id) : undefined,
             mediaKind: 'document' as const,
             role: 'technical_sheet' as const,
             sourceKind: 'upload' as const,
@@ -3087,6 +3503,7 @@ export default function AdminItemEditorPage({
       const canonicalSnapshot: EditorPersistedState = {
         draft: {
           ...canonicalDraft,
+          optionAxes: cloneOptionAxes(canonicalDraft.optionAxes),
           variants: canonicalDraft.variants.map(cloneVariant)
         },
         productType: preparedState.productType,
@@ -3138,8 +3555,8 @@ export default function AdminItemEditorPage({
       toast.error('Naziv je obvezen.');
       return;
     }
-    if (!draft.category.trim() || selectedCategoryPath.length === 0) {
-      toast.error('Kategorija je obvezna.');
+    if (draft.active && (!draft.category.trim() || selectedCategoryPath.length === 0)) {
+      toast.error('Za objavo je kategorija obvezna.');
       return;
     }
     if (hasIdentityConflict) {
@@ -3189,13 +3606,13 @@ export default function AdminItemEditorPage({
   const archiveItem = async () => {
     const itemIdentifier = articleId || String(initialData?.id ?? '').trim() || draft.slug.trim();
     if (!itemIdentifier) {
-      toast.error('Artikel nima veljavnega identifikatorja za arhiviranje.');
+      toast.error('Artikel nima veljavnega identifikatorja za brisanje.');
       return;
     }
     const shouldArchive = window.confirm(
       hasUnsavedChanges
-        ? 'Artikel ima neshranjene spremembe. Če nadaljujete, bo v arhiv dodana trenutna lokalna različica, artikel pa bo odstranjen iz aktivnega seznama. Želite nadaljevati?'
-        : 'Ali želite arhivirati ta artikel?'
+        ? 'Artikel ima neshranjene spremembe, ki bodo izgubljene. Če nadaljujete, bo izbrisan in 90 dni shranjen v arhivu. Želite nadaljevati?'
+        : 'Ali želite izbrisati ta artikel? Shranjen bo v arhivu 90 dni in v tem času ga lahko obnovite.'
     );
     if (!shouldArchive) return;
 
@@ -3216,14 +3633,14 @@ export default function AdminItemEditorPage({
       const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
-        throw new Error(body.message || 'Arhiviranje artikla ni uspelo.');
+        throw new Error(body.message || 'Brisanje artikla ni uspelo.');
       }
-      toast.success('Artikel je arhiviran.');
+      toast.success('Artikel je izbrisan in premaknjen v 90-dnevni arhiv.');
       router.push('/admin/arhiv/artikli');
       router.refresh();
     } catch (error) {
       writeArchivedItemStorage(previousArchiveItems);
-      toast.error(error instanceof Error ? error.message : 'Arhiviranje artikla ni uspelo.');
+      toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
     }
   };
 
@@ -3325,34 +3742,66 @@ export default function AdminItemEditorPage({
     })));
 
     const generatedDimensions = Array.from(generatedByKey.values()).sort(compareGeneratedDimensionOptions);
-    const generated: Variant[] = generatedDimensions.map((dimensions, index) => {
-      const dimensionSuffix = shouldUseThickness
-        ? [dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x')
-        : [dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
-      const generatedSku = baseSku
-        ? `${normalizedBaseForVariants}-${dimensionSuffix}`
-        : shouldUseThickness
-          ? `${toSlug(draft.name || 'artikel').toUpperCase()}-${[dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`
-          : `${toSlug(draft.name || 'artikel').toUpperCase()}-${[dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`;
-      return createVariant({
-        label: formatDimensionInventoryLabel(dimensions),
-        width: dimensions.width,
-        length: dimensions.length,
-        thickness: dimensions.thickness,
-        sku: generatedSku,
-        skuAutoGenerated: true,
-        price: 0,
-        discountPct: draft.defaultDiscountPct,
-        sort: index + 1
-      });
-    });
-
-    if (generated.length === 0) {
+    if (generatedDimensions.length === 0) {
       toast.error('Ni veljavnih kombinacij. Dolžina mora biti enaka ali večja od širine.');
       return;
     }
 
-    setDraft((current) => ({ ...current, variants: generated }));
+    setDraft((current) => {
+      const existingByDimensionKey = new Map(
+        current.variants
+          .filter((variant) => getDimensionVariantKey(variant))
+          .map((variant) => [getDimensionVariantKey(variant), variant])
+      );
+      const nextNewPosition = Math.max(0, ...current.variants.map((variant) => variant.sort || 0)) + 1;
+      let newVariantIndex = 0;
+      const generated = generatedDimensions.map((dimensions) => {
+        const dimensionSuffix = shouldUseThickness
+          ? [dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x')
+          : [dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('x');
+        const generatedSku = baseSku
+          ? `${normalizedBaseForVariants}-${dimensionSuffix}`
+          : shouldUseThickness
+            ? `${toSlug(current.name || 'artikel').toUpperCase()}-${[dimensions.thickness, dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`
+            : `${toSlug(current.name || 'artikel').toUpperCase()}-${[dimensions.length, dimensions.width].map(formatDimensionKeyValue).filter(Boolean).join('')}`;
+        const existing = existingByDimensionKey.get(getDimensionVariantKey(dimensions));
+        if (existing) {
+          return {
+            ...existing,
+            label: formatDimensionInventoryLabel(dimensions),
+            width: dimensions.width,
+            length: dimensions.length,
+            thickness: dimensions.thickness,
+            sku: existing.skuAutoGenerated === false ? existing.sku : generatedSku,
+            skuAutoGenerated: existing.skuAutoGenerated === false ? false : true
+          };
+        }
+        const variant = createVariant({
+          label: formatDimensionInventoryLabel(dimensions),
+          width: dimensions.width,
+          length: dimensions.length,
+          thickness: dimensions.thickness,
+          sku: generatedSku,
+          skuAutoGenerated: true,
+          price: 0,
+          discountPct: current.defaultDiscountPct,
+          sort: nextNewPosition + newVariantIndex
+        });
+        newVariantIndex += 1;
+        return variant;
+      });
+      const orderedGenerated = generated
+        .sort((left, right) => (left.sort ?? 0) - (right.sort ?? 0))
+        .map((variant, index) => ({ ...variant, sort: index + 1 }));
+      const retainedDefault = orderedGenerated.find(
+        (variant) => variant.id === current.defaultVariantId && variant.active
+      );
+      return {
+        ...current,
+        defaultVariantId: retainedDefault?.id ?? findFirstActiveVariant(orderedGenerated)?.id ?? null,
+        variants: orderedGenerated
+      };
+    });
     setVariantSelections(new Set());
   };
 
@@ -3608,6 +4057,63 @@ export default function AdminItemEditorPage({
 
   const updateDimensionVariantStock = (variant: Variant, stock: number) => {
     updateVariant(variant.id, { stock });
+    setVariantTags((current) => {
+      const currentTag = current[variant.id] ?? 'na-zalogi';
+      if (stock === 0 && currentTag === 'na-zalogi') {
+        return { ...current, [variant.id]: 'ni-na-zalogi' };
+      }
+      if (stock > 0 && currentTag === 'ni-na-zalogi') {
+        return { ...current, [variant.id]: 'na-zalogi' };
+      }
+      return current;
+    });
+  };
+
+  const updateDimensionVariantDeliveryDraft = (variantId: string, amount: string) => {
+    setDecimalInputDrafts((current) => ({
+      ...current,
+      [decimalDraftKey(variantId, 'deliveryTime')]: normalizeDeliveryDayAmount(amount)
+    }));
+  };
+
+  const commitDimensionVariantDeliveryDraft = (variant: Variant) => {
+    const key = decimalDraftKey(variant.id, 'deliveryTime');
+    const rawAmount = decimalInputDrafts[key];
+    if (rawAmount === undefined) return;
+    const deliveryTime = formatDeliveryTimeFromAmount(rawAmount);
+    const contentOverride = { ...(variant.contentOverride ?? {}) };
+    if (deliveryTime) contentOverride.deliveryEstimate = deliveryTime;
+    else delete contentOverride.deliveryEstimate;
+    updateVariant(variant.id, {
+      contentOverride: Object.keys(contentOverride).length > 0 ? contentOverride : null
+    });
+    setDecimalInputDrafts((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const selectDefaultDimensionVariant = (variant: Variant) => {
+    if (!variant.active) return;
+    setDraft((current) => ({ ...current, defaultVariantId: variant.id }));
+  };
+
+  const updateDimensionVariantActiveState = (variantId: string, active: boolean) => {
+    const reassignsDefault = !active && draft.defaultVariantId === variantId;
+    setDraft((current) => {
+      const variants = current.variants.map((variant) =>
+        variant.id === variantId ? { ...variant, active } : variant
+      );
+      const configuredDefault = variants.find((variant) => variant.id === current.defaultVariantId);
+      const defaultVariantId = configuredDefault?.active
+        ? configuredDefault.id
+        : findFirstActiveVariant(variants)?.id ?? null;
+      return { ...current, variants, defaultVariantId };
+    });
+    if (reassignsDefault) {
+      toast.info('Privzeta različica je bila prestavljena na naslednjo aktivno vrstico.');
+    }
   };
 
   const readDecimalInputValue = (variantId: string, field: string, value: number | null | undefined) => {
@@ -3657,6 +4163,9 @@ export default function AdminItemEditorPage({
       const remainingVariants = current.variants.filter((variant) => !variantSelections.has(variant.id));
       return {
         ...current,
+        defaultVariantId: remainingVariants.some((variant) => variant.id === current.defaultVariantId && variant.active)
+          ? current.defaultVariantId
+          : findFirstActiveVariant(remainingVariants)?.id ?? null,
         variants: remainingVariants.map((variant, index) => ({
           ...variant,
           sort: index + 1
@@ -3667,11 +4176,246 @@ export default function AdminItemEditorPage({
     toast.info(removedCount === 1 ? 'Različica je odstranjena. Shrani za potrditev.' : `Odstranjenih različic: ${removedCount}. Shrani za potrditev.`);
   };
 
+  const duplicateSelectedDimensionVariant = () => {
+    if (!isTableEditable || variantSelections.size !== 1) return;
+
+    commitPendingTextUndoSession();
+    const decimalCommit = commitPendingDecimalDrafts();
+    if (decimalCommit.error) {
+      toast.error(decimalCommit.error);
+      return;
+    }
+
+    const selectedVariantIds = Array.from(variantSelections);
+    const sourceVariantId = selectedVariantIds[0];
+    const result = duplicateSelectedVariant(
+      decimalCommit.nextDraft.variants,
+      selectedVariantIds
+    );
+    if (!result.duplicatedVariant) return;
+
+    const duplicatedVariantId = result.duplicatedVariant.id;
+    setDraft({
+      ...decimalCommit.nextDraft,
+      variants: result.variants
+    });
+    if (Object.keys(decimalInputDrafts).length > 0) {
+      setDecimalInputDrafts({});
+    }
+    const explicitSourceTag = variantTags[sourceVariantId];
+    if (explicitSourceTag) {
+      setVariantTags((current) => ({
+        ...current,
+        [duplicatedVariantId]: explicitSourceTag
+      }));
+    }
+    setVariantSelections(new Set([duplicatedVariantId]));
+    setExpandedDimensionVariantId(duplicatedVariantId);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const scrollContainer = dimensionVariantScrollRef.current;
+        scrollContainer?.scrollTo({
+          left: scrollContainer.scrollWidth,
+          behavior: 'smooth'
+        });
+      });
+    });
+    toast.info('Različica je podvojena kot neaktivna. Shrani za potrditev.');
+  };
+
   const setVariantTag = (variantId: string, tag: VariantTag) => {
     setVariantTags((current) => ({ ...current, [variantId]: tag }));
   };
 
-  const getVariantTag = (variantId: string): VariantTag => variantTags[variantId] ?? 'na-zalogi';
+  const getVariantTag = (variant: Variant): VariantTag =>
+    variantTags[variant.id] ?? (variant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
+
+  const applyDimensionVariantRowValueToAll = (
+    rowKey: DimensionVariantBulkApplyRowKey
+  ) => {
+    if (!isTableEditable || draft.variants.length < 2 || !expandedDimensionVariantId) return;
+
+    const sourceVariant = draft.variants.find(
+      (variant) => variant.id === expandedDimensionVariantId
+    );
+    if (!sourceVariant) return;
+
+    let resolvedSourceVariant = sourceVariant;
+    const draftField = DIMENSION_VARIANT_BULK_DRAFT_FIELDS[rowKey];
+    const rawDraft = draftField
+      ? decimalInputDrafts[decimalDraftKey(sourceVariant.id, draftField)]
+      : undefined;
+
+    if (rowKey === 'delivery') {
+      const deliveryEstimate = rawDraft === undefined
+        ? getDimensionVariantDeliveryTime(typeSpecificData.dimensions, sourceVariant)
+        : formatDeliveryTimeFromAmount(rawDraft.trim())
+          || normalizeDimensionSalesData(typeSpecificData.dimensions).defaultDeliveryTime;
+      resolvedSourceVariant = {
+        ...sourceVariant,
+        contentOverride: {
+          ...(sourceVariant.contentOverride ?? {}),
+          deliveryEstimate
+        }
+      };
+    } else if (rawDraft !== undefined) {
+      const trimmed = rawDraft.trim();
+      const parsed = trimmed ? parseDecimalInput(trimmed) : null;
+      if (trimmed && parsed === null) {
+        const rowLabel = DIMENSION_VARIANT_MATRIX_ROWS.find((row) => row.key === rowKey)?.label ?? rowKey;
+        toast.error(`Preverite vrednost v polju ${rowLabel.toLocaleLowerCase('sl')}.`);
+        return;
+      }
+      if (rowKey === 'weight') {
+        resolvedSourceVariant = { ...sourceVariant, weight: parsed };
+      } else if (rowKey === 'tolerance') {
+        resolvedSourceVariant = {
+          ...sourceVariant,
+          errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed)
+        };
+      } else if (rowKey === 'cost') {
+        resolvedSourceVariant = {
+          ...sourceVariant,
+          costNet: parsed === null ? null : Math.max(0, parsed)
+        };
+      } else if (rowKey === 'price') {
+        if (parsed !== null && parsed < 0) {
+          toast.error('Prodajna cena ne more biti negativna.');
+          return;
+        }
+        resolvedSourceVariant = { ...sourceVariant, price: parsed ?? 0 };
+      } else if (rowKey === 'discount') {
+        resolvedSourceVariant = {
+          ...sourceVariant,
+          discountPct: Math.min(99.9, Math.max(0, parsed ?? 0))
+        };
+      }
+    }
+
+    if (rowKey === 'status' && !resolvedSourceVariant.active) {
+      toast.error('Statusa »Neaktiven« ni mogoče uporabiti za vse, ker mora vsaj ena različica ostati aktivna.');
+      return;
+    }
+
+    const variantsWithResolvedSource = draft.variants.map((variant) =>
+      variant.id === resolvedSourceVariant.id ? resolvedSourceVariant : variant
+    );
+    const rowLabel = DIMENSION_VARIANT_MATRIX_ROWS.find((row) => row.key === rowKey)?.label ?? rowKey;
+    const sourceName = buildDimensionVariantHeaderLabel(
+      resolvedSourceVariant,
+      Math.max(0, draft.variants.findIndex((variant) => variant.id === resolvedSourceVariant.id))
+    );
+    let changedVariantIds: string[] = [];
+    let nextVariants = variantsWithResolvedSource;
+    let nextDefaultVariantId = draft.defaultVariantId;
+    let sourceTag: VariantTag | null = null;
+    let stockTagVariantIds: string[] = [];
+
+    if (rowKey === 'note') {
+      sourceTag = getVariantTag(resolvedSourceVariant);
+      changedVariantIds = variantsWithResolvedSource
+        .filter((variant) => variant.id !== resolvedSourceVariant.id && getVariantTag(variant) !== sourceTag)
+        .map((variant) => variant.id);
+    } else {
+      const field = DIMENSION_VARIANT_BULK_APPLY_FIELDS[rowKey];
+      if (!field) return;
+      const result = applyVariantValueToAll(
+        variantsWithResolvedSource,
+        resolvedSourceVariant.id,
+        field
+      );
+      nextVariants = result.variants;
+      changedVariantIds = result.changedVariantIds;
+      if (rowKey === 'status') {
+        const configuredDefault = nextVariants.find(
+          (variant) => variant.id === draft.defaultVariantId && variant.active
+        );
+        nextDefaultVariantId = configuredDefault?.id ?? resolvedSourceVariant.id;
+      } else if (rowKey === 'stock') {
+        const previousVariantById = new Map(
+          draft.variants.map((variant) => [variant.id, variant])
+        );
+        stockTagVariantIds = nextVariants
+          .filter((variant) => {
+            const previousVariant = previousVariantById.get(variant.id) ?? variant;
+            const currentTag = variantTags[variant.id]
+              ?? (previousVariant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
+            return (
+              (variant.stock === 0 && currentTag === 'na-zalogi')
+              || (variant.stock > 0 && currentTag === 'ni-na-zalogi')
+            );
+          })
+          .map((variant) => variant.id);
+        changedVariantIds = Array.from(new Set([
+          ...changedVariantIds,
+          ...stockTagVariantIds.filter((variantId) => variantId !== resolvedSourceVariant.id)
+        ]));
+      }
+    }
+
+    applySelectionChange(() => {
+      setDraft({
+        ...draft,
+        variants: nextVariants,
+        defaultVariantId: nextDefaultVariantId
+      });
+      if (draftField) {
+        setDecimalInputDrafts((current) =>
+          Object.fromEntries(
+            Object.entries(current).filter(([key]) => !key.endsWith(`:${draftField}`))
+          )
+        );
+      }
+      if (rowKey === 'note' && sourceTag && changedVariantIds.length > 0) {
+        const changedVariantIdSet = new Set(changedVariantIds);
+        setVariantTags((current) => {
+          const next = { ...current };
+          variantsWithResolvedSource.forEach((variant) => {
+            if (changedVariantIdSet.has(variant.id)) next[variant.id] = sourceTag;
+          });
+          return next;
+        });
+      } else if (rowKey === 'stock') {
+        const previousVariantById = new Map(
+          draft.variants.map((variant) => [variant.id, variant])
+        );
+        const stockTagVariantIdSet = new Set(stockTagVariantIds);
+        setVariantTags((current) => {
+          let changed = false;
+          const next = { ...current };
+          nextVariants.forEach((variant) => {
+            if (!stockTagVariantIdSet.has(variant.id)) return;
+            const previousVariant = previousVariantById.get(variant.id) ?? variant;
+            const currentTag = current[variant.id]
+              ?? (previousVariant.stock > 0 ? 'na-zalogi' : 'ni-na-zalogi');
+            const nextTag = variant.stock === 0 && currentTag === 'na-zalogi'
+              ? 'ni-na-zalogi'
+              : variant.stock > 0 && currentTag === 'ni-na-zalogi'
+                ? 'na-zalogi'
+                : currentTag;
+            if (nextTag !== currentTag) {
+              next[variant.id] = nextTag;
+              changed = true;
+            }
+          });
+          return changed ? next : current;
+        });
+      }
+    });
+
+    if (changedVariantIds.length === 0) {
+      toast.info(`Vse druge različice že imajo enako vrednost za »${rowLabel}«.`);
+      return;
+    }
+    const hiddenInactiveCount = changedVariantIds.filter((variantId) =>
+      draft.variants.some((variant) => variant.id === variantId && !variant.active)
+    ).length;
+    toast.info(
+      `»${rowLabel}« iz »${sourceName}« uporabljena za ${changedVariantIds.length} različic${
+        hiddenInactiveCount > 0 ? ` (${hiddenInactiveCount} neaktivnih)` : ''
+      }.`
+    );
+  };
 
   const addQuantityDiscount = () => {
     setQuantityDiscounts((current) => {
@@ -4147,6 +4891,509 @@ export default function AdminItemEditorPage({
       </div>
     );
   };
+
+  const expandedDimensionVariant =
+    draft.variants.find((variant) => variant.id === expandedDimensionVariantId) ?? null;
+  const dimensionVariantLayoutCompactCount = Math.max(0, draft.variants.length - 1);
+  const compactDimensionVariantWidth = dimensionVariantLayoutCompactCount <= 2
+    ? 220
+    : dimensionVariantLayoutCompactCount <= 4
+      ? 140
+      : dimensionVariantLayoutCompactCount <= 6
+        ? 100
+        : dimensionVariantLayoutCompactCount <= 8
+          ? 82
+          : dimensionVariantLayoutCompactCount <= 12
+            ? 58
+            : dimensionVariantLayoutCompactCount <= 15
+              ? 44
+              : dimensionVariantLayoutCompactCount <= 19
+                ? 34
+                : 40;
+  const usesDenseDimensionVariantLayout = dimensionVariantLayoutCompactCount >= 12;
+  const usesSteepDimensionVariantHeaders = dimensionVariantLayoutCompactCount > 15;
+  const dimensionVariantHeaderHeight = usesSteepDimensionVariantHeaders ? 138 : 118;
+  const dimensionVariantNormalBandHeight = 36;
+  const dimensionVariantDiagonalHeight =
+    dimensionVariantHeaderHeight - dimensionVariantNormalBandHeight;
+  const dimensionVariantHeaderAngle = 45;
+  const dimensionVariantHeaderTitleOpticalOffset = 6;
+  const dimensionVariantHeaderSlant = dimensionVariantDiagonalHeight;
+  const flexibleDimensionVariantCount = collapseInactiveDimensionVariants
+    ? draft.variants.filter((variant) => variant.active).length
+    : draft.variants.length;
+  const flexibleCompactDimensionVariantCount = Math.max(
+    0,
+    flexibleDimensionVariantCount - 1
+  );
+  const expandedDimensionVariantFlex = Math.max(1, flexibleCompactDimensionVariantCount * 0.233);
+  const getDimensionVariantTrack = (variant: Variant) => {
+    const isExpanded = variant.id === expandedDimensionVariant?.id;
+    const isCompressedInactive =
+      !isExpanded && collapseInactiveDimensionVariants && !variant.active;
+    const minimumWidth = isExpanded
+      ? (usesDenseDimensionVariantLayout ? 170 : 280)
+      : isCompressedInactive
+        ? Math.min(26, compactDimensionVariantWidth)
+        : compactDimensionVariantWidth;
+    const flexibleWidth = isExpanded
+      ? (usesDenseDimensionVariantLayout ? expandedDimensionVariantFlex : 1)
+      : isCompressedInactive
+        ? 0
+        : usesDenseDimensionVariantLayout
+          ? 1
+          : 0;
+    return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
+  };
+  const dimensionMatrixGridTemplateColumns = [
+    '205px',
+    ...draft.variants.map(getDimensionVariantTrack)
+  ].join(' ');
+  const dimensionMatrixMinWidth =
+    205
+    + draft.variants.reduce((total, variant) => {
+      if (variant.id === expandedDimensionVariant?.id) {
+        return total + (usesDenseDimensionVariantLayout ? 170 : 280);
+      }
+      return total + (
+        collapseInactiveDimensionVariants && !variant.active
+          ? Math.min(26, compactDimensionVariantWidth)
+          : compactDimensionVariantWidth
+      );
+    }, 0);
+  const firstSelectedDimensionVariant = draft.variants.find((variant) => variantSelections.has(variant.id)) ?? null;
+  const draggedDimensionVariant =
+    draft.variants.find((variant) => variant.id === draggedDimensionVariantId) ?? null;
+  const dimensionVariantTaxRate = Math.min(
+    1,
+    Math.max(0, (parseDecimalInput(sideSettings.taxRatePercent) ?? 22) / 100)
+  );
+
+  const toggleDimensionVariantSelection = (variantId: string) => {
+    setVariantSelections((current) => {
+      const next = new Set(current);
+      if (next.has(variantId)) next.delete(variantId);
+      else next.add(variantId);
+      return next;
+    });
+  };
+
+  const reorderDimensionVariants = (activeId: string, overId: string) => {
+    if (!isTableEditable || activeId === overId) return;
+    commitPendingTextUndoSession();
+    setDraft((current) => {
+      const oldIndex = current.variants.findIndex((variant) => variant.id === activeId);
+      const newIndex = current.variants.findIndex((variant) => variant.id === overId);
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return current;
+      return {
+        ...current,
+        variants: arrayMove(current.variants, oldIndex, newIndex).map((variant, index) => ({
+          ...variant,
+          sort: index + 1
+        }))
+      };
+    });
+  };
+
+  const handleDimensionVariantDragStart = (event: DragStartEvent) => {
+    commitPendingTextUndoSession();
+    setHoveredDimensionVariantId(null);
+    setDraggedDimensionVariantId(String(event.active.id));
+  };
+
+  const handleDimensionVariantDragEnd = (event: DragEndEvent) => {
+    setDraggedDimensionVariantId(null);
+    if (!event.over) return;
+    reorderDimensionVariants(String(event.active.id), String(event.over.id));
+  };
+
+  const getDimensionVariantSummaryValue = (
+    variant: Variant,
+    rowKey: DimensionVariantMatrixRowKey
+  ) => {
+    const decimal = (value: number | null | undefined) =>
+      value === null || value === undefined ? '—' : formatDecimalForDisplay(value);
+    if (rowKey === 'thickness') return decimal(variant.thickness);
+    if (rowKey === 'length') return decimal(variant.length);
+    if (rowKey === 'width') return decimal(variant.width);
+    if (rowKey === 'weight') return decimal(variant.weight);
+    if (rowKey === 'tolerance') {
+      return variant.errorTolerance ? `± ${variant.errorTolerance.replace('.', ',')}` : '—';
+    }
+    if (rowKey === 'cost') {
+      return variant.costNet === null || variant.costNet === undefined ? '—' : formatEuroAmount(variant.costNet);
+    }
+    if (rowKey === 'price') return formatEuroAmount(variant.price);
+    if (rowKey === 'priceGross') {
+      return formatEuroAmount(computeGrossPrice(variant.price, dimensionVariantTaxRate));
+    }
+    if (rowKey === 'discount') return formatDecimalForDisplay(variant.discountPct);
+    if (rowKey === 'salePrice') {
+      return variant.discountPct > 0
+        ? formatEuroAmount(computeSalePrice(variant.price, variant.discountPct))
+        : '—';
+    }
+    if (rowKey === 'salePriceGross') {
+      return variant.discountPct > 0
+        ? formatEuroAmount(
+            computeGrossPrice(
+              computeSalePrice(variant.price, variant.discountPct),
+              dimensionVariantTaxRate
+            )
+          )
+        : '—';
+    }
+    if (rowKey === 'stock') return `${variant.stock}`;
+    if (rowKey === 'minOrder') return `${variant.minOrder ?? 1}`;
+    if (rowKey === 'delivery') {
+      return getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)) || '—';
+    }
+    if (rowKey === 'sku') return variant.sku || '—';
+    return '—';
+  };
+
+  const renderExpandedDimensionVariantCell = (
+    variant: Variant,
+    rowKey: DimensionVariantMatrixRowKey
+  ): ReactNode => {
+    const variantName = buildDimensionVariantHeaderLabel(
+      variant,
+      Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id)),
+      true
+    );
+    if (rowKey === 'default') {
+      return (
+        <input
+          type="radio"
+          name="default-dimension-variant"
+          aria-label={`Nastavi ${variantName} kot privzeto`}
+          title={variant.active ? 'Nastavi kot privzeto različico' : 'Neaktivna različica ne more biti privzeta'}
+          className="h-4 w-4 accent-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-40"
+          checked={resolvedDefaultVariantId === variant.id}
+          disabled={!isTableEditable || !variant.active}
+          onChange={() => selectDefaultDimensionVariant(variant)}
+        />
+      );
+    }
+    if (rowKey === 'thickness') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          disabled={isThicknessLockActive}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'thickness', variant.thickness) : variant.thickness === null ? null : formatDecimalForDisplay(variant.thickness)}
+          suffix="mm"
+          ariaLabel={`Debelina ali premer za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'thickness', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)}
+        />
+      );
+    }
+    if (rowKey === 'length') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          disabled={isDimensionLockActive}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'length', variant.length) : variant.length === null ? null : formatDecimalForDisplay(variant.length)}
+          suffix="mm"
+          ariaLabel={`Dolžina za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'length', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)}
+        />
+      );
+    }
+    if (rowKey === 'width') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          disabled={isDimensionLockActive}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'width', variant.width) : variant.width === null ? null : formatDecimalForDisplay(variant.width)}
+          suffix="mm"
+          ariaLabel={`Širina za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'width', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)}
+        />
+      );
+    }
+    if (rowKey === 'weight') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', variant.weight) : variant.weight === null || variant.weight === undefined ? null : formatDecimalForDisplay(variant.weight)}
+          suffix="g"
+          ariaLabel={`Masa za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'weight', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)}
+        />
+      );
+    }
+    if (rowKey === 'tolerance') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          disabled={isToleranceLocked}
+          value={
+            isTableEditable
+              ? decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''
+              : variant.errorTolerance
+                ? variant.errorTolerance.replace('.', ',')
+                : null
+          }
+          prefix="±"
+          suffix="mm"
+          ariaLabel={`Toleranca za ${variantName}`}
+          onChange={(value) => {
+            if (!isToleranceLocked) updateDecimalInputDraft(variant.id, 'errorTolerance', value);
+          }}
+          onBlur={() => {
+            const key = decimalDraftKey(variant.id, 'errorTolerance');
+            const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
+            const parsed = parseDecimalInput(raw);
+            updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
+            setDecimalInputDrafts((current) => {
+              const next = { ...current };
+              delete next[key];
+              return next;
+            });
+          }}
+        />
+      );
+    }
+    if (rowKey === 'cost') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'costNet', variant.costNet) : variant.costNet === null || variant.costNet === undefined ? null : formatEuroAmount(variant.costNet)}
+          suffix="€"
+          ariaLabel={`Nabavna cena brez DDV za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'costNet', value)}
+          onBlur={() => commitDecimalInputDraft(
+            variant.id,
+            'costNet',
+            variant.costNet,
+            (value) => updateVariant(variant.id, { costNet: value === null ? null : Math.max(0, value) }),
+            null
+          )}
+        />
+      );
+    }
+    if (rowKey === 'price') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'price', variant.price) : formatEuroAmount(variant.price)}
+          suffix="€"
+          ariaLabel={`Prodajna cena brez DDV za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'price', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)}
+        />
+      );
+    }
+    if (rowKey === 'priceGross') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={formatEuroAmount(computeGrossPrice(variant.price, dimensionVariantTaxRate))}
+          suffix="€"
+          ariaLabel={`Prodajna cena z DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'discount') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'discountPct', variant.discountPct) : formatDecimalForDisplay(variant.discountPct)}
+          suffix="%"
+          ariaLabel={`Popust za ${variantName}`}
+          onChange={(value) => updateDecimalInputDraft(variant.id, 'discountPct', value)}
+          onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)}
+        />
+      );
+    }
+    if (rowKey === 'salePrice') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={variant.discountPct > 0 ? formatEuroAmount(computeSalePrice(variant.price, variant.discountPct)) : null}
+          suffix="€"
+          ariaLabel={`Akcijska cena brez DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'salePriceGross') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={
+            variant.discountPct > 0
+              ? formatEuroAmount(
+                  computeGrossPrice(
+                    computeSalePrice(variant.price, variant.discountPct),
+                    dimensionVariantTaxRate
+                  )
+                )
+              : null
+          }
+          suffix="€"
+          ariaLabel={`Akcijska cena z DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'stock') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          inputMode="numeric"
+          value={variant.stock}
+          ariaLabel={`Zaloga za ${variantName}`}
+          onChange={(value) => updateDimensionVariantStock(variant, Math.max(0, Math.floor(Number(value.replace(/\D/g, '')) || 0)))}
+        />
+      );
+    }
+    if (rowKey === 'minOrder') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          inputMode="numeric"
+          value={variant.minOrder ?? 1}
+          ariaLabel={`Minimalno naročilo za ${variantName}`}
+          onChange={(value) => updateVariant(variant.id, { minOrder: Math.max(1, Math.floor(Number(value.replace(/\D/g, '')) || 1)) })}
+        />
+      );
+    }
+    if (rowKey === 'delivery') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          inputMode="numeric"
+          value={
+            decimalInputDrafts[decimalDraftKey(variant.id, 'deliveryTime')]
+            ?? getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant))
+          }
+          suffix="dni"
+          placeholder="1-2"
+          ariaLabel={`Dobavni rok za ${variantName}`}
+          title={getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)}
+          onChange={(value) => updateDimensionVariantDeliveryDraft(variant.id, value)}
+          onBlur={() => commitDimensionVariantDeliveryDraft(variant)}
+        />
+      );
+    }
+    if (rowKey === 'sku') {
+      return (
+        <CompactSegmentedField
+          editable={isTableEditable}
+          value={variant.sku}
+          inputMode="text"
+          align="left"
+          ariaLabel={`SKU za ${variantName}`}
+          title={variant.sku || undefined}
+          onChange={(value) => updateVariant(variant.id, { sku: value, skuAutoGenerated: false })}
+        />
+      );
+    }
+    if (rowKey === 'status') {
+      return (
+        <div className="flex w-full justify-end">
+          <ActiveStateChip
+            active={variant.active}
+            editable={isTableEditable}
+            chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-2 !text-[10px]`}
+            menuPlacement="bottom"
+            onChange={(next) => applySelectionChange(() => updateDimensionVariantActiveState(variant.id, next))}
+          />
+        </div>
+      );
+    }
+    if (rowKey === 'note') {
+      return (
+        <div className="flex w-full justify-end">
+          <NoteTagChip
+            value={getVariantTag(variant)}
+            editable={isTableEditable}
+            chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-2 !text-[10px]`}
+            menuPlacement="bottom"
+            onChange={(next) => {
+              if (!next) return;
+              applySelectionChange(() => setVariantTag(variant.id, next));
+            }}
+          />
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderCompactDimensionVariantCell = (
+    variant: Variant,
+    rowKey: DimensionVariantMatrixRowKey
+  ): ReactNode => {
+    const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
+    const variantName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+    if (rowKey === 'default') {
+      return (
+        <input
+          type="radio"
+          name="default-dimension-variant"
+          aria-label={`Nastavi ${variantName} kot privzeto`}
+          className="h-3.5 w-3.5 accent-[color:var(--blue-600)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40"
+          checked={resolvedDefaultVariantId === variant.id}
+          disabled={!isTableEditable || !variant.active}
+          onClick={(event) => event.stopPropagation()}
+          onChange={() => selectDefaultDimensionVariant(variant)}
+        />
+      );
+    }
+    if (rowKey === 'status') {
+      return (
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${variant.active ? 'bg-emerald-500' : 'bg-slate-400'}`}
+          title={variant.active ? 'Aktiven' : 'Neaktiven'}
+        >
+          <span className="sr-only">{variant.active ? 'Aktiven' : 'Neaktiven'}</span>
+        </span>
+      );
+    }
+    if (rowKey === 'note') {
+      const tag = getVariantTag(variant);
+      return (
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${getVariantTagSummaryDotClassName(tag)}`}
+          title={getNoteTagLabel(tag)}
+        >
+          <span className="sr-only">{getNoteTagLabel(tag)}</span>
+        </span>
+      );
+    }
+    const value = getDimensionVariantSummaryValue(variant, rowKey);
+    return (
+      <span
+        className={`block max-w-full truncate px-0.5 text-center text-[10px] text-slate-700 ${rowKey === 'sku' ? 'font-mono text-[9px]' : ''}`}
+        title={`${variantName} · ${value}`}
+      >
+        {value}
+      </span>
+    );
+  };
+
+  const activateCollapsedDimensionVariant = (
+    event: ReactMouseEvent<HTMLDivElement>,
+    variantId: string
+  ) => {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest(
+        'button, input, select, textarea, a, label, [role="button"], [role="checkbox"], [role="radio"], [contenteditable="true"]'
+      )
+    ) {
+      return;
+    }
+
+    setExpandedDimensionVariantId(variantId);
+    setHoveredDimensionVariantId(null);
+  };
+
   const basicProductFields: Array<{
     title: string;
     value: string;
@@ -4161,18 +5408,18 @@ export default function AdminItemEditorPage({
     ...(productType === 'weight'
       ? [
           { title: 'Enota prodaje', value: 'kg', placeholder: 'kg', icon: 'unit' as SideFieldIcon, onChange: () => {} },
-          { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
+          { title: 'Stopnja DDV', value: sideSettings.taxRatePercent, placeholder: '22', icon: 'percent' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, taxRatePercent: value.replace(/[^\d,.]/g, '') })) }
         ]
       : productType === 'unique_machine'
         ? [
             { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'unit' as SideFieldIcon, onChange: () => {} },
-            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
+            { title: 'Stopnja DDV', value: sideSettings.taxRatePercent, placeholder: '22', icon: 'percent' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, taxRatePercent: value.replace(/[^\d,.]/g, '') })) }
           ]
         : [
             { title: 'Barva', value: sideSettings.color, placeholder: 'Srebrna', icon: 'color' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, color: value })) },
             { title: 'Oblika', value: sideSettings.surface, placeholder: 'Pravokotna', icon: 'shape' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, surface: value })) },
             { title: 'Enota prodaje', value: 'kos', placeholder: 'kos', icon: 'unit' as SideFieldIcon, onChange: () => {} },
-            { title: 'DDV', value: '22 %', placeholder: '22 %', icon: 'percent' as SideFieldIcon, onChange: () => {} }
+            { title: 'Stopnja DDV', value: sideSettings.taxRatePercent, placeholder: '22', icon: 'percent' as SideFieldIcon, onChange: (value: string) => setSideSettings((current) => ({ ...current, taxRatePercent: value.replace(/[^\d,.]/g, '') })) }
           ])
   ];
   return (
@@ -4300,11 +5547,11 @@ export default function AdminItemEditorPage({
               tone="warning"
               size="sm"
               className={`order-6 ${adminTableSelectedWarningIconButtonClassName}`}
-              aria-label="Arhiviraj artikel"
-              title="Arhiviraj"
+              aria-label="Izbriši artikel"
+              title="Izbriši"
               disabled={!canArchive}
             >
-              <ArchiveIcon />
+              <TrashCanIcon />
             </IconButton>
             <Button
               type="button"
@@ -5031,21 +6278,6 @@ export default function AdminItemEditorPage({
                 <span>.</span>
               </span>
             </p>
-            <label className="ml-auto inline-flex shrink-0 items-center gap-2 text-[12px] font-medium leading-5 text-slate-600">
-              <span className="font-semibold">Dobavni rok</span>
-              <span className="flex h-[30px] w-[175px] rounded-md border border-slate-300 bg-white">
-                <input
-                  className="h-full min-w-0 flex-1 rounded-l-md border-0 bg-transparent px-2.5 text-[12px] font-semibold text-slate-900 outline-none focus:ring-0"
-                  value={dimensionDefaultDeliveryDayAmount}
-                  inputMode="numeric"
-                  placeholder="1-2"
-                  readOnly={!isEditable}
-                  tabIndex={isEditable ? undefined : -1}
-                  onChange={(event) => updateDimensionDefaultDeliveryTime(event.target.value)}
-                />
-                <span className={fieldUnitAdornmentClassName}>{dimensionDefaultDeliveryDayUnit}</span>
-              </span>
-            </label>
           </div>
           <p className="flex flex-wrap items-center gap-1.5 text-[12px] font-medium leading-5 text-slate-600">
             <span className="font-semibold">Vnosne bližnjice:</span>
@@ -5058,10 +6290,106 @@ export default function AdminItemEditorPage({
             </span>
           </p>
         </div>
-        <div className="relative overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
-          <div className="grid min-w-full grid-cols-[minmax(120px,1fr)_minmax(320px,560px)_minmax(340px,1fr)] items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-900">Različice</h3>
-            <div className="w-[560px] max-w-full min-w-0 justify-self-center">
+        <ProductVariantOptionsCard
+          editable={isEditable}
+          axes={draft.optionAxes}
+          variants={draft.variants}
+          onAxesChange={(optionAxes) => {
+            const validValueIdsByAxis = new Map(
+              optionAxes.map((axis) => [axis.id, new Set(axis.values.map((value) => value.id))])
+            );
+            setDraft((current) => ({
+              ...current,
+              optionAxes,
+              variants: current.variants.map((variant) => ({
+                ...variant,
+                optionSelections: Object.fromEntries(
+                  Object.entries(variant.optionSelections ?? {}).filter(([axisId, valueId]) =>
+                    validValueIdsByAxis.get(axisId)?.has(valueId)
+                  )
+                )
+              }))
+            }));
+          }}
+          onVariantChange={updateVariant}
+        />
+        <div className="relative rounded-lg border border-slate-200">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Različice
+                <span className="ml-1.5 font-normal text-slate-500">({draft.variants.length})</span>
+              </h3>
+              {dimensionVariantViewMode === 'rows' && draft.variants.length > 1 ? (
+                <p className="text-[10px] font-medium text-slate-500">
+                  Povlecite ročico za vrstni red. Razširjena različica je vir za ikono »Uporabi za vse« ob polju.
+                </p>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
+              <SegmentedControl
+                size="sm"
+                value={dimensionVariantViewMode}
+                onChange={(value) => setDimensionVariantViewMode(value as DimensionVariantViewMode)}
+                options={[
+                  {
+                    value: 'columns',
+                    label: 'Polja v stolpcih',
+                    activeClassName: '!rounded-[4px] !bg-[color:var(--blue-600)] !text-white',
+                    idleClassName: '!rounded-[4px]'
+                  },
+                  {
+                    value: 'rows',
+                    label: 'Polja v vrsticah',
+                    activeClassName: '!rounded-[4px] !bg-[color:var(--blue-600)] !text-white',
+                    idleClassName: '!rounded-[4px]'
+                  }
+                ]}
+                className="!h-[30px] !gap-0 !rounded-md !border !border-slate-300 !bg-white !p-0 [&>button]:!h-full [&>button]:!px-4 [&>button]:!text-[10px]"
+              />
+              {dimensionVariantViewMode === 'rows' ? (
+                <>
+                  <div className="inline-flex items-center gap-2 text-[10px] font-medium text-slate-600">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={collapseInactiveDimensionVariants}
+                      aria-label="Skrči neaktivne različice"
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition ${
+                        collapseInactiveDimensionVariants
+                          ? 'border-[color:var(--blue-600)] bg-[color:var(--blue-600)]'
+                          : 'border-slate-300 bg-slate-200'
+                      }`}
+                      onClick={() => setCollapseInactiveDimensionVariants((current) => !current)}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                          collapseInactiveDimensionVariants ? 'translate-x-[17px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                    Skrči neaktivne
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-[30px] items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-[color:var(--blue-700)] transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+                    disabled={!firstSelectedDimensionVariant}
+                    onClick={() => {
+                      if (firstSelectedDimensionVariant) setExpandedDimensionVariantId(firstSelectedDimensionVariant.id);
+                    }}
+                  >
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+                      <path d="M6 2H2v4M10 14h4v-4M2.5 5.5 6 2M13.5 10.5 10 14" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Razširi izbrano
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+          <div className="grid min-w-0 gap-3 border-b border-slate-200 bg-white px-3 py-3 lg:grid-cols-[minmax(90px,0.7fr)_minmax(280px,520px)_minmax(300px,1fr)] lg:items-center">
+            <span className="text-[11px] font-semibold text-slate-500">Generator različic</span>
+            <div className="w-full min-w-0 justify-self-center">
               <div className="relative w-full min-w-0">
                 <div className={`flex h-[30px] flex-nowrap items-center gap-2 overflow-hidden rounded-md border border-slate-300 !bg-white pl-[10px] pr-11 ${isGeneratorLocked ? 'text-slate-500' : ''}`}>
                   {generatorChips.map((chip) => (
@@ -5126,9 +6454,29 @@ export default function AdminItemEditorPage({
                 tone="neutral"
                 className={adminTableNeutralIconButtonClassName}
                 disabled={!isTableEditable}
-                onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, createVariant({ sort: current.variants.length + 1 })] }))}
+                onClick={() => setDraft((current) => {
+                  const nextVariant = createVariant({
+                    sort: Math.max(0, ...current.variants.map((variant) => variant.sort || 0)) + 1
+                  });
+                  return {
+                    ...current,
+                    defaultVariantId: current.defaultVariantId ?? nextVariant.id,
+                    variants: [...current.variants, nextVariant]
+                  };
+                })}
               >
                 <PlusIcon />
+              </IconButton>
+              <IconButton
+                type="button"
+                aria-label="Podvoji izbrano različico"
+                title="Podvoji izbrano različico"
+                tone="neutral"
+                className={adminTableNeutralIconButtonClassName}
+                disabled={!isTableEditable || variantSelections.size !== 1}
+                onClick={duplicateSelectedDimensionVariant}
+              >
+                <CopyIcon />
               </IconButton>
               <IconButton
                 type="button"
@@ -5153,32 +6501,39 @@ export default function AdminItemEditorPage({
               </Button>
             </div>
           </div>
-          <table className="min-w-full table-fixed text-[11px] leading-4">
+          <div className="relative">
+          <div
+            ref={dimensionVariantScrollRef}
+            className="overflow-x-auto overflow-y-visible overscroll-x-contain"
+          >
+          {dimensionVariantViewMode === 'columns' ? (
+          <table className="w-full table-fixed text-[10px] leading-4">
             <colgroup>
-              <col style={{ width: '1.87%' }} />
-              <col style={{ width: '5.1%' }} />
-              <col style={{ width: '5.4%' }} />
-              <col style={{ width: '5.4%' }} />
-              <col style={{ width: '5.8%' }} />
-              <col style={{ width: '5.8%' }} />
-              <col style={{ width: '5.8%' }} />
-              {!isDimensionBasedMode ? (
-                <>
-                  <col style={{ width: '6%' }} />
-                  <col style={{ width: '8%' }} />
-                </>
-              ) : null}
-              <col style={{ width: '5.8%' }} />
-              <col style={{ width: '5.8%' }} />
-              <col style={{ width: '20.97%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '3.06%' }} />
+              <col style={{ width: '28px' }} />
+              <col style={{ width: '34px' }} />
+              <col style={{ width: '62px' }} />
+              <col style={{ width: '62px' }} />
+              <col style={{ width: '62px' }} />
+              <col style={{ width: '48px' }} />
+              <col style={{ width: '58px' }} />
+              <col style={{ width: '58px' }} />
+              <col style={{ width: '58px' }} />
+              <col style={{ width: '66px' }} />
+              <col style={{ width: '52px' }} />
+              <col style={{ width: '62px' }} />
+              <col style={{ width: '66px' }} />
+              <col style={{ width: '48px' }} />
+              <col style={{ width: '50px' }} />
+              <col style={{ width: '65px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '76px' }} />
+              <col style={{ width: '88px' }} />
             </colgroup>
             <THead>
               <tr>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>
                   <AdminCheckbox
+                    aria-label="Izberi vse različice"
                     checked={isTableEditable && allVariantsSelected}
                     onChange={() =>
                       setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))
@@ -5186,143 +6541,267 @@ export default function AdminItemEditorPage({
                     disabled={!isTableEditable}
                   />
                 </TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Debelina/fi</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Dolžina</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Širina</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Masa</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-left text-[11px]`}>Toleranca</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Cena</TH>
-                {!isDimensionBasedMode ? (
-                  <>
-                    <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-right text-[11px]`}>Popust</TH>
-                    <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Akcijska cena</TH>
-                  </>
-                ) : null}
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Zaloga</TH>
-                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px]`}>Min. količina</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>SKU</TH>
-                <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Status</TH>
-                <TH className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px]`}>Opombe</TH>
-                <TH className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px]`}>Mesto</TH>
+                <TH
+                  className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`}
+                  title="Privzeta različica"
+                >
+                  Privz.
+                </TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Debelina ali premer">Deb./fi</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Dolžina">Dolž.</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Širina">Šir.</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Masa">Masa</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`} title="Toleranca">Tol.</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Nabavna cena brez DDV">Nabavna</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Prodajna cena brez DDV">Prod. brez</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Prodajna cena z DDV">Prod. z DDV</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`}>Popust</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Akcijska cena brez DDV">Akc. brez</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Akcijska cena z DDV">Akc. z DDV</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`}>Zaloga</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Minimalno naročilo">Min.</TH>
+                <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`} title="Dobavni rok">Rok</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>SKU</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`}>Status</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`} title="Opomba">Opomba</TH>
               </tr>
             </THead>
             <tbody>
               {draft.variants.map((variant) => (
                 <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
-                  <td className="px-2 py-1.5 text-center"><AdminCheckbox checked={variantSelections.has(variant.id)} onChange={() => setVariantSelections((current) => { const next = new Set(current); if (next.has(variant.id)) next.delete(variant.id); else next.add(variant.id); return next; })} disabled={!isTableEditable} /></td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isThicknessLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[5ch] text-right ${isThicknessLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'thickness', variant.thickness)} onChange={(event) => updateDecimalInputDraft(variant.id, 'thickness', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isThicknessLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{variant.thickness === null ? '—' : formatDecimalForDisplay(variant.thickness)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'length', variant.length)} onChange={(event) => updateDecimalInputDraft(variant.id, 'length', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.length === null ? '—' : formatDecimalForDisplay(variant.length)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" disabled={isDimensionLockActive} className={`${compactTableAlignedInputClassName} !h-[30px] !w-[7ch] text-right ${isDimensionLockActive ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`} value={readDecimalInputValue(variant.id, 'width', variant.width)} onChange={(event) => updateDecimalInputDraft(variant.id, 'width', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)} /><span className={compactTableAdornmentClassName}>mm</span></span></span> : <span className={`inline-flex h-[30px] w-full justify-end ${isDimensionLockActive ? 'text-slate-500' : ''}`}><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.width === null ? '—' : formatDecimalForDisplay(variant.width)}</span><span className={compactTableAdornmentClassName}>mm</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'weight', variant.weight)} onChange={(event) => updateDecimalInputDraft(variant.id, 'weight', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)} /><span className={compactTableAdornmentClassName}>g</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{variant.weight === null || variant.weight === undefined ? '—' : formatDecimalForDisplay(variant.weight)}</span><span className={compactTableAdornmentClassName}>g</span></span></span>}</td>
-                  <td className="px-2 py-1.5 text-left">
-                    {isTableEditable ? (
-                      <div className={`inline-flex h-[30px] w-full items-center justify-start whitespace-nowrap ${isToleranceLocked ? 'text-slate-500' : ''}`}>
-                        <span className={compactTableAdornmentClassName}>±</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          disabled={isToleranceLocked}
-                          maxLength={1}
-                          className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[3ch] !px-0 text-center ${isToleranceLocked ? '!bg-[color:var(--field-locked-bg)] text-slate-500' : ''}`}
-                          value={decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''}
-                          onChange={(event) => {
-                            if (isToleranceLocked) return;
-                            const nextValue = event.target.value.replace(/\D/g, '').slice(0, 1);
-                            updateDecimalInputDraft(variant.id, 'errorTolerance', nextValue);
-                          }}
-                          onBlur={() => {
-                            const key = decimalDraftKey(variant.id, 'errorTolerance');
-                            const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
-                            const parsed = parseDecimalInput(raw);
-                            updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
-                            setDecimalInputDrafts((current) => {
-                              const next = { ...current };
-                              delete next[key];
-                              return next;
-                            });
-                          }}
-                        />
-                        <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
-                      </div>
-                    ) : (
-                      <span className="inline-flex h-[30px] w-full items-center justify-start">
-                        <span className="inline-flex h-[30px] items-center justify-start whitespace-nowrap">
-                          <span className={`${compactTableAdornmentClassName} ${variant.errorTolerance ? '' : 'invisible'}`}>±</span>
-                          <span className={`${compactTableThreeDigitCenteredSlotClassName} !px-0`}>
-                            {variant.errorTolerance ? variant.errorTolerance.replace('.', ',') : '—'}
-                          </span>
-                          <span className={`ml-1 ${compactTableAdornmentClassName} ${variant.errorTolerance ? '' : 'invisible'}`}>mm</span>
-                        </span>
-                      </span>
-                    )}
+                  <td className="px-0.5 py-1.5 text-center">
+                    <AdminCheckbox
+                      aria-label={`Izberi ${buildDimensionVariantHeaderLabel(
+                        variant,
+                        Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id)),
+                        true
+                      )}`}
+                      checked={variantSelections.has(variant.id)}
+                      onChange={() => setVariantSelections((current) => {
+                        const next = new Set(current);
+                        if (next.has(variant.id)) next.delete(variant.id);
+                        else next.add(variant.id);
+                        return next;
+                      })}
+                      disabled={!isTableEditable}
+                    />
                   </td>
-                  <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[7ch] text-right`} value={readDecimalInputValue(variant.id, 'price', variant.price)} onChange={(event) => updateDecimalInputDraft(variant.id, 'price', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)} /><span className={compactTableAdornmentClassName}>€</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableNumericSlotClassName}>{formatEuroAmount(variant.price)}</span><span className={compactTableAdornmentClassName}>€</span></span></span>}</td>
-                  {!isDimensionBasedMode ? (
-                    <>
-                      <td className="px-2 py-1.5 text-right">{isTableEditable ? <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><input type="text" inputMode="decimal" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] !px-0 text-right`} value={readDecimalInputValue(variant.id, 'discountPct', variant.discountPct)} onChange={(event) => updateDecimalInputDraft(variant.id, 'discountPct', event.target.value)} onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)} /><span className={compactTableAdornmentClassName}>%</span></span></span> : <span className="inline-flex h-[30px] w-full justify-end"><span className={`${compactTableValueUnitShellClassName} !h-[30px]`}><span className={compactTableFourDigitSlotClassName}>{formatDecimalForDisplay(variant.discountPct)}</span><span className={compactTableAdornmentClassName}>%</span></span></span>}</td>
-                      <td className="px-2 py-1.5 text-right"><span className="inline-flex h-[30px] min-w-[7ch] items-center justify-end rounded-md border border-transparent bg-transparent px-1 text-slate-700">{variant.discountPct > 0 ? formatCurrency(computeSalePrice(variant.price, variant.discountPct)) : '—'}</span></td>
-                    </>
-                  ) : null}
-                  <td className="px-2 py-1.5 text-right">
-                    {isTableEditable ? (
-                      <span className="inline-flex h-[30px] w-full justify-end">
-                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[6ch] text-right`}
-                            value={variant.stock}
-                            onChange={(event) => updateDimensionVariantStock(variant, Math.max(0, Math.floor(Number(event.target.value.replace(/\D/g, '')) || 0)))}
-                          />
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex h-[30px] w-full justify-end">
-                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
-                          <span className={compactTableSixDigitSlotClassName}>{variant.stock}</span>
-                        </span>
-                      </span>
-                    )}
+                  <td className="px-0.5 py-1.5 text-center">
+                    <input
+                      type="radio"
+                      name="default-dimension-variant"
+                      aria-label={`Nastavi ${variant.label || variant.sku || 'različico'} kot privzeto`}
+                      title={variant.active ? 'Nastavi kot privzeto različico' : 'Neaktivna različica ne more biti privzeta'}
+                      className="h-4 w-4 accent-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-40"
+                      checked={resolvedDefaultVariantId === variant.id}
+                      disabled={!isTableEditable || !variant.active}
+                      onChange={() => selectDefaultDimensionVariant(variant)}
+                    />
                   </td>
-                  <td className="px-2 py-1.5 text-right">
-                    {isTableEditable ? (
-                      <span className="inline-flex h-[30px] w-full justify-end">
-                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[5ch] text-right`}
-                            value={variant.minOrder ?? 1}
-                            onChange={(event) => updateVariant(variant.id, { minOrder: Math.max(1, Math.floor(Number(event.target.value.replace(/\D/g, '')) || 1)) })}
-                          />
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex h-[30px] w-full justify-end">
-                        <span className={`${compactTableValueUnitShellClassName} !h-[30px]`}>
-                          <span className={compactTableFourDigitSlotClassName}>{variant.minOrder ?? 1}</span>
-                        </span>
-                      </span>
-                    )}
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      disabled={isThicknessLockActive}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'thickness', variant.thickness) : variant.thickness === null ? null : formatDecimalForDisplay(variant.thickness)}
+                      suffix="mm"
+                      ariaLabel={`Debelina ali premer za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'thickness', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)}
+                    />
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input className={`${compactTableAlignedTextInputClassName} !mt-0 !h-[30px] !w-[31ch] text-center`} value={variant.sku} onChange={(event) => updateVariant(variant.id, { sku: event.target.value, skuAutoGenerated: false })} /> : <span className="inline-flex h-[30px] w-[31ch] items-center justify-center overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-transparent bg-transparent px-1 text-center font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[30px] text-slate-700">{variant.sku || '—'}</span>}</td>
-                  <td className="px-1 py-1.5 text-center">
-                    <div className="inline-flex justify-center">
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      disabled={isDimensionLockActive}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'length', variant.length) : variant.length === null ? null : formatDecimalForDisplay(variant.length)}
+                      suffix="mm"
+                      ariaLabel={`Dolžina za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'length', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      disabled={isDimensionLockActive}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'width', variant.width) : variant.width === null ? null : formatDecimalForDisplay(variant.width)}
+                      suffix="mm"
+                      ariaLabel={`Širina za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'width', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', variant.weight) : variant.weight === null || variant.weight === undefined ? null : formatDecimalForDisplay(variant.weight)}
+                      suffix="g"
+                      ariaLabel={`Masa za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'weight', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      disabled={isToleranceLocked}
+                      value={
+                        isTableEditable
+                          ? decimalInputDrafts[decimalDraftKey(variant.id, 'errorTolerance')] ?? variant.errorTolerance ?? ''
+                          : variant.errorTolerance
+                            ? variant.errorTolerance.replace('.', ',')
+                            : null
+                      }
+                      prefix="±"
+                      suffix="mm"
+                      ariaLabel={`Toleranca za ${variant.label || variant.sku}`}
+                      onChange={(value) => {
+                        if (!isToleranceLocked) updateDecimalInputDraft(variant.id, 'errorTolerance', value);
+                      }}
+                      onBlur={() => {
+                        const key = decimalDraftKey(variant.id, 'errorTolerance');
+                        const raw = decimalInputDrafts[key] ?? variant.errorTolerance ?? '';
+                        const parsed = parseDecimalInput(raw);
+                        updateVariant(variant.id, { errorTolerance: parsed === null ? null : formatDecimalForDisplay(parsed) });
+                        setDecimalInputDrafts((current) => {
+                          const next = { ...current };
+                          delete next[key];
+                          return next;
+                        });
+                      }}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'costNet', variant.costNet) : variant.costNet === null || variant.costNet === undefined ? null : formatEuroAmount(variant.costNet)}
+                      suffix="€"
+                      ariaLabel={`Nabavna cena brez DDV za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'costNet', value)}
+                      onBlur={() => commitDecimalInputDraft(
+                        variant.id,
+                        'costNet',
+                        variant.costNet,
+                        (value) => updateVariant(variant.id, { costNet: value === null ? null : Math.max(0, value) }),
+                        null
+                      )}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'price', variant.price) : formatEuroAmount(variant.price)}
+                      suffix="€"
+                      ariaLabel={`Prodajna cena brez DDV za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'price', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'price', variant.price, (value) => updateVariant(variant.id, { price: value ?? 0 }), 0)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={false}
+                      value={formatEuroAmount(computeGrossPrice(variant.price, dimensionVariantTaxRate))}
+                      suffix="€"
+                      ariaLabel={`Prodajna cena z DDV za ${variant.label || variant.sku}`}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'discountPct', variant.discountPct) : formatDecimalForDisplay(variant.discountPct)}
+                      suffix="%"
+                      ariaLabel={`Popust za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDecimalInputDraft(variant.id, 'discountPct', value)}
+                      onBlur={() => commitDecimalInputDraft(variant.id, 'discountPct', variant.discountPct, (value) => updateVariant(variant.id, { discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }), 0)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={false}
+                      value={variant.discountPct > 0 ? formatEuroAmount(computeSalePrice(variant.price, variant.discountPct)) : null}
+                      suffix="€"
+                      ariaLabel={`Akcijska cena brez DDV za ${variant.label || variant.sku}`}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={false}
+                      value={
+                        variant.discountPct > 0
+                          ? formatEuroAmount(
+                              computeGrossPrice(
+                                computeSalePrice(variant.price, variant.discountPct),
+                                dimensionVariantTaxRate
+                              )
+                            )
+                          : null
+                      }
+                      suffix="€"
+                      ariaLabel={`Akcijska cena z DDV za ${variant.label || variant.sku}`}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      inputMode="numeric"
+                      value={variant.stock}
+                      ariaLabel={`Zaloga za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateDimensionVariantStock(variant, Math.max(0, Math.floor(Number(value.replace(/\D/g, '')) || 0)))}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      inputMode="numeric"
+                      value={variant.minOrder ?? 1}
+                      ariaLabel={`Minimalno naročilo za ${variant.label || variant.sku}`}
+                      onChange={(value) => updateVariant(variant.id, { minOrder: Math.max(1, Math.floor(Number(value.replace(/\D/g, '')) || 1)) })}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      inputMode="numeric"
+                      value={
+                        decimalInputDrafts[decimalDraftKey(variant.id, 'deliveryTime')]
+                        ?? getDeliveryDayAmount(getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant))
+                      }
+                      suffix="dni"
+                      placeholder="1-2"
+                      ariaLabel={`Dobavni rok za ${variant.label || variant.sku}`}
+                      title={getDimensionVariantDeliveryTime(typeSpecificData.dimensions, variant)}
+                      onChange={(value) => updateDimensionVariantDeliveryDraft(variant.id, value)}
+                      onBlur={() => commitDimensionVariantDeliveryDraft(variant)}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5">
+                    <CompactSegmentedField
+                      editable={isTableEditable}
+                      value={variant.sku}
+                      inputMode="text"
+                      align="left"
+                      ariaLabel={`SKU za ${variant.label || variant.sku}`}
+                      title={variant.sku || undefined}
+                      onChange={(value) => updateVariant(variant.id, { sku: value, skuAutoGenerated: false })}
+                    />
+                  </td>
+                  <td className="px-0.5 py-1.5 text-center">
+                    <div className="inline-flex w-full justify-center">
                       <ActiveStateChip
                         active={variant.active}
                         editable={isTableEditable}
-                        chipClassName={adminStatusInfoPillVariantTableClassName}
+                        chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
                         menuPlacement="bottom"
-                        onChange={(next) => applySelectionChange(() => updateVariant(variant.id, { active: next }))}
+                        onChange={(next) => applySelectionChange(() => updateDimensionVariantActiveState(variant.id, next))}
                       />
                     </div>
                   </td>
-                  <td className="px-1 py-1.5 text-center">
-                    <div className="inline-flex justify-center">
+                  <td className="px-0.5 py-1.5 text-center">
+                    <div className="inline-flex w-full justify-center">
                       <NoteTagChip
-                        value={getVariantTag(variant.id)}
+                        value={getVariantTag(variant)}
                         editable={isTableEditable}
-                        chipClassName={adminStatusInfoPillVariantTableClassName}
+                        chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
                         menuPlacement="bottom"
                         onChange={(next) => {
                           if (!next) return;
@@ -5331,12 +6810,424 @@ export default function AdminItemEditorPage({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-1.5 text-center">{isTableEditable ? <input type="number" inputMode="numeric" className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[4ch] !px-0 text-center`} value={variant.sort} onChange={(event) => updateVariant(variant.id, { sort: Number(event.target.value) || 1 })} /> : <span className="inline-flex h-[30px] w-[4ch] shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[1.2] text-slate-700">{variant.sort}</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="border-t border-slate-200 px-3 py-2 text-[11px] leading-4 text-slate-500">Cena vključuje DDV.</p>
+          ) : draft.variants.length === 0 ? (
+            <div className="border-b border-slate-200 px-4 py-10 text-center">
+              <p className="text-sm font-semibold text-slate-700">Ni različic za prikaz.</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Dodajte različico ali vnesite mere in izberite »Generiraj različice«.
+              </p>
+            </div>
+          ) : (
+            <div
+              role="table"
+              aria-label="Različice artikla s polji v vrsticah"
+              className="admin-variant-matrix-track-transition grid min-w-full bg-transparent"
+              style={{
+                minWidth: `${Math.max(720, dimensionMatrixMinWidth)}px`,
+                gridTemplateColumns: dimensionMatrixGridTemplateColumns
+              }}
+            >
+              <DndContext
+                sensors={dimensionVariantSensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDimensionVariantDragStart}
+                onDragEnd={handleDimensionVariantDragEnd}
+                onDragCancel={() => setDraggedDimensionVariantId(null)}
+              >
+                <SortableContext
+                  items={draft.variants.map((variant) => variant.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <div
+                    role="row"
+                    className="admin-variant-matrix-row relative grid border-b border-slate-200 bg-slate-50/80"
+                    style={{
+                      height: `${dimensionVariantHeaderHeight}px`,
+                      clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                    }}
+                  >
+                    <div
+                      role="columnheader"
+                      className="sticky left-0 z-30 flex items-end px-3 pb-2 text-[11px] font-bold text-slate-700"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-slate-50"
+                        style={{
+                          clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                        }}
+                      />
+                      <span className="relative z-10 flex items-center gap-2">
+                        <AdminCheckbox
+                          aria-label="Izberi vse različice"
+                          checked={isTableEditable && allVariantsSelected}
+                          onChange={() =>
+                            setVariantSelections(allVariantsSelected ? new Set() : new Set(draft.variants.map((variant) => variant.id)))
+                          }
+                          disabled={!isTableEditable}
+                        />
+                        Različica
+                      </span>
+                    </div>
+                    {draft.variants.map((variant) => {
+                      const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
+                      const variantDisplayName = buildDimensionVariantHeaderLabel(variant, variantIndex);
+                      const variantHoverName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+                      const isExpanded = expandedDimensionVariant?.id === variant.id;
+                      const isHovered = hoveredDimensionVariantId === variant.id;
+                      const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
+                      const nextVariantIsExpanded =
+                        draft.variants[variantIndex + 1]?.id === expandedDimensionVariant?.id;
+                      const expandedVariantHasLeftSlant = variantIndex > 0;
+                      if (isExpanded) {
+                        return (
+                          <DimensionVariantSortableHeader
+                            key={variant.id}
+                            id={variant.id}
+                            label={variantHoverName}
+                            disabled={!isTableEditable || draft.variants.length <= 1}
+                            className="relative z-20 flex min-w-0 items-end overflow-visible px-2 pb-px"
+                          >
+                            {(dragHandle) => (
+                              <>
+                                <span
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute bottom-0 h-full bg-sky-50/80"
+                                  style={{
+                                    left: expandedVariantHasLeftSlant
+                                      ? `-${dimensionVariantHeaderSlant}px`
+                                      : 0,
+                                    width: expandedVariantHasLeftSlant
+                                      ? `calc(100% + ${dimensionVariantHeaderSlant}px)`
+                                      : '100%',
+                                    clipPath: expandedVariantHasLeftSlant
+                                      ? `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, ${dimensionVariantHeaderSlant}px 100%, ${dimensionVariantHeaderSlant}px ${dimensionVariantDiagonalHeight}px)`
+                                      : `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                                  }}
+                                />
+                                {expandedVariantHasLeftSlant ? (
+                                  <span
+                                    aria-hidden="true"
+                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
+                                    style={{
+                                      height: `${dimensionVariantDiagonalHeight}px`,
+                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
+                                    }}
+                                  />
+                                ) : null}
+                                <span
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-[color:var(--blue-500)]"
+                                  style={{
+                                    height: `${
+                                      expandedVariantHasLeftSlant
+                                        ? dimensionVariantNormalBandHeight
+                                        : dimensionVariantHeaderHeight
+                                    }px`
+                                  }}
+                                />
+                                <span
+                                  aria-hidden="true"
+                                  className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
+                                  style={{
+                                    height: `${dimensionVariantDiagonalHeight}px`,
+                                    transform: `skewX(${dimensionVariantHeaderAngle}deg)`
+                                  }}
+                                />
+                                <span
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-[color:var(--blue-500)]"
+                                  style={{ height: `${dimensionVariantNormalBandHeight}px` }}
+                                />
+                                <div className="admin-dimension-variant-content-enter relative z-30 flex w-full min-w-0 items-center gap-1.5">
+                                  {dragHandle}
+                                  <span onClick={(event) => event.stopPropagation()}>
+                                    <AdminCheckbox
+                                      aria-label={`Izberi ${variantHoverName}`}
+                                      checked={variantSelections.has(variant.id)}
+                                      onChange={() => toggleDimensionVariantSelection(variant.id)}
+                                      disabled={!isTableEditable}
+                                    />
+                                  </span>
+                                  <span
+                                    className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900"
+                                    title={variantHoverName}
+                                  >
+                                    {variantDisplayName}
+                                  </span>
+                                  {draft.variants.length > 1 ? (
+                                    <button
+                                      type="button"
+                                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-white hover:text-[color:var(--blue-700)]"
+                                      aria-label="Skrči razširjeno različico"
+                                      title="Skrči različico"
+                                      onClick={() => setExpandedDimensionVariantId(null)}
+                                    >
+                                      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                                        <path d="m5 6 3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </>
+                            )}
+                          </DimensionVariantSortableHeader>
+                        );
+                      }
+                      return (
+                        <DimensionVariantSortableHeader
+                          key={variant.id}
+                          id={variant.id}
+                          label={variantHoverName}
+                          disabled={!isTableEditable || draft.variants.length <= 1}
+                          className={`relative min-w-0 overflow-visible transition-colors ${
+                            isHovered
+                              ? 'z-10'
+                              : isCompressedInactive
+                                ? 'opacity-70'
+                                : ''
+                          }`}
+                          onMouseEnter={() => setHoveredDimensionVariantId(variant.id)}
+                          onMouseLeave={() => setHoveredDimensionVariantId((current) => current === variant.id ? null : current)}
+                        >
+                          {(dragHandle) => (
+                            <>
+                              <button
+                                type="button"
+                                className={`absolute bottom-0 block h-full overflow-hidden outline-none transition-colors focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--blue-500)] ${
+                                  isHovered
+                                    ? 'bg-sky-50'
+                                    : isCompressedInactive
+                                      ? 'bg-slate-100/80'
+                                      : 'bg-slate-50/80'
+                                }`}
+                                style={{
+                                  left: `-${dimensionVariantHeaderSlant}px`,
+                                  width: `calc(100% + ${dimensionVariantHeaderSlant}px)`,
+                                  clipPath: `polygon(0 0, calc(100% - ${dimensionVariantHeaderSlant}px) 0, 100% ${dimensionVariantDiagonalHeight}px, 100% 100%, ${dimensionVariantHeaderSlant}px 100%, ${dimensionVariantHeaderSlant}px ${dimensionVariantDiagonalHeight}px)`
+                                }}
+                                aria-label={`Razširi različico ${variantHoverName}`}
+                                title={variantHoverName}
+                                onClick={() => {
+                                  setExpandedDimensionVariantId(variant.id);
+                                  setHoveredDimensionVariantId(null);
+                                }}
+                              >
+                                <span
+                                  className="pointer-events-none absolute"
+                                  style={{
+                                    left: `calc(50% + ${dimensionVariantHeaderTitleOpticalOffset}px)`,
+                                    top: `${dimensionVariantDiagonalHeight / 2 + dimensionVariantHeaderTitleOpticalOffset}px`,
+                                    transform: 'translate(-50%, -50%)'
+                                  }}
+                                  aria-hidden="true"
+                                >
+                                  <span
+                                    className={`block origin-center whitespace-nowrap text-[10.5px] font-semibold leading-none text-slate-800 ${
+                                      isCompressedInactive ? 'text-slate-500' : ''
+                                    }`}
+                                    style={{ transform: `rotate(${dimensionVariantHeaderAngle}deg)` }}
+                                  >
+                                    {variantDisplayName}
+                                  </span>
+                                </span>
+                              </button>
+                              {variantIndex === 0 ? (
+                                <>
+                                  <span
+                                    aria-hidden="true"
+                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-slate-300"
+                                    style={{
+                                      height: `${dimensionVariantDiagonalHeight}px`,
+                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
+                                    }}
+                                  />
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-slate-300"
+                                    style={{ height: `${dimensionVariantNormalBandHeight}px` }}
+                                  />
+                                </>
+                              ) : null}
+                              {!nextVariantIsExpanded ? (
+                                <>
+                                  <span
+                                    aria-hidden="true"
+                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-slate-300"
+                                    style={{
+                                      height: `${dimensionVariantDiagonalHeight}px`,
+                                      transform: `skewX(${dimensionVariantHeaderAngle}deg)`
+                                    }}
+                                  />
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-slate-300"
+                                    style={{ height: `${dimensionVariantNormalBandHeight}px` }}
+                                  />
+                                </>
+                              ) : null}
+                              <span
+                                className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                {dragHandle}
+                                <AdminCheckbox
+                                  aria-label={`Izberi ${variantHoverName}`}
+                                  checked={variantSelections.has(variant.id)}
+                                  onChange={() => toggleDimensionVariantSelection(variant.id)}
+                                  disabled={!isTableEditable}
+                                />
+                              </span>
+                            </>
+                          )}
+                        </DimensionVariantSortableHeader>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+                <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
+                  {draggedDimensionVariant ? (
+                    <div className="rounded-md border border-[color:var(--blue-500)] bg-white px-3 py-2 text-[11px] font-semibold text-slate-800 shadow-lg">
+                      {buildDimensionVariantHeaderLabel(
+                        draggedDimensionVariant,
+                        Math.max(0, draft.variants.findIndex((variant) => variant.id === draggedDimensionVariant.id))
+                      )}
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+              {DIMENSION_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {
+                const alternatingClassName = rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/45';
+                const bulkApplyRowKey = isDimensionVariantBulkApplyRow(row.key)
+                  ? row.key
+                  : null;
+                const bulkApplySourceName = expandedDimensionVariant
+                  ? buildDimensionVariantHeaderLabel(
+                      expandedDimensionVariant,
+                      Math.max(
+                        0,
+                        draft.variants.findIndex(
+                          (variant) => variant.id === expandedDimensionVariant.id
+                        )
+                      )
+                    )
+                  : null;
+                const canBulkApplyRow =
+                  isTableEditable
+                  && draft.variants.length > 1
+                  && Boolean(expandedDimensionVariant);
+                return (
+                  <div
+                    key={row.key}
+                    role="row"
+                    className={`admin-variant-matrix-row grid min-h-[38px] border-b border-slate-200 ${alternatingClassName}`}
+                  >
+                    <div
+                      role="rowheader"
+                      className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r border-slate-200 px-3 text-[11px] font-normal text-slate-700 ${alternatingClassName}`}
+                    >
+                      <span className="truncate">{row.label}</span>
+                      <span
+                        className="group/help relative inline-flex h-3 w-3 shrink-0 cursor-help items-center justify-center rounded-full border border-sky-300 text-[8px] font-semibold leading-none text-sky-600 outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                        tabIndex={0}
+                        aria-label={`${row.label}: ${row.help}`}
+                      >
+                        i
+                        <span
+                          role="tooltip"
+                          className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden w-max max-w-52 -translate-y-1/2 rounded-md border border-slate-200 bg-slate-900 px-2 py-1.5 text-left text-[10px] font-medium leading-4 text-white shadow-lg group-hover/help:block group-focus/help:block"
+                        >
+                          {row.help}
+                        </span>
+                      </span>
+                      {bulkApplyRowKey ? (
+                        <button
+                          type="button"
+                          className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-slate-400 transition hover:border-sky-200 hover:bg-sky-50 hover:text-[color:var(--blue-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                          aria-label={
+                            bulkApplySourceName
+                              ? `Uporabi ${row.label} iz ${bulkApplySourceName} za vse različice`
+                              : `Uporabi ${row.label} za vse različice`
+                          }
+                          title={
+                            bulkApplySourceName
+                              ? `Uporabi »${row.label}« iz »${bulkApplySourceName}« za vse različice`
+                              : 'Najprej razširite izvorno različico'
+                          }
+                          disabled={!canBulkApplyRow}
+                          onClick={() => applyDimensionVariantRowValueToAll(bulkApplyRowKey)}
+                        >
+                          <ApplyToAllIcon className="!h-3.5 !w-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                    {draft.variants.map((variant) => {
+                      const variantIndex = Math.max(0, draft.variants.findIndex((entry) => entry.id === variant.id));
+                      const variantName = buildDimensionVariantHeaderLabel(variant, variantIndex, true);
+                      const isExpanded = expandedDimensionVariant?.id === variant.id;
+                      const isHovered = hoveredDimensionVariantId === variant.id;
+                      const isCompressedInactive = collapseInactiveDimensionVariants && !variant.active;
+                      if (isExpanded) {
+                        return (
+                          <div
+                            key={`${row.key}-${variant.id}`}
+                            role="cell"
+                            className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-x border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
+                              row.key === 'default' ? 'justify-center' : ''
+                            }`}
+                          >
+                            <div
+                              className={`admin-dimension-variant-content-enter w-full max-w-[320px] ${
+                                row.key === 'default' ? 'flex justify-center' : ''
+                              }`}
+                            >
+                              {renderExpandedDimensionVariantCell(variant, row.key)}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div
+                          key={`${row.key}-${variant.id}`}
+                          role="cell"
+                          className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r border-slate-200 px-0.5 py-1 ${
+                            isHovered
+                              ? 'z-10 border-x border-[color:var(--blue-500)] bg-sky-50'
+                              : isCompressedInactive
+                                ? 'bg-slate-100/70 opacity-[0.65]'
+                                : ''
+                          }`}
+                          onClick={(event) => activateCollapsedDimensionVariant(event, variant.id)}
+                          onMouseEnter={() => setHoveredDimensionVariantId(variant.id)}
+                          onMouseLeave={() => setHoveredDimensionVariantId((current) => current === variant.id ? null : current)}
+                        >
+                          {renderCompactDimensionVariantCell(variant, row.key)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          </div>
+          {dimensionVariantViewMode === 'rows' && draft.variants.length > 0 ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-[-1px] top-[-1px] z-40 h-px bg-white"
+                style={{ width: `${dimensionVariantHeaderSlant + 1}px` }}
+              />
+            </>
+          ) : null}
+          </div>
+          <p className="border-t border-slate-200 px-3 py-2 text-[11px] leading-4 text-slate-500">
+            Neto cene so uredljive. Cene z DDV se izračunajo iz nastavljene stopnje DDV.
+          </p>
           <QuantityDiscountsCard
             editable={isEditable}
             quantityDiscounts={quantityDiscounts}
@@ -5355,6 +7246,9 @@ export default function AdminItemEditorPage({
           data={weightProductData}
           baseSku={sideSettings.sku || draft.variants[0]?.sku || 'SKU'}
           color={sideSettings.color}
+          taxRate={dimensionVariantTaxRate}
+          defaultVariantId={weightLocalDefaultVariantId}
+          onDefaultVariantChange={selectDefaultWeightVariant}
           onChange={updateWeightProductData}
           quantityDiscountsPanel={(
             <QuantityDiscountsCard
@@ -5381,6 +7275,12 @@ export default function AdminItemEditorPage({
         <SimpleProductModule
           editable={isEditable}
           data={simpleProductData}
+          costNet={draft.variants[0]?.costNet ?? null}
+          taxRate={dimensionVariantTaxRate}
+          onCostNetChange={(costNet) => {
+            const simpleVariant = draft.variants[0];
+            if (simpleVariant) updateVariant(simpleVariant.id, { costNet });
+          }}
           onChange={updateSimpleProductData}
           quantityDiscountsPanel={(
             <QuantityDiscountsCard
@@ -5392,7 +7292,6 @@ export default function AdminItemEditorPage({
               simulatorOptions={simulatorOptions}
               usesScopedCommercialTools
               embedded
-              className="!border-t-0"
             />
           )}
         />

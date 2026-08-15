@@ -47,13 +47,14 @@ import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
 import { formatEuro } from '@/shared/domain/formatting';
 import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
-import type { CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
+import type { ArchivedCatalogItemSummary, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const STORAGE_KEY = 'admin-items-crud-v2';
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 type Item = {
   id: string;
+  slug?: string;
   name: string;
   category: string;
   sku: string;
@@ -61,10 +62,13 @@ type Item = {
   discountPct?: number | null;
   active: boolean;
   archivedAt?: string | null;
+  purgeAfter?: string | null;
+  canPurge?: boolean;
+  serverBacked?: boolean;
   restorePayload?: CatalogItemEditorPayload | null;
 };
 
-type ArchivedItemsColumnKey = 'name' | 'sku' | 'category' | 'price' | 'archivedAt';
+type ArchivedItemsColumnKey = 'name' | 'sku' | 'category' | 'price' | 'archivedAt' | 'purgeAfter';
 type ArchivedItemsSortKey = ArchivedItemsColumnKey;
 type ArchivedItemsHeaderFilter = ArchivedItemsColumnKey | null;
 type SortDirection = 'asc' | 'desc';
@@ -73,8 +77,9 @@ const ARCHIVED_ITEMS_COLUMN_OPTIONS: Array<{ key: ArchivedItemsColumnKey; label:
   { key: 'name', label: 'Naziv', disabled: true },
   { key: 'sku', label: 'SKU' },
   { key: 'category', label: 'Kategorija' },
-  { key: 'price', label: 'Cena' },
-  { key: 'archivedAt', label: 'Arhivirano' }
+  { key: 'price', label: 'Prodajna cena brez DDV' },
+  { key: 'archivedAt', label: 'Izbrisano' },
+  { key: 'purgeAfter', label: 'Hramba do' }
 ];
 
 const formatCurrency = formatEuro;
@@ -82,6 +87,14 @@ const formatCurrency = formatEuro;
 const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
   return new Date(value).toLocaleString('sl-SI', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+const formatRetention = (item: Item) => {
+  if (!item.purgeAfter) return '—';
+  if (item.canPurge) return `${formatDateTime(item.purgeAfter)} · hramba je potekla`;
+  const remainingMs = new Date(item.purgeAfter).getTime() - Date.now();
+  const remainingDays = Math.max(1, Math.ceil(remainingMs / 86_400_000));
+  return `${formatDateTime(item.purgeAfter)} · še ${remainingDays} dni`;
 };
 
 function createRestoreInsertPayload(payload: CatalogItemEditorPayload): CatalogItemEditorPayload {
@@ -144,10 +157,12 @@ export default function AdminArchivedItemsTable() {
     sku: true,
     category: true,
     price: true,
-    archivedAt: true
+    archivedAt: true,
+    purgeAfter: true
   });
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoringSelected, setIsRestoringSelected] = useState(false);
+  const [isPurgingSelected, setIsPurgingSelected] = useState(false);
   const nameFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const skuFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -155,17 +170,68 @@ export default function AdminArchivedItemsTable() {
   const archivedDateFilterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    let localItems: Item[] = [];
     try {
-      const parsed = JSON.parse(raw) as Item[];
+      const parsed = raw ? JSON.parse(raw) as Item[] : [];
       if (Array.isArray(parsed)) {
-        setItems(parsed.map((item) => ({ ...item, archivedAt: item.archivedAt ?? null })));
+        localItems = parsed.map((item) => {
+          const archivedAt = item.archivedAt ?? null;
+          const derivedPurgeAfter = archivedAt
+            ? new Date(new Date(archivedAt).getTime() + 90 * 86_400_000).toISOString()
+            : null;
+          const purgeAfter = item.purgeAfter ?? derivedPurgeAfter;
+          return {
+            ...item,
+            archivedAt,
+            purgeAfter,
+            canPurge: Boolean(purgeAfter && new Date(purgeAfter).getTime() <= Date.now())
+          };
+        });
       }
     } catch {
       // ignore malformed state
     }
-  }, []);
+
+    const loadServerArchive = async () => {
+      try {
+        const response = await fetch('/api/admin/artikli/archived', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Izbrisanih artiklov ni bilo mogoče naložiti.');
+        const body = await response.json() as { items?: ArchivedCatalogItemSummary[] };
+        const serverItems: Item[] = (body.items ?? []).map((item) => ({
+          id: `server:${item.id}`,
+          slug: item.slug,
+          name: item.itemName,
+          category: item.categoryLabel,
+          sku: item.sku ?? '',
+          price: item.price,
+          discountPct: item.discountPct,
+          active: item.statusBeforeDelete === 'active',
+          archivedAt: item.deletedAt,
+          purgeAfter: item.purgeAfter,
+          canPurge: item.canPurge,
+          serverBacked: true,
+          restorePayload: null
+        }));
+        const serverSlugs = new Set(serverItems.map((item) => item.slug));
+        const legacyOnly = localItems.filter((item) =>
+          !serverSlugs.has(item.id)
+          && !serverSlugs.has(item.restorePayload?.slug)
+        );
+        if (!cancelled) setItems([...serverItems, ...legacyOnly]);
+      } catch (error) {
+        if (!cancelled) {
+          setItems(localItems);
+          toast.error(error instanceof Error ? error.message : 'Izbrisanih artiklov ni bilo mogoče naložiti.');
+        }
+      }
+    };
+    void loadServerArchive();
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
 
   const archivedItems = useMemo(
     () => items.filter((item) => item.archivedAt),
@@ -187,7 +253,8 @@ export default function AdminArchivedItemsTable() {
         item.sku,
         item.category,
         formatCurrency(price),
-        formatDateTime(item.archivedAt)
+        formatDateTime(item.archivedAt),
+        formatRetention(item)
       ];
       const matchesSearch = !query || searchableValues.some((value) => normalizeText(value).includes(query));
       const matchesName = !normalizedNameFilter || normalizeText(item.name).includes(normalizedNameFilter);
@@ -222,10 +289,11 @@ export default function AdminArchivedItemsTable() {
       let comparison = 0;
       if (sortState.key === 'price') {
         comparison = getDiscountedPrice(leftItem) - getDiscountedPrice(rightItem);
-      } else if (sortState.key === 'archivedAt') {
+      } else if (sortState.key === 'archivedAt' || sortState.key === 'purgeAfter') {
+        const dateKey = sortState.key;
         comparison =
-          new Date(leftItem.archivedAt ?? 0).getTime() -
-          new Date(rightItem.archivedAt ?? 0).getTime();
+          new Date(leftItem[dateKey] ?? 0).getTime() -
+          new Date(rightItem[dateKey] ?? 0).getTime();
       } else {
         comparison = collator.compare(String(leftItem[sortState.key] ?? ''), String(rightItem[sortState.key] ?? ''));
       }
@@ -248,6 +316,10 @@ export default function AdminArchivedItemsTable() {
   }, [page, pageSize, sortedArchivedItems]);
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedHasRetentionLock = useMemo(
+    () => items.some((item) => selectedIdSet.has(item.id) && !item.canPurge),
+    [items, selectedIdSet]
+  );
   const visibleIds = useMemo(() => pagedArchivedItems.map((item) => item.id), [pagedArchivedItems]);
   const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
 
@@ -281,7 +353,7 @@ export default function AdminArchivedItemsTable() {
     if (archivedDateRange.from || archivedDateRange.to) {
       chips.push({
         key: 'archivedAt',
-        title: 'Arhivirano:',
+        title: 'Izbrisano:',
         value: `${archivedDateRange.from || '—'} – ${archivedDateRange.to || '—'}`,
         clear: () => {
           const empty = { from: '', to: '' };
@@ -304,27 +376,39 @@ export default function AdminArchivedItemsTable() {
 
   const persist = (next: Item[]) => {
     setItems(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.filter((item) => !item.serverBacked)));
   };
 
   const restoreSelected = async () => {
     if (selectedIds.length === 0 || isRestoringSelected) return;
     const selectedSet = new Set(selectedIds);
     const selectedItems = items.filter((item) => selectedSet.has(item.id));
-    const missingPayloadCount = selectedItems.filter((item) => !item.restorePayload).length;
+    const missingPayloadCount = selectedItems.filter((item) => !item.serverBacked && !item.restorePayload).length;
     if (missingPayloadCount > 0) {
-      toast.error('Izbrani arhivski zapis ne vsebuje podatkov za obnovitev.');
+      toast.error('Izbrani zapis izbrisanega artikla ne vsebuje podatkov za obnovitev.');
       return;
     }
 
     setIsRestoringSelected(true);
     try {
       for (const item of selectedItems) {
-        if (!item.restorePayload) throw new Error('Arhivski zapis ne vsebuje podatkov za obnovitev.');
+        if (item.serverBacked) {
+          const response = await fetch(`/api/admin/artikli/${encodeURIComponent(item.slug ?? item.id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'restore' })
+          });
+          if (!response.ok) {
+            const body = await response.json().catch(() => null) as { message?: string } | null;
+            throw new Error(body?.message || 'Obnova artikla ni uspela.');
+          }
+          continue;
+        }
+        if (!item.restorePayload) throw new Error('Zapis izbrisanega artikla ne vsebuje podatkov za obnovitev.');
         await saveCatalogItemPayload(createRestoreInsertPayload(item.restorePayload));
       }
 
-      const next = items.map((item) => (selectedSet.has(item.id) ? { ...item, archivedAt: null } : item));
+      const next = items.filter((item) => !selectedSet.has(item.id));
       persist(next);
       setSelectedIds([]);
       toast.success(selectedIds.length === 1 ? 'Artikel je obnovljen.' : `Obnovljenih artiklov: ${selectedIds.length}.`);
@@ -336,18 +420,40 @@ export default function AdminArchivedItemsTable() {
   };
 
   const hardDeleteSelected = () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || selectedHasRetentionLock) {
+      if (selectedHasRetentionLock) toast.error('Trajni izbris je na voljo šele po poteku 90-dnevne hrambe.');
+      return;
+    }
     setIsDeleteConfirmOpen(true);
   };
 
-  const confirmHardDeleteSelected = () => {
+  const confirmHardDeleteSelected = async () => {
+    if (isPurgingSelected) return;
     const selectedSet = new Set(selectedIds);
     const deletedCount = selectedIds.length;
-    const next = items.filter((item) => !selectedSet.has(item.id));
-    persist(next);
-    setSelectedIds([]);
-    setIsDeleteConfirmOpen(false);
-    toast.success(deletedCount === 1 ? 'Artikel je trajno izbrisan.' : `Trajno izbrisanih artiklov: ${deletedCount}.`);
+    const selectedItems = items.filter((item) => selectedSet.has(item.id));
+    setIsPurgingSelected(true);
+    try {
+      for (const item of selectedItems) {
+        if (!item.serverBacked) continue;
+        const response = await fetch(`/api/admin/artikli/${encodeURIComponent(item.slug ?? item.id)}?purge=true`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => null) as { message?: string } | null;
+          throw new Error(body?.message || 'Trajni izbris artikla ni uspel.');
+        }
+      }
+      const next = items.filter((item) => !selectedSet.has(item.id));
+      persist(next);
+      setSelectedIds([]);
+      setIsDeleteConfirmOpen(false);
+      toast.success(deletedCount === 1 ? 'Artikel je trajno izbrisan.' : `Trajno izbrisanih artiklov: ${deletedCount}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Trajni izbris artikla ni uspel.');
+    } finally {
+      setIsPurgingSelected(false);
+    }
   };
 
   const toggleAll = () => {
@@ -441,6 +547,20 @@ export default function AdminArchivedItemsTable() {
     </TH>
   );
 
+  const renderSortHeader = (
+    key: ArchivedItemsColumnKey,
+    label: string,
+    align: 'left' | 'center'
+  ) => (
+    <TH className={align === 'center' ? adminTableHeaderCellCenterClassName : adminTableHeaderCellLeftClassName}>
+      <div className={adminTableHeaderContentClassName}>
+        <button type="button" onClick={() => handleSort(key)} className={getHeaderTitleClass(key)}>
+          {label}
+        </button>
+      </div>
+    </TH>
+  );
+
   return (
     <AdminTableLayout
       className={`w-full ${adminTableCardClassName}`}
@@ -454,8 +574,8 @@ export default function AdminArchivedItemsTable() {
             <AdminSearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Poišči arhivirane artikle"
-              aria-label="Poišči arhivirane artikle"
+              placeholder="Poišči izbrisane artikle"
+              aria-label="Poišči izbrisane artikle"
               wrapperClassName={adminTableToolbarSearchWrapperClassName}
               inputClassName={adminTableSearchInputClassName}
               iconClassName={adminTableSearchIconClassName}
@@ -492,9 +612,9 @@ export default function AdminArchivedItemsTable() {
             tone={selectedIds.length > 0 ? 'danger' : 'neutral'}
             className={selectedIds.length > 0 ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={hardDeleteSelected}
-            disabled={selectedIds.length === 0}
+            disabled={selectedIds.length === 0 || selectedHasRetentionLock || isPurgingSelected}
             aria-label="Trajno izbriši izbrane artikle"
-            title="Trajno izbriši"
+            title={selectedHasRetentionLock ? 'Trajni izbris je na voljo po poteku 90-dnevne hrambe' : 'Trajno izbriši'}
           >
             <TrashCanIcon />
           </IconButton>
@@ -541,7 +661,7 @@ export default function AdminArchivedItemsTable() {
         <ConfirmDialog
           open={isDeleteConfirmOpen}
           title="Trajni izbris"
-          description="Ali želite trajno izbrisati izbrane arhivirane artikle?"
+          description="Ali želite trajno izbrisati izbrane artikle, ki jim je 90-dnevna hramba že potekla? Dejanja ni mogoče razveljaviti."
           confirmLabel="Izbriši"
           cancelLabel="Prekliči"
           isDanger
@@ -558,6 +678,7 @@ export default function AdminArchivedItemsTable() {
           {visibleColumns.category ? <col className="w-[20%]" /> : null}
           {visibleColumns.price ? <col className="w-[14%]" /> : null}
           {visibleColumns.archivedAt ? <col className="w-[18%]" /> : null}
+          {visibleColumns.purgeAfter ? <col className="w-[22%]" /> : null}
         </colgroup>
         <THead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
           <TR>
@@ -571,8 +692,9 @@ export default function AdminArchivedItemsTable() {
             {visibleColumns.name ? renderHeader('name', 'Naziv', 'left', nameFilterButtonRef) : null}
             {visibleColumns.sku ? renderHeader('sku', 'SKU', 'left', skuFilterButtonRef) : null}
             {visibleColumns.category ? renderHeader('category', 'Kategorija', 'left', categoryFilterButtonRef) : null}
-            {visibleColumns.price ? renderHeader('price', 'Cena', 'center', priceFilterButtonRef) : null}
-            {visibleColumns.archivedAt ? renderHeader('archivedAt', 'Arhivirano', 'center', archivedDateFilterButtonRef) : null}
+            {visibleColumns.price ? renderHeader('price', 'Prodajna cena brez DDV', 'center', priceFilterButtonRef) : null}
+            {visibleColumns.archivedAt ? renderHeader('archivedAt', 'Izbrisano', 'center', archivedDateFilterButtonRef) : null}
+            {visibleColumns.purgeAfter ? renderSortHeader('purgeAfter', 'Hramba do', 'center') : null}
           </TR>
         </THead>
         <TBody>
@@ -580,10 +702,10 @@ export default function AdminArchivedItemsTable() {
             <TR>
               <TD colSpan={1 + Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-8">
                 <EmptyState
-                  title={archivedItems.length === 0 ? 'Ni arhiviranih artiklov' : 'Ni zadetkov za izbrane filtre.'}
+                  title={archivedItems.length === 0 ? 'Ni izbrisanih artiklov' : 'Ni zadetkov za izbrane filtre.'}
                   description={
                     archivedItems.length === 0
-                      ? 'Ko arhivirate artikel, se bo prikazal tukaj.'
+                      ? 'Ko izbrišete artikel, bo 90 dni prikazan tukaj in ga boste lahko obnovili.'
                       : 'Poskusite z drugim iskalnim izrazom ali filtrom.'
                   }
                 />
@@ -618,6 +740,7 @@ export default function AdminArchivedItemsTable() {
                 {visibleColumns.category ? <TD className={adminTableBodyCellBaseClassName}>{item.category || '—'}</TD> : null}
                 {visibleColumns.price ? <TD className={`${adminTableBodyCellCenterClassName} tabular-nums`}>{formatCurrency(getDiscountedPrice(item))}</TD> : null}
                 {visibleColumns.archivedAt ? <TD className={adminTableBodyCellCenterClassName}>{formatDateTime(item.archivedAt)}</TD> : null}
+                {visibleColumns.purgeAfter ? <TD className={adminTableBodyCellCenterClassName}>{formatRetention(item)}</TD> : null}
               </TR>
             );
           })}
@@ -717,13 +840,13 @@ export default function AdminArchivedItemsTable() {
                 type="date"
                 value={draftArchivedDateRange.from}
                 onChange={(event) => setDraftArchivedDateRange((current) => ({ ...current, from: event.target.value }))}
-                aria-label="Arhivirano od"
+                aria-label="Izbrisano od"
               />
               <AdminFilterInput
                 type="date"
                 value={draftArchivedDateRange.to}
                 onChange={(event) => setDraftArchivedDateRange((current) => ({ ...current, to: event.target.value }))}
-                aria-label="Arhivirano do"
+                aria-label="Izbrisano do"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">

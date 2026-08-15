@@ -8,6 +8,7 @@ import PaymentChip from '@/admin/features/orders/components/PaymentChip';
 import StatusChip from '@/admin/features/orders/components/StatusChip';
 import AdminOrderItemsEditorClient from '@/admin/features/orders/components/AdminOrderItemsEditorClient';
 import AdminOrderPdfManagerClient from '@/admin/features/orders/components/AdminOrderPdfManagerClient';
+import AdminOrderCustomerAccess from '@/admin/features/orders/components/AdminOrderCustomerAccess';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
 import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
@@ -66,7 +67,10 @@ type NormalizedOrder = {
   contact_name: string;
   email: string;
   delivery_address: string;
+  address_line1?: string | null;
   postal_code?: string | null;
+  city?: string | null;
+  commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   reference: string;
   notes: string;
   status: string;
@@ -75,6 +79,7 @@ type NormalizedOrder = {
   created_at: string;
   subtotal: number;
   tax: number;
+  tax_rate?: number | null;
   total: number;
   is_draft?: boolean | null;
   deleted_at?: string | null;
@@ -84,6 +89,7 @@ type DetailData = {
   orderDate: string;
   customerType: string;
   postalCode: string;
+  city: string;
   organizationName: string;
   contactName: string;
   email: string;
@@ -164,7 +170,15 @@ const asDetailData = (order: NormalizedOrder): DetailData => ({
   organizationName: order.organization_name?.trim() ? order.organization_name : order.contact_name,
   contactName: order.contact_name,
   email: order.email,
-  deliveryAddress: (order.delivery_address ?? '').replace(/\b\d{4}\b/g, '').replace(/\s{2,}/g, ' ').trim(),
+  city:
+    (typeof order.city === 'string' && order.city.trim())
+    || (order.delivery_address?.match(/\b\d{4}\s+([^,]+)$/)?.[1]?.trim() ?? ''),
+  deliveryAddress:
+    (typeof order.address_line1 === 'string' && order.address_line1.trim())
+    || (order.delivery_address ?? '')
+      .replace(/,?\s*\b\d{4}\b.*$/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim(),
   notes: order.notes?.trim() ? order.notes : '',
   status: order.status,
   paymentStatus: isPaymentStatus(order.payment_status ?? '') ? order.payment_status : 'unpaid'
@@ -799,7 +813,9 @@ export default function AdminOrderDetailClient({
             contactName: draftDetails.organizationName.trim() || draftDetails.contactName.trim(),
             email: draftDetails.email,
             deliveryAddress: draftDetails.deliveryAddress,
+            addressLine1: draftDetails.deliveryAddress,
             postalCode: draftDetails.postalCode,
+            city: draftDetails.city,
             notes: draftDetails.notes,
             orderDate: toApiOrderDate(draftDetails.orderDate)
           })
@@ -1120,6 +1136,18 @@ export default function AdminOrderDetailClient({
                   </DetailFieldShell>
                 </DetailField>
 
+                <DetailField label="Kraj">
+                  <DetailFieldShell icon="address" isEditing={isEditing}>
+                    <input
+                      type="text"
+                      value={isEditing ? activeDetails.city : displayValue(activeDetails.city)}
+                      disabled={!isEditing || pageIsBusy}
+                      onChange={(event) => updateDraftDetails({ city: event.target.value })}
+                      className={adminCompactIconFieldInputClassName}
+                    />
+                  </DetailFieldShell>
+                </DetailField>
+
                 <DetailField label="Naslov">
                   <DetailFieldShell icon="address" isEditing={isEditing}>
                     <input
@@ -1151,7 +1179,7 @@ export default function AdminOrderDetailClient({
                 items={items}
                 initialSubtotal={order.subtotal}
                 initialTax={order.tax}
-                initialTotal={order.total}
+                initialTaxRate={order.tax_rate ?? 0.22}
                 externalEditMode={isEditing}
                 hideSectionEditControls
                 onDirtyChange={setItemsDirty}
@@ -1184,6 +1212,17 @@ export default function AdminOrderDetailClient({
             />
           </aside>
         </div>
+
+        {!order.is_draft ? (
+          <AdminOrderCustomerAccess
+            orderId={orderId}
+            customerType={order.customer_type}
+            initialCommitmentStatus={
+              order.commitment_status
+              ?? (order.customer_type === 'school' ? 'pending_confirmation' : 'binding')
+            }
+          />
+        ) : null}
       </div>
 
       <UnsavedChangesDialog

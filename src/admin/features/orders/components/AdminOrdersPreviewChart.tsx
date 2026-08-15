@@ -39,6 +39,7 @@ type OrderAnalyticsPreviewRow = {
   created_at: string;
   status: string;
   total: number | string | null;
+  commitment_status: string | null;
 };
 
 const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }> = [
@@ -105,6 +106,10 @@ const toStatusBucket = (status: string): StatusBucket => {
   return 'other';
 };
 
+const isFinancialOrder = (order: OrderAnalyticsPreviewRow) =>
+  order.commitment_status === 'binding' &&
+  order.status.trim().toLowerCase() !== 'cancelled';
+
 const getPeriodMetrics = (orders: OrderAnalyticsPreviewRow[], start: Date, end: Date): PeriodMetrics => {
   const startTs = start.getTime();
   const endTs = end.getTime();
@@ -116,13 +121,14 @@ const getPeriodMetrics = (orders: OrderAnalyticsPreviewRow[], start: Date, end: 
     const timestamp = new Date(order.created_at).getTime();
     return Number.isFinite(timestamp) && timestamp >= startTs && timestamp <= endTs;
   });
-  const orderValues = periodOrders.map((order) => toAmount(order.total));
+  const financialOrders = periodOrders.filter(isFinancialOrder);
+  const orderValues = financialOrders.map((order) => toAmount(order.total));
   const revenue = orderValues.reduce((sum, value) => sum + value, 0);
 
   return {
     orders: periodOrders.length,
     revenue,
-    average: periodOrders.length > 0 ? revenue / periodOrders.length : 0,
+    average: financialOrders.length > 0 ? revenue / financialOrders.length : 0,
     dailyAverage: revenue / dayCount,
     maxOrderValue: orderValues.length ? Math.max(...orderValues) : 0
   };
@@ -241,6 +247,7 @@ function AdminOrdersPreviewChart({
         timestamp <= rangeEndBoundary.getTime()
       );
     });
+    const financialOrders = selectedOrders.filter(isFinancialOrder);
 
     const thirtyDayMetrics = getPeriodMetrics(
       selectedOrders,
@@ -253,15 +260,15 @@ function AdminOrdersPreviewChart({
       endOfLocalDay(shiftDateByDays(safeRangeEnd, -30))
     );
 
-    const revenue = selectedOrders.reduce((sum, order) => sum + toAmount(order.total), 0);
-    const average = selectedOrders.length > 0 ? revenue / selectedOrders.length : 0;
+    const revenue = financialOrders.reduce((sum, order) => sum + toAmount(order.total), 0);
+    const average = financialOrders.length > 0 ? revenue / financialOrders.length : 0;
     const selectedDayCount = Math.max(
       1,
       Math.round((startOfLocalDay(safeRangeEnd).getTime() - startOfLocalDay(safeRangeStart).getTime()) / DAY_MS) + 1
     );
     const dailyAverage = revenue / selectedDayCount;
-    const maxOrderValue = selectedOrders.length
-      ? Math.max(...selectedOrders.map((order) => toAmount(order.total)))
+    const maxOrderValue = financialOrders.length
+      ? Math.max(...financialOrders.map((order) => toAmount(order.total)))
       : 0;
     const statusTotals = selectedOrders.reduce(
       (totals, order) => {

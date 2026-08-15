@@ -3,7 +3,6 @@ import { getCatalogPreviewDataFromDatabase } from '@/shared/server/catalogCatego
 
 type CategoryNode = {
   title?: string;
-  slug?: string;
   subcategories?: CategoryNode[];
 };
 
@@ -14,11 +13,6 @@ function collectCategoryPaths(nodes: CategoryNode[], parents: string[] = [], tar
 
     const path = [...parents, title];
     target.push(path.join(' / '));
-
-    const slug = (node.slug ?? '').trim();
-    if (slug && slug.toLowerCase() !== title.toLowerCase()) {
-      target.push([...parents, slug].join(' / '));
-    }
 
     const children = Array.isArray(node.subcategories) ? node.subcategories : [];
     if (children.length > 0) {

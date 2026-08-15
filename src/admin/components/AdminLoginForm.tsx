@@ -6,7 +6,11 @@ import { FloatingInput } from '@/shared/ui/floating-field';
 import { Spinner } from '@/shared/ui/loading';
 import { Button } from '@/shared/ui/button';
 
-export default function AdminLoginForm() {
+type AdminLoginFormProps = {
+  nextPath: string;
+};
+
+export default function AdminLoginForm({ nextPath }: AdminLoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +34,7 @@ export default function AdminLoginForm() {
         throw new Error(body.message || 'Prijava ni uspela.');
       }
 
-      router.push('/admin/orders');
+      router.replace(nextPath);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Prijava ni uspela.');

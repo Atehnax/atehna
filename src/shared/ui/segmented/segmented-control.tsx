@@ -72,6 +72,7 @@ export default function SegmentedControl({ value, onChange, options, size = 'md'
             type="button"
             data-value={option.value}
             disabled={option.disabled}
+            aria-pressed={isActive}
             onClick={() => onChange(option.value)}
             onKeyDown={handleKeyDown}
             className={classNames(

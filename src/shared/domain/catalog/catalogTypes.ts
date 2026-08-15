@@ -4,6 +4,7 @@ export type CatalogItem = {
   slug: string;
   name: string;
   description: string;
+  appearanceOverride?: unknown;
   image?: string;
   images?: string[];
   price?: number;

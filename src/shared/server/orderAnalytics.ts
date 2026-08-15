@@ -15,9 +15,10 @@ type DateWindow = {
   toYmd: string;
 };
 
-type OrdersAnalyticsDay = {
+export type OrdersAnalyticsDay = {
   date: string;
   order_count: number;
+  binding_order_count: number;
   revenue_total: number;
   aov: number;
   median_order_value: number;
@@ -54,6 +55,7 @@ export const emptyOrdersAnalyticsResponse = (range: AnalyticsRange = '90d'): Ord
       {
         date: today,
         order_count: 0,
+        binding_order_count: 0,
         revenue_total: 0,
         aov: 0,
         median_order_value: 0,
@@ -193,7 +195,10 @@ export async function fetchOrdersAnalytics(params?: {
 
     const bucketByDay = new Map<
       string,
-      OrdersAnalyticsDay & { leadHours: number[]; orderValues: number[] }
+      OrdersAnalyticsDay & {
+        leadHours: number[];
+        orderValues: number[];
+      }
     >();
 
     const seedDays: string[] = [];
@@ -206,6 +211,7 @@ export async function fetchOrdersAnalytics(params?: {
       bucketByDay.set(key, {
         date: key,
         order_count: 0,
+        binding_order_count: 0,
         revenue_total: 0,
         aov: 0,
         median_order_value: 0,
@@ -234,23 +240,30 @@ export async function fetchOrdersAnalytics(params?: {
         if (!dayBucket) return;
 
         const orderTotal = toFiniteNumber(order.total);
-        dayBucket.order_count += 1;
-        dayBucket.revenue_total += orderTotal;
-        dayBucket.orderValues.push(orderTotal);
-
         const status = statusLabel(order.status);
+        const isBindingFinancialOrder =
+          order.commitment_status === 'binding' && status !== 'cancelled';
+        dayBucket.order_count += 1;
+        if (isBindingFinancialOrder) {
+          dayBucket.binding_order_count += 1;
+          dayBucket.revenue_total += orderTotal;
+          dayBucket.orderValues.push(orderTotal);
+        }
+
         dayBucket.status_buckets[status] = (dayBucket.status_buckets[status] ?? 0) + 1;
         if (status === 'cancelled') dayBucket.cancelled_count += 1;
 
         const paymentStatus = statusLabel(order.payment_status);
-        dayBucket.payment_status_buckets[paymentStatus] =
-          (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
-        if (paymentStatus === 'paid') dayBucket.paid_count += 1;
+        if (isBindingFinancialOrder) {
+          dayBucket.payment_status_buckets[paymentStatus] =
+            (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
+          if (paymentStatus === 'paid') dayBucket.paid_count += 1;
+        }
 
         const customer = customerBucket(order.customer_type);
         dayBucket.customer_type_buckets[customer] += 1;
 
-        const paidAt = paidAtByOrder.get(order.id);
+        const paidAt = isBindingFinancialOrder ? paidAtByOrder.get(order.id) : undefined;
         if (paidAt) {
           const paidTimestamp = new Date(paidAt).getTime();
           if (!Number.isNaN(paidTimestamp)) {
@@ -263,9 +276,15 @@ export async function fetchOrdersAnalytics(params?: {
 
     const days = await profileRoutePhase('transform', 'fetchOrdersAnalytics:finalizeDays', async () => seedDays.map((dayKey) => {
       const bucket = bucketByDay.get(dayKey)!;
-      const aov = bucket.order_count > 0 ? bucket.revenue_total / bucket.order_count : 0;
+      const aov =
+        bucket.binding_order_count > 0
+          ? bucket.revenue_total / bucket.binding_order_count
+          : 0;
       const medianOrderValue = percentile(bucket.orderValues, 0.5) ?? 0;
-      const paymentSuccessRate = bucket.order_count > 0 ? (bucket.paid_count / bucket.order_count) * 100 : 0;
+      const paymentSuccessRate =
+        bucket.binding_order_count > 0
+          ? (bucket.paid_count / bucket.binding_order_count) * 100
+          : 0;
       const cancellationRate = bucket.order_count > 0 ? (bucket.cancelled_count / bucket.order_count) * 100 : 0;
       const p50 = percentile(bucket.leadHours, 0.5);
       const p90 = percentile(bucket.leadHours, 0.9);
@@ -273,6 +292,7 @@ export async function fetchOrdersAnalytics(params?: {
       return {
         date: dayKey,
         order_count: bucket.order_count,
+        binding_order_count: bucket.binding_order_count,
         revenue_total: Number(bucket.revenue_total.toFixed(2)),
         aov: Number(aov.toFixed(2)),
         median_order_value: Number(medianOrderValue.toFixed(2)),

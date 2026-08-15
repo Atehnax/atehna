@@ -1,6 +1,26 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, type ReactNode, type SVGProps } from 'react';
+import { useCallback, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode, type SVGProps } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type KeyboardCoordinateGetter,
+  type UniqueIdentifier
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS as DndCss } from '@dnd-kit/utilities';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import { NoteTagChip, normalizeNoteTagValue } from '@/admin/features/artikli/components/NoteTagChip';
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
@@ -10,8 +30,9 @@ import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { formatCurrency } from '@/admin/features/artikli/lib/familyModel';
-import { formatDecimalForDisplay } from '@/admin/features/artikli/lib/decimalFormat';
+import { computeSalePrice, formatCurrency } from '@/admin/features/artikli/lib/familyModel';
+import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
+import { formatEuroAmount } from '@/shared/domain/formatting';
 import {
   adminStatusInfoPillVariantTableClassName,
   getAdminStatusInfoMenuOptionClassName,
@@ -34,12 +55,12 @@ import {
 } from '@/shared/ui/admin-table/standards';
 import type {
   ProductEditorType,
-  ProductModuleProps,
   ProductPricingLogicCardRowProps,
   ProductTypeSelectorCardRowProps,
   MachineSerialRow,
   MachineSerialStatus,
   SimpleProductData,
+  SimpleProductModuleProps,
   SpecRow,
   TypeSpecificProductData,
   UniqueMachineProductData,
@@ -57,7 +78,9 @@ import {
   createWeightInventoryKey,
   createWeightVariantFromCombination,
   createWeightVariantsFromChips,
+  getWeightAvailableStockKg,
   getWeightInventoryLabel,
+  getWeightVariantDisplayLabel,
   getWeightVariantUnitPrice,
   formatPieceCount,
   normalizeSimpleProductData,
@@ -71,6 +94,7 @@ import {
 } from './productData';
 import {
   classNames,
+  CompactSegmentedField,
   compactTableAdornmentClassName,
   compactTableAlignedInputClassName,
   compactTableThirtyInputClassName,
@@ -80,7 +104,7 @@ import {
   ReadOnlyTableInput,
   sectionTitleClassName
 } from './PricingFieldControls';
-import { toGrossWithVat } from './pricingCalculations';
+import { toGrossWithTaxRate, toGrossWithVat } from './pricingCalculations';
 import { getSlovenianPieceUnit } from './unitFormatters';
 
 type ModeIconProps = SVGProps<SVGSVGElement> & {
@@ -335,7 +359,7 @@ export function ProductPricingLogicCardRow({
       title: 'Aktivni način: Enostavni',
       text: 'Artikel uporablja eno osnovno ceno, en SKU in eno količino zaloge. Enostavno upravljanje cen, zaloge in razpoložljivosti.',
       cards: [
-        { icon: 'price' as const, title: 'Osnovna cena', text: `${formatCurrency(simple.actionPriceEnabled ? simple.actionPrice : simple.basePrice)} brez DDV` },
+        { icon: 'price' as const, title: 'Prodajna cena brez DDV', text: formatCurrency(simple.actionPriceEnabled ? simple.actionPrice : simple.basePrice) },
         { icon: 'stock' as const, title: 'Zaloga', text: formatPieceCount(simple.stock) },
         { icon: 'delivery' as const, title: 'Dobavni rok', text: simple.deliveryTime }
       ]
@@ -362,7 +386,7 @@ export function ProductPricingLogicCardRow({
       title: 'Aktivni način: Stroj / unikaten',
       text: 'Artikel predstavlja posamezen stroj ali unikaten kos z lastnimi tehničnimi podatki, servisom in garancijo.',
       cards: [
-        { icon: 'price' as const, title: 'Osnovna cena', text: formatCurrency(machine.basePrice) },
+        { icon: 'price' as const, title: 'Prodajna cena brez DDV', text: formatCurrency(machine.basePrice) },
         { icon: 'stock' as const, title: 'Zaloga', text: formatPieceCount(machine.stock) },
         { icon: 'service' as const, title: 'Garancija', text: `${machine.warrantyMonths} ${machine.warrantyUnit?.trim() || getMachineMonthUnit(machine.warrantyMonths)}` }
       ]
@@ -416,7 +440,15 @@ function getSimpleDiscountPricePatch(basePrice: number, discountPercent: number)
   };
 }
 
-export function SimpleProductModule({ editable, data, quantityDiscountsPanel, onChange }: ProductModuleProps) {
+export function SimpleProductModule({
+  editable,
+  data,
+  costNet,
+  taxRate,
+  quantityDiscountsPanel,
+  onCostNetChange,
+  onChange
+}: SimpleProductModuleProps) {
   const simpleData = normalizeSimpleProductData(data);
   const update = (updates: Partial<SimpleProductData>) => onChange(toTypeSpecificData({ ...simpleData, ...updates }));
   const discountPercent = getSimpleDiscountPercent(simpleData);
@@ -451,20 +483,39 @@ export function SimpleProductModule({ editable, data, quantityDiscountsPanel, on
 
   return (
     <SectionCard title="Prodajne informacije">
-      <div className="grid gap-5 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(548px,0.95fr)] lg:items-stretch">
+      <div className="grid gap-5 px-5 py-5 lg:grid-cols-2 lg:items-stretch">
         <div className={classNames(machinePanelClassName, 'h-full')}>
           <MachineInfoTable
             title="Osnovne informacije"
             editable={editable}
             fixedRows={[
               {
+                key: 'costNet',
+                label: 'Nabavna cena brez DDV',
+                value: costNet ?? '',
+                suffix: '€',
+                numeric: true,
+                hideCheckbox: true,
+                onEmpty: () => onCostNetChange(null),
+                onChange: (nextCostNet) => onCostNetChange(Math.max(0, Number(nextCostNet) || 0))
+              },
+              {
                 key: 'basePrice',
-                label: 'Osnovna cena',
+                label: 'Prodajna cena brez DDV',
                 value: simpleData.basePrice,
                 suffix: '€',
                 numeric: true,
                 hideCheckbox: true,
                 onChange: (basePrice) => updateBasePrice(Number(basePrice) || 0)
+              },
+              {
+                key: 'basePriceGross',
+                label: 'Prodajna cena z DDV',
+                value: formatEuroAmount(toGrossWithTaxRate(simpleData.basePrice, taxRate)),
+                suffix: '€',
+                locked: true,
+                hideCheckbox: true,
+                onChange: () => undefined
               },
               {
                 key: 'stock',
@@ -489,7 +540,11 @@ export function SimpleProductModule({ editable, data, quantityDiscountsPanel, on
             onAddCustomRow={addBasicInfoRow}
             onRemoveCustomRows={removeBasicInfoRows}
             onUpdateCustomRow={updateBasicInfoRow}
+            flushBottom
           />
+          {quantityDiscountsPanel}
+        </div>
+        <div className={classNames(machinePanelClassName, 'h-full')}>
           <MachineInfoTable
             title="Tehnične specifikacije"
             editable={editable}
@@ -502,11 +557,6 @@ export function SimpleProductModule({ editable, data, quantityDiscountsPanel, on
             flushBottom
           />
         </div>
-        {quantityDiscountsPanel ? (
-          <div className={classNames(machinePanelClassName, 'h-full')}>
-            {quantityDiscountsPanel}
-          </div>
-        ) : null}
       </div>
     </SectionCard>
   );
@@ -908,7 +958,7 @@ function FractionInventoryPanel({
       )}
     >
       <div className="flex min-w-0 items-center gap-3 px-3 py-3">
-        <span className="font-['Inter',system-ui,sans-serif] text-[11px] font-semibold leading-[1.2] text-slate-600">Različica</span>
+        <span className="font-['Inter',system-ui,sans-serif] text-[11px] font-semibold leading-[1.2] text-slate-600">Skupina zaloge</span>
         <div ref={fractionMenuRef} className="relative min-w-0">
           <button
             type="button"
@@ -1243,16 +1293,202 @@ function FractionInventoryPanel({
   );
 }
 
+type WeightVariantMatrixRowKey =
+  | 'default'
+  | 'netMass'
+  | 'color'
+  | 'fraction'
+  | 'tolerance'
+  | 'costNet'
+  | 'priceNet'
+  | 'priceGross'
+  | 'discount'
+  | 'salePriceNet'
+  | 'salePriceGross'
+  | 'poolStock'
+  | 'minOrder'
+  | 'poolDelivery'
+  | 'sku'
+  | 'status'
+  | 'note';
+
+const WEIGHT_VARIANT_MATRIX_ROWS: ReadonlyArray<{
+  key: WeightVariantMatrixRowKey;
+  label: string;
+  help: string;
+}> = [
+  { key: 'default', label: 'Privzeta različica', help: 'Različica, ki je izbrana ob odprtju izdelka.' },
+  { key: 'netMass', label: 'Neto masa pakiranja', help: 'Masa posameznega prodajnega pakiranja v kilogramih.' },
+  { key: 'color', label: 'Barva', help: 'Barva skupaj s frakcijo določa skupino zaloge.' },
+  { key: 'fraction', label: 'Frakcija', help: 'Frakcija skupaj z barvo določa skupino zaloge.' },
+  { key: 'tolerance', label: 'Toleranca', help: 'Dovoljeno odstopanje frakcije v milimetrih.' },
+  { key: 'costNet', label: 'Nabavna cena brez DDV', help: 'Interna nabavna cena pakiranja brez DDV.' },
+  { key: 'priceNet', label: 'Prodajna cena brez DDV', help: 'Neto cena posameznega pakiranja.' },
+  { key: 'priceGross', label: 'Prodajna cena z DDV', help: 'Cena pakiranja z vključeno nastavljeno stopnjo DDV.' },
+  { key: 'discount', label: 'Popust', help: 'Odstotek neposrednega popusta za prodajno različico.' },
+  { key: 'salePriceNet', label: 'Akcijska cena brez DDV', help: 'Izračunana neto cena po neposrednem popustu.' },
+  { key: 'salePriceGross', label: 'Akcijska cena z DDV', help: 'Izračunana akcijska cena z vključeno nastavljeno stopnjo DDV.' },
+  { key: 'poolStock', label: 'Skupna zaloga skupine', help: 'Razpoložljiva zaloga je skupna vsem pakiranjem iste frakcije in barve ter se ureja zgoraj.' },
+  { key: 'minOrder', label: 'Minimalno naročilo', help: 'Najmanjše število pakiranj; pri razsutem izdelku najmanjša količina v kilogramih.' },
+  { key: 'poolDelivery', label: 'Dobavni rok skupine', help: 'Dobavni rok je skupen isti frakciji in barvi ter se ureja zgoraj.' },
+  { key: 'sku', label: 'SKU', help: 'Enolična oznaka prodajne različice.' },
+  { key: 'status', label: 'Status', help: 'Samo aktivne različice so na voljo kupcem.' },
+  { key: 'note', label: 'Opomba', help: 'Prodajna oznaka oziroma stanje različice.' }
+];
+
+type WeightSortableKeyboardMetadata = {
+  sortable?: {
+    items?: UniqueIdentifier[];
+  };
+};
+
+const adjacentWeightVariantKeyboardCoordinates: KeyboardCoordinateGetter = (
+  event,
+  { active, context }
+) => {
+  if (event.code !== 'ArrowLeft' && event.code !== 'ArrowRight') return undefined;
+  event.preventDefault();
+
+  const activeContainer = context.droppableContainers.get(active);
+  const sortable = (activeContainer?.data.current ?? {}) as WeightSortableKeyboardMetadata;
+  const items = sortable.sortable?.items;
+  if (!items?.length || !context.collisionRect) return undefined;
+
+  const activeIndex = items.indexOf(active);
+  const overIndex = context.over ? items.indexOf(context.over.id) : -1;
+  const currentIndex = overIndex >= 0 ? overIndex : activeIndex;
+  const targetIndex = currentIndex + (event.code === 'ArrowRight' ? 1 : -1);
+  const targetId = items[targetIndex];
+  const targetRect = targetId === undefined ? null : context.droppableRects.get(targetId);
+  if (!targetRect) return undefined;
+
+  return {
+    x: targetRect.left + (targetRect.width - context.collisionRect.width) / 2,
+    y: targetRect.top + (targetRect.height - context.collisionRect.height) / 2
+  };
+};
+
+function WeightVariantSortableHeader({
+  id,
+  label,
+  disabled,
+  className,
+  onMouseEnter,
+  onMouseLeave,
+  children
+}: {
+  id: string;
+  label: string;
+  disabled: boolean;
+  className: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  children: (dragHandle: ReactNode) => ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setActivatorNodeRef,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver
+  } = useSortable({ id, disabled });
+  const dragHandle = disabled ? null : (
+    <button
+      ref={setActivatorNodeRef}
+      type="button"
+      {...attributes}
+      {...listeners}
+      className="relative z-30 inline-flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 transition hover:bg-white hover:text-[color:var(--blue-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] active:cursor-grabbing"
+      aria-label={`Premakni različico ${label}`}
+      title="Povleci za spremembo vrstnega reda. S tipkovnico: presledek, puščici levo/desno, presledek."
+      onClick={(event) => event.stopPropagation()}
+    >
+      <svg viewBox="0 0 12 16" className="h-3 w-2.5" fill="currentColor" aria-hidden="true">
+        <circle cx="3" cy="3" r="1" />
+        <circle cx="9" cy="3" r="1" />
+        <circle cx="3" cy="8" r="1" />
+        <circle cx="9" cy="8" r="1" />
+        <circle cx="3" cy="13" r="1" />
+        <circle cx="9" cy="13" r="1" />
+      </svg>
+    </button>
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      role="columnheader"
+      className={`${className} ${isDragging ? 'z-40 opacity-45' : ''} ${
+        isOver && !isDragging ? 'z-30 ring-2 ring-inset ring-[color:var(--blue-500)]' : ''
+      }`}
+      style={{
+        transform: DndCss.Transform.toString(transform),
+        transition
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children(dragHandle)}
+    </div>
+  );
+}
+
+function getWeightVariantCompactLabel(variant: WeightVariant) {
+  const mass = variant.netMassKg === null
+    ? 'Brez pakiranja'
+    : formatDecimalForDisplay(variant.netMassKg);
+  const color = normalizeSingleWeightColorValue(variant.color);
+  const fraction = stripWeightFractionUnit(variant.fraction);
+  return [
+    mass,
+    color === '—' ? '' : color,
+    fraction
+  ].filter(Boolean).join(' | ');
+}
+
+function getWeightVariantIdentity(variant: Pick<WeightVariant, 'fraction' | 'color' | 'netMassKg'>) {
+  return [
+    createWeightInventoryKey(variant.fraction, variant.color),
+    variant.netMassKg === null ? 'bulk' : Number(variant.netMassKg.toFixed(4)).toString()
+  ].join('|');
+}
+
+function getWeightNoteDotClassName(noteTag: string) {
+  const note = normalizeNoteTagValue(noteTag);
+  if (note === 'akcija') return 'bg-rose-500';
+  if (note === 'novo') return 'bg-sky-500';
+  if (note === 'zadnji-kosi') return 'bg-violet-500';
+  if (note === 'ni-na-zalogi' || note === '') return 'bg-slate-400';
+  return 'bg-emerald-500';
+}
+
 export function WeightProductModule({
   editable,
   data,
   baseSku,
   color,
+  taxRate,
+  defaultVariantId,
+  onDefaultVariantChange,
   quantityDiscountsPanel,
   onChange
 }: WeightProductModuleProps) {
   const [selectedVariantIds, setSelectedVariantIds] = useState<Set<string>>(new Set());
   const weightData = normalizeWeightProductData(data, { baseSku });
+  const [expandedWeightVariantId, setExpandedWeightVariantId] = useState<string | null>(
+    () => weightData.variants[0]?.id ?? null
+  );
+  const [hoveredWeightVariantId, setHoveredWeightVariantId] = useState<string | null>(null);
+  const [collapseInactiveWeightVariants, setCollapseInactiveWeightVariants] = useState(true);
+  const [draggedWeightVariantId, setDraggedWeightVariantId] = useState<string | null>(null);
+  const [weightVariantFieldDrafts, setWeightVariantFieldDrafts] = useState<Record<string, string>>({});
+  const weightVariantSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: adjacentWeightVariantKeyboardCoordinates })
+  );
   const update = (updates: Partial<WeightProductData>) => onChange(toTypeSpecificData({ ...weightData, ...updates }));
   const fractionChips = weightData.fractionChips;
   const colorChips = weightData.colorChips;
@@ -1340,6 +1576,156 @@ export function WeightProductModule({
     setSelectedInventoryKey(createWeightInventoryKey(nextSelected.fraction, nextSelected.color));
     updateFractionInventoryRows(nextRows, nextVariants);
   };
+  const expandedWeightVariant =
+    weightData.variants.find((variant) => variant.id === expandedWeightVariantId) ?? null;
+  const weightVariantLayoutCompactCount = Math.max(0, weightData.variants.length - 1);
+  const compactWeightVariantWidth = weightVariantLayoutCompactCount <= 2
+    ? 220
+    : weightVariantLayoutCompactCount <= 4
+      ? 140
+      : weightVariantLayoutCompactCount <= 6
+        ? 100
+        : weightVariantLayoutCompactCount <= 8
+          ? 82
+          : weightVariantLayoutCompactCount <= 12
+            ? 58
+            : weightVariantLayoutCompactCount <= 15
+              ? 44
+              : weightVariantLayoutCompactCount <= 19
+                ? 34
+                : 40;
+  const usesDenseWeightVariantLayout = weightVariantLayoutCompactCount >= 12;
+  const usesSteepWeightVariantHeaders = weightVariantLayoutCompactCount > 15;
+  const weightVariantHeaderHeight = usesSteepWeightVariantHeaders ? 138 : 118;
+  const weightVariantNormalBandHeight = 36;
+  const weightVariantDiagonalHeight = weightVariantHeaderHeight - weightVariantNormalBandHeight;
+  const weightVariantHeaderAngle = 45;
+  const weightVariantHeaderTitleOpticalOffset = 6;
+  const weightVariantHeaderSlant = weightVariantDiagonalHeight;
+  const flexibleWeightVariantCount = collapseInactiveWeightVariants
+    ? weightData.variants.filter((variant) => variant.active).length
+    : weightData.variants.length;
+  const flexibleCompactWeightVariantCount = Math.max(
+    0,
+    flexibleWeightVariantCount - 1
+  );
+  const expandedWeightVariantFlex = Math.max(1, flexibleCompactWeightVariantCount * 0.233);
+  const getWeightVariantTrack = (variant: WeightVariant) => {
+    const isExpanded = variant.id === expandedWeightVariant?.id;
+    const isCompressedInactive =
+      !isExpanded && collapseInactiveWeightVariants && !variant.active;
+    const minimumWidth = isExpanded
+      ? (usesDenseWeightVariantLayout ? 170 : 280)
+      : isCompressedInactive
+        ? Math.min(26, compactWeightVariantWidth)
+        : compactWeightVariantWidth;
+    const flexibleWidth = isExpanded
+      ? (usesDenseWeightVariantLayout ? expandedWeightVariantFlex : 1)
+      : isCompressedInactive
+        ? 0
+        : usesDenseWeightVariantLayout
+          ? 1
+          : 0;
+    return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
+  };
+  const weightMatrixGridTemplateColumns = [
+    '205px',
+    ...weightData.variants.map(getWeightVariantTrack)
+  ].join(' ');
+  const weightMatrixMinWidth =
+    205
+    + weightData.variants.reduce((total, variant) => {
+      if (variant.id === expandedWeightVariant?.id) {
+        return total + (usesDenseWeightVariantLayout ? 170 : 280);
+      }
+      return total + (
+        collapseInactiveWeightVariants && !variant.active
+          ? Math.min(26, compactWeightVariantWidth)
+          : compactWeightVariantWidth
+      );
+    }, 0);
+  const configuredDefaultWeightVariant =
+    weightData.variants.find((variant) => variant.id === defaultVariantId && variant.active) ?? null;
+  const resolvedDefaultWeightVariantId =
+    configuredDefaultWeightVariant?.id
+    ?? weightData.variants.find((variant) => variant.active)?.id
+    ?? null;
+  const firstSelectedWeightVariant =
+    weightData.variants.find((variant) => selectedVariantIds.has(variant.id)) ?? null;
+  const draggedWeightVariant =
+    weightData.variants.find((variant) => variant.id === draggedWeightVariantId) ?? null;
+  const getVariantInventory = (variant: WeightVariant) =>
+    findWeightFractionInventoryRow(
+      fractionInventory,
+      createWeightInventoryOption(variant.fraction, variant.color)
+    );
+  const updateVariant = (variantId: string, updates: Partial<WeightVariant>) => {
+    update({
+      variants: syncWeightVariantsWithFractionInventory(
+        updateWeightVariant(weightData.variants, variantId, updates),
+        fractionInventory
+      )
+    });
+  };
+  const weightVariantFieldDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
+  const setWeightVariantFieldDraft = (variantId: string, field: string, value: string) => {
+    const key = weightVariantFieldDraftKey(variantId, field);
+    setWeightVariantFieldDrafts((current) => ({ ...current, [key]: value }));
+  };
+  const clearWeightVariantFieldDraft = (variantId: string, field: string) => {
+    const key = weightVariantFieldDraftKey(variantId, field);
+    setWeightVariantFieldDrafts((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
+  const moveVariantToInventory = (variant: WeightVariant, nextOption: WeightInventoryOption) => {
+    const normalizedOption = createWeightInventoryOption(nextOption.fraction, nextOption.color);
+    const nextInventory = reconcileWeightFractionInventory(
+      [
+        ...fractionInventory.map((entry) => createWeightInventoryOption(entry.fraction, entry.color)),
+        normalizedOption
+      ],
+      fractionInventory,
+      weightData
+    );
+    const nextVariants = updateWeightVariant(weightData.variants, variant.id, {
+      fraction: normalizedOption.fraction,
+      color: normalizedOption.color
+    });
+    setSelectedInventoryKey(createWeightInventoryKey(normalizedOption.fraction, normalizedOption.color));
+    updateFractionInventoryRows(nextInventory, nextVariants);
+  };
+  const updateWeightVariantActiveState = (variantId: string, active: boolean) => {
+    const nextVariants = updateWeightVariant(weightData.variants, variantId, { active });
+    if (!active && resolvedDefaultWeightVariantId === variantId) {
+      const fallback = nextVariants.find((variant) => variant.active);
+      onDefaultVariantChange(fallback?.id ?? null);
+    }
+    update({ variants: nextVariants });
+  };
+  const reorderWeightVariants = (activeId: string, overId: string) => {
+    if (!editable || activeId === overId) return;
+    const oldIndex = weightData.variants.findIndex((variant) => variant.id === activeId);
+    const newIndex = weightData.variants.findIndex((variant) => variant.id === overId);
+    if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+    update({
+      variants: arrayMove(weightData.variants, oldIndex, newIndex).map((variant, index) => ({
+        ...variant,
+        position: index + 1
+      }))
+    });
+  };
+  const handleWeightVariantDragStart = (event: DragStartEvent) => {
+    setDraggedWeightVariantId(String(event.active.id));
+  };
+  const handleWeightVariantDragEnd = (event: DragEndEvent) => {
+    setDraggedWeightVariantId(null);
+    if (!event.over) return;
+    reorderWeightVariants(String(event.active.id), String(event.over.id));
+  };
   const regenerateVariants = () => {
     const generatedVariants = createWeightVariantsFromChips({
       ...weightData,
@@ -1347,10 +1733,43 @@ export function WeightProductModule({
       colorChips,
       packagingChips: massChips
     }, baseSku);
+    const currentByIdentity = new Map(
+      weightData.variants.map((variant) => [getWeightVariantIdentity(variant), variant])
+    );
+    const mergedCandidates = generatedVariants.map((generated, index) => {
+      const current = currentByIdentity.get(getWeightVariantIdentity(generated));
+      return current
+        ? { ...generated, ...current, position: index + 1 }
+        : { ...generated, position: index + 1 };
+    });
+    const retainedCandidateIndexes = mergedCandidates
+      .map((variant, index) => currentByIdentity.has(getWeightVariantIdentity(variant)) ? index : -1)
+      .filter((index) => index >= 0);
+    const newCandidateIndexes = mergedCandidates
+      .map((variant, index) => currentByIdentity.has(getWeightVariantIdentity(variant)) ? -1 : index)
+      .filter((index) => index >= 0);
+    const uniqueIdsByIndex = new Map<number, string>();
+    const usedVariantIds = new Set<string>();
+    [...retainedCandidateIndexes, ...newCandidateIndexes].forEach((index) => {
+      const candidate = mergedCandidates[index];
+      const baseId = candidate.id || `weight-variant-${index + 1}`;
+      let uniqueId = baseId;
+      let suffix = 2;
+      while (usedVariantIds.has(uniqueId)) {
+        uniqueId = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      usedVariantIds.add(uniqueId);
+      uniqueIdsByIndex.set(index, uniqueId);
+    });
+    const mergedVariants = mergedCandidates.map((variant, index) => ({
+      ...variant,
+      id: uniqueIdsByIndex.get(index) ?? variant.id
+    }));
     const nextInventory = reconcileWeightFractionInventory(
       [
         ...createWeightInventoryOptions(fractionChips, colorChips),
-        ...generatedVariants.map((variant) => createWeightInventoryOption(variant.fraction, variant.color)),
+        ...mergedVariants.map((variant) => createWeightInventoryOption(variant.fraction, variant.color)),
         ...fractionInventory.map((entry) => createWeightInventoryOption(entry.fraction, entry.color))
       ],
       fractionInventory,
@@ -1363,13 +1782,20 @@ export function WeightProductModule({
       stockKg: nextInventory[0]?.stockKg ?? weightData.stockKg,
       deliveryTime: nextInventory[0]?.deliveryTime ?? weightData.deliveryTime,
       fractionInventory: nextInventory,
-      variants: syncWeightVariantsWithFractionInventory(generatedVariants, nextInventory)
+      variants: syncWeightVariantsWithFractionInventory(mergedVariants, nextInventory)
     });
+    const nextDefault =
+      mergedVariants.find((variant) => variant.id === resolvedDefaultWeightVariantId && variant.active)
+      ?? mergedVariants.find((variant) => variant.active)
+      ?? null;
+    onDefaultVariantChange(nextDefault?.id ?? null);
+    setExpandedWeightVariantId(nextDefault?.id ?? mergedVariants[0]?.id ?? null);
     setSelectedVariantIds(new Set());
+    setWeightVariantFieldDrafts({});
   };
   const addVariant = () => {
     const netMassKg = parsePackagingMass(massChips[0] ?? '') ?? weightData.netMassKg;
-    const nextVariant = createWeightVariantFromCombination({
+    const createdVariant = createWeightVariantFromCombination({
       netMassKg,
       fraction: fractionChips[0] ?? weightData.fraction,
       color: colorChips[0] ?? '—',
@@ -1377,6 +1803,21 @@ export function WeightProductModule({
       data: weightData,
       baseSku
     });
+    const usedVariantIds = new Set(weightData.variants.map((variant) => variant.id));
+    const usedVariantSkus = new Set(weightData.variants.map((variant) => variant.sku.trim().toLocaleLowerCase('sl-SI')));
+    let duplicateSuffix = 1;
+    let nextVariant = createdVariant;
+    while (
+      usedVariantIds.has(nextVariant.id)
+      || usedVariantSkus.has(nextVariant.sku.trim().toLocaleLowerCase('sl-SI'))
+    ) {
+      duplicateSuffix += 1;
+      nextVariant = {
+        ...createdVariant,
+        id: `${createdVariant.id}-${duplicateSuffix}`,
+        sku: `${createdVariant.sku}-${duplicateSuffix}`
+      };
+    }
     const nextInventory = reconcileWeightFractionInventory(
       [
         ...fractionInventory.map((entry) => createWeightInventoryOption(entry.fraction, entry.color)),
@@ -1389,10 +1830,27 @@ export function WeightProductModule({
       fractionInventory: nextInventory,
       variants: syncWeightVariantsWithFractionInventory([...weightData.variants, nextVariant], nextInventory)
     });
+    if (!resolvedDefaultWeightVariantId) onDefaultVariantChange(nextVariant.id);
+    setExpandedWeightVariantId(nextVariant.id);
   };
   const removeSelectedVariants = () => {
     if (selectedVariantIds.size === 0) return;
-    update({ variants: weightData.variants.filter((variant) => !selectedVariantIds.has(variant.id)) });
+    const nextVariants = weightData.variants
+      .filter((variant) => !selectedVariantIds.has(variant.id))
+      .map((variant, index) => ({ ...variant, position: index + 1 }));
+    if (resolvedDefaultWeightVariantId && selectedVariantIds.has(resolvedDefaultWeightVariantId)) {
+      const fallback = nextVariants.find((variant) => variant.active);
+      onDefaultVariantChange(fallback?.id ?? null);
+    }
+    update({ variants: nextVariants });
+    if (expandedWeightVariantId && selectedVariantIds.has(expandedWeightVariantId)) {
+      setExpandedWeightVariantId(nextVariants[0]?.id ?? null);
+    }
+    setWeightVariantFieldDrafts((current) => Object.fromEntries(
+      Object.entries(current).filter(([key]) =>
+        nextVariants.some((variant) => key.startsWith(`${variant.id}:`))
+      )
+    ));
     setSelectedVariantIds(new Set());
   };
   const toggleVariantSelection = (id: string) => {
@@ -1405,6 +1863,416 @@ export function WeightProductModule({
   };
   const allVariantsSelected = weightData.variants.length > 0 && weightData.variants.every((variant) => selectedVariantIds.has(variant.id));
   const hasSelectedVariants = selectedVariantIds.size > 0;
+  const weightVariantSelectClassName =
+    "h-[30px] w-full min-w-0 rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-[10px] font-normal text-slate-900 outline-none transition focus:border-[color:var(--blue-500)] focus:ring-0 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-600";
+
+  const renderExpandedWeightVariantCell = (
+    variant: WeightVariant,
+    rowKey: WeightVariantMatrixRowKey
+  ): ReactNode => {
+    const variantName = getWeightVariantDisplayLabel(variant);
+    const inventory = getVariantInventory(variant);
+    const poolLabel = inventory ? getWeightInventoryLabel(inventory) : getWeightInventoryLabel(variant);
+    const priceDraft = weightVariantFieldDrafts[weightVariantFieldDraftKey(variant.id, 'priceNet')];
+    const discountDraft = weightVariantFieldDrafts[weightVariantFieldDraftKey(variant.id, 'discount')];
+    const unitPrice = priceDraft === undefined
+      ? getWeightVariantUnitPrice(variant)
+      : Math.max(0, parseDecimalInput(priceDraft) ?? 0);
+    const discountPct = discountDraft === undefined
+      ? Math.min(100, Math.max(0, variant.discountPct))
+      : Math.min(100, Math.max(0, parseDecimalInput(discountDraft) ?? 0));
+    const salePrice = computeSalePrice(unitPrice, discountPct);
+    const availableStock = inventory ? getWeightAvailableStockKg(inventory) : variant.stockKg;
+    const availableColors = Array.from(new Set(
+      fractionInventory
+        .filter((entry) => createWeightFractionKey(entry.fraction) === createWeightFractionKey(variant.fraction))
+        .map((entry) => normalizeSingleWeightColorValue(entry.color))
+    )).sort((left, right) => left.localeCompare(right, 'sl-SI', { numeric: true, sensitivity: 'base' }));
+    const availableFractions = Array.from(new Set(
+      fractionInventory
+        .filter((entry) => normalizeSingleWeightColorValue(entry.color) === normalizeSingleWeightColorValue(variant.color))
+        .map((entry) => normalizeWeightFractionValue(entry.fraction))
+        .filter(Boolean)
+    )).sort(compareWeightFractions);
+    if (rowKey === 'default') {
+      return (
+        <input
+          type="radio"
+          name="default-weight-variant"
+          aria-label={`Nastavi ${variantName} kot privzeto`}
+          title={variant.active ? 'Nastavi kot privzeto različico' : 'Neaktivna različica ne more biti privzeta'}
+          className="h-4 w-4 accent-[color:var(--blue-600)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40"
+          checked={resolvedDefaultWeightVariantId === variant.id}
+          disabled={!editable || !variant.active}
+          onClick={(event) => event.stopPropagation()}
+          onChange={() => onDefaultVariantChange(variant.id)}
+        />
+      );
+    }
+    if (rowKey === 'netMass') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={
+            weightVariantFieldDrafts[weightVariantFieldDraftKey(variant.id, 'netMass')]
+            ?? (variant.netMassKg === null ? null : formatDecimalForDisplay(variant.netMassKg))
+          }
+          suffix="kg"
+          placeholder="0,5"
+          ariaLabel={`Neto masa pakiranja za ${variantName}`}
+          onChange={(value) => setWeightVariantFieldDraft(variant.id, 'netMass', value)}
+          onBlur={() => {
+            const key = weightVariantFieldDraftKey(variant.id, 'netMass');
+            const raw = weightVariantFieldDrafts[key];
+            if (raw !== undefined) {
+              const parsed = parseDecimalInput(raw);
+              updateVariant(variant.id, { netMassKg: parsed === null ? null : Math.max(0, parsed) });
+            }
+            clearWeightVariantFieldDraft(variant.id, 'netMass');
+          }}
+        />
+      );
+    }
+    if (rowKey === 'color') {
+      return editable ? (
+        <select
+          className={weightVariantSelectClassName}
+          value={normalizeSingleWeightColorValue(variant.color)}
+          aria-label={`Barva za ${variantName}`}
+          onChange={(event) => moveVariantToInventory(
+            variant,
+            createWeightInventoryOption(variant.fraction, event.target.value)
+          )}
+        >
+          {availableColors.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      ) : (
+        <CompactSegmentedField
+          editable={false}
+          value={normalizeSingleWeightColorValue(variant.color)}
+          align="left"
+          ariaLabel={`Barva za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'fraction') {
+      return editable ? (
+        <select
+          className={weightVariantSelectClassName}
+          value={normalizeWeightFractionValue(variant.fraction)}
+          aria-label={`Frakcija za ${variantName}`}
+          onChange={(event) => moveVariantToInventory(
+            variant,
+            createWeightInventoryOption(event.target.value, variant.color)
+          )}
+        >
+          {availableFractions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      ) : (
+        <CompactSegmentedField
+          editable={false}
+          value={stripWeightFractionUnit(variant.fraction)}
+          suffix="mm"
+          ariaLabel={`Frakcija za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'tolerance') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={variant.tolerance ? variant.tolerance.replace('.', ',') : null}
+          prefix="±"
+          suffix="mm"
+          placeholder="0,5"
+          maxLength={6}
+          ariaLabel={`Toleranca za ${variantName}`}
+          onChange={(value) => updateVariant(variant.id, {
+            tolerance: value.replace(/[^\d,.-]/g, '').slice(0, 6)
+          })}
+        />
+      );
+    }
+    if (rowKey === 'costNet') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={
+            weightVariantFieldDrafts[weightVariantFieldDraftKey(variant.id, 'costNet')]
+            ?? (variant.costNet === null ? null : formatEuroAmount(variant.costNet))
+          }
+          suffix="€"
+          ariaLabel={`Nabavna cena brez DDV za ${variantName}`}
+          onChange={(value) => setWeightVariantFieldDraft(variant.id, 'costNet', value)}
+          onBlur={() => {
+            const key = weightVariantFieldDraftKey(variant.id, 'costNet');
+            const raw = weightVariantFieldDrafts[key];
+            if (raw !== undefined) {
+              const parsed = parseDecimalInput(raw);
+              updateVariant(variant.id, { costNet: parsed === null ? null : Math.max(0, parsed) });
+            }
+            clearWeightVariantFieldDraft(variant.id, 'costNet');
+          }}
+        />
+      );
+    }
+    if (rowKey === 'priceNet') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={priceDraft ?? formatEuroAmount(unitPrice)}
+          suffix="€"
+          ariaLabel={`Prodajna cena brez DDV za ${variantName}`}
+          onChange={(value) => setWeightVariantFieldDraft(variant.id, 'priceNet', value)}
+          onBlur={() => {
+            const key = weightVariantFieldDraftKey(variant.id, 'priceNet');
+            const raw = weightVariantFieldDrafts[key];
+            if (raw !== undefined) {
+              const parsed = parseDecimalInput(raw);
+              updateVariant(variant.id, { unitPrice: parsed === null ? null : Math.max(0, parsed) });
+            }
+            clearWeightVariantFieldDraft(variant.id, 'priceNet');
+          }}
+        />
+      );
+    }
+    if (rowKey === 'priceGross') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={formatEuroAmount(toGrossWithTaxRate(unitPrice, taxRate))}
+          suffix="€"
+          ariaLabel={`Prodajna cena z DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'discount') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={discountDraft ?? formatDecimalForDisplay(discountPct)}
+          suffix="%"
+          ariaLabel={`Popust za ${variantName}`}
+          onChange={(value) => setWeightVariantFieldDraft(variant.id, 'discount', value)}
+          onBlur={() => {
+            const key = weightVariantFieldDraftKey(variant.id, 'discount');
+            const raw = weightVariantFieldDrafts[key];
+            if (raw !== undefined) {
+              updateVariant(variant.id, {
+                discountPct: Math.min(100, Math.max(0, parseDecimalInput(raw) ?? 0))
+              });
+            }
+            clearWeightVariantFieldDraft(variant.id, 'discount');
+          }}
+        />
+      );
+    }
+    if (rowKey === 'salePriceNet') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={discountPct > 0 ? formatEuroAmount(salePrice) : null}
+          suffix="€"
+          ariaLabel={`Akcijska cena brez DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'salePriceGross') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={discountPct > 0 ? formatEuroAmount(toGrossWithTaxRate(salePrice, taxRate)) : null}
+          suffix="€"
+          ariaLabel={`Akcijska cena z DDV za ${variantName}`}
+        />
+      );
+    }
+    if (rowKey === 'poolStock') {
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={formatDecimalForDisplay(availableStock)}
+          suffix="kg"
+          ariaLabel={`Skupna razpoložljiva zaloga skupine ${poolLabel}`}
+          title={`Skupna zaloga ${poolLabel}: ${formatDecimalForDisplay(inventory?.stockKg ?? variant.stockKg)} kg; rezervirano ${formatDecimalForDisplay(inventory?.reservedKg ?? 0)} kg. Urejanje je v razdelku zaloge zgoraj.`}
+        />
+      );
+    }
+    if (rowKey === 'minOrder') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          inputMode="numeric"
+          value={variant.minQuantity}
+          suffix={variant.netMassKg === null ? 'kg' : 'pak.'}
+          ariaLabel={`Minimalno naročilo za ${variantName}`}
+          title={
+            variant.netMassKg === null
+              ? 'Minimalna količina v kilogramih.'
+              : `${variant.minQuantity} pak. = ${formatDecimalForDisplay(variant.minQuantity * variant.netMassKg)} kg`
+          }
+          onChange={(value) => updateVariant(variant.id, {
+            minQuantity: Math.max(1, Math.floor(Number(value.replace(/\D/g, '')) || 1))
+          })}
+        />
+      );
+    }
+    if (rowKey === 'poolDelivery') {
+      const deliveryTime = inventory?.deliveryTime || variant.deliveryTime || '';
+      const deliveryAmount = stripMachineWorkingDayUnit(deliveryTime);
+      return (
+        <CompactSegmentedField
+          editable={false}
+          value={deliveryAmount || null}
+          suffix={deliveryAmount ? getMachineWorkingDayUnit(deliveryAmount) : undefined}
+          ariaLabel={`Skupni dobavni rok skupine ${poolLabel}`}
+          title={`Dobavni rok je skupen skupini ${poolLabel} in se ureja v razdelku zaloge zgoraj.`}
+        />
+      );
+    }
+    if (rowKey === 'sku') {
+      return (
+        <CompactSegmentedField
+          editable={editable}
+          value={variant.sku}
+          inputMode="text"
+          align="left"
+          ariaLabel={`SKU za ${variantName}`}
+          title={variant.sku || undefined}
+          onChange={(sku) => updateVariant(variant.id, { sku })}
+        />
+      );
+    }
+    if (rowKey === 'status') {
+      return (
+        <div className="inline-flex w-full justify-center">
+          <ActiveStateChip
+            active={variant.active}
+            editable={editable}
+            chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
+            menuPlacement="bottom"
+            onChange={(active) => updateWeightVariantActiveState(variant.id, active)}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="inline-flex w-full justify-center">
+        <NoteTagChip
+          value={normalizeNoteTagValue(variant.noteTag)}
+          editable={editable}
+          chipClassName={`${adminStatusInfoPillVariantTableClassName} !w-full !min-w-0 !px-1 !text-[9px]`}
+          menuPlacement="bottom"
+          onChange={(noteTag) => updateVariant(variant.id, { noteTag })}
+        />
+      </div>
+    );
+  };
+
+  const renderCompactWeightVariantCell = (
+    variant: WeightVariant,
+    rowKey: WeightVariantMatrixRowKey
+  ): ReactNode => {
+    const variantName = getWeightVariantDisplayLabel(variant);
+    const inventory = getVariantInventory(variant);
+    const poolLabel = inventory ? getWeightInventoryLabel(inventory) : getWeightInventoryLabel(variant);
+    const unitPrice = getWeightVariantUnitPrice(variant);
+    const discountPct = Math.min(100, Math.max(0, variant.discountPct));
+    const salePrice = computeSalePrice(unitPrice, discountPct);
+    if (rowKey === 'default') {
+      return (
+        <input
+          type="radio"
+          name="default-weight-variant"
+          aria-label={`Nastavi ${variantName} kot privzeto`}
+          title={variant.active ? 'Nastavi kot privzeto različico' : 'Neaktivna različica ne more biti privzeta'}
+          className="h-4 w-4 accent-[color:var(--blue-600)] disabled:cursor-not-allowed disabled:opacity-40"
+          checked={resolvedDefaultWeightVariantId === variant.id}
+          disabled={!editable || !variant.active}
+          onChange={() => onDefaultVariantChange(variant.id)}
+        />
+      );
+    }
+    if (rowKey === 'status') {
+      return (
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${variant.active ? 'bg-emerald-500' : 'bg-slate-400'}`}
+          title={variant.active ? 'Aktiven' : 'Neaktiven'}
+        />
+      );
+    }
+    if (rowKey === 'note') {
+      return (
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${getWeightNoteDotClassName(variant.noteTag)}`}
+          title={normalizeNoteTagValue(variant.noteTag) || 'Brez opombe'}
+        />
+      );
+    }
+
+    let value = '—';
+    let title = variantName;
+    if (rowKey === 'netMass') value = variant.netMassKg === null ? '—' : formatDecimalForDisplay(variant.netMassKg);
+    if (rowKey === 'color') value = normalizeSingleWeightColorValue(variant.color);
+    if (rowKey === 'fraction') value = stripWeightFractionUnit(variant.fraction) || '—';
+    if (rowKey === 'tolerance') value = variant.tolerance ? `± ${variant.tolerance.replace('.', ',')}` : '—';
+    if (rowKey === 'costNet') value = variant.costNet === null ? '—' : formatEuroAmount(variant.costNet);
+    if (rowKey === 'priceNet') value = formatEuroAmount(unitPrice);
+    if (rowKey === 'priceGross') {
+      value = formatEuroAmount(toGrossWithTaxRate(unitPrice, taxRate));
+    }
+    if (rowKey === 'discount') value = formatDecimalForDisplay(discountPct);
+    if (rowKey === 'salePriceNet') value = discountPct > 0 ? formatEuroAmount(salePrice) : '—';
+    if (rowKey === 'salePriceGross') {
+      value = discountPct > 0
+        ? formatEuroAmount(toGrossWithTaxRate(salePrice, taxRate))
+        : '—';
+    }
+    if (rowKey === 'poolStock') {
+      value = formatDecimalForDisplay(inventory ? getWeightAvailableStockKg(inventory) : variant.stockKg);
+      title = `Skupna razpoložljiva zaloga skupine ${poolLabel}: ${value} kg`;
+    }
+    if (rowKey === 'minOrder') value = String(variant.minQuantity);
+    if (rowKey === 'poolDelivery') {
+      const deliveryTime = inventory?.deliveryTime || variant.deliveryTime || '';
+      value = stripMachineWorkingDayUnit(deliveryTime) || '—';
+      title = `Skupni dobavni rok skupine ${poolLabel}: ${deliveryTime || '—'}`;
+    }
+    if (rowKey === 'sku') {
+      value = variant.sku || '—';
+      title = variant.sku || variantName;
+    }
+    return (
+      <span
+        className="block max-w-full truncate text-center text-[10px] font-normal text-slate-700"
+        title={title}
+      >
+        {value}
+      </span>
+    );
+  };
+
+  const activateCollapsedWeightVariant = (
+    event: ReactMouseEvent<HTMLDivElement>,
+    variantId: string
+  ) => {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest(
+        'button, input, select, textarea, a, label, [role="button"], [role="checkbox"], [role="radio"], [contenteditable="true"]'
+      )
+    ) {
+      return;
+    }
+
+    setExpandedWeightVariantId(variantId);
+    setHoveredWeightVariantId(null);
+  };
 
   return (
     <SectionCard title="Prodaja po masi">
@@ -1438,9 +2306,58 @@ export function WeightProductModule({
             <span>.</span>
           </p>
         </div>
-        <div className="relative mt-3 overflow-x-auto overflow-y-visible rounded-lg border border-slate-200">
+        <div className="relative mt-3 rounded-lg border border-slate-200">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Različice
+                <span className="ml-1.5 font-normal text-slate-500">({weightData.variants.length})</span>
+              </h3>
+              {weightData.variants.length > 1 ? (
+                <p className="text-[10px] font-medium text-slate-500">
+                  Povlecite ročico v glavi različice; ta vrstni red se uporabi tudi na strani izdelka.
+                </p>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
+              <div className="inline-flex items-center gap-2 text-[10px] font-medium text-slate-600">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={collapseInactiveWeightVariants}
+                  aria-label="Skrči neaktivne različice"
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition ${
+                    collapseInactiveWeightVariants
+                      ? 'border-[color:var(--blue-600)] bg-[color:var(--blue-600)]'
+                      : 'border-slate-300 bg-slate-200'
+                  }`}
+                  onClick={() => setCollapseInactiveWeightVariants((current) => !current)}
+                >
+                  <span
+                    className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                      collapseInactiveWeightVariants ? 'translate-x-[17px]' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+                Skrči neaktivne
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-[30px] items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-[color:var(--blue-700)] transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+                disabled={!firstSelectedWeightVariant}
+                onClick={() => {
+                  if (firstSelectedWeightVariant) setExpandedWeightVariantId(firstSelectedWeightVariant.id);
+                }}
+              >
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+                  <path d="M6 2H2v4M10 14h4v-4M2.5 5.5 6 2M13.5 10.5 10 14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Razširi izbrano
+              </button>
+            </div>
+          </div>
           <div className="grid min-w-full grid-cols-[minmax(120px,1fr)_minmax(320px,560px)_minmax(340px,1fr)] items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-900">Različice</h3>
+            <span className="text-[11px] font-semibold text-slate-500">Generator različic</span>
             <div className="w-[560px] max-w-full min-w-0 justify-self-center">
               <WeightGeneratorChipInput
                 editable={editable}
@@ -1494,248 +2411,376 @@ export function WeightProductModule({
               </Button>
             </div>
           </div>
-          <table className="min-w-full table-fixed text-[11px] leading-4">
-          <colgroup>
-            <col style={{ width: '1.87%' }} />
-            <col style={{ width: '5.76%' }} />
-            <col style={{ width: '8.8%' }} />
-            <col style={{ width: '5.8%' }} />
-            <col style={{ width: '5.8%' }} />
-            <col style={{ width: '5.8%' }} />
-            <col style={{ width: '5.8%' }} />
-            <col style={{ width: '5.8%' }} />
-            <col style={{ width: '20.97%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '3.06%' }} />
-          </colgroup>
-          <thead className="bg-[color:var(--admin-table-header-bg)]">
-            <tr>
-              <th className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px] font-semibold text-slate-700`}>
-                <AdminCheckbox
-                  checked={editable && allVariantsSelected}
-                  disabled={!editable || weightData.variants.length === 0}
-                  onChange={() =>
-                    setSelectedVariantIds(allVariantsSelected ? new Set() : new Set(weightData.variants.map((variant) => variant.id)))
-                  }
-                />
-              </th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px] font-semibold text-slate-700`}>Masa</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700`}>Barva</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700`}>Frakcija</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap py-1.5 pl-6 pr-2 text-left text-[11px] font-semibold text-slate-700`}>Toleranca</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px] font-semibold text-slate-700`}>Cena</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap px-2 py-1.5 text-right text-[11px] font-semibold text-slate-700`}>Zaloga</th>
-              <th className={`${adminTableRowHeightClassName} whitespace-nowrap py-1.5 pl-2 pr-1 text-right text-[11px] font-semibold text-slate-700`}>Min. količina</th>
-              <th className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px] font-semibold text-slate-700`}>SKU</th>
-              <th className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px] font-semibold text-slate-700`}>Status</th>
-              <th className={`${adminTableRowHeightClassName} px-1 py-1.5 text-center text-[11px] font-semibold text-slate-700`}>Opombe</th>
-              <th className={`${adminTableRowHeightClassName} px-2 py-1.5 text-center text-[11px] font-semibold text-slate-700`}>Mesto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {weightData.variants.length > 0 ? (
-              weightData.variants.map((variant) => (
-                <tr key={variant.id} className={`${adminTableRowHeightClassName} border-t border-slate-100 align-middle`}>
-                  <td className="px-2 py-1.5 text-center">
-                    <AdminCheckbox
-                      checked={selectedVariantIds.has(variant.id)}
-                      disabled={!editable}
-                      onChange={() => toggleVariantSelection(variant.id)}
-                    />
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    {editable ? (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <DecimalDraftInput
-                          className={`${compactTableThirtyInputClassName} !mt-0 !w-[7ch] text-right`}
-                          value={variant.netMassKg ?? 0}
-                          onDecimalChange={(netMassKg) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { netMassKg }) })}
+          {weightData.variants.length === 0 ? (
+            <div className="border-b border-slate-200 px-4 py-10 text-center">
+              <p className="text-sm font-semibold text-slate-700">Ni različic za prikaz.</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Dodajte različico ali vnesite maso, barvo in frakcijo ter izberite »Generiraj različice«.
+              </p>
+            </div>
+          ) : (
+            <div className="relative overflow-x-auto overflow-y-visible">
+              <div
+                role="table"
+                aria-label="Različice artikla po masi s polji v vrsticah"
+                className="admin-variant-matrix-track-transition grid min-w-full bg-transparent"
+                style={{
+                  minWidth: `${Math.max(720, weightMatrixMinWidth)}px`,
+                  gridTemplateColumns: weightMatrixGridTemplateColumns
+                }}
+              >
+                <DndContext
+                  sensors={weightVariantSensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleWeightVariantDragStart}
+                  onDragEnd={handleWeightVariantDragEnd}
+                  onDragCancel={() => setDraggedWeightVariantId(null)}
+                >
+                  <SortableContext
+                    items={weightData.variants.map((variant) => variant.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <div
+                      role="row"
+                      className="admin-variant-matrix-row relative grid border-b border-slate-200 bg-slate-50/80"
+                      style={{
+                        height: `${weightVariantHeaderHeight}px`,
+                        clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                      }}
+                    >
+                      <div
+                        role="columnheader"
+                        className="sticky left-0 z-30 flex items-end px-3 pb-2 text-[11px] font-bold text-slate-700"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 bg-slate-50"
+                          style={{
+                            clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                          }}
                         />
-                        <span className={compactTableAdornmentClassName}>kg</span>
-                      </span>
-                    ) : (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <ReadOnlyTableInput
-                          className="!w-[7ch] text-right"
-                          value={variant.netMassKg === null ? '—' : formatDecimalForDisplay(variant.netMassKg)}
-                        />
-                        {variant.netMassKg === null ? null : <span className={compactTableAdornmentClassName}>kg</span>}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    {editable ? (
-                      <input
-                        className={`${compactTableThirtyInputClassName} !mt-0 w-full text-left`}
-                        value={variant.color}
-                        onChange={(event) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { color: normalizeSingleWeightColorValue(event.target.value) }) })}
-                      />
-                    ) : (
-                      <ReadOnlyTableInput
-                        className="!w-full text-left"
-                        value={variant.color || '—'}
-                      />
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    {editable ? (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} w-full justify-start`}>
-                        <input
-                          className={`${compactTableThirtyInputClassName} !mt-0 !w-[4ch] text-left`}
-                          value={stripWeightFractionUnit(variant.fraction)}
-                          onChange={(event) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { fraction: normalizeWeightFractionValue(event.target.value) }) })}
-                        />
-                        <span className={compactTableAdornmentClassName}>mm</span>
-                      </span>
-                    ) : (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} w-full justify-start`}>
-                        <ReadOnlyTableInput
-                          className="!w-[4ch] text-left"
-                          value={variant.fraction ? stripWeightFractionUnit(variant.fraction) : '—'}
-                        />
-                        {variant.fraction ? <span className={compactTableAdornmentClassName}>mm</span> : null}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-1.5 pl-6 pr-2 text-left">
-                    {editable ? (
-                      <div className="inline-flex h-[30px] w-full items-center justify-start whitespace-nowrap">
-                        <span className={compactTableAdornmentClassName}>±</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          maxLength={1}
-                          className={`${compactTableAlignedInputClassName} !mt-0 !h-[30px] !w-[3ch] !px-0 text-center`}
-                          value={variant.tolerance}
-                          onChange={(event) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { tolerance: event.target.value.replace(/\D/g, '').slice(0, 1) }) })}
-                        />
-                        <span className={`ml-1 ${compactTableAdornmentClassName}`}>mm</span>
+                        <span className="relative z-10 flex items-center gap-2">
+                          <AdminCheckbox
+                            aria-label="Izberi vse različice"
+                            checked={editable && allVariantsSelected}
+                            onChange={() =>
+                              setSelectedVariantIds(
+                                allVariantsSelected
+                                  ? new Set()
+                                  : new Set(weightData.variants.map((variant) => variant.id))
+                              )
+                            }
+                            disabled={!editable}
+                          />
+                          Različica
+                        </span>
                       </div>
-                    ) : (
-                      <span className="inline-flex h-[30px] w-full items-center justify-start">
-                        <span className={classNames(compactTableAdornmentClassName, !variant.tolerance && 'invisible')}>±</span>
-                        <ReadOnlyTableInput
-                          className="!w-[3ch] !px-0 text-center"
-                          value={variant.tolerance ? variant.tolerance.replace('.', ',') : '—'}
-                        />
-                        <span className={classNames(`ml-1 ${compactTableAdornmentClassName}`, !variant.tolerance && 'invisible')}>mm</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    {editable ? (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <DecimalDraftInput
-                          className={`${compactTableThirtyInputClassName} !mt-0 !w-[7ch] text-right`}
-                          value={getWeightVariantUnitPrice(variant)}
-                          onDecimalChange={(unitPrice) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { unitPrice }) })}
-                        />
-                        <span className={compactTableAdornmentClassName}>€</span>
-                      </span>
-                    ) : (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <ReadOnlyTableInput
-                          className="!w-[7ch] text-right"
-                          value={formatDecimalForDisplay(getWeightVariantUnitPrice(variant))}
-                        />
-                        <span className={compactTableAdornmentClassName}>€</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                      <ReadOnlyTableInput
-                        className="!w-[5ch] text-right"
-                        value={formatDecimalForDisplay(variant.stockKg)}
-                      />
-                      <span className={`shrink-0 ${compactTableAdornmentClassName}`}>kg</span>
-                    </span>
-                  </td>
-                  <td className="px-2 py-1.5 text-right">
-                    {editable ? (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <DecimalDraftInput
-                          className={`${compactTableThirtyInputClassName} !mt-0 !w-[5ch] text-right`}
-                          value={variant.minQuantity}
-                          onDecimalChange={(minQuantity) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { minQuantity: Math.max(1, Math.floor(minQuantity) || 1) }) })}
-                        />
-                        <span className={compactTableAdornmentClassName}>kg</span>
-                      </span>
-                    ) : (
-                      <span className={`${compactTableThirtyValueUnitShellClassName} justify-end`}>
-                        <ReadOnlyTableInput
-                          className="!w-[5ch] text-right"
-                          value={variant.minQuantity}
-                        />
-                        <span className={compactTableAdornmentClassName}>kg</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    {editable ? (
-                      <input
-                        className={`${compactTableThirtyInputClassName} mx-auto !mt-0 !block !w-[31ch] text-center`}
-                        value={variant.sku}
-                        onChange={(event) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { sku: event.target.value }) })}
-                      />
-                    ) : (
-                      <ReadOnlyTableInput
-                        className="mx-auto block !w-[31ch] text-center"
-                        value={variant.sku || '—'}
-                      />
-                    )}
-                  </td>
-                  <td className="px-1 py-1.5 text-center">
-                    <div className="inline-flex justify-center">
-                      <ActiveStateChip
-                        active={variant.active}
-                        editable={editable}
-                        chipClassName={adminStatusInfoPillVariantTableClassName}
-                        menuPlacement="bottom"
-                        onChange={(active) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { active }) })}
-                      />
+                      {weightData.variants.map((variant, variantIndex) => {
+                        const variantDisplayName = getWeightVariantCompactLabel(variant);
+                        const variantHoverName = getWeightVariantDisplayLabel(variant);
+                        const isExpanded = expandedWeightVariant?.id === variant.id;
+                        const isHovered = hoveredWeightVariantId === variant.id;
+                        const isCompressedInactive = collapseInactiveWeightVariants && !variant.active;
+                        const nextVariantIsExpanded =
+                          weightData.variants[variantIndex + 1]?.id === expandedWeightVariant?.id;
+                        const expandedVariantHasLeftSlant = variantIndex > 0;
+                        if (isExpanded) {
+                          return (
+                            <WeightVariantSortableHeader
+                              key={variant.id}
+                              id={variant.id}
+                              label={variantHoverName}
+                              disabled={!editable || weightData.variants.length <= 1}
+                              className="relative z-20 flex min-w-0 items-end overflow-visible px-2 pb-px"
+                            >
+                              {(dragHandle) => (
+                                <>
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute bottom-0 h-full bg-sky-50/80"
+                                    style={{
+                                      left: expandedVariantHasLeftSlant
+                                        ? `-${weightVariantHeaderSlant}px`
+                                        : 0,
+                                      width: expandedVariantHasLeftSlant
+                                        ? `calc(100% + ${weightVariantHeaderSlant}px)`
+                                        : '100%',
+                                      clipPath: expandedVariantHasLeftSlant
+                                        ? `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, ${weightVariantHeaderSlant}px 100%, ${weightVariantHeaderSlant}px ${weightVariantDiagonalHeight}px)`
+                                        : `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, 0 100%)`
+                                    }}
+                                  />
+                                  {expandedVariantHasLeftSlant ? (
+                                    <span
+                                      aria-hidden="true"
+                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
+                                      style={{
+                                        height: `${weightVariantDiagonalHeight}px`,
+                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
+                                      }}
+                                    />
+                                  ) : null}
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-[color:var(--blue-500)]"
+                                    style={{
+                                      height: `${
+                                        expandedVariantHasLeftSlant
+                                          ? weightVariantNormalBandHeight
+                                          : weightVariantHeaderHeight
+                                      }px`
+                                    }}
+                                  />
+                                  <span
+                                    aria-hidden="true"
+                                    className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-[color:var(--blue-500)]"
+                                    style={{
+                                      height: `${weightVariantDiagonalHeight}px`,
+                                      transform: `skewX(${weightVariantHeaderAngle}deg)`
+                                    }}
+                                  />
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-[color:var(--blue-500)]"
+                                    style={{ height: `${weightVariantNormalBandHeight}px` }}
+                                  />
+                                  <div className="admin-dimension-variant-content-enter relative z-30 flex w-full min-w-0 items-center gap-1.5">
+                                    {dragHandle}
+                                    <span onClick={(event) => event.stopPropagation()}>
+                                      <AdminCheckbox
+                                        aria-label={`Izberi ${variantHoverName}`}
+                                        checked={selectedVariantIds.has(variant.id)}
+                                        onChange={() => toggleVariantSelection(variant.id)}
+                                        disabled={!editable}
+                                      />
+                                    </span>
+                                    <span
+                                      className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-900"
+                                      title={variantHoverName}
+                                    >
+                                      {variantDisplayName}
+                                    </span>
+                                    {weightData.variants.length > 1 ? (
+                                      <button
+                                        type="button"
+                                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-white hover:text-[color:var(--blue-700)]"
+                                        aria-label="Skrči razširjeno različico"
+                                        title="Skrči različico"
+                                        onClick={() => setExpandedWeightVariantId(null)}
+                                      >
+                                        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                                          <path d="m5 6 3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                </>
+                              )}
+                            </WeightVariantSortableHeader>
+                          );
+                        }
+                        return (
+                          <WeightVariantSortableHeader
+                            key={variant.id}
+                            id={variant.id}
+                            label={variantHoverName}
+                            disabled={!editable || weightData.variants.length <= 1}
+                            className={`relative min-w-0 overflow-visible transition-colors ${
+                              isHovered
+                                ? 'z-10'
+                                : isCompressedInactive
+                                  ? 'opacity-70'
+                                  : ''
+                            }`}
+                            onMouseEnter={() => setHoveredWeightVariantId(variant.id)}
+                            onMouseLeave={() => setHoveredWeightVariantId((current) => current === variant.id ? null : current)}
+                          >
+                            {(dragHandle) => (
+                              <>
+                                <button
+                                  type="button"
+                                  className={`absolute bottom-0 block h-full overflow-hidden outline-none transition-colors focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--blue-500)] ${
+                                    isHovered
+                                      ? 'bg-sky-50'
+                                      : isCompressedInactive
+                                        ? 'bg-slate-100/80'
+                                        : 'bg-slate-50/80'
+                                  }`}
+                                  style={{
+                                    left: `-${weightVariantHeaderSlant}px`,
+                                    width: `calc(100% + ${weightVariantHeaderSlant}px)`,
+                                    clipPath: `polygon(0 0, calc(100% - ${weightVariantHeaderSlant}px) 0, 100% ${weightVariantDiagonalHeight}px, 100% 100%, ${weightVariantHeaderSlant}px 100%, ${weightVariantHeaderSlant}px ${weightVariantDiagonalHeight}px)`
+                                  }}
+                                  aria-label={`Razširi različico ${variantHoverName}`}
+                                  title={variantHoverName}
+                                  onClick={() => {
+                                    setExpandedWeightVariantId(variant.id);
+                                    setHoveredWeightVariantId(null);
+                                  }}
+                                >
+                                  <span
+                                    className="pointer-events-none absolute"
+                                    style={{
+                                      left: `calc(50% + ${weightVariantHeaderTitleOpticalOffset}px)`,
+                                      top: `${weightVariantDiagonalHeight / 2 + weightVariantHeaderTitleOpticalOffset}px`,
+                                      transform: 'translate(-50%, -50%)'
+                                    }}
+                                    aria-hidden="true"
+                                  >
+                                    <span
+                                      className={`block origin-center whitespace-nowrap text-[10.5px] font-semibold leading-none text-slate-800 ${
+                                        isCompressedInactive ? 'text-slate-500' : ''
+                                      }`}
+                                      style={{ transform: `rotate(${weightVariantHeaderAngle}deg)` }}
+                                    >
+                                      {variantDisplayName}
+                                    </span>
+                                  </span>
+                                </button>
+                                {variantIndex === 0 ? (
+                                  <>
+                                    <span
+                                      aria-hidden="true"
+                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute left-0 top-0 z-20 origin-bottom bg-slate-300"
+                                      style={{
+                                        height: `${weightVariantDiagonalHeight}px`,
+                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
+                                      }}
+                                    />
+                                    <span
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute bottom-0 left-0 z-20 w-px bg-slate-300"
+                                      style={{ height: `${weightVariantNormalBandHeight}px` }}
+                                    />
+                                  </>
+                                ) : null}
+                                {!nextVariantIsExpanded ? (
+                                  <>
+                                    <span
+                                      aria-hidden="true"
+                                      className="admin-variant-matrix-diagonal-border pointer-events-none absolute right-0 top-0 z-20 origin-bottom bg-slate-300"
+                                      style={{
+                                        height: `${weightVariantDiagonalHeight}px`,
+                                        transform: `skewX(${weightVariantHeaderAngle}deg)`
+                                      }}
+                                    />
+                                    <span
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute bottom-0 right-0 z-20 w-px bg-slate-300"
+                                      style={{ height: `${weightVariantNormalBandHeight}px` }}
+                                    />
+                                  </>
+                                ) : null}
+                                <span
+                                  className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-0.5"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  {dragHandle}
+                                  <AdminCheckbox
+                                    aria-label={`Izberi ${variantHoverName}`}
+                                    checked={selectedVariantIds.has(variant.id)}
+                                    onChange={() => toggleVariantSelection(variant.id)}
+                                    disabled={!editable}
+                                  />
+                                </span>
+                              </>
+                            )}
+                          </WeightVariantSortableHeader>
+                        );
+                      })}
                     </div>
-                  </td>
-                  <td className="px-1 py-1.5 text-center">
-                    <div className="inline-flex justify-center">
-                      <NoteTagChip
-                        value={normalizeNoteTagValue(variant.noteTag)}
-                        editable={editable}
-                        chipClassName={adminStatusInfoPillVariantTableClassName}
-                        menuPlacement="bottom"
-                        onChange={(noteTag) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { noteTag }) })}
-                      />
+                  </SortableContext>
+                  <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
+                    {draggedWeightVariant ? (
+                      <div className="rounded-md border border-[color:var(--blue-500)] bg-white px-3 py-2 text-[11px] font-semibold text-slate-800 shadow-lg">
+                        {getWeightVariantDisplayLabel(draggedWeightVariant)}
+                      </div>
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+                {WEIGHT_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {
+                  const alternatingClassName = rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/45';
+                  return (
+                    <div
+                      key={row.key}
+                      role="row"
+                      className={`admin-variant-matrix-row grid min-h-[38px] border-b border-slate-200 ${alternatingClassName}`}
+                    >
+                      <div
+                        role="rowheader"
+                        className={`sticky left-0 z-20 flex min-w-0 items-center gap-1.5 border-r border-slate-200 px-3 text-[11px] font-normal text-slate-700 ${alternatingClassName}`}
+                      >
+                        <span className="truncate">{row.label}</span>
+                        <span
+                          className="group/help relative inline-flex h-3 w-3 shrink-0 cursor-help items-center justify-center rounded-full border border-sky-300 text-[8px] font-semibold leading-none text-sky-600 outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
+                          tabIndex={0}
+                          aria-label={`${row.label}: ${row.help}`}
+                        >
+                          i
+                          <span
+                            role="tooltip"
+                            className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden w-max max-w-52 -translate-y-1/2 rounded-md border border-slate-200 bg-slate-900 px-2 py-1.5 text-left text-[10px] font-medium leading-4 text-white shadow-lg group-hover/help:block group-focus/help:block"
+                          >
+                            {row.help}
+                          </span>
+                        </span>
+                      </div>
+                      {weightData.variants.map((variant) => {
+                        const isExpanded = expandedWeightVariant?.id === variant.id;
+                        const isHovered = hoveredWeightVariantId === variant.id;
+                        const isCompressedInactive = collapseInactiveWeightVariants && !variant.active;
+                        if (isExpanded) {
+                          return (
+                            <div
+                              key={`${row.key}-${variant.id}`}
+                              role="cell"
+                              className={`admin-variant-matrix-cell-transition flex min-w-0 items-center overflow-hidden border-x border-[color:var(--blue-500)] bg-sky-50/45 px-2 py-1 ${
+                                row.key === 'default' ? 'justify-center' : ''
+                              }`}
+                            >
+                              <div
+                                className={`admin-dimension-variant-content-enter w-full max-w-[320px] ${
+                                  row.key === 'default' ? 'flex justify-center' : ''
+                                }`}
+                              >
+                                {renderExpandedWeightVariantCell(variant, row.key)}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div
+                            key={`${row.key}-${variant.id}`}
+                            role="cell"
+                            className={`admin-variant-matrix-cell-transition flex min-w-0 cursor-pointer items-center justify-center overflow-hidden border-r border-slate-200 px-0.5 py-1 ${
+                              isHovered
+                                ? 'z-10 border-x border-[color:var(--blue-500)] bg-sky-50'
+                                : isCompressedInactive
+                                  ? 'bg-slate-100/70 opacity-[0.65]'
+                                  : ''
+                            }`}
+                            onClick={(event) => activateCollapsedWeightVariant(event, variant.id)}
+                            onMouseEnter={() => setHoveredWeightVariantId(variant.id)}
+                            onMouseLeave={() => setHoveredWeightVariantId((current) => current === variant.id ? null : current)}
+                          >
+                            {renderCompactWeightVariantCell(variant, row.key)}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    {editable ? (
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        className={`${compactTableThirtyInputClassName} !mt-0 !w-[4ch] !px-0 text-center`}
-                        value={variant.position}
-                        onChange={(event) => update({ variants: updateWeightVariant(weightData.variants, variant.id, { position: Math.max(1, Number(event.target.value) || 1) }) })}
-                      />
-                    ) : (
-                      <ReadOnlyTableInput
-                        className="!w-[4ch] !px-0 text-center"
-                        value={variant.position}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr className={`${adminTableRowHeightClassName} border-t border-slate-100`}>
-                <td colSpan={12} className="px-3 py-4 text-center text-[13px] font-medium text-slate-500">
-                  Ni ustvarjenih različic.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-          <p className="border-t border-slate-200 px-3 py-2 text-[11px] leading-4 text-slate-500">Cena vključuje DDV.</p>
+                  );
+                })}
+              </div>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-[-1px] top-[-1px] z-40 h-px bg-white"
+                style={{ width: `${weightVariantHeaderSlant + 1}px` }}
+              />
+            </div>
+          )}
+          <p className="px-3 py-2 text-[11px] leading-4 text-slate-500">
+            Neto cene so uredljive. Cene z DDV se izračunajo iz nastavljene stopnje DDV. Zaloga in dobavni rok sta skupna isti frakciji in barvi ter se urejata zgoraj.
+          </p>
           {quantityDiscountsPanel}
         </div>
       </div>
@@ -1892,6 +2937,7 @@ function MachineTableValueField({
   unitValue,
   editable,
   numeric = false,
+  onEmpty,
   onChange,
   onUnitChange
 }: {
@@ -1900,6 +2946,7 @@ function MachineTableValueField({
   unitValue?: string;
   editable: boolean;
   numeric?: boolean;
+  onEmpty?: () => void;
   onChange: (value: string | number) => void;
   onUnitChange?: (value: string) => void;
 }) {
@@ -1935,6 +2982,7 @@ function MachineTableValueField({
         <DecimalDraftInput
           className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[30px] text-left text-slate-900 outline-none focus:ring-0"
           value={value}
+          onEmpty={onEmpty}
           onDecimalChange={(nextValue) => onChange(nextValue)}
         />
       ) : (
@@ -2031,6 +3079,7 @@ function MachineInfoTable({
     numeric?: boolean;
     locked?: boolean;
     hideCheckbox?: boolean;
+    onEmpty?: () => void;
     onLabelChange?: (value: string) => void;
     onChange: (value: string | number) => void;
     onUnitChange?: (value: string) => void;
@@ -2138,6 +3187,7 @@ function MachineInfoTable({
                   unitValue={row.unitValue}
                   numeric={row.numeric}
                   editable={editable && !row.locked}
+                  onEmpty={row.onEmpty}
                   onChange={row.onChange}
                   onUnitChange={editable && !row.locked ? row.onUnitChange : undefined}
                 />
@@ -2434,7 +3484,7 @@ export function UniqueMachineProductModule({
             editable={editable}
             onRequestEdit={onRequestEdit}
             fixedRows={[
-              { key: 'basePrice', label: 'Osnovna cena', value: machineData.basePrice, suffix: '€', numeric: true, hideCheckbox: true, onChange: (basePrice) => update({ basePrice: Number(basePrice) || 0 }) },
+              { key: 'basePrice', label: 'Prodajna cena brez DDV', value: machineData.basePrice, suffix: '€', numeric: true, hideCheckbox: true, onChange: (basePrice) => update({ basePrice: Number(basePrice) || 0 }) },
               { key: 'discountPercent', label: 'Popust', value: machineData.discountPercent, suffix: '%', numeric: true, hideCheckbox: true, onChange: (discountPercent) => update({ discountPercent: Number(discountPercent) || 0 }) },
               { key: 'stock', label: 'Zaloga', value: trackedStock, suffix: getMachinePieceUnit, numeric: true, locked: true, hideCheckbox: true, onChange: (stock) => update({ stock: Math.max(0, Math.floor(Number(stock) || 0)) }) },
               { key: 'deliveryTime', label: 'Dobavni rok', value: stripMachineWorkingDayUnit(machineData.deliveryTime), suffix: getMachineWorkingDayUnit, hideCheckbox: true, onChange: (deliveryTime) => update({ deliveryTime: formatMachineDeliveryTime(deliveryTime) }) },

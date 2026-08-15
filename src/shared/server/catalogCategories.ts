@@ -34,6 +34,7 @@ export {
 } from '@/shared/server/catalogCache';
 
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
+const CATALOG_CACHE_DATA_VERSION = 'v3';
 type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'items'> & {
   subcategories: CatalogPreviewSubcategory[];
 };
@@ -473,7 +474,9 @@ async function readCatalogCategoryPageDataFromDatabase(
     summary: categoryRow.summary,
     description: categoryRow.description,
     image: resolveCategoryShowcaseImage(categoryRow.image, categoryRow.slug),
-    items: subRows.length === 0 ? itemsByCategoryId.get(categoryRow.id) ?? [] : [],
+    // Products assigned directly to a parent category remain listable even
+    // when that category also contains subcategories.
+    items: itemsByCategoryId.get(categoryRow.id) ?? [],
     subcategories: subRows.map((row) => ({
       id: row.id,
       slug: row.slug,
@@ -642,7 +645,7 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
 
 const getCachedCatalogDataFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogDataFromDatabase', 'catalog:data', () => readCatalogDataFromDatabase()),
-  ['catalog-data-active'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-data-active'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
@@ -652,7 +655,7 @@ const getCachedCatalogAdminDataFromDatabase = unstable_cache(
     '/admin/kategorije',
     async () => readCatalogDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogDataWithStatuses>
   ),
-  ['catalog-data-admin'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-data-admin'],
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
@@ -662,19 +665,19 @@ const getCachedCatalogAdminPreviewDataFromDatabase = unstable_cache(
     '/admin/kategorije/predogled',
     async () => readCatalogPreviewDataFromDatabase({ includeInactive: true, includeStatuses: true }) as Promise<CatalogPreviewDataWithStatuses>
   ),
-  ['catalog-data-admin-preview'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-data-admin-preview'],
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
 const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogCategorySummariesFromDatabase', 'catalog:category-summaries', () => readCatalogCategorySummariesFromDatabase()),
-  ['catalog-category-summaries'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-category-summaries'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
 const getCachedCatalogItemsIndexFromDatabase = unstable_cache(
   async () => instrumentCatalogCacheMiss('getCachedCatalogItemsIndexFromDatabase', 'catalog:items-index', () => readCatalogItemsIndexFromDatabase()),
-  ['catalog-items-index'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-items-index'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
@@ -932,7 +935,7 @@ const getCachedCatalogAdminTableInitialPayloadFromDatabase = unstable_cache(
     '/admin/kategorije:initial',
     readCatalogAdminTableInitialPayloadFromDatabase
   ),
-  ['catalog-admin-initial-table'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-admin-initial-table'],
   { tags: [CATALOG_ADMIN_TAG] }
 );
 
@@ -942,7 +945,7 @@ const getCachedCatalogAdminMillerInitialPayloadFromDatabase = unstable_cache(
     '/admin/kategorije/miller-view:initial',
     readCatalogAdminMillerInitialPayloadFromDatabase
   ),
-  ['catalog-admin-initial-miller'],
+  [CATALOG_CACHE_DATA_VERSION, 'catalog-admin-initial-miller'],
   { tags: [CATALOG_ADMIN_TAG] }
 );
 
@@ -1204,7 +1207,7 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
     async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, () =>
       readCatalogCategoryWithSubcategoriesFromDatabase(slug)
     ),
-    ['catalog-category-with-subcategories', slug],
+    [CATALOG_CACHE_DATA_VERSION, 'catalog-category-with-subcategories', slug],
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
@@ -1235,7 +1238,7 @@ export async function getCatalogCategoryPageDataFromDatabase(
       instrumentCatalogCacheMiss('getCachedCatalogCategoryPageDataFromDatabase', diagnosticsContext, () =>
         readCatalogCategoryPageDataFromDatabase(slug)
       ),
-    ['catalog-category-page-data', slug],
+    [CATALOG_CACHE_DATA_VERSION, 'catalog-category-page-data', slug],
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
@@ -1262,7 +1265,7 @@ export async function getCatalogSubcategoryWithCategoryFromDatabase(
     async () => instrumentCatalogCacheMiss('getCachedCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, () =>
       readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug)
     ),
-    ['catalog-subcategory-with-category', categorySlug, subSlug],
+    [CATALOG_CACHE_DATA_VERSION, 'catalog-subcategory-with-category', categorySlug, subSlug],
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 
@@ -1275,7 +1278,7 @@ export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'ca
 }> {
   const getCachedSearchIndex = unstable_cache(
     async () => instrumentCatalogCacheMiss('getCachedCatalogSearchIndexFromDatabase', diagnosticsContext, () => readCatalogSearchIndexFromDatabase()),
-    ['catalog-search-index'],
+    [CATALOG_CACHE_DATA_VERSION, 'catalog-search-index'],
     { tags: [CATALOG_PUBLIC_TAG] }
   );
 

@@ -8,6 +8,16 @@ export function toGrossWithVat(value: number): number {
   return Number((Math.max(0, value) * defaultVatMultiplier).toFixed(4));
 }
 
+export function toGrossWithTaxRate(netPrice: number, taxRate: number): number {
+  const safeNetPrice = Number.isFinite(netPrice) ? Math.max(0, netPrice) : 0;
+  const safeTaxRate = Number.isFinite(taxRate)
+    ? Math.min(1, Math.max(0, taxRate))
+    : 0;
+  const netCents = Math.round(safeNetPrice * 100);
+  const taxCents = Math.round(netCents * safeTaxRate);
+  return (netCents + taxCents) / 100;
+}
+
 export function toNetFromGross(value: number): number {
   return Number((Math.max(0, value) / defaultVatMultiplier).toFixed(4));
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
+import { ADMIN_SESSION_COOKIE } from '@/shared/auth/adminSession';
 
 export async function POST() {
   const response = NextResponse.json({ ok: true });

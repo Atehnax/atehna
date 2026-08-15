@@ -4,10 +4,12 @@ import SiteFooterGate from '@/commercial/components/SiteFooterGate';
 import { SiteLogoProvider } from '@/commercial/components/SiteLogo';
 import CommercialEnhancements from '@/commercial/components/CommercialEnhancements';
 import CommercialScaleFrame from '@/commercial/components/CommercialScaleFrame';
+import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
+import { getProductAppearanceConfig } from '@/shared/server/productAppearance';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://atehna.si'),
@@ -39,24 +41,34 @@ export const metadata: Metadata = {
 };
 
 export default async function CommercialRootLayout({ children }: { children: React.ReactNode }) {
-  const [siteNavigation, globalStyle, siteLogo] = await Promise.all([
+  const [siteNavigation, globalStyle, siteLogo, productAppearance] = await Promise.all([
     getSiteNavigationConfig(),
     getGlobalStyleConfig(),
-    getSiteLogoConfig()
+    getSiteLogoConfig(),
+    getProductAppearanceConfig()
   ]);
 
   return (
     <html lang="sl">
       <body className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
-          <CommercialEnhancements />
-          <SiteLogoProvider config={siteLogo}>
-            <CommercialScaleFrame siteLayout={siteNavigation.siteLayout} siteStyle={globalStyle}>
-              <SiteHeader navigation={siteNavigation} />
-              <main className="site-page-surface flex-1">{children}</main>
-              <SiteFooterGate footer={siteNavigation.footer} />
-            </CommercialScaleFrame>
-          </SiteLogoProvider>
+          <ProductAppearanceProvider config={productAppearance}>
+            <CommercialEnhancements
+              siteStyle={globalStyle}
+              productAppearance={productAppearance}
+            />
+            <SiteLogoProvider config={siteLogo}>
+              <CommercialScaleFrame
+                siteLayout={siteNavigation.siteLayout}
+                siteStyle={globalStyle}
+                productAppearance={productAppearance}
+              >
+                <SiteHeader navigation={siteNavigation} />
+                <main className="site-page-surface flex-1">{children}</main>
+                <SiteFooterGate footer={siteNavigation.footer} />
+              </CommercialScaleFrame>
+            </SiteLogoProvider>
+          </ProductAppearanceProvider>
           <Toaster />
         </ToastProvider>
       </body>

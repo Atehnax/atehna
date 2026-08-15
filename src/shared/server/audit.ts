@@ -6,12 +6,16 @@ import { getPool } from '@/shared/server/db';
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, type AuditCollectionDiff, type AuditDiff, type AuditDiffEntry, type AuditEntityType, type AuditEventFilters, type AuditEventInput, type AuditEventListResult, type AuditEventRecord, type AuditLoggingSettingsResponse, type AuditMetadata } from '@/shared/audit/auditTypes';
 import { AUDIT_ACTION_LABELS } from '@/shared/audit/auditLabels';
 import { getAuditRetentionUntil } from '@/shared/audit/auditRetention';
+import {
+  ADMIN_SESSION_COOKIE,
+  getAdminAuthConfig,
+  verifyAdminSessionToken
+} from '@/shared/auth/adminSession';
 
 type Queryable = {
   query: (sql: string, params?: unknown[]) => Promise<QueryResult<Record<string, unknown>>>;
 };
 
-const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
 const MAX_PAGE_SIZE = 100;
 const AUDIT_SETTINGS_KEY = 'global';
 const AUDIT_RETENTION_SQL = `(
@@ -22,17 +26,17 @@ const AUDIT_RETENTION_SQL = `(
   end
 )`;
 
-function expectedToken(username: string, password: string) {
-  return Buffer.from(`${username}:${password}`).toString('base64');
-}
-
 function parseCookies(cookieHeader: string | null) {
   const cookies = new Map<string, string>();
   if (!cookieHeader) return cookies;
   for (const part of cookieHeader.split(';')) {
     const [rawName, ...rawValueParts] = part.trim().split('=');
     if (!rawName) continue;
-    cookies.set(rawName, decodeURIComponent(rawValueParts.join('=')));
+    try {
+      cookies.set(rawName, decodeURIComponent(rawValueParts.join('=')));
+    } catch {
+      cookies.set(rawName, rawValueParts.join('='));
+    }
   }
   return cookies;
 }
@@ -40,7 +44,11 @@ function parseCookies(cookieHeader: string | null) {
 function hashRequestValue(value: string | null) {
   const normalized = value?.trim();
   if (!normalized) return null;
-  const salt = process.env.AUDIT_HASH_SALT ?? process.env.ADMIN_PASSWORD ?? 'atehna-audit';
+  const salt =
+    process.env.AUDIT_HASH_SALT ??
+    process.env.ADMIN_SESSION_SECRET ??
+    process.env.ADMIN_PASSWORD ??
+    'atehna-development-audit';
   return createHash('sha256').update(`${salt}:${normalized}`).digest('hex');
 }
 
@@ -214,13 +222,12 @@ export async function isAuditLoggingEnabled(db?: Queryable) {
 }
 
 export async function getAuditActor(request: Request): Promise<AuditActor> {
-  const username = process.env.ADMIN_USERNAME ?? 'admin';
-  const password = process.env.ADMIN_PASSWORD ?? 'admin';
+  const authConfig = getAdminAuthConfig();
   const cookieValue = parseCookies(request.headers.get('cookie')).get(ADMIN_SESSION_COOKIE);
-  if (cookieValue && cookieValue === expectedToken(username, password)) {
+  if (authConfig && verifyAdminSessionToken(cookieValue, authConfig)) {
     return {
-      actor_id: `admin:${username}`,
-      actor_name: username,
+      actor_id: `admin:${authConfig.username}`,
+      actor_name: authConfig.username,
       actor_email: null
     };
   }

@@ -6,14 +6,24 @@ import { usePathname } from 'next/navigation';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import type { SiteNavigationSiteLayoutSettings } from '@/shared/domain/navigation/siteNavigation';
 import { toGlobalStyleCssVariables, type GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
+import {
+  toProductAppearanceCssVariables,
+  type ProductAppearanceConfig
+} from '@/shared/domain/style/productAppearance';
 
 type CommercialScaleFrameProps = {
   children: ReactNode;
   siteLayout?: SiteNavigationSiteLayoutSettings;
   siteStyle?: GlobalStyleConfig;
+  productAppearance?: ProductAppearanceConfig;
 };
 
-export default function CommercialScaleFrame({ children, siteLayout, siteStyle }: CommercialScaleFrameProps) {
+export default function CommercialScaleFrame({
+  children,
+  siteLayout,
+  siteStyle,
+  productAppearance
+}: CommercialScaleFrameProps) {
   const pathname = usePathname();
   const isAdminPath = pathname?.startsWith('/admin');
   let style: CSSProperties | undefined;
@@ -29,9 +39,20 @@ export default function CommercialScaleFrame({ children, siteLayout, siteStyle }
   } else if (!isAdminPath && siteStyle) {
     const storefrontDimensionScale = toCommercialStorefrontLogicalPx(1);
     const variables = toGlobalStyleCssVariables(siteStyle, storefrontDimensionScale);
+    const siteContentMaxWidth = siteLayout
+      ? `${toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx)}px`
+      : variables['--site-global-max-width'];
     style = {
       ...variables,
-      '--site-content-max-width': variables['--site-global-max-width'],
+      ...(productAppearance
+        ? toProductAppearanceCssVariables(
+            productAppearance,
+            storefrontDimensionScale
+          )
+        : {}),
+      // Navigation owns the public content lane. Global style remains the
+      // fallback for older payloads that do not include site-layout settings.
+      '--site-content-max-width': siteContentMaxWidth,
       '--site-gutter-min': variables['--site-gutter-mobile'],
       '--site-gutter-max': variables['--site-gutter-desktop']
     } as CSSProperties;

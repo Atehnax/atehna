@@ -225,7 +225,7 @@ export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_STEP = 1;
 export const SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX = 88;
 export const SITE_NAVIGATION_TOP_BAR_SEARCH_EXPANDED_WIDTH_PX = 320;
 export const SITE_NAVIGATION_TOP_BAR_TABLET_SEARCH_EXPANDED_WIDTH_PX = 240;
-export const SITE_CONTENT_MAX_WIDTH_PX = 1280;
+export const SITE_CONTENT_MAX_WIDTH_PX = 1500;
 
 export const DEFAULT_SITE_LAYOUT_SETTINGS: SiteNavigationSiteLayoutSettings = {
   siteContentMaxWidthPx: SITE_CONTENT_MAX_WIDTH_PX,
@@ -386,7 +386,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         { id: 'cart', slot: 'right', orderIndex: 3, widthMode: 'fixed', fixedWidthPx: 32, minWidthPx: null, maxWidthPx: null, marginBeforePx: 0, marginAfterPx: 0, ...defaultTopBarPlacement('desktop', 1184, 32, 5), region: 'edgeRight', visible: true, offsetFromCenter: 420, position: 4 }
       ],
       settings: {
-        widthMode: 'match_content',
+        widthMode: 'full',
         customMaxWidthPx: null,
         layoutMode: 'centered_nav',
         columnGapPx: 24,
@@ -394,8 +394,8 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         ...DEFAULT_SITE_NAVIGATION_TOP_BAR_APPEARANCE,
         zones: defaultTopBarZoneSettings('centered_nav'),
         searchMode: 'icon',
-        height: 85,
-        paddingX: 48,
+        height: 73,
+        paddingX: 32,
         sticky: false,
         shadow: false,
         cartBadge: true

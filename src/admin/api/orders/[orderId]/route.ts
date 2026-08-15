@@ -3,6 +3,16 @@ import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 
+type OrderDeleteRow = {
+  id: number;
+  order_number: string;
+  contact_name: string;
+  customer_type: string | null;
+  delivery_address: string | null;
+  created_at: string | null;
+  deleted_at: string | null;
+};
+
 export async function DELETE(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
   try {
@@ -12,49 +22,91 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
     }
 
     const pool = await getPool();
-    const orderResult = await pool.query(
-      'select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at from orders where id = $1',
-      [orderId]
-    );
+    const client = await pool.connect();
+    let order: OrderDeleteRow | null = null;
+    let newlyDeleted = false;
 
-    if (orderResult.rows.length === 0) {
+    try {
+      await client.query('BEGIN');
+      const orderResult = await client.query(
+        `
+        select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at
+        from orders
+        where id = $1
+        for update
+        `,
+        [orderId]
+      );
+
+      if (orderResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+      }
+
+      order = orderResult.rows[0] as OrderDeleteRow;
+
+      if (!order.deleted_at) {
+        const deletedAtResult = await client.query(
+          'update orders set deleted_at = now() where id = $1 returning deleted_at',
+          [orderId]
+        );
+        const deletedAt = deletedAtResult.rows[0]?.deleted_at;
+
+        await client.query(
+          `
+          insert into deleted_archive_entries (
+            item_type,
+            order_id,
+            label,
+            deleted_at,
+            expires_at,
+            payload
+          )
+          values ($1, $2, $3, $4, $4::timestamptz + interval '90 days', $5::jsonb)
+          `,
+          [
+            'order',
+            orderId,
+            `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
+            deletedAt,
+            JSON.stringify({
+              orderNumber: order.order_number || `#${orderId}`,
+              orderCreatedAt: order.created_at,
+              customerName: order.contact_name || null,
+              address: order.delivery_address || null,
+              customerType: order.customer_type || null
+            })
+          ]
+        );
+
+        await client.query(
+          `
+          update deleted_archive_entries
+          set expires_at = greatest(expires_at, $2::timestamptz + interval '90 days')
+          where item_type = 'pdf'
+            and order_id = $1
+          `,
+          [orderId, deletedAt]
+        );
+        newlyDeleted = true;
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    if (!order) {
       return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
     }
 
-    const order = orderResult.rows[0] as {
-      id: number;
-      order_number: string;
-      contact_name: string;
-      customer_type: string | null;
-      delivery_address: string | null;
-      created_at: string | null;
-      deleted_at: string | null;
-    };
-
-    if (order.deleted_at) {
+    if (!newlyDeleted) {
       revalidateAdminOrderPaths(orderId);
       return NextResponse.json({ success: true });
     }
-
-    await pool.query('update orders set deleted_at = now() where id = $1', [orderId]);
-    await pool.query(
-      `
-      insert into deleted_archive_entries (item_type, order_id, label, payload)
-      values ($1, $2, $3, $4::jsonb)
-      `,
-      [
-        'order',
-        orderId,
-        `${order.order_number || `#${orderId}`} · ${order.contact_name || 'Naročilo'}`,
-        JSON.stringify({
-          orderNumber: order.order_number || `#${orderId}`,
-          orderCreatedAt: order.created_at,
-          customerName: order.contact_name || null,
-          address: order.delivery_address || null,
-          customerType: order.customer_type || null
-        })
-      ]
-    );
 
     const orderNumber = order.order_number || `#${orderId}`;
     await insertAuditEventForRequest(request, {

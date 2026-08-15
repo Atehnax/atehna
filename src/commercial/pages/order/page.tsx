@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function OrderPage() {
   return (
-    <div className="container-base py-12" data-testid="order-page">
+    <div className="container-base site-section" data-testid="order-page">
       <div className="w-full">
         <OrderPageClient />
       </div>

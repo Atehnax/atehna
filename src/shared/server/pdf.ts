@@ -24,7 +24,9 @@ export type PdfOrder = {
   createdAt: Date;
   subtotal: number;
   tax: number;
+  shipping?: number;
   total: number;
+  commitmentStatus?: 'binding' | 'pending_confirmation' | 'rejected' | string | null;
 };
 
 const locale = 'sl-SI';
@@ -150,11 +152,20 @@ export async function generateOrderPdf(
 
   y -= 8;
 
+  const commitmentText =
+    order.commitmentStatus === 'pending_confirmation'
+      ? 'Vrsta: Nezavezujoče povpraševanje – čaka na ročno potrditev'
+      : order.commitmentStatus === 'binding'
+        ? 'Vrsta: Zavezujoče naročilo'
+        : order.commitmentStatus === 'rejected'
+          ? 'Vrsta: Povpraševanje je zavrnjeno'
+          : null;
   const infoLines = [
     `Št. naročila: ${toSafeText(order.orderNumber)}`,
     `Datum: ${formatDate(order.createdAt)}`,
-    `Tip naročnika: ${toSafeText(order.customerType)}`
-  ];
+    `Tip naročnika: ${toSafeText(order.customerType)}`,
+    commitmentText
+  ].filter(Boolean) as string[];
 
   infoLines.forEach((line) => {
     page.drawText(line, { x: left, y, size: 10, font });
@@ -190,7 +201,7 @@ export async function generateOrderPdf(
     { title: 'Izdelek', width: 250 },
     { title: 'Količina', width: 80 },
     { title: 'Enota', width: 70 },
-    { title: 'Cena', width: 80 }
+    { title: 'Cena brez DDV', width: 80 }
   ];
 
   let x = left;
@@ -276,9 +287,10 @@ export async function generateOrderPdf(
   y -= 8;
 
   const totals = [
-    `Vmesni seštevek: ${formatCurrency(toNumber(order.subtotal))}`,
+    `Neto: ${formatCurrency(toNumber(order.subtotal))}`,
     `DDV: ${formatCurrency(toNumber(order.tax))}`,
-    `Skupaj: ${formatCurrency(toNumber(order.total))}`
+    `Poštnina: ${toNumber(order.shipping) === 0 ? 'brezplačna' : formatCurrency(toNumber(order.shipping))}`,
+    `Skupaj z DDV: ${formatCurrency(toNumber(order.total))}`
   ];
 
   totals.forEach((line) => {

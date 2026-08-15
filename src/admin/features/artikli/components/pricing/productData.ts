@@ -447,13 +447,21 @@ export function createWeightVariantFromCombination(options: {
   ].filter(Boolean).join('-');
 
   return {
-    id: `weight-variant-${weightSkuPart(fraction) || 'fraction'}-${netMassKg ?? 'bulk'}-${index}`,
+    id: [
+      'weight-variant',
+      weightSkuPart(fraction) || 'fraction',
+      netMassKg ?? 'bulk',
+      weightSkuPart(normalizedColor) || 'color',
+      index
+    ].join('-'),
     sku,
     fraction,
     color: normalizedColor,
     netMassKg,
     minQuantity: Math.max(1, Math.floor(data.minQuantity || 1)),
     unitPrice: 0,
+    costNet: null,
+    discountPct: 0,
     stockKg: data.stockKg,
     tolerance: '',
     deliveryTime: data.deliveryTime,
@@ -490,7 +498,42 @@ export function createWeightVariantsFromChips(data: WeightProductData, baseSku?:
   return variants;
 }
 
-function normalizeWeightVariant(value: unknown, index: number, data: WeightProductData, baseSku?: string): WeightVariant {
+function normalizeWeightVariantSkuKey(value: unknown): string {
+  return asString(value).trim().toLocaleLowerCase('sl-SI');
+}
+
+function findMatchingCatalogVariant(
+  record: Record<string, unknown>,
+  index: number,
+  catalogVariants: readonly Variant[]
+): Variant | undefined {
+  const recordId = asString(record.id).trim();
+  const idMatch = recordId
+    ? catalogVariants.find((variant) => variant.id === recordId)
+    : undefined;
+  if (idMatch) return idMatch;
+
+  const skuKey = normalizeWeightVariantSkuKey(record.sku);
+  const skuMatch = skuKey
+    ? catalogVariants.find((variant) => normalizeWeightVariantSkuKey(variant.sku) === skuKey)
+    : undefined;
+  return skuMatch ?? catalogVariants[index];
+}
+
+function normalizeOptionalNonNegativeNumber(value: unknown, fallback: number | null): number | null {
+  if (value === undefined) return fallback;
+  if (value === null) return null;
+  const parsed = asNumber(value, Number.NaN);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
+}
+
+function normalizeWeightVariant(
+  value: unknown,
+  index: number,
+  data: WeightProductData,
+  baseSku?: string,
+  catalogVariants: readonly Variant[] = []
+): WeightVariant {
   const record = asRecord(value);
   const fallback = createWeightVariantsFromChips(data, baseSku)[index] ?? createWeightVariantFromCombination({
     netMassKg: data.netMassKg,
@@ -500,17 +543,25 @@ function normalizeWeightVariant(value: unknown, index: number, data: WeightProdu
     data,
     baseSku
   });
+  const matchingCatalogVariant = findMatchingCatalogVariant(record, index, catalogVariants);
   const fraction = normalizeWeightFractionValue(asString(record.fraction, fallback.fraction));
   const netMassKgRaw = record.netMassKg === null ? null : asNumber(record.netMassKg, fallback.netMassKg ?? data.netMassKg);
   const netMassKg = netMassKgRaw === null ? null : Math.max(0, netMassKgRaw);
   return {
-    id: asString(record.id, fallback.id),
+    id: matchingCatalogVariant?.id ?? asString(record.id, fallback.id),
     sku: asString(record.sku, fallback.sku),
     fraction,
     color: normalizeSingleWeightColorValue(asString(record.color, fallback.color)),
     netMassKg,
     minQuantity: Math.max(0, asNumber(record.minQuantity, fallback.minQuantity)),
     unitPrice: record.unitPrice === null ? null : Math.max(0, asNumber(record.unitPrice ?? record.price, getWeightVariantUnitPrice(fallback))),
+    costNet: normalizeOptionalNonNegativeNumber(
+      record.costNet,
+      matchingCatalogVariant?.costNet ?? fallback.costNet
+    ),
+    discountPct: clampPercent(
+      asNumber(record.discountPct, matchingCatalogVariant?.discountPct ?? fallback.discountPct)
+    ),
     stockKg: Math.max(0, asNumber(record.stockKg, fallback.stockKg)),
     tolerance: asString(record.tolerance ?? record.errorTolerance, fallback.tolerance),
     deliveryTime: asString(record.deliveryTime, fallback.deliveryTime),
@@ -660,7 +711,9 @@ export function normalizeWeightProductData(value: unknown, context: ProductDataN
   const sourceVariants = Array.isArray(record.variants)
     ? record.variants
     : createWeightVariantsFromChips(baseData, context.baseSku);
-  const variants = sourceVariants.map((entry, index) => normalizeWeightVariant(entry, index, baseData, context.baseSku));
+  const variants = sourceVariants.map((entry, index) =>
+    normalizeWeightVariant(entry, index, baseData, context.baseSku, context.variants)
+  );
   const fractionInventory = normalizeWeightFractionInventoryList(record.fractionInventory, baseData, variants);
   const syncedVariants = syncWeightVariantsWithFractionInventory(variants, fractionInventory);
   return {
@@ -792,7 +845,8 @@ export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, b
       errorTolerance: variant.tolerance || null,
       sku: variant.sku || `${baseSku || 'SKU'}-${index + 1}`,
       price: unitPrice,
-      discountPct: 0,
+      costNet: variant.costNet,
+      discountPct: variant.discountPct,
       stock: Math.round(variant.stockKg),
       active: variant.active,
       sort: variant.position || index + 1,
@@ -842,7 +896,10 @@ export function getSimpleSimulatorOptions(dataInput: TypeSpecificProductData, la
 export function getWeightSimulatorOptions(dataInput: TypeSpecificProductData): PricingSimulatorOption[] {
   const data = normalizeWeightProductData(dataInput);
   return data.variants.map((variant) => {
-    const packagePrice = getWeightVariantUnitPrice(variant);
+    const packagePrice = getDiscountedPrice(
+      getWeightVariantUnitPrice(variant),
+      variant.discountPct
+    );
     const packageLabel = getWeightVariantMassLabel(variant);
     const fractionColorLabel = getWeightVariantFractionColorLabel(variant);
     const selectionLabel = getWeightVariantSimulatorLabel(variant);

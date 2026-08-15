@@ -1,0 +1,288 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import type { CartItem } from '@/commercial/cart/cartTypes';
+import type { OrderQuoteItem } from '@/commercial/order/contracts';
+import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
+import { formatEuro } from '@/shared/domain/formatting';
+import {
+  resolveProductCanvasElementDeviceSettings,
+  type ProductCanvasDevice
+} from '@/shared/domain/style/productAppearance';
+import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElement';
+
+type CartLineProps = {
+  item: CartItem;
+  quoteItem?: OrderQuoteItem;
+  compact?: boolean;
+  highlighted?: boolean;
+  readOnly?: boolean;
+  onQuantityChange?: (quantity: number) => void;
+  onRemove?: () => void;
+  onNavigate?: () => void;
+  canvasDevice?: ProductCanvasDevice;
+};
+
+const reconciliationTone = {
+  valid: 'var(--site-color-success)',
+  unchecked: 'var(--site-color-info)',
+  price_changed: 'var(--site-color-warning)',
+  quantity_adjusted: 'var(--site-color-warning)',
+  unavailable: 'var(--site-color-danger)',
+  needs_review: 'var(--site-color-danger)'
+} as const;
+
+export default function CartLine({
+  item,
+  quoteItem,
+  compact = false,
+  highlighted = false,
+  readOnly = false,
+  onQuantityChange,
+  onRemove,
+  onNavigate,
+  canvasDevice
+}: CartLineProps) {
+  const appearance = useProductAppearance();
+  const canvasActive =
+    canvasDevice !== undefined && appearance.canvas?.mode === 'free';
+  const wrapCanvasElement = (
+    elementId: string,
+    label: string,
+    children: ReactNode,
+    canvasClassName = ''
+  ) => {
+    if (!canvasActive || !canvasDevice) return children;
+    return (
+      <ProductCanvasElement
+        elementId={elementId}
+        label={label}
+        settings={resolveProductCanvasElementDeviceSettings(
+          appearance,
+          elementId,
+          canvasDevice
+        )}
+        active
+        className={canvasClassName}
+      >
+        {children}
+      </ProductCanvasElement>
+    );
+  };
+  const baseUnitNet =
+    quoteItem?.baseUnitNet ?? item.pricing?.baseUnitNet ?? 0;
+  const unitNet = quoteItem?.unitNet ?? item.pricing?.unitNet ?? 0;
+  const taxRate = quoteItem?.taxRate ?? item.pricing?.taxRate ?? 0.22;
+  const discountPct =
+    quoteItem?.discountPct ?? item.pricing?.discountPct ?? 0;
+  const lineGross =
+    quoteItem?.lineGross ??
+    (typeof item.pricing?.quotedUnitGross === 'number'
+      ? item.pricing.quotedUnitGross * item.quantity
+      : typeof item.pricing?.estimatedUnitGross === 'number'
+        ? item.pricing.estimatedUnitGross * item.quantity
+        : null);
+  const minimum = quoteItem?.minOrder ?? item.reconciliation.minOrder ?? 1;
+  const maximum =
+    quoteItem?.availableStock ?? item.reconciliation.availableStock ?? undefined;
+
+  const commitQuantity = (value: number) => {
+    if (!onQuantityChange) return;
+    const normalized = Math.max(minimum, Math.floor(value || minimum));
+    onQuantityChange(
+      typeof maximum === 'number' ? Math.min(maximum, normalized) : normalized
+    );
+  };
+
+  const line = (
+    <article
+      data-cart-line-id={item.lineId}
+      className={`site-radius-md border p-3 transition ${
+        highlighted && appearance.cartSidebar.highlightAddedLine
+          ? 'border-[color:var(--site-color-primary)] bg-[color:var(--blue-50)]'
+          : 'border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)]'
+      }`}
+    >
+      <div className="flex gap-3">
+        {wrapCanvasElement(
+          'cart-line-image',
+          'Slika v košarici',
+          <div
+            className="site-radius-sm relative shrink-0 overflow-hidden border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)]"
+            style={{
+              width: compact
+                ? 'min(var(--product-cart-line-image-size, 72px), 64px)'
+                : 'var(--product-cart-line-image-size, 72px)',
+              height: compact
+                ? 'min(var(--product-cart-line-image-size, 72px), 64px)'
+                : 'var(--product-cart-line-image-size, 72px)'
+            }}
+          >
+            {item.imageUrl ? (
+              <Image
+                src={item.imageUrl}
+                alt={item.imageAlt || item.name}
+                fill
+                sizes="96px"
+                className="object-contain p-1.5"
+              />
+            ) : (
+              <span className="flex h-full items-center justify-center px-1 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
+                Brez slike
+              </span>
+            )}
+          </div>,
+          'shrink-0'
+        )}
+
+        {wrapCanvasElement(
+          'cart-line-info',
+          'Podatki vrstice',
+          <div className="min-w-0 flex-1">
+            {item.productHref ? (
+              <Link
+                href={item.productHref}
+                onClick={onNavigate}
+                className="font-semibold leading-snug text-[color:var(--site-color-text)] hover:text-[color:var(--site-color-primary)]"
+              >
+                {item.name}
+              </Link>
+            ) : (
+              <p className="font-semibold leading-snug text-[color:var(--site-color-text)]">
+                {item.name}
+              </p>
+            )}
+
+            {item.variant ? (
+              <p className="mt-1 text-xs text-[color:var(--site-color-text-muted)]">
+                {item.variant.name}
+              </p>
+            ) : null}
+            {item.variant?.options.length ? (
+              <p className="mt-0.5 text-xs text-[color:var(--site-color-text-muted)]">
+                {item.variant.options
+                  .map((option) => `${option.axisName}: ${option.valueLabel}`)
+                  .join(' · ')}
+              </p>
+            ) : null}
+            <p className="mt-0.5 font-mono text-[10px] text-[color:var(--site-color-text-muted)]">
+              SKU: {quoteItem?.sku ?? item.sku}
+            </p>
+
+            {unitNet > 0 ? (
+              <PriceBreakdown
+                unitNet={unitNet}
+                baseUnitNet={baseUnitNet || unitNet}
+                discountPct={discountPct}
+                taxRate={taxRate}
+                unit={quoteItem?.unit ?? item.unit}
+                compact
+                className="mt-2"
+              />
+            ) : (
+              <p className="mt-2 text-xs font-semibold text-[color:var(--site-color-danger)]">
+                Cena še ni potrjena.
+              </p>
+            )}
+          </div>,
+          'min-w-0 flex-1'
+        )}
+
+        {!readOnly && onRemove ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--site-radius-sm)] text-[color:var(--site-color-text-muted)] transition hover:bg-[color:var(--site-color-surface-muted)] hover:text-[color:var(--site-color-danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)]"
+            aria-label={`Odstrani ${item.name}`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" />
+            </svg>
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-[color:var(--site-divider-color)] pt-3">
+        {readOnly ? (
+          <p className="text-xs text-[color:var(--site-color-text-muted)]">
+            Količina: <strong>{item.quantity}</strong>
+          </p>
+        ) : (
+          <div className="inline-flex items-center overflow-hidden rounded-[var(--site-field-radius)] border border-[color:var(--site-border-color)]">
+            <button
+              type="button"
+              onClick={() => commitQuantity(item.quantity - 1)}
+              disabled={item.quantity <= minimum}
+              className="h-9 w-9 text-[color:var(--site-color-text)] hover:bg-[color:var(--site-color-surface-muted)] disabled:opacity-40"
+              aria-label={`Zmanjšaj količino za ${item.name}`}
+            >
+              −
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={minimum}
+              max={maximum}
+              value={item.quantity}
+              onChange={(event) => commitQuantity(Number(event.target.value))}
+              className="h-9 w-14 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center text-sm font-semibold outline-none"
+              aria-label={`Količina za ${item.name}`}
+            />
+            <button
+              type="button"
+              onClick={() => commitQuantity(item.quantity + 1)}
+              disabled={
+                typeof maximum === 'number' && item.quantity >= maximum
+              }
+              className="h-9 w-9 text-[color:var(--site-color-text)] hover:bg-[color:var(--site-color-surface-muted)] disabled:opacity-40"
+              aria-label={`Povečaj količino za ${item.name}`}
+            >
+              +
+            </button>
+          </div>
+        )}
+
+        {item.productHref && !readOnly ? (
+          <Link
+            href={item.productHref}
+            onClick={onNavigate}
+            className="site-link text-xs"
+          >
+            Spremeni različico
+          </Link>
+        ) : null}
+        <p className="ml-auto text-sm font-semibold tabular-nums text-[color:var(--site-color-text)]">
+          {lineGross === null ? '—' : formatEuro(lineGross)}
+        </p>
+      </div>
+
+      {item.reconciliation.message ? (
+        <p
+          className="mt-2 text-xs"
+          style={{
+            color: reconciliationTone[item.reconciliation.status]
+          }}
+        >
+          {item.reconciliation.message}
+        </p>
+      ) : null}
+    </article>
+  );
+
+  return wrapCanvasElement(
+    'cart-line',
+    'Vrstica artikla',
+    line,
+    'min-w-0'
+  );
+}

@@ -17,6 +17,28 @@ test('order page loads', async ({ page }) => {
   await expect(page.getByTestId('order-page')).toBeVisible({ timeout: 15000 });
 });
 
+test('catalogue and empty cart states load', async ({ page }) => {
+  await page.goto('/products');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Izdelki in program' })
+  ).toBeVisible({ timeout: 15000 });
+
+  await page.goto('/cart');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Košarica je prazna' })
+  ).toBeVisible();
+});
+
+test('confirmation page rejects a missing access token', async ({ page }) => {
+  await page.goto('/order/confirmation');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Potrditve ni mogoče prikazati'
+    })
+  ).toBeVisible();
+});
+
 async function expectAdminRouteProtectedOrLoaded(page: import('@playwright/test').Page, path: string) {
   const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
   expect(response).not.toBeNull();
@@ -70,6 +92,10 @@ test('admin global parameters route is accessible or protected', async ({ page }
   await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/globalni-parametri');
 });
 
+test('admin product appearance route is accessible or protected', async ({ page }) => {
+  await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/artikli');
+});
+
 test('admin podoba tabs put landing before navigation when loaded', async ({ page }) => {
   await expectAdminRouteProtectedOrLoaded(page, '/admin/podoba/glavna-stran');
 
@@ -85,7 +111,7 @@ test('admin podoba archive route is accessible or protected', async ({ page }) =
   await expectAdminRouteProtectedOrLoaded(page, '/admin/arhiv/podoba');
 });
 
-test('landing page API rejects invalid element type', async ({ request }) => {
+test('admin API rejects an unauthenticated request before validation', async ({ request }) => {
   const response = await request.put('/api/admin/landing-page', {
     data: {
       config: {
@@ -125,5 +151,5 @@ test('landing page API rejects invalid element type', async ({ request }) => {
     }
   });
 
-  expect(response.status()).toBe(400);
+  expect(response.status()).toBe(401);
 });

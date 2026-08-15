@@ -1,6 +1,5 @@
 import AdminLandingPageClient from '@/admin/features/podoba/components/AdminLandingPageClient';
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
-import { DEFAULT_HOMEPAGE_CATEGORY_CARDS } from '@/shared/domain/landing/landingPage';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
 import { getLandingPageConfig, getLandingPageDefaults } from '@/shared/server/landingPage';
@@ -13,14 +12,13 @@ export const metadata = {
 };
 
 async function getHomepageCategoriesForAdmin() {
-  if (!hasDatabaseConnectionString()) return DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+  if (!hasDatabaseConnectionString()) return [];
 
   try {
-    const categories = await getCatalogCategoryCardsServer();
-    return categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return await getCatalogCategoryCardsServer();
   } catch (error) {
     console.error('Failed to load admin homepage categories', error);
-    return DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return [];
   }
 }
 

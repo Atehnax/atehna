@@ -78,10 +78,10 @@ const getCachedCategoryShowcaseItemsFromDatabase = unstable_cache(
     'category-showcase:shared',
     readCategoryShowcaseItemsFromDatabase
   ),
-  // Keep the persistent cache namespace versioned. V4 matches the extended
-  // presentation schema and the revision baseline consumed by both editors,
-  // so an older on-disk entry is not reused after a server/build restart.
-  ['category-showcase-shared-v4'],
+  // Keep the persistent cache namespace versioned. V6 starts from the
+  // database-seeded catalogue rather than the removed presentation fallback,
+  // while retaining the presentation revision baseline used by both editors.
+  ['category-showcase-shared-v6'],
   { tags: [CATEGORY_SHOWCASE_TAG] }
 );
 
@@ -93,4 +93,23 @@ export async function getCategoryShowcaseItemsFromDatabase(
     diagnosticsContext,
     getCachedCategoryShowcaseItemsFromDatabase
   );
+}
+
+export async function topLevelCatalogCategoryExistsInDatabase(slug: string): Promise<boolean> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return false;
+
+  const pool = await getPool();
+  const result = await pool.query(
+    `
+      select 1
+      from catalog_categories
+      where parent_id is null
+        and slug = $1
+      limit 1
+    `,
+    [normalizedSlug]
+  );
+
+  return result.rowCount === 1;
 }

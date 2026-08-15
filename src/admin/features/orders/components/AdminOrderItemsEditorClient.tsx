@@ -14,7 +14,7 @@ export default function AdminOrderItemsEditorClient(props: {
   items: OrderItemInput[];
   initialSubtotal?: number;
   initialTax?: number;
-  initialTotal?: number;
+  initialTaxRate?: number;
   externalEditMode?: boolean;
   hideSectionEditControls?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;

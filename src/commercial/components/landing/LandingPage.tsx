@@ -1,22 +1,18 @@
 import { getCatalogCategoryCardsServer } from '@/commercial/catalog/catalogServer';
 import HomepageRenderer from '@/commercial/components/landing/HomepageRenderer';
-import {
-  DEFAULT_HOMEPAGE_CATEGORY_CARDS,
-  type HomepageCategoryCardData
-} from '@/shared/domain/landing/landingPage';
+import type { HomepageCategoryCardData } from '@/shared/domain/landing/landingPage';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 import { getLandingPageConfig } from '@/shared/server/landingPage';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 async function getHomepageCategories(): Promise<HomepageCategoryCardData[]> {
-  if (!hasDatabaseConnectionString()) return DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+  if (!hasDatabaseConnectionString()) return [];
 
   try {
-    const categories = await getCatalogCategoryCardsServer();
-    return categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return await getCatalogCategoryCardsServer();
   } catch (error) {
     console.error('Failed to load homepage category cards', error);
-    return DEFAULT_HOMEPAGE_CATEGORY_CARDS;
+    return [];
   }
 }
 

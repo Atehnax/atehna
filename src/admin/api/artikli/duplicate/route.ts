@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
+  CatalogItemValidationError,
   duplicateCatalogItemByIdentifier,
   fetchCatalogItemEditorBySlug
 } from '@/shared/server/catalogItems';
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof CatalogItemIdentityConflictError) {
       return NextResponse.json({ message: error.message, conflicts: error.conflicts }, { status: error.statusCode });
+    }
+    if (error instanceof CatalogItemValidationError) {
+      return NextResponse.json({ message: error.message }, { status: error.statusCode });
     }
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Kopiranje artikla ni uspelo.' }, { status: 500 });
   }

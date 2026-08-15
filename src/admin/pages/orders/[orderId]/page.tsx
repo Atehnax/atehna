@@ -33,7 +33,13 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     contact_name: asText(order.contact_name, ''),
     email: asText(order.email, ''),
     delivery_address: asText(order.delivery_address),
+    address_line1: asText((order as Record<string, unknown>).address_line1),
     postal_code: asText((order as Record<string, unknown>).postal_code),
+    city: asText((order as Record<string, unknown>).city),
+    commitment_status: asText(
+      (order as Record<string, unknown>).commitment_status,
+      order.customer_type === 'school' ? 'pending_confirmation' : 'binding'
+    ) as 'binding' | 'pending_confirmation' | 'rejected',
     reference: asText(order.reference),
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
@@ -42,6 +48,7 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     created_at: asText(order.created_at, new Date().toISOString()),
     subtotal: asNumber(order.subtotal, 0),
     tax: asNumber(order.tax, 0),
+    tax_rate: asNumber(order.tax_rate, 0.22),
     shipping: asNumber(order.shipping, 0),
     total: asNumber(order.total, 0)
   };

@@ -56,18 +56,17 @@ const randomSuffix = (length = 30) => {
   return Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
 };
 
-export async function buildGeneratedPdfFileName(pool: Pool, orderId: number, type: string) {
+export function buildGeneratedPdfFileName(orderId: number, type: string) {
   const documentCode = PDF_CODE_BY_TYPE[type] ?? 'DOC';
-  const versionResult = await pool.query(
-    'select count(*)::int as count from order_documents where order_id = $1 and type = $2',
-    [orderId, type]
-  );
-  const currentCount = Number(versionResult.rows[0]?.count ?? 0);
-  const nextVersion = currentCount + 1;
   const dateStamp = toDateStamp(new Date());
   const suffix = randomSuffix();
 
-  return `${documentCode}-${orderId}-${nextVersion}-${dateStamp}-${suffix}.pdf`;
+  return `${documentCode}-${orderId}-${dateStamp}-${suffix}.pdf`;
+}
+
+export function buildOrderDocumentNumber(orderId: number, type: string, version: number) {
+  const documentCode = PDF_CODE_BY_TYPE[type] ?? 'DOC';
+  return `${documentCode}-${orderId}-V${version}`;
 }
 
 export async function buildPdfContext(pool: Pool, orderId: number): Promise<BuildPdfContextResult> {
@@ -134,7 +133,9 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
       createdAt: order.created_at ? new Date(String(order.created_at)) : new Date(),
       subtotal,
       tax,
-      total
+      shipping: asNumber(order.shipping),
+      total,
+      commitmentStatus: asNullableString(order.commitment_status)
     }
   };
 }

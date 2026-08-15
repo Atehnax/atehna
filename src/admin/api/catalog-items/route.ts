@@ -4,10 +4,13 @@ import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
 
 type CatalogChoice = {
+  catalogItemId: number;
+  catalogVariantId: number;
   sku: string;
   name: string;
   unit: string;
   unitPrice: number;
+  discountPercentage: number;
   display_order: number | null;
 };
 
@@ -38,10 +41,13 @@ async function collectCatalogChoices(): Promise<CatalogChoice[]> {
     const rows = await fetchCatalogItemSeeds();
     return rows
       .map((row) => ({
+        catalogItemId: row.id,
+        catalogVariantId: row.variant_id,
         sku: row.sku,
         name: buildChoiceName(row),
         unit: DEFAULT_UNIT,
         unitPrice: row.price,
+        discountPercentage: row.discount_pct,
         display_order: row.item_position
       }))
       .sort((leftItem, rightItem) => leftItem.name.localeCompare(rightItem.name, 'sl', { sensitivity: 'base' }));

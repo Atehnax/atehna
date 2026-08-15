@@ -133,27 +133,27 @@ export type GlobalStyleConfig = {
 export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
   layout: {
     contentWidthPx: 760,
-    maxWidthPx: 1280,
+    maxWidthPx: 1500,
     gutterMobilePx: 16,
     gutterTabletPx: 24,
     gutterDesktopPx: 32
   },
   radii: { smallPx: 6, mediumPx: 10, largePx: 16, pillPx: 999 },
   colors: {
-    pageBackground: '#FAFBFC',
+    pageBackground: '#F8FAFC',
     surface: '#FFFFFF',
     surfaceMuted: '#F1F5F9',
-    text: '#111827',
-    textMuted: '#4B5563',
-    primary: '#1982BF',
-    primaryHover: '#1675AC',
-    primaryActive: '#126491',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    primary: '#0788CF',
+    primaryHover: '#067BBB',
+    primaryActive: '#056CA5',
     primaryForeground: '#FFFFFF',
-    accent: '#B08968',
-    success: '#059669',
+    accent: '#94633F',
+    success: '#079669',
     warning: '#A16207',
     danger: '#A24A45',
-    info: '#1982BF'
+    info: '#0788CF'
   },
   typography: {
     bodyFontFamily: 'Noto Sans',
@@ -199,7 +199,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     borderWidthPx: 1,
     background: '#FFFFFF',
     placeholder: '#94A3B8',
-    focusColor: '#1982BF'
+    focusColor: '#0788CF'
   },
   cards: {
     appearance: 'bordered',
@@ -209,7 +209,7 @@ export const DEFAULT_GLOBAL_STYLE_CONFIG: GlobalStyleConfig = {
     background: '#FFFFFF',
     shadow: 'small'
   },
-  borders: { color: '#D8D6CF', dividerColor: '#E5E7EB', widthPx: 1 },
+  borders: { color: '#D7DDE3', dividerColor: '#E5E7EB', widthPx: 1 },
   shadows: {
     color: '#0F172A',
     opacityPercent: 10,
@@ -268,6 +268,15 @@ export function normalizeGlobalStyleConfig(value: unknown): GlobalStyleConfig {
   const links = asRecord(record.links);
   const breakpoints = asRecord(record.breakpoints);
   const defaults = DEFAULT_GLOBAL_STYLE_CONFIG;
+  const upgradeLegacyDefaultColor = (
+    rawValue: unknown,
+    legacyDefault: string,
+    nextDefault: string
+  ) =>
+    typeof rawValue === 'string' &&
+    rawValue.trim().toUpperCase() === legacyDefault.toUpperCase()
+      ? nextDefault
+      : rawValue;
   const mobileMaxPx = asNumber(breakpoints.mobileMaxPx, defaults.breakpoints.mobileMaxPx, 480, 900);
   const tabletMaxPx = asNumber(breakpoints.tabletMaxPx, defaults.breakpoints.tabletMaxPx, mobileMaxPx + 1, 1600);
 
@@ -286,20 +295,47 @@ export function normalizeGlobalStyleConfig(value: unknown): GlobalStyleConfig {
       pillPx: asNumber(radii.pillPx, defaults.radii.pillPx, 24, 999)
     },
     colors: {
-      pageBackground: asColor(colors.pageBackground, defaults.colors.pageBackground),
+      pageBackground: asColor(
+        upgradeLegacyDefaultColor(colors.pageBackground, '#FAFBFC', defaults.colors.pageBackground),
+        defaults.colors.pageBackground
+      ),
       surface: asColor(colors.surface, defaults.colors.surface),
       surfaceMuted: asColor(colors.surfaceMuted, defaults.colors.surfaceMuted),
-      text: asColor(colors.text, defaults.colors.text),
-      textMuted: asColor(colors.textMuted, defaults.colors.textMuted),
-      primary: asColor(colors.primary, defaults.colors.primary),
-      primaryHover: asColor(colors.primaryHover, defaults.colors.primaryHover),
-      primaryActive: asColor(colors.primaryActive, defaults.colors.primaryActive),
+      text: asColor(
+        upgradeLegacyDefaultColor(colors.text, '#111827', defaults.colors.text),
+        defaults.colors.text
+      ),
+      textMuted: asColor(
+        upgradeLegacyDefaultColor(colors.textMuted, '#4B5563', defaults.colors.textMuted),
+        defaults.colors.textMuted
+      ),
+      primary: asColor(
+        upgradeLegacyDefaultColor(colors.primary, '#1982BF', defaults.colors.primary),
+        defaults.colors.primary
+      ),
+      primaryHover: asColor(
+        upgradeLegacyDefaultColor(colors.primaryHover, '#1675AC', defaults.colors.primaryHover),
+        defaults.colors.primaryHover
+      ),
+      primaryActive: asColor(
+        upgradeLegacyDefaultColor(colors.primaryActive, '#126491', defaults.colors.primaryActive),
+        defaults.colors.primaryActive
+      ),
       primaryForeground: asColor(colors.primaryForeground, defaults.colors.primaryForeground),
-      accent: asColor(colors.accent, defaults.colors.accent),
-      success: asColor(colors.success, defaults.colors.success),
+      accent: asColor(
+        upgradeLegacyDefaultColor(colors.accent, '#B08968', defaults.colors.accent),
+        defaults.colors.accent
+      ),
+      success: asColor(
+        upgradeLegacyDefaultColor(colors.success, '#059669', defaults.colors.success),
+        defaults.colors.success
+      ),
       warning: asColor(colors.warning, defaults.colors.warning),
       danger: asColor(colors.danger, defaults.colors.danger),
-      info: asColor(colors.info, defaults.colors.info)
+      info: asColor(
+        upgradeLegacyDefaultColor(colors.info, '#1982BF', defaults.colors.info),
+        defaults.colors.info
+      )
     },
     typography: {
       bodyFontFamily: asEnum(typography.bodyFontFamily, GLOBAL_STYLE_FONT_FAMILIES, defaults.typography.bodyFontFamily),
@@ -345,7 +381,10 @@ export function normalizeGlobalStyleConfig(value: unknown): GlobalStyleConfig {
       borderWidthPx: asNumber(forms.borderWidthPx, defaults.forms.borderWidthPx, 0, 4),
       background: asColor(forms.background, defaults.forms.background),
       placeholder: asColor(forms.placeholder, defaults.forms.placeholder),
-      focusColor: asColor(forms.focusColor, defaults.forms.focusColor)
+      focusColor: asColor(
+        upgradeLegacyDefaultColor(forms.focusColor, '#1982BF', defaults.forms.focusColor),
+        defaults.forms.focusColor
+      )
     },
     cards: {
       appearance: asEnum(cards.appearance, GLOBAL_STYLE_CARD_APPEARANCES, defaults.cards.appearance),
@@ -356,7 +395,10 @@ export function normalizeGlobalStyleConfig(value: unknown): GlobalStyleConfig {
       shadow: asEnum(cards.shadow, GLOBAL_STYLE_SHADOW_SIZES, defaults.cards.shadow)
     },
     borders: {
-      color: asColor(borders.color, defaults.borders.color),
+      color: asColor(
+        upgradeLegacyDefaultColor(borders.color, '#D8D6CF', defaults.borders.color),
+        defaults.borders.color
+      ),
       dividerColor: asColor(borders.dividerColor, defaults.borders.dividerColor),
       widthPx: asNumber(borders.widthPx, defaults.borders.widthPx, 0, 4)
     },
@@ -371,9 +413,18 @@ export function normalizeGlobalStyleConfig(value: unknown): GlobalStyleConfig {
       largeYPx: asNumber(shadows.largeYPx, defaults.shadows.largeYPx, 0, 80)
     },
     links: {
-      color: asColor(links.color, defaults.links.color),
-      hoverColor: asColor(links.hoverColor, defaults.links.hoverColor),
-      activeColor: asColor(links.activeColor, defaults.links.activeColor),
+      color: asColor(
+        upgradeLegacyDefaultColor(links.color, '#1982BF', defaults.links.color),
+        defaults.links.color
+      ),
+      hoverColor: asColor(
+        upgradeLegacyDefaultColor(links.hoverColor, '#1675AC', defaults.links.hoverColor),
+        defaults.links.hoverColor
+      ),
+      activeColor: asColor(
+        upgradeLegacyDefaultColor(links.activeColor, '#126491', defaults.links.activeColor),
+        defaults.links.activeColor
+      ),
       fontWeight: asNumber(links.fontWeight, defaults.links.fontWeight, 300, 800, 100),
       underline: asEnum(links.underline, GLOBAL_STYLE_LINK_UNDERLINES, defaults.links.underline)
     },

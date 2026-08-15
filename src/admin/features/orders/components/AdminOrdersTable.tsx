@@ -147,6 +147,7 @@ type OrderAnalyticsPreviewRow = {
   created_at: string;
   status: string;
   total: number;
+  commitment_status: string | null;
 };
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -456,10 +457,16 @@ export default function AdminOrdersTable({
   );
   const analyticsOrders = useMemo<OrderAnalyticsPreviewRow[]>(
     () =>
-      (serializedAnalyticsOrders ?? serializedOrders.map((row) => [row[15], row[9], row[14] ?? 0] as const)).map((row) => ({
+      (
+        serializedAnalyticsOrders ??
+        serializedOrders.map(
+          (row) => [row[15], row[9], Number(row[14] ?? 0), null] as const
+        )
+      ).map((row) => ({
         created_at: row[0],
         status: row[1] ?? '',
-        total: Number(row[2] ?? 0)
+        total: Number(row[2] ?? 0),
+        commitment_status: row[3] ?? null
       })),
     [serializedAnalyticsOrders, serializedOrders]
   );

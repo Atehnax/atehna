@@ -44,6 +44,7 @@ import { Button } from '@/shared/ui/button';
 import { adminControlFocusTokenClasses, adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
 
 type MasterSlot = {
   id: string;
@@ -518,13 +519,12 @@ function PlacementCard({
             <label className="grid gap-1">
               <span className="text-[10px] font-medium text-slate-500">Vodoravno</span>
               <span className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 focus-within:bg-white">
-                <input
-                  type="number"
+                <AppearanceEditorNumberInput
                   min={-100}
                   max={100}
                   value={Math.round(geometry.translateX * 100)}
                   disabled={!master}
-                  onChange={(event) => setOverride({ translateX: clamp(Number(event.target.value) / 100, -1, 1) })}
+                  onValueChange={(value) => setOverride({ translateX: clamp(value / 100, -1, 1) })}
                   className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-[11px] ${adminInputFocusTokenClasses}`}
                   aria-label={`Vodoravni premik za ${purpose.label}`}
                 />
@@ -534,13 +534,12 @@ function PlacementCard({
             <label className="grid gap-1">
               <span className="text-[10px] font-medium text-slate-500">Navpično</span>
               <span className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 focus-within:bg-white">
-                <input
-                  type="number"
+                <AppearanceEditorNumberInput
                   min={-100}
                   max={100}
                   value={Math.round(geometry.translateY * 100)}
                   disabled={!master}
-                  onChange={(event) => setOverride({ translateY: clamp(Number(event.target.value) / 100, -1, 1) })}
+                  onValueChange={(value) => setOverride({ translateY: clamp(value / 100, -1, 1) })}
                   className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-[11px] ${adminInputFocusTokenClasses}`}
                   aria-label={`Navpični premik za ${purpose.label}`}
                 />

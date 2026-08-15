@@ -2,42 +2,66 @@
 
 import type { ReactNode } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
+import type { AddCartItemInput } from '@/commercial/cart/cartTypes';
 import { Button } from '@/shared/ui/button';
 
 type AddToCartButtonProps = {
-  sku: string;
-  name: string;
+  item?: AddCartItemInput;
+  sku?: string;
+  name?: string;
   unit?: string;
   category?: string;
   unitPrice?: number;
+  quantity?: number;
+  disabled?: boolean;
   className?: string;
   children?: ReactNode;
 };
 
 export default function AddToCartButton({
+  item,
   sku,
   name,
   unit,
   category,
   unitPrice,
+  quantity = 1,
+  disabled = false,
   className = '',
   children
 }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem);
   const openDrawer = useCartStore((state) => state.openDrawer);
+  const resolvedItem: AddCartItemInput | null =
+    item ??
+    (sku && name
+      ? {
+          sku,
+          name,
+          unit,
+          category,
+          unitPrice,
+          reconciliation: {
+            status: 'needs_review',
+            message: 'Pred oddajo ponovno izberite različico artikla.'
+          }
+        }
+      : null);
 
   return (
     <Button
       type="button"
       variant="primary"
       size="sm"
+      disabled={disabled || resolvedItem === null}
       onClick={() => {
-        addItem({ sku, name, unit, category, unitPrice });
+        if (!resolvedItem) return;
+        addItem({ ...resolvedItem, quantity });
         openDrawer();
       }}
       className={className}
     >
-      {children ?? 'Dodaj v naročilo'}
+      {children ?? 'Dodaj v košarico'}
     </Button>
   );
 }

@@ -6,6 +6,8 @@ export type OrderItemInput = {
   quantity: number;
   unit_price: number | null;
   discount_percentage?: number;
+  catalog_item_id?: number | null;
+  catalog_variant_id?: number | null;
 };
 
 export type OrderPdfTypeKey =
@@ -50,7 +52,10 @@ export type OrderRow = {
   contact_name: string;
   email: string;
   delivery_address: string | null;
+  address_line1?: string | null;
   postal_code?: string | null;
+  city?: string | null;
+  commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   reference: string | null;
   notes: string | null;
   status: string;
@@ -58,6 +63,7 @@ export type OrderRow = {
   admin_order_notes?: string | null;
   subtotal: number | null;
   tax: number | null;
+  tax_rate?: number | null;
   shipping: number | null;
   total: number | null;
   created_at: string;
@@ -68,6 +74,8 @@ export type OrderRow = {
 export type OrderItemRow = {
   id: number;
   order_id: number;
+  catalog_item_id?: number | null;
+  catalog_variant_id?: number | null;
   sku: string;
   name: string;
   unit: string | null;
@@ -113,6 +121,7 @@ export type OrderAnalyticsRow = {
   created_at: string;
   status: string | null;
   payment_status: string | null;
+  commitment_status: string | null;
   customer_type: string | null;
   total: number;
 };
@@ -169,5 +178,6 @@ export type AdminOrderPdfDocumentTuple = readonly [
 export type AdminOrderAnalyticsTuple = readonly [
   createdAt: string,
   status: string | null,
-  total: number
+  total: number,
+  commitmentStatus: string | null
 ];

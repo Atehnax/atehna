@@ -3,8 +3,35 @@ import type { OrderItemSkuAllocationRow } from '@/shared/domain/order/orderTypes
 
 export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
 export type ProductEditorType = CatalogEditorProductType;
+export type CatalogItemPublicationStatus = 'active' | 'inactive';
+export type CatalogItemLifecycleStatus = CatalogItemPublicationStatus | 'deleted';
 
 export type CatalogItemTypeSpecificData = Record<string, unknown>;
+export type CatalogItemAppearanceOverride = Record<string, unknown>;
+export type CatalogVariantContentOverride = {
+  description?: string;
+  specifications?: Record<string, string>;
+  attributes?: Record<string, string>;
+  includedItems?: string[];
+  deliveryEstimate?: string;
+  documentIds?: number[];
+};
+
+export type CatalogItemOptionValuePayload = {
+  id?: number;
+  value: string;
+  slug: string;
+  swatch?: string | null;
+  position?: number;
+};
+
+export type CatalogItemOptionAxisPayload = {
+  id?: number;
+  name: string;
+  slug: string;
+  position?: number;
+  values: CatalogItemOptionValuePayload[];
+};
 
 export type CatalogItemQuantityDiscountRule = {
   id?: number;
@@ -24,6 +51,8 @@ export type CatalogItemEditorVariantPayload = {
   weight?: number | null;
   errorTolerance?: string | null;
   price: number;
+  costNet?: number | null;
+  contentOverride?: CatalogVariantContentOverride | null;
   discountPct?: number;
   inventory?: number;
   minOrder?: number;
@@ -33,6 +62,8 @@ export type CatalogItemEditorVariantPayload = {
   badge?: string | null;
   position?: number;
   imageAssignments?: number[];
+  optionValueIds?: number[];
+  optionSelections?: Record<string, string>;
 };
 
 export type CatalogMediaKind = 'image' | 'video' | 'document';
@@ -91,6 +122,11 @@ export type CatalogItemEditorPayload = {
   description?: string | null;
   adminNotes?: string | null;
   position?: number;
+  taxRate?: number;
+  appearanceOverride?: CatalogItemAppearanceOverride | null;
+  defaultVariantId?: number | null;
+  defaultVariantIndex?: number | null;
+  optionAxes?: CatalogItemOptionAxisPayload[];
   variants: CatalogItemEditorVariantPayload[];
   quantityDiscounts?: CatalogItemQuantityDiscountRule[];
   media: CatalogItemMediaPayload[];
@@ -105,6 +141,7 @@ export type AdminCatalogVariantSummary = {
   thickness: number | null;
   weight: number | null;
   price: number;
+  costNet: number | null;
   discountPct: number;
   inventory: number;
   minOrder: number;
@@ -119,7 +156,12 @@ export type AdminCatalogListItem = {
   itemName: string;
   productType: CatalogEditorProductType;
   typeSpecificData: CatalogItemTypeSpecificData;
+  description: string | null;
+  brand: string | null;
   material: string | null;
+  unit: string | null;
+  imageUrl: string | null;
+  taxRate: number;
   baseSku: string | null;
   categoryLabel: string;
   status: 'active' | 'inactive';
@@ -129,17 +171,22 @@ export type AdminCatalogListItem = {
   maxPrice: number;
   defaultDiscountPct: number;
   adminNotes: string | null;
+  defaultVariantId: number | null;
   variants: AdminCatalogVariantSummary[];
 };
 
 export type CatalogItemEditorHydration = {
   id: number;
+  updatedAt: string;
   itemName: string;
   itemType: CatalogItemType;
   productType: CatalogEditorProductType;
   typeSpecificData: CatalogItemTypeSpecificData;
   badge: string | null;
-  status: 'active' | 'inactive';
+  status: CatalogItemLifecycleStatus;
+  statusBeforeDelete: CatalogItemPublicationStatus | null;
+  deletedAt: string | null;
+  purgeAfter: string | null;
   categoryPath: string[];
   sku: string | null;
   slug: string;
@@ -150,11 +197,50 @@ export type CatalogItemEditorHydration = {
   shape: string | null;
   description: string | null;
   adminNotes: string | null;
+  taxRate: number;
+  appearanceOverride: CatalogItemAppearanceOverride | null;
   position: number;
+  defaultVariantId: number | null;
+  optionAxes: CatalogItemOptionAxisPayload[];
   variants: CatalogItemEditorPayload['variants'];
   quantityDiscounts: CatalogItemQuantityDiscountRule[];
   media: CatalogItemEditorPayload['media'];
   machineSerialOrderMatches: OrderItemSkuAllocationRow[];
+};
+
+export type CatalogItemPresentationPatch = {
+  expectedUpdatedAt: string;
+  itemName?: string;
+  description?: string | null;
+  brand?: string | null;
+  badge?: string | null;
+  material?: string | null;
+  colour?: string | null;
+  shape?: string | null;
+  appearanceOverride?: CatalogItemAppearanceOverride | null;
+  media?: CatalogItemMediaPayload[];
+  variantSpecifications?: Array<{
+    variantId: number;
+    specifications: Record<string, string>;
+  }>;
+};
+
+export type CatalogItemPresentationSaveResponse = {
+  item: CatalogItemEditorHydration;
+};
+
+export type ArchivedCatalogItemSummary = {
+  id: number;
+  slug: string;
+  itemName: string;
+  categoryLabel: string;
+  sku: string | null;
+  price: number;
+  discountPct: number;
+  statusBeforeDelete: CatalogItemPublicationStatus | null;
+  deletedAt: string;
+  purgeAfter: string;
+  canPurge: boolean;
 };
 
 export type CatalogItemQuickPatch = {

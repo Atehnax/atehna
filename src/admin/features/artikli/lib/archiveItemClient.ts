@@ -21,12 +21,13 @@ export type ArchivedItemRecord = ArchivedItemRecordInput & {
 
 function createCatalogItemRestorePayload(item: CatalogItemEditorHydration): CatalogItemEditorPayload {
   return {
+    id: item.id,
     itemName: item.itemName,
     itemType: item.itemType,
     productType: item.productType,
     typeSpecificData: item.typeSpecificData,
     badge: item.badge,
-    status: item.status,
+    status: item.status === 'active' ? 'active' : 'inactive',
     categoryPath: item.categoryPath,
     sku: item.sku,
     slug: item.slug,
@@ -38,7 +39,11 @@ function createCatalogItemRestorePayload(item: CatalogItemEditorHydration): Cata
     description: item.description,
     adminNotes: item.adminNotes,
     position: item.position,
-    variants: item.variants.map(({ id: _id, ...variant }) => variant),
+    taxRate: item.taxRate,
+    appearanceOverride: item.appearanceOverride,
+    defaultVariantId: item.defaultVariantId,
+    optionAxes: item.optionAxes,
+    variants: item.variants,
     quantityDiscounts: item.quantityDiscounts.map(({ id: _id, ...rule }) => rule),
     media: item.media.map(({ id: _id, ...media }) => media)
   };

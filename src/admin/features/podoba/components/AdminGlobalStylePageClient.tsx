@@ -26,6 +26,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
 
 type GroupKey = Exclude<keyof GlobalStyleConfig, 'updatedAt'>;
 type GlobalElementKey =
@@ -170,13 +171,12 @@ function NumberField({
   return (
     <Field label={label} hint={hint} settingPath={settingPath}>
       <span className={`flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 transition hover:border-slate-300 hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses}`}>
-        <input
-          type="number"
+        <AppearanceEditorNumberInput
           value={value}
           min={min}
           max={max}
           step={step}
-          onChange={(event) => onChange(Number(event.target.value))}
+          onValueChange={onChange}
           className={`min-w-0 flex-1 appearance-none border-0 bg-transparent px-2.5 text-[12px] text-slate-800 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${adminInputFocusTokenClasses}`}
         />
         <span className="grid min-w-8 place-items-center px-1.5 text-[11px] text-slate-400">

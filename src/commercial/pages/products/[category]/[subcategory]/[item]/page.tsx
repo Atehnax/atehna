@@ -1,10 +1,15 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { catalogCategoryHref, catalogSubcategoryHref } from '@/commercial/catalog/catalogRoutes';
-import { formatCatalogPrice, getDiscountedPrice, getCatalogItemPrice, getCatalogItemSku } from '@/commercial/catalog/catalogUtils';
-import { getCatalogCategorySlugsServer, getCatalogItemPageDataServer, getCatalogItemServer, getCatalogItemSlugsServer, getCatalogSubcategorySlugsServer } from '@/commercial/catalog/catalogServer';
-import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+import {
+  catalogCategoryItemHref,
+  toPublicCatalogSlug
+} from '@/commercial/catalog/catalogRoutes';
+import {
+  getCatalogCategorySlugsServer,
+  getCatalogItemSlugsServer,
+  getCatalogProductByGlobalSlugServer,
+  getCatalogSubcategorySlugsServer
+} from '@/commercial/catalog/catalogServer';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
+import { notFound, permanentRedirect } from 'next/navigation';
 
 export const dynamicParams = true;
 
@@ -32,36 +37,21 @@ export async function generateMetadata(
   props: { params: Promise<{ category: string; subcategory: string; item: string }> }
 ) {
   const params = await props.params;
-  const item = await getCatalogItemServer(params.category, params.subcategory, params.item);
-  return { title: item.name, description: item.description };
+  const resolved = await getCatalogProductByGlobalSlugServer(params.item);
+  if (!resolved) return {};
+  return { title: resolved.item.name, description: resolved.item.description };
 }
-
-const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
 
 export default async function ItemPage(
   props: { params: Promise<{ category: string; subcategory: string; item: string }> }
 ) {
   const params = await props.params;
-  const { category, subcategory, item } = await getCatalogItemPageDataServer(params.category, params.subcategory, params.item);
-  const itemSku = getCatalogItemSku(category.slug, subcategory.slug, item.slug);
-  const basePrice = item.price ?? getCatalogItemPrice(category.slug, subcategory.slug, item.slug);
-  const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);
-  const images = (item.images?.length ? item.images : item.image ? [item.image] : []).map(getImageSrc).filter((image): image is string => Boolean(image));
-
-  return (
-    <div className="container-base py-12">
-      <div className="w-full">
-        <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">{category.title} · {subcategory.title}</p>
-        <h1 className="mt-3 text-3xl font-semibold text-slate-900">{item.name}</h1>
-        <p className="mt-4 text-lg text-slate-600">{item.description}</p>
-        {images[0] && <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"><Image src={images[0]} alt={item.name} fill sizes="(min-width: 768px) 768px, 100vw" className="object-contain p-8" /></div>}
-        <p className="mt-4 text-xl font-semibold text-slate-900">{formatCatalogPrice(effectivePrice)}</p>
-        <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={`${category.title} / ${subcategory.title}`} className="mt-6" />
-      </div>
-      <div className="mt-10 flex flex-wrap gap-4">
-        <Link href={catalogSubcategoryHref(category.slug, subcategory.slug)} className="text-sm font-semibold text-brand-600">← Nazaj na {subcategory.title}</Link>
-        <Link href={catalogCategoryHref(category.slug)} className="text-sm font-semibold text-brand-600">{category.title}</Link>
-      </div>
-    </div>
+  const resolved = await getCatalogProductByGlobalSlugServer(params.item);
+  if (!resolved) notFound();
+  permanentRedirect(
+    catalogCategoryItemHref(
+      resolved.category.slug,
+      toPublicCatalogSlug(resolved.canonicalSlug)
+    )
   );
 }

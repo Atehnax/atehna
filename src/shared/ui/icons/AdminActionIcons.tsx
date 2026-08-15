@@ -336,6 +336,30 @@ export function CopyIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function ApplyToAllIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M3.5 5.5h9" />
+      <path d="m10 3 2.5 2.5L10 8" />
+      <path d="M3.5 10h9" />
+      <path d="m10 7.5 2.5 2.5-2.5 2.5" />
+      <path d="M3.5 14.5h9" />
+      <path d="m10 12 2.5 2.5L10 17" />
+      <path d="M16 3.5v13" />
+    </svg>
+  );
+}
+
 export function ArchiveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

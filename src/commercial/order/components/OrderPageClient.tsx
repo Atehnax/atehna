@@ -1,835 +1,681 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
+  type InputHTMLAttributes,
+  type TextareaHTMLAttributes
 } from 'react';
-import Link from 'next/link';
 import { useCartStore } from '@/commercial/cart/store';
-import { CUSTOMER_TYPE_FORM_OPTIONS, type CustomerType } from '@/shared/domain/order/customerType';
+import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
+import CartLine from '@/commercial/components/storefront/CartLine';
+import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import {
+  parseOrderApiError,
+  type SubmitOrderRequest,
+  type SubmitOrderResponse
+} from '@/commercial/order/contracts';
+import { useOrderQuote } from '@/commercial/order/useOrderQuote';
 import { SLOVENIAN_ADDRESSES } from '@/commercial/data/slovenianAddresses';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/shared/ui/floating-field';
-import { Spinner } from '@/shared/ui/loading';
-import { Button } from '@/shared/ui/button';
-import { IconButton } from '@/shared/ui/icon-button';
-import { QuantityInput } from '@/shared/ui/quantity-input';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
-import { CloseIcon } from '@/shared/ui/icons/AdminActionIcons';
+import {
+  CUSTOMER_TYPE_FORM_OPTIONS,
+  type CustomerType
+} from '@/shared/domain/order/customerType';
 import { formatEuro } from '@/shared/domain/formatting';
 
-const FORM_STORAGE_KEY = 'atehna-order-form';
-
-type CheckoutItem = {
-  sku: string;
-  name: string;
-  unit?: string | null;
-  quantity: number;
-  unitPrice?: number | null;
-};
+const FORM_STORAGE_KEY = 'atehna-order-form-v2';
 
 type OrderFormData = {
   customerType: CustomerType;
   firstName: string;
   lastName: string;
   organizationName: string;
+  contactName: string;
+  email: string;
   addressLine1: string;
   city: string;
   postalCode: string;
-  email: string;
+  reference: string;
   notes: string;
 };
 
-type OrderResponse = {
-  orderId: number;
-  orderNumber: string;
-  documentUrl: string;
-  documentType: string;
-};
-
-type SubmittedOrderSnapshot = {
-  customerType: CustomerType;
-  organizationName: string;
-  recipientName: string;
-  email: string;
-  notes: string;
-  deliveryAddressLines: string[];
-  items: CheckoutItem[];
-  subtotal: number;
-  shipping: number;
-  total: number;
-  vatIncluded: number;
-};
+type FieldName = keyof Omit<OrderFormData, 'customerType'>;
+type FieldErrors = Partial<Record<FieldName, string>>;
 
 const initialForm: OrderFormData = {
   customerType: 'school',
   firstName: '',
   lastName: '',
   organizationName: '',
+  contactName: '',
+  email: '',
   addressLine1: '',
   city: '',
   postalCode: '',
-  email: '',
+  reference: '',
   notes: ''
 };
 
-const formatCurrency = formatEuro;
+const isValidEmail = (value: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
-const toNumber = (value: unknown) =>
-  typeof value === 'number' && Number.isFinite(value) ? value : 0;
-
-const extractVatIncluded = (grossAmount: number, vatRate = 0.22) =>
-  grossAmount - grossAmount / (1 + vatRate);
-
-const composeDeliveryAddressLines = (formData: OrderFormData) => {
-  const cityLine = `${formData.postalCode.trim()} ${formData.city.trim()}`.trim();
-  return [formData.addressLine1.trim(), cityLine].filter(Boolean);
+const createIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `atehna-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
-const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-
-const classNames = (...parts: Array<string | false | null | undefined>) =>
-  parts.filter(Boolean).join(' ');
-
-function PencilIcon() {
+function CheckoutInput({
+  label,
+  error,
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  error?: string;
+}) {
+  const id = String(props.id);
   return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M13.8 3.6a1.6 1.6 0 0 1 2.3 2.3l-8.6 8.6-3.6.8.8-3.6 8.6-8.1z" />
-      <path d="M11.8 5.5l2.8 2.8" />
-    </svg>
+    <div className={className}>
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-sm font-semibold text-[color:var(--site-color-text)]"
+      >
+        {label}
+      </label>
+      <input
+        {...props}
+        id={id}
+        className={`site-field w-full ${
+          error ? '!border-[color:var(--site-color-danger)]' : ''
+        }`}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+      />
+      {error ? (
+        <p
+          id={`${id}-error`}
+          className="mt-1 text-xs text-[color:var(--site-color-danger)]"
+        >
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function CheckoutTextarea({
+  label,
+  className,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+  const id = String(props.id);
+  return (
+    <div className={className}>
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-sm font-semibold text-[color:var(--site-color-text)]"
+      >
+        {label}
+      </label>
+      <textarea
+        {...props}
+        id={id}
+        className="site-field min-h-28 w-full resize-y py-3"
+      />
+    </div>
   );
 }
 
 export default function OrderPageClient() {
-  const items = useCartStore((state) => state.items) as CheckoutItem[];
+  const router = useRouter();
+  const appearance = useProductAppearance();
+  const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
-
+  const quoteState = useOrderQuote(items, items.length > 0);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitIssues, setSubmitIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderResponse, setOrderResponse] = useState<OrderResponse | null>(null);
-  const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrderSnapshot | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
-  const [isEmailEditing, setIsEmailEditing] = useState(true);
-
-  const normalizedItems = useMemo(
+  const quoteByVariant = useMemo(
     () =>
-      items.map((item) => ({
-        ...item,
-        unitPrice: toNumber(item.unitPrice)
-      })),
-    [items]
+      new Map(
+        (quoteState.quote?.items ?? []).map((item) => [item.variantId, item])
+      ),
+    [quoteState.quote]
   );
-
-  const hasMissingPrices = useMemo(
-    () =>
-      items.some((item) => typeof item.unitPrice !== 'number' || !Number.isFinite(item.unitPrice)),
-    [items]
-  );
-
-  const subtotal = useMemo(
-    () => normalizedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
-    [normalizedItems]
-  );
-  const shipping = 0;
-  const total = subtotal + shipping;
-  const vatIncluded = useMemo(() => extractVatIncluded(total), [total]);
-
-  const isIndividual = formData.customerType === 'individual';
-
-  const emailIsValid = useMemo(() => isValidEmail(formData.email), [formData.email]);
-  const emailConfirmed = emailIsValid && !isEmailEditing;
-  const shippingDetailsLocked = !emailConfirmed;
+  const formFingerprint = JSON.stringify({ formData, items: items.map((item) => [item.lineId, item.quantity]) });
 
   useEffect(() => {
-    const saved = localStorage.getItem(FORM_STORAGE_KEY);
-    if (!saved) return;
-
     try {
-      const parsed = JSON.parse(saved) as Partial<OrderFormData> & { deliveryAddress?: string };
-      const next = { ...initialForm, ...parsed };
-
-      if (parsed.deliveryAddress && !parsed.addressLine1) {
-        next.addressLine1 = parsed.deliveryAddress;
-      }
-
-      setFormData(next);
-
-      if (isValidEmail(String(next.email ?? ''))) {
-        setIsEmailEditing(false);
-      }
+      const saved = sessionStorage.getItem(FORM_STORAGE_KEY);
+      if (!saved) return;
+      setFormData({ ...initialForm, ...(JSON.parse(saved) as Partial<OrderFormData>) });
     } catch {
-      localStorage.removeItem(FORM_STORAGE_KEY);
+      sessionStorage.removeItem(FORM_STORAGE_KEY);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+    sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
   }, [formData]);
 
-  const requiredFieldsFilled = useMemo(() => {
-    const commonRequired =
-      emailIsValid &&
-      formData.addressLine1.trim().length > 0 &&
-      formData.city.trim().length > 0 &&
-      formData.postalCode.trim().length > 0 &&
-      items.length > 0;
-
-    if (!commonRequired) return false;
-
-    if (formData.customerType === 'individual') {
-      return Boolean(formData.firstName.trim() && formData.lastName.trim());
-    }
-
-    return Boolean(formData.organizationName.trim());
-  }, [
-    emailIsValid,
-    formData.addressLine1,
-    formData.city,
-    formData.customerType,
-    formData.firstName,
-    formData.lastName,
-    formData.organizationName,
-    formData.postalCode,
-    items.length
-  ]);
-
-  const canSubmit = requiredFieldsFilled && !hasMissingPrices && !isSubmitting;
+  useEffect(() => {
+    idempotencyKeyRef.current = null;
+  }, [formFingerprint]);
 
   const addressSuggestions = useMemo(() => {
-    const query = formData.addressLine1.trim().toLowerCase();
-    if (!query || shippingDetailsLocked) return [];
+    const query = formData.addressLine1.trim().toLocaleLowerCase('sl');
+    if (query.length < 2) return [];
+    return SLOVENIAN_ADDRESSES.filter((address) =>
+      address.toLocaleLowerCase('sl').includes(query)
+    ).slice(0, 6);
+  }, [formData.addressLine1]);
 
-    return SLOVENIAN_ADDRESSES.filter((address) => address.toLowerCase().includes(query)).slice(0, 7);
-  }, [formData.addressLine1, shippingDetailsLocked]);
-
-  const confirmEmailStep = () => {
-    if (!emailIsValid) return;
-    setIsEmailEditing(false);
+  const validate = () => {
+    const errors: FieldErrors = {};
+    if (!isValidEmail(formData.email)) errors.email = 'Vnesite veljaven e-poštni naslov.';
+    if (!formData.addressLine1.trim()) errors.addressLine1 = 'Vnesite naslov.';
+    if (!formData.city.trim()) errors.city = 'Vnesite kraj.';
+    if (!/^\d{4}$/.test(formData.postalCode.trim())) {
+      errors.postalCode = 'Vnesite štirimestno slovensko poštno številko.';
+    }
+    if (formData.customerType === 'individual') {
+      if (!formData.firstName.trim()) errors.firstName = 'Vnesite ime.';
+      if (!formData.lastName.trim()) errors.lastName = 'Vnesite priimek.';
+    } else {
+      if (!formData.organizationName.trim()) {
+        errors.organizationName = 'Vnesite naziv naročnika.';
+      }
+    }
+    setFieldErrors(errors);
+    return errors;
   };
 
-  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
-    setErrorMessage(null);
+  const updateField = <K extends keyof OrderFormData>(
+    field: K,
+    value: OrderFormData[K]
+  ) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
+    if (field !== 'customerType') {
+      setFieldErrors((previous) => ({ ...previous, [field]: undefined }));
+    }
+  };
 
-    if (!requiredFieldsFilled) {
-      setErrorMessage('Izpolnite obvezna polja in dodajte vsaj en izdelek.');
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitError(null);
+    setSubmitIssues([]);
+    const errors = validate();
+    const firstInvalid = Object.keys(errors)[0] as FieldName | undefined;
+    if (firstInvalid) {
+      document.getElementById(firstInvalid)?.focus();
+      setSubmitError('Preverite označena obvezna polja.');
+      return;
+    }
+    if (!quoteState.quote || quoteState.error || cartHasBlockingIssue(items)) {
+      setSubmitError(
+        quoteState.error?.message ??
+          'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+      );
       return;
     }
 
-    if (hasMissingPrices) {
-      setErrorMessage('Nekateri artikli nimajo cene. Pred oddajo uredite cenik.');
-      return;
-    }
+    const individualName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    const customerName =
+      formData.customerType === 'individual'
+        ? individualName
+        : formData.organizationName.trim();
+    const contactName =
+      formData.customerType === 'individual'
+        ? individualName
+        : formData.contactName.trim();
+    const deliveryAddress = `${formData.addressLine1.trim()}, ${formData.postalCode.trim()} ${formData.city.trim()}`;
+    const payload: SubmitOrderRequest = {
+      customerType: formData.customerType,
+      customerName,
+      organizationName:
+        formData.customerType === 'individual'
+          ? ''
+          : formData.organizationName.trim(),
+      contactName,
+      email: formData.email.trim(),
+      addressLine1: formData.addressLine1.trim(),
+      city: formData.city.trim(),
+      postalCode: formData.postalCode.trim(),
+      deliveryAddress,
+      reference: formData.reference.trim(),
+      notes: formData.notes.trim(),
+      items: items.map((item) => ({
+        variantId: item.variant!.id as number,
+        quantity: item.quantity
+      }))
+    };
 
+    idempotencyKeyRef.current ??= createIdempotencyKey();
     setIsSubmitting(true);
-
     try {
-      const individualName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
-      const recipientName = formData.organizationName.trim() || individualName;
-
-      const deliveryAddressLines = composeDeliveryAddressLines(formData);
-
-      const payloadItems: CheckoutItem[] = normalizedItems.map((item) => ({
-        sku: item.sku,
-        name: item.name,
-        unit: item.unit ?? null,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice
-      }));
-
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerType: formData.customerType,
-          organizationName:
-            formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
-          deliveryAddress: deliveryAddressLines.join(', '),
-          contactName: recipientName,
-          email: formData.email.trim(),
-          notes: formData.notes.trim(),
-          items: payloadItems
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKeyRef.current
+        },
+        body: JSON.stringify(payload)
       });
-
+      const responsePayload: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Oddaja naročila ni uspela.');
+        const error = parseOrderApiError(responsePayload, 'Oddaja naročila ni uspela.');
+        setSubmitIssues((error.issues ?? []).map((issue) => issue.message));
+        throw new Error(error.message);
       }
-
-      const payload = (await response.json()) as OrderResponse;
-
-      setSubmittedOrder({
-        customerType: formData.customerType,
-        organizationName:
-          formData.customerType === 'individual' ? '' : formData.organizationName.trim(),
-        recipientName,
-        email: formData.email.trim(),
-        notes: formData.notes.trim(),
-        deliveryAddressLines,
-        items: payloadItems,
-        subtotal,
-        shipping,
-        total,
-        vatIncluded
-      });
-
-      setOrderResponse(payload);
+      const result = responsePayload as SubmitOrderResponse;
+      if (!result.confirmationToken && !result.confirmationUrl) {
+        throw new Error('Potrditvene povezave ni bilo mogoče ustvariti.');
+      }
       clearCart();
+      sessionStorage.removeItem(FORM_STORAGE_KEY);
+      const confirmationUrl =
+        result.confirmationUrl ||
+        `/order/confirmation?token=${encodeURIComponent(result.confirmationToken)}`;
+      router.push(confirmationUrl);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Napaka pri oddaji naročila.');
+      setSubmitError(
+        error instanceof Error ? error.message : 'Oddaja naročila ni uspela.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (items.length === 0 && !orderResponse) {
+  if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-        <p className="text-lg font-semibold text-slate-900">Košarica je prazna</p>
-        <p className="mt-2 text-sm text-slate-600">Najprej dodajte izdelke iz posameznih kategorij.</p>
+      <div className="site-panel mx-auto max-w-2xl border-dashed p-8 text-center">
+        <h1 className="site-heading-2">Košarica je prazna</h1>
+        <p className="site-paragraph mt-3">
+          Pred oddajo naročila dodajte vsaj en artikel.
+        </p>
         <Link
           href="/products"
-          className={`${buttonTokenClasses.primary} mt-4`}
+          className="site-button site-button--primary mt-6 inline-flex items-center justify-center"
         >
-          Pojdi na izdelke
+          Poglej izdelke
         </Link>
       </div>
     );
   }
 
-  const viewItems = submittedOrder?.items ?? normalizedItems;
-  const viewSubtotal = submittedOrder?.subtotal ?? subtotal;
-  const viewShipping = submittedOrder?.shipping ?? shipping;
-  const viewTotal = submittedOrder?.total ?? total;
-  const viewVatIncluded = submittedOrder?.vatIncluded ?? vatIncluded;
+  const totals = quoteState.quote?.totals;
+  const isSchool = formData.customerType === 'school';
+  const blockingCartMessage = items.find(
+    (item) =>
+      item.reconciliation.status === 'unavailable' ||
+      item.reconciliation.status === 'needs_review'
+  )?.reconciliation.message;
+  const quoteStatusMessage = quoteState.isLoading
+    ? 'Preverjamo cene in zalogo …'
+    : quoteState.error?.message ||
+      blockingCartMessage ||
+      (!quoteState.quote
+        ? 'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+        : null);
 
-  if (orderResponse && submittedOrder) {
-    return (
-      <div className="space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Naročilo je potrjeno</h1>
-          <p className="text-sm text-slate-600">
-            Potrditev je bila poslana na email. Spodaj so podrobnosti naročila in povezava do PDF dokumenta.
-          </p>
-        </header>
-
-        <section className="border-t border-slate-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">Podrobnosti naročila</h2>
-
-          <div className="mt-6 grid gap-8 text-sm md:grid-cols-2">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Dostava na</p>
-              <p className="mt-1 font-semibold text-slate-900">{submittedOrder.recipientName}</p>
-              {submittedOrder.organizationName && <p>{submittedOrder.organizationName}</p>}
-              {submittedOrder.deliveryAddressLines.map((line, index) => (
-                <p key={`${line}-${index}`}>{line}</p>
-              ))}
-            </div>
-
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Email</p>
-              <p className="mt-1 font-semibold text-slate-900">{submittedOrder.email}</p>
-
-            </div>
-          </div>
-
-          {submittedOrder.notes && (
-            <div className="mt-6">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Opombe</p>
-              <p className="mt-1 text-sm text-slate-700">{submittedOrder.notes}</p>
-            </div>
-          )}
-
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">PDF dokument</p>
-            <a
-              href={orderResponse.documentUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 inline-flex text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Odpri PDF dokument →
-            </a>
-
-            {submittedOrder.customerType === 'school' && (
-              <p className="mt-2 text-sm text-slate-600">
-                Če ste šola, naročilnico naložite kasneje na{' '}
-                <Link href="/order/narocilnica" className="font-semibold text-brand-600 hover:text-brand-700">
-                  posebni strani za naročilnice
-                </Link>
-                .
-              </p>
-            )}
-          </div>
-        </section>
-
-        <section className="border-t border-slate-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900">Povzetek naročila</h2>
-
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-            <div className="space-y-3">
-              {submittedOrder.items.map((item) => {
-                const lineTotal = toNumber(item.unitPrice) * item.quantity;
-
-                return (
-                  <div
-                    key={item.sku}
-                    className="grid items-start gap-3 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto]"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-xs text-slate-500">Cena enote: {formatCurrency(toNumber(item.unitPrice))}</p>
-                    </div>
-
-                    <div className="text-left text-sm sm:text-right">
-                      <p className="font-semibold text-slate-900">{formatCurrency(lineTotal)}</p>
-                      <p className="text-slate-500">Količina: {item.quantity}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-            <div className="flex items-center justify-between">
-              <span>Vmesni seštevek</span>
-              <span className="font-semibold">{formatCurrency(submittedOrder.subtotal)}</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between">
-              <span>Poštnina</span>
-              <span className="font-semibold">{formatCurrency(submittedOrder.shipping)}</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between text-base font-semibold text-slate-900">
-              <span>Skupaj</span>
-              <span>{formatCurrency(submittedOrder.total)}</span>
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Vključuje DDV (22%): {formatCurrency(submittedOrder.vatIncluded)}
-            </p>
-          </div>
-        </section>
+  const summary = (
+    <div>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <CartLine
+            key={item.lineId}
+            item={item}
+            quoteItem={
+              typeof item.variant?.id === 'number'
+                ? quoteByVariant.get(item.variant.id)
+                : undefined
+            }
+            compact
+            onQuantityChange={(quantity) => setQuantity(item.lineId, quantity)}
+            onRemove={() => removeItem(item.lineId)}
+          />
+        ))}
       </div>
-    );
-  }
+      <dl className="mt-5 space-y-2 border-t border-[color:var(--site-divider-color)] pt-4 text-sm">
+        <div className="flex justify-between">
+          <dt>Cena brez DDV</dt>
+          <dd className="font-semibold tabular-nums">
+            {totals ? formatEuro(totals.net) : '—'}
+          </dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>DDV</dt>
+          <dd className="font-semibold tabular-nums">
+            {totals ? formatEuro(totals.tax) : '—'}
+          </dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>Dostava</dt>
+          <dd className="font-semibold text-[color:var(--site-color-success)]">
+            {appearance.pricing.freeShippingLabel}
+          </dd>
+        </div>
+        <div className="flex justify-between border-t border-[color:var(--site-divider-color)] pt-3 text-base font-semibold">
+          <dt>Skupaj z DDV</dt>
+          <dd className="tabular-nums text-[color:var(--site-color-primary)]">
+            {totals ? formatEuro(totals.gross) : '—'}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-semibold text-slate-900">Oddaja naročila</h1>
-        <p className="text-slate-600">
-          Izpolnite podatke in oddajte naročilo. PDF dokument bo na voljo po uspešni oddaji.
-        </p>
-        <p className="text-sm text-slate-600">
-          Če ste šola, naročilnico naložite kasneje na{' '}
-          <Link href="/order/narocilnica" className="font-semibold text-brand-600">
-            posebni strani za naročilnice
-          </Link>
-          .
+    <form onSubmit={handleSubmit} noValidate>
+      <header className="mb-8">
+        <p className="site-eyebrow">Zaključek nakupa</p>
+        <h1 className="site-heading-1 mt-2">Oddaja naročila</h1>
+        <p className="site-paragraph mt-3 max-w-3xl">
+          Dostava po Sloveniji je brezplačna. Plačilo uredimo ročno po ponudbi
+          ali predračunu; spletno plačilo ni potrebno.
         </p>
       </header>
 
-      <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-xl font-semibold text-slate-900">Email naslov</h2>
+      {submitError ? (
+        <div
+          role="alert"
+          className="site-radius-md mb-6 border border-[color:var(--site-color-danger)] bg-[color:var(--site-color-surface)] p-4 text-sm text-[color:var(--site-color-danger)]"
+        >
+          <p className="font-semibold">{submitError}</p>
+          {submitIssues.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5">
+              {submitIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
-                {emailConfirmed && (
-                  <Button
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="space-y-6">
+          <section className="site-card">
+            <h2 className="text-xl font-semibold">Vrsta naročnika</h2>
+            <div
+              className="mt-4 grid gap-2 sm:grid-cols-3"
+              role="radiogroup"
+              aria-label="Vrsta naročnika"
+            >
+              {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
+                const selected = formData.customerType === option.value;
+                return (
+                  <button
+                    key={option.value}
                     type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setIsEmailEditing(true)}
-                    className="mt-2 max-w-full justify-start truncate !px-0 text-left text-sm font-normal text-slate-700 hover:text-slate-900"
-                    title="Uredi email naslov"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => updateField('customerType', option.value)}
+                    className={`site-radius-md min-h-12 border px-3 py-2 text-sm font-semibold transition ${
+                      selected
+                        ? 'border-[color:var(--site-color-primary)] bg-[color:var(--blue-50)] text-[color:var(--site-color-primary)]'
+                        : 'border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)]'
+                    }`}
                   >
-                    {formData.email.trim()}
-                  </Button>
-                )}
-              </div>
-
-              {emailConfirmed && (
-                <IconButton
-                  type="button"
-                  onClick={() => setIsEmailEditing(true)}
-                  tone="neutralStatus"
-                  shape="rounded"
-                  size="md"
-                  aria-label="Uredi email naslov"
-                  title="Uredi email naslov"
-                >
-                  <PencilIcon />
-                </IconButton>
-              )}
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
-
-            {isEmailEditing && (
-              <div className="mt-4 space-y-3">
-                <FloatingInput
-                  id="email"
-                  type="email"
-                  label="Email naslov"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, email: event.target.value }))
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      confirmEmailStep();
-                    }
-                  }}
-                />
-
-                <Button
-                  type="button"
-                  variant="brand"
-                  onClick={confirmEmailStep}
-                  disabled={!emailIsValid}
-                  className="w-full"
-                >
-                  Nadaljuj
-                </Button>
-              </div>
+            {isSchool ? (
+              <p className="site-radius-sm mt-4 bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]">
+                Šolsko naročilo je zahteva za ročno potrditev. Po pregledu
+                prejmete ponudbo in navodila za naročilnico.
+              </p>
+            ) : (
+              <p className="site-radius-sm mt-4 bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]">
+                Z oddajo pošiljate zavezujoče naročilo po prikazanem izračunu.
+              </p>
             )}
           </section>
 
-          <section
-            className={classNames(
-              'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition',
-              shippingDetailsLocked ? 'opacity-60' : 'opacity-100'
-            )}
-          >
-            <h2 className="text-xl font-semibold text-slate-900">Podatki za dostavo</h2>
-
-            {shippingDetailsLocked && (
-              <p className="mt-2 text-xs text-slate-500">
-                Najprej vnesite veljaven email naslov in ga potrdite.
-              </p>
-            )}
-
-            <form
-              className={classNames(
-                'mt-4 grid gap-4 md:grid-cols-2',
-                shippingDetailsLocked && 'pointer-events-none select-none'
-              )}
-              onSubmit={handleSubmit}
-            >
-              <div className="md:col-span-2">
-                <FloatingSelect
-                  id="customerType"
-                  label="Tip naročnika"
-                  value={formData.customerType}
-                  disabled={shippingDetailsLocked}
-                  onChange={(event) => {
-                    setFormData((previous) => ({
-                      ...previous,
-                      customerType: event.target.value as CustomerType
-                    }));
-                  }}
-                >
-                  {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </FloatingSelect>
-              </div>
-
-              {isIndividual ? (
+          <section className="site-card">
+            <h2 className="text-xl font-semibold">Kontakt in naročnik</h2>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <CheckoutInput
+                id="email"
+                type="email"
+                autoComplete="email"
+                label="E-poštni naslov *"
+                value={formData.email}
+                onChange={(event) => updateField('email', event.target.value)}
+                error={fieldErrors.email}
+                className="sm:col-span-2"
+              />
+              {formData.customerType === 'individual' ? (
                 <>
-                  <FloatingInput
+                  <CheckoutInput
                     id="firstName"
+                    autoComplete="given-name"
                     label="Ime *"
-                    disabled={shippingDetailsLocked}
                     value={formData.firstName}
-                    onChange={(event) =>
-                      setFormData((previous) => ({ ...previous, firstName: event.target.value }))
-                    }
+                    onChange={(event) => updateField('firstName', event.target.value)}
+                    error={fieldErrors.firstName}
                   />
-                  <FloatingInput
+                  <CheckoutInput
                     id="lastName"
+                    autoComplete="family-name"
                     label="Priimek *"
-                    disabled={shippingDetailsLocked}
                     value={formData.lastName}
-                    onChange={(event) =>
-                      setFormData((previous) => ({ ...previous, lastName: event.target.value }))
-                    }
+                    onChange={(event) => updateField('lastName', event.target.value)}
+                    error={fieldErrors.lastName}
                   />
                 </>
               ) : (
                 <>
-                  <div className="md:col-span-2">
-                    <FloatingInput
-                      id="organizationName"
-                      label="Naročnik *"
-                      disabled={shippingDetailsLocked}
-                      value={formData.organizationName}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          organizationName: event.target.value
-                        }))
-                      }
-                    />
-                  </div>
+                  <CheckoutInput
+                    id="organizationName"
+                    autoComplete="organization"
+                    label="Naziv naročnika *"
+                    value={formData.organizationName}
+                    onChange={(event) =>
+                      updateField('organizationName', event.target.value)
+                    }
+                    error={fieldErrors.organizationName}
+                    className="sm:col-span-2"
+                  />
+                  <CheckoutInput
+                    id="contactName"
+                    autoComplete="name"
+                    label="Kontaktna oseba (neobvezno)"
+                    value={formData.contactName}
+                    onChange={(event) =>
+                      updateField('contactName', event.target.value)
+                    }
+                    error={fieldErrors.contactName}
+                    className="sm:col-span-2"
+                  />
                 </>
               )}
+            </div>
+          </section>
 
-              <div className="md:col-span-2">
-                <FloatingInput
+          <section className="site-card">
+            <h2 className="text-xl font-semibold">Naslov za dostavo</h2>
+            <p className="mt-1 text-sm text-[color:var(--site-color-success)]">
+              Brezplačna dostava po Sloveniji
+            </p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_10rem]">
+              <div className="relative sm:col-span-2">
+                <CheckoutInput
                   id="addressLine1"
-                  label="Naslov *"
-                  disabled={shippingDetailsLocked}
                   autoComplete="street-address"
+                  label="Naslov *"
                   value={formData.addressLine1}
                   onChange={(event) =>
-                    setFormData((previous) => ({
-                      ...previous,
-                      addressLine1: event.target.value
-                    }))
+                    updateField('addressLine1', event.target.value)
                   }
+                  error={fieldErrors.addressLine1}
                 />
-
-                {!shippingDetailsLocked && addressSuggestions.length > 0 && (
-                  <ul className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-sm">
+                {addressSuggestions.length > 0 ? (
+                  <ul className="site-panel absolute z-10 mt-1 max-h-52 w-full overflow-auto p-1 text-sm">
                     {addressSuggestions.map((address) => (
                       <li key={address}>
                         <button
                           type="button"
-                          onClick={() =>
-                            setFormData((previous) => ({ ...previous, addressLine1: address }))
-                          }
-                          className="w-full text-left text-slate-600 hover:text-brand-600"
+                          onClick={() => updateField('addressLine1', address)}
+                          className="site-radius-sm w-full px-3 py-2 text-left hover:bg-[color:var(--site-color-surface-muted)]"
                         >
                           {address}
                         </button>
                       </li>
                     ))}
                   </ul>
-                )}
+                ) : null}
               </div>
-
-              <div className="md:col-span-2 grid gap-4 md:grid-cols-[minmax(0,1fr)_11rem]">
-                <FloatingInput
-                  id="city"
-                  label="Kraj *"
-                  disabled={shippingDetailsLocked}
-                  value={formData.city}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, city: event.target.value }))
-                  }
-                />
-
-                <FloatingInput
-                  id="postalCode"
-                  label="Poštna številka *"
-                  disabled={shippingDetailsLocked}
-                  value={formData.postalCode}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, postalCode: event.target.value }))
-                  }
-                />
-              </div>
-
-
-              <div className="md:col-span-2">
-                <FloatingTextarea
-                  id="notes"
-                  label="Opombe"
-                  disabled={shippingDetailsLocked}
-                  rows={3}
-                  value={formData.notes}
-                  onChange={(event) =>
-                    setFormData((previous) => ({ ...previous, notes: event.target.value }))
-                  }
-                />
-              </div>
-
-              <button type="submit" className="hidden" />
-            </form>
+              <CheckoutInput
+                id="city"
+                autoComplete="address-level2"
+                label="Kraj *"
+                value={formData.city}
+                onChange={(event) => updateField('city', event.target.value)}
+                error={fieldErrors.city}
+              />
+              <CheckoutInput
+                id="postalCode"
+                autoComplete="postal-code"
+                inputMode="numeric"
+                pattern="[0-9]{4}"
+                maxLength={4}
+                label="Poštna številka *"
+                value={formData.postalCode}
+                onChange={(event) => updateField('postalCode', event.target.value)}
+                error={fieldErrors.postalCode}
+              />
+            </div>
           </section>
-        </div>
 
-        <div className="commercial-order-sidebar space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.07),0_2px_6px_rgba(15,23,42,0.03)]">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-[20px] font-semibold leading-tight tracking-tight text-slate-950">
-                  Povzetek košarice
-                </h2>
-                <p className="mt-1 text-[12px] font-medium leading-4 text-slate-500">
-                  Artikli: {viewItems.length}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={clearCart}
-                className="h-7 shrink-0 px-2 text-[12px] font-semibold text-slate-500 hover:text-slate-900"
-              >
-                Ponastavi
-              </Button>
-            </div>
-
-            <div className="mt-4">
-              <h3 className="text-[12px] font-semibold leading-4 text-slate-950">Izdelki v naročilu</h3>
-              <div className="mt-2 divide-y divide-slate-200/90">
-                {viewItems.length > 0 ? (
-                  viewItems.map((item) => {
-                    const lineTotal = toNumber(item.unitPrice) * item.quantity;
-
-                    return (
-                      <div key={item.sku} className="py-3 first:pt-0 last:pb-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="min-w-0 text-[12px] font-semibold leading-4 text-slate-950">
-                              {item.name}
-                            </p>
-                            <p className="mt-0.5 text-[12px] font-medium leading-4 text-slate-500">
-                              Cena enote: {formatCurrency(toNumber(item.unitPrice))}
-                            </p>
-                          </div>
-
-                          <p className="shrink-0 text-right text-[13px] font-semibold leading-5 text-slate-950 tabular-nums">
-                            {formatCurrency(lineTotal)}
-                          </p>
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="shrink-0 text-[12px] font-medium leading-4 text-slate-500">
-                              Količina
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <IconButton
-                                type="button"
-                                onClick={() => setQuantity(item.sku, item.quantity - 1)}
-                                shape="square"
-                                size="sm"
-                                className="text-sm font-semibold"
-                                aria-label={`Zmanjšaj količino za ${item.name}`}
-                              >
-                                −
-                              </IconButton>
-                              <QuantityInput
-                                min={1}
-                                value={item.quantity}
-                                onChange={(event) => {
-                                  const next = Number.parseInt(event.target.value, 10);
-                                  setQuantity(item.sku, Number.isNaN(next) ? item.quantity : next);
-                                }}
-                                aria-label={`Količina za ${item.name}`}
-                              />
-                              <IconButton
-                                type="button"
-                                onClick={() => setQuantity(item.sku, item.quantity + 1)}
-                                shape="square"
-                                size="sm"
-                                className="text-sm font-semibold"
-                                aria-label={`Povečaj količino za ${item.name}`}
-                              >
-                                +
-                              </IconButton>
-                            </div>
-                          </div>
-
-                          <IconButton
-                            type="button"
-                            onClick={() => removeItem(item.sku)}
-                            tone="danger"
-                            shape="square"
-                            size="sm"
-                            className="shrink-0"
-                            aria-label={`Odstrani ${item.name}`}
-                            title="Odstrani"
-                          >
-                            <CloseIcon className="h-3.5 w-3.5" />
-                          </IconButton>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="py-6 text-center text-[13px] font-medium text-slate-500">
-                    Košarica je prazna.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 border-t border-slate-200/90 pt-3">
-              <h3 className="text-[12px] font-semibold leading-4 text-slate-950">Izračun</h3>
-              <div className="mt-1.5 space-y-1">
-                <div className="flex items-center justify-between gap-4 text-[12px] font-medium leading-4 text-slate-700">
-                  <span>Vmesni seštevek</span>
-                  <span className="shrink-0 text-right font-semibold tabular-nums">{formatCurrency(viewSubtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 text-[12px] font-medium leading-4 text-slate-700">
-                  <span>Poštnina</span>
-                  <span className="shrink-0 text-right font-semibold tabular-nums">{formatCurrency(viewShipping)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4 text-[12px] font-medium leading-4 text-slate-700">
-                  <span>DDV</span>
-                  <span className="shrink-0 text-right font-semibold tabular-nums">
-                    {formatCurrency(viewVatIncluded)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200/90 pt-3">
-              <p className="min-w-0 text-left text-[15px] font-semibold leading-5 text-[#1982bf]">Skupaj z DDV</p>
-              <p className="shrink-0 text-right text-[18px] font-semibold leading-6 text-[#1982bf] tabular-nums">
-                {formatCurrency(viewTotal)}
+          <section className="site-card">
+            <h2 className="text-xl font-semibold">Plačilo in dodatni podatki</h2>
+            <div className="site-radius-md mt-4 border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
+              <p className="font-semibold">Ročna obdelava plačila</p>
+              <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
+                Po oddaji pripravimo ponudbo ali predračun. Plačilne kartice ne
+                potrebujete.
               </p>
             </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Oddaja naročila</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Po oddaji naročila pripravimo PDF predračuna (za podjetja in fizične osebe) oziroma
-              ponudbe (za šole).
-            </p>
-
-            <div className="mt-4 flex flex-col gap-3">
-              <Button
-                type="button"
-                variant="brand"
-                disabled={!canSubmit}
-                onClick={() => handleSubmit()}
-                className="w-full"
-              >
-                {isSubmitting ? <span className="inline-flex items-center gap-2"><Spinner size="sm" className="text-white" />Oddajanje...</span> : 'Oddaj naročilo'}
-              </Button>
-
-              {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
-              {!errorMessage && !requiredFieldsFilled && (
-                <p className="text-xs text-slate-500">
-                  Za oddajo izpolnite obvezna polja in dodajte vsaj en izdelek.
-                </p>
-              )}
-
-              {!errorMessage && hasMissingPrices && (
-                <p className="text-xs text-amber-700">
-                  Nekateri artikli nimajo cene. Oddaja je onemogočena, dokler ni cenik urejen.
-                </p>
-              )}
+            <div className="mt-5 grid gap-4">
+              <CheckoutInput
+                id="reference"
+                label="Vaša referenca ali št. naročilnice"
+                value={formData.reference}
+                onChange={(event) => updateField('reference', event.target.value)}
+              />
+              <CheckoutTextarea
+                id="notes"
+                label="Opombe"
+                value={formData.notes}
+                onChange={(event) => updateField('notes', event.target.value)}
+              />
             </div>
           </section>
+
+          <details className="site-card lg:hidden">
+            <summary className="cursor-pointer font-semibold">
+              Povzetek naročila ({items.length})
+            </summary>
+            <div className="mt-4">{summary}</div>
+          </details>
         </div>
+
+        <aside className="hidden lg:block lg:self-start">
+          <div className="site-card lg:sticky lg:top-8">
+            <h2 className="text-xl font-semibold">Povzetek naročila</h2>
+            <div className="mt-5">{summary}</div>
+
+            {quoteStatusMessage ? (
+              <p
+                className={`mt-4 text-sm ${
+                  quoteState.isLoading
+                    ? 'text-[color:var(--site-color-text-muted)]'
+                    : 'text-[color:var(--site-color-danger)]'
+                }`}
+              >
+                {quoteStatusMessage}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                quoteState.isLoading ||
+                !quoteState.quote ||
+                cartHasBlockingIssue(items)
+              }
+              className="site-button site-button--primary mt-5 w-full"
+            >
+              {isSubmitting
+                ? 'Oddajanje …'
+                : isSchool
+                  ? 'Pošlji zahtevo za naročilo'
+                  : 'Oddaj zavezujoče naročilo'}
+            </button>
+            <p className="mt-3 text-xs leading-5 text-[color:var(--site-color-text-muted)]">
+              Z oddajo potrjujete pravilnost podatkov in se strinjate s{' '}
+              <Link href="/terms" className="site-link">
+                pogoji poslovanja
+              </Link>
+              .
+            </p>
+          </div>
+        </aside>
       </div>
-    </div>
+
+      <div className="sticky bottom-0 z-20 -mx-[var(--site-gutter)] mt-6 border-t border-[color:var(--site-divider-color)] bg-[color:var(--site-color-surface)] px-[var(--site-gutter)] py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] lg:hidden">
+        {quoteStatusMessage ? (
+          <p
+            className={`mb-2 text-xs ${
+              quoteState.isLoading
+                ? 'text-[color:var(--site-color-text-muted)]'
+                : 'text-[color:var(--site-color-danger)]'
+            }`}
+            role={quoteState.isLoading ? 'status' : 'alert'}
+          >
+            {quoteStatusMessage}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={
+            isSubmitting ||
+            quoteState.isLoading ||
+            !quoteState.quote ||
+            cartHasBlockingIssue(items)
+          }
+          className="site-button site-button--primary w-full"
+        >
+          {isSubmitting
+            ? 'Oddajanje …'
+            : isSchool
+              ? 'Pošlji zahtevo'
+              : 'Oddaj naročilo'}
+        </button>
+        <p className="mt-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
+          Z oddajo se strinjate s{' '}
+          <Link href="/terms" className="site-link">
+            pogoji poslovanja
+          </Link>
+          .
+        </p>
+      </div>
+    </form>
   );
 }

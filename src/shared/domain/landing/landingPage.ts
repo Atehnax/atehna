@@ -622,49 +622,6 @@ export const homepageSocialTypeLabels: Record<HomepageSocialType, string> = {
   custom: 'Po meri'
 };
 
-export const DEFAULT_HOMEPAGE_CATEGORY_CARDS: HomepageCategoryCardData[] = [
-  {
-    slug: 'tehnika-in-tehnologija',
-    title: 'Tehnika in tehnologija',
-    image: '/images/categories/cutouts/tehnika-in-tehnologija.png'
-  },
-  {
-    slug: 'materiali',
-    title: 'Materiali',
-    image: '/images/categories/cutouts/materiali.png'
-  },
-  {
-    slug: 'stroji-in-naprave',
-    title: 'Stroji in naprave',
-    image: '/images/categories/cutouts/stroji-in-naprave.png'
-  },
-  {
-    slug: 'merilno-orodje-in-geometrija',
-    title: 'Merilno orodje in geometrija',
-    image: '/images/categories/cutouts/merilno-orodje-in-geometrija.png'
-  },
-  {
-    slug: 'elektricni-in-mehanicni-elementi',
-    title: 'Električni in mehanski elementi',
-    image: '/images/categories/cutouts/elektricni-in-mehanicni-elementi.png'
-  },
-  {
-    slug: 'rocno-orodje-in-delavniski-pribor',
-    title: 'Ročno orodje in delavniški pribor',
-    image: '/images/categories/cutouts/rocno-orodje-in-delavniski-pribor.png'
-  },
-  {
-    slug: 'zascita-pri-delu',
-    title: 'Zaščita pri delu',
-    image: '/images/categories/cutouts/zascita-pri-delu.png'
-  },
-  {
-    slug: 'dodatki-in-nadomestni-deli',
-    title: 'Dodatki in nadomestni deli',
-    image: '/images/categories/cutouts/dodatki-in-nadomestni-deli.png'
-  }
-];
-
 // Before categoryOrderMode existed, every untouched configuration was stored with
 // this populated order. Matching legacy values therefore mean "inherit"; any
 // different legacy order remains an intentional custom override.

@@ -257,7 +257,15 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     contact_name: String(rawRow.contact_name),
     email: String(rawRow.email),
     delivery_address: asNullableString(rawRow.delivery_address),
+    address_line1: asNullableString(rawRow.address_line1),
     postal_code: asNullableString(rawRow.postal_code),
+    city: asNullableString(rawRow.city),
+    commitment_status:
+      rawRow.commitment_status === 'binding'
+      || rawRow.commitment_status === 'pending_confirmation'
+      || rawRow.commitment_status === 'rejected'
+        ? rawRow.commitment_status
+        : null,
     reference: asNullableString(rawRow.reference),
     notes: asNullableString(rawRow.notes),
     status: String(rawRow.status),
@@ -265,6 +273,7 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     admin_order_notes: asNullableString(rawRow.admin_order_notes),
     subtotal: parseNullableNumber(rawRow.subtotal),
     tax: parseNullableNumber(rawRow.tax),
+    tax_rate: parseNullableNumber(rawRow.tax_rate),
     shipping: parseNullableNumber(rawRow.shipping),
     total: parseNullableNumber(rawRow.total),
     created_at: toIsoTimestamp(rawRow.created_at),
@@ -275,12 +284,20 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
 
 function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
   const quantity = Number(rawRow.quantity);
-  const unitPrice = parseNullableNumber(rawRow.unit_price);
-  const totalPrice = parseNullableNumber(rawRow.total_price);
-  const lineBase = Math.max(0, quantity) * (unitPrice ?? 0);
+  const persistedUnitNet =
+    parseNullableNumber(rawRow.unit_net) ?? parseNullableNumber(rawRow.unit_price);
+  const baseUnitNet =
+    parseNullableNumber(rawRow.base_unit_net) ?? persistedUnitNet;
+  const totalPrice =
+    parseNullableNumber(rawRow.line_net) ?? parseNullableNumber(rawRow.total_price);
+  const lineBase = Math.max(0, quantity) * (baseUnitNet ?? 0);
   const effectiveTotal = totalPrice ?? lineBase;
-  const discountPercentage =
-    lineBase > 0 ? Math.min(100, Math.max(0, Number((((lineBase - effectiveTotal) / lineBase) * 100).toFixed(2)))) : 0;
+  const storedDiscountPercentage = parseNullableNumber(rawRow.discount_pct);
+  const discountPercentage = storedDiscountPercentage === null
+    ? lineBase > 0
+      ? Math.min(100, Math.max(0, Number((((lineBase - effectiveTotal) / lineBase) * 100).toFixed(2))))
+      : 0
+    : Math.min(100, Math.max(0, storedDiscountPercentage));
 
   return {
     id: Number(rawRow.id),
@@ -289,9 +306,13 @@ function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
     name: String(rawRow.name),
     unit: asNullableString(rawRow.unit),
     quantity,
-    unit_price: unitPrice,
+    // Admin editing works with the list/base NET price; persisted unit_price is the
+    // effective NET price after discount for authoritative commerce orders.
+    unit_price: baseUnitNet,
     total_price: totalPrice,
-    discount_percentage: discountPercentage
+    discount_percentage: discountPercentage,
+    catalog_item_id: parseNullableNumber(rawRow.catalog_item_id),
+    catalog_variant_id: parseNullableNumber(rawRow.catalog_variant_id)
   };
 }
 
@@ -313,6 +334,7 @@ function mapOrderAnalyticsRow(rawRow: Record<string, unknown>): OrderAnalyticsRo
     created_at: toIsoTimestamp(rawRow.created_at),
     status: asNullableString(rawRow.status),
     payment_status: asNullableString(rawRow.payment_status),
+    commitment_status: asNullableString(rawRow.commitment_status),
     customer_type: asNullableString(rawRow.customer_type),
     total: Number(rawRow.total ?? 0)
   };
@@ -439,8 +461,20 @@ export async function fetchOrdersListPage(
           orders.payment_status,
           orders.admin_order_notes,
           coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
-          coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
-          coalesce(orders.total::text, computed_totals.total::text, '0') as total,
+          coalesce(
+            orders.tax::text,
+            round(computed_totals.subtotal * coalesce(orders.tax_rate, 0.22), 2)::text,
+            '0'
+          ) as tax,
+          coalesce(
+            orders.total::text,
+            round(
+              computed_totals.subtotal * (1 + coalesce(orders.tax_rate, 0.22))
+              + coalesce(orders.shipping, 0),
+              2
+            )::text,
+            '0'
+          ) as total,
           orders.created_at,
           orders.is_draft,
           orders.deleted_at
@@ -448,9 +482,7 @@ export async function fetchOrdersListPage(
         left join (
           select
             order_items.order_id,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal
           from order_items
           group by order_items.order_id
         ) as computed_totals
@@ -561,6 +593,7 @@ export async function fetchOrdersAnalyticsRows(
         orders.created_at,
         orders.status,
         orders.payment_status,
+        orders.commitment_status,
         orders.customer_type,
         coalesce(orders.total::numeric, orders.subtotal::numeric + orders.tax::numeric, 0::numeric)::text as total
       from orders
@@ -588,7 +621,10 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.contact_name,
       orders.email,
       orders.delivery_address,
+      orders.address_line1,
       orders.postal_code,
+      orders.city,
+      orders.commitment_status,
       orders.reference,
       orders.notes,
       orders.status,
@@ -596,6 +632,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.admin_order_notes,
       coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
       coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      orders.tax_rate,
       coalesce(orders.shipping::text, '0') as shipping,
       coalesce(orders.total::text, computed_totals.total::text, '0') as total,
       orders.created_at,
@@ -605,8 +642,16 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
     left join lateral (
       select
         round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 0.22, 2) as tax,
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))) * 1.22, 2) as total
+        round(
+          sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0)))
+          * coalesce(orders.tax_rate, 0.22),
+          2
+        ) as tax,
+        round(
+          sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0)))
+          * (1 + coalesce(orders.tax_rate, 0.22)),
+          2
+        ) as total
       from order_items
       where order_items.order_id = orders.id
     ) as computed_totals

@@ -1,11 +1,17 @@
-# Name
-### atehna
+# Atehna
 
 # Synopsis
-Admin order management and analytics dashboards.
+Product catalogue, purchasing flow, admin order management, appearance controls,
+archive retention, and analytics dashboards.
 
 # Description
 Atehna includes:
+- Customer catalogue, product detail, cart, order, and token-protected
+  confirmation pages.
+- `/admin/artikli` product lifecycle management with variants and configurable
+  option axes.
+- `/admin/podoba/artikli` catalogue, product-page, and cart presentation
+  settings.
 - `/admin/orders` with compact analytics previews and order operations.
 - `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
 
@@ -43,17 +49,53 @@ Key places:
 - Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
 - Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
 
-# DB migration
-Run `migrations/001_current_baseline.sql` against an empty database to create the current schema. Old backfill, cleanup, and compatibility migrations are intentionally squashed because historical business data has been purged.
+# Database migrations
+
+Apply the numbered migrations in order:
+
+1. `migrations/001_current_baseline.sql`
+2. `migrations/002_catalog_commerce_foundation.sql`
+3. `migrations/003_order_access_and_snapshots.sql`
+4. `migrations/004_product_appearance.sql`
+5. `migrations/005_archive_retention.sql`
+6. `migrations/006_product_reference_design.sql`
+
+The migrations are additive/idempotent where practical, but should still be
+run once in sequence. Do not expose a deployment until every migration has
+completed: the application reads the new variant, pricing, access-token,
+appearance, and retention columns at runtime.
+
+## Runtime configuration
+
+Copy `.env.example` to `.env.local` for local development and provide the
+corresponding environment variables in production.
+
+- A PostgreSQL URL is required through `DATABASE_URL`, `POSTGRES_URL`,
+  `POSTGRES_PRISMA_URL`, or `SUPABASE_DB_URL`.
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` are required
+  in production. Missing production admin credentials fail closed.
+- `CRON_SECRET` secures both scheduled cleanup routes in `vercel.json`.
+- `BLOB_READ_WRITE_TOKEN` is required for catalogue media and order documents.
+- `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
+
+Catalogue prices are stored as net amounts. Customer pages and order documents
+show the net amount, DDV rate/amount, and gross amount. Delivery is currently
+free, and delivery/payment processing remains manual.
+
+Deleted products, orders, and order documents are retained for 90 days before
+eligible database and blob cleanup. Active and inactive products have no
+automatic expiry.
 
 # Example
 - `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.
 - `/admin/analitika` contains default charts plus custom builder-created charts.
 
 # Install
-`npm install atehna`
+
+`npm install`
 
 # Test
+
 - Run all local safety gates: `npm run lint && npm run typecheck && npm run build && npm run test:e2e`
 
 ## CI safety gates

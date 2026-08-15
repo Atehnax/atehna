@@ -115,6 +115,7 @@ import SiteFooter, {
 import SiteHeader from '@/commercial/components/SiteHeader';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
 
 const compactInputClassName = adminFilterInputTokenClasses;
 const numberInputNoSpinnerClassName =
@@ -1527,17 +1528,15 @@ function TopBarUnitNumberInput({
         if (!disabled) onFocus?.();
       }}
     >
-      <input
-        type="number"
+      <AppearanceEditorNumberInput
         min={min}
         max={max}
         step={step}
         value={value}
         disabled={disabled}
         onBlur={onBlur}
-        onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || 0)))}
+        onValueChange={onChange}
         onFocus={onFocus}
-        onInput={(event) => onChange(Math.min(max, Math.max(min, Number((event.target as HTMLInputElement).value) || 0)))}
         className={`h-full border-0 bg-transparent text-right font-['Inter',system-ui,sans-serif] leading-none outline-none focus:ring-0 ${numberInputNoSpinnerClassName} ${
           simulatorStyle
             ? 'rounded-l-md px-2.5 text-[12px] font-medium text-slate-900 disabled:bg-transparent disabled:text-slate-500 disabled:opacity-100'
@@ -1708,7 +1707,6 @@ function TopBarOffsetPairInput({
   onRightChange: (value: number) => void;
 }) {
   const active = leftActive || rightActive;
-  const clampInputValue = (value: string) => Math.min(max, Math.max(min, Number(value) || 0));
   const inputClassName = `h-full w-full border-0 bg-transparent px-2 text-right font-['Inter',system-ui,sans-serif] text-[12px] font-medium leading-none text-slate-700 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-slate-300 ${numberInputNoSpinnerClassName}`;
 
   return (
@@ -1725,17 +1723,15 @@ function TopBarOffsetPairInput({
         className={`flex h-full w-12 shrink-0 ${leftDisabled ? 'bg-slate-50' : ''}`}
         onMouseEnter={leftDisabled ? undefined : onLeftMouseEnter}
       >
-        <input
-          type="number"
+        <AppearanceEditorNumberInput
           min={min}
           max={max}
           step={step}
           value={leftValue}
           disabled={leftDisabled}
           onBlur={onBlur}
-          onChange={(event) => onLeftChange(clampInputValue(event.target.value))}
+          onValueChange={onLeftChange}
           onFocus={leftDisabled ? undefined : onLeftFocus}
-          onInput={(event) => onLeftChange(clampInputValue((event.target as HTMLInputElement).value))}
           className={inputClassName}
           aria-label={leftAriaLabel}
         />
@@ -1744,17 +1740,15 @@ function TopBarOffsetPairInput({
         className={`flex h-full w-12 shrink-0 border-l border-slate-200 ${rightDisabled ? 'bg-slate-50' : ''}`}
         onMouseEnter={rightDisabled ? undefined : onRightMouseEnter}
       >
-        <input
-          type="number"
+        <AppearanceEditorNumberInput
           min={min}
           max={max}
           step={step}
           value={rightValue}
           disabled={rightDisabled}
           onBlur={onBlur}
-          onChange={(event) => onRightChange(clampInputValue(event.target.value))}
+          onValueChange={onRightChange}
           onFocus={rightDisabled ? undefined : onRightFocus}
-          onInput={(event) => onRightChange(clampInputValue((event.target as HTMLInputElement).value))}
           className={inputClassName}
           aria-label={rightAriaLabel}
         />
@@ -5209,7 +5203,7 @@ function TopBarLayoutEditor({
                 <div className={`flex min-w-0 items-center justify-between gap-2 ${
                   device === 'desktop' ? 'mb-2' : 'mb-1'
                 }`}>
-                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[11px] font-semibold leading-none text-slate-600">
+                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[11px] font-semibold leading-[14px] text-slate-600">
                     Širina zgornje vrstice
                   </TopBarHelpLabel>
                   {deviceLayout.settings.widthMode === 'custom' ? (
@@ -5828,13 +5822,12 @@ function LegacyTopBarLayoutEditor({
                             -
                           </button>
                           <label className="inline-flex h-full items-center px-2">
-                            <input
-                              type="number"
+                            <AppearanceEditorNumberInput
                               min={SITE_NAVIGATION_TOP_BAR_OFFSET_MIN}
                               max={SITE_NAVIGATION_TOP_BAR_OFFSET_MAX}
                               step={SITE_NAVIGATION_TOP_BAR_OFFSET_STEP}
                               value={item.offset}
-                              onChange={(event) => updateOffset(item.id, event.target.value)}
+                              onValueChange={(value) => updateOffset(item.id, String(value))}
                               onClick={(event) => event.stopPropagation()}
                               className={`h-7 w-12 bg-transparent text-right text-[12px] outline-none ${numberInputNoSpinnerClassName}`}
                               aria-label={`${topBarLayoutLabels[item.id]} odmik v px`}

@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
-import { catalogCategoryItemHref, catalogSubcategoryItemHref, toPublicCatalogSlug } from '@/commercial/catalog/catalogRoutes';
+import { selectCatalogRelatedItems } from '@/commercial/catalog/catalogRelatedProducts';
+import { catalogCategoryItemHref, toPublicCatalogSlug } from '@/commercial/catalog/catalogRoutes';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import {
@@ -13,6 +14,21 @@ import {
   getCatalogSearchIndexFromDatabase,
   getCatalogSubcategoryWithCategoryFromDatabase
 } from '@/shared/server/catalogCategories';
+import { resolveCatalogItemCanonicalSlug } from '@/shared/server/catalogItems';
+import { getProductAppearanceConfig } from '@/shared/server/productAppearance';
+
+export class CatalogRouteNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CatalogRouteNotFoundError';
+  }
+}
+
+export function isCatalogRouteNotFoundError(
+  error: unknown
+): error is CatalogRouteNotFoundError {
+  return error instanceof CatalogRouteNotFoundError;
+}
 
 /**
  * Catalog server loader guidance:
@@ -37,6 +53,76 @@ const loadFullCatalogServer = cache(async (): Promise<CatalogCategory[]> =>
 );
 
 const loadCatalogItemsIndexServer = cache(async (diagnosticsContext: string) => getCatalogItemsIndexFromDatabase(diagnosticsContext));
+const loadCatalogProductByGlobalSlugServer = cache(
+  async (slugOrAlias: string) => {
+    const canonicalSlug =
+      (await resolveCatalogItemCanonicalSlug(slugOrAlias)) ?? slugOrAlias;
+    const routeSlug = toPublicCatalogSlug(canonicalSlug);
+    const [categories, globalAppearance] = await Promise.all([
+      loadCatalogItemsIndexServer('/products/[category]/items/[item]'),
+      getProductAppearanceConfig()
+    ]);
+
+    for (const category of categories) {
+      const categoryContext = {
+        id: category.id,
+        slug: category.slug,
+        title: category.title
+      };
+      const directItem = category.items.find(
+        (item) => toPublicCatalogSlug(item.slug) === routeSlug
+      );
+      if (directItem) {
+        const current = {
+          item: directItem,
+          category: categoryContext,
+          subcategory: null
+        };
+        return {
+          canonicalSlug: directItem.slug,
+          category: categoryContext,
+          subcategory: null,
+          item: directItem,
+          relatedItems: selectCatalogRelatedItems(
+            categories,
+            current,
+            globalAppearance
+          )
+        };
+      }
+
+      for (const subcategory of category.subcategories) {
+        const item = subcategory.items.find(
+          (entry) => toPublicCatalogSlug(entry.slug) === routeSlug
+        );
+        if (!item) continue;
+        const subcategoryContext = {
+          id: subcategory.id,
+          slug: subcategory.slug,
+          title: subcategory.title
+        };
+        const current = {
+          item,
+          category: categoryContext,
+          subcategory: subcategoryContext
+        };
+        return {
+          canonicalSlug: item.slug,
+          category: categoryContext,
+          subcategory: subcategoryContext,
+          item,
+          relatedItems: selectCatalogRelatedItems(
+            categories,
+            current,
+            globalAppearance
+          )
+        };
+      }
+    }
+
+    return null;
+  }
+);
 
 // The database loader already owns the canonical tag-aware showcase cache.
 // An outer React cache can outlive tag invalidation and retain a stale revision.
@@ -98,7 +184,7 @@ const loadCatalogHomeDataServer = cache(async (): Promise<{
       sortCatalogItems(items).map((item) => ({
         name: item.name,
         description: item.description,
-        href: subcategorySlug ? catalogSubcategoryItemHref(categorySlug, subcategorySlug, item.slug) : catalogCategoryItemHref(categorySlug, item.slug)
+        href: catalogCategoryItemHref(categorySlug, item.slug)
       }))
     )
   };
@@ -113,7 +199,7 @@ const loadCatalogCategoryPageDataServer = cache(async (slug: string): Promise<{
     loadCatalogCategorySummariesServer()
   ]);
 
-  if (!category) throw new Error(`Category not found: ${slug}`);
+  if (!category) throw new CatalogRouteNotFoundError(`Category not found: ${slug}`);
 
   return { category, categories };
 });
@@ -123,7 +209,7 @@ const loadCatalogSubcategoryPageDataServer = cache(async (categorySlug: string, 
   subcategory: CatalogSubcategory;
 }> => {
   const payload = await loadCatalogSubcategoryDetailsServer(categorySlug, subSlug);
-  if (!payload) throw new Error(`Subcategory not found: ${categorySlug}/${subSlug}`);
+  if (!payload) throw new CatalogRouteNotFoundError(`Subcategory not found: ${categorySlug}/${subSlug}`);
   return payload;
 });
 
@@ -133,7 +219,7 @@ const loadCatalogItemPageDataServer = cache(async (categorySlug: string, subSlug
   item: CatalogItem;
 }> => {
   const payload = await loadCatalogSubcategoryDetailsServer(categorySlug, subSlug);
-  if (!payload) throw new Error(`Subcategory not found: ${categorySlug}/${subSlug}`);
+  if (!payload) throw new CatalogRouteNotFoundError(`Subcategory not found: ${categorySlug}/${subSlug}`);
 
   const item = getCatalogItemFromSubcategory(payload.subcategory, categorySlug, subSlug, itemSlug);
 
@@ -149,7 +235,7 @@ const loadCatalogCategoryItemPageDataServer = cache(async (categorySlug: string,
   item: CatalogItem;
 }> => {
   const category = await loadCatalogCategoryDetailsServer(categorySlug);
-  if (!category) throw new Error(`Category not found: ${categorySlug}`);
+  if (!category) throw new CatalogRouteNotFoundError(`Category not found: ${categorySlug}`);
 
   return {
     category,
@@ -160,14 +246,14 @@ const loadCatalogCategoryItemPageDataServer = cache(async (categorySlug: string,
 function getCatalogCategoryFromCategories(categories: CatalogCategory[], slug: string): CatalogCategory {
   const routeSlug = toPublicCatalogSlug(slug);
   const category = categories.find((item) => toPublicCatalogSlug(item.slug) === routeSlug);
-  if (!category) throw new Error(`Category not found: ${slug}`);
+  if (!category) throw new CatalogRouteNotFoundError(`Category not found: ${slug}`);
   return category;
 }
 
 function getCatalogSubcategoryFromCategory(category: CatalogCategory, categorySlug: string, subSlug: string): CatalogSubcategory {
   const routeSlug = toPublicCatalogSlug(subSlug);
   const subcategory = category.subcategories.find((item) => toPublicCatalogSlug(item.slug) === routeSlug);
-  if (!subcategory) throw new Error(`Subcategory not found: ${categorySlug}/${subSlug}`);
+  if (!subcategory) throw new CatalogRouteNotFoundError(`Subcategory not found: ${categorySlug}/${subSlug}`);
   return subcategory;
 }
 
@@ -179,14 +265,14 @@ function getCatalogItemFromSubcategory(
 ): CatalogItem {
   const routeSlug = toPublicCatalogSlug(itemSlug);
   const item = subcategory.items.find((entry) => toPublicCatalogSlug(entry.slug) === routeSlug);
-  if (!item) throw new Error(`Item not found: ${categorySlug}/${subSlug}/${itemSlug}`);
+  if (!item) throw new CatalogRouteNotFoundError(`Item not found: ${categorySlug}/${subSlug}/${itemSlug}`);
   return item;
 }
 
 function getCatalogCategoryItemFromCategory(category: CatalogCategory, categorySlug: string, itemSlug: string): CatalogItem {
   const routeSlug = toPublicCatalogSlug(itemSlug);
   const item = category.items?.find((entry) => toPublicCatalogSlug(entry.slug) === routeSlug);
-  if (!item) throw new Error(`Item not found: ${categorySlug}/${itemSlug}`);
+  if (!item) throw new CatalogRouteNotFoundError(`Item not found: ${categorySlug}/${itemSlug}`);
   return item;
 }
 
@@ -240,6 +326,14 @@ export async function getCatalogItemsIndexServer(diagnosticsContext = 'catalog:i
 
 export async function getCatalogCategoryCardsServer(): Promise<Array<Pick<CatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation' | 'revision'>>> {
   return instrumentCatalogLoader('getCatalogCategoryCardsServer', '/products', () => loadCatalogCategoryCardsServer());
+}
+
+export async function getCatalogProductByGlobalSlugServer(slugOrAlias: string) {
+  return instrumentCatalogLoader(
+    'getCatalogProductByGlobalSlugServer',
+    '/products/[category]/items/[item]',
+    () => loadCatalogProductByGlobalSlugServer(slugOrAlias)
+  );
 }
 
 export async function getCatalogCategoryServer(slug: string): Promise<CatalogCategory> {

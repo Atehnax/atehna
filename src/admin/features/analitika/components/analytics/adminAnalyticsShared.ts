@@ -155,14 +155,33 @@ function applyChartFiltersAndGrain(data: OrdersAnalyticsResponse, config: Analyt
 
   return Array.from(grouped.entries()).map(([date, rows]) => {
     const orderCount = rows.reduce((sum, row) => sum + row.order_count, 0);
+    const bindingOrderCount = rows.reduce(
+      (sum, row) => sum + row.binding_order_count,
+      0
+    );
+    const paidCount = rows.reduce((sum, row) => sum + row.paid_count, 0);
     const revenue = rows.reduce((sum, row) => sum + row.revenue_total, 0);
-    const aov = orderCount > 0 ? revenue / orderCount : 0;
+    const aov = bindingOrderCount > 0 ? revenue / bindingOrderCount : 0;
     const median = rows.reduce((sum, row) => sum + row.median_order_value, 0) / Math.max(rows.length, 1);
-    const paymentSuccess = rows.reduce((sum, row) => sum + row.payment_success_rate, 0) / Math.max(rows.length, 1);
+    const paymentSuccess =
+      bindingOrderCount > 0 ? (paidCount / bindingOrderCount) * 100 : 0;
     const cancelRate = rows.reduce((sum, row) => sum + row.cancellation_rate, 0) / Math.max(rows.length, 1);
     const p50 = rows.reduce((sum, row) => sum + (row.lead_time_p50_hours ?? 0), 0) / Math.max(rows.length, 1);
     const p90 = rows.reduce((sum, row) => sum + (row.lead_time_p90_hours ?? 0), 0) / Math.max(rows.length, 1);
-    return { ...rows[0], date, order_count: orderCount, revenue_total: Number(revenue.toFixed(2)), aov: Number(aov.toFixed(2)), median_order_value: Number(median.toFixed(2)), payment_success_rate: Number(paymentSuccess.toFixed(2)), cancellation_rate: Number(cancelRate.toFixed(2)), lead_time_p50_hours: Number(p50.toFixed(2)), lead_time_p90_hours: Number(p90.toFixed(2)) };
+    return {
+      ...rows[0],
+      date,
+      order_count: orderCount,
+      binding_order_count: bindingOrderCount,
+      revenue_total: Number(revenue.toFixed(2)),
+      aov: Number(aov.toFixed(2)),
+      median_order_value: Number(median.toFixed(2)),
+      paid_count: paidCount,
+      payment_success_rate: Number(paymentSuccess.toFixed(2)),
+      cancellation_rate: Number(cancelRate.toFixed(2)),
+      lead_time_p50_hours: Number(p50.toFixed(2)),
+      lead_time_p90_hours: Number(p90.toFixed(2))
+    };
   }).sort((left, right) => left.date.localeCompare(right.date));
 }
 

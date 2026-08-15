@@ -1,3 +1,5 @@
+begin;
+
 create extension if not exists pgcrypto;
 
 create table if not exists orders (
@@ -115,7 +117,7 @@ create table if not exists deleted_archive_entries (
   document_id bigint,
   label text not null,
   deleted_at timestamptz not null default now(),
-  expires_at timestamptz not null default (now() + interval '60 days'),
+  expires_at timestamptz not null default (now() + interval '90 days'),
   payload jsonb not null default '{}'::jsonb
 );
 
@@ -179,6 +181,12 @@ create table if not exists global_style_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists product_appearance_settings (
+  key text primary key,
+  config_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists site_logo_settings (
   key text primary key,
   config_json jsonb not null default '{}'::jsonb,
@@ -214,6 +222,153 @@ create index if not exists idx_catalog_categories_parent_position
   on catalog_categories(parent_id, position);
 create index if not exists idx_catalog_categories_parent
   on catalog_categories(parent_id);
+create unique index if not exists idx_catalog_categories_root_slug_unique
+  on catalog_categories(slug)
+  where parent_id is null;
+
+-- Seed the catalogue itself in the database. These rows replace the former
+-- homepage/admin appearance fallback, so every catalogue consumer reads the
+-- same category records. Re-running the baseline never overwrites admin edits.
+insert into catalog_categories
+  (id, parent_id, slug, title, summary, description, image, presentation_json, items, position, status)
+values
+  (
+    'ddb7068a-22e6-42f4-aa91-a5750ceb1cde',
+    null,
+    'tehnika-in-tehnologija',
+    'Tehnika in tehnologija',
+    'Tehnika in tehnologija',
+    '',
+    '/images/categories/cutouts/tehnika-in-tehnologija.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":-17,"offsetOriginY":2.7261,"offsetX":0,"offsetY":0,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    0,
+    'active'
+  ),
+  (
+    '49f023be-9fac-4a75-8d8f-8cfe7ff79c6e',
+    null,
+    'materiali',
+    'Materiali',
+    'Materiali',
+    '',
+    '/images/categories/cutouts/materiali.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-10.4977,"offsetY":2.7261,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    1,
+    'active'
+  ),
+  (
+    'a3ffc3c9-b54d-49aa-aba7-9d1aab761217',
+    null,
+    'stroji-in-naprave',
+    'Stroji in naprave',
+    'Stroji in naprave',
+    '',
+    '/images/categories/cutouts/stroji-in-naprave.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-16.7962,"offsetY":2.2718,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    2,
+    'active'
+  ),
+  (
+    'bdd46c8e-d4b0-4996-ab7d-e67837e66032',
+    null,
+    'merilno-orodje-in-geometrija',
+    'Merilno orodje in geometrija',
+    'Merilno orodje in geometrija',
+    '',
+    '/images/categories/cutouts/merilno-orodje-in-geometrija.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-22.675,"offsetY":-1.3631,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    3,
+    'active'
+  ),
+  (
+    '0ed1aaf2-497c-4522-97dd-2476a28b4029',
+    null,
+    'elektricni-in-mehanicni-elementi',
+    'Električni in mehanični elementi',
+    'Električni in mehanični elementi',
+    '',
+    '/images/categories/cutouts/elektricni-in-mehanicni-elementi.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-24.3546,"offsetY":1.8174,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    4,
+    'active'
+  ),
+  (
+    '979abbb8-3dbb-45f4-9872-444cf63921b2',
+    null,
+    'rocno-orodje-in-delavniski-pribor',
+    'Ročno orodje in delavniški pribor',
+    'Ročno orodje in delavniški pribor',
+    '',
+    '/images/categories/cutouts/rocno-orodje-in-delavniski-pribor.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":-21.4153,"offsetOriginY":1.8174,"offsetX":0,"offsetY":0,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    5,
+    'active'
+  ),
+  (
+    '2e789ad2-acea-4138-9114-311a88979610',
+    null,
+    'zascita-pri-delu',
+    'Zaščita pri delu',
+    'Zaščita pri delu',
+    '',
+    '/images/categories/cutouts/zascita-pri-delu.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-27.294,"offsetY":2.7262,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    6,
+    'active'
+  ),
+  (
+    '627ff18f-81ac-45a2-b7f3-08b4d1fc331e',
+    null,
+    'dodatki-in-nadomestni-deli',
+    'Dodatki in nadomestni deli',
+    'Dodatki in nadomestni deli',
+    '',
+    '/images/categories/cutouts/dodatki-in-nadomestni-deli.png',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-23.5149,"offsetY":3.6349,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    7,
+    'active'
+  ),
+  (
+    '2d876cd4-f0ff-4007-86b4-c99f89c060c8',
+    null,
+    'testna-kategorija',
+    'testna kategorija',
+    'testna kategorija',
+    '',
+    '',
+    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":0,"offsetY":0,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
+    '[]'::jsonb,
+    8,
+    'active'
+  )
+on conflict (slug) where parent_id is null do nothing;
+
+insert into catalog_categories
+  (id, parent_id, slug, title, summary, description, image, presentation_json, items, position, status)
+select
+    '424579b4-afc9-49d0-890b-850f2e96b9fc',
+    parent.id,
+    'kovine',
+    'Kovine',
+    '',
+    '',
+    '',
+    '{}'::jsonb,
+    '[]'::jsonb,
+    0,
+    'active'
+from catalog_categories parent
+where parent.parent_id is null
+  and parent.slug = 'materiali'
+on conflict (parent_id, slug) do nothing;
 
 create table if not exists catalog_items (
   id bigserial primary key,
@@ -391,3 +546,5 @@ create table if not exists audit_settings (
 insert into audit_settings (key, is_enabled, updated_at)
 values ('global', true, now())
 on conflict (key) do nothing;
+
+commit;

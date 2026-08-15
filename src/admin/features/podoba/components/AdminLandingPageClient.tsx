@@ -55,7 +55,6 @@ import HomepageRenderer, {
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import SiteHeader from '@/commercial/components/SiteHeader';
 import {
-  DEFAULT_HOMEPAGE_CATEGORY_CARDS,
   HOMEPAGE_BUTTON_STYLES,
   HOMEPAGE_CATEGORY_CARD_SIZES,
   HOMEPAGE_CATEGORY_CARD_STYLES,
@@ -140,6 +139,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
@@ -1072,14 +1072,13 @@ function NumberField({
     <label className={inspectorFieldRowClassName}>
       <span className={labelClassName}>{label}</span>
       <span className={`flex h-7 min-w-0 overflow-hidden rounded-md border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-input-bg,#f8fafc)] transition hover:border-[color:var(--homepage-inspector-input-border-hover,#cbd5e1)] hover:bg-[color:var(--homepage-inspector-input-hover,#ffffff)] focus-within:bg-[color:var(--homepage-inspector-input-focus,#ffffff)] ${adminControlFocusWithinTokenClasses}`}>
-        <input
-          type="number"
+        <AppearanceEditorNumberInput
           value={value}
           min={min}
           max={max}
           step={step}
           aria-label={inputAriaLabel}
-          onChange={(event) => onChange(Number(event.target.value))}
+          onValueChange={onChange}
           className={`h-full min-w-0 flex-1 appearance-none border-0 bg-transparent px-2 text-[11px] text-[color:var(--homepage-inspector-input-text,#1e293b)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${adminInputFocusTokenClasses}`}
         />
         {suffix ? (
@@ -1731,6 +1730,7 @@ function ScaledHomepagePreview({
   onCategoryPresentationChange,
   onCategoryMove,
   onCanvasElementStyleChange,
+  onRestoreHiddenElement,
   onMoveSection,
   editorOptionsByDevice,
   contextToolbar,
@@ -1760,6 +1760,7 @@ function ScaledHomepagePreview({
     elementId: string,
     updates: Partial<HomepageCanvasElementDeviceSettings>
   ) => void;
+  onRestoreHiddenElement: (elementId: string) => void;
   onMoveSection: (sectionId: HomepageSectionId, direction: -1 | 1) => void;
   editorOptionsByDevice: Record<HomepagePreviewDevice, HomepageCanvasEditorOptions>;
   contextToolbar: ReactNode;
@@ -1909,6 +1910,7 @@ function ScaledHomepagePreview({
                     onCategoryMove={onCategoryMove}
                     onCanvasElementStyleChange={(elementId, updates) =>
                       onCanvasElementStyleChange(renderDevice, elementId, updates)}
+                    onRestoreHiddenElement={onRestoreHiddenElement}
                     onMoveSection={onMoveSection}
                     editorOptions={editorOptions}
                     previewDevice={renderDevice}
@@ -2346,7 +2348,7 @@ function AdminLandingPageClient({
   const normalizedInitialNavigation = useMemo(() => normalizeSiteNavigationConfig(navigation), [navigation]);
   const initialFooterDescription = normalizedInitialNavigation.footer.description;
   const normalizedInitialCategories = useMemo(
-    () => initialCategories.length > 0 ? initialCategories : DEFAULT_HOMEPAGE_CATEGORY_CARDS,
+    () => initialCategories,
     [initialCategories]
   );
   const normalizedInitialCategoriesKey = useMemo(() => JSON.stringify(normalizedInitialCategories), [normalizedInitialCategories]);
@@ -2876,8 +2878,7 @@ function AdminLandingPageClient({
   }
 
   function moveCategory(sourceSlug: string, targetSlug: string) {
-    const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
-    const orderedSlugs = orderHomepageCategories(source, config.categories).map((category) => category.slug);
+    const orderedSlugs = orderHomepageCategories(categories, config.categories).map((category) => category.slug);
     const oldIndex = orderedSlugs.indexOf(sourceSlug);
     const newIndex = orderedSlugs.indexOf(targetSlug);
     if (oldIndex < 0 || newIndex < 0) return;
@@ -2893,10 +2894,9 @@ function AdminLandingPageClient({
       return;
     }
 
-    const source = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
     updateCategories({
       categoryOrderMode,
-      categoryOrder: orderHomepageCategories(source, config.categories).map((category) => category.slug)
+      categoryOrder: orderHomepageCategories(categories, config.categories).map((category) => category.slug)
     });
   }
 
@@ -3136,10 +3136,9 @@ function AdminLandingPageClient({
   }
 
   function getAllCategoryTitleElementIds() {
-    const categorySource = categories.length > 0 ? categories : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
     return Array.from(new Set([
       HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
-      ...categorySource.map((category) => `${categoryTitleCanvasElementPrefix}${category.slug}`)
+      ...categories.map((category) => `${categoryTitleCanvasElementPrefix}${category.slug}`)
     ]));
   }
 
@@ -3428,6 +3427,74 @@ function AdminLandingPageClient({
     else if (selectedElementId === 'categories:showAll') updateCategories({ showAllHref: href });
   }
 
+  function restoreHiddenElement(elementId: string) {
+    if (elementId.startsWith('section:')) {
+      const sectionId = elementId.slice('section:'.length) as HomepageSectionId;
+      if (!isSectionVisible(sectionId)) {
+        updateConfig((current) => {
+          const responsive = Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => [
+            device,
+            {
+              ...(current.canvas.elements[elementId]?.responsive[device]
+                ?? createCanvasStyleSeed(current, elementId, device)),
+              visible: device === previewDevice
+            }
+          ])) as HomepageSettings['canvas']['elements'][string]['responsive'];
+          const globallyVisible = withSectionVisibility(current, sectionId, true);
+          return {
+            ...globallyVisible,
+            canvas: {
+              ...globallyVisible.canvas,
+              elements: {
+                ...globallyVisible.canvas.elements,
+                [elementId]: { ...responsive.desktop, responsive }
+              }
+            }
+          };
+        });
+        return;
+      }
+      updateCanvasElementStyle(elementId, { visible: true });
+      return;
+    }
+
+    if (elementId.startsWith('hero:textBlock:')) {
+      const blockId = elementId.slice('hero:textBlock:'.length);
+      const block = config.hero.textBlocks.find((candidate) => candidate.id === blockId);
+      if (block && !block.visible) {
+        updateConfig((current) => {
+          const responsive = Object.fromEntries(HOMEPAGE_PREVIEW_DEVICES.map((device) => [
+            device,
+            {
+              ...(current.canvas.elements[elementId]?.responsive[device]
+                ?? createCanvasStyleSeed(current, elementId, device)),
+              visible: device === previewDevice
+            }
+          ])) as HomepageSettings['canvas']['elements'][string]['responsive'];
+          return {
+            ...current,
+            hero: {
+              ...current.hero,
+              textBlocks: current.hero.textBlocks.map((candidate) => (
+                candidate.id === blockId ? { ...candidate, visible: true } : candidate
+              ))
+            },
+            canvas: {
+              ...current.canvas,
+              elements: {
+                ...current.canvas.elements,
+                [elementId]: { ...responsive.desktop, responsive }
+              }
+            }
+          };
+        });
+        return;
+      }
+    }
+
+    updateCanvasElementStyle(elementId, { visible: true });
+  }
+
   function toggleSelectedVisibility() {
     if (!selectedElementId) return;
     if (selectedElementId.startsWith('section:')) {
@@ -3619,8 +3686,7 @@ function AdminLandingPageClient({
   }
 
   const categoryRows = useMemo(() => {
-    const source = categoryShowcaseEditor.items.length > 0 ? categoryShowcaseEditor.items : DEFAULT_HOMEPAGE_CATEGORY_CARDS;
-    return orderHomepageCategories(source, config.categories);
+    return orderHomepageCategories(categoryShowcaseEditor.items, config.categories);
   }, [categoryShowcaseEditor.items, config.categories]);
 
   const sectionVisibilitySummary = HOMEPAGE_SECTION_IDS
@@ -4700,6 +4766,7 @@ function AdminLandingPageClient({
               onCategoryPresentationChange={categoryShowcaseEditor.updatePresentation}
               onCategoryMove={moveCategory}
               onCanvasElementStyleChange={updateCanvasElementStyleFromPreview}
+              onRestoreHiddenElement={restoreHiddenElement}
               onMoveSection={moveSection}
               editorOptionsByDevice={editorOptionsByDevice}
               contextToolbar={renderContextToolbar('floating')}

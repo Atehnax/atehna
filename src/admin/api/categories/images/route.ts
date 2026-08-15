@@ -13,7 +13,10 @@ import {
   type TopLevelCategoryPresentationUpdate
 } from '@/shared/server/catalogCategories';
 import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
-import { getCategoryShowcaseItemsFromDatabase } from '@/shared/server/categoryShowcase';
+import {
+  getCategoryShowcaseItemsFromDatabase,
+  topLevelCatalogCategoryExistsInDatabase
+} from '@/shared/server/categoryShowcase';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const runtime = 'nodejs';
@@ -103,6 +106,10 @@ export async function POST(request: Request) {
     }
 
     const categorySlug = sanitizeSlug(categorySlugValue);
+    if (!(await topLevelCatalogCategoryExistsInDatabase(categorySlug))) {
+      return NextResponse.json({ message: 'Kategorija ne obstaja.' }, { status: 404 });
+    }
+
     const subcategoryPath =
       typeof subcategoryPathValue === 'string' && subcategoryPathValue.trim()
         ? subcategoryPathValue.split('__').map(sanitizeSlug).filter(Boolean)

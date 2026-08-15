@@ -39,6 +39,7 @@ export type {
   ProductPricingLogicCardRowProps,
   ProductTypeSelectorCardRowProps,
   QuantityDiscountsCardProps,
+  SimpleProductModuleProps,
   TypeSpecificProductData,
   UniqueMachineProductModuleProps,
   WeightProductModuleProps

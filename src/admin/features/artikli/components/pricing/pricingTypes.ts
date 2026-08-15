@@ -48,6 +48,8 @@ export type WeightVariant = {
   netMassKg: number | null;
   minQuantity: number;
   unitPrice: number | null;
+  costNet: number | null;
+  discountPct: number;
   stockKg: number;
   tolerance: string;
   deliveryTime: string;
@@ -188,9 +190,18 @@ export type ProductModuleProps = {
   onChange: (nextData: TypeSpecificProductData) => void;
 };
 
+export type SimpleProductModuleProps = ProductModuleProps & {
+  costNet: number | null;
+  taxRate: number;
+  onCostNetChange: (nextCostNet: number | null) => void;
+};
+
 export type WeightProductModuleProps = ProductModuleProps & {
   baseSku: string;
   color?: string | null;
+  taxRate: number;
+  defaultVariantId: string | null;
+  onDefaultVariantChange: (variantId: string | null) => void;
 };
 
 export type UniqueMachineProductModuleProps = {

@@ -66,7 +66,7 @@ import {
 } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { ArchiveIcon, CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -177,7 +177,7 @@ const SUB_HEADER_PILL_ALIGN_CLASS = adminProductVariantSubtablePillHeaderAlignCl
 const SUB_VARIANT_INDENT_CLASS = adminProductVariantSubtableVariantIndentClassName;
 const SUB_VARIANT_TEXT_SLOT_CLASS = adminProductVariantSubtableVariantTextSlotClassName;
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
-  price: 'Cena'
+  price: 'Cena brez DDV'
 };
 const MAIN_ROW_CLASS = `h-12 border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`;
 const MAIN_CELL_CLASS = adminExpandableTableMainCellClassName;
@@ -440,6 +440,7 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       position: variant.position,
       sku: variant.variantSku ?? '',
       price: variant.price,
+      costNet: variant.costNet,
       discountPct: variant.discountPct,
       stock: variant.inventory,
       active: variant.status === 'active',
@@ -464,6 +465,8 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       notes: item.badge ?? item.adminNotes ?? '',
       itemBadge: (normalizeNoteValue(item.badge) as NoteValue) || 'na-zalogi',
       slug: item.slug,
+      defaultVariantId: item.defaultVariantId == null ? variants[0]?.id ?? null : String(item.defaultVariantId),
+      optionAxes: [],
       variants,
       baseSku: item.baseSku ?? '',
       material: item.material,
@@ -964,7 +967,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
           if (!response.ok) {
             const body = (await response.json().catch(() => ({}))) as { message?: string };
-            throw new Error(body.message || 'Arhiviranje artikla ni uspelo.');
+            throw new Error(body.message || 'Brisanje artikla ni uspelo.');
           }
 
           archivedFamilyIds.add(family.id);
@@ -994,22 +997,26 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       }
 
       if (archivedFamilyIds.size > 0 && failedFamilies.length === 0) {
-        toast.success(archivedFamilyIds.size === 1 ? 'Artikel je arhiviran.' : `Arhiviranih artiklov: ${archivedFamilyIds.size}.`);
+        toast.success(
+          archivedFamilyIds.size === 1
+            ? 'Artikel je izbrisan in premaknjen v 90-dnevni arhiv.'
+            : `Izbrisanih artiklov: ${archivedFamilyIds.size}.`
+        );
         router.push('/admin/arhiv/artikli');
         router.refresh();
         return;
       }
 
       if (archivedFamilyIds.size > 0) {
-        toast.success(`Arhiviranih artiklov: ${archivedFamilyIds.size}.`);
+        toast.success(`Izbrisanih artiklov: ${archivedFamilyIds.size}.`);
         router.refresh();
       }
 
       if (failedFamilies.length > 0) {
         toast.error(
           failedFamilies.length === 1
-            ? `Arhiviranje ni uspelo za artikel ${failedFamilies[0]}.`
-            : `Arhiviranje ni uspelo za ${failedFamilies.length} artiklov.`
+            ? `Brisanje ni uspelo za artikel ${failedFamilies[0]}.`
+            : `Brisanje ni uspelo za ${failedFamilies.length} artiklov.`
         );
       }
     } finally {
@@ -1741,9 +1748,9 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       void duplicateSelectedItems();
     });
   const handleArchiveSelectionAction = () =>
-    requestCurrentEditResolution('arhiviranjem izbranih artiklov', handleArchiveSelected);
+    requestCurrentEditResolution('izbrisom izbranih artiklov', handleArchiveSelected);
   const handleArchiveFamilyAction = (family: ListFamily) =>
-    requestCurrentEditResolution(`arhiviranjem artikla ${family.name}`, () => {
+    requestCurrentEditResolution(`izbrisom artikla ${family.name}`, () => {
       if (isArchivingSelected) return;
       setArchiveDialogFamilyIds(new Set([family.id]));
       setIsBulkArchiveDialogOpen(true);
@@ -1762,13 +1769,13 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
       {isBulkArchiveDialogOpen ? (
         <LazyConfirmDialog
           open={isBulkArchiveDialogOpen}
-          title={archiveDialogCount === 1 ? 'Arhiviranje artikla' : 'Arhiviranje artiklov'}
+          title={archiveDialogCount === 1 ? 'Izbris artikla' : 'Izbris artiklov'}
           description={
             archiveDialogCount === 1
-              ? 'Ali želite arhivirati izbrani artikel?'
-              : `Ali želite arhivirati ${archiveDialogCount} izbranih artiklov?`
+              ? 'Ali želite izbrisati izbrani artikel? Shranjen bo v arhivu 90 dni in v tem času ga lahko obnovite.'
+              : `Ali želite izbrisati ${archiveDialogCount} izbranih artiklov? Shranjeni bodo v arhivu 90 dni in v tem času jih lahko obnovite.`
           }
-          confirmLabel="Arhiviraj"
+          confirmLabel="Izbriši"
           cancelLabel="Prekliči"
           onCancel={() => {
             setIsBulkArchiveDialogOpen(false);
@@ -1852,12 +1859,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
               className={hasSelectedArchiveFamilies ? adminTableSelectedWarningIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
               aria-label={
                 hasSelectedArchiveFamilies
-                  ? `Arhiviraj izbrane artikle (${selectedArchiveCount})`
-                  : 'Arhiviraj izbrane artikle'
+                  ? `Izbriši izbrane artikle (${selectedArchiveCount})`
+                  : 'Izbriši izbrane artikle'
               }
-              title="Arhiviraj"
+              title="Izbriši"
             >
-              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <ArchiveIcon className="!h-[18px] !w-[18px]" />}
+              {isArchivingSelected ? <Spinner size="sm" className="text-amber-700" /> : <TrashCanIcon className="!h-[18px] !w-[18px]" />}
             </IconButton>
             <Button
               type="button"
@@ -2014,8 +2021,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 </TH>
                 <TH className={`${PRICE_COLUMN_CLASS} text-right`}>
                   <div className={`relative inline-flex items-center gap-1 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <button type="button" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
-                      Cena
+                    <button type="button" title="Prodajna cena brez DDV" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
+                      Cena brez DDV
                     </button>
                     <button
                       ref={priceFilterButtonRef}
@@ -2163,7 +2170,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const familySkuSuggestionsId = `article-list-sku-suggestions-${family.id}`;
                 const rowEditSnapshot = isEditingFamily ? activeEditSnapshot : null;
                 const familySkuDisplay = getBaseSku(family) || '\u2014';
-                const familySkuChipDisplay = familySkuDisplay === '\u2014' ? familySkuDisplay : `SKU: ${familySkuDisplay}`;
                 const familyCategoryDisplay = getFamilyCategoryDisplay(family);
                 const familyProductTypeDisplay = formatProductTypeLabel(family.productType);
                 const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
@@ -2249,7 +2255,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               className={getSkuChipClassName(familySkuDisplay)}
                               style={{ maxWidth: 'min(180px, 100%)' }}
                             >
-                              <span className={SKU_CHIP_TEXT_CLASS}>{familySkuChipDisplay}</span>
+                              <span className={SKU_CHIP_TEXT_CLASS}>{familySkuDisplay}</span>
                             </span>
                           </span>
                         )}
@@ -2405,8 +2411,8 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                               },
                               {
                                 key: 'archive',
-                                label: 'Arhiviraj',
-                                icon: <ArchiveIcon />,
+                                label: 'Izbriši',
+                                icon: <TrashCanIcon />,
                                 className: 'text-amber-800 hover:bg-amber-50 hover:text-amber-900',
                                 onSelect: () => handleArchiveFamilyAction(family)
                               }

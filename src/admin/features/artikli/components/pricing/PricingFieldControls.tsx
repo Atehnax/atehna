@@ -15,6 +15,12 @@ export const compactInfoFieldFrameClassName = `${fieldFrameClassName} !h-[30px] 
 export const smallLabelClassName = 'mb-1 block text-[12px] font-semibold text-slate-700';
 export const inlineSnippetClassName = 'rounded bg-[#1982bf1a] px-1 py-0.5 font-mono text-[11px] text-[#1982bf]';
 export const fieldUnitAdornmentClassName = 'inline-flex h-full shrink-0 items-center justify-center whitespace-nowrap border-l border-slate-200 px-2 text-[12px] font-medium text-slate-500';
+export const compactSegmentedFieldShellClassName =
+  'flex h-[30px] w-full min-w-0 overflow-hidden rounded-md border border-slate-300 bg-white transition-colors focus-within:border-[color:var(--blue-500)]';
+export const compactSegmentedFieldPrefixClassName =
+  'inline-flex h-full shrink-0 items-center justify-center whitespace-nowrap border-r border-slate-200 bg-slate-50 px-1 text-[10px] font-medium text-slate-500';
+export const compactSegmentedFieldSuffixClassName =
+  'inline-flex h-full shrink-0 items-center justify-center whitespace-nowrap border-l border-slate-200 bg-slate-50 px-1 text-[10px] font-medium text-slate-500';
 export const compactTableThirtyInputClassName = `${compactTableAlignedInputClassName} !h-[30px] !min-h-[30px] !text-[11px] !leading-[30px]`;
 export const compactTableThirtyValueUnitShellClassName = `${compactTableValueUnitShellClassName} !h-[30px] !min-h-[30px] !items-center`;
 export const compactTableReadOnlyInputClassName =
@@ -90,17 +96,111 @@ export function ReadOnlyTableInput({
   );
 }
 
+export function CompactSegmentedField({
+  value,
+  editable,
+  prefix,
+  suffix,
+  inputMode = 'decimal',
+  align = 'right',
+  disabled = false,
+  placeholder,
+  ariaLabel,
+  title,
+  maxLength,
+  className,
+  inputClassName,
+  onChange,
+  onBlur
+}: {
+  value: string | number | null | undefined;
+  editable: boolean;
+  prefix?: ReactNode;
+  suffix?: ReactNode;
+  inputMode?: 'decimal' | 'numeric' | 'text';
+  align?: 'left' | 'center' | 'right';
+  disabled?: boolean;
+  placeholder?: string;
+  ariaLabel?: string;
+  title?: string;
+  maxLength?: number;
+  className?: string;
+  inputClassName?: string;
+  onChange?: (value: string) => void;
+  onBlur?: () => void;
+}) {
+  const alignmentClassName = align === 'left'
+    ? 'text-left'
+    : align === 'center'
+      ? 'text-center'
+      : 'text-right';
+  const displayValue = value === null || value === undefined || value === '' ? '—' : String(value);
+
+  return (
+    <span
+      className={classNames(
+        compactSegmentedFieldShellClassName,
+        !editable && 'bg-slate-50',
+        disabled && 'bg-[color:var(--field-locked-bg)] text-slate-500',
+        className
+      )}
+      title={title}
+    >
+      {prefix !== undefined ? (
+        <span className={compactSegmentedFieldPrefixClassName}>{prefix}</span>
+      ) : null}
+      {editable ? (
+        <input
+          type="text"
+          inputMode={inputMode}
+          disabled={disabled}
+          maxLength={maxLength}
+          className={classNames(
+            "h-full min-w-0 flex-1 border-0 bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[10px] font-normal leading-[30px] text-slate-900 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-slate-500",
+            alignmentClassName,
+            inputClassName
+          )}
+          value={value ?? ''}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          onChange={(event) => onChange?.(event.target.value)}
+          onBlur={onBlur}
+        />
+      ) : (
+        <span
+          aria-readonly="true"
+          className={classNames(
+            "inline-flex h-full min-w-0 flex-1 items-center overflow-hidden text-ellipsis whitespace-nowrap px-1 font-['Inter',system-ui,sans-serif] text-[10px] font-normal text-slate-700",
+            align === 'left' && 'justify-start',
+            align === 'center' && 'justify-center',
+            align === 'right' && 'justify-end',
+            alignmentClassName,
+            inputClassName
+          )}
+        >
+          {displayValue}
+        </span>
+      )}
+      {suffix !== undefined ? (
+        <span className={compactSegmentedFieldSuffixClassName}>{suffix}</span>
+      ) : null}
+    </span>
+  );
+}
+
 export function DecimalDraftInput({
   value,
   className,
   style,
   disabled,
+  onEmpty,
   onDecimalChange
 }: {
   value: number | string;
   className?: string;
   style?: CSSProperties;
   disabled?: boolean;
+  onEmpty?: () => void;
   onDecimalChange: (value: number) => void;
 }) {
   return (
@@ -112,7 +212,12 @@ export function DecimalDraftInput({
       disabled={disabled}
       value={typeof value === 'number' ? formatDecimalForDisplay(value) : value}
       onChange={(event) => {
-        const parsed = parseDecimalInput(event.target.value);
+        const rawValue = event.target.value;
+        if (!rawValue.trim()) {
+          onEmpty?.();
+          return;
+        }
+        const parsed = parseDecimalInput(rawValue);
         if (parsed !== null) onDecimalChange(parsed);
       }}
     />

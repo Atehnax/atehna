@@ -165,7 +165,8 @@ async function AdminOrdersTableSection({
     const compactAnalyticsOrders = analyticsOrders.map((order) => [
       order.created_at,
       order.status,
-      order.total
+      order.total,
+      order.commitment_status
     ] as const);
     const compactDocuments = documents.map((document) => [
       document.id,

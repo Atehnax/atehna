@@ -5,7 +5,7 @@ import EuiTabs from '@/shared/ui/eui-tabs';
 
 const tabs = [
   { value: '/admin/arhiv', label: 'Arhiv naročil' },
-  { value: '/admin/arhiv/artikli', label: 'Arhiv artiklov' },
+  { value: '/admin/arhiv/artikli', label: 'Izbrisani artikli' },
   { value: '/admin/arhiv/podoba', label: 'Arhiv podobe' }
 ];
 

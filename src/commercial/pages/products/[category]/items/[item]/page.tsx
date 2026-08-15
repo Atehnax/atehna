@@ -1,15 +1,24 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { catalogCategoryHref } from '@/commercial/catalog/catalogRoutes';
 import {
-  formatCatalogPrice,
+  catalogCategoryHref,
+  catalogCategoryItemHref,
+  catalogSubcategoryHref,
+  toPublicCatalogSlug
+} from '@/commercial/catalog/catalogRoutes';
+import {
   getCatalogCategoryItemPrice,
   getCatalogCategoryItemSku,
-  getDiscountedPrice
+  getCatalogItemPrice,
+  getCatalogItemSku
 } from '@/commercial/catalog/catalogUtils';
-import { getCatalogCategoryItemPageDataServer, getCatalogCategoryItemServer, getCatalogCategoryItemSlugsServer, getCatalogCategorySlugsServer } from '@/commercial/catalog/catalogServer';
-import AddToCartButton from '@/commercial/features/products/AddToCartButton';
+import { buildCatalogRelatedPresentationContext } from '@/commercial/catalog/catalogRelatedProducts';
+import {
+  getCatalogItemsIndexServer,
+  getCatalogProductByGlobalSlugServer
+} from '@/commercial/catalog/catalogServer';
+import CatalogProductDetailPage from '@/commercial/features/products/CatalogProductDetailPage';
+import { toStorefrontPlainText } from '@/commercial/features/products/storefrontProduct';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
+import { notFound, permanentRedirect } from 'next/navigation';
 
 export const dynamicParams = true;
 
@@ -19,29 +28,36 @@ export async function generateStaticParams() {
     return [];
   }
 
-  const categories = await getCatalogCategorySlugsServer();
-  const params: { category: string; item: string }[] = [];
-  for (const category of categories) {
-    const items = await getCatalogCategoryItemSlugsServer(category);
-    for (const item of items) params.push({ category, item });
-  }
-  return params;
+  const categories = await getCatalogItemsIndexServer(
+    '/products/[category]/items/[item]:static'
+  );
+  return categories.flatMap((category) => [
+    ...category.items.map((item) => ({
+      category: toPublicCatalogSlug(category.slug),
+      item: toPublicCatalogSlug(item.slug)
+    })),
+    ...category.subcategories.flatMap((subcategory) =>
+      subcategory.items.map((item) => ({
+        category: toPublicCatalogSlug(category.slug),
+        item: toPublicCatalogSlug(item.slug)
+      }))
+    )
+  ]);
 }
 
 export async function generateMetadata(
   props: {
     params: Promise<{ category: string; item: string }>;
   }
-) {
+  ) {
   const params = await props.params;
-  const item = await getCatalogCategoryItemServer(params.category, params.item);
+  const resolved = await getCatalogProductByGlobalSlugServer(params.item);
+  if (!resolved) return {};
   return {
-    title: item.name,
-    description: item.description
+    title: resolved.item.name,
+    description: toStorefrontPlainText(resolved.item.description)
   };
 }
-
-const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
 
 export default async function CategoryItemPage(
   props: {
@@ -49,52 +65,57 @@ export default async function CategoryItemPage(
   }
 ) {
   const params = await props.params;
-  const { category, item } = await getCatalogCategoryItemPageDataServer(params.category, params.item);
-  const itemSku = getCatalogCategoryItemSku(category.slug, item.slug);
-  const basePrice = item.price ?? getCatalogCategoryItemPrice(category.slug, item.slug);
-  const effectivePrice = getDiscountedPrice(basePrice, item.discountPct);
-  const images = (item.images?.length ? item.images : item.image ? [item.image] : []).map(getImageSrc).filter((image): image is string => Boolean(image));
+  const resolved = await getCatalogProductByGlobalSlugServer(params.item);
+  if (!resolved) notFound();
+
+  const canonicalHref = catalogCategoryItemHref(
+    resolved.category.slug,
+    resolved.canonicalSlug
+  );
+  if (
+    toPublicCatalogSlug(params.category) !==
+      toPublicCatalogSlug(resolved.category.slug) ||
+    toPublicCatalogSlug(params.item) !==
+      toPublicCatalogSlug(resolved.canonicalSlug)
+  ) {
+    permanentRedirect(canonicalHref);
+  }
+
+  const { category, subcategory, item } = resolved;
+  const context = {
+    href: canonicalHref,
+    fallbackSku: subcategory
+      ? getCatalogItemSku(category.slug, subcategory.slug, item.slug)
+      : getCatalogCategoryItemSku(category.slug, item.slug),
+    fallbackPrice:
+      item.price ??
+      (subcategory
+        ? getCatalogItemPrice(category.slug, subcategory.slug, item.slug)
+        : getCatalogCategoryItemPrice(category.slug, item.slug)),
+    category: {
+      slug: category.slug,
+      title: category.title,
+      href: catalogCategoryHref(category.slug)
+    },
+    ...(subcategory
+      ? {
+          subcategory: {
+            slug: subcategory.slug,
+            title: subcategory.title,
+            href: catalogSubcategoryHref(category.slug, subcategory.slug)
+          }
+        }
+      : {})
+  };
 
   return (
-    <div className="container-base py-12">
-      <div className="w-full">
-        <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">{category.title}</p>
-        <h1 className="mt-3 text-3xl font-semibold text-slate-900">{item.name}</h1>
-        <p className="mt-4 text-lg text-slate-600">{item.description}</p>
-        {images[0] && (
-          <div className="relative mt-6 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <Image src={images[0]} alt={item.name} fill sizes="(min-width: 768px) 768px, 100vw" className="object-contain p-8" />
-          </div>
-        )}
-        {images.length > 1 ? (
-          <div className="mt-3 grid grid-cols-5 gap-2">
-            {images.slice(1).map((img) => (
-              <div key={img} className="relative h-14 overflow-hidden rounded border border-slate-200 bg-slate-50">
-                <Image src={img} alt={`${item.name} dodatna slika`} fill sizes="112px" className="object-cover" />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <p className="mt-4 text-xl font-semibold text-slate-900">{formatCatalogPrice(effectivePrice)}</p>
-        {item.discountPct && item.discountPct > 0 ? (
-          <p className="mt-1 text-sm text-slate-500">
-            <span className="line-through">{formatCatalogPrice(basePrice)}</span> · Popust {item.discountPct}%
-          </p>
-        ) : null}
-
-        <AddToCartButton sku={itemSku} name={item.name} unitPrice={effectivePrice} category={category.title} className="mt-6" />
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-          <p className="font-semibold text-slate-900">Opis izdelka</p>
-          <p className="mt-2">{item.description}</p>
-        </div>
-      </div>
-
-      <div className="mt-10 flex flex-wrap gap-4">
-        <Link href={catalogCategoryHref(category.slug)} className="text-sm font-semibold text-brand-600">
-          ← Nazaj na {category.title}
-        </Link>
-      </div>
-    </div>
+    <CatalogProductDetailPage
+      item={item}
+      context={context}
+      related={resolved.relatedItems.map((related) => ({
+        item: related.item,
+        context: buildCatalogRelatedPresentationContext(related)
+      }))}
+    />
   );
 }

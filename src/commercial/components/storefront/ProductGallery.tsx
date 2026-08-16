@@ -41,7 +41,13 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
 
 const mediaControlClassName =
-  'storefront-gallery-control site-radius-pill absolute z-20 inline-grid place-items-center rounded-full border border-[color:var(--site-border-color)] bg-white/95 text-slate-800 shadow-[0_4px_14px_rgba(15,23,42,0.12)] transition duration-200 hover:border-[color:var(--site-color-primary)] hover:bg-white hover:text-[color:var(--site-color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--site-field-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-white';
+  'storefront-gallery-control absolute z-20 inline-grid place-items-center p-0 focus-visible:outline-none';
+
+const mediaControlVisualClassName =
+  'storefront-gallery-control-visual inline-grid place-items-center rounded-full';
+
+const lightboxCloseControlClassName =
+  'absolute right-3 top-3 z-20 inline-grid h-11 w-11 place-items-center rounded-full border border-white/70 bg-white/95 text-slate-800 shadow-[0_4px_14px_rgba(15,23,42,0.16)] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950/65';
 
 const toYoutubeEmbed = (url: string) => {
   try {
@@ -498,9 +504,12 @@ export default function ProductGallery({
                 />
                 <span
                   aria-hidden="true"
+                  data-gallery-control="zoom-indicator"
                   className={`${mediaControlClassName} pointer-events-none bottom-3 right-3`}
                 >
-                  <Search className="h-4 w-4" />
+                  <span className={mediaControlVisualClassName}>
+                    <Search className="storefront-gallery-control-icon" />
+                  </span>
                 </span>
               </>
             ) : null}
@@ -510,18 +519,24 @@ export default function ProductGallery({
                 <button
                   type="button"
                   onClick={() => selectRelative(-1)}
+                  data-gallery-control="previous"
                   className={`${mediaControlClassName} left-3 top-1/2 -translate-y-1/2`}
                   aria-label="Prejšnja slika"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <span aria-hidden="true" className={mediaControlVisualClassName}>
+                    <ChevronLeft className="storefront-gallery-control-icon" />
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => selectRelative(1)}
+                  data-gallery-control="next"
                   className={`${mediaControlClassName} right-3 top-1/2 -translate-y-1/2`}
                   aria-label="Naslednja slika"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <span aria-hidden="true" className={mediaControlVisualClassName}>
+                    <ChevronRight className="storefront-gallery-control-icon" />
+                  </span>
                 </button>
               </>
             ) : null}
@@ -575,10 +590,11 @@ export default function ProductGallery({
                   event.stopPropagation();
                   closeZoom();
                 }}
-                className={`${mediaControlClassName} right-3 top-3`}
+                data-gallery-control="lightbox-close"
+                className={lightboxCloseControlClassName}
                 aria-label="Zapri povečano sliko"
               >
-                <X className="h-5 w-5" />
+                <X aria-hidden="true" className="h-5 w-5" />
               </button>
               <div
                 className={classNames(

@@ -4,10 +4,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
-import type { CartItem } from '@/commercial/cart/cartTypes';
+import {
+  getDistinctCartVariantName,
+  type CartItem
+} from '@/commercial/cart/cartTypes';
 import type { OrderQuoteItem } from '@/commercial/order/contracts';
 import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
 import { formatEuro } from '@/shared/domain/formatting';
+import IconButton from '@/shared/ui/icon-button/IconButton';
+import { TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import {
   resolveProductCanvasElementDeviceSettings,
   type ProductCanvasDevice
@@ -18,6 +23,7 @@ type CartLineProps = {
   item: CartItem;
   quoteItem?: OrderQuoteItem;
   compact?: boolean;
+  presentation?: 'default' | 'order-summary';
   highlighted?: boolean;
   readOnly?: boolean;
   onQuantityChange?: (quantity: number) => void;
@@ -39,6 +45,7 @@ export default function CartLine({
   item,
   quoteItem,
   compact = false,
+  presentation = 'default',
   highlighted = false,
   readOnly = false,
   onQuantityChange,
@@ -88,6 +95,7 @@ export default function CartLine({
   const minimum = quoteItem?.minOrder ?? item.reconciliation.minOrder ?? 1;
   const maximum =
     quoteItem?.availableStock ?? item.reconciliation.availableStock ?? undefined;
+  const distinctVariantName = getDistinctCartVariantName(item);
 
   const commitQuantity = (value: number) => {
     if (!onQuantityChange) return;
@@ -100,7 +108,9 @@ export default function CartLine({
   const line = (
     <article
       data-cart-line-id={item.lineId}
-      className={`site-radius-md border p-3 transition ${
+      data-cart-line-density={compact ? 'compact' : 'default'}
+      data-cart-line-presentation={presentation}
+      className={`storefront-cart-line site-radius-md border p-3 transition ${
         highlighted && appearance.cartSidebar.highlightAddedLine
           ? 'border-[color:var(--site-color-primary)] bg-[color:var(--blue-50)]'
           : 'border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)]'
@@ -146,29 +156,29 @@ export default function CartLine({
               <Link
                 href={item.productHref}
                 onClick={onNavigate}
-                className="font-semibold leading-snug text-[color:var(--site-color-text)] hover:text-[color:var(--site-color-primary)]"
+                className="storefront-cart-line-title font-semibold leading-snug text-[color:var(--site-color-text)] hover:text-[color:var(--site-color-primary)]"
               >
                 {item.name}
               </Link>
             ) : (
-              <p className="font-semibold leading-snug text-[color:var(--site-color-text)]">
+              <p className="storefront-cart-line-title font-semibold leading-snug text-[color:var(--site-color-text)]">
                 {item.name}
               </p>
             )}
 
-            {item.variant ? (
-              <p className="mt-1 text-xs text-[color:var(--site-color-text-muted)]">
-                {item.variant.name}
+            {distinctVariantName ? (
+              <p className="storefront-cart-line-variant mt-1 text-xs text-[color:var(--site-color-text-muted)]">
+                {distinctVariantName}
               </p>
             ) : null}
             {item.variant?.options.length ? (
-              <p className="mt-0.5 text-xs text-[color:var(--site-color-text-muted)]">
+              <p className="storefront-cart-line-options mt-0.5 text-xs text-[color:var(--site-color-text-muted)]">
                 {item.variant.options
                   .map((option) => `${option.axisName}: ${option.valueLabel}`)
                   .join(' · ')}
               </p>
             ) : null}
-            <p className="mt-0.5 font-mono text-[10px] text-[color:var(--site-color-text-muted)]">
+            <p className="storefront-cart-line-sku mt-0.5 font-mono text-[10px] text-[color:var(--site-color-text-muted)]">
               SKU: {quoteItem?.sku ?? item.sku}
             </p>
 
@@ -192,23 +202,18 @@ export default function CartLine({
         )}
 
         {!readOnly && onRemove ? (
-          <button
+          <IconButton
             type="button"
             onClick={onRemove}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--site-radius-sm)] text-[color:var(--site-color-text-muted)] transition hover:bg-[color:var(--site-color-surface-muted)] hover:text-[color:var(--site-color-danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)]"
+            tone="neutral"
+            size="md"
+            shape="square"
+            className="storefront-cart-line-remove-button shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)]"
             aria-label={`Odstrani ${item.name}`}
+            data-testid="cart-line-remove-item"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-            >
-              <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" />
-            </svg>
-          </button>
+            <TrashCanIcon className="storefront-cart-line-remove-icon !shrink-0" />
+          </IconButton>
         ) : null}
       </div>
 
@@ -235,7 +240,7 @@ export default function CartLine({
               max={maximum}
               value={item.quantity}
               onChange={(event) => commitQuantity(Number(event.target.value))}
-              className="h-9 w-14 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center text-sm font-semibold outline-none"
+              className="storefront-cart-line-quantity h-9 w-14 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center text-sm font-semibold outline-none"
               aria-label={`Količina za ${item.name}`}
             />
             <button
@@ -256,12 +261,12 @@ export default function CartLine({
           <Link
             href={item.productHref}
             onClick={onNavigate}
-            className="site-link text-xs"
+            className="storefront-cart-line-change-variant site-link text-xs"
           >
             Spremeni različico
           </Link>
         ) : null}
-        <p className="ml-auto text-sm font-semibold tabular-nums text-[color:var(--site-color-text)]">
+        <p className="storefront-cart-line-total ml-auto text-sm font-semibold tabular-nums text-[color:var(--site-color-text)]">
           {lineGross === null ? '—' : formatEuro(lineGross)}
         </p>
       </div>

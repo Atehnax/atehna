@@ -53,8 +53,11 @@ export type OrderRow = {
   email: string;
   delivery_address: string | null;
   address_line1?: string | null;
+  address_line2?: string | null;
   postal_code?: string | null;
   city?: string | null;
+  gurs_house_number_id?: string | null;
+  country_code?: string | null;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   reference: string | null;
   notes: string | null;

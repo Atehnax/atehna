@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import type { CatalogCategory, CategoriesView, RecursiveCatalogCategory, RecursiveCatalogSubcategory } from '@/shared/domain/catalog/catalogTypes';
+import {
+  normalizeCategoryShowcaseMediaSettings,
+  validateCategoryShowcaseMediaSettings,
+  type CategoryShowcaseMediaSettings
+} from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { normalizeCatalogData } from '@/shared/server/catalogAdmin';
 import {
   CATALOG_ADMIN_TAG,
@@ -28,6 +33,7 @@ type CategoryAuditRow = {
   summary: string;
   description: string;
   image: string | null;
+  presentation: CategoryShowcaseMediaSettings | null;
   adminNotes: string | null;
   bannerImage: string | null;
   position: number;
@@ -49,6 +55,7 @@ type CategoryPatchPayload = {
     description: string;
     image?: string | null;
     removeImage?: boolean;
+    presentation?: CategoryShowcaseMediaSettings;
     adminNotes?: string | null;
     bannerImage?: string | null;
     items?: unknown;
@@ -65,6 +72,7 @@ const categoryAuditFields = [
   'summary',
   'description',
   'image',
+  'presentation',
   'adminNotes',
   'bannerImage',
   'position',
@@ -94,6 +102,7 @@ function flattenCategoryAuditRows(
         summary: '',
         description: node.description,
         image: node.image ?? null,
+        presentation: normalizeCategoryShowcaseMediaSettings(node.presentation),
         adminNotes: node.adminNotes ?? null,
         bannerImage: null,
         position: index,
@@ -112,6 +121,7 @@ function flattenCategoryAuditRows(
       summary: category.summary,
       description: category.description,
       image: category.image,
+      presentation: normalizeCategoryShowcaseMediaSettings(category.presentation),
       adminNotes: category.adminNotes ?? null,
       bannerImage: category.bannerImage ?? null,
       position: index,
@@ -123,8 +133,10 @@ function flattenCategoryAuditRows(
   return rows;
 }
 
-async function getCategoryAuditSnapshot() {
-  const payload = await getCatalogAdminAuditPayloadFromDatabase('/api/admin/categories:audit-before');
+async function getCategoryAuditSnapshot(
+  diagnosticsContext = '/api/admin/categories:audit-before'
+) {
+  const payload = await getCatalogAdminAuditPayloadFromDatabase(diagnosticsContext);
   return flattenCategoryAuditRows(payload.categories, payload.statuses ?? {});
 }
 
@@ -173,6 +185,7 @@ function toCategoryAuditRow(entry: {
   summary: string;
   description: string;
   image?: string | null;
+  presentation?: CategoryShowcaseMediaSettings;
   adminNotes?: string | null;
   bannerImage?: string | null;
   position: number;
@@ -185,7 +198,16 @@ function toCategoryAuditRow(entry: {
     title: entry.title,
     summary: entry.summary,
     description: entry.description,
-    image: Object.prototype.hasOwnProperty.call(entry, 'image') ? entry.image ?? null : before?.image ?? null,
+    image: before?.parentId === null
+      ? before.image
+      : Object.prototype.hasOwnProperty.call(entry, 'image')
+        ? entry.image ?? null
+        : before?.image ?? null,
+    presentation: before?.parentId === null
+      ? before.presentation
+      : Object.prototype.hasOwnProperty.call(entry, 'presentation')
+        ? normalizeCategoryShowcaseMediaSettings(entry.presentation)
+        : before?.presentation ?? null,
     adminNotes: entry.adminNotes ?? null,
     bannerImage: entry.bannerImage ?? null,
     position: entry.position,
@@ -354,7 +376,7 @@ export async function PUT(request: Request) {
 
     const beforeRows = await getCategoryAuditSnapshot();
     await replaceCategoryTree(normalized, payload.statuses ?? {});
-    const afterRows = flattenCategoryAuditRows(normalized.categories as RecursiveCatalogCategory[], payload.statuses ?? {});
+    const afterRows = await getCategoryAuditSnapshot('/api/admin/categories:audit-after-put');
     await recordCategoryPatchAudit(
       request,
       beforeRows,
@@ -384,12 +406,21 @@ export async function PATCH(request: Request) {
 
     const payload = payloadResult.body as CategoryPatchPayload;
 
-    const upserts = Array.isArray(payload.upserts)
-      ? payload.upserts.map((entry) => ({
-          ...entry,
-          items: Array.isArray(entry.items) ? entry.items : []
-        }))
-      : [];
+    const rawUpserts = Array.isArray(payload.upserts) ? payload.upserts : [];
+    for (const entry of rawUpserts) {
+      if (!Object.prototype.hasOwnProperty.call(entry, 'presentation')) continue;
+      const presentationErrors = validateCategoryShowcaseMediaSettings(entry.presentation);
+      if (presentationErrors.length > 0) {
+        return NextResponse.json({ message: presentationErrors[0], errors: presentationErrors }, { status: 400 });
+      }
+    }
+    const upserts = rawUpserts.map((entry) => ({
+      ...entry,
+      ...(Object.prototype.hasOwnProperty.call(entry, 'presentation')
+        ? { presentation: normalizeCategoryShowcaseMediaSettings(entry.presentation) }
+        : {}),
+      items: Array.isArray(entry.items) ? entry.items : []
+    }));
     const deleteIds = Array.isArray(payload.deleteIds) ? payload.deleteIds.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0) : [];
 
     const beforeRows = await getCategoryAuditSnapshot();

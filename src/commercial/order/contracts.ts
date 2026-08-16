@@ -62,8 +62,11 @@ export type SubmitOrderRequest = {
   contactName: string;
   email: string;
   addressLine1: string;
+  addressLine2?: string;
   city: string;
   postalCode: string;
+  gursHouseNumberId?: string;
+  countryCode?: 'SI';
   deliveryAddress?: string;
   reference?: string;
   notes: string;
@@ -116,8 +119,11 @@ export type OrderConfirmationSnapshot = {
     contactName?: string;
     email?: string;
     addressLine1?: string;
+    addressLine2?: string | null;
     city?: string;
     postalCode?: string;
+    gursHouseNumberId?: string | null;
+    countryCode?: string;
     deliveryAddress?: string;
     reference?: string;
     notes?: string;

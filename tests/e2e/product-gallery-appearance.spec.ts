@@ -105,8 +105,13 @@ test.describe('product gallery appearance contracts', () => {
     expect(gallerySource).toContain('className="object-cover"');
     expect(gallerySource).not.toContain('object-contain p-1.5');
     expect(gallerySource).toContain('storefront-gallery-control');
-    expect(gallerySource).toContain('bg-white/95');
+    expect(gallerySource).toContain('storefront-gallery-control-visual');
+    expect(gallerySource).toContain('data-gallery-control="next"');
+    expect(gallerySource).toContain('data-gallery-control="zoom-indicator"');
+    expect(gallerySource).toContain('data-gallery-control="lightbox-close"');
+    expect(gallerySource).toContain('lightboxCloseControlClassName');
     expect(gallerySource).not.toContain('backdrop-blur-sm');
+    expect(globalStyles).toContain('background: rgb(15 23 42 / 0.68);');
     expect(gallerySource).toContain('openZoom');
     expect(gallerySource).toContain('closeZoom');
     expect(gallerySource).toContain('data-storefront-gallery-lightbox');

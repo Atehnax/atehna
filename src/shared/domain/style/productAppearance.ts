@@ -1,3 +1,8 @@
+import {
+  validateAndNormalizeCatalogSpecificationLabels,
+  type CatalogSpecificationLabelOverrides
+} from '@/shared/domain/catalog/catalogSpecification';
+
 export const PRODUCT_APPEARANCE_SETTINGS_KEY = 'website-product-appearance';
 
 export const PRODUCT_LISTING_MODES = ['grid', 'list', 'both'] as const;
@@ -180,6 +185,9 @@ export const DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS: ProductCanvasElemen
   textAlign: 'inherit'
 };
 
+export const PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX = 160;
+export const PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX = 40;
+
 export const PRODUCT_INFORMATION_BLOCKS = [
   'brand',
   'title',
@@ -202,6 +210,7 @@ export type ProductInformationBlock = (typeof PRODUCT_INFORMATION_BLOCKS)[number
 export type ProductSecondaryBlock = (typeof PRODUCT_SECONDARY_BLOCKS)[number];
 
 export type ProductAppearanceConfig = {
+  schemaVersion: number;
   listings: {
     availableModes: ProductListingMode;
     defaultMode: Exclude<ProductListingMode, 'both'>;
@@ -284,6 +293,7 @@ export type ProductAppearanceConfig = {
     chipHeightPx: number;
     chipFontSizePx: number;
     labelFontSizePx: number;
+    labelControlGapPx: number;
     labelAboveSelector: boolean;
     compactSelectors: boolean;
     showUnavailableValues: boolean;
@@ -307,6 +317,7 @@ export type ProductAppearanceConfig = {
     blockOrder: ProductSecondaryBlock[];
     openByDefault: ProductSecondaryBlock[];
     specificationOrder: string[];
+    specificationLabels: CatalogSpecificationLabelOverrides;
     combinedOverviewLabel: string;
     sectionLabels: Record<ProductSecondaryBlock, string>;
     showTabDivider: boolean;
@@ -368,21 +379,115 @@ export type ProductAppearanceOverride = {
   relatedProducts?: Partial<ProductAppearanceConfig['relatedProducts']>;
 };
 
+const LEGACY_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
+  availableModes: 'grid',
+  defaultMode: 'grid',
+  desktopColumns: 4,
+  tabletColumns: 2,
+  mobileColumns: 1,
+  gapPx: 20,
+  cardDensity: 'comfortable',
+  imageRatio: '1:1',
+  imageFit: 'contain',
+  titleLines: 2,
+  showBrand: true,
+  showSku: false,
+  showShortDescription: false,
+  showStock: true,
+  showDiscount: true,
+  showPurchaseAction: true,
+  allowSimpleQuickAdd: true,
+  showUnavailableVariants: true,
+  filterPlacement: 'sidebar',
+  paginationStyle: 'pages',
+  subcategoryTilesVisible: true
+};
+
+const COMPACT_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
+  availableModes: 'grid',
+  defaultMode: 'grid',
+  desktopColumns: 4,
+  tabletColumns: 3,
+  mobileColumns: 1,
+  gapPx: 20,
+  cardDensity: 'compact',
+  imageRatio: '16:9',
+  imageFit: 'contain',
+  titleLines: 2,
+  showBrand: true,
+  showSku: false,
+  showShortDescription: false,
+  showStock: true,
+  showDiscount: true,
+  showPurchaseAction: true,
+  allowSimpleQuickAdd: true,
+  showUnavailableVariants: true,
+  filterPlacement: 'sidebar',
+  paginationStyle: 'pages',
+  subcategoryTilesVisible: true
+};
+
+const IMAGE_LED_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
+  ...COMPACT_PRODUCT_LISTING_REFERENCE,
+  imageRatio: '4:3'
+};
+
+const SQUARE_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
+  ...COMPACT_PRODUCT_LISTING_REFERENCE,
+  imageRatio: '1:1'
+};
+
+const SCHEMA_6_RELATED_PRODUCTS_REFERENCE: ProductAppearanceConfig['relatedProducts'] = {
+  enabled: true,
+  sourceMode: 'same-category',
+  manualProductSlugs: [],
+  manualPlacement: 'before-auto',
+  maxItems: 4,
+  desktopColumns: 4,
+  tabletColumns: 2,
+  mobileColumns: 1,
+  gapPx: 24,
+  cardWidthPx: 360,
+  imageHeightPx: 188,
+  textScalePercent: 100,
+  sectionPlacement: 'after-content',
+  sectionWidthPercent: 100,
+  sectionAlignment: 'left',
+  showAccessoriesFirst: true
+};
+
+const SCHEMA_7_RELATED_PRODUCTS_PRESENTATION_REFERENCE = {
+  desktopColumns: 4,
+  tabletColumns: 2,
+  mobileColumns: 1,
+  gapPx: 24,
+  cardWidthPx: 360,
+  imageHeightPx: 160,
+  textScalePercent: 100,
+  sectionPlacement: 'after-content',
+  sectionWidthPercent: 100,
+  sectionAlignment: 'left'
+} satisfies Partial<ProductAppearanceConfig['relatedProducts']>;
+
+const LEGACY_MANUAL_CONFIRMATION_DELIVERY_MESSAGE =
+  'Predvideni rok sporočimo ob ročni potrditvi naročila.';
+
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
+  schemaVersion: 8,
   listings: {
     availableModes: 'grid',
     defaultMode: 'grid',
     desktopColumns: 4,
-    tabletColumns: 2,
+    tabletColumns: 3,
     mobileColumns: 1,
     gapPx: 20,
-    cardDensity: 'comfortable',
+    cardDensity: 'compact',
     imageRatio: '1:1',
     imageFit: 'contain',
     titleLines: 2,
     showBrand: true,
     showSku: false,
-    showShortDescription: false,
+    showShortDescription: true,
     showStock: true,
     showDiscount: true,
     showPurchaseAction: true,
@@ -453,14 +558,15 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
   },
   variants: {
     selectorStyle: 'auto',
-    selectWidthPx: 300,
-    selectHeightPx: 58,
-    chipWidthPx: 106,
-    chipHeightPx: 52,
-    chipFontSizePx: 16,
-    labelFontSizePx: 16,
+    selectWidthPx: 260,
+    selectHeightPx: 44,
+    chipWidthPx: 88,
+    chipHeightPx: 40,
+    chipFontSizePx: 14,
+    labelFontSizePx: 14,
+    labelControlGapPx: 6,
     labelAboveSelector: true,
-    compactSelectors: false,
+    compactSelectors: true,
     showUnavailableValues: true,
     showSelectedSummary: false,
     showCompatibilityReasons: true,
@@ -506,7 +612,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
       unavailableActionLabel: 'Trenutno ni mogoče naročiti',
       freeShippingMessage: 'Brezplačna dostava po Sloveniji',
       deliveryFallbackMessage:
-        'Predvideni rok sporočimo ob ročni potrditvi naročila.',
+        'Predvideni rok sporočimo ob potrditvi naročila.',
       paymentMessage: 'Plačilo uredimo ročno po ponudbi ali predračunu.',
       secondaryActionLabel: 'Vprašajte za ponudbo'
     }
@@ -531,6 +637,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
       'toleranca',
       'sku'
     ],
+    specificationLabels: {},
     combinedOverviewLabel: 'Opis in specifikacije',
     sectionLabels: {
       specifications: 'Specifikacije',
@@ -561,7 +668,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     mobileColumns: 1,
     gapPx: 24,
     cardWidthPx: 360,
-    imageHeightPx: 188,
+    imageHeightPx: 144,
     textScalePercent: 100,
     sectionPlacement: 'after-content',
     sectionWidthPercent: 100,
@@ -690,23 +797,58 @@ export function normalizeProductCanvasElementDeviceSettings(
   };
 }
 
-function normalizeProductCanvasElement(value: unknown): ProductCanvasElementSettings {
+function normalizeProductCanvasElement(
+  value: unknown,
+  elementId = '',
+  upgradeLegacyReference = false
+): ProductCanvasElementSettings {
   const record = asRecord(value);
   const base = normalizeProductCanvasElementDeviceSettings(
     record,
     DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS
   );
   const responsive = asRecord(record.responsive);
+  const normalizeDevice = (deviceValue: unknown) => {
+    let settings = normalizeProductCanvasElementDeviceSettings(
+      deviceValue,
+      base
+    );
+    if (elementId === 'product-primary-action') {
+      settings = {
+        ...settings,
+        widthPx: settings.widthPx > 0
+          ? Math.max(PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX, settings.widthPx)
+          : 0,
+        heightPx: settings.heightPx > 0
+          ? Math.max(PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX, settings.heightPx)
+          : 0
+      };
+    }
+    // The first reference layout stored 44 px as the product-title baseline.
+    // Keep authored values intact while bringing that exact legacy baseline in
+    // line with the compact H2-scale product heading.
+    if (
+      upgradeLegacyReference
+      && elementId === 'product-title'
+      && settings.fontSizePx === 44
+    ) {
+      return { ...settings, fontSizePx: 40 };
+    }
+    return settings;
+  };
   return {
     responsive: {
-      desktop: normalizeProductCanvasElementDeviceSettings(responsive.desktop, base),
-      tablet: normalizeProductCanvasElementDeviceSettings(responsive.tablet, base),
-      mobile: normalizeProductCanvasElementDeviceSettings(responsive.mobile, base)
+      desktop: normalizeDevice(responsive.desktop),
+      tablet: normalizeDevice(responsive.tablet),
+      mobile: normalizeDevice(responsive.mobile)
     }
   };
 }
 
-function normalizeProductCanvas(value: unknown): ProductCanvasSettings {
+function normalizeProductCanvas(
+  value: unknown,
+  upgradeLegacyReference = false
+): ProductCanvasSettings {
   const record = asRecord(value);
   const elementSource = asRecord(record.elements);
   const elements: ProductCanvasSettings['elements'] = {};
@@ -719,7 +861,11 @@ function normalizeProductCanvas(value: unknown): ProductCanvasSettings {
     ) {
       continue;
     }
-    elements[elementId] = normalizeProductCanvasElement(element);
+    elements[elementId] = normalizeProductCanvasElement(
+      element,
+      elementId,
+      upgradeLegacyReference
+    );
     if (Object.keys(elements).length >= MAX_PRODUCT_CANVAS_ELEMENTS) break;
   }
 
@@ -746,7 +892,15 @@ export function resolveProductCanvasElementDeviceSettings(
   if (Object.keys(rawElement).length === 0) {
     return clone(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS);
   }
-  return clone(normalizeProductCanvasElement(rawElement).responsive[device]);
+  const upgradeLegacyReference = Object.prototype.hasOwnProperty.call(
+    source,
+    'canvas'
+  ) && asNumber(source.schemaVersion, 1, 1, 100) < 2;
+  return clone(normalizeProductCanvasElement(
+    rawElement,
+    elementId,
+    upgradeLegacyReference
+  ).responsive[device]);
 }
 
 export function cloneDefaultProductAppearanceConfig() {
@@ -755,7 +909,33 @@ export function cloneDefaultProductAppearanceConfig() {
 
 export function normalizeProductAppearanceConfig(value: unknown): ProductAppearanceConfig {
   const record = asRecord(value);
+  const storedSchemaVersion = asNumber(record.schemaVersion, 1, 1, 100);
+  const upgradeLegacyReference = storedSchemaVersion < 2;
   const listings = asRecord(record.listings);
+  const isFullLegacyListingReference = Object.entries(
+    LEGACY_PRODUCT_LISTING_REFERENCE
+  ).every(([key, legacyValue]) => listings[key] === legacyValue);
+  const isFullCompactListingReference = Object.entries(
+    COMPACT_PRODUCT_LISTING_REFERENCE
+  ).every(([key, compactValue]) => listings[key] === compactValue);
+  const isFullImageLedListingReference = Object.entries(
+    IMAGE_LED_PRODUCT_LISTING_REFERENCE
+  ).every(([key, imageLedValue]) => listings[key] === imageLedValue);
+  const isFullSquareListingReference = Object.entries(
+    SQUARE_PRODUCT_LISTING_REFERENCE
+  ).every(([key, squareValue]) => listings[key] === squareValue);
+  const upgradeLegacyListingReference =
+    storedSchemaVersion < 2 ||
+    (storedSchemaVersion < 3 && isFullLegacyListingReference);
+  const upgradeCompactListingReference =
+    storedSchemaVersion === 3 && isFullCompactListingReference;
+  const upgradeImageLedListingReference =
+    storedSchemaVersion === 4 && isFullImageLedListingReference;
+  const upgradeListingDescriptionPreview =
+    upgradeLegacyListingReference
+    || upgradeCompactListingReference
+    || upgradeImageLedListingReference
+    || (storedSchemaVersion === 5 && isFullSquareListingReference);
   const productPage = asRecord(record.productPage);
   const gallery = asRecord(record.gallery);
   const information = asRecord(record.information);
@@ -766,10 +946,39 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
   const secondaryContent = asRecord(record.secondaryContent);
   const secondaryContentSectionLabels = asRecord(secondaryContent.sectionLabels);
   const relatedProducts = asRecord(record.relatedProducts);
+  const matchesRelatedProductsReference = (
+    reference: Readonly<Partial<ProductAppearanceConfig['relatedProducts']>>
+  ) => Object.entries(reference).every(([key, referenceValue]) => {
+    const storedValue = relatedProducts[key];
+    return Array.isArray(referenceValue)
+      ? Array.isArray(storedValue)
+        && referenceValue.length === storedValue.length
+        && referenceValue.every((entry, index) => storedValue[index] === entry)
+      : storedValue === referenceValue;
+  });
+  const isFullSchema6RelatedProductsReference = matchesRelatedProductsReference(
+    SCHEMA_6_RELATED_PRODUCTS_REFERENCE
+  );
+  const usesSchema7RelatedProductsPresentationReference =
+    matchesRelatedProductsReference(
+      SCHEMA_7_RELATED_PRODUCTS_PRESENTATION_REFERENCE
+    );
+  const upgradeSchema6RelatedProductsReference =
+    storedSchemaVersion < 7 && isFullSchema6RelatedProductsReference;
+  const upgradeSchema7RelatedProductsReference =
+    storedSchemaVersion < 8
+    && usesSchema7RelatedProductsPresentationReference;
   const cartSidebar = asRecord(record.cartSidebar);
   const canvas = record.canvas;
   const overrides = asRecord(record.overrides);
   const defaults = DEFAULT_PRODUCT_APPEARANCE_CONFIG;
+  const upgradeLegacyVariantDefaultNumber = (
+    rawValue: unknown,
+    legacyDefault: number,
+    nextDefault: number
+  ) => upgradeLegacyReference && rawValue === legacyDefault
+    ? nextDefault
+    : rawValue;
   const hasGallerySize = Object.prototype.hasOwnProperty.call(
     gallery,
     'sizePercent'
@@ -788,22 +997,57 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
 
   const availableModes = asEnum(listings.availableModes, PRODUCT_LISTING_MODES, defaults.listings.availableModes);
   const defaultModeCandidate = asEnum(listings.defaultMode, ['grid', 'list'] as const, defaults.listings.defaultMode);
+  const deliveryFallbackMessage = asOptionalString(
+    purchaseAreaCopy.deliveryFallbackMessage,
+    defaults.purchaseArea.copy.deliveryFallbackMessage,
+    320
+  );
+  const listingImageRatio =
+    (upgradeLegacyListingReference && listings.imageRatio === '1:1') ||
+    (upgradeCompactListingReference && listings.imageRatio === '16:9') ||
+    (upgradeImageLedListingReference && listings.imageRatio === '4:3')
+      ? defaults.listings.imageRatio
+      : listings.imageRatio;
 
   return {
+    schemaVersion: defaults.schemaVersion,
     listings: {
       availableModes,
       defaultMode: availableModes === 'both' || availableModes === defaultModeCandidate ? defaultModeCandidate : availableModes,
       desktopColumns: asNumber(listings.desktopColumns, defaults.listings.desktopColumns, 2, 6),
-      tabletColumns: asNumber(listings.tabletColumns, defaults.listings.tabletColumns, 1, 4),
+      tabletColumns: asNumber(
+        upgradeLegacyListingReference && listings.tabletColumns === 2
+          ? defaults.listings.tabletColumns
+          : listings.tabletColumns,
+        defaults.listings.tabletColumns,
+        1,
+        4
+      ),
       mobileColumns: asNumber(listings.mobileColumns, defaults.listings.mobileColumns, 1, 2),
       gapPx: asNumber(listings.gapPx, defaults.listings.gapPx, 8, 48),
-      cardDensity: asEnum(listings.cardDensity, PRODUCT_CARD_DENSITIES, defaults.listings.cardDensity),
-      imageRatio: asEnum(listings.imageRatio, PRODUCT_IMAGE_RATIOS, defaults.listings.imageRatio),
+      cardDensity:
+        upgradeLegacyListingReference && listings.cardDensity === 'comfortable'
+          ? defaults.listings.cardDensity
+          : asEnum(
+              listings.cardDensity,
+              PRODUCT_CARD_DENSITIES,
+              defaults.listings.cardDensity
+            ),
+      imageRatio: asEnum(
+        listingImageRatio,
+        PRODUCT_IMAGE_RATIOS,
+        defaults.listings.imageRatio
+      ),
       imageFit: asEnum(listings.imageFit, PRODUCT_IMAGE_FITS, defaults.listings.imageFit),
       titleLines: asNumber(listings.titleLines, defaults.listings.titleLines, 1, 4),
       showBrand: asBoolean(listings.showBrand, defaults.listings.showBrand),
       showSku: asBoolean(listings.showSku, defaults.listings.showSku),
-      showShortDescription: asBoolean(listings.showShortDescription, defaults.listings.showShortDescription),
+      showShortDescription: upgradeListingDescriptionPreview
+        ? defaults.listings.showShortDescription
+        : asBoolean(
+            listings.showShortDescription,
+            defaults.listings.showShortDescription
+          ),
       showStock: asBoolean(listings.showStock, defaults.listings.showStock),
       showDiscount: asBoolean(listings.showDiscount, defaults.listings.showDiscount),
       showPurchaseAction: asBoolean(listings.showPurchaseAction, defaults.listings.showPurchaseAction),
@@ -913,43 +1157,79 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     variants: {
       selectorStyle: asEnum(variants.selectorStyle, PRODUCT_VARIANT_SELECTOR_STYLES, defaults.variants.selectorStyle),
       selectWidthPx: asNumber(
-        variants.selectWidthPx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.selectWidthPx,
+          300,
+          defaults.variants.selectWidthPx
+        ),
         defaults.variants.selectWidthPx,
         160,
         500
       ),
       selectHeightPx: asNumber(
-        variants.selectHeightPx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.selectHeightPx,
+          58,
+          defaults.variants.selectHeightPx
+        ),
         defaults.variants.selectHeightPx,
         40,
         88
       ),
       chipWidthPx: asNumber(
-        variants.chipWidthPx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.chipWidthPx,
+          106,
+          defaults.variants.chipWidthPx
+        ),
         defaults.variants.chipWidthPx,
         72,
         180
       ),
       chipHeightPx: asNumber(
-        variants.chipHeightPx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.chipHeightPx,
+          52,
+          defaults.variants.chipHeightPx
+        ),
         defaults.variants.chipHeightPx,
         36,
         80
       ),
       chipFontSizePx: asNumber(
-        variants.chipFontSizePx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.chipFontSizePx,
+          16,
+          defaults.variants.chipFontSizePx
+        ),
         defaults.variants.chipFontSizePx,
         11,
         24
       ),
       labelFontSizePx: asNumber(
-        variants.labelFontSizePx,
+        upgradeLegacyVariantDefaultNumber(
+          variants.labelFontSizePx,
+          16,
+          defaults.variants.labelFontSizePx
+        ),
         defaults.variants.labelFontSizePx,
         11,
         28
       ),
+      labelControlGapPx: asNumber(
+        variants.labelControlGapPx,
+        defaults.variants.labelControlGapPx,
+        0,
+        32
+      ),
       labelAboveSelector: asBoolean(variants.labelAboveSelector, defaults.variants.labelAboveSelector),
-      compactSelectors: asBoolean(variants.compactSelectors, defaults.variants.compactSelectors),
+      compactSelectors: upgradeLegacyReference
+        && variants.compactSelectors === false
+        ? defaults.variants.compactSelectors
+        : asBoolean(
+            variants.compactSelectors,
+            defaults.variants.compactSelectors
+          ),
       showUnavailableValues: true,
       showSelectedSummary: asBoolean(variants.showSelectedSummary, defaults.variants.showSelectedSummary),
       showCompatibilityReasons: asBoolean(variants.showCompatibilityReasons, defaults.variants.showCompatibilityReasons),
@@ -1079,11 +1359,10 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
           defaults.purchaseArea.copy.freeShippingMessage,
           240
         ),
-        deliveryFallbackMessage: asOptionalString(
-          purchaseAreaCopy.deliveryFallbackMessage,
-          defaults.purchaseArea.copy.deliveryFallbackMessage,
-          320
-        ),
+        deliveryFallbackMessage:
+          deliveryFallbackMessage === LEGACY_MANUAL_CONFIRMATION_DELIVERY_MESSAGE
+            ? defaults.purchaseArea.copy.deliveryFallbackMessage
+            : deliveryFallbackMessage,
         paymentMessage: asOptionalString(
           purchaseAreaCopy.paymentMessage,
           defaults.purchaseArea.copy.paymentMessage,
@@ -1105,6 +1384,12 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
         defaults.secondaryContent.specificationOrder,
         80
       ),
+      specificationLabels: (() => {
+        const result = validateAndNormalizeCatalogSpecificationLabels(
+          secondaryContent.specificationLabels
+        );
+        return result.ok ? result.value : defaults.secondaryContent.specificationLabels;
+      })(),
       combinedOverviewLabel: asString(
         secondaryContent.combinedOverviewLabel,
         defaults.secondaryContent.combinedOverviewLabel
@@ -1194,11 +1479,13 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
         520
       ),
       imageHeightPx: asNumber(
-        upgradeLegacyDefaultNumber(
-          relatedProducts.imageHeightPx,
-          192,
-          defaults.relatedProducts.imageHeightPx
-        ),
+        (upgradeLegacyReference && relatedProducts.imageHeightPx === 192)
+        || (upgradeSchema6RelatedProductsReference
+          && relatedProducts.imageHeightPx === 188)
+        || (upgradeSchema7RelatedProductsReference
+          && relatedProducts.imageHeightPx === 160)
+          ? defaults.relatedProducts.imageHeightPx
+          : relatedProducts.imageHeightPx,
         defaults.relatedProducts.imageHeightPx,
         96,
         480
@@ -1242,7 +1529,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
       showRelatedProducts: false
     },
-    canvas: normalizeProductCanvas(canvas),
+    canvas: normalizeProductCanvas(canvas, upgradeLegacyReference),
     overrides: {
       allowCategoryTemplates: false,
       allowProductLayoutOverride: asBoolean(overrides.allowProductLayoutOverride, defaults.overrides.allowProductLayoutOverride),
@@ -1265,6 +1552,7 @@ export function resolveProductAppearanceConfig(
 ): ProductAppearanceConfig {
   const base = normalizeProductAppearanceConfig(globalConfig);
   const override = asRecord(productOverride);
+  const overrideSecondaryContent = asRecord(override.secondaryContent);
   const merged: ProductAppearanceConfig = clone(base);
 
   if (base.overrides.allowProductLayoutOverride) {
@@ -1286,12 +1574,24 @@ export function resolveProductAppearanceConfig(
     } as ProductAppearanceConfig['information'];
     merged.secondaryContent = {
       ...merged.secondaryContent,
-      ...asRecord(override.secondaryContent)
+      ...overrideSecondaryContent
     } as ProductAppearanceConfig['secondaryContent'];
     merged.relatedProducts = {
       ...merged.relatedProducts,
       ...asRecord(override.relatedProducts)
     } as ProductAppearanceConfig['relatedProducts'];
+  }
+
+  // Display labels are item content, not a layout capability. Keep them
+  // effective even when broader per-product block/layout overrides are off.
+  if (Object.prototype.hasOwnProperty.call(
+    overrideSecondaryContent,
+    'specificationLabels'
+  )) {
+    const labels = validateAndNormalizeCatalogSpecificationLabels(
+      overrideSecondaryContent.specificationLabels
+    );
+    if (labels.ok) merged.secondaryContent.specificationLabels = labels.value;
   }
 
   return normalizeProductAppearanceConfig(merged);
@@ -1351,6 +1651,9 @@ export function toProductAppearanceCssVariables(
     '--product-variant-chip-height': px(config.variants.chipHeightPx),
     '--product-variant-chip-font-size': px(config.variants.chipFontSizePx),
     '--product-variant-label-font-size': px(config.variants.labelFontSizePx),
+    '--product-variant-label-control-gap': px(
+      config.variants.labelControlGapPx
+    ),
     '--product-description-max-width': px(config.information.longDescriptionMaxWidthPx),
     '--product-detail-divider-width': px(
       config.secondaryContent.dividerThicknessPx

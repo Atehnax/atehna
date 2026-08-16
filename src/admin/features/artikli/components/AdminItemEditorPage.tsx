@@ -89,12 +89,17 @@ import {
   type VariantBulkApplyField
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatEuroAmount } from '@/shared/domain/formatting';
+import { buildCatalogPresentationDetails } from '@/shared/domain/catalog/catalogPresentation';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import ProductVariantOptionsCard from '@/admin/features/artikli/components/ProductVariantOptionsCard';
+import VariantSpecificationsEditor from '@/admin/features/artikli/components/VariantSpecificationsEditor';
+import SpecificationDisplayLabelsEditor, {
+  type SpecificationDisplayLabelRow
+} from '@/admin/features/artikli/components/SpecificationDisplayLabelsEditor';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
   CommercialToolsPanel,
@@ -123,10 +128,12 @@ import {
 } from '@/admin/features/artikli/components/DimensionProductPricingSections';
 import type {
   ProductEditorType,
+  CatalogItemAppearanceOverride,
   CatalogItemQuickSaveResponse,
   QuantityDiscountDraft,
   SimulatorOption,
   CatalogMediaImportKind,
+  CatalogVariantContentOverride,
   UploadedCatalogMediaFile,
   UniversalProductSpecificData
 } from '@/shared/domain/catalog/catalogAdminTypes';
@@ -154,6 +161,18 @@ import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
+import type { StorefrontSpecification } from '@/commercial/features/products/storefrontProduct';
+import {
+  getStorefrontSpecificationOrderKey,
+  mergeStorefrontSpecifications,
+  prepareStorefrontSpecifications
+} from '@/commercial/features/products/storefrontSpecifications';
+import {
+  migrateCatalogSpecificationKey,
+  normalizeCatalogSpecificationToken,
+  readCatalogSpecificationLabels,
+  writeCatalogSpecificationLabels
+} from '@/shared/domain/catalog/catalogSpecification';
 import {
   classNames,
   CompactSegmentedField,
@@ -379,6 +398,7 @@ type EditorPersistedState = {
   draft: ProductFamily;
   productType: ProductEditorType;
   typeSpecificData: UniversalProductSpecificData;
+  appearanceOverride: CatalogItemAppearanceOverride | null;
   sideSettings: SideSettingsState;
   documents: StagedTechnicalDocument[];
   quantityDiscounts: QuantityDiscountDraft[];
@@ -535,6 +555,9 @@ function cloneEditorPersistedState(state: EditorPersistedState): EditorPersisted
     },
     productType: state.productType,
     typeSpecificData: cloneTypeSpecificData(state.typeSpecificData),
+    appearanceOverride: state.appearanceOverride
+      ? JSON.parse(JSON.stringify(state.appearanceOverride)) as CatalogItemAppearanceOverride
+      : null,
     sideSettings: cloneSideSettings(state.sideSettings),
     documents: state.documents.map(cloneDocument),
     quantityDiscounts: state.quantityDiscounts.map(cloneQuantityDiscountDraft),
@@ -584,6 +607,7 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
     },
     productType: state.productType,
     typeSpecificData: state.typeSpecificData,
+    appearanceOverride: state.appearanceOverride,
     sideSettings: state.sideSettings,
     documents: state.documents.map((documentEntry) => ({
       id: documentEntry.id,
@@ -922,6 +946,16 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(detailItems, 'Toleranca', formatSaveDiffText(saved.sideSettings.thicknessTolerance), formatSaveDiffText(next.sideSettings.thicknessTolerance));
   pushSaveDiff(detailItems, 'Min. naročilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
   pushSaveDiff(detailItems, 'Teža / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
+  const savedSpecificationLabels = readCatalogSpecificationLabels(saved.appearanceOverride);
+  const nextSpecificationLabels = readCatalogSpecificationLabels(next.appearanceOverride);
+  if (JSON.stringify(savedSpecificationLabels) !== JSON.stringify(nextSpecificationLabels)) {
+    const renamedLabels = Object.entries(nextSpecificationLabels)
+      .map(([key, label]) => `${key}: ${label}`)
+      .join(', ');
+    detailItems.push(
+      `Prikazni nazivi specifikacij: ${renamedLabels || 'ponastavljeni na privzete nazive'}.`
+    );
+  }
   if (detailItems.length > 0) groups.push({ title: 'Dodatni podatki', items: detailItems });
 
   if (JSON.stringify(saved.typeSpecificData) !== JSON.stringify(next.typeSpecificData)) {
@@ -976,6 +1010,18 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     pushSaveDiff(variantItems, `${prefix} - SKU`, formatSaveDiffText(savedVariant.sku), formatSaveDiffText(variant.sku));
     pushSaveDiff(variantItems, `${prefix} - status`, formatSaveDiffStatus(savedVariant.active), formatSaveDiffStatus(variant.active));
     pushSaveDiff(variantItems, `${prefix} - vrstni red`, formatSaveDiffInteger(savedVariant.sort), formatSaveDiffInteger(variant.sort));
+    const savedSpecifications = savedVariant.contentOverride?.specifications ?? {};
+    const nextSpecifications = variant.contentOverride?.specifications ?? {};
+    if (JSON.stringify(savedSpecifications) !== JSON.stringify(nextSpecifications)) {
+      const specificationLabels = Object.keys(nextSpecifications).filter((label) => label.trim());
+      variantItems.push(
+        `${prefix} - dodatne specifikacije: ${
+          specificationLabels.length > 0
+            ? specificationLabels.join(', ')
+            : 'odstranjene'
+        }.`
+      );
+    }
 
     const savedVariantTag = saved.variantTags[savedVariant.id] ?? '';
     const nextVariantTag = next.variantTags[variant.id] ?? '';
@@ -1322,6 +1368,9 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     draft: family,
     productType,
     typeSpecificData,
+    appearanceOverride: initialData?.appearanceOverride
+      ? JSON.parse(JSON.stringify(initialData.appearanceOverride)) as CatalogItemAppearanceOverride
+      : null,
     sideSettings,
     documents,
     quantityDiscounts: createInitialQuantityDiscountDrafts(initialData?.quantityDiscounts, productType),
@@ -2616,6 +2665,9 @@ export default function AdminItemEditorPage({
     initialPersistedStateRef.current = buildInitialEditorPersistedState(initialData, createType);
   }
   const initialPersistedState = initialPersistedStateRef.current;
+  const [currentUpdatedAt, setCurrentUpdatedAt] = useState<string | null>(
+    initialData?.updatedAt ?? null
+  );
 
   const [draft, setDraft] = useState<ProductFamily>(() => ({
     ...initialPersistedState.draft,
@@ -2624,9 +2676,17 @@ export default function AdminItemEditorPage({
   }));
   const [productType, setProductType] = useState<ProductEditorType>(initialPersistedState.productType);
   const [typeSpecificData, setTypeSpecificData] = useState<UniversalProductSpecificData>(() => cloneTypeSpecificData(initialPersistedState.typeSpecificData));
+  const [appearanceOverride, setAppearanceOverride] = useState<CatalogItemAppearanceOverride | null>(
+    () => initialPersistedState.appearanceOverride
+      ? JSON.parse(JSON.stringify(initialPersistedState.appearanceOverride)) as CatalogItemAppearanceOverride
+      : null
+  );
   const [variantSelections, setVariantSelections] = useState<Set<string>>(new Set());
   const [dimensionVariantViewMode, setDimensionVariantViewMode] = useState<DimensionVariantViewMode>('rows');
   const [expandedDimensionVariantId, setExpandedDimensionVariantId] = useState<string | null>(
+    () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
+  );
+  const [specificationVariantId, setSpecificationVariantId] = useState<string | null>(
     () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
   );
   const [hoveredDimensionVariantId, setHoveredDimensionVariantId] = useState<string | null>(null);
@@ -2730,6 +2790,10 @@ export default function AdminItemEditorPage({
   const decimalDraftKey = (variantId: string, field: string) => `${variantId}:${field}`;
 
   useEffect(() => {
+    setCurrentUpdatedAt(initialData?.updatedAt ?? null);
+  }, [initialData?.id, initialData?.updatedAt]);
+
+  useEffect(() => {
     setDraft((current) => ({ ...current, category: selectedCategoryPath.join(' / ') }));
   }, [selectedCategoryPath]);
 
@@ -2763,6 +2827,13 @@ export default function AdminItemEditorPage({
 
   useEffect(() => {
     setExpandedDimensionVariantId((current) => {
+      if (current && draft.variants.some((variant) => variant.id === current)) return current;
+      return draft.defaultVariantId ?? draft.variants[0]?.id ?? null;
+    });
+  }, [draft.defaultVariantId, draft.variants]);
+
+  useEffect(() => {
+    setSpecificationVariantId((current) => {
       if (current && draft.variants.some((variant) => variant.id === current)) return current;
       return draft.defaultVariantId ?? draft.variants[0]?.id ?? null;
     });
@@ -2804,6 +2875,9 @@ export default function AdminItemEditorPage({
       },
       productType,
       typeSpecificData: cloneTypeSpecificData(typeSpecificData),
+      appearanceOverride: appearanceOverride
+        ? JSON.parse(JSON.stringify(appearanceOverride)) as CatalogItemAppearanceOverride
+        : null,
       sideSettings: cloneSideSettings(sideSettings),
       documents: documents.map(cloneDocument),
       quantityDiscounts: quantityDiscounts.map(cloneQuantityDiscountDraft),
@@ -2814,7 +2888,7 @@ export default function AdminItemEditorPage({
       selectedCategoryPath: [...selectedCategoryPath],
       videoAssignedVariantId
     }
-  ), [documents, itemLevelNote, mediaImageSlots, productType, quantityDiscounts, selectedCategoryPath, sideSettings, typeSpecificData, variantTags, videoAssignedVariantId, videoDraft]);
+  ), [appearanceOverride, documents, itemLevelNote, mediaImageSlots, productType, quantityDiscounts, selectedCategoryPath, sideSettings, typeSpecificData, variantTags, videoAssignedVariantId, videoDraft]);
 
   const currentPersistedState = useMemo<EditorPersistedState>(() => buildPersistedState(draft), [buildPersistedState, draft]);
   const buildSaveReadyPersistedState = useCallback((state: EditorPersistedState): EditorPersistedState => {
@@ -3005,6 +3079,11 @@ export default function AdminItemEditorPage({
     });
     setProductType(snapshot.persistedState.productType);
     setTypeSpecificData(cloneTypeSpecificData(snapshot.persistedState.typeSpecificData));
+    setAppearanceOverride(
+      snapshot.persistedState.appearanceOverride
+        ? JSON.parse(JSON.stringify(snapshot.persistedState.appearanceOverride)) as CatalogItemAppearanceOverride
+        : null
+    );
     setSideSettings(cloneSideSettings(snapshot.persistedState.sideSettings));
     setDocuments(snapshot.persistedState.documents.map(cloneDocument));
     setQuantityDiscounts(snapshot.persistedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
@@ -3267,6 +3346,11 @@ export default function AdminItemEditorPage({
     });
     setProductType(preparedState.productType);
     setTypeSpecificData(cloneTypeSpecificData(preparedState.typeSpecificData));
+    setAppearanceOverride(
+      preparedState.appearanceOverride
+        ? JSON.parse(JSON.stringify(preparedState.appearanceOverride)) as CatalogItemAppearanceOverride
+        : null
+    );
     setSideSettings(cloneSideSettings(preparedState.sideSettings));
     setDocuments(preparedState.documents.map(cloneDocument));
     setQuantityDiscounts(preparedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
@@ -3351,6 +3435,7 @@ export default function AdminItemEditorPage({
 
       const payload: CatalogItemEditorPayload = {
         id: initialData?.id,
+        expectedUpdatedAt: initialData?.id ? currentUpdatedAt ?? undefined : undefined,
         itemName: nextDraft.name.trim(),
         itemType: mapProductTypeToCatalogItemType(preparedState.productType),
         productType: preparedState.productType,
@@ -3372,7 +3457,7 @@ export default function AdminItemEditorPage({
           1,
           Math.max(0, (parseDecimalInput(preparedState.sideSettings.taxRatePercent) ?? 22) / 100)
         ),
-        appearanceOverride: initialData?.appearanceOverride ?? null,
+        appearanceOverride: preparedState.appearanceOverride,
         defaultVariantId:
           nextDraft.defaultVariantId != null
           && /^\d+$/.test(nextDraft.defaultVariantId)
@@ -3492,6 +3577,7 @@ export default function AdminItemEditorPage({
       };
 
       const body = await saveCatalogItemPayload(payload);
+      if (body.updatedAt) setCurrentUpdatedAt(body.updatedAt);
       localImageUrlsToRevoke.forEach(revokeLocalImageUrl);
       localVideoUrlsToRevoke.forEach(revokeLocalImageUrl);
 
@@ -3508,6 +3594,9 @@ export default function AdminItemEditorPage({
         },
         productType: preparedState.productType,
         typeSpecificData: cloneTypeSpecificData(preparedState.typeSpecificData),
+        appearanceOverride: preparedState.appearanceOverride
+          ? JSON.parse(JSON.stringify(preparedState.appearanceOverride)) as CatalogItemAppearanceOverride
+          : null,
         sideSettings: cloneSideSettings(preparedState.sideSettings),
         documents: uploadedDocuments.map(cloneDocument),
         quantityDiscounts: preparedState.quantityDiscounts.map(cloneQuantityDiscountDraft),
@@ -3523,6 +3612,11 @@ export default function AdminItemEditorPage({
       setDraft(canonicalDraft);
       setProductType(preparedState.productType);
       setTypeSpecificData(cloneTypeSpecificData(preparedState.typeSpecificData));
+      setAppearanceOverride(
+        preparedState.appearanceOverride
+          ? JSON.parse(JSON.stringify(preparedState.appearanceOverride)) as CatalogItemAppearanceOverride
+          : null
+      );
       setSideSettings(cloneSideSettings(preparedState.sideSettings));
       setMediaImageSlots(uploadedImages.map(cloneMediaImage));
       setVideoDraft(cloneVideo(uploadedVideo));
@@ -4894,6 +4988,251 @@ export default function AdminItemEditorPage({
 
   const expandedDimensionVariant =
     draft.variants.find((variant) => variant.id === expandedDimensionVariantId) ?? null;
+  const specificationVariant =
+    draft.variants.find((variant) => variant.id === specificationVariantId)
+    ?? draft.variants.find((variant) => variant.id === draft.defaultVariantId)
+    ?? draft.variants[0]
+    ?? null;
+  const protectedCatalogSpecificationLabels = buildCatalogPresentationDetails(
+    productType,
+    typeSpecificData
+  ).specifications.map((specification) => specification.label);
+  const articleSpecificationLabels = readCatalogSpecificationLabels(appearanceOverride);
+  const articlePresentationSpecifications = buildCatalogPresentationDetails(
+    productType,
+    typeSpecificData
+  ).specifications;
+  const articleParentSpecifications: StorefrontSpecification[] = [
+    ...articlePresentationSpecifications,
+    ...(sideSettings.material.trim()
+      ? [{ id: 'product-material', orderKey: 'material', label: 'Material', value: sideSettings.material.trim() }]
+      : []),
+    ...(sideSettings.color.trim()
+      ? [{ id: 'product-colour', orderKey: 'barva', label: 'Barva', value: sideSettings.color.trim() }]
+      : []),
+    ...(sideSettings.surface.trim()
+      ? [{ id: 'product-shape', orderKey: 'oblika', label: 'Oblika', value: sideSettings.surface.trim() }]
+      : [])
+  ];
+  const articleVariantSpecifications: StorefrontSpecification[] = specificationVariant
+    ? [
+        ...(specificationVariant.thickness !== null
+          ? [{ id: 'variant-thickness', orderKey: 'dimensions', label: 'Debelina', value: `${formatDecimalForDisplay(specificationVariant.thickness)} mm` }]
+          : []),
+        ...(specificationVariant.length !== null
+          ? [{ id: 'variant-length', orderKey: 'dimensions', label: 'Dolžina', value: `${formatDecimalForDisplay(specificationVariant.length)} mm` }]
+          : []),
+        ...(specificationVariant.width !== null
+          ? [{ id: 'variant-width', orderKey: 'dimensions', label: 'Širina', value: `${formatDecimalForDisplay(specificationVariant.width)} mm` }]
+          : []),
+        ...(typeof specificationVariant.weight === 'number' && specificationVariant.weight > 0
+          ? [{
+              id: 'variant-weight',
+              orderKey: 'teza',
+              label: 'Teža',
+              value: `${formatDecimalForDisplay(specificationVariant.weight)} ${productType === 'dimensions' ? 'g' : 'kg'}`
+            }]
+          : []),
+        ...(specificationVariant.errorTolerance?.trim()
+          ? [{
+              id: 'variant-tolerance',
+              orderKey: 'toleranca',
+              label: 'Toleranca',
+              value: `${specificationVariant.errorTolerance.startsWith('±') ? '' : '±'}${specificationVariant.errorTolerance}${specificationVariant.errorTolerance.toLocaleLowerCase('sl').includes('mm') ? '' : ' mm'}`
+            }]
+          : []),
+        ...Object.entries(specificationVariant.contentOverride?.specifications ?? {}).flatMap(
+          ([label, value], index) => label.trim() && value.trim()
+            ? [{
+                id: `variant-custom-${index}`,
+                orderKey: normalizeCatalogSpecificationToken(label),
+                label,
+                value
+              }]
+            : []
+        ),
+        ...(specificationVariant.sku.trim()
+          ? [{ id: 'variant-sku', orderKey: 'sku', label: 'SKU', value: specificationVariant.sku.trim() }]
+          : [])
+      ]
+    : [];
+  const articleMergedSpecifications = mergeStorefrontSpecifications(
+    articleParentSpecifications,
+    articleVariantSpecifications
+  );
+  const articleCanonicalDisplayedSpecifications = prepareStorefrontSpecifications(
+    articleMergedSpecifications,
+    []
+  );
+  const articleCanonicalSpecificationLabels = new Map(
+    articleCanonicalDisplayedSpecifications.map((specification) => [
+      getStorefrontSpecificationOrderKey(specification),
+      specification.label
+    ])
+  );
+  const articleDisplayedSpecifications = prepareStorefrontSpecifications(
+    articleMergedSpecifications,
+    [],
+    articleSpecificationLabels
+  );
+  const articleCustomSpecificationKeys = new Set(
+    Object.keys(specificationVariant?.contentOverride?.specifications ?? {})
+      .map(normalizeCatalogSpecificationToken)
+  );
+  const articleSystemSpecificationRows: SpecificationDisplayLabelRow[] = articleDisplayedSpecifications
+    .filter((specification) => (
+      !articleCustomSpecificationKeys.has(getStorefrontSpecificationOrderKey(specification))
+    ))
+    .map((specification) => ({
+      key: getStorefrontSpecificationOrderKey(specification),
+      label: specification.label,
+      canonicalLabel: articleCanonicalSpecificationLabels.get(
+        getStorefrontSpecificationOrderKey(specification)
+      ) ?? specification.label,
+      value: specification.value
+    }));
+  const updateSpecificationVariant = (specifications: Record<string, string>) => {
+    if (!specificationVariant) return;
+    const contentOverride: CatalogVariantContentOverride = {
+      ...(specificationVariant.contentOverride ?? {}),
+      specifications
+    };
+    if (Object.keys(specifications).length === 0) {
+      delete contentOverride.specifications;
+    }
+    updateVariant(specificationVariant.id, {
+      contentOverride: Object.keys(contentOverride).length > 0
+        ? contentOverride
+        : null
+    });
+  };
+  const updateArticleSpecificationLabels = (labels: Record<string, string>) => {
+    setAppearanceOverride(
+      writeCatalogSpecificationLabels(appearanceOverride, labels)
+    );
+  };
+  const articleSpecificationValueInputClassName =
+    `${inputClass} !h-8 !min-h-8 !px-2.5 !text-[11px]`;
+  const renderArticleSpecificationValueEditor = (
+    row: SpecificationDisplayLabelRow
+  ) => {
+    if (row.key === 'material' || row.key === 'barva' || row.key === 'oblika') {
+      const field = row.key === 'barva'
+        ? 'color'
+        : row.key === 'oblika'
+          ? 'surface'
+          : 'material';
+      return (
+        <input
+          value={sideSettings[field]}
+          disabled={!isEditable}
+          data-testid={`article-canonical-specification-${row.key}`}
+          aria-label={`Vrednost specifikacije ${row.label}`}
+          onChange={(event) => setSideSettings((current) => ({
+            ...current,
+            [field]: event.target.value
+          }))}
+          className={articleSpecificationValueInputClassName}
+        />
+      );
+    }
+    if (row.key === 'dimensions' && specificationVariant) {
+      return (
+        <div className="grid grid-cols-3 gap-1.5">
+          {([
+            ['thickness', 'Debelina', specificationVariant.thickness],
+            ['length', 'Dolžina', specificationVariant.length],
+            ['width', 'Širina', specificationVariant.width]
+          ] as const).map(([field, label, value]) => (
+            <label key={field} className="relative block min-w-0">
+              <span className="sr-only">{label}</span>
+              <input
+                value={readDecimalInputValue(specificationVariant.id, field, value)}
+                disabled={!isEditable}
+                inputMode="decimal"
+                data-testid={`article-canonical-specification-${field}`}
+                aria-label={label}
+                onChange={(event) => updateDecimalInputDraft(
+                  specificationVariant.id,
+                  field,
+                  event.target.value
+                )}
+                onBlur={() => commitDecimalInputDraft(
+                  specificationVariant.id,
+                  field,
+                  value,
+                  (nextValue) => updateVariant(specificationVariant.id, { [field]: nextValue }),
+                  null
+                )}
+                className={`${articleSpecificationValueInputClassName} !pr-8`}
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[9px] text-slate-400">mm</span>
+            </label>
+          ))}
+        </div>
+      );
+    }
+    if (row.key === 'teza' && specificationVariant) {
+      return (
+        <label className="relative block min-w-0">
+          <span className="sr-only">Teža</span>
+          <input
+            value={readDecimalInputValue(specificationVariant.id, 'weight', specificationVariant.weight)}
+            disabled={!isEditable}
+            inputMode="decimal"
+            data-testid="article-canonical-specification-weight"
+            aria-label="Teža"
+            onChange={(event) => updateDecimalInputDraft(
+              specificationVariant.id,
+              'weight',
+              event.target.value
+            )}
+            onBlur={() => commitDecimalInputDraft(
+              specificationVariant.id,
+              'weight',
+              specificationVariant.weight ?? null,
+              (weight) => updateVariant(specificationVariant.id, { weight }),
+              null
+            )}
+            className={`${articleSpecificationValueInputClassName} !pr-8`}
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[9px] text-slate-400">
+            {productType === 'dimensions' ? 'g' : 'kg'}
+          </span>
+        </label>
+      );
+    }
+    if (row.key === 'toleranca' && specificationVariant) {
+      return (
+        <input
+          value={specificationVariant.errorTolerance ?? ''}
+          disabled={!isEditable}
+          data-testid="article-canonical-specification-tolerance"
+          aria-label="Toleranca"
+          onChange={(event) => updateVariant(specificationVariant.id, {
+            errorTolerance: event.target.value || null
+          })}
+          className={articleSpecificationValueInputClassName}
+        />
+      );
+    }
+    if (row.key === 'sku' && specificationVariant) {
+      return (
+        <input
+          value={specificationVariant.sku}
+          disabled={!isEditable}
+          data-testid="article-canonical-specification-sku"
+          aria-label="SKU različice"
+          onChange={(event) => updateVariant(specificationVariant.id, {
+            sku: event.target.value,
+            skuAutoGenerated: false
+          })}
+          className={articleSpecificationValueInputClassName}
+        />
+      );
+    }
+    return undefined;
+  };
   const dimensionVariantLayoutCompactCount = Math.max(0, draft.variants.length - 1);
   const compactDimensionVariantWidth = dimensionVariantLayoutCompactCount <= 2
     ? 220
@@ -7296,6 +7635,96 @@ export default function AdminItemEditorPage({
           )}
         />
       )}
+      {draft.variants.length > 0 ? (
+        <section
+          className={`${adminWindowCardClassName} px-5 py-5`}
+          style={adminWindowCardStyle}
+          data-testid="article-variant-specifications-section"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className={editorSectionTitleClassName}>
+                Specifikacije različice
+              </h2>
+              <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                Prikazne nazive lahko prilagodite brez spremembe pomena prodajnih polj.
+                Iste nastavitve so na voljo tudi v urejevalniku videza artiklov.
+              </p>
+            </div>
+            {draft.variants.length > 1 ? (
+              <label className="grid min-w-[220px] gap-1">
+                <span className="text-[10px] font-semibold text-slate-600">Različica</span>
+                <select
+                  value={specificationVariant?.id ?? ''}
+                  onChange={(event) => setSpecificationVariantId(event.target.value || null)}
+                  className={selectTokenClasses.trigger}
+                  aria-label="Različica za dodatne specifikacije"
+                >
+                  {draft.variants.map((variant, index) => (
+                    <option key={variant.id} value={variant.id}>
+                      {buildDimensionVariantHeaderLabel(variant, index, true)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+          <div className="mt-4 grid max-w-3xl gap-5">
+            <div className="grid gap-2">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-800">
+                  Sistemske specifikacije
+                </h3>
+                <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
+                  Levi stolpec določa prikazni naziv, desni pa vrednost v prodajnem zapisu.
+                </p>
+              </div>
+              <SpecificationDisplayLabelsEditor
+                rows={articleSystemSpecificationRows.map((row) => ({
+                  ...row,
+                  valueEditor: renderArticleSpecificationValueEditor(row)
+                }))}
+                labels={articleSpecificationLabels}
+                onChange={updateArticleSpecificationLabels}
+                disabled={!isEditable}
+                surface="article-editor"
+                reservedLabels={Object.keys(
+                  specificationVariant?.contentOverride?.specifications ?? {}
+                )}
+              />
+            </div>
+            <div className="grid gap-2">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-800">
+                  Dodatne specifikacije
+                </h3>
+                <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
+                  Dodatnim vrsticam lahko neposredno uredite naziv in vrednost.
+                </p>
+              </div>
+              <VariantSpecificationsEditor
+                specifications={specificationVariant?.contentOverride?.specifications ?? {}}
+                onChange={updateSpecificationVariant}
+                onLabelChange={(previousLabel, nextLabel) => {
+                  const migrated = migrateCatalogSpecificationKey(
+                    [],
+                    articleSpecificationLabels,
+                    previousLabel,
+                    nextLabel
+                  );
+                  updateArticleSpecificationLabels(migrated.specificationLabels);
+                }}
+                disabled={!isEditable}
+                surface="article-editor"
+                reservedLabels={[
+                  ...protectedCatalogSpecificationLabels,
+                  ...Object.values(articleSpecificationLabels)
+                ]}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
       </>
       ) : null}
 

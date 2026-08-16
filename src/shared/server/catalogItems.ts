@@ -20,6 +20,7 @@ import type {
   CatalogVariantQuickPatch
 } from '@/shared/domain/catalog/catalogAdminTypes';
 import { fetchOrderItemAllocationsForSkus } from '@/shared/server/orders';
+import { validateAndNormalizeCatalogAppearanceOverride } from '@/shared/domain/catalog/catalogSpecification';
 
 export type CatalogItemSeedRow = {
   id: number;
@@ -64,6 +65,26 @@ export class CatalogItemValidationError extends Error {
     super(message);
     this.name = 'CatalogItemValidationError';
   }
+}
+
+export class CatalogItemConcurrencyConflictError extends Error {
+  readonly statusCode = 409;
+  readonly itemId: number;
+  readonly currentUpdatedAt: string;
+
+  constructor(itemId: number, currentUpdatedAt: string) {
+    super('Artikel je bil medtem spremenjen drugje. Osvežite podatke in ponovno uporabite spremembe.');
+    this.name = 'CatalogItemConcurrencyConflictError';
+    this.itemId = itemId;
+    this.currentUpdatedAt = currentUpdatedAt;
+  }
+}
+
+function asIsoTimestamp(value: unknown): string | null {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 function assertCatalogItemPublicationReady(
@@ -2805,7 +2826,14 @@ async function assertPersistedCatalogOptionAssignmentsReady(
   );
 }
 
-export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string }> {
+export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string; updatedAt: string }> {
+  const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
+    payload.appearanceOverride
+  );
+  if (!appearanceOverrideResult.ok) {
+    throw new CatalogItemValidationError(appearanceOverrideResult.message);
+  }
+  const normalizedAppearanceOverride = appearanceOverrideResult.value;
   const pool = await getPool();
   const client = await pool.connect();
   try {
@@ -2835,15 +2863,29 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
       ? { rows: [] }
       : await client.query(
           `
-          select id, slug, default_variant_id
+          select id, slug, default_variant_id, updated_at
           from catalog_items
           where id = $1
           limit 1
+          for update
           `,
           [effectiveId]
         );
     if (effectiveId !== null && existingItemResult.rows.length === 0) {
       throw new Error('Artikel za posodobitev ni bil najden.');
+    }
+    if (payload.id !== undefined) {
+      const expectedUpdatedAt = asIsoTimestamp(payload.expectedUpdatedAt);
+      if (!expectedUpdatedAt) {
+        throw new CatalogItemValidationError('Manjka različica podatkov artikla. Osvežite stran in poskusite znova.');
+      }
+      const currentUpdatedAt = asIsoTimestamp(existingItemResult.rows[0]?.updated_at);
+      if (!currentUpdatedAt) {
+        throw new Error('Različice podatkov artikla ni bilo mogoče preveriti.');
+      }
+      if (currentUpdatedAt !== expectedUpdatedAt) {
+        throw new CatalogItemConcurrencyConflictError(effectiveId as number, currentUpdatedAt);
+      }
     }
 
     const existingVariants = effectiveId === null
@@ -2947,10 +2989,9 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
               appearance_override_json = $17::jsonb,
               deleted_at = null,
               purge_after = null,
-              status_before_delete = null,
-              updated_at = now()
+              status_before_delete = null
           where id = $18
-          returning id, slug
+          returning id, slug, updated_at
           `,
           [
             payload.itemName,
@@ -2969,7 +3010,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             asStringOrNull(payload.adminNotes),
             payload.position ?? 0,
             Math.min(1, Math.max(0, payload.taxRate ?? 0.22)),
-            serializeJsonbValue(normalizeAppearanceOverride(payload.appearanceOverride)),
+            serializeJsonbValue(normalizedAppearanceOverride),
             effectiveId
           ]
         )
@@ -2979,7 +3020,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape,
             description, admin_notes, position, tax_rate, appearance_override_json
           ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
-          returning id, slug
+          returning id, slug, updated_at
           `,
           [
             payload.itemName,
@@ -2998,11 +3039,11 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             asStringOrNull(payload.adminNotes),
             payload.position ?? 0,
             Math.min(1, Math.max(0, payload.taxRate ?? 0.22)),
-            serializeJsonbValue(normalizeAppearanceOverride(payload.appearanceOverride))
+            serializeJsonbValue(normalizedAppearanceOverride)
           ]
         );
 
-    const itemRow = itemResult.rows[0] as { id: number; slug: string } | undefined;
+    const itemRow = itemResult.rows[0] as { id: number; slug: string; updated_at: unknown } | undefined;
     if (!itemRow) throw new Error('Shranjevanje artikla ni uspelo.');
 
     if (payload.optionAxes !== undefined) {
@@ -3203,10 +3244,18 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
       ?? (currentDefaultVariantId !== null && eligibleDefaultVariantIds.includes(currentDefaultVariantId)
         ? currentDefaultVariantId
         : eligibleDefaultVariantIds[0] ?? null);
-    await client.query(
-      'update catalog_items set default_variant_id = $1, updated_at = now() where id = $2',
+    const finalItemUpdate = await client.query(
+      `
+      update catalog_items
+      set default_variant_id = $1,
+          updated_at = greatest(clock_timestamp(), updated_at + interval '1 millisecond')
+      where id = $2
+      returning updated_at
+      `,
       [defaultVariantId, itemRow.id]
     );
+    const updatedAt = asIsoTimestamp(finalItemUpdate.rows[0]?.updated_at);
+    if (!updatedAt) throw new Error('Različice shranjenega artikla ni bilo mogoče prebrati.');
 
     const existingMedia = (
       await client.query(
@@ -3397,7 +3446,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
 
     await client.query('commit');
     revalidateTag(CATALOG_PUBLIC_TAG, 'max');
-    return { id: itemRow.id, slug: itemRow.slug };
+    return { id: itemRow.id, slug: itemRow.slug, updatedAt };
   } catch (error) {
     await client.query('rollback');
     throw error;

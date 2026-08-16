@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
+  CatalogItemConcurrencyConflictError,
   CatalogItemIdentityConflictError,
   CatalogItemValidationError,
   fetchCatalogItemEditorBySlug,
@@ -29,6 +30,25 @@ export async function POST(request: Request) {
     }
     if (!Array.isArray(payload.variants)) {
       return NextResponse.json({ message: 'Različice morajo biti poslane kot seznam.' }, { status: 400 });
+    }
+    if (
+      payload.id !== undefined
+      && (!Number.isInteger(payload.id) || payload.id <= 0)
+    ) {
+      return NextResponse.json({ message: 'Artikel za posodobitev ni veljaven.' }, { status: 400 });
+    }
+    if (
+      payload.id !== undefined
+      && (
+        typeof payload.expectedUpdatedAt !== 'string'
+        || !payload.expectedUpdatedAt.trim()
+        || Number.isNaN(Date.parse(payload.expectedUpdatedAt))
+      )
+    ) {
+      return NextResponse.json(
+        { message: 'Manjka različica podatkov artikla. Osvežite stran in poskusite znova.' },
+        { status: 400 }
+      );
     }
     if (
       payload.taxRate !== undefined
@@ -134,8 +154,18 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json<CatalogItemSaveApiResponse>({ id: saved.id, slug: saved.slug });
+    return NextResponse.json<CatalogItemSaveApiResponse>({
+      id: saved.id,
+      slug: saved.slug,
+      updatedAt: saved.updatedAt
+    });
   } catch (error) {
+    if (error instanceof CatalogItemConcurrencyConflictError) {
+      return NextResponse.json<CatalogItemSaveApiResponse>(
+        { message: error.message, updatedAt: error.currentUpdatedAt },
+        { status: error.statusCode }
+      );
+    }
     if (error instanceof CatalogItemIdentityConflictError) {
       return NextResponse.json<CatalogItemSaveApiResponse>(
         { message: error.message, conflicts: error.conflicts },

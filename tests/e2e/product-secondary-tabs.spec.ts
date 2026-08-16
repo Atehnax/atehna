@@ -210,8 +210,26 @@ test.describe('product secondary content tab contracts', () => {
     expect(specificationSource).toContain(
       'appearance.secondaryContent.showSpecificationRowDividers'
     );
+    expect(specificationSource).toContain(
+      'const firstColumnCount = Math.ceil(visibleSpecifications.length / 2);'
+    );
+    expect(specificationSource).toContain(
+      "'--storefront-specification-desktop-column'"
+    );
+    expect(specificationSource).toContain(
+      'data-specification-column-end'
+    );
     expect(compactStyles).toContain(
       'grid-template-columns: minmax(0, var(--product-detail-specification-first-column, 50fr)) minmax(0, var(--product-detail-specification-second-column, 50fr));'
+    );
+    expect(compactStyles).toContain(
+      `${desktopRowSelector} { grid-column: var(--storefront-specification-desktop-column); grid-row: var(--storefront-specification-desktop-row); }`
+    );
+    expect(compactStyles).toContain(
+      ".storefront-specification-row[data-specification-column-end='true'] { border-bottom-width: 0; }"
+    );
+    expect(compactStyles).not.toContain(
+      '.storefront-specification-row:nth-last-child(2):nth-child(odd)'
     );
     expect(compactStyles).toContain(
       `${desktopRowSelector} { grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr) !important; gap: 1rem !important; }`

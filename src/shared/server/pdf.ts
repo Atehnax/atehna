@@ -154,7 +154,7 @@ export async function generateOrderPdf(
 
   const commitmentText =
     order.commitmentStatus === 'pending_confirmation'
-      ? 'Vrsta: Nezavezujoče povpraševanje – čaka na ročno potrditev'
+      ? 'Vrsta: Nezavezujoče povpraševanje – čaka na potrditev'
       : order.commitmentStatus === 'binding'
         ? 'Vrsta: Zavezujoče naročilo'
         : order.commitmentStatus === 'rejected'

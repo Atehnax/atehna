@@ -72,43 +72,44 @@ export default async function SubcategoryPage(props: { params: Promise<{ categor
         href: catalogSubcategoryHref(category.slug, subcategory.slug)
       }
     });
-    return toStorefrontProductSummary(
-      product,
-      `${category.title} / ${subcategory.title}`
-    );
+    return toStorefrontProductSummary(product);
   });
 
   return (
     <div className="container-base site-section">
-      <nav aria-label="Drobtinice" className="mb-5 text-sm">
-        <Link href="/products" className="site-link">
-          Izdelki
-        </Link>
-        <span className="mx-2 text-[color:var(--site-color-text-muted)]">/</span>
-        <Link href={catalogCategoryHref(category.slug)} className="site-link">
-          {category.title}
-        </Link>
-        <span className="mx-2 text-[color:var(--site-color-text-muted)]">/</span>
-        <span
-          aria-current="page"
-          className="text-[color:var(--site-color-text-muted)]"
+      <div className="mx-auto max-w-[calc(1180px/var(--commercial-storefront-scale))]">
+        <nav
+          aria-label="Drobtinice"
+          className="mb-7 text-[length:calc(0.8125rem/var(--commercial-storefront-scale))]"
         >
-          {subcategory.title}
-        </span>
-      </nav>
+          <ol className="flex min-w-0 items-center gap-2 text-[color:var(--site-color-text-muted)]">
+            <li>
+              <Link href="/products" className="site-link font-semibold">
+                Izdelki
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="min-w-0">
+              <Link
+                href={catalogCategoryHref(category.slug)}
+                className="site-link block truncate font-semibold"
+              >
+                {category.title}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="min-w-0">
+              <span aria-current="page" className="block truncate">
+                {subcategory.title}
+              </span>
+            </li>
+          </ol>
+        </nav>
 
-      <header className="site-content-measure">
-        <p className="site-eyebrow">{category.title}</p>
-        <h1 className="site-heading-1 mt-2">{subcategory.title}</h1>
-        {subcategory.description ? (
-          <p className="site-paragraph mt-4 text-lg">{subcategory.description}</p>
-        ) : null}
-      </header>
-
-      <div className="mt-10">
         <ProductListing
           products={products}
-          description="Izberite izdelek za ogled različic, zaloge in tehničnih podatkov."
+          title={subcategory.title}
+          description={subcategory.description}
         />
       </div>
     </div>

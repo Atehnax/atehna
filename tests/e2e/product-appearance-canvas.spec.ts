@@ -197,6 +197,72 @@ test.describe('product appearance hybrid canvas contracts', () => {
     ).toEqual(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS);
   });
 
+  test('upgrades only the legacy oversized product-title baseline', () => {
+    const legacy = normalizeProductAppearanceConfig({
+      canvas: {
+        mode: 'free',
+        elements: {
+          'product-title': {
+            fontSizePx: 44
+          },
+          'product-short-description': {
+            fontSizePx: 44
+          }
+        }
+      }
+    });
+
+    for (const device of ['desktop', 'tablet', 'mobile'] as const) {
+      expect(
+        legacy.canvas.elements['product-title'].responsive[device].fontSizePx
+      ).toBe(40);
+      expect(
+        legacy.canvas.elements['product-short-description'].responsive[device]
+          .fontSizePx
+      ).toBe(44);
+    }
+
+    const authored = normalizeProductAppearanceConfig({
+      schemaVersion: 2,
+      canvas: {
+        elements: {
+          'product-title': {
+            fontSizePx: 44
+          }
+        }
+      }
+    });
+    expect(
+      authored.canvas.elements['product-title'].responsive.desktop.fontSizePx
+    ).toBe(44);
+  });
+
+  test('normalization keeps a fixed primary action large enough to remain usable', () => {
+    const normalized = normalizeProductAppearanceConfig({
+      schemaVersion: 2,
+      canvas: {
+        mode: 'free',
+        elements: {
+          'product-primary-action': {
+            widthPx: 1,
+            heightPx: 1
+          }
+        }
+      }
+    });
+
+    for (const device of ['desktop', 'tablet', 'mobile'] as const) {
+      expect(
+        normalized.canvas.elements['product-primary-action'].responsive[device]
+      ).toMatchObject({ widthPx: 160, heightPx: 40 });
+    }
+    expect(
+      normalizeProductAppearanceConfig(
+        toStoredProductAppearanceConfig(normalized)
+      ).canvas.elements['product-primary-action']
+    ).toEqual(normalized.canvas.elements['product-primary-action']);
+  });
+
   test('commerce-critical canvas elements remain protected', () => {
     expect([...PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS]).toEqual([
       'product-purchase',

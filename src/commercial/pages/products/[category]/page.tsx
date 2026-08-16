@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { catalogCategoryHref, catalogCategoryItemHref, catalogSubcategoryHref } from '@/commercial/catalog/catalogRoutes';
 import {
   getCatalogCategoryItemPrice,
@@ -12,12 +12,14 @@ import {
   getCatalogCategorySlugsServer,
   isCatalogRouteNotFoundError
 } from '@/commercial/catalog/catalogServer';
+import StorefrontCategoryShowcase from '@/commercial/components/storefront/StorefrontCategoryShowcase';
 import ProductListing from '@/commercial/components/storefront/ProductListing';
 import {
   buildStorefrontProductFromCatalogItem,
   toStorefrontProductSummary
 } from '@/commercial/features/products/storefrontProduct';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
+import { getLandingPageConfig } from '@/shared/server/landingPage';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-static';
@@ -31,13 +33,68 @@ export async function generateStaticParams() {
   return (await getCatalogCategorySlugsServer()).map((category) => ({ category }));
 }
 
-export async function generateMetadata(props: { params: Promise<{ category: string }> }) {
+const siteOrigin = new URL('https://atehna.si');
+
+const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
+
+const normalizeCopy = (value: string) => value.trim().toLocaleLowerCase('sl');
+
+const getCategoryCopy = (category: {
+  title: string;
+  summary?: string | null;
+  description?: string | null;
+}) => {
+  const title = normalizeCopy(category.title);
+  const copy = [category.summary, category.description]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .filter((value, index, values) => {
+      const normalized = normalizeCopy(value);
+      return normalized !== title && values.findIndex((candidate) => normalizeCopy(candidate) === normalized) === index;
+    });
+
+  return {
+    lead: copy[0] ?? null,
+    detail: copy[1] ?? null
+  };
+};
+
+const getAbsoluteImageUrl = (value: string | null | undefined) => {
+  const image = getImageSrc(value);
+  if (!image) return null;
+
+  try {
+    return new URL(image, siteOrigin).toString();
+  } catch {
+    return null;
+  }
+};
+
+export async function generateMetadata(props: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const params = await props.params;
   try {
     const category = await getCatalogCategoryServer(params.category);
+    const description =
+      getCategoryCopy(category).lead ??
+      `Preglejte izdelke v kategoriji ${category.title}.`;
+    const image = getAbsoluteImageUrl(category.image);
+
     return {
       title: category.title,
-      description: category.summary
+      description,
+      openGraph: {
+        title: category.title,
+        description,
+        url: new URL(catalogCategoryHref(category.slug), siteOrigin),
+        type: 'website',
+        images: image ? [{ url: image, alt: category.title }] : []
+      },
+      twitter: {
+        card: image ? 'summary_large_image' : 'summary',
+        title: category.title,
+        description,
+        images: image ? [image] : []
+      }
     };
   } catch (error) {
     if (isCatalogRouteNotFoundError(error)) return {};
@@ -45,26 +102,25 @@ export async function generateMetadata(props: { params: Promise<{ category: stri
   }
 }
 
-const getArticleLabel = (count: number) => {
-  if (count === 1) return 'artikel';
-  if (count === 2) return 'artikla';
-  if (count >= 3 && count <= 4) return 'artikli';
-  return 'artiklov';
-};
-
-const getImageSrc = (value: string | null | undefined) => value?.trim() || null;
-
 export default async function CategoryPage(props: { params: Promise<{ category: string }> }) {
   const params = await props.params;
   let pageData: Awaited<ReturnType<typeof getCatalogCategoryPageDataServer>>;
+  let landingSettings: Awaited<ReturnType<typeof getLandingPageConfig>>;
   try {
-    pageData = await getCatalogCategoryPageDataServer(params.category);
+    [pageData, landingSettings] = await Promise.all([
+      getCatalogCategoryPageDataServer(params.category),
+      getLandingPageConfig()
+    ]);
   } catch (error) {
     if (isCatalogRouteNotFoundError(error)) notFound();
     throw error;
   }
-  const { category, categories } = pageData;
-  const categoryImageSrc = getImageSrc(category.image);
+  const { category } = pageData;
+  const categoryCopy = getCategoryCopy(category);
+  const subcategoryShowcaseItems = category.subcategories.map((subcategory) => ({
+    ...subcategory,
+    href: catalogSubcategoryHref(category.slug, subcategory.slug)
+  }));
   const products = sortCatalogItems(category.items ?? []).map((item) => {
     const href = catalogCategoryItemHref(category.slug, item.slug);
     const product = buildStorefrontProductFromCatalogItem(item, {
@@ -78,135 +134,89 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
         href: catalogCategoryHref(category.slug)
       }
     });
-    return toStorefrontProductSummary(product, category.title);
+    return toStorefrontProductSummary(product);
   });
 
   return (
     <div className="container-base site-section">
-      <nav aria-label="Drobtinice" className="mb-5 text-sm">
-        <Link href="/products" className="site-link">
-          Izdelki
-        </Link>
-        <span className="mx-2 text-[color:var(--site-color-text-muted)]">/</span>
-        <span
-          aria-current="page"
-          className="text-[color:var(--site-color-text-muted)]"
+      <div className="mx-auto max-w-[calc(1180px/var(--commercial-storefront-scale))]">
+        <nav
+          aria-label="Drobtinice"
+          className="mb-7 text-[length:calc(0.8125rem/var(--commercial-storefront-scale))]"
         >
-          {category.title}
-        </span>
-      </nav>
-
-      <header
-        className={`grid items-center gap-8 ${
-          categoryImageSrc ? 'lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]' : ''
-        }`}
-      >
-        <div className="site-content-measure">
-          <p className="site-eyebrow">Kategorija</p>
-          <h1 className="site-heading-1 mt-2">{category.title}</h1>
-          {category.summary ? (
-            <p className="site-paragraph mt-4 text-lg">{category.summary}</p>
-          ) : null}
-          {category.description ? (
-            <p className="site-paragraph mt-4">{category.description}</p>
-          ) : null}
-        </div>
-        {categoryImageSrc ? (
-          <div className="site-panel relative aspect-[4/3] overflow-hidden bg-[color:var(--site-color-surface-muted)]">
-            <Image
-              src={categoryImageSrc}
-              alt={category.title}
-              fill
-              sizes="(min-width: 1024px) 33vw, 100vw"
-              className="object-cover"
-            />
-          </div>
-        ) : null}
-      </header>
-
-      {category.subcategories.length > 0 ? (
-        <section className="mt-12" aria-labelledby="subcategories-title">
-          <div className="mb-5">
-            <h2 id="subcategories-title" className="site-heading-2">
-              Podkategorije
-            </h2>
-            <p className="site-paragraph mt-2">
-              Izberite področje in poiščite ustrezne artikle.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {category.subcategories.map((subcategory) => (
-              <Link
-                key={subcategory.slug}
-                href={catalogSubcategoryHref(category.slug, subcategory.slug)}
-                prefetch={false}
-                className="site-panel group flex min-h-32 items-end justify-between gap-5 overflow-hidden p-5 transition hover:-translate-y-0.5 hover:border-[color:var(--site-color-primary)]"
-              >
-                <div>
-                  <h3 className="font-semibold text-[color:var(--site-color-text)] transition group-hover:text-[color:var(--site-color-primary)]">
-                    {subcategory.title}
-                  </h3>
-                  {subcategory.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm text-[color:var(--site-color-text-muted)]">
-                      {subcategory.description}
-                    </p>
-                  ) : null}
-                  <p className="mt-3 text-xs text-[color:var(--site-color-text-muted)]">
-                    {subcategory.itemCount}{' '}
-                    {getArticleLabel(subcategory.itemCount)}
-                  </p>
-                </div>
-                <span
-                  aria-hidden="true"
-                  className="text-xl text-[color:var(--site-color-primary)]"
-                >
-                  →
-                </span>
+          <ol className="flex min-w-0 items-center gap-2 text-[color:var(--site-color-text-muted)]">
+            <li>
+              <Link href="/products" className="site-link font-semibold">
+                Izdelki
               </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="min-w-0">
+              <span aria-current="page" className="block truncate">
+                {category.title}
+              </span>
+            </li>
+          </ol>
+        </nav>
 
-      {products.length > 0 || category.subcategories.length === 0 ? (
-        <div className="mt-12">
+        {products.length > 0 || category.subcategories.length === 0 ? (
           <ProductListing
             products={products}
-            title={
-              category.subcategories.length > 0
-                ? 'Izdelki v kategoriji'
-                : 'Izdelki'
-            }
-            description="Cene so prikazane z in brez DDV. Dobavljivost potrdimo pred obdelavo naročila."
-          />
-        </div>
-      ) : null}
+            title={category.title}
+            description={categoryCopy.lead}
+            secondaryDescription={categoryCopy.detail}
+          >
+            {category.subcategories.length > 0 ? (
+              <section className="mt-10" aria-label="Podkategorije">
+                <StorefrontCategoryShowcase
+                  categorySlug={category.slug}
+                  items={subcategoryShowcaseItems}
+                  settings={landingSettings.categories}
+                  canvas={landingSettings.canvas}
+                />
+              </section>
+            ) : null}
+          </ProductListing>
+        ) : (
+          <>
+            <header className="border-b border-[color:var(--site-divider-color)] pb-8">
+              <div className="site-content-measure">
+                <h1 className="site-heading-2">{category.title}</h1>
+                {categoryCopy.lead ? (
+                  <p className="mt-3 max-w-xl text-[length:calc(0.9375rem/var(--commercial-storefront-scale))] leading-7 text-[color:var(--site-color-text-muted)]">
+                    {categoryCopy.lead}
+                  </p>
+                ) : null}
+                {categoryCopy.detail ? (
+                  <p className="mt-2 max-w-xl text-[length:calc(0.8125rem/var(--commercial-storefront-scale))] leading-6 text-[color:var(--site-color-text-muted)]">
+                    {categoryCopy.detail}
+                  </p>
+                ) : null}
+              </div>
+            </header>
+            <section className="mt-10" aria-label="Podkategorije">
+              <StorefrontCategoryShowcase
+                categorySlug={category.slug}
+                items={subcategoryShowcaseItems}
+                settings={landingSettings.categories}
+                canvas={landingSettings.canvas}
+              />
+            </section>
+          </>
+        )}
 
-      {categories.length > 1 ? (
         <nav
-          aria-label="Druge kategorije"
-          className="mt-12 border-t border-[color:var(--site-divider-color)] pt-6"
+          aria-label="Katalog izdelkov"
+          className="mt-10 border-t border-[color:var(--site-divider-color)] pt-5"
         >
-          <p className="mb-3 text-sm font-semibold text-[color:var(--site-color-text)]">
-            Druge kategorije
-          </p>
-          <ul className="flex flex-wrap gap-x-5 gap-y-2">
-            {categories
-              .filter((item) => item.slug !== category.slug)
-              .map((item) => (
-                <li key={item.slug}>
-                  <Link
-                    href={catalogCategoryHref(item.slug)}
-                    prefetch={false}
-                    className="site-link text-sm"
-                  >
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-          </ul>
+          <Link
+            href="/products"
+            className="site-link inline-flex items-center gap-1 text-[length:calc(0.8125rem/var(--commercial-storefront-scale))] font-semibold"
+          >
+            Vse kategorije <span aria-hidden="true">→</span>
+          </Link>
         </nav>
-      ) : null}
+      </div>
     </div>
   );
 }

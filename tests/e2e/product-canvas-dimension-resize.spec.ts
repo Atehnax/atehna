@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS,
+  PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX,
+  PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX,
   normalizeProductAppearanceConfig,
   toStoredProductAppearanceConfig
 } from '@/shared/domain/style/productAppearance';
@@ -105,6 +107,35 @@ test.describe('product canvas dimension resizing', () => {
       widthPx: 440,
       heightPx: 260
     });
+  });
+
+  test('primary action resizing keeps the button usable', () => {
+    expect(resolveProductCanvasResize({
+      startWidth: 240,
+      startHeight: 44,
+      nextWidth: 20,
+      nextHeight: 10,
+      axis: 'both',
+      aspectRatioLocked: false,
+      minimumWidth: PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX,
+      minimumHeight: PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX
+    })).toEqual({
+      widthPx: 160,
+      heightPx: 40
+    });
+
+    const locked = resolveProductCanvasResize({
+      startWidth: 240,
+      startHeight: 44,
+      nextWidth: 160,
+      nextHeight: 44,
+      axis: 'width',
+      aspectRatioLocked: true,
+      minimumWidth: PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX,
+      minimumHeight: PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX
+    });
+    expect(locked).toEqual({ widthPx: 219, heightPx: 40 });
+    expect(locked.widthPx! / locked.heightPx!).toBeCloseTo(240 / 44, 1);
   });
 
   test('locked single-axis edits and corner drags preserve the measured ratio', () => {

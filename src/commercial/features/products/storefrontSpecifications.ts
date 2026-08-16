@@ -1,6 +1,12 @@
 import type {
   StorefrontSpecification
 } from '@/commercial/features/products/storefrontProduct';
+import {
+  normalizeCatalogSpecificationToken,
+  type CatalogSpecificationLabelOverrides
+} from '@/shared/domain/catalog/catalogSpecification';
+
+export const normalizeStorefrontSpecificationToken = normalizeCatalogSpecificationToken;
 
 export const STOREFRONT_DIMENSIONS_SPECIFICATION_KEY = 'dimensions';
 
@@ -18,26 +24,40 @@ const dimensionLabels: Record<string, DimensionPart | 'combined'> = {
   sirina: 'width'
 };
 
-const normalizeSpecificationToken = (value: string) =>
-  value
-    .trim()
-    .toLocaleLowerCase('sl')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-
 const dimensionPartForLabel = (
   label: string
 ): DimensionPart | 'combined' | null =>
-  dimensionLabels[normalizeSpecificationToken(label)] ?? null;
+  dimensionLabels[normalizeStorefrontSpecificationToken(label)] ?? null;
+
+const canonicalSpecificationOrderKeys: Record<string, string> = {
+  material: 'material',
+  barva: 'barva',
+  color: 'barva',
+  colour: 'barva',
+  oblika: 'oblika',
+  shape: 'oblika',
+  teza: 'teza',
+  weight: 'teza',
+  toleranca: 'toleranca',
+  tolerance: 'toleranca',
+  sku: 'sku'
+};
 
 export function getStorefrontSpecificationOrderKey(
-  specification: Pick<StorefrontSpecification, 'label'>
+  specification: Pick<StorefrontSpecification, 'label' | 'orderKey'>
 ) {
-  return dimensionPartForLabel(specification.label)
-    ? STOREFRONT_DIMENSIONS_SPECIFICATION_KEY
-    : normalizeSpecificationToken(specification.label);
+  const explicitKey = normalizeStorefrontSpecificationToken(
+    specification.orderKey ?? ''
+  );
+  if (
+    dimensionPartForLabel(explicitKey)
+    || dimensionPartForLabel(specification.label)
+  ) {
+    return STOREFRONT_DIMENSIONS_SPECIFICATION_KEY;
+  }
+  const inferredKey = explicitKey
+    || normalizeStorefrontSpecificationToken(specification.label);
+  return canonicalSpecificationOrderKeys[inferredKey] ?? inferredKey;
 }
 
 export function mergeStorefrontSpecifications(
@@ -46,7 +66,7 @@ export function mergeStorefrontSpecifications(
   const byLabel = new Map<string, StorefrontSpecification>();
   for (const source of sources) {
     for (const entry of source) {
-      byLabel.set(normalizeSpecificationToken(entry.label), entry);
+      byLabel.set(normalizeStorefrontSpecificationToken(entry.label), entry);
     }
   }
   return [...byLabel.values()];
@@ -89,7 +109,8 @@ function combinedDimensionValue(
 
 export function prepareStorefrontSpecifications(
   specifications: StorefrontSpecification[],
-  specificationOrder: readonly string[]
+  specificationOrder: readonly string[],
+  specificationLabels: CatalogSpecificationLabelOverrides = {}
 ) {
   const dimensionParts: Partial<
     Record<DimensionPart, StorefrontSpecification>
@@ -99,7 +120,8 @@ export function prepareStorefrontSpecifications(
   const remaining: StorefrontSpecification[] = [];
 
   specifications.forEach((specification, index) => {
-    const dimensionPart = dimensionPartForLabel(specification.label);
+    const dimensionPart = dimensionPartForLabel(specification.orderKey ?? '')
+      ?? dimensionPartForLabel(specification.label);
     if (!dimensionPart) {
       remaining.push(specification);
       return;
@@ -119,6 +141,7 @@ export function prepareStorefrontSpecifications(
           id: 'combined-dimensions',
           label: 'Dimenzije',
           value: generatedDimensionValue,
+          orderKey: STOREFRONT_DIMENSIONS_SPECIFICATION_KEY,
           ...(Object.values(dimensionParts).find(Boolean)?.group
             ? {
                 group: Object.values(dimensionParts).find(Boolean)?.group
@@ -138,7 +161,8 @@ export function prepareStorefrontSpecifications(
 
   const orderIndex = new Map(
     specificationOrder.map((key, index) => [
-      normalizeSpecificationToken(key),
+      canonicalSpecificationOrderKeys[normalizeStorefrontSpecificationToken(key)]
+        ?? normalizeStorefrontSpecificationToken(key),
       index
     ])
   );
@@ -151,5 +175,11 @@ export function prepareStorefrontSpecifications(
         ?? Number.POSITIVE_INFINITY
     }))
     .sort((left, right) => left.order - right.order || left.index - right.index)
-    .map(({ specification }) => specification);
+    .map(({ specification }) => {
+      const stableKey = getStorefrontSpecificationOrderKey(specification);
+      const label = specificationLabels[stableKey];
+      return label && label !== specification.label
+        ? { ...specification, label, orderKey: stableKey }
+        : specification;
+    });
 }

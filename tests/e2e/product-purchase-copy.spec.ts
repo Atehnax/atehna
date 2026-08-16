@@ -58,6 +58,21 @@ test.describe('product purchase copy contracts', () => {
       addToCartActionLabel: 'Dodaj v košarico',
       freeShippingMessage: 'Brezplačna dostava po Sloveniji'
     });
+    expect(defaults.deliveryFallbackMessage).toBe(
+      'Predvideni rok sporočimo ob potrditvi naročila.'
+    );
+
+    expect(
+      normalizeProductAppearanceConfig({
+        schemaVersion: 8,
+        purchaseArea: {
+          copy: {
+            deliveryFallbackMessage:
+              'Predvideni rok sporočimo ob ročni potrditvi naročila.'
+          }
+        }
+      }).purchaseArea.copy.deliveryFallbackMessage
+    ).toBe('Predvideni rok sporočimo ob potrditvi naročila.');
 
     const normalized = normalizeProductAppearanceConfig({
       purchaseArea: {
@@ -145,7 +160,7 @@ test.describe('product purchase copy contracts', () => {
       'storefront-product-quantity-stepper-canvas'
     );
     expect(globalStylesSource).toContain(
-      'height: calc(2.75rem / var(--commercial-storefront-scale));'
+      'height: calc(2.5rem / var(--commercial-storefront-scale));'
     );
 
     expect(toolbarSource).toContain(

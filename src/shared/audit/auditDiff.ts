@@ -259,8 +259,31 @@ const variantFields = [
   'unit',
   'status',
   'badge',
-  'position'
+  'position',
+  'specifications'
 ];
+
+function variantAuditSpecifications(item: Record<string, unknown>): string | null {
+  const contentOverride = isRecord(item.contentOverride) ? item.contentOverride : null;
+  const specifications = contentOverride && isRecord(contentOverride.specifications)
+    ? contentOverride.specifications
+    : null;
+  if (!specifications) return null;
+  const entries = Object.entries(specifications)
+    .map(([label, value]) => [label.trim(), typeof value === 'string' ? value.trim() : ''] as const)
+    .filter(([label, value]) => Boolean(label && value))
+    .sort(([left], [right]) => left.localeCompare(right, 'sl'));
+  return entries.length > 0
+    ? entries.map(([label, value]) => `${label}: ${value}`).join('; ')
+    : null;
+}
+
+function variantAuditItem(item: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...item,
+    specifications: variantAuditSpecifications(item)
+  };
+}
 
 function variantId(item: Record<string, unknown>, index: number) {
   return String(item.variantSku || item.id || item.variantName || `variant-${index}`);
@@ -343,13 +366,18 @@ export function computeCatalogItemAuditDiff(
       'adminNotes',
       'badge',
       'position',
-      'typeSpecificData'
+      'typeSpecificData',
+      'appearanceOverride'
     ],
     ignoreFields: ['variants', 'quantityDiscounts', 'media']
   });
 
-  const beforeVariants = Array.isArray(before?.variants) ? before.variants as Record<string, unknown>[] : [];
-  const afterVariants = Array.isArray(after?.variants) ? after.variants as Record<string, unknown>[] : [];
+  const beforeVariants = Array.isArray(before?.variants)
+    ? (before.variants as Record<string, unknown>[]).map(variantAuditItem)
+    : [];
+  const afterVariants = Array.isArray(after?.variants)
+    ? (after.variants as Record<string, unknown>[]).map(variantAuditItem)
+    : [];
   const variantDiff = computeCollectionDiff({
     label: getAuditFieldLabel('variants'),
     before: beforeVariants,

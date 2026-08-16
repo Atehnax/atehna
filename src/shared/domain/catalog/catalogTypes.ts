@@ -23,6 +23,8 @@ export type CatalogSubcategory = {
   description: string;
   adminNotes?: string;
   image?: string;
+  presentation: CategoryShowcaseMediaSettings;
+  revision?: string;
   items: CatalogItem[];
   createdAt?: string;
   updatedAt?: string;

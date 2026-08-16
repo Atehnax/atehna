@@ -27,14 +27,27 @@ import {
   X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { StorefrontProduct } from '@/commercial/features/products/storefrontProduct';
+import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
+import ProductCard from '@/commercial/components/storefront/ProductCard';
+import {
+  ProductListingHeader,
+  ProductListingToolbar
+} from '@/commercial/components/storefront/ProductListing';
+import {
+  toStorefrontProductSummary,
+  type StorefrontProduct
+} from '@/commercial/features/products/storefrontProduct';
 import type {
   AdminCatalogListItem,
   CatalogItemEditorHydration,
   CatalogItemPresentationSaveResponse,
   UploadedCatalogMediaFile
 } from '@/shared/domain/catalog/catalogAdminTypes';
-import type { GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
+import { readCatalogSpecificationLabels } from '@/shared/domain/catalog/catalogSpecification';
+import {
+  toGlobalStyleCssVariables,
+  type GlobalStyleConfig
+} from '@/shared/domain/style/globalStyle';
 import type { SiteNavigationSiteLayoutSettings } from '@/shared/domain/navigation/siteNavigation';
 import {
   PRODUCT_INFORMATION_BLOCKS,
@@ -78,7 +91,10 @@ import ProductAppearanceLivePreview from './ProductAppearanceLivePreview';
 import AdminPodobaTabs from './AdminPodobaTabs';
 import { buildProductAppearancePreviewProduct } from '../lib/productAppearancePreviewProduct';
 
-type SectionKey = Exclude<keyof ProductAppearanceConfig, 'updatedAt' | 'canvas'>;
+type SectionKey = Exclude<
+  keyof ProductAppearanceConfig,
+  'schemaVersion' | 'updatedAt' | 'canvas'
+>;
 type PreviewPage = 'listing' | 'product' | 'cart';
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
 
@@ -101,7 +117,6 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'card-sku', label: 'SKU kartice', page: 'listing', group: 'Kartica' },
   { id: 'card-stock', label: 'Zaloga kartice', page: 'listing', group: 'Kartica' },
   { id: 'card-price', label: 'Cena kartice', page: 'listing', group: 'Kartica' },
-  { id: 'card-tax', label: 'DDV kartice', page: 'listing', group: 'Kartica' },
   { id: 'card-action', label: 'Dejanje kartice', page: 'listing', group: 'Kartica' },
   { id: 'product-breadcrumbs', label: 'Drobtinice', page: 'product', group: 'Stran artikla' },
   { id: 'product-gallery', label: 'Galerija', page: 'product', group: 'Stran artikla' },
@@ -159,9 +174,8 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'product-related-card-category', label: 'Kategorija sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-brand', label: 'Znamka sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-title', label: 'Naziv sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
+  { id: 'product-related-card-description', label: 'Opis sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-price', label: 'Cena sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
-  { id: 'product-related-card-tax', label: 'DDV sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
-  { id: 'product-related-card-stock', label: 'Zaloga sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-action', label: 'Dejanje sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-quantity', label: 'Količina sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
   { id: 'product-related-card-add', label: 'Gumb sorodnega izdelka', page: 'product', group: 'Sorodna kartica' },
@@ -328,6 +342,12 @@ function comparableProduct(value: CatalogItemEditorHydration | null) {
     media: value.media,
     variantSpecifications: value.variants.map((variant) => ({
       id: variant.id,
+      length: variant.length ?? null,
+      width: variant.width ?? null,
+      thickness: variant.thickness ?? null,
+      weight: variant.weight ?? null,
+      errorTolerance: variant.errorTolerance ?? null,
+      variantSku: variant.variantSku ?? null,
       specifications: variant.contentOverride?.specifications ?? {}
     }))
   });
@@ -717,6 +737,7 @@ function OrderEditor<Value extends string>({
 
 function ProductPreview({
   config,
+  globalStyle,
   page,
   device,
   product,
@@ -726,6 +747,7 @@ function ProductPreview({
   onElementChange
 }: {
   config: ProductAppearanceConfig;
+  globalStyle: GlobalStyleConfig;
   page: PreviewPage;
   device: PreviewDevice;
   product?: StorefrontProduct | null;
@@ -740,7 +762,10 @@ function ProductPreview({
   const isMobile = device === 'mobile';
   const isTablet = device === 'tablet';
   const previewRootRef = useRef<HTMLDivElement | null>(null);
-  const vars = toProductAppearanceCssVariables(config) as CSSProperties;
+  const vars = {
+    ...toGlobalStyleCssVariables(globalStyle),
+    ...toProductAppearanceCssVariables(config)
+  } as CSSProperties;
   const displayVariant = product?.variants.find((variant) => variant.id === product.defaultVariantId)
     ?? product?.variants[0]
     ?? null;
@@ -754,12 +779,17 @@ function ProductPreview({
   });
   const productImage = product?.media.find((media) => media.kind === 'image')?.url;
   const productName = product?.name ?? 'Tehnični artikel';
-  const productBrand = product?.brand ?? 'Atehna';
-  const productAvailable = Boolean(
-    displayVariant
-    && displayVariant.status === 'active'
-    && (displayVariant.inventory === null || displayVariant.inventory > 0)
-  );
+  const previewListingProduct = product
+    ? {
+        ...toStorefrontProductSummary(product),
+        purchasableVariant: null
+      }
+    : null;
+  const previewListingMode =
+    config.listings.availableModes === 'both'
+      ? config.listings.defaultMode
+      : config.listings.availableModes;
+  const previewListingTitle = product?.breadcrumbs.at(-2)?.label ?? 'Kategorija';
   const cardCount = isMobile ? config.listings.mobileColumns : isTablet ? config.listings.tabletColumns : config.listings.desktopColumns;
   const canvasActive = config.canvas.mode === 'free';
   const wrapElement = (
@@ -794,44 +824,73 @@ function ProductPreview({
     return (
       <div
         ref={previewRootRef}
-        className={`relative min-h-[430px] bg-slate-50 p-4 ${interactive ? 'admin-product-canvas-surface' : ''}`}
+        data-storefront-theme="true"
+        data-admin-product-live-preview="true"
+        data-preview-device={device}
+        className={`admin-product-live-preview relative min-h-[430px] bg-slate-50 p-4 ${interactive ? 'admin-product-canvas-surface' : ''}`}
         data-show-grid={interactive && config.canvas.showGrid}
-        style={vars}
+        style={{
+          ...vars,
+          '--commercial-storefront-scale': '1'
+        } as CSSProperties}
       >
-        {wrapElement('listing-header', <div className="flex items-end justify-between gap-3">
-          <div>
-            <div className="h-2.5 w-16 rounded bg-slate-200" />
-            <div className="mt-2 h-5 w-36 rounded bg-slate-800" />
+        <ProductAppearanceProvider config={config}>
+          <ProductListingHeader
+            title={previewListingTitle}
+            productCount={previewListingProduct ? 1 : 0}
+            toolbar={
+              previewListingProduct
+                ? wrapElement(
+                    'listing-header',
+                    <ProductListingToolbar
+                      appearance={config}
+                      mode={previewListingMode}
+                      sort="recommended"
+                      onModeChange={() => undefined}
+                      onSortChange={() => undefined}
+                    />
+                  )
+                : null
+            }
+          />
+          <div
+            className={
+              previewListingMode === 'grid'
+                ? 'storefront-product-grid mt-5'
+                : 'mt-5 grid gap-[var(--product-listing-gap,20px)]'
+            }
+            data-card-density={config.listings.cardDensity}
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(
+                1,
+                previewListingMode === 'grid' ? cardCount : 1
+              )}, minmax(0, 1fr))`
+            }}
+          >
+            {previewListingProduct
+              ? Array.from(
+                  { length: Math.max(2, previewListingMode === 'grid' ? cardCount : 1) },
+                  (_, index) => (
+                    <div key={index} className="min-w-0">
+                      <ProductCard
+                        product={previewListingProduct}
+                        layout={previewListingMode}
+                        canvasWrapper={(elementId, _label, children, className) =>
+                          wrapElement(
+                            elementId,
+                            children,
+                            className,
+                            false,
+                            index === 0
+                          )
+                        }
+                      />
+                    </div>
+                  )
+                )
+              : null}
           </div>
-          <div className="h-8 w-24 rounded-lg border border-slate-200 bg-white" />
-        </div>, 'mb-4')}
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, cardCount)}, minmax(0, 1fr))` }}>
-          {Array.from({ length: Math.max(2, cardCount) }, (_, index) => (
-            <article key={index} className="min-w-0">
-              {wrapElement('listing-card', <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                {wrapElement('card-image', (
-                  <div
-                    className="grid place-items-center bg-slate-100 bg-cover bg-center"
-                    style={{
-                      aspectRatio: config.listings.imageRatio.replace(':', '/'),
-                      backgroundImage: productImage ? `url("${productImage}")` : undefined
-                    }}
-                  >
-                    {!productImage ? <div className="h-1/2 w-1/2 rounded-lg bg-slate-200" /> : null}
-                  </div>
-                ), '', false, index === 0)}
-                <div className={`${config.listings.cardDensity === 'compact' ? 'p-2.5' : config.listings.cardDensity === 'spacious' ? 'p-4' : 'p-3'} grid gap-2`}>
-                  {config.listings.showBrand ? wrapElement('card-brand', <span className="text-[8px] font-semibold uppercase tracking-wide text-slate-400">{productBrand}</span>, '', false, index === 0) : null}
-                  {wrapElement('card-title', <span className="text-[11px] font-semibold text-slate-800">{productName}</span>, '', false, index === 0)}
-                  {config.listings.showStock ? wrapElement('card-stock', <span className={`text-[9px] ${productAvailable ? 'text-emerald-700' : 'text-amber-700'}`}>{productAvailable ? 'Na zalogi' : 'Trenutno ni na zalogi'}</span>, '', false, index === 0) : null}
-                  {wrapElement('card-price', <span className="text-sm font-bold text-slate-950">{priceFormatter.format(unitGross)}</span>, '', false, index === 0)}
-                  {config.pricing.showNetPrice ? wrapElement('card-tax', <span className="text-[8px] text-slate-400">{priceFormatter.format(unitNet)} brez DDV</span>, '', false, index === 0) : null}
-                  {config.listings.showPurchaseAction ? wrapElement('card-action', <div className="rounded-lg bg-[color:var(--blue-600)] px-2 py-2 text-center text-[9px] font-semibold text-white">V košarico</div>, 'mt-1', false, index === 0) : null}
-                </div>
-              </div>, '', false, index === 0)}
-            </article>
-          ))}
-        </div>
+        </ProductAppearanceProvider>
         <ProductCanvasGuidesOverlay
           rootRef={previewRootRef}
           selectedElementId={selectedElementId}
@@ -994,7 +1053,14 @@ function ProductPreview({
     }
     if (block === 'variants') {
       const selectorLabel = config.variants.labelAboveSelector
-        ? <p className="mb-1.5 text-[9px] font-semibold text-slate-800">Dimenzije</p>
+        ? (
+          <p
+            className="text-[9px] font-semibold text-slate-800"
+            style={{ marginBottom: config.variants.labelControlGapPx }}
+          >
+            Dimenzije
+          </p>
+        )
         : null;
       if (config.variants.selectorStyle === 'chips' || config.variants.selectorStyle === 'swatches') {
         return (
@@ -1525,14 +1591,37 @@ export default function AdminProductAppearancePageClient({
   }, [isDirty]);
 
   function resetCanvasElement(elementId: string) {
-    updateCanvasElement(
-      elementId,
-      resolveProductCanvasElementDeviceSettings(
-        cloneDefaultProductAppearanceConfig(),
-        elementId,
-        previewDevice
-      )
-    );
+    setConfig((current) => {
+      const currentElement = current.canvas.elements[elementId];
+      if (!currentElement) return current;
+      const defaultConfig = cloneDefaultProductAppearanceConfig();
+      const responsive = {
+        ...currentElement.responsive,
+        [previewDevice]: resolveProductCanvasElementDeviceSettings(
+          defaultConfig,
+          elementId,
+          previewDevice
+        )
+      };
+      const elements = { ...current.canvas.elements };
+      const isFullyDefault = (
+        ['desktop', 'tablet', 'mobile'] as const
+      ).every((device) => (
+        JSON.stringify(responsive[device]) === JSON.stringify(
+          resolveProductCanvasElementDeviceSettings(
+            defaultConfig,
+            elementId,
+            device
+          )
+        )
+      ));
+      if (isFullyDefault) delete elements[elementId];
+      else elements[elementId] = { responsive };
+      return normalizeProductAppearanceConfig({
+        ...current,
+        canvas: { ...current.canvas, elements }
+      });
+    });
   }
 
   function selectPreviewPage(page: PreviewPage) {
@@ -1603,12 +1692,21 @@ export default function AdminProductAppearancePageClient({
               colour: product.colour,
               shape: product.shape,
               appearanceOverride: product.appearanceOverride,
+              specificationLabels: readCatalogSpecificationLabels(
+                product.appearanceOverride
+              ),
               media: product.media,
               variantSpecifications: product.variants.flatMap((variant) => (
                 variant.id
                   ? [{
                       variantId: variant.id,
-                      specifications: variant.contentOverride?.specifications ?? {}
+                      specifications: variant.contentOverride?.specifications ?? {},
+                      length: variant.length ?? null,
+                      width: variant.width ?? null,
+                      thickness: variant.thickness ?? null,
+                      weight: variant.weight ?? null,
+                      errorTolerance: variant.errorTolerance ?? null,
+                      variantSku: variant.variantSku ?? null
                     }]
                   : []
               ))
@@ -1774,6 +1872,7 @@ export default function AdminProductAppearancePageClient({
           <NumberField label="Višina gumba" value={config.variants.chipHeightPx} min={36} max={80} suffix="px" onChange={(chipHeightPx) => updateSection('variants', { chipHeightPx })} />
           <NumberField label="Velikost besedila gumba" value={config.variants.chipFontSizePx} min={11} max={24} suffix="px" onChange={(chipFontSizePx) => updateSection('variants', { chipFontSizePx })} />
           <NumberField label="Velikost naslovov izbirnikov" value={config.variants.labelFontSizePx} min={11} max={28} suffix="px" onChange={(labelFontSizePx) => updateSection('variants', { labelFontSizePx })} />
+          <NumberField label="Razmik med naslovom in izbirnikom" value={config.variants.labelControlGapPx} min={0} max={32} suffix="px" onChange={(labelControlGapPx) => updateSection('variants', { labelControlGapPx })} />
           <NumberField label="Širina spustnega seznama" value={config.variants.selectWidthPx} min={160} max={500} suffix="px" onChange={(selectWidthPx) => updateSection('variants', { selectWidthPx })} />
           <NumberField label="Višina spustnega seznama" value={config.variants.selectHeightPx} min={40} max={88} suffix="px" onChange={(selectHeightPx) => updateSection('variants', { selectHeightPx })} />
         </FieldGrid>
@@ -2091,6 +2190,7 @@ export default function AdminProductAppearancePageClient({
                   ) : (
                     <ProductPreview
                       config={config}
+                      globalStyle={initialGlobalStyle}
                       page={previewPage}
                       device={previewDevice}
                       product={previewProduct}
@@ -2375,6 +2475,7 @@ export default function AdminProductAppearancePageClient({
                 ) : (
                   <ProductPreview
                     config={config}
+                    globalStyle={initialGlobalStyle}
                     page={previewPage}
                     device={previewDevice}
                     product={previewProduct}

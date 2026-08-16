@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
+    "addresses:sync": "tsx scripts/sync-addresses.ts",
     "measure:deployed-network": "node scripts/measure-deployed-network.mjs"
   },
   "dependencies": {
@@ -68,6 +69,7 @@
     "eslint-config-next": "16.2.4",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.4",
+    "tsx": "^4.23.12",
     "typescript": "^5.4.5"
   },
   "overrides": {

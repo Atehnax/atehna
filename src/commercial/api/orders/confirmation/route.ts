@@ -62,8 +62,11 @@ export async function GET(request: Request) {
             email,
             delivery_address,
             address_line1,
+            address_line2,
             postal_code,
             city,
+            gurs_house_number_id,
+            country_code,
             reference,
             notes,
             status,
@@ -267,8 +270,15 @@ export async function GET(request: Request) {
           contactName: String(order.contact_name ?? ''),
           email: String(order.email ?? ''),
           addressLine1,
+          addressLine2: order.address_line2
+            ? String(order.address_line2)
+            : null,
           city: String(order.city ?? ''),
           postalCode: String(order.postal_code ?? ''),
+          gursHouseNumberId: order.gurs_house_number_id
+            ? String(order.gurs_house_number_id)
+            : null,
+          countryCode: String(order.country_code ?? 'SI'),
           deliveryAddress: String(order.delivery_address ?? ''),
           reference: order.reference ? String(order.reference) : null,
           notes: order.notes ? String(order.notes) : null

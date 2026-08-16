@@ -73,6 +73,7 @@ import {
   HOMEPAGE_SECTION_RADII,
   HOMEPAGE_SECTION_SPACINGS,
   DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
+  createDefaultHomepageCategoryTitleCanvasSettings,
   homepageButtonStyleLabels,
   homepageCategoryCardSizeLabels,
   homepageCategoryCardStyleLabels,
@@ -3057,8 +3058,11 @@ function AdminLandingPageClient({
         fontWeight: resolved?.bold ? 800 : block?.kind === 'button' ? 600 : 500
       };
     }
-    if (elementId === 'categories:heading' || elementId.startsWith('categories:title:')) {
+    if (elementId === 'categories:heading') {
       return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };
+    }
+    if (elementId.startsWith('categories:title:')) {
+      return createDefaultHomepageCategoryTitleCanvasSettings();
     }
     if (elementId === 'categories:subtitle') {
       return { ...base, color: '#536070', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };

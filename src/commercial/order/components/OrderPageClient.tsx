@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type FormEvent,
+  type FocusEvent as ReactFocusEvent,
   type InputHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type TextareaHTMLAttributes
 } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
@@ -21,42 +24,62 @@ import {
   type SubmitOrderResponse
 } from '@/commercial/order/contracts';
 import { useOrderQuote } from '@/commercial/order/useOrderQuote';
-import { SLOVENIAN_ADDRESSES } from '@/commercial/data/slovenianAddresses';
+import {
+  formatGursSourceDate,
+  isAddressSearchQueryEligible,
+  type GursAddressSearchResponse,
+  type GursAddressSearchResult
+} from '@/shared/domain/address/gursAddress';
 import {
   CUSTOMER_TYPE_FORM_OPTIONS,
+  isCustomerType,
   type CustomerType
 } from '@/shared/domain/order/customerType';
 import { formatEuro } from '@/shared/domain/formatting';
+import {
+  FloatingInput,
+  FloatingTextarea
+} from '@/shared/ui/floating-field';
 
-const FORM_STORAGE_KEY = 'atehna-order-form-v2';
+const FORM_STORAGE_KEY = 'atehna-order-form-v3';
 
 type OrderFormData = {
-  customerType: CustomerType;
+  customerType: CustomerType | '';
   firstName: string;
   lastName: string;
   organizationName: string;
   contactName: string;
   email: string;
   addressLine1: string;
+  addressLine2: string;
   city: string;
   postalCode: string;
+  gursHouseNumberId: string;
+  countryCode: 'SI';
   reference: string;
   notes: string;
 };
 
-type FieldName = keyof Omit<OrderFormData, 'customerType'>;
+type FieldName = Exclude<
+  keyof OrderFormData,
+  'customerType' | 'gursHouseNumberId' | 'countryCode'
+>;
 type FieldErrors = Partial<Record<FieldName, string>>;
+type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const initialForm: OrderFormData = {
-  customerType: 'school',
+  customerType: '',
   firstName: '',
   lastName: '',
   organizationName: '',
   contactName: '',
   email: '',
   addressLine1: '',
+  addressLine2: '',
   city: '',
   postalCode: '',
+  gursHouseNumberId: '',
+  countryCode: 'SI',
   reference: '',
   notes: ''
 };
@@ -71,6 +94,21 @@ const createIdempotencyKey = () => {
   return `atehna-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+function isGursAddressSearchResult(
+  value: unknown
+): value is GursAddressSearchResult {
+  if (!value || typeof value !== 'object') return false;
+  const result = value as Record<string, unknown>;
+  return [
+    'gursHouseNumberId',
+    'addressLine1',
+    'postalCode',
+    'postalName',
+    'settlementName',
+    'municipalityName'
+  ].every((key) => typeof result[key] === 'string');
+}
+
 function CheckoutInput({
   label,
   error,
@@ -81,22 +119,25 @@ function CheckoutInput({
   error?: string;
 }) {
   const id = String(props.id);
+  const describedBy = [
+    props['aria-describedby'],
+    error ? `${id}-error` : undefined
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className={className}>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-sm font-semibold text-[color:var(--site-color-text)]"
-      >
-        {label}
-      </label>
-      <input
+      <FloatingInput
         {...props}
         id={id}
-        className={`site-field w-full ${
+        label={label}
+        tone="order"
+        shellClassName={`storefront-checkout-input-shell ${
           error ? '!border-[color:var(--site-color-danger)]' : ''
         }`}
+        className="storefront-checkout-input"
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy || undefined}
       />
       {error ? (
         <p
@@ -118,22 +159,25 @@ function CheckoutTextarea({
   const id = String(props.id);
   return (
     <div className={className}>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-sm font-semibold text-[color:var(--site-color-text)]"
-      >
-        {label}
-      </label>
-      <textarea
+      <FloatingTextarea
         {...props}
         id={id}
-        className="site-field min-h-28 w-full resize-y py-3"
+        label={label}
+        tone="order"
+        shellClassName="storefront-checkout-textarea-shell"
+        className="storefront-checkout-textarea"
       />
     </div>
   );
 }
 
-export default function OrderPageClient() {
+type OrderPageClientProps = {
+  initialGursSourceUpdatedAt?: string | null;
+};
+
+export default function OrderPageClient({
+  initialGursSourceUpdatedAt = null
+}: OrderPageClientProps) {
   const router = useRouter();
   const appearance = useProductAppearance();
   const items = useCartStore((state) => state.items);
@@ -142,11 +186,26 @@ export default function OrderPageClient() {
   const clearCart = useCartStore((state) => state.clearCart);
   const quoteState = useOrderQuote(items, items.length > 0);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
+  const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitIssues, setSubmitIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    GursAddressSearchResult[]
+  >([]);
+  const [isAddressListOpen, setIsAddressListOpen] = useState(false);
+  const [isAddressComboboxActive, setIsAddressComboboxActive] =
+    useState(false);
+  const [activeAddressIndex, setActiveAddressIndex] = useState(-1);
+  const [addressSearchStatus, setAddressSearchStatus] =
+    useState<AddressSearchStatus>('idle');
+  const [gursSourceUpdatedAt, setGursSourceUpdatedAt] = useState<string | null>(
+    initialGursSourceUpdatedAt
+  );
   const idempotencyKeyRef = useRef<string | null>(null);
+  const addressRequestRef = useRef<AbortController | null>(null);
+  const addressListboxId = useId();
 
   const quoteByVariant = useMemo(
     () =>
@@ -160,28 +219,106 @@ export default function OrderPageClient() {
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(FORM_STORAGE_KEY);
-      if (!saved) return;
-      setFormData({ ...initialForm, ...(JSON.parse(saved) as Partial<OrderFormData>) });
+      if (saved) {
+        const restored = JSON.parse(saved) as Partial<OrderFormData>;
+        setFormData({
+          ...initialForm,
+          ...restored,
+          customerType:
+            typeof restored.customerType === 'string' &&
+            isCustomerType(restored.customerType)
+              ? restored.customerType
+              : '',
+          gursHouseNumberId:
+            typeof restored.gursHouseNumberId === 'string'
+              ? restored.gursHouseNumberId
+              : '',
+          countryCode: 'SI'
+        });
+      }
     } catch {
       sessionStorage.removeItem(FORM_STORAGE_KEY);
+    } finally {
+      setIsFormHydrated(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!isFormHydrated) return;
     sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
-  }, [formData]);
+  }, [formData, isFormHydrated]);
 
   useEffect(() => {
     idempotencyKeyRef.current = null;
   }, [formFingerprint]);
 
-  const addressSuggestions = useMemo(() => {
-    const query = formData.addressLine1.trim().toLocaleLowerCase('sl');
-    if (query.length < 2) return [];
-    return SLOVENIAN_ADDRESSES.filter((address) =>
-      address.toLocaleLowerCase('sl').includes(query)
-    ).slice(0, 6);
-  }, [formData.addressLine1]);
+  useEffect(() => {
+    addressRequestRef.current?.abort();
+    addressRequestRef.current = null;
+
+    if (
+      !isAddressComboboxActive ||
+      formData.gursHouseNumberId ||
+      !isAddressSearchQueryEligible(formData.addressLine1)
+    ) {
+      setAddressSuggestions([]);
+      setIsAddressListOpen(false);
+      setActiveAddressIndex(-1);
+      setAddressSearchStatus('idle');
+      return;
+    }
+
+    const query = formData.addressLine1.trim();
+    const timeoutId = window.setTimeout(async () => {
+      const controller = new AbortController();
+      addressRequestRef.current = controller;
+      setAddressSearchStatus('loading');
+
+      try {
+        const response = await fetch(
+          `/api/addresses/search?query=${encodeURIComponent(query)}`,
+          {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal
+          }
+        );
+        if (!response.ok) throw new Error('Address search failed.');
+
+        const payload = (await response.json()) as Partial<GursAddressSearchResponse>;
+        const results = Array.isArray(payload.results)
+          ? payload.results.filter(isGursAddressSearchResult).slice(0, 8)
+          : [];
+        setAddressSuggestions(results);
+        setGursSourceUpdatedAt(
+          typeof payload.sourceUpdatedAt === 'string'
+            ? payload.sourceUpdatedAt
+            : null
+        );
+        setActiveAddressIndex(-1);
+        setIsAddressListOpen(results.length > 0);
+        setAddressSearchStatus('ready');
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        setAddressSuggestions([]);
+        setIsAddressListOpen(false);
+        setActiveAddressIndex(-1);
+        setAddressSearchStatus('error');
+      } finally {
+        if (addressRequestRef.current === controller) {
+          addressRequestRef.current = null;
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      addressRequestRef.current?.abort();
+    };
+  }, [
+    formData.addressLine1,
+    formData.gursHouseNumberId,
+    isAddressComboboxActive
+  ]);
 
   const validate = () => {
     const errors: FieldErrors = {};
@@ -213,10 +350,105 @@ export default function OrderPageClient() {
     }
   };
 
+  const updateAddressField = (
+    field: 'addressLine1' | 'city' | 'postalCode',
+    value: string
+  ) => {
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+      gursHouseNumberId: ''
+    }));
+    setFieldErrors((previous) => ({ ...previous, [field]: undefined }));
+  };
+
+  const selectAddressSuggestion = (suggestion: GursAddressSearchResult) => {
+    setFormData((previous) => ({
+      ...previous,
+      addressLine1: suggestion.addressLine1,
+      city: suggestion.postalName,
+      postalCode: suggestion.postalCode,
+      gursHouseNumberId: suggestion.gursHouseNumberId
+    }));
+    setFieldErrors((previous) => ({
+      ...previous,
+      addressLine1: undefined,
+      city: undefined,
+      postalCode: undefined
+    }));
+    setAddressSuggestions([]);
+    setIsAddressListOpen(false);
+    setActiveAddressIndex(-1);
+  };
+
+  const handleAddressKeyDown = (
+    event: ReactKeyboardEvent<HTMLInputElement>
+  ) => {
+    if (event.key === 'Escape') {
+      setIsAddressListOpen(false);
+      setActiveAddressIndex(-1);
+      return;
+    }
+    if (addressSuggestions.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setIsAddressListOpen(true);
+      setActiveAddressIndex((current) =>
+        current >= addressSuggestions.length - 1 ? 0 : current + 1
+      );
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setIsAddressListOpen(true);
+      setActiveAddressIndex((current) =>
+        current <= 0 ? addressSuggestions.length - 1 : current - 1
+      );
+      return;
+    }
+    if (
+      event.key === 'Enter' &&
+      isAddressListOpen &&
+      activeAddressIndex >= 0
+    ) {
+      event.preventDefault();
+      const suggestion = addressSuggestions[activeAddressIndex];
+      if (suggestion) selectAddressSuggestion(suggestion);
+    }
+  };
+
+  const handleAddressComboboxBlur = (
+    event: ReactFocusEvent<HTMLDivElement>
+  ) => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    setIsAddressComboboxActive(false);
+    setIsAddressListOpen(false);
+    setActiveAddressIndex(-1);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
     setSubmitIssues([]);
+    if (!isCustomerType(formData.customerType)) {
+      document.getElementById('order-customer-type')?.focus();
+      setSubmitError('Za nadaljevanje izberite vrsto naročnika.');
+      return;
+    }
+    const customerType = formData.customerType;
+    if (!isValidEmail(formData.email)) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        email: 'Vnesite veljaven e-poštni naslov.'
+      }));
+      document.getElementById('email')?.focus();
+      setSubmitError('Za nadaljevanje vnesite veljaven e-poštni naslov.');
+      return;
+    }
     const errors = validate();
     const firstInvalid = Object.keys(errors)[0] as FieldName | undefined;
     if (firstInvalid) {
@@ -234,28 +466,38 @@ export default function OrderPageClient() {
 
     const individualName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
     const customerName =
-      formData.customerType === 'individual'
+      customerType === 'individual'
         ? individualName
         : formData.organizationName.trim();
     const contactName =
-      formData.customerType === 'individual'
+      customerType === 'individual'
         ? individualName
         : formData.contactName.trim();
-    const deliveryAddress = `${formData.addressLine1.trim()}, ${formData.postalCode.trim()} ${formData.city.trim()}`;
+    const deliveryAddress = [
+      formData.addressLine1.trim(),
+      formData.addressLine2.trim(),
+      `${formData.postalCode.trim()} ${formData.city.trim()}`
+    ]
+      .filter(Boolean)
+      .join(', ');
     const payload: SubmitOrderRequest = {
-      customerType: formData.customerType,
+      customerType,
       customerName,
       organizationName:
-        formData.customerType === 'individual'
+        customerType === 'individual'
           ? ''
           : formData.organizationName.trim(),
       contactName,
       email: formData.email.trim(),
       addressLine1: formData.addressLine1.trim(),
+      addressLine2: formData.addressLine2.trim(),
       city: formData.city.trim(),
       postalCode: formData.postalCode.trim(),
+      gursHouseNumberId: formData.gursHouseNumberId,
+      countryCode: formData.countryCode,
       deliveryAddress,
-      reference: formData.reference.trim(),
+      reference:
+        customerType === 'school' ? formData.reference.trim() : '',
       notes: formData.notes.trim(),
       items: items.map((item) => ({
         variantId: item.variant!.id as number,
@@ -317,7 +559,20 @@ export default function OrderPageClient() {
   }
 
   const totals = quoteState.quote?.totals;
+  const hasCustomerType = isCustomerType(formData.customerType);
   const isSchool = formData.customerType === 'school';
+  const canContinue = hasCustomerType && isValidEmail(formData.email);
+  const formattedGursSourceDate = formatGursSourceDate(gursSourceUpdatedAt);
+  const addressSearchStatusMessage =
+    addressSearchStatus === 'loading'
+      ? 'Iščemo uradne naslove …'
+      : addressSearchStatus === 'ready'
+        ? addressSuggestions.length > 0
+          ? `Na voljo je ${addressSuggestions.length} predlogov.`
+          : 'Za vnos ni bilo najdenih predlogov. Naslov lahko vnesete ročno.'
+        : addressSearchStatus === 'error'
+          ? 'Predlogi naslovov trenutno niso na voljo. Naslov lahko vnesete ročno.'
+          : '';
   const blockingCartMessage = items.find(
     (item) =>
       item.reconciliation.status === 'unavailable' ||
@@ -344,6 +599,7 @@ export default function OrderPageClient() {
                 : undefined
             }
             compact
+            presentation="order-summary"
             onQuantityChange={(quantity) => setQuantity(item.lineId, quantity)}
             onRemove={() => removeItem(item.lineId)}
           />
@@ -383,10 +639,6 @@ export default function OrderPageClient() {
       <header className="mb-8">
         <p className="site-eyebrow">Zaključek nakupa</p>
         <h1 className="site-heading-1 mt-2">Oddaja naročila</h1>
-        <p className="site-paragraph mt-3 max-w-3xl">
-          Dostava po Sloveniji je brezplačna. Plačilo uredimo ročno po ponudbi
-          ali predračunu; spletno plačilo ni potrebno.
-        </p>
       </header>
 
       {submitError ? (
@@ -405,14 +657,27 @@ export default function OrderPageClient() {
         </div>
       ) : null}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_25rem]">
-        <div className="space-y-6">
+      <div
+        className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+        data-testid="order-checkout-layout"
+      >
+        <div className="min-w-0 space-y-6" data-testid="order-form-column">
           <section className="site-card">
             <h2 className="text-xl font-semibold">Vrsta naročnika</h2>
             <div
+              id="order-customer-type"
               className="mt-4 grid gap-2 sm:grid-cols-3"
               role="radiogroup"
               aria-label="Vrsta naročnika"
+              aria-required="true"
+              aria-describedby={
+                !hasCustomerType
+                  ? 'order-customer-type-prompt'
+                  : isSchool
+                    ? 'order-school-notice-message'
+                    : undefined
+              }
+              tabIndex={hasCustomerType ? -1 : 0}
             >
               {CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
                 const selected = formData.customerType === option.value;
@@ -434,21 +699,37 @@ export default function OrderPageClient() {
                 );
               })}
             </div>
-            {isSchool ? (
-              <p className="site-radius-sm mt-4 bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]">
-                Šolsko naročilo je zahteva za ročno potrditev. Po pregledu
-                prejmete ponudbo in navodila za naročilnico.
+            {!hasCustomerType ? (
+              <p
+                id="order-customer-type-prompt"
+                className="mt-3 text-sm text-[color:var(--site-color-text-muted)]"
+              >
+                Za nadaljevanje izberite vrsto naročnika.
               </p>
-            ) : (
-              <p className="site-radius-sm mt-4 bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]">
-                Z oddajo pošiljate zavezujoče naročilo po prikazanem izračunu.
-              </p>
-            )}
+            ) : null}
+            <div
+              className="order-school-notice"
+              data-testid="order-school-notice"
+              data-visible={isSchool ? 'true' : 'false'}
+              aria-hidden={!isSchool}
+            >
+              <div className="order-school-notice__content">
+                <p
+                  id="order-school-notice-message"
+                  className="order-school-notice__message site-radius-sm bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]"
+                >
+                  Šolsko naročilo je zahteva za potrditev. Po pregledu
+                  prejmete ponudbo in navodila za naročilnico.
+                </p>
+              </div>
+            </div>
           </section>
 
-          <section className="site-card">
-            <h2 className="text-xl font-semibold">Kontakt in naročnik</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {hasCustomerType ? (
+            <div className="site-card" data-testid="order-customer-details-card">
+            <section data-testid="order-contact-section">
+              <h2 className="text-xl font-semibold">Kontakt in naročnik</h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <CheckoutInput
                 id="email"
                 type="email"
@@ -457,8 +738,23 @@ export default function OrderPageClient() {
                 value={formData.email}
                 onChange={(event) => updateField('email', event.target.value)}
                 error={fieldErrors.email}
+                aria-describedby={
+                  canContinue ? undefined : 'order-email-gate-message'
+                }
+                required
                 className="sm:col-span-2"
               />
+              {!canContinue ? (
+                <p
+                  id="order-email-gate-message"
+                  data-testid="order-email-gate-message"
+                  role="status"
+                  aria-live="polite"
+                  className="sm:col-span-2 text-sm text-[color:var(--site-color-text-muted)]"
+                >
+                  Za nadaljevanje vnesite veljaven e-poštni naslov.
+                </p>
+              ) : null}
               {formData.customerType === 'individual' ? (
                 <>
                   <CheckoutInput
@@ -468,6 +764,8 @@ export default function OrderPageClient() {
                     value={formData.firstName}
                     onChange={(event) => updateField('firstName', event.target.value)}
                     error={fieldErrors.firstName}
+                    disabled={!canContinue}
+                    required
                   />
                   <CheckoutInput
                     id="lastName"
@@ -476,6 +774,8 @@ export default function OrderPageClient() {
                     value={formData.lastName}
                     onChange={(event) => updateField('lastName', event.target.value)}
                     error={fieldErrors.lastName}
+                    disabled={!canContinue}
+                    required
                   />
                 </>
               ) : (
@@ -489,7 +789,8 @@ export default function OrderPageClient() {
                       updateField('organizationName', event.target.value)
                     }
                     error={fieldErrors.organizationName}
-                    className="sm:col-span-2"
+                    disabled={!canContinue}
+                    required
                   />
                   <CheckoutInput
                     id="contactName"
@@ -500,92 +801,191 @@ export default function OrderPageClient() {
                       updateField('contactName', event.target.value)
                     }
                     error={fieldErrors.contactName}
-                    className="sm:col-span-2"
+                    disabled={!canContinue}
                   />
                 </>
               )}
-            </div>
-          </section>
+              </div>
+            </section>
 
-          <section className="site-card">
-            <h2 className="text-xl font-semibold">Naslov za dostavo</h2>
-            <p className="mt-1 text-sm text-[color:var(--site-color-success)]">
-              Brezplačna dostava po Sloveniji
-            </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_10rem]">
-              <div className="relative sm:col-span-2">
+            <div
+              className="mt-8 space-y-8"
+              data-testid="order-email-gated-content"
+              aria-disabled={!canContinue}
+            >
+              <section
+                className="border-t border-[color:var(--site-divider-color)] pt-6"
+                data-testid="order-address-section"
+              >
+              <input
+                type="hidden"
+                name="gursHouseNumberId"
+                value={formData.gursHouseNumberId}
+              />
+              <input type="hidden" name="countryCode" value="SI" />
+              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+                <div
+                  className="relative sm:col-span-2"
+                  onFocusCapture={() => setIsAddressComboboxActive(true)}
+                  onBlurCapture={handleAddressComboboxBlur}
+                >
+                  <CheckoutInput
+                    id="addressLine1"
+                    autoComplete="off"
+                    label="Ulica ali naselje in hišna številka"
+                    value={formData.addressLine1}
+                    onChange={(event) =>
+                      updateAddressField('addressLine1', event.target.value)
+                    }
+                    onKeyDown={handleAddressKeyDown}
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={isAddressListOpen}
+                    aria-controls={addressListboxId}
+                    aria-describedby={`${addressListboxId}-status`}
+                    aria-activedescendant={
+                      isAddressListOpen && activeAddressIndex >= 0
+                        ? `${addressListboxId}-option-${activeAddressIndex}`
+                        : undefined
+                    }
+                    error={fieldErrors.addressLine1}
+                    disabled={!canContinue}
+                    required
+                  />
+                  <p
+                    id={`${addressListboxId}-status`}
+                    role="status"
+                    aria-live="polite"
+                    className={
+                      addressSearchStatus === 'error'
+                        ? 'mt-1 text-xs text-[color:var(--site-color-text-muted)]'
+                        : 'sr-only'
+                    }
+                  >
+                    {addressSearchStatusMessage}
+                  </p>
+                  {canContinue && isAddressListOpen ? (
+                    <ul
+                      id={addressListboxId}
+                      role="listbox"
+                      aria-label="Predlogi naslovov"
+                      className="site-panel absolute z-10 mt-1 max-h-64 w-full overflow-auto p-1 text-sm"
+                    >
+                      {addressSuggestions.map((suggestion, index) => (
+                        <li key={suggestion.gursHouseNumberId}>
+                          <button
+                            id={`${addressListboxId}-option-${index}`}
+                            type="button"
+                            role="option"
+                            aria-selected={activeAddressIndex === index}
+                            tabIndex={-1}
+                            onMouseEnter={() => setActiveAddressIndex(index)}
+                            onPointerDown={(event) => {
+                              if (event.pointerType === 'mouse') {
+                                event.preventDefault();
+                              }
+                            }}
+                            onClick={() => selectAddressSuggestion(suggestion)}
+                            className={`site-radius-sm w-full px-3 py-2 text-left transition ${
+                              activeAddressIndex === index
+                                ? 'bg-[color:var(--site-color-surface-muted)]'
+                                : 'hover:bg-[color:var(--site-color-surface-muted)]'
+                            }`}
+                          >
+                            <span className="block font-semibold text-[color:var(--site-color-text)]">
+                              {suggestion.addressLine1}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-[color:var(--site-color-text-muted)]">
+                              {suggestion.postalCode} {suggestion.postalName}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
                 <CheckoutInput
-                  id="addressLine1"
-                  autoComplete="street-address"
-                  label="Naslov *"
-                  value={formData.addressLine1}
+                  id="addressLine2"
+                  autoComplete="off"
+                  label="Stanovanje, nadstropje, vhod ali navodila za dostavo (neobvezno)"
+                  value={formData.addressLine2}
                   onChange={(event) =>
-                    updateField('addressLine1', event.target.value)
+                    updateField('addressLine2', event.target.value)
                   }
-                  error={fieldErrors.addressLine1}
+                  disabled={!canContinue}
+                  className="sm:col-span-2"
                 />
-                {addressSuggestions.length > 0 ? (
-                  <ul className="site-panel absolute z-10 mt-1 max-h-52 w-full overflow-auto p-1 text-sm">
-                    {addressSuggestions.map((address) => (
-                      <li key={address}>
-                        <button
-                          type="button"
-                          onClick={() => updateField('addressLine1', address)}
-                          className="site-radius-sm w-full px-3 py-2 text-left hover:bg-[color:var(--site-color-surface-muted)]"
-                        >
-                          {address}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                <CheckoutInput
+                  id="city"
+                  autoComplete="off"
+                  label="Poštni kraj *"
+                  value={formData.city}
+                  onChange={(event) =>
+                    updateAddressField('city', event.target.value)
+                  }
+                  error={fieldErrors.city}
+                  disabled={!canContinue}
+                  required
+                />
+                <CheckoutInput
+                  id="postalCode"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  maxLength={4}
+                  label="Poštna številka *"
+                  value={formData.postalCode}
+                  onChange={(event) =>
+                    updateAddressField('postalCode', event.target.value)
+                  }
+                  error={fieldErrors.postalCode}
+                  disabled={!canContinue}
+                  required
+                />
+                {formattedGursSourceDate ? (
+                  <p className="sm:col-span-2 text-xs text-[color:var(--site-color-text-muted)]">
+                    Vir: Geodetska uprava Republike Slovenije, Register
+                    naslovov, stanje {formattedGursSourceDate}.
+                  </p>
                 ) : null}
               </div>
-              <CheckoutInput
-                id="city"
-                autoComplete="address-level2"
-                label="Kraj *"
-                value={formData.city}
-                onChange={(event) => updateField('city', event.target.value)}
-                error={fieldErrors.city}
-              />
-              <CheckoutInput
-                id="postalCode"
-                autoComplete="postal-code"
-                inputMode="numeric"
-                pattern="[0-9]{4}"
-                maxLength={4}
-                label="Poštna številka *"
-                value={formData.postalCode}
-                onChange={(event) => updateField('postalCode', event.target.value)}
-                error={fieldErrors.postalCode}
-              />
-            </div>
-          </section>
+              </section>
 
-          <section className="site-card">
-            <h2 className="text-xl font-semibold">Plačilo in dodatni podatki</h2>
-            <div className="site-radius-md mt-4 border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
-              <p className="font-semibold">Ročna obdelava plačila</p>
-              <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
-                Po oddaji pripravimo ponudbo ali predračun. Plačilne kartice ne
-                potrebujete.
-              </p>
+              <section
+                className="border-t border-[color:var(--site-divider-color)] pt-6"
+                data-testid="order-payment-section"
+              >
+              <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
+                <p className="font-semibold">Obdelava plačila</p>
+                <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
+                  Po oddaji pripravimo ponudbo ali predračun. Plačilne kartice
+                  ne potrebujete.
+                </p>
+              </div>
+              <div className="mt-5 grid gap-4">
+                {isSchool ? (
+                  <CheckoutInput
+                    id="reference"
+                    label="Vaša referenca ali št. naročilnice"
+                    value={formData.reference}
+                    onChange={(event) =>
+                      updateField('reference', event.target.value)
+                    }
+                    disabled={!canContinue}
+                  />
+                ) : null}
+                <CheckoutTextarea
+                  id="notes"
+                  label="Opombe"
+                  value={formData.notes}
+                  onChange={(event) => updateField('notes', event.target.value)}
+                  disabled={!canContinue}
+                />
+              </div>
+              </section>
             </div>
-            <div className="mt-5 grid gap-4">
-              <CheckoutInput
-                id="reference"
-                label="Vaša referenca ali št. naročilnice"
-                value={formData.reference}
-                onChange={(event) => updateField('reference', event.target.value)}
-              />
-              <CheckoutTextarea
-                id="notes"
-                label="Opombe"
-                value={formData.notes}
-                onChange={(event) => updateField('notes', event.target.value)}
-              />
             </div>
-          </section>
+          ) : null}
 
           <details className="site-card lg:hidden">
             <summary className="cursor-pointer font-semibold">
@@ -595,7 +995,10 @@ export default function OrderPageClient() {
           </details>
         </div>
 
-        <aside className="hidden lg:block lg:self-start">
+        <aside
+          className="hidden min-w-0 lg:block lg:self-stretch"
+          data-testid="order-summary-column"
+        >
           <div className="site-card lg:sticky lg:top-8">
             <h2 className="text-xl font-semibold">Povzetek naročila</h2>
             <div className="mt-5">{summary}</div>
@@ -615,6 +1018,7 @@ export default function OrderPageClient() {
             <button
               type="submit"
               disabled={
+                !canContinue ||
                 isSubmitting ||
                 quoteState.isLoading ||
                 !quoteState.quote ||
@@ -622,11 +1026,7 @@ export default function OrderPageClient() {
               }
               className="site-button site-button--primary mt-5 w-full"
             >
-              {isSubmitting
-                ? 'Oddajanje …'
-                : isSchool
-                  ? 'Pošlji zahtevo za naročilo'
-                  : 'Oddaj zavezujoče naročilo'}
+              {isSubmitting ? 'Oddajanje …' : 'Oddaj naročilo'}
             </button>
             <p className="mt-3 text-xs leading-5 text-[color:var(--site-color-text-muted)]">
               Z oddajo potrjujete pravilnost podatkov in se strinjate s{' '}
@@ -655,6 +1055,7 @@ export default function OrderPageClient() {
         <button
           type="submit"
           disabled={
+            !canContinue ||
             isSubmitting ||
             quoteState.isLoading ||
             !quoteState.quote ||
@@ -662,11 +1063,7 @@ export default function OrderPageClient() {
           }
           className="site-button site-button--primary w-full"
         >
-          {isSubmitting
-            ? 'Oddajanje …'
-            : isSchool
-              ? 'Pošlji zahtevo'
-              : 'Oddaj naročilo'}
+          {isSubmitting ? 'Oddajanje …' : 'Oddaj naročilo'}
         </button>
         <p className="mt-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
           Z oddajo se strinjate s{' '}

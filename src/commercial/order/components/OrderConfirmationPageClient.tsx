@@ -82,7 +82,7 @@ function ConfirmationStatus({
             …
           </span>
           <div>
-            <p className="site-eyebrow">Ročna potrditev</p>
+            <p className="site-eyebrow">Potrditev</p>
             <h1 className="site-heading-1 mt-1">Zahteva je prejeta</h1>
             <p className="site-paragraph mt-3">
               Vašo zahtevo bomo pregledali in vam poslali ponudbo oziroma
@@ -355,9 +355,14 @@ export default function OrderConfirmationPageClient({
                 <dd className="mt-1 font-semibold">
                   {customer?.addressLine1 || customer?.deliveryAddress || '—'}
                   {customer?.addressLine1 ? (
-                    <span className="block">
-                      {customer.postalCode} {customer.city}
-                    </span>
+                    <>
+                      {customer.addressLine2 ? (
+                        <span className="block">{customer.addressLine2}</span>
+                      ) : null}
+                      <span className="block">
+                        {customer.postalCode} {customer.city}
+                      </span>
+                    </>
                   ) : null}
                 </dd>
               </div>

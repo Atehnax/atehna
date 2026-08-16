@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import { buildOrderBlobPath, deleteBlob, uploadBlob } from '@/shared/server/blob';
 import { getPool } from '@/shared/server/db';
+import { getGursAddressById } from '@/shared/server/gursAddresses';
 import { isCustomerType, type CustomerType } from '@/shared/domain/order/customerType';
 import {
   buildAuthoritativeOrderQuote,
@@ -31,8 +32,11 @@ type NormalizedCustomer = {
   contactName: string;
   email: string;
   addressLine1: string;
+  addressLine2: string | null;
   city: string;
   postalCode: string;
+  gursHouseNumberId: string | null;
+  countryCode: 'SI';
   deliveryAddress: string;
   reference: string | null;
   notes: string | null;
@@ -77,6 +81,20 @@ function limited(value: string, maxLength: number, fieldName: string): string {
     );
   }
   return value;
+}
+
+function buildDeliveryAddress({
+  addressLine1,
+  addressLine2,
+  postalCode,
+  city
+}: Pick<
+  NormalizedCustomer,
+  'addressLine1' | 'addressLine2' | 'postalCode' | 'city'
+>): string {
+  return [addressLine1, addressLine2, `${postalCode} ${city}`]
+    .filter(Boolean)
+    .join(', ');
 }
 
 function parseLegacyDeliveryAddress(value: unknown): {
@@ -140,6 +158,11 @@ function normalizeCustomer(body: Record<string, unknown>): NormalizedCustomer {
       : organizationName;
   const reference = optionalText(body.reference ?? body.purchaseOrderNumber);
   const notes = optionalText(body.notes);
+  const addressLine2Value = optionalText(body.addressLine2);
+  const gursHouseNumberIdValue =
+    typeof body.gursHouseNumberId === 'string'
+      ? optionalText(body.gursHouseNumberId)
+      : null;
 
   if (!customerName) {
     throw new OrderCommerceError(400, 'CUSTOMER_NAME_REQUIRED', 'Vnesite naročnika.');
@@ -161,19 +184,71 @@ function normalizeCustomer(body: Record<string, unknown>): NormalizedCustomer {
     );
   }
 
-  return {
+  const customer: NormalizedCustomer = {
     customerType: customerTypeValue,
     customerName,
     organizationName: customerTypeValue === 'individual' ? null : customerName,
     contactName,
     email,
     addressLine1,
+    addressLine2: addressLine2Value
+      ? limited(addressLine2Value, 500, 'Dodatni podatki naslova')
+      : null,
     city,
     postalCode,
-    deliveryAddress: `${addressLine1}, ${postalCode} ${city}`,
+    gursHouseNumberId: gursHouseNumberIdValue
+      ? limited(gursHouseNumberIdValue, 100, 'GURS ID naslova')
+      : null,
+    countryCode: 'SI',
+    deliveryAddress: '',
     reference: reference ? limited(reference, 240, 'Referenca') : null,
     notes: notes ? limited(notes, 4_000, 'Opombe') : null
   };
+  customer.deliveryAddress = buildDeliveryAddress(customer);
+  return customer;
+}
+
+async function canonicalizeGursAddress(
+  client: PoolClient,
+  customer: NormalizedCustomer
+): Promise<NormalizedCustomer> {
+  if (!customer.gursHouseNumberId) return customer;
+
+  await client.query('savepoint gurs_address_lookup');
+  try {
+    const address = await getGursAddressById(
+      customer.gursHouseNumberId,
+      client
+    );
+    await client.query('release savepoint gurs_address_lookup');
+
+    if (!address) {
+      return { ...customer, gursHouseNumberId: null };
+    }
+
+    const canonical = {
+      ...customer,
+      gursHouseNumberId: address.gursHouseNumberId,
+      addressLine1: address.addressLine1,
+      postalCode: address.postalCode,
+      city: address.postalName
+    };
+    return {
+      ...canonical,
+      deliveryAddress: buildDeliveryAddress(canonical)
+    };
+  } catch (error) {
+    await client
+      .query('rollback to savepoint gurs_address_lookup')
+      .catch(() => undefined);
+    await client
+      .query('release savepoint gurs_address_lookup')
+      .catch(() => undefined);
+    console.warn('[orders.create] GURS address lookup failed; using manual address', {
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return { ...customer, gursHouseNumberId: null };
+  }
 }
 
 function readIdempotencyKey(request: Request, body: Record<string, unknown>): string {
@@ -334,6 +409,9 @@ async function insertOrder(
         address_line1,
         postal_code,
         city,
+        gurs_house_number_id,
+        address_line2,
+        country_code,
         reference,
         notes,
         status,
@@ -361,16 +439,19 @@ async function insertOrder(
         $8,
         $9,
         $10,
-        'received',
-        'unpaid',
         $11,
         $12,
         $13,
+        'received',
+        'unpaid',
         $14,
-        'EUR',
         $15,
         $16,
         $17,
+        'EUR',
+        $18,
+        $19,
+        $20,
         false
       from next_id
       returning id, order_number, created_at
@@ -384,6 +465,9 @@ async function insertOrder(
       customer.addressLine1,
       customer.postalCode,
       customer.city,
+      customer.gursHouseNumberId,
+      customer.addressLine2,
+      customer.countryCode,
       customer.reference,
       customer.notes,
       moneyToDatabaseValue(quote.totals.net),
@@ -711,12 +795,13 @@ export async function POST(request: Request) {
   let client: PoolClient | null = null;
   try {
     const body = bodyResult.body;
-    const customer = normalizeCustomer(body);
+    let customer = normalizeCustomer(body);
     const idempotencyKey = readIdempotencyKey(request, body);
     const keyHash = sha256(idempotencyKey);
     const pool = await getPool();
     client = await pool.connect();
     await client.query('begin');
+    customer = await canonicalizeGursAddress(client, customer);
 
     const selections = await parseOrderSelections(client, body.items, {
       allowLegacySku: true

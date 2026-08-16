@@ -83,6 +83,8 @@ const normalizeRecursiveSubcategory = (
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
     image: normalizeCatalogImage(subcategory.image),
+    presentation: normalizeCategoryShowcaseMediaSettings(subcategory.presentation),
+    revision: typeof subcategory.revision === 'string' ? subcategory.revision : undefined,
     createdAt: typeof subcategory.createdAt === 'string' ? subcategory.createdAt : undefined,
     updatedAt: typeof subcategory.updatedAt === 'string' ? subcategory.updatedAt : undefined,
     items: Array.isArray(subcategory.items) ? subcategory.items : [],
@@ -363,8 +365,8 @@ export function summarizeCatalogChanges(
     lines.push('spremenjen vrstni red glavnih kategorij');
   }
 
-  const prevSubsById = new Map<string, { title: string; image: string; index: number; parentId: string; parentLabel: string }>();
-  const nextSubsById = new Map<string, { title: string; image: string; index: number; parentId: string; parentLabel: string }>();
+  const prevSubsById = new Map<string, { title: string; image: string; presentation: string; index: number; parentId: string; parentLabel: string }>();
+  const nextSubsById = new Map<string, { title: string; image: string; presentation: string; index: number; parentId: string; parentLabel: string }>();
 
   prevCats.forEach((category) => {
     flattenSubcategories(category.slug, category.subcategories, [], category.title).forEach((entry) => prevSubsById.set(entry.id, entry));
@@ -384,6 +386,7 @@ export function summarizeCatalogChanges(
     if (!nextSub) continue;
     if (prevSub.title !== nextSub.title) lines.push(`preimenovana podkategorija "${prevSub.title}" → "${nextSub.title}"`);
     if (prevSub.image !== nextSub.image) lines.push(`spremenjena slika za podkategorijo "${nextSub.title}"`);
+    if (prevSub.presentation !== nextSub.presentation) lines.push(`spremenjen videz podkategorije "${nextSub.title}"`);
     if (prevSub.parentId !== nextSub.parentId || prevSub.index !== nextSub.index) lines.push(`premaknjena podkategorija "${nextSub.title}"`);
   }
 
@@ -424,7 +427,7 @@ const flattenSubcategories = (
   nodes: RecursiveNode[],
   parentPath: string[] = [],
   parentLabel: string
-): Array<{ id: string; title: string; image: string; index: number; parentId: string; parentLabel: string }> => {
+): Array<{ id: string; title: string; image: string; presentation: string; index: number; parentId: string; parentLabel: string }> => {
   return nodes.flatMap((node, index) => {
     const currentPath = [...parentPath, node.slug];
     const currentId = subId(categorySlug, currentPath);
@@ -432,6 +435,7 @@ const flattenSubcategories = (
       id: currentId,
       title: node.title,
       image: node.image ?? '',
+      presentation: JSON.stringify(normalizeCategoryShowcaseMediaSettings(node.presentation)),
       index,
       parentId: parentPath.length === 0 ? catId(categorySlug) : subId(categorySlug, parentPath),
       parentLabel

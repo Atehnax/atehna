@@ -1,4 +1,5 @@
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
+import type { CatalogSpecificationLabelOverrides } from '@/shared/domain/catalog/catalogSpecification';
 import type { OrderItemSkuAllocationRow } from '@/shared/domain/order/orderTypes';
 
 export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
@@ -7,7 +8,11 @@ export type CatalogItemPublicationStatus = 'active' | 'inactive';
 export type CatalogItemLifecycleStatus = CatalogItemPublicationStatus | 'deleted';
 
 export type CatalogItemTypeSpecificData = Record<string, unknown>;
-export type CatalogItemAppearanceOverride = Record<string, unknown>;
+export type CatalogItemAppearanceOverride = Record<string, unknown> & {
+  secondaryContent?: Record<string, unknown> & {
+    specificationLabels?: CatalogSpecificationLabelOverrides;
+  };
+};
 export type CatalogVariantContentOverride = {
   description?: string;
   specifications?: Record<string, string>;
@@ -105,6 +110,7 @@ export type CatalogMediaUploadResponse = UploadedCatalogMediaFile & {
 
 export type CatalogItemEditorPayload = {
   id?: number;
+  expectedUpdatedAt?: string;
   itemName: string;
   itemType: CatalogItemType;
   productType?: CatalogEditorProductType;
@@ -218,10 +224,18 @@ export type CatalogItemPresentationPatch = {
   colour?: string | null;
   shape?: string | null;
   appearanceOverride?: CatalogItemAppearanceOverride | null;
+  /** Explicit PATCH transport field; an empty map clears persisted label overrides. */
+  specificationLabels?: CatalogSpecificationLabelOverrides;
   media?: CatalogItemMediaPayload[];
   variantSpecifications?: Array<{
     variantId: number;
     specifications: Record<string, string>;
+    length?: number | null;
+    width?: number | null;
+    thickness?: number | null;
+    weight?: number | null;
+    errorTolerance?: string | null;
+    variantSku?: string | null;
   }>;
 };
 
@@ -286,6 +300,7 @@ export type CatalogItemIdentityConflict = CatalogItemIdentityAvailability & {
 export type CatalogItemSaveResponse = {
   id?: number;
   slug?: string;
+  updatedAt?: string;
   message?: string;
 };
 

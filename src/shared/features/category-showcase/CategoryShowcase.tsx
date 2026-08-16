@@ -83,6 +83,7 @@ export type CategoryShowcaseProps = {
   tileClassName?: string;
   style?: CSSProperties;
   emptyState?: ReactNode;
+  trailingContent?: ReactNode;
   getHref?: (item: CategoryShowcaseItem, index: number) => string | null | undefined;
   getTileClassName?: (item: CategoryShowcaseItem, index: number) => string | null | undefined;
   getTileProps?: (
@@ -400,6 +401,7 @@ export function CategoryShowcase({
   tileClassName,
   style,
   emptyState = null,
+  trailingContent = null,
   getHref,
   getTileClassName,
   getTileProps,
@@ -421,7 +423,7 @@ export function CategoryShowcase({
 
   return (
     <div data-testid="category-showcase" className={className} style={style}>
-      {items.length > 0 ? (
+      {items.length > 0 || trailingContent !== null ? (
         <div
           data-testid="category-showcase-grid"
           className={classNames(
@@ -471,6 +473,7 @@ export function CategoryShowcase({
               </Fragment>
             );
           })}
+          {trailingContent}
         </div>
       ) : emptyState}
     </div>

@@ -6,6 +6,7 @@ import {
 
 export const LANDING_PAGE_SETTINGS_KEY = 'main-landing-page';
 export const LANDING_PAGE_DEFAULTS_KEY = 'main-landing-page-defaults';
+export const HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID = 'categories:title:all';
 
 export const HOMEPAGE_SECTION_IDS = ['hero', 'categories', 'infoBlocks', 'footer'] as const;
 export const HOMEPAGE_PREVIEW_DEVICES = ['desktop', 'tablet', 'mobile'] as const;
@@ -251,6 +252,31 @@ export const DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS: HomepageCanvasElem
   italic: false,
   underline: false
 };
+
+export function createDefaultHomepageCategoryTitleCanvasSettings(): HomepageCanvasElementDeviceSettings {
+  return {
+    ...DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
+    color: '#111827',
+    fontFamily: 'Noto Sans',
+    fontSizePx: 16,
+    lineHeight: 1.28,
+    fontWeight: 600,
+    zIndex: 2
+  };
+}
+
+export function resolveHomepageSharedCategoryTitleCanvasSettings(
+  canvas: HomepageCanvasSettings,
+  device: HomepagePreviewDevice
+): HomepageCanvasElementDeviceSettings {
+  return canvas.elements[HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID]
+    ? resolveHomepageCanvasElementDeviceSettings(
+        canvas,
+        HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
+        device
+      )
+    : createDefaultHomepageCategoryTitleCanvasSettings();
+}
 
 export type HomepageHeroSettings = {
   visible: boolean;

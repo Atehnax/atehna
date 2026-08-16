@@ -86,10 +86,13 @@ export function AdminCategoriesPreview({
   onOpenNode,
   onStageStatusChange,
   onRequestCreateCategory,
+  onRequestCreateSubcategory,
   selectedPresentationSlug,
   onSelectPresentation,
   onPresentationChange,
   onResetPresentation,
+  onSubcategoryPresentationChange,
+  onResetSubcategoryPresentation,
 }: {
   activeView: "table" | "preview" | "miller";
   tableError: string | null;
@@ -115,6 +118,7 @@ export function AdminCategoriesPreview({
   onSetImageDeleteTarget: (target: {
     kind: "category" | "subcategory";
     categorySlug: string;
+    subcategoryPath?: string[];
     subcategorySlug?: string;
   }) => void;
   onImageUpload: (
@@ -133,10 +137,16 @@ export function AdminCategoriesPreview({
   onOpenNode: (item: ContentCard) => void;
   onStageStatusChange: (rowId: string, status: CategoryStatus) => void;
   onRequestCreateCategory: () => void;
+  onRequestCreateSubcategory: () => void;
   selectedPresentationSlug: string | null;
   onSelectPresentation: (categorySlug: string | null) => void;
   onPresentationChange: (categorySlug: string, updates: Partial<CategoryShowcaseMediaSettings>) => void;
   onResetPresentation: (categorySlug: string) => void;
+  onSubcategoryPresentationChange: (
+    item: ContentCard,
+    updates: Partial<CategoryShowcaseMediaSettings>,
+  ) => void;
+  onResetSubcategoryPresentation: (item: ContentCard) => void;
 }) {
   const previewSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -179,6 +189,46 @@ export function AdminCategoriesPreview({
   const selectedPresentationContent = selectedPresentationItem
     ? rootContentBySlug.get(selectedPresentationItem.slug) ?? null
     : null;
+  const [selectedSubcategoryPresentationId, setSelectedSubcategoryPresentationId] =
+    useState<string | null>(null);
+  const subcategoryShowcaseItems = useMemo<CategoryShowcaseItem[]>(
+    () =>
+      selectedContext?.kind !== "root"
+        ? visibleContent.map((item) => ({
+            id: item.id,
+            slug: item.subcategoryPath.at(-1) ?? item.id,
+            title: item.title,
+            summary: item.description,
+            description: item.description,
+            image: item.image ?? "",
+            presentation: item.presentation,
+          }))
+        : [],
+    [selectedContext?.kind, visibleContent],
+  );
+  const subcategoryContentBySlug = useMemo(
+    () =>
+      new Map(
+        visibleContent.map((item) => [
+          item.subcategoryPath.at(-1) ?? item.id,
+          item,
+        ]),
+      ),
+    [visibleContent],
+  );
+  const selectedSubcategoryPresentationContent =
+    visibleContent.find((item) => item.id === selectedSubcategoryPresentationId) ??
+    null;
+  const selectedSubcategoryPresentationItem = selectedSubcategoryPresentationContent
+    ? subcategoryShowcaseItems.find(
+        (item) => item.id === selectedSubcategoryPresentationContent.id,
+      ) ?? null
+    : null;
+  const previewShowcaseColumns = {
+    desktop: Math.min(8, Math.max(3, lowerViewCount)),
+    tablet: Math.min(3, Math.max(2, lowerViewCount)),
+    mobile: 1,
+  } as const;
 
   return (
     <div
@@ -217,7 +267,10 @@ export function AdminCategoriesPreview({
               />
             </label>
             <IconButton
-              onClick={onNavigateUp}
+              onClick={() => {
+                setSelectedSubcategoryPresentationId(null);
+                onNavigateUp();
+              }}
               disabled={!canNavigateUp}
               aria-label="Nazaj na nadrejeno kategorijo"
               title="Nazaj"
@@ -284,11 +337,7 @@ export function AdminCategoriesPreview({
                   items={rootShowcaseItems}
                   gap={16}
                   tileClassName="!h-auto min-h-[156px] min-[560px]:min-h-[164px] min-[1025px]:min-h-[168px]"
-                  columns={{
-                    desktop: Math.min(8, Math.max(3, lowerViewCount)),
-                    tablet: Math.min(3, Math.max(2, lowerViewCount)),
-                    mobile: 1,
-                  }}
+                  columns={previewShowcaseColumns}
                   selectedSlug={
                     selectedPresentationSlug ?? (editingRow?.kind === "category"
                       ? editingRow.categorySlug
@@ -302,7 +351,7 @@ export function AdminCategoriesPreview({
                   }
                   onItemClick={(showcaseItem) => {
                     const item = rootContentBySlug.get(showcaseItem.slug);
-                    if (item?.hasChildren) onOpenNode(item);
+                    if (item) onOpenNode(item);
                   }}
                   renderTitle={({ item, defaultTitle }) => {
                     const contentItem = rootContentBySlug.get(item.slug);
@@ -317,6 +366,7 @@ export function AdminCategoriesPreview({
                         }
                         onCommitEdit={onCommitEdit}
                         onCancelEdit={onCancelEdit}
+                        onOpenNode={onOpenNode}
                       />
                     );
                   }}
@@ -368,23 +418,18 @@ export function AdminCategoriesPreview({
                       ),
                     );
                   }}
+                  trailingContent={(
+                    <CreateCategoryCard
+                      onClick={onRequestCreateCategory}
+                      compact
+                    />
+                  )}
                   emptyState={null}
                 />
               </CategoryShowcaseEditor>
-              <div
-                className="mt-3 grid gap-3"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
-                }}
-              >
-                <CreateCategoryCard
-                  onClick={onRequestCreateCategory}
-                  compact
-                />
-              </div>
             </SortableContext>
           </DndContext>
-        ) : selectedContext && visibleContent.length > 0 ? (
+        ) : selectedContext ? (
           <DndContext
             sensors={previewSensors}
             collisionDetection={closestCenter}
@@ -394,47 +439,168 @@ export function AdminCategoriesPreview({
               items={visibleContent.map((item) => item.id)}
               strategy={rectSortingStrategy}
             >
-              <div
-                className="grid gap-3"
-                style={{
-                  gridTemplateColumns: `repeat(${Math.min(8, Math.max(3, lowerViewCount))}, minmax(0, 1fr))`,
+              <CategoryShowcaseEditor
+                context="category-preview"
+                capabilities={CATEGORY_SHOWCASE_BASE_CAPABILITIES}
+                selectedItem={
+                  selectedSubcategoryPresentationContent
+                    ? selectedSubcategoryPresentationItem
+                    : null
+                }
+                onPresentationChange={(updates) => {
+                  if (selectedSubcategoryPresentationContent) {
+                    onSubcategoryPresentationChange(
+                      selectedSubcategoryPresentationContent,
+                      updates,
+                    );
+                  }
                 }}
+                onImageChange={
+                  selectedSubcategoryPresentationContent
+                    ? (file) =>
+                        void onImageUpload(
+                          file,
+                          selectedSubcategoryPresentationContent,
+                        )
+                    : undefined
+                }
+                onImageRemove={
+                  selectedSubcategoryPresentationContent
+                    ? () =>
+                        onSetImageDeleteTarget({
+                          kind: "subcategory",
+                          categorySlug:
+                            selectedSubcategoryPresentationContent.categorySlug,
+                          subcategoryPath:
+                            selectedSubcategoryPresentationContent.subcategoryPath,
+                        })
+                    : undefined
+                }
+                onReset={
+                  selectedSubcategoryPresentationContent
+                    ? () =>
+                        onResetSubcategoryPresentation(
+                          selectedSubcategoryPresentationContent,
+                        )
+                    : undefined
+                }
+                onClose={() => setSelectedSubcategoryPresentationId(null)}
               >
-                {visibleContent.map((item) => (
-                  <div key={item.id} className="h-full">
-                    {renderSortableItem(
-                      item.id,
+                <CategoryShowcase
+                  items={subcategoryShowcaseItems}
+                  gap={16}
+                  tileClassName="!h-auto min-h-[156px] min-[560px]:min-h-[164px] min-[1025px]:min-h-[168px]"
+                  columns={previewShowcaseColumns}
+                  selectedSlug={
+                    selectedSubcategoryPresentationItem?.slug ??
+                    (editingRow?.kind === "subcategory"
+                      ? editingRow.subcategoryPath?.at(-1) ?? null
+                      : null)
+                  }
+                  interactive
+                  getTileClassName={(showcaseItem) =>
+                    subcategoryContentBySlug.get(showcaseItem.slug)?.isInactive
+                      ? "opacity-55"
+                      : undefined
+                  }
+                  onItemClick={(showcaseItem) => {
+                    const item = subcategoryContentBySlug.get(showcaseItem.slug);
+                    if (!item) return;
+                    setSelectedSubcategoryPresentationId(null);
+                    onOpenNode(item);
+                  }}
+                  renderTitle={({ item, defaultTitle }) => {
+                    const contentItem = subcategoryContentBySlug.get(item.slug);
+                    if (!contentItem) return defaultTitle;
+                    return (
+                      <CategoryShowcaseTitleEditor
+                        item={contentItem}
+                        editingRow={editingRow}
+                        onEditingRowTitleChange={onEditingRowTitleChange}
+                        onEditingRowDescriptionChange={
+                          onEditingRowDescriptionChange
+                        }
+                        onCommitEdit={onCommitEdit}
+                        onCancelEdit={onCancelEdit}
+                        onOpenNode={(item) => {
+                          setSelectedSubcategoryPresentationId(null);
+                          onOpenNode(item);
+                        }}
+                      />
+                    );
+                  }}
+                  renderActions={({ item }) => {
+                    const contentItem = subcategoryContentBySlug.get(item.slug);
+                    if (!contentItem) return null;
+                    return (
+                      <CategoryShowcaseAdminActions
+                        item={contentItem}
+                        uploadRefs={uploadRefs}
+                        onSetImageDeleteTarget={onSetImageDeleteTarget}
+                        editingRow={editingRow}
+                        onStartEdit={onStartEdit}
+                        onCancelEdit={onCancelEdit}
+                        onStageStatusChange={onStageStatusChange}
+                        onEditPresentation={() =>
+                          setSelectedSubcategoryPresentationId(contentItem.id)
+                        }
+                      />
+                    );
+                  }}
+                  renderTile={({ item: showcaseItem, tile }) => {
+                    const contentItem = subcategoryContentBySlug.get(
+                      showcaseItem.slug,
+                    );
+                    if (!contentItem) return tile;
+                    return renderSortableItem(
+                      contentItem.id,
                       ({ dragHandleProps, setNodeRef, style }) => (
-                        <CategoryPreviewCard
-                          dragHandleProps={dragHandleProps}
-                          setNodeRef={setNodeRef}
-                          style={style}
-                          item={item}
-                          uploadRefs={uploadRefs}
-                          onSetImageDeleteTarget={onSetImageDeleteTarget}
-                          onImageUpload={onImageUpload}
-                          editingRow={editingRow}
-                          onStartEdit={onStartEdit}
-                          onEditingRowTitleChange={onEditingRowTitleChange}
-                          onEditingRowDescriptionChange={
-                            onEditingRowDescriptionChange
-                          }
-                          onCommitEdit={onCommitEdit}
-                          onCancelEdit={onCancelEdit}
-                          onOpenNode={onOpenNode}
-                          onStageStatusChange={onStageStatusChange}
-                        />
+                        <CategoryShowcaseDragHandleContext.Provider
+                          value={dragHandleProps}
+                        >
+                          <div ref={setNodeRef} style={style} className="h-full">
+                            {tile}
+                            <input
+                              id={`preview-image-upload-${contentItem.id}`}
+                              name={`previewImageUpload-${contentItem.id}`}
+                              ref={(element) => {
+                                uploadRefs.current[contentItem.id] = element;
+                              }}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(event) =>
+                                void onImageUpload(
+                                  event.target.files?.[0] ?? null,
+                                  contentItem,
+                                )
+                              }
+                            />
+                          </div>
+                        </CategoryShowcaseDragHandleContext.Provider>
                       ),
-                    )}
-                  </div>
-                ))}
-              </div>
+                    );
+                  }}
+                  trailingContent={(
+                    <CreateCategoryCard
+                      onClick={() => {
+                        setSelectedSubcategoryPresentationId(null);
+                        onRequestCreateSubcategory();
+                      }}
+                      compact
+                      entity="subcategory"
+                    />
+                  )}
+                  emptyState={null}
+                />
+              </CategoryShowcaseEditor>
             </SortableContext>
           </DndContext>
         ) : null}
 
         {selectedContext?.kind === "category" &&
-        selectedContext.category.subcategories.length === 0 ? (
+        (selectedContext.category.subcategories.length === 0 ||
+          (selectedContext.category.items?.length ?? 0) > 0) ? (
           <LeafProductsView
             title={`${selectedContext.category.title} — izdelki`}
             category={selectedContext.category}
@@ -444,7 +610,8 @@ export function AdminCategoriesPreview({
         ) : null}
 
         {selectedContext?.kind === "subcategory" &&
-        selectedSubcategoryChildren.length === 0 ? (
+        (selectedSubcategoryChildren.length === 0 ||
+          selectedContext.subcategory.items.length > 0) ? (
           <LeafProductsView
             title={`${selectedContext.category.title} / ${selectedContext.subcategory.title}`}
             category={selectedContext.category}
@@ -465,6 +632,7 @@ function CategoryShowcaseTitleEditor({
   onEditingRowDescriptionChange,
   onCommitEdit,
   onCancelEdit,
+  onOpenNode,
 }: {
   item: ContentCard;
   editingRow: EditingRowDraft | null;
@@ -472,16 +640,31 @@ function CategoryShowcaseTitleEditor({
   onEditingRowDescriptionChange: (value: string) => void;
   onCommitEdit: () => void;
   onCancelEdit: () => void;
+  onOpenNode: (item: ContentCard) => void;
 }) {
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
   const editingDraft = editingRow?.id === item.id ? editingRow : null;
 
   if (!editingDraft) {
-    return (
+    const title = (
       <h3 className="whitespace-normal break-words text-[15px] font-semibold leading-[1.28] tracking-[-0.012em] min-[1025px]:text-[16px]">
         {item.title || "—"}
       </h3>
+    );
+    return (
+      <button
+        type="button"
+        className="block w-full rounded-sm border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[color:var(--blue-500)]"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenNode(item);
+        }}
+        aria-label={`Odpri ${item.title || "kategorijo"}`}
+        title={item.openLabel}
+      >
+        {title}
+      </button>
     );
   }
 
@@ -562,6 +745,7 @@ function CategoryShowcaseAdminActions({
   onSetImageDeleteTarget: (target: {
     kind: "category" | "subcategory";
     categorySlug: string;
+    subcategoryPath?: string[];
     subcategorySlug?: string;
   }) => void;
   editingRow: EditingRowDraft | null;
@@ -597,9 +781,9 @@ function CategoryShowcaseAdminActions({
             onSetImageDeleteTarget({
               kind: item.kind,
               categorySlug: item.categorySlug,
-              subcategorySlug:
+              subcategoryPath:
                 item.kind === "subcategory"
-                  ? item.subcategoryPath.at(-1)
+                  ? item.subcategoryPath
                   : undefined,
             });
           },
@@ -775,6 +959,7 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
   onSetImageDeleteTarget: (target: {
     kind: "category" | "subcategory";
     categorySlug: string;
+    subcategoryPath?: string[];
     subcategorySlug?: string;
   }) => void;
   onImageUpload: (
@@ -833,9 +1018,9 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
             onSetImageDeleteTarget({
               kind: item.kind,
               categorySlug: item.categorySlug,
-              subcategorySlug:
+              subcategoryPath:
                 item.kind === "subcategory"
-                  ? item.subcategoryPath.at(-1)
+                  ? item.subcategoryPath
                   : undefined,
             });
           },
@@ -1138,16 +1323,22 @@ const CategoryPreviewCard = memo(function CategoryPreviewCard({
 function CreateCategoryCard({
   onClick,
   compact = false,
+  entity = "category",
 }: {
   onClick: () => void;
   compact?: boolean;
+  entity?: "category" | "subcategory";
 }) {
+  const isSubcategory = entity === "subcategory";
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${compact ? "min-h-[168px]" : "min-h-[225px]"}`}
-      aria-label="Ustvari novo kategorijo"
+      className={`flex flex-col items-center justify-center rounded-[18px] border border-dashed border-slate-300 bg-[color:var(--ui-neutral-bg)] px-6 text-center font-['Inter',system-ui,sans-serif] transition hover:border-slate-400 hover:bg-[color:var(--ui-neutral-bg-hover)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none ${compact ? "min-h-[156px] min-[560px]:min-h-[164px] min-[1025px]:min-h-[168px]" : "min-h-[225px]"}`}
+      aria-label={
+        isSubcategory ? "Ustvari novo podkategorijo" : "Ustvari novo kategorijo"
+      }
     >
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 shadow-sm">
         <svg
@@ -1164,7 +1355,7 @@ function CreateCategoryCard({
         </svg>
       </span>
       <span className="mt-6 text-lg font-semibold text-slate-700">
-        Ustvari kategorijo
+        {isSubcategory ? "Ustvari podkategorijo" : "Ustvari kategorijo"}
       </span>
     </button>
   );

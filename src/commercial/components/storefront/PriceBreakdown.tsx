@@ -2,7 +2,11 @@
 
 import type { ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
-import { formatEuro } from '@/shared/domain/formatting';
+import {
+  formatEuro,
+  formatEuroAmount,
+  formatEuroRange
+} from '@/shared/domain/formatting';
 
 type PriceBreakdownProps = {
   unitNet: number;
@@ -12,6 +16,7 @@ type PriceBreakdownProps = {
   taxRate?: number;
   unit?: string | null;
   compact?: boolean;
+  listingCard?: boolean;
   className?: string;
   priceWrapper?: (children: ReactNode) => ReactNode;
   taxWrapper?: (children: ReactNode) => ReactNode;
@@ -19,6 +24,42 @@ type PriceBreakdownProps = {
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(' ');
+
+function ListingPriceNumber({ value }: { value: number }) {
+  const amount = formatEuroAmount(value);
+  const separatorIndex = amount.lastIndexOf(',');
+  const major = separatorIndex >= 0 ? amount.slice(0, separatorIndex) : amount;
+  const fraction = separatorIndex >= 0 ? amount.slice(separatorIndex + 1) : '00';
+
+  return (
+    <span className="storefront-listing-price-number">
+      <span className="storefront-listing-price-major">{major}</span>
+      <span className="storefront-listing-price-fraction">{fraction}</span>
+    </span>
+  );
+}
+
+function ListingPrimaryPrice({
+  minimum,
+  maximum
+}: {
+  minimum: number;
+  maximum?: number;
+}) {
+  const hasRange = typeof maximum === 'number';
+  return (
+    <span aria-hidden="true" className="storefront-listing-price-visual">
+      <ListingPriceNumber value={minimum} />
+      {hasRange ? (
+        <>
+          <span className="storefront-listing-price-separator">–</span>
+          <ListingPriceNumber value={maximum} />
+        </>
+      ) : null}
+      <span className="storefront-listing-price-currency">€</span>
+    </span>
+  );
+}
 
 export default function PriceBreakdown({
   unitNet,
@@ -28,6 +69,7 @@ export default function PriceBreakdown({
   taxRate = 0.22,
   unit,
   compact = false,
+  listingCard = false,
   className,
   priceWrapper,
   taxWrapper
@@ -47,10 +89,22 @@ export default function PriceBreakdown({
   const hasRange = maxGross !== null && Math.abs(maxGross - unitGross) > 0.005;
   const hasDiscount = discountPct > 0 && baseGross > unitGross;
   const savingsGross = Math.max(0, baseGross - unitGross);
+  const unitLabel = appearance.pricing.showUnitPrice && unit ? `/ ${unit}` : '';
+  const formatRange = (minimum: number, maximum: number) => (
+    listingCard
+      ? formatEuroRange(minimum, maximum)
+      : `${formatEuro(minimum)}–${formatEuro(maximum)}`
+  );
   const priceContent = (
     <>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <p
+          aria-label={listingCard
+            ? formatEuroRange(
+                unitGross,
+                hasRange && maxGross !== null ? maxGross : unitGross
+              )
+            : undefined}
           className={classNames(
             'storefront-price-primary font-semibold leading-tight tabular-nums',
             compact
@@ -60,14 +114,23 @@ export default function PriceBreakdown({
                 : 'text-2xl'
           )}
         >
-          {hasRange
-            ? `${formatEuro(unitGross)}–${formatEuro(maxGross)}`
-            : formatEuro(unitGross)}
+          {listingCard ? (
+            <ListingPrimaryPrice
+              minimum={unitGross}
+              maximum={hasRange && maxGross !== null ? maxGross : undefined}
+            />
+          ) : hasRange ? (
+            `${formatEuro(unitGross)}–${formatEuro(maxGross)}`
+          ) : (
+            formatEuro(unitGross)
+          )}
         </p>
-        <span className="storefront-price-label text-xs text-[color:var(--site-color-text-muted)]">
-          {copy.grossPriceLabel}
-          {appearance.pricing.showUnitPrice && unit ? ` / ${unit}` : ''}
-        </span>
+        {!listingCard || unitLabel ? (
+          <span className="storefront-price-label text-xs text-[color:var(--site-color-text-muted)]">
+            {listingCard ? unitLabel : copy.grossPriceLabel}
+            {!listingCard && unitLabel ? ` ${unitLabel}` : ''}
+          </span>
+        ) : null}
       </div>
 
       {hasDiscount &&
@@ -102,11 +165,11 @@ export default function PriceBreakdown({
       )}
     >
       {hasRange && typeof maxUnitNet === 'number'
-        ? `${formatEuro(unitNet)}–${formatEuro(maxUnitNet)}`
+        ? formatRange(unitNet, maxUnitNet)
         : formatEuro(unitNet)}{' '}
       {copy.netPriceLabel} · {copy.taxLabel} {Math.round(safeTaxRate * 100)} %:{' '}
       {hasRange && maxTaxAmount !== null
-        ? `${formatEuro(taxAmount)}–${formatEuro(maxTaxAmount)}`
+        ? formatRange(taxAmount, maxTaxAmount)
         : formatEuro(taxAmount)}
     </p>
   );
@@ -114,7 +177,7 @@ export default function PriceBreakdown({
   return (
     <div className={classNames('text-[color:var(--site-color-text)]', className)}>
       {priceWrapper ? priceWrapper(priceContent) : priceContent}
-      {taxWrapper ? taxWrapper(taxContent) : taxContent}
+      {!listingCard && (taxWrapper ? taxWrapper(taxContent) : taxContent)}
     </div>
   );
 }

@@ -31,6 +31,7 @@ import type {
   AdminCatalogListItem,
   CatalogItemEditorHydration,
   CatalogItemMediaPayload,
+  CatalogVariantContentOverride,
   UploadedCatalogMediaFile
 } from '@/shared/domain/catalog/catalogAdminTypes';
 import {
@@ -49,6 +50,13 @@ import {
   adminInputFocusTokenClasses
 } from '@/shared/ui/theme/tokens';
 import {
+  migrateCatalogSpecificationKey,
+  normalizeCatalogSpecificationToken,
+  readCatalogSpecificationLabels,
+  writeCatalogSpecificationLabels
+} from '@/shared/domain/catalog/catalogSpecification';
+import {
+  getProductCanvasElementResizeMinimums,
   resolveProductCanvasResize,
   type ProductCanvasResizeAxis
 } from '@/shared/ui/product-canvas/ProductCanvasElement';
@@ -61,6 +69,10 @@ import {
   useAppearanceEditorToolbarPlacement
 } from './AppearanceEditorToolbarPrimitives';
 import ProductDescriptionRichTextEditor from './ProductDescriptionRichTextEditor';
+import VariantSpecificationsEditor from '@/admin/features/artikli/components/VariantSpecificationsEditor';
+import SpecificationDisplayLabelsEditor, {
+  type SpecificationDisplayLabelRow
+} from '@/admin/features/artikli/components/SpecificationDisplayLabelsEditor';
 
 export type ProductAppearanceElementOption = {
   id: string;
@@ -74,6 +86,95 @@ type Panel = 'content' | 'style' | 'layers' | null;
 
 const fieldClassName =
   `h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] text-slate-800 ${adminInputFocusTokenClasses}`;
+
+function CanonicalNumberField({
+  label,
+  value,
+  unit,
+  testId,
+  onChange,
+  hideLabel = false
+}: {
+  label: string;
+  value: number | null | undefined;
+  unit: string;
+  testId: string;
+  onChange: (value: number | null) => void;
+  hideLabel?: boolean;
+}) {
+  const focusedRef = useRef(false);
+  const [draftValue, setDraftValue] = useState(
+    value === null || value === undefined ? '' : String(value).replace('.', ',')
+  );
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setDraftValue(
+        value === null || value === undefined ? '' : String(value).replace('.', ',')
+      );
+    }
+  }, [value]);
+
+  const commit = () => {
+    const normalized = draftValue.trim().replace(',', '.');
+    if (!normalized) {
+      onChange(null);
+      return;
+    }
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      onChange(parsed);
+      setDraftValue(String(parsed).replace('.', ','));
+      return;
+    }
+    setDraftValue(
+      value === null || value === undefined ? '' : String(value).replace('.', ',')
+    );
+  };
+
+  return (
+    <label className="grid gap-1">
+      {hideLabel ? null : (
+        <span className="text-[9px] font-medium text-slate-500">{label}</span>
+      )}
+      <span className="relative block">
+        <input
+          value={draftValue}
+          inputMode="decimal"
+          data-testid={testId}
+          aria-label={label}
+          onFocus={() => {
+            focusedRef.current = true;
+          }}
+          onChange={(event) => setDraftValue(event.target.value)}
+          onBlur={() => {
+            commit();
+            focusedRef.current = false;
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              commit();
+              event.currentTarget.blur();
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              setDraftValue(
+                value === null || value === undefined
+                  ? ''
+                  : String(value).replace('.', ',')
+              );
+              event.currentTarget.blur();
+            }
+          }}
+          className={`${fieldClassName} pr-9`}
+        />
+        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-[9px] text-slate-400">
+          {unit}
+        </span>
+      </span>
+    </label>
+  );
+}
 
 function measureSelectedCanvasElement(elementId: string | null) {
   if (!elementId || typeof document === 'undefined') return null;
@@ -101,10 +202,23 @@ function dimensionUpdates({
   axis: Exclude<ProductCanvasResizeAxis, 'both'>;
   value: number;
 }) {
+  const resizeMinimums = getProductCanvasElementResizeMinimums(
+    selectedElementId ?? ''
+  );
+  const constrainedValue = value <= 0
+    ? value
+    : Math.max(
+        axis === 'width'
+          ? resizeMinimums.minimumWidth
+          : resizeMinimums.minimumHeight,
+        value
+      );
   if (!settings.aspectRatioLocked) {
-    return axis === 'width' ? { widthPx: value } : { heightPx: value };
+    return axis === 'width'
+      ? { widthPx: constrainedValue }
+      : { heightPx: constrainedValue };
   }
-  if (value <= 0) return { widthPx: 0, heightPx: 0 };
+  if (constrainedValue <= 0) return { widthPx: 0, heightPx: 0 };
   const measured = measureSelectedCanvasElement(selectedElementId);
   const startWidth = settings.widthPx > 0
     ? settings.widthPx
@@ -115,10 +229,11 @@ function dimensionUpdates({
   return resolveProductCanvasResize({
     startWidth,
     startHeight,
-    nextWidth: axis === 'width' ? value : startWidth,
-    nextHeight: axis === 'height' ? value : startHeight,
+    nextWidth: axis === 'width' ? constrainedValue : startWidth,
+    nextHeight: axis === 'height' ? constrainedValue : startHeight,
     axis,
-    aspectRatioLocked: true
+    aspectRatioLocked: true,
+    ...resizeMinimums
   });
 }
 
@@ -138,6 +253,7 @@ const contentElementIds = new Set([
   'product-key-attributes',
   'product-variants',
   'product-specifications',
+  'product-specifications-content',
   'product-secondary',
   'product-related-products',
   'product-purchase',
@@ -149,6 +265,10 @@ const contentElementIds = new Set([
   'product-delivery',
   'product-secondary-action'
 ]);
+
+const isVariantContentElementId = (elementId: string) => (
+  elementId === 'product-variants' || elementId.startsWith('product-variant-')
+);
 
 type PurchaseCopyKey =
   keyof ProductAppearanceConfig['purchaseArea']['copy'];
@@ -463,25 +583,54 @@ function ContentPanel({
     ?? product.variants[0]
     ?? null;
   const selectedSpecifications = selectedVariant?.contentOverride?.specifications ?? {};
+  const specificationLabels = readCatalogSpecificationLabels(product.appearanceOverride);
   const previewVariant = previewProduct?.variants.find(
     (variant) => variant.commerceId === selectedVariant?.id
   ) ?? previewProduct?.variants.find(
     (variant) => variant.id === previewProduct.defaultVariantId
   ) ?? previewProduct?.variants[0] ?? null;
-  const displayedSpecifications = prepareStorefrontSpecifications(
-    mergeStorefrontSpecifications(
-      previewProduct?.specifications ?? [],
-      previewVariant?.specifications ?? [],
-      previewVariant?.sku
-        ? [{
-            id: `variant-${previewVariant.id}-sku`,
-            label: 'SKU',
-            value: previewVariant.sku
-          } satisfies StorefrontSpecification]
-        : []
-    ),
+  const mergedSpecifications = mergeStorefrontSpecifications(
+    previewProduct?.specifications ?? [],
+    previewVariant?.specifications ?? [],
+    previewVariant?.sku
+      ? [{
+          id: `variant-${previewVariant.id}-sku`,
+          label: 'SKU',
+          value: previewVariant.sku,
+          orderKey: 'sku'
+        } satisfies StorefrontSpecification]
+      : []
+  );
+  const canonicalDisplayedSpecifications = prepareStorefrontSpecifications(
+    mergedSpecifications,
     secondaryContent.specificationOrder
   );
+  const canonicalSpecificationLabels = new Map(
+    canonicalDisplayedSpecifications.map((specification) => [
+      getStorefrontSpecificationOrderKey(specification),
+      specification.label
+    ])
+  );
+  const displayedSpecifications = prepareStorefrontSpecifications(
+    mergedSpecifications,
+    secondaryContent.specificationOrder,
+    specificationLabels
+  );
+  const customSpecificationKeys = new Set(
+    Object.keys(selectedSpecifications).map(normalizeCatalogSpecificationToken)
+  );
+  const systemSpecificationRows: SpecificationDisplayLabelRow[] = displayedSpecifications
+    .filter((specification) => (
+      !customSpecificationKeys.has(getStorefrontSpecificationOrderKey(specification))
+    ))
+    .map((specification) => ({
+      key: getStorefrontSpecificationOrderKey(specification),
+      label: specification.label,
+      canonicalLabel: canonicalSpecificationLabels.get(
+        getStorefrontSpecificationOrderKey(specification)
+      ) ?? specification.label,
+      value: specification.value
+    }));
 
   function updateMedia(index: number, updates: Partial<CatalogItemMediaPayload>) {
     onProductChange({
@@ -495,21 +644,130 @@ function ContentPanel({
     onProductChange({ media: product.media.filter((_, mediaIndex) => mediaIndex !== index) });
   }
 
-  function updateVariantSpecifications(specifications: Record<string, string>) {
+  function updateSelectedVariant(
+    updates: Partial<CatalogItemEditorHydration['variants'][number]>
+  ) {
     if (!selectedVariant) return;
     onProductChange({
       variants: product.variants.map((variant) => (
-        variant === selectedVariant
-          ? {
-              ...variant,
-              contentOverride: {
-                ...(variant.contentOverride ?? {}),
-                specifications
-              }
-            }
-          : variant
+        variant === selectedVariant ? { ...variant, ...updates } : variant
       ))
     });
+  }
+
+  function updateVariantSpecifications(specifications: Record<string, string>) {
+    if (!selectedVariant) return;
+    const contentOverride: CatalogVariantContentOverride = {
+      ...(selectedVariant.contentOverride ?? {}),
+      specifications
+    };
+    if (Object.keys(specifications).length === 0) {
+      delete contentOverride.specifications;
+    }
+    updateSelectedVariant({
+      contentOverride: Object.keys(contentOverride).length > 0
+        ? contentOverride
+        : null
+    });
+  }
+
+  function updateSpecificationLabels(labels: Record<string, string>) {
+    onProductChange({
+      appearanceOverride: writeCatalogSpecificationLabels(
+        product.appearanceOverride,
+        labels
+      )
+    });
+  }
+
+  function renderSystemSpecificationValueEditor(
+    row: SpecificationDisplayLabelRow
+  ) {
+    if (row.key === 'material' || row.key === 'barva' || row.key === 'oblika') {
+      const productKey = row.key === 'barva'
+        ? 'colour'
+        : row.key === 'oblika'
+          ? 'shape'
+          : 'material';
+      return (
+        <input
+          value={product[productKey] ?? ''}
+          data-testid={`canonical-specification-${row.key}`}
+          aria-label={`Vrednost specifikacije ${row.label}`}
+          onChange={(event) => onProductChange({ [productKey]: event.target.value })}
+          className={fieldClassName}
+        />
+      );
+    }
+    if (row.key === 'dimensions') {
+      return (
+        <div className="grid grid-cols-3 gap-1.5">
+          <CanonicalNumberField
+            label="Debelina"
+            value={selectedVariant?.thickness}
+            unit="mm"
+            testId="canonical-specification-thickness"
+            onChange={(thickness) => updateSelectedVariant({ thickness })}
+            hideLabel
+          />
+          <CanonicalNumberField
+            label="Dolžina"
+            value={selectedVariant?.length}
+            unit="mm"
+            testId="canonical-specification-length"
+            onChange={(length) => updateSelectedVariant({ length })}
+            hideLabel
+          />
+          <CanonicalNumberField
+            label="Širina"
+            value={selectedVariant?.width}
+            unit="mm"
+            testId="canonical-specification-width"
+            onChange={(width) => updateSelectedVariant({ width })}
+            hideLabel
+          />
+        </div>
+      );
+    }
+    if (row.key === 'teza') {
+      return (
+        <CanonicalNumberField
+          label="Teža"
+          value={selectedVariant?.weight}
+          unit={product.productType === 'dimensions' ? 'g' : 'kg'}
+          testId="canonical-specification-weight"
+          onChange={(weight) => updateSelectedVariant({ weight })}
+          hideLabel
+        />
+      );
+    }
+    if (row.key === 'toleranca') {
+      return (
+        <input
+          value={selectedVariant?.errorTolerance ?? ''}
+          data-testid="canonical-specification-tolerance"
+          aria-label="Vrednost specifikacije Toleranca"
+          onChange={(event) => updateSelectedVariant({
+            errorTolerance: event.target.value || null
+          })}
+          className={fieldClassName}
+        />
+      );
+    }
+    if (row.key === 'sku') {
+      return (
+        <input
+          value={selectedVariant?.variantSku ?? ''}
+          data-testid="canonical-specification-sku"
+          aria-label="Vrednost specifikacije SKU"
+          onChange={(event) => updateSelectedVariant({
+            variantSku: event.target.value || null
+          })}
+          className={fieldClassName}
+        />
+      );
+    }
+    return undefined;
   }
 
   function moveDisplayedSpecification(index: number, direction: -1 | 1) {
@@ -1311,24 +1569,20 @@ function ContentPanel({
     );
   }
 
-  if (selectedElementId === 'product-specifications' || selectedElementId === 'product-key-attributes') {
+  if (
+    selectedElementId === 'product-specifications'
+    || selectedElementId === 'product-specifications-content'
+    || selectedElementId === 'product-key-attributes'
+  ) {
     return (
       <div className="grid gap-3">
-        <div className="grid gap-2 sm:grid-cols-3">
-          {([
-            ['material', 'Material'],
-            ['colour', 'Barva'],
-            ['shape', 'Oblika']
-          ] as const).map(([key, label]) => (
-            <label key={key} className="grid gap-1">
-              <span className="text-[9px] font-medium text-slate-500">{label}</span>
-              <input
-                value={product[key] ?? ''}
-                onChange={(event) => onProductChange({ [key]: event.target.value })}
-                className={fieldClassName}
-              />
-            </label>
-          ))}
+        <div>
+          <p className="text-[10px] font-semibold text-slate-800">
+            Osnovne specifikacije artikla
+          </p>
+          <p className="mt-0.5 text-[9px] leading-4 text-slate-500">
+            Vrednosti so skupne z zapisom v Artikli.
+          </p>
         </div>
         <SecondaryDividerControls
           secondaryContent={secondaryContent}
@@ -1352,6 +1606,7 @@ function ContentPanel({
               {displayedSpecifications.map((specification, index) => (
                 <li
                   key={getStorefrontSpecificationOrderKey(specification)}
+                  data-testid="product-specification-order-row"
                   className="grid grid-cols-[22px_minmax(0,1fr)_28px_28px] items-center gap-1 rounded-md border border-white/10 bg-black/10 px-1.5 py-1"
                 >
                   <span className="grid h-5 w-5 place-items-center rounded-full bg-white/10 text-[9px] font-semibold text-white/65">
@@ -1390,7 +1645,7 @@ function ContentPanel({
         {product.variants.length > 0 ? (
           <>
             <label className="grid gap-1">
-              <span className="text-[9px] font-medium text-slate-500">Specifikacije različice</span>
+              <span className="text-[9px] font-medium text-slate-500">Različica</span>
               <select
                 value={selectedVariant?.id ?? ''}
                 onChange={(event) => onSelectedVariantIdChange(Number(event.target.value) || null)}
@@ -1401,54 +1656,62 @@ function ContentPanel({
                 ))}
               </select>
             </label>
+            <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
+              <div>
+                <p className="text-[10px] font-semibold text-slate-800">
+                  Sistemske specifikacije različice
+                </p>
+                <p className="mt-0.5 text-[9px] leading-4 text-slate-500">
+                  Prikazni naziv lahko prilagodite, ne da bi spremenili pomen prodajnega polja.
+                  Vrednosti se shranijo v ista polja kot v Artikli.
+                </p>
+              </div>
+              <SpecificationDisplayLabelsEditor
+                rows={systemSpecificationRows.map((row) => ({
+                  ...row,
+                  valueEditor: renderSystemSpecificationValueEditor(row)
+                }))}
+                labels={specificationLabels}
+                onChange={updateSpecificationLabels}
+                surface="appearance-editor"
+                reservedLabels={Object.keys(selectedSpecifications)}
+              />
+            </div>
             <div className="grid gap-2">
-              {Object.entries(selectedSpecifications).map(([label, value], index) => (
-                <div key={`${label}-${index}`} className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_30px] gap-2">
-                  <input
-                    value={label}
-                    onChange={(event) => {
-                      const entries = Object.entries(selectedSpecifications);
-                      entries[index] = [event.target.value, value];
-                      updateVariantSpecifications(Object.fromEntries(entries));
-                    }}
-                    className={fieldClassName}
-                    placeholder="Lastnost"
-                  />
-                  <input
-                    value={value}
-                    onChange={(event) => updateVariantSpecifications({
-                      ...selectedSpecifications,
-                      [label]: event.target.value
-                    })}
-                    className={fieldClassName}
-                    placeholder="Vrednost"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Odstrani specifikacijo"
-                    onClick={() => {
-                      const next = { ...selectedSpecifications };
-                      delete next[label];
-                      updateVariantSpecifications(next);
-                    }}
-                    className={`grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 ${adminControlFocusTokenClasses}`}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  let label = 'Nova lastnost';
-                  let suffix = 2;
-                  while (label in selectedSpecifications) label = `Nova lastnost ${suffix++}`;
-                  updateVariantSpecifications({ ...selectedSpecifications, [label]: '' });
+              <div>
+                <p className="text-[10px] font-semibold text-slate-800">
+                  Dodatne specifikacije različice
+                </p>
+                <p className="mt-0.5 text-[9px] leading-4 text-slate-500">
+                  Nazive in vrednosti lahko urejate neposredno.
+                </p>
+              </div>
+              <VariantSpecificationsEditor
+                specifications={selectedSpecifications}
+                onChange={updateVariantSpecifications}
+                onLabelChange={(previousLabel, nextLabel) => {
+                  const migrated = migrateCatalogSpecificationKey(
+                    secondaryContent.specificationOrder,
+                    specificationLabels,
+                    previousLabel,
+                    nextLabel
+                  );
+                  onSecondaryContentChange({
+                    specificationOrder: migrated.specificationOrder
+                  });
+                  updateSpecificationLabels(migrated.specificationLabels);
                 }}
-                className={`h-8 rounded-lg border border-dashed border-slate-300 text-[10px] font-semibold text-slate-600 hover:border-[color:var(--blue-300)] hover:text-[color:var(--blue-700)] ${adminControlFocusTokenClasses}`}
-              >
-                Dodaj specifikacijo
-              </button>
+                surface="appearance-editor"
+                reservedLabels={[
+                  ...Object.values(specificationLabels),
+                  ...(previewProduct?.specifications ?? []).map(
+                    (specification) => specification.label
+                  ),
+                  ...(previewVariant?.specifications ?? []).map(
+                    (specification) => specification.label
+                  )
+                ]}
+              />
             </div>
           </>
         ) : null}
@@ -1456,7 +1719,7 @@ function ContentPanel({
     );
   }
 
-  if (selectedElementId === 'product-variants') {
+  if (isVariantContentElementId(selectedElementId)) {
     return (
       <div className="grid gap-3">
         <fieldset
@@ -1502,6 +1765,35 @@ function ContentPanel({
               </label>
             ))}
           </div>
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-white/70">
+              Razmik med naslovom in izbirnikom
+            </span>
+            <span className="flex overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <AppearanceEditorNumberInput
+                data-testid="product-variant-label-control-gap"
+                min={0}
+                max={32}
+                step={1}
+                value={variants.labelControlGapPx}
+                onValueChange={(labelControlGapPx) => {
+                  onVariantsChange({
+                    labelControlGapPx: Math.min(
+                      32,
+                      Math.max(0, labelControlGapPx)
+                    )
+                  });
+                }}
+                className="h-8 min-w-0 flex-1 bg-transparent px-2.5 text-[11px] text-slate-800 outline-none"
+              />
+              <span className="grid place-items-center border-l border-slate-200 px-2 text-[10px] text-slate-500">
+                px
+              </span>
+            </span>
+            <span className="text-[9px] leading-4 text-white/55">
+              Enako velja za Debelino, Dimenzije in druge izbirnike različic.
+            </span>
+          </label>
         </fieldset>
         <fieldset
           data-testid="product-variant-select-size-controls"
@@ -1682,7 +1974,10 @@ export default function ProductAppearanceContextToolbar({
   const canEditContent = Boolean(
     product
     && selectedElementId
-    && contentElementIds.has(selectedElementId)
+    && (
+      contentElementIds.has(selectedElementId)
+      || isVariantContentElementId(selectedElementId)
+    )
   );
   const toggleAspectRatioLock = () => {
     if (!settings) return;
@@ -1945,10 +2240,14 @@ export default function ProductAppearanceContextToolbar({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold text-slate-800">
-                      Položaj in velikost elementa
+                      {selectedElementId === 'product-primary-action'
+                        ? 'Položaj in velikost gumba'
+                        : 'Položaj in velikost elementa'}
                     </p>
                     <p className="text-[9px] leading-4 text-slate-500">
-                      Vnesite odmik ali element povlecite za modro oznako.
+                      {selectedElementId === 'product-primary-action'
+                        ? 'Širina in višina spremenita dejanski gumb za izbrano napravo.'
+                        : 'Vnesite odmik ali element povlecite za modro oznako.'}
                     </p>
                   </div>
                   <button
@@ -2023,11 +2322,15 @@ export default function ProductAppearanceContextToolbar({
                 <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
                   <label className="grid gap-1">
                     <span className="text-[9px] font-medium text-slate-500">
-                      Širina
+                      {selectedElementId === 'product-primary-action'
+                        ? 'Širina gumba'
+                        : 'Širina'}
                     </span>
                     <div className="relative">
                       <AppearanceEditorNumberInput
-                        min={0}
+                        min={selectedElementId === 'product-primary-action'
+                          ? 160
+                          : 0}
                         max={5000}
                         data-testid="product-canvas-width"
                         aria-label="Širina elementa"
@@ -2053,11 +2356,15 @@ export default function ProductAppearanceContextToolbar({
                   </span>
                   <label className="grid gap-1">
                     <span className="text-[9px] font-medium text-slate-500">
-                      Višina
+                      {selectedElementId === 'product-primary-action'
+                        ? 'Višina gumba'
+                        : 'Višina'}
                     </span>
                     <div className="relative">
                       <AppearanceEditorNumberInput
-                        min={0}
+                        min={selectedElementId === 'product-primary-action'
+                          ? 40
+                          : 0}
                         max={5000}
                         data-testid="product-canvas-height"
                         aria-label="Višina elementa"
@@ -2079,7 +2386,9 @@ export default function ProductAppearanceContextToolbar({
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[9px] text-slate-500">
-                    Vrednost 0 pomeni samodejno velikost.
+                    {selectedElementId === 'product-primary-action'
+                      ? 'Najmanj 160 × 40 px; za samodejno velikost uporabite Samodejno.'
+                      : 'Vrednost 0 pomeni samodejno velikost.'}
                   </span>
                   <button
                     type="button"

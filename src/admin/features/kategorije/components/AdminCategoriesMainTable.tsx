@@ -19,7 +19,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { CatalogItem } from '@/shared/domain/catalog/catalogTypes';
 import { useCategoryShowcaseEditor, type CategoryShowcasePersistedUpdate } from '@/shared/features/category-showcase/useCategoryShowcaseEditor';
-import { cloneDefaultCategoryShowcaseMediaSettings, type CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
+import {
+  cloneDefaultCategoryShowcaseMediaSettings,
+  normalizeCategoryShowcaseMediaSettings,
+  type CategoryShowcaseMediaSettings
+} from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import {
   fetchCategoryShowcaseUpdates,
   mergeCategoryDataChangeMessages,
@@ -146,6 +150,7 @@ type CatalogRowSnapshot = {
   summary: string;
   description: string;
   image: string | null;
+  presentation?: CategoryShowcaseMediaSettings;
   removeImage?: boolean;
   adminNotes?: string | null;
   bannerImage?: string | null;
@@ -423,6 +428,7 @@ function flattenCatalogRows(
         summary: '',
         description: node.description,
         image: node.image ?? '',
+        presentation: normalizeCategoryShowcaseMediaSettings(node.presentation),
         adminNotes: node.adminNotes ?? null,
         bannerImage: null,
         items: Array.isArray(node.items) ? node.items : [],
@@ -467,16 +473,23 @@ function buildCatalogPatchPayload(
   nextRows.forEach((row, id) => {
     const previousRow = previousRows.get(id);
     if (!previousRow || JSON.stringify(previousRow) !== JSON.stringify(row)) {
+      const imageChanged = !previousRow || previousRow.image !== row.image;
+      const presentationChanged =
+        !previousRow || JSON.stringify(previousRow.presentation) !== JSON.stringify(row.presentation);
+      const { image, presentation, ...structuralFields } = row;
       const isExistingTopLevelCategory = row.parentId === null && previousRow !== undefined;
       if (isExistingTopLevelCategory) {
-        const { image: _staleImage, ...structuralFields } = row;
         upserts.push({ ...structuralFields, removeImage: false });
       } else {
-        upserts.push(
-          row.image === '' && !!previousRow?.image
-            ? { ...row, image: null, removeImage: true }
-            : { ...row, removeImage: false }
-        );
+        upserts.push({
+          ...structuralFields,
+          ...(presentationChanged ? { presentation } : {}),
+          ...(imageChanged
+            ? image === '' && !!previousRow?.image
+              ? { image: null, removeImage: true }
+              : { image, removeImage: false }
+            : { removeImage: false })
+        });
       }
     }
   });
@@ -1403,6 +1416,7 @@ export default function AdminCategoriesMainTable({
       title,
       description: '',
       image: '',
+      presentation: cloneDefaultCategoryShowcaseMediaSettings(),
       items: [],
       subcategories: []
     };
@@ -1608,7 +1622,7 @@ export default function AdminCategoriesMainTable({
         ...movingSubcategory,
         summary: '',
         image: movingSubcategory.image ?? '',
-        presentation: cloneDefaultCategoryShowcaseMediaSettings(),
+        presentation: normalizeCategoryShowcaseMediaSettings(movingSubcategory.presentation),
         subcategories: []
       });
 
@@ -1897,6 +1911,7 @@ export default function AdminCategoriesMainTable({
           description: category.description,
           adminNotes: category.adminNotes,
           image: category.image,
+          presentation: category.presentation,
           createdAt: category.createdAt,
           updatedAt: category.updatedAt,
           items: [...(category.items ?? [])],
@@ -1983,7 +1998,7 @@ export default function AdminCategoriesMainTable({
               summary: subcategory.title,
               description: subcategory.description,
               image: subcategory.image ?? '',
-              presentation: cloneDefaultCategoryShowcaseMediaSettings(),
+              presentation: normalizeCategoryShowcaseMediaSettings(subcategory.presentation),
               adminNotes: subcategory.adminNotes,
               bannerImage: undefined,
               createdAt: subcategory.createdAt,
@@ -2690,8 +2705,10 @@ export default function AdminCategoriesMainTable({
       return;
     }
 
-    clearPendingImageUpload(subId(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? ''));
-    updateSubcategory(imageDeleteTarget.categorySlug, imageDeleteTarget.subcategorySlug ?? '', {
+    const subcategoryPath = imageDeleteTarget.subcategoryPath
+      ?? toSubcategoryPath(imageDeleteTarget.subcategorySlug);
+    clearPendingImageUpload(subId(imageDeleteTarget.categorySlug, subcategoryPath));
+    updateSubcategory(imageDeleteTarget.categorySlug, subcategoryPath, {
       image: ''
     });
     setImageDeleteTarget(null);
@@ -2700,7 +2717,9 @@ export default function AdminCategoriesMainTable({
 
   const openPreviewNode = useCallback(async (card: ContentCard) => {
     if (card.kind === 'category') {
-      await ensureFullPayloadLoaded();
+      const fullCatalog = await ensureFullPayloadLoaded();
+      const category = fullCatalog.categories.find((entry) => entry.slug === card.categorySlug);
+      if (!category) return;
       setSelected({ kind: 'category', categorySlug: card.categorySlug });
       return;
     }
@@ -2777,6 +2796,7 @@ export default function AdminCategoriesMainTable({
         title: entry.title,
         description: entry.description,
         image: entry.image,
+        presentation: entry.presentation,
         kind: 'subcategory' as const,
         categorySlug: selectedContext.category.slug,
         subcategoryPath: [entry.slug],
@@ -2795,6 +2815,7 @@ export default function AdminCategoriesMainTable({
           title: entry.title,
           description: entry.description,
           image: entry.image,
+          presentation: entry.presentation,
           kind: 'subcategory' as const,
           categorySlug: selectedContext.category.slug,
           subcategoryPath: path,
@@ -4125,10 +4146,48 @@ export default function AdminCategoriesMainTable({
         onRequestCreateCategory={() => {
           void openCreateDialog({ kind: 'category' });
         }}
+        onRequestCreateSubcategory={() => {
+          if (selected.kind === 'category') {
+            void openCreateDialog({
+              kind: 'subcategory',
+              categorySlug: selected.categorySlug,
+              parentPath: []
+            });
+            return;
+          }
+
+          if (selected.kind === 'subcategory') {
+            void openCreateDialog({
+              kind: 'subcategory',
+              categorySlug: selected.categorySlug,
+              parentPath: toSubcategoryPath(
+                selected.subcategoryPath ?? selected.subcategorySlug
+              )
+            });
+          }
+        }}
         selectedPresentationSlug={categoryShowcaseEditor.selectedSlug}
         onSelectPresentation={categoryShowcaseEditor.setSelectedSlug}
         onPresentationChange={(categorySlug, updates: Partial<CategoryShowcaseMediaSettings>) => categoryShowcaseEditor.updatePresentation(categorySlug, updates)}
         onResetPresentation={categoryShowcaseEditor.resetPresentation}
+        onSubcategoryPresentationChange={(item, updates) => {
+          const current = normalizeCategoryShowcaseMediaSettings(item.presentation);
+          updateSubcategory(item.categorySlug, item.subcategoryPath, {
+            presentation: normalizeCategoryShowcaseMediaSettings({
+              ...current,
+              ...updates,
+              crop: updates.crop ? { ...current.crop, ...updates.crop } : current.crop,
+              focalPoint: updates.focalPoint
+                ? { ...current.focalPoint, ...updates.focalPoint }
+                : current.focalPoint
+            })
+          });
+        }}
+        onResetSubcategoryPresentation={(item) => {
+          updateSubcategory(item.categorySlug, item.subcategoryPath, {
+            presentation: cloneDefaultCategoryShowcaseMediaSettings()
+          });
+        }}
         />
       ) : null}
 

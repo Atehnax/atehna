@@ -8,9 +8,11 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode
 } from 'react';
-import type {
-  ProductCanvasElementDeviceSettings,
-  ProductCanvasShadow
+import {
+  PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX,
+  PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX,
+  type ProductCanvasElementDeviceSettings,
+  type ProductCanvasShadow
 } from '@/shared/domain/style/productAppearance';
 import CanvasHiddenElementFlag from '@/shared/ui/product-canvas/CanvasHiddenElementFlag';
 
@@ -35,13 +37,24 @@ type Interaction = {
 
 export type ProductCanvasResizeAxis = 'width' | 'height' | 'both';
 
+export function getProductCanvasElementResizeMinimums(elementId: string) {
+  return elementId === 'product-primary-action'
+    ? {
+        minimumWidth: PRODUCT_PRIMARY_ACTION_MIN_WIDTH_PX,
+        minimumHeight: PRODUCT_PRIMARY_ACTION_MIN_HEIGHT_PX
+      }
+    : { minimumWidth: 24, minimumHeight: 24 };
+}
+
 export function resolveProductCanvasResize({
   startWidth,
   startHeight,
   nextWidth,
   nextHeight,
   axis,
-  aspectRatioLocked
+  aspectRatioLocked,
+  minimumWidth = 24,
+  minimumHeight = 24
 }: {
   startWidth: number;
   startHeight: number;
@@ -49,13 +62,17 @@ export function resolveProductCanvasResize({
   nextHeight: number;
   axis: ProductCanvasResizeAxis;
   aspectRatioLocked: boolean;
+  minimumWidth?: number;
+  minimumHeight?: number;
 }): Partial<
   Pick<ProductCanvasElementDeviceSettings, 'widthPx' | 'heightPx'>
 > {
+  const safeMinimumWidth = Math.max(24, minimumWidth);
+  const safeMinimumHeight = Math.max(24, minimumHeight);
   const safeStartWidth = Math.max(24, startWidth);
   const safeStartHeight = Math.max(24, startHeight);
-  const safeNextWidth = Math.max(24, nextWidth);
-  const safeNextHeight = Math.max(24, nextHeight);
+  const safeNextWidth = Math.max(safeMinimumWidth, nextWidth);
+  const safeNextHeight = Math.max(safeMinimumHeight, nextHeight);
 
   if (!aspectRatioLocked) {
     if (axis === 'width') return { widthPx: Math.round(safeNextWidth) };
@@ -68,26 +85,47 @@ export function resolveProductCanvasResize({
 
   const ratio = safeStartWidth / safeStartHeight;
   if (axis === 'height') {
+    const heightPx = Math.max(
+      safeMinimumHeight,
+      Math.ceil(safeMinimumWidth / ratio),
+      Math.round(nextHeight)
+    );
     return {
-      widthPx: Math.max(24, Math.round(safeNextHeight * ratio)),
-      heightPx: Math.round(safeNextHeight)
+      widthPx: Math.max(safeMinimumWidth, Math.round(heightPx * ratio)),
+      heightPx
     };
   }
   if (axis === 'width') {
+    const widthPx = Math.max(
+      safeMinimumWidth,
+      Math.ceil(safeMinimumHeight * ratio),
+      Math.round(nextWidth)
+    );
     return {
-      widthPx: Math.round(safeNextWidth),
-      heightPx: Math.max(24, Math.round(safeNextWidth / ratio))
+      widthPx,
+      heightPx: Math.max(safeMinimumHeight, Math.round(widthPx / ratio))
     };
   }
 
-  const widthScale = safeNextWidth / safeStartWidth;
-  const heightScale = safeNextHeight / safeStartHeight;
-  const scale = Math.abs(widthScale - 1) >= Math.abs(heightScale - 1)
+  const widthScale = Math.max(24, nextWidth) / safeStartWidth;
+  const heightScale = Math.max(24, nextHeight) / safeStartHeight;
+  const requestedScale = Math.abs(widthScale - 1) >= Math.abs(heightScale - 1)
     ? widthScale
     : heightScale;
+  const scale = Math.max(
+    requestedScale,
+    safeMinimumWidth / safeStartWidth,
+    safeMinimumHeight / safeStartHeight
+  );
   return {
-    widthPx: Math.max(24, Math.round(safeStartWidth * scale)),
-    heightPx: Math.max(24, Math.round(safeStartHeight * scale))
+    widthPx: Math.max(
+      safeMinimumWidth,
+      Math.round(safeStartWidth * scale)
+    ),
+    heightPx: Math.max(
+      safeMinimumHeight,
+      Math.round(safeStartHeight * scale)
+    )
   };
 }
 
@@ -207,6 +245,7 @@ export default function ProductCanvasElement({
       ? Math.round(value / gridSizePx) * gridSizePx
       : Math.round(value)
   );
+  const resizeMinimums = getProductCanvasElementResizeMinimums(elementId);
 
   const beginInteraction = (
     kind: Interaction['kind'],
@@ -287,7 +326,8 @@ export default function ProductCanvasElement({
         nextWidth: snap(interaction.startWidth + deltaX),
         nextHeight: snap(interaction.startHeight + deltaY),
         axis,
-        aspectRatioLocked: effectiveSettings.aspectRatioLocked
+        aspectRatioLocked: effectiveSettings.aspectRatioLocked,
+        ...resizeMinimums
       })
     );
   };
@@ -351,7 +391,8 @@ export default function ProductCanvasElement({
         nextWidth,
         nextHeight,
         axis: axis === 'both' ? (horizontal ? 'width' : 'height') : axis,
-        aspectRatioLocked: effectiveSettings.aspectRatioLocked
+        aspectRatioLocked: effectiveSettings.aspectRatioLocked,
+        ...resizeMinimums
       })
     );
   };

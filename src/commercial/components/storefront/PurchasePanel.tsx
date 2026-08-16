@@ -106,7 +106,9 @@ export default function PurchasePanel({
 
   return (
     <aside
-      className={`${panelClass} ${className ?? ''}`.trim()}
+      className={`storefront-product-purchase-area ${panelClass} ${
+        className ?? ''
+      }`.trim()}
       aria-label="Nakup izdelka"
     >
       {wrapCanvasElement(
@@ -234,25 +236,27 @@ export default function PurchasePanel({
         )
       ) : null}
 
-      {wrapCanvasElement(
-        'product-primary-action',
-        'Primarno dejanje',
-        <Button
-        type="button"
-        variant="primary"
-        size="md"
-        disabled={!canPurchase}
-        onClick={onAdd}
-        className={`storefront-product-primary-action mt-5 ${
-          appearance.purchaseArea.fullWidthPrimaryAction ? 'w-full' : ''
-        } justify-center`}
-      >
-        {canPurchase ? (
-          <ShoppingCart aria-hidden="true" className="h-5 w-5" />
-        ) : null}
-        {primaryActionLabel}
-        </Button>
-      )}
+      <div className="storefront-product-primary-action-slot">
+        {wrapCanvasElement(
+          'product-primary-action',
+          'Primarno dejanje',
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            disabled={!canPurchase}
+            onClick={onAdd}
+            className={`storefront-product-primary-action ${
+              appearance.purchaseArea.fullWidthPrimaryAction ? 'w-full' : ''
+            } justify-center`}
+          >
+            {canPurchase ? (
+              <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+            ) : null}
+            {primaryActionLabel}
+          </Button>
+        )}
+      </div>
 
       {wrapCanvasElement(
         'product-delivery',

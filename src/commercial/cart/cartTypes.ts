@@ -64,6 +64,30 @@ export type AddCartItemInput = Omit<CartItem, 'lineId' | 'quantity' | 'reconcili
   reconciliation?: CartReconciliation;
 };
 
+const normalizeCartLineCopy = (value: string) =>
+  value
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('sl');
+
+export function getDistinctCartVariantName(
+  item: Pick<CartItem, 'name' | 'variant'>
+) {
+  const variantName = item.variant?.name.trim();
+  if (!variantName) return null;
+
+  const normalizedVariantName = normalizeCartLineCopy(variantName);
+  if (normalizedVariantName === normalizeCartLineCopy(item.name)) return null;
+
+  const optionValues = (item.variant?.options ?? []).map((option) =>
+    normalizeCartLineCopy(option.valueLabel)
+  );
+  if (optionValues.includes(normalizedVariantName)) return null;
+
+  return variantName;
+}
+
 export type CartReconciliationUpdate = {
   lineId: string;
   reconciliation: CartReconciliation;

@@ -34,7 +34,12 @@ type DeleteTarget =
   | null;
 
 export type ImageDeleteTarget =
-  | { kind: 'category' | 'subcategory'; categorySlug: string; subcategorySlug?: string }
+  | {
+      kind: 'category' | 'subcategory';
+      categorySlug: string;
+      subcategoryPath?: string[];
+      subcategorySlug?: string;
+    }
   | null;
 
 export type ContentCard = {

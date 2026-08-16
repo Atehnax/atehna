@@ -31,6 +31,8 @@ import {
 import SiteFooter, { renderSiteFooterLogo, type SiteFooterEditorAdapter } from '@/commercial/components/SiteFooter';
 import {
   DEFAULT_HOMEPAGE_CANVAS_ELEMENT_DEVICE_SETTINGS,
+  HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID,
+  createDefaultHomepageCategoryTitleCanvasSettings,
   type HomepageButtonStyle,
   type HomepageCanvasElementDeviceSettings,
   type HomepageCategoryCardData,
@@ -60,7 +62,7 @@ import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/token
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
-export const HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID = 'categories:title:all';
+export { HOMEPAGE_CATEGORY_TITLE_SHARED_CANVAS_ELEMENT_ID };
 
 // The public storefront is zoomed down globally; counter-zoom only this shared
 // showcase so its physical geometry stays identical to both admin previews.
@@ -2599,7 +2601,7 @@ function createCategoryCanvasSettings(elementId: string): HomepageCanvasElementD
     return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };
   }
   if (elementId.startsWith('categories:title:')) {
-    return { ...base, color: '#111827', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.28, fontWeight: 600, zIndex: 2 };
+    return createDefaultHomepageCategoryTitleCanvasSettings();
   }
   if (elementId === 'categories:subtitle') {
     return { ...base, color: '#536070', fontFamily: 'Noto Sans', fontSizePx: 16, lineHeight: 1.5, fontWeight: 400, zIndex: 2 };

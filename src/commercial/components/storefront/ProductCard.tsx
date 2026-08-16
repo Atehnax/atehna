@@ -42,6 +42,8 @@ export default function ProductCard({
 }: ProductCardProps) {
   const appearance = useProductAppearance();
   const isRelated = presentation === 'related';
+  const isCompactListing =
+    !isRelated && appearance.listings.cardDensity === 'compact';
   const canvasDevice = useProductCanvasDevice();
   const canvasActive = appearance.canvas?.mode === 'free' || Boolean(canvasWrapper);
   const localCanvasWrapper = (
@@ -103,10 +105,15 @@ export default function ProductCard({
         variant: quickVariant
       })
     : null;
+  const inlineRelatedPurchase =
+    isRelated && canQuickAdd && cartItem !== null;
 
   const card = (
     <article
-      className={`site-panel storefront-product-card group h-full min-w-0 overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--site-color-primary)] ${
+      data-product-card-layout={isRelated ? undefined : layout}
+      className={`site-panel storefront-product-card group h-full min-w-0 overflow-hidden transition-colors duration-200 ${
+        isRelated ? '' : 'storefront-product-listing-card'
+      } ${
         isRelated ? 'storefront-related-product-card' : ''
       } ${
         isRelated
@@ -141,7 +148,7 @@ export default function ProductCard({
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
               className={`storefront-product-card-image transition duration-300 group-hover:scale-[1.03] ${
-                isRelated ? 'p-3' : 'p-4'
+                isRelated ? 'p-3' : ''
               }`}
             />
           ) : (
@@ -178,7 +185,9 @@ export default function ProductCard({
           wrapCanvasElement(
             canvasId('card-category', 'product-related-card-category'),
             'Kategorija kartice',
-            <p className="site-eyebrow storefront-product-card-category mb-2 truncate">
+            <p className={`site-eyebrow storefront-product-card-category truncate ${
+              isCompactListing ? 'mb-1' : 'mb-2'
+            }`}>
               {product.categoryLabel}
             </p>
           )
@@ -210,13 +219,16 @@ export default function ProductCard({
           </Link>
         )}
 
-        {!isRelated &&
-        appearance.listings.showShortDescription &&
+        {(isRelated || appearance.listings.showShortDescription) &&
         product.shortDescription ? (
           wrapCanvasElement(
-            'card-description',
+            canvasId('card-description', 'product-related-card-description'),
             'Opis kartice',
-            <p className="storefront-product-card-description mt-2 line-clamp-2 text-sm leading-5 text-[color:var(--site-color-text-muted)]">
+            <p className={`storefront-product-card-description text-[color:var(--site-color-text-muted)] ${
+              isRelated
+                ? 'mt-1 line-clamp-1 text-xs leading-4'
+                : 'mt-2 line-clamp-2 text-sm leading-5'
+            }`}>
               {product.shortDescription}
             </p>
           )
@@ -231,7 +243,24 @@ export default function ProductCard({
           )
         ) : null}
 
-        <div className={isRelated ? 'mt-2' : 'mt-4'}>
+        <div
+          className={
+            inlineRelatedPurchase
+              ? 'storefront-related-product-purchase-row'
+              : 'contents'
+          }
+        >
+        <div
+          className={
+            inlineRelatedPurchase
+              ? 'min-w-0'
+              : isRelated
+                ? 'mt-1'
+                : isCompactListing
+                  ? 'mt-2'
+                  : 'mt-4'
+          }
+        >
           <PriceBreakdown
             unitNet={product.minUnitNet}
             baseUnitNet={product.baseUnitNet}
@@ -246,6 +275,7 @@ export default function ProductCard({
             taxRate={product.taxRate}
             unit={product.unit}
             compact
+            listingCard
             className="storefront-product-card-price"
             priceWrapper={
               canvasActive
@@ -257,29 +287,19 @@ export default function ProductCard({
                     )
                 : undefined
             }
-            taxWrapper={
-              canvasActive
-                ? (children) =>
-                    wrapCanvasElement(
-                      canvasId('card-tax', 'product-related-card-tax'),
-                      'DDV kartice',
-                      children
-                    )
-                : undefined
-            }
           />
         </div>
 
-        {appearance.listings.showStock ? (
+        {!isRelated && appearance.listings.showStock && !product.hasMultipleVariants ? (
           wrapCanvasElement(
-            canvasId('card-stock', 'product-related-card-stock'),
+            'card-stock',
             'Zaloga kartice',
             <Availability
               variant={displayVariant}
               selectionComplete={!product.hasMultipleVariants}
               compact
               className={`storefront-product-card-availability ${
-                isRelated ? 'mt-2' : 'mt-3'
+                isRelated || isCompactListing ? 'mt-2' : 'mt-3'
               }`}
             />
           )
@@ -290,8 +310,14 @@ export default function ProductCard({
             canvasId('card-action', 'product-related-card-action'),
             'Dejanje kartice',
             <div
-              className={`storefront-product-card-action mt-auto ${
-                isRelated ? 'pt-2' : 'pt-4'
+              className={`storefront-product-card-action ${
+                inlineRelatedPurchase ? '' : 'mt-auto'
+              } ${
+                inlineRelatedPurchase
+                  ? ''
+                  : isRelated || isCompactListing
+                    ? 'pt-2'
+                    : 'pt-4'
               }`}
             >
               {canQuickAdd && cartItem ? (
@@ -349,15 +375,20 @@ export default function ProductCard({
                 <Link
                   href={product.href}
                   prefetch={false}
-                  className="site-button site-button--secondary inline-flex w-full items-center justify-center"
+                  className={`site-button inline-flex w-full items-center justify-center ${
+                    isRelated || !product.isAvailable
+                      ? 'site-button--secondary'
+                      : ''
+                  }`}
                 >
                   {product.isAvailable ? 'Izberi različico' : 'Preveri izdelek'}
                 </Link>
               )}
             </div>,
-            'mt-auto'
+            inlineRelatedPurchase ? 'min-w-0' : 'mt-auto'
           )
         ) : null}
+        </div>
         </div>,
         'flex min-w-0 flex-1'
       )}

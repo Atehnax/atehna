@@ -142,7 +142,7 @@ export default function VariantSelector({
 
     return (
       <div
-        className={`storefront-dimensional-variant-selector space-y-5 ${
+        className={`storefront-product-variant-selector storefront-dimensional-variant-selector space-y-3 ${
           className ?? ''
         }`.trim()}
       >
@@ -151,8 +151,10 @@ export default function VariantSelector({
           'Debelina',
           <fieldset>
             <legend
-              className={`text-sm font-semibold text-[color:var(--site-color-text)] ${
-                appearance.variants.labelAboveSelector ? 'mb-2' : 'mb-1'
+              className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
+                appearance.variants.labelAboveSelector
+                  ? ''
+                  : 'storefront-variant-selector-label--compact'
               }`}
             >
               Debelina
@@ -209,8 +211,10 @@ export default function VariantSelector({
             'Dimenzije',
             <fieldset className="storefront-dimensional-size-selector">
               <legend
-                className={`text-sm font-semibold text-[color:var(--site-color-text)] ${
-                  appearance.variants.labelAboveSelector ? 'mb-2' : 'mb-1'
+                className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
+                  appearance.variants.labelAboveSelector
+                    ? ''
+                    : 'storefront-variant-selector-label--compact'
                 }`}
               >
                 Dimenzije
@@ -253,7 +257,11 @@ export default function VariantSelector({
   }
 
   return (
-    <div className={`space-y-5 ${className ?? ''}`.trim()}>
+    <div
+      className={`storefront-product-variant-selector space-y-3 ${
+        className ?? ''
+      }`.trim()}
+    >
       {axes.map((axis, axisIndex) => {
         const selectedValue = axis.values.find(
           (value) => value.id === selection[axis.id]
@@ -272,8 +280,10 @@ export default function VariantSelector({
           axis.name,
           <fieldset key={axis.id}>
             <legend
-              className={`text-sm font-semibold text-[color:var(--site-color-text)] ${
-                appearance.variants.labelAboveSelector ? 'mb-2' : 'mb-1'
+              className={`storefront-variant-selector-label text-sm font-semibold text-[color:var(--site-color-text)] ${
+                appearance.variants.labelAboveSelector
+                  ? ''
+                  : 'storefront-variant-selector-label--compact'
               }`}
             >
               {axis.name}
@@ -358,7 +368,7 @@ export default function VariantSelector({
                             ? 'Z izbiro se bodo nezdružljive možnosti ponastavile.'
                           : undefined
                       }
-                      className={`site-radius-md relative inline-flex items-center justify-center gap-2 border text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)] ${
+                      className={`site-radius-md storefront-variant-option relative inline-flex items-center justify-center gap-2 border text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--site-field-focus)] ${
                         appearance.variants.compactSelectors
                           ? 'min-h-9 px-2.5 py-1.5'
                           : 'min-h-11 px-3 py-2'

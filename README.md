@@ -61,6 +61,7 @@ Apply the numbered migrations in order:
 6. `migrations/006_product_reference_design.sql`
 7. `migrations/007_school_directory.sql`
 8. `migrations/008_customer_directory_profiles.sql`
+9. `migrations/009_gurs_address_register.sql`
 
 The migrations are additive/idempotent where practical, but should still be
 run once in sequence. Do not expose a deployment until every migration has
@@ -76,9 +77,16 @@ corresponding environment variables in production.
   `POSTGRES_PRISMA_URL`, or `SUPABASE_DB_URL`.
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` are required
   in production. Missing production admin credentials fail closed.
-- `CRON_SECRET` secures both scheduled cleanup routes in `vercel.json`.
+- `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
+  `vercel.json`.
 - `BLOB_READ_WRITE_TOKEN` is required for catalogue media and order documents.
 - `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
+
+The Slovenian checkout address index is refreshed from the official GURS
+Register naslovov once per month. Apply migration 009 before enabling the cron,
+and keep `CRON_SECRET` configured. Run an on-demand refresh with
+`npm run addresses:sync`. Source, capacity, validation, recovery, and privacy
+details are documented in [docs/gurs-address-register.md](docs/gurs-address-register.md).
 
 Catalogue prices are stored as net amounts. Customer pages and order documents
 show the net amount, DDV rate/amount, and gross amount. Delivery is currently

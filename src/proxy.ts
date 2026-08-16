@@ -16,7 +16,8 @@ export function proxy(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const isConfiguredCronPath =
     pathname === '/api/admin/archive/cleanup' ||
-    pathname === '/api/admin/audit-events/prune';
+    pathname === '/api/admin/audit-events/prune' ||
+    pathname === '/api/admin/addresses/sync';
   const isAuthorizedCron =
     isConfiguredCronPath &&
     request.method === 'GET' &&

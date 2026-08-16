@@ -34,8 +34,8 @@ export {
 } from '@/shared/server/catalogCache';
 
 type CatalogDataWithStatuses = CatalogData & { statuses: Record<string, CategoryStatus> };
-const CATALOG_CACHE_DATA_VERSION = 'v3';
-type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'items'> & {
+const CATALOG_CACHE_DATA_VERSION = 'v4';
+type CatalogPreviewSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation' | 'items'> & {
   subcategories: CatalogPreviewSubcategory[];
 };
 type CatalogPreviewCategory = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation' | 'revision' | 'items'> & {
@@ -47,9 +47,9 @@ type CatalogPreviewDataWithStatuses = CatalogPreviewData & { statuses: Record<st
 export type CatalogCategoryCard = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation' | 'revision'>;
 type CatalogCategorySummary = Pick<RecursiveCatalogCategory, 'slug' | 'title'>;
 type CatalogCategoryWithSubcategories = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation' | 'revision' | 'items'> & {
-  subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>>;
+  subcategories: Array<Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation' | 'items'>>;
 };
-type CatalogCategoryPageSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description'> & {
+type CatalogCategoryPageSubcategory = Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation'> & {
   itemCount: number;
 };
 type CatalogCategoryPageData = Pick<RecursiveCatalogCategory, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image'> & {
@@ -65,8 +65,8 @@ type CatalogItemsIndex = Array<
 type CategoryCardRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'image' | 'presentation_json'>;
 type CategorySummaryRow = Pick<CategoryRow, 'slug' | 'title'>;
 type CategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'summary' | 'description' | 'image' | 'presentation_json' | 'items'>;
-type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'items'>;
-type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description'> & { item_count: number };
+type SubcategoryDetailRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation_json' | 'items'>;
+type SubcategoryCountRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation_json'> & { item_count: number };
 type SearchCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'items'>;
 type SearchSubcategoryRow = Pick<CategoryRow, 'parent_id' | 'id' | 'slug' | 'items'>;
 type ItemsIndexCategoryRow = Pick<CategoryRow, 'id' | 'slug' | 'title' | 'items'>;
@@ -160,6 +160,7 @@ function rowToSubcategory(row: CategoryRow): RecursiveCatalogSubcategory {
     description: row.description,
     adminNotes: row.admin_notes ?? undefined,
     image: normalizeCatalogImage(row.image),
+    presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     items: getRowItems(row),
     subcategories: [],
     createdAt: row.created_at,
@@ -188,6 +189,7 @@ function rowToPreviewSubcategory(row: CategoryRow): CatalogPreviewSubcategory {
     title: row.title,
     description: row.description,
     image: normalizeCatalogImage(row.image),
+    presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     items: getRowItems(row),
     subcategories: []
   };
@@ -404,7 +406,7 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
 
   const subcategoryResult = await pool.query(
     `
-      select id, slug, title, description, items
+      select id, slug, title, description, image, presentation_json, items
       from catalog_categories
       where parent_id = $1 and status = 'active'
       order by position asc, title asc
@@ -430,6 +432,8 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
       slug: row.slug,
       title: row.title,
       description: row.description,
+      image: normalizeCatalogImage(row.image),
+      presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
       items: itemsByCategoryId.get(row.id) ?? []
     }))
   };
@@ -454,7 +458,8 @@ async function readCatalogCategoryPageDataFromDatabase(
 
   const subcategoryResult = await pool.query(
     `
-      select id, slug, title, description, coalesce(jsonb_array_length(items), 0)::int as item_count
+      select id, slug, title, description, image, presentation_json,
+             coalesce(jsonb_array_length(items), 0)::int as item_count
       from catalog_categories
       where parent_id = $1 and status = 'active'
       order by position asc, title asc
@@ -482,6 +487,8 @@ async function readCatalogCategoryPageDataFromDatabase(
       slug: row.slug,
       title: row.title,
       description: row.description,
+      image: normalizeCatalogImage(row.image),
+      presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
       itemCount: (itemsByCategoryId.get(row.id) ?? []).length
     }))
   };
@@ -492,7 +499,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
   subSlug: string
 ): Promise<{
   category: CatalogCategorySummary;
-  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation' | 'items'>;
 } | null> {
   const pool = await getPool();
   const categoryResult = await pool.query(
@@ -510,7 +517,7 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
 
   const subcategoryResult = await pool.query(
     `
-      select id, slug, title, description, items
+      select id, slug, title, description, image, presentation_json, items
       from catalog_categories
       where parent_id = $1 and status = 'active' and slug = $2
       limit 1
@@ -529,6 +536,8 @@ async function readCatalogSubcategoryWithCategoryFromDatabase(
       slug: subcategoryRow.slug,
       title: subcategoryRow.title,
       description: subcategoryRow.description,
+      image: normalizeCatalogImage(subcategoryRow.image),
+      presentation: normalizeCategoryShowcaseMediaSettings(subcategoryRow.presentation_json),
       items: itemsByCategoryId.get(subcategoryRow.id) ?? []
     }
   };
@@ -848,6 +857,7 @@ async function readCatalogAdminTableInitialPayloadFromDatabase(): Promise<Catalo
       title: subcategory.title,
       description: subcategory.description,
       image: '',
+      presentation: normalizeCategoryShowcaseMediaSettings(undefined),
       items: itemsByCategory.get(subcategory.id) ?? [],
       subcategories: mapSubcategories(subcategory.id)
     }));
@@ -881,6 +891,7 @@ async function readCatalogAdminMillerInitialPayloadFromDatabase(): Promise<Catal
       title: subcategory.title,
       description: '',
       image: '',
+      presentation: normalizeCategoryShowcaseMediaSettings(undefined),
       createdAt: subcategory.created_at,
       updatedAt: subcategory.updated_at,
       items: itemsByCategory.get(subcategory.id) ?? [],
@@ -972,6 +983,7 @@ type CatalogRowPatch = {
   description: string;
   image?: string | null;
   removeImage?: boolean;
+  presentation?: CategoryShowcaseMediaSettings;
   adminNotes?: string | null;
   bannerImage?: string | null;
   items: CatalogItem[];
@@ -994,12 +1006,13 @@ export async function patchCategoryTree(
 
     for (const patch of upserts) {
       const hasImageUpdate = patch.removeImage === true || Object.prototype.hasOwnProperty.call(patch, 'image');
+      const hasPresentationUpdate = Object.prototype.hasOwnProperty.call(patch, 'presentation');
       await client.query(
         `
           insert into catalog_categories
-            (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
+            (id, parent_id, slug, title, summary, description, image, presentation_json, admin_notes, banner_image, items, position, status, updated_at)
           values
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, now())
+            ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11::jsonb, $12, $13, now())
           on conflict (id) do update set
             parent_id = excluded.parent_id,
             slug = excluded.slug,
@@ -1008,8 +1021,13 @@ export async function patchCategoryTree(
             description = excluded.description,
             image = case
               when catalog_categories.parent_id is null then catalog_categories.image
-              when $13::boolean then excluded.image
+              when $15::boolean then excluded.image
               else catalog_categories.image
+            end,
+            presentation_json = case
+              when catalog_categories.parent_id is null then catalog_categories.presentation_json
+              when $14::boolean then excluded.presentation_json
+              else catalog_categories.presentation_json
             end,
             admin_notes = excluded.admin_notes,
             banner_image = excluded.banner_image,
@@ -1026,11 +1044,13 @@ export async function patchCategoryTree(
           patch.summary,
           patch.description,
           patch.removeImage || patch.image === null ? '' : normalizeCatalogImage(patch.image),
+          JSON.stringify(normalizeCategoryShowcaseMediaSettings(patch.presentation)),
           patch.adminNotes ?? null,
           patch.bannerImage ? normalizeCatalogImage(patch.bannerImage) : null,
           JSON.stringify(Array.isArray(patch.items) ? patch.items : []),
           patch.position,
           patch.status,
+          hasPresentationUpdate,
           hasImageUpdate
         ]
       );
@@ -1259,7 +1279,7 @@ export async function getCatalogSubcategoryWithCategoryFromDatabase(
   diagnosticsContext = 'catalog:subcategory-details'
 ): Promise<{
   category: CatalogCategorySummary;
-  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'items'>;
+  subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation' | 'items'>;
 } | null> {
   const getCachedSubcategory = unstable_cache(
     async () => instrumentCatalogCacheMiss('getCachedCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, () =>
@@ -1334,9 +1354,9 @@ export async function replaceCategoryTree(
         await client.query(
           `
             insert into catalog_categories
-              (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
+              (id, parent_id, slug, title, summary, description, image, presentation_json, admin_notes, banner_image, items, position, status, updated_at)
             values
-              ($1, $2, $3, $4, '', $5, $6, $7, null, $8::jsonb, $9, $10, now())
+              ($1, $2, $3, $4, '', $5, $6, $7::jsonb, $8, null, $9::jsonb, $10, $11, now())
             on conflict (id) do update set
               parent_id = excluded.parent_id,
               slug = excluded.slug,
@@ -1344,6 +1364,7 @@ export async function replaceCategoryTree(
               summary = excluded.summary,
               description = excluded.description,
               image = excluded.image,
+              presentation_json = excluded.presentation_json,
               admin_notes = excluded.admin_notes,
               banner_image = null,
               items = excluded.items,
@@ -1358,6 +1379,7 @@ export async function replaceCategoryTree(
             node.title,
             node.description,
             normalizeCatalogImage(node.image),
+            JSON.stringify(normalizeCategoryShowcaseMediaSettings(node.presentation)),
             node.adminNotes ?? null,
             JSON.stringify(Array.isArray(node.items) ? node.items : []),
             position,
@@ -1375,9 +1397,9 @@ export async function replaceCategoryTree(
       await client.query(
         `
           insert into catalog_categories
-            (id, parent_id, slug, title, summary, description, image, admin_notes, banner_image, items, position, status, updated_at)
+            (id, parent_id, slug, title, summary, description, image, presentation_json, admin_notes, banner_image, items, position, status, updated_at)
           values
-            ($1, null, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, now())
+            ($1, null, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10::jsonb, $11, $12, now())
           on conflict (id) do update set
             parent_id = excluded.parent_id,
             slug = excluded.slug,
@@ -1385,6 +1407,7 @@ export async function replaceCategoryTree(
             summary = excluded.summary,
             description = excluded.description,
             image = catalog_categories.image,
+            presentation_json = catalog_categories.presentation_json,
             admin_notes = excluded.admin_notes,
             banner_image = excluded.banner_image,
             items = excluded.items,
@@ -1399,6 +1422,7 @@ export async function replaceCategoryTree(
           category.summary,
           category.description,
           category.image,
+          JSON.stringify(normalizeCategoryShowcaseMediaSettings(category.presentation)),
           category.adminNotes ?? null,
           normalizeCatalogImage(category.bannerImage) || null,
           JSON.stringify(Array.isArray(category.items) ? category.items : []),

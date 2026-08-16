@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import {
+  CatalogItemConcurrencyConflictError,
+  CatalogItemIdentityConflictError,
+  CatalogItemValidationError,
   fetchCatalogItemEditorBySlug,
   upsertCatalogItem
 } from '@/shared/server/catalogItems';
@@ -10,13 +13,19 @@ import {
 } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
+import {
+  applyVariantPresentationPatch,
+  validateAndNormalizeVariantPresentationPatches
+} from '@/shared/domain/catalog/catalogVariantPresentationPatch';
+import {
+  validateAndNormalizeCatalogSpecificationLabels
+} from '@/shared/domain/catalog/catalogSpecification';
 import type {
   CatalogItemAppearanceOverride,
   CatalogItemEditorHydration,
   CatalogItemEditorPayload,
   CatalogItemPresentationPatch,
-  CatalogItemPresentationSaveResponse,
-  CatalogVariantContentOverride
+  CatalogItemPresentationSaveResponse
 } from '@/shared/domain/catalog/catalogAdminTypes';
 
 const cleanOptionalText = (value: unknown, maxLength: number) => {
@@ -32,6 +41,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const validateAppearanceOverridePatch = (value: unknown): string | null => {
   if (value === undefined || value === null) return null;
   if (!isRecord(value)) return 'Lokalne nastavitve prikaza niso veljavne.';
+  if (Object.prototype.hasOwnProperty.call(value, 'secondaryContent')) {
+    if (!isRecord(value.secondaryContent)) {
+      return 'Nastavitve prikaza specifikacij niso veljavne.';
+    }
+    if (Object.prototype.hasOwnProperty.call(value.secondaryContent, 'specificationLabels')) {
+      const result = validateAndNormalizeCatalogSpecificationLabels(
+        value.secondaryContent.specificationLabels
+      );
+      if (!result.ok) return result.message;
+    }
+  }
   if (!Object.prototype.hasOwnProperty.call(value, 'relatedProducts')) return null;
   if (value.relatedProducts === null) return null;
   if (!isRecord(value.relatedProducts)) {
@@ -57,9 +77,12 @@ const validateAppearanceOverridePatch = (value: unknown): string | null => {
 
 function mergePresentationAppearanceOverride(
   item: CatalogItemEditorHydration,
-  patchValue: CatalogItemAppearanceOverride | null | undefined
+  patchValue: CatalogItemAppearanceOverride | null | undefined,
+  specificationLabelsPatch: CatalogItemPresentationPatch['specificationLabels']
 ): CatalogItemAppearanceOverride | null {
-  if (patchValue === undefined) return item.appearanceOverride;
+  if (patchValue === undefined && specificationLabelsPatch === undefined) {
+    return item.appearanceOverride;
+  }
 
   const current = isRecord(item.appearanceOverride)
     ? { ...item.appearanceOverride }
@@ -67,9 +90,47 @@ function mergePresentationAppearanceOverride(
   const currentRelated = isRecord(current.relatedProducts)
     ? { ...current.relatedProducts }
     : {};
-  const patchRelated = isRecord(patchValue)
-    ? patchValue.relatedProducts
-    : null;
+  const patchRelated = patchValue === null
+    ? null
+    : isRecord(patchValue)
+      ? patchValue.relatedProducts
+      : undefined;
+  const currentSecondaryContent = isRecord(current.secondaryContent)
+    ? { ...current.secondaryContent }
+    : {};
+  const patchSecondaryContent = isRecord(patchValue)
+    ? patchValue.secondaryContent
+    : undefined;
+
+  if (
+    isRecord(patchSecondaryContent)
+    && Object.prototype.hasOwnProperty.call(
+      patchSecondaryContent,
+      'specificationLabels'
+    )
+  ) {
+    const labels = validateAndNormalizeCatalogSpecificationLabels(
+      patchSecondaryContent.specificationLabels
+    );
+    if (labels.ok && Object.keys(labels.value).length > 0) {
+      currentSecondaryContent.specificationLabels = labels.value;
+    } else {
+      delete currentSecondaryContent.specificationLabels;
+    }
+  }
+  if (specificationLabelsPatch !== undefined) {
+    if (Object.keys(specificationLabelsPatch).length > 0) {
+      currentSecondaryContent.specificationLabels = specificationLabelsPatch;
+    } else {
+      delete currentSecondaryContent.specificationLabels;
+    }
+  }
+
+  if (Object.keys(currentSecondaryContent).length > 0) {
+    current.secondaryContent = currentSecondaryContent;
+  } else {
+    delete current.secondaryContent;
+  }
 
   if (patchRelated === null) {
     delete currentRelated.manualProductSlugs;
@@ -96,18 +157,8 @@ function toEditorPayload(
   item: CatalogItemEditorHydration,
   patch: CatalogItemPresentationPatch
 ): CatalogItemEditorPayload {
-  const specificationPatches = new Map(
-    (patch.variantSpecifications ?? []).map((entry) => [
-      entry.variantId,
-      Object.fromEntries(
-        Object.entries(entry.specifications ?? {})
-          .map(([label, value]) => [
-            label.trim().slice(0, 100),
-            String(value).trim().slice(0, 500)
-          ])
-          .filter(([label, value]) => Boolean(label && value))
-      )
-    ])
+  const variantPatches = new Map(
+    (patch.variantSpecifications ?? []).map((entry) => [entry.variantId, entry])
   );
   const originalGallery = item.media
     .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
@@ -124,6 +175,7 @@ function toEditorPayload(
 
   return {
     id: item.id,
+    expectedUpdatedAt: patch.expectedUpdatedAt,
     itemName: cleanOptionalText(patch.itemName, 240) ?? item.itemName,
     itemType: item.itemType,
     productType: item.productType,
@@ -146,26 +198,18 @@ function toEditorPayload(
     taxRate: item.taxRate,
     appearanceOverride: mergePresentationAppearanceOverride(
       item,
-      patch.appearanceOverride
+      patch.appearanceOverride,
+      patch.specificationLabels
     ),
     defaultVariantId: item.defaultVariantId,
     optionAxes: item.optionAxes,
     variants: item.variants.map((variant) => {
-      const specifications = variant.id
-        ? specificationPatches.get(variant.id)
+      const variantPatch = variant.id
+        ? variantPatches.get(variant.id)
         : undefined;
-      const contentOverride: CatalogVariantContentOverride = {
-        ...(variant.contentOverride ?? {})
-      };
-      if (specifications !== undefined) {
-        if (Object.keys(specifications).length > 0) {
-          contentOverride.specifications = specifications;
-        } else {
-          delete contentOverride.specifications;
-        }
-      }
+      const patchedVariant = applyVariantPresentationPatch(variant, variantPatch);
       return {
-        ...variant,
+        ...patchedVariant,
         imageAssignments: patch.media === undefined
           ? variant.imageAssignments
           : (variant.imageAssignments ?? []).flatMap((originalIndex) => {
@@ -174,10 +218,7 @@ function toEditorPayload(
                 ? nextGalleryIndexById.get(mediaId)
                 : undefined;
               return nextIndex === undefined ? [] : [nextIndex];
-            }),
-        contentOverride: Object.keys(contentOverride).length > 0
-          ? contentOverride
-          : null
+            })
       };
     }),
     quantityDiscounts: item.quantityDiscounts,
@@ -199,12 +240,17 @@ export async function PATCH(
     const parsed = await readRequiredJsonRecord(request);
     if (!parsed.ok) return parsed.response;
     const patch = parsed.body as Partial<CatalogItemPresentationPatch>;
-    if (typeof patch.expectedUpdatedAt !== 'string' || !patch.expectedUpdatedAt) {
+    if (
+      typeof patch.expectedUpdatedAt !== 'string'
+      || !patch.expectedUpdatedAt.trim()
+      || Number.isNaN(Date.parse(patch.expectedUpdatedAt))
+    ) {
       return NextResponse.json(
         { message: 'Manjka različica podatkov artikla.' },
         { status: 400 }
       );
     }
+    const expectedUpdatedAt = new Date(patch.expectedUpdatedAt).toISOString();
 
     const before = await fetchCatalogItemEditorBySlug(slug);
     if (!before) {
@@ -216,7 +262,7 @@ export async function PATCH(
         { status: 409 }
       );
     }
-    if (before.updatedAt !== patch.expectedUpdatedAt) {
+    if (before.updatedAt !== expectedUpdatedAt) {
       return NextResponse.json(
         {
           message: 'Artikel je bil medtem spremenjen drugje. Osvežite predogled in ponovno uporabite spremembe.',
@@ -228,11 +274,15 @@ export async function PATCH(
     if (patch.media !== undefined && !Array.isArray(patch.media)) {
       return NextResponse.json({ message: 'Mediji niso veljavni.' }, { status: 400 });
     }
-    if (
-      patch.variantSpecifications !== undefined
-      && !Array.isArray(patch.variantSpecifications)
-    ) {
-      return NextResponse.json({ message: 'Specifikacije niso veljavne.' }, { status: 400 });
+    const variantPatchesResult = validateAndNormalizeVariantPresentationPatches(
+      patch.variantSpecifications,
+      before
+    );
+    if (!variantPatchesResult.ok) {
+      return NextResponse.json(
+        { message: variantPatchesResult.message },
+        { status: 400 }
+      );
     }
     const appearanceOverrideError = validateAppearanceOverridePatch(
       patch.appearanceOverride
@@ -243,8 +293,27 @@ export async function PATCH(
         { status: 400 }
       );
     }
+    const specificationLabelsResult = validateAndNormalizeCatalogSpecificationLabels(
+      patch.specificationLabels
+    );
+    if (!specificationLabelsResult.ok) {
+      return NextResponse.json(
+        { message: specificationLabelsResult.message },
+        { status: 400 }
+      );
+    }
 
-    const payload = toEditorPayload(before, patch as CatalogItemPresentationPatch);
+    const validatedPatch: CatalogItemPresentationPatch = {
+      ...(patch as CatalogItemPresentationPatch),
+      expectedUpdatedAt,
+      ...(patch.specificationLabels !== undefined
+        ? { specificationLabels: specificationLabelsResult.value }
+        : {}),
+      ...(variantPatchesResult.value !== undefined
+        ? { variantSpecifications: variantPatchesResult.value }
+        : {})
+    };
+    const payload = toEditorPayload(before, validatedPatch);
     await upsertCatalogItem(payload);
     const after = await fetchCatalogItemEditorBySlug(String(before.id));
     if (!after) throw new Error('Shranjeni artikel ni bil najden.');
@@ -269,6 +338,25 @@ export async function PATCH(
 
     return NextResponse.json<CatalogItemPresentationSaveResponse>({ item: after });
   } catch (error) {
+    if (error instanceof CatalogItemConcurrencyConflictError) {
+      const item = await fetchCatalogItemEditorBySlug(String(error.itemId)).catch(() => null);
+      return NextResponse.json(
+        { message: error.message, ...(item ? { item } : {}) },
+        { status: error.statusCode }
+      );
+    }
+    if (error instanceof CatalogItemIdentityConflictError) {
+      return NextResponse.json(
+        { message: error.message, conflicts: error.conflicts },
+        { status: error.statusCode }
+      );
+    }
+    if (error instanceof CatalogItemValidationError) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: error.statusCode }
+      );
+    }
     return NextResponse.json(
       {
         message: error instanceof Error

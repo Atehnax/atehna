@@ -63,7 +63,7 @@ async function readProductAppearanceConfigFromDatabase(): Promise<ProductAppeara
 
 const getCachedProductAppearanceConfigFromDatabase = unstable_cache(
   readProductAppearanceConfigFromDatabase,
-  ['product-appearance-config-v2'],
+  ['product-appearance-config-v11'],
   { tags: [PRODUCT_APPEARANCE_CACHE_TAG] }
 );
 

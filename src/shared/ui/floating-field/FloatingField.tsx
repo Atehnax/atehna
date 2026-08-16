@@ -16,6 +16,7 @@ type BaseProps = {
   id: string;
   label: string;
   className?: string;
+  shellClassName?: string;
   tone?: FloatingFieldTone;
   labelMode?: FloatingFieldLabelMode;
 };
@@ -101,6 +102,7 @@ export function FloatingInput({
   label,
   id,
   className = '',
+  shellClassName = '',
   tone = 'order',
   labelMode = 'floating',
   placeholder,
@@ -122,10 +124,12 @@ export function FloatingInput({
         'ff-root',
         tone === 'order' && 'site-field-shell',
         classes.shell,
+        shellClassName,
         isStatic && classes.staticShell,
         muted && 'bg-[color:var(--field-locked-bg)]'
       )}
       data-floating-field
+      data-floating-field-tone={tone}
       data-filled={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
@@ -148,7 +152,11 @@ export function FloatingInput({
         aria-label={ariaLabel ?? label}
       />
       {!isStatic ? (
-        <label htmlFor={id} className={classes.inputLabel}>
+        <label
+          htmlFor={id}
+          className={classes.inputLabel}
+          data-floating-field-label
+        >
           {label}
         </label>
       ) : null}
@@ -160,6 +168,7 @@ export function FloatingTextarea({
   label,
   id,
   className = '',
+  shellClassName = '',
   tone = 'order',
   labelMode = 'floating',
   placeholder,
@@ -181,10 +190,12 @@ export function FloatingTextarea({
         'ff-root',
         tone === 'order' && 'site-field-shell',
         classes.shell,
+        shellClassName,
         isStatic && classes.staticShell,
         muted && 'bg-[color:var(--field-locked-bg)]'
       )}
       data-floating-field
+      data-floating-field-tone={tone}
       data-filled={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
@@ -207,7 +218,11 @@ export function FloatingTextarea({
         aria-label={ariaLabel ?? label}
       />
       {!isStatic ? (
-        <label htmlFor={id} className={classes.textareaLabel}>
+        <label
+          htmlFor={id}
+          className={classes.textareaLabel}
+          data-floating-field-label
+        >
           {label}
         </label>
       ) : null}
@@ -219,6 +234,7 @@ export function FloatingSelect({
   label,
   id,
   className = '',
+  shellClassName = '',
   children,
   value,
   defaultValue,
@@ -237,8 +253,15 @@ export function FloatingSelect({
 
   return (
     <div
-      className={classNames('ff-root', tone === 'order' && 'site-field-shell', classes.shell, isStatic && classes.staticShell)}
+      className={classNames(
+        'ff-root',
+        tone === 'order' && 'site-field-shell',
+        classes.shell,
+        shellClassName,
+        isStatic && classes.staticShell
+      )}
       data-floating-field
+      data-floating-field-tone={tone}
       data-has-value={hasValue}
       style={{ ...fieldBackgroundVariable, backgroundColor: 'var(--field-bg)' }}
     >
@@ -269,7 +292,11 @@ export function FloatingSelect({
             {children}
           </select>
 
-          <label htmlFor={id} className={classes.selectLabel}>
+          <label
+            htmlFor={id}
+            className={classes.selectLabel}
+            data-floating-field-label
+          >
             {label}
           </label>
         </>

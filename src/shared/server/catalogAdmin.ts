@@ -82,6 +82,8 @@ function normalizeSubcategory(
     description: typeof subcategory.description === 'string' ? subcategory.description : '',
     adminNotes: typeof subcategory.adminNotes === 'string' ? subcategory.adminNotes : undefined,
     image: normalizeCatalogImage(subcategory.image),
+    presentation: normalizeCategoryShowcaseMediaSettings(subcategory.presentation),
+    revision: typeof subcategory.revision === 'string' ? subcategory.revision : undefined,
     items: Array.isArray(subcategory.items) ? subcategory.items : [],
     subcategories: childrenSource
       .map((child) => normalizeSubcategory(child, categoryId, currentPath))

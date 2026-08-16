@@ -120,7 +120,23 @@ test.describe('related product appearance editor contracts', () => {
       'product.variants.length === 1 && purchasableVariants.length === 1'
     );
     expect(styles).toContain(
-      'grid-template-columns: minmax(7rem, 0.4fr) minmax(0, 0.6fr);'
+      'grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 0.65fr);'
+    );
+    expect(productCard).toContain('storefront-related-product-purchase-row');
+    expect(styles).toContain('.storefront-related-product-purchase-row');
+    expect(styles).toContain('flex-wrap: wrap;');
+    expect(styles).toContain('align-items: center;');
+    expect(styles).toContain(
+      'block-size: var(--product-related-image-height, 144px);'
+    );
+    expect(styles).toMatch(
+      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-title\s*\{[\s\S]*?font-size:\s*1\.25em;/
+    );
+    expect(styles).toMatch(
+      /\.storefront-related-product-card[\s\S]*?\.storefront-product-card-description\s*\{[\s\S]*?font-size:\s*1em;/
+    );
+    expect(styles).toMatch(
+      /\.storefront-related-product-card[\s\S]*?\.storefront-price-primary\s*\{[\s\S]*?font-size:\s*1\.375em;/
     );
     expect(styles).toContain('justify-content: space-between;');
     expect(styles).toContain('flex: 0 1 7rem;');
@@ -151,15 +167,19 @@ test.describe('related product appearance editor contracts', () => {
       'product-related-card-content',
       'product-related-card-category',
       'product-related-card-title',
+      'product-related-card-description',
       'product-related-card-price',
-      'product-related-card-tax',
-      'product-related-card-stock',
       'product-related-card-action',
       'product-related-card-quantity',
       'product-related-card-add'
     ]) {
       expect(adminPage).toContain(`id: '${elementId}'`);
     }
+
+    expect(adminPage).not.toContain("id: 'product-related-card-tax'");
+    expect(adminPage).not.toContain("id: 'product-related-card-stock'");
+    expect(productCard).not.toContain("'product-related-card-tax'");
+    expect(productCard).not.toContain("'product-related-card-stock'");
 
     expect(detail).toContain("'product-related-title'");
     expect(detail).toContain("'product-related-grid'");
@@ -170,6 +190,10 @@ test.describe('related product appearance editor contracts', () => {
     expect(productCard).toContain(
       "canvasId('listing-card', 'product-related-card')"
     );
+    expect(productCard).toContain(
+      "canvasId('card-description', 'product-related-card-description')"
+    );
+    expect(productCard).toContain('product.shortDescription');
     expect(productCard).toContain("'product-related-card-quantity'");
     expect(productCard).toContain("'product-related-card-add'");
   });

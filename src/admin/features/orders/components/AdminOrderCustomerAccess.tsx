@@ -167,7 +167,7 @@ export default function AdminOrderCustomerAccess({
       ? 'Zavezujoče naročilo'
       : commitmentStatus === 'rejected'
         ? 'Zavrnjeno povpraševanje'
-        : 'Čaka na ročno potrditev';
+        : 'Čaka na potrditev';
 
   return (
     <>

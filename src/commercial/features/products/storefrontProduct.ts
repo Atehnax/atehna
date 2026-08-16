@@ -5,6 +5,7 @@ import {
   plainTextToCatalogRichText,
   sanitizeCatalogRichText
 } from '@/shared/domain/catalog/richText';
+import { normalizeCatalogSpecificationToken } from '@/shared/domain/catalog/catalogSpecification';
 
 export type StorefrontProductStatus = 'active' | 'inactive';
 export type StorefrontMediaKind = 'image' | 'video' | 'document';
@@ -41,6 +42,8 @@ export type StorefrontSpecification = {
   label: string;
   value: string;
   group?: string;
+  /** Immutable presentation/ordering identity; the visible label may differ. */
+  orderKey?: string;
 };
 
 export type StorefrontDocument = {
@@ -299,6 +302,9 @@ const normalizeSpecifications = (
           id: asIdentifier(row.id, `${prefix}-${index}`),
           label,
           value: specificationValue,
+          orderKey: normalizeCatalogSpecificationToken(
+            asString(row.orderKey, label)
+          ),
           ...(asOptionalString(row.group)
             ? { group: asOptionalString(row.group) }
             : {})
@@ -309,16 +315,16 @@ const normalizeSpecifications = (
 
   const record = asRecord(value);
   return Object.entries(record)
-    .map(([key, entry], index) => {
+    .flatMap(([key, entry], index): StorefrontSpecification[] => {
       const specificationValue = asString(entry);
-      if (!specificationValue) return null;
-      return {
+      if (!specificationValue) return [];
+      return [{
         id: `${prefix}-${index}-${slugify(key)}`,
         label: key,
-        value: specificationValue
-      };
-    })
-    .filter((entry): entry is StorefrontSpecification => entry !== null);
+        value: specificationValue,
+        orderKey: normalizeCatalogSpecificationToken(key)
+      }];
+    });
 };
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
@@ -332,7 +338,10 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
   shape: 'Oblika'
 };
 
-const normalizeAttributes = (raw: UnknownRecord): Record<string, string> => {
+const normalizeAttributes = (
+  raw: UnknownRecord,
+  weightUnit: 'g' | 'kg' = 'kg'
+): Record<string, string> => {
   const explicit = asRecord(raw.attributes);
   const entries = new Map<string, string>();
 
@@ -361,7 +370,7 @@ const normalizeAttributes = (raw: UnknownRecord): Record<string, string> => {
     if (key === 'weight' && Number.isFinite(numeric) && numeric <= 0) continue;
     entries.set(
       ATTRIBUTE_LABELS[key],
-      `${normalized} ${key === 'weight' ? 'kg' : 'mm'}`
+      `${normalized} ${key === 'weight' ? weightUnit : 'mm'}`
     );
   }
 
@@ -578,7 +587,8 @@ const normalizeParentSpecifications = (
     byLabel.set(key, {
       id: `product-attribute-${index}-${slugify(label)}`,
       label,
-      value: normalized
+      value: normalized,
+      orderKey: ['material', 'barva', 'oblika'][index]
     });
   });
 
@@ -590,6 +600,9 @@ export function buildStorefrontProductFromCatalogItem(
   context: CatalogProductPresentationContext
 ): StorefrontProduct {
   const item = asRecord(catalogItem);
+  const productType = asString(
+    item.productType ?? item.editorProductType ?? item.product_type
+  );
   const name = asString(item.name, 'Artikel');
   const storedDescription = asString(item.description);
   const storedDescriptionHtml = sanitizeCatalogRichText(storedDescription);
@@ -634,16 +647,20 @@ export function buildStorefrontProductFromCatalogItem(
     const length = asNullableNumber(raw.length);
     const width = asNullableNumber(raw.width);
     const thickness = asNullableNumber(raw.thickness);
-    const attributes = normalizeAttributes({
-      ...raw,
-      ...contentOverride,
-      attributes: contentOverride.attributes ?? raw.attributes
-    });
+    const attributes = normalizeAttributes(
+      {
+        ...raw,
+        ...contentOverride,
+        attributes: contentOverride.attributes ?? raw.attributes
+      },
+      productType === 'dimensions' ? 'g' : 'kg'
+    );
     const attributeSpecifications = Object.entries(attributes).map(
       ([label, value], specificationIndex) => ({
         id: `variant-${id}-attribute-${specificationIndex}`,
         label,
-        value
+        value,
+        orderKey: normalizeCatalogSpecificationToken(label)
       })
     );
     const specifications = [

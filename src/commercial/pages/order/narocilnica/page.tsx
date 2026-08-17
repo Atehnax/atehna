@@ -14,7 +14,6 @@ type PurchaseOrderUploadPageProps = {
   searchParams: Promise<{
     orderId?: string | string[];
     orderNumber?: string | string[];
-    token?: string | string[];
   }>;
 };
 
@@ -27,15 +26,11 @@ export default async function PurchaseOrderUploadPage({
   const resolvedSearchParams = await searchParams;
   const orderId = firstValue(resolvedSearchParams.orderId);
   const orderNumber = firstValue(resolvedSearchParams.orderNumber);
-  const accessToken = firstValue(resolvedSearchParams.token);
-  const confirmationHref = accessToken
-    ? `/order/confirmation?token=${encodeURIComponent(accessToken)}`
-    : '/order';
 
   return (
     <div className="container-base site-section">
       <div className="mx-auto max-w-3xl">
-        <Link href={confirmationHref} className="site-link text-sm font-semibold">
+        <Link href="/order/confirmation" className="site-link text-sm font-semibold">
           ← Nazaj na potrditev
         </Link>
         <p className="site-eyebrow mt-7">Šolsko naročilo</p>
@@ -49,7 +44,6 @@ export default async function PurchaseOrderUploadPage({
           <PurchaseOrderUploadForm
             initialOrderId={orderId}
             initialOrderNumber={orderNumber}
-            accessToken={accessToken}
           />
         </div>
       </div>

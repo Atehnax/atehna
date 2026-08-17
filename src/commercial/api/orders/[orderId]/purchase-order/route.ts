@@ -1,8 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { buildOrderBlobPath, deleteBlob, uploadBlob } from '@/shared/server/blob';
 import { getPool } from '@/shared/server/db';
-import { readBearerToken, verifyOrderAccessToken } from '@/shared/server/orderAccess';
+import {
+  readBearerToken,
+  readOrderAccessSession,
+  verifyOrderAccessToken
+} from '@/shared/server/orderAccess';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 
 export const runtime = 'nodejs';
@@ -42,61 +46,69 @@ function normalizeOrderLookupValue(rawValue: string): string {
   return rawValue.trim().replace(/^#+/, '').trim();
 }
 
-export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
+function accessDeniedResponse() {
+  return NextResponse.json(
+    {
+      code: 'ORDER_ACCESS_DENIED',
+      message: 'Povezava je potekla ali je bila preklicana.'
+    },
+    {
+      status: 403,
+      headers: {
+        'Cache-Control': 'no-store, private',
+        'Referrer-Policy': 'no-referrer'
+      }
+    }
+  );
+}
+
+export async function POST(
+  request: NextRequest,
+  props: { params: Promise<{ orderId: string }> }
+) {
   const params = await props.params;
   let uploadedPath: string | null = null;
 
   try {
     const normalizedOrderValue = normalizeOrderLookupValue(params.orderId);
     if (!normalizedOrderValue) {
-      return NextResponse.json(
-        { code: 'INVALID_ORDER_NUMBER', message: 'Neveljavna številka naročila.' },
-        { status: 400 }
-      );
+      return accessDeniedResponse();
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const accessToken = readBearerToken(request) ?? String(formData.get('accessToken') ?? '').trim();
+    const hasSessionHeader = request.headers.has('x-order-access-id');
+    const session = hasSessionHeader ? readOrderAccessSession(request) : null;
+    const accessToken = hasSessionHeader
+      ? session?.token ?? ''
+      : readBearerToken(request) ?? '';
     if (!accessToken) {
-      return NextResponse.json(
-        { code: 'ORDER_ACCESS_REQUIRED', message: 'Povezava za nalaganje ni veljavna.' },
-        { status: 401 }
-      );
-    }
-    if (!(file instanceof File)) {
-      return NextResponse.json(
-        { code: 'FILE_REQUIRED', message: 'Datoteka manjka.' },
-        { status: 400 }
-      );
-    }
-    if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { code: 'INVALID_FILE_SIZE', message: 'Datoteka mora biti manjša od 10 MB.' },
-        { status: 400 }
-      );
-    }
-
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const detectedFormat = detectUploadFormat(fileBuffer);
-    if (!detectedFormat) {
-      return NextResponse.json(
-        { code: 'INVALID_FILE_TYPE', message: 'Dovoljeni so veljavni PDF ali JPG dokumenti.' },
-        { status: 400 }
-      );
+      return accessDeniedResponse();
     }
 
     const pool = await getPool();
+    const access = await verifyOrderAccessToken(
+      pool,
+      accessToken,
+      'purchase_order'
+    );
+    if (
+      !access ||
+      (hasSessionHeader && access.tokenId.toLowerCase() !== session?.accessId)
+    ) {
+      return accessDeniedResponse();
+    }
+
     const orderLookupResult = await pool.query(
       `
         select id, order_number, customer_type, status, deleted_at
         from orders
-        where regexp_replace(trim(coalesce(order_number, '')), '^#', '') = $1
-           or id::text = $1
-        order by id desc
+        where id = $1
+          and (
+            regexp_replace(trim(coalesce(order_number, '')), '^#', '') = $2
+            or id::text = $2
+          )
         limit 1
       `,
-      [normalizedOrderValue]
+      [access.orderId, normalizedOrderValue]
     );
     const order = orderLookupResult.rows[0] as
       | {
@@ -109,23 +121,33 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       | undefined;
 
     if (!order || order.deleted_at) {
-      return NextResponse.json(
-        { code: 'ORDER_NOT_FOUND', message: 'Naročilo ne obstaja.' },
-        { status: 404 }
-      );
+      return accessDeniedResponse();
     }
 
     const orderId = Number(order.id);
-    const access = await verifyOrderAccessToken(
-      pool,
-      accessToken,
-      'purchase_order',
-      orderId
-    );
-    if (!access) {
+    if (access.orderId !== orderId) {
+      return accessDeniedResponse();
+    }
+    const formData = await request.formData();
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
       return NextResponse.json(
-        { code: 'ORDER_ACCESS_DENIED', message: 'Povezava je potekla ali je bila preklicana.' },
-        { status: 403 }
+        { code: 'FILE_REQUIRED', message: 'Datoteka manjka.' },
+        { status: 400 }
+      );
+    }
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { code: 'INVALID_FILE_SIZE', message: 'Datoteka mora biti manjša od 10 MB.' },
+        { status: 400 }
+      );
+    }
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const detectedFormat = detectUploadFormat(fileBuffer);
+    if (!detectedFormat) {
+      return NextResponse.json(
+        { code: 'INVALID_FILE_TYPE', message: 'Dovoljeni so veljavni PDF ali JPG dokumenti.' },
+        { status: 400 }
       );
     }
     if (order.customer_type !== 'school') {

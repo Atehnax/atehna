@@ -465,6 +465,15 @@ export default function ProductCanvasElement({
           suppressClickRef.current = false;
         }
       }}
+      onClickCapture={(event) => {
+        if (
+          interactive
+          && event.target instanceof Element
+          && event.target.closest('a')
+        ) {
+          event.preventDefault();
+        }
+      }}
       onClick={(event) => {
         if (!interactive) return;
         event.preventDefault();

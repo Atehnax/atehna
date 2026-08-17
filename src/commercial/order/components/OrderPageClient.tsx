@@ -23,6 +23,15 @@ import {
   type SubmitOrderRequest,
   type SubmitOrderResponse
 } from '@/commercial/order/contracts';
+import OrderSubmissionStatus, {
+  type OrderSubmissionCommitmentStatus
+} from '@/commercial/order/components/OrderSubmissionStatus';
+import {
+  buildOrderConfirmationAccessUrl,
+  buildOrderConfirmationFragmentUrl,
+  exchangeOrderAccessToken,
+  extractOrderAccessTokenFromUrl
+} from '@/commercial/order/orderAccessClient';
 import { useOrderQuote } from '@/commercial/order/useOrderQuote';
 import {
   formatGursSourceDate,
@@ -66,6 +75,13 @@ type FieldName = Exclude<
 >;
 type FieldErrors = Partial<Record<FieldName, string>>;
 type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
+type SubmittedOrderTransition = {
+  commitmentStatus: OrderSubmissionCommitmentStatus;
+  accessStatus: 'exchanging' | 'ready' | 'failed';
+  confirmationUrl?: string;
+  accessError?: string;
+  orderNumber?: string;
+};
 
 const initialForm: OrderFormData = {
   customerType: '',
@@ -191,6 +207,9 @@ export default function OrderPageClient({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitIssues, setSubmitIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedOrder, setSubmittedOrder] =
+    useState<SubmittedOrderTransition | null>(null);
+  const [navigationFailed, setNavigationFailed] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<
     GursAddressSearchResult[]
   >([]);
@@ -204,6 +223,9 @@ export default function OrderPageClient({
     initialGursSourceUpdatedAt
   );
   const idempotencyKeyRef = useRef<string | null>(null);
+  const submittedTransitionHandledRef = useRef(false);
+  const submittedNavigationHandledRef = useRef(false);
+  const pendingOrderAccessTokenRef = useRef<string | null>(null);
   const addressRequestRef = useRef<AbortController | null>(null);
   const addressListboxId = useId();
 
@@ -251,6 +273,42 @@ export default function OrderPageClient({
   useEffect(() => {
     idempotencyKeyRef.current = null;
   }, [formFingerprint]);
+
+  useEffect(() => {
+    if (!submittedOrder || submittedTransitionHandledRef.current) return;
+    submittedTransitionHandledRef.current = true;
+
+    try {
+      clearCart();
+    } catch (error) {
+      console.error('[order.submit] cart cleanup failed', error);
+    }
+
+    try {
+      sessionStorage.removeItem(FORM_STORAGE_KEY);
+    } catch (error) {
+      console.error('[order.submit] form cleanup failed', error);
+    }
+  }, [clearCart, submittedOrder]);
+
+  useEffect(() => {
+    if (!submittedOrder) return;
+    if (
+      submittedOrder.accessStatus !== 'ready' ||
+      !submittedOrder.confirmationUrl ||
+      submittedNavigationHandledRef.current
+    ) {
+      return;
+    }
+    submittedNavigationHandledRef.current = true;
+
+    try {
+      router.push(submittedOrder.confirmationUrl);
+    } catch (error) {
+      console.error('[order.submit] confirmation navigation failed', error);
+      setNavigationFailed(true);
+    }
+  }, [router, submittedOrder]);
 
   useEffect(() => {
     addressRequestRef.current?.abort();
@@ -523,15 +581,49 @@ export default function OrderPageClient({
         throw new Error(error.message);
       }
       const result = responsePayload as SubmitOrderResponse;
-      if (!result.confirmationToken && !result.confirmationUrl) {
+      const accessToken =
+        result.confirmationToken?.trim() ||
+        extractOrderAccessTokenFromUrl(result.confirmationUrl);
+      if (!accessToken) {
         throw new Error('Potrditvene povezave ni bilo mogoče ustvariti.');
       }
-      clearCart();
-      sessionStorage.removeItem(FORM_STORAGE_KEY);
-      const confirmationUrl =
-        result.confirmationUrl ||
-        `/order/confirmation?token=${encodeURIComponent(result.confirmationToken)}`;
-      router.push(confirmationUrl);
+
+      pendingOrderAccessTokenRef.current = accessToken;
+      const submittedOrderBase = {
+        commitmentStatus:
+          result.commitmentStatus === 'pending_confirmation' ||
+          customerType === 'school'
+            ? 'pending_confirmation'
+            : 'binding',
+        orderNumber: result.orderNumber
+      } satisfies Pick<
+        SubmittedOrderTransition,
+        'commitmentStatus' | 'orderNumber'
+      >;
+      setSubmittedOrder({
+        ...submittedOrderBase,
+        accessStatus: 'exchanging'
+      });
+
+      try {
+        const session = await exchangeOrderAccessToken(accessToken);
+        pendingOrderAccessTokenRef.current = null;
+        const confirmationUrl = buildOrderConfirmationAccessUrl(session.accessId);
+        setSubmittedOrder({
+          ...submittedOrderBase,
+          accessStatus: 'ready',
+          confirmationUrl
+        });
+      } catch (accessError) {
+        setSubmittedOrder({
+          ...submittedOrderBase,
+          accessStatus: 'failed',
+          accessError:
+            accessError instanceof Error
+              ? accessError.message
+              : 'Varne povezave ni bilo mogoče odpreti.'
+        });
+      }
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Oddaja naročila ni uspela.'
@@ -540,6 +632,126 @@ export default function OrderPageClient({
       setIsSubmitting(false);
     }
   };
+
+  const retryOrderAccessExchange = async () => {
+    const accessToken = pendingOrderAccessTokenRef.current;
+    if (!accessToken) return;
+
+    setNavigationFailed(false);
+    setSubmittedOrder((current) =>
+      current
+        ? {
+            ...current,
+            accessStatus: 'exchanging',
+            accessError: undefined
+          }
+        : current
+    );
+
+    try {
+      const session = await exchangeOrderAccessToken(accessToken);
+      pendingOrderAccessTokenRef.current = null;
+      const confirmationUrl = buildOrderConfirmationAccessUrl(session.accessId);
+      setSubmittedOrder((current) =>
+        current
+          ? {
+              ...current,
+              accessStatus: 'ready',
+              confirmationUrl,
+              accessError: undefined
+            }
+          : current
+      );
+    } catch (error) {
+      setSubmittedOrder((current) =>
+        current
+          ? {
+              ...current,
+              accessStatus: 'failed',
+              accessError:
+                error instanceof Error
+                  ? error.message
+                  : 'Varne povezave ni bilo mogoče odpreti.'
+            }
+          : current
+      );
+    }
+  };
+
+  if (submittedOrder) {
+    return (
+      <div data-testid="order-submission-transition">
+        <OrderSubmissionStatus
+          commitmentStatus={submittedOrder.commitmentStatus}
+        />
+        <p
+          className="site-paragraph mt-4 text-center"
+          role="status"
+          aria-live="polite"
+        >
+          {navigationFailed ? (
+            <>Samodejnega prehoda ni bilo mogoče dokončati.</>
+          ) : submittedOrder.accessStatus === 'failed' ? (
+            <>
+              Naročilo je shranjeno, vendar varne povezave do potrditve trenutno
+              ni bilo mogoče odpreti.
+            </>
+          ) : submittedOrder.accessStatus === 'exchanging' ? (
+            <>Vzpostavljamo varno povezavo do potrditve …</>
+          ) : (
+            <>
+              Odpiramo potrditev
+              {submittedOrder.orderNumber
+                ? ` naročila ${submittedOrder.orderNumber}`
+                : ' naročila'}{' '}
+              …
+            </>
+          )}
+        </p>
+        {submittedOrder.accessError ? (
+          <p className="mt-2 text-center text-sm text-[color:var(--site-color-text-muted)]">
+            {submittedOrder.accessError}
+          </p>
+        ) : null}
+        {submittedOrder.accessStatus === 'ready' && submittedOrder.confirmationUrl ? (
+          <div className="mt-5 text-center">
+            <a
+              href={submittedOrder.confirmationUrl}
+              className="site-button site-button--secondary inline-flex items-center justify-center"
+            >
+              Odpri potrditev naročila
+            </a>
+          </div>
+        ) : null}
+        {submittedOrder.accessStatus === 'failed' ? (
+          <div className="mt-5 flex flex-wrap justify-center gap-3 text-center">
+            <button
+              type="button"
+              className="site-button site-button--primary"
+              onClick={() => void retryOrderAccessExchange()}
+            >
+              Poskusi znova
+            </button>
+            {pendingOrderAccessTokenRef.current ? (
+              <button
+                type="button"
+                className="site-button site-button--secondary"
+                onClick={() => {
+                  const accessToken = pendingOrderAccessTokenRef.current;
+                  if (!accessToken) return;
+                  window.location.assign(
+                    buildOrderConfirmationFragmentUrl(accessToken)
+                  );
+                }}
+              >
+                Odpri varno povezavo
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

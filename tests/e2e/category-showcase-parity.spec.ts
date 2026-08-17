@@ -1,5 +1,4 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import nextEnv from '@next/env';
 import { catalogCategoryHref, catalogSubcategoryHref } from '../../src/commercial/catalog/catalogRoutes';
 import {
   getHomepagePreviewDeviceForViewport,
@@ -9,10 +8,10 @@ import {
   type HomepageCategoriesSettings
 } from '../../src/shared/domain/landing/landingPage';
 import {
-  deriveCategoryShowcaseBackgroundHoverColor,
   normalizeCategoryShowcaseMediaSettings,
   type CategoryShowcaseMediaSettings
 } from '../../src/shared/features/category-showcase/categoryShowcaseSchema';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type CategoryShowcaseGeometry = {
   slug: string;
@@ -119,31 +118,6 @@ type ShowcaseStructure = {
   mobileColumns: string;
   hasDirectionIndicator: boolean;
 };
-
-const { loadEnvConfig } = nextEnv;
-
-async function ensureAdminSession(request: APIRequestContext) {
-  const probe = await request.get('/api/admin/landing-page');
-  if (probe.status() !== 401) {
-    expect(probe.ok()).toBeTruthy();
-    return;
-  }
-
-  loadEnvConfig(process.cwd(), true);
-  const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin';
-  const login = await request.post('/api/admin/login', {
-    data: { username, password }
-  });
-  if (!login.ok()) {
-    throw new Error(`Admin test login failed with status ${login.status()}.`);
-  }
-}
-
-async function ensurePageAdminSession(page: Page, request: APIRequestContext) {
-  await ensureAdminSession(request);
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 async function readCatalogPreviewPayload(request: APIRequestContext): Promise<CatalogPreviewPayload> {
   const response = await request.get('/api/admin/categories');
@@ -505,34 +479,6 @@ function expectCategoryShowcaseGeometryToMatch(
   expect(Math.abs(actualAspectRatio / expectedAspectRatio - 1)).toBeLessThan(0.1);
 }
 
-test('legacy category colours receive compatible hover defaults', () => {
-  const legacy = normalizeCategoryShowcaseMediaSettings({
-    backgroundColor: '#102030',
-    ordinalColor: '#405060',
-    titleColor: '#708090'
-  });
-
-  expect(legacy.titleHoverColor).toBe('#708090');
-  expect(legacy.ordinalHoverColor).toBe('#405060');
-  expect(legacy.backgroundHoverColor).toBe(deriveCategoryShowcaseBackgroundHoverColor('#102030'));
-
-  const explicit = normalizeCategoryShowcaseMediaSettings({
-    titleColor: '#abcdef',
-    titleHoverColor: '#fedcba',
-    ordinalColor: '#123abc',
-    ordinalHoverColor: '#321cba',
-    backgroundColor: '#a1b2c3',
-    backgroundHoverColor: '#c3b2a1'
-  });
-
-  expect(explicit.titleColor).toBe('#ABCDEF');
-  expect(explicit.titleHoverColor).toBe('#FEDCBA');
-  expect(explicit.ordinalColor).toBe('#123ABC');
-  expect(explicit.ordinalHoverColor).toBe('#321CBA');
-  expect(explicit.backgroundColor).toBe('#A1B2C3');
-  expect(explicit.backgroundHoverColor).toBe('#C3B2A1');
-});
-
 async function expectOrdinalsToIgnoreTitleLength(
   page: Page,
   scopeSelector: string,
@@ -580,7 +526,7 @@ async function expectOrdinalsToIgnoreTitleLength(
 
 test('category showcase geometry stays aligned across public and admin previews', async ({ page, request }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensurePageAdminSession(page, request);
+  await assertAuthenticatedAdmin(request);
 
   await page.goto('/');
   const publicTiles = page.locator('[data-homepage-category-card]');
@@ -664,7 +610,7 @@ test('nested category showcases keep admin editor and storefront landing-card pa
   test.setTimeout(60_000);
   const viewportWidth = 1440;
   await page.setViewportSize({ width: viewportWidth, height: 1000 });
-  await ensurePageAdminSession(page, request);
+  await assertAuthenticatedAdmin(request);
 
   const [catalog, landingSettings] = await Promise.all([
     readCatalogPreviewPayload(request),

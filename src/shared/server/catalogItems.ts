@@ -1268,7 +1268,7 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
     await ensureCatalogDefaultVariantIsUsable(client, newItemId);
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
   } catch (error) {
     await client.query('rollback');
     throw error;
@@ -2357,7 +2357,7 @@ export async function quickPatchCatalogItemByIdentifier(
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return await fetchAdminCatalogListItemByItemId(itemId);
   } catch (error) {
     await client.query('rollback');
@@ -2512,7 +2512,7 @@ export async function quickPatchCatalogVariantByIdentifier(
     );
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     const item = await fetchAdminCatalogListItemByItemId(itemId);
     if (!item) return null;
     const variant = item.variants.find((entry) => entry.id === variantId);
@@ -3445,7 +3445,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
     }
 
     await client.query('commit');
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return { id: itemRow.id, slug: itemRow.slug, updatedAt };
   } catch (error) {
     await client.query('rollback');
@@ -3534,7 +3534,7 @@ export async function archiveCatalogItemBySlug(slug: string): Promise<boolean> {
     [normalizedSlug]
   );
   if ((result.rowCount ?? 0) > 0) {
-    revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return true;
   }
   return false;
@@ -3611,7 +3611,7 @@ export async function restoreCatalogItemBySlug(slug: string): Promise<boolean> {
     await ensureCatalogDefaultVariantIsUsable(client, itemId);
     await client.query('commit');
     if ((result.rowCount ?? 0) > 0) {
-      revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+      revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
       return true;
     }
     return false;
@@ -3729,7 +3729,7 @@ export async function purgeCatalogItemBySlug(slug: string): Promise<CatalogItemP
     );
     const purged = (result.rowCount ?? 0) > 0;
     await client.query('commit');
-    if (purged) revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    if (purged) revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return { purged, reason: purged ? null : 'retention_active', purgeAfter };
   } catch (error) {
     await client.query('rollback');
@@ -3775,7 +3775,7 @@ export async function purgeExpiredCatalogItems(limit = 100): Promise<number> {
     );
     await client.query('commit');
     const purgedCount = deleteResult.rowCount ?? 0;
-    if (purgedCount > 0) revalidateTag(CATALOG_PUBLIC_TAG, 'max');
+    if (purgedCount > 0) revalidateTag(CATALOG_PUBLIC_TAG, { expire: 0 });
     return purgedCount;
   } catch (error) {
     await client.query('rollback');

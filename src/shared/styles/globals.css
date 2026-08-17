@@ -281,9 +281,9 @@ textarea[readonly] {
 
 .commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='true'] .container-base,
 .commercial-storefront-scale.homepage-preview-hero-storefront-scale[data-preview-wide-lane='true'] .site-container {
-  width: calc(100% - var(--site-admin-content-lane-start) - var(--site-admin-content-lane-end));
+  width: 100%;
   padding-inline: 0;
-  transform: translateX(var(--site-admin-content-lane-shift));
+  transform: none;
 }
 
 .commercial-storefront-scale.admin-site-header-preview-scale {

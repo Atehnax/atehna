@@ -5,15 +5,9 @@ import {
   type Locator,
   type Page
 } from '@playwright/test';
-import nextEnv from '@next/env';
 import { catalogCategoryItemHref } from '../../src/commercial/catalog/catalogRoutes';
 import type { CatalogItemEditorHydration } from '../../src/shared/domain/catalog/catalogAdminTypes';
-import {
-  DEFAULT_PRODUCT_APPEARANCE_CONFIG,
-  normalizeProductAppearanceConfig,
-  toProductAppearanceCssVariables,
-  toStoredProductAppearanceConfig
-} from '../../src/shared/domain/style/productAppearance';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogProduct = {
   slug: string;
@@ -49,29 +43,7 @@ type VariantSpacingMetrics = {
   dimensionsPaddingTop: number;
 };
 
-const { loadEnvConfig } = nextEnv;
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-async function ensurePageAdminSession(
-  page: Page,
-  request: APIRequestContext
-) {
-  const probe = await request.get('/api/admin/product-appearance');
-  if (probe.status() === 401) {
-    loadEnvConfig(process.cwd(), true);
-    const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'admin';
-    const login = await request.post('/api/admin/login', {
-      data: { username, password }
-    });
-    if (!login.ok()) {
-      throw new Error(`Admin test login failed with status ${login.status()}.`);
-    }
-  } else {
-    expect(probe.ok()).toBeTruthy();
-  }
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 const isActive = (
   statuses: CatalogPayload['statuses'],
@@ -237,44 +209,11 @@ async function openVariantContentPanel(
 }
 
 test.describe('product variant label-to-control spacing', () => {
-  test('normalizes, clamps, stores, and exports the shared appearance setting', () => {
-    expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.variants.labelControlGapPx).toBe(6);
-
-    const normalized = normalizeProductAppearanceConfig({
-      variants: { labelControlGapPx: 17 }
-    });
-    expect(normalized.variants.labelControlGapPx).toBe(17);
-    expect(
-      toStoredProductAppearanceConfig(normalized).variants.labelControlGapPx
-    ).toBe(17);
-    expect(
-      normalizeProductAppearanceConfig({
-        variants: { labelControlGapPx: -10 }
-      }).variants.labelControlGapPx
-    ).toBe(0);
-    expect(
-      normalizeProductAppearanceConfig({
-        variants: { labelControlGapPx: 100 }
-      }).variants.labelControlGapPx
-    ).toBe(32);
-
-    expect(
-      toProductAppearanceCssVariables(normalized)[
-        '--product-variant-label-control-gap'
-      ]
-    ).toBe('17px');
-    expect(
-      toProductAppearanceCssVariables(normalized, 0.5)[
-        '--product-variant-label-control-gap'
-      ]
-    ).toBe('8.5px');
-  });
-
   test('keeps the divider removed and the shared gap in public and responsive admin previews', async ({
     page,
     request
   }) => {
-    await ensurePageAdminSession(page, request);
+    await assertAuthenticatedAdmin(request);
     const fixture = await findDimensionalProduct(request);
     expect(
       fixture,

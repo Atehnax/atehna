@@ -1,21 +1,11 @@
 import {
   expect,
   test,
-  type APIRequestContext,
-  type Locator,
-  type Page
+  type Locator
 } from '@playwright/test';
-import nextEnv from '@next/env';
+import { assertAuthenticatedAdmin } from './support/auth';
 
-const { loadEnvConfig } = nextEnv;
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const localBrowserExecutable = process.env.ATEHNA_PLAYWRIGHT_EXECUTABLE;
-
-test.use({
-  launchOptions: localBrowserExecutable
-    ? { executablePath: localBrowserExecutable }
-    : {}
-});
 
 type PriceStyleContract = {
   visualDisplay: string;
@@ -71,27 +61,6 @@ type RelatedCardContract = {
   typography: TypographyContract;
   priceStyle: PriceStyleContract;
 };
-
-async function ensurePageAdminSession(
-  page: Page,
-  request: APIRequestContext
-) {
-  const probe = await request.get('/api/admin/product-appearance');
-  if (probe.status() === 401) {
-    loadEnvConfig(process.cwd(), true);
-    const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'admin';
-    const login = await request.post('/api/admin/login', {
-      data: { username, password }
-    });
-    if (!login.ok()) {
-      throw new Error(`Admin test login failed with status ${login.status()}.`);
-    }
-  } else {
-    expect(probe.ok()).toBeTruthy();
-  }
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 const normalizeText = (value: string | null | undefined) =>
   (value ?? '').replace(/\s+/gu, ' ').trim();
@@ -289,8 +258,7 @@ async function expectRelatedCardContract(
     const titleChild = topLevelChild(titleElement);
     const descriptionChild = topLevelChild(descriptionElement);
     const rootBox = cardRoot.getBoundingClientRect();
-    const titleBox = titleChild.getBoundingClientRect();
-    const descriptionBox = descriptionChild.getBoundingClientRect();
+    const titleBox = titleElement.getBoundingClientRect();
     const descriptionContentBox = descriptionElement.getBoundingClientRect();
     const mediaBox = mediaElement.getBoundingClientRect();
     const purchaseRowBox = purchaseRowElement.getBoundingClientRect();
@@ -327,7 +295,7 @@ async function expectRelatedCardContract(
         (quickAddBox.left - priceBox.right) / transformScaleX
         * commercialScale,
       logicalGapBeforePurchaseRow:
-        (purchaseRowBox.top - descriptionBox.bottom) / transformScaleY
+        (purchaseRowBox.top - descriptionContentBox.bottom) / transformScaleY
         * commercialScale,
       contentJustification: contentStyle.justifyContent,
       purchaseRowDisplay: purchaseRowStyle.display,
@@ -351,10 +319,10 @@ async function expectRelatedCardContract(
         logicalLineHeight:
           Number.parseFloat(descriptionStyle.lineHeight) * commercialScale,
         logicalGapAfterTitle:
-          (descriptionBox.top - titleBox.bottom) / transformScaleY
+          (descriptionContentBox.top - titleBox.bottom) / transformScaleY
           * commercialScale,
         logicalGapBeforePrice:
-          (priceBox.top - descriptionBox.bottom) / transformScaleY
+          (priceBox.top - descriptionContentBox.bottom) / transformScaleY
           * commercialScale,
         immediatelyFollowsTitle:
           titleChild.nextElementSibling === descriptionChild,
@@ -502,7 +470,7 @@ test.describe('related-product compact commerce card', () => {
     page,
     request
   }) => {
-    await ensurePageAdminSession(page, request);
+    await assertAuthenticatedAdmin(request);
     const writes: string[] = [];
     await page.route('**/api/**', async (route) => {
       const outgoing = route.request();

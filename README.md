@@ -106,15 +106,40 @@ automatic expiry.
 
 # Test
 
-- Run all local safety gates: `npm run lint && npm run typecheck && npm run build && npm run test:e2e`
+- Static and unit gates: `npm run lint`, `npm run typecheck`,
+  `npm run test:unit`, then `npm run build`.
+- E2E requires a newly provisioned disposable PostgreSQL database on loopback.
+  Its name must be `atehna_e2e_` plus the lower-case
+  `E2E_STORAGE_NAMESPACE`, with hyphens replaced by underscores. For
+  example, namespace `local-a1b2c3d4` requires database
+  `atehna_e2e_local_a1b2c3d4`. The server must provide `pgcrypto` and
+  `pg_trgm`. Never point the suite at a reused, shared, or production database:
+  preparation drops and recreates its `public` schema.
+- Before running Playwright, set `E2E_MODE=1`, set both `E2E_DATABASE_URL` and
+  `DATABASE_URL` to the same loopback database URL, and set isolated
+  unique 12–52 character `E2E_STORAGE_NAMESPACE` made from lower-case letters,
+  digits and hyphens, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and an
+  `ADMIN_SESSION_SECRET` of at least 32 characters.
+- Run `npm run build`, `npm run e2e:db:prepare`, then
+  `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies every
+  migration, installs deterministic catalog/media fixtures, verifies the
+  sentinel data, and clears Next's generated runtime cache before the run.
+  Playwright clears that same generated cache again during teardown so E2E
+  database values cannot leak into the normal application.
+- A local system Chromium can be selected with
+  `ATEHNA_PLAYWRIGHT_EXECUTABLE=/absolute/path/to/chrome`; CI installs the
+  Playwright-managed Chromium build.
 
 ## CI safety gates
 The pull request CI workflow runs:
 - `npm ci`
 - `npm run lint`
 - `npm run typecheck`
+- `npm run test:unit`
 - `npm run build`
-- `npm run test:e2e`
+- four isolated PostgreSQL-backed Playwright shards with one worker and zero
+  retries
+- merged-report verification proving every expected test ran and passed once
 
 ## Deployed network measurement harness
 

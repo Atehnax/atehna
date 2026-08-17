@@ -9,7 +9,12 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:e2e": "playwright test",
+    "e2e:db:prepare": "node scripts/e2e-database.mjs prepare",
+    "e2e:db:check": "node scripts/e2e-database.mjs check",
+    "e2e:server": "node scripts/e2e-server.mjs",
+    "e2e:report:verify": "node scripts/verify-playwright-report.mjs",
     "addresses:sync": "tsx scripts/sync-addresses.ts",
     "measure:deployed-network": "node scripts/measure-deployed-network.mjs"
   },

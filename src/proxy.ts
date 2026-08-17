@@ -7,8 +7,36 @@ import {
 } from '@/shared/auth/adminSession';
 import { normalizeAdminReturnPath } from '@/shared/auth/adminReturnPath';
 
+const sensitiveOrderPages = new Set([
+  '/order/confirmation',
+  '/order/narocilnica'
+]);
+
+function applySensitiveOrderPageHeaders(response: NextResponse) {
+  response.headers.set('Cache-Control', 'private, no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  return response;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (sensitiveOrderPages.has(pathname)) {
+    if (request.nextUrl.searchParams.has('token')) {
+      const legacyToken = request.nextUrl.searchParams.get('token')?.trim() ?? '';
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.searchParams.delete('token');
+      redirectUrl.hash = legacyToken
+        ? new URLSearchParams({ token: legacyToken }).toString()
+        : '';
+      return applySensitiveOrderPageHeaders(
+        NextResponse.redirect(redirectUrl)
+      );
+    }
+
+    return applySensitiveOrderPageHeaders(NextResponse.next());
+  }
+
   const authConfig = getAdminAuthConfig();
   const isLoginPage = pathname === '/admin';
   const isAdminApi = pathname === '/api/admin' || pathname.startsWith('/api/admin/');
@@ -59,5 +87,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*']
+  matcher: [
+    '/admin/:path*',
+    '/api/admin/:path*',
+    '/order/confirmation',
+    '/order/narocilnica'
+  ]
 };

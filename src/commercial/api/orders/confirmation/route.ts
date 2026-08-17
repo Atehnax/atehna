@@ -1,6 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import type { Pool } from 'pg';
 import { getPool } from '@/shared/server/db';
-import { verifyOrderAccessToken } from '@/shared/server/orderAccess';
+import {
+  readOrderAccessSession,
+  verifyOrderAccessToken,
+  type VerifiedOrderAccess
+} from '@/shared/server/orderAccess';
 
 export const runtime = 'nodejs';
 
@@ -22,12 +27,25 @@ function deriveStreetAddress(deliveryAddress: unknown, postalCode: unknown, city
   return address.replace(new RegExp(`,?\\s*${locality.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '').trim();
 }
 
-export async function GET(request: Request) {
+async function verifyConfirmationRequest(
+  request: NextRequest,
+  pool: Pool
+): Promise<VerifiedOrderAccess | null> {
+  const session = readOrderAccessSession(request);
+  if (!session) return null;
+  const access = await verifyOrderAccessToken(
+    pool,
+    session.token,
+    'confirmation'
+  );
+  return access?.tokenId.toLowerCase() === session.accessId ? access : null;
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const token = new URL(request.url).searchParams.get('token')?.trim() ?? '';
-    if (!token) {
+    if (!request.headers.has('x-order-access-id')) {
       return NextResponse.json(
-        { code: 'CONFIRMATION_TOKEN_REQUIRED', message: 'Povezava za potrditev ni veljavna.' },
+        { code: 'CONFIRMATION_ACCESS_REQUIRED', message: 'Povezava za potrditev ni veljavna.' },
         {
           status: 400,
           headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }
@@ -36,7 +54,7 @@ export async function GET(request: Request) {
     }
 
     const pool = await getPool();
-    const access = await verifyOrderAccessToken(pool, token, 'confirmation');
+    const access = await verifyConfirmationRequest(request, pool);
     if (!access) {
       return NextResponse.json(
         {

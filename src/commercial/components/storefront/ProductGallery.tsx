@@ -175,7 +175,14 @@ export default function ProductGallery({
 }: ProductGalleryProps) {
   const appearance = useProductAppearance();
   const wrapCanvasElement = canvasWrapper ?? (
-    (_elementId: string, _label: string, children: ReactNode) => children
+    (
+      _elementId: string,
+      _label: string,
+      children: ReactNode,
+      wrapperClassName?: string
+    ) => wrapperClassName
+      ? <div className={wrapperClassName}>{children}</div>
+      : children
   );
   const galleryMedia = useMemo(
     () =>

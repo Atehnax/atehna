@@ -8,4 +8,8 @@ out
 *.tsbuildinfo
 artifacts/
 test-results/
+.playwright/
+.playwright-browsers/
+blob-report/
+playwright-report/
 .env*.local

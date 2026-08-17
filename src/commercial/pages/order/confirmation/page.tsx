@@ -9,21 +9,10 @@ export const metadata = {
   referrer: 'no-referrer'
 };
 
-type OrderConfirmationPageProps = {
-  searchParams: Promise<{ token?: string | string[] }>;
-};
-
-export default async function OrderConfirmationPage({
-  searchParams
-}: OrderConfirmationPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const token = Array.isArray(resolvedSearchParams.token)
-    ? resolvedSearchParams.token[0]
-    : resolvedSearchParams.token;
-
+export default function OrderConfirmationPage() {
   return (
     <div className="container-base site-section" data-testid="order-confirmation-page">
-      <OrderConfirmationPageClient token={token} />
+      <OrderConfirmationPageClient />
     </div>
   );
 }

@@ -5,9 +5,9 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import nextEnv from '@next/env';
 import { catalogCategoryItemHref } from '../../src/commercial/catalog/catalogRoutes';
 import type { CatalogItemEditorHydration } from '../../src/shared/domain/catalog/catalogAdminTypes';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogProduct = {
   slug: string;
@@ -51,34 +51,12 @@ type ControlMetric = {
   iconColor: string;
 };
 
-const { loadEnvConfig } = nextEnv;
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const controlKinds = [
   'previous',
   'next',
   'zoom-indicator',
 ] as const;
-
-async function ensurePageAdminSession(
-  page: Page,
-  request: APIRequestContext,
-) {
-  const probe = await request.get('/api/admin/product-appearance');
-  if (probe.status() === 401) {
-    loadEnvConfig(process.cwd(), true);
-    const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'admin';
-    const login = await request.post('/api/admin/login', {
-      data: { username, password },
-    });
-    if (!login.ok()) {
-      throw new Error(`Admin test login failed with status ${login.status()}.`);
-    }
-  } else {
-    expect(probe.ok()).toBeTruthy();
-  }
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 const isActive = (statuses: CatalogPayload['statuses'], key: string) => (
   statuses[key] !== 'inactive'
@@ -414,7 +392,7 @@ test('gallery controls stay visually compact and functionally accessible in publ
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensurePageAdminSession(page, request);
+  await assertAuthenticatedAdmin(request);
   const fixture = await findGalleryFixture(request);
   expect(
     fixture,

@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getPool } from '@/shared/server/db';
+import {
+  isOrderAccessToken,
+  orderAccessSessionCookieName,
+  verifyOrderAccessToken
+} from '@/shared/server/orderAccess';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
+
+export const runtime = 'nodejs';
+
+const privateHeaders = {
+  'Cache-Control': 'no-store, private',
+  'Referrer-Policy': 'no-referrer'
+};
+
+export async function POST(request: NextRequest) {
+  const parsedBody = await readRequiredJsonRecord(request);
+  if (!parsedBody.ok) return parsedBody.response;
+
+  const token =
+    typeof parsedBody.body.token === 'string'
+      ? parsedBody.body.token.trim()
+      : '';
+  if (!isOrderAccessToken(token)) {
+    return NextResponse.json(
+      {
+        code: 'ORDER_ACCESS_DENIED',
+        message: 'Povezava je potekla ali je bila preklicana.'
+      },
+      { status: 401, headers: privateHeaders }
+    );
+  }
+
+  try {
+    const pool = await getPool();
+    const access = await verifyOrderAccessToken(pool, token, 'confirmation');
+    if (!access) {
+      return NextResponse.json(
+        {
+          code: 'ORDER_ACCESS_DENIED',
+          message: 'Povezava je potekla ali je bila preklicana.'
+        },
+        { status: 401, headers: privateHeaders }
+      );
+    }
+
+    const cookieName = orderAccessSessionCookieName(access.tokenId);
+    if (!cookieName) {
+      throw new Error('Order access record returned an invalid id.');
+    }
+
+    const response = NextResponse.json(
+      {
+        accessId: access.tokenId,
+        expiresAt: access.expiresAt
+      },
+      { headers: privateHeaders }
+    );
+    response.cookies.set({
+      name: cookieName,
+      value: token,
+      expires: new Date(access.expiresAt),
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/api/orders'
+    });
+    return response;
+  } catch (error) {
+    console.error('[orders.access-session] failed', {
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return NextResponse.json(
+      {
+        code: 'ORDER_ACCESS_SESSION_FAILED',
+        message: 'Dostopa do naročila trenutno ni mogoče potrditi.'
+      },
+      { status: 500, headers: privateHeaders }
+    );
+  }
+}

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash, randomBytes } from 'crypto';
+import type { NextRequest } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 
 export type OrderAccessScope = 'confirmation' | 'purchase_order';
@@ -8,6 +9,7 @@ export type OrderAccessScope = 'confirmation' | 'purchase_order';
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
 export type IssuedOrderAccessToken = {
+  tokenId: string;
   token: string;
   tokenPrefix: string;
   createdAt: string;
@@ -22,12 +24,49 @@ export type VerifiedOrderAccess = {
 };
 
 const TOKEN_PREFIX = 'ath_order_';
+const TOKEN_PATTERN = /^ath_order_[A-Za-z0-9_-]{43}$/u;
+const ACCESS_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const ACCESS_SESSION_COOKIE_PREFIX = 'ath_order_access_';
 const DEFAULT_TOKEN_TTL_DAYS = 90;
 const MIN_TOKEN_TTL_DAYS = 1;
 const MAX_TOKEN_TTL_DAYS = 365;
 
 export function hashOrderAccessToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+export function isOrderAccessToken(token: string): boolean {
+  return TOKEN_PATTERN.test(token.trim());
+}
+
+export function normalizeOrderAccessId(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return ACCESS_ID_PATTERN.test(normalized) ? normalized : null;
+}
+
+export function orderAccessSessionCookieName(accessId: string): string | null {
+  const normalizedAccessId = normalizeOrderAccessId(accessId);
+  if (!normalizedAccessId) return null;
+  return `${ACCESS_SESSION_COOKIE_PREFIX}${normalizedAccessId.replaceAll('-', '')}`;
+}
+
+export function readOrderAccessSession(
+  request: NextRequest
+): { accessId: string; token: string } | null {
+  const accessId = normalizeOrderAccessId(request.headers.get('x-order-access-id'));
+  if (!accessId) return null;
+  const cookieName = orderAccessSessionCookieName(accessId);
+  if (!cookieName) return null;
+  const token = request.cookies.get(cookieName)?.value?.trim() ?? '';
+  return isOrderAccessToken(token) ? { accessId, token } : null;
+}
+
+export function buildOrderConfirmationAccessUrl(token: string): string {
+  if (!isOrderAccessToken(token)) {
+    throw new Error('Cannot build an order confirmation URL from an invalid access token.');
+  }
+  return `/order/confirmation#token=${encodeURIComponent(token.trim())}`;
 }
 
 function normalizeTtlDays(value?: number): number {
@@ -56,9 +95,9 @@ export async function issueOrderAccessToken(
   const expiresAt = buildExpiry(options?.ttlDays);
   const scopes = options?.scopes?.length
     ? Array.from(new Set(options.scopes))
-    : ['confirmation', 'purchase_order'];
+    : ['confirmation'];
 
-  await database.query(
+  const result = await database.query(
     `
       insert into order_access_tokens (
         order_id,
@@ -69,6 +108,7 @@ export async function issueOrderAccessToken(
         expires_at
       )
       values ($1, $2, $3, $4::text[], $5, $6)
+      returning id
     `,
     [
       orderId,
@@ -79,8 +119,13 @@ export async function issueOrderAccessToken(
       expiresAt.toISOString()
     ]
   );
+  const tokenId = String(result.rows[0]?.id ?? '');
+  if (!normalizeOrderAccessId(tokenId)) {
+    throw new Error('Order access token insert did not return a valid id.');
+  }
 
   return {
+    tokenId,
     token,
     tokenPrefix,
     createdAt: createdAt.toISOString(),
@@ -95,7 +140,7 @@ export async function verifyOrderAccessToken(
   expectedOrderId?: number
 ): Promise<VerifiedOrderAccess | null> {
   const normalizedToken = token.trim();
-  if (!normalizedToken.startsWith(TOKEN_PREFIX) || normalizedToken.length < 40) return null;
+  if (!isOrderAccessToken(normalizedToken)) return null;
 
   const tokenHash = hashOrderAccessToken(normalizedToken);
   const params: unknown[] = [tokenHash, requiredScope];

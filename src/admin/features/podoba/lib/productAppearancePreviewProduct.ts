@@ -60,6 +60,31 @@ const isAutomaticRelatedProduct = (
   return candidatePath[0] === selectedCategoryPath[0];
 };
 
+const rankAutomaticRelatedProducts = (
+  candidates: AdminCatalogListItem[],
+  selectedCategoryPath: string[]
+) => {
+  const sameLeaf: AdminCatalogListItem[] = [];
+  const sameCategory: AdminCatalogListItem[] = [];
+  const otherCategories: AdminCatalogListItem[] = [];
+  const selectedPathKey = selectedCategoryPath.join('\u0000');
+
+  for (const candidate of candidates) {
+    const candidatePath = categoryParts(candidate.categoryLabel);
+    if (candidatePath[0] !== selectedCategoryPath[0]) {
+      otherCategories.push(candidate);
+      continue;
+    }
+    if (candidatePath.join('\u0000') === selectedPathKey) {
+      sameLeaf.push(candidate);
+      continue;
+    }
+    sameCategory.push(candidate);
+  }
+
+  return [...sameLeaf, ...sameCategory, ...otherCategories];
+};
+
 const buildRelatedProductSummary = (item: AdminCatalogListItem) => {
   const path = categoryParts(item.categoryLabel);
   const categoryTitle = path[0] ?? 'Izdelki';
@@ -133,7 +158,10 @@ function buildPreviewRelatedProducts(
     return candidate ? [candidate] : [];
   });
   const selectedCategoryPath = item.categoryPath.map((part) => part.trim()).filter(Boolean);
-  const automatic = eligible.filter((candidate) =>
+  const automatic = rankAutomaticRelatedProducts(
+    eligible,
+    selectedCategoryPath
+  ).filter((candidate) =>
     isAutomaticRelatedProduct(
       candidate,
       selectedCategoryPath,

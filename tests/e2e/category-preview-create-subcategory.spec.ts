@@ -5,7 +5,7 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import nextEnv from '@next/env';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogCategory = {
   id: string;
@@ -22,32 +22,8 @@ type CatalogPayload = {
   categories: CatalogCategory[];
 };
 
-const { loadEnvConfig } = nextEnv;
 const ADD_CATEGORY_LABEL = 'Ustvari novo kategorijo';
 const ADD_SUBCATEGORY_LABEL = 'Ustvari novo podkategorijo';
-
-async function ensureAdminSession(request: APIRequestContext) {
-  const probe = await request.get('/api/admin/categories?view=preview');
-  if (probe.status() !== 401) {
-    expect(probe.ok()).toBeTruthy();
-    return;
-  }
-
-  loadEnvConfig(process.cwd(), true);
-  const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin';
-  const login = await request.post('/api/admin/login', {
-    data: { username, password },
-  });
-  if (!login.ok()) {
-    throw new Error(`Admin test login failed with status ${login.status()}.`);
-  }
-}
-
-async function ensurePageAdminSession(page: Page, request: APIRequestContext) {
-  await ensureAdminSession(request);
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 async function readCatalog(request: APIRequestContext) {
   const response = await request.get('/api/admin/categories');
@@ -227,7 +203,7 @@ async function expectCreateDialogForParent(page: Page, category: CatalogCategory
 test.describe('nested category Preview create affordance', () => {
   test.beforeEach(async ({ page, request }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await ensurePageAdminSession(page, request);
+    await assertAuthenticatedAdmin(request);
   });
 
   test('stays available after existing subcategory cards', async ({ page, request }) => {

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import { buildOrderBlobPath, deleteBlob, uploadBlob } from '@/shared/server/blob';
 import { getPool } from '@/shared/server/db';
@@ -16,6 +16,7 @@ import {
   type OrderSelection
 } from '@/shared/server/orderCommerce';
 import {
+  buildOrderConfirmationAccessUrl,
   issueOrderAccessToken,
   revokeOrderAccessTokens
 } from '@/shared/server/orderAccess';
@@ -281,7 +282,7 @@ function requestFingerprint(
 function confirmationFields(token: string) {
   return {
     confirmationToken: token,
-    confirmationUrl: `/order/confirmation?token=${encodeURIComponent(token)}`
+    confirmationUrl: buildOrderConfirmationAccessUrl(token)
   };
 }
 
@@ -685,6 +686,44 @@ async function createInitialOrderSummary(
     try {
       await client.query('begin');
       await client.query('select id from orders where id = $1 for update', [response.orderId]);
+      const existingResult = await client.query(
+        `
+          select blob_url
+          from order_documents
+          where order_id = $1
+            and type = 'order_summary'
+            and deleted_at is null
+          order by version_number asc, id asc
+          limit 1
+        `,
+        [response.orderId]
+      );
+      const existingBlobUrl = existingResult.rows[0]?.blob_url;
+
+      if (typeof existingBlobUrl === 'string' && existingBlobUrl) {
+        const withDocument: StoredOrderResponse = {
+          ...response,
+          documentUrl: existingBlobUrl
+        };
+        await client.query(
+          `
+            update order_idempotency_keys
+            set response_json = $1::jsonb
+            where key_hash = $2
+          `,
+          [JSON.stringify(withDocument), keyHash]
+        );
+        await client.query('commit');
+        documentPersisted = true;
+        await deleteBlob(blob.pathname).catch((error) => {
+          console.error('[orders.create] redundant summary cleanup failed', {
+            orderId: response.orderId,
+            message: error instanceof Error ? error.message : 'Unknown error'
+          });
+        });
+        return withDocument;
+      }
+
       const versionResult = await client.query(
         `
           select coalesce(max(version_number), 0)::integer + 1 as next_version
@@ -761,6 +800,35 @@ async function createInitialOrderSummary(
   }
 }
 
+function safelyRevalidateAdminOrderPaths(orderId: number) {
+  try {
+    revalidateAdminOrderPaths(orderId);
+  } catch (error) {
+    console.error('[orders.create] admin order revalidation failed', {
+      orderId,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+
+function scheduleInitialOrderSummary(
+  pool: Pool,
+  response: StoredOrderResponse,
+  keyHash: string
+) {
+  try {
+    after(async () => {
+      await createInitialOrderSummary(pool, response, keyHash);
+      safelyRevalidateAdminOrderPaths(response.orderId);
+    });
+  } catch (error) {
+    console.error('[orders.create] summary scheduling failed', {
+      orderId: response.orderId,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+
 function errorResponse(error: unknown) {
   if (error instanceof OrderCommerceError) {
     return NextResponse.json(
@@ -811,10 +879,20 @@ export async function POST(request: Request) {
 
     if (reservation.kind === 'replay') {
       const revokedTokenCount = await revokeOrderAccessTokens(client, reservation.orderId);
-      const accessToken = await issueOrderAccessToken(client, reservation.orderId);
+      const accessToken = await issueOrderAccessToken(client, reservation.orderId, {
+        scopes:
+          reservation.response.customer?.customerType === 'school'
+            ? ['confirmation', 'purchase_order']
+            : ['confirmation']
+      });
       await client.query('commit');
       client.release();
       client = null;
+
+      if (!reservation.response.documentUrl) {
+        scheduleInitialOrderSummary(pool, reservation.response, keyHash);
+      }
+      safelyRevalidateAdminOrderPaths(reservation.orderId);
 
       return NextResponse.json(
         {
@@ -835,7 +913,12 @@ export async function POST(request: Request) {
       lockVariants: true
     });
     const inserted = await insertOrder(client, customer, quote);
-    const accessToken = await issueOrderAccessToken(client, inserted.orderId);
+    const accessToken = await issueOrderAccessToken(client, inserted.orderId, {
+      scopes:
+        customer.customerType === 'school'
+          ? ['confirmation', 'purchase_order']
+          : ['confirmation']
+    });
     const storedResponse: StoredOrderResponse = {
       orderId: inserted.orderId,
       orderNumber: inserted.orderNumber,
@@ -866,12 +949,12 @@ export async function POST(request: Request) {
     client.release();
     client = null;
 
-    const responseWithDocument = await createInitialOrderSummary(pool, storedResponse, keyHash);
-    revalidateAdminOrderPaths(inserted.orderId);
+    scheduleInitialOrderSummary(pool, storedResponse, keyHash);
+    safelyRevalidateAdminOrderPaths(inserted.orderId);
 
     return NextResponse.json(
       {
-        ...responseWithDocument,
+        ...storedResponse,
         ...confirmationFields(accessToken.token),
         tokenExpiresAt: accessToken.expiresAt,
         idempotentReplay: false

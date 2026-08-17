@@ -30,6 +30,10 @@ async function waitForFonts(page: Page) {
   await page.evaluate(async () => document.fonts.ready);
 }
 
+const publicStorefront = (page: Page) => page.locator(
+  '[data-storefront-theme="true"].commercial-storefront-scale'
+);
+
 async function setPublicStorefrontWidth(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   // Keep the public breakpoint tied to the requested browser width. Removing the
@@ -37,7 +41,7 @@ async function setPublicStorefrontWidth(page: Page, width: number, height: numbe
   await page.addStyleTag({
     content: 'html, body { overflow-y: hidden !important; scrollbar-gutter: auto !important; }'
   });
-  await expect.poll(() => page.locator('[data-storefront-theme="true"]').evaluate(
+  await expect.poll(() => publicStorefront(page).evaluate(
     (element) => Math.round(element.getBoundingClientRect().width)
   )).toBe(width);
 }
@@ -198,7 +202,7 @@ test('Hero preview preserves public full-bleed and content-lane proportions acro
     }
 
     const publicClientWidth = await readClientWidth(page);
-    const publicStorefrontWidth = await page.locator('[data-storefront-theme="true"]').evaluate(
+    const publicStorefrontWidth = await publicStorefront(page).evaluate(
       (element) => Math.round(element.getBoundingClientRect().width)
     );
     if (scenario.device === 'desktop') {

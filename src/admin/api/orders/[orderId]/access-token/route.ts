@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import {
+  buildOrderConfirmationAccessUrl,
   issueOrderAccessToken,
   revokeOrderAccessTokens
 } from '@/shared/server/orderAccess';
@@ -119,11 +120,15 @@ export async function POST(
     try {
       await client.query('begin');
       const orderResult = await client.query(
-        'select id, order_number, deleted_at from orders where id = $1 for update',
+        'select id, order_number, customer_type, deleted_at from orders where id = $1 for update',
         [orderId]
       );
       const order = orderResult.rows[0] as
-        | { order_number: string; deleted_at: string | null }
+        | {
+            order_number: string;
+            customer_type: string;
+            deleted_at: string | null;
+          }
         | undefined;
       if (!order) {
         await client.query('rollback');
@@ -138,7 +143,13 @@ export async function POST(
       }
 
       const revokedCount = await revokeOrderAccessTokens(client, orderId);
-      const issued = await issueOrderAccessToken(client, orderId, { ttlDays });
+      const issued = await issueOrderAccessToken(client, orderId, {
+        ttlDays,
+        scopes:
+          order.customer_type === 'school'
+            ? ['confirmation', 'purchase_order']
+            : ['confirmation']
+      });
       await insertAuditEventForRequest(
         request,
         {
@@ -167,9 +178,9 @@ export async function POST(
       return NextResponse.json(
         {
           orderId,
-          token: issued.token,
+          accessId: issued.tokenId,
           tokenPrefix: issued.tokenPrefix,
-          confirmationUrl: `/order/confirmation?token=${encodeURIComponent(issued.token)}`,
+          confirmationUrl: buildOrderConfirmationAccessUrl(issued.token),
           createdAt: issued.createdAt,
           expiresAt: issued.expiresAt,
           revokedTokenCount: revokedCount

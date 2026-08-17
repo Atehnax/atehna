@@ -5,13 +5,13 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import nextEnv from '@next/env';
 import {
   catalogCategoryHref,
   catalogSubcategoryHref,
 } from '../../src/commercial/catalog/catalogRoutes';
 import { toStorefrontPlainText } from '../../src/commercial/features/products/storefrontProduct';
 import type { CatalogItemEditorHydration } from '../../src/shared/domain/catalog/catalogAdminTypes';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogProduct = {
   slug: string;
@@ -39,34 +39,7 @@ type CatalogPayload = {
   statuses: Record<string, 'active' | 'inactive'>;
 };
 
-const { loadEnvConfig } = nextEnv;
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-
-async function ensureAdminSession(request: APIRequestContext) {
-  const probe = await request.get('/api/admin/categories?view=preview');
-  if (probe.status() !== 401) {
-    expect(probe.ok()).toBeTruthy();
-    return;
-  }
-
-  loadEnvConfig(process.cwd(), true);
-  const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin';
-  const login = await request.post('/api/admin/login', {
-    data: { username, password },
-  });
-  if (!login.ok()) {
-    throw new Error(`Admin test login failed with status ${login.status()}.`);
-  }
-}
-
-async function ensurePageAdminSession(
-  page: Page,
-  request: APIRequestContext,
-) {
-  await ensureAdminSession(request);
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 function isActive(statuses: CatalogPayload['statuses'], key: string) {
   return statuses[key] !== 'inactive';
@@ -1022,7 +995,7 @@ test('category page omits hero media and visible subcategory label while retaini
   page,
   request,
 }) => {
-  await ensureAdminSession(request);
+  await assertAuthenticatedAdmin(request);
   const response = await request.get('/api/admin/categories');
   expect(response.ok()).toBeTruthy();
   const payload = await response.json() as CatalogPayload;
@@ -1087,7 +1060,7 @@ test('category and subcategory listings integrate count and compact sort into th
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensureAdminSession(request);
+  await assertAuthenticatedAdmin(request);
   const response = await request.get('/api/admin/categories');
   expect(response.ok()).toBeTruthy();
   const payload = await response.json() as CatalogPayload;
@@ -1152,7 +1125,7 @@ test('subcategory product listing is materially compact without losing product n
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensureAdminSession(request);
+  await assertAuthenticatedAdmin(request);
   const response = await request.get('/api/admin/categories');
   expect(response.ok()).toBeTruthy();
   const payload = await response.json() as CatalogPayload;
@@ -1190,10 +1163,14 @@ test('subcategory product listing is materially compact without losing product n
   expectAmazonInspiredListingCard(marketplaceContract);
 
   expect(subcategoryMetrics.grid.columns.length, 'desktop product columns').toBeGreaterThanOrEqual(3);
+  // The storefront scale can quantize the card border onto adjacent device
+  // pixels, so retain the 1.65 design cap with a bounded two-pixel allowance.
   expect(
     subcategoryMetrics.card.height,
     'product card height should stay proportionate to its square media and compact details',
-  ).toBeLessThanOrEqual(subcategoryMetrics.card.width * 1.65);
+  ).toBeLessThanOrEqual(
+    subcategoryMetrics.card.width * 1.65 + 2,
+  );
   expect(
     subcategoryMetrics.media.height,
     'product media should fill a square card-width area',
@@ -1222,7 +1199,7 @@ test('variant listing card keeps price, square media, and CTA parity in the admi
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensurePageAdminSession(page, request);
+  await assertAuthenticatedAdmin(request);
 
   const catalogResponse = await request.get('/api/admin/categories');
   expect(catalogResponse.ok()).toBeTruthy();
@@ -1351,7 +1328,7 @@ test('admin Seznam preview uses the same compact listing card and toolbar withou
   request,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await ensurePageAdminSession(page, request);
+  await assertAuthenticatedAdmin(request);
 
   const catalogResponse = await request.get('/api/admin/categories');
   expect(catalogResponse.ok()).toBeTruthy();
@@ -1491,8 +1468,8 @@ test('admin Seznam preview uses the same compact listing card and toolbar withou
     .toBeGreaterThan(0);
   await expect(
     listingCardCanvasWrappers,
-    'each rendered ProductCard should own one listing-card canvas wrapper',
-  ).toHaveCount(renderedCardCount);
+    'the repeated listing preview should expose one editable representative card',
+  ).toHaveCount(1);
   expect(
     await cards.evaluateAll((elements) => elements.map((element) => {
       let ancestor = element.parentElement;
@@ -1505,8 +1482,8 @@ test('admin Seznam preview uses the same compact listing card and toolbar withou
       }
       return count;
     })),
-    'every rendered card should have exactly one listing-card canvas ancestor',
-  ).toEqual(Array.from({ length: renderedCardCount }, () => 1));
+    'only the representative card should own the editable listing-card canvas wrapper',
+  ).toEqual([1, ...Array.from({ length: renderedCardCount - 1 }, () => 0)]);
   await expect(
     listingCardCanvasWrappers.locator(
       '[data-product-canvas-element="listing-card"]',

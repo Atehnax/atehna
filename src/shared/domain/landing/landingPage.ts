@@ -1634,8 +1634,9 @@ export function normalizeHomepageFooterSettings(value: unknown): HomepageFooterS
       normalizeFooterLink(link, index, fallback.legalLinks[index])
     )
   );
+  const socialLinkSource = Array.isArray(record.socialLinks) ? record.socialLinks : fallback.socialLinks;
   const socialLinks = normalizeFooterEntryOrder(
-    asArray(record.socialLinks).slice(0, MAX_SOCIAL_LINKS).map(normalizeSocialLink)
+    socialLinkSource.slice(0, MAX_SOCIAL_LINKS).map(normalizeSocialLink)
   );
 
   const base = {

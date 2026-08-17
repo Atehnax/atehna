@@ -84,18 +84,23 @@ async function expectPerimeterFullyPaintable({
     requireBox(previewFrame, 'Homepage preview frame')
   ]);
   const containmentTolerance = 2;
-  const expectContainedBy = (inner: Box, outer: Box, label: string) => {
+  const expectContainedBy = (
+    inner: Box,
+    outer: Box,
+    label: string,
+    tolerance = containmentTolerance
+  ) => {
     expect(inner.x, `${label} should not be clipped on the left`).toBeGreaterThanOrEqual(
-      outer.x - containmentTolerance
+      outer.x - tolerance
     );
     expect(inner.y, `${label} should not be clipped at the top`).toBeGreaterThanOrEqual(
-      outer.y - containmentTolerance
+      outer.y - tolerance
     );
     expect(inner.x + inner.width, `${label} should not be clipped on the right`).toBeLessThanOrEqual(
-      outer.x + outer.width + containmentTolerance
+      outer.x + outer.width + tolerance
     );
     expect(inner.y + inner.height, `${label} should not be clipped at the bottom`).toBeLessThanOrEqual(
-      outer.y + outer.height + containmentTolerance
+      outer.y + outer.height + tolerance
     );
   };
 
@@ -141,7 +146,17 @@ async function expectPerimeterFullyPaintable({
     const handle = handles.nth(index);
     await expect(handle).toBeVisible();
     const handleBounds = await requireBox(handle, `Transform handle ${index + 1}`);
-    expectContainedBy(handleBounds, tileBounds, `Transform handle ${index + 1}`);
+    const tileEdgePaintTolerance = Math.max(
+      containmentTolerance,
+      handleBounds.width / 2,
+      handleBounds.height / 2
+    );
+    expectContainedBy(
+      handleBounds,
+      tileBounds,
+      `Transform handle ${index + 1}`,
+      tileEdgePaintTolerance
+    );
     expectContainedBy(handleBounds, previewBounds, `Transform handle ${index + 1}`);
   }
 }

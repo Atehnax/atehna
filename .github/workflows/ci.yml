@@ -3,15 +3,18 @@ name: CI
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -25,11 +28,146 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Unit and contract tests
+        run: npm run test:unit
+
       - name: Build
         run: npm run build
 
-      - name: Install Playwright browsers (Chromium)
+      - name: Upload production build
+        uses: actions/upload-artifact@v7
+        with:
+          name: next-build
+          path: |
+            .next
+            !.next/cache/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+          overwrite: true
+
+  e2e:
+    name: E2E shard ${{ matrix.shard }}/4
+    needs: checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI: '1'
+      E2E_MODE: '1'
+      E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}
+      E2E_STORAGE_NAMESPACE: run-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+      ADMIN_USERNAME: e2e-admin
+      ADMIN_PASSWORD: e2e-admin-password
+      ADMIN_SESSION_SECRET: e2e-only-session-secret-with-at-least-32-characters
+      PLAYWRIGHT_SHARD: ${{ matrix.shard }}-of-4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download production build
+        uses: actions/download-artifact@v7
+        with:
+          name: next-build
+          path: .next
+
+      - name: Prepare isolated E2E database
+        run: npm run e2e:db:prepare
+
+      - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: E2E smoke tests
-        run: npm run test:e2e
+      - name: Run Playwright shard
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4 --workers=1 --retries=0
+
+      - name: Upload blob report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
+
+      - name: Upload failure traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.shard }}
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 7
+          overwrite: true
+
+  e2e-report:
+    name: Merge and verify E2E report
+    if: ${{ !cancelled() }}
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all shard reports
+        uses: actions/download-artifact@v7
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+
+      - name: Merge blob reports to HTML
+        run: npx playwright merge-reports --reporter=html all-blob-reports
+
+      - name: Create merged and expected JSON inventories
+        run: |
+          PLAYWRIGHT_JSON_OUTPUT_FILE=merged-results.json npx playwright merge-reports --reporter=json all-blob-reports
+          PLAYWRIGHT_JSON_OUTPUT_FILE=expected-tests.json npx playwright test --list --reporter=json
+
+      - name: Verify one passing execution per retained test
+        run: npm run e2e:report:verify -- merged-results.json expected-tests.json
+
+      - name: Upload merged HTML report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-html-report
+          path: playwright-report
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true

@@ -1,6 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  consumeOrderAccessTokenFromLocation,
+  exchangeOrderAccessToken,
+  readOrderAccessIdFromLocation,
+  replaceCurrentOrderAccessId,
+  storeOrderAccessId,
+  readStoredOrderAccessId
+} from '@/commercial/order/orderAccessClient';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -8,13 +16,16 @@ const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
 type PurchaseOrderUploadFormProps = {
   initialOrderId?: string;
   initialOrderNumber?: string;
-  accessToken?: string;
 };
+
+type AccessState =
+  | { status: 'loading' }
+  | { status: 'ready'; accessId: string }
+  | { status: 'error'; message: string; canUseFragmentFallback?: boolean };
 
 export default function PurchaseOrderUploadForm({
   initialOrderId,
-  initialOrderNumber,
-  accessToken
+  initialOrderNumber
 }: PurchaseOrderUploadFormProps) {
   const [orderNumber, setOrderNumber] = useState(
     initialOrderNumber || initialOrderId || ''
@@ -23,7 +34,51 @@ export default function PurchaseOrderUploadForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState('');
-  const hasAccess = Boolean(accessToken?.trim());
+  const [accessState, setAccessState] = useState<AccessState>({ status: 'loading' });
+  const bootstrapTokenRef = useRef<string | null>(null);
+  const locationTokenConsumedRef = useRef(false);
+  const hasAccess = accessState.status === 'ready';
+
+  const loadAccessSession = useCallback(async () => {
+    setAccessState({ status: 'loading' });
+    try {
+      if (!locationTokenConsumedRef.current) {
+        bootstrapTokenRef.current = consumeOrderAccessTokenFromLocation();
+        locationTokenConsumedRef.current = true;
+      }
+
+      const locationAccessId = readOrderAccessIdFromLocation();
+      let accessId = locationAccessId ?? readStoredOrderAccessId();
+      if (bootstrapTokenRef.current) {
+        const session = await exchangeOrderAccessToken(bootstrapTokenRef.current);
+        accessId = session.accessId;
+        bootstrapTokenRef.current = null;
+      } else if (locationAccessId) {
+        storeOrderAccessId(locationAccessId);
+      }
+      if (!accessId) {
+        throw new Error(
+          'Povezava za nalaganje ni veljavna. Uporabite povezavo iz potrditve naročila.'
+        );
+      }
+
+      replaceCurrentOrderAccessId(accessId);
+      setAccessState({ status: 'ready', accessId });
+    } catch (error) {
+      setAccessState({
+        status: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Varne seje za nalaganje ni bilo mogoče ustvariti.',
+        canUseFragmentFallback: Boolean(bootstrapTokenRef.current)
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAccessSession();
+  }, [loadAccessSession]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,7 +93,7 @@ export default function PurchaseOrderUploadForm({
       setMessage('Vnesite veljavno številko naročila.');
       return;
     }
-    if (!hasAccess) {
+    if (accessState.status !== 'ready') {
       setMessage(
         'Povezava za nalaganje ni veljavna. Uporabite povezavo iz potrditve naročila.'
       );
@@ -66,7 +121,6 @@ export default function PurchaseOrderUploadForm({
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('accessToken', accessToken?.trim() ?? '');
 
     setIsSubmitting(true);
     try {
@@ -74,8 +128,9 @@ export default function PurchaseOrderUploadForm({
         `/api/orders/${encodeURIComponent(normalizedOrderNumber)}/purchase-order`,
         {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
-            Authorization: `Bearer ${accessToken?.trim() ?? ''}`
+            'X-Order-Access-Id': accessState.accessId
           },
           body: formData
         }
@@ -157,14 +212,55 @@ export default function PurchaseOrderUploadForm({
         </label>
       </div>
 
-      {!hasAccess ? (
+      {accessState.status === 'loading' ? (
+        <p
+          role="status"
+          className="site-radius-sm border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-3 text-sm"
+        >
+          Preverjamo varno povezavo …
+        </p>
+      ) : null}
+
+      {accessState.status === 'error' ? (
         <p
           role="alert"
           className="site-radius-sm border border-[color:var(--site-color-warning)] bg-[color:var(--site-color-surface-muted)] p-3 text-sm"
         >
-          Zaradi varnosti je naročilnico mogoče naložiti samo prek povezave v
-          potrditvi naročila.
+          {accessState.message}
         </p>
+      ) : null}
+
+      {accessState.status === 'error' ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="site-button site-button--secondary"
+            onClick={() => void loadAccessSession()}
+          >
+            Poskusi znova
+          </button>
+          {accessState.canUseFragmentFallback ? (
+            <button
+              type="button"
+              className="site-button site-button--secondary inline-flex items-center justify-center"
+              onClick={() => {
+                const accessToken = bootstrapTokenRef.current;
+                if (!accessToken) return;
+                const fallbackUrl = `${window.location.pathname}${window.location.search}#token=${encodeURIComponent(
+                  accessToken
+                )}`;
+                window.history.replaceState(
+                  window.history.state,
+                  '',
+                  fallbackUrl
+                );
+                window.location.reload();
+              }}
+            >
+              Ponovno odpri varno povezavo
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <button

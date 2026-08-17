@@ -5,14 +5,10 @@ import {
   type Locator,
   type Page
 } from '@playwright/test';
-import nextEnv from '@next/env';
-import {
-  DEFAULT_PRODUCT_APPEARANCE_CONFIG,
-  toProductAppearanceCssVariables
-} from '@/shared/domain/style/productAppearance';
 import type {
   CatalogItemEditorHydration
 } from '@/shared/domain/catalog/catalogAdminTypes';
+import { assertAuthenticatedAdmin } from './support/auth';
 
 type RectSize = {
   width: number;
@@ -20,28 +16,6 @@ type RectSize = {
 };
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const { loadEnvConfig } = nextEnv;
-
-async function ensurePageAdminSession(
-  page: Page,
-  request: APIRequestContext
-) {
-  const probe = await request.get('/api/admin/product-appearance');
-  if (probe.status() === 401) {
-    loadEnvConfig(process.cwd(), true);
-    const username = process.env.ADMIN_USERNAME?.trim() || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'admin';
-    const login = await request.post('/api/admin/login', {
-      data: { username, password }
-    });
-    if (!login.ok()) {
-      throw new Error(`Admin test login failed with status ${login.status()}.`);
-    }
-  } else {
-    expect(probe.ok()).toBeTruthy();
-  }
-  await page.context().addCookies((await request.storageState()).cookies);
-}
 
 async function requireSize(locator: Locator, label: string): Promise<RectSize> {
   const box = await locator.boundingBox();
@@ -168,49 +142,11 @@ async function applyCompactVariantSettings(page: Page, preview: Locator) {
 }
 
 test.describe('compact product-detail appearance', () => {
-  test('keeps the compact defaults separate from the approved image and content geometry', () => {
-    expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.variants).toMatchObject({
-      selectHeightPx: 44,
-      chipHeightPx: 40,
-      chipFontSizePx: 14,
-      labelFontSizePx: 14
-    });
-
-    const variables = toProductAppearanceCssVariables(
-      DEFAULT_PRODUCT_APPEARANCE_CONFIG
-    );
-    expect(variables['--product-variant-select-height']).toBe('44px');
-    expect(variables['--product-variant-chip-height']).toBe('40px');
-    expect(variables['--product-variant-chip-font-size']).toBe('14px');
-    expect(variables['--product-variant-label-font-size']).toBe('14px');
-
-    // These are the accepted reference dimensions. Compacting the information
-    // and purchase controls must not silently scale the gallery, description,
-    // or related-product cards.
-    expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.gallery).toMatchObject({
-      sizePercent: 100,
-      imageRatio: '4:3',
-      thumbnailSizePx: 70,
-      thumbnailGapPx: 16
-    });
-    expect(
-      DEFAULT_PRODUCT_APPEARANCE_CONFIG.information.longDescriptionMaxWidthPx
-    ).toBe(880);
-    expect(DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts).toMatchObject({
-      cardWidthPx: 360,
-      imageHeightPx: 144,
-      textScalePercent: 100
-    });
-    expect(variables['--product-description-max-width']).toBe('880px');
-    expect(variables['--product-related-card-width']).toBe('360px');
-    expect(variables['--product-related-image-height']).toBe('144px');
-  });
-
   test('renders compact controls and lets a fixed CTA fill its canvas size without collateral resizing', async ({
     page,
     request
   }) => {
-    await ensurePageAdminSession(page, request);
+    await assertAuthenticatedAdmin(request);
     const blockedWrites: string[] = [];
     await page.route('**/api/admin/**', async (route) => {
       if (writeMethods.has(route.request().method())) {

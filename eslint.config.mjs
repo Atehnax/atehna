@@ -13,8 +13,12 @@ export default defineConfig([
   },
   globalIgnores([
     '.next/**',
+    '.playwright/**',
+    'blob-report/**',
     'out/**',
     'build/**',
+    'playwright-report/**',
+    'test-results/**',
     'next-env.d.ts'
   ])
 ]);

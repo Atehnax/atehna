@@ -17,6 +17,26 @@ const sanitizeBlobSegment = (value: string): string =>
 
 const normalizePathname = (pathname: string): string => pathname.trim().replace(/^\/+/, '');
 
+const withStorageNamespace = (segments: string[]): string => {
+  if (process.env.E2E_MODE !== '1') {
+    return segments.join('/');
+  }
+
+  const rawNamespace = process.env.E2E_STORAGE_NAMESPACE?.trim() ?? '';
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u.test(rawNamespace)) {
+    throw new Error('[e2e-preflight] E2E_STORAGE_NAMESPACE is missing or invalid.');
+  }
+  return [rawNamespace, ...segments].join('/');
+};
+
+const refuseExternalBlobInE2e = () => {
+  if (process.env.E2E_MODE === '1') {
+    throw new Error(
+      '[e2e-preflight] External Blob storage is disabled in E2E mode; use deterministic local media fixtures.'
+    );
+  }
+};
+
 export function buildOrderBlobPath(orderId: string | number, fileName: string): string {
   const safeOrderId = sanitizeBlobSegment(String(orderId)) || 'order';
   const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
@@ -25,7 +45,7 @@ export function buildOrderBlobPath(orderId: string | number, fileName: string): 
     throw new Error(`Invalid blob fileName: "${safeFileName}".`);
   }
 
-  return `orders/${safeOrderId}/${safeFileName}`;
+  return withStorageNamespace(['orders', safeOrderId, safeFileName]);
 }
 
 export function buildCatalogImageBlobPath(
@@ -41,7 +61,7 @@ export function buildCatalogImageBlobPath(
     throw new Error(`Invalid blob fileName: "${safeFileName}".`);
   }
 
-  return ['catalog-categories', safeCategorySlug, ...safeSegments, safeFileName].join('/');
+  return withStorageNamespace(['catalog-categories', safeCategorySlug, ...safeSegments, safeFileName]);
 }
 
 export function buildCatalogItemMediaBlobPath(itemSlug: string, fileName: string, mediaFolder: 'images' | 'videos' | 'documents'): string {
@@ -52,7 +72,7 @@ export function buildCatalogItemMediaBlobPath(itemSlug: string, fileName: string
     throw new Error(`Invalid blob fileName: "${safeFileName}".`);
   }
 
-  return ['catalog-items', safeItemSlug, mediaFolder, safeFileName].join('/');
+  return withStorageNamespace(['catalog-items', safeItemSlug, mediaFolder, safeFileName]);
 }
 
 export function buildLandingPageMediaBlobPath(elementId: string, fileName: string): string {
@@ -63,7 +83,7 @@ export function buildLandingPageMediaBlobPath(elementId: string, fileName: strin
     throw new Error(`Invalid blob fileName: "${safeFileName}".`);
   }
 
-  return ['landing-page', safeElementId, safeFileName].join('/');
+  return withStorageNamespace(['landing-page', safeElementId, safeFileName]);
 }
 
 export function buildSiteLogoBlobPath(masterId: string, fileName: string): string {
@@ -74,7 +94,7 @@ export function buildSiteLogoBlobPath(masterId: string, fileName: string): strin
     throw new Error(`Invalid blob fileName: "${safeFileName}".`);
   }
 
-  return ['site-logo', 'masters', safeMasterId, safeFileName].join('/');
+  return withStorageNamespace(['site-logo', 'masters', safeMasterId, safeFileName]);
 }
 
 export async function uploadBlob(
@@ -82,6 +102,7 @@ export async function uploadBlob(
   data: Buffer | Uint8Array,
   contentType: string
 ): Promise<UploadResult> {
+  refuseExternalBlobInE2e();
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }
@@ -134,6 +155,7 @@ export async function uploadBlob(
 }
 
 export async function deleteBlob(pathnameOrUrl: string): Promise<void> {
+  refuseExternalBlobInE2e();
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error('BLOB_READ_WRITE_TOKEN is not set');
   }

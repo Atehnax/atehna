@@ -617,6 +617,49 @@ function roundPreviewWidth(width: number) {
   return Math.round(width * 1_000) / 1_000;
 }
 
+function preserveAdjacentPreviewMode(
+  currentMode: HomepagePreviewDevice,
+  candidateGeometry: PreviewViewportGeometry,
+  startGeometry: PreviewViewportGeometry,
+  targetGeometry: PreviewViewportGeometry
+) {
+  const candidateMode = getHomepagePreviewDeviceForViewport(candidateGeometry.logicalWidth);
+  const currentModeIndex = HOMEPAGE_PREVIEW_DEVICES.indexOf(currentMode);
+  const candidateModeIndex = HOMEPAGE_PREVIEW_DEVICES.indexOf(candidateMode);
+  if (Math.abs(candidateModeIndex - currentModeIndex) <= 1) {
+    return {
+      geometry: candidateGeometry,
+      mode: candidateMode,
+      progress: null,
+      heldIntermediateMode: false
+    } as const;
+  }
+
+  // A delayed animation frame must not jump the live renderer directly between
+  // mobile and desktop. Hold the first crossed tablet width for one painted
+  // frame, then continue on the same time-based trajectory on the next frame.
+  const logicalWidth = currentMode === 'desktop'
+    ? HOMEPAGE_PREVIEW_PROFILES.tablet.viewportWidth
+    : 768;
+  const logicalDistance = targetGeometry.logicalWidth - startGeometry.logicalWidth;
+  const progress = logicalDistance === 0
+    ? 1
+    : (logicalWidth - startGeometry.logicalWidth) / logicalDistance;
+  const geometry = {
+    logicalWidth,
+    renderedWidth: roundPreviewWidth(
+      lerpPreviewWidth(startGeometry.renderedWidth, targetGeometry.renderedWidth, progress)
+    )
+  };
+
+  return {
+    geometry,
+    mode: 'tablet' as const,
+    progress,
+    heldIntermediateMode: true
+  } as const;
+}
+
 function cubicBezierCoordinate(progress: number, controlPoint1: number, controlPoint2: number) {
   const inverse = 1 - progress;
   return 3 * inverse * inverse * progress * controlPoint1
@@ -886,7 +929,7 @@ function useLiveResponsivePreviewViewport({
 
       const progress = Math.min(1, Math.max(0, (timestamp - startTime) / previewViewportTransitionDurationMs));
       const easedProgress = easePreviewViewportProgress(progress);
-      const nextGeometry = {
+      const candidateGeometry = {
         logicalWidth: roundPreviewWidth(
           lerpPreviewWidth(startGeometry.logicalWidth, targetGeometry.logicalWidth, easedProgress)
         ),
@@ -894,16 +937,24 @@ function useLiveResponsivePreviewViewport({
           lerpPreviewWidth(startGeometry.renderedWidth, targetGeometry.renderedWidth, easedProgress)
         )
       };
+      const adjacentStep = preserveAdjacentPreviewMode(
+        responsiveModeRef.current,
+        candidateGeometry,
+        startGeometry,
+        targetGeometry
+      );
+      const nextGeometry = adjacentStep.geometry;
+      const appliedProgress = adjacentStep.progress ?? easedProgress;
       geometryRef.current = nextGeometry;
-      const nextMode = getHomepagePreviewDeviceForViewport(nextGeometry.logicalWidth);
+      const nextMode = adjacentStep.mode;
 
       if (nextMode !== responsiveModeRef.current) {
         responsiveModeRef.current = nextMode;
         flushSync(() => setResponsiveMode(nextMode));
       }
-      applyGeometry(nextGeometry, nextMode, 'animating', selectedViewport, easedProgress);
+      applyGeometry(nextGeometry, nextMode, 'animating', selectedViewport, appliedProgress);
 
-      if (progress < 1) {
+      if (progress < 1 || adjacentStep.heldIntermediateMode) {
         animationFrameRef.current = window.requestAnimationFrame(animateFrame);
         return;
       }
@@ -1578,13 +1629,18 @@ function FloatingHomepageContextToolbar({
     ));
   }, [frameRef, selectedElementId, viewportRef]);
 
+  const latestUpdatePositionRef = useRef(updatePosition);
+  useLayoutEffect(() => {
+    latestUpdatePositionRef.current = updatePosition;
+  }, [updatePosition]);
+
   const schedulePosition = useCallback(() => {
     if (scheduledFrameRef.current !== null) return;
     scheduledFrameRef.current = window.requestAnimationFrame(() => {
       scheduledFrameRef.current = null;
-      updatePosition();
+      latestUpdatePositionRef.current();
     });
-  }, [updatePosition]);
+  }, []);
 
   useLayoutEffect(() => {
     if (!portalReady || !toolbarMounted) return;

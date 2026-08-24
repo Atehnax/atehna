@@ -100,6 +100,13 @@ const createIdempotencyKey = () => {
   return `atehna-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+const waitForNextPaint = () =>
+  new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  });
+
 function isGursAddressSearchResult(
   value: unknown
 ): value is GursAddressSearchResult {
@@ -595,6 +602,8 @@ export default function OrderPageClient() {
       } catch (error) {
         console.error('[order.submit] form cleanup failed', error);
       }
+      // Give the success live region a rendered frame before replacing the document.
+      await waitForNextPaint();
       window.location.replace('/order/confirmation');
       return;
     } catch (error) {

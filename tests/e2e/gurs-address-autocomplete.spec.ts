@@ -9,6 +9,15 @@ import { E2E_BASE_URL } from './support/auth';
 
 const CART_STORAGE_KEY = 'atehna-cart-v3';
 
+type SubmissionHandoffSnapshot = {
+  textContent: string;
+  role: string | null;
+  ariaLive: string | null;
+  ariaAtomic: string | null;
+  ariaBusy: string | null;
+  hasSpinner: boolean;
+};
+
 function createGate() {
   let release!: () => void;
   const promise = new Promise<void>((resolve) => {
@@ -465,8 +474,70 @@ test.describe('checkout GURS address autocomplete', () => {
       page.getByRole('heading', { name: 'Košarica je prazna' })
     ).toHaveCount(0);
 
+    let openingHandoffSnapshot: SubmissionHandoffSnapshot | null = null;
+    const readOpeningHandoffSnapshot = (): SubmissionHandoffSnapshot | null =>
+      openingHandoffSnapshot;
+    await page.exposeFunction(
+      '__atehnaCaptureOrderSubmissionHandoff',
+      (snapshot: SubmissionHandoffSnapshot) => {
+        openingHandoffSnapshot = snapshot;
+      }
+    );
+    await page.evaluate(() => {
+      const reportOpeningHandoff = () => {
+        const handoff = document.querySelector<HTMLElement>(
+          '[data-testid="order-submission-handoff"]'
+        );
+        const textContent = handoff?.textContent ?? '';
+        if (
+          !handoff
+          || !textContent.includes('Odpiramo potrditev naročila')
+          || !textContent.includes('Naročilo je oddano.')
+        ) {
+          return false;
+        }
+
+        const report = (
+          window as typeof window & {
+            __atehnaCaptureOrderSubmissionHandoff: (
+              snapshot: SubmissionHandoffSnapshot
+            ) => Promise<void>;
+          }
+        ).__atehnaCaptureOrderSubmissionHandoff;
+        void report({
+          textContent,
+          role: handoff.getAttribute('role'),
+          ariaLive: handoff.getAttribute('aria-live'),
+          ariaAtomic: handoff.getAttribute('aria-atomic'),
+          ariaBusy: handoff.getAttribute('aria-busy'),
+          hasSpinner: Boolean(
+            handoff.querySelector('[data-testid="order-submission-spinner"]')
+          )
+        });
+        return true;
+      };
+
+      const observer = new MutationObserver(() => {
+        if (reportOpeningHandoff()) observer.disconnect();
+      });
+      observer.observe(document.body, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true
+      });
+      if (reportOpeningHandoff()) observer.disconnect();
+    });
+
     orderResponseGate.release();
-    await expect(submissionHandoff).toContainText(
+    await expect.poll(readOpeningHandoffSnapshot).toMatchObject({
+      role: 'status',
+      ariaLive: 'polite',
+      ariaAtomic: 'true',
+      ariaBusy: 'true',
+      hasSpinner: true
+    });
+    expect(readOpeningHandoffSnapshot()?.textContent).toMatch(
       /Odpiramo potrditev naročila[\s\S]*Naročilo je oddano\./u
     );
     await expect.poll(() => confirmationNavigationUrl).not.toBeNull();

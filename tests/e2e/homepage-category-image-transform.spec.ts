@@ -83,7 +83,9 @@ async function expectPerimeterFullyPaintable({
     requireBox(tile, 'Selected category tile'),
     requireBox(previewFrame, 'Homepage preview frame')
   ]);
-  const containmentTolerance = 3;
+  // Keep the 3px paint allowance, plus one CSS pixel for transformed-layout
+  // rounding between the portaled controls and their responsive preview.
+  const containmentTolerance = 4;
   const expectContainedBy = (
     inner: Box,
     outer: Box,

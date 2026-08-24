@@ -839,12 +839,19 @@ test.describe('school purchase-order workflow', () => {
           await database.query('delete from orders where id = $1', [cleanupOrderId]);
         });
       }
-      await database.query(
-        `delete from audit_events
-         where (entity_type = 'order' and entity_id = $1)
-            or metadata->>'order_id' = $1`,
-        [String(orderId ?? '')]
-      );
+      if (orderId !== null) {
+        await database.query(
+          `delete from audit_events
+           where (entity_type = 'order' and entity_id = $1)
+              or (
+                entity_type = 'media'
+                and action = 'deleted'
+                and metadata_json->>'item_type' = 'pdf'
+                and metadata_json->>'order_id' = $1
+              )`,
+          [String(orderId)]
+        );
+      }
       await database.query(
         'update catalog_item_variants set inventory = $1 where id = $2',
         [originalInventory, SCHOOL_VARIANT_ID]

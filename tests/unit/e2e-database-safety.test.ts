@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, test } from 'node:test';
 import {
   readE2eEnvironment,
@@ -159,6 +161,8 @@ test('database reset verifies live identity and ownership before destructive SQL
     has_product_appearance: true,
     has_gurs_addresses: true,
     has_order_access_tokens: true,
+    has_order_email_settings: true,
+    has_order_email_jobs: true,
     has_product_type: true,
     has_gurs_search_text: true
   };
@@ -207,4 +211,24 @@ test('database reset verifies live identity and ownership before destructive SQL
     /has_order_access_tokens/u
   );
 
+});
+
+test('E2E server clears live email credentials after inheriting the environment', () => {
+  const serverSource = readFileSync(
+    resolve(process.cwd(), 'scripts', 'e2e-server.mjs'),
+    'utf8'
+  );
+  const inheritedEnvironmentIndex = serverSource.indexOf('...process.env');
+  const clearedResendKeyIndex = serverSource.indexOf(
+    "RESEND_API_KEY: ''",
+    inheritedEnvironmentIndex
+  );
+  const e2eModeIndex = serverSource.indexOf(
+    "E2E_MODE: '1'",
+    clearedResendKeyIndex
+  );
+
+  assert.ok(inheritedEnvironmentIndex >= 0);
+  assert.ok(clearedResendKeyIndex > inheritedEnvironmentIndex);
+  assert.ok(e2eModeIndex > clearedResendKeyIndex);
 });

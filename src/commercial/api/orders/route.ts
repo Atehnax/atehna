@@ -28,6 +28,10 @@ import {
   enqueueInitialOrderSummaryJob,
   scheduleInitialOrderSummaryJob
 } from '@/shared/server/orderSummaryJobs';
+import {
+  enqueueOrderEmailEvent,
+  scheduleOrderEmailJobs
+} from '@/shared/server/orderEmailJobs';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 
@@ -728,6 +732,7 @@ export async function POST(request: Request) {
       client = null;
 
       scheduleInitialOrderSummaryJob(pool, reservation.orderId);
+      scheduleOrderEmailJobs(pool, reservation.orderId);
       safelyRevalidateAdminOrderPaths(reservation.orderId);
 
       return createCustomerOrderResponse(
@@ -775,6 +780,13 @@ export async function POST(request: Request) {
       inserted.orderId
     );
     await enqueueInitialOrderSummaryJob(client, storedResponse);
+    await enqueueOrderEmailEvent(client, {
+      orderId: inserted.orderId,
+      eventKey: `order-submitted:${inserted.orderId}`,
+      eventType: 'order_submitted',
+      occurredAt: inserted.createdAt,
+      previousStatus: null
+    });
     await client.query(
       `
         update order_idempotency_keys
@@ -800,6 +812,7 @@ export async function POST(request: Request) {
     client = null;
 
     scheduleInitialOrderSummaryJob(pool, inserted.orderId);
+    scheduleOrderEmailJobs(pool, inserted.orderId);
     safelyRevalidateAdminOrderPaths(inserted.orderId);
 
     return createCustomerOrderResponse(accessToken, 201);

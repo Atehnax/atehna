@@ -898,6 +898,83 @@ create index idx_order_document_jobs_pending
   where status = 'pending';
 
 -- ============================================================================
+-- Order email settings and durable delivery jobs
+-- ============================================================================
+
+create table order_email_settings (
+  key text primary key,
+  config_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now(),
+  constraint order_email_settings_config_check check (
+    jsonb_typeof(config_json) = 'object'
+  )
+);
+
+create table order_email_jobs (
+  id uuid primary key default gen_random_uuid(),
+  order_id bigint not null references orders(id) on delete cascade,
+  event_key text not null,
+  event_type text not null,
+  audience text not null,
+  recipient_email text not null,
+  recipient_name text,
+  payload_json jsonb not null,
+  status text not null default 'pending',
+  attempts integer not null default 0,
+  next_attempt_at timestamptz not null default now(),
+  claim_id uuid,
+  locked_at timestamptz,
+  provider_message_id text,
+  last_error text,
+  sent_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint order_email_jobs_event_type_check check (
+    event_type in (
+      'order_submitted',
+      'received',
+      'in_progress',
+      'partially_sent',
+      'sent',
+      'finished',
+      'cancelled'
+    )
+  ),
+  constraint order_email_jobs_audience_check check (
+    audience in ('customer', 'admin')
+  ),
+  constraint order_email_jobs_payload_check check (
+    jsonb_typeof(payload_json) = 'object'
+  ),
+  constraint order_email_jobs_status_check check (
+    status in ('pending', 'processing', 'sent', 'failed')
+  ),
+  constraint order_email_jobs_attempts_check check (attempts >= 0),
+  constraint order_email_jobs_claim_check check (
+    (status = 'processing' and claim_id is not null and locked_at is not null)
+    or (status <> 'processing' and claim_id is null and locked_at is null)
+  )
+);
+
+create unique index idx_order_email_jobs_event_audience_recipient
+  on order_email_jobs(event_key, audience, lower(recipient_email));
+
+create index idx_order_email_jobs_order
+  on order_email_jobs(order_id);
+
+create index idx_order_email_jobs_pending
+  on order_email_jobs(next_attempt_at, created_at, id)
+  where status = 'pending';
+
+create index idx_order_email_jobs_stale_processing
+  on order_email_jobs(locked_at, id)
+  where status = 'processing';
+
+create index idx_order_email_jobs_sent_retention
+  on order_email_jobs(sent_at, id)
+  where status = 'sent';
+
+-- ============================================================================
 -- Archive retention outbox
 -- ============================================================================
 

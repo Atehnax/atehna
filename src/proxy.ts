@@ -45,6 +45,7 @@ export function proxy(request: NextRequest) {
   const isConfiguredCronPath =
     pathname === '/api/admin/archive/cleanup' ||
     pathname === '/api/admin/audit-events/prune' ||
+    pathname === '/api/admin/order-email-settings/process' ||
     pathname === '/api/admin/addresses/sync';
   const isAuthorizedCron =
     isConfiguredCronPath &&

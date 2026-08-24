@@ -30,8 +30,8 @@ test('database setup is one canonical final schema', () => {
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
-  assert.equal(tableNames.length, 39);
-  assert.equal(new Set(tableNames).size, 39);
+  assert.equal(tableNames.length, 41);
+  assert.equal(new Set(tableNames).size, 41);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 1);
   assert.match(
     schema,
@@ -50,12 +50,16 @@ test('database setup is one canonical final schema', () => {
   );
   assert.match(setup, /create table e2e_schema_state/u);
   assert.match(setup, /has_order_access_tokens/u);
+  assert.match(setup, /has_order_email_settings/u);
+  assert.match(setup, /has_order_email_jobs/u);
   assert.match(setup, /canonical-schema fingerprint is missing or stale/u);
 
   const health = source('src/app/api/e2e/health/route.ts');
   assert.match(health, /E2E_SCHEMA_SHA256/u);
   assert.match(health, /row\.schema_sha256 !== expectedSchemaSha256/u);
   assert.match(health, /row\.has_order_access_tokens !== true/u);
+  assert.match(health, /row\.has_order_email_settings !== true/u);
+  assert.match(health, /row\.has_order_email_jobs !== true/u);
 });
 
 test('order persistence has no removed address or amount columns', () => {

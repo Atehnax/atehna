@@ -270,6 +270,8 @@ export async function verifyCanonicalE2eSchemaState(
       to_regclass('public.product_appearance_settings') is not null as has_product_appearance,
       to_regclass('public.gurs_addresses') is not null as has_gurs_addresses,
       to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
+      to_regclass('public.order_email_settings') is not null as has_order_email_settings,
+      to_regclass('public.order_email_jobs') is not null as has_order_email_jobs,
       exists (
         select 1 from information_schema.columns
         where table_schema = 'public'

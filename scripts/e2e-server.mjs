@@ -26,6 +26,7 @@ async function main() {
         PGSSLMODE: 'disable',
         BLOB_READ_WRITE_TOKEN: 'e2e-external-blob-disabled',
         ORDER_ACCESS_BOOTSTRAP_KEY: 'e2e-only-order-bootstrap-key-with-at-least-32-characters',
+        RESEND_API_KEY: '',
         E2E_MODE: '1',
         E2E_SCHEMA_SHA256: schemaSha256
       }

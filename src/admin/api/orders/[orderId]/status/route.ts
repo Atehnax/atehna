@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
+import type { PoolClient } from 'pg';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
-
+import {
+  enqueueOrderEmailEvent,
+  scheduleOrderEmailJobs
+} from '@/shared/server/orderEmailJobs';
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
+  let client: PoolClient | null = null;
   try {
     const orderId = Number(params.orderId);
     if (!Number.isFinite(orderId)) {
@@ -17,53 +22,91 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const bodyResult = await readRequiredJsonRecord(request);
     if (!bodyResult.ok) return bodyResult.response;
 
-    const body = bodyResult.body;
-    const status = String(body?.status ?? '').trim();
-
+    const status = String(bodyResult.body?.status ?? '').trim();
     if (!status || !isOrderStatus(status)) {
       return NextResponse.json({ message: 'Status manjka ali je neveljaven.' }, { status: 400 });
     }
 
     const pool = await getPool();
-    const current = await pool.query('SELECT id, order_number, status FROM orders WHERE id = $1', [orderId]);
-    const previousStatus = current.rows[0]?.status === null || current.rows[0]?.status === undefined
-      ? null
-      : String(current.rows[0].status);
-
+    client = await pool.connect();
+    await client.query('begin');
+    const current = await client.query(
+      'select id, order_number, status from orders where id = $1 for update',
+      [orderId]
+    );
     if (current.rows.length === 0) {
+      await client.query('rollback');
+      client.release();
+      client = null;
       return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
     }
 
-    await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, orderId]);
-    if (previousStatus !== status) {
-      await pool.query(
-        'INSERT INTO order_status_logs (order_id, previous_status, new_status) VALUES ($1, $2, $3)',
+    const previousStatus = current.rows[0]?.status === null || current.rows[0]?.status === undefined
+      ? null
+      : String(current.rows[0].status);
+    const orderNumber = String(current.rows[0]?.order_number ?? `#${orderId}`);
+    const changed = previousStatus !== status;
+
+    if (changed) {
+      await client.query('update orders set status = $1 where id = $2', [status, orderId]);
+      const statusLogResult = await client.query(
+        `
+          insert into order_status_logs (order_id, previous_status, new_status)
+          values ($1, $2, $3)
+          returning id, created_at
+        `,
         [orderId, previousStatus, status]
       );
-      const orderNumber = String(current.rows[0]?.order_number ?? `#${orderId}`);
-      await insertAuditEventForRequest(request, {
-        entityType: 'order',
-        entityId: String(orderId),
-        entityLabel: `Naročilo ${orderNumber}`,
-        action: 'status_changed',
-        summary: `Naročilo ${orderNumber}: status spremenjen`,
-        diff: {
-          status: {
-            label: 'Status naročila',
-            before: previousStatus,
-            after: status
+      const statusLog = statusLogResult.rows[0] as {
+        id: string | number;
+        created_at: string | Date;
+      };
+      await enqueueOrderEmailEvent(client, {
+        orderId,
+        eventKey: `order-status:${statusLog.id}`,
+        eventType: status,
+        occurredAt:
+          statusLog.created_at instanceof Date
+            ? statusLog.created_at.toISOString()
+            : String(statusLog.created_at),
+        previousStatus
+      });
+      await insertAuditEventForRequest(
+        request,
+        {
+          entityType: 'order',
+          entityId: String(orderId),
+          entityLabel: `Naročilo ${orderNumber}`,
+          action: 'status_changed',
+          summary: `Naročilo ${orderNumber}: status spremenjen`,
+          diff: {
+            status: {
+              label: 'Status naročila',
+              before: previousStatus,
+              after: status
+            }
+          },
+          metadata: {
+            order_number: orderNumber,
+            changed_field_count: 1
           }
         },
-        metadata: {
-          order_number: orderNumber,
-          changed_field_count: 1
-        }
-      });
+        client
+      );
     }
 
+    await client.query('commit');
+    client.release();
+    client = null;
+
+    if (changed) scheduleOrderEmailJobs(pool, orderId);
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({ status });
   } catch (error) {
+    if (client) {
+      await client.query('rollback').catch(() => undefined);
+      client.release();
+    }
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
       { status: 500 }

@@ -29,41 +29,6 @@ const EDITABLE_FIELD_KEYS = [
   'emails'
 ] as const;
 
-const tableSql = `
-  create table if not exists customer_directory_profiles (
-    id text primary key,
-    source_customer_key text,
-    name text not null default '',
-    address text not null default '',
-    postal_code text not null default '',
-    city text not null default '',
-    contacts text[] not null default array[]::text[],
-    emails text[] not null default array[]::text[],
-    overridden_fields text[] not null default array[]::text[],
-    archived_at timestamptz,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-  );
-
-  alter table customer_directory_profiles
-    add column if not exists overridden_fields text[];
-
-  update customer_directory_profiles
-  set overridden_fields = array['name', 'address', 'postalCode', 'city', 'contacts', 'emails']::text[]
-  where overridden_fields is null;
-
-  alter table customer_directory_profiles
-    alter column overridden_fields set default array[]::text[],
-    alter column overridden_fields set not null;
-
-  create unique index if not exists customer_directory_profiles_source_key_unique_idx
-    on customer_directory_profiles (source_customer_key)
-    where source_customer_key is not null;
-
-  create index if not exists customer_directory_profiles_active_idx
-    on customer_directory_profiles (archived_at, created_at, id);
-`;
-
 const customerDirectorySql = `
   with eligible_orders as (
     select
@@ -77,7 +42,6 @@ const customerDirectorySql = `
       coalesce(nullif(btrim(orders.contact_name), ''), '') as contact_name,
       coalesce(nullif(btrim(orders.email), ''), '') as email,
       coalesce(nullif(btrim(orders.address_line1), ''), '') as address_line1,
-      coalesce(nullif(btrim(orders.delivery_address), ''), '') as delivery_address,
       coalesce(nullif(btrim(orders.postal_code), ''), '') as postal_code,
       coalesce(nullif(btrim(orders.city), ''), '') as city,
       coalesce(
@@ -94,21 +58,9 @@ const customerDirectorySql = `
   normalized_orders as (
     select
       eligible_orders.*,
-      coalesce(
-        nullif(address_line1, ''),
-        nullif(btrim(regexp_replace(delivery_address, ',?\\s*[0-9]{4}\\s+.*$', '', 'i')), ''),
-        ''
-      ) as identity_street,
-      coalesce(
-        nullif(postal_code, ''),
-        (regexp_match(delivery_address, '([0-9]{4})'))[1],
-        ''
-      ) as identity_postal_code,
-      coalesce(
-        nullif(city, ''),
-        nullif(btrim((regexp_match(delivery_address, '[0-9]{4}\\s+([^,]+)$'))[1]), ''),
-        ''
-      ) as identity_city,
+      address_line1 as identity_street,
+      postal_code as identity_postal_code,
+      city as identity_city,
       commitment_status = 'binding' and status <> 'cancelled' as is_purchase
     from eligible_orders
   ),
@@ -173,7 +125,7 @@ const customerDirectorySql = `
         partition by customer_key
         order by (
           (customer_name <> '')::int
-            + (coalesce(nullif(address_line1, ''), nullif(delivery_address, '')) is not null)::int
+            + (nullif(address_line1, '') is not null)::int
             + (coalesce(nullif(postal_code, ''), nullif(identity_postal_code, '')) is not null)::int
             + (coalesce(nullif(city, ''), nullif(identity_city, '')) is not null)::int
         ) desc,
@@ -356,8 +308,6 @@ export class CustomerDirectoryConflictError extends Error {
   }
 }
 
-let customerDirectoryReadyPromise: Promise<Pool> | null = null;
-
 const toText = (value: unknown) => typeof value === 'string' ? value : '';
 
 const toIsoTimestamp = (value: Date | string | null) => {
@@ -397,20 +347,6 @@ const mapCustomerDirectoryRow = (row: RawCustomerDirectoryRow): CustomerDirector
   totalPurchaseValue: toFiniteNumber(row.total_purchase_value)
 });
 
-async function prepareCustomerDirectory(): Promise<Pool> {
-  const pool = await getPool();
-  await pool.query(tableSql);
-  return pool;
-}
-
-async function ensureCustomerDirectory(): Promise<Pool> {
-  customerDirectoryReadyPromise ??= prepareCustomerDirectory().catch((error) => {
-    customerDirectoryReadyPromise = null;
-    throw error;
-  });
-  return customerDirectoryReadyPromise;
-}
-
 async function readCustomerDirectoryRows(
   queryable: Pool | PoolClient
 ): Promise<CustomerDirectoryRow[]> {
@@ -420,7 +356,7 @@ async function readCustomerDirectoryRows(
 
 export async function fetchCustomerDirectory(): Promise<CustomerDirectoryRow[]> {
   noStore();
-  const pool = await ensureCustomerDirectory();
+  const pool = await getPool();
   return readCustomerDirectoryRows(pool);
 }
 
@@ -931,7 +867,7 @@ export async function mutateCustomerDirectory(
   rawMutation: CustomerDirectoryMutation | unknown
 ): Promise<CustomerDirectoryMutationResult> {
   const mutation = normalizeMutation(rawMutation);
-  const pool = await ensureCustomerDirectory();
+  const pool = await getPool();
   const client = await pool.connect();
   try {
     await client.query('begin');

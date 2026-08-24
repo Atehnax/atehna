@@ -1,5 +1,8 @@
 import { getPool } from '@/shared/server/db';
-import { deleteBlob } from '@/shared/server/blob';
+import {
+  deleteBlob,
+  deletePrivateOrderDocumentBlob
+} from '@/shared/server/blob';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import type { ArchiveEntry, ArchiveItemType, RestoreTarget } from '@/shared/domain/archive/archiveTypes';
 
@@ -22,6 +25,7 @@ type ArchiveEntryRow = {
 type ArchiveBlobOutboxRow = {
   id: number | string;
   blob_target: string;
+  source_item_type: string;
 };
 
 type ArchiveTransactionClient = {
@@ -44,13 +48,12 @@ async function queueDocumentBlobsForOrder(
       source_document_id
     )
     select
-      coalesce(nullif(blob_pathname, ''), nullif(blob_url, '')),
+      blob_pathname,
       'order',
       order_id,
       id
     from order_documents
     where order_id = $1
-      and coalesce(nullif(blob_pathname, ''), nullif(blob_url, '')) is not null
     on conflict (blob_target) do nothing
     `,
     [orderId]
@@ -59,15 +62,7 @@ async function queueDocumentBlobsForOrder(
 
 async function queueDocumentBlob(
   client: ArchiveTransactionClient,
-  {
-    orderId,
-    documentId,
-    fallbackTarget
-  }: {
-    orderId: number | null;
-    documentId: number;
-    fallbackTarget: string | null;
-  }
+  documentId: number
 ) {
   await client.query(
     `
@@ -78,24 +73,15 @@ async function queueDocumentBlob(
       source_document_id
     )
     select
-      coalesce(
-        nullif(d.blob_pathname, ''),
-        nullif(d.blob_url, ''),
-        nullif($3::text, '')
-      ),
+      d.blob_pathname,
       'pdf',
-      coalesce(d.order_id, $1::bigint),
-      $2::bigint
-    from (values (1)) as seed(value)
-    left join order_documents d on d.id = $2
-    where coalesce(
-      nullif(d.blob_pathname, ''),
-      nullif(d.blob_url, ''),
-      nullif($3::text, '')
-    ) is not null
+      d.order_id,
+      d.id
+    from order_documents d
+    where d.id = $1
     on conflict (blob_target) do nothing
     `,
-    [orderId, documentId, fallbackTarget]
+    [documentId]
   );
 }
 
@@ -108,7 +94,7 @@ export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
   const pool = await getPool();
   const result = await pool.query<ArchiveBlobOutboxRow>(
     `
-    select id, blob_target
+    select id, blob_target, source_item_type
     from archive_blob_deletion_outbox
     order by queued_at asc, id asc
     limit $1
@@ -132,7 +118,6 @@ export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
             select 1
             from order_documents
             where blob_pathname = $1
-               or blob_url = $1
           )
           or exists (
             select 1
@@ -160,7 +145,11 @@ export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
         continue;
       }
 
-      await deleteBlob(row.blob_target);
+      if (row.source_item_type === 'order' || row.source_item_type === 'pdf') {
+        await deletePrivateOrderDocumentBlob(row.blob_target);
+      } else {
+        await deleteBlob(row.blob_target);
+      }
       await pool.query('delete from archive_blob_deletion_outbox where id = $1', [id]);
       deletedCount += 1;
     } catch (error) {
@@ -252,7 +241,19 @@ export async function fetchArchiveEntries(itemType?: 'all' | ArchiveItemType): P
         e.label,
         coalesce(e.payload->>'orderCreatedAt', o.created_at::text) as order_created_at,
         coalesce(e.payload->>'customerName', o.contact_name) as customer_name,
-        coalesce(e.payload->>'address', o.delivery_address) as address,
+        coalesce(
+          e.payload->>'address',
+          nullif(
+            concat_ws(
+              ', ',
+              nullif(btrim(o.address_line1), ''),
+              nullif(btrim(o.address_line2), ''),
+              nullif(concat_ws(' ', nullif(btrim(o.postal_code), ''), nullif(btrim(o.city), '')), ''),
+              case when upper(coalesce(o.country_code, 'SI')) <> 'SI' then upper(o.country_code) end
+            ),
+            ''
+          )
+        ) as address,
         coalesce(e.payload->>'customerType', o.customer_type) as customer_type,
         e.deleted_at,
         e.expires_at
@@ -399,7 +400,6 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
         item_type,
         order_id,
         document_id,
-        payload,
         expires_at,
         expires_at <= now() as retention_expired
       from deleted_archive_entries
@@ -414,7 +414,6 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
       item_type: 'order' | 'pdf';
       order_id: number | null;
       document_id: number | null;
-      payload: { blobPathname?: string; blobUrl?: string } | null;
       expires_at: DatabaseDateValue;
       retention_expired: boolean;
     }>;
@@ -479,12 +478,7 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
     }
 
     for (const entry of selectedPdfEntries) {
-      const fallbackTarget = entry.payload?.blobPathname || entry.payload?.blobUrl || null;
-      await queueDocumentBlob(client, {
-        orderId: entry.order_id,
-        documentId: Number(entry.document_id),
-        fallbackTarget
-      });
+      await queueDocumentBlob(client, Number(entry.document_id));
       await client.query('delete from order_documents where id = $1', [entry.document_id]);
     }
 

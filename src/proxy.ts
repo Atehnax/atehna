@@ -22,13 +22,13 @@ function applySensitiveOrderPageHeaders(response: NextResponse) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (sensitiveOrderPages.has(pathname)) {
-    if (request.nextUrl.searchParams.has('token')) {
-      const legacyToken = request.nextUrl.searchParams.get('token')?.trim() ?? '';
+    if (
+      request.nextUrl.searchParams.has('token') ||
+      request.nextUrl.searchParams.has('access')
+    ) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.searchParams.delete('token');
-      redirectUrl.hash = legacyToken
-        ? new URLSearchParams({ token: legacyToken }).toString()
-        : '';
+      redirectUrl.searchParams.delete('access');
       return applySensitiveOrderPageHeaders(
         NextResponse.redirect(redirectUrl)
       );

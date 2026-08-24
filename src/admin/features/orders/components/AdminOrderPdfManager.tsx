@@ -88,7 +88,7 @@ export default function AdminOrderPdfManager({
           id: payload.id,
           type: payload.type,
           filename: payload.filename,
-          blob_url: payload.url,
+          url: payload.url,
           created_at: payload.createdAt
         },
         ...prev
@@ -126,7 +126,7 @@ export default function AdminOrderPdfManager({
           id: payload.id,
           type: payload.type,
           filename: payload.filename,
-          blob_url: payload.url,
+          url: payload.url,
           created_at: payload.createdAt
         },
         ...prev
@@ -142,7 +142,7 @@ export default function AdminOrderPdfManager({
       toast.info('Ni dokumenta za prenos.');
       return;
     }
-    window.open(latest.blob_url, '_blank', 'noopener,noreferrer');
+    window.open(latest.url, '_blank', 'noopener,noreferrer');
   };
 
   const confirmDeleteDocument = async () => {
@@ -191,7 +191,7 @@ export default function AdminOrderPdfManager({
                     {latestDoc ? (
                       <>
                         <a
-                          href={latestDoc.blob_url}
+                          href={latestDoc.url}
                           target="_blank"
                           rel="noreferrer"
                           className="min-w-0 truncate font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]"
@@ -303,7 +303,7 @@ export default function AdminOrderPdfManager({
                           className="grid min-w-0 grid-cols-[minmax(0,1fr)_120px_28px] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] leading-4 text-slate-600 transition hover:bg-white"
                         >
                           <a
-                            href={doc.blob_url}
+                            href={doc.url}
                             target="_blank"
                             rel="noreferrer"
                             className="truncate font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]"

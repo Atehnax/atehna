@@ -24,7 +24,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       organizationName,
       contactName,
       email,
-      deliveryAddress,
       addressLine1,
       postalCode,
       city,
@@ -74,7 +73,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       'organization_name',
       'contact_name',
       'email',
-      'delivery_address',
       'address_line1',
       'address_line2',
       'postal_code',
@@ -87,7 +85,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     ];
     const beforeResult = await pool.query(
       `
-      select order_number, customer_type, organization_name, contact_name, email, delivery_address, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at
+      select order_number, customer_type, organization_name, contact_name, email, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at
       from orders
       where id = $1
       `,
@@ -114,40 +112,20 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
 
     const normalizedOrderNumber = orderNumberAvailability?.formattedOrderNumber ?? null;
+    const addressLine1Provided = typeof addressLine1 === 'string';
+    const postalCodeProvided = typeof postalCode === 'string';
+    const cityProvided = typeof city === 'string';
     const normalizedAddressLine1 =
-      typeof addressLine1 === 'string' ? addressLine1.trim() || null : null;
+      addressLine1Provided ? addressLine1.trim() || null : null;
     const normalizedPostalCode =
-      typeof postalCode === 'string' ? postalCode.trim().slice(0, 4) || null : null;
-    const normalizedCity = typeof city === 'string' ? city.trim() || null : null;
-    const normalizedDeliveryAddress =
-      typeof deliveryAddress === 'string'
-        ? deliveryAddress.trim() || null
-        : null;
-    const deliveryAddressOnlyEdit =
-      typeof deliveryAddress === 'string' &&
-      typeof addressLine1 !== 'string' &&
-      normalizedDeliveryAddress !==
-        (String(before.delivery_address ?? '').trim() || null);
-    const storedAddressLine2 = String(before.address_line2 ?? '').trim() || null;
+      postalCodeProvided ? postalCode.trim().slice(0, 4) || null : null;
+    const normalizedCity = cityProvided ? city.trim() || null : null;
     const addressWasEdited =
-      (typeof addressLine1 === 'string' &&
+      (addressLine1Provided &&
         normalizedAddressLine1 !== String(before.address_line1 ?? '').trim()) ||
-      (typeof postalCode === 'string' &&
+      (postalCodeProvided &&
         normalizedPostalCode !== String(before.postal_code ?? '').trim()) ||
-      (typeof city === 'string' &&
-        normalizedCity !== String(before.city ?? '').trim()) ||
-      (typeof deliveryAddress === 'string' &&
-        normalizedDeliveryAddress !==
-          (String(before.delivery_address ?? '').trim() || null));
-    const composedDeliveryAddress = normalizedAddressLine1
-      ? [
-          normalizedAddressLine1,
-          storedAddressLine2,
-          [normalizedPostalCode, normalizedCity].filter(Boolean).join(' ')
-        ].filter(Boolean).join(', ')
-      : typeof deliveryAddress === 'string'
-        ? normalizedDeliveryAddress
-        : null;
+      (cityProvided && normalizedCity !== String(before.city ?? '').trim());
 
     await pool.query(
       `
@@ -156,40 +134,34 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           organization_name = $2,
           contact_name = $3,
           email = $4,
-          delivery_address = $5,
           address_line1 = case
-            when $14::boolean then $5
-            else coalesce($6, address_line1)
-          end,
-          address_line2 = case
-            when $14::boolean then null
-            else address_line2
+            when $13::boolean then $5
+            else address_line1
           end,
           postal_code = case
-            when $14::boolean then null
-            else $7
+            when $14::boolean then $6
+            else postal_code
           end,
           city = case
-            when $14::boolean then null
-            else coalesce($8, city)
+            when $15::boolean then $7
+            else city
           end,
-          reference = $9,
-          notes = $10,
-          order_number = coalesce(nullif($11::text, ''), order_number),
-          created_at = coalesce($12::timestamptz, created_at),
+          reference = $8,
+          notes = $9,
+          order_number = coalesce(nullif($10::text, ''), order_number),
+          created_at = coalesce($11::timestamptz, created_at),
           gurs_house_number_id = case
-            when $13::boolean then null
+            when $12::boolean then null
             else gurs_house_number_id
           end,
           is_draft = false
-      WHERE id = $15
+      WHERE id = $16
       `,
       [
         customerType,
         organizationName || null,
         contactName,
         email,
-        composedDeliveryAddress,
         normalizedAddressLine1,
         normalizedPostalCode,
         normalizedCity,
@@ -198,14 +170,16 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         normalizedOrderNumber,
         normalizedOrderDate,
         addressWasEdited,
-        deliveryAddressOnlyEdit,
+        addressLine1Provided,
+        postalCodeProvided,
+        cityProvided,
         orderId
       ]
     );
 
     const afterResult = await pool.query(
       `
-      select order_number, customer_type, organization_name, contact_name, email, delivery_address, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at
+      select order_number, customer_type, organization_name, contact_name, email, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at
       from orders
       where id = $1
       `,

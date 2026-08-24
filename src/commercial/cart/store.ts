@@ -204,40 +204,8 @@ export const useCartStore = create<CartState>()(
       clearAnnouncement: () => set({ announcement: '' })
     }),
     {
-      name: 'atehna-cart',
+      name: 'atehna-cart-v3',
       storage: createJSONStorage(() => storage),
-      version: 2,
-      migrate: (persistedState, version) => {
-        const persisted = (persistedState ?? {}) as { items?: Array<Partial<CartItem>> };
-        if (version >= 2) return persistedState as CartState;
-
-        const items = (persisted.items ?? []).map((legacyItem, index): CartItem => {
-          const sku = String(legacyItem.sku ?? `legacy-${index}`);
-          const name = String(legacyItem.name ?? 'Artikel');
-          return {
-            lineId: createCartLineId({ sku }),
-            sku,
-            name,
-            unit: legacyItem.unit,
-            unitPrice:
-              typeof legacyItem.unitPrice === 'number' ? legacyItem.unitPrice : null,
-            quantity: Math.max(1, Number(legacyItem.quantity ?? 1)),
-            category: legacyItem.category,
-            note: legacyItem.note,
-            reconciliation: {
-              status: 'needs_review',
-              message: 'Pred oddajo ponovno izberite različico artikla.'
-            }
-          };
-        });
-
-        return {
-          items,
-          isOpen: false,
-          lastChangedLineId: null,
-          announcement: ''
-        } as CartState;
-      },
       partialize: (state) => ({ items: state.items })
     }
   )

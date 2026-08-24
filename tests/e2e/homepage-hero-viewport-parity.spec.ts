@@ -184,7 +184,7 @@ test('Hero preview preserves public full-bleed and content-lane proportions acro
       !['GET', 'HEAD', 'OPTIONS'].includes(request.method())
       && (
         url.pathname === '/api/admin/landing-page'
-        || url.pathname === '/api/admin/landing-page/media'
+        || url.pathname === '/api/admin/media'
         || url.pathname === '/api/admin/landing-page/defaults'
       )
     ) {

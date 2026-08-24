@@ -2,13 +2,18 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
 
 type OrderDeleteRow = {
   id: number;
   order_number: string;
   contact_name: string;
   customer_type: string | null;
-  delivery_address: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country_code: string | null;
   created_at: string | null;
   deleted_at: string | null;
 };
@@ -30,7 +35,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       await client.query('BEGIN');
       const orderResult = await client.query(
         `
-        select id, order_number, contact_name, customer_type, delivery_address, created_at, deleted_at
+        select id, order_number, contact_name, customer_type, address_line1, address_line2, postal_code, city, country_code, created_at, deleted_at
         from orders
         where id = $1
         for update
@@ -73,7 +78,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
               orderNumber: order.order_number || `#${orderId}`,
               orderCreatedAt: order.created_at,
               customerName: order.contact_name || null,
-              address: order.delivery_address || null,
+              address: formatOrderRowAddress(order) || null,
               customerType: order.customer_type || null
             })
           ]

@@ -78,7 +78,7 @@ type AdminSiteNavigationPreviewState = {
   previewDevice?: SiteNavigationTopBarDevice;
   previewViewportWidth?: number;
 };
-const legacyDropdownFontFamily = 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const defaultDropdownFontFamily = 'Geist, "Geist Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 const coreNavTextRenderingStyle: CSSProperties = {
   fontFamily: 'var(--topbar-font-family)',
   fontStyle: 'var(--topbar-font-style)',
@@ -92,7 +92,7 @@ const logoTextRenderingStyle: CSSProperties = {
   fontStyle: 'normal'
 };
 const dropdownTextRenderingStyle: CSSProperties = {
-  fontFamily: legacyDropdownFontFamily,
+  fontFamily: defaultDropdownFontFamily,
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale',
   textRendering: 'optimizeLegibility',
@@ -269,7 +269,7 @@ async function loadNavbarSearchItems(): Promise<CatalogSearchItem[]> {
   return navbarSearchItemsPromise;
 }
 
-function LegacyBrand() {
+function DefaultBrand() {
   return (
     <span className="inline-flex items-center gap-2 text-black">
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-[5px] bg-black text-[15px] font-semibold leading-none text-white">
@@ -291,7 +291,7 @@ function Brand({ device }: { device: SiteNavigationTopBarDevice }) {
   return (
     <SiteLogo
       purposeId={purposeId}
-      fallback={<LegacyBrand />}
+      fallback={<DefaultBrand />}
       className={headerLogoClassNames[device]}
       alt="Atehna"
     />

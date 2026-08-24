@@ -4,7 +4,6 @@ import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEsti
 import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCategoryShowcaseMediaSettings,
-  resolveCategoryShowcaseImage,
   type CategoryShowcaseItem,
   type CategoryShowcaseMediaSettings
 } from '@/shared/features/category-showcase/categoryShowcaseSchema';
@@ -141,7 +140,7 @@ function rowToCategory(row: CategoryRow): RecursiveCatalogCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+    image: normalizeCatalogImage(row.image),
     presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     adminNotes: row.admin_notes ?? undefined,
     bannerImage: normalizeCatalogImage(row.banner_image) || undefined,
@@ -175,7 +174,7 @@ function rowToPreviewCategory(row: CategoryRow): CatalogPreviewCategory {
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+    image: normalizeCatalogImage(row.image),
     presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     items: getRowItems(row),
     subcategories: []
@@ -424,7 +423,7 @@ async function readCatalogCategoryWithSubcategoriesFromDatabase(
     title: categoryRow.title,
     summary: categoryRow.summary,
     description: categoryRow.description,
-    image: resolveCategoryShowcaseImage(categoryRow.image, categoryRow.slug),
+    image: categoryRow.image,
     presentation: normalizeCategoryShowcaseMediaSettings(categoryRow.presentation_json),
     items: itemsByCategoryId.get(categoryRow.id) ?? [],
     subcategories: subRows.map((row) => ({
@@ -478,7 +477,7 @@ async function readCatalogCategoryPageDataFromDatabase(
     title: categoryRow.title,
     summary: categoryRow.summary,
     description: categoryRow.description,
-    image: resolveCategoryShowcaseImage(categoryRow.image, categoryRow.slug),
+    image: categoryRow.image,
     // Products assigned directly to a parent category remain listable even
     // when that category also contains subcategories.
     items: itemsByCategoryId.get(categoryRow.id) ?? [],
@@ -581,7 +580,7 @@ async function readCatalogSearchIndexFromDatabase(): Promise<{
       slug,
       title,
       summary,
-      image: resolveCategoryShowcaseImage(normalizeCatalogImage(image), slug),
+      image: normalizeCatalogImage(image),
       presentation: normalizeCategoryShowcaseMediaSettings(presentation_json)
     })),
     searchItems: [
@@ -1171,7 +1170,7 @@ export async function updateTopLevelCategoryPresentations(
       saved.push({
         id: row.id,
         slug: row.slug,
-        image: resolveCategoryShowcaseImage(normalizeCatalogImage(row.image), row.slug),
+        image: normalizeCatalogImage(row.image),
         presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
         revision: row.revision
       });
@@ -1188,12 +1187,6 @@ export async function updateTopLevelCategoryPresentations(
   return saved;
 }
 
-/** @deprecated Use updateTopLevelCategoryPresentations for new integrations. */
-export async function updateTopLevelCategoryImages(
-  updates: Array<{ categorySlug: string; image: string | null }>
-): Promise<void> {
-  await updateTopLevelCategoryPresentations(updates);
-}
 
 export async function getCatalogCategoryCardsFromDatabase(diagnosticsContext = 'catalog:category-cards'): Promise<CatalogCategoryCard[]> {
   return instrumentCatalogLoader('getCatalogCategoryCardsFromDatabase', diagnosticsContext, async () =>

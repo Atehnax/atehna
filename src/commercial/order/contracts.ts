@@ -1,6 +1,7 @@
 import type { CustomerType } from '@/shared/domain/order/customerType';
 
 export type OrderQuoteRequest = {
+  customerName?: string;
   items: Array<{
     variantId: number;
     quantity: number;
@@ -42,6 +43,13 @@ export type OrderQuote = {
   totals: OrderQuoteTotals;
 };
 
+export type OrderConfirmationItem = OrderQuoteItem & {
+  lineListNet: number;
+  lineDiscountNet: number;
+  discountKind: 'quantity' | 'variant' | null;
+  quantityDiscountPct: number | null;
+};
+
 export type OrderApiIssue = {
   code?: string;
   message: string;
@@ -67,7 +75,6 @@ export type SubmitOrderRequest = {
   postalCode: string;
   gursHouseNumberId?: string;
   countryCode?: 'SI';
-  deliveryAddress?: string;
   reference?: string;
   notes: string;
   items: Array<{
@@ -77,36 +84,15 @@ export type SubmitOrderRequest = {
 };
 
 export type SubmitOrderResponse = {
-  orderId: number;
-  orderNumber: string;
-  status?: string;
-  paymentStatus?: string;
-  commitmentStatus?: 'binding' | 'pending_confirmation';
-  stockNotCommitted?: boolean;
-  createdAt?: string;
-  documentUrl: string | null;
-  documentType: string;
-  confirmationToken: string;
-  confirmationUrl: string;
-  tokenExpiresAt?: string;
-  pricingVersion?: string;
-  items: OrderQuoteItem[];
-  totals: OrderQuoteTotals;
+  accessId: string;
 };
 
 export type OrderConfirmationDocument = {
-  id?: number | string;
-  name?: string;
-  filename?: string;
-  type?: string;
-  url?: string;
-  documentNumber?: string | null;
-  issuedAt?: string | null;
+  type: string;
+  url: string;
 };
 
 export type OrderConfirmationSnapshot = {
-  orderId: number;
-  orderNumber: string;
   createdAt?: string;
   status?: string;
   paymentStatus?: string;
@@ -124,15 +110,12 @@ export type OrderConfirmationSnapshot = {
     postalCode?: string;
     gursHouseNumberId?: string | null;
     countryCode?: string;
-    deliveryAddress?: string;
     reference?: string;
     notes?: string;
   };
-  items: OrderQuoteItem[];
+  items: OrderConfirmationItem[];
   totals: OrderQuoteTotals;
   documents: OrderConfirmationDocument[];
-  documentUrl?: string;
-  documentType?: string;
 };
 
 export function isOrderQuote(value: unknown): value is OrderQuote {

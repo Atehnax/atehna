@@ -13,21 +13,11 @@ import {
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 
-const tableSql = `
-  create table if not exists landing_page_settings (
-    key text primary key,
-    config_json jsonb not null default '{}'::jsonb,
-    updated_at timestamptz not null default now()
-  )
-`;
-
 const LANDING_PAGE_CACHE_TAG = 'landing-page-config';
 const LANDING_PAGE_DEFAULTS_CACHE_TAG = 'landing-page-defaults';
 const LANDING_PAGE_AUDIT_ENTITY_ID = 'landing-page';
 const LANDING_PAGE_AUDIT_SOURCE = 'admin-landing-page';
 const LANDING_PAGE_DEFAULTS_AUDIT_SOURCE = 'admin-landing-page-defaults';
-
-let landingPageTableReadyPromise: Promise<void> | null = null;
 
 export type LandingPageUpdateResult = {
   config: LandingPageConfig;
@@ -66,22 +56,8 @@ function serializeStoredLandingPageConfig(config: LandingPageConfig) {
   });
 }
 
-async function ensureLandingPageTable() {
-  const pool = await getPool();
-
-  landingPageTableReadyPromise ??= pool.query(tableSql)
-    .then(() => undefined)
-    .catch((error) => {
-      landingPageTableReadyPromise = null;
-      throw error;
-    });
-
-  await landingPageTableReadyPromise;
-  return pool;
-}
-
 async function readLandingPageConfigByKey(key: string): Promise<LandingPageConfig> {
-  const pool = await ensureLandingPageTable();
+  const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from landing_page_settings where key = $1 limit 1',
     [key]
@@ -230,7 +206,7 @@ export async function updateLandingPageConfig(input: unknown, options: { request
 
   const config = toStoredLandingPageConfig(input);
   const serializedConfig = serializeStoredLandingPageConfig(config);
-  const pool = await ensureLandingPageTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {
@@ -292,7 +268,7 @@ export async function updateLandingPageConfigAndDefaults(
 
   const config = toStoredLandingPageConfig(input);
   const serializedConfig = serializeStoredLandingPageConfig(config);
-  const pool = await ensureLandingPageTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {

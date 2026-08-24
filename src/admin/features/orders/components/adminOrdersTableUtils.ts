@@ -1,12 +1,10 @@
 import { getStatusLabel, isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { formatEuro } from '@/shared/domain/formatting';
+import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
 import type { OrderPdfDocumentSummary, OrderPdfTypeKey, OrderRow as DomainOrderRow } from '@/shared/domain/order/orderTypes';
 import { adminStatusInfoPillTableColumnWidth } from '@/shared/ui/theme/tokens';
 
-export type OrderRow = Omit<DomainOrderRow, 'subtotal' | 'tax' | 'total' | 'delivery_address'> & {
-  delivery_address?: string | null;
-  address_line1?: string | null;
-  city?: string | null;
+export type OrderRow = Omit<DomainOrderRow, 'subtotal' | 'tax' | 'total'> & {
   subtotal?: number | string | null;
   tax?: number | string | null;
   total: number | string | null;
@@ -41,7 +39,7 @@ export type UnifiedDocument = {
   order_id: number;
   type: string;
   filename: string;
-  blob_url: string;
+  url: string;
   created_at: string;
   typeLabel: string;
 };
@@ -125,17 +123,7 @@ export const toDisplayOrderNumber = (orderNumber: string) => {
   return trimmed;
 };
 
-export const formatOrderAddress = (order: OrderRow) => {
-  const deliveryAddress = (order.delivery_address ?? '').trim();
-  if (deliveryAddress) return deliveryAddress;
-
-  const addressLine1 = (order.address_line1 ?? '').trim();
-  const city = (order.city ?? '').trim();
-  const postalCode = (order.postal_code ?? '').trim();
-
-  const cityAndPostalCode = [postalCode, city].filter(Boolean).join(' ');
-  return [addressLine1, cityAndPostalCode].filter(Boolean).join(', ');
-};
+export const formatOrderAddress = (order: OrderRow) => formatOrderRowAddress(order);
 
 export const normalizeForSearch = (value: string) =>
   value

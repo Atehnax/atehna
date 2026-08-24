@@ -2,7 +2,6 @@ import { unstable_cache } from 'next/cache';
 import type { CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCategoryShowcaseMediaSettings,
-  resolveCategoryShowcaseImage,
   type CategoryShowcaseMediaSettings
 } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { CATEGORY_SHOWCASE_TAG } from '@/shared/server/catalogCache';
@@ -58,7 +57,7 @@ async function readCategoryShowcaseItemsFromDatabase(): Promise<StoredCategorySh
     title: row.title,
     summary: row.summary,
     description: row.description,
-    image: resolveCategoryShowcaseImage(normalizeStoredImage(row.image), row.slug),
+    image: normalizeStoredImage(row.image),
     presentation: normalizeCategoryShowcaseMediaSettings(row.presentation_json),
     position: row.position,
     status: row.status === 'inactive' ? 'inactive' : 'active',

@@ -58,7 +58,7 @@ const DERIVED_CHANGE_KEYS = new Set([
   'total',
   'shipping',
   'totalprice',
-  'total_price'
+  'line_net'
 ]);
 
 const DERIVED_CHANGE_LABELS = new Set([

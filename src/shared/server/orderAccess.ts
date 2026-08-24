@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createHash, randomBytes } from 'crypto';
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextResponse } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 
 export type OrderAccessScope = 'confirmation' | 'purchase_order';
@@ -51,6 +51,31 @@ export function orderAccessSessionCookieName(accessId: string): string | null {
   return `${ACCESS_SESSION_COOKIE_PREFIX}${normalizedAccessId.replaceAll('-', '')}`;
 }
 
+export function setOrderAccessSessionCookie(
+  response: NextResponse,
+  session: Pick<IssuedOrderAccessToken, 'tokenId' | 'token' | 'expiresAt'>
+): void {
+  const cookieName = orderAccessSessionCookieName(session.tokenId);
+  if (!cookieName || !isOrderAccessToken(session.token)) {
+    throw new Error('Cannot create an order access session from invalid credentials.');
+  }
+
+  const expires = new Date(session.expiresAt);
+  if (Number.isNaN(expires.getTime())) {
+    throw new Error('Cannot create an order access session with an invalid expiry.');
+  }
+
+  response.cookies.set({
+    name: cookieName,
+    value: session.token.trim(),
+    expires,
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/api/orders'
+  });
+}
+
 export function readOrderAccessSession(
   request: NextRequest
 ): { accessId: string; token: string } | null {
@@ -60,6 +85,88 @@ export function readOrderAccessSession(
   if (!cookieName) return null;
   const token = request.cookies.get(cookieName)?.value?.trim() ?? '';
   return isOrderAccessToken(token) ? { accessId, token } : null;
+}
+
+function accessIdFromSessionCookieName(cookieName: string): string | null {
+  if (!cookieName.startsWith(ACCESS_SESSION_COOKIE_PREFIX)) return null;
+  const compactId = cookieName.slice(ACCESS_SESSION_COOKIE_PREFIX.length);
+  if (!/^[0-9a-f]{32}$/iu.test(compactId)) return null;
+  return normalizeOrderAccessId(
+    `${compactId.slice(0, 8)}-${compactId.slice(8, 12)}-${compactId.slice(12, 16)}-${compactId.slice(16, 20)}-${compactId.slice(20)}`
+  );
+}
+
+export async function verifyOrderAccessSessionForOrder(
+  database: Queryable,
+  request: NextRequest,
+  requiredScope: OrderAccessScope,
+  expectedOrderId: number
+): Promise<VerifiedOrderAccess | null> {
+  const selectedSession = readOrderAccessSession(request);
+  const candidates = new Map<string, string>();
+  if (selectedSession) {
+    candidates.set(selectedSession.accessId, selectedSession.token);
+  }
+
+  for (const cookie of request.cookies.getAll()) {
+    const accessId = accessIdFromSessionCookieName(cookie.name);
+    const token = cookie.value.trim();
+    if (!accessId || !isOrderAccessToken(token) || candidates.has(accessId)) continue;
+    candidates.set(accessId, token);
+  }
+
+  if (candidates.size === 0) return null;
+
+  const candidateEntries = Array.from(candidates, ([accessId, token]) => ({
+    accessId,
+    tokenHash: hashOrderAccessToken(token)
+  }));
+  const result = await database.query(
+    `
+      with candidates as (
+        select token_hash, access_id, candidate_position
+        from unnest($1::text[], $2::uuid[])
+          with ordinality as candidate(token_hash, access_id, candidate_position)
+      ), matched as (
+        select access.id
+        from candidates candidate
+        join order_access_tokens access
+          on access.token_hash = candidate.token_hash
+         and access.id = candidate.access_id
+        where access.order_id = $3
+          and $4 = any(access.scopes)
+          and access.revoked_at is null
+          and access.expires_at > now()
+        order by candidate.candidate_position
+        limit 1
+      )
+      update order_access_tokens access
+      set last_used_at = now()
+      from matched
+      where access.id = matched.id
+      returning access.id, access.order_id, access.scopes, access.expires_at
+    `,
+    [
+      candidateEntries.map((candidate) => candidate.tokenHash),
+      candidateEntries.map((candidate) => candidate.accessId),
+      expectedOrderId,
+      requiredScope
+    ]
+  );
+  const row = result.rows[0] as
+    | { id: string; order_id: string | number; scopes: string[]; expires_at: string | Date }
+    | undefined;
+  if (!row) return null;
+
+  return {
+    tokenId: String(row.id),
+    orderId: Number(row.order_id),
+    scopes: row.scopes.filter(
+      (scope): scope is OrderAccessScope => scope === 'confirmation' || scope === 'purchase_order'
+    ),
+    expiresAt:
+      row.expires_at instanceof Date ? row.expires_at.toISOString() : String(row.expires_at)
+  };
 }
 
 export function buildOrderConfirmationAccessUrl(token: string): string {
@@ -194,11 +301,4 @@ export async function revokeOrderAccessTokens(
   );
 
   return result.rowCount ?? 0;
-}
-
-export function readBearerToken(request: Request): string | null {
-  const authorization = request.headers.get('authorization')?.trim() ?? '';
-  if (!authorization.toLowerCase().startsWith('bearer ')) return null;
-  const token = authorization.slice(7).trim();
-  return token || null;
 }

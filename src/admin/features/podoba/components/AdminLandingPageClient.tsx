@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import {
   DndContext,
   PointerSensor,
@@ -2977,26 +2978,20 @@ function AdminLandingPageClient({
 
   async function uploadSlideMedia(slideId: string, file: File, options: { removeOnFailure?: boolean } = {}) {
     if (uploadingSlideId !== null) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('elementId', `hero-${slideId}`);
     const fallbackMediaType = detectHeroMediaTypeFromFile(file);
     const fileBaseName = getFileBaseName(file.name);
 
     setUploadingSlideId(slideId);
     try {
-      const response = await fetch('/api/admin/landing-page/media', {
-        method: 'POST',
-        body: formData
+      const uploaded = await uploadAdminPublicMedia(file, {
+        scope: 'landing-media',
+        elementId: `hero-${slideId}`,
+        mediaKind: fallbackMediaType
       });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof body.message === 'string' ? body.message : 'Nalaganje medija ni uspelo.');
-      }
-      const mediaType = body.mediaType === 'video' ? 'video' : body.mediaType === 'image' ? 'image' : fallbackMediaType;
+      const mediaType = uploaded.mediaKind === 'video' ? 'video' : 'image';
       updateSlide(slideId, {
         type: mediaType,
-        src: String(body.url ?? ''),
+        src: uploaded.url,
         title: fileBaseName,
         alt: mediaType === 'image' ? fileBaseName : ''
       });

@@ -76,56 +76,11 @@ export const DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS: CategoryShowcaseMediaSett
   ordinalHoverColor: '#354052'
 };
 
-const DEFAULT_CATEGORY_SHOWCASE_CUTOUTS: Record<string, string> = {
-  'tehnika-in-tehnologija': 'tehnika-in-tehnologija',
-  materiali: 'materiali',
-  'stroji-in-naprave': 'stroji-in-naprave',
-  'merilno-orodje-in-geometrija': 'merilno-orodje-in-geometrija',
-  'elektricni-in-mehanicni-elementi': 'elektricni-in-mehanicni-elementi',
-  'električni-in-mehanični-elementi': 'elektricni-in-mehanicni-elementi',
-  'rocno-orodje-in-delavniski-pribor': 'rocno-orodje-in-delavniski-pribor',
-  'ročno-orodje-in-delavniški-pribor': 'rocno-orodje-in-delavniski-pribor',
-  'zascita-pri-delu': 'zascita-pri-delu',
-  'zaščita-pri-delu': 'zascita-pri-delu',
-  'dodatki-in-nadomestni-deli': 'dodatki-in-nadomestni-deli'
-};
-
-/**
- * Transparently upgrades only the original bundled category artwork to the
- * editorial cutouts. User uploads and every other stored media URL pass
- * through unchanged, so both admin routes still edit one persisted image.
- */
-export function resolveCategoryShowcaseImage(image: unknown, categorySlug: string): string {
-  if (typeof image !== 'string') return '';
-  const normalized = image.trim();
-  if (!normalized) return '';
-  const bundledFileSlug = DEFAULT_CATEGORY_SHOWCASE_CUTOUTS[categorySlug];
-  if (
-    bundledFileSlug
-    && normalized === `/images/categories/${bundledFileSlug}.png`
-  ) {
-    return `/images/categories/cutouts/${bundledFileSlug}.png`;
-  }
-  return normalized;
-}
-
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 function normalizeHexColor(value: unknown, fallback: string): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
   return HEX_COLOR_PATTERN.test(normalized) ? normalized.toUpperCase() : fallback;
-}
-
-/** Preserves the legacy warm hover treatment when older records have no explicit hover colour. */
-export function deriveCategoryShowcaseBackgroundHoverColor(color: string): string {
-  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color.trim());
-  if (!match) return DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS.backgroundHoverColor;
-
-  const rgb = match.slice(1).map((channel) => Number.parseInt(channel, 16));
-  const warm = [248, 236, 220];
-  const weight = 0.26;
-  const mixed = rgb.map((channel, index) => Math.round(channel * (1 - weight) + warm[index] * weight));
-  return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -190,11 +145,11 @@ export function normalizeCategoryShowcaseMediaSettings(value: unknown): Category
     offsetY: roundNormalized(clampNumber(record.offsetY, defaults.offsetY, constraints.offsetPercent.min - offsetOriginY, constraints.offsetPercent.max - offsetOriginY)),
     fit,
     titleColor,
-    titleHoverColor: normalizeHexColor(record.titleHoverColor, titleColor),
+    titleHoverColor: normalizeHexColor(record.titleHoverColor, defaults.titleHoverColor),
     backgroundColor,
     backgroundHoverColor: normalizeHexColor(
       record.backgroundHoverColor,
-      deriveCategoryShowcaseBackgroundHoverColor(backgroundColor)
+      defaults.backgroundHoverColor
     ),
     ordinalFontSizePx: roundNormalized(clampNumber(
       record.ordinalFontSizePx,
@@ -203,7 +158,7 @@ export function normalizeCategoryShowcaseMediaSettings(value: unknown): Category
       constraints.ordinalFontSizePx.max
     )),
     ordinalColor,
-    ordinalHoverColor: normalizeHexColor(record.ordinalHoverColor, ordinalColor)
+    ordinalHoverColor: normalizeHexColor(record.ordinalHoverColor, defaults.ordinalHoverColor)
   };
 }
 
@@ -213,7 +168,7 @@ function isFiniteNumber(value: unknown): value is number {
 
 /**
  * Validates a complete settings payload before it is persisted. Database reads
- * should use the normalizer instead so legacy `{}` records receive defaults.
+ * should use the normalizer so invalid or omitted fields receive canonical defaults.
  */
 export function validateCategoryShowcaseMediaSettings(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

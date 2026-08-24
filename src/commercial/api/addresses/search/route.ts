@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
+import { getAddressSearchCacheControl } from '@/commercial/api/addresses/search/cachePolicy';
 import {
   GursAddressSearchQueryError,
   searchGursAddresses
 } from '@/shared/server/gursAddresses';
-
-const PUBLIC_SEARCH_CACHE =
-  'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400';
 
 export const runtime = 'nodejs';
 
@@ -15,7 +13,9 @@ export async function GET(request: Request) {
   try {
     const response = await searchGursAddresses(query);
     return NextResponse.json(response, {
-      headers: { 'Cache-Control': PUBLIC_SEARCH_CACHE }
+      headers: {
+        'Cache-Control': getAddressSearchCacheControl(response)
+      }
     });
   } catch (error) {
     if (error instanceof GursAddressSearchQueryError) {

@@ -57,6 +57,7 @@ test('homepage category appearance action reuses one staged shared editor and on
   const writes: string[] = [];
   const uploads: string[] = [];
   const presentationPatches: CategoryPresentationPatch[] = [];
+  const authorizedUploadPathnames = new Set<string>();
   const uploadedImageUrl = '/images/categories/category-appearance-test.png';
 
   page.on('request', (request) => {
@@ -68,17 +69,49 @@ test('homepage category appearance action reuses one staged shared editor and on
       writes.push(`${request.method()} ${pathname}`);
     }
   });
+  await page.route('**/api/admin/media', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    const body = route.request().postDataJSON() as {
+      type: string;
+      payload: {
+        pathname: string;
+        clientPayload: string;
+        multipart: boolean;
+      };
+    };
+    const clientPayload = JSON.parse(body.payload.clientPayload) as {
+      contentType: string;
+      scope: string;
+    };
+    expect(body.type).toBe('blob.generate-presigned-url');
+    expect(body.payload.multipart).toBe(false);
+    expect(clientPayload.scope).toBe('category-image');
+    expect(clientPayload.contentType).toBe('image/png');
+    expect(body.payload.pathname).toMatch(/^catalog-categories\//u);
+    authorizedUploadPathnames.add(body.payload.pathname);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        presignedUrl: `/api/e2e/public-media-upload?pathname=${encodeURIComponent(body.payload.pathname)}`
+      })
+    });
+  });
+  await page.route('**/api/e2e/public-media-upload?*', async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('PUT');
+    expect(await request.headerValue('content-type')).toBe('image/png');
+    const pathname = new URL(request.url()).searchParams.get('pathname') ?? '';
+    expect(authorizedUploadPathnames.has(pathname)).toBe(true);
+    uploads.push(pathname);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: uploadedImageUrl, pathname })
+    });
+  });
   await page.route('**/api/admin/categories/images', async (route) => {
     const request = route.request();
-    if (request.method() === 'POST') {
-      uploads.push(request.url());
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ url: uploadedImageUrl })
-      });
-      return;
-    }
     if (request.method() === 'PATCH') {
       const payload = request.postDataJSON() as CategoryPresentationPatch;
       presentationPatches.push(payload);
@@ -158,7 +191,7 @@ test('homepage category appearance action reuses one staged shared editor and on
   await page.waitForTimeout(150);
 
   expect(writes).toEqual([
-    'POST /api/admin/categories/images',
+    'POST /api/admin/media',
     'PATCH /api/admin/categories/images'
   ]);
   expect(uploads).toHaveLength(1);

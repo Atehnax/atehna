@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-const CART_STORAGE_KEY = 'atehna-cart';
+const CART_STORAGE_KEY = 'atehna-cart-v3';
 
 const cartItem = {
   lineId: 'checkout-layout-product::41001::',
@@ -92,7 +92,7 @@ async function seedCheckout(page: Page) {
       storageKey: CART_STORAGE_KEY,
       persistedCart: JSON.stringify({
         state: { items: [cartItem] },
-        version: 2
+        version: 0
       })
     }
   );
@@ -411,6 +411,18 @@ test.describe('order checkout layout', () => {
     await seedCheckout(page);
   });
 
+  test('uses a compact responsive checkout heading', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/order');
+
+    const heading = page.getByTestId('order-page-heading');
+    await expect(heading).toHaveText('Oddaja naročila');
+    await expect(heading).toHaveCSS('font-size', '30px');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(heading).toHaveCSS('font-size', '24px');
+  });
+
+
   test('quickly expands and collapses the school-order notice', async ({
     page
   }) => {
@@ -601,7 +613,7 @@ test.describe('order checkout layout', () => {
 
     await expect(
       formColumn.getByText(
-        'Šolsko naročilo je zahteva za potrditev. Po pregledu prejmete ponudbo in navodila za naročilnico.',
+        'Šolsko naročilo bomo po oddaji pregledali. Nato prejmete ponudbo in navodila za naročilnico.',
         { exact: true }
       )
     ).toBeVisible();
@@ -864,7 +876,7 @@ test.describe('order checkout layout', () => {
       exact: true
     });
     const contactName = formColumn.getByLabel(
-      'Kontaktna oseba (neobvezno)',
+      'Kontaktna oseba *',
       { exact: true }
     );
     const address = formColumn.getByLabel(
@@ -925,6 +937,7 @@ test.describe('order checkout layout', () => {
     await expectControlsEnabled(gatedControls);
     await expect(gateMessage).toBeHidden();
     await expect(submit).toBeEnabled();
+    await expect(contactName).toHaveAttribute('required', '');
     await expect(reference).toBeVisible();
     await reference.fill('NAROČILNICA-123');
 
@@ -933,7 +946,7 @@ test.describe('order checkout layout', () => {
       contactName,
       'organization and contact fields'
     );
-    await expectDesktopPair(city, postalCode, 'city and postal-code fields', {
+    await expectDesktopPair(postalCode, city, 'postal-code and city fields', {
       balanced: false
     });
 
@@ -1013,7 +1026,7 @@ test.describe('order checkout layout', () => {
       exact: true
     });
     const contactName = formColumn.getByLabel(
-      'Kontaktna oseba (neobvezno)',
+      'Kontaktna oseba *',
       { exact: true }
     );
     const address = formColumn.getByLabel(
@@ -1046,8 +1059,8 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
-      city,
-      postalCode
+      postalCode,
+      city
     ];
     const boxes = await Promise.all(
       controls.map((control, index) =>

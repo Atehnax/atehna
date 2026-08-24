@@ -81,7 +81,7 @@ const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
     name: item.name,
     unit: item.unit ?? 'kos',
     quantity: item.quantity,
-    unitPrice: item.unit_price ?? 0,
+    unitPrice: item.base_unit_net,
     discountPercentage: item.discount_percentage ?? 0,
     catalogItemId: item.catalog_item_id,
     catalogVariantId: item.catalog_variant_id

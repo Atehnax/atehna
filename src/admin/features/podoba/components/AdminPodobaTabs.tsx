@@ -14,11 +14,11 @@ const tabs = [
 export default function AdminPodobaTabs() {
   const pathname = usePathname();
   const router = useRouter();
-  const value = pathname.startsWith('/admin/podoba/globalni-parametri') || pathname.startsWith('/admin/podoba/globalni-slog')
+  const value = pathname.startsWith('/admin/podoba/globalni-parametri')
     ? 'global'
     : pathname.startsWith('/admin/podoba/artikli')
       ? 'products'
-    : pathname.startsWith('/admin/podoba/logotip') || pathname.startsWith('/admin/podoba/vizualno')
+    : pathname.startsWith('/admin/podoba/logotip')
       ? 'logo'
     : pathname.startsWith('/admin/podoba/navigacija')
       ? 'navigation'

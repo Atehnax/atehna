@@ -440,19 +440,24 @@ export default function AdminOrdersTable({
         organization_name: row[3] ?? '',
         contact_name: row[4],
         email: row[5],
-        delivery_address: row[6] ?? '',
-        reference: row[7] ?? '',
-        notes: row[8],
-        status: row[9],
-        payment_status: row[10],
-        admin_order_notes: row[11],
-        subtotal: row[12] ?? 0,
-        tax: row[13] ?? 0,
+        address_line1: row[6],
+        address_line2: row[7],
+        postal_code: row[8],
+        city: row[9],
+        country_code: row[10],
+        gurs_house_number_id: null,
+        reference: row[11] ?? '',
+        notes: row[12],
+        status: row[13],
+        payment_status: row[14],
+        admin_order_notes: row[15],
+        subtotal: row[16] ?? 0,
+        tax: row[17] ?? 0,
         shipping: 0,
-        total: row[14] ?? 0,
-        created_at: row[15],
-        is_draft: row[16],
-        deleted_at: row[17] ?? null
+        total: row[18] ?? 0,
+        created_at: row[19],
+        is_draft: row[20],
+        deleted_at: row[21] ?? null
       })),
     [serializedOrders]
   );
@@ -461,7 +466,7 @@ export default function AdminOrdersTable({
       (
         serializedAnalyticsOrders ??
         serializedOrders.map(
-          (row) => [row[15], row[9], Number(row[14] ?? 0), null] as const
+          (row) => [row[19], row[13], Number(row[18] ?? 0), null] as const
         )
       ).map((row) => ({
         created_at: row[0],
@@ -478,7 +483,7 @@ export default function AdminOrdersTable({
         order_id: entry[1],
         type: entry[2],
         filename: entry[3],
-        blob_url: entry[4],
+        url: entry[4],
         created_at: entry[5]
       })),
     [serializedDocuments]
@@ -792,7 +797,7 @@ export default function AdminOrdersTable({
         order_id: documentItem.order_id,
         type: documentItem.type,
         filename: documentItem.filename,
-        blob_url: documentItem.blob_url,
+        url: documentItem.url,
         created_at: documentItem.created_at,
         typeLabel: documentTypeLabelMap.get(documentItem.type) ?? documentItem.type
       });
@@ -1196,10 +1201,7 @@ export default function AdminOrdersTable({
       const nextContactName =
         typeof detailOverrides.contact_name === 'string' ? detailOverrides.contact_name : order.contact_name;
       const nextCustomerName = (nextOrganizationName?.trim() || nextContactName || '').trim();
-      const nextAddress =
-        typeof detailOverrides.delivery_address === 'string'
-          ? detailOverrides.delivery_address
-          : formatOrderAddress({ ...order, ...detailOverrides });
+      const nextAddress = formatOrderAddress({ ...order, ...detailOverrides });
 
       setQuickEdit({
         orderId: order.id,
@@ -1286,7 +1288,7 @@ export default function AdminOrdersTable({
             organizationName: nextOrganizationName,
             contactName: nextContactName,
             email: quickEdit.email,
-            deliveryAddress: normalizedAddress,
+            addressLine1: normalizedAddress,
             postalCode: quickEdit.postalCode ?? '',
             reference: quickEdit.reference ?? '',
             notes: quickEdit.notes ?? '',
@@ -1317,7 +1319,7 @@ export default function AdminOrdersTable({
               customer_type: quickEdit.draftCustomerType,
               organization_name: nextOrganizationName || null,
               contact_name: nextContactName,
-              delivery_address: normalizedAddress,
+              address_line1: normalizedAddress,
               email: quickEdit.email,
               postal_code: quickEdit.postalCode ?? null,
               reference: quickEdit.reference ?? null,
@@ -1853,7 +1855,7 @@ export default function AdminOrdersTable({
 
         documentsBySelectedType.forEach((documentItem) => {
           filesToDownload.push({
-            url: documentItem.blob_url,
+            url: documentItem.url,
             filename: `${toDisplayOrderNumber(order.order_number)}-${documentItem.filename}`
           });
         });

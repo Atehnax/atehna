@@ -10,6 +10,8 @@ import {
   type PointerEvent as ReactPointerEvent
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
+import { validateSiteLogoFileContent } from '@/shared/client/siteLogoFileValidation';
 import {
   Check,
   Eye,
@@ -662,7 +664,7 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
       toast.error('Dovoljene so datoteke PNG, JPEG, WebP in SVG.');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
       toast.error('Datoteka logotipa je večja od 10 MB.');
       return;
     }
@@ -672,6 +674,7 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
     const objectUrl = URL.createObjectURL(file);
     setAnalyzingMasterId(slot.id);
     try {
+      await validateSiteLogoFileContent(file);
       const analysis = await analyzeMasterFile(file, objectUrl);
       pendingMastersRef.current.set(slot.id, { file, objectUrl });
       setConfig((current) => {
@@ -772,24 +775,19 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
       for (const [masterId, pending] of pendingMastersRef.current.entries()) {
         const stagedMaster = nextConfig.masters.find((master) => master.id === masterId);
         if (!stagedMaster) continue;
-        const formData = new FormData();
-        formData.set('file', pending.file);
-        formData.set('masterId', masterId);
-        formData.set('intrinsicWidth', String(stagedMaster.intrinsicWidth));
-        formData.set('intrinsicHeight', String(stagedMaster.intrinsicHeight));
-        formData.set('opticalBounds', JSON.stringify(stagedMaster.opticalBounds));
-        const uploadResponse = await fetch('/api/admin/site-logo/media', { method: 'POST', body: formData });
-        const uploadBody = await uploadResponse.json().catch(() => ({}));
-        if (!uploadResponse.ok) throw new Error(typeof uploadBody.message === 'string' ? uploadBody.message : 'Nalaganje logotipa ni uspelo.');
+        const uploaded = await uploadAdminPublicMedia(pending.file, {
+          scope: 'site-logo',
+          masterId
+        });
         nextConfig = {
           ...nextConfig,
           masters: nextConfig.masters.map((master) => master.id === masterId ? {
             ...master,
-            url: String(uploadBody.url ?? uploadBody.asset?.url ?? master.url),
-            pathname: String(uploadBody.pathname ?? uploadBody.asset?.pathname ?? master.pathname),
-            filename: String(uploadBody.filename ?? uploadBody.asset?.filename ?? master.filename),
-            mimeType: String(uploadBody.mimeType ?? uploadBody.asset?.mimeType ?? master.mimeType) as SiteLogoMasterVariant['mimeType'],
-            size: Number(uploadBody.size ?? uploadBody.asset?.size ?? master.size)
+            url: uploaded.url,
+            pathname: uploaded.pathname,
+            filename: uploaded.filename,
+            mimeType: uploaded.contentType as SiteLogoMasterVariant['mimeType'],
+            size: uploaded.size
           } : master)
         };
       }

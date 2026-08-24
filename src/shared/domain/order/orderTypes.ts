@@ -4,7 +4,7 @@ export type OrderItemInput = {
   name: string;
   unit: string | null;
   quantity: number;
-  unit_price: number | null;
+  base_unit_net: number;
   discount_percentage?: number;
   catalog_item_id?: number | null;
   catalog_variant_id?: number | null;
@@ -22,7 +22,7 @@ export type GenerateOrderPdfType = OrderPdfTypeKey;
 export type OrderPdfDocument = {
   id?: number;
   type: string;
-  blob_url: string;
+  url: string;
   filename: string;
   created_at: string;
 };
@@ -51,13 +51,12 @@ export type OrderRow = {
   organization_name: string | null;
   contact_name: string;
   email: string;
-  delivery_address: string | null;
-  address_line1?: string | null;
-  address_line2?: string | null;
-  postal_code?: string | null;
-  city?: string | null;
-  gurs_house_number_id?: string | null;
-  country_code?: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  city: string | null;
+  gurs_house_number_id: string | null;
+  country_code: string | null;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   reference: string | null;
   notes: string | null;
@@ -83,8 +82,8 @@ export type OrderItemRow = {
   name: string;
   unit: string | null;
   quantity: number;
-  unit_price: number | null;
-  total_price: number | null;
+  base_unit_net: number;
+  line_net: number;
   discount_percentage: number;
 };
 
@@ -93,8 +92,7 @@ export type OrderDocumentRow = {
   order_id: number;
   type: string;
   filename: string;
-  blob_url: string;
-  blob_pathname: string | null;
+  url: string;
   created_at: string;
 };
 
@@ -130,10 +128,11 @@ export type OrderAnalyticsRow = {
 };
 
 export type OrderListDocumentSummaryRow = {
+  id: number;
   order_id: number;
   type: string;
   filename: string;
-  blob_url: string;
+  url: string;
   created_at: string;
 };
 
@@ -155,7 +154,11 @@ export type AdminOrderRowTuple = readonly [
   organizationName: string | null,
   contactName: string,
   email: string,
-  deliveryAddress: string | null,
+  addressLine1: string | null,
+  addressLine2: string | null,
+  postalCode: string | null,
+  city: string | null,
+  countryCode: string | null,
   reference: string | null,
   notes: string | null,
   status: string,
@@ -174,7 +177,7 @@ export type AdminOrderPdfDocumentTuple = readonly [
   orderId: number,
   type: string,
   filename: string,
-  blobUrl: string,
+  url: string,
   createdAt: string
 ];
 

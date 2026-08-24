@@ -257,10 +257,12 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     organization_name: asNullableString(rawRow.organization_name),
     contact_name: String(rawRow.contact_name),
     email: String(rawRow.email),
-    delivery_address: asNullableString(rawRow.delivery_address),
     address_line1: asNullableString(rawRow.address_line1),
+    address_line2: asNullableString(rawRow.address_line2),
     postal_code: asNullableString(rawRow.postal_code),
     city: asNullableString(rawRow.city),
+    gurs_house_number_id: asNullableString(rawRow.gurs_house_number_id),
+    country_code: asNullableString(rawRow.country_code),
     commitment_status:
       rawRow.commitment_status === 'binding'
       || rawRow.commitment_status === 'pending_confirmation'
@@ -285,14 +287,10 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
 
 function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
   const quantity = Number(rawRow.quantity);
-  const persistedUnitNet =
-    parseNullableNumber(rawRow.unit_net) ?? parseNullableNumber(rawRow.unit_price);
-  const baseUnitNet =
-    parseNullableNumber(rawRow.base_unit_net) ?? persistedUnitNet;
-  const totalPrice =
-    parseNullableNumber(rawRow.line_net) ?? parseNullableNumber(rawRow.total_price);
+  const baseUnitNet = parseNullableNumber(rawRow.base_unit_net) ?? 0;
+  const lineNet = parseNullableNumber(rawRow.line_net) ?? 0;
   const lineBase = Math.max(0, quantity) * (baseUnitNet ?? 0);
-  const effectiveTotal = totalPrice ?? lineBase;
+  const effectiveTotal = lineNet;
   const storedDiscountPercentage = parseNullableNumber(rawRow.discount_pct);
   const discountPercentage = storedDiscountPercentage === null
     ? lineBase > 0
@@ -307,24 +305,27 @@ function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
     name: String(rawRow.name),
     unit: asNullableString(rawRow.unit),
     quantity,
-    // Admin editing works with the list/base NET price; persisted unit_price is the
-    // effective NET price after discount for authoritative commerce orders.
-    unit_price: baseUnitNet,
-    total_price: totalPrice,
+    base_unit_net: baseUnitNet,
+    line_net: lineNet,
     discount_percentage: discountPercentage,
     catalog_item_id: parseNullableNumber(rawRow.catalog_item_id),
     catalog_variant_id: parseNullableNumber(rawRow.catalog_variant_id)
   };
 }
 
+function buildAdminOrderDocumentUrl(orderId: number, documentId: number): string {
+  return `/api/admin/orders/${orderId}/documents/${documentId}`;
+}
+
 function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow {
+  const id = Number(rawRow.id);
+  const orderId = Number(rawRow.order_id);
   return {
-    id: Number(rawRow.id),
-    order_id: Number(rawRow.order_id),
+    id,
+    order_id: orderId,
     type: String(rawRow.type),
     filename: String(rawRow.filename),
-    blob_url: String(rawRow.blob_url),
-    blob_pathname: asNullableString(rawRow.blob_pathname),
+    url: buildAdminOrderDocumentUrl(orderId, id),
     created_at: toIsoTimestamp(rawRow.created_at)
   };
 }
@@ -415,7 +416,11 @@ export async function fetchOrdersListPage(
           orders.order_number::text ilike $${queryIndex}
           or orders.organization_name ilike $${queryIndex}
           or orders.contact_name ilike $${queryIndex}
-          or orders.delivery_address ilike $${queryIndex}
+          or orders.address_line1 ilike $${queryIndex}
+          or orders.address_line2 ilike $${queryIndex}
+          or orders.postal_code ilike $${queryIndex}
+          or orders.city ilike $${queryIndex}
+          or orders.country_code ilike $${queryIndex}
           or orders.customer_type ilike $${queryIndex}
           or orders.status ilike $${queryIndex}
           or orders.payment_status ilike $${queryIndex}
@@ -465,40 +470,24 @@ export async function fetchOrdersListPage(
           orders.organization_name,
           orders.contact_name,
           orders.email,
-          orders.delivery_address,
+          orders.address_line1,
+          orders.address_line2,
           orders.postal_code,
+          orders.city,
+          orders.gurs_house_number_id,
+          orders.country_code,
           orders.reference,
           orders.notes,
           orders.status,
           orders.payment_status,
           orders.admin_order_notes,
-          coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
-          coalesce(
-            orders.tax::text,
-            round(computed_totals.subtotal * coalesce(orders.tax_rate, 0.22), 2)::text,
-            '0'
-          ) as tax,
-          coalesce(
-            orders.total::text,
-            round(
-              computed_totals.subtotal * (1 + coalesce(orders.tax_rate, 0.22))
-              + coalesce(orders.shipping, 0),
-              2
-            )::text,
-            '0'
-          ) as total,
+          orders.subtotal::text as subtotal,
+          orders.tax::text as tax,
+          orders.total::text as total,
           orders.created_at,
           orders.is_draft,
           orders.deleted_at
         from orders
-        left join (
-          select
-            order_items.order_id,
-            round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal
-          from order_items
-          group by order_items.order_id
-        ) as computed_totals
-          on computed_totals.order_id = orders.id
         ${whereClause}
       ),
       paged_orders as (
@@ -508,17 +497,17 @@ export async function fetchOrdersListPage(
       ),
       latest_documents as (
         select distinct on (order_id, type)
+          id,
           order_id,
           type,
           filename,
-          blob_url,
           created_at
         from (
           select
+            od.id,
             od.order_id,
             od.type,
             od.filename,
-            od.blob_url,
             od.created_at
           from order_documents od
           where od.order_id in (select id from paged_orders)
@@ -546,11 +535,14 @@ export async function fetchOrdersListPage(
     const dedupedDocs = new Map<string, OrderListDocumentSummaryRow>();
     docsJson.forEach((rawDoc) => {
       const row = rawDoc as Record<string, unknown>;
+      const id = Number(row.id);
+      const orderId = Number(row.order_id);
       const mapped: OrderListDocumentSummaryRow = {
-        order_id: Number(row.order_id),
+        id,
+        order_id: orderId,
         type: String(row.type),
         filename: String(row.filename),
-        blob_url: String(row.blob_url),
+        url: buildAdminOrderDocumentUrl(orderId, id),
         created_at: toIsoTimestamp(row.created_at)
       };
       const key = `${mapped.order_id}:${mapped.type}`;
@@ -631,42 +623,27 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.organization_name,
       orders.contact_name,
       orders.email,
-      orders.delivery_address,
       orders.address_line1,
+      orders.address_line2,
       orders.postal_code,
       orders.city,
+      orders.gurs_house_number_id,
+      orders.country_code,
       orders.commitment_status,
       orders.reference,
       orders.notes,
       orders.status,
       orders.payment_status,
       orders.admin_order_notes,
-      coalesce(orders.subtotal::text, computed_totals.subtotal::text, '0') as subtotal,
-      coalesce(orders.tax::text, computed_totals.tax::text, '0') as tax,
+      orders.subtotal::text as subtotal,
+      orders.tax::text as tax,
       orders.tax_rate,
-      coalesce(orders.shipping::text, '0') as shipping,
-      coalesce(orders.total::text, computed_totals.total::text, '0') as total,
+      orders.shipping::text as shipping,
+      orders.total::text as total,
       orders.created_at,
       orders.is_draft,
       orders.deleted_at
     from orders
-    left join lateral (
-      select
-        round(sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0))), 2) as subtotal,
-        round(
-          sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0)))
-          * coalesce(orders.tax_rate, 0.22),
-          2
-        ) as tax,
-        round(
-          sum(coalesce(order_items.total_price, order_items.quantity * coalesce(order_items.unit_price, 0)))
-          * (1 + coalesce(orders.tax_rate, 0.22)),
-          2
-        ) as total
-      from order_items
-      where order_items.order_id = orders.id
-    ) as computed_totals
-      on true
     where orders.id = $1
     `,
       [orderId]
@@ -753,7 +730,7 @@ export async function fetchOrderDocuments(orderId: number, diagnosticsContext = 
   return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
     const pool = await getPool();
     const result = await profileRoutePhase('db', 'fetchOrderDocuments:query', () => pool.query(
-      'select * from order_documents where order_id = $1 and deleted_at is null order by created_at desc',
+      'select id, order_id, type, filename, created_at from order_documents where order_id = $1 and deleted_at is null order by created_at desc',
       [orderId]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocuments:mapRows', async () =>
@@ -770,7 +747,7 @@ export async function fetchOrderDocumentsForOrders(
     if (orderIds.length === 0) return [];
     const pool = await getPool();
     const result = await profileRoutePhase('db', 'fetchOrderDocumentsForOrders:query', () => pool.query(
-      'select * from order_documents where order_id = any($1::bigint[]) and deleted_at is null order by created_at desc',
+      'select id, order_id, type, filename, created_at from order_documents where order_id = any($1::bigint[]) and deleted_at is null order by created_at desc',
       [orderIds]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocumentsForOrders:mapRows', async () =>

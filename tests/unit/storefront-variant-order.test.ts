@@ -21,7 +21,7 @@ const productContext = {
   }
 };
 
-test('storefront variants and the legacy selector follow the persisted variant position', () => {
+test('storefront variants and the derived selector follow the persisted variant position', () => {
   const catalogItem = {
     slug: 'testni-artikel',
     name: 'Testni artikel',

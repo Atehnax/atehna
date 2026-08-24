@@ -17,18 +17,42 @@ export type OrderQuoteState = {
   missingVariantLineIds: string[];
 };
 
-const buildRequestKey = (items: CartItem[]) =>
-  items
-    .map(
-      (item) =>
-        `${item.lineId}:${item.variant?.id ?? 'missing'}:${Math.max(1, item.quantity)}`
-    )
-    .sort()
-    .join('|');
+export const normalizeOrderQuoteCustomerName = (customerName?: string) =>
+  customerName?.trim() ?? '';
 
-export function useOrderQuote(items: CartItem[], enabled = true): OrderQuoteState {
+export const buildOrderQuoteRequestKey = (
+  items: CartItem[],
+  customerName?: string
+) => {
+  if (items.length === 0) return '';
+
+  return JSON.stringify({
+    customerName: normalizeOrderQuoteCustomerName(customerName),
+    items: items
+      .map((item) => [
+        item.lineId,
+        item.variant?.id ?? 'missing',
+        Math.max(1, item.quantity)
+      ])
+      .sort(([leftLineId], [rightLineId]) =>
+        String(leftLineId).localeCompare(String(rightLineId))
+      )
+  });
+};
+
+export function useOrderQuote(
+  items: CartItem[],
+  enabled = true,
+  customerName?: string
+): OrderQuoteState {
   const reconcileItems = useCartStore((state) => state.reconcileItems);
-  const requestKey = useMemo(() => buildRequestKey(items), [items]);
+  const normalizedCustomerName = normalizeOrderQuoteCustomerName(customerName);
+  const requestKey = useMemo(
+    () => buildOrderQuoteRequestKey(items, normalizedCustomerName),
+    [items, normalizedCustomerName]
+  );
+  const latestRequestKeyRef = useRef(requestKey);
+  latestRequestKeyRef.current = requestKey;
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const missingVariantLineIds = useMemo(
@@ -88,15 +112,19 @@ export function useOrderQuote(items: CartItem[], enabled = true): OrderQuoteStat
     }
 
     const controller = new AbortController();
+    const requestItems = itemsRef.current;
+    const isRequestStale = () =>
+      controller.signal.aborted || latestRequestKeyRef.current !== requestKey;
+    setState({ quote: null, isLoading: true, error: null });
     const timeout = window.setTimeout(async () => {
-      const requestItems = itemsRef.current;
-      setState((previous) => ({ ...previous, isLoading: true, error: null }));
+      if (isRequestStale()) return;
 
       try {
         const response = await fetch('/api/orders/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            customerName: normalizedCustomerName,
             items: requestItems.map((item) => ({
               variantId: item.variant!.id,
               quantity: item.quantity
@@ -106,6 +134,7 @@ export function useOrderQuote(items: CartItem[], enabled = true): OrderQuoteStat
         });
 
         const payload: unknown = await response.json().catch(() => ({}));
+        if (isRequestStale()) return;
         if (!response.ok) {
           const apiError = parseOrderApiError(
             payload,
@@ -188,7 +217,7 @@ export function useOrderQuote(items: CartItem[], enabled = true): OrderQuoteStat
         reconcileItems(updates);
         setState({ quote: payload, isLoading: false, error: null });
       } catch (error) {
-        if (controller.signal.aborted) return;
+        if (isRequestStale()) return;
         setState({
           quote: null,
           isLoading: false,
@@ -210,6 +239,7 @@ export function useOrderQuote(items: CartItem[], enabled = true): OrderQuoteStat
   }, [
     enabled,
     missingVariantKey,
+    normalizedCustomerName,
     reconcileItems,
     requestKey
   ]);

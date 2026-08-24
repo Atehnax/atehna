@@ -377,10 +377,10 @@ test('dimension and weight matrices use interpolation-compatible synchronized mo
   expect(globalStyles).toContain(
     'transition-property: grid-template-columns, min-width;'
   );
-  expect(globalStyles).toContain('transition-duration: 220ms;');
-  expect(globalStyles).toContain('transition-timing-function: linear;');
+  expect(globalStyles).toContain('transition-duration: 260ms;');
+  expect(globalStyles).toContain('transition-timing-function: ease-in-out;');
   expect(globalStyles).toContain(
-    'animation: admin-dimension-variant-content-enter 220ms linear both;'
+    'animation: admin-dimension-variant-content-enter 260ms ease-in-out both;'
   );
   expect(globalStyles).not.toContain('transform: translateX(4px);');
   expect(globalStyles).not.toContain('transform: scaleX(0.96);');

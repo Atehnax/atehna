@@ -42,7 +42,7 @@ export type CatalogItemQuantityDiscountRule = {
   id?: number;
   minQuantity: number;
   discountPercent: number;
-  appliesTo?: 'allVariants' | string | null;
+  appliesTo?: string | null;
   note?: string | null;
   position?: number | null;
 };

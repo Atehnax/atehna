@@ -176,7 +176,7 @@ export default function AdminOrdersPdfCell({
       setDocumentsState((previousDocuments) => [
         {
           type: payload.type,
-          blob_url: payload.url,
+          url: payload.url,
           filename: payload.filename,
           created_at: payload.createdAt
         },
@@ -228,9 +228,9 @@ export default function AdminOrdersPdfCell({
         {versions.length > 0 ? (
           <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
             {versions.map((documentOption, index) => (
-              <li key={`${button.key}-${documentOption.blob_url}-${documentOption.created_at}-${index}`}>
+              <li key={`${button.key}-${documentOption.url}-${documentOption.created_at}-${index}`}>
                 <a
-                  href={documentOption.blob_url}
+                  href={documentOption.url}
                   target="_blank"
                   rel="noreferrer"
                   role="menuitem"

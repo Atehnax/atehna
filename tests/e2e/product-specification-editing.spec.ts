@@ -137,7 +137,7 @@ test.describe('product specification editing compatibility', () => {
     expect(writes).toEqual([]);
   });
 
-  test('appearance and article editors share editable rows while discard and unsaved preview cause no write', async ({
+  test('appearance editor updates the preview while unsaved changes cause no write', async ({
     page,
     request
   }) => {
@@ -329,104 +329,14 @@ test.describe('product specification editing compatibility', () => {
     await panel.getByRole('button', { name: 'Zapri', exact: true }).click();
     await page.goto(`/admin/artikli/${encodeURIComponent(product.slug)}`);
     await page.getByRole('tab', { name: 'Prodaja', exact: true }).click();
-    const articleSection = page.getByTestId(
+    await expect(page.getByTestId(
       'article-variant-specifications-section'
-    );
-    await expect(articleSection).toBeVisible({ timeout: 15_000 });
-    await expect(articleSection).not.toContainText(renamedCustomLabel);
-
-    const articleLabelsBySurface = articleSection.locator(
-      '[data-testid="specification-display-labels-editor"][data-specification-labels-surface="article-editor"]'
-    );
-    await expect(articleLabelsBySurface).toBeVisible();
-    const articleMaterialRow = articleLabelsBySurface.locator(
-      '[data-testid="specification-display-label-row"][data-specification-key="material"]'
-    );
-    const articleMaterialLabelInput = articleMaterialRow.getByTestId(
-      'specification-display-label-material'
-    );
-    const articleCanonicalMaterialInput = articleMaterialRow.getByTestId(
-      'article-canonical-specification-material'
-    );
-    await expect(articleMaterialLabelInput).toHaveValue(originalMaterialLabel);
-    await expect(articleCanonicalMaterialInput).toHaveValue(originalMaterialValue);
-
-    await page.getByRole('button', {
-      name: 'Uredi artikel',
-      exact: true
-    }).first().click();
-    await articleMaterialLabelInput.fill(renamedMaterialLabel);
-    await articleMaterialLabelInput.press('Enter');
-    await expect(articleMaterialLabelInput).toHaveValue(renamedMaterialLabel);
-    await expect(articleCanonicalMaterialInput).toHaveValue(originalMaterialValue);
-    await expect(page.getByRole('button', {
-      name: 'Shrani',
-      exact: true
-    }).first()).toBeEnabled();
-
-    const articleEditor = articleSection.locator(
-      '[data-testid="variant-specifications-editor"][data-variant-specifications-surface="article-editor"]'
-    );
-    await expect(articleEditor).toBeVisible();
-    const articleOriginalRowCount = await articleEditor
-      .getByTestId('variant-specification-row')
-      .count();
-    await articleEditor.getByRole('button', {
-      name: 'Dodaj specifikacijo',
-      exact: true
-    }).click();
-    const articleAddedRow = articleOriginalRowCount + 1;
-    const articleLabel = `Začasna lastnost ${Date.now()}`;
-    const articleLabelInput = articleEditor.getByLabel(
-      `Naziv specifikacije ${articleAddedRow}`,
-      { exact: true }
-    );
-    const articleValueInput = articleEditor.getByLabel(
-      `Vrednost specifikacije ${articleAddedRow}`,
-      { exact: true }
-    );
-    await expect(articleLabelInput).toHaveValue('Nova lastnost');
-    await articleLabelInput.fill(articleLabel);
-    await expect(articleLabelInput).toHaveValue(articleLabel);
-    await articleValueInput.fill('Začasna vrednost');
-    await expect(articleLabelInput).toHaveValue(articleLabel);
-    await expect(articleValueInput).toHaveValue('Začasna vrednost');
-    await expect(page.getByRole('button', {
-      name: 'Shrani',
-      exact: true
-    }).first()).toBeEnabled();
-
-    await page.getByRole('button', {
-      name: 'Uredi artikel',
-      exact: true
-    }).first().click();
-    const discardDialog = page.getByRole('dialog').filter({
-      hasText: 'Neshranjene spremembe'
-    });
-    await expect(discardDialog).toBeVisible();
-    await discardDialog.getByRole('button', {
-      name: 'Zavrzi spremembe',
-      exact: true
-    }).click();
-    await expect(discardDialog).toBeHidden();
-    await expect(
-      articleEditor.getByTestId('variant-specification-row')
-    ).toHaveCount(articleOriginalRowCount);
-    await expect(articleEditor.getByLabel(
-      `Naziv specifikacije ${articleAddedRow}`,
-      { exact: true }
     )).toHaveCount(0);
-    await expect(articleMaterialLabelInput).toHaveValue(originalMaterialLabel);
-    await expect(articleCanonicalMaterialInput).toHaveValue(originalMaterialValue);
-
-    const afterDiscardResponse = await request.get(
-      `/api/admin/artikli/${encodeURIComponent(product.slug)}`
-    );
-    expect(afterDiscardResponse.ok()).toBeTruthy();
-    const afterDiscard = await afterDiscardResponse.json() as CatalogItemEditorHydration;
-    expect(afterDiscard.material).toBe(product.material);
-    expect(afterDiscard.appearanceOverride).toEqual(product.appearanceOverride);
-    expect(writes, 'discarding in the article editor must not call an API')
+    await expect(page.getByRole('heading', {
+      name: 'Specifikacije različice',
+      exact: true
+    })).toHaveCount(0);
+    expect(writes, 'the article editor must not expose a second specification editing surface')
       .toEqual([]);
   });
 

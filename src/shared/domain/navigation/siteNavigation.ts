@@ -1,7 +1,6 @@
 import {
   DEFAULT_HOMEPAGE_SETTINGS,
   normalizeHomepageFooterSettings,
-  type HomepageFooterLink,
   type HomepageFooterSettings
 } from '@/shared/domain/landing/landingPage';
 import {
@@ -13,14 +12,6 @@ import {
 export const SITE_NAVIGATION_SETTINGS_KEY = 'main-navbar';
 
 const defaultIcon = 'box';
-const legacySiteNavigationIconAliases: Record<string, string> = {
-  hardhat: 'hard-hat',
-  message: 'message-square',
-  refresh: 'refresh-cw',
-  teacher: 'presentation',
-  team: 'users',
-  tool: 'wrench'
-};
 
 export type SiteNavigationItemIcon = string;
 
@@ -60,7 +51,6 @@ export const SITE_NAVIGATION_TOP_BAR_FONT_STYLES = ['normal', 'italic'] as const
 
 export type SiteNavigationTopBarElementId = (typeof SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS)[number];
 export type SiteNavigationTopBarDevice = (typeof SITE_NAVIGATION_TOP_BAR_DEVICES)[number];
-export type SiteNavigationTopBarLayoutMode = 'auto' | 'manual';
 export type SiteNavigationTopBarRegion = 'left' | 'center' | 'right' | 'edgeRight' | 'menu';
 export type SiteNavigationTopBarWidthMode = 'match_content' | 'custom' | 'full';
 export type SiteNavigationTopBarConstraintLayoutMode = 'centered_nav' | 'flow';
@@ -74,12 +64,6 @@ export type SiteNavigationTopBarMenuOpenMode = 'drawer' | 'fullscreen';
 export type SiteNavigationTopBarActionId = 'cart' | 'search' | 'ai';
 export type SiteNavigationTopBarFontFamily = WebsiteFontFamily;
 export type SiteNavigationTopBarFontStyle = (typeof SITE_NAVIGATION_TOP_BAR_FONT_STYLES)[number];
-
-export type SiteNavigationTopBarLayoutItem = {
-  id: SiteNavigationTopBarElementId;
-  offset: number;
-  visible: boolean;
-};
 
 export type SiteNavigationTopBarResponsiveItem = {
   id: SiteNavigationTopBarElementId;
@@ -147,8 +131,6 @@ export type SiteNavigationTopBarResponsiveLayout = {
 export type SiteNavigationTopBarResponsiveLayouts = Record<SiteNavigationTopBarDevice, SiteNavigationTopBarResponsiveLayout>;
 
 export type SiteNavigationTopBarLayout = {
-  mode: SiteNavigationTopBarLayoutMode;
-  items: SiteNavigationTopBarLayoutItem[];
   responsive: SiteNavigationTopBarResponsiveLayouts;
 };
 
@@ -216,9 +198,6 @@ export const SITE_NAVIGATION_DESKTOP_COLUMN_COUNT = 3;
 export const SITE_NAVIGATION_DESKTOP_LINK_ROWS = 5;
 export const SITE_NAVIGATION_ADMIN_SELECTION_ROW_GAP_PX = 4;
 export const SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX = 20;
-export const SITE_NAVIGATION_TOP_BAR_OFFSET_MIN = -160;
-export const SITE_NAVIGATION_TOP_BAR_OFFSET_MAX = 160;
-export const SITE_NAVIGATION_TOP_BAR_OFFSET_STEP = 4;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MIN = -512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MAX = 512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_STEP = 1;
@@ -374,8 +353,6 @@ function defaultTopBarPlacement(
 }
 
 export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout = {
-  mode: 'auto',
-  items: SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS.map((id) => ({ id, offset: 0, visible: true })),
   responsive: {
     desktop: {
       items: [
@@ -473,19 +450,19 @@ export const DEFAULT_SITE_NAVIGATION_CONFIG: SiteNavigationConfig = {
         'Kategorije',
         [
           link('products-tehnika', 0, 'Tehnika in tehnologija', 'Osnovni tehnični pouk', '/products/tehnika-in-tehnologija', 'box'),
-          link('products-materiali', 1, 'Materiali', 'Les, kovine in plastika', '/products/materiali', 'tool'),
+          link('products-materiali', 1, 'Materiali', 'Les, kovine in plastika', '/products/materiali', 'wrench'),
           link('products-stroji', 2, 'Stroji in naprave', 'Oprema za šolske delavnice', '/products/stroji-in-naprave', 'layers'),
           link('products-merilno', 3, 'Merilno orodje', 'Merjenje in geometrija', '/products/merilno-orodje-in-geometrija', 'ruler'),
           link('products-elektrika', 4, 'Elektrika in mehanika', 'Vezja in prenosi', '/products/elektricni-in-mehanicni-elementi', 'grid'),
-          link('products-rocno', 5, 'Ročno orodje in pribor', 'Pribor za delavnico', '/products/rocno-orodje-in-delavniski-pribor', 'tool'),
-          link('products-zascita', 6, 'Zaščita pri delu', 'Oprema za varno delo', '/products/zascita-pri-delu', 'hardhat'),
+          link('products-rocno', 5, 'Ročno orodje in pribor', 'Pribor za delavnico', '/products/rocno-orodje-in-delavniski-pribor', 'wrench'),
+          link('products-zascita', 6, 'Zaščita pri delu', 'Oprema za varno delo', '/products/zascita-pri-delu', 'hard-hat'),
           link('products-dodatki', 7, 'Dodatki in deli', 'Rezervni deli in dodatki', '/products/dodatki-in-nadomestni-deli', 'repeat')
         ],
         2
       ),
       group('products-use', 1, 'Po uporabi', [
         link('products-ucilnice', 0, 'Za učilnice', 'Pripomočki za pouk', '/products#za-ucilnice', 'school'),
-        link('products-delavnica', 1, 'Za delavnico', 'Orodje za prakso', '/products#za-delavnico', 'tool'),
+        link('products-delavnica', 1, 'Za delavnico', 'Orodje za prakso', '/products#za-delavnico', 'wrench'),
         link('products-projektno-delo', 2, 'Za projektno delo', 'Materiali za izdelavo', '/products#za-projektno-delo', 'clipboard'),
         link('products-potrosni', 3, 'Potrošni material', 'Pogosta zaloga za pouk', '/products#potrosni-material', 'box')
       ])
@@ -518,12 +495,12 @@ export const DEFAULT_SITE_NAVIGATION_CONFIG: SiteNavigationConfig = {
         [
           link('solutions-all', 0, 'Vsi projekti', 'Celoten projektni program', '/products', 'grid'),
           link('solutions-vehicles', 1, 'Vozila in mehanizmi', 'Kolesa in prenosi', '/products#vozila-in-mehanizmi', 'truck'),
-          link('solutions-wood', 2, 'Leseni izdelki', 'Les in ploščni materiali', '/products#leseni-izdelki', 'tool'),
+          link('solutions-wood', 2, 'Leseni izdelki', 'Les in ploščni materiali', '/products#leseni-izdelki', 'wrench'),
           link('solutions-electronics', 3, 'Elektronika', 'Vezja in elementi', '/products/elektricni-in-mehanicni-elementi', 'layers'),
           link('solutions-structures', 4, 'Konstrukcije', 'Nosilci in okvirji', '/products#konstrukcije', 'box'),
           link('solutions-modeling', 5, 'Modelarstvo', 'Modeli za izdelavo', '/products#modelarstvo', 'ruler'),
           link('solutions-measuring', 6, 'Merjenje in geometrija', 'Natančnost in oblike', '/products/merilno-orodje-in-geometrija', 'ruler'),
-          link('solutions-creative', 7, 'Ustvarjalni tehnični projekti', 'Od ideje do izdelka', '/products#ustvarjalni-tehnicni-projekti', 'teacher')
+          link('solutions-creative', 7, 'Ustvarjalni tehnični projekti', 'Od ideje do izdelka', '/products#ustvarjalni-tehnicni-projekti', 'presentation')
         ],
         2
       ),
@@ -540,7 +517,7 @@ export const DEFAULT_SITE_NAVIGATION_CONFIG: SiteNavigationConfig = {
         link('help-delivery', 1, 'Dostava', 'Roki in prevzem', '/how-schools-order#dostava', 'truck'),
         link('help-payment', 2, 'Plačilo', 'Načini plačila', '/how-schools-order#placilo', 'clipboard'),
         link('help-quote', 3, 'Predračun', 'Ponudba pred naročilom', '/how-schools-order#predracun', 'file'),
-        link('help-returns', 4, 'Vračila in reklamacije', 'Zamenjave in napake', '/terms#vracila-in-reklamacije', 'refresh')
+        link('help-returns', 4, 'Vračila in reklamacije', 'Zamenjave in napake', '/terms#vracila-in-reklamacije', 'refresh-cw')
       ]),
       group('help-docs', 1, 'Dokumentacija', [
         link('help-instructions', 0, 'Navodila za uporabo', 'Navodila za izdelke', '/products#navodila-za-uporabo', 'book'),
@@ -585,10 +562,6 @@ function asPosition(value: unknown, fallback: number) {
 
 function asDesktopSpan(value: unknown): 1 | 2 | 3 | 4 | undefined {
   return value === 1 || value === 2 || value === 3 || value === 4 ? value : undefined;
-}
-
-function asTopBarLayoutMode(value: unknown): SiteNavigationTopBarLayoutMode {
-  return value === 'manual' ? 'manual' : 'auto';
 }
 
 function asTopBarRegion(value: unknown, fallback: SiteNavigationTopBarRegion): SiteNavigationTopBarRegion {
@@ -676,19 +649,19 @@ function normalizeSiteLayoutSettings(value: unknown): SiteNavigationSiteLayoutSe
 
   return {
     siteContentMaxWidthPx: asBoundedNumber(
-      record.siteContentMaxWidthPx ?? record.site_content_max_width_px,
+      record.siteContentMaxWidthPx,
       DEFAULT_SITE_LAYOUT_SETTINGS.siteContentMaxWidthPx,
       960,
       1920
     ),
     siteGutterMinPx: asBoundedNumber(
-      record.siteGutterMinPx ?? record.site_gutter_min_px,
+      record.siteGutterMinPx,
       DEFAULT_SITE_LAYOUT_SETTINGS.siteGutterMinPx,
       0,
       64
     ),
     siteGutterMaxPx: asBoundedNumber(
-      record.siteGutterMaxPx ?? record.site_gutter_max_px,
+      record.siteGutterMaxPx,
       DEFAULT_SITE_LAYOUT_SETTINGS.siteGutterMaxPx,
       0,
       96
@@ -706,13 +679,6 @@ function normalizeTopBarCenterOffset(value: unknown) {
   );
 }
 
-export function normalizeSiteNavigationTopBarOffset(value: unknown) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 0;
-  const stepped = Math.round(numeric / SITE_NAVIGATION_TOP_BAR_OFFSET_STEP) * SITE_NAVIGATION_TOP_BAR_OFFSET_STEP;
-  return Math.min(SITE_NAVIGATION_TOP_BAR_OFFSET_MAX, Math.max(SITE_NAVIGATION_TOP_BAR_OFFSET_MIN, stepped));
-}
-
 function asTopBarZoneWidthMode(value: unknown, fallback: SiteNavigationTopBarZoneWidthMode): SiteNavigationTopBarZoneWidthMode {
   return value === 'auto' || value === 'fixed' || value === 'fill' ? value : fallback;
 }
@@ -722,12 +688,12 @@ function normalizeTopBarZoneWidthSettings(
   fallback: SiteNavigationTopBarZoneWidthSettings
 ): SiteNavigationTopBarZoneWidthSettings {
   const record = asRecord(value);
-  const widthMode = asTopBarZoneWidthMode(record.widthMode ?? record.width_mode, fallback.widthMode);
+  const widthMode = asTopBarZoneWidthMode(record.widthMode, fallback.widthMode);
 
   return {
     widthMode,
     widthPx: widthMode === 'fixed'
-      ? asNullableBoundedNumber(record.widthPx ?? record.width_px, fallback.widthPx ?? 240, 40, 1600)
+      ? asNullableBoundedNumber(record.widthPx, fallback.widthPx ?? 240, 40, 1600)
       : null
   };
 }
@@ -752,63 +718,56 @@ function normalizeTopBarResponsiveSettings(
 ): SiteNavigationTopBarResponsiveSettings {
   const record = asRecord(value);
   const baseSettings = {
-    widthMode: asTopBarWidthMode(record.widthMode ?? record.topbar_width_mode, fallback.widthMode ?? 'match_content'),
+    widthMode: asTopBarWidthMode(record.widthMode, fallback.widthMode ?? 'match_content'),
     customMaxWidthPx: asNullableBoundedNumber(
-      record.customMaxWidthPx ?? record.topbar_custom_max_width_px,
+      record.customMaxWidthPx,
       fallback.customMaxWidthPx ?? null,
       640,
       2400
     ),
-    layoutMode: asTopBarConstraintLayoutMode(record.layoutMode ?? record.topbar_layout_mode, fallback.layoutMode ?? 'centered_nav'),
-    columnGapPx: asBoundedNumber(record.columnGapPx ?? record.topbar_column_gap_px, fallback.columnGapPx ?? 24, 0, 96),
-    itemGapPx: asBoundedNumber(record.itemGapPx ?? record.topbar_item_gap_px, fallback.itemGapPx ?? 12, 0, 64),
+    layoutMode: asTopBarConstraintLayoutMode(record.layoutMode, fallback.layoutMode ?? 'centered_nav'),
+    columnGapPx: asBoundedNumber(record.columnGapPx, fallback.columnGapPx ?? 24, 0, 96),
+    itemGapPx: asBoundedNumber(record.itemGapPx, fallback.itemGapPx ?? 12, 0, 64),
     backgroundColor: asTopBarBackgroundColor(
-      record.backgroundColor ?? record.background_color ?? record.topbar_background_color,
+      record.backgroundColor,
       fallback.backgroundColor
     ),
     backgroundOpacityPercent: asBoundedNumber(
-      record.backgroundOpacityPercent
-        ?? record.background_opacity_percent
-        ?? record.topbar_background_opacity_percent,
+      record.backgroundOpacityPercent,
       fallback.backgroundOpacityPercent,
       0,
       100
     ),
     textColor: asTopBarBackgroundColor(
-      record.textColor
-        ?? record.text_color
-        ?? record.fontColor
-        ?? record.font_color
-        ?? record.topbar_text_color
-        ?? record.topbar_font_color,
+      record.textColor,
       fallback.textColor
     ),
     fontFamily: asTopBarFontFamily(
-      record.fontFamily ?? record.font_family ?? record.topbar_font_family,
+      record.fontFamily,
       fallback.fontFamily
     ),
     fontSizePx: asBoundedNumber(
-      record.fontSizePx ?? record.font_size_px ?? record.topbar_font_size_px,
+      record.fontSizePx,
       fallback.fontSizePx,
       10,
       24
     ),
     fontWeight: asBoundedNumber(
-      record.fontWeight ?? record.font_weight ?? record.topbar_font_weight,
+      record.fontWeight,
       fallback.fontWeight,
       300,
       900,
       100
     ),
     fontStyle: asTopBarFontStyle(
-      record.fontStyle ?? record.font_style ?? record.topbar_font_style,
+      record.fontStyle,
       fallback.fontStyle
     )
   };
   const baseSettingsWithZones = {
     ...baseSettings,
     zones: normalizeTopBarZoneSettings(
-      record.zones ?? record.topbar_zones,
+      record.zones,
       fallback.zones ?? defaultTopBarZoneSettings(baseSettings.layoutMode)
     )
   };
@@ -865,14 +824,12 @@ function normalizeTopBarResponsiveItems(
   device: SiteNavigationTopBarDevice,
   value: unknown,
   fallbackItems: SiteNavigationTopBarResponsiveItem[],
-  legacyItems: SiteNavigationTopBarLayoutItem[],
   searchMode: SiteNavigationTopBarSearchMode = 'icon'
 ) {
   const hasExplicitItems = Array.isArray(value);
   const rawItems = hasExplicitItems ? value : [];
   const rawItemsById = new Map<SiteNavigationTopBarElementId, Record<string, unknown>>();
   const fallbackItemsById = new Map(fallbackItems.map((item) => [item.id, item]));
-  const legacyItemsById = new Map(legacyItems.map((item) => [item.id, item]));
 
   rawItems.forEach((rawItem) => {
     const itemRecord = asRecord(rawItem);
@@ -908,11 +865,10 @@ function normalizeTopBarResponsiveItems(
       position: index
     };
     const raw = rawItemsById.get(id);
-    const legacy = legacyItemsById.get(id);
 
     const slot = asTopBarSlot(raw?.slot, fallback.slot);
-    const widthMode = asTopBarItemWidthMode(raw?.widthMode ?? raw?.width_mode, fallback.widthMode);
-    const configuredFixedWidthPx = asNullableBoundedNumber(raw?.fixedWidthPx ?? raw?.fixed_width_px, fallback.fixedWidthPx, 0, 1200);
+    const widthMode = asTopBarItemWidthMode(raw?.widthMode, fallback.widthMode);
+    const configuredFixedWidthPx = asNullableBoundedNumber(raw?.fixedWidthPx, fallback.fixedWidthPx, 0, 1200);
     const fixedWidthPx = id === 'search' && slot !== 'menu'
       ? searchMode === 'field'
         ? Math.max(configuredFixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device))
@@ -920,14 +876,14 @@ function normalizeTopBarResponsiveItems(
       : configuredFixedWidthPx;
     const placementBoundsWidth = DEFAULT_TOP_BAR_PLACEMENT_BOUNDS_WIDTH[device];
     const widthPx = asBoundedNumber(
-      raw?.widthPx ?? raw?.width_px,
+      raw?.widthPx,
       fallback.widthPx ?? fixedWidthPx ?? 88,
       1,
       1600
     );
-    const xPx = asBoundedNumber(raw?.xPx ?? raw?.x_px, fallback.xPx, 0, 2400);
+    const xPx = asBoundedNumber(raw?.xPx, fallback.xPx, 0, 2400);
     const xRatio = asBoundedNumber(
-      raw?.xRatio ?? raw?.x_ratio,
+      raw?.xRatio,
       placementBoundsWidth > 0 ? xPx / placementBoundsWidth : fallback.xRatio,
       0,
       1,
@@ -937,20 +893,20 @@ function normalizeTopBarResponsiveItems(
     return {
       id,
       slot,
-      orderIndex: asBoundedNumber(raw?.orderIndex ?? raw?.order_index, fallback.orderIndex, 0, 99),
+      orderIndex: asBoundedNumber(raw?.orderIndex, fallback.orderIndex, 0, 99),
       widthMode,
       fixedWidthPx,
-      minWidthPx: asNullableBoundedNumber(raw?.minWidthPx ?? raw?.min_width_px, fallback.minWidthPx, 0, 1200),
-      maxWidthPx: asNullableBoundedNumber(raw?.maxWidthPx ?? raw?.max_width_px, fallback.maxWidthPx, 0, 1600),
-      marginBeforePx: asBoundedNumber(raw?.marginBeforePx ?? raw?.margin_before_px, fallback.marginBeforePx, -128, 128),
-      marginAfterPx: asBoundedNumber(raw?.marginAfterPx ?? raw?.margin_after_px, fallback.marginAfterPx, -128, 128),
+      minWidthPx: asNullableBoundedNumber(raw?.minWidthPx, fallback.minWidthPx, 0, 1200),
+      maxWidthPx: asNullableBoundedNumber(raw?.maxWidthPx, fallback.maxWidthPx, 0, 1600),
+      marginBeforePx: asBoundedNumber(raw?.marginBeforePx, fallback.marginBeforePx, -128, 128),
+      marginAfterPx: asBoundedNumber(raw?.marginAfterPx, fallback.marginAfterPx, -128, 128),
       xPx,
       xRatio,
       widthPx,
-      widthEditable: asVisible(raw?.widthEditable ?? raw?.width_editable ?? fallback.widthEditable),
-      zIndex: asBoundedNumber(raw?.zIndex ?? raw?.z_index, fallback.zIndex, 0, 999),
+      widthEditable: asVisible(raw?.widthEditable ?? fallback.widthEditable),
+      zIndex: asBoundedNumber(raw?.zIndex, fallback.zIndex, 0, 999),
       region: asTopBarRegion(raw?.region, fallback.region),
-      visible: asVisible(raw?.visible ?? (device === 'desktop' ? legacy?.visible : undefined) ?? fallback.visible),
+      visible: asVisible(raw?.visible ?? fallback.visible),
       offsetFromCenter: normalizeTopBarCenterOffset(raw?.offsetFromCenter ?? fallback.offsetFromCenter),
       position: asPosition(raw?.position, fallback.position)
     };
@@ -958,8 +914,7 @@ function normalizeTopBarResponsiveItems(
 }
 
 export function normalizeSiteNavigationTopBarResponsiveLayouts(
-  value: unknown,
-  legacyItems: SiteNavigationTopBarLayoutItem[] = DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.items
+  value: unknown
 ): SiteNavigationTopBarResponsiveLayouts {
   const record = asRecord(value);
   const defaultLayouts = DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive;
@@ -971,7 +926,7 @@ export function normalizeSiteNavigationTopBarResponsiveLayouts(
     const settings = normalizeTopBarResponsiveSettings(device, rawLayout.settings, fallback.settings);
 
     layouts[device] = {
-      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, legacyItems, settings.searchMode),
+      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, settings.searchMode),
       settings
     };
 
@@ -981,28 +936,8 @@ export function normalizeSiteNavigationTopBarResponsiveLayouts(
 
 export function normalizeSiteNavigationTopBarLayout(value: unknown): SiteNavigationTopBarLayout {
   const record = asRecord(value);
-  const mode = asTopBarLayoutMode(record.mode);
-  const rawItems = Array.isArray(record.items) ? record.items : [];
-  const rawItemsById = new Map<SiteNavigationTopBarElementId, Record<string, unknown>>();
-
-  rawItems.forEach((rawItem) => {
-    const itemRecord = asRecord(rawItem);
-    const itemId = itemRecord.id;
-    if (SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS.some((id) => id === itemId)) {
-      rawItemsById.set(itemId as SiteNavigationTopBarElementId, itemRecord);
-    }
-  });
-
-  const items = SITE_NAVIGATION_TOP_BAR_ELEMENT_IDS.map((id) => ({
-    id,
-    offset: mode === 'manual' ? normalizeSiteNavigationTopBarOffset(rawItemsById.get(id)?.offset) : 0,
-    visible: asVisible(rawItemsById.get(id)?.visible)
-  }));
-
   return {
-    mode,
-    items,
-    responsive: normalizeSiteNavigationTopBarResponsiveLayouts(record.responsive, items)
+    responsive: normalizeSiteNavigationTopBarResponsiveLayouts(record.responsive)
   };
 }
 
@@ -1010,8 +945,7 @@ export function toLucideIconName(icon: unknown): SiteNavigationItemIcon {
   if (typeof icon !== 'string') return defaultIcon;
   const normalizedIcon = icon.trim().toLowerCase();
   if (!normalizedIcon) return defaultIcon;
-  const aliasedIcon = legacySiteNavigationIconAliases[normalizedIcon] ?? normalizedIcon;
-  return lucideIconNamePattern.test(aliasedIcon) ? aliasedIcon : defaultIcon;
+  return lucideIconNamePattern.test(normalizedIcon) ? normalizedIcon : defaultIcon;
 }
 
 function asIcon(value: unknown): SiteNavigationItemIcon {
@@ -1020,76 +954,6 @@ function asIcon(value: unknown): SiteNavigationItemIcon {
 
 function sortByPosition<T extends { position: number }>(items: T[]) {
   return [...items].sort((a, b) => a.position - b.position);
-}
-
-type LegacySiteNavigationFooterLink = HomepageFooterLink & {
-  visible: boolean;
-  position: number;
-};
-
-function normalizeLegacySiteNavigationFooterLinks(rawLinks: unknown[]): LegacySiteNavigationFooterLink[] {
-  return rawLinks
-    .map((rawLink, linkIndex): LegacySiteNavigationFooterLink => {
-      const linkRecord = asRecord(rawLink);
-      return {
-        id: asString(linkRecord.id, `footer-link-${linkIndex + 1}`),
-        label: asString(linkRecord.label, `Povezava ${linkIndex + 1}`),
-        href: asString(linkRecord.href ?? linkRecord.url, '#'),
-        visible: asVisible(linkRecord.visible),
-        position: asPosition(linkRecord.position, linkIndex)
-      };
-    })
-    .sort((first, second) => first.position - second.position)
-    .map((link, position) => ({ ...link, position }));
-}
-
-function migrateLegacyFooterLinks(rawLinks: unknown[] | null): HomepageFooterSettings {
-  const footer = normalizeHomepageFooterSettings(DEFAULT_HOMEPAGE_SETTINGS.footer);
-  if (rawLinks === null || rawLinks.length === 0) return footer;
-
-  const legacyLinks = normalizeLegacySiteNavigationFooterLinks(rawLinks);
-  const availableLinks = footer.columns.flatMap((column) =>
-    column.links.map((link) => ({ column, link }))
-  );
-  const matchedLinks = new Set<HomepageFooterLink>();
-  const unmatchedLinks: LegacySiteNavigationFooterLink[] = [];
-
-  legacyLinks.forEach((legacyLink) => {
-    const normalizedLabel = legacyLink.label.toLocaleLowerCase();
-    const exactLabelMatch = availableLinks.find(({ link }) =>
-      !matchedLinks.has(link) &&
-      link.href === legacyLink.href &&
-      link.label.toLocaleLowerCase() === normalizedLabel
-    );
-    const hrefMatch = exactLabelMatch ?? availableLinks.find(({ link }) =>
-      !matchedLinks.has(link) && link.href === legacyLink.href
-    );
-
-    if (!hrefMatch) {
-      unmatchedLinks.push(legacyLink);
-      return;
-    }
-
-    Object.assign(hrefMatch.link, legacyLink);
-    matchedLinks.add(hrefMatch.link);
-  });
-
-  if (unmatchedLinks.length > 0) {
-    const linksColumn = footer.columns.find((column) => column.title.toLocaleLowerCase() === 'povezave');
-    if (linksColumn) {
-      linksColumn.links.push(...unmatchedLinks);
-    } else {
-      footer.columns.push({
-        id: 'legacy-footer-links',
-        title: 'Povezave',
-        visible: true,
-        position: footer.columns.length,
-        links: unmatchedLinks
-      });
-    }
-  }
-
-  return normalizeHomepageFooterSettings(footer);
 }
 
 function getDesktopGroupSpan(group: SiteNavigationGroup) {
@@ -1133,19 +997,11 @@ export function cloneDefaultSiteNavigationConfig() {
 export function normalizeSiteNavigationConfig(value: unknown): SiteNavigationConfig {
   const record = asRecord(value);
   const rawItems = Array.isArray(record.items) ? record.items : [];
-  const rawFooterLinks = Array.isArray(record.footerLinks)
-    ? record.footerLinks
-    : Array.isArray(record.footer_links)
-      ? record.footer_links
-      : null;
-  const siteLayout = normalizeSiteLayoutSettings(record.siteLayout ?? record.site_layout);
+  const siteLayout = normalizeSiteLayoutSettings(record.siteLayout);
   const topBarLayout = normalizeSiteNavigationTopBarLayout(record.topBarLayout);
   const topBarInitialLayout = normalizeSiteNavigationTopBarLayout(record.topBarInitialLayout);
   const updatedAt = typeof record.updatedAt === 'string' ? record.updatedAt : null;
-  const hasRichFooter = typeof record.footer === 'object' && record.footer !== null && !Array.isArray(record.footer);
-  const footer = hasRichFooter
-    ? normalizeHomepageFooterSettings(record.footer)
-    : migrateLegacyFooterLinks(rawFooterLinks);
+  const footer = normalizeHomepageFooterSettings(record.footer);
 
   if (rawItems.length === 0) {
     return {

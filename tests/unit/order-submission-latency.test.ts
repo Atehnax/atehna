@@ -18,16 +18,30 @@ test('order submission copy distinguishes committed orders from pending confirma
   });
   assert.deepEqual(getOrderSubmissionStatusContent('pending_confirmation'), {
     eyebrow: 'Potrditev',
-    heading: 'Zahteva je prejeta',
+    heading: 'Naročilo je prejeto',
     description:
-      'Vašo zahtevo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico. Zaloga do potrditve še ni rezervirana.',
+      'Vaše naročilo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico. Zaloga do potrditve še ni rezervirana.',
     symbol: '…',
-    tone: 'warning'
+    tone: 'info'
   });
+  assert.deepEqual(getOrderSubmissionStatusContent('rejected'), {
+    eyebrow: 'Stanje naročila',
+    heading: 'Naročilo ni bilo potrjeno',
+    description:
+      'Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
+    symbol: '!',
+    tone: 'danger'
+  });
+  assert.doesNotMatch(
+    getOrderSubmissionStatusContent('rejected').description,
+    /številk[ao] naročila/iu
+  );
 });
 
-test('order creation responds after commit without awaiting fallible post-commit work', () => {
+test('order creation durably enqueues its summary before commit without awaiting generation', () => {
   const routeSource = source('src/commercial/api/orders/route.ts');
+  const jobSource = source('src/shared/server/orderSummaryJobs.ts');
+  const schemaSource = source('database/schema.sql');
   const postHandlerIndex = routeSource.indexOf(
     'export async function POST(request: Request)'
   );
@@ -35,12 +49,16 @@ test('order creation responds after commit without awaiting fallible post-commit
     'const storedResponse: StoredOrderResponse',
     postHandlerIndex
   );
-  const commitIndex = routeSource.indexOf(
-    "await client.query('commit');",
+  const enqueueIndex = routeSource.indexOf(
+    'await enqueueInitialOrderSummaryJob(client, storedResponse);',
     storedResponseIndex
   );
+  const commitIndex = routeSource.indexOf(
+    "await client.query('commit');",
+    enqueueIndex
+  );
   const scheduleIndex = routeSource.indexOf(
-    'scheduleInitialOrderSummary(pool, storedResponse, keyHash);',
+    'scheduleInitialOrderSummaryJob(pool, inserted.orderId);',
     commitIndex
   );
   const immediateRevalidationIndex = routeSource.indexOf(
@@ -48,95 +66,190 @@ test('order creation responds after commit without awaiting fallible post-commit
     scheduleIndex
   );
   const responseIndex = routeSource.indexOf(
-    'return NextResponse.json(',
+    'return createCustomerOrderResponse(',
     immediateRevalidationIndex
   );
 
   assert.ok(
-    commitIndex >= 0 &&
+    enqueueIndex >= 0 &&
+      enqueueIndex < commitIndex &&
       commitIndex < scheduleIndex &&
       scheduleIndex < immediateRevalidationIndex &&
       immediateRevalidationIndex < responseIndex,
-    'tracked summary work must be registered before guarded cache invalidation and the response'
+    'the durable job must commit before best-effort processing is scheduled and the response is returned'
   );
   assert.doesNotMatch(
     routeSource.slice(commitIndex, responseIndex),
-    /createInitialOrderSummary/u,
+    /await processInitialOrderSummaryJob/u,
     'document generation must not be awaited in the response critical path'
   );
   assert.match(
-    routeSource.slice(responseIndex, responseIndex + 220),
-    /\.\.\.storedResponse/u
+    schemaSource,
+    /create table order_document_jobs[\s\S]*?unique \(order_id, document_type\)/u
   );
   assert.match(
-    routeSource,
-    /function safelyRevalidateAdminOrderPaths[\s\S]*?try \{[\s\S]*?revalidateAdminOrderPaths\(orderId\);[\s\S]*?catch/u
+    jobSource,
+    /function scheduleInitialOrderSummaryJob[\s\S]*?after\(async \(\) => \{[\s\S]*?processInitialOrderSummaryJob/u,
+    'after() is only a low-latency trigger for work already persisted in the order transaction'
   );
-  assert.match(
-    routeSource,
-    /function scheduleInitialOrderSummary[\s\S]*?after\(async \(\) => \{[\s\S]*?await createInitialOrderSummary/u
-  );
+  assert.match(jobSource, /status = 'pending'[\s\S]*?next_attempt_at/u);
+  assert.match(jobSource, /status = 'processing'[\s\S]*?locked_at/u);
+  assert.match(jobSource, /status = 'completed'/u);
+  assert.match(jobSource, /power\(2, least\(attempts, 6\)\)/u);
 });
 
-test('idempotent replay repairs a missing summary without delaying its response', () => {
+test('idempotent replay and authenticated confirmation retrigger the durable summary job', () => {
   const routeSource = source('src/commercial/api/orders/route.ts');
+  const jobSource = source('src/shared/server/orderSummaryJobs.ts');
+  const confirmationSource = source(
+    'src/commercial/api/orders/confirmation/route.ts'
+  );
   const replayIndex = routeSource.indexOf("if (reservation.kind === 'replay')");
   const replayResponseIndex = routeSource.indexOf(
-    'return NextResponse.json(',
+    'return createCustomerOrderResponse(',
     replayIndex
   );
   const replaySource = routeSource.slice(replayIndex, replayResponseIndex);
 
   assert.match(
     replaySource,
-    /if \(!reservation\.response\.documentUrl\) \{[\s\S]*?scheduleInitialOrderSummary\(pool, reservation\.response, keyHash\);/u
+    /scheduleInitialOrderSummaryJob\(pool, reservation\.orderId\);/u
   );
-  assert.doesNotMatch(replaySource, /await createInitialOrderSummary/u);
+  assert.doesNotMatch(replaySource, /await processInitialOrderSummaryJob/u);
   assert.match(
+    confirmationSource,
+    /verifyConfirmationRequest[\s\S]*?scheduleConfirmationDocumentRepairSafely\([\s\S]*?scheduleInitialOrderSummaryJob\(pool, access\.orderId\)[\s\S]*?reportDocumentSubsystemFailure\('scheduling', access\.orderId, error\)/u,
+    'only a verified customer confirmation request may trigger customer-side repair'
+  );
+  assert.match(
+    jobSource,
+    /status = 'processing'[\s\S]*?locked_at <= now\(\) - \$2::interval/u,
+    'a crashed worker claim must become retryable'
+  );
+  assert.match(
+    jobSource,
+    /select 1[\s\S]*?from order_documents[\s\S]*?type = 'order_summary'[\s\S]*?deleted_at is null[\s\S]*?limit 1/u,
+    'concurrent repairs should deduplicate against an already-persisted summary'
+  );
+  assert.match(
+    jobSource,
+    /where id = \$1[\s\S]*?and claim_id = \$2/u,
+    'a stale worker must not overwrite the retry state of a newer claim'
+  );
+  assert.doesNotMatch(
+    jobSource,
+    /select blob_url/u,
+    'summary repair needs only an existence sentinel, never a raw Blob location'
+  );
+  assert.doesNotMatch(
     routeSource,
-    /select blob_url[\s\S]*?type = 'order_summary'[\s\S]*?limit 1/u,
-    'concurrent repairs should reuse an already-persisted summary'
+    /createInitialOrderSummary/u,
+    'the request route must not retain the superseded one-shot generator'
   );
 });
 
-test('checkout commits its transition before isolated cleanup and navigation', () => {
+test('checkout keeps an accessible loading handoff visible through cleanup and navigation', () => {
   const pageSource = source(
     'src/commercial/order/components/OrderPageClient.tsx'
   );
-  const submittedIndex = pageSource.indexOf('setSubmittedOrder({');
-  const submitCatchIndex = pageSource.indexOf('} catch (error) {', submittedIndex);
-  const submitSuccessSource = pageSource.slice(submittedIndex, submitCatchIndex);
-  const transitionEffectIndex = pageSource.indexOf(
-    'if (!submittedOrder || submittedTransitionHandledRef.current) return;'
+  const loadingSource = source(
+    'src/commercial/order/components/OrderLoadingState.tsx'
   );
-  const clearCartIndex = pageSource.indexOf('clearCart();', transitionEffectIndex);
-  const navigationIndex = pageSource.indexOf(
-    'router.push(submittedOrder.confirmationUrl);',
+  const submittingIndex = pageSource.indexOf(
+    "setSubmissionPhase('submitting');"
+  );
+  const selectorIndex = pageSource.indexOf(
+    'storeOrderAccessId(accessId);'
+  );
+  const openingIndex = pageSource.indexOf(
+    "setSubmissionPhase('opening-confirmation');",
+    selectorIndex
+  );
+  const clearCartIndex = pageSource.indexOf('clearCart();', openingIndex);
+  const clearFormIndex = pageSource.indexOf(
+    'sessionStorage.removeItem(FORM_STORAGE_KEY);',
     clearCartIndex
   );
-  const transitionBranchIndex = pageSource.indexOf('if (submittedOrder) {');
-  const emptyCartBranchIndex = pageSource.indexOf('if (items.length === 0) {');
+  const navigationIndex = pageSource.indexOf(
+    "window.location.replace('/order/confirmation');",
+    clearFormIndex
+  );
+  const errorResetIndex = pageSource.indexOf(
+    "setSubmissionPhase('idle');",
+    navigationIndex
+  );
+  const handoffBranchIndex = pageSource.indexOf(
+    "if (submissionPhase !== 'idle') {"
+  );
+  const emptyCartBranchIndex = pageSource.indexOf(
+    'if (items.length === 0) {'
+  );
 
   assert.ok(
-    submittedIndex >= 0 && transitionEffectIndex >= 0,
-    'the committed transition and its follow-up effect must exist'
+    submittingIndex >= 0 &&
+      submittingIndex < selectorIndex &&
+      selectorIndex < openingIndex &&
+      openingIndex < clearCartIndex &&
+      clearCartIndex < clearFormIndex &&
+      clearFormIndex < navigationIndex,
+    'submission must visibly advance to confirmation handoff before cart cleanup and navigation'
+  );
+  assert.ok(
+    errorResetIndex > navigationIndex,
+    'a failed request must restore the checkout instead of leaving it in a loading state'
+  );
+  assert.ok(
+    handoffBranchIndex >= 0 && handoffBranchIndex < emptyCartBranchIndex,
+    'the loading handoff must win over the empty-cart fallback after successful cleanup'
+  );
+  assert.match(
+    pageSource,
+    /flushSync\(\(\) => \{\s*setSubmissionPhase\('opening-confirmation'\);\s*\}\);/u,
+    'the success handoff must commit before synchronous cart cleanup and navigation'
+  );
+  assert.match(pageSource, /testId="order-submission-handoff"/u);
+  assert.match(pageSource, /spinnerTestId="order-submission-spinner"/u);
+  assert.match(loadingSource, /role="status"/u);
+  assert.match(loadingSource, /aria-live="polite"/u);
+  assert.match(loadingSource, /aria-atomic="true"/u);
+  assert.match(loadingSource, /aria-busy="true"/u);
+  assert.match(loadingSource, /animate-spin/u);
+  assert.match(loadingSource, /motion-reduce:animate-none/u);
+  assert.match(loadingSource, /var\(--site-color-primary\)/u);
+  assert.match(pageSource, /Oddajamo naročilo/u);
+  assert.match(pageSource, /Odpiramo potrditev naročila/u);
+  assert.match(pageSource, /ne zapirajte strani/u);
+  assert.match(
+    pageSource,
+    /window\.location\.replace\('\/order\/confirmation'\);/u,
+    'confirmation navigation must remain a bare URL without a customer credential'
   );
   assert.doesNotMatch(
-    submitSuccessSource,
-    /clearCart\(\)|sessionStorage\.removeItem|router\.push/u,
-    'cleanup and navigation must wait for the committed transition effect'
+    pageSource.slice(navigationIndex, navigationIndex + 90),
+    /[?#]|access|token/iu,
+    'confirmation navigation must not leak an access selector or token in the URL'
   );
-  assert.ok(
-    transitionEffectIndex < clearCartIndex && clearCartIndex < navigationIndex,
-    'cleanup and navigation should run only inside the guarded transition effect'
+});
+
+test('the confirmation destination immediately renders the shared accessible loader', () => {
+  const pageSource = source(
+    'src/commercial/order/components/OrderConfirmationPageClient.tsx'
   );
-  assert.ok(
-    transitionBranchIndex >= 0 && transitionBranchIndex < emptyCartBranchIndex,
-    'the committed transition must win over the empty-cart fallback'
+  const loadingSource = source(
+    'src/commercial/order/components/OrderLoadingState.tsx'
   );
-  assert.match(pageSource, /<OrderSubmissionStatus/u);
-  assert.match(pageSource, /data-testid="order-submission-transition"/u);
-  assert.match(pageSource, /confirmationUrl,/u);
-  assert.match(pageSource, /href=\{submittedOrder\.confirmationUrl\}/u);
-  assert.match(pageSource, /Odpri potrditev naročila/u);
+
+  assert.match(
+    pageSource,
+    /if \(state\.status === 'loading'\) \{[\s\S]*?<OrderLoadingState/u
+  );
+  assert.match(pageSource, /heading="Nalagamo potrditev naročila"/u);
+  assert.match(pageSource, /Prosimo, počakajte/u);
+  assert.match(pageSource, /ariaLabel="Nalaganje potrditve naročila"/u);
+  assert.match(pageSource, /testId="order-confirmation-loading"/u);
+  assert.match(loadingSource, /role="status"/u);
+  assert.match(loadingSource, /aria-live="polite"/u);
+  assert.match(loadingSource, /aria-atomic="true"/u);
+  assert.match(loadingSource, /aria-busy="true"/u);
+  assert.match(loadingSource, /animate-spin/u);
 });

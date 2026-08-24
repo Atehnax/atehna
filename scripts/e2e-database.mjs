@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, rm } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -8,11 +8,11 @@ import pg from 'pg';
 const { Pool } = pg;
 const scriptPath = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(scriptPath), '..');
-const migrationsDirectory = resolve(projectRoot, 'migrations');
+const schemaPath = resolve(projectRoot, 'database', 'schema.sql');
 const seedPath = resolve(projectRoot, 'tests', 'fixtures', 'e2e-seed.sql');
 const nextRuntimeCacheDirectory = resolve(projectRoot, '.next', 'cache');
 const seedVersion = '2026-08-16.1';
-const migrationPattern = /^(\d{3})_[a-z0-9_]+\.sql$/u;
+const e2eSchemaStateKey = 'canonical-schema';
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 const defaultPostgresPort = 5432;
 
@@ -114,24 +114,10 @@ function sha256(source) {
   return createHash('sha256').update(source, 'utf8').digest('hex');
 }
 
-async function loadMigrations() {
-  const fileNames = (await readdir(migrationsDirectory))
-    .filter((fileName) => migrationPattern.test(fileName))
-    .sort((left, right) => left.localeCompare(right, 'en'));
-
-  if (fileNames.length === 0) fail('No numbered SQL migrations were found.');
-  fileNames.forEach((fileName, index) => {
-    const match = migrationPattern.exec(fileName);
-    const expectedNumber = index + 1;
-    if (!match || Number(match[1]) !== expectedNumber) {
-      fail(`Migration numbering must be contiguous from 001; expected ${String(expectedNumber).padStart(3, '0')}, found ${fileName}.`);
-    }
-  });
-
-  return Promise.all(fileNames.map(async (fileName) => {
-    const sql = await readFile(resolve(migrationsDirectory, fileName), 'utf8');
-    return { fileName, sql, checksum: sha256(sql) };
-  }));
+async function loadCanonicalSchema() {
+  const sql = await readFile(schemaPath, 'utf8');
+  if (!sql.trim()) fail('Canonical SQL schema is empty.');
+  return sql;
 }
 
 function createPool(databaseUrl) {
@@ -230,36 +216,18 @@ async function recordE2eResetOwnership(
   ]);
 }
 
-async function createMigrationLedger(pool) {
+async function recordE2eSchemaState(pool, schemaSha256) {
   await pool.query(`
-    create table if not exists e2e_schema_migrations (
-      filename text primary key,
+    create table e2e_schema_state (
+      key text primary key,
       sha256 text not null check (length(sha256) = 64),
-      applied_at timestamptz not null default now()
+      recorded_at timestamptz not null default now()
     )
   `);
-}
-
-async function applyMigrations(pool, migrations) {
-  await createMigrationLedger(pool);
-  for (const migration of migrations) {
-    const existing = await pool.query(
-      'select sha256 from e2e_schema_migrations where filename = $1',
-      [migration.fileName]
-    );
-    if (existing.rows[0]) {
-      if (existing.rows[0].sha256 !== migration.checksum) {
-        fail(`Migration checksum changed after application: ${migration.fileName}.`);
-      }
-      continue;
-    }
-
-    await pool.query(migration.sql);
-    await pool.query(
-      'insert into e2e_schema_migrations (filename, sha256) values ($1, $2)',
-      [migration.fileName, migration.checksum]
-    );
-  }
+  await pool.query(
+    'insert into e2e_schema_state (key, sha256) values ($1, $2)',
+    [e2eSchemaStateKey, schemaSha256]
+  );
 }
 
 async function seedDatabase(pool) {
@@ -267,7 +235,7 @@ async function seedDatabase(pool) {
   const seedChecksum = sha256(seedSql);
   await pool.query(seedSql);
   await pool.query(`
-    create table if not exists e2e_seed_metadata (
+    create table e2e_seed_metadata (
       key text primary key,
       version text not null,
       sha256 text not null check (length(sha256) = 64),
@@ -276,38 +244,22 @@ async function seedDatabase(pool) {
   `);
   await pool.query(
     `insert into e2e_seed_metadata (key, version, sha256, seeded_at)
-     values ('deterministic-fixture', $1, $2, now())
-     on conflict (key) do update
-       set version = excluded.version,
-           sha256 = excluded.sha256,
-           seeded_at = excluded.seeded_at`,
+     values ('deterministic-fixture', $1, $2, now())`,
     [seedVersion, seedChecksum]
   );
   return seedChecksum;
 }
 
-async function verifyDatabase(pool, migrations, seedChecksum) {
-  await pool.query('select 1');
-
-  const applied = await pool.query(
-    'select filename, sha256 from e2e_schema_migrations order by filename'
+export async function verifyCanonicalE2eSchemaState(
+  pool,
+  expectedSchemaSha256
+) {
+  const stateResult = await pool.query(
+    'select sha256 from e2e_schema_state where key = $1',
+    [e2eSchemaStateKey]
   );
-  if (applied.rows.length !== migrations.length) {
-    fail(`Expected ${migrations.length} applied migrations, found ${applied.rows.length}.`);
-  }
-  for (const [index, migration] of migrations.entries()) {
-    const row = applied.rows[index];
-    if (row?.filename !== migration.fileName || row.sha256 !== migration.checksum) {
-      fail(`Migration ledger mismatch for ${migration.fileName}.`);
-    }
-  }
-
-  const extensions = await pool.query(
-    "select extname from pg_extension where extname = any(array['pgcrypto', 'pg_trgm'])"
-  );
-  const extensionNames = new Set(extensions.rows.map((row) => row.extname));
-  for (const extension of ['pgcrypto', 'pg_trgm']) {
-    if (!extensionNames.has(extension)) fail(`Required PostgreSQL extension is missing: ${extension}.`);
+  if (stateResult.rows[0]?.sha256 !== expectedSchemaSha256) {
+    fail('The isolated database canonical-schema fingerprint is missing or stale.');
   }
 
   const schemaProbe = await pool.query(`
@@ -317,6 +269,7 @@ async function verifyDatabase(pool, migrations, seedChecksum) {
       to_regclass('public.catalog_media') is not null as has_catalog_media,
       to_regclass('public.product_appearance_settings') is not null as has_product_appearance,
       to_regclass('public.gurs_addresses') is not null as has_gurs_addresses,
+      to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
       exists (
         select 1 from information_schema.columns
         where table_schema = 'public'
@@ -335,7 +288,20 @@ async function verifyDatabase(pool, migrations, seedChecksum) {
     .filter(([, present]) => present !== true)
     .map(([name]) => name);
   if (missingSchemaChecks.length > 0) {
-    fail(`Required migrated schema is incomplete: ${missingSchemaChecks.join(', ')}.`);
+    fail(`Required canonical schema is incomplete: ${missingSchemaChecks.join(', ')}.`);
+  }
+}
+
+async function verifyDatabase(pool, schemaSha256, seedChecksum) {
+  await pool.query('select 1');
+  await verifyCanonicalE2eSchemaState(pool, schemaSha256);
+
+  const extensions = await pool.query(
+    "select extname from pg_extension where extname = any(array['pgcrypto', 'pg_trgm'])"
+  );
+  const extensionNames = new Set(extensions.rows.map((row) => row.extname));
+  for (const extension of ['pgcrypto', 'pg_trgm']) {
+    if (!extensionNames.has(extension)) fail(`Required PostgreSQL extension is missing: ${extension}.`);
   }
 
   const seedProbe = await pool.query(`
@@ -388,12 +354,13 @@ async function verifyDatabase(pool, migrations, seedChecksum) {
 
 export async function checkE2eDatabase() {
   const { databaseUrl, databaseName } = readE2eEnvironment();
-  const migrations = await loadMigrations();
+  const schemaSql = await loadCanonicalSchema();
+  const schemaSha256 = sha256(schemaSql);
   const seedSql = await readFile(seedPath, 'utf8');
   const pool = createPool(databaseUrl);
   try {
-    await verifyDatabase(pool, migrations, sha256(seedSql));
-    return { databaseName, migrationCount: migrations.length };
+    await verifyDatabase(pool, schemaSha256, sha256(seedSql));
+    return { databaseName, schemaSha256 };
   } finally {
     await pool.end();
   }
@@ -407,7 +374,8 @@ export async function prepareE2eDatabase() {
     storageNamespace,
     resetOwnershipHash
   } = readE2eEnvironment();
-  const migrations = await loadMigrations();
+  const schemaSql = await loadCanonicalSchema();
+  const schemaSha256 = sha256(schemaSql);
   const pool = createPool(databaseUrl);
   try {
     await verifyE2eResetTarget(
@@ -418,7 +386,8 @@ export async function prepareE2eDatabase() {
     );
     await pool.query('drop schema if exists public cascade');
     await pool.query('create schema public');
-    await applyMigrations(pool, migrations);
+    await pool.query(schemaSql);
+    await recordE2eSchemaState(pool, schemaSha256);
     const seedChecksum = await seedDatabase(pool);
     await recordE2eResetOwnership(
       pool,
@@ -426,9 +395,9 @@ export async function prepareE2eDatabase() {
       storageNamespace,
       resetOwnershipHash
     );
-    await verifyDatabase(pool, migrations, seedChecksum);
+    await verifyDatabase(pool, schemaSha256, seedChecksum);
     await rm(nextRuntimeCacheDirectory, { recursive: true, force: true });
-    return { databaseName, migrationCount: migrations.length };
+    return { databaseName, schemaSha256 };
   } finally {
     await pool.end();
   }
@@ -443,7 +412,7 @@ async function main() {
     ? await prepareE2eDatabase()
     : await checkE2eDatabase();
   console.info(
-    `[e2e-preflight] ${command === 'prepare' ? 'Prepared' : 'Verified'} isolated database ${result.databaseName} with ${result.migrationCount} migrations.`
+    `[e2e-preflight] ${command === 'prepare' ? 'Prepared' : 'Verified'} isolated database ${result.databaseName} with the canonical schema.`
   );
 }
 

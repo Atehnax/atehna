@@ -199,11 +199,14 @@ describe('product canvas dimension resizing', () => {
         mode: 'free',
         elements: {
           'product-gallery': {
-            aspectRatioLocked: true,
-            widthPx: 640,
-            heightPx: 360,
             responsive: {
+              desktop: {
+                aspectRatioLocked: true,
+                widthPx: 640,
+                heightPx: 360
+              },
               tablet: {
+                aspectRatioLocked: true,
                 widthPx: 480,
                 heightPx: 270
               },

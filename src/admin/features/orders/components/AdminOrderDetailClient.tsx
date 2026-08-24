@@ -66,10 +66,9 @@ type NormalizedOrder = {
   organization_name: string;
   contact_name: string;
   email: string;
-  delivery_address: string;
-  address_line1?: string | null;
-  postal_code?: string | null;
-  city?: string | null;
+  address_line1: string;
+  postal_code: string;
+  city: string;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   reference: string;
   notes: string;
@@ -162,23 +161,14 @@ const toApiOrderDate = (value: string) => {
 };
 
 const asDetailData = (order: NormalizedOrder): DetailData => ({
-  postalCode:
-    (typeof order.postal_code === 'string' && order.postal_code.trim()) ||
-    (order.delivery_address?.match(/\b\d{4}\b/)?.[0] ?? ''),
+  postalCode: order.postal_code.trim(),
   orderDate: toDisplayOrderDate(order.created_at),
   customerType: order.customer_type,
   organizationName: order.organization_name?.trim() ? order.organization_name : order.contact_name,
   contactName: order.contact_name,
   email: order.email,
-  city:
-    (typeof order.city === 'string' && order.city.trim())
-    || (order.delivery_address?.match(/\b\d{4}\s+([^,]+)$/)?.[1]?.trim() ?? ''),
-  deliveryAddress:
-    (typeof order.address_line1 === 'string' && order.address_line1.trim())
-    || (order.delivery_address ?? '')
-      .replace(/,?\s*\b\d{4}\b.*$/g, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim(),
+  city: order.city.trim(),
+  deliveryAddress: order.address_line1.trim(),
   notes: order.notes?.trim() ? order.notes : '',
   status: order.status,
   paymentStatus: isPaymentStatus(order.payment_status ?? '') ? order.payment_status : 'unpaid'
@@ -812,7 +802,6 @@ export default function AdminOrderDetailClient({
             organizationName: draftDetails.organizationName,
             contactName: draftDetails.organizationName.trim() || draftDetails.contactName.trim(),
             email: draftDetails.email,
-            deliveryAddress: draftDetails.deliveryAddress,
             addressLine1: draftDetails.deliveryAddress,
             postalCode: draftDetails.postalCode,
             city: draftDetails.city,

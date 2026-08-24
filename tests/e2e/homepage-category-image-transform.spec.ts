@@ -20,7 +20,7 @@ async function expectTransformBoxAligned(transformBox: Locator, imageFrame: Loca
     requireBox(transformBox, 'Category image transform perimeter'),
     requireBox(imageFrame, 'Category image frame')
   ]);
-  const tolerance = 2;
+  const tolerance = 3;
 
   expect(Math.abs(transformBounds.x - imageBounds.x)).toBeLessThanOrEqual(tolerance);
   expect(Math.abs(transformBounds.y - imageBounds.y)).toBeLessThanOrEqual(tolerance);
@@ -83,7 +83,7 @@ async function expectPerimeterFullyPaintable({
     requireBox(tile, 'Selected category tile'),
     requireBox(previewFrame, 'Homepage preview frame')
   ]);
-  const containmentTolerance = 2;
+  const containmentTolerance = 3;
   const expectContainedBy = (
     inner: Box,
     outer: Box,

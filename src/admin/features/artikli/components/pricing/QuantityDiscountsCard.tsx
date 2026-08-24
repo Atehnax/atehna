@@ -244,7 +244,7 @@ export function QuantityDiscountsCard({
   return (
     <section
       className={classNames(
-        embedded ? 'border-t border-slate-200 bg-white' : adminWindowCardClassName,
+        embedded ? 'overflow-hidden rounded-b-[7px] border-t border-slate-200 bg-white' : adminWindowCardClassName,
         !embedded && 'h-full p-5',
         className
       )}

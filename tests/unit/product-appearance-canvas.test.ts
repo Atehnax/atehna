@@ -22,7 +22,7 @@ const deviceSettings = (
 });
 
 describe('product appearance hybrid canvas contracts', () => {
-  test('normalization supplies canvas defaults and accepts legacy flat element settings', () => {
+  test('normalization supplies canvas defaults and accepts current responsive element settings', () => {
     const defaults = normalizeProductAppearanceConfig({});
 
     expect(defaults.canvas).toEqual(DEFAULT_PRODUCT_APPEARANCE_CONFIG.canvas);
@@ -40,15 +40,28 @@ describe('product appearance hybrid canvas contracts', () => {
         gridSizePx: 1,
         elements: {
           'product-title': {
-            visible: false,
-            locked: true,
-            offsetXPx: 17,
-            fontSizePx: 31,
-            textAlign: 'center',
             responsive: {
-              tablet: {
-                offsetXPx: 29
-              }
+              desktop: deviceSettings({
+                visible: false,
+                locked: true,
+                offsetXPx: 17,
+                fontSizePx: 31,
+                textAlign: 'center'
+              }),
+              tablet: deviceSettings({
+                visible: false,
+                locked: true,
+                offsetXPx: 29,
+                fontSizePx: 31,
+                textAlign: 'center'
+              }),
+              mobile: deviceSettings({
+                visible: false,
+                locked: true,
+                offsetXPx: 17,
+                fontSizePx: 31,
+                textAlign: 'center'
+              })
             }
           }
         }
@@ -198,16 +211,17 @@ describe('product appearance hybrid canvas contracts', () => {
     ).toEqual(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS);
   });
 
-  test('upgrades only the legacy oversized product-title baseline', () => {
-    const legacy = normalizeProductAppearanceConfig({
+  test('preserves authored title sizing in the current responsive schema', () => {
+    const authored = normalizeProductAppearanceConfig({
       canvas: {
         mode: 'free',
         elements: {
           'product-title': {
-            fontSizePx: 44
-          },
-          'product-short-description': {
-            fontSizePx: 44
+            responsive: {
+              desktop: deviceSettings({ fontSizePx: 44 }),
+              tablet: deviceSettings({ fontSizePx: 44 }),
+              mobile: deviceSettings({ fontSizePx: 44 })
+            }
           }
         }
       }
@@ -215,38 +229,22 @@ describe('product appearance hybrid canvas contracts', () => {
 
     for (const device of ['desktop', 'tablet', 'mobile'] as const) {
       expect(
-        legacy.canvas.elements['product-title'].responsive[device].fontSizePx
-      ).toBe(40);
-      expect(
-        legacy.canvas.elements['product-short-description'].responsive[device]
-          .fontSizePx
+        authored.canvas.elements['product-title'].responsive[device].fontSizePx
       ).toBe(44);
     }
-
-    const authored = normalizeProductAppearanceConfig({
-      schemaVersion: 2,
-      canvas: {
-        elements: {
-          'product-title': {
-            fontSizePx: 44
-          }
-        }
-      }
-    });
-    expect(
-      authored.canvas.elements['product-title'].responsive.desktop.fontSizePx
-    ).toBe(44);
   });
 
   test('normalization keeps a fixed primary action large enough to remain usable', () => {
     const normalized = normalizeProductAppearanceConfig({
-      schemaVersion: 2,
       canvas: {
         mode: 'free',
         elements: {
           'product-primary-action': {
-            widthPx: 1,
-            heightPx: 1
+            responsive: {
+              desktop: { widthPx: 1, heightPx: 1 },
+              tablet: { widthPx: 1, heightPx: 1 },
+              mobile: { widthPx: 1, heightPx: 1 }
+            }
           }
         }
       }

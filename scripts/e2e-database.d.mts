@@ -29,12 +29,17 @@ export function verifyE2eResetTarget(
   resetOwnershipHash: string
 ): Promise<void>;
 
+export function verifyCanonicalE2eSchemaState(
+  pool: E2eResetQuery,
+  expectedSchemaSha256: string
+): Promise<void>;
+
 export function checkE2eDatabase(): Promise<{
   databaseName: string;
-  migrationCount: number;
+  schemaSha256: string;
 }>;
 
 export function prepareE2eDatabase(): Promise<{
   databaseName: string;
-  migrationCount: number;
+  schemaSha256: string;
 }>;

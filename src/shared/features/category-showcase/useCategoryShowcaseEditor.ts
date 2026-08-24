@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import {
   cloneDefaultCategoryShowcaseMediaSettings,
   normalizeCategoryShowcaseMediaSettings,
@@ -214,15 +215,11 @@ export function useCategoryShowcaseEditor({
         let image: string | null | undefined;
         if (edit.imageTouched) {
           if (edit.file) {
-            const formData = new FormData();
-            formData.append('file', edit.file);
-            formData.append('categorySlug', item.slug);
-            const uploadResponse = await fetch(endpoint, { method: 'POST', body: formData });
-            const uploadBody = await uploadResponse.json().catch(() => ({})) as { url?: string; message?: string };
-            if (!uploadResponse.ok || !uploadBody.url) {
-              throw new Error(uploadBody.message || 'Nalaganje slike kategorije ni uspelo.');
-            }
-            image = uploadBody.url;
+            const uploaded = await uploadAdminPublicMedia(edit.file, {
+              scope: 'category-image',
+              categorySlug: item.slug
+            });
+            image = uploaded.url;
           } else {
             image = null;
           }

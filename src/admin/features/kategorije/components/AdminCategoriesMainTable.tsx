@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type CSSProperties } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   PointerSensor,
@@ -891,25 +892,12 @@ export default function AdminCategoriesMainTable({
         const target = rowTargets.get(rowId);
         if (!target) return;
 
-        const formData = new FormData();
-        formData.append('file', pending.file);
-        formData.append('categorySlug', target.categorySlug);
-        if (target.subcategoryPath.length > 0) {
-          formData.append('subcategoryPath', target.subcategoryPath.join('__'));
-        }
-
-        const response = await fetch('/api/admin/categories/images', {
-          method: 'POST',
-          body: formData
+        const uploaded = await uploadAdminPublicMedia(pending.file, {
+          scope: 'category-image',
+          categorySlug: target.categorySlug,
+          ...(target.subcategoryPath.length > 0 ? { subcategoryPath: target.subcategoryPath } : {})
         });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-          throw new Error(payload?.message || 'Nalaganje slike ni uspelo.');
-        }
-
-        const payload = (await response.json()) as { url: string };
-        uploadedUrlByRowId.set(rowId, payload.url);
+        uploadedUrlByRowId.set(rowId, uploaded.url);
       })
     );
 

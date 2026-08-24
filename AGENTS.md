@@ -17,3 +17,13 @@ Public dropdown item hover/focus/active effects must stay aligned with `admin/po
 Public dropdown item vertical spacing must also stay visually aligned with `admin/podoba/navigacija`: the admin editor keeps its compact raw grid gap from `SITE_NAVIGATION_ADMIN_SELECTION_ROW_GAP_PX`, while the public desktop dropdown uses `SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX` to match the admin title-to-title rhythm despite different row heights. Do not collapse the public dropdown back to the tiny admin raw gap unless explicitly requested.
 
 Public desktop dropdown text alignment is locked to the admin editor row model: the title/description stack is exactly the icon tile height, with title top aligned to the icon tile top and description bottom aligned to the icon tile bottom.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

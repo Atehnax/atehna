@@ -12,7 +12,7 @@ export type OrderSubmissionStatusContent = {
   heading: string;
   description: string;
   symbol: string;
-  tone: 'success' | 'warning' | 'danger';
+  tone: 'success' | 'info' | 'warning' | 'danger';
 };
 
 export function getOrderSubmissionStatusContent(
@@ -21,11 +21,11 @@ export function getOrderSubmissionStatusContent(
   if (commitmentStatus === 'pending_confirmation') {
     return {
       eyebrow: 'Potrditev',
-      heading: 'Zahteva je prejeta',
+      heading: 'Naročilo je prejeto',
       description:
-        'Vašo zahtevo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico. Zaloga do potrditve še ni rezervirana.',
+        'Vaše naročilo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico. Zaloga do potrditve še ni rezervirana.',
       symbol: '…',
-      tone: 'warning'
+      tone: 'info'
     };
   }
 
@@ -34,7 +34,7 @@ export function getOrderSubmissionStatusContent(
       eyebrow: 'Stanje naročila',
       heading: 'Naročilo ni bilo potrjeno',
       description:
-        'Za pojasnilo se obrnite na našo ekipo in navedite številko naročila.',
+        'Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
       symbol: '!',
       tone: 'danger'
     };
@@ -54,6 +54,10 @@ const TONE_STYLES = {
   success: {
     border: 'border-[color:var(--site-color-success)]',
     symbol: 'bg-[color:var(--site-color-success)]'
+  },
+  info: {
+    border: 'border-[color:var(--site-color-info)]',
+    symbol: 'bg-[color:var(--site-color-info)]'
   },
   warning: {
     border: 'border-[color:var(--site-color-warning)]',
@@ -88,7 +92,12 @@ export default function OrderSubmissionStatus({
         </span>
         <div>
           <p className="site-eyebrow">{content.eyebrow}</p>
-          <h1 className="site-heading-1 mt-1">{content.heading}</h1>
+          <h1
+            className="site-heading-1 mt-1 !text-2xl sm:!text-3xl"
+            data-testid="order-confirmation-heading"
+          >
+            {content.heading}
+          </h1>
           <p className="site-paragraph mt-3">{content.description}</p>
         </div>
       </div>

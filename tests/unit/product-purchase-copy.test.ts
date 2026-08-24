@@ -65,15 +65,14 @@ describe('product purchase copy contracts', () => {
 
     expect(
       normalizeProductAppearanceConfig({
-        schemaVersion: 8,
         purchaseArea: {
           copy: {
             deliveryFallbackMessage:
-              'Predvideni rok sporočimo ob ročni potrditvi naročila.'
+              'Predvideni rok pošljemo po e-pošti.'
           }
         }
       }).purchaseArea.copy.deliveryFallbackMessage
-    ).toBe('Predvideni rok sporočimo ob potrditvi naročila.');
+    ).toBe('Predvideni rok pošljemo po e-pošti.');
 
     const normalized = normalizeProductAppearanceConfig({
       purchaseArea: {

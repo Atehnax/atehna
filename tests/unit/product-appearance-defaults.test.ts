@@ -54,7 +54,7 @@ test('reference product appearance defaults stay compact and inherit global widt
   expect(variables['--product-variant-label-font-size']).toBe('14px');
   expect(variables['--product-variant-label-control-gap']).toBe('6px');
 
-  const upgradedLegacyDefaults = normalizeProductAppearanceConfig({
+  const authored = normalizeProductAppearanceConfig({
     variants: {
       selectWidthPx: 300,
       selectHeightPx: 58,
@@ -63,52 +63,15 @@ test('reference product appearance defaults stay compact and inherit global widt
       chipFontSizePx: 16,
       labelFontSizePx: 16,
       compactSelectors: false
+    },
+    listings: {
+      tabletColumns: 2,
+      cardDensity: 'comfortable',
+      imageRatio: '16:9',
+      showShortDescription: false
     }
   });
-  expect(upgradedLegacyDefaults.variants).toMatchObject({
-    selectWidthPx: 260,
-    selectHeightPx: 44,
-    chipWidthPx: 88,
-    chipHeightPx: 40,
-    chipFontSizePx: 14,
-    labelFontSizePx: 14,
-    compactSelectors: true
-  });
-
-  const upgradedPartiallyCustomizedLegacyConfig = normalizeProductAppearanceConfig({
-    variants: {
-      selectWidthPx: 300,
-      selectHeightPx: 44,
-      chipWidthPx: 106,
-      chipHeightPx: 43,
-      chipFontSizePx: 16,
-      labelFontSizePx: 16,
-      compactSelectors: false
-    }
-  });
-  expect(upgradedPartiallyCustomizedLegacyConfig.variants).toMatchObject({
-    selectWidthPx: 260,
-    selectHeightPx: 44,
-    chipWidthPx: 88,
-    chipHeightPx: 43,
-    chipFontSizePx: 14,
-    labelFontSizePx: 14,
-    compactSelectors: true
-  });
-
-  const authoredLegacyNumbers = normalizeProductAppearanceConfig({
-    schemaVersion: 2,
-    variants: {
-      selectWidthPx: 300,
-      selectHeightPx: 58,
-      chipWidthPx: 106,
-      chipHeightPx: 52,
-      chipFontSizePx: 16,
-      labelFontSizePx: 16,
-      compactSelectors: false
-    }
-  });
-  expect(authoredLegacyNumbers.variants).toMatchObject({
+  expect(authored.variants).toMatchObject({
     selectWidthPx: 300,
     selectHeightPx: 58,
     chipWidthPx: 106,
@@ -117,181 +80,12 @@ test('reference product appearance defaults stay compact and inherit global widt
     labelFontSizePx: 16,
     compactSelectors: false
   });
-
-  const upgradedLegacyListing = normalizeProductAppearanceConfig({
-    listings: {
-      tabletColumns: 2,
-      cardDensity: 'comfortable',
-      imageRatio: '1:1'
-    }
-  });
-  expect(upgradedLegacyListing.listings).toMatchObject({
-    tabletColumns: 3,
-    cardDensity: 'compact',
-    imageRatio: '1:1'
-  });
-
-  const upgradedPersistedV2Reference = normalizeProductAppearanceConfig({
-    schemaVersion: 2,
-    listings: {
-      availableModes: 'grid',
-      defaultMode: 'grid',
-      desktopColumns: 4,
-      tabletColumns: 2,
-      mobileColumns: 1,
-      gapPx: 20,
-      cardDensity: 'comfortable',
-      imageRatio: '1:1',
-      imageFit: 'contain',
-      titleLines: 2,
-      showBrand: true,
-      showSku: false,
-      showShortDescription: false,
-      showStock: true,
-      showDiscount: true,
-      showPurchaseAction: true,
-      allowSimpleQuickAdd: true,
-      showUnavailableVariants: true,
-      filterPlacement: 'sidebar',
-      paginationStyle: 'pages',
-      subcategoryTilesVisible: true
-    }
-  });
-  expect(upgradedPersistedV2Reference.listings).toMatchObject({
-    tabletColumns: 3,
-    cardDensity: 'compact',
-    imageRatio: '1:1',
-    showShortDescription: true
-  });
-
-  const compactV3ListingReference = {
-    availableModes: 'grid',
-    defaultMode: 'grid',
-    desktopColumns: 4,
-    tabletColumns: 3,
-    mobileColumns: 1,
-    gapPx: 20,
-    cardDensity: 'compact',
+  expect(authored.listings).toMatchObject({
+    tabletColumns: 2,
+    cardDensity: 'comfortable',
     imageRatio: '16:9',
-    imageFit: 'contain',
-    titleLines: 2,
-    showBrand: true,
-    showSku: false,
-    showShortDescription: false,
-    showStock: true,
-    showDiscount: true,
-    showPurchaseAction: true,
-    allowSimpleQuickAdd: true,
-    showUnavailableVariants: true,
-    filterPlacement: 'sidebar',
-    paginationStyle: 'pages',
-    subcategoryTilesVisible: true
-  };
-  const upgradedPersistedV3Reference = normalizeProductAppearanceConfig({
-    schemaVersion: 3,
-    listings: compactV3ListingReference
+    showShortDescription: false
   });
-  expect(upgradedPersistedV3Reference).toMatchObject({
-    schemaVersion: 8,
-    listings: {
-      imageRatio: '1:1',
-      showShortDescription: true
-    }
-  });
-
-  const imageLedV4ListingReference = {
-    ...compactV3ListingReference,
-    imageRatio: '4:3'
-  };
-  const upgradedPersistedV4Reference = normalizeProductAppearanceConfig({
-    schemaVersion: 4,
-    listings: imageLedV4ListingReference
-  });
-  expect(upgradedPersistedV4Reference).toMatchObject({
-    schemaVersion: 8,
-    listings: {
-      imageRatio: '1:1',
-      showShortDescription: true
-    }
-  });
-
-  const squareV5ListingReference = {
-    ...compactV3ListingReference,
-    imageRatio: '1:1'
-  };
-  const upgradedPersistedV5Reference = normalizeProductAppearanceConfig({
-    schemaVersion: 5,
-    listings: squareV5ListingReference
-  });
-  expect(upgradedPersistedV5Reference).toMatchObject({
-    schemaVersion: 8,
-    listings: {
-      imageRatio: '1:1',
-      showShortDescription: true
-    }
-  });
-
-  const authoredPartialV5HiddenDescription = normalizeProductAppearanceConfig({
-    schemaVersion: 5,
-    listings: {
-      showShortDescription: false
-    }
-  });
-  expect(authoredPartialV5HiddenDescription.listings.showShortDescription)
-    .toBe(false);
-
-  const authoredV6HiddenDescription = normalizeProductAppearanceConfig({
-    schemaVersion: 6,
-    listings: {
-      showShortDescription: false
-    }
-  });
-  expect(authoredV6HiddenDescription.listings.showShortDescription).toBe(false);
-
-  for (const schemaVersion of [3, 4, 5, 6, 7, 8]) {
-    const authoredWideListing = normalizeProductAppearanceConfig({
-      schemaVersion,
-      listings: {
-        imageRatio: '16:9'
-      }
-    });
-    expect(authoredWideListing.listings.imageRatio).toBe('16:9');
-  }
-
-  const authoredV4ImageRatio = normalizeProductAppearanceConfig({
-    schemaVersion: 4,
-    listings: {
-      imageRatio: '4:3'
-    }
-  });
-  expect(authoredV4ImageRatio.listings.imageRatio).toBe('4:3');
-
-  for (const schemaVersion of [2, 3, 4, 5, 6, 7, 8]) {
-    const authoredListing = normalizeProductAppearanceConfig({
-      schemaVersion,
-      listings: {
-        tabletColumns: 2,
-        cardDensity: 'comfortable',
-        imageRatio: '1:1'
-      }
-    });
-    expect(authoredListing.listings).toMatchObject({
-      tabletColumns: 2,
-      cardDensity: 'comfortable',
-      imageRatio: '1:1'
-    });
-  }
-
-  const v2WithNewListingDefaults = normalizeProductAppearanceConfig({
-    schemaVersion: 2,
-    listings: {}
-  });
-  expect(v2WithNewListingDefaults.listings).toMatchObject({
-    tabletColumns: 3,
-    cardDensity: 'compact',
-    imageRatio: '1:1'
-  });
-
   const resized = normalizeProductAppearanceConfig({
     variants: {
       selectWidthPx: 640,

@@ -16,19 +16,9 @@ import {
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 import { getAuditActor, getAuditRequestContext } from '@/shared/server/audit';
 
-const tableSql = `
-  create table if not exists site_navigation_settings (
-    key text primary key,
-    config_json jsonb not null default '{}'::jsonb,
-    updated_at timestamptz not null default now()
-  )
-`;
-
 const SITE_NAVIGATION_AUDIT_ENTITY_ID = 'site-navigation';
 const SITE_NAVIGATION_AUDIT_SOURCE = 'admin-site-navigation';
 const SITE_NAVIGATION_CACHE_TAG = 'site-navigation-config';
-
-let siteNavigationTableReadyPromise: Promise<void> | null = null;
 
 type SiteNavigationEntityKind =
   | 'topLevel'
@@ -139,12 +129,6 @@ const navigationFieldLabels: Record<string, string> = {
   visible: 'Vidnost',
   desktopSpan: 'Širina',
   order: 'Vrstni red',
-  mode: 'NaÄin',
-  'offset.logo': 'Logotip',
-  'offset.navigation': 'Navigacija',
-  'offset.search': 'Iskanje',
-  'offset.ai': 'Vprašaj AI',
-  'offset.cart': 'Košarica'
 };
 
 const topBarDeviceAuditLabels = {
@@ -268,15 +252,7 @@ function auditValueLabel(field: string, value: unknown) {
     if (!Number.isFinite(numeric)) return '0 px';
     return `${numeric} px`;
   }
-  if (field === 'visible' || field.startsWith('visible.') || field.startsWith('initialVisible.')) return visibleLabel(value);
-  if (field === 'mode') return value === 'manual' ? 'Ročno' : 'Samodejno';
-  if (field === 'initialMode') return auditValueLabel('mode', value);
-  if (field.startsWith('initialOffset.')) return auditValueLabel('offset.logo', value);
-  if (field.startsWith('offset.')) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) return '0 px';
-    return `${numeric > 0 ? '+' : ''}${numeric} px`;
-  }
+  if (field === 'visible') return visibleLabel(value);
   if (field === 'desktopSpan') {
     const columnCount = Number(value);
     if (columnCount === 1) return '1 stolpec';
@@ -288,20 +264,7 @@ function auditValueLabel(field: string, value: unknown) {
 }
 
 function flatTopBarLayout(config: SiteNavigationConfig): SiteNavigationFlatEntity {
-  const values: Record<string, unknown> = {
-    mode: config.topBarLayout.mode,
-    initialMode: config.topBarInitialLayout.mode
-  };
-
-  config.topBarLayout.items.forEach((item) => {
-    values[`offset.${item.id}`] = item.offset;
-    values[`visible.${item.id}`] = item.visible;
-  });
-
-  config.topBarInitialLayout.items.forEach((item) => {
-    values[`initialOffset.${item.id}`] = item.offset;
-    values[`initialVisible.${item.id}`] = item.visible;
-  });
+  const values: Record<string, unknown> = {};
 
   SITE_NAVIGATION_TOP_BAR_DEVICES.forEach((device) => {
     const layout = config.topBarLayout.responsive[device];
@@ -802,20 +765,6 @@ function mapSiteNavigationChangeLogRow(row: Record<string, unknown>): SiteNaviga
   };
 }
 
-async function ensureSiteNavigationTable() {
-  const pool = await getPool();
-
-  siteNavigationTableReadyPromise ??= pool.query(tableSql)
-    .then(() => undefined)
-    .catch((error) => {
-      siteNavigationTableReadyPromise = null;
-      throw error;
-    });
-
-  await siteNavigationTableReadyPromise;
-  return pool;
-}
-
 function serializeStoredSiteNavigationConfig(config: SiteNavigationConfig) {
   return JSON.stringify({
     siteLayout: config.siteLayout,
@@ -827,34 +776,15 @@ function serializeStoredSiteNavigationConfig(config: SiteNavigationConfig) {
 }
 
 async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationConfig> {
-  const pool = await ensureSiteNavigationTable();
+  const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from site_navigation_settings where key = $1 limit 1',
     [SITE_NAVIGATION_SETTINGS_KEY]
   );
   const row = result.rows[0] as { config_json?: unknown; updated_at?: unknown } | undefined;
-  const rawConfig = asRecord(row?.config_json);
-  const hasStoredRichFooter = typeof rawConfig.footer === 'object'
-    && rawConfig.footer !== null
-    && !Array.isArray(rawConfig.footer);
   const config = row
     ? normalizeSiteNavigationConfig(row.config_json)
     : cloneDefaultSiteNavigationConfig();
-
-  // Before the footer became part of navigation it lived in the landing-page
-  // record. Use that value as a one-time read fallback so existing contact and
-  // link customisations are not replaced during the schema transition. The next
-  // navigation save persists the rich footer in its canonical record.
-  if (!hasStoredRichFooter) {
-    try {
-      const { getLandingPageConfig } = await import('@/shared/server/landingPage');
-      config.footer = (await getLandingPageConfig()).footer;
-    } catch (error) {
-      if (!isDatabaseUnavailableError(error)) {
-        console.error('Failed to migrate legacy footer settings', error);
-      }
-    }
-  }
 
   return {
     ...config,
@@ -970,7 +900,7 @@ export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
 export async function updateSiteNavigationConfig(input: unknown, options: { request?: Request } = {}): Promise<SiteNavigationUpdateResult> {
   const config = toStoredSiteNavigationConfig(input);
   const serializedConfig = serializeStoredSiteNavigationConfig(config);
-  const pool = await ensureSiteNavigationTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {

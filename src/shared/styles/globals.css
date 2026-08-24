@@ -2454,7 +2454,7 @@ textarea[readonly] {
 }
 
 [data-storefront-theme] .storefront-product-page {
-  /* Canvas offsets and legacy fixed widths must never paint outside the
+  /* Canvas offsets and fixed widths must never paint outside the
      navigation-owned public content lane. */
   overflow-x: clip;
 }
@@ -2598,8 +2598,8 @@ textarea[readonly] {
 
 .admin-variant-matrix-track-transition {
   transition-property: grid-template-columns, min-width;
-  transition-duration: 220ms;
-  transition-timing-function: linear;
+  transition-duration: 260ms;
+  transition-timing-function: ease-in-out;
 }
 
 .admin-variant-matrix-row {
@@ -2609,8 +2609,8 @@ textarea[readonly] {
 
 .admin-variant-matrix-cell-transition {
   transition-property: background-color, border-color, opacity;
-  transition-duration: 220ms;
-  transition-timing-function: linear;
+  transition-duration: 260ms;
+  transition-timing-function: ease-in-out;
 }
 
 .admin-variant-matrix-diagonal-border {
@@ -2618,7 +2618,7 @@ textarea[readonly] {
 }
 
 .admin-dimension-variant-content-enter {
-  animation: admin-dimension-variant-content-enter 220ms linear both;
+  animation: admin-dimension-variant-content-enter 260ms ease-in-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

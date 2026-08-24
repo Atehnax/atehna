@@ -20,11 +20,13 @@ export const allDiscountTargetLabel = 'Vse';
 export const adminProductInputChipClassName =
   'inline-flex h-5 items-center gap-1 rounded-md border border-[#b9d4fb] bg-[#f3f8fc] px-1.5 text-[11px] font-semibold text-[#1982bf]';
 
+const allQuantityDiscountTargetsJson = '{"variants":["Vse"],"customers":["Vse"]}';
+
 const defaultQuantityDiscountRows: CatalogItemQuantityDiscountRule[] = [
-  { minQuantity: 1, discountPercent: 0, appliesTo: 'allVariants', note: '', position: 0 },
-  { minQuantity: 10, discountPercent: 3, appliesTo: 'allVariants', note: '', position: 1 },
-  { minQuantity: 25, discountPercent: 5, appliesTo: 'allVariants', note: '', position: 2 },
-  { minQuantity: 50, discountPercent: 8, appliesTo: 'allVariants', note: '', position: 3 }
+  { minQuantity: 1, discountPercent: 0, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 0 },
+  { minQuantity: 10, discountPercent: 3, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 1 },
+  { minQuantity: 25, discountPercent: 5, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 2 },
+  { minQuantity: 50, discountPercent: 8, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 3 }
 ];
 
 export const defaultSimpleProductData: SimpleProductData = {
@@ -206,40 +208,29 @@ export function parseQuantityDiscountTargets(appliesTo?: string | null): {
   customerTargets: string[];
 } {
   const normalized = appliesTo?.trim();
-  if (!normalized || normalized === 'allVariants') {
+  if (!normalized) {
     return { variantTargets: [allDiscountTargetLabel], customerTargets: [allDiscountTargetLabel] };
   }
   try {
     const record = asRecord(JSON.parse(normalized));
     return {
-      variantTargets: normalizeDiscountTargetList(asStringArray(record.variants ?? record.variantTargets, [allDiscountTargetLabel])),
-      customerTargets: normalizeDiscountTargetList(asStringArray(record.customers ?? record.customerTargets, [allDiscountTargetLabel]))
+      variantTargets: normalizeDiscountTargetList(asStringArray(record.variants), []),
+      customerTargets: normalizeDiscountTargetList(asStringArray(record.customers), [])
     };
   } catch {
-    return {
-      variantTargets: normalizeDiscountTargetList([normalized]),
-      customerTargets: [allDiscountTargetLabel]
-    };
+    return { variantTargets: [], customerTargets: [] };
   }
 }
 
 export function serializeQuantityDiscountTargets(rule: Pick<QuantityDiscountDraft, 'variantTargets' | 'customerTargets'>): string {
   const variantTargets = normalizeDiscountTargetList(rule.variantTargets);
   const customerTargets = normalizeDiscountTargetList(rule.customerTargets);
-  if (
-    variantTargets.length === 1 &&
-    variantTargets[0] === allDiscountTargetLabel &&
-    customerTargets.length === 1 &&
-    customerTargets[0] === allDiscountTargetLabel
-  ) {
-    return 'allVariants';
-  }
   return JSON.stringify({ variants: variantTargets, customers: customerTargets });
 }
 
 export function createQuantityDiscountDraft(rule: CatalogItemQuantityDiscountRule | Record<string, unknown>, index: number): QuantityDiscountDraft {
   const record = asRecord(rule);
-  const targets = parseQuantityDiscountTargets(asString(record.appliesTo, 'allVariants'));
+  const targets = parseQuantityDiscountTargets(asString(record.appliesTo, allQuantityDiscountTargetsJson));
   const minQuantity = Math.max(1, Math.floor(asNumber(record.minQuantity, 1)));
   const discountPercent = Math.min(100, Math.max(0, asNumber(record.discountPercent, 0)));
   const targetKey = weightSkuPart([...targets.variantTargets, ...targets.customerTargets].join('-')) || 'ALL';
@@ -249,7 +240,7 @@ export function createQuantityDiscountDraft(rule: CatalogItemQuantityDiscountRul
     persistedId,
     minQuantity,
     discountPercent,
-    appliesTo: 'allVariants',
+    appliesTo: JSON.stringify({ variants: targets.variantTargets, customers: targets.customerTargets }),
     variantTargets: targets.variantTargets,
     customerTargets: targets.customerTargets,
     note: asString(record.note, ''),

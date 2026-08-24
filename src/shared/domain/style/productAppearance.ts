@@ -379,99 +379,6 @@ export type ProductAppearanceOverride = {
   relatedProducts?: Partial<ProductAppearanceConfig['relatedProducts']>;
 };
 
-const LEGACY_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
-  availableModes: 'grid',
-  defaultMode: 'grid',
-  desktopColumns: 4,
-  tabletColumns: 2,
-  mobileColumns: 1,
-  gapPx: 20,
-  cardDensity: 'comfortable',
-  imageRatio: '1:1',
-  imageFit: 'contain',
-  titleLines: 2,
-  showBrand: true,
-  showSku: false,
-  showShortDescription: false,
-  showStock: true,
-  showDiscount: true,
-  showPurchaseAction: true,
-  allowSimpleQuickAdd: true,
-  showUnavailableVariants: true,
-  filterPlacement: 'sidebar',
-  paginationStyle: 'pages',
-  subcategoryTilesVisible: true
-};
-
-const COMPACT_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
-  availableModes: 'grid',
-  defaultMode: 'grid',
-  desktopColumns: 4,
-  tabletColumns: 3,
-  mobileColumns: 1,
-  gapPx: 20,
-  cardDensity: 'compact',
-  imageRatio: '16:9',
-  imageFit: 'contain',
-  titleLines: 2,
-  showBrand: true,
-  showSku: false,
-  showShortDescription: false,
-  showStock: true,
-  showDiscount: true,
-  showPurchaseAction: true,
-  allowSimpleQuickAdd: true,
-  showUnavailableVariants: true,
-  filterPlacement: 'sidebar',
-  paginationStyle: 'pages',
-  subcategoryTilesVisible: true
-};
-
-const IMAGE_LED_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
-  ...COMPACT_PRODUCT_LISTING_REFERENCE,
-  imageRatio: '4:3'
-};
-
-const SQUARE_PRODUCT_LISTING_REFERENCE: ProductAppearanceConfig['listings'] = {
-  ...COMPACT_PRODUCT_LISTING_REFERENCE,
-  imageRatio: '1:1'
-};
-
-const SCHEMA_6_RELATED_PRODUCTS_REFERENCE: ProductAppearanceConfig['relatedProducts'] = {
-  enabled: true,
-  sourceMode: 'same-category',
-  manualProductSlugs: [],
-  manualPlacement: 'before-auto',
-  maxItems: 4,
-  desktopColumns: 4,
-  tabletColumns: 2,
-  mobileColumns: 1,
-  gapPx: 24,
-  cardWidthPx: 360,
-  imageHeightPx: 188,
-  textScalePercent: 100,
-  sectionPlacement: 'after-content',
-  sectionWidthPercent: 100,
-  sectionAlignment: 'left',
-  showAccessoriesFirst: true
-};
-
-const SCHEMA_7_RELATED_PRODUCTS_PRESENTATION_REFERENCE = {
-  desktopColumns: 4,
-  tabletColumns: 2,
-  mobileColumns: 1,
-  gapPx: 24,
-  cardWidthPx: 360,
-  imageHeightPx: 160,
-  textScalePercent: 100,
-  sectionPlacement: 'after-content',
-  sectionWidthPercent: 100,
-  sectionAlignment: 'left'
-} satisfies Partial<ProductAppearanceConfig['relatedProducts']>;
-
-const LEGACY_MANUAL_CONFIRMATION_DELIVERY_MESSAGE =
-  'Predvideni rok sporočimo ob ročni potrditvi naročila.';
-
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
   schemaVersion: 8,
   listings: {
@@ -799,19 +706,14 @@ export function normalizeProductCanvasElementDeviceSettings(
 
 function normalizeProductCanvasElement(
   value: unknown,
-  elementId = '',
-  upgradeLegacyReference = false
+  elementId = ''
 ): ProductCanvasElementSettings {
   const record = asRecord(value);
-  const base = normalizeProductCanvasElementDeviceSettings(
-    record,
-    DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS
-  );
   const responsive = asRecord(record.responsive);
   const normalizeDevice = (deviceValue: unknown) => {
     let settings = normalizeProductCanvasElementDeviceSettings(
       deviceValue,
-      base
+      DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS
     );
     if (elementId === 'product-primary-action') {
       settings = {
@@ -824,16 +726,6 @@ function normalizeProductCanvasElement(
           : 0
       };
     }
-    // The first reference layout stored 44 px as the product-title baseline.
-    // Keep authored values intact while bringing that exact legacy baseline in
-    // line with the compact H2-scale product heading.
-    if (
-      upgradeLegacyReference
-      && elementId === 'product-title'
-      && settings.fontSizePx === 44
-    ) {
-      return { ...settings, fontSizePx: 40 };
-    }
     return settings;
   };
   return {
@@ -845,10 +737,7 @@ function normalizeProductCanvasElement(
   };
 }
 
-function normalizeProductCanvas(
-  value: unknown,
-  upgradeLegacyReference = false
-): ProductCanvasSettings {
+function normalizeProductCanvas(value: unknown): ProductCanvasSettings {
   const record = asRecord(value);
   const elementSource = asRecord(record.elements);
   const elements: ProductCanvasSettings['elements'] = {};
@@ -863,8 +752,7 @@ function normalizeProductCanvas(
     }
     elements[elementId] = normalizeProductCanvasElement(
       element,
-      elementId,
-      upgradeLegacyReference
+      elementId
     );
     if (Object.keys(elements).length >= MAX_PRODUCT_CANVAS_ELEMENTS) break;
   }
@@ -892,14 +780,9 @@ export function resolveProductCanvasElementDeviceSettings(
   if (Object.keys(rawElement).length === 0) {
     return clone(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS);
   }
-  const upgradeLegacyReference = Object.prototype.hasOwnProperty.call(
-    source,
-    'canvas'
-  ) && asNumber(source.schemaVersion, 1, 1, 100) < 2;
   return clone(normalizeProductCanvasElement(
     rawElement,
-    elementId,
-    upgradeLegacyReference
+    elementId
   ).responsive[device]);
 }
 
@@ -909,33 +792,7 @@ export function cloneDefaultProductAppearanceConfig() {
 
 export function normalizeProductAppearanceConfig(value: unknown): ProductAppearanceConfig {
   const record = asRecord(value);
-  const storedSchemaVersion = asNumber(record.schemaVersion, 1, 1, 100);
-  const upgradeLegacyReference = storedSchemaVersion < 2;
   const listings = asRecord(record.listings);
-  const isFullLegacyListingReference = Object.entries(
-    LEGACY_PRODUCT_LISTING_REFERENCE
-  ).every(([key, legacyValue]) => listings[key] === legacyValue);
-  const isFullCompactListingReference = Object.entries(
-    COMPACT_PRODUCT_LISTING_REFERENCE
-  ).every(([key, compactValue]) => listings[key] === compactValue);
-  const isFullImageLedListingReference = Object.entries(
-    IMAGE_LED_PRODUCT_LISTING_REFERENCE
-  ).every(([key, imageLedValue]) => listings[key] === imageLedValue);
-  const isFullSquareListingReference = Object.entries(
-    SQUARE_PRODUCT_LISTING_REFERENCE
-  ).every(([key, squareValue]) => listings[key] === squareValue);
-  const upgradeLegacyListingReference =
-    storedSchemaVersion < 2 ||
-    (storedSchemaVersion < 3 && isFullLegacyListingReference);
-  const upgradeCompactListingReference =
-    storedSchemaVersion === 3 && isFullCompactListingReference;
-  const upgradeImageLedListingReference =
-    storedSchemaVersion === 4 && isFullImageLedListingReference;
-  const upgradeListingDescriptionPreview =
-    upgradeLegacyListingReference
-    || upgradeCompactListingReference
-    || upgradeImageLedListingReference
-    || (storedSchemaVersion === 5 && isFullSquareListingReference);
   const productPage = asRecord(record.productPage);
   const gallery = asRecord(record.gallery);
   const information = asRecord(record.information);
@@ -946,54 +803,10 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
   const secondaryContent = asRecord(record.secondaryContent);
   const secondaryContentSectionLabels = asRecord(secondaryContent.sectionLabels);
   const relatedProducts = asRecord(record.relatedProducts);
-  const matchesRelatedProductsReference = (
-    reference: Readonly<Partial<ProductAppearanceConfig['relatedProducts']>>
-  ) => Object.entries(reference).every(([key, referenceValue]) => {
-    const storedValue = relatedProducts[key];
-    return Array.isArray(referenceValue)
-      ? Array.isArray(storedValue)
-        && referenceValue.length === storedValue.length
-        && referenceValue.every((entry, index) => storedValue[index] === entry)
-      : storedValue === referenceValue;
-  });
-  const isFullSchema6RelatedProductsReference = matchesRelatedProductsReference(
-    SCHEMA_6_RELATED_PRODUCTS_REFERENCE
-  );
-  const usesSchema7RelatedProductsPresentationReference =
-    matchesRelatedProductsReference(
-      SCHEMA_7_RELATED_PRODUCTS_PRESENTATION_REFERENCE
-    );
-  const upgradeSchema6RelatedProductsReference =
-    storedSchemaVersion < 7 && isFullSchema6RelatedProductsReference;
-  const upgradeSchema7RelatedProductsReference =
-    storedSchemaVersion < 8
-    && usesSchema7RelatedProductsPresentationReference;
   const cartSidebar = asRecord(record.cartSidebar);
   const canvas = record.canvas;
   const overrides = asRecord(record.overrides);
   const defaults = DEFAULT_PRODUCT_APPEARANCE_CONFIG;
-  const upgradeLegacyVariantDefaultNumber = (
-    rawValue: unknown,
-    legacyDefault: number,
-    nextDefault: number
-  ) => upgradeLegacyReference && rawValue === legacyDefault
-    ? nextDefault
-    : rawValue;
-  const hasGallerySize = Object.prototype.hasOwnProperty.call(
-    gallery,
-    'sizePercent'
-  );
-  const legacyGalleryScale = hasGallerySize ? 1 : 0.75;
-  const scaleLegacyGalleryPixelValue = (rawValue: unknown) => (
-    typeof rawValue === 'number' && Number.isFinite(rawValue)
-      ? rawValue * legacyGalleryScale
-      : rawValue
-  );
-  const upgradeLegacyDefaultNumber = (
-    rawValue: unknown,
-    legacyDefault: number,
-    nextDefault: number
-  ) => rawValue === legacyDefault ? nextDefault : rawValue;
 
   const availableModes = asEnum(listings.availableModes, PRODUCT_LISTING_MODES, defaults.listings.availableModes);
   const defaultModeCandidate = asEnum(listings.defaultMode, ['grid', 'list'] as const, defaults.listings.defaultMode);
@@ -1002,39 +815,22 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     defaults.purchaseArea.copy.deliveryFallbackMessage,
     320
   );
-  const listingImageRatio =
-    (upgradeLegacyListingReference && listings.imageRatio === '1:1') ||
-    (upgradeCompactListingReference && listings.imageRatio === '16:9') ||
-    (upgradeImageLedListingReference && listings.imageRatio === '4:3')
-      ? defaults.listings.imageRatio
-      : listings.imageRatio;
-
   return {
     schemaVersion: defaults.schemaVersion,
     listings: {
       availableModes,
       defaultMode: availableModes === 'both' || availableModes === defaultModeCandidate ? defaultModeCandidate : availableModes,
       desktopColumns: asNumber(listings.desktopColumns, defaults.listings.desktopColumns, 2, 6),
-      tabletColumns: asNumber(
-        upgradeLegacyListingReference && listings.tabletColumns === 2
-          ? defaults.listings.tabletColumns
-          : listings.tabletColumns,
-        defaults.listings.tabletColumns,
-        1,
-        4
-      ),
+      tabletColumns: asNumber(listings.tabletColumns, defaults.listings.tabletColumns, 1, 4),
       mobileColumns: asNumber(listings.mobileColumns, defaults.listings.mobileColumns, 1, 2),
       gapPx: asNumber(listings.gapPx, defaults.listings.gapPx, 8, 48),
-      cardDensity:
-        upgradeLegacyListingReference && listings.cardDensity === 'comfortable'
-          ? defaults.listings.cardDensity
-          : asEnum(
-              listings.cardDensity,
-              PRODUCT_CARD_DENSITIES,
-              defaults.listings.cardDensity
-            ),
+      cardDensity: asEnum(
+        listings.cardDensity,
+        PRODUCT_CARD_DENSITIES,
+        defaults.listings.cardDensity
+      ),
       imageRatio: asEnum(
-        listingImageRatio,
+        listings.imageRatio,
         PRODUCT_IMAGE_RATIOS,
         defaults.listings.imageRatio
       ),
@@ -1042,12 +838,10 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       titleLines: asNumber(listings.titleLines, defaults.listings.titleLines, 1, 4),
       showBrand: asBoolean(listings.showBrand, defaults.listings.showBrand),
       showSku: asBoolean(listings.showSku, defaults.listings.showSku),
-      showShortDescription: upgradeListingDescriptionPreview
-        ? defaults.listings.showShortDescription
-        : asBoolean(
-            listings.showShortDescription,
-            defaults.listings.showShortDescription
-          ),
+      showShortDescription: asBoolean(
+        listings.showShortDescription,
+        defaults.listings.showShortDescription
+      ),
       showStock: asBoolean(listings.showStock, defaults.listings.showStock),
       showDiscount: asBoolean(listings.showDiscount, defaults.listings.showDiscount),
       showPurchaseAction: asBoolean(listings.showPurchaseAction, defaults.listings.showPurchaseAction),
@@ -1062,15 +856,9 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     },
     productPage: {
       // The product page shares the content lane governed by Globalni parametri.
-      // Keep the legacy field in stored payloads for backwards compatibility,
-      // but do not allow it to establish a competing page width.
       widthMode: 'global',
       contentMaxWidthPx: asNumber(
-        upgradeLegacyDefaultNumber(
-          productPage.contentMaxWidthPx,
-          1440,
-          defaults.productPage.contentMaxWidthPx
-        ),
+        productPage.contentMaxWidthPx,
         defaults.productPage.contentMaxWidthPx,
         1120,
         1680
@@ -1079,11 +867,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       informationColumns: asNumber(productPage.informationColumns, defaults.productPage.informationColumns, 3, 6),
       purchaseColumns: asNumber(productPage.purchaseColumns, defaults.productPage.purchaseColumns, 2, 5),
       columnGapPx: asNumber(
-        upgradeLegacyDefaultNumber(
-          productPage.columnGapPx,
-          40,
-          defaults.productPage.columnGapPx
-        ),
+        productPage.columnGapPx,
         defaults.productPage.columnGapPx,
         8,
         64
@@ -1105,17 +889,13 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       thumbnailPositionDesktop: asEnum(gallery.thumbnailPositionDesktop, PRODUCT_THUMBNAIL_POSITIONS, defaults.gallery.thumbnailPositionDesktop),
       thumbnailPositionMobile: asEnum(gallery.thumbnailPositionMobile, PRODUCT_THUMBNAIL_POSITIONS, defaults.gallery.thumbnailPositionMobile),
       thumbnailSizePx: asNumber(
-        upgradeLegacyDefaultNumber(
-          scaleLegacyGalleryPixelValue(gallery.thumbnailSizePx),
-          72,
-          defaults.gallery.thumbnailSizePx
-        ),
+        gallery.thumbnailSizePx,
         defaults.gallery.thumbnailSizePx,
         30,
         120
       ),
       thumbnailGapPx: asNumber(
-        scaleLegacyGalleryPixelValue(gallery.thumbnailGapPx),
+        gallery.thumbnailGapPx,
         defaults.gallery.thumbnailGapPx,
         0,
         40
@@ -1157,61 +937,37 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     variants: {
       selectorStyle: asEnum(variants.selectorStyle, PRODUCT_VARIANT_SELECTOR_STYLES, defaults.variants.selectorStyle),
       selectWidthPx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.selectWidthPx,
-          300,
-          defaults.variants.selectWidthPx
-        ),
+        variants.selectWidthPx,
         defaults.variants.selectWidthPx,
         160,
         500
       ),
       selectHeightPx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.selectHeightPx,
-          58,
-          defaults.variants.selectHeightPx
-        ),
+        variants.selectHeightPx,
         defaults.variants.selectHeightPx,
         40,
         88
       ),
       chipWidthPx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.chipWidthPx,
-          106,
-          defaults.variants.chipWidthPx
-        ),
+        variants.chipWidthPx,
         defaults.variants.chipWidthPx,
         72,
         180
       ),
       chipHeightPx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.chipHeightPx,
-          52,
-          defaults.variants.chipHeightPx
-        ),
+        variants.chipHeightPx,
         defaults.variants.chipHeightPx,
         36,
         80
       ),
       chipFontSizePx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.chipFontSizePx,
-          16,
-          defaults.variants.chipFontSizePx
-        ),
+        variants.chipFontSizePx,
         defaults.variants.chipFontSizePx,
         11,
         24
       ),
       labelFontSizePx: asNumber(
-        upgradeLegacyVariantDefaultNumber(
-          variants.labelFontSizePx,
-          16,
-          defaults.variants.labelFontSizePx
-        ),
+        variants.labelFontSizePx,
         defaults.variants.labelFontSizePx,
         11,
         28
@@ -1223,13 +979,10 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
         32
       ),
       labelAboveSelector: asBoolean(variants.labelAboveSelector, defaults.variants.labelAboveSelector),
-      compactSelectors: upgradeLegacyReference
-        && variants.compactSelectors === false
-        ? defaults.variants.compactSelectors
-        : asBoolean(
-            variants.compactSelectors,
-            defaults.variants.compactSelectors
-          ),
+      compactSelectors: asBoolean(
+        variants.compactSelectors,
+        defaults.variants.compactSelectors
+      ),
       showUnavailableValues: true,
       showSelectedSummary: asBoolean(variants.showSelectedSummary, defaults.variants.showSelectedSummary),
       showCompatibilityReasons: asBoolean(variants.showCompatibilityReasons, defaults.variants.showCompatibilityReasons),
@@ -1359,10 +1112,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
           defaults.purchaseArea.copy.freeShippingMessage,
           240
         ),
-        deliveryFallbackMessage:
-          deliveryFallbackMessage === LEGACY_MANUAL_CONFIRMATION_DELIVERY_MESSAGE
-            ? defaults.purchaseArea.copy.deliveryFallbackMessage
-            : deliveryFallbackMessage,
+        deliveryFallbackMessage,
         paymentMessage: asOptionalString(
           purchaseAreaCopy.paymentMessage,
           defaults.purchaseArea.copy.paymentMessage,
@@ -1463,11 +1213,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       tabletColumns: asNumber(relatedProducts.tabletColumns, defaults.relatedProducts.tabletColumns, 1, 4),
       mobileColumns: asNumber(relatedProducts.mobileColumns, defaults.relatedProducts.mobileColumns, 1, 2),
       gapPx: asNumber(
-        upgradeLegacyDefaultNumber(
-          relatedProducts.gapPx,
-          20,
-          defaults.relatedProducts.gapPx
-        ),
+        relatedProducts.gapPx,
         defaults.relatedProducts.gapPx,
         8,
         64
@@ -1479,13 +1225,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
         520
       ),
       imageHeightPx: asNumber(
-        (upgradeLegacyReference && relatedProducts.imageHeightPx === 192)
-        || (upgradeSchema6RelatedProductsReference
-          && relatedProducts.imageHeightPx === 188)
-        || (upgradeSchema7RelatedProductsReference
-          && relatedProducts.imageHeightPx === 160)
-          ? defaults.relatedProducts.imageHeightPx
-          : relatedProducts.imageHeightPx,
+        relatedProducts.imageHeightPx,
         defaults.relatedProducts.imageHeightPx,
         96,
         480
@@ -1529,7 +1269,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
       showRelatedProducts: false
     },
-    canvas: normalizeProductCanvas(canvas, upgradeLegacyReference),
+    canvas: normalizeProductCanvas(canvas),
     overrides: {
       allowCategoryTemplates: false,
       allowProductLayoutOverride: asBoolean(overrides.allowProductLayoutOverride, defaults.overrides.allowProductLayoutOverride),

@@ -49,24 +49,13 @@ Key places:
 - Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
 - Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
 
-# Database migrations
+# Fresh database schema
 
-Apply the numbered migrations in order:
-
-1. `migrations/001_current_baseline.sql`
-2. `migrations/002_catalog_commerce_foundation.sql`
-3. `migrations/003_order_access_and_snapshots.sql`
-4. `migrations/004_product_appearance.sql`
-5. `migrations/005_archive_retention.sql`
-6. `migrations/006_product_reference_design.sql`
-7. `migrations/007_school_directory.sql`
-8. `migrations/008_customer_directory_profiles.sql`
-9. `migrations/009_gurs_address_register.sql`
-
-The migrations are additive/idempotent where practical, but should still be
-run once in sequence. Do not expose a deployment until every migration has
-completed: the application reads the new variant, pricing, access-token,
-appearance, and retention columns at runtime.
+A new empty database installs `database/schema.sql` once. This is the single
+canonical clean-slate schema. It contains only current definitions, with no
+numbered schema history or ledger. Existing databases are not transformed; the
+deployment process instead rebuilds disposable test data and installs this
+complete schema before exposing a new deployment.
 
 ## Runtime configuration
 
@@ -79,13 +68,38 @@ corresponding environment variables in production.
   in production. Missing production admin credentials fail closed.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
   `vercel.json`.
-- `BLOB_READ_WRITE_TOKEN` is required for catalogue media and order documents.
+- `PUBLIC_MEDIA_BLOB_STORE_ID` selects the public Vercel Blob store used for
+  catalogue and site media. Connect it through Vercel OIDC. Admin file uploads
+  use short-lived, path/type/size-scoped tokens and send bytes directly from the
+  browser to Blob, avoiding a duplicate transfer through the application.
+- `ORDER_DOCUMENT_BLOB_STORE_ID` selects the separate Vercel Blob store used
+  for order documents. That store must use Private access and be connected to
+  the project through Vercel OIDC. Do not reuse the public media store; missing
+  private-store configuration fails order-document uploads and downloads closed.
+- `ORDER_ACCESS_BOOTSTRAP_KEY` is required before accepting orders. Set it to at
+  least 32 random characters and save it as a Sensitive Vercel environment
+  variable. It encrypts the original confirmation bootstrap token stored with an
+  idempotency receipt, so concurrent retries return the same still-active token
+  without keeping that credential as plaintext. Rotating this key intentionally
+  makes earlier idempotent submissions non-replayable; their already-issued
+  confirmation links remain governed by the hashed access-token record.
 - `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
 
+Initial order-summary generation is recorded as a durable database job in the
+same transaction as the order. The post-response callback is only a low-latency
+processing trigger: an exact idempotent submission replay or an authenticated
+confirmation request can safely retrigger a pending or stale job. Failed jobs
+remain pending with bounded exponential backoff. This avoids an unauthenticated
+repair endpoint and another worker credential; the tradeoff is that, after a
+persistent storage failure, processing resumes when a guarded request arrives
+after the backoff window.
+
 The Slovenian checkout address index is refreshed from the official GURS
-Register naslovov once per month. Apply migration 009 before enabling the cron,
-and keep `CRON_SECRET` configured. Run an on-demand refresh with
-`npm run addresses:sync`. Source, capacity, validation, recovery, and privacy
+Register naslovov once per month. The canonical schema includes its search
+tables and order-address fields. Immediately after installing a fresh database,
+run `npm run addresses:sync` before exposing checkout; the schema intentionally
+starts with an empty address index. Keep `CRON_SECRET` configured for the monthly
+refresh. Source, capacity, validation, recovery, and privacy
 details are documented in [docs/gurs-address-register.md](docs/gurs-address-register.md).
 
 Catalogue prices are stored as net amounts. Customer pages and order documents
@@ -121,8 +135,8 @@ automatic expiry.
   digits and hyphens, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and an
   `ADMIN_SESSION_SECRET` of at least 32 characters.
 - Run `npm run build`, `npm run e2e:db:prepare`, then
-  `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies every
-  migration, installs deterministic catalog/media fixtures, verifies the
+  `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies
+  `database/schema.sql`, installs deterministic catalog/media fixtures, verifies the
   sentinel data, and clears Next's generated runtime cache before the run.
   Playwright clears that same generated cache again during teardown so E2E
   database values cannot leak into the normal application.

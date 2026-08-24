@@ -1,5 +1,75 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { ADMIN_STORAGE_STATE_PATH } from "./support/auth";
+
+async function requireBox(locator: Locator, label: string) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error(`${label} must be rendered.`);
+  return box;
+}
+
+async function expectAlignedFieldPair(
+  left: Locator,
+  right: Locator,
+  label: string,
+) {
+  const [leftBox, rightBox] = await Promise.all([
+    requireBox(left, `${label} left field`),
+    requireBox(right, `${label} right field`),
+  ]);
+  expect(Math.abs(leftBox.y - rightBox.y), label).toBeLessThanOrEqual(1);
+  expect(Math.abs(leftBox.height - rightBox.height), label).toBeLessThanOrEqual(
+    1,
+  );
+  expect(rightBox.x, label).toBeGreaterThan(leftBox.x + leftBox.width);
+}
+
+async function expectSharpAdminFocus(control: Locator) {
+  const colors = await control.evaluate((element) => {
+    const neutralBorderColor = getComputedStyle(element).borderColor;
+    const colorProbe = document.createElement("span");
+    colorProbe.style.color = "var(--blue-500)";
+    document.body.append(colorProbe);
+    const canonicalBorderColor = getComputedStyle(colorProbe).color;
+    colorProbe.remove();
+    return { canonicalBorderColor, neutralBorderColor };
+  });
+  await control.focus();
+  await expect(control).toBeFocused();
+
+  await expect
+    .poll(
+      () =>
+        control.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const shadowLayers =
+            style.boxShadow === "none"
+              ? []
+              : style.boxShadow.split(/,(?![^(]*\))/u);
+          const hasBlurredShadow = shadowLayers.some((shadow) => {
+            const lengths = Array.from(
+              shadow.matchAll(/-?\d*\.?\d+px/gu),
+              (match) => Number.parseFloat(match[0]),
+            );
+            return (
+              Math.abs(lengths[2] ?? 0) > 0.01 ||
+              Math.abs(lengths[3] ?? 0) > 0.01
+            );
+          });
+          return {
+            borderColor: style.borderColor,
+            hasBlurredShadow,
+            outlineStyle: style.outlineStyle,
+          };
+        }),
+      { timeout: 1_000 },
+    )
+    .toEqual({
+      borderColor: colors.canonicalBorderColor,
+      hasBlurredShadow: false,
+      outlineStyle: "none",
+    });
+  expect(colors.canonicalBorderColor).not.toBe(colors.neutralBorderColor);
+}
 
 test.use({ storageState: ADMIN_STORAGE_STATE_PATH });
 
@@ -81,7 +151,21 @@ test("admin can configure order email settings and templates without sending mai
     ).toBeChecked();
 
     const saveButton = page.getByTestId("order-email-settings-save");
+    const senderName = page.getByLabel("Ime po\u0161iljatelja");
+    const fromAddress = page.getByLabel("E-po\u0161tni naslov po\u0161iljatelja");
+    const replyTo = page.getByLabel("Naslov za odgovore");
     const siteUrl = page.getByLabel("Naslov spletnega mesta");
+    await expectAlignedFieldPair(
+      senderName,
+      fromAddress,
+      "Sender identity fields",
+    );
+    await expectAlignedFieldPair(
+      replyTo,
+      siteUrl,
+      "Reply-to and site URL fields",
+    );
+    await expectSharpAdminFocus(replyTo);
     const originalSiteUrl = await siteUrl.inputValue();
 
     await siteUrl.fill("not-a-valid-url");
@@ -224,6 +308,8 @@ test("admin can configure order email settings and templates without sending mai
     const customerBody = page.getByLabel("Vsebina za stranko");
     const adminSubject = page.getByLabel("Zadeva za administratorja");
     const adminBody = page.getByLabel("Vsebina za administratorja");
+
+    await expectSharpAdminFocus(customerBody);
 
     await customerSubject.fill(customerSubjectValue);
     await customerBody.fill(customerBodyValue);

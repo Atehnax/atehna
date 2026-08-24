@@ -15,6 +15,7 @@ import { AdminPageHeader } from "@/shared/ui/admin-primitives";
 import AdminCheckbox from "@/shared/ui/checkbox/admin-checkbox";
 import EuiTabs from "@/shared/ui/eui-tabs";
 import { Spinner } from "@/shared/ui/loading";
+import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
 import { useToast } from "@/shared/ui/toast";
 
 type UnknownRecord = Record<string, unknown>;
@@ -26,9 +27,10 @@ type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
 type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
 
 const fieldClassName =
-  "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-400 focus:border-[color:var(--blue-500)] focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
+  `h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] text-sm text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
 const textareaClassName =
-  "min-h-28 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-['Inter',system-ui,sans-serif] text-sm leading-5 text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-400 focus:border-[color:var(--blue-500)] focus:ring-2 focus:ring-blue-100";
+  `min-h-28 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-['Inter',system-ui,sans-serif] text-sm leading-5 text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 ${adminInputFocusTokenClasses}`;
+const alignedFieldClassName = "grid min-w-0 grid-rows-[1fr_auto]";
 const primaryButtonClassName =
   "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButtonClassName =
@@ -840,7 +842,7 @@ export default function AdminOrderEmailSettingsPageClient({
             testId="order-email-sender-settings"
           >
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
+              <div className={alignedFieldClassName}>
                 <FieldLabel
                   htmlFor="order-email-sender-name"
                   label="Ime pošiljatelja"
@@ -856,7 +858,7 @@ export default function AdminOrderEmailSettingsPageClient({
                   placeholder="Atehna"
                 />
               </div>
-              <div>
+              <div className={alignedFieldClassName}>
                 <FieldLabel
                   htmlFor="order-email-from-address"
                   label="E-poštni naslov pošiljatelja"
@@ -875,7 +877,7 @@ export default function AdminOrderEmailSettingsPageClient({
                   autoComplete="email"
                 />
               </div>
-              <div>
+              <div className={alignedFieldClassName}>
                 <FieldLabel
                   htmlFor="order-email-reply-to"
                   label="Naslov za odgovore"
@@ -894,7 +896,7 @@ export default function AdminOrderEmailSettingsPageClient({
                   autoComplete="email"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className={alignedFieldClassName}>
                 <FieldLabel
                   htmlFor="order-email-site-url"
                   label="Naslov spletnega mesta"

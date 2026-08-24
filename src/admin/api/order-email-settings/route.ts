@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     const body = await readRequiredJsonRecord(request);
     if (!body.ok) return body.response;
     await updateOrderEmailSettings(body.body.config ?? body.body, { request });
-    revalidatePath('/admin/e-posta');
+    revalidatePath('/admin/email');
     return NextResponse.json({ state: await getOrderEmailAdminState() });
   } catch (error) {
     if (error instanceof OrderEmailSchemaNotReadyError) {

@@ -120,8 +120,7 @@ export function getCartItemUnitGross(item: CartItem) {
   if (typeof item.pricing?.estimatedUnitGross === 'number') {
     return item.pricing.estimatedUnitGross;
   }
-  // A legacy cart stored one unlabeled price, so its tax basis is unknown.
-  // Reconciliation must provide a current net/gross breakdown before display.
+  // A current quote is required before a price can be displayed or submitted.
   return null;
 }
 

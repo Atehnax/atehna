@@ -27,6 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
 import {
@@ -1529,20 +1530,18 @@ export default function AdminProductAppearancePageClient({
     try {
       const uploaded: UploadedCatalogMediaFile[] = [];
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('itemSlug', product.slug);
-        const response = await fetch('/api/admin/artikli/media', {
-          method: 'POST',
-          body: formData
+        const result = await uploadAdminPublicMedia(file, {
+          scope: 'catalog-item',
+          itemSlug: product.slug,
+          mediaKind: 'image'
         });
-        const body = await response.json().catch(() => ({})) as UploadedCatalogMediaFile & {
-          message?: string;
-        };
-        if (!response.ok || !body.url || !body.pathname) {
-          throw new Error(body.message ?? `Slike ${file.name} ni bilo mogoče naložiti.`);
-        }
-        uploaded.push(body);
+        uploaded.push({
+          url: result.url,
+          pathname: result.pathname,
+          mimeType: result.contentType,
+          filename: result.filename,
+          size: result.size
+        });
       }
       setProduct((current) => current
         ? {

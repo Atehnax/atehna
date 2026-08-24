@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { PoolClient } from 'pg';
 import { getPool } from '@/shared/server/db';
 import {
   buildOrderConfirmationAccessUrl,
@@ -11,6 +12,83 @@ import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders
 function parseOrderId(value: string): number | null {
   const orderId = Number(value);
   return Number.isSafeInteger(orderId) && orderId > 0 ? orderId : null;
+}
+
+type ConfirmationReadiness =
+  | { ready: true }
+  | { ready: false; code: string; message: string };
+
+async function readOrderConfirmationReadiness(
+  client: PoolClient,
+  orderId: number
+): Promise<ConfirmationReadiness> {
+  const schemaResult = await client.query(
+    `
+      select
+        to_regclass('public.order_line_snapshots') is not null
+          as snapshots_table_ready,
+        to_regclass('public.order_document_jobs') is not null
+          as document_jobs_table_ready,
+        exists (
+          select 1
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'order_documents'
+            and column_name = 'customer_access_id'
+        ) as customer_access_id_ready,
+        exists (
+          select 1
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'order_documents'
+            and column_name = 'blob_pathname'
+        ) as blob_pathname_ready
+    `
+  );
+  const schema = schemaResult.rows[0] as
+    | {
+        snapshots_table_ready: boolean;
+        document_jobs_table_ready: boolean;
+        customer_access_id_ready: boolean;
+        blob_pathname_ready: boolean;
+      }
+    | undefined;
+
+  if (
+    !schema?.snapshots_table_ready ||
+    !schema.document_jobs_table_ready ||
+    !schema.customer_access_id_ready ||
+    !schema.blob_pathname_ready
+  ) {
+    return {
+      ready: false,
+      code: 'ORDER_CONFIRMATION_SCHEMA_NOT_READY',
+      message:
+        'Trenutna testna baza ne podpira nove potrditve naročila. Ponastavite jo na trenutno shemo in ustvarite novo naročilo. Obstoječa povezava ni bila spremenjena.'
+    };
+  }
+
+  const snapshotsResult = await client.query(
+    `
+      select exists (
+        select 1
+        from order_line_snapshots
+        where order_id = $1
+      ) as has_snapshots
+    `,
+    [orderId]
+  );
+  const hasSnapshots = snapshotsResult.rows[0]?.has_snapshots === true;
+  if (!hasSnapshots) {
+    return {
+      ready: false,
+      code: 'ORDER_CONFIRMATION_DATA_NOT_READY',
+      message:
+        'Naročilo nima trenutnega posnetka postavk. Ustvarite novo testno naročilo. Obstoječa povezava ni bila spremenjena.'
+    };
+  }
+
+  return { ready: true };
 }
 
 async function ensureOrderExists(orderId: number) {
@@ -139,6 +217,18 @@ export async function POST(
         return NextResponse.json(
           { message: 'Za izbrisano naročilo ni mogoče izdati nove povezave.' },
           { status: 409 }
+        );
+      }
+
+      const readiness = await readOrderConfirmationReadiness(client, orderId);
+      if (!readiness.ready) {
+        await client.query('rollback');
+        return NextResponse.json(
+          { code: readiness.code, message: readiness.message },
+          {
+            status: 409,
+            headers: { 'Cache-Control': 'no-store' }
+          }
         );
       }
 

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { buildCatalogItemMediaBlobPath, uploadBlob } from '@/shared/server/blob';
+import { buildCatalogItemMediaBlobPath } from '@/shared/server/blob';
+import { uploadPublicMediaFromServer } from '@/shared/server/publicMediaUpload';
 import type { CatalogMediaImportKind, CatalogMediaUploadResponse } from '@/shared/domain/catalog/catalogAdminTypes';
 
 export const runtime = 'nodejs';
 
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const URL_IMPORT_MAX_BYTES_BY_KIND = {
   image: 4 * 1024 * 1024,
   video: 100 * 1024 * 1024,
@@ -61,12 +61,6 @@ function extensionFromMimeType(mimeType: string): string | null {
 
 function extensionFromUpload(fileName: string, mimeType: string): string {
   return extensionFromFileName(fileName) ?? extensionFromMimeType(mimeType) ?? 'bin';
-}
-
-function mediaFolderForMime(mimeType: string): 'images' | 'videos' | 'documents' {
-  if (mimeType.startsWith('image/')) return 'images';
-  if (mimeType.startsWith('video/')) return 'videos';
-  return 'documents';
 }
 
 function mediaFolderForKind(kind: CatalogMediaImportKind): 'images' | 'videos' | 'documents' {
@@ -130,22 +124,25 @@ async function uploadFilePayload({
   fileName,
   mimeType,
   payload,
-  mediaFolder
+  mediaFolder,
+  maximumSizeInBytes
 }: {
   itemSlugValue: string;
   fileName: string;
   mimeType: string;
   payload: Buffer;
   mediaFolder: 'images' | 'videos' | 'documents';
+  maximumSizeInBytes: number;
 }) {
   const itemSlug = sanitizeSlug(itemSlugValue);
   const extension = extensionFromUpload(fileName, mimeType);
   const storageFileName = `${Date.now()}-${itemSlug}.${extension}`;
-  const blob = await uploadBlob(
-    buildCatalogItemMediaBlobPath(itemSlug, storageFileName, mediaFolder),
+  const blob = await uploadPublicMediaFromServer({
+    pathname: buildCatalogItemMediaBlobPath(itemSlug, storageFileName, mediaFolder),
     payload,
-    mimeType || 'application/octet-stream'
-  );
+    contentType: mimeType || 'application/octet-stream',
+    maximumSizeInBytes
+  });
 
   return NextResponse.json<CatalogMediaUploadResponse>({
     ok: true,
@@ -160,7 +157,6 @@ async function uploadFilePayload({
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get('file');
     const itemSlugValue = formData.get('itemSlug');
     const sourceUrlValue = formData.get('sourceUrl');
     const requestedMediaKind = normalizeMediaKind(formData.get('mediaKind'));
@@ -169,19 +165,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Manjka slug artikla.' }, { status: 400 });
     }
 
-    if (file instanceof File) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        return NextResponse.json({ message: 'Datoteka je prevelika.' }, { status: 400 });
-      }
-
-      return uploadFilePayload({
-        itemSlugValue,
-        fileName: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        payload: Buffer.from(await file.arrayBuffer()),
-        mediaFolder: mediaFolderForMime(file.type.toLowerCase())
-      });
-    }
 
     if (typeof sourceUrlValue === 'string' && sourceUrlValue.trim()) {
       if (!requestedMediaKind) {
@@ -223,11 +206,12 @@ export async function POST(request: Request) {
         fileName,
         mimeType,
         payload,
-        mediaFolder: mediaFolderForKind(requestedMediaKind)
+        mediaFolder: mediaFolderForKind(requestedMediaKind),
+        maximumSizeInBytes: maxBytes
       });
     }
 
-    return NextResponse.json({ message: 'Datoteka ali URL manjka.' }, { status: 400 });
+    return NextResponse.json({ message: 'URL manjka.' }, { status: 400 });
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.' },

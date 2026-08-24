@@ -15,13 +15,9 @@ export function consumeOrderAccessTokenFromLocation(): string | null {
   const currentUrl = new URL(window.location.href);
   const fragmentParams = new URLSearchParams(currentUrl.hash.replace(/^#/, ''));
   const fragmentToken = cleanValue(fragmentParams.get('token'));
-  const legacyQueryToken = cleanValue(currentUrl.searchParams.get('token'));
-  const hasTokenParameter =
-    fragmentParams.has('token') || currentUrl.searchParams.has('token');
 
-  if (hasTokenParameter) {
+  if (fragmentParams.has('token')) {
     fragmentParams.delete('token');
-    currentUrl.searchParams.delete('token');
     currentUrl.hash = fragmentParams.size > 0 ? fragmentParams.toString() : '';
     window.history.replaceState(
       window.history.state,
@@ -30,7 +26,7 @@ export function consumeOrderAccessTokenFromLocation(): string | null {
     );
   }
 
-  return fragmentToken || legacyQueryToken || null;
+  return fragmentToken || null;
 }
 
 export function extractOrderAccessTokenFromUrl(value?: string | null): string | null {
@@ -39,11 +35,7 @@ export function extractOrderAccessTokenFromUrl(value?: string | null): string | 
   try {
     const url = new URL(value, window.location.origin);
     const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-    return (
-      cleanValue(fragmentParams.get('token')) ||
-      cleanValue(url.searchParams.get('token')) ||
-      null
-    );
+    return cleanValue(fragmentParams.get('token')) || null;
   } catch {
     return null;
   }
@@ -51,28 +43,6 @@ export function extractOrderAccessTokenFromUrl(value?: string | null): string | 
 
 export function buildOrderConfirmationFragmentUrl(token: string): string {
   return `/order/confirmation#token=${encodeURIComponent(token.trim())}`;
-}
-
-export function buildOrderConfirmationAccessUrl(accessId: string): string {
-  return `/order/confirmation?access=${encodeURIComponent(accessId.trim())}`;
-}
-
-export function readOrderAccessIdFromLocation(): string | null {
-  return cleanValue(new URL(window.location.href).searchParams.get('access')) || null;
-}
-
-export function replaceCurrentOrderAccessId(accessId: string): void {
-  const currentUrl = new URL(window.location.href);
-  currentUrl.searchParams.delete('token');
-  currentUrl.searchParams.set('access', accessId.trim());
-  const fragmentParams = new URLSearchParams(currentUrl.hash.replace(/^#/, ''));
-  fragmentParams.delete('token');
-  currentUrl.hash = fragmentParams.size > 0 ? fragmentParams.toString() : '';
-  window.history.replaceState(
-    window.history.state,
-    '',
-    `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`
-  );
 }
 
 export function readStoredOrderAccessId(): string | null {

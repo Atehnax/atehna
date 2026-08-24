@@ -3,10 +3,14 @@ import 'server-only';
 import type { Pool, PoolClient } from 'pg';
 import {
   GURS_ADDRESS_SEARCH_LIMIT,
+  GURS_POSTAL_LOOKUP_LIMIT,
   parseGursAddressSearchQuery,
+  parseGursPostalLookupQuery,
   type GursAddress,
   type GursAddressSearchResponse,
-  type GursAddressSearchResult
+  type GursAddressSearchResult,
+  type GursPostalLocation,
+  type GursPostalLookupResponse
 } from '@/shared/domain/address/gursAddress';
 import { getPool } from '@/shared/server/db';
 
@@ -42,6 +46,11 @@ type GursAddressSourceMetadataRow = {
   active_record_count: number | string | null;
 };
 
+type GursPostalLocationRow = {
+  postal_code: string;
+  postal_name: string;
+};
+
 export type GursAddressSourceMetadata = {
   sourceUpdatedAt: string | null;
   importedAt: string | null;
@@ -54,6 +63,29 @@ export class GursAddressSearchQueryError extends Error {
   constructor() {
     super('Iskalni niz za naslov je predolg.');
     this.name = 'GursAddressSearchQueryError';
+  }
+}
+
+type GursPostalLookupQueryErrorCode =
+  | 'INVALID_FIELD'
+  | 'INVALID_POSTAL_CODE'
+  | 'QUERY_TOO_SHORT'
+  | 'QUERY_TOO_LONG';
+
+const POSTAL_LOOKUP_ERROR_MESSAGES: Record<
+  GursPostalLookupQueryErrorCode,
+  string
+> = {
+  INVALID_FIELD: 'Polje za iskanje poštnega kraja ni veljavno.',
+  INVALID_POSTAL_CODE: 'Poštna številka lahko vsebuje samo številke.',
+  QUERY_TOO_SHORT: 'Vnesite vsaj dva znaka.',
+  QUERY_TOO_LONG: 'Iskalni niz za poštni kraj je predolg.'
+};
+
+export class GursPostalLookupQueryError extends Error {
+  constructor(readonly code: GursPostalLookupQueryErrorCode) {
+    super(POSTAL_LOOKUP_ERROR_MESSAGES[code]);
+    this.name = 'GursPostalLookupQueryError';
   }
 }
 
@@ -87,6 +119,13 @@ function toAddress(row: GursAddressRow): GursAddress {
     addressLine1: row.address_line_1,
     searchText: row.search_text,
     sourceUpdatedAt: toIsoString(row.source_updated_at)
+  };
+}
+
+function toPostalLocation(row: GursPostalLocationRow): GursPostalLocation {
+  return {
+    postalCode: row.postal_code,
+    postalName: row.postal_name
   };
 }
 
@@ -210,6 +249,44 @@ export async function searchGursAddresses(
 
   return {
     results: result.rows.map(toSearchResult),
+    sourceUpdatedAt: metadata.sourceUpdatedAt
+  };
+}
+
+export async function lookupGursPostalLocations(
+  rawField: unknown,
+  rawQuery: unknown,
+  queryable?: Queryable
+): Promise<GursPostalLookupResponse> {
+  const parsed = parseGursPostalLookupQuery(rawField, rawQuery);
+  if (!parsed.ok) {
+    throw new GursPostalLookupQueryError(parsed.code);
+  }
+
+  const database = queryable ?? await getPool();
+  const normalizedPostalName =
+    "regexp_replace(translate(lower(postal_name), 'čšž', 'csz'), '[^a-z0-9]+', ' ', 'g')";
+  const fieldExpression = parsed.field === 'postalCode'
+    ? 'postal_code'
+    : normalizedPostalName;
+  const result = await database.query<GursPostalLocationRow>(
+    `select postal_code,
+            postal_name
+     from gurs_addresses
+     where search_text like '% ' || $1 || '%'
+       and ${fieldExpression} like $1 || '%'
+     group by postal_code, postal_name
+     order by
+       case when ${fieldExpression} = $1 then 0 else 1 end,
+       postal_code asc,
+       postal_name asc
+     limit ${GURS_POSTAL_LOOKUP_LIMIT}`,
+    [parsed.query]
+  );
+  const metadata = await getGursAddressSourceMetadata(database);
+
+  return {
+    results: result.rows.map(toPostalLocation),
     sourceUpdatedAt: metadata.sourceUpdatedAt
   };
 }

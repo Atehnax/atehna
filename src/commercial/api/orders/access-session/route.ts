@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import {
   isOrderAccessToken,
-  orderAccessSessionCookieName,
+  setOrderAccessSessionCookie,
   verifyOrderAccessToken
 } from '@/shared/server/orderAccess';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
@@ -45,11 +45,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cookieName = orderAccessSessionCookieName(access.tokenId);
-    if (!cookieName) {
-      throw new Error('Order access record returned an invalid id.');
-    }
-
     const response = NextResponse.json(
       {
         accessId: access.tokenId,
@@ -57,14 +52,10 @@ export async function POST(request: NextRequest) {
       },
       { headers: privateHeaders }
     );
-    response.cookies.set({
-      name: cookieName,
-      value: token,
-      expires: new Date(access.expiresAt),
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/api/orders'
+    setOrderAccessSessionCookie(response, {
+      tokenId: access.tokenId,
+      token,
+      expiresAt: access.expiresAt
     });
     return response;
   } catch (error) {

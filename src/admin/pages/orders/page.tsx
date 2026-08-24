@@ -79,8 +79,7 @@ async function AdminOrdersTableSection({
     order_id: number;
     type: string;
     filename: string;
-    blob_url: string;
-    blob_pathname: string | null;
+    url: string;
     created_at: string;
   }> = [];
   let totalCount = 0;
@@ -122,13 +121,12 @@ async function AdminOrdersTableSection({
       ]);
       orders = ordersPageResult.orders;
       analyticsOrders = analyticsOrdersResult;
-      documents = ordersPageResult.documentSummaries.map((documentSummary, index) => ({
-        id: index + 1,
+      documents = ordersPageResult.documentSummaries.map((documentSummary) => ({
+        id: documentSummary.id,
         order_id: documentSummary.order_id,
         type: documentSummary.type,
         filename: documentSummary.filename,
-        blob_url: documentSummary.blob_url,
-        blob_pathname: null,
+        url: documentSummary.url,
         created_at: documentSummary.created_at
       }));
       totalCount = ordersPageResult.totalCount;
@@ -154,7 +152,11 @@ async function AdminOrdersTableSection({
       order.organization_name,
       order.contact_name,
       order.email,
-      order.delivery_address ?? null,
+      order.address_line1,
+      order.address_line2,
+      order.postal_code,
+      order.city,
+      order.country_code,
       order.reference ?? null,
       order.notes ?? null,
       order.status,
@@ -178,7 +180,7 @@ async function AdminOrdersTableSection({
       document.order_id,
       document.type,
       document.filename,
-      document.blob_url,
+      document.url,
       document.created_at
     ] as const);
     return (

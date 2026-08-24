@@ -1,6 +1,10 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { buildOrderBlobPath, deleteBlob, uploadBlob } from '@/shared/server/blob';
+import {
+  buildOrderDocumentBlobPath,
+  deletePrivateOrderDocumentBlob,
+  uploadPrivateOrderDocumentBlob
+} from '@/shared/server/blob';
 import { getPool } from '@/shared/server/db';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import {
@@ -37,9 +41,10 @@ export async function generateOrderDocumentRoute(
       await generateOrderPdf(title, context.orderForPdf, context.itemsForPdf)
     );
     const contentHash = createHash('sha256').update(pdfBuffer).digest('hex');
-    const fileName = buildGeneratedPdfFileName(orderId, type);
-    const blobPath = buildOrderBlobPath(orderId, fileName);
-    const blob = await uploadBlob(blobPath, pdfBuffer, 'application/pdf');
+    const documentAccessId = randomUUID();
+    const fileName = buildGeneratedPdfFileName(type);
+    const blobPath = buildOrderDocumentBlobPath(documentAccessId, 'pdf');
+    const blob = await uploadPrivateOrderDocumentBlob(blobPath, pdfBuffer, 'application/pdf');
     uploadedPath = blob.pathname;
 
     const client = await pool.connect();
@@ -63,9 +68,9 @@ export async function generateOrderDocumentRoute(
         `
           insert into order_documents (
             order_id,
+            customer_access_id,
             type,
             filename,
-            blob_url,
             blob_pathname,
             version_number,
             document_number,
@@ -76,15 +81,15 @@ export async function generateOrderDocumentRoute(
           )
           values (
             $1, $2, $3, $4, $5, $6, $7, now(), $8,
-            'operational', 'atehna-generated-pdf-v1'
+            'operational', 'atehna-generated-pdf-v2'
           )
           returning id, created_at, issued_at
         `,
         [
           orderId,
+          documentAccessId,
           type,
           fileName,
-          blob.url,
           blob.pathname,
           version,
           documentNumber,
@@ -121,7 +126,7 @@ export async function generateOrderDocumentRoute(
 
     return NextResponse.json(
       {
-        url: blob.url,
+        url: `/api/admin/orders/${orderId}/documents/${Number(insertRow.id)}`,
         filename: fileName,
         id: Number(insertRow.id),
         createdAt: insertRow.created_at,
@@ -130,13 +135,13 @@ export async function generateOrderDocumentRoute(
         versionNumber: version,
         documentNumber,
         legalStatus: 'operational',
-        formatMarker: 'atehna-generated-pdf-v1'
+        formatMarker: 'atehna-generated-pdf-v2'
       },
       { status: 201 }
     );
   } catch (error) {
     if (uploadedPath && !documentPersisted) {
-      await deleteBlob(uploadedPath).catch(() => undefined);
+      await deletePrivateOrderDocumentBlob(uploadedPath).catch(() => undefined);
     }
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

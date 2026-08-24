@@ -187,27 +187,18 @@ async function resolveCatalogMetadata(
         where cvov.variant_id = civ.id
           and cvov.item_id = ci.id
       ) variant_options on true
-      where (
-          ($1::bigint is not null and civ.id = $1)
-          or (
-            $1::bigint is null
-            and lower(trim(coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug)))
-              = lower(trim($2))
-          )
-        )
-        and ($3::bigint is null or ci.id = $3)
+      where civ.id = $1
+        and ($2::bigint is null or ci.id = $2)
         and ci.status = 'active'
         and civ.status = 'active'
       order by
-        case when civ.id = $1 then 0 else 1 end,
         civ.position asc,
         civ.id asc
       limit 2
     `,
-    [item.catalogVariantId ?? null, item.sku, item.catalogItemId ?? null]
+    [item.catalogVariantId ?? null, item.catalogItemId ?? null]
   );
 
-  // A legacy SKU without an explicit variant ID is linked only when unambiguous.
   if (result.rows.length !== 1) return null;
   const row = result.rows[0] as Record<string, unknown>;
   return {
@@ -302,6 +293,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       if (!item.sku || !item.name) {
         return NextResponse.json(
           { message: 'Manjkajo podatki postavke (SKU/ime).' },
+          { status: 400 }
+        );
+      }
+      if (!item.catalogVariantId) {
+        return NextResponse.json(
+          { message: 'Vsaka postavka mora imeti veljaven ID različice kataloga.' },
           { status: 400 }
         );
       }
@@ -423,11 +420,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             name,
             unit,
             quantity,
-            unit_price,
-            total_price,
             catalog_item_id,
             catalog_variant_id,
             base_unit_net,
+            line_net,
             discount_pct
           from order_items
           where order_id = $1
@@ -656,8 +652,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
                 name = $2,
                 unit = $3,
                 quantity = $4,
-                unit_price = $5,
-                total_price = $6,
                 catalog_item_id = coalesce(catalog_item_id, $7),
                 catalog_variant_id = coalesce(catalog_variant_id, $8),
                 product_slug = coalesce(product_slug, $9),
@@ -723,8 +717,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
                 name,
                 unit,
                 quantity,
-                unit_price,
-                total_price,
                 catalog_item_id,
                 catalog_variant_id,
                 product_slug,
@@ -746,7 +738,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
                 product_snapshot_json
               )
               values (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                $1, $2, $3, $4, $5, $8, $9, $10, $11, $12, $13,
                 $14::jsonb, $15, $16, $17, $6, $18, $19, $7, $20, $21, $22,
                 $23, $24::jsonb
               )
@@ -825,9 +817,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         name: row.name,
         unit: row.unit,
         quantity: Number(row.quantity ?? 0),
-        unitPrice: Number(row.base_unit_net ?? row.unit_price ?? 0),
+        unitPrice: Number(row.base_unit_net ?? 0),
         discountPercentage: Number(row.discount_pct ?? 0),
-        totalPrice: Number(row.total_price ?? 0)
+        totalPrice: Number(row.line_net ?? 0)
       }));
       const newItems = savedItems.map((item, index) => ({
         ...item,

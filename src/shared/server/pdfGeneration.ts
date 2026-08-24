@@ -1,4 +1,5 @@
 import type { Pool } from 'pg';
+import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
 import type { PdfItem, PdfOrder } from '@/shared/server/pdf';
 
 type RawOrder = Record<string, unknown>;
@@ -8,7 +9,6 @@ type BuildPdfContextSuccess = {
   order: RawOrder;
   orderForPdf: PdfOrder;
   itemsForPdf: PdfItem[];
-  orderToken: string;
 };
 
 type BuildPdfContextFailure = {
@@ -38,12 +38,6 @@ const asNumber = (value: unknown) => {
   return 0;
 };
 
-const toOrderToken = (orderNumber: string, orderId: number) => {
-  const normalized = orderNumber.trim() || `order-${orderId}`;
-  const cleaned = normalized.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  return cleaned || `order-${orderId}`;
-};
-
 const toDateStamp = (value: Date) => {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, '0');
@@ -56,12 +50,12 @@ const randomSuffix = (length = 30) => {
   return Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
 };
 
-export function buildGeneratedPdfFileName(orderId: number, type: string) {
+export function buildGeneratedPdfFileName(type: string) {
   const documentCode = PDF_CODE_BY_TYPE[type] ?? 'DOC';
   const dateStamp = toDateStamp(new Date());
   const suffix = randomSuffix();
 
-  return `${documentCode}-${orderId}-${dateStamp}-${suffix}.pdf`;
+  return `${documentCode}-${dateStamp}-${suffix}.pdf`;
 }
 
 export function buildOrderDocumentNumber(orderId: number, type: string, version: number) {
@@ -92,7 +86,7 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
   }
 
   const itemsResult = await pool.query(
-    'SELECT sku, name, unit, quantity, unit_price as "unitPrice" FROM order_items WHERE order_id = $1 ORDER BY id',
+    'SELECT sku, name, unit, quantity, unit_net as "unitPrice" FROM order_items WHERE order_id = $1 ORDER BY id',
     [orderId]
   );
 
@@ -120,14 +114,13 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
     ok: true,
     order,
     itemsForPdf,
-    orderToken: toOrderToken(orderNumber, orderId),
     orderForPdf: {
       orderNumber,
       customerType,
       organizationName: asNullableString(order.organization_name),
       contactName,
       email,
-      deliveryAddress: asNullableString(order.delivery_address),
+      deliveryAddress: formatOrderRowAddress(order) || null,
       reference: asNullableString(order.reference),
       notes: asNullableString(order.notes),
       createdAt: order.created_at ? new Date(String(order.created_at)) : new Date(),

@@ -37,14 +37,27 @@ export async function GET() {
     );
   }
 
+  const expectedSchemaSha256 = process.env.E2E_SCHEMA_SHA256?.trim();
+  if (!expectedSchemaSha256 || !/^[a-f0-9]{64}$/u.test(expectedSchemaSha256)) {
+    return NextResponse.json(
+      { ok: false, reason: 'e2e-schema-hash-not-configured' },
+      { status: 503 }
+    );
+  }
+
   try {
     const configuredDatabaseTarget = getConfiguredDatabaseTarget();
     const pool = await getPool();
     const result = await pool.query(`
       select
-        (select count(*)::integer from e2e_schema_migrations) as migration_count,
         current_database() as database_name,
         current_user as effective_user,
+        (
+          select sha256
+          from e2e_schema_state
+          where key = 'canonical-schema'
+        ) as schema_sha256,
+        to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
         exists (
           select 1
           from e2e_seed_metadata
@@ -60,17 +73,19 @@ export async function GET() {
         ) as has_reference_product
     `);
     const row = result.rows[0] as {
-      migration_count?: number;
       database_name?: string;
       effective_user?: string;
+      schema_sha256?: string;
+      has_order_access_tokens?: boolean;
       has_seed?: boolean;
       has_reference_product?: boolean;
     } | undefined;
     if (
       !row
-      || Number(row.migration_count) < 1
       || typeof row.database_name !== 'string'
       || typeof row.effective_user !== 'string'
+      || row.schema_sha256 !== expectedSchemaSha256
+      || row.has_order_access_tokens !== true
       || row.has_seed !== true
       || row.has_reference_product !== true
     ) {

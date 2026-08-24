@@ -21,39 +21,6 @@ const DUPLICATE_NAME_SUFFIX = ' kopija';
 const SCHOOL_NAME_LONG_FORM = 'Osnovna šola';
 const SCHOOL_NAME_SHORT_FORM = 'OŠ';
 
-const tableSql = `
-  create table if not exists school_directory_meta (
-    key text primary key,
-    seed_version integer not null default 0,
-    updated_at timestamptz not null default now()
-  );
-
-  create table if not exists school_directory_columns (
-    id text primary key,
-    label text not null,
-    position integer not null,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-  );
-
-  create table if not exists school_directory_rows (
-    id text primary key,
-    position integer not null,
-    cells jsonb not null default '{}'::jsonb,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
-  );
-
-  create index if not exists school_directory_columns_position_idx
-    on school_directory_columns (position, id);
-
-  create unique index if not exists school_directory_columns_label_unique_idx
-    on school_directory_columns (lower(btrim(label)));
-
-  create index if not exists school_directory_rows_position_idx
-    on school_directory_rows (position, id);
-`;
-
 type SeedShape = {
   version: number;
   columns: Array<{ id: string; label: string }>;
@@ -87,7 +54,7 @@ export class SchoolDirectoryConflictError extends Error {
   }
 }
 
-let schoolDirectoryReadyPromise: Promise<Pool> | null = null;
+let schoolDirectorySeedPromise: Promise<Pool> | null = null;
 
 const toIso = (value: unknown) => {
   if (value instanceof Date) return value.toISOString();
@@ -208,33 +175,7 @@ async function seedSchoolDirectory(client: PoolClient) {
     'select seed_version from school_directory_meta where key = $1 for update',
     [DIRECTORY_KEY]
   );
-  const currentSeedVersion = Number(metaResult.rows[0]?.seed_version ?? 0);
-
-  if (metaResult.rowCount) {
-    if (currentSeedVersion < 2) {
-      await client.query(
-        `update school_directory_rows
-         set
-           cells = jsonb_set(
-             cells,
-             array['naziv']::text[],
-             to_jsonb(replace(cells ->> 'naziv', $1, $2)::text),
-             true
-           ),
-           updated_at = now()
-         where strpos(coalesce(cells ->> 'naziv', ''), $1) > 0`,
-        [SCHOOL_NAME_LONG_FORM, SCHOOL_NAME_SHORT_FORM]
-      );
-    }
-
-    if (currentSeedVersion < seed.version) {
-      await client.query(
-        'update school_directory_meta set seed_version = $2, updated_at = now() where key = $1',
-        [DIRECTORY_KEY, seed.version]
-      );
-    }
-    return;
-  }
+  if (metaResult.rowCount) return;
 
   const columns = seed.columns.map((column, position) => ({ ...column, position }));
   const rows = seed.rows.map((row, position) => ({
@@ -265,9 +206,8 @@ async function seedSchoolDirectory(client: PoolClient) {
   );
 }
 
-async function prepareSchoolDirectory(): Promise<Pool> {
+async function initializeSchoolDirectoryData(): Promise<Pool> {
   const pool = await getPool();
-  await pool.query(tableSql);
   const client = await pool.connect();
   try {
     await client.query('begin');
@@ -282,16 +222,16 @@ async function prepareSchoolDirectory(): Promise<Pool> {
   return pool;
 }
 
-async function ensureSchoolDirectory() {
-  schoolDirectoryReadyPromise ??= prepareSchoolDirectory().catch((error) => {
-    schoolDirectoryReadyPromise = null;
+async function getSeededSchoolDirectoryPool() {
+  schoolDirectorySeedPromise ??= initializeSchoolDirectoryData().catch((error) => {
+    schoolDirectorySeedPromise = null;
     throw error;
   });
-  return schoolDirectoryReadyPromise;
+  return schoolDirectorySeedPromise;
 }
 
 async function readSchoolDirectoryFromDatabase(): Promise<SchoolDirectoryData> {
-  const pool = await ensureSchoolDirectory();
+  const pool = await getSeededSchoolDirectoryPool();
   const [columnResult, rowResult, metaResult] = await Promise.all([
     pool.query('select id, label, position from school_directory_columns order by position asc, id asc'),
     pool.query('select id, position, cells from school_directory_rows order by position asc, id asc'),
@@ -764,7 +704,7 @@ async function applyMutation(client: PoolClient, mutation: SchoolDirectoryMutati
 }
 
 export async function mutateSchoolDirectory(mutation: SchoolDirectoryMutation): Promise<MutationResult> {
-  const pool = await ensureSchoolDirectory();
+  const pool = await getSeededSchoolDirectoryPool();
   const client = await pool.connect();
   try {
     await client.query('begin');

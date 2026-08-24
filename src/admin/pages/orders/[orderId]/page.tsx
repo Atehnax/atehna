@@ -32,10 +32,12 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     organization_name: asText(order.organization_name),
     contact_name: asText(order.contact_name, ''),
     email: asText(order.email, ''),
-    delivery_address: asText(order.delivery_address),
-    address_line1: asText((order as Record<string, unknown>).address_line1),
-    postal_code: asText((order as Record<string, unknown>).postal_code),
-    city: asText((order as Record<string, unknown>).city),
+    address_line1: asText(order.address_line1),
+    address_line2: asText(order.address_line2),
+    postal_code: asText(order.postal_code),
+    city: asText(order.city),
+    gurs_house_number_id: asText(order.gurs_house_number_id),
+    country_code: asText(order.country_code, 'SI'),
     commitment_status: asText(
       (order as Record<string, unknown>).commitment_status,
       order.customer_type === 'school' ? 'pending_confirmation' : 'binding'

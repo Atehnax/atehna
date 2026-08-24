@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import {
   readE2eEnvironment,
+  verifyCanonicalE2eSchemaState,
   verifyE2eResetTarget
 } from '../../scripts/e2e-database.mjs';
 
@@ -149,4 +150,61 @@ test('database reset verifies live identity and ownership before destructive SQL
     ),
     /has no E2E reset-ownership marker/u
   );
+
+  const schemaSha256 = 'a'.repeat(64);
+  const completeSchemaProbe = {
+    has_catalog_items: true,
+    has_catalog_variants: true,
+    has_catalog_media: true,
+    has_product_appearance: true,
+    has_gurs_addresses: true,
+    has_order_access_tokens: true,
+    has_product_type: true,
+    has_gurs_search_text: true
+  };
+  const exactSchemaPool = {
+    async query(text: string, values?: readonly unknown[]) {
+      if (text.includes('from e2e_schema_state')) {
+        assert.deepEqual(values, ['canonical-schema']);
+        return { rows: [{ sha256: schemaSha256 }] };
+      }
+      if (text.includes("to_regclass('public.catalog_items')")) {
+        return { rows: [completeSchemaProbe] };
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    }
+  };
+  await verifyCanonicalE2eSchemaState(exactSchemaPool, schemaSha256);
+
+  const staleSchemaPool = {
+    async query() {
+      return { rows: [{ sha256: 'b'.repeat(64) }] };
+    }
+  };
+  await assert.rejects(
+    verifyCanonicalE2eSchemaState(staleSchemaPool, schemaSha256),
+    /canonical-schema fingerprint is missing or stale/u
+  );
+
+  const missingOrderAccessTablePool = {
+    async query(text: string) {
+      if (text.includes('from e2e_schema_state')) {
+        return { rows: [{ sha256: schemaSha256 }] };
+      }
+      if (text.includes("to_regclass('public.catalog_items')")) {
+        return {
+          rows: [{
+            ...completeSchemaProbe,
+            has_order_access_tokens: false
+          }]
+        };
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    }
+  };
+  await assert.rejects(
+    verifyCanonicalE2eSchemaState(missingOrderAccessTablePool, schemaSha256),
+    /has_order_access_tokens/u
+  );
+
 });

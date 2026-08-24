@@ -648,19 +648,6 @@ export const homepageSocialTypeLabels: Record<HomepageSocialType, string> = {
   custom: 'Po meri'
 };
 
-// Before categoryOrderMode existed, every untouched configuration was stored with
-// this populated order. Matching legacy values therefore mean "inherit"; any
-// different legacy order remains an intentional custom override.
-const LEGACY_DEFAULT_HOMEPAGE_CATEGORY_ORDER = [
-  'tehnika-in-tehnologija',
-  'materiali',
-  'stroji-in-naprave',
-  'merilno-orodje-in-geometrija',
-  'elektricni-in-mehanicni-elementi',
-  'rocno-orodje-in-delavniski-pribor',
-  'zascita-pri-delu',
-  'dodatki-in-nadomestni-deli'
-] as const;
 
 const defaultHeroSlide: HomepageHeroSlide = {
   id: 'laser-cutting-plywood',
@@ -1309,10 +1296,6 @@ function normalizeCategoryOrder(value: unknown) {
     .slice(0, 80);
 }
 
-function ordersMatch(first: readonly string[], second: readonly string[]) {
-  return first.length === second.length && first.every((slug, index) => slug === second[index]);
-}
-
 export function orderHomepageCategories<T extends { slug: string }>(
   categories: readonly T[],
   settings: Pick<HomepageCategoriesSettings, 'categoryOrderMode' | 'categoryOrder'>
@@ -1393,12 +1376,11 @@ function normalizeCategories(value: unknown): HomepageCategoriesSettings {
   const record = asRecord(value);
   const fallback = DEFAULT_HOMEPAGE_SETTINGS.categories;
   const categoryOrder = normalizeCategoryOrder(record.categoryOrder);
-  const hasExplicitOrderMode = HOMEPAGE_CATEGORY_ORDER_MODES.includes(record.categoryOrderMode as HomepageCategoryOrderMode);
-  const categoryOrderMode: HomepageCategoryOrderMode = hasExplicitOrderMode
-    ? record.categoryOrderMode as HomepageCategoryOrderMode
-    : categoryOrder.length > 0 && !ordersMatch(categoryOrder, LEGACY_DEFAULT_HOMEPAGE_CATEGORY_ORDER)
-      ? 'custom'
-      : 'catalog';
+  const categoryOrderMode = enumValue(
+    record.categoryOrderMode,
+    HOMEPAGE_CATEGORY_ORDER_MODES,
+    fallback.categoryOrderMode
+  );
 
   const base = {
     visible: asBoolean(record.visible, fallback.visible),
@@ -1828,47 +1810,14 @@ function normalizeSectionTitles(value: unknown): HomepageSectionTitles {
   }, {});
 }
 
-function normalizeLegacyElementConfig(value: unknown): Partial<HomepageSettings> {
-  const record = asRecord(value);
-  const elements = asArray(record.elements).map(asRecord);
-  if (elements.length === 0) return {};
-
-  const heroElement = elements.find((element) => element.type === 'hero');
-  const categoryElement = elements.find((element) => element.type === 'category_grid');
-  const sectionOrder = elements
-    .map((element) => element.type === 'hero' ? 'hero' : element.type === 'category_grid' ? 'categories' : null)
-    .filter((sectionId): sectionId is 'hero' | 'categories' => sectionId === 'hero' || sectionId === 'categories');
-
-  return {
-    sectionOrder: normalizeSectionOrder(sectionOrder, true),
-    hero: heroElement
-      ? {
-          ...DEFAULT_HOMEPAGE_SETTINGS.hero,
-          visible: asBoolean(heroElement.enabled, true),
-          title: asString(asRecord(heroElement.content).title, DEFAULT_HOMEPAGE_SETTINGS.hero.title, TITLE_MAX_LENGTH),
-          description: asString(asRecord(heroElement.content).description, DEFAULT_HOMEPAGE_SETTINGS.hero.description, DESCRIPTION_MAX_LENGTH),
-          primaryButton: normalizeButton(asRecord(heroElement.content).primaryButton, DEFAULT_HOMEPAGE_SETTINGS.hero.primaryButton),
-          secondaryButton: normalizeButton(asRecord(heroElement.content).secondaryButton, DEFAULT_HOMEPAGE_SETTINGS.hero.secondaryButton)
-        }
-      : undefined,
-    categories: categoryElement
-      ? {
-          ...DEFAULT_HOMEPAGE_SETTINGS.categories,
-          visible: asBoolean(categoryElement.enabled, true)
-        }
-      : undefined
-  };
-}
-
 export function normalizeLandingPageConfig(value: unknown): HomepageSettings {
   const record = asRecord(value);
-  const legacy = normalizeLegacyElementConfig(value);
 
   return {
-    sectionOrder: normalizeSectionOrder(record.sectionOrder ?? legacy.sectionOrder),
+    sectionOrder: normalizeSectionOrder(record.sectionOrder),
     sectionTitles: normalizeSectionTitles(record.sectionTitles),
-    hero: normalizeHero(record.hero ?? legacy.hero),
-    categories: normalizeCategories(record.categories ?? legacy.categories),
+    hero: normalizeHero(record.hero),
+    categories: normalizeCategories(record.categories),
     infoBlocks: normalizeInfoBlocks(record.infoBlocks),
     footer: normalizeHomepageFooterSettings(record.footer),
     page: normalizePage(record.page),

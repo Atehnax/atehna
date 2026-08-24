@@ -184,16 +184,10 @@ function normalizeCatalogEditorProductType(value: unknown): CatalogEditorProduct
   return null;
 }
 
-function inferCatalogEditorProductType(itemType: unknown, variants: Array<Record<string, unknown>>): CatalogEditorProductType {
-  if (itemType === 'bulk') return 'weight';
-  if (itemType === 'sheet') return 'dimensions';
-  const hasDimensionVariants = variants.some((variant) =>
-    variant.length !== null && variant.length !== undefined
-    || variant.width !== null && variant.width !== undefined
-    || variant.thickness !== null && variant.thickness !== undefined
-  );
-  if (hasDimensionVariants || variants.length > 1) return 'dimensions';
-  return 'simple';
+function requireCatalogEditorProductType(value: unknown): CatalogEditorProductType {
+  const productType = normalizeCatalogEditorProductType(value);
+  if (!productType) throw new Error('Artikel nima veljavne vrste produkta.');
+  return productType;
 }
 
 function normalizeTypeSpecificData(value: unknown): CatalogItemTypeSpecificData {
@@ -353,12 +347,14 @@ function normalizeVariantContentOverride(value: unknown): CatalogVariantContentO
   return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
+const ALL_QUANTITY_DISCOUNT_TARGETS_JSON = '{"variants":["Vse"],"customers":["Vse"]}';
+
 function normalizeQuantityDiscountRule(entry: Record<string, unknown>, fallbackPosition: number): CatalogItemQuantityDiscountRule {
   return {
     id: entry.id === null || entry.id === undefined ? undefined : asNumber(entry.id),
-    minQuantity: Math.max(1, Math.floor(asNumber(entry.minQuantity ?? entry.min_quantity, 1))),
-    discountPercent: Math.min(100, Math.max(0, asNumber(entry.discountPercent ?? entry.discount_percent))),
-    appliesTo: asStringOrNull(entry.appliesTo ?? entry.applies_to) ?? 'allVariants',
+    minQuantity: Math.max(1, Math.floor(asNumber(entry.minQuantity, 1))),
+    discountPercent: Math.min(100, Math.max(0, asNumber(entry.discountPercent))),
+    appliesTo: asStringOrNull(entry.appliesTo) ?? ALL_QUANTITY_DISCOUNT_TARGETS_JSON,
     note: asStringOrNull(entry.note),
     position: asNumber(entry.position, fallbackPosition)
   };
@@ -825,14 +821,12 @@ async function syncSingleVariantEditorPricing(
   if (variantPatch.price === undefined && variantPatch.discountPct === undefined) return;
 
   const editorResult = await client.query<{
-    item_type: string | null;
-    product_type: string | null;
+    product_type: string;
     data: unknown;
     variant_count: string | number;
   }>(
     `
     select
-      ci.item_type,
       cied.product_type,
       coalesce(cied.data, '{}'::jsonb) as data,
       (
@@ -841,7 +835,7 @@ async function syncSingleVariantEditorPricing(
         where civ.item_id = ci.id
       ) as variant_count
     from catalog_items ci
-    left join catalog_item_editor_details cied on cied.item_id = ci.id
+    join catalog_item_editor_details cied on cied.item_id = ci.id
     where ci.id = $1
     limit 1
     `,
@@ -850,9 +844,7 @@ async function syncSingleVariantEditorPricing(
   const editorRow = editorResult.rows[0];
   if (!editorRow || asNumber(editorRow.variant_count) !== 1) return;
 
-  const productType =
-    normalizeCatalogEditorProductType(editorRow.product_type)
-    ?? inferCatalogEditorProductType(editorRow.item_type, [existingVariant]);
+  const productType = requireCatalogEditorProductType(editorRow.product_type);
   if (productType !== 'simple' && productType !== 'unique_machine') return;
 
   const nextData = patchSingleVariantEditorPricingData(productType, editorRow.data, variantPatch, existingVariant);
@@ -953,7 +945,7 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
     const media = (
       await client.query(
         `
-        select id, variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+        select id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
                alt_text, image_type, image_dimensions, video_type, hidden, position
         from catalog_media
         where item_id = $1
@@ -1158,20 +1150,17 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
 
     const mediaIdBySourceId = new Map<number, number>();
     for (const mediaEntry of media) {
-      const sourceVariantId = mediaEntry.variant_id === null ? null : asNumber(mediaEntry.variant_id, -1);
-      const nextVariantId = sourceVariantId !== null && sourceVariantId >= 0 ? variantIdBySourceId.get(sourceVariantId) ?? null : null;
 
       const mediaResult = await client.query(
         `
         insert into catalog_media (
-          item_id, variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+          item_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
           alt_text, image_type, image_dimensions, video_type, hidden, position
-        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15)
         returning id
         `,
         [
           newItemId,
-          nextVariantId,
           String(mediaEntry.media_kind ?? 'image'),
           String(mediaEntry.role ?? 'gallery'),
           String(mediaEntry.source_kind ?? 'upload'),
@@ -1243,7 +1232,7 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
           newItemId,
           Math.max(1, Math.floor(asNumber(quantityDiscount.min_quantity, 1))),
           Math.min(100, Math.max(0, asNumber(quantityDiscount.discount_percent))),
-          asStringOrNull(quantityDiscount.applies_to) ?? 'allVariants',
+          asStringOrNull(quantityDiscount.applies_to) ?? ALL_QUANTITY_DISCOUNT_TARGETS_JSON,
           asStringOrNull(quantityDiscount.note),
           asNumber(quantityDiscount.position)
         ]
@@ -1261,7 +1250,7 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
       `,
       [
         newItemId,
-        normalizeCatalogEditorProductType(editorDetails?.product_type) ?? inferCatalogEditorProductType(source.item_type, variants),
+        requireCatalogEditorProductType(editorDetails?.product_type),
         serializeJsonbValue(normalizeTypeSpecificData(editorDetails?.data)) ?? '{}'
       ]
     );
@@ -1495,23 +1484,13 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
             'imageType', image_type,
             'imageDimensions', image_dimensions,
             'videoType', video_type,
-            'variantId', variant_id,
             'variantIds', coalesce((
               select json_agg(cvm.variant_id order by cvm.position asc, cvm.variant_id asc)
               from catalog_variant_media cvm
               join catalog_item_variants assigned_variant on assigned_variant.id = cvm.variant_id
               where cvm.media_id = catalog_media.id
                 and assigned_variant.status = 'active'
-            ), case
-              when variant_id is null then '[]'::json
-              when exists (
-                select 1
-                from catalog_item_variants legacy_media_variant
-                where legacy_media_variant.id = catalog_media.variant_id
-                  and legacy_media_variant.status = 'active'
-              ) then json_build_array(variant_id)
-              else '[]'::json
-            end),
+            ), '[]'::json),
             'variantPositions', coalesce((
               select json_object_agg(cvm.variant_id::text, cvm.position)
               from catalog_variant_media cvm
@@ -1535,28 +1514,16 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
             where active_media_assignment.media_id = catalog_media.id
               and active_media_variant.status = 'active'
           )
-          or (
-            not exists (
-              select 1
-              from catalog_variant_media any_media_assignment
-              where any_media_assignment.media_id = catalog_media.id
-            )
-            and (
-              variant_id is null
-              or exists (
-                select 1
-                from catalog_item_variants active_legacy_media_variant
-                where active_legacy_media_variant.id = catalog_media.variant_id
-                  and active_legacy_media_variant.status = 'active'
-              )
-            )
+          or not exists (
+            select 1
+            from catalog_variant_media any_media_assignment
+            where any_media_assignment.media_id = catalog_media.id
           )
         )
       group by item_id
     )
     select
       ci.category_id,
-      ci.item_type,
       cied.product_type as editor_product_type,
       coalesce(cied.data, '{}'::jsonb) as editor_data,
       json_build_object(
@@ -1618,21 +1585,10 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
                 where active_primary_assignment.media_id = cm.id
                   and active_primary_variant.status = 'active'
               )
-              or (
-                not exists (
-                  select 1
-                  from catalog_variant_media any_primary_assignment
-                  where any_primary_assignment.media_id = cm.id
-                )
-                and (
-                  cm.variant_id is null
-                  or exists (
-                    select 1
-                    from catalog_item_variants active_primary_image_variant
-                    where active_primary_image_variant.id = cm.variant_id
-                      and active_primary_image_variant.status = 'active'
-                  )
-                )
+              or not exists (
+                select 1
+                from catalog_variant_media any_primary_assignment
+                where any_primary_assignment.media_id = cm.id
               )
             )
           order by cm.position asc, cm.id asc
@@ -1655,21 +1611,10 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
                 where active_gallery_assignment.media_id = cm.id
                   and active_gallery_variant.status = 'active'
               )
-              or (
-                not exists (
-                  select 1
-                  from catalog_variant_media any_gallery_assignment
-                  where any_gallery_assignment.media_id = cm.id
-                )
-                and (
-                  cm.variant_id is null
-                  or exists (
-                    select 1
-                    from catalog_item_variants active_gallery_image_variant
-                    where active_gallery_image_variant.id = cm.variant_id
-                      and active_gallery_image_variant.status = 'active'
-                  )
-                )
+              or not exists (
+                select 1
+                from catalog_variant_media any_gallery_assignment
+                where any_gallery_assignment.media_id = cm.id
               )
             )
         ), '[]'::json),
@@ -1687,7 +1632,7 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
     from catalog_items ci
     left join variants_agg va on va.item_id = ci.id
     left join media_agg ma on ma.item_id = ci.id
-    left join catalog_item_editor_details cied on cied.item_id = ci.id
+    join catalog_item_editor_details cied on cied.item_id = ci.id
     where ci.status = 'active'
       and ci.category_id = any($1::text[])
       and va.item_id is not null
@@ -1698,17 +1643,14 @@ export async function fetchCatalogItemsForCategory(categoryIds: string[]): Promi
 
   return (result.rows as Array<{
     category_id: string;
-    item_type: string | null;
-    editor_product_type: string | null;
+    editor_product_type: string;
     editor_data: unknown;
     item: Record<string, unknown>;
   }>).map((row) => {
     const variants = Array.isArray(row.item.variants)
       ? row.item.variants as Array<Record<string, unknown>>
       : [];
-    const productType =
-      normalizeCatalogEditorProductType(row.editor_product_type)
-      ?? inferCatalogEditorProductType(row.item_type, variants);
+    const productType = requireCatalogEditorProductType(row.editor_product_type);
     const presentation = buildPublicCatalogPresentationDetails(productType, row.editor_data);
     const metadataSpecifications: PublicCatalogSpecification[] = [
       ['material', 'Material', row.item.material],
@@ -1803,7 +1745,6 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       ci.id,
       ci.slug,
       ci.item_name,
-      ci.item_type,
       cied.product_type as editor_product_type,
       coalesce(cied.data, '{}'::jsonb) as type_specific_data,
       ci.description,
@@ -1838,21 +1779,10 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               where active_assignment.media_id = cm.id
                 and active_variant.status = 'active'
             )
-            or (
-              not exists (
-                select 1
-                from catalog_variant_media any_assignment
-                where any_assignment.media_id = cm.id
-              )
-              and (
-                cm.variant_id is null
-                or exists (
-                  select 1
-                  from catalog_item_variants active_legacy_variant
-                  where active_legacy_variant.id = cm.variant_id
-                    and active_legacy_variant.status = 'active'
-                )
-              )
+            or not exists (
+              select 1
+              from catalog_variant_media any_assignment
+              where any_assignment.media_id = cm.id
             )
           )
         order by cm.position asc, cm.id asc
@@ -1862,7 +1792,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
     from catalog_items ci
     left join category_paths cp on cp.id = ci.category_id
     left join variants_agg va on va.item_id = ci.id
-    left join catalog_item_editor_details cied on cied.item_id = ci.id
+    join catalog_item_editor_details cied on cied.item_id = ci.id
     where ci.status <> 'deleted'
     order by ci.position asc, ci.item_name asc, ci.id asc
     `
@@ -1895,9 +1825,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       id: Number(row.id),
       slug: String(row.slug ?? ''),
       itemName: String(row.item_name ?? ''),
-      productType:
-        normalizeCatalogEditorProductType(row.editor_product_type)
-        ?? inferCatalogEditorProductType(row.item_type, variantsJson as Array<Record<string, unknown>>),
+      productType: requireCatalogEditorProductType(row.editor_product_type),
       typeSpecificData: normalizeTypeSpecificData(row.type_specific_data),
       description: asStringOrNull(row.description),
       brand: asStringOrNull(row.brand),
@@ -2071,15 +1999,11 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
         select json_agg(
           json_build_object(
             'id', cm.id,
-            'variantId', cm.variant_id,
             'variantIds', coalesce((
               select json_agg(cvm.variant_id order by cvm.position asc, cvm.variant_id asc)
               from catalog_variant_media cvm
               where cvm.media_id = cm.id
-            ), case
-              when cm.variant_id is null then '[]'::json
-              else json_build_array(cm.variant_id)
-            end),
+            ), '[]'::json),
             'mediaKind', cm.media_kind,
             'role', cm.role,
             'sourceKind', cm.source_kind,
@@ -2166,15 +2090,15 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
 
   const media = mediaJson.map((entry, index) => {
     const item = entry as Record<string, unknown>;
-    const variantId = item.variantId === null ? null : asNumber(item.variantId, -1);
     const variantIds = Array.isArray(item.variantIds)
       ? item.variantIds.map((entry) => asNumber(entry)).filter((entry) => entry > 0)
-      : variantId !== null && variantId > 0
-        ? [variantId]
-        : [];
+      : [];
+    const firstVariantId = variantIds[0] ?? null;
     return {
       id: asNumber(item.id),
-      variantIndex: variantId !== null && variantIdToIndex.has(variantId) ? variantIdToIndex.get(variantId) ?? null : null,
+      variantIndex: firstVariantId !== null && variantIdToIndex.has(firstVariantId)
+        ? variantIdToIndex.get(firstVariantId) ?? null
+        : null,
       variantIds,
       mediaKind: String(item.mediaKind ?? 'image') as 'image' | 'video' | 'document',
       role: String(item.role ?? 'gallery') as 'gallery' | 'technical_sheet',
@@ -2203,9 +2127,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
   const quantityDiscounts = quantityDiscountsJson.map((entry, index) =>
     normalizeQuantityDiscountRule(entry as Record<string, unknown>, index)
   );
-  const productType =
-    normalizeCatalogEditorProductType(row.editor_product_type)
-    ?? inferCatalogEditorProductType(row.item_type, variantsJson as Array<Record<string, unknown>>);
+  const productType = requireCatalogEditorProductType(row.editor_product_type);
   const machineSerialOrderMatchSkus = productType === 'unique_machine'
     ? [
         asStringOrNull(row.sku),
@@ -3061,7 +2983,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
       `,
       [
         itemRow.id,
-        normalizeCatalogEditorProductType(payload.productType) ?? inferCatalogEditorProductType(payload.itemType, payload.variants as Array<Record<string, unknown>>),
+        requireCatalogEditorProductType(payload.productType),
         serializeJsonbValue(normalizeTypeSpecificData(payload.typeSpecificData)) ?? '{}'
       ]
     );
@@ -3080,7 +3002,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
           itemRow.id,
           discount.minQuantity,
           discount.discountPercent,
-          discount.appliesTo ?? 'allVariants',
+          discount.appliesTo ?? ALL_QUANTITY_DISCOUNT_TARGETS_JSON,
           asStringOrNull(discount.note),
           discount.position ?? index
         ]
@@ -3273,6 +3195,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
     const retainedMediaIds: number[] = [];
     const retainedDocumentIds = new Set<number>();
     const retainedGalleryImageIds: number[] = [];
+    const directMediaAssignments: Array<{ variantId: number; mediaId: number; position: number }> = [];
     for (const media of payload.media) {
       const variantId = typeof media.variantIndex === 'number' ? variantIdByIndex[media.variantIndex] ?? null : null;
       const requestedMediaId =
@@ -3307,28 +3230,26 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
         ? await client.query(
             `
             update catalog_media
-            set variant_id = $1,
-                media_kind = $2,
-                role = $3,
-                source_kind = $4,
-                filename = $5,
-                blob_url = $6,
-                blob_pathname = $7,
-                external_url = $8,
-                mime_type = $9,
-                alt_text = $10,
-                image_type = $11,
-                image_dimensions = $12::jsonb,
-                video_type = $13,
-                hidden = $14,
-                position = $15,
+            set media_kind = $1,
+                role = $2,
+                source_kind = $3,
+                filename = $4,
+                blob_url = $5,
+                blob_pathname = $6,
+                external_url = $7,
+                mime_type = $8,
+                alt_text = $9,
+                image_type = $10,
+                image_dimensions = $11::jsonb,
+                video_type = $12,
+                hidden = $13,
+                position = $14,
                 updated_at = now()
-            where id = $16
-              and item_id = $17
+            where id = $15
+              and item_id = $16
             returning id
             `,
             [
-              variantId,
               media.mediaKind,
               media.role,
               media.sourceKind,
@@ -3350,14 +3271,13 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
         : await client.query(
             `
             insert into catalog_media (
-              item_id, variant_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
+              item_id, media_kind, role, source_kind, filename, blob_url, blob_pathname, external_url, mime_type,
               alt_text, image_type, image_dimensions, video_type, hidden, position
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16)
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15)
             returning id
             `,
             [
               itemRow.id,
-              variantId,
               media.mediaKind,
               media.role,
               media.sourceKind,
@@ -3379,6 +3299,13 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
       claimedMediaIds.add(persistedMediaId);
       retainedMediaIds.push(persistedMediaId);
       if (media.mediaKind === 'document' && !media.hidden) retainedDocumentIds.add(persistedMediaId);
+      if (variantId !== null) {
+        directMediaAssignments.push({
+          variantId,
+          mediaId: persistedMediaId,
+          position: media.position ?? 0
+        });
+      }
       if (media.mediaKind === 'image' && media.role === 'gallery' && !media.hidden) {
         retainedGalleryImageIds.push(persistedMediaId);
       }
@@ -3398,6 +3325,18 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
     }
 
     await client.query('delete from catalog_variant_media where item_id = $1', [itemRow.id]);
+    for (const assignment of directMediaAssignments) {
+      await client.query(
+        `
+        insert into catalog_variant_media (variant_id, item_id, media_id, position)
+        values ($1,$2,$3,$4)
+        on conflict (variant_id, media_id)
+        do update set position = excluded.position
+        `,
+        [assignment.variantId, itemRow.id, assignment.mediaId, assignment.position]
+      );
+    }
+
     for (let variantIndex = 0; variantIndex < payload.variants.length; variantIndex += 1) {
       const variantId = variantIdByIndex[variantIndex];
       if (!variantId) continue;
@@ -3413,6 +3352,8 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
           `
           insert into catalog_variant_media (variant_id, item_id, media_id, position)
           values ($1,$2,$3,$4)
+          on conflict (variant_id, media_id)
+          do update set position = excluded.position
           `,
           [variantId, itemRow.id, retainedGalleryImageIds[slotIndex], position]
         );
@@ -3656,14 +3597,6 @@ async function queueCatalogMediaBlobDeletion(
             nullif(retained_media.blob_url, '')
           ) = target.blob_target
       )
-        and not exists (
-          select 1
-          from order_documents retained_document
-          where coalesce(
-            nullif(retained_document.blob_pathname, ''),
-            nullif(retained_document.blob_url, '')
-          ) = target.blob_target
-        )
       group by target.blob_target
     )
     insert into archive_blob_deletion_outbox (

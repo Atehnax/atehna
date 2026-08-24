@@ -15,8 +15,11 @@ export async function POST(request: Request) {
     if (!bodyResult.ok) return bodyResult.response;
 
     const pool = await getPool();
-    const selections = await parseOrderSelections(pool, bodyResult.body.items);
-    const quote = await buildAuthoritativeOrderQuote(pool, selections);
+    const selections = parseOrderSelections(bodyResult.body.items);
+    const customerName = typeof bodyResult.body.customerName === 'string' ? bodyResult.body.customerName.trim() : '';
+    const quote = await buildAuthoritativeOrderQuote(pool, selections, {
+      customerLabels: customerName ? [customerName] : []
+    });
 
     return NextResponse.json(quote, {
       headers: { 'Cache-Control': 'no-store' }

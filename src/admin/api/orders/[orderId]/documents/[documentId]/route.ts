@@ -1,19 +1,110 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { readPrivateOrderDocumentBlob } from '@/shared/server/blob';
+import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
 
 type OrderDocumentDeleteRow = {
   type: string;
   filename: string;
-  blob_url: string;
-  blob_pathname: string | null;
   order_number: string | null;
   contact_name: string | null;
-  delivery_address: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country_code: string | null;
   customer_type: string | null;
   created_at: string | null;
   deleted_at: string | null;
 };
+
+type OrderDocumentDownloadRow = {
+  filename: string;
+  blob_pathname: string;
+};
+
+const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
+const PRIVATE_DOCUMENT_HEADERS = {
+  'Cache-Control': 'no-store, private',
+  'Referrer-Policy': 'no-referrer',
+  'X-Content-Type-Options': 'nosniff'
+};
+
+function documentNotFoundResponse() {
+  return NextResponse.json(
+    { message: 'Dokument ne obstaja.' },
+    { status: 404, headers: PRIVATE_DOCUMENT_HEADERS }
+  );
+}
+
+export async function GET(
+  _request: Request,
+  props: { params: Promise<{ orderId: string; documentId: string }> }
+) {
+  try {
+    const params = await props.params;
+    const orderId = Number(params.orderId);
+    const documentId = Number(params.documentId);
+    if (
+      !Number.isSafeInteger(orderId) ||
+      orderId <= 0 ||
+      !Number.isSafeInteger(documentId) ||
+      documentId <= 0
+    ) {
+      return documentNotFoundResponse();
+    }
+
+    const pool = await getPool();
+    const result = await pool.query(
+      `
+        select d.filename, d.blob_pathname
+        from order_documents d
+        join orders o on o.id = d.order_id
+        where d.id = $1
+          and d.order_id = $2
+          and d.deleted_at is null
+          and o.deleted_at is null
+        limit 1
+      `,
+      [documentId, orderId]
+    );
+    const document = result.rows[0] as OrderDocumentDownloadRow | undefined;
+    if (!document) return documentNotFoundResponse();
+
+    const blob = await readPrivateOrderDocumentBlob(document.blob_pathname);
+    if (!blob) return documentNotFoundResponse();
+    if (blob.size <= 0 || blob.size > MAX_DOCUMENT_BYTES) {
+      throw new Error('Order document has an invalid size.');
+    }
+
+    const contentType = blob.contentType.split(';', 1)[0].trim().toLowerCase();
+    if (contentType !== 'application/pdf' && contentType !== 'image/jpeg') {
+      throw new Error('Order document has an unsupported content type.');
+    }
+    const extension = contentType === 'application/pdf' ? 'pdf' : 'jpg';
+    const safeFilename = document.filename.replace(/["\r\n]/gu, '_').trim()
+      || `dokument.${extension}`;
+
+    return new NextResponse(blob.stream, {
+      status: 200,
+      headers: {
+        ...PRIVATE_DOCUMENT_HEADERS,
+        'Content-Type': contentType,
+        'Content-Length': String(blob.size),
+        'Content-Disposition': `inline; filename="${safeFilename}"`
+      }
+    });
+  } catch (error) {
+    console.error('[admin.orders.documents.download] failed', {
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return NextResponse.json(
+      { message: 'Dokumenta trenutno ni mogoče odpreti.' },
+      { status: 500, headers: PRIVATE_DOCUMENT_HEADERS }
+    );
+  }
+}
 
 export async function DELETE(
   request: Request,
@@ -37,8 +128,9 @@ export async function DELETE(
       await client.query('BEGIN');
       const documentResult = await client.query(
         `
-        select d.id, d.type, d.filename, d.blob_url, d.blob_pathname, d.deleted_at,
-          o.order_number, o.contact_name, o.delivery_address, o.customer_type, o.created_at
+        select d.id, d.type, d.filename, d.deleted_at,
+          o.order_number, o.contact_name, o.address_line1, o.address_line2,
+          o.postal_code, o.city, o.country_code, o.customer_type, o.created_at
         from order_documents d
         left join orders o on o.id = d.order_id
         where d.id = $1 and d.order_id = $2
@@ -87,11 +179,9 @@ export async function DELETE(
             deletedAt,
             JSON.stringify({
               type: row.type,
-              blobUrl: row.blob_url,
-              blobPathname: row.blob_pathname,
               orderCreatedAt: row.created_at,
               customerName: row.contact_name || null,
-              address: row.delivery_address || null,
+              address: formatOrderRowAddress(row) || null,
               customerType: row.customer_type || null
             })
           ]

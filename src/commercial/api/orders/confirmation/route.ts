@@ -6,6 +6,12 @@ import {
   verifyOrderAccessToken,
   type VerifiedOrderAccess
 } from '@/shared/server/orderAccess';
+import { scheduleInitialOrderSummaryJob } from '@/shared/server/orderSummaryJobs';
+import {
+  readConfirmationDocumentsSafely,
+  scheduleConfirmationDocumentRepairSafely,
+  type ConfirmationDocumentRow
+} from '@/commercial/api/orders/confirmation/documentResilience';
 
 export const runtime = 'nodejs';
 
@@ -20,11 +26,15 @@ function objectValue(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function deriveStreetAddress(deliveryAddress: unknown, postalCode: unknown, city: unknown) {
-  const address = String(deliveryAddress ?? '').trim();
-  const locality = `${String(postalCode ?? '').trim()} ${String(city ?? '').trim()}`.trim();
-  if (!locality) return address;
-  return address.replace(new RegExp(`,?\\s*${locality.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '').trim();
+function reportDocumentSubsystemFailure(
+  stage: 'lookup' | 'scheduling',
+  orderId: number,
+  error: unknown
+): void {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  console.error(
+    `[orders.confirmation] document ${stage} failed for order ${orderId}: ${message}`
+  );
 }
 
 async function verifyConfirmationRequest(
@@ -68,17 +78,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [orderResult, snapshotsResult, documentsResult] = await Promise.all([
+    scheduleConfirmationDocumentRepairSafely(
+      () => scheduleInitialOrderSummaryJob(pool, access.orderId),
+      (error) => reportDocumentSubsystemFailure('scheduling', access.orderId, error)
+    );
+
+    const documentsPromise = readConfirmationDocumentsSafely(
+      async () => {
+        const result = await pool.query(
+          `
+            select
+              distinct on (type)
+              type,
+              customer_access_id
+            from order_documents
+            where order_id = $1
+              and deleted_at is null
+            order by type, created_at desc, id desc
+          `,
+          [access.orderId]
+        );
+        return result.rows as ConfirmationDocumentRow[];
+      },
+      (error) => reportDocumentSubsystemFailure('lookup', access.orderId, error)
+    );
+
+    const [orderResult, snapshotsResult, documents] = await Promise.all([
       pool.query(
         `
           select
-            id,
-            order_number,
             customer_type,
             organization_name,
             contact_name,
             email,
-            delivery_address,
             address_line1,
             address_line2,
             postal_code,
@@ -136,27 +168,7 @@ export async function GET(request: NextRequest) {
         `,
         [access.orderId]
       ),
-      pool.query(
-        `
-          select
-            id,
-            type,
-            filename,
-            blob_url,
-            version_number,
-            document_number,
-            issued_at,
-            content_sha256,
-            legal_status,
-            format_marker,
-            created_at
-          from order_documents
-          where order_id = $1
-            and deleted_at is null
-          order by created_at desc, id desc
-        `,
-        [access.orderId]
-      )
+      documentsPromise
     ]);
 
     const order = orderResult.rows[0] as Record<string, unknown> | undefined;
@@ -170,44 +182,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let itemRows = snapshotsResult.rows as Record<string, unknown>[];
+    const itemRows = snapshotsResult.rows as Record<string, unknown>[];
     if (itemRows.length === 0) {
-      const legacyItemsResult = await pool.query(
-        `
-          select
-            id as line_number,
-            catalog_item_id,
-            catalog_variant_id,
-            coalesce(product_slug, '') as product_slug,
-            name as product_name,
-            coalesce(variant_name, '') as variant_name,
-            sku,
-            unit,
-            quantity,
-            category_id,
-            category_path,
-            coalesce(selected_attributes, '{}'::jsonb) as selected_attributes,
-            image_url,
-            coalesce(base_unit_net, unit_price, 0) as base_unit_net,
-            coalesce(discount_pct, 0) as discount_pct,
-            coalesce(unit_net, unit_price, 0) as unit_net,
-            coalesce(unit_tax, 0) as unit_tax,
-            coalesce(unit_gross, unit_price, 0) as unit_gross,
-            coalesce(line_net, total_price, 0) as line_net,
-            coalesce(line_tax, 0) as line_tax,
-            coalesce(line_gross, total_price, 0) as line_gross,
-            coalesce(tax_rate, 0) as tax_rate,
-            coalesce(currency, 'EUR') as currency,
-            coalesce(product_snapshot_json, '{}'::jsonb) as snapshot_json
-          from order_items
-          where order_id = $1
-          order by id asc
-        `,
-        [access.orderId]
+      return NextResponse.json(
+        {
+          code: 'ORDER_FORMAT_UNSUPPORTED',
+          message: 'Naročilo ni v podprtem formatu. Oddajte novo naročilo.'
+        },
+        {
+          status: 409,
+          headers: {
+            'Cache-Control': 'no-store',
+            'Referrer-Policy': 'no-referrer'
+          }
+        }
       );
-      itemRows = legacyItemsResult.rows as Record<string, unknown>[];
     }
-
     const items = itemRows.map((row) => {
       const snapshot = objectValue(row.snapshot_json);
       const quantity = Math.max(1, Math.trunc(numberValue(row.quantity)));
@@ -218,6 +208,18 @@ export async function GET(request: NextRequest) {
       const lineTax = numberValue(row.line_tax);
       const unitGross = numberValue(row.unit_gross);
       const lineGross = numberValue(row.line_gross);
+      const discountKind =
+        snapshot.discountKind === 'quantity' ||
+        snapshot.discountKind === 'variant'
+          ? snapshot.discountKind
+          : null;
+      const snapshotQuantityDiscountPct = numberValue(
+        snapshot.quantityDiscountPct
+      );
+      const quantityDiscountPct =
+        discountKind === 'quantity' && snapshotQuantityDiscountPct > 0
+          ? snapshotQuantityDiscountPct
+          : null;
 
       return {
         variantId: numberValue(row.catalog_variant_id),
@@ -237,6 +239,8 @@ export async function GET(request: NextRequest) {
         listUnitNet,
         baseUnitNet: listUnitNet,
         discountPct: numberValue(row.discount_pct),
+        discountKind,
+        quantityDiscountPct,
         discountUnitNet: Math.max(0, listUnitNet - unitNet),
         unitNet,
         unitTax,
@@ -247,40 +251,22 @@ export async function GET(request: NextRequest) {
         lineTax,
         lineGross,
         taxRate: numberValue(row.tax_rate),
-        currency: String(row.currency ?? 'EUR'),
+        currency: String(row.currency),
         snapshot
       };
     });
 
-    const documents = (documentsResult.rows as Record<string, unknown>[]).map((document) => ({
-      id: numberValue(document.id),
-      type: String(document.type ?? ''),
-      filename: String(document.filename ?? ''),
-      url: String(document.blob_url ?? ''),
-      versionNumber: document.version_number === null ? null : numberValue(document.version_number),
-      documentNumber: document.document_number ? String(document.document_number) : null,
-      issuedAt: document.issued_at ? String(document.issued_at) : null,
-      contentSha256: document.content_sha256 ? String(document.content_sha256) : null,
-      legalStatus: String(document.legal_status ?? 'operational'),
-      formatMarker: String(document.format_marker ?? 'legacy'),
-      createdAt: String(document.created_at ?? '')
-    }));
-    const latestSummary = documents.find((document) => document.type === 'order_summary') ?? null;
     const customerName = String(order.organization_name ?? order.contact_name ?? '');
-    const addressLine1 =
-      String(order.address_line1 ?? '').trim() ||
-      deriveStreetAddress(order.delivery_address, order.postal_code, order.city);
+    const addressLine1 = String(order.address_line1 ?? '').trim();
 
     return NextResponse.json(
       {
-        orderId: numberValue(order.id),
-        orderNumber: String(order.order_number ?? ''),
         status: String(order.status ?? 'received'),
         paymentStatus: String(order.payment_status ?? 'unpaid'),
         commitmentStatus: String(order.commitment_status ?? 'binding'),
         stockNotCommitted: order.commitment_status === 'pending_confirmation',
         createdAt: String(order.created_at ?? ''),
-        pricingVersion: String(order.pricing_version ?? 'legacy'),
+        pricingVersion: String(order.pricing_version),
         customer: {
           customerType: String(order.customer_type ?? ''),
           customerName,
@@ -297,7 +283,6 @@ export async function GET(request: NextRequest) {
             ? String(order.gurs_house_number_id)
             : null,
           countryCode: String(order.country_code ?? 'SI'),
-          deliveryAddress: String(order.delivery_address ?? ''),
           reference: order.reference ? String(order.reference) : null,
           notes: order.notes ? String(order.notes) : null
         },
@@ -307,12 +292,9 @@ export async function GET(request: NextRequest) {
           tax: numberValue(order.tax),
           shipping: numberValue(order.shipping),
           gross: numberValue(order.total),
-          currency: String(order.currency ?? 'EUR')
+          currency: String(order.currency)
         },
-        documents,
-        documentUrl: latestSummary?.url ?? null,
-        documentType: latestSummary?.type ?? null,
-        tokenExpiresAt: access.expiresAt
+        documents
       },
       {
         headers: {

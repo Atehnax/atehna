@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('admin podoba redesign', () => {
-  test('Logotip is the third podoba tab and the legacy visual route redirects', async ({ page }) => {
+  test('Logotip is the third podoba tab and its canonical route loads', async ({ page }) => {
     await page.goto('/admin/podoba/glavna-stran');
 
     const logoTab = page.getByRole('tab', { name: 'Logotip' });
@@ -9,9 +9,6 @@ test.describe('admin podoba redesign', () => {
     await logoTab.click();
     await expect(page).toHaveURL(/\/admin\/podoba\/logotip\/?$/);
     await expect(page.getByRole('tab', { name: 'Logotip' })).toHaveAttribute('aria-selected', 'true');
-
-    await page.goto('/admin/podoba/vizualno');
-    await expect(page).toHaveURL(/\/admin\/podoba\/logotip\/?$/);
   });
 
   test('logo outputs are purpose-based and independently overridable', async ({ page }) => {
@@ -98,10 +95,9 @@ test.describe('admin podoba redesign', () => {
     await expect(bodyFontSelect.getByRole('option', { name: 'Bitter', exact: true })).toHaveCount(1);
   });
 
-  test('global parameters use an element-centric live editor and the legacy route redirects', async ({ page }) => {
+  test('global parameters use an element-centric live editor', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/admin/podoba/globalni-slog');
-    await expect(page).toHaveURL(/\/admin\/podoba\/globalni-parametri\/?$/);
+    await page.goto('/admin/podoba/globalni-parametri');
 
     await expect(page.getByRole('tablist', { name: 'Skupine globalnih parametrov' })).toHaveCount(0);
 

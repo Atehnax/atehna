@@ -4,32 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   consumeOrderAccessTokenFromLocation,
   exchangeOrderAccessToken,
-  readOrderAccessIdFromLocation,
-  replaceCurrentOrderAccessId,
-  storeOrderAccessId,
   readStoredOrderAccessId
 } from '@/commercial/order/orderAccessClient';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
 
-type PurchaseOrderUploadFormProps = {
-  initialOrderId?: string;
-  initialOrderNumber?: string;
-};
-
 type AccessState =
   | { status: 'loading' }
   | { status: 'ready'; accessId: string }
   | { status: 'error'; message: string; canUseFragmentFallback?: boolean };
 
-export default function PurchaseOrderUploadForm({
-  initialOrderId,
-  initialOrderNumber
-}: PurchaseOrderUploadFormProps) {
-  const [orderNumber, setOrderNumber] = useState(
-    initialOrderNumber || initialOrderId || ''
-  );
+export default function PurchaseOrderUploadForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -47,14 +33,11 @@ export default function PurchaseOrderUploadForm({
         locationTokenConsumedRef.current = true;
       }
 
-      const locationAccessId = readOrderAccessIdFromLocation();
-      let accessId = locationAccessId ?? readStoredOrderAccessId();
+      let accessId = readStoredOrderAccessId();
       if (bootstrapTokenRef.current) {
         const session = await exchangeOrderAccessToken(bootstrapTokenRef.current);
         accessId = session.accessId;
         bootstrapTokenRef.current = null;
-      } else if (locationAccessId) {
-        storeOrderAccessId(locationAccessId);
       }
       if (!accessId) {
         throw new Error(
@@ -62,7 +45,6 @@ export default function PurchaseOrderUploadForm({
         );
       }
 
-      replaceCurrentOrderAccessId(accessId);
       setAccessState({ status: 'ready', accessId });
     } catch (error) {
       setAccessState({
@@ -85,14 +67,6 @@ export default function PurchaseOrderUploadForm({
     setMessage(null);
     setUploadedUrl(null);
 
-    const normalizedOrderNumber = (
-      initialOrderId ||
-      orderNumber
-    ).trim();
-    if (!normalizedOrderNumber) {
-      setMessage('Vnesite veljavno številko naročila.');
-      return;
-    }
     if (accessState.status !== 'ready') {
       setMessage(
         'Povezava za nalaganje ni veljavna. Uporabite povezavo iz potrditve naročila.'
@@ -124,17 +98,14 @@ export default function PurchaseOrderUploadForm({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `/api/orders/${encodeURIComponent(normalizedOrderNumber)}/purchase-order`,
-        {
+      const response = await fetch('/api/orders/purchase-order', {
           method: 'POST',
           credentials: 'same-origin',
           headers: {
             'X-Order-Access-Id': accessState.accessId
           },
           body: formData
-        }
-      );
+      });
       const payload: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
         const record =
@@ -164,24 +135,6 @@ export default function PurchaseOrderUploadForm({
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-      <div>
-        <label
-          className="mb-2 block text-sm font-semibold text-[color:var(--site-color-text)]"
-          htmlFor="orderNumber"
-        >
-          Številka naročila
-        </label>
-        <input
-          id="orderNumber"
-          className="site-field w-full"
-          value={orderNumber}
-          readOnly={Boolean(initialOrderNumber || initialOrderId)}
-          onChange={(event) => setOrderNumber(event.target.value)}
-          placeholder="npr. #123"
-          autoComplete="off"
-        />
-      </div>
-
       <div>
         <label
           className="mb-2 block text-sm font-semibold text-[color:var(--site-color-text)]"

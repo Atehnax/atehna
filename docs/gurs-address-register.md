@@ -20,14 +20,19 @@ that string identifier as the keyset cursor.
 Only checkout fields are retained. Geometry, coordinates, apartment records,
 and unrelated register attributes are not stored.
 
-## Database and migration
+## Database schema
 
-Apply `migrations/009_gurs_address_register.sql` after the preceding numbered
-migrations. It adds:
+Fresh database setup includes the GURS section in the canonical
+`database/schema.sql`. It adds:
 
 - the active `gurs_addresses` search table and PostgreSQL `pg_trgm` index;
 - synchronisation state and run-history tables;
 - address provenance and optional delivery-detail fields on `orders`.
+
+The schema does not embed a stale copy of the national register. After creating
+a fresh database, run `npm run addresses:sync` and wait for the validated staging
+dataset to publish before exposing checkout. The monthly protected job then keeps
+that active dataset current.
 
 GURS identifiers are stored as PostgreSQL `text` and remain JavaScript strings.
 They must never be converted to numbers.

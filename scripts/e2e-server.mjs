@@ -9,7 +9,7 @@ const nextCli = resolve(projectRoot, 'node_modules', 'next', 'dist', 'bin', 'nex
 
 async function main() {
   const { databaseUrl } = readE2eEnvironment();
-  await checkE2eDatabase();
+  const { schemaSha256 } = await checkE2eDatabase();
 
   const port = process.env.PORT?.trim() || '3000';
   const child = spawn(
@@ -25,7 +25,9 @@ async function main() {
         SUPABASE_DB_URL: databaseUrl,
         PGSSLMODE: 'disable',
         BLOB_READ_WRITE_TOKEN: 'e2e-external-blob-disabled',
-        E2E_MODE: '1'
+        ORDER_ACCESS_BOOTSTRAP_KEY: 'e2e-only-order-bootstrap-key-with-at-least-32-characters',
+        E2E_MODE: '1',
+        E2E_SCHEMA_SHA256: schemaSha256
       }
     }
   );

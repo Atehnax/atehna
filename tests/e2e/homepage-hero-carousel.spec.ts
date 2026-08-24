@@ -24,17 +24,50 @@ test('hero carousel settings add, reorder, preview, and save one shared slide se
 
   const uploads: string[] = [];
   const saves: LandingPageSave[] = [];
+  const authorizedUploadPathnames = new Set<string>();
 
-  await page.route('**/api/admin/landing-page/media', async (route) => {
+  await page.route('**/api/admin/media', async (route) => {
     expect(route.request().method()).toBe('POST');
-    uploads.push(route.request().url());
+    const body = route.request().postDataJSON() as {
+      type: string;
+      payload: {
+        pathname: string;
+        clientPayload: string;
+        multipart: boolean;
+      };
+    };
+    const clientPayload = JSON.parse(body.payload.clientPayload) as {
+      contentType: string;
+      scope: string;
+    };
+    expect(body.type).toBe('blob.generate-presigned-url');
+    expect(body.payload.multipart).toBe(false);
+    expect(clientPayload.scope).toBe('landing-media');
+    expect(clientPayload.contentType).toBe('image/png');
+    expect(body.payload.pathname).toMatch(/^landing-page\//u);
+    authorizedUploadPathnames.add(body.payload.pathname);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        ok: true,
+        presignedUrl: `/api/e2e/public-media-upload?pathname=${encodeURIComponent(body.payload.pathname)}`
+      })
+    });
+  });
+  await page.route('**/api/e2e/public-media-upload?*', async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('PUT');
+    expect(await request.headerValue('content-type')).toBe('image/png');
+    const pathname = new URL(request.url()).searchParams.get('pathname') ?? '';
+    expect(authorizedUploadPathnames.has(pathname)).toBe(true);
+    expect(request.postDataBuffer()?.byteLength).toBe(onePixelPng.byteLength);
+    uploads.push(pathname);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
         url: uploadedSlideUrl,
-        mediaType: 'image'
+        pathname
       })
     });
   });

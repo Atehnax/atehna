@@ -10,23 +10,7 @@ export const metadata = {
   referrer: 'no-referrer'
 };
 
-type PurchaseOrderUploadPageProps = {
-  searchParams: Promise<{
-    orderId?: string | string[];
-    orderNumber?: string | string[];
-  }>;
-};
-
-const firstValue = (value?: string | string[]) =>
-  Array.isArray(value) ? value[0] : value;
-
-export default async function PurchaseOrderUploadPage({
-  searchParams
-}: PurchaseOrderUploadPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const orderId = firstValue(resolvedSearchParams.orderId);
-  const orderNumber = firstValue(resolvedSearchParams.orderNumber);
-
+export default function PurchaseOrderUploadPage() {
   return (
     <div className="container-base site-section">
       <div className="mx-auto max-w-3xl">
@@ -41,10 +25,7 @@ export default async function PurchaseOrderUploadPage({
         </p>
 
         <div className="site-card mt-8">
-          <PurchaseOrderUploadForm
-            initialOrderId={orderId}
-            initialOrderNumber={orderNumber}
-          />
+          <PurchaseOrderUploadForm />
         </div>
       </div>
     </div>

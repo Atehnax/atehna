@@ -12,18 +12,8 @@ import {
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 
-const tableSql = `
-  create table if not exists product_appearance_settings (
-    key text primary key,
-    config_json jsonb not null default '{}'::jsonb,
-    updated_at timestamptz not null default now()
-  )
-`;
-
 const PRODUCT_APPEARANCE_CACHE_TAG = 'product-appearance-config';
 const PRODUCT_APPEARANCE_AUDIT_ENTITY_ID = 'product-appearance';
-let productAppearanceTableReadyPromise: Promise<void> | null = null;
-
 export type ProductAppearanceUpdateResult = {
   config: ProductAppearanceConfig;
   changed: boolean;
@@ -38,20 +28,8 @@ const toIso = (value: unknown) => value instanceof Date
 const serialize = (config: ProductAppearanceConfig) =>
   JSON.stringify(toStoredProductAppearanceConfig(config));
 
-async function ensureProductAppearanceTable() {
-  const pool = await getPool();
-  productAppearanceTableReadyPromise ??= pool.query(tableSql)
-    .then(() => undefined)
-    .catch((error) => {
-      productAppearanceTableReadyPromise = null;
-      throw error;
-    });
-  await productAppearanceTableReadyPromise;
-  return pool;
-}
-
 async function readProductAppearanceConfigFromDatabase(): Promise<ProductAppearanceConfig> {
-  const pool = await ensureProductAppearanceTable();
+  const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from product_appearance_settings where key = $1 limit 1',
     [PRODUCT_APPEARANCE_SETTINGS_KEY]
@@ -118,7 +96,7 @@ export async function updateProductAppearanceConfig(
   noStore();
   const config = toStoredProductAppearanceConfig(input);
   const serializedConfig = serialize(config);
-  const pool = await ensureProductAppearanceTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {

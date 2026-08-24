@@ -1,6 +1,11 @@
 import 'server-only';
 
 import type { Pool, PoolClient } from 'pg';
+import {
+  getBestQuantityDiscount,
+  resolveEffectiveOrderDiscount,
+  type DiscountKind
+} from '@/shared/server/orderQuantityDiscount';
 
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
@@ -12,12 +17,6 @@ const DEFAULT_TAX_RATE = 0.22;
 
 export type OrderSelection = {
   variantId: number;
-  quantity: number;
-};
-
-type UnresolvedOrderSelection = {
-  variantId: number | null;
-  sku: string | null;
   quantity: number;
 };
 
@@ -67,6 +66,8 @@ export type AuthoritativeOrderLine = {
   optionAssignments: VariantOptionAssignment[];
   listUnitNet: number;
   baseUnitNet: number;
+  discountKind: DiscountKind;
+  quantityDiscountPct: number | null;
   discountPct: number;
   discountUnitNet: number;
   unitNet: number;
@@ -110,6 +111,7 @@ type CatalogVariantRow = {
   product_slug: string;
   product_name: string;
   product_type: string;
+  editor_product_type: string;
   product_status: string;
   product_sku: string | null;
   product_unit: string | null;
@@ -137,6 +139,7 @@ type CatalogVariantRow = {
   badge: string | null;
   image_url: string | null;
   option_assignments: unknown;
+  quantity_discounts: unknown;
 };
 
 function resolveDefaultTaxRate(): number {
@@ -201,7 +204,7 @@ function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
 }
 
-function parseRawSelections(rawItems: unknown, allowLegacySku: boolean): UnresolvedOrderSelection[] {
+export function parseOrderSelections(rawItems: unknown): OrderSelection[] {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     throw new OrderCommerceError(
       400,
@@ -217,7 +220,8 @@ function parseRawSelections(rawItems: unknown, allowLegacySku: boolean): Unresol
     );
   }
 
-  return rawItems.map((rawItem, index) => {
+  const quantityByVariant = new Map<number, number>();
+  rawItems.forEach((rawItem, index) => {
     if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) {
       throw new OrderCommerceError(
         400,
@@ -228,13 +232,9 @@ function parseRawSelections(rawItems: unknown, allowLegacySku: boolean): Unresol
 
     const item = rawItem as Record<string, unknown>;
     const variantId = Number(item.variantId);
-    const sku = allowLegacySku ? cleanText(item.sku) : '';
     const quantity = Number(item.quantity);
 
-    if (
-      (!Number.isSafeInteger(variantId) || variantId <= 0) &&
-      (!allowLegacySku || !sku)
-    ) {
+    if (!Number.isSafeInteger(variantId) || variantId <= 0) {
       throw new OrderCommerceError(
         400,
         'VARIANT_ID_REQUIRED',
@@ -249,95 +249,20 @@ function parseRawSelections(rawItems: unknown, allowLegacySku: boolean): Unresol
       );
     }
 
-    return {
-      variantId: Number.isSafeInteger(variantId) && variantId > 0 ? variantId : null,
-      sku: sku || null,
-      quantity
-    };
-  });
-}
-
-async function resolveLegacySkus(
-  database: Queryable,
-  selections: UnresolvedOrderSelection[]
-): Promise<OrderSelection[]> {
-  const unresolvedSkus = Array.from(
-    new Set(
-      selections
-        .filter((selection) => selection.variantId === null)
-        .map((selection) => selection.sku!.toLocaleLowerCase('sl-SI'))
-    )
-  );
-
-  const variantIdsBySku = new Map<string, number[]>();
-  if (unresolvedSkus.length > 0) {
-    const result = await database.query(
-      `
-        select
-          civ.id,
-          lower(trim(coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug))) as resolved_sku
-        from catalog_item_variants civ
-        join catalog_items ci on ci.id = civ.item_id
-        where ci.status = 'active'
-          and civ.status = 'active'
-          and lower(trim(coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug))) = any($1::text[])
-      `,
-      [unresolvedSkus]
-    );
-
-    (result.rows as Array<{ id: string | number; resolved_sku: string }>).forEach((row) => {
-      const key = String(row.resolved_sku);
-      const current = variantIdsBySku.get(key) ?? [];
-      current.push(Number(row.id));
-      variantIdsBySku.set(key, current);
-    });
-  }
-
-  const resolved = selections.map((selection): OrderSelection => {
-    if (selection.variantId !== null) {
-      return { variantId: selection.variantId, quantity: selection.quantity };
-    }
-
-    const skuKey = selection.sku!.toLocaleLowerCase('sl-SI');
-    const matches = variantIdsBySku.get(skuKey) ?? [];
-    if (matches.length !== 1) {
-      throw new OrderCommerceError(
-        409,
-        matches.length === 0 ? 'SKU_NOT_AVAILABLE' : 'SKU_AMBIGUOUS',
-        matches.length === 0
-          ? `Artikel s SKU ${selection.sku} ni na voljo.`
-          : `SKU ${selection.sku} ne določa enolične različice.`,
-        [{ code: matches.length === 0 ? 'SKU_NOT_AVAILABLE' : 'SKU_AMBIGUOUS', message: selection.sku!, sku: selection.sku! }]
-      );
-    }
-    return { variantId: matches[0], quantity: selection.quantity };
-  });
-
-  const quantityByVariant = new Map<number, number>();
-  resolved.forEach((selection) => {
-    const quantity = (quantityByVariant.get(selection.variantId) ?? 0) + selection.quantity;
-    if (quantity > MAX_LINE_QUANTITY) {
+    const combinedQuantity = (quantityByVariant.get(variantId) ?? 0) + quantity;
+    if (combinedQuantity > MAX_LINE_QUANTITY) {
       throw new OrderCommerceError(
         400,
         'INVALID_QUANTITY',
-        `Skupna količina različice ${selection.variantId} je previsoka.`
+        `Skupna količina različice ${variantId} je previsoka.`
       );
     }
-    quantityByVariant.set(selection.variantId, quantity);
+    quantityByVariant.set(variantId, combinedQuantity);
   });
 
   return Array.from(quantityByVariant.entries())
     .map(([variantId, quantity]) => ({ variantId, quantity }))
     .sort((left, right) => left.variantId - right.variantId);
-}
-
-export async function parseOrderSelections(
-  database: Queryable,
-  rawItems: unknown,
-  options?: { allowLegacySku?: boolean }
-): Promise<OrderSelection[]> {
-  const unresolved = parseRawSelections(rawItems, options?.allowLegacySku ?? false);
-  return resolveLegacySkus(database, unresolved);
 }
 
 function parseOptionAssignments(value: unknown): VariantOptionAssignment[] {
@@ -414,17 +339,39 @@ function buildAttributes(
 function priceLine(
   row: CatalogVariantRow,
   selection: OrderSelection,
-  taxRate: number
+  taxRate: number,
+  customerLabels: readonly string[]
 ): AuthoritativeOrderLine {
   const listUnitNetCents = parseScaledDecimal(row.price, 2);
-  const discountBasisPoints = parseScaledDecimal(row.discount_pct, 2);
-  if (listUnitNetCents < 0n || discountBasisPoints < 0n || discountBasisPoints > PERCENT_SCALE) {
+  const variantDiscountBasisPoints = parseScaledDecimal(row.discount_pct, 2);
+  if (
+    listUnitNetCents < 0n ||
+    variantDiscountBasisPoints < 0n ||
+    variantDiscountBasisPoints > PERCENT_SCALE
+  ) {
     throw new OrderCommerceError(
       500,
       'INVALID_CATALOG_PRICE',
       `Cena različice ${selection.variantId} ni veljavna.`
     );
   }
+
+  const sku =
+    cleanText(row.variant_sku) ||
+    cleanText(row.product_sku) ||
+    cleanText(row.product_slug);
+  const quantityDiscount = getBestQuantityDiscount(row.quantity_discounts, {
+    quantity: selection.quantity,
+    sku,
+    variantName: row.variant_name,
+    customerLabels,
+    productType: row.editor_product_type
+  });
+  const effectiveDiscount = resolveEffectiveOrderDiscount(
+    Number(variantDiscountBasisPoints) / 100,
+    quantityDiscount
+  );
+  const discountBasisPoints = parseScaledDecimal(effectiveDiscount.discountPct, 2);
 
   const unitNetCents = roundDivide(
     listUnitNetCents * (PERCENT_SCALE - discountBasisPoints),
@@ -444,10 +391,6 @@ function priceLine(
   const attributes = buildAttributes(row, optionAssignments);
   const productId = Number(row.product_id);
   const variantId = Number(row.variant_id);
-  const sku =
-    cleanText(row.variant_sku) ||
-    cleanText(row.product_sku) ||
-    cleanText(row.product_slug);
   const unit = cleanText(row.variant_unit) || cleanText(row.product_unit) || null;
   const minOrder = Math.max(1, asInteger(row.min_order));
   const availableStock = Math.max(0, asInteger(row.inventory));
@@ -469,6 +412,8 @@ function priceLine(
     attributes,
     optionAssignments,
     listUnitNet: centsToNumber(listUnitNetCents),
+    discountKind: effectiveDiscount.discountKind,
+    quantityDiscountPct: effectiveDiscount.quantityDiscountPct,
     discountPct: Number(discountBasisPoints) / 100,
     unitNet: centsToNumber(unitNetCents),
     unitTax: centsToNumber(unitTaxCents),
@@ -495,6 +440,8 @@ function priceLine(
     optionAssignments,
     listUnitNet: centsToNumber(listUnitNetCents),
     baseUnitNet: centsToNumber(listUnitNetCents),
+    discountKind: effectiveDiscount.discountKind,
+    quantityDiscountPct: effectiveDiscount.quantityDiscountPct,
     discountPct: Number(discountBasisPoints) / 100,
     discountUnitNet: centsToNumber(discountUnitNetCents),
     unitNet: centsToNumber(unitNetCents),
@@ -514,7 +461,7 @@ function priceLine(
 export async function buildAuthoritativeOrderQuote(
   database: Queryable,
   selections: OrderSelection[],
-  options?: { lockVariants?: boolean }
+  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
 ): Promise<AuthoritativeOrderQuote> {
   const variantIds = selections.map((selection) => selection.variantId);
   const lockClause = options?.lockVariants ? 'for update of civ, ci' : '';
@@ -548,6 +495,7 @@ export async function buildAuthoritativeOrderQuote(
         ci.slug as product_slug,
         ci.item_name as product_name,
         ci.item_type as product_type,
+        cied.product_type as editor_product_type,
         ci.status as product_status,
         ci.sku as product_sku,
         ci.unit as product_unit,
@@ -574,9 +522,11 @@ export async function buildAuthoritativeOrderQuote(
         civ.min_order,
         civ.badge,
         primary_media.image_url,
-        variant_options.option_assignments
+        variant_options.option_assignments,
+        quantity_discount_rules.quantity_discounts
       from catalog_item_variants civ
       join catalog_items ci on ci.id = civ.item_id
+      join catalog_item_editor_details cied on cied.item_id = ci.id
       left join category_paths cp on cp.id = ci.category_id
       left join lateral (
         select coalesce(nullif(cm.blob_url, ''), cm.external_url) as image_url
@@ -585,11 +535,33 @@ export async function buildAuthoritativeOrderQuote(
           and cm.media_kind = 'image'
           and cm.role = 'gallery'
           and coalesce(cm.hidden, false) = false
-          and (cm.variant_id = civ.id or cm.variant_id is null)
+          and (
+            exists (
+              select 1
+              from catalog_variant_media assigned_media
+              where assigned_media.media_id = cm.id
+                and assigned_media.variant_id = civ.id
+            )
+            or not exists (
+              select 1
+              from catalog_variant_media any_assignment
+              where any_assignment.media_id = cm.id
+            )
+          )
           and coalesce(nullif(cm.blob_url, ''), cm.external_url) is not null
         order by
-          case when cm.variant_id = civ.id then 0 else 1 end,
-          cm.position asc,
+          case when exists (
+            select 1
+            from catalog_variant_media assigned_media
+            where assigned_media.media_id = cm.id
+              and assigned_media.variant_id = civ.id
+          ) then 0 else 1 end,
+          coalesce((
+            select assigned_media.position
+            from catalog_variant_media assigned_media
+            where assigned_media.media_id = cm.id
+              and assigned_media.variant_id = civ.id
+          ), cm.position) asc,
           cm.id asc
         limit 1
       ) primary_media on true
@@ -619,6 +591,21 @@ export async function buildAuthoritativeOrderQuote(
         where cvov.variant_id = civ.id
           and cvov.item_id = ci.id
       ) variant_options on true
+      left join lateral (
+        select coalesce(
+          jsonb_agg(
+            jsonb_build_object(
+              'minQuantity', cqd.min_quantity,
+              'discountPercent', cqd.discount_percent,
+              'appliesTo', cqd.applies_to
+            )
+            order by cqd.position asc, cqd.id asc
+          ),
+          '[]'::jsonb
+        ) as quantity_discounts
+        from catalog_item_quantity_discounts cqd
+        where cqd.item_id = ci.id
+      ) quantity_discount_rules on true
       where civ.id = any($1::bigint[])
       ${lockClause}
     `,
@@ -688,7 +675,12 @@ export async function buildAuthoritativeOrderQuote(
 
   const items = selections.map((selection) => {
     const row = rowsByVariantId.get(selection.variantId)!;
-    return priceLine(row, selection, resolveEffectiveTaxRate(row.catalog_tax_rate));
+    return priceLine(
+      row,
+      selection,
+      resolveEffectiveTaxRate(row.catalog_tax_rate),
+      options?.customerLabels ?? []
+    );
   });
   const netCents = items.reduce(
     (sum, item) => sum + parseScaledDecimal(item.lineNet, 2),

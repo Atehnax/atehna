@@ -335,7 +335,7 @@ function normalizedDiscountIdentityValue(value: unknown): string {
 function discountId(item: Record<string, unknown>, index: number) {
   return [
     normalizedDiscountIdentityValue(item.minQuantity),
-    normalizedDiscountIdentityValue(item.appliesTo ?? 'allVariants'),
+    normalizedDiscountIdentityValue(item.appliesTo ?? '{"variants":["Vse"],"customers":["Vse"]}'),
     normalizedDiscountIdentityValue(item.position ?? index)
   ].join('|');
 }
@@ -445,7 +445,7 @@ export function computeOrderLineItemsDiff(
     after,
     getId: (item, index) => String(item.id || item.sku || item.name || `item-${index}`),
     getLabel: (item, index) => String(item.sku || item.name || `Postavka ${index + 1}`),
-    fields: ['sku', 'name', 'unit', 'quantity', 'unitPrice', 'unit_price', 'discountPercentage', 'discount_percentage'],
+    fields: ['sku', 'name', 'unit', 'quantity', 'unitPrice', 'discountPercentage'],
     entityType: 'order'
   });
 }

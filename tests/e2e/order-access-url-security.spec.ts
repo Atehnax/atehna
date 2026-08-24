@@ -2,13 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 import type { OrderConfirmationSnapshot } from '@/commercial/order/contracts';
 
 const FRAGMENT_BOOTSTRAP_TOKEN = `ath_order_${'B'.repeat(43)}`;
-const LEGACY_BOOTSTRAP_TOKEN = `ath_order_${'C'.repeat(43)}`;
+const REJECTED_QUERY_TOKEN = `ath_order_${'C'.repeat(43)}`;
 const ACCESS_ID = '123e4567-e89b-42d3-a456-426614174001';
 const ACCESS_COOKIE_NAME = `ath_order_access_${ACCESS_ID.replaceAll('-', '')}`;
 
 const confirmationSnapshot = {
-  orderId: 42,
-  orderNumber: '#42',
   createdAt: '2026-08-17T08:57:00.000Z',
   commitmentStatus: 'binding',
   customer: {
@@ -30,10 +28,8 @@ const confirmationSnapshot = {
   },
   documents: [
     {
-      id: 9,
       type: 'order_summary',
-      filename: 'order-summary-42.pdf',
-      url: 'https://example.test/order-summary-42.pdf'
+      url: '/api/orders/documents/123e4567-e89b-42d3-a456-426614174011'
     }
   ]
 } satisfies OrderConfirmationSnapshot;
@@ -109,17 +105,22 @@ async function mockOrderAccessFlow(
   return observations;
 }
 
-function expectCleanAccessUrl(value: string) {
+function expectCleanAccessUrl(value: string, expectedSearch = '') {
   const url = new URL(value);
   expect(url.pathname).toBe('/order/confirmation');
-  expect(url.searchParams.get('access')).toBe(ACCESS_ID);
-  expect([...url.searchParams.keys()]).toEqual(['access']);
+  expect(url.search).toBe(expectedSearch);
+  expect(url.searchParams.has('access')).toBe(false);
+  expect(url.searchParams.has('token')).toBe(false);
   expect(url.hash).toBe('');
+  expect(value).not.toContain(ACCESS_ID);
   expect(value).not.toContain(FRAGMENT_BOOTSTRAP_TOKEN);
-  expect(value).not.toContain(LEGACY_BOOTSTRAP_TOKEN);
+  expect(value).not.toContain(REJECTED_QUERY_TOKEN);
 }
 
-async function verifyHistoryDoesNotRestoreSecret(page: Page) {
+async function verifyHistoryDoesNotRestoreSecret(
+  page: Page,
+  expectedSearch = ''
+) {
   await page.evaluate(() => {
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.set('history-check', 'safe');
@@ -129,7 +130,7 @@ async function verifyHistoryDoesNotRestoreSecret(page: Page) {
   await expect
     .poll(() => new URL(page.url()).searchParams.has('history-check'))
     .toBe(false);
-  expectCleanAccessUrl(page.url());
+  expectCleanAccessUrl(page.url(), expectedSearch);
 }
 
 test.describe('order access URL security', () => {
@@ -182,50 +183,79 @@ test.describe('order access URL security', () => {
     });
     for (const request of observations.analyticsRequests) {
       expect(request.url).not.toContain(FRAGMENT_BOOTSTRAP_TOKEN);
+      expect(request.url).not.toContain(ACCESS_ID);
       expect(request.referer ?? '').not.toContain(FRAGMENT_BOOTSTRAP_TOKEN);
+      expect(request.referer ?? '').not.toContain(ACCESS_ID);
       expect(request.body ?? '').not.toContain(FRAGMENT_BOOTSTRAP_TOKEN);
+      expect(request.body ?? '').not.toContain(ACCESS_ID);
     }
 
     await verifyHistoryDoesNotRestoreSecret(page);
-  });
 
-  test('redirects a legacy query secret before rendering and scrubs it from browser history', async ({
-    page,
-    request
-  }) => {
-    const legacyPath = `/order/confirmation?campaign=receipt&token=${LEGACY_BOOTSTRAP_TOKEN}`;
-    const redirectResponse = await request.get(legacyPath, { maxRedirects: 0 });
-    expect(redirectResponse.status()).toBe(307);
-    expect(redirectResponse.headers()['cache-control']).toBe('private, no-store');
-    expect(redirectResponse.headers()['referrer-policy']).toBe('no-referrer');
-    expect(redirectResponse.headers()['x-robots-tag']).toBe(
-      'noindex, nofollow, noarchive'
-    );
-    const redirectLocation = redirectResponse.headers().location;
-    expect(redirectLocation).toBe(
-      `/order/confirmation?campaign=receipt#token=${LEGACY_BOOTSTRAP_TOKEN}`
-    );
-    const renderedResponse = await request.get(redirectLocation);
-    expect(await renderedResponse.text()).not.toContain(LEGACY_BOOTSTRAP_TOKEN);
-
-    const observations = await mockOrderAccessFlow(page);
-    const documentResponse = await page.goto(legacyPath);
-    const finalHtml = await documentResponse!.text();
+    await page.reload();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Naročilo je sprejeto' })
     ).toBeVisible();
-
-    expect(observations.exchangedTokens).toEqual([LEGACY_BOOTSTRAP_TOKEN]);
-    expect(observations.confirmationRequests).toEqual([
-      {
-        url: expect.stringMatching(/\/api\/orders\/confirmation$/),
-        accessId: ACCESS_ID
-      }
-    ]);
-    expect(finalHtml).not.toContain(LEGACY_BOOTSTRAP_TOKEN);
-    expect(await page.content()).not.toContain(LEGACY_BOOTSTRAP_TOKEN);
+    expect(observations.exchangedTokens).toEqual([FRAGMENT_BOOTSTRAP_TOKEN]);
+    expect(observations.confirmationRequests).toHaveLength(2);
+    expect(observations.confirmationRequests[1]).toEqual({
+      url: expect.stringMatching(/\/api\/orders\/confirmation$/),
+      accessId: ACCESS_ID
+    });
     expectCleanAccessUrl(page.url());
-    await verifyHistoryDoesNotRestoreSecret(page);
+  });
+
+  test('rejects and scrubs query credentials without exchanging or restoring them', async ({
+    page,
+    request
+  }) => {
+    const observations = await mockOrderAccessFlow(page);
+    const rejectedCredentials = [
+      { name: 'token', value: REJECTED_QUERY_TOKEN },
+      { name: 'access', value: ACCESS_ID }
+    ] as const;
+
+    for (const credential of rejectedCredentials) {
+      const expectedSearch = `?campaign=${credential.name}`;
+      const credentialPath =
+        `/order/confirmation${expectedSearch}&${credential.name}=` +
+        encodeURIComponent(credential.value);
+      const redirectResponse = await request.get(credentialPath, {
+        maxRedirects: 0
+      });
+      expect(redirectResponse.status()).toBe(307);
+      expect(redirectResponse.headers()['cache-control']).toBe('private, no-store');
+      expect(redirectResponse.headers()['referrer-policy']).toBe('no-referrer');
+      expect(redirectResponse.headers()['x-robots-tag']).toBe(
+        'noindex, nofollow, noarchive'
+      );
+      const redirectLocation = redirectResponse.headers().location;
+      expect(redirectLocation).toBe(`/order/confirmation${expectedSearch}`);
+      expect(redirectLocation).not.toContain(credential.value);
+
+      const renderedResponse = await request.get(redirectLocation);
+      expect(await renderedResponse.text()).not.toContain(credential.value);
+      const documentResponse = await page.goto(credentialPath);
+      const finalHtml = await documentResponse!.text();
+      await expect(
+        page.getByRole('heading', {
+          level: 1,
+          name: 'Potrditve ni mogoče prikazati'
+        })
+      ).toBeVisible();
+      expect(finalHtml).not.toContain(credential.value);
+      expect(await page.content()).not.toContain(credential.value);
+      expectCleanAccessUrl(page.url(), expectedSearch);
+      await verifyHistoryDoesNotRestoreSecret(page, expectedSearch);
+    }
+
+    expect(observations.exchangedTokens).toEqual([]);
+    expect(observations.confirmationRequests).toEqual([]);
+    expect(
+      await page.evaluate(() =>
+        window.sessionStorage.getItem('atehna-order-access-id-v1')
+      )
+    ).toBeNull();
   });
 
   test('keeps purchase-order navigation and its back link free of the bearer token', async ({
@@ -247,7 +277,7 @@ test.describe('order access URL security', () => {
     expect(purchaseOrderHref).not.toBeNull();
     const purchaseOrderUrl = new URL(purchaseOrderHref!, 'https://storefront.test');
     expect(purchaseOrderUrl.pathname).toBe('/order/narocilnica');
-    expect(purchaseOrderUrl.searchParams.get('access')).toBe(ACCESS_ID);
+    expect(purchaseOrderUrl.searchParams.has('access')).toBe(false);
     expect(purchaseOrderUrl.searchParams.has('token')).toBe(false);
     expect(purchaseOrderUrl.hash).toBe('');
     await purchaseOrderLink.click();
@@ -255,6 +285,7 @@ test.describe('order access URL security', () => {
 
     const uploadUrl = new URL(page.url());
     expect(uploadUrl.pathname).toBe('/order/narocilnica');
+    expect(uploadUrl.searchParams.has('access')).toBe(false);
     expect(uploadUrl.searchParams.has('token')).toBe(false);
     expect(uploadUrl.hash).toBe('');
     expect(page.url()).not.toContain(FRAGMENT_BOOTSTRAP_TOKEN);

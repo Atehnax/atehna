@@ -1,6 +1,21 @@
 export const GURS_ADDRESS_SEARCH_MIN_LENGTH = 3;
 export const GURS_ADDRESS_SEARCH_MAX_LENGTH = 80;
 export const GURS_ADDRESS_SEARCH_LIMIT = 8;
+export const GURS_POSTAL_LOOKUP_MIN_LENGTH = 2;
+export const GURS_POSTAL_LOOKUP_MAX_LENGTH = 80;
+export const GURS_POSTAL_LOOKUP_LIMIT = 8;
+
+export type PostalLookupField = 'postalCode' | 'postalName';
+
+export type GursPostalLocation = {
+  postalCode: string;
+  postalName: string;
+};
+
+export type GursPostalLookupResponse = {
+  results: GursPostalLocation[];
+  sourceUpdatedAt: string | null;
+};
 
 export type GursAddress = {
   gursHouseNumberId: string;
@@ -135,14 +150,54 @@ export function isAddressSearchQueryEligible(value: unknown): boolean {
   return parseGursAddressSearchQuery(value).ok;
 }
 
-export function formatGursSourceDate(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('sl-SI', {
-    day: 'numeric',
-    month: 'numeric',
-    year: 'numeric',
-    timeZone: 'Europe/Ljubljana'
-  }).format(date);
+export function parseGursPostalLookupQuery(
+  rawField: unknown,
+  rawQuery: unknown
+):
+  | { ok: true; field: PostalLookupField; query: string }
+  | {
+      ok: false;
+      code:
+        | 'INVALID_FIELD'
+        | 'INVALID_POSTAL_CODE'
+        | 'QUERY_TOO_SHORT'
+        | 'QUERY_TOO_LONG';
+    } {
+  if (rawField !== 'postalCode' && rawField !== 'postalName') {
+    return { ok: false, code: 'INVALID_FIELD' };
+  }
+
+  const source = text(rawQuery);
+  if (source.length > GURS_POSTAL_LOOKUP_MAX_LENGTH) {
+    return { ok: false, code: 'QUERY_TOO_LONG' };
+  }
+
+  if (rawField === 'postalCode') {
+    if (source && !/^\d+$/u.test(source)) {
+      return { ok: false, code: 'INVALID_POSTAL_CODE' };
+    }
+    if (source.length > 4) {
+      return { ok: false, code: 'QUERY_TOO_LONG' };
+    }
+    if (source.length < GURS_POSTAL_LOOKUP_MIN_LENGTH) {
+      return { ok: false, code: 'QUERY_TOO_SHORT' };
+    }
+    return { ok: true, field: rawField, query: source };
+  }
+
+  const query = normalizeAddressSearchText(source);
+  if (query.length < GURS_POSTAL_LOOKUP_MIN_LENGTH) {
+    return { ok: false, code: 'QUERY_TOO_SHORT' };
+  }
+  if (query.length > GURS_POSTAL_LOOKUP_MAX_LENGTH) {
+    return { ok: false, code: 'QUERY_TOO_LONG' };
+  }
+  return { ok: true, field: rawField, query };
+}
+
+export function isGursPostalLookupQueryEligible(
+  field: unknown,
+  query: unknown
+): boolean {
+  return parseGursPostalLookupQuery(field, query).ok;
 }

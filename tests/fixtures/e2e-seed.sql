@@ -299,8 +299,8 @@ insert into catalog_item_quantity_discounts (
   note,
   position
 ) values
-  (910001, 10, 5, 'allVariants', 'E2E količinski popust', 0),
-  (910001, 25, 10, 'allVariants', 'E2E količinski popust', 1);
+  (910001, 10, 5, '{"variants":["Vse"],"customers":["Vse"]}', 'E2E količinski popust', 0),
+  (910001, 25, 10, '{"variants":["Vse"],"customers":["Vse"]}', 'E2E količinski popust', 1);
 
 insert into product_appearance_settings (key, config_json)
 values ('website-product-appearance', '{}'::jsonb)
@@ -323,5 +323,39 @@ on conflict (key) do update set config_json = excluded.config_json, updated_at =
 insert into site_logo_settings (key, config_json)
 values ('website-site-logo', '{}'::jsonb)
 on conflict (key) do update set config_json = excluded.config_json, updated_at = now();
+
+insert into gurs_addresses (
+  gurs_house_number_id,
+  street_name,
+  settlement_name,
+  house_number,
+  house_suffix,
+  postal_code,
+  postal_name,
+  municipality_name,
+  address_line_1,
+  search_text,
+  source_updated_at
+) values (
+  '9223372036854775808',
+  'Cankarjeva ulica',
+  'Koper',
+  '27',
+  'a',
+  '6000',
+  'Koper - Capodistria',
+  'Mestna občina Koper',
+  'Cankarjeva ulica 27a',
+  'cankarjeva ulica 27a koper 6000 koper capodistria mestna obcina koper',
+  '2026-07-01T00:00:00.000Z'
+);
+
+update gurs_address_sync_state
+set active_source_updated_at = '2026-07-01T00:00:00.000Z',
+    active_imported_at = '2026-07-02T00:00:00.000Z',
+    active_record_count = 1,
+    last_success_at = '2026-07-02T00:00:00.000Z',
+    last_error = null
+where key = 'active';
 
 commit;

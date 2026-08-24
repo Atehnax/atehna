@@ -1610,27 +1610,46 @@ export function WeightProductModule({
     flexibleWeightVariantCount - 1
   );
   const expandedWeightVariantFlex = Math.max(1, flexibleCompactWeightVariantCount * 0.233);
-  const getWeightVariantTrack = (variant: WeightVariant) => {
+  const weightVariantBaseTrackWidths = weightData.variants.map((variant) =>
+    variant.id !== expandedWeightVariant?.id
+    && collapseInactiveWeightVariants
+    && !variant.active
+      ? Math.min(26, compactWeightVariantWidth)
+      : compactWeightVariantWidth
+  );
+  const weightMatrixBaseWidth =
+    205 + weightVariantBaseTrackWidths.reduce((total, width) => total + width, 0);
+  const getWeightVariantTrack = (variant: WeightVariant, variantIndex: number) => {
     const isExpanded = variant.id === expandedWeightVariant?.id;
+    const baseTrackWidth = weightVariantBaseTrackWidths[variantIndex] ?? compactWeightVariantWidth;
+    if (!usesDenseWeightVariantLayout) {
+      if (!isExpanded) return `${baseTrackWidth}px`;
+      return `calc(100% - ${weightMatrixBaseWidth - baseTrackWidth}px)`;
+    }
     const isCompressedInactive =
       !isExpanded && collapseInactiveWeightVariants && !variant.active;
     const minimumWidth = isExpanded
-      ? (usesDenseWeightVariantLayout ? 170 : 280)
+      ? 170
       : isCompressedInactive
         ? Math.min(26, compactWeightVariantWidth)
         : compactWeightVariantWidth;
     const flexibleWidth = isExpanded
-      ? (usesDenseWeightVariantLayout ? expandedWeightVariantFlex : 1)
+      ? expandedWeightVariantFlex
       : isCompressedInactive
         ? 0
-        : usesDenseWeightVariantLayout
-          ? 1
-          : 0;
+        : 1;
     return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
   };
+  // Non-dense layouts animate only length/percentage tracks, avoiding grid
+  // freeze/clamp changes while the selected column and remainder exchange space.
+  const weightMatrixRemainderTrack =
+    usesDenseWeightVariantLayout || expandedWeightVariant
+      ? '0px'
+      : `calc(100% - ${weightMatrixBaseWidth}px)`;
   const weightMatrixGridTemplateColumns = [
     '205px',
-    ...weightData.variants.map(getWeightVariantTrack)
+    ...weightData.variants.map(getWeightVariantTrack),
+    weightMatrixRemainderTrack
   ].join(' ');
   const weightMatrixMinWidth =
     205

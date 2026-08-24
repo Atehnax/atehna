@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
-import { buildOrderBlobPath, deleteBlob, uploadBlob } from '@/shared/server/blob';
+import {
+  buildOrderDocumentBlobPath,
+  deletePrivateOrderDocumentBlob,
+  uploadPrivateOrderDocumentBlob
+} from '@/shared/server/blob';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { buildOrderDocumentNumber } from '@/shared/server/pdfGeneration';
 
@@ -81,9 +85,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
 
     const contentHash = createHash('sha256').update(fileBuffer).digest('hex');
-    const fileName = `${orderId}-${normalizedType}-${randomUUID()}.pdf`;
-    const blobPath = buildOrderBlobPath(orderId, fileName);
-    const blob = await uploadBlob(blobPath, fileBuffer, 'application/pdf');
+    const documentAccessId = randomUUID();
+    const fileName = `${normalizedType}-${randomUUID()}.pdf`;
+    const blobPath = buildOrderDocumentBlobPath(documentAccessId, 'pdf');
+    const blob = await uploadPrivateOrderDocumentBlob(blobPath, fileBuffer, 'application/pdf');
     uploadedPath = blob.pathname;
 
     const client = await pool.connect();
@@ -107,9 +112,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         `
           insert into order_documents (
             order_id,
+            customer_access_id,
             type,
             filename,
-            blob_url,
             blob_pathname,
             version_number,
             document_number,
@@ -126,9 +131,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         `,
         [
           orderId,
+          documentAccessId,
           normalizedType,
           fileName,
-          blob.url,
           blob.pathname,
           version,
           documentNumber,
@@ -180,7 +185,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     return NextResponse.json(
       {
         id: Number(insertRow.id),
-        url: blob.url,
+        url: `/api/admin/orders/${orderId}/documents/${Number(insertRow.id)}`,
         filename: fileName,
         createdAt: insertRow.created_at,
         issuedAt: insertRow.issued_at,
@@ -194,7 +199,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     );
   } catch (error) {
     if (uploadedPath && !documentPersisted) {
-      await deleteBlob(uploadedPath).catch(() => undefined);
+      await deletePrivateOrderDocumentBlob(uploadedPath).catch(() => undefined);
     }
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },

@@ -7,10 +7,11 @@ function parseDate(value: string) {
 }
 
 type DocRow = {
+  document_id: number;
+  order_id: number;
   order_number: string;
   type: string;
   filename: string;
-  blob_url: string;
   created_at: string;
 };
 
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
 
     const docQuery = typeParam === 'all'
       ? `
-      SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+      SELECT d.id as document_id, d.order_id, o.order_number, d.type, d.filename, d.created_at
       FROM order_documents d
       JOIN orders o ON o.id = d.order_id
       WHERE d.created_at BETWEEN $1 AND $2
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
       ORDER BY d.created_at DESC
       `
       : `
-      SELECT o.order_number, d.type, d.filename, d.blob_url, d.created_at
+      SELECT d.id as document_id, d.order_id, o.order_number, d.type, d.filename, d.created_at
       FROM order_documents d
       JOIN orders o ON o.id = d.order_id
       WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
       orderNumber: row.order_number,
       type: row.type,
       filename: row.filename,
-      url: row.blob_url,
+      url: `/api/admin/orders/${row.order_id}/documents/${row.document_id}`,
       createdAt: row.created_at
     }));
 

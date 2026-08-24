@@ -69,12 +69,6 @@ import {
 } from '@/shared/ui/admin-table';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
-  createArchivedItemRecord,
-  fetchCatalogItemRestorePayload,
-  readArchivedItemStorage,
-  writeArchivedItemStorage
-} from '@/admin/features/artikli/lib/archiveItemClient';
-import {
   buildPersistedVariantName,
   computeSalePrice,
   createFamily,
@@ -88,18 +82,18 @@ import {
   type Variant,
   type VariantBulkApplyField
 } from '@/admin/features/artikli/lib/familyModel';
+import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
+import {
+  getOrCreateCachedMediaUpload,
+  type MediaUploadPromiseCache
+} from '@/shared/domain/media/publicMediaUpload';
 import { formatEuroAmount } from '@/shared/domain/formatting';
-import { buildCatalogPresentationDetails } from '@/shared/domain/catalog/catalogPresentation';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
 import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import ProductVariantOptionsCard from '@/admin/features/artikli/components/ProductVariantOptionsCard';
-import VariantSpecificationsEditor from '@/admin/features/artikli/components/VariantSpecificationsEditor';
-import SpecificationDisplayLabelsEditor, {
-  type SpecificationDisplayLabelRow
-} from '@/admin/features/artikli/components/SpecificationDisplayLabelsEditor';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import {
   CommercialToolsPanel,
@@ -133,7 +127,6 @@ import type {
   QuantityDiscountDraft,
   SimulatorOption,
   CatalogMediaImportKind,
-  CatalogVariantContentOverride,
   UploadedCatalogMediaFile,
   UniversalProductSpecificData
 } from '@/shared/domain/catalog/catalogAdminTypes';
@@ -161,23 +154,20 @@ import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
 import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { THead, TH } from '@/shared/ui/table';
 import type { AdminCatalogListItem, CatalogItemEditorHydration, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
-import type { StorefrontSpecification } from '@/commercial/features/products/storefrontProduct';
-import {
-  getStorefrontSpecificationOrderKey,
-  mergeStorefrontSpecifications,
-  prepareStorefrontSpecifications
-} from '@/commercial/features/products/storefrontSpecifications';
-import {
-  migrateCatalogSpecificationKey,
-  normalizeCatalogSpecificationToken,
-  readCatalogSpecificationLabels,
-  writeCatalogSpecificationLabels
-} from '@/shared/domain/catalog/catalogSpecification';
+import { readCatalogSpecificationLabels } from '@/shared/domain/catalog/catalogSpecification';
 import {
   classNames,
   CompactSegmentedField,
   fieldUnitAdornmentClassName
 } from '@/admin/features/artikli/components/pricing/PricingFieldControls';
+import {
+  formatImagePixelDimensions,
+  formatImageVariantAssignmentLabel,
+  inferImageFormatLabel,
+  normalizeImagePixelDimensions,
+  remapImageSlotAssignmentsAfterMove,
+  type ImagePixelMetadata
+} from '@/admin/features/artikli/lib/imageMediaMetadata';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const dimensionEditorInputHeightClassName =
@@ -185,28 +175,6 @@ const dimensionEditorInputHeightClassName =
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
-const mimeTypeToImageExtension: Record<string, string> = {
-  'image/jpeg': 'JPG',
-  'image/jpg': 'JPG',
-  'image/png': 'PNG',
-  'image/webp': 'WEBP',
-  'image/gif': 'GIF',
-  'image/svg+xml': 'SVG',
-  'image/avif': 'AVIF',
-  'image/bmp': 'BMP',
-  'image/tiff': 'TIFF'
-};
-
-function inferImageExtensionLabel({ mimeType, fileName, url }: { mimeType?: string; fileName?: string; url?: string }) {
-  const mimeLabel = mimeType ? mimeTypeToImageExtension[mimeType.toLowerCase()] : undefined;
-  if (mimeLabel) return mimeLabel;
-  const fromName = fileName?.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toUpperCase();
-  if (fromName) return fromName;
-  const fromUrl = url?.match(/\.([a-zA-Z0-9]+)(?:$|\?)/)?.[1]?.toUpperCase();
-  if (fromUrl) return fromUrl;
-  return 'IMG';
-}
-
 type EditorMode = 'create' | 'edit';
 type CreateType = ProductEditorType | 'variants';
 type ProductEditorMainTab = 'basic' | 'sales' | 'simulator';
@@ -370,6 +338,7 @@ type StagedImageSlot = {
   file: File | null;
   filename: string | null;
   mimeType: string | null;
+  imageDimensions: ImagePixelMetadata | null;
   altText: string;
   localId: string | null;
 };
@@ -428,15 +397,17 @@ type TextUndoSession = {
   snapshotKey: string;
 };
 
+const allQuantityDiscountTargetsJson = '{"variants":["Vse"],"customers":["Vse"]}';
+
 const defaultQuantityDiscountAuditPlaceholders = [
-  { minQuantity: 1, discountPercent: 0, appliesTo: 'allVariants', note: '', position: 0 },
-  { minQuantity: 10, discountPercent: 3, appliesTo: 'allVariants', note: '', position: 1 },
-  { minQuantity: 25, discountPercent: 5, appliesTo: 'allVariants', note: '', position: 2 },
-  { minQuantity: 50, discountPercent: 8, appliesTo: 'allVariants', note: '', position: 3 }
+  { minQuantity: 1, discountPercent: 0, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 0 },
+  { minQuantity: 10, discountPercent: 3, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 1 },
+  { minQuantity: 25, discountPercent: 5, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 2 },
+  { minQuantity: 50, discountPercent: 8, appliesTo: allQuantityDiscountTargetsJson, note: '', position: 3 }
 ] as const;
 
 function normalizeQuantityDiscountAuditTarget(rule: QuantityDiscountDraft) {
-  return serializeQuantityDiscountTargets(rule) || 'allVariants';
+  return serializeQuantityDiscountTargets(rule);
 }
 
 function isUntouchedDefaultQuantityDiscountSet(rules: QuantityDiscountDraft[]) {
@@ -535,7 +506,10 @@ function cloneSideSettings(settings: SideSettingsState): SideSettingsState {
 }
 
 function cloneMediaImage(slot: StagedImageSlot): StagedImageSlot {
-  return { ...slot };
+  return {
+    ...slot,
+    imageDimensions: slot.imageDimensions ? { ...slot.imageDimensions } : null
+  };
 }
 
 function cloneVideo(video: StagedVideoState | null): StagedVideoState | null {
@@ -646,6 +620,7 @@ function serializeEditorPersistedState(state: EditorPersistedState, decimalDraft
       altText: slot.altText,
       filename: slot.filename,
       mimeType: slot.mimeType,
+      imageDimensions: slot.imageDimensions,
       localId: slot.localId,
       file: slot.file
         ? {
@@ -1160,19 +1135,6 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   return groups;
 }
 
-function buildArchiveRecord(state: EditorPersistedState, identifier: string, restorePayload: CatalogItemEditorPayload | null) {
-  const firstVariant = state.draft.variants[0];
-  return createArchivedItemRecord({
-    id: identifier,
-    name: state.draft.name,
-    category: state.selectedCategoryPath.join(' / '),
-    sku: state.sideSettings.sku || firstVariant?.sku || '',
-    price: firstVariant?.price ?? 0,
-    discountPct: firstVariant?.discountPct ?? 0,
-    active: state.draft.active,
-    restorePayload
-  });
-}
 
 function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydration | null, createType: CreateType): EditorPersistedState {
   const optionAxes: ProductOptionAxisDraft[] = (initialData?.optionAxes ?? []).map((axis, axisIndex) => ({
@@ -1271,6 +1233,7 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
         file: null,
         filename: media.filename ?? null,
         mimeType: media.mimeType ?? null,
+        imageDimensions: normalizeImagePixelDimensions(media.imageDimensions),
         altText: media.altText ?? '',
         localId: null
       } satisfies StagedImageSlot;
@@ -1451,14 +1414,6 @@ function compareGeneratedDimensionOptions(left: DimensionInventoryOption, right:
   );
 }
 
-function getLegacyDimensionVariantKey(variant: Pick<Variant, 'thickness' | 'width' | 'length'> | DimensionInventoryOption): string {
-  return [
-    formatDimensionKeyValue(variant.thickness),
-    formatDimensionKeyValue(variant.width),
-    formatDimensionKeyValue(variant.length)
-  ].join('x');
-}
-
 function hasDimensionInventoryValues(option: DimensionInventoryOption): boolean {
   return [option.thickness, option.length, option.width].some((value) => typeof value === 'number' && Number.isFinite(value));
 }
@@ -1540,7 +1495,6 @@ function getDimensionVariantDeliveryTime(data: unknown, variant: Variant | null 
   return (
     normalized.variantDeliveryTimes[variant.id] ||
     normalized.variantDeliveryTimes[getDimensionVariantKey(variant)] ||
-    normalized.variantDeliveryTimes[getLegacyDimensionVariantKey(variant)] ||
     normalized.defaultDeliveryTime
   );
 }
@@ -2686,9 +2640,6 @@ export default function AdminItemEditorPage({
   const [expandedDimensionVariantId, setExpandedDimensionVariantId] = useState<string | null>(
     () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
   );
-  const [specificationVariantId, setSpecificationVariantId] = useState<string | null>(
-    () => initialPersistedState.draft.defaultVariantId ?? initialPersistedState.draft.variants[0]?.id ?? null
-  );
   const [hoveredDimensionVariantId, setHoveredDimensionVariantId] = useState<string | null>(null);
   const [collapseInactiveDimensionVariants, setCollapseInactiveDimensionVariants] = useState(true);
   const [draggedDimensionVariantId, setDraggedDimensionVariantId] = useState<string | null>(null);
@@ -2705,17 +2656,17 @@ export default function AdminItemEditorPage({
   const [quantityDiscounts, setQuantityDiscounts] = useState<QuantityDiscountDraft[]>(() => initialPersistedState.quantityDiscounts.map(cloneQuantityDiscountDraft));
   const [editorMode, setEditorMode] = useState<'read' | 'edit'>(mode === 'create' ? 'edit' : 'read');
   const [isSaving, setIsSaving] = useState(false);
+  const saveInFlightRef = useRef(false);
+  const mediaUploadPromiseCacheRef = useRef<MediaUploadPromiseCache<File, UploadedCatalogMediaFile>>(
+    new WeakMap()
+  );
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(initialPersistedState.itemLevelNote);
   const [editorTab, setEditorTab] = useState<ProductEditorMainTab>('basic');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
   const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
-  const [draggedVariantId, setDraggedVariantId] = useState<string | null>(null);
-  const [draggedVariantImageSlot, setDraggedVariantImageSlot] = useState<number | null>(null);
-  const [imageMeta, setImageMeta] = useState<Record<string, { width: number; height: number; type: string }>>({});
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
-  const imageTypeHintsRef = useRef<Record<string, string>>({});
   const suppressImageClickAfterDragRef = useRef(false);
   const mediaUploadInputRef = useRef<HTMLInputElement>(null);
   const mediaUploadContextRef = useRef<{ slotIndex: number; multiple: boolean }>({ slotIndex: 0, multiple: true });
@@ -2827,13 +2778,6 @@ export default function AdminItemEditorPage({
 
   useEffect(() => {
     setExpandedDimensionVariantId((current) => {
-      if (current && draft.variants.some((variant) => variant.id === current)) return current;
-      return draft.defaultVariantId ?? draft.variants[0]?.id ?? null;
-    });
-  }, [draft.defaultVariantId, draft.variants]);
-
-  useEffect(() => {
-    setSpecificationVariantId((current) => {
       if (current && draft.variants.some((variant) => variant.id === current)) return current;
       return draft.defaultVariantId ?? draft.variants[0]?.id ?? null;
     });
@@ -3336,7 +3280,7 @@ export default function AdminItemEditorPage({
       toast.error('Kategorija je obvezna.');
       return;
     }
-    if (!isEditable || isSaving) return;
+    if (!isEditable || saveInFlightRef.current) return;
 
     suppressUndoTrackingRef.current = true;
     setDraft({
@@ -3371,17 +3315,14 @@ export default function AdminItemEditorPage({
     const localVideoUrlsToRevoke =
       preparedState.video?.file && preparedState.video.previewUrl.startsWith('blob:') ? [preparedState.video.previewUrl] : [];
 
+    saveInFlightRef.current = true;
     setIsSaving(true);
 
     try {
       const uploadedImages = await Promise.all(
         preparedState.mediaImages.map(async (slot) => {
           if (!slot.file) return slot;
-          const uploaded = await uploadMediaFile(slot.file);
-          imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({
-            mimeType: uploaded.mimeType ?? slot.mimeType ?? undefined,
-            fileName: uploaded.filename ?? slot.filename ?? undefined
-          });
+          const uploaded = await uploadMediaFile(slot.file, 'image');
           return {
             ...slot,
             previewUrl: uploaded.url,
@@ -3398,7 +3339,7 @@ export default function AdminItemEditorPage({
       const uploadedVideo = preparedState.video
         ? await (async () => {
             if (preparedState.video?.source === 'youtube' || !preparedState.video?.file) return preparedState.video;
-            const uploaded = await uploadMediaFile(preparedState.video.file);
+            const uploaded = await uploadMediaFile(preparedState.video.file, 'video');
             return {
               ...preparedState.video,
               previewUrl: uploaded.url,
@@ -3415,7 +3356,7 @@ export default function AdminItemEditorPage({
       const uploadedDocuments = await Promise.all(
         preparedState.documents.map(async (documentEntry) => {
           if (!documentEntry.file) return documentEntry;
-          const uploaded = await uploadMediaFile(documentEntry.file);
+          const uploaded = await uploadMediaFile(documentEntry.file, 'document');
           return {
             ...documentEntry,
             name: uploaded.filename ?? documentEntry.name,
@@ -3541,6 +3482,7 @@ export default function AdminItemEditorPage({
             blobPathname: entry.blobPathname,
             filename: entry.filename,
             mimeType: entry.mimeType,
+            imageDimensions: entry.imageDimensions,
             altText: entry.altText || null,
             position: index
           })),
@@ -3639,6 +3581,7 @@ export default function AdminItemEditorPage({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Shranjevanje artikla ni uspelo.');
     } finally {
+      saveInFlightRef.current = false;
       setIsSaving(false);
     }
   };
@@ -3710,20 +3653,7 @@ export default function AdminItemEditorPage({
     );
     if (!shouldArchive) return;
 
-    let previousArchiveItems = readArchivedItemStorage();
     try {
-      const restorePayload = await fetchCatalogItemRestorePayload(itemIdentifier);
-      if (!restorePayload) {
-        toast.error('Podatkov za obnovitev artikla ni bilo mogoče pripraviti.');
-        return;
-      }
-
-      previousArchiveItems = readArchivedItemStorage();
-      writeArchivedItemStorage([
-        buildArchiveRecord(currentPersistedState, itemIdentifier, restorePayload),
-        ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
-      ]);
-
       const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { message?: string };
@@ -3733,7 +3663,6 @@ export default function AdminItemEditorPage({
       router.push('/admin/arhiv/artikli');
       router.refresh();
     } catch (error) {
-      writeArchivedItemStorage(previousArchiveItems);
       toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
     }
   };
@@ -3973,36 +3902,34 @@ export default function AdminItemEditorPage({
     setGeneratorInput('');
   };
 
-  const uploadMediaFile = useCallback(async (file: File): Promise<UploadedCatalogMediaFile> => {
+  const uploadMediaFile = useCallback(async (
+    file: File,
+    mediaKind: CatalogMediaImportKind
+  ): Promise<UploadedCatalogMediaFile> => {
     const itemSlug = (draft.slug || toSlug(draft.name || articleId || 'artikel')).trim();
     if (!itemSlug) {
       throw new Error('Najprej vnesite naziv ali URL artikla.');
     }
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('itemSlug', itemSlug);
-    const response = await fetch('/api/admin/artikli/media', {
-      method: 'POST',
-      body: formData
-    });
-    const body = (await response.json().catch(() => ({}))) as {
-      message?: string;
-      url?: string;
-      pathname?: string;
-      mimeType?: string | null;
-      filename?: string;
-      size?: number;
-    };
-    if (!response.ok || !body.url || !body.pathname) {
-      throw new Error(body.message || 'Nalaganje datoteke ni uspelo.');
-    }
-    return {
-      url: body.url,
-      pathname: body.pathname,
-      mimeType: body.mimeType ?? null,
-      filename: body.filename ?? file.name,
-      size: body.size
-    };
+    const cacheKey = `${itemSlug}\u0000${mediaKind}`;
+    return getOrCreateCachedMediaUpload(
+      mediaUploadPromiseCacheRef.current,
+      file,
+      cacheKey,
+      async () => {
+        const uploaded = await uploadAdminPublicMedia(file, {
+          scope: 'catalog-item',
+          itemSlug,
+          mediaKind
+        });
+        return {
+          url: uploaded.url,
+          pathname: uploaded.pathname,
+          mimeType: uploaded.contentType,
+          filename: uploaded.filename,
+          size: uploaded.size
+        };
+      }
+    );
   }, [articleId, draft.name, draft.slug]);
 
   const uploadMediaUrl = useCallback(async (sourceUrl: string, mediaKind: CatalogMediaImportKind): Promise<UploadedCatalogMediaFile> => {
@@ -4520,7 +4447,7 @@ export default function AdminItemEditorPage({
           ...createQuantityDiscountDraft({
             minQuantity: Math.max(1, maxMinQuantity + 10),
             discountPercent: 0,
-            appliesTo: 'allVariants',
+            appliesTo: allQuantityDiscountTargetsJson,
             note: '',
             position: current.length
           }, current.length),
@@ -4555,26 +4482,45 @@ export default function AdminItemEditorPage({
     if (!localBlobUrlsRef.current.has(url)) return;
     URL.revokeObjectURL(url);
     localBlobUrlsRef.current.delete(url);
-    delete imageTypeHintsRef.current[url];
   }, []);
 
   useEffect(() => () => {
     localBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     localBlobUrlsRef.current.clear();
-    imageTypeHintsRef.current = {};
   }, []);
 
-  useEffect(() => {
-    mediaImagesDraft.forEach((url) => {
-      if (!url || imageMeta[url]) return;
-      const probe = new window.Image();
-      probe.onload = () => {
-        const extension = imageTypeHintsRef.current[url] ?? inferImageExtensionLabel({ url });
-        setImageMeta((current) => ({ ...current, [url]: { width: probe.width, height: probe.height, type: extension } }));
-      };
-      probe.src = url;
+  const recordImageDimensions = useCallback((slotIndex: number, previewUrl: string, image: HTMLImageElement) => {
+    const dimensions = normalizeImagePixelDimensions({
+      width: image.naturalWidth,
+      height: image.naturalHeight
     });
-  }, [imageMeta, mediaImagesDraft]);
+    if (!dimensions) return;
+    setMediaImageSlots((current) => {
+      const slot = current[slotIndex];
+      if (!slot || slot.previewUrl !== previewUrl) return current;
+      if (
+        slot.imageDimensions?.width === dimensions.width
+        && slot.imageDimensions.height === dimensions.height
+      ) return current;
+      const next = [...current];
+      next[slotIndex] = { ...slot, imageDimensions: dimensions };
+      return next;
+    });
+    setSavedSnapshot((current) => {
+      const savedSlot = current.mediaImages[slotIndex];
+      if (!savedSlot || savedSlot.previewUrl !== previewUrl) return current;
+      if (
+        savedSlot.imageDimensions?.width === dimensions.width
+        && savedSlot.imageDimensions.height === dimensions.height
+      ) return current;
+      const nextMediaImages = [...current.mediaImages];
+      nextMediaImages[slotIndex] = {
+        ...savedSlot,
+        imageDimensions: dimensions
+      };
+      return { ...current, mediaImages: nextMediaImages };
+    });
+  }, []);
 
   useEffect(() => {
     if (editingImageSlot === null) return;
@@ -4598,7 +4544,6 @@ export default function AdminItemEditorPage({
   const stageImageFile = useCallback((file: File, slotIndex: number) => {
     const boundedSlotIndex = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, slotIndex));
     const previewUrl = createLocalImageUrl(file);
-    imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: file.type, fileName: file.name });
     updateImageAtSlot(boundedSlotIndex, {
       previewUrl,
       uploadedUrl: null,
@@ -4606,6 +4551,7 @@ export default function AdminItemEditorPage({
       file,
       filename: file.name,
       mimeType: file.type || null,
+      imageDimensions: null,
       altText: mediaImageSlots[boundedSlotIndex]?.altText ?? '',
       localId: createLocalStageId()
     });
@@ -4660,10 +4606,6 @@ export default function AdminItemEditorPage({
       try {
         const uploaded = await uploadMediaUrl(url, 'image');
         const targetSlot = Math.max(0, Math.min(MEDIA_SLOT_COUNT - 1, startSlot + offset));
-        imageTypeHintsRef.current[uploaded.url] = inferImageExtensionLabel({
-          mimeType: uploaded.mimeType ?? undefined,
-          fileName: uploaded.filename
-        });
         updateImageAtSlot(targetSlot, {
           previewUrl: uploaded.url,
           uploadedUrl: uploaded.url,
@@ -4671,6 +4613,7 @@ export default function AdminItemEditorPage({
           file: null,
           filename: uploaded.filename,
           mimeType: uploaded.mimeType,
+          imageDimensions: null,
           altText: mediaImageSlots[targetSlot]?.altText ?? '',
           localId: null
         });
@@ -4821,14 +4764,14 @@ export default function AdminItemEditorPage({
     });
     setDraft((current) => ({
       ...current,
-      variants: current.variants.map((variant) => {
-        const assignments = [...(variant.imageAssignments ?? [])];
-        const fromPos = assignments.indexOf(fromIndex);
-        const toPos = assignments.indexOf(toIndex);
-        if (fromPos !== -1) assignments[fromPos] = toIndex;
-        if (toPos !== -1) assignments[toPos] = fromIndex;
-        return { ...variant, imageAssignments: assignments };
-      })
+      variants: current.variants.map((variant) => ({
+        ...variant,
+        imageAssignments: remapImageSlotAssignmentsAfterMove(
+          variant.imageAssignments ?? [],
+          fromIndex,
+          toIndex
+        )
+      }))
     }));
   };
 
@@ -4866,29 +4809,61 @@ export default function AdminItemEditorPage({
     setVideoAssignedVariantId(null);
   };
 
-  const assignImageToVariant = (variantIndex: number, slotIndex: number) => {
+  const addImageVariantAssignment = (slotIndex: number, variantId: string) => {
+    if (!isMediaEditable) return;
     const slotImage = mediaImagesDraft[slotIndex];
     if (!slotImage) return;
-    const variant = draft.variants[variantIndex];
-    if (!variant) return;
-    const currentAssignments = variant.imageAssignments ?? [];
-    if (currentAssignments.includes(slotIndex)) return;
-    updateVariant(variant.id, { imageAssignments: [...currentAssignments, slotIndex], imageOverride: slotImage });
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        if (variant.id !== variantId) return variant;
+        const assignments = variant.imageAssignments ?? [];
+        if (assignments.includes(slotIndex)) return variant;
+        const nextAssignments = [...assignments, slotIndex];
+        return {
+          ...variant,
+          imageAssignments: nextAssignments,
+          imageOverride: mediaImagesDraft[nextAssignments[0]] ?? slotImage
+        };
+      })
+    }));
   };
 
-  const reorderVariantAssignment = (variantIndex: number, fromSlot: number, toSlot: number) => {
-    const variant = draft.variants[variantIndex];
-    if (!variant) return;
-    const assignments = [...(variant.imageAssignments ?? [])];
-    const fromIndex = assignments.indexOf(fromSlot);
-    const toIndex = assignments.indexOf(toSlot);
-    if (fromIndex === -1 || toIndex === -1) return;
-    assignments.splice(fromIndex, 1);
-    assignments.splice(toIndex, 0, fromSlot);
-    updateVariant(variant.id, {
-      imageAssignments: assignments,
-      imageOverride: assignments.length > 0 ? mediaImagesDraft[assignments[0]] ?? null : null
-    });
+  const removeImageVariantAssignment = (slotIndex: number, variantId: string) => {
+    if (!isMediaEditable) return;
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        if (variant.id !== variantId) return variant;
+        const nextAssignments = (variant.imageAssignments ?? []).filter((assignment) => assignment !== slotIndex);
+        return {
+          ...variant,
+          imageAssignments: nextAssignments,
+          imageOverride: nextAssignments.length > 0
+            ? mediaImagesDraft[nextAssignments[0]] ?? null
+            : null
+        };
+      })
+    }));
+  };
+
+  const clearImageVariantAssignments = (slotIndex: number) => {
+    if (!isMediaEditable) return;
+    setDraft((current) => ({
+      ...current,
+      variants: current.variants.map((variant) => {
+        const assignments = variant.imageAssignments ?? [];
+        if (!assignments.includes(slotIndex)) return variant;
+        const nextAssignments = assignments.filter((assignment) => assignment !== slotIndex);
+        return {
+          ...variant,
+          imageAssignments: nextAssignments,
+          imageOverride: nextAssignments.length > 0
+            ? mediaImagesDraft[nextAssignments[0]] ?? null
+            : null
+        };
+      })
+    }));
   };
 
   const updateImageAltText = useCallback((slotIndex: number, altText: string) => {
@@ -4902,11 +4877,10 @@ export default function AdminItemEditorPage({
       toast.error('Urejena slika je prevelika. Dovoljene so le slike do 4 MB.');
       return;
     }
-    const extension = inferImageExtensionLabel({ mimeType: nextMimeType, fileName: 'edited.webp' }).toLowerCase();
+    const extension = inferImageFormatLabel({ mimeType: nextMimeType, fileName: 'edited.webp' }).toLowerCase();
     const fileName = `edited-${Date.now()}.${extension}`;
     const file = new File([blob], fileName, { type: nextMimeType });
     const previewUrl = createLocalImageUrl(file);
-    imageTypeHintsRef.current[previewUrl] = inferImageExtensionLabel({ mimeType: nextMimeType, fileName });
     updateImageAtSlot(slotIndex, {
       previewUrl,
       uploadedUrl: null,
@@ -4914,6 +4888,7 @@ export default function AdminItemEditorPage({
       file,
       filename: fileName,
       mimeType: nextMimeType,
+      imageDimensions: null,
       altText: mediaImageSlots[slotIndex]?.altText ?? '',
       localId: createLocalStageId()
     });
@@ -4988,251 +4963,6 @@ export default function AdminItemEditorPage({
 
   const expandedDimensionVariant =
     draft.variants.find((variant) => variant.id === expandedDimensionVariantId) ?? null;
-  const specificationVariant =
-    draft.variants.find((variant) => variant.id === specificationVariantId)
-    ?? draft.variants.find((variant) => variant.id === draft.defaultVariantId)
-    ?? draft.variants[0]
-    ?? null;
-  const protectedCatalogSpecificationLabels = buildCatalogPresentationDetails(
-    productType,
-    typeSpecificData
-  ).specifications.map((specification) => specification.label);
-  const articleSpecificationLabels = readCatalogSpecificationLabels(appearanceOverride);
-  const articlePresentationSpecifications = buildCatalogPresentationDetails(
-    productType,
-    typeSpecificData
-  ).specifications;
-  const articleParentSpecifications: StorefrontSpecification[] = [
-    ...articlePresentationSpecifications,
-    ...(sideSettings.material.trim()
-      ? [{ id: 'product-material', orderKey: 'material', label: 'Material', value: sideSettings.material.trim() }]
-      : []),
-    ...(sideSettings.color.trim()
-      ? [{ id: 'product-colour', orderKey: 'barva', label: 'Barva', value: sideSettings.color.trim() }]
-      : []),
-    ...(sideSettings.surface.trim()
-      ? [{ id: 'product-shape', orderKey: 'oblika', label: 'Oblika', value: sideSettings.surface.trim() }]
-      : [])
-  ];
-  const articleVariantSpecifications: StorefrontSpecification[] = specificationVariant
-    ? [
-        ...(specificationVariant.thickness !== null
-          ? [{ id: 'variant-thickness', orderKey: 'dimensions', label: 'Debelina', value: `${formatDecimalForDisplay(specificationVariant.thickness)} mm` }]
-          : []),
-        ...(specificationVariant.length !== null
-          ? [{ id: 'variant-length', orderKey: 'dimensions', label: 'Dolžina', value: `${formatDecimalForDisplay(specificationVariant.length)} mm` }]
-          : []),
-        ...(specificationVariant.width !== null
-          ? [{ id: 'variant-width', orderKey: 'dimensions', label: 'Širina', value: `${formatDecimalForDisplay(specificationVariant.width)} mm` }]
-          : []),
-        ...(typeof specificationVariant.weight === 'number' && specificationVariant.weight > 0
-          ? [{
-              id: 'variant-weight',
-              orderKey: 'teza',
-              label: 'Teža',
-              value: `${formatDecimalForDisplay(specificationVariant.weight)} ${productType === 'dimensions' ? 'g' : 'kg'}`
-            }]
-          : []),
-        ...(specificationVariant.errorTolerance?.trim()
-          ? [{
-              id: 'variant-tolerance',
-              orderKey: 'toleranca',
-              label: 'Toleranca',
-              value: `${specificationVariant.errorTolerance.startsWith('±') ? '' : '±'}${specificationVariant.errorTolerance}${specificationVariant.errorTolerance.toLocaleLowerCase('sl').includes('mm') ? '' : ' mm'}`
-            }]
-          : []),
-        ...Object.entries(specificationVariant.contentOverride?.specifications ?? {}).flatMap(
-          ([label, value], index) => label.trim() && value.trim()
-            ? [{
-                id: `variant-custom-${index}`,
-                orderKey: normalizeCatalogSpecificationToken(label),
-                label,
-                value
-              }]
-            : []
-        ),
-        ...(specificationVariant.sku.trim()
-          ? [{ id: 'variant-sku', orderKey: 'sku', label: 'SKU', value: specificationVariant.sku.trim() }]
-          : [])
-      ]
-    : [];
-  const articleMergedSpecifications = mergeStorefrontSpecifications(
-    articleParentSpecifications,
-    articleVariantSpecifications
-  );
-  const articleCanonicalDisplayedSpecifications = prepareStorefrontSpecifications(
-    articleMergedSpecifications,
-    []
-  );
-  const articleCanonicalSpecificationLabels = new Map(
-    articleCanonicalDisplayedSpecifications.map((specification) => [
-      getStorefrontSpecificationOrderKey(specification),
-      specification.label
-    ])
-  );
-  const articleDisplayedSpecifications = prepareStorefrontSpecifications(
-    articleMergedSpecifications,
-    [],
-    articleSpecificationLabels
-  );
-  const articleCustomSpecificationKeys = new Set(
-    Object.keys(specificationVariant?.contentOverride?.specifications ?? {})
-      .map(normalizeCatalogSpecificationToken)
-  );
-  const articleSystemSpecificationRows: SpecificationDisplayLabelRow[] = articleDisplayedSpecifications
-    .filter((specification) => (
-      !articleCustomSpecificationKeys.has(getStorefrontSpecificationOrderKey(specification))
-    ))
-    .map((specification) => ({
-      key: getStorefrontSpecificationOrderKey(specification),
-      label: specification.label,
-      canonicalLabel: articleCanonicalSpecificationLabels.get(
-        getStorefrontSpecificationOrderKey(specification)
-      ) ?? specification.label,
-      value: specification.value
-    }));
-  const updateSpecificationVariant = (specifications: Record<string, string>) => {
-    if (!specificationVariant) return;
-    const contentOverride: CatalogVariantContentOverride = {
-      ...(specificationVariant.contentOverride ?? {}),
-      specifications
-    };
-    if (Object.keys(specifications).length === 0) {
-      delete contentOverride.specifications;
-    }
-    updateVariant(specificationVariant.id, {
-      contentOverride: Object.keys(contentOverride).length > 0
-        ? contentOverride
-        : null
-    });
-  };
-  const updateArticleSpecificationLabels = (labels: Record<string, string>) => {
-    setAppearanceOverride(
-      writeCatalogSpecificationLabels(appearanceOverride, labels)
-    );
-  };
-  const articleSpecificationValueInputClassName =
-    `${inputClass} !h-8 !min-h-8 !px-2.5 !text-[11px]`;
-  const renderArticleSpecificationValueEditor = (
-    row: SpecificationDisplayLabelRow
-  ) => {
-    if (row.key === 'material' || row.key === 'barva' || row.key === 'oblika') {
-      const field = row.key === 'barva'
-        ? 'color'
-        : row.key === 'oblika'
-          ? 'surface'
-          : 'material';
-      return (
-        <input
-          value={sideSettings[field]}
-          disabled={!isEditable}
-          data-testid={`article-canonical-specification-${row.key}`}
-          aria-label={`Vrednost specifikacije ${row.label}`}
-          onChange={(event) => setSideSettings((current) => ({
-            ...current,
-            [field]: event.target.value
-          }))}
-          className={articleSpecificationValueInputClassName}
-        />
-      );
-    }
-    if (row.key === 'dimensions' && specificationVariant) {
-      return (
-        <div className="grid grid-cols-3 gap-1.5">
-          {([
-            ['thickness', 'Debelina', specificationVariant.thickness],
-            ['length', 'Dolžina', specificationVariant.length],
-            ['width', 'Širina', specificationVariant.width]
-          ] as const).map(([field, label, value]) => (
-            <label key={field} className="relative block min-w-0">
-              <span className="sr-only">{label}</span>
-              <input
-                value={readDecimalInputValue(specificationVariant.id, field, value)}
-                disabled={!isEditable}
-                inputMode="decimal"
-                data-testid={`article-canonical-specification-${field}`}
-                aria-label={label}
-                onChange={(event) => updateDecimalInputDraft(
-                  specificationVariant.id,
-                  field,
-                  event.target.value
-                )}
-                onBlur={() => commitDecimalInputDraft(
-                  specificationVariant.id,
-                  field,
-                  value,
-                  (nextValue) => updateVariant(specificationVariant.id, { [field]: nextValue }),
-                  null
-                )}
-                className={`${articleSpecificationValueInputClassName} !pr-8`}
-              />
-              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[9px] text-slate-400">mm</span>
-            </label>
-          ))}
-        </div>
-      );
-    }
-    if (row.key === 'teza' && specificationVariant) {
-      return (
-        <label className="relative block min-w-0">
-          <span className="sr-only">Teža</span>
-          <input
-            value={readDecimalInputValue(specificationVariant.id, 'weight', specificationVariant.weight)}
-            disabled={!isEditable}
-            inputMode="decimal"
-            data-testid="article-canonical-specification-weight"
-            aria-label="Teža"
-            onChange={(event) => updateDecimalInputDraft(
-              specificationVariant.id,
-              'weight',
-              event.target.value
-            )}
-            onBlur={() => commitDecimalInputDraft(
-              specificationVariant.id,
-              'weight',
-              specificationVariant.weight ?? null,
-              (weight) => updateVariant(specificationVariant.id, { weight }),
-              null
-            )}
-            className={`${articleSpecificationValueInputClassName} !pr-8`}
-          />
-          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[9px] text-slate-400">
-            {productType === 'dimensions' ? 'g' : 'kg'}
-          </span>
-        </label>
-      );
-    }
-    if (row.key === 'toleranca' && specificationVariant) {
-      return (
-        <input
-          value={specificationVariant.errorTolerance ?? ''}
-          disabled={!isEditable}
-          data-testid="article-canonical-specification-tolerance"
-          aria-label="Toleranca"
-          onChange={(event) => updateVariant(specificationVariant.id, {
-            errorTolerance: event.target.value || null
-          })}
-          className={articleSpecificationValueInputClassName}
-        />
-      );
-    }
-    if (row.key === 'sku' && specificationVariant) {
-      return (
-        <input
-          value={specificationVariant.sku}
-          disabled={!isEditable}
-          data-testid="article-canonical-specification-sku"
-          aria-label="SKU različice"
-          onChange={(event) => updateVariant(specificationVariant.id, {
-            sku: event.target.value,
-            skuAutoGenerated: false
-          })}
-          className={articleSpecificationValueInputClassName}
-        />
-      );
-    }
-    return undefined;
-  };
   const dimensionVariantLayoutCompactCount = Math.max(0, draft.variants.length - 1);
   const compactDimensionVariantWidth = dimensionVariantLayoutCompactCount <= 2
     ? 220
@@ -5266,27 +4996,46 @@ export default function AdminItemEditorPage({
     flexibleDimensionVariantCount - 1
   );
   const expandedDimensionVariantFlex = Math.max(1, flexibleCompactDimensionVariantCount * 0.233);
-  const getDimensionVariantTrack = (variant: Variant) => {
+  const dimensionVariantBaseTrackWidths = draft.variants.map((variant) =>
+    variant.id !== expandedDimensionVariant?.id
+    && collapseInactiveDimensionVariants
+    && !variant.active
+      ? Math.min(26, compactDimensionVariantWidth)
+      : compactDimensionVariantWidth
+  );
+  const dimensionMatrixBaseWidth =
+    205 + dimensionVariantBaseTrackWidths.reduce((total, width) => total + width, 0);
+  const getDimensionVariantTrack = (variant: Variant, variantIndex: number) => {
     const isExpanded = variant.id === expandedDimensionVariant?.id;
+    const baseTrackWidth = dimensionVariantBaseTrackWidths[variantIndex] ?? compactDimensionVariantWidth;
+    if (!usesDenseDimensionVariantLayout) {
+      if (!isExpanded) return `${baseTrackWidth}px`;
+      return `calc(100% - ${dimensionMatrixBaseWidth - baseTrackWidth}px)`;
+    }
     const isCompressedInactive =
       !isExpanded && collapseInactiveDimensionVariants && !variant.active;
     const minimumWidth = isExpanded
-      ? (usesDenseDimensionVariantLayout ? 170 : 280)
+      ? 170
       : isCompressedInactive
         ? Math.min(26, compactDimensionVariantWidth)
         : compactDimensionVariantWidth;
     const flexibleWidth = isExpanded
-      ? (usesDenseDimensionVariantLayout ? expandedDimensionVariantFlex : 1)
+      ? expandedDimensionVariantFlex
       : isCompressedInactive
         ? 0
-        : usesDenseDimensionVariantLayout
-          ? 1
-          : 0;
+        : 1;
     return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
   };
+  // Non-dense layouts animate only length/percentage tracks, avoiding grid
+  // freeze/clamp changes while the selected column and remainder exchange space.
+  const dimensionMatrixRemainderTrack =
+    usesDenseDimensionVariantLayout || expandedDimensionVariant
+      ? '0px'
+      : `calc(100% - ${dimensionMatrixBaseWidth}px)`;
   const dimensionMatrixGridTemplateColumns = [
     '205px',
-    ...draft.variants.map(getDimensionVariantTrack)
+    ...draft.variants.map(getDimensionVariantTrack),
+    dimensionMatrixRemainderTrack
   ].join(' ');
   const dimensionMatrixMinWidth =
     205
@@ -6156,7 +5905,16 @@ export default function AdminItemEditorPage({
                           setEditingImageSlot(0);
                         }}
                       >
-                        <Image src={mediaImagesDraft[0]} alt="Glavna slika" width={1200} height={1200} unoptimized sizes="(max-width: 1280px) 36vw, 420px" className="h-full w-full object-cover" />
+                        <Image
+                          src={mediaImagesDraft[0]}
+                          alt="Glavna slika"
+                          width={1200}
+                          height={1200}
+                          unoptimized
+                          sizes="(max-width: 1280px) 36vw, 420px"
+                          className="h-full w-full object-cover"
+                          onLoad={(event) => recordImageDimensions(0, mediaImagesDraft[0], event.currentTarget)}
+                        />
                         {renderImageActionButtons(0)}
                       </div>
                       {Array.from({ length: GALLERY_SMALL_SLOT_COUNT }).map((_, smallIndex) => {
@@ -6198,7 +5956,16 @@ export default function AdminItemEditorPage({
                                 setEditingImageSlot(slotIndex);
                               }}
                             >
-                              <Image src={slotImage} alt={`Slika ${slotIndex + 1}`} width={720} height={720} unoptimized sizes="(max-width: 1280px) 18vw, 180px" className="h-full w-full object-cover" />
+                              <Image
+                                src={slotImage}
+                                alt={`Slika ${slotIndex + 1}`}
+                                width={720}
+                                height={720}
+                                unoptimized
+                                sizes="(max-width: 1280px) 18vw, 180px"
+                                className="h-full w-full object-cover"
+                                onLoad={(event) => recordImageDimensions(slotIndex, slotImage, event.currentTarget)}
+                              />
                               {renderImageActionButtons(slotIndex)}
                             </div>
                           );
@@ -6247,94 +6014,118 @@ export default function AdminItemEditorPage({
                   )}
                 </div>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
-                  <table className="min-w-full text-xs">
+                  <table className="min-w-full table-fixed text-xs">
                     <thead className="bg-[color:var(--admin-table-header-bg)]">
                       <tr>
-                        <th className="px-2 py-1.5 text-left">SKU</th>
-                        <th className="px-2 py-1.5 text-center">Tip</th>
-                        <th className="px-2 py-1.5 text-center">{productType === 'weight' ? 'Teža' : 'Dimenzije'}</th>
-                        <th className="px-2 py-1.5 text-left">Slike</th>
+                        <th className="w-[34%] px-2 py-1.5 text-left">Slika</th>
+                        <th className="w-[13%] px-2 py-1.5 text-center">Format</th>
+                        <th className="w-[20%] px-2 py-1.5 text-center">Dimenzije</th>
+                        <th className="w-[33%] px-2 py-1.5 text-left">Različice</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {draft.variants.map((variant, variantIndex) => {
-                        const assignedSlots = variant.imageAssignments ?? [];
-                        const variantTypeLabel =
-                          productType === 'dimensions'
-                            ? 'Plošča'
-                            : productType === 'weight'
-                              ? 'Po masi'
-                              : productType === 'unique_machine'
-                                ? 'Stroj'
-                                : 'Enostavni';
-                        const variantDimensionParts = [variant.thickness, variant.length, variant.width]
-                          .filter((value): value is number => value !== null && value !== undefined)
-                          .map((value) => formatDecimalForDisplay(value));
-                        const variantDimensionLabel = variantDimensionParts.length > 0
-                          ? `${variantDimensionParts.join(' x ')} mm`
-                          : productType === 'weight'
-                            ? (variant.weight === null || variant.weight === undefined ? '—' : `${formatDecimalForDisplay(variant.weight)} kg`)
-                            : '—';
+                      {mediaImageSlots.length === 0 ? (
+                        <tr className="border-t border-slate-100">
+                          <td colSpan={4} className="px-3 py-4 text-center text-[11px] text-slate-500">
+                            Naložene slike se bodo prikazale tukaj.
+                          </td>
+                        </tr>
+                      ) : mediaImageSlots.map((slot, slotIndex) => {
+                        const assignedVariants = draft.variants.flatMap((variant, variantIndex) => {
+                          if (!(variant.imageAssignments ?? []).includes(slotIndex)) return [];
+                          return [{
+                            variant,
+                            label: formatImageVariantAssignmentLabel(variant, variantIndex)
+                          }];
+                        });
+                        const availableVariants = draft.variants.flatMap((variant, variantIndex) => {
+                          if ((variant.imageAssignments ?? []).includes(slotIndex)) return [];
+                          return [{
+                            variant,
+                            label: formatImageVariantAssignmentLabel(variant, variantIndex)
+                          }];
+                        });
+                        const imageLabel = slotIndex === 0 ? 'Glavna slika' : `Slika ${slotIndex + 1}`;
+                        const filename = slot.filename?.trim() || imageLabel;
                         return (
                           <tr
-                            key={`variant-media-${variant.id}`}
+                            key={slot.localId ?? slot.persistedId ?? `${slot.previewUrl}-${slotIndex}`}
                             className="border-t border-slate-100"
-                            onDragOver={(event) => {
-                              if (!isMediaEditable) return;
-                              event.preventDefault();
-                            }}
-                            onDrop={(event) => {
-                              event.preventDefault();
-                              if (!isMediaEditable || draggedImageIndex === null) return;
-                              assignImageToVariant(variantIndex, draggedImageIndex);
-                              setDraggedImageIndex(null);
-                            }}
                           >
-                            <td className="px-2 py-1.5">{variant.sku || '—'}</td>
-                            <td className="px-2 py-1.5 text-center">{variantTypeLabel}</td>
-                            <td className="px-2 py-1.5 text-center">{variantDimensionLabel}</td>
                             <td className="px-2 py-1.5">
-                              <div className="flex flex-wrap gap-1">
-                                {assignedSlots.map((slot) => {
-                                  const slotImage = mediaImagesDraft[slot];
-                                  if (!slotImage) return null;
-                                  return (
-                                    <div
-                                      key={`${variant.id}-${slot}`}
-                                      className="inline-flex h-[18px] items-center gap-1 overflow-hidden rounded-md border border-slate-200 bg-white px-1"
-                                      draggable={isMediaEditable}
-                                      onDragStart={() => {
-                                        setDraggedVariantId(variant.id);
-                                        setDraggedVariantImageSlot(slot);
-                                      }}
-                                      onDragOver={(event) => {
-                                        if (!isMediaEditable) return;
-                                        event.preventDefault();
-                                      }}
-                                      onDrop={(event) => {
-                                        event.preventDefault();
-                                        if (!isMediaEditable || draggedVariantId !== variant.id || draggedVariantImageSlot === null) return;
-                                        reorderVariantAssignment(variantIndex, draggedVariantImageSlot, slot);
-                                        setDraggedVariantId(null);
-                                        setDraggedVariantImageSlot(null);
-                                      }}
+                              <div className="flex min-w-0 items-center gap-2">
+                                <Image
+                                  src={slot.previewUrl}
+                                  alt=""
+                                  width={32}
+                                  height={32}
+                                  unoptimized
+                                  className="h-8 w-8 shrink-0 rounded-md border border-slate-200 object-cover"
+                                  onLoad={(event) => recordImageDimensions(slotIndex, slot.previewUrl, event.currentTarget)}
+                                />
+                                <div className="min-w-0">
+                                  <div className="truncate font-medium text-slate-800">{imageLabel}</div>
+                                  <div className="truncate text-[10px] text-slate-500" title={filename}>{filename}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-1.5 text-center">
+                              {inferImageFormatLabel({
+                                mimeType: slot.mimeType,
+                                fileName: slot.filename,
+                                url: slot.previewUrl
+                              })}
+                            </td>
+                            <td className="px-2 py-1.5 text-center text-[11px] tabular-nums">
+                              {formatImagePixelDimensions(slot.imageDimensions)}
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <div className="flex min-w-0 flex-col gap-1">
+                                <div className="flex min-w-0 flex-wrap gap-1">
+                                  {assignedVariants.length === 0 ? (
+                                    <span className="inline-flex h-5 items-center rounded-md border border-emerald-200 bg-emerald-50 px-1.5 text-[10px] font-medium text-emerald-700">
+                                      Vse različice
+                                    </span>
+                                  ) : assignedVariants.map(({ variant, label }) => (
+                                    <span
+                                      key={`${slotIndex}-${variant.id}`}
+                                      className="inline-flex h-5 max-w-full items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 text-[10px] text-slate-600"
+                                      title={label}
                                     >
-                                      <Image src={slotImage} alt={`SKU ${variant.sku}`} width={16} height={16} unoptimized className="h-4 w-4 shrink-0 rounded object-cover" />
-                                      <span className="max-w-[84px] truncate text-[11px] text-slate-600">Slika {slot + 1}</span>
-                                      <button
-                                        type="button"
-                                        disabled={!isMediaEditable}
-                                        className={`${isMediaEditable ? '' : 'hidden'} text-slate-400 hover:text-rose-600`}
-                                        onClick={() => updateVariant(variant.id, {
-                                          imageAssignments: assignedSlots.filter((value) => value !== slot),
-                                          imageOverride: assignedSlots.length > 1 ? mediaImagesDraft[assignedSlots.find((value) => value !== slot) ?? 0] ?? null : null
-                                        })}
-                                      >
-                                        ×
-                                      </button>
-                                    </div>
-                                  );
-                                })}
+                                      <span className="truncate">{label}</span>
+                                      {isMediaEditable ? (
+                                        <button
+                                          type="button"
+                                          className="shrink-0 text-slate-400 hover:text-rose-600"
+                                          onClick={() => removeImageVariantAssignment(slotIndex, variant.id)}
+                                          aria-label={`Odstrani povezavo slike z različico ${label}`}
+                                        >
+                                          ×
+                                        </button>
+                                      ) : null}
+                                    </span>
+                                  ))}
+                                </div>
+                                {isMediaEditable && draft.variants.length > 1 ? (
+                                  <select
+                                    value=""
+                                    onChange={(event) => {
+                                      const nextVariantId = event.target.value;
+                                      if (nextVariantId === '__all__') clearImageVariantAssignments(slotIndex);
+                                      else if (nextVariantId) addImageVariantAssignment(slotIndex, nextVariantId);
+                                    }}
+                                    className={`${selectTokenClasses.trigger} !h-6 !min-w-0 !px-1.5 !text-[10px]`}
+                                    aria-label={`Poveži ${imageLabel.toLowerCase()} z različico`}
+                                  >
+                                    <option value="">Dodaj različico …</option>
+                                    {assignedVariants.length > 0 ? (
+                                      <option value="__all__">Vse različice (splošna slika)</option>
+                                    ) : null}
+                                    {availableVariants.map(({ variant, label }) => (
+                                      <option key={variant.id} value={variant.id}>{label}</option>
+                                    ))}
+                                  </select>
+                                ) : null}
                               </div>
                             </td>
                           </tr>
@@ -6343,6 +6134,9 @@ export default function AdminItemEditorPage({
                     </tbody>
                   </table>
                 </div>
+                <p className="px-0.5 text-[10px] leading-4 text-slate-500">
+                  Slika brez povezave velja za vse različice. Povežite jo le, kadar prikazuje točno določeno različico.
+                </p>
               </div>
             ) : mediaTab === 'video' ? (
               <div className="mt-3 space-y-2">
@@ -7635,96 +7429,6 @@ export default function AdminItemEditorPage({
           )}
         />
       )}
-      {draft.variants.length > 0 ? (
-        <section
-          className={`${adminWindowCardClassName} px-5 py-5`}
-          style={adminWindowCardStyle}
-          data-testid="article-variant-specifications-section"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className={editorSectionTitleClassName}>
-                Specifikacije različice
-              </h2>
-              <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                Prikazne nazive lahko prilagodite brez spremembe pomena prodajnih polj.
-                Iste nastavitve so na voljo tudi v urejevalniku videza artiklov.
-              </p>
-            </div>
-            {draft.variants.length > 1 ? (
-              <label className="grid min-w-[220px] gap-1">
-                <span className="text-[10px] font-semibold text-slate-600">Različica</span>
-                <select
-                  value={specificationVariant?.id ?? ''}
-                  onChange={(event) => setSpecificationVariantId(event.target.value || null)}
-                  className={selectTokenClasses.trigger}
-                  aria-label="Različica za dodatne specifikacije"
-                >
-                  {draft.variants.map((variant, index) => (
-                    <option key={variant.id} value={variant.id}>
-                      {buildDimensionVariantHeaderLabel(variant, index, true)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-          <div className="mt-4 grid max-w-3xl gap-5">
-            <div className="grid gap-2">
-              <div>
-                <h3 className="text-xs font-semibold text-slate-800">
-                  Sistemske specifikacije
-                </h3>
-                <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
-                  Levi stolpec določa prikazni naziv, desni pa vrednost v prodajnem zapisu.
-                </p>
-              </div>
-              <SpecificationDisplayLabelsEditor
-                rows={articleSystemSpecificationRows.map((row) => ({
-                  ...row,
-                  valueEditor: renderArticleSpecificationValueEditor(row)
-                }))}
-                labels={articleSpecificationLabels}
-                onChange={updateArticleSpecificationLabels}
-                disabled={!isEditable}
-                surface="article-editor"
-                reservedLabels={Object.keys(
-                  specificationVariant?.contentOverride?.specifications ?? {}
-                )}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div>
-                <h3 className="text-xs font-semibold text-slate-800">
-                  Dodatne specifikacije
-                </h3>
-                <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
-                  Dodatnim vrsticam lahko neposredno uredite naziv in vrednost.
-                </p>
-              </div>
-              <VariantSpecificationsEditor
-                specifications={specificationVariant?.contentOverride?.specifications ?? {}}
-                onChange={updateSpecificationVariant}
-                onLabelChange={(previousLabel, nextLabel) => {
-                  const migrated = migrateCatalogSpecificationKey(
-                    [],
-                    articleSpecificationLabels,
-                    previousLabel,
-                    nextLabel
-                  );
-                  updateArticleSpecificationLabels(migrated.specificationLabels);
-                }}
-                disabled={!isEditable}
-                surface="article-editor"
-                reservedLabels={[
-                  ...protectedCatalogSpecificationLabels,
-                  ...Object.values(articleSpecificationLabels)
-                ]}
-              />
-            </div>
-          </div>
-        </section>
-      ) : null}
       </>
       ) : null}
 

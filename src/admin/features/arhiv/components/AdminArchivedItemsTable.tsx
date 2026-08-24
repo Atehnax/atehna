@@ -46,10 +46,8 @@ import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses 
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
 import { formatEuro } from '@/shared/domain/formatting';
-import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
-import type { ArchivedCatalogItemSummary, CatalogItemEditorPayload } from '@/shared/domain/catalog/catalogAdminTypes';
+import type { ArchivedCatalogItemSummary } from '@/shared/domain/catalog/catalogAdminTypes';
 
-const STORAGE_KEY = 'admin-items-crud-v2';
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 type Item = {
@@ -64,8 +62,6 @@ type Item = {
   archivedAt?: string | null;
   purgeAfter?: string | null;
   canPurge?: boolean;
-  serverBacked?: boolean;
-  restorePayload?: CatalogItemEditorPayload | null;
 };
 
 type ArchivedItemsColumnKey = 'name' | 'sku' | 'category' | 'price' | 'archivedAt' | 'purgeAfter';
@@ -96,16 +92,6 @@ const formatRetention = (item: Item) => {
   const remainingDays = Math.max(1, Math.ceil(remainingMs / 86_400_000));
   return `${formatDateTime(item.purgeAfter)} · še ${remainingDays} dni`;
 };
-
-function createRestoreInsertPayload(payload: CatalogItemEditorPayload): CatalogItemEditorPayload {
-  const { id: _id, ...itemPayload } = payload;
-  return {
-    ...itemPayload,
-    variants: itemPayload.variants.map(({ id: _variantId, ...variant }) => variant),
-    quantityDiscounts: itemPayload.quantityDiscounts?.map(({ id: _discountId, ...rule }) => rule),
-    media: itemPayload.media.map(({ id: _mediaId, ...media }) => media)
-  };
-}
 
 const normalizeText = (value: string | number | null | undefined) =>
   String(value ?? '').trim().toLocaleLowerCase('sl');
@@ -171,29 +157,6 @@ export default function AdminArchivedItemsTable() {
 
   useEffect(() => {
     let cancelled = false;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    let localItems: Item[] = [];
-    try {
-      const parsed = raw ? JSON.parse(raw) as Item[] : [];
-      if (Array.isArray(parsed)) {
-        localItems = parsed.map((item) => {
-          const archivedAt = item.archivedAt ?? null;
-          const derivedPurgeAfter = archivedAt
-            ? new Date(new Date(archivedAt).getTime() + 90 * 86_400_000).toISOString()
-            : null;
-          const purgeAfter = item.purgeAfter ?? derivedPurgeAfter;
-          return {
-            ...item,
-            archivedAt,
-            purgeAfter,
-            canPurge: Boolean(purgeAfter && new Date(purgeAfter).getTime() <= Date.now())
-          };
-        });
-      }
-    } catch {
-      // ignore malformed state
-    }
-
     const loadServerArchive = async () => {
       try {
         const response = await fetch('/api/admin/artikli/archived', { cache: 'no-store' });
@@ -210,19 +173,11 @@ export default function AdminArchivedItemsTable() {
           active: item.statusBeforeDelete === 'active',
           archivedAt: item.deletedAt,
           purgeAfter: item.purgeAfter,
-          canPurge: item.canPurge,
-          serverBacked: true,
-          restorePayload: null
+          canPurge: item.canPurge
         }));
-        const serverSlugs = new Set(serverItems.map((item) => item.slug));
-        const legacyOnly = localItems.filter((item) =>
-          !serverSlugs.has(item.id)
-          && !serverSlugs.has(item.restorePayload?.slug)
-        );
-        if (!cancelled) setItems([...serverItems, ...legacyOnly]);
+        if (!cancelled) setItems(serverItems);
       } catch (error) {
         if (!cancelled) {
-          setItems(localItems);
           toast.error(error instanceof Error ? error.message : 'Izbrisanih artiklov ni bilo mogoče naložiti.');
         }
       }
@@ -374,42 +329,27 @@ export default function AdminArchivedItemsTable() {
     onClose: () => setOpenHeaderFilter(null)
   });
 
-  const persist = (next: Item[]) => {
-    setItems(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.filter((item) => !item.serverBacked)));
-  };
-
   const restoreSelected = async () => {
     if (selectedIds.length === 0 || isRestoringSelected) return;
     const selectedSet = new Set(selectedIds);
     const selectedItems = items.filter((item) => selectedSet.has(item.id));
-    const missingPayloadCount = selectedItems.filter((item) => !item.serverBacked && !item.restorePayload).length;
-    if (missingPayloadCount > 0) {
-      toast.error('Izbrani zapis izbrisanega artikla ne vsebuje podatkov za obnovitev.');
-      return;
-    }
 
     setIsRestoringSelected(true);
     try {
       for (const item of selectedItems) {
-        if (item.serverBacked) {
-          const response = await fetch(`/api/admin/artikli/${encodeURIComponent(item.slug ?? item.id)}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'restore' })
-          });
-          if (!response.ok) {
-            const body = await response.json().catch(() => null) as { message?: string } | null;
-            throw new Error(body?.message || 'Obnova artikla ni uspela.');
-          }
-          continue;
+        const response = await fetch(`/api/admin/artikli/${encodeURIComponent(item.slug ?? item.id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'restore' })
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => null) as { message?: string } | null;
+          throw new Error(body?.message || 'Obnova artikla ni uspela.');
         }
-        if (!item.restorePayload) throw new Error('Zapis izbrisanega artikla ne vsebuje podatkov za obnovitev.');
-        await saveCatalogItemPayload(createRestoreInsertPayload(item.restorePayload));
       }
 
       const next = items.filter((item) => !selectedSet.has(item.id));
-      persist(next);
+      setItems(next);
       setSelectedIds([]);
       toast.success(selectedIds.length === 1 ? 'Artikel je obnovljen.' : `Obnovljenih artiklov: ${selectedIds.length}.`);
     } catch (error) {
@@ -435,7 +375,6 @@ export default function AdminArchivedItemsTable() {
     setIsPurgingSelected(true);
     try {
       for (const item of selectedItems) {
-        if (!item.serverBacked) continue;
         const response = await fetch(`/api/admin/artikli/${encodeURIComponent(item.slug ?? item.id)}?purge=true`, {
           method: 'DELETE'
         });
@@ -445,7 +384,7 @@ export default function AdminArchivedItemsTable() {
         }
       }
       const next = items.filter((item) => !selectedSet.has(item.id));
-      persist(next);
+      setItems(next);
       setSelectedIds([]);
       setIsDeleteConfirmOpen(false);
       toast.success(deletedCount === 1 ? 'Artikel je trajno izbrisan.' : `Trajno izbrisanih artiklov: ${deletedCount}.`);

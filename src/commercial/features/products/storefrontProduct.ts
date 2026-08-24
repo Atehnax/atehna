@@ -403,13 +403,6 @@ const normalizeDocuments = (
             ? []
             : [String(variantId)]
         );
-      if (
-        variantIds.length === 0 &&
-        row.variantId !== null &&
-        row.variantId !== undefined
-      ) {
-        variantIds.push(String(row.variantId));
-      }
       result.push({
         id: asIdentifier(row.id, `document-${index}`),
         name: asString(row.name ?? row.filename, `Dokument ${index + 1}`),
@@ -448,14 +441,6 @@ const normalizeMedia = (item: UnknownRecord, itemName: string): StorefrontProduc
         .flatMap((variantId) =>
           variantId === null || variantId === undefined ? [] : [String(variantId)]
         );
-      const singleVariantId = row.variantId;
-      if (
-        variantIds.length === 0 &&
-        singleVariantId !== null &&
-        singleVariantId !== undefined
-      ) {
-        variantIds.push(String(singleVariantId));
-      }
       const filename = asOptionalString(row.filename);
       const mimeType = asOptionalString(row.mimeType);
       result.push({
@@ -476,22 +461,7 @@ const normalizeMedia = (item: UnknownRecord, itemName: string): StorefrontProduc
     []
   );
 
-  if (explicit.length > 0) return explicit;
-
-  const images = asArray(item.images)
-    .map((entry) => asString(entry))
-    .filter(Boolean);
-  const primaryImage = asString(item.image);
-  if (primaryImage && !images.includes(primaryImage)) images.unshift(primaryImage);
-
-  return images.map((url, index) => ({
-    id: `legacy-image-${index}`,
-    kind: 'image',
-    role: 'gallery',
-    url,
-    altText: index === 0 ? itemName : `${itemName} – slika ${index + 1}`,
-    variantIds: []
-  }));
+  return explicit;
 };
 
 const normalizeAxes = (item: UnknownRecord): StorefrontOptionAxis[] =>
@@ -536,7 +506,7 @@ const variantIsPurchasable = (variant: StorefrontVariant) =>
   variant.status === 'active' &&
   (variant.inventory === null || variant.inventory >= variant.minOrder);
 
-const inferFallbackAxisLabel = (
+const inferSyntheticAxisLabel = (
   item: UnknownRecord,
   variants: unknown[]
 ) => {
@@ -744,15 +714,15 @@ export function buildStorefrontProductFromCatalogItem(
     .filter((variant) => variant.status === 'active');
 
   if (axes.length === 0 && variants.length > 1) {
-    const legacyAxisId = 'legacy-variant';
+    const syntheticAxisId = 'derived-variant';
     axes = [
       {
-        id: legacyAxisId,
-        name: inferFallbackAxisLabel(item, sourceVariants),
-        slug: legacyAxisId,
+        id: syntheticAxisId,
+        name: inferSyntheticAxisLabel(item, sourceVariants),
+        slug: syntheticAxisId,
         position: 0,
         values: variants.map((variant, index) => ({
-          id: `legacy-value-${variant.id}`,
+          id: `derived-value-${variant.id}`,
           label: variant.name,
           slug: slugify(variant.name),
           position: index
@@ -760,7 +730,7 @@ export function buildStorefrontProductFromCatalogItem(
       }
     ];
     variants.forEach((variant) => {
-      variant.optionValueIds = [`legacy-value-${variant.id}`];
+      variant.optionValueIds = [`derived-value-${variant.id}`];
     });
   } else if (axes.length > 0) {
     const usedOptionValueIds = new Set(

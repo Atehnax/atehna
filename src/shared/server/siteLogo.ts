@@ -12,18 +12,8 @@ import {
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 
-const tableSql = `
-  create table if not exists site_logo_settings (
-    key text primary key,
-    config_json jsonb not null default '{}'::jsonb,
-    updated_at timestamptz not null default now()
-  )
-`;
-
 const SITE_LOGO_CACHE_TAG = 'site-logo-config';
 const SITE_LOGO_AUDIT_ENTITY_ID = 'site-logo';
-let siteLogoTableReadyPromise: Promise<void> | null = null;
-
 export type SiteLogoUpdateResult = {
   config: SiteLogoConfig;
   changed: boolean;
@@ -37,20 +27,8 @@ const toIso = (value: unknown) => value instanceof Date
 
 const serialize = (config: SiteLogoConfig) => JSON.stringify(toStoredSiteLogoConfig(config));
 
-async function ensureSiteLogoTable() {
-  const pool = await getPool();
-  siteLogoTableReadyPromise ??= pool.query(tableSql)
-    .then(() => undefined)
-    .catch((error) => {
-      siteLogoTableReadyPromise = null;
-      throw error;
-    });
-  await siteLogoTableReadyPromise;
-  return pool;
-}
-
 async function readSiteLogoConfigFromDatabase(): Promise<SiteLogoConfig> {
-  const pool = await ensureSiteLogoTable();
+  const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from site_logo_settings where key = $1 limit 1',
     [SITE_LOGO_SETTINGS_KEY]
@@ -121,7 +99,7 @@ export async function updateSiteLogoConfig(
   noStore();
   const config = toStoredSiteLogoConfig(input);
   const serializedConfig = serialize(config);
-  const pool = await ensureSiteLogoTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {

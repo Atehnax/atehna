@@ -253,7 +253,7 @@ function orderedFooterItems<T>(items: readonly T[], includeHidden = false) {
     .map(({ item }) => item);
 }
 
-function renderLegacySiteFooterLogo(
+function renderDefaultSiteFooterLogo(
   settings: HomepageFooterSettings,
   logoMode: HomepageFooterSettings['logoMode'],
   fluid = false
@@ -295,7 +295,7 @@ export function renderSiteFooterLogo(
   fluid = false
 ) {
   if (logoMode === 'hidden') return null;
-  const fallback = renderLegacySiteFooterLogo(settings, logoMode, fluid);
+  const fallback = renderDefaultSiteFooterLogo(settings, logoMode, fluid);
   const className = fluid ? 'h-full w-full' : 'h-10 w-[126px]';
   const purposeClassNames = fluid
     ? undefined

@@ -2,8 +2,10 @@ import { expect } from '@playwright/test';
 import { describe, test } from 'node:test';
 import {
   isAddressSearchQueryEligible,
+  isGursPostalLookupQueryEligible,
   normalizeAddressSearchText,
   normalizeGursAddressRow,
+  parseGursPostalLookupQuery,
   type GursAddress
 } from '@/shared/domain/address/gursAddress';
 import {
@@ -156,6 +158,54 @@ describe('GURS address normalization', () => {
     });
     expect(ruralAddress.addressLine1).not.toContain('11 c');
     expect(ruralAddress.searchText).toContain('dolenja vas pri crnomlju 11c');
+  });
+});
+
+describe('GURS postal lookup query contracts', () => {
+  test('accepts two to four digits and rejects malformed postal codes', () => {
+    expect(parseGursPostalLookupQuery('postalCode', ' 60 ')).toEqual({
+      ok: true,
+      field: 'postalCode',
+      query: '60'
+    });
+    expect(parseGursPostalLookupQuery('postalCode', '6000')).toEqual({
+      ok: true,
+      field: 'postalCode',
+      query: '6000'
+    });
+    expect(parseGursPostalLookupQuery('postalCode', '6')).toEqual({
+      ok: false,
+      code: 'QUERY_TOO_SHORT'
+    });
+    expect(parseGursPostalLookupQuery('postalCode', '60a0')).toEqual({
+      ok: false,
+      code: 'INVALID_POSTAL_CODE'
+    });
+    expect(parseGursPostalLookupQuery('postalCode', '60000')).toEqual({
+      ok: false,
+      code: 'QUERY_TOO_LONG'
+    });
+  });
+
+  test('normalizes postal towns diacritic- and punctuation-insensitively', () => {
+    expect(
+      parseGursPostalLookupQuery('postalName', '  ČRNOMELJ!  ')
+    ).toEqual({
+      ok: true,
+      field: 'postalName',
+      query: 'crnomelj'
+    });
+    expect(isGursPostalLookupQueryEligible('postalName', 'Crnomelj')).toBe(
+      true
+    );
+    expect(isGursPostalLookupQueryEligible('postalName', 'Č!')).toBe(false);
+  });
+
+  test('rejects unknown lookup fields rather than widening the query', () => {
+    expect(parseGursPostalLookupQuery('municipalityName', 'Ljubljana')).toEqual({
+      ok: false,
+      code: 'INVALID_FIELD'
+    });
   });
 });
 

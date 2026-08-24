@@ -12,18 +12,8 @@ import {
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { getPool, isDatabaseUnavailableError } from '@/shared/server/db';
 
-const tableSql = `
-  create table if not exists global_style_settings (
-    key text primary key,
-    config_json jsonb not null default '{}'::jsonb,
-    updated_at timestamptz not null default now()
-  )
-`;
-
 const GLOBAL_STYLE_CACHE_TAG = 'global-style-config';
 const GLOBAL_STYLE_AUDIT_ENTITY_ID = 'global-style';
-let globalStyleTableReadyPromise: Promise<void> | null = null;
-
 export type GlobalStyleUpdateResult = {
   config: GlobalStyleConfig;
   changed: boolean;
@@ -37,20 +27,8 @@ const toIso = (value: unknown) => value instanceof Date
 
 const serialize = (config: GlobalStyleConfig) => JSON.stringify(toStoredGlobalStyleConfig(config));
 
-async function ensureGlobalStyleTable() {
-  const pool = await getPool();
-  globalStyleTableReadyPromise ??= pool.query(tableSql)
-    .then(() => undefined)
-    .catch((error) => {
-      globalStyleTableReadyPromise = null;
-      throw error;
-    });
-  await globalStyleTableReadyPromise;
-  return pool;
-}
-
 async function readGlobalStyleConfigFromDatabase(): Promise<GlobalStyleConfig> {
-  const pool = await ensureGlobalStyleTable();
+  const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from global_style_settings where key = $1 limit 1',
     [GLOBAL_STYLE_SETTINGS_KEY]
@@ -115,7 +93,7 @@ export async function updateGlobalStyleConfig(
   noStore();
   const config = toStoredGlobalStyleConfig(input);
   const serializedConfig = serialize(config);
-  const pool = await ensureGlobalStyleTable();
+  const pool = await getPool();
   const client = await pool.connect();
 
   try {

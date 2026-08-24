@@ -3,21 +3,19 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
+import OrderConfirmationSummary from '@/commercial/order/components/OrderConfirmationSummary';
 import OrderSubmissionStatus from '@/commercial/order/components/OrderSubmissionStatus';
 import {
   parseOrderApiError,
   type OrderConfirmationSnapshot
 } from '@/commercial/order/contracts';
 import {
-  buildOrderConfirmationAccessUrl,
   buildOrderConfirmationFragmentUrl,
   consumeOrderAccessTokenFromLocation,
   exchangeOrderAccessToken,
-  readOrderAccessIdFromLocation,
-  storeOrderAccessId,
   readStoredOrderAccessId
 } from '@/commercial/order/orderAccessClient';
-import { formatEuro } from '@/shared/domain/formatting';
 
 type ConfirmationState =
   | { status: 'loading' }
@@ -65,22 +63,8 @@ const customerTypeLabel = (value?: string) => {
   return 'Zasebni naročnik';
 };
 
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  length: 'Dolžina',
-  width: 'Širina',
-  thickness: 'Debelina',
-  weight: 'Teža',
-  errorTolerance: 'Toleranca',
-  brand: 'Znamka',
-  material: 'Material',
-  colour: 'Barva',
-  color: 'Barva',
-  shape: 'Oblika',
-  badge: 'Oznaka'
-};
-
 const CUSTOMER_DOCUMENT_LABELS: Record<string, string> = {
-  order_summary: 'Potrditev naročila',
+  order_summary: 'Potrditev naročila (PDF)',
   purchase_order: 'Naročilnica',
   dobavnica: 'Dobavnica',
   predracun: 'Predračun',
@@ -90,27 +74,29 @@ const CUSTOMER_DOCUMENT_LABELS: Record<string, string> = {
 const customerDocumentLabel = (type: string | undefined, index: number) =>
   CUSTOMER_DOCUMENT_LABELS[type ?? ''] ?? `Dokument ${index + 1}`;
 
-const formatAttribute = ([key, rawValue]: [string, string | number]) => {
-  const value = String(rawValue);
-  const unit =
-    key === 'length' || key === 'width' || key === 'thickness'
-      ? ' mm'
-      : key === 'weight'
-        ? ' kg'
-        : '';
-  const prefix =
-    key === 'errorTolerance' && !value.startsWith('±') ? '±' : '';
-  const toleranceUnit =
-    key === 'errorTolerance' &&
-    !value.toLocaleLowerCase('sl').includes('mm')
-      ? ' mm'
-      : '';
-  return `${ATTRIBUTE_LABELS[key] ?? key}: ${prefix}${value}${unit}${toleranceUnit}`;
+const buildConfirmationItemTitle = (
+  productName: string,
+  variantName?: string
+) => {
+  const product = productName.trim();
+  const variant = variantName?.trim();
+  if (!variant) return product;
+
+  const normalizedProduct = product.toLocaleLowerCase('sl-SI');
+  const normalizedVariant = variant.toLocaleLowerCase('sl-SI');
+  if (
+    normalizedProduct === normalizedVariant ||
+    normalizedProduct.endsWith(` ${normalizedVariant}`)
+  ) {
+    return product;
+  }
+  if (normalizedVariant.startsWith(`${normalizedProduct} `)) return variant;
+
+  return `${product} ${variant}`;
 };
 
 export default function OrderConfirmationPageClient() {
   const [state, setState] = useState<ConfirmationState>({ status: 'loading' });
-  const [isRefreshingDocuments, setIsRefreshingDocuments] = useState(false);
   const accessIdRef = useRef<string | null>(null);
   const bootstrapTokenRef = useRef<string | null>(null);
   const locationTokenConsumedRef = useRef(false);
@@ -149,26 +135,17 @@ export default function OrderConfirmationPageClient() {
         locationTokenConsumedRef.current = true;
       }
 
-      const locationAccessId = readOrderAccessIdFromLocation();
-      let accessId =
-        accessIdRef.current ?? locationAccessId ?? readStoredOrderAccessId();
+      let accessId = accessIdRef.current ?? readStoredOrderAccessId();
       if (bootstrapTokenRef.current) {
         const session = await exchangeOrderAccessToken(bootstrapTokenRef.current);
         accessId = session.accessId;
         bootstrapTokenRef.current = null;
-      } else if (locationAccessId) {
-        storeOrderAccessId(locationAccessId);
       }
       if (!accessId) {
         throw new Error('Povezava za prikaz potrditve ni veljavna.');
       }
 
       accessIdRef.current = accessId;
-      window.history.replaceState(
-        window.history.state,
-        '',
-        buildOrderConfirmationAccessUrl(accessId)
-      );
       const snapshot = await fetchConfirmation(accessId);
       setState({ status: 'ready', snapshot });
     } catch (error) {
@@ -222,34 +199,14 @@ export default function OrderConfirmationPageClient() {
     return () => controller.abort();
   }, [fetchConfirmation, shouldRefreshDocuments]);
 
-  const refreshDocumentsNow = useCallback(async () => {
-    const accessId = accessIdRef.current;
-    if (!accessId) return;
-    setIsRefreshingDocuments(true);
-    try {
-      const snapshot = await fetchConfirmation(accessId);
-      setState((current) =>
-        current.status === 'ready'
-          ? { status: 'ready', snapshot }
-          : current
-      );
-    } catch {
-      // Preserve the accepted-order state; the action remains available to retry.
-    } finally {
-      setIsRefreshingDocuments(false);
-    }
-  }, [fetchConfirmation]);
-
   if (state.status === 'loading') {
     return (
-      <div className="site-panel mx-auto max-w-2xl p-8 text-center" role="status">
-        <span
-          aria-hidden="true"
-          className="mx-auto block h-9 w-9 animate-spin rounded-full border-2 border-[color:var(--site-border-color)] border-t-[color:var(--site-color-primary)]"
-        />
-        <h1 className="site-heading-2 mt-5">Pripravljamo potrditev</h1>
-        <p className="site-paragraph mt-2">Preverjamo podatke naročila …</p>
-      </div>
+      <OrderLoadingState
+        heading="Nalagamo potrditev naročila"
+        description="Prosimo, počakajte, da pripravimo varen prikaz potrditve."
+        ariaLabel="Nalaganje potrditve naročila"
+        testId="order-confirmation-loading"
+      />
     );
   }
 
@@ -301,50 +258,38 @@ export default function OrderConfirmationPageClient() {
   const { snapshot } = state;
   const submittedAt = formatDate(snapshot.createdAt);
   const customer = snapshot.customer;
-  const purchaseOrderHref = `/order/narocilnica?orderId=${encodeURIComponent(
-    String(snapshot.orderId)
-  )}&orderNumber=${encodeURIComponent(
-    snapshot.orderNumber
-  )}&access=${encodeURIComponent(accessIdRef.current ?? '')}`;
+  const purchaseOrderHref = '/order/narocilnica';
   const availableDocuments = snapshot.documents.flatMap((document, index) => {
     const url = document.url?.trim();
     return url ? [{ document, index, url }] : [];
   });
-  const orderSummaryAvailable = hasOrderSummary(snapshot);
 
   return (
     <div>
       <OrderSubmissionStatus commitmentStatus={snapshot.commitmentStatus} />
 
       <article
-        className="site-card mt-6 overflow-hidden !p-0"
+        className="site-card mt-6 grid overflow-hidden !p-0 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"
         data-testid="order-confirmation-content-card"
         aria-labelledby="confirmation-items"
       >
         <section
-          className="p-5 sm:p-6"
+          className="min-w-0 lg:col-start-1 lg:row-start-1"
           data-testid="confirmation-order-section"
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="site-eyebrow">Številka naročila</p>
-              <h2 id="confirmation-items" className="site-heading-2 mt-1">
-                {snapshot.orderNumber}
-              </h2>
-            </div>
-            {submittedAt ? (
-              <p className="text-sm text-[color:var(--site-color-text-muted)]">
-                {submittedAt}
-              </p>
-            ) : null}
-          </div>
+          <h2 id="confirmation-items" className="sr-only">Postavke naročila</h2>
+          {submittedAt ? (
+            <p className="px-5 pt-5 text-right text-sm text-[color:var(--site-color-text-muted)] sm:px-6 sm:pt-6">
+              {submittedAt}
+            </p>
+          ) : null}
 
-          <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-            <ul className="min-w-0 divide-y divide-[color:var(--site-divider-color)]">
+            <ul className="min-w-0 divide-y divide-[color:var(--site-divider-color)] p-5 sm:p-6">
               {snapshot.items.map((item) => (
                 <li
                   key={`${item.variantId}-${item.sku}`}
                   className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0"
+                  data-testid="confirmation-item-row"
                 >
                   <div
                     className="site-radius-sm relative aspect-square overflow-hidden bg-[color:var(--site-color-surface-muted)]"
@@ -356,7 +301,7 @@ export default function OrderConfirmationPageClient() {
                         alt=""
                         fill
                         sizes="64px"
-                        className="object-contain p-2"
+                        className="object-cover"
                       />
                     ) : (
                       <span className="flex h-full items-center justify-center px-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
@@ -365,87 +310,34 @@ export default function OrderConfirmationPageClient() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-[color:var(--site-color-text)]">
-                          {item.productName}
-                        </h3>
-                        {item.variantName ? (
-                          <p className="mt-0.5 text-sm text-[color:var(--site-color-text-muted)]">
-                            {item.variantName}
-                          </p>
-                        ) : null}
-                        <p className="mt-0.5 break-all font-mono text-xs text-[color:var(--site-color-text-muted)]">
-                          SKU: {item.sku}
-                        </p>
-                      </div>
-                      <p className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                        {formatEuro(item.lineGross)}
-                      </p>
-                    </div>
-                    {Object.keys(item.attributes).length > 0 ? (
-                      <p className="mt-1.5 text-xs text-[color:var(--site-color-text-muted)]">
-                        {Object.entries(item.attributes)
-                          .map(formatAttribute)
-                          .join(' · ')}
-                      </p>
-                    ) : null}
-                    <p className="mt-1.5 text-xs text-[color:var(--site-color-text-muted)]">
-                      {item.quantity} {item.unit || 'kos'} ·{' '}
-                      {formatEuro(item.lineNet)} brez DDV · DDV{' '}
-                      {Math.round(item.taxRate * 100)} %:{' '}
-                      {formatEuro(item.lineTax)}
+                    <h3
+                      className="font-semibold text-[color:var(--site-color-text)]"
+                      data-testid="confirmation-item-title"
+                    >
+                      {buildConfirmationItemTitle(
+                        item.productName,
+                        item.variantName
+                      )}
+                    </h3>
+                    <p className="mt-0.5 break-all font-mono text-xs text-[color:var(--site-color-text-muted)]">
+                      SKU: {item.sku}
                     </p>
                   </div>
                 </li>
               ))}
             </ul>
-
-            <aside
-              className="border-t border-[color:var(--site-divider-color)] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
-              data-testid="confirmation-summary"
-              aria-labelledby="confirmation-summary-heading"
-            >
-              <h3 id="confirmation-summary-heading" className="text-lg font-semibold">
-                Povzetek
-              </h3>
-              <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[color:var(--site-color-text-muted)]">
-                    Cena brez DDV
-                  </dt>
-                  <dd className="font-semibold tabular-nums">
-                    {formatEuro(snapshot.totals.net)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[color:var(--site-color-text-muted)]">
-                    DDV
-                  </dt>
-                  <dd className="font-semibold tabular-nums">
-                    {formatEuro(snapshot.totals.tax)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[color:var(--site-color-text-muted)]">
-                    Dostava
-                  </dt>
-                  <dd className="font-semibold text-[color:var(--site-color-success)]">
-                    Brezplačno
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-2.5 text-base font-semibold">
-                  <dt>Skupaj z DDV</dt>
-                  <dd className="tabular-nums text-[color:var(--site-color-primary)]">
-                    {formatEuro(snapshot.totals.gross)}
-                  </dd>
-                </div>
-              </dl>
-            </aside>
-          </div>
         </section>
 
-        <div className="grid border-t border-[color:var(--site-divider-color)] lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]">
+        <OrderConfirmationSummary
+          className="border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-t-0"
+          items={snapshot.items}
+          totals={snapshot.totals}
+        />
+
+        <div
+          className="grid min-w-0 border-t border-[color:var(--site-divider-color)] lg:col-start-1 lg:row-start-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"
+          data-testid="confirmation-lower-sections"
+        >
           <section
             className="p-5 sm:p-6"
             data-testid="confirmation-customer-section"
@@ -492,7 +384,7 @@ export default function OrderConfirmationPageClient() {
                   Naslov za dostavo
                 </dt>
                 <dd className="mt-1 font-semibold">
-                  {customer?.addressLine1 || customer?.deliveryAddress || '—'}
+                  {customer?.addressLine1 || '—'}
                   {customer?.addressLine1 ? (
                     <>
                       {customer.addressLine2 ? (
@@ -527,7 +419,7 @@ export default function OrderConfirmationPageClient() {
             {availableDocuments.length > 0 ? (
               <ul className="mt-4 grid gap-3">
                 {availableDocuments.map(({ document, index, url }) => (
-                  <li key={String(document.id ?? `${url}-${index}`)}>
+                  <li key={`${document.type}-${url}-${index}`}>
                     <a
                       href={url}
                       target="_blank"
@@ -543,25 +435,6 @@ export default function OrderConfirmationPageClient() {
                   </li>
                 ))}
               </ul>
-            ) : null}
-
-            {!orderSummaryAvailable ? (
-              <div className={availableDocuments.length > 0 ? 'mt-4' : 'mt-3'}>
-                <p
-                  className="text-sm text-[color:var(--site-color-text-muted)]"
-                  role="status"
-                >
-                  Potrditev naročila pripravljamo …
-                </p>
-                <button
-                  type="button"
-                  className="mt-2 text-sm font-semibold text-[color:var(--site-color-primary)] underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60"
-                  onClick={() => void refreshDocumentsNow()}
-                  disabled={isRefreshingDocuments}
-                >
-                  {isRefreshingDocuments ? 'Preverjamo …' : 'Preveri zdaj'}
-                </button>
-              </div>
             ) : null}
 
             {snapshot.commitmentStatus === 'pending_confirmation' ? (

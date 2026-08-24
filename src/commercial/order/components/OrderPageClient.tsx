@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -14,6 +14,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type TextareaHTMLAttributes
 } from 'react';
+import { flushSync } from 'react-dom';
 import { useCartStore } from '@/commercial/cart/store';
 import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
 import CartLine from '@/commercial/components/storefront/CartLine';
@@ -23,21 +24,15 @@ import {
   type SubmitOrderRequest,
   type SubmitOrderResponse
 } from '@/commercial/order/contracts';
-import OrderSubmissionStatus, {
-  type OrderSubmissionCommitmentStatus
-} from '@/commercial/order/components/OrderSubmissionStatus';
-import {
-  buildOrderConfirmationAccessUrl,
-  buildOrderConfirmationFragmentUrl,
-  exchangeOrderAccessToken,
-  extractOrderAccessTokenFromUrl
-} from '@/commercial/order/orderAccessClient';
+import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
+import PostalLocationCombobox from '@/commercial/order/components/PostalLocationCombobox';
+import { storeOrderAccessId } from '@/commercial/order/orderAccessClient';
 import { useOrderQuote } from '@/commercial/order/useOrderQuote';
 import {
-  formatGursSourceDate,
   isAddressSearchQueryEligible,
   type GursAddressSearchResponse,
-  type GursAddressSearchResult
+  type GursAddressSearchResult,
+  type GursPostalLocation
 } from '@/shared/domain/address/gursAddress';
 import {
   CUSTOMER_TYPE_FORM_OPTIONS,
@@ -51,6 +46,7 @@ import {
 } from '@/shared/ui/floating-field';
 
 const FORM_STORAGE_KEY = 'atehna-order-form-v3';
+const ADDRESS_SEARCH_DEBOUNCE_MS = 125;
 
 type OrderFormData = {
   customerType: CustomerType | '';
@@ -75,13 +71,7 @@ type FieldName = Exclude<
 >;
 type FieldErrors = Partial<Record<FieldName, string>>;
 type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
-type SubmittedOrderTransition = {
-  commitmentStatus: OrderSubmissionCommitmentStatus;
-  accessStatus: 'exchanging' | 'ready' | 'failed';
-  confirmationUrl?: string;
-  accessError?: string;
-  orderNumber?: string;
-};
+type SubmissionPhase = 'idle' | 'submitting' | 'opening-confirmation';
 
 const initialForm: OrderFormData = {
   customerType: '',
@@ -187,29 +177,19 @@ function CheckoutTextarea({
   );
 }
 
-type OrderPageClientProps = {
-  initialGursSourceUpdatedAt?: string | null;
-};
-
-export default function OrderPageClient({
-  initialGursSourceUpdatedAt = null
-}: OrderPageClientProps) {
-  const router = useRouter();
+export default function OrderPageClient() {
   const appearance = useProductAppearance();
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
-  const quoteState = useOrderQuote(items, items.length > 0);
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitIssues, setSubmitIssues] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedOrder, setSubmittedOrder] =
-    useState<SubmittedOrderTransition | null>(null);
-  const [navigationFailed, setNavigationFailed] = useState(false);
+  const [submissionPhase, setSubmissionPhase] =
+    useState<SubmissionPhase>('idle');
   const [addressSuggestions, setAddressSuggestions] = useState<
     GursAddressSearchResult[]
   >([]);
@@ -219,15 +199,29 @@ export default function OrderPageClient({
   const [activeAddressIndex, setActiveAddressIndex] = useState(-1);
   const [addressSearchStatus, setAddressSearchStatus] =
     useState<AddressSearchStatus>('idle');
-  const [gursSourceUpdatedAt, setGursSourceUpdatedAt] = useState<string | null>(
-    initialGursSourceUpdatedAt
-  );
   const idempotencyKeyRef = useRef<string | null>(null);
-  const submittedTransitionHandledRef = useRef(false);
-  const submittedNavigationHandledRef = useRef(false);
-  const pendingOrderAccessTokenRef = useRef<string | null>(null);
   const addressRequestRef = useRef<AbortController | null>(null);
   const addressListboxId = useId();
+  const isSubmitting = submissionPhase !== 'idle';
+
+  const quoteCustomerName = useMemo(() => {
+    if (formData.customerType === 'individual') {
+      return `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    }
+    if (
+      formData.customerType === 'company' ||
+      formData.customerType === 'school'
+    ) {
+      return formData.organizationName.trim();
+    }
+    return '';
+  }, [
+    formData.customerType,
+    formData.firstName,
+    formData.lastName,
+    formData.organizationName
+  ]);
+  const quoteState = useOrderQuote(items, items.length > 0, quoteCustomerName);
 
   const quoteByVariant = useMemo(
     () =>
@@ -275,42 +269,6 @@ export default function OrderPageClient({
   }, [formFingerprint]);
 
   useEffect(() => {
-    if (!submittedOrder || submittedTransitionHandledRef.current) return;
-    submittedTransitionHandledRef.current = true;
-
-    try {
-      clearCart();
-    } catch (error) {
-      console.error('[order.submit] cart cleanup failed', error);
-    }
-
-    try {
-      sessionStorage.removeItem(FORM_STORAGE_KEY);
-    } catch (error) {
-      console.error('[order.submit] form cleanup failed', error);
-    }
-  }, [clearCart, submittedOrder]);
-
-  useEffect(() => {
-    if (!submittedOrder) return;
-    if (
-      submittedOrder.accessStatus !== 'ready' ||
-      !submittedOrder.confirmationUrl ||
-      submittedNavigationHandledRef.current
-    ) {
-      return;
-    }
-    submittedNavigationHandledRef.current = true;
-
-    try {
-      router.push(submittedOrder.confirmationUrl);
-    } catch (error) {
-      console.error('[order.submit] confirmation navigation failed', error);
-      setNavigationFailed(true);
-    }
-  }, [router, submittedOrder]);
-
-  useEffect(() => {
     addressRequestRef.current?.abort();
     addressRequestRef.current = null;
 
@@ -343,20 +301,27 @@ export default function OrderPageClient({
         if (!response.ok) throw new Error('Address search failed.');
 
         const payload = (await response.json()) as Partial<GursAddressSearchResponse>;
+        if (
+          controller.signal.aborted ||
+          addressRequestRef.current !== controller
+        ) {
+          return;
+        }
         const results = Array.isArray(payload.results)
           ? payload.results.filter(isGursAddressSearchResult).slice(0, 8)
           : [];
         setAddressSuggestions(results);
-        setGursSourceUpdatedAt(
-          typeof payload.sourceUpdatedAt === 'string'
-            ? payload.sourceUpdatedAt
-            : null
-        );
         setActiveAddressIndex(-1);
         setIsAddressListOpen(results.length > 0);
         setAddressSearchStatus('ready');
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') return;
+        if (
+          controller.signal.aborted ||
+          addressRequestRef.current !== controller ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          return;
+        }
         setAddressSuggestions([]);
         setIsAddressListOpen(false);
         setActiveAddressIndex(-1);
@@ -366,7 +331,7 @@ export default function OrderPageClient({
           addressRequestRef.current = null;
         }
       }
-    }, 250);
+    }, ADDRESS_SEARCH_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -392,6 +357,9 @@ export default function OrderPageClient({
     } else {
       if (!formData.organizationName.trim()) {
         errors.organizationName = 'Vnesite naziv naročnika.';
+      }
+      if (!formData.contactName.trim()) {
+        errors.contactName = 'Vnesite kontaktno osebo.';
       }
     }
     setFieldErrors(errors);
@@ -419,6 +387,32 @@ export default function OrderPageClient({
     }));
     setFieldErrors((previous) => ({ ...previous, [field]: undefined }));
   };
+
+  const applyPostalLocation = useCallback(
+    (location: GursPostalLocation) => {
+      setFormData((previous) => {
+        if (
+          previous.postalCode === location.postalCode &&
+          previous.city === location.postalName &&
+          !previous.gursHouseNumberId
+        ) {
+          return previous;
+        }
+        return {
+          ...previous,
+          postalCode: location.postalCode,
+          city: location.postalName,
+          gursHouseNumberId: ''
+        };
+      });
+      setFieldErrors((previous) => ({
+        ...previous,
+        city: undefined,
+        postalCode: undefined
+      }));
+    },
+    []
+  );
 
   const selectAddressSuggestion = (suggestion: GursAddressSearchResult) => {
     setFormData((previous) => ({
@@ -531,13 +525,6 @@ export default function OrderPageClient({
       customerType === 'individual'
         ? individualName
         : formData.contactName.trim();
-    const deliveryAddress = [
-      formData.addressLine1.trim(),
-      formData.addressLine2.trim(),
-      `${formData.postalCode.trim()} ${formData.city.trim()}`
-    ]
-      .filter(Boolean)
-      .join(', ');
     const payload: SubmitOrderRequest = {
       customerType,
       customerName,
@@ -553,7 +540,6 @@ export default function OrderPageClient({
       postalCode: formData.postalCode.trim(),
       gursHouseNumberId: formData.gursHouseNumberId,
       countryCode: formData.countryCode,
-      deliveryAddress,
       reference:
         customerType === 'school' ? formData.reference.trim() : '',
       notes: formData.notes.trim(),
@@ -564,7 +550,7 @@ export default function OrderPageClient({
     };
 
     idempotencyKeyRef.current ??= createIdempotencyKey();
-    setIsSubmitting(true);
+    setSubmissionPhase('submitting');
     try {
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -581,175 +567,63 @@ export default function OrderPageClient({
         throw new Error(error.message);
       }
       const result = responsePayload as SubmitOrderResponse;
-      const accessToken =
-        result.confirmationToken?.trim() ||
-        extractOrderAccessTokenFromUrl(result.confirmationUrl);
-      if (!accessToken) {
-        throw new Error('Potrditvene povezave ni bilo mogoče ustvariti.');
+      const accessId = result.accessId?.trim();
+      if (!accessId) {
+        throw new Error('Varne seje za prikaz potrditve ni bilo mogoče ustvariti.');
       }
-
-      pendingOrderAccessTokenRef.current = accessToken;
-      const submittedOrderBase = {
-        commitmentStatus:
-          result.commitmentStatus === 'pending_confirmation' ||
-          customerType === 'school'
-            ? 'pending_confirmation'
-            : 'binding',
-        orderNumber: result.orderNumber
-      } satisfies Pick<
-        SubmittedOrderTransition,
-        'commitmentStatus' | 'orderNumber'
-      >;
-      setSubmittedOrder({
-        ...submittedOrderBase,
-        accessStatus: 'exchanging'
-      });
 
       try {
-        const session = await exchangeOrderAccessToken(accessToken);
-        pendingOrderAccessTokenRef.current = null;
-        const confirmationUrl = buildOrderConfirmationAccessUrl(session.accessId);
-        setSubmittedOrder({
-          ...submittedOrderBase,
-          accessStatus: 'ready',
-          confirmationUrl
-        });
-      } catch (accessError) {
-        setSubmittedOrder({
-          ...submittedOrderBase,
-          accessStatus: 'failed',
-          accessError:
-            accessError instanceof Error
-              ? accessError.message
-              : 'Varne povezave ni bilo mogoče odpreti.'
-        });
+        storeOrderAccessId(accessId);
+      } catch (error) {
+        throw new Error(
+          error instanceof Error
+            ? error.message
+            : 'Varne seje za prikaz potrditve ni bilo mogoče shraniti.'
+        );
       }
+
+      flushSync(() => {
+        setSubmissionPhase('opening-confirmation');
+      });
+      try {
+        clearCart();
+      } catch (error) {
+        console.error('[order.submit] cart cleanup failed', error);
+      }
+      try {
+        sessionStorage.removeItem(FORM_STORAGE_KEY);
+      } catch (error) {
+        console.error('[order.submit] form cleanup failed', error);
+      }
+      window.location.replace('/order/confirmation');
+      return;
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Oddaja naročila ni uspela.'
       );
-    } finally {
-      setIsSubmitting(false);
+      setSubmissionPhase('idle');
     }
   };
 
-  const retryOrderAccessExchange = async () => {
-    const accessToken = pendingOrderAccessTokenRef.current;
-    if (!accessToken) return;
+  if (submissionPhase !== 'idle') {
+    const isOpeningConfirmation =
+      submissionPhase === 'opening-confirmation';
 
-    setNavigationFailed(false);
-    setSubmittedOrder((current) =>
-      current
-        ? {
-            ...current,
-            accessStatus: 'exchanging',
-            accessError: undefined
-          }
-        : current
-    );
-
-    try {
-      const session = await exchangeOrderAccessToken(accessToken);
-      pendingOrderAccessTokenRef.current = null;
-      const confirmationUrl = buildOrderConfirmationAccessUrl(session.accessId);
-      setSubmittedOrder((current) =>
-        current
-          ? {
-              ...current,
-              accessStatus: 'ready',
-              confirmationUrl,
-              accessError: undefined
-            }
-          : current
-      );
-    } catch (error) {
-      setSubmittedOrder((current) =>
-        current
-          ? {
-              ...current,
-              accessStatus: 'failed',
-              accessError:
-                error instanceof Error
-                  ? error.message
-                  : 'Varne povezave ni bilo mogoče odpreti.'
-            }
-          : current
-      );
-    }
-  };
-
-  if (submittedOrder) {
     return (
-      <div data-testid="order-submission-transition">
-        <OrderSubmissionStatus
-          commitmentStatus={submittedOrder.commitmentStatus}
-        />
-        <p
-          className="site-paragraph mt-4 text-center"
-          role="status"
-          aria-live="polite"
-        >
-          {navigationFailed ? (
-            <>Samodejnega prehoda ni bilo mogoče dokončati.</>
-          ) : submittedOrder.accessStatus === 'failed' ? (
-            <>
-              Naročilo je shranjeno, vendar varne povezave do potrditve trenutno
-              ni bilo mogoče odpreti.
-            </>
-          ) : submittedOrder.accessStatus === 'exchanging' ? (
-            <>Vzpostavljamo varno povezavo do potrditve …</>
-          ) : (
-            <>
-              Odpiramo potrditev
-              {submittedOrder.orderNumber
-                ? ` naročila ${submittedOrder.orderNumber}`
-                : ' naročila'}{' '}
-              …
-            </>
-          )}
-        </p>
-        {submittedOrder.accessError ? (
-          <p className="mt-2 text-center text-sm text-[color:var(--site-color-text-muted)]">
-            {submittedOrder.accessError}
-          </p>
-        ) : null}
-        {submittedOrder.accessStatus === 'ready' && submittedOrder.confirmationUrl ? (
-          <div className="mt-5 text-center">
-            <a
-              href={submittedOrder.confirmationUrl}
-              className="site-button site-button--secondary inline-flex items-center justify-center"
-            >
-              Odpri potrditev naročila
-            </a>
-          </div>
-        ) : null}
-        {submittedOrder.accessStatus === 'failed' ? (
-          <div className="mt-5 flex flex-wrap justify-center gap-3 text-center">
-            <button
-              type="button"
-              className="site-button site-button--primary"
-              onClick={() => void retryOrderAccessExchange()}
-            >
-              Poskusi znova
-            </button>
-            {pendingOrderAccessTokenRef.current ? (
-              <button
-                type="button"
-                className="site-button site-button--secondary"
-                onClick={() => {
-                  const accessToken = pendingOrderAccessTokenRef.current;
-                  if (!accessToken) return;
-                  window.location.assign(
-                    buildOrderConfirmationFragmentUrl(accessToken)
-                  );
-                }}
-              >
-                Odpri varno povezavo
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      <OrderLoadingState
+        heading={
+          isOpeningConfirmation
+            ? 'Odpiramo potrditev naročila'
+            : 'Oddajamo naročilo'
+        }
+        description={
+          isOpeningConfirmation
+            ? 'Naročilo je oddano. Prosimo, počakajte, da odpremo potrditev.'
+            : 'Varno shranjujemo vaše naročilo. Prosimo, počakajte in ne zapirajte strani.'
+        }
+        testId="order-submission-handoff"
+        spinnerTestId="order-submission-spinner"
+      />
     );
   }
 
@@ -774,7 +648,6 @@ export default function OrderPageClient({
   const hasCustomerType = isCustomerType(formData.customerType);
   const isSchool = formData.customerType === 'school';
   const canContinue = hasCustomerType && isValidEmail(formData.email);
-  const formattedGursSourceDate = formatGursSourceDate(gursSourceUpdatedAt);
   const addressSearchStatusMessage =
     addressSearchStatus === 'loading'
       ? 'Iščemo uradne naslove …'
@@ -850,7 +723,12 @@ export default function OrderPageClient({
     <form onSubmit={handleSubmit} noValidate>
       <header className="mb-8">
         <p className="site-eyebrow">Zaključek nakupa</p>
-        <h1 className="site-heading-1 mt-2">Oddaja naročila</h1>
+        <h1
+          className="site-heading-1 mt-2 !text-2xl sm:!text-3xl"
+          data-testid="order-page-heading"
+        >
+          Oddaja naročila
+        </h1>
       </header>
 
       {submitError ? (
@@ -930,8 +808,8 @@ export default function OrderPageClient({
                   id="order-school-notice-message"
                   className="order-school-notice__message site-radius-sm bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]"
                 >
-                  Šolsko naročilo je zahteva za potrditev. Po pregledu
-                  prejmete ponudbo in navodila za naročilnico.
+                  Šolsko naročilo bomo po oddaji pregledali. Nato prejmete
+                  ponudbo in navodila za naročilnico.
                 </p>
               </div>
             </div>
@@ -1007,13 +885,14 @@ export default function OrderPageClient({
                   <CheckoutInput
                     id="contactName"
                     autoComplete="name"
-                    label="Kontaktna oseba (neobvezno)"
+                    label="Kontaktna oseba *"
                     value={formData.contactName}
                     onChange={(event) =>
                       updateField('contactName', event.target.value)
                     }
                     error={fieldErrors.contactName}
                     disabled={!canContinue}
+                    required
                   />
                 </>
               )}
@@ -1035,7 +914,7 @@ export default function OrderPageClient({
                 value={formData.gursHouseNumberId}
               />
               <input type="hidden" name="countryCode" value="SI" />
-              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+              <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
                 <div
                   className="relative sm:col-span-2"
                   onFocusCapture={() => setIsAddressComboboxActive(true)}
@@ -1127,39 +1006,31 @@ export default function OrderPageClient({
                   disabled={!canContinue}
                   className="sm:col-span-2"
                 />
-                <CheckoutInput
-                  id="city"
-                  autoComplete="off"
-                  label="Poštni kraj *"
-                  value={formData.city}
-                  onChange={(event) =>
-                    updateAddressField('city', event.target.value)
-                  }
-                  error={fieldErrors.city}
-                  disabled={!canContinue}
-                  required
-                />
-                <CheckoutInput
-                  id="postalCode"
-                  autoComplete="off"
-                  inputMode="numeric"
-                  pattern="[0-9]{4}"
-                  maxLength={4}
+                <PostalLocationCombobox
+                  field="postalCode"
                   label="Poštna številka *"
                   value={formData.postalCode}
-                  onChange={(event) =>
-                    updateAddressField('postalCode', event.target.value)
+                  onChange={(value) =>
+                    updateAddressField(
+                      'postalCode',
+                      value.replace(/\D/g, '').slice(0, 4)
+                    )
                   }
                   error={fieldErrors.postalCode}
                   disabled={!canContinue}
-                  required
+                  lookupEnabled={!formData.gursHouseNumberId}
+                  onResolve={applyPostalLocation}
                 />
-                {formattedGursSourceDate ? (
-                  <p className="sm:col-span-2 text-xs text-[color:var(--site-color-text-muted)]">
-                    Vir: Geodetska uprava Republike Slovenije, Register
-                    naslovov, stanje {formattedGursSourceDate}.
-                  </p>
-                ) : null}
+                <PostalLocationCombobox
+                  field="postalName"
+                  label="Poštni kraj *"
+                  value={formData.city}
+                  onChange={(value) => updateAddressField('city', value)}
+                  error={fieldErrors.city}
+                  disabled={!canContinue}
+                  lookupEnabled={!formData.gursHouseNumberId}
+                  onResolve={applyPostalLocation}
+                />
               </div>
               </section>
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 
 type CommitmentStatus = 'binding' | 'pending_confirmation' | 'rejected';
@@ -243,9 +244,19 @@ export default function AdminOrderCustomerAccess({
           {issuedUrl ? (
             <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
               <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
-              <div className="mt-2 flex gap-2">
-                <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="h-9 min-w-0 flex-1 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
-                <Button type="button" variant="outline" size="sm" onClick={() => void copyIssuedUrl()}>Kopiraj</Button>
+              <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-9 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={issuedUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`${buttonTokenClasses.primary} no-underline`}
+                >
+                  Odpri novo povezavo
+                </a>
+                <Button type="button" variant="outline" size="sm" onClick={() => void copyIssuedUrl()}>
+                  Kopiraj
+                </Button>
               </div>
             </div>
           ) : null}

@@ -13,7 +13,6 @@ import {
 } from 'react';
 import {
   normalizeCategoryShowcaseMediaSettings,
-  resolveCategoryShowcaseImage,
   type CategoryShowcaseItem,
   type CategoryShowcaseMediaSettings
 } from '@/shared/features/category-showcase/categoryShowcaseSchema';
@@ -168,7 +167,7 @@ function defaultCategoryMedia(
   presentation: CategoryShowcaseMediaSettings,
   imageSizes: string
 ) {
-  const image = resolveCategoryShowcaseImage(item.image, item.slug);
+  const image = typeof item.image === 'string' ? item.image.trim() : '';
   if (!image) {
     return (
       <span className="absolute inset-0 grid place-items-center text-[12px] font-medium text-slate-400">

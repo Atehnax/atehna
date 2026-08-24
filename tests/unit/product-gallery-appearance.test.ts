@@ -52,7 +52,7 @@ describe('product gallery appearance contracts', () => {
     });
   });
 
-  test('keeps the one-time legacy thumbnail reduction when size is omitted', () => {
+  test('preserves authored thumbnail dimensions', () => {
     const normalized = normalizeProductAppearanceConfig({
       gallery: {
         thumbnailSizePx: 64,
@@ -62,13 +62,13 @@ describe('product gallery appearance contracts', () => {
 
     expect(normalized.gallery).toMatchObject({
       sizePercent: 100,
-      thumbnailSizePx: 48,
-      thumbnailGapPx: 9
+      thumbnailSizePx: 64,
+      thumbnailGapPx: 12
     });
     expect(toProductAppearanceCssVariables(normalized)).toMatchObject({
       '--product-gallery-size': '100%',
-      '--product-gallery-thumbnail-size': '48px',
-      '--product-gallery-thumbnail-gap': '9px'
+      '--product-gallery-thumbnail-size': '64px',
+      '--product-gallery-thumbnail-gap': '12px'
     });
   });
 

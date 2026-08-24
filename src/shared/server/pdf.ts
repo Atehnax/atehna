@@ -161,7 +161,6 @@ export async function generateOrderPdf(
           ? 'Vrsta: Povpraševanje je zavrnjeno'
           : null;
   const infoLines = [
-    `Št. naročila: ${toSafeText(order.orderNumber)}`,
     `Datum: ${formatDate(order.createdAt)}`,
     `Tip naročnika: ${toSafeText(order.customerType)}`,
     commitmentText

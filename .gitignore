@@ -12,4 +12,6 @@ test-results/
 .playwright-browsers/
 blob-report/
 playwright-report/
-.env*.local
+.env*
+!.env.example
+next-env.d.ts

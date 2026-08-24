@@ -86,12 +86,6 @@ import {
   filterPillTokenClasses
 } from '@/shared/ui/theme/tokens';
 import {
-  createArchivedItemRecord,
-  fetchCatalogItemRestorePayload,
-  readArchivedItemStorage,
-  writeArchivedItemStorage
-} from '@/admin/features/artikli/lib/archiveItemClient';
-import {
   buildPersistedVariantName,
   formatCurrency,
   type ProductFamily,
@@ -118,7 +112,6 @@ import {
 } from '@/admin/features/artikli/components/artikliFieldStyles';
 import type {
   AdminCatalogListItem,
-  CatalogItemEditorPayload,
   CatalogItemQuickSaveResponse,
   CatalogVariantQuickSaveResponse
 } from '@/shared/domain/catalog/catalogAdminTypes';
@@ -476,19 +469,6 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   });
 }
 
-function buildArchiveRecordForFamily(family: ListFamily, restorePayload: CatalogItemEditorPayload | null) {
-  const firstVariant = family.variants[0];
-  return createArchivedItemRecord({
-    id: family.slug,
-    name: family.name,
-    category: family.categoryPath.length > 0 ? family.categoryPath.join(' / ') : family.category,
-    sku: getBaseSku(family) || firstVariant?.sku || '',
-    price: firstVariant?.price ?? 0,
-    discountPct: firstVariant?.discountPct ?? 0,
-    active: family.active,
-    restorePayload
-  });
-}
 
 const createFamilyDraft = (family: ListFamily): FamilyDraft => ({
   name: family.name,
@@ -953,17 +933,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           continue;
         }
 
-        const previousArchiveItems = readArchivedItemStorage();
-
         try {
-          const restorePayload = await fetchCatalogItemRestorePayload(itemIdentifier);
-          if (!restorePayload) throw new Error('Podatkov za obnovitev artikla ni bilo mogoče pripraviti.');
-
-          writeArchivedItemStorage([
-            buildArchiveRecordForFamily(family, restorePayload),
-            ...previousArchiveItems.filter((item) => String(item.id ?? '') !== itemIdentifier)
-          ]);
-
           const response = await fetch(`/api/admin/artikli/${encodeURIComponent(itemIdentifier)}`, { method: 'DELETE' });
           if (!response.ok) {
             const body = (await response.json().catch(() => ({}))) as { message?: string };
@@ -973,7 +943,6 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           archivedFamilyIds.add(family.id);
           family.variants.forEach((variant) => archivedVariantIds.add(variant.id));
         } catch {
-          writeArchivedItemStorage(previousArchiveItems);
           failedFamilies.push(family.name);
         }
       }

@@ -1,11 +1,19 @@
-import { del, put } from '@vercel/blob';
+import { del, get, put } from '@vercel/blob';
 
 type UploadResult = {
   url: string;
   pathname: string;
 };
 
+export type PrivateOrderDocumentBlob = {
+  stream: ReadableStream<Uint8Array>;
+  contentType: string;
+  size: number;
+};
+
 const FORBIDDEN_PATH_CHARS = /[#?%\n\r]/g;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 const sanitizeBlobSegment = (value: string): string =>
   value
@@ -37,15 +45,61 @@ const refuseExternalBlobInE2e = () => {
   }
 };
 
-export function buildOrderBlobPath(orderId: string | number, fileName: string): string {
-  const safeOrderId = sanitizeBlobSegment(String(orderId)) || 'order';
-  const safeFileName = sanitizeBlobSegment(fileName).replace(/^\/+/, '');
+const getOrderDocumentBlobStoreId = (): string => {
+  const storeId = process.env.ORDER_DOCUMENT_BLOB_STORE_ID?.trim();
+  if (!storeId) {
+    throw new Error('ORDER_DOCUMENT_BLOB_STORE_ID is not set');
+  }
+  return storeId;
+};
 
-  if (!safeFileName || safeFileName.endsWith('/')) {
-    throw new Error(`Invalid blob fileName: "${safeFileName}".`);
+const validateUpload = (
+  pathname: string,
+  data: Buffer | Uint8Array,
+  contentType: string
+) => {
+  const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const normalizedPathname = normalizePathname(pathname);
+
+  if (!normalizedPathname || normalizedPathname.endsWith('/')) {
+    console.error('[blob.upload] invalid pathname (folder-like path is not allowed)', {
+      pathname: normalizedPathname
+    });
+    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Provide a filename, not a folder path.`);
   }
 
-  return withStorageNamespace(['orders', safeOrderId, safeFileName]);
+  const fileName = normalizedPathname.split('/').pop() ?? '';
+  if (!fileName.includes('.') || fileName.endsWith('.')) {
+    console.error('[blob.upload] invalid pathname (missing filename extension)', {
+      pathname: normalizedPathname
+    });
+    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Filename must include an extension.`);
+  }
+
+  const effectiveContentType = contentType || 'application/octet-stream';
+  if (effectiveContentType === 'application/pdf') {
+    const header = payload.subarray(0, 5).toString('ascii');
+    if (header !== '%PDF-') {
+      throw new Error('Invalid PDF payload (missing %PDF- header). Binary likely got converted to text/base64.');
+    }
+  }
+
+  return { payload, normalizedPathname, effectiveContentType };
+};
+
+export function buildOrderDocumentBlobPath(
+  customerAccessId: string,
+  extension: 'pdf' | 'jpg'
+): string {
+  const normalizedAccessId = customerAccessId.trim().toLowerCase();
+  if (!UUID_PATTERN.test(normalizedAccessId)) {
+    throw new Error('Invalid order document customer access id.');
+  }
+
+  return withStorageNamespace([
+    'order-documents',
+    `${normalizedAccessId}.${extension}`
+  ]);
 }
 
 export function buildCatalogImageBlobPath(
@@ -97,70 +151,63 @@ export function buildSiteLogoBlobPath(masterId: string, fileName: string): strin
   return withStorageNamespace(['site-logo', 'masters', safeMasterId, safeFileName]);
 }
 
-export async function uploadBlob(
+export async function uploadPrivateOrderDocumentBlob(
   pathname: string,
   data: Buffer | Uint8Array,
   contentType: string
 ): Promise<UploadResult> {
   refuseExternalBlobInE2e();
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error('BLOB_READ_WRITE_TOKEN is not set');
-  }
+  const storeId = getOrderDocumentBlobStoreId();
+  const { payload, normalizedPathname, effectiveContentType } = validateUpload(
+    pathname,
+    data,
+    contentType
+  );
 
-  const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const blob = await put(normalizedPathname, payload, {
+    access: 'private',
+    addRandomSuffix: true,
+    contentType: effectiveContentType,
+    storeId
+  });
+  return { url: blob.url, pathname: blob.pathname };
+}
+
+export async function readPrivateOrderDocumentBlob(
+  pathname: string
+): Promise<PrivateOrderDocumentBlob | null> {
+  refuseExternalBlobInE2e();
+  const storeId = getOrderDocumentBlobStoreId();
   const normalizedPathname = normalizePathname(pathname);
+  if (!normalizedPathname) return null;
 
-  if (!normalizedPathname || normalizedPathname.endsWith('/')) {
-    console.error('[blob.upload] invalid pathname (folder-like path is not allowed)', {
-      pathname: normalizedPathname
-    });
-    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Provide a filename, not a folder path.`);
-  }
+  const result = await get(normalizedPathname, {
+    access: 'private',
+    storeId,
+    useCache: false
+  });
+  if (!result || result.statusCode !== 200) return null;
 
-  const fileName = normalizedPathname.split('/').pop() ?? '';
-  if (!fileName.includes('.') || fileName.endsWith('.')) {
-    console.error('[blob.upload] invalid pathname (missing filename extension)', {
-      pathname: normalizedPathname
-    });
-    throw new Error(`Invalid blob pathname: "${normalizedPathname}". Filename must include an extension.`);
-  }
+  return {
+    stream: result.stream,
+    contentType: result.blob.contentType,
+    size: result.blob.size
+  };
+}
 
-  const effectiveContentType = contentType || 'application/octet-stream';
+export async function deletePrivateOrderDocumentBlob(pathname: string): Promise<void> {
+  refuseExternalBlobInE2e();
+  const storeId = getOrderDocumentBlobStoreId();
+  const normalizedPathname = normalizePathname(pathname);
+  if (!normalizedPathname) return;
 
-  console.info('[blob.upload] put pathname', { pathname: normalizedPathname });
-
-  // Safety check for PDFs: must start with "%PDF-"
-  if (effectiveContentType === 'application/pdf') {
-    const header = payload.subarray(0, 5).toString('ascii');
-    if (header !== '%PDF-') {
-      throw new Error('Invalid PDF payload (missing %PDF- header). Binary likely got converted to text/base64.');
-    }
-  }
-
-  try {
-    const blob = await put(normalizedPathname, payload, {
-      access: 'public',
-      contentType: effectiveContentType,
-      token: process.env.BLOB_READ_WRITE_TOKEN
-    });
-
-    return { url: blob.url, pathname: blob.pathname };
-  } catch (error) {
-    console.error('[blob.upload] put failed', {
-      pathname: normalizedPathname,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-    throw error;
-  }
+  await del(normalizedPathname, { storeId });
 }
 
 export async function deleteBlob(pathnameOrUrl: string): Promise<void> {
   refuseExternalBlobInE2e();
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error('BLOB_READ_WRITE_TOKEN is not set');
-  }
+  const storeId = process.env.PUBLIC_MEDIA_BLOB_STORE_ID?.trim();
+  if (!storeId) throw new Error('PUBLIC_MEDIA_BLOB_STORE_ID is not set');
 
-  await del(pathnameOrUrl, {
-    token: process.env.BLOB_READ_WRITE_TOKEN
-  });
+  await del(pathnameOrUrl, { storeId });
 }

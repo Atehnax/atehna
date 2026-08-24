@@ -139,58 +139,11 @@ describe('related product recommendation contracts', () => {
       textScalePercent: 100
     });
 
-    const schema6Reference = {
-      ...DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts,
-      imageHeightPx: 188
-    };
-    const upgradedSchema6Reference = normalizeProductAppearanceConfig({
-      schemaVersion: 6,
-      relatedProducts: schema6Reference
-    });
-    expect(upgradedSchema6Reference.relatedProducts.imageHeightPx).toBe(144);
-    expect(normalizeProductAppearanceConfig(upgradedSchema6Reference))
-      .toEqual(upgradedSchema6Reference);
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 6,
-      relatedProducts: { imageHeightPx: 188 }
-    }).relatedProducts.imageHeightPx).toBe(188);
-
-    const schema7PresentationReference = {
-      ...DEFAULT_PRODUCT_APPEARANCE_CONFIG.relatedProducts,
-      imageHeightPx: 160
-    };
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 7,
-      relatedProducts: schema7PresentationReference
-    }).relatedProducts.imageHeightPx).toBe(144);
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 7,
-      relatedProducts: {
-        ...schema7PresentationReference,
-        sourceMode: 'manual',
-        manualProductSlugs: ['manually-selected-product'],
-        maxItems: 1
-      }
-    }).relatedProducts.imageHeightPx).toBe(144);
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 7,
-      relatedProducts: {
-        ...schema7PresentationReference,
-        cardWidthPx: 380
-      }
-    }).relatedProducts.imageHeightPx).toBe(160);
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 7,
-      relatedProducts: { imageHeightPx: 160 }
-    }).relatedProducts.imageHeightPx).toBe(160);
-    expect(normalizeProductAppearanceConfig({
-      schemaVersion: 8,
-      relatedProducts: schema7PresentationReference
-    }).relatedProducts.imageHeightPx).toBe(160);
-    expect(normalizeProductAppearanceConfig({
-      relatedProducts: { imageHeightPx: 192 }
-    }).relatedProducts.imageHeightPx).toBe(144);
-  });
+    for (const imageHeightPx of [188, 160, 192]) {
+      expect(normalizeProductAppearanceConfig({
+        relatedProducts: { imageHeightPx }
+      }).relatedProducts.imageHeightPx).toBe(imageHeightPx);
+    }  });
 
   test('merges manual and same-subcategory candidates deterministically', () => {
     const candidates = [

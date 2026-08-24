@@ -981,6 +981,9 @@ test.describe('order checkout layout', () => {
 
     await page.getByRole('radio', { name: 'Fizična oseba' }).click();
     await expect(reference).toHaveCount(0);
+    const schoolNotice = formColumn.getByTestId('order-school-notice');
+    await expect(schoolNotice).toHaveAttribute('data-visible', 'false');
+    await finishMotion(schoolNotice);
     const firstName = formColumn.getByLabel('Ime *', { exact: true });
     const lastName = formColumn.getByLabel('Priimek *', { exact: true });
     await expectControlsEnabled([firstName, lastName]);

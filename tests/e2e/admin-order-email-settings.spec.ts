@@ -55,10 +55,15 @@ async function expectSharpAdminFocus(control: Locator) {
               Math.abs(lengths[3] ?? 0) > 0.01
             );
           });
+          const hasVisibleOutline =
+            style.outlineStyle !== "none" &&
+            Number.parseFloat(style.outlineWidth) > 0 &&
+            style.outlineColor !== "transparent" &&
+            style.outlineColor !== "rgba(0, 0, 0, 0)";
           return {
             borderColor: style.borderColor,
             hasBlurredShadow,
-            outlineStyle: style.outlineStyle,
+            hasVisibleOutline,
           };
         }),
       { timeout: 1_000 },
@@ -66,7 +71,7 @@ async function expectSharpAdminFocus(control: Locator) {
     .toEqual({
       borderColor: colors.canonicalBorderColor,
       hasBlurredShadow: false,
-      outlineStyle: "none",
+      hasVisibleOutline: false,
     });
   expect(colors.canonicalBorderColor).not.toBe(colors.neutralBorderColor);
 }

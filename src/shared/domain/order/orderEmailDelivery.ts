@@ -8,7 +8,7 @@ import {
   type OrderEmailEventType
 } from './orderEmailSettings';
 
-export const ORDER_EMAIL_DELIVERY_ENVELOPE_VERSION = 1 as const;
+export const ORDER_EMAIL_DELIVERY_ENVELOPE_VERSION = 2 as const;
 export const MAX_ORDER_EMAIL_DELIVERY_JSON_LENGTH = 4_000_000;
 export const MAX_ORDER_EMAIL_HTML_LENGTH = 2_000_000;
 export const MAX_ORDER_EMAIL_TEXT_LENGTH = 1_000_000;
@@ -58,7 +58,8 @@ export type ResendFailureCategory =
   | 'too_early'
   | 'rate_limited'
   | 'server_error'
-  | 'permanent_http';
+  | 'permanent_http'
+  | 'invalid_payload';
 
 export type ResendFailureClassification = Readonly<{
   disposition: 'retry' | 'terminal';
@@ -75,6 +76,20 @@ export class OrderEmailDeliveryEnvelopeValidationError extends Error {
     this.name = 'OrderEmailDeliveryEnvelopeValidationError';
     this.path = path;
   }
+}
+
+export function classifyOrderEmailDeliveryValidationFailure(
+  error: unknown
+): ResendFailureClassification | null {
+  if (!(error instanceof OrderEmailDeliveryEnvelopeValidationError)) {
+    return null;
+  }
+  return {
+    disposition: 'terminal',
+    category: 'invalid_payload',
+    status: null,
+    retryAfterMs: null
+  };
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -270,7 +285,7 @@ function snapshotRecipientName(value: string | null): string | null {
 }
 
 /**
- * Builds the provider message exactly once and wraps it in the persisted v1
+ * Builds the provider message exactly once and wraps it in the persisted v2
  * contract. Workers must send `envelope.message` instead of rendering again.
  */
 export function createOrderEmailDeliveryEnvelope(

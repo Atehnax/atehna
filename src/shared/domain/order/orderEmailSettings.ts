@@ -22,8 +22,32 @@ export type OrderEmailAudienceSettings = {
   admins: boolean;
 };
 
+export type OrderEmailTemplate = {
+  subject: string;
+  body: string;
+};
+
+export type OrderEmailEventTemplates = {
+  customer: OrderEmailTemplate;
+  admin: OrderEmailTemplate;
+};
+
+export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
+  customer: ['customer_name', 'status', 'previous_status'],
+  admin: [
+    'customer_name',
+    'status',
+    'previous_status',
+    'order_number',
+    'customer_email'
+  ]
+} as const;
+
+export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
+export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
+
 export type OrderEmailSettings = {
-  version: 1;
+  version: 2;
   enabled: boolean;
   senderName: string;
   fromEmail: string;
@@ -33,6 +57,7 @@ export type OrderEmailSettings = {
   siteUrl: string;
   footerText: string;
   events: Record<OrderEmailEventType, OrderEmailAudienceSettings>;
+  templates: Record<OrderEmailEventType, OrderEmailEventTemplates>;
   updatedAt?: string | null;
 };
 
@@ -41,6 +66,10 @@ export type StoredOrderEmailSettings = Omit<OrderEmailSettings, 'updatedAt'>;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const HEADER_CONTROL_PATTERN = /[\u0000-\u001f\u007f]/u;
 const HEADER_CONTROLS_GLOBAL_PATTERN = /[\u0000-\u001f\u007f]+/gu;
+const BODY_CONTROL_PATTERN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
+const BODY_CONTROLS_GLOBAL_PATTERN =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/gu;
+const TEMPLATE_VARIABLE_PATTERN = /\{\{\s*([^{}]+?)\s*\}\}/gu;
 const MAX_ADMIN_RECIPIENTS = 20;
 
 const requestedByDefault = new Set<OrderEmailEventType>([
@@ -60,8 +89,42 @@ const defaultEvents = Object.fromEntries(
   ])
 ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>;
 
+const defaultTemplates = Object.fromEntries(
+  ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value, label }) => {
+    if (value === 'order_submitted') {
+      return [
+        value,
+        {
+          customer: {
+            subject: 'Va\u0161e naro\u010dilo je bilo prejeto',
+            body: 'Va\u0161e naro\u010dilo smo uspe\u0161no prejeli. O nadaljnjih spremembah vas bomo obvestili po e-po\u0161ti.'
+          },
+          admin: {
+            subject: 'Novo naro\u010dilo {{order_number}}',
+            body: 'Novo naro\u010dilo {{order_number}} je pripravljeno za pregled v administraciji.'
+          }
+        }
+      ];
+    }
+
+    return [
+      value,
+      {
+        customer: {
+          subject: `Status va\u0161ega naro\u010dila: ${label}`,
+          body: 'Status va\u0161ega naro\u010dila je zdaj \u00bb{{status}}\u00ab.'
+        },
+        admin: {
+          subject: 'Naro\u010dilo {{order_number}}: {{status}}',
+          body: 'Status naro\u010dila {{order_number}} je zdaj \u00bb{{status}}\u00ab.'
+        }
+      }
+    ];
+  })
+) as Record<OrderEmailEventType, OrderEmailEventTemplates>;
+
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 1,
+  version: 2,
   enabled: false,
   senderName: 'Atehna',
   fromEmail: '',
@@ -71,6 +134,7 @@ export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
   siteUrl: 'https://www.atehna-test.site',
   footerText: `Lep pozdrav,\n${COMPANY_INFO.name}`,
   events: defaultEvents,
+  templates: defaultTemplates,
   updatedAt: null
 };
 
@@ -86,6 +150,14 @@ function asTrimmedText(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value.trim() : fallback;
 }
 
+function sanitizeBodyText(value: unknown, fallback: string): string {
+  const text = typeof value === 'string' ? value : fallback;
+  return text
+    .replace(/\r\n?/gu, '\n')
+    .replace(BODY_CONTROLS_GLOBAL_PATTERN, ' ')
+    .trim();
+}
+
 function sanitizeHeaderText(value: unknown, fallback: string): string {
   const text = typeof value === 'string' ? value : fallback;
   return text
@@ -98,16 +170,20 @@ function normalizeEmail(value: unknown): string {
   return sanitizeHeaderText(value, '').toLowerCase();
 }
 
+function isSafeSiteUrl(parsed: URL): boolean {
+  if (parsed.protocol !== 'https:') return false;
+  if (parsed.username || parsed.password || !parsed.hostname) return false;
+  return parsed.hostname.split('.').every((label) => label.length > 0);
+}
+
 function normalizeSiteUrl(value: unknown): string {
   const candidate = sanitizeHeaderText(value, DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl);
   try {
     const parsed = new URL(candidate);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    if (!isSafeSiteUrl(parsed)) {
       return DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl;
     }
-    parsed.hash = '';
-    parsed.search = '';
-    return parsed.toString().replace(/\/$/u, '');
+    return parsed.origin;
   } catch {
     return DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl;
   }
@@ -143,7 +219,16 @@ export function cloneOrderEmailSettings(
         eventType,
         { ...value.events[eventType] }
       ])
-    ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>
+    ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>,
+    templates: Object.fromEntries(
+      ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => [
+        eventType,
+        {
+          customer: { ...value.templates[eventType].customer },
+          admin: { ...value.templates[eventType].admin }
+        }
+      ])
+    ) as Record<OrderEmailEventType, OrderEmailEventTemplates>
   };
 }
 
@@ -152,6 +237,7 @@ export const cloneDefaultOrderEmailSettings = cloneOrderEmailSettings;
 export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings {
   const record = asRecord(value);
   const rawEvents = asRecord(record.events);
+  const rawTemplates = asRecord(record.templates);
   const events = Object.fromEntries(
     ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => {
       const rawEvent = asRecord(rawEvents[eventType]);
@@ -171,6 +257,30 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       ];
     })
   ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>;
+  const templates = Object.fromEntries(
+    ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => {
+      const rawEventTemplates = asRecord(rawTemplates[eventType]);
+      const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[eventType];
+      const rawCustomer = asRecord(rawEventTemplates.customer);
+      const rawAdmin = asRecord(rawEventTemplates.admin);
+      return [
+        eventType,
+        {
+          customer: {
+            subject: sanitizeHeaderText(
+              rawCustomer.subject,
+              defaults.customer.subject
+            ),
+            body: sanitizeBodyText(rawCustomer.body, defaults.customer.body)
+          },
+          admin: {
+            subject: sanitizeHeaderText(rawAdmin.subject, defaults.admin.subject),
+            body: sanitizeBodyText(rawAdmin.body, defaults.admin.body)
+          }
+        }
+      ];
+    })
+  ) as Record<OrderEmailEventType, OrderEmailEventTemplates>;
 
   const updatedAt =
     typeof record.updatedAt === 'string'
@@ -180,7 +290,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 1,
+    version: 2,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
@@ -205,6 +315,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       DEFAULT_ORDER_EMAIL_SETTINGS.footerText
     ),
     events,
+    templates,
     updatedAt
   };
 }
@@ -229,10 +340,80 @@ function isValidSiteUrl(value: unknown): boolean {
   if (typeof value !== 'string' || !value.trim()) return false;
   try {
     const parsed = new URL(value.trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    return isSafeSiteUrl(parsed);
   } catch {
     return false;
   }
+}
+
+function templateVariables(value: string): string[] {
+  return Array.from(value.matchAll(TEMPLATE_VARIABLE_PATTERN), (match) =>
+    String(match[1] ?? '').trim()
+  );
+}
+
+function validateTemplate(
+  value: unknown,
+  eventLabel: string,
+  audience: keyof typeof ORDER_EMAIL_TEMPLATE_VARIABLES,
+  fallback: OrderEmailTemplate
+): string[] {
+  const record = asRecord(value);
+  const audienceLabel = audience === 'customer' ? 'stranko' : 'administratorja';
+  const errors: string[] = [];
+  if (
+    value !== undefined &&
+    (!value || typeof value !== 'object' || Array.isArray(value))
+  ) {
+    errors.push(`Predloga za ${audienceLabel} (${eventLabel}) ni veljavna.`);
+    return errors;
+  }
+  if (record.subject !== undefined && typeof record.subject !== 'string') {
+    errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) ni veljavna.`);
+  }
+  if (record.body !== undefined && typeof record.body !== 'string') {
+    errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) ni veljavno.`);
+  }
+
+  const subject =
+    typeof record.subject === 'string' ? record.subject : fallback.subject;
+  const body = typeof record.body === 'string' ? record.body : fallback.body;
+  if (hasHeaderControls(subject)) {
+    errors.push(
+      `Zadeva predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
+    );
+  }
+  if (BODY_CONTROL_PATTERN.test(body)) {
+    errors.push(
+      `Besedilo predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
+    );
+  }
+  if (!sanitizeHeaderText(subject, '')) {
+    errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) je obvezna.`);
+  }
+  if (!sanitizeBodyText(body, '')) {
+    errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) je obvezno.`);
+  }
+  if (subject.length > ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH) {
+    errors.push(
+      `Zadeva predloge za ${audienceLabel} (${eventLabel}) je lahko dolga najve\u010d ${ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH} znakov.`
+    );
+  }
+  if (body.length > ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH) {
+    errors.push(
+      `Besedilo predloge za ${audienceLabel} (${eventLabel}) je lahko dolgo najve\u010d ${ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH} znakov.`
+    );
+  }
+
+  const allowedVariables = new Set<string>(ORDER_EMAIL_TEMPLATE_VARIABLES[audience]);
+  for (const variable of [...templateVariables(subject), ...templateVariables(body)]) {
+    if (!allowedVariables.has(variable)) {
+      errors.push(
+        `Spremenljivka {{${variable}}} ni dovoljena v predlogi za ${audienceLabel} (${eventLabel}).`
+      );
+    }
+  }
+  return errors;
 }
 
 export function validateOrderEmailSettingsInput(value: unknown): string[] {
@@ -285,7 +466,34 @@ export function validateOrderEmailSettingsInput(value: unknown): string[] {
     errors.push('Naslov za odgovor ni veljaven.');
   }
   if (!isValidSiteUrl(record.siteUrl ?? normalized.siteUrl)) {
-    errors.push('Spletni naslov mora biti veljaven naslov HTTP ali HTTPS.');
+    errors.push('Spletni naslov mora biti veljaven naslov HTTPS.');
+  }
+
+  if (
+    record.templates !== undefined &&
+    (!record.templates ||
+      typeof record.templates !== 'object' ||
+      Array.isArray(record.templates))
+  ) {
+    errors.push('Predloge e-po\u0161tnih sporo\u010dil niso veljavne.');
+  }
+  const rawTemplates = asRecord(record.templates);
+  for (const event of ORDER_EMAIL_EVENT_DEFINITIONS) {
+    const rawEventValue = rawTemplates[event.value];
+    if (
+      rawEventValue !== undefined &&
+      (!rawEventValue ||
+        typeof rawEventValue !== 'object' ||
+        Array.isArray(rawEventValue))
+    ) {
+      errors.push(`Predloge za dogodek »${event.label}« niso veljavne.`);
+    }
+    const rawEvent = asRecord(rawEventValue);
+    const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value];
+    errors.push(
+      ...validateTemplate(rawEvent.customer, event.label, 'customer', defaults.customer),
+      ...validateTemplate(rawEvent.admin, event.label, 'admin', defaults.admin)
+    );
   }
 
   if (normalized.enabled) {

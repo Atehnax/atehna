@@ -4,10 +4,12 @@ import { randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import {
+  type OrderEmailCustomerOrderSnapshot,
   type OrderEmailJobPayload,
   type OrderEmailOrderSnapshot
 } from '@/shared/domain/order/orderEmailTemplates';
 import {
+  classifyOrderEmailDeliveryValidationFailure,
   classifyResendFailure,
   createOrderEmailDeliveryEnvelope,
   parseOrderEmailDeliveryEnvelope,
@@ -151,7 +153,7 @@ async function readOrderSnapshot(
     ),
     client.query(
       `
-        select sku, name, unit, quantity, line_gross
+        select sku, name, unit, quantity, line_gross, image_url
         from order_items
         where order_id = $1
         order by id asc
@@ -177,7 +179,8 @@ async function readOrderSnapshot(
       name: String(item.name ?? ''),
       unit: optionalString(item.unit),
       quantity: Math.max(1, Math.trunc(numberValue(item.quantity))),
-      lineGross: numberValue(item.line_gross)
+      lineGross: numberValue(item.line_gross),
+      imageUrl: optionalString(item.image_url)
     })),
     totals: {
       net: numberValue(row.subtotal),
@@ -185,6 +188,17 @@ async function readOrderSnapshot(
       shipping: numberValue(row.shipping),
       gross: numberValue(row.total)
     }
+  };
+}
+
+function toCustomerOrderSnapshot(
+  order: OrderEmailOrderSnapshot
+): OrderEmailCustomerOrderSnapshot {
+  return {
+    createdAt: order.createdAt,
+    customer: order.customer,
+    items: order.items,
+    totals: order.totals
   };
 }
 
@@ -226,16 +240,26 @@ export async function enqueueOrderEmailEvent(
   const occurredAt = input.occurredAt ?? new Date().toISOString();
   const insertedIds: string[] = [];
   for (const recipient of recipients) {
-    const payload: OrderEmailJobPayload = {
+    const payloadBase = {
       eventType: input.eventType,
-      audience: recipient.audience,
       recipientEmail: recipient.email,
       recipientName: recipient.name,
       occurredAt,
       previousStatus: input.previousStatus ?? null,
-      settingsSnapshot,
-      order
+      settingsSnapshot
     };
+    const payload: OrderEmailJobPayload =
+      recipient.audience === 'admin'
+        ? {
+            ...payloadBase,
+            audience: 'admin',
+            order
+          }
+        : {
+            ...payloadBase,
+            audience: 'customer',
+            order: toCustomerOrderSnapshot(order)
+          };
     const envelope = createOrderEmailDeliveryEnvelope(payload);
     const serializedEnvelope = serializeOrderEmailDeliveryEnvelope(envelope);
     const result = await client.query(
@@ -489,6 +513,10 @@ function classifyOrderEmailJobFailure(
   error: unknown,
   nowMs: number
 ): ResendFailureClassification {
+  const validationFailure =
+    classifyOrderEmailDeliveryValidationFailure(error);
+  if (validationFailure) return validationFailure;
+
   if (error instanceof OrderEmailDeliveryError) {
     if (error.resendFailure) {
       return classifyResendFailure(error.resendFailure, nowMs);
@@ -704,7 +732,8 @@ export async function sendOrderEmailTest(
           name: 'Testni izdelek',
           unit: 'kos',
           quantity: 1,
-          lineGross: 12.2
+          lineGross: 12.2,
+          imageUrl: '/images/categories/materiali.png'
         }
       ],
       totals: {

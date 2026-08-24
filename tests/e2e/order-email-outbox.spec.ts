@@ -24,6 +24,13 @@ type OutboxRow = {
   attempts: number;
   claim_id: string | null;
   provider_message_id: string | null;
+  payload_json: {
+    message: {
+      subject: string;
+      html: string;
+      text: string;
+    };
+  };
 };
 
 let database: PgPool;
@@ -37,6 +44,7 @@ function enabledE2eSettings(original: OrderEmailSettings): OrderEmailSettings {
     fromEmail: 'orders@e2e.example.com',
     replyToEmail: 'support@e2e.example.com',
     adminRecipients: [...ADMIN_RECIPIENTS],
+    siteUrl: 'https://www.atehna-test.site',
     events: {
       order_submitted: { customer: true, admins: true },
       received: { ...disabledEvent },
@@ -59,7 +67,8 @@ async function readOutbox(orderId: number) {
             status,
             attempts,
             claim_id,
-            provider_message_id
+            provider_message_id,
+            payload_json
      from order_email_jobs
      where order_id = $1
      order by event_type, audience, recipient_email`,
@@ -210,12 +219,14 @@ test.describe('order email outbox integration', () => {
       });
       expect(createResponse.status()).toBe(201);
 
-      const orderResult = await database.query<{ id: string }>(
-        'select id from orders where email = $1 order by id desc limit 1',
+      const orderResult = await database.query<{ id: string; order_number: string }>(
+        'select id, order_number from orders where email = $1 order by id desc limit 1',
         [email]
       );
       const createdOrderId = Number(orderResult.rows[0]?.id);
+      const orderNumber = String(orderResult.rows[0]?.order_number ?? '');
       expect(Number.isSafeInteger(createdOrderId)).toBe(true);
+      expect(orderNumber).not.toBe('');
       if (!Number.isSafeInteger(createdOrderId)) {
         throw new Error('The E2E order was not persisted with a safe integer ID.');
       }
@@ -230,6 +241,30 @@ test.describe('order email outbox integration', () => {
         `order-submitted:${orderId}`,
         email
       );
+      const submissionJobs = jobs.filter((job) => job.event_type === 'order_submitted');
+      const customerSubmission = submissionJobs.find((job) => job.audience === 'customer');
+      const adminSubmission = submissionJobs.find((job) => job.audience === 'admin');
+      expect(customerSubmission).toBeDefined();
+      expect(adminSubmission).toBeDefined();
+      const customerSubmissionContent = [
+        customerSubmission?.payload_json.message.subject,
+        customerSubmission?.payload_json.message.html,
+        customerSubmission?.payload_json.message.text
+      ].join('\n');
+      expect(customerSubmission?.payload_json.message.subject).toBe(
+        '[Atehna] Va\u0161e naro\u010dilo je bilo prejeto'
+      );
+      expect(customerSubmissionContent).not.toContain(orderNumber);
+      expect(customerSubmissionContent).not.toContain(`/admin/orders/${createdOrderId}`);
+      expect(adminSubmission?.payload_json.message.html).toContain(orderNumber);
+      expect(adminSubmission?.payload_json.message.html).toContain(
+        `https://www.atehna-test.site/admin/orders/${createdOrderId}`
+      );
+      for (const job of submissionJobs) {
+        expect(job.payload_json.message.html).toContain(
+          'src="https://www.atehna-test.site/images/categories/materiali.png"'
+        );
+      }
 
       const replayResponse = await request.post('/api/orders', {
         headers: { 'Idempotency-Key': idempotencyKey },
@@ -253,6 +288,16 @@ test.describe('order email outbox integration', () => {
         email
       );
 
+      const customerStatus = jobs.find((job) => (
+        job.event_type === 'in_progress' && job.audience === 'customer'
+      ));
+      const customerStatusContent = [
+        customerStatus?.payload_json.message.subject,
+        customerStatus?.payload_json.message.html,
+        customerStatus?.payload_json.message.text
+      ].join('\n');
+      expect(customerStatusContent).not.toContain(orderNumber);
+      expect(customerStatusContent).not.toContain(`/admin/orders/${createdOrderId}`);
       const duplicateStatusResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }

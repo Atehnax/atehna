@@ -21,11 +21,10 @@ export type OrderEmailOrderLineSnapshot = {
   unit: string | null;
   quantity: number;
   lineGross: number;
+  imageUrl: string | null;
 };
 
-export type OrderEmailOrderSnapshot = {
-  orderId: number;
-  orderNumber: string;
+export type OrderEmailCustomerOrderSnapshot = {
   createdAt: string;
   customer: OrderEmailCustomerSnapshot;
   items: OrderEmailOrderLineSnapshot[];
@@ -37,16 +36,33 @@ export type OrderEmailOrderSnapshot = {
   };
 };
 
-export type OrderEmailJobPayload = {
+export type OrderEmailOrderSnapshot = OrderEmailCustomerOrderSnapshot & {
+  orderId: number;
+  orderNumber: string;
+};
+
+type OrderEmailJobPayloadBase = {
   eventType: OrderEmailEventType;
-  audience: OrderEmailAudience;
   recipientEmail: string;
   recipientName: string | null;
   occurredAt: string;
   previousStatus: string | null;
   settingsSnapshot: StoredOrderEmailSettings;
+};
+
+export type OrderEmailCustomerJobPayload = OrderEmailJobPayloadBase & {
+  audience: 'customer';
+  order: OrderEmailCustomerOrderSnapshot;
+};
+
+export type OrderEmailAdminJobPayload = OrderEmailJobPayloadBase & {
+  audience: 'admin';
   order: OrderEmailOrderSnapshot;
 };
+
+export type OrderEmailJobPayload =
+  | OrderEmailCustomerJobPayload
+  | OrderEmailAdminJobPayload;
 
 export type OrderEmailMessage = {
   from: string;
@@ -130,19 +146,31 @@ function orderStatusLabel(eventType: OrderEmailEventType): string {
     : getStatusLabel(eventType);
 }
 
-function safeAdminOrderUrl(siteUrlValue: unknown, orderId: number): string {
+function hasSafeUrlHost(value: URL): boolean {
+  return (
+    !value.username &&
+    !value.password &&
+    Boolean(value.hostname) &&
+    value.hostname.split('.').every((label) => label.length > 0)
+  );
+}
+
+function safeAdminOrderUrl(siteUrlValue: unknown, orderId: number): string | null {
+  if (!Number.isSafeInteger(orderId) || orderId <= 0) return null;
   try {
     const baseUrl = new URL(String(siteUrlValue ?? ''));
-    if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+    if (
+      baseUrl.protocol !== 'https:' || !hasSafeUrlHost(baseUrl)
+    ) {
       throw new Error('Unsupported protocol');
     }
     return new URL(
-      `/admin/orders/${encodeURIComponent(String(Math.trunc(orderId)))}`,
+      `/admin/orders/${encodeURIComponent(String(orderId))}`,
       baseUrl
     ).toString();
   } catch {
     return new URL(
-      `/admin/orders/${encodeURIComponent(String(Math.trunc(orderId)))}`,
+      `/admin/orders/${encodeURIComponent(String(orderId))}`,
       DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl
     ).toString();
   }
@@ -162,65 +190,89 @@ function quantityLabel(item: OrderEmailOrderLineSnapshot): string {
   return unit ? `${quantity} ${unit}` : quantity;
 }
 
-function buildSubject(payload: OrderEmailJobPayload): string {
-  const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
-  const prefixText = prefix ? `[${prefix}] ` : '';
-  const orderNumber = safeHeaderText(payload.order.orderNumber);
-
-  if (payload.eventType === 'order_submitted') {
-    return payload.audience === 'customer'
-      ? `${prefixText}Naročilo ${orderNumber} smo prejeli`
-      : `${prefixText}Novo naročilo ${orderNumber}`;
+function safeItemImageUrl(
+  imageUrlValue: unknown,
+  siteUrlValue: unknown
+): string | null {
+  const imageUrl = safeBodyText(imageUrlValue);
+  if (
+    !imageUrl ||
+    (!imageUrl.startsWith('/') && !/^https:\/\//iu.test(imageUrl)) ||
+    imageUrl.startsWith('//')
+  ) {
+    return null;
   }
-
-  return `${prefixText}Naročilo ${orderNumber}: ${safeHeaderText(orderStatusLabel(payload.eventType))}`;
+  try {
+    const baseUrl = new URL(String(siteUrlValue ?? ''));
+    const parsed = new URL(imageUrl, baseUrl);
+    if (parsed.protocol !== 'https:' || !hasSafeUrlHost(parsed)) {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
-function buildIntro(payload: OrderEmailJobPayload): {
-  greeting: string;
+type TemplateValues = Record<string, string>;
+
+function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
+  const values: TemplateValues = {
+    customer_name: customerDisplayName(payload.order.customer),
+    status: orderStatusLabel(payload.eventType),
+    previous_status: payload.previousStatus
+      ? getStatusLabel(payload.previousStatus)
+      : ''
+  };
+  if (payload.audience === 'admin') {
+    values.order_number = safeBodyText(payload.order.orderNumber);
+    values.customer_email = safeBodyText(payload.order.customer.email);
+  }
+  return values;
+}
+
+function renderTemplate(value: unknown, variables: TemplateValues): string {
+  return String(value ?? '').replace(
+    /\{\{\s*([a-z_]+)\s*\}\}/gu,
+    (_match, variable: string) => variables[variable] ?? ''
+  );
+}
+
+function buildTemplateContent(payload: OrderEmailJobPayload): {
+  subject: string;
   heading: string;
-  description: string;
+  body: string;
+  greeting: string;
 } {
+  const audience = payload.audience === 'admin' ? 'admin' : 'customer';
+  const defaults =
+    DEFAULT_ORDER_EMAIL_SETTINGS.templates[payload.eventType][audience];
+  const configured =
+    payload.settingsSnapshot.templates?.[payload.eventType]?.[audience] ??
+    defaults;
+  const variables = buildTemplateValues(payload);
+  const heading =
+    safeHeaderText(renderTemplate(configured.subject, variables)) ||
+    safeHeaderText(renderTemplate(defaults.subject, variables));
+  const body =
+    safeBodyText(renderTemplate(configured.body, variables)) ||
+    safeBodyText(renderTemplate(defaults.body, variables));
+  const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
+  const prefixText = prefix ? `[${prefix}] ` : '';
   const recipientName = safeBodyText(payload.recipientName);
   const greeting = recipientName ? `Pozdravljeni, ${recipientName},` : 'Pozdravljeni,';
-  const orderNumber = safeBodyText(payload.order.orderNumber);
-
-  if (payload.eventType === 'order_submitted') {
-    return payload.audience === 'customer'
-      ? {
-          greeting,
-          heading: 'Hvala za vaše naročilo',
-          description: `Prejeli smo vaše naročilo ${orderNumber}. Ko bo obdelava napredovala, vas bomo obvestili po e-pošti.`
-        }
-      : {
-          greeting,
-          heading: 'Oddano je bilo novo naročilo',
-          description: `Novo naročilo ${orderNumber} je pripravljeno za pregled v administraciji.`
-        };
-  }
-
-  const nextStatus = orderStatusLabel(payload.eventType);
-  const previousStatus = payload.previousStatus
-    ? getStatusLabel(payload.previousStatus)
-    : null;
-  if (payload.audience === 'customer') {
-    return {
-      greeting,
-      heading: `Naročilo je ${nextStatus.toLocaleLowerCase('sl-SI')}`,
-      description: `Status vašega naročila ${orderNumber} je zdaj »${nextStatus}«.`
-    };
-  }
-
   return {
+    subject: `${prefixText}${heading}`,
+    heading,
+    body,
     greeting,
-    heading: `Status naročila: ${nextStatus}`,
-    description: previousStatus && previousStatus !== 'Neznano'
-      ? `Status naročila ${orderNumber} se je spremenil iz »${previousStatus}« v »${nextStatus}«.`
-      : `Status naročila ${orderNumber} je zdaj »${nextStatus}«.`
   };
 }
 
-function buildHtmlItems(items: OrderEmailOrderLineSnapshot[]): string {
+function buildHtmlItems(
+  items: OrderEmailOrderLineSnapshot[],
+  siteUrl: string
+): string {
   if (items.length === 0) {
     return '<p style="margin:0;color:#64748b;">Naročilo nima postavk.</p>';
   }
@@ -235,16 +287,25 @@ function buildHtmlItems(items: OrderEmailOrderLineSnapshot[]): string {
         </tr>
       </thead>
       <tbody>
-        ${items.map((item) => `
+        ${items.map((item) => {
+          const imageUrl = safeItemImageUrl(item.imageUrl, siteUrl);
+          return `
           <tr>
             <td style="border-bottom:1px solid #edf2f7;padding:10px 8px 10px 0;vertical-align:top;">
-              <div style="font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
-              ${safeBodyText(item.sku) ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
+              <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr>
+                  ${imageUrl ? `<td width="72" style="width:72px;padding:0 12px 0 0;vertical-align:top;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(lineDisplayName(item))}" width="72" height="72" style="display:block;width:72px;height:72px;border:0;border-radius:8px;object-fit:cover;"></td>` : ''}
+                  <td style="vertical-align:top;">
+                    <div style="font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
+                    ${safeBodyText(item.sku) ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
             </td>
             <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 8px;vertical-align:top;color:#334155;">${escapeHtml(quantityLabel(item))}</td>
             <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 0 10px 8px;vertical-align:top;white-space:nowrap;color:#0f172a;">${escapeHtml(formatMoney(item.lineGross))}</td>
           </tr>
-        `).join('')}
+        `}).join('')}
       </tbody>
     </table>
   `;
@@ -258,7 +319,7 @@ function buildTextItems(items: OrderEmailOrderLineSnapshot[]): string {
   }).join('\n');
 }
 
-function buildHtmlTotals(order: OrderEmailOrderSnapshot): string {
+function buildHtmlTotals(order: OrderEmailCustomerOrderSnapshot): string {
   const rows: Array<[string, number, boolean?]> = [
     ['Vmesna vsota brez DDV', order.totals.net],
     ['DDV', order.totals.tax],
@@ -273,7 +334,7 @@ function buildHtmlTotals(order: OrderEmailOrderSnapshot): string {
   `).join('');
 }
 
-function buildTextTotals(order: OrderEmailOrderSnapshot): string {
+function buildTextTotals(order: OrderEmailCustomerOrderSnapshot): string {
   return [
     `Vmesna vsota brez DDV: ${formatMoney(order.totals.net)}`,
     `DDV: ${formatMoney(order.totals.tax)}`,
@@ -291,14 +352,13 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const replyTo = payload.settingsSnapshot.replyToEmail
     ? requireSafeEmail(payload.settingsSnapshot.replyToEmail, 'replyToEmail')
     : undefined;
-  const subject = buildSubject(payload);
-  const intro = buildIntro(payload);
+  const content = buildTemplateContent(payload);
   const order = payload.order;
   const customerName = customerDisplayName(order.customer);
-  const adminOrderUrl = safeAdminOrderUrl(
-    payload.settingsSnapshot.siteUrl,
-    order.orderId
-  );
+  const adminOrderUrl =
+    payload.audience === 'admin'
+      ? safeAdminOrderUrl(payload.settingsSnapshot.siteUrl, payload.order.orderId)
+      : null;
   const footer = safeBodyText(payload.settingsSnapshot.footerText);
   const adminCustomerDetails = payload.audience === 'admin'
     ? `
@@ -309,7 +369,10 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
       </div>
     `
     : '';
-  const adminAction = payload.audience === 'admin'
+  const adminOrderNumber = payload.audience === 'admin'
+    ? `<strong style="color:#0f172a;">Naročilo:</strong> ${escapeHtml(payload.order.orderNumber)}<br>`
+    : '';
+  const adminAction = payload.audience === 'admin' && adminOrderUrl
     ? `
       <p style="margin:24px 0;">
         <a href="${escapeHtml(adminOrderUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Odpri naročilo v administraciji</a>
@@ -321,16 +384,16 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
 <html lang="sl">
   <body style="margin:0;background:#f1f5f9;padding:24px;font-family:Arial,sans-serif;color:#0f172a;">
     <div style="max-width:680px;margin:0 auto;border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:28px;">
-      <p style="margin:0 0 16px;color:#334155;">${escapeHtml(intro.greeting)}</p>
-      <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(intro.heading)}</h1>
-      <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${escapeHtml(intro.description)}</p>
+      <p style="margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
+      <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(content.heading)}</h1>
+      <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${multilineHtml(content.body)}</p>
       ${adminCustomerDetails}
       <div style="margin:20px 0 12px;font-size:14px;color:#64748b;">
-        <strong style="color:#0f172a;">Naročilo:</strong> ${escapeHtml(order.orderNumber)}<br>
+        ${adminOrderNumber}
         <strong style="color:#0f172a;">Datum:</strong> ${escapeHtml(formatDate(order.createdAt))}<br>
         <strong style="color:#0f172a;">Status:</strong> ${escapeHtml(orderStatusLabel(payload.eventType))}
       </div>
-      ${buildHtmlItems(order.items)}
+      ${buildHtmlItems(order.items, payload.settingsSnapshot.siteUrl)}
       <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px 0 0 auto;border-collapse:collapse;">
         ${buildHtmlTotals(order)}
       </table>
@@ -350,20 +413,24 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
       ].filter((line): line is string => Boolean(line)).join('\n')
     : '';
   const text = [
-    intro.greeting,
+    content.greeting,
     '',
-    intro.heading,
-    intro.description,
+    content.heading,
+    content.body,
     adminText ? `\n${adminText}` : '',
     '',
-    `Naročilo: ${safeBodyText(order.orderNumber)}`,
+    payload.audience === 'admin'
+      ? `Naročilo: ${safeBodyText(payload.order.orderNumber)}`
+      : '',
     `Datum: ${formatDate(order.createdAt)}`,
     `Status: ${orderStatusLabel(payload.eventType)}`,
     '',
     buildTextItems(order.items),
     '',
     buildTextTotals(order),
-    payload.audience === 'admin' ? `\nAdministracija: ${adminOrderUrl}` : '',
+    payload.audience === 'admin' && adminOrderUrl
+      ? `\nAdministracija: ${adminOrderUrl}`
+      : '',
     footer ? `\n${footer}` : ''
   ].join('\n').replace(/\n{3,}/gu, '\n\n').trim();
 
@@ -371,7 +438,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     from,
     to,
     ...(replyTo ? { replyTo } : {}),
-    subject,
+    subject: content.subject,
     html,
     text
   };

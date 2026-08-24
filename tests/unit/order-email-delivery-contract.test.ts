@@ -101,7 +101,7 @@ test('cron recovery is authenticated and deployable on Vercel Hobby cadence', ()
 
 test('provider secret is server-only and explicitly removed from E2E runtime', () => {
   const client = source(
-    'src/admin/features/e-posta/components/AdminOrderEmailSettingsPageClient.tsx'
+    'src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx'
   );
   const e2eServer = source('scripts/e2e-server.mjs');
   const example = source('.env.example');

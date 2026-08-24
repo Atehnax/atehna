@@ -8,7 +8,7 @@ import { useToast } from '@/shared/ui/toast';
 
 const primaryLinks = [
   { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
-  { href: '/admin/e-posta', label: 'E-pošta', icon: MailIcon },
+  { href: '/admin/email', label: 'Email', icon: MailIcon },
   { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
   { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },

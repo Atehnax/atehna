@@ -12,10 +12,10 @@ test('admin can configure order email recipients and event controls without send
   const originalConfig = initialPayload.state.config;
 
   try {
-    await page.goto('/admin/e-posta');
+    await page.goto('/admin/email');
 
-    await expect(page.getByRole('heading', { name: 'Samodejna e-pošta' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'E-pošta' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Email', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Email', exact: true })).toBeVisible();
     await expect(page.getByText('Pošiljanje je v E2E izklopljeno')).toBeVisible();
     await expect(page.getByTestId('order-email-event-order_submitted-customer')).toBeChecked();
     await expect(page.getByTestId('order-email-event-in_progress-admins')).toBeChecked();

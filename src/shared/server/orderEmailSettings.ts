@@ -323,7 +323,7 @@ export async function updateOrderEmailSettings(
         {
           entityType: 'system',
           entityId: ORDER_EMAIL_SETTINGS_KEY,
-          entityLabel: 'Samodejna e-pošta',
+          entityLabel: 'Email',
           action: 'updated',
           summary: 'Nastavitve samodejne e-pošte posodobljene',
           metadata: {

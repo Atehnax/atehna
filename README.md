@@ -13,7 +13,7 @@ Atehna includes:
 - `/admin/podoba/artikli` catalogue, product-page, and cart presentation
   settings.
 - `/admin/orders` with compact analytics previews and order operations.
-- `/admin/e-posta` controls automatic customer and administrator order emails.
+- `/admin/email` controls automatic customer and administrator order emails.
 - `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
 
 ## Admin analytics extension guide
@@ -105,7 +105,7 @@ status-change jobs are inserted in the same transaction as the order mutation,
 then attempted after the HTTP response so checkout and admin saves do not wait
 for the provider. A CRON_SECRET-protected daily Vercel job recovers pending or
 stale work, while failed jobs and a manual retry action are visible at
-`/admin/e-posta`. The daily schedule remains compatible with Vercel Hobby;
+`/admin/email`. The daily schedule remains compatible with Vercel Hobby;
 normal successful delivery is still attempted immediately.
 
 To activate delivery for `www.atehna-test.site`:
@@ -121,7 +121,7 @@ To activate delivery for `www.atehna-test.site`:
    code. This repository intentionally does not migrate an existing database;
    use the documented fresh-database deployment flow or coordinate an explicit
    external schema rollout before activation.
-4. Open `/admin/e-posta`. Set a verified From address, for example
+4. Open `/admin/email`. Set a verified From address, for example
    `narocila@updates.atehna-test.site`; set a real Reply-To inbox; add one or more
    administrator recipient inboxes; review the customer/admin event matrix; and
    save while the master switch is still off.

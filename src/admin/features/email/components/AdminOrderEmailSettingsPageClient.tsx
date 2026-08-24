@@ -470,7 +470,7 @@ export default function AdminOrderEmailSettingsPageClient({
   return (
     <div className="w-full space-y-5 font-['Inter',system-ui,sans-serif]">
       <AdminPageHeader
-        title="Samodejna e-pošta"
+        title="Email"
         description="Nastavite obvestila za stranke in administratorje ob oddaji naročila ter spremembah statusa."
         actions={(
           <button

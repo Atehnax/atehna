@@ -1,10 +1,10 @@
-import AdminOrderEmailSettingsPageClient from '@/admin/features/e-posta/components/AdminOrderEmailSettingsPageClient';
+import AdminOrderEmailSettingsPageClient from '@/admin/features/email/components/AdminOrderEmailSettingsPageClient';
 import { getOrderEmailAdminState } from '@/shared/server/orderEmailSettings';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Samodejna e-pošta'
+  title: 'Email'
 };
 
 export default async function AdminOrderEmailSettingsPage() {

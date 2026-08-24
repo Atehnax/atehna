@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
+  classifyOrderEmailDeliveryValidationFailure,
   classifyResendFailure,
   createOrderEmailDeliveryEnvelope,
   MAX_RESEND_RETRY_AFTER_MS,
@@ -37,8 +38,6 @@ function payload(): OrderEmailJobPayload {
     previousStatus: 'in_progress',
     settingsSnapshot: toStoredOrderEmailSettings(settings),
     order: {
-      orderId: 42,
-      orderNumber: '#42',
       createdAt: '2026-08-24T08:15:00.000Z',
       customer: {
         organizationName: null,
@@ -52,7 +51,8 @@ function payload(): OrderEmailJobPayload {
           name: 'Varen izdelek',
           unit: 'kos',
           quantity: 2,
-          lineGross: 24.4
+          lineGross: 24.4,
+          imageUrl: null
         }
       ],
       totals: {
@@ -80,14 +80,14 @@ describe('persisted order email delivery envelope', () => {
       email: expectedMessage.to,
       name: 'Ana Kupec'
     });
-    assert.equal(envelope.version, 1);
+    assert.equal(envelope.version, 2);
     assert.equal(envelope.eventType, 'partially_sent');
     assert.equal(envelope.audience, 'customer');
     assert.equal(Object.isFrozen(envelope), true);
     assert.equal(Object.isFrozen(envelope.message), true);
     assert.equal(Object.isFrozen(envelope.recipient), true);
 
-    source.order.orderNumber = '#changed-after-enqueue';
+    source.order.items[0]!.name = 'Changed after enqueue';
     source.settingsSnapshot.subjectPrefix = 'Changed';
     assert.deepEqual(envelope.message, expectedMessage);
   });
@@ -99,6 +99,46 @@ describe('persisted order email delivery envelope', () => {
 
     assert.deepEqual(parsed, envelope);
     assert.deepEqual(parsed.message, buildOrderEmailMessage(payload()));
+  });
+
+  test('rejects a seeded legacy v1 customer envelope as terminal invalid payload', () => {
+    const legacyEnvelope = mutableJsonObject(
+      serializeOrderEmailDeliveryEnvelope(
+        createOrderEmailDeliveryEnvelope(payload())
+      )
+    );
+    legacyEnvelope.version = 1;
+    const legacyMessage = legacyEnvelope.message as Record<string, unknown>;
+    legacyMessage.subject = '[Atehna] Naročilo #42 smo prejeli';
+    legacyMessage.html = '<p>Prejeli smo naročilo #42.</p>';
+    legacyMessage.text = 'Prejeli smo naročilo #42.';
+
+    for (const processingPath of [
+      'initial worker processing',
+      'processing after manual retry'
+    ]) {
+      let parseError: unknown;
+      try {
+        parseOrderEmailDeliveryEnvelope(legacyEnvelope);
+        assert.fail(`legacy v1 envelope must not pass ${processingPath}`);
+      } catch (error) {
+        parseError = error;
+      }
+
+      assert.ok(
+        parseError instanceof OrderEmailDeliveryEnvelopeValidationError
+      );
+      assert.match(parseError.message, /\$\.version: must equal 2/u);
+      assert.deepEqual(
+        classifyOrderEmailDeliveryValidationFailure(parseError),
+        {
+          disposition: 'terminal',
+          category: 'invalid_payload',
+          status: null,
+          retryAfterMs: null
+        }
+      );
+    }
   });
 
   test('rejects malformed, mismatched, injected, and forward-version payloads', () => {
@@ -114,10 +154,10 @@ describe('persisted order email delivery envelope', () => {
     );
 
     const futureVersion = mutableJsonObject(serialized);
-    futureVersion.version = 2;
+    futureVersion.version = 3;
     assert.throws(
       () => parseOrderEmailDeliveryEnvelope(futureVersion),
-      /\$\.version: must equal 1/u
+      /\$\.version: must equal 2/u
     );
 
     const pluralAudience = mutableJsonObject(serialized);
@@ -169,7 +209,7 @@ describe('persisted order email delivery envelope', () => {
     const redacted = redactOrderEmailDeliveryEnvelope(envelope);
 
     assert.deepEqual(redacted, {
-      version: 1,
+      version: 2,
       redacted: true,
       eventType: 'partially_sent',
       audience: 'customer'

@@ -121,12 +121,28 @@ To activate delivery for `www.atehna-test.site`:
    code. This repository intentionally does not migrate an existing database;
    use the documented fresh-database deployment flow or coordinate an explicit
    external schema rollout before activation.
-4. Open `/admin/email`. Set a verified From address, for example
-   `narocila@updates.atehna-test.site`; set a real Reply-To inbox; add one or more
-   administrator recipient inboxes; review the customer/admin event matrix; and
-   save while the master switch is still off.
+4. Open `/admin/email` on the `Nastavitve` tab. Set a verified From address, for
+   example `narocila@updates.atehna-test.site`; set a real Reply-To inbox; add
+   one or more administrator recipient inboxes; and review the customer/admin
+   event matrix. Set the canonical website URL to
+   `https://www.atehna-test.site`, not to the mail subdomain, because it is used
+   for links to the administration and site-relative product images. Save while
+   the master switch is still off.
 5. Send a test message from the same page. After it is accepted by Resend and
    arrives in the expected inbox, enable the master switch and save again.
+
+`/admin/email` separates delivery controls under `Nastavitve` from per-event
+customer and administrator subjects and introductory text under `Predloge`.
+The internal sequential order number is intentionally unavailable to customer
+templates and is not disclosed in customer messages. Administrator templates
+may use `{{order_number}}`. The order summary, line items, and product images
+are appended automatically rather than authored in the templates.
+
+Product images use public URLs captured in the order snapshot. These URLs must
+remain anonymously reachable over HTTPS because inbox clients cannot access
+private order-document blobs or an authenticated application session. The item
+name, SKU, quantity, and amount remain in both HTML and plain text when an image
+is missing or blocked.
 
 Registering a domain in Vercel does not create a receiving mailbox. The From
 address may be send-only, but Reply-To and administrator recipients must be real
@@ -139,11 +155,21 @@ later manual transition, `Zaključeno`, and `Preklicano` remain available as
 separate opt-in events. The customer email always comes from the immutable order
 snapshot, while every administrator receives a separate message so addresses
 are not exposed through CC/BCC. Each rendered provider request is snapshotted in
-the outbox, and the master switch pauses both new and queued delivery. A sent job
-means Resend accepted the message, not that it was ultimately delivered to or
-opened by the recipient; final delivery and bounce status remain visible in
-Resend. Accepted jobs have their message content redacted and are pruned after
-30 days.
+the outbox. Changes to settings or templates therefore affect only jobs queued
+after the change; already queued jobs retain their rendered sender, content,
+links, and image snapshot URLs when retried. The master switch pauses both new
+and queued delivery.
+
+The rendered delivery envelope is versioned independently of the database
+schema. Workers accept only the current v2 envelope. Any unsent legacy v1
+outbox row is rejected as terminal `invalid_payload`, marked failed, and is
+never submitted to Resend or automatically retried. A manual retry leaves its
+payload unchanged and is rejected by the same version gate. Production was
+verified to have no such pending legacy rows before this rollout, so no queue
+or schema migration is included. A sent job means Resend accepted the message,
+not that it was ultimately delivered to or opened by the recipient; final delivery and
+bounce status remain visible in Resend. Accepted jobs have their message content
+redacted and are pruned after 30 days.
 
 
 The Slovenian checkout address index is refreshed from the official GURS

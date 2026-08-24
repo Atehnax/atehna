@@ -45,8 +45,11 @@ test('status transitions serialize mutation, log, audit, and email enqueue in on
 
 test('email worker is per-recipient, idempotent, retryable, and hard-disabled in E2E', () => {
   const worker = source('src/shared/server/orderEmailJobs.ts');
+  const delivery = source('src/shared/domain/order/orderEmailDelivery.ts');
   const schema = source('database/schema.sql');
 
+  assert.match(delivery, /ORDER_EMAIL_DELIVERY_ENVELOPE_VERSION = 2 as const/u);
+  assert.match(delivery, /category: 'invalid_payload'/u);
   assert.match(worker, /if \(isOrderEmailTransportDisabledForE2e\(\)\)/u);
   assert.match(worker, /'Idempotency-Key': idempotencyKey/u);
   assert.match(worker, /`atehna-order-email\/\$\{job\.id\}`/u);
@@ -60,6 +63,18 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   assert.match(worker, /serializeOrderEmailDeliveryEnvelope\(envelope\)/u);
   assert.match(worker, /parseOrderEmailDeliveryEnvelope\(job\.payloadJson\)/u);
   assert.match(worker, /sendOrderEmailMessage\(\s*envelope\.message,/u);
+  const parseIndex = worker.indexOf(
+    'const envelope = parseOrderEmailDeliveryEnvelope(job.payloadJson);'
+  );
+  const sendIndex = worker.indexOf(
+    'const providerMessageId = await sendOrderEmailMessage(',
+    parseIndex
+  );
+  assert.ok(
+    parseIndex > 0 && sendIndex > parseIndex,
+    'the versioned envelope must parse before any provider request'
+  );
+  assert.match(worker, /classifyOrderEmailDeliveryValidationFailure\(error\)/u);
   assert.match(worker, /redactOrderEmailDeliveryEnvelope\(envelope\)/u);
   assert.match(worker, /classifyResendFailure/u);
   assert.match(worker, /MAX_CLAIM_SIZE = 2/u);
@@ -67,6 +82,19 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   assert.match(worker, /deadlineMs: WORKER_DEADLINE_MS/u);
   assert.match(worker, /\(result\.rowCount \?\? 0\) !== 1/u);
   assert.match(worker, /isResendApiKeyConfigured\(\)/u);
+  assert.match(worker, /select sku, name, unit, quantity, line_gross, image_url/u);
+  assert.match(worker, /imageUrl: optionalString\(item\.image_url\)/u);
+  assert.match(worker, /order: toCustomerOrderSnapshot\(order\)/u);
+  const manualRetryStart = worker.indexOf(
+    'export async function resetFailedOrderEmailJobs'
+  );
+  const manualRetryEnd = worker.indexOf(
+    'export async function sendOrderEmailTest',
+    manualRetryStart
+  );
+  const manualRetryBody = worker.slice(manualRetryStart, manualRetryEnd);
+  assert.match(manualRetryBody, /set status = 'pending'/u);
+  assert.doesNotMatch(manualRetryBody, /payload_json/u);
   assert.doesNotMatch(worker, /buildOrderEmailMessage\(job\./u);
   assert.doesNotMatch(worker, /\bcc\s*:|\bbcc\s*:/iu);
   assert.match(schema, /audience in \('customer', 'admin'\)/u);

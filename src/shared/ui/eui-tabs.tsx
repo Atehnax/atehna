@@ -5,6 +5,7 @@ import type { KeyboardEvent } from 'react';
 type EuiTabItem = {
   value: string;
   label: string;
+  panelId?: string;
 };
 
 type EuiTabsProps = {
@@ -14,15 +15,40 @@ type EuiTabsProps = {
   className?: string;
   surface?: 'page' | 'panel';
   tabClassName?: string;
+  ariaLabel?: string;
+  idPrefix?: string;
 };
 
-export default function EuiTabs({ value, onChange, tabs, className, surface = 'page', tabClassName }: EuiTabsProps) {
+export default function EuiTabs({
+  value,
+  onChange,
+  tabs,
+  className,
+  surface = 'page',
+  tabClassName,
+  ariaLabel,
+  idPrefix
+}: EuiTabsProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    }
+    if (nextIndex === null) return;
+
     event.preventDefault();
-    const direction = event.key === 'ArrowRight' ? 1 : -1;
-    const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    const nextTab = event.currentTarget
+      .closest('[role="tablist"]')
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      .item(nextIndex);
     onChange(tabs[nextIndex]?.value ?? value);
+    nextTab?.focus();
   };
 
   const activeRaisedSurfaceClassName = surface === 'panel'
@@ -32,20 +58,24 @@ export default function EuiTabs({ value, onChange, tabs, className, surface = 'p
   return (
     <div
       role="tablist"
+      aria-label={ariaLabel}
       aria-orientation="horizontal"
       className={`relative flex w-full items-end gap-0 border-b border-slate-200 ${className ?? ''}`.trim()}
     >
-      {tabs.map((tab) => {
+      {tabs.map((tab, tabIndex) => {
         const active = tab.value === value;
+        const tabId = idPrefix ? `${idPrefix}-tab-${tab.value}` : undefined;
         return (
           <button
             key={tab.value}
+            id={tabId}
             type="button"
             role="tab"
             aria-selected={active}
+            aria-controls={tab.panelId}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(tab.value)}
-            onKeyDown={(event) => onKeyDown(event, tabs.findIndex((entry) => entry.value === tab.value))}
+            onKeyDown={(event) => onKeyDown(event, tabIndex)}
             className={
               `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
                 active

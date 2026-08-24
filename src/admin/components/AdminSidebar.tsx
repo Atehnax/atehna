@@ -8,7 +8,6 @@ import { useToast } from '@/shared/ui/toast';
 
 const primaryLinks = [
   { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
-  { href: '/admin/email', label: 'Email', icon: MailIcon },
   { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
   { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
@@ -16,6 +15,7 @@ const primaryLinks = [
   { href: '/admin/podoba/glavna-stran', label: 'Podoba', icon: PaletteIcon },
   { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
   { href: '/admin/urejevalnik', label: 'Urejevalnik', icon: FilePenLineIcon },
+  { href: '/admin/email', label: 'Email', icon: MailIcon },
   { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
   { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
 ] as const;

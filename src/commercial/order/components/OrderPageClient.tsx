@@ -808,8 +808,9 @@ export default function OrderPageClient() {
                   id="order-school-notice-message"
                   className="order-school-notice__message site-radius-sm bg-[color:var(--site-color-surface-muted)] p-3 text-sm text-[color:var(--site-color-text-muted)]"
                 >
-                  Šolsko naročilo bomo po oddaji pregledali. Nato prejmete
-                  ponudbo in navodila za naročilnico.
+                  Po oddaji boste po e-pošti prejeli varno povezavo za
+                  nalaganje naročilnice. Naročilo začnemo obdelovati šele po
+                  prejemu in pregledu naročilnice.
                 </p>
               </div>
             </div>

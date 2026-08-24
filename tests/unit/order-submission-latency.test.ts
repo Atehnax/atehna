@@ -20,7 +20,7 @@ test('order submission copy distinguishes committed orders from pending confirma
     eyebrow: 'Potrditev',
     heading: 'Naročilo je prejeto',
     description:
-      'Vaše naročilo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico. Zaloga do potrditve še ni rezervirana.',
+      'Po e-pošti boste prejeli varno povezavo za nalaganje naročilnice. Naročilo začnemo obdelovati šele po prejemu in pregledu naročilnice. Zaloga do potrditve še ni rezervirana.',
     symbol: '…',
     tone: 'info'
   });

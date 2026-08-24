@@ -785,7 +785,9 @@ export async function POST(request: Request) {
       eventKey: `order-submitted:${inserted.orderId}`,
       eventType: 'order_submitted',
       occurredAt: inserted.createdAt,
-      previousStatus: null
+      previousStatus: null,
+      customerOrderAccessToken:
+        customer.customerType === 'school' ? accessToken.token : null
     });
     await client.query(
       `

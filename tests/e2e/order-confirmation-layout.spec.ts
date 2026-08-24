@@ -798,7 +798,7 @@ test.describe('order confirmation layout', () => {
     const status = page.getByTestId('order-submission-status');
     await expect(status.getByRole('heading', { level: 1, name: 'Naročilo je prejeto' })).toBeVisible();
     await expect(status).toContainText(
-      'Vaše naročilo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico.'
+      'Po e-pošti boste prejeli varno povezavo za nalaganje naročilnice. Naročilo začnemo obdelovati šele po prejemu in pregledu naročilnice. Zaloga do potrditve še ni rezervirana.'
     );
 
     const infoColor = await resolveThemeColor(status, '--site-color-info');

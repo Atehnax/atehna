@@ -176,6 +176,13 @@ export function buildOrderConfirmationAccessUrl(token: string): string {
   return `/order/confirmation#token=${encodeURIComponent(token.trim())}`;
 }
 
+export function buildPurchaseOrderAccessUrl(token: string): string {
+  if (!isOrderAccessToken(token)) {
+    throw new Error('Cannot build a purchase-order URL from an invalid access token.');
+  }
+  return `/order/narocilnica#token=${encodeURIComponent(token.trim())}`;
+}
+
 function normalizeTtlDays(value?: number): number {
   if (!Number.isFinite(value)) return DEFAULT_TOKEN_TTL_DAYS;
   return Math.min(MAX_TOKEN_TTL_DAYS, Math.max(MIN_TOKEN_TTL_DAYS, Math.floor(value!)));

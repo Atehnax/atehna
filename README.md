@@ -133,10 +133,32 @@ To activate delivery for `www.atehna-test.site`:
 
 `/admin/email` separates delivery controls under `Nastavitve` from per-event
 customer and administrator subjects and introductory text under `Predloge`.
+Submitted orders from a customer of type `Šola / javni zavod` use a dedicated,
+editable customer subject and body variant. The renderer automatically appends
+the organization, contact person, optional customer reference, and a
+`Naloži naročilnico` call to action, so these operational details do not have
+to be repeated in editable prose.
+
+The purchase-order call to action is a same-origin URL with its
+bootstrap bearer in the fragment (`#token=...`). The browser exchanges that
+fragment for the protected order session; it must not be converted into a query
+parameter or logged. Leave Resend click tracking disabled for the sending domain
+or message stream used by these emails. A tracking redirect would rewrite the
+fragment-bearing security URL and can expose or break the credential flow.
+
 The internal sequential order number is intentionally unavailable to customer
 templates and is not disclosed in customer messages. Administrator templates
 may use `{{order_number}}`. The order summary, line items, and product images
 are appended automatically rather than authored in the templates.
+
+Schools and public institutions upload a signed or approved PDF/JPG of at most
+10 MB at `/order/narocilnica`. The verified session associates the document
+with the order automatically; the customer never enters an internal order ID.
+The admin API refuses to make such an order binding without an active,
+non-deleted `purchase_order` document. It also refuses `V obdelavi`,
+`Delno poslano`, `Poslano`, and `Zaključeno` unless the document remains
+active and the order is binding. Confirming the binding state is the point at
+which stock is reserved.
 
 Product images use public URLs captured in the order snapshot. These URLs must
 remain anonymously reachable over HTTPS because inbox clients cannot access

@@ -9,6 +9,10 @@ import {
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
+const formatFileSize = (size: number) =>
+  new Intl.NumberFormat('sl-SI', {
+    maximumFractionDigits: 1
+  }).format(size / (1024 * 1024));
 
 type AccessState =
   | { status: 'loading' }
@@ -19,8 +23,13 @@ export default function PurchaseOrderUploadForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState('');
-  const [accessState, setAccessState] = useState<AccessState>({ status: 'loading' });
+  const [selectedFile, setSelectedFile] = useState<{
+    name: string;
+    size: number;
+  } | null>(null);
+  const [accessState, setAccessState] = useState<AccessState>({
+    status: 'loading'
+  });
   const bootstrapTokenRef = useRef<string | null>(null);
   const locationTokenConsumedRef = useRef(false);
   const hasAccess = accessState.status === 'ready';
@@ -35,13 +44,15 @@ export default function PurchaseOrderUploadForm() {
 
       let accessId = readStoredOrderAccessId();
       if (bootstrapTokenRef.current) {
-        const session = await exchangeOrderAccessToken(bootstrapTokenRef.current);
+        const session = await exchangeOrderAccessToken(
+          bootstrapTokenRef.current
+        );
         accessId = session.accessId;
         bootstrapTokenRef.current = null;
       }
       if (!accessId) {
         throw new Error(
-          'Povezava za nalaganje ni veljavna. Uporabite povezavo iz potrditve naročila.'
+          'Povezava za nalaganje ni veljavna. Uporabite varno povezavo iz e-pošte ali potrditve naročila.'
         );
       }
 
@@ -69,7 +80,7 @@ export default function PurchaseOrderUploadForm() {
 
     if (accessState.status !== 'ready') {
       setMessage(
-        'Povezava za nalaganje ni veljavna. Uporabite povezavo iz potrditve naročila.'
+        'Povezava za nalaganje ni veljavna. Uporabite varno povezavo iz e-pošte ali potrditve naročila.'
       );
       return;
     }
@@ -99,12 +110,12 @@ export default function PurchaseOrderUploadForm() {
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/orders/purchase-order', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'X-Order-Access-Id': accessState.accessId
-          },
-          body: formData
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-Order-Access-Id': accessState.accessId
+        },
+        body: formData
       });
       const payload: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -121,12 +132,16 @@ export default function PurchaseOrderUploadForm() {
 
       const result = payload as { url?: string };
       setUploadedUrl(result.url ?? null);
-      setMessage('Naročilnica je uspešno shranjena.');
+      setMessage(
+        'Naročilnica je uspešno naložena in povezana z vašim naročilom.'
+      );
       form.reset();
-      setSelectedFileName('');
+      setSelectedFile(null);
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : 'Napaka pri nalaganju datoteke.'
+        error instanceof Error
+          ? error.message
+          : 'Napaka pri nalaganju datoteke.'
       );
     } finally {
       setIsSubmitting(false);
@@ -148,20 +163,32 @@ export default function PurchaseOrderUploadForm() {
           type="file"
           accept="application/pdf,image/jpeg"
           className="peer sr-only"
-          onChange={(event) =>
-            setSelectedFileName(event.target.files?.[0]?.name ?? '')
-          }
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            setSelectedFile(file ? { name: file.name, size: file.size } : null);
+          }}
         />
         <label
           htmlFor="purchaseOrder"
           className="site-radius-md flex min-h-16 cursor-pointer items-center gap-3 border border-dashed border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] px-4 transition hover:border-[color:var(--site-color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--site-field-focus)]"
         >
           <span className="site-button site-button--secondary pointer-events-none inline-flex shrink-0 items-center justify-center">
-            Izberi datoteko
+            {selectedFile ? 'Zamenjaj datoteko' : 'Izberi datoteko'}
           </span>
-          <span className="min-w-0 truncate text-sm text-[color:var(--site-color-text-muted)]">
-            {selectedFileName || 'PDF ali JPG, največ 10 MB'}
-          </span>
+          {selectedFile ? (
+            <span className="min-w-0 text-sm">
+              <span className="block truncate font-semibold text-[color:var(--site-color-text)]">
+                {selectedFile.name}
+              </span>
+              <span className="block text-xs text-[color:var(--site-color-text-muted)]">
+                {formatFileSize(selectedFile.size)} MB
+              </span>
+            </span>
+          ) : (
+            <span className="min-w-0 truncate text-sm text-[color:var(--site-color-text-muted)]">
+              Podpisan PDF ali JPG, največ 10 MB
+            </span>
+          )}
         </label>
       </div>
 
@@ -221,7 +248,7 @@ export default function PurchaseOrderUploadForm() {
         disabled={isSubmitting || !hasAccess}
         className="site-button site-button--primary inline-flex w-full items-center justify-center disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
-        {isSubmitting ? 'Nalaganje …' : 'Naloži naročilnico'}
+        {isSubmitting ? 'Varno nalaganje …' : 'Naloži naročilnico'}
       </button>
 
       {message ? (

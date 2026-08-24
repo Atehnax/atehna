@@ -35,11 +35,14 @@ function configuredSettings(): OrderEmailSettings {
 
 function jobPayload(
   audience: OrderEmailJobPayload['audience'] = 'customer',
-  eventType: OrderEmailEventType = 'order_submitted'
+  eventType: OrderEmailEventType = 'order_submitted',
+  customerType: 'individual' | 'company' | 'school' = 'company'
 ): OrderEmailJobPayload {
+  const orderAccessToken = `ath_order_${'S'.repeat(43)}`;
   const order = {
     createdAt: '2026-08-24T08:15:00.000Z',
     customer: {
+      customerType,
       organizationName: 'Primer & sinovi <d.o.o.>',
       contactName: 'Ana <Kupec>',
       email: 'kupec@example.com',
@@ -84,7 +87,11 @@ function jobPayload(
     : {
         ...payloadBase,
         audience: 'customer',
-        order
+        order,
+        purchaseOrderUploadUrl:
+          customerType === 'school' && eventType === 'order_submitted'
+            ? `https://www.atehna-test.site/order/narocilnica#token=${orderAccessToken}`
+            : null
       };
 }
 
@@ -110,16 +117,47 @@ describe('order email settings', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl, 'https://www.atehna-test.site');
-    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 2);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 3);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
       'customer_name',
+      'organization_name',
+      'contact_name',
+      'reference',
       'status',
       'previous_status'
+    ]);
+    assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer, [
+      'customer_name',
+      'organization_name',
+      'contact_name',
+      'reference',
+      'status'
     ]);
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.subject,
       'Vaše naročilo je bilo prejeto'
     );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
+      'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
+    );
+    const schoolBody =
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.body;
+    assert.match(schoolBody, /podpisani oziroma odobreni naro\u010dilnici/u);
+    assert.match(schoolBody, /spodaj izpisane podatke/u);
+    assert.match(
+      schoolBody,
+      /naro\u010dene artikle in zneske iz povzetka naro\u010dila/u
+    );
+    assert.match(schoolBody, /PDF ali JPG/u);
+    assert.match(schoolBody, /10 MB/u);
+    assert.match(schoolBody, /za\u010deli obdelovati po prejemu/u);
+    assert.match(schoolBody, /samodejno in varno pove\u017ee/u);
+    assert.match(
+      schoolBody,
+      /interne \u0161tevilke naro\u010dila ni treba vpisati/u
+    );
+
 
 
     for (const event of ORDER_EMAIL_EVENT_DEFINITIONS) {
@@ -136,12 +174,18 @@ describe('order email settings', () => {
     clone.events.order_submitted.customer = false;
     clone.adminRecipients.push('changed@example.com');
     clone.templates.order_submitted.customer.subject = 'Spremenjeno';
+    clone.templates.order_submitted.schoolCustomer.subject = 'Spremenjeno za \u0161olo';
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.events.order_submitted.customer, true);
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.subject,
       'Vaše naročilo je bilo prejeto'
     );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
+      'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
+    );
+
 
     const normalized = normalizeOrderEmailSettings({
       enabled: true,
@@ -197,6 +241,36 @@ describe('order email settings', () => {
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.admin
     );
     assert.equal(normalized.updatedAt, '2026-08-24T09:00:00.000Z');
+  });
+
+  test('upgrades legacy version two settings with an independent default school template', () => {
+    const legacy = normalizeOrderEmailSettings({
+      version: 2,
+      templates: {
+        order_submitted: {
+          customer: {
+            subject: 'Legacy customer',
+            body: 'Legacy customer body'
+          },
+          admin: {
+            subject: 'Legacy admin',
+            body: 'Legacy admin body'
+          }
+        }
+      }
+    });
+
+    assert.equal(legacy.version, 3);
+    assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
+    assert.deepEqual(
+      legacy.templates.order_submitted.schoolCustomer,
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer
+    );
+    legacy.templates.order_submitted.schoolCustomer.subject = 'Mutated';
+    assert.notEqual(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
+      'Mutated'
+    );
   });
 
   test('requires HTTPS and falls back safely for malformed stored site URLs', () => {
@@ -273,6 +347,21 @@ describe('order email settings', () => {
     assert.deepEqual(validateOrderEmailSettingsInput(settings), []);
   });
 
+  test('rejects internal identifiers in the school or public-institution template', () => {
+    const settings = configuredSettings();
+    settings.templates.order_submitted.schoolCustomer = {
+      subject: 'Prejeto {{organization_name}}',
+      body: 'Interna referenca {{order_number}} za {{contact_name}}.'
+    };
+
+    const errors = validateOrderEmailSettingsInput(settings);
+    assert.ok(
+      errors.some((error) =>
+        /\{\{order_number\}\}.*\u0161olo ali javni zavod/u.test(error)
+      )
+    );
+  });
+
   test('rejects explicit malformed event and audience template containers', () => {
     const malformedContainers: unknown[] = ['invalid', null, []];
     for (const malformed of malformedContainers) {
@@ -324,7 +413,7 @@ describe('order email settings', () => {
     settings.updatedAt = '2026-08-24T09:00:00.000Z';
     const stored = toStoredOrderEmailSettings(settings);
     assert.equal('updatedAt' in stored, false);
-    assert.equal(stored.version, 2);
+    assert.equal(stored.version, 3);
     assert.notStrictEqual(stored.events, settings.events);
     assert.notStrictEqual(stored.templates, settings.templates);
     assert.notStrictEqual(stored.adminRecipients, settings.adminRecipients);
@@ -365,6 +454,104 @@ describe('order email templates', () => {
       `${message.subject}\n${message.html}\n${message.text}`,
       /#PRIVATE-42|\/admin\/orders\/42|order\/confirmation|access[_-]?token|blob_pathname|private.*document/iu
     );
+  });
+
+  test('renders the customized school template, fixed details, and one fragment credential', () => {
+    const payload = jobPayload(
+      'customer',
+      'order_submitted',
+      'school'
+    ) as Extract<OrderEmailJobPayload, { audience: 'customer' }>;
+    payload.settingsSnapshot.templates.order_submitted.schoolCustomer = {
+      subject: '{{organization_name}}: nalo\u017eite naro\u010dilnico',
+      body:
+        'Kontakt {{contact_name}}, za naro\u010dnika {{organization_name}} uporabite referenco {{reference}}.'
+    };
+    Object.assign(payload.order, {
+      orderId: 42,
+      orderNumber: '#PRIVATE-42'
+    });
+
+    const message = buildOrderEmailMessage(payload);
+    const output = `${message.subject}\n${message.html}\n${message.text}`;
+    const tokenPattern = /ath_order_[A-Za-z0-9_-]{43}/gu;
+    const tokens = output.match(tokenPattern) ?? [];
+
+    assert.equal(
+      message.subject,
+      '[Atehna] Primer & sinovi <d.o.o.>: nalo\u017eite naro\u010dilnico'
+    );
+    assert.match(message.html, /Podatki za naro\u010dilnico/u);
+    assert.match(
+      message.html,
+      /Naro\u010dnik:<\/strong> Primer &amp; sinovi &lt;d\.o\.o\.&gt;/u
+    );
+    assert.match(
+      message.html,
+      /Kontaktna oseba:<\/strong> Ana &lt;Kupec&gt;/u
+    );
+    assert.match(
+      message.html,
+      /Va\u0161a referenca:<\/strong> REF &amp; &lt;pomembno&gt;/u
+    );
+    assert.match(message.html, />Nalo\u017ei naro\u010dilnico<\/a>/u);
+    assert.match(
+      message.text,
+      /Naro\u010dnik: Primer & sinovi <d\.o\.o\.>[\s\S]*Kontaktna oseba: Ana <Kupec>[\s\S]*Va\u0161a referenca: REF & <pomembno>/u
+    );
+    assert.match(
+      output,
+      /https:\/\/www\.atehna-test\.site\/order\/narocilnica#token=ath_order_[A-Za-z0-9_-]{43}/u
+    );
+    assert.equal(tokens.length, 2);
+    assert.equal(new Set(tokens).size, 1);
+    assert.doesNotMatch(output, /#PRIVATE-42|\/admin\/orders\/42|narocilnica\?/u);
+  });
+
+  test('never emits the school credential to admins, non-school customers, or status emails', () => {
+    const secureUrl =
+      `https://www.atehna-test.site/order/narocilnica#token=ath_order_${'S'.repeat(43)}`;
+    const payloads: OrderEmailJobPayload[] = [
+      jobPayload('admin', 'order_submitted', 'school'),
+      jobPayload('customer', 'order_submitted', 'company'),
+      jobPayload('customer', 'in_progress', 'school')
+    ];
+
+    for (const payload of payloads) {
+      Object.assign(payload, { purchaseOrderUploadUrl: secureUrl });
+      const message = buildOrderEmailMessage(payload);
+      const output = `${message.subject}\n${message.html}\n${message.text}`;
+      assert.doesNotMatch(
+        output,
+        /ath_order_|\/order\/narocilnica|Nalo\u017ei naro\u010dilnico/u
+      );
+    }
+  });
+
+  test('omits the school CTA for a foreign origin, wrong path, query, or invalid token', () => {
+    const token = `ath_order_${'S'.repeat(43)}`;
+    const unsafeUrls = [
+      `https://evil.example/order/narocilnica#token=${token}`,
+      `https://www.atehna-test.site/order/confirmation#token=${token}`,
+      `https://www.atehna-test.site/order/narocilnica?token=${token}`,
+      'https://www.atehna-test.site/order/narocilnica#token=invalid',
+      `https://www.atehna-test.site/order/narocilnica#token=${token}&extra=1`
+    ];
+
+    for (const purchaseOrderUploadUrl of unsafeUrls) {
+      const payload = jobPayload(
+        'customer',
+        'order_submitted',
+        'school'
+      ) as Extract<OrderEmailJobPayload, { audience: 'customer' }>;
+      payload.purchaseOrderUploadUrl = purchaseOrderUploadUrl;
+      const message = buildOrderEmailMessage(payload);
+      const output = `${message.subject}\n${message.html}\n${message.text}`;
+      assert.doesNotMatch(
+        output,
+        /href="[^"]*\/order\/narocilnica|Varna oddaja naro\u010dilnice:|ath_order_/u
+      );
+    }
   });
 
   test('never reads an internal order number for any customer event', () => {

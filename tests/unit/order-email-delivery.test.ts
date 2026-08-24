@@ -37,9 +37,11 @@ function payload(): OrderEmailJobPayload {
     occurredAt: '2026-08-24T08:30:00.000Z',
     previousStatus: 'in_progress',
     settingsSnapshot: toStoredOrderEmailSettings(settings),
+    purchaseOrderUploadUrl: null,
     order: {
       createdAt: '2026-08-24T08:15:00.000Z',
       customer: {
+        customerType: 'company',
         organizationName: null,
         contactName: 'Ana Kupec',
         email: 'kupec@example.com',
@@ -90,6 +92,42 @@ describe('persisted order email delivery envelope', () => {
     source.order.items[0]!.name = 'Changed after enqueue';
     source.settingsSnapshot.subjectPrefix = 'Changed';
     assert.deepEqual(envelope.message, expectedMessage);
+  });
+
+  test('snapshots one school upload fragment for retries and redacts it after delivery', () => {
+    const source = payload() as Extract<
+      OrderEmailJobPayload,
+      { audience: 'customer' }
+    >;
+    const token = `ath_order_${'S'.repeat(43)}`;
+    const uploadUrl =
+      `https://www.atehna-test.site/order/narocilnica#token=${token}`;
+    source.eventType = 'order_submitted';
+    source.previousStatus = null;
+    source.order.customer.customerType = 'school';
+    source.purchaseOrderUploadUrl = uploadUrl;
+
+    const envelope = createOrderEmailDeliveryEnvelope(source);
+    const serialized = serializeOrderEmailDeliveryEnvelope(envelope);
+    source.purchaseOrderUploadUrl =
+      `https://www.atehna-test.site/order/narocilnica#token=ath_order_${'E'.repeat(43)}`;
+    const firstAttempt = parseOrderEmailDeliveryEnvelope(serialized);
+    const retryAttempt = parseOrderEmailDeliveryEnvelope(serialized);
+    const output = [
+      firstAttempt.message.subject,
+      firstAttempt.message.html,
+      firstAttempt.message.text
+    ].join('\n');
+
+    assert.equal(firstAttempt.version, 2);
+    assert.deepEqual(retryAttempt.message, firstAttempt.message);
+    assert.match(output, new RegExp(token, 'u'));
+    assert.doesNotMatch(output, /ath_order_E{43}/u);
+    assert.doesNotMatch(output, /\/order\/narocilnica\?token=/u);
+    assert.doesNotMatch(
+      JSON.stringify(redactOrderEmailDeliveryEnvelope(firstAttempt)),
+      /ath_order_|narocilnica/u
+    );
   });
 
   test('serializes and strictly parses JSONB without changing the message', () => {

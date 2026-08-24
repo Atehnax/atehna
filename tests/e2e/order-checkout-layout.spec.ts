@@ -613,7 +613,7 @@ test.describe('order checkout layout', () => {
 
     await expect(
       formColumn.getByText(
-        'Šolsko naročilo bomo po oddaji pregledali. Nato prejmete ponudbo in navodila za naročilnico.',
+        'Po oddaji boste po e-pošti prejeli varno povezavo za nalaganje naročilnice. Naročilo začnemo obdelovati šele po prejemu in pregledu naročilnice.',
         { exact: true }
       )
     ).toBeVisible();

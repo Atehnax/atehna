@@ -3,6 +3,10 @@ import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
+import {
+  SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS,
+  schoolBindingBlock
+} from '@/shared/domain/order/schoolOrderWorkflow';
 
 type CommitmentStatus = 'binding' | 'pending_confirmation' | 'rejected';
 
@@ -23,7 +27,10 @@ export async function POST(
   const params = await props.params;
   const orderId = Number(params.orderId);
   if (!Number.isSafeInteger(orderId) || orderId <= 0) {
-    return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
+    return NextResponse.json(
+      { message: 'Neveljaven ID naročila.' },
+      { status: 400 }
+    );
   }
 
   const bodyResult = await readRequiredJsonRecord(request);
@@ -63,7 +70,10 @@ export async function POST(
         | undefined;
       if (!order) {
         await client.query('rollback');
-        return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+        return NextResponse.json(
+          { message: 'Naročilo ne obstaja.' },
+          { status: 404 }
+        );
       }
 
       const previousStatus = order.commitment_status;
@@ -77,7 +87,10 @@ export async function POST(
       if (order.customer_type !== 'school') {
         await client.query('rollback');
         return NextResponse.json(
-          { message: 'Zavezujočega statusa neposrednega naročila ni mogoče spremeniti.' },
+          {
+            message:
+              'Zavezujočega statusa neposrednega naročila ni mogoče spremeniti.'
+          },
           { status: 409 }
         );
       }
@@ -96,9 +109,36 @@ export async function POST(
         if (order.deleted_at || order.status === 'cancelled') {
           await client.query('rollback');
           return NextResponse.json(
-            { message: 'Izbrisanega ali preklicanega naročila ni mogoče potrditi.' },
+            {
+              message:
+                'Izbrisanega ali preklicanega naročila ni mogoče potrditi.'
+            },
             { status: 409 }
           );
+        }
+
+        const purchaseOrderResult = await client.query(
+          `
+            select id
+            from order_documents
+            where order_id = $1
+              and type = 'purchase_order'
+              and deleted_at is null
+              and format_marker = any($2::text[])
+            order by id desc
+            limit 1
+            for share
+          `,
+          [orderId, [...SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS]]
+        );
+        const purchaseOrderBlock = schoolBindingBlock(
+          order.customer_type,
+          nextStatus,
+          purchaseOrderResult.rowCount === 1
+        );
+        if (purchaseOrderBlock) {
+          await client.query('rollback');
+          return NextResponse.json(purchaseOrderBlock, { status: 409 });
         }
 
         const itemsResult = await client.query(
@@ -262,7 +302,9 @@ export async function POST(
     }
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
+      {
+        message: error instanceof Error ? error.message : 'Napaka na strežniku.'
+      },
       { status: 500 }
     );
   }

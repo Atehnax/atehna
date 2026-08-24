@@ -11,7 +11,7 @@ type HeaderRule = {
   headers: Array<{ key: string; value: string }>;
 };
 
-test('only generated admin share URLs expose a fragment bootstrap secret', async () => {
+test('system-generated access URLs expose bootstrap secrets only in fragments', async () => {
   const orderAccessSource = await readFile(
     resolve(process.cwd(), 'src/shared/server/orderAccess.ts'),
     'utf8'
@@ -27,12 +27,33 @@ test('only generated admin share URLs expose a fragment bootstrap secret', async
     ),
     'utf8'
   );
+  const emailSettingsSource = await readFile(
+    resolve(process.cwd(), 'src/shared/domain/order/orderEmailSettings.ts'),
+    'utf8'
+  );
+  const adminEmailUiSource = await readFile(
+    resolve(
+      process.cwd(),
+      'src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx'
+    ),
+    'utf8'
+  );
 
   assert.match(
     orderAccessSource,
     /return `\/order\/confirmation#token=\$\{encodeURIComponent\(token\.trim\(\)\)\}`;/u
   );
   assert.doesNotMatch(orderAccessSource, /\/order\/confirmation\?token=/u);
+  assert.match(
+    orderAccessSource,
+    /return `\/order\/narocilnica#token=\$\{encodeURIComponent\(token\.trim\(\)\)\}`;/u
+  );
+  assert.doesNotMatch(orderAccessSource, /\/order\/narocilnica\?token=/u);
+  assert.doesNotMatch(emailSettingsSource, /purchase_order_upload_url|ath_order_/u);
+  assert.doesNotMatch(
+    adminEmailUiSource,
+    /purchaseOrderUploadUrl|ath_order_|narocilnica#token/u
+  );
   assert.doesNotMatch(
     checkoutRouteSource,
     /buildOrderConfirmationAccessUrl|confirmationToken|confirmationUrl:/u,

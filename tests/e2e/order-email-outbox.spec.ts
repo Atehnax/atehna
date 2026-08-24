@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import pg, { type Pool as PgPool } from 'pg';
+import {
+  parseOrderEmailDeliveryEnvelope,
+  type PersistedOrderEmailMessage
+} from '@/shared/domain/order/orderEmailDelivery';
 import type { OrderEmailSettings } from '@/shared/domain/order/orderEmailSettings';
+import { decryptOrderEmailDeliveryEnvelope } from '@/shared/server/orderEmailDeliveryCipher';
 import { ADMIN_STORAGE_STATE_PATH } from './support/auth';
 
 const { Pool } = pg;
@@ -9,6 +14,11 @@ const ADMIN_RECIPIENTS = [
   'e2e-orders-primary@example.com',
   'e2e-orders-secondary@example.com'
 ] as const;
+const E2E_ORDER_ACCESS_BOOTSTRAP_KEY =
+  'e2e-only-order-bootstrap-key-with-at-least-32-characters';
+const ORDER_ACCESS_TOKEN_PATTERN = /ath_order_[A-Za-z0-9_-]{43}/u;
+const PURCHASE_ORDER_UPLOAD_URL_PATTERN =
+  /https:\/\/www\.atehna-test\.site\/order\/narocilnica#token=ath_order_[A-Za-z0-9_-]{43}/u;
 
 type StoredSettingsRow = {
   config_json: unknown;
@@ -18,22 +28,40 @@ type StoredSettingsRow = {
 type OutboxRow = {
   event_key: string;
   event_type: string;
+  id: string;
+  order_id: string;
   audience: 'customer' | 'admin';
   recipient_email: string;
   status: string;
   attempts: number;
   claim_id: string | null;
   provider_message_id: string | null;
-  payload_json: {
-    message: {
-      subject: string;
-      html: string;
-      text: string;
-    };
-  };
+  payload_json: unknown;
 };
 
 let database: PgPool;
+
+function decryptOutboxMessage(row: OutboxRow): PersistedOrderEmailMessage {
+  const previousSecret = process.env.ORDER_ACCESS_BOOTSTRAP_KEY;
+  process.env.ORDER_ACCESS_BOOTSTRAP_KEY = E2E_ORDER_ACCESS_BOOTSTRAP_KEY;
+  try {
+    const serialized = decryptOrderEmailDeliveryEnvelope(
+      row.payload_json,
+      row.id,
+      Number(row.order_id)
+    );
+    const envelope = parseOrderEmailDeliveryEnvelope(serialized);
+    expect(envelope.eventType).toBe(row.event_type);
+    expect(envelope.audience).toBe(row.audience);
+    return envelope.message;
+  } finally {
+    if (previousSecret === undefined) {
+      delete process.env.ORDER_ACCESS_BOOTSTRAP_KEY;
+    } else {
+      process.env.ORDER_ACCESS_BOOTSTRAP_KEY = previousSecret;
+    }
+  }
+}
 
 function enabledE2eSettings(original: OrderEmailSettings): OrderEmailSettings {
   const disabledEvent = { customer: false, admins: false };
@@ -60,7 +88,9 @@ function enabledE2eSettings(original: OrderEmailSettings): OrderEmailSettings {
 
 async function readOutbox(orderId: number) {
   const result = await database.query<OutboxRow>(
-    `select event_key,
+    `select id,
+            order_id,
+            event_key,
             event_type,
             audience,
             recipient_email,
@@ -210,6 +240,7 @@ test.describe('order email outbox integration', () => {
         city: 'Ljubljana',
         postalCode: '1000',
         countryCode: 'SI',
+        reference: 'E2E-REF-2026',
         notes: '',
         items: [{ variantId: 920001, quantity: 1 }]
       };
@@ -244,24 +275,62 @@ test.describe('order email outbox integration', () => {
       const submissionJobs = jobs.filter((job) => job.event_type === 'order_submitted');
       const customerSubmission = submissionJobs.find((job) => job.audience === 'customer');
       const adminSubmission = submissionJobs.find((job) => job.audience === 'admin');
-      expect(customerSubmission).toBeDefined();
-      expect(adminSubmission).toBeDefined();
+      if (!customerSubmission || !adminSubmission) {
+        throw new Error('Expected one customer and at least one admin submission job.');
+      }
+      for (const job of submissionJobs) {
+        const rawPayload = JSON.stringify(job.payload_json);
+        expect(job.payload_json).toMatchObject({
+          version: 1,
+          algorithm: 'aes-256-gcm'
+        });
+        expect(rawPayload).not.toMatch(ORDER_ACCESS_TOKEN_PATTERN);
+        expect(rawPayload).not.toContain('narocilnica#token');
+        expect(rawPayload).not.toContain('"message"');
+      }
+      const customerSubmissionMessage = decryptOutboxMessage(customerSubmission);
+      const adminSubmissionMessage = decryptOutboxMessage(adminSubmission);
       const customerSubmissionContent = [
-        customerSubmission?.payload_json.message.subject,
-        customerSubmission?.payload_json.message.html,
-        customerSubmission?.payload_json.message.text
+        customerSubmissionMessage.subject,
+        customerSubmissionMessage.html,
+        customerSubmissionMessage.text
       ].join('\n');
-      expect(customerSubmission?.payload_json.message.subject).toBe(
-        '[Atehna] Va\u0161e naro\u010dilo je bilo prejeto'
+      expect(customerSubmissionMessage.subject).toBe(
+        '[Atehna] Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
       );
+      expect(customerSubmissionContent).toContain('Podatki za naro\u010dilnico');
+      expect(customerSubmissionContent).toContain('Naro\u010dnik:');
+      expect(customerSubmissionContent).toContain('E2E \u0161ola');
+      expect(customerSubmissionContent).toContain('Kontaktna oseba:');
+      expect(customerSubmissionContent).toContain('Ana Novak');
+      expect(customerSubmissionContent).toContain('Va\u0161a referenca:');
+      expect(customerSubmissionContent).toContain('E2E-REF-2026');
+      expect(customerSubmissionContent).toMatch(PURCHASE_ORDER_UPLOAD_URL_PATTERN);
+      expect(customerSubmissionContent).toContain('Nalo\u017ei naro\u010dilnico');
+      expect(customerSubmissionContent).not.toContain('/order/narocilnica?');
+      const accessToken = customerSubmissionContent.match(
+        ORDER_ACCESS_TOKEN_PATTERN
+      )?.[0];
+      expect(accessToken).toMatch(ORDER_ACCESS_TOKEN_PATTERN);
       expect(customerSubmissionContent).not.toContain(orderNumber);
       expect(customerSubmissionContent).not.toContain(`/admin/orders/${createdOrderId}`);
-      expect(adminSubmission?.payload_json.message.html).toContain(orderNumber);
-      expect(adminSubmission?.payload_json.message.html).toContain(
+      expect(customerSubmissionContent).not.toContain('Naro\u010dilo:');
+      expect(adminSubmissionMessage.html).toContain(orderNumber);
+      expect(adminSubmissionMessage.html).toContain(
         `https://www.atehna-test.site/admin/orders/${createdOrderId}`
       );
+      for (const adminJob of submissionJobs.filter((job) => job.audience === 'admin')) {
+        const adminMessage = decryptOutboxMessage(adminJob);
+        const adminContent = [
+          adminMessage.subject,
+          adminMessage.html,
+          adminMessage.text
+        ].join('\n');
+        expect(adminContent).not.toMatch(ORDER_ACCESS_TOKEN_PATTERN);
+        expect(adminContent).not.toContain('/order/narocilnica');
+      }
       for (const job of submissionJobs) {
-        expect(job.payload_json.message.html).toContain(
+        expect(decryptOutboxMessage(job).html).toContain(
           'src="https://www.atehna-test.site/images/categories/materiali.png"'
         );
       }
@@ -271,7 +340,63 @@ test.describe('order email outbox integration', () => {
         data: orderData
       });
       expect(replayResponse.status()).toBe(200);
-      expect(await readOutbox(orderId)).toHaveLength(3);
+      const replayedJobs = await readOutbox(orderId);
+      expect(replayedJobs).toHaveLength(3);
+      const replayedCustomer = replayedJobs.find(
+        (job) => job.audience === 'customer'
+      );
+      if (!replayedCustomer) {
+        throw new Error('Expected the replayed customer email job.');
+      }
+      const replayedCustomerMessage = decryptOutboxMessage(replayedCustomer);
+      const replayedCustomerContent = [
+        replayedCustomerMessage.subject,
+        replayedCustomerMessage.html,
+        replayedCustomerMessage.text
+      ].join('\n');
+      expect(replayedCustomerContent.match(ORDER_ACCESS_TOKEN_PATTERN)?.[0]).toBe(
+        accessToken
+      );
+
+      await database.query(
+        `insert into order_documents (
+           order_id,
+           type,
+           filename,
+           blob_pathname,
+           version_number,
+           document_number,
+           issued_at,
+           content_sha256,
+           legal_status,
+           format_marker
+         )
+         values (
+           $1,
+           'purchase_order',
+           'e2e-purchase-order.pdf',
+           $2,
+           1,
+           $3,
+           now(),
+           $4,
+           'operational',
+           'customer-upload-pdf-v1'
+         )`,
+        [
+          orderId,
+          `e2e/order-email-outbox/${crypto.randomUUID()}.pdf`,
+          `NAROCILNICA-${orderId}-V1`,
+          '0'.repeat(64)
+        ]
+      );
+      const bindingResult = await database.query(
+        `update orders
+         set commitment_status = 'binding'
+         where id = $1 and customer_type = 'school'`,
+        [orderId]
+      );
+      expect(bindingResult.rowCount).toBe(1);
 
       const statusResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
@@ -291,13 +416,33 @@ test.describe('order email outbox integration', () => {
       const customerStatus = jobs.find((job) => (
         job.event_type === 'in_progress' && job.audience === 'customer'
       ));
+      if (!customerStatus) {
+        throw new Error('Expected the customer status email job.');
+      }
+      const customerStatusMessage = decryptOutboxMessage(customerStatus);
       const customerStatusContent = [
-        customerStatus?.payload_json.message.subject,
-        customerStatus?.payload_json.message.html,
-        customerStatus?.payload_json.message.text
+        customerStatusMessage.subject,
+        customerStatusMessage.html,
+        customerStatusMessage.text
       ].join('\n');
       expect(customerStatusContent).not.toContain(orderNumber);
       expect(customerStatusContent).not.toContain(`/admin/orders/${createdOrderId}`);
+      for (const statusJob of jobs.filter((job) => job.event_type === 'in_progress')) {
+        const rawPayload = JSON.stringify(statusJob.payload_json);
+        expect(statusJob.payload_json).toMatchObject({
+          version: 1,
+          algorithm: 'aes-256-gcm'
+        });
+        expect(rawPayload).not.toMatch(ORDER_ACCESS_TOKEN_PATTERN);
+        const statusMessage = decryptOutboxMessage(statusJob);
+        const statusContent = [
+          statusMessage.subject,
+          statusMessage.html,
+          statusMessage.text
+        ].join('\n');
+        expect(statusContent).not.toMatch(ORDER_ACCESS_TOKEN_PATTERN);
+        expect(statusContent).not.toContain('/order/narocilnica');
+      }
       const duplicateStatusResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }

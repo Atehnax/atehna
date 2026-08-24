@@ -7,15 +7,30 @@ const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf
 
 test('order submission atomically enqueues email before commit and dispatches after commit', () => {
   const route = source('src/commercial/api/orders/route.ts');
+  const tokenIssueIndex = route.indexOf(
+    'const accessToken = await issueOrderAccessToken(client, inserted.orderId, {'
+  );
   const enqueueIndex = route.indexOf('await enqueueOrderEmailEvent(client, {');
   const commitIndex = route.indexOf("await client.query('commit');", enqueueIndex);
   const scheduleIndex = route.indexOf('scheduleOrderEmailJobs(pool, inserted.orderId);');
 
   assert.ok(enqueueIndex > 0, 'submission must enqueue an email event');
+  assert.ok(
+    tokenIssueIndex > 0 && tokenIssueIndex < enqueueIndex,
+    'the one persisted access token must be issued before the immutable email snapshot'
+  );
   assert.ok(commitIndex > enqueueIndex, 'email enqueue must be committed with the order');
   assert.ok(scheduleIndex > commitIndex, 'provider dispatch must only be scheduled after commit');
   assert.match(route, /eventKey: `order-submitted:\$\{inserted\.orderId\}`/u);
   assert.match(route, /eventType: 'order_submitted'/u);
+  assert.match(
+    route,
+    /customer\.customerType === 'school'[\s\S]*?\['confirmation', 'purchase_order'\][\s\S]*?: \['confirmation'\]/u
+  );
+  assert.match(
+    route,
+    /customerOrderAccessToken:\s*customer\.customerType === 'school' \? accessToken\.token : null/u
+  );
 
   const replayScheduleIndex = route.indexOf(
     'scheduleOrderEmailJobs(pool, reservation.orderId);'
@@ -28,7 +43,10 @@ test('order submission atomically enqueues email before commit and dispatches af
 test('status transitions serialize mutation, log, audit, and email enqueue in one transaction', () => {
   const route = source('src/admin/api/orders/[orderId]/status/route.ts');
 
-  assert.match(route, /select id, order_number, status from orders where id = \$1 for update/u);
+  assert.match(
+    route,
+    /select id, order_number, status, customer_type, commitment_status from orders where id = \$1 for update/u
+  );
   assert.match(route, /const changed = previousStatus !== status;/u);
   assert.match(
     route,
@@ -46,9 +64,12 @@ test('status transitions serialize mutation, log, audit, and email enqueue in on
 test('email worker is per-recipient, idempotent, retryable, and hard-disabled in E2E', () => {
   const worker = source('src/shared/server/orderEmailJobs.ts');
   const delivery = source('src/shared/domain/order/orderEmailDelivery.ts');
+  const cipher = source('src/shared/server/orderEmailDeliveryCipher.ts');
   const schema = source('database/schema.sql');
 
   assert.match(delivery, /ORDER_EMAIL_DELIVERY_ENVELOPE_VERSION = 2 as const/u);
+  assert.match(cipher, /createCipheriv\('aes-256-gcm'/u);
+  assert.match(cipher, /ADDITIONAL_AUTHENTICATED_DATA_DOMAIN/u);
   assert.match(delivery, /category: 'invalid_payload'/u);
   assert.match(worker, /if \(isOrderEmailTransportDisabledForE2e\(\)\)/u);
   assert.match(worker, /'Idempotency-Key': idempotencyKey/u);
@@ -61,21 +82,91 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   assert.match(worker, /to: \[message\.to\]/u);
   assert.match(worker, /createOrderEmailDeliveryEnvelope\(payload\)/u);
   assert.match(worker, /serializeOrderEmailDeliveryEnvelope\(envelope\)/u);
-  assert.match(worker, /parseOrderEmailDeliveryEnvelope\(job\.payloadJson\)/u);
+  assert.match(worker, /const jobId = randomUUID\(\)/u);
+  assert.match(
+    worker,
+    /encryptOrderEmailDeliveryEnvelope\([\s\S]*?serializedEnvelope,[\s\S]*?jobId,[\s\S]*?input\.orderId/u
+  );
+  assert.match(worker, /insert into order_email_jobs \(\s*id,/u);
+  assert.match(worker, /decryptOrderEmailDeliveryEnvelope\(/u);
+  assert.match(worker, /parseClaimedOrderEmailEnvelope\(job\)/u);
   assert.match(worker, /sendOrderEmailMessage\(\s*envelope\.message,/u);
+  const processStart = worker.indexOf('processJob: async (job) => {');
   const parseIndex = worker.indexOf(
-    'const envelope = parseOrderEmailDeliveryEnvelope(job.payloadJson);'
+    'const envelope = parseClaimedOrderEmailEnvelope(job);',
+    processStart
+  );
+  const validationIndex = worker.indexOf(
+    'await validatePurchaseOrderTokenBeforeDelivery(pool, job, envelope);',
+    parseIndex
   );
   const sendIndex = worker.indexOf(
     'const providerMessageId = await sendOrderEmailMessage(',
-    parseIndex
+    validationIndex
   );
   assert.ok(
-    parseIndex > 0 && sendIndex > parseIndex,
-    'the versioned envelope must parse before any provider request'
+    processStart > 0 &&
+      parseIndex > processStart &&
+      validationIndex > parseIndex &&
+      sendIndex > validationIndex,
+    'decrypt/parse and active-token validation must precede every provider request'
+  );
+  const tokenValidationStart = worker.indexOf(
+    'async function validatePurchaseOrderTokenBeforeDelivery'
+  );
+  const tokenValidationEnd = worker.indexOf(
+    'async function markOrderEmailJobSent',
+    tokenValidationStart
+  );
+  const tokenValidationBody = worker.slice(
+    tokenValidationStart,
+    tokenValidationEnd
+  );
+  assert.match(tokenValidationBody, /select exists \(/u);
+  assert.match(tokenValidationBody, /from order_access_tokens/u);
+  assert.match(tokenValidationBody, /token_record\.token_hash = \$1/u);
+  assert.match(tokenValidationBody, /token_record\.order_id = \$2/u);
+  assert.match(tokenValidationBody, /\$3 = any\(token_record\.scopes\)/u);
+  assert.match(tokenValidationBody, /token_record\.revoked_at is null/u);
+  assert.match(tokenValidationBody, /token_record\.expires_at > now\(\)/u);
+  assert.match(tokenValidationBody, /join orders email_order/u);
+  assert.match(tokenValidationBody, /email_order\.customer_type = 'school'/u);
+  assert.match(tokenValidationBody, /email_order\.deleted_at is null/u);
+  assert.doesNotMatch(tokenValidationBody, /\bupdate\b|last_used_at/iu);
+  assert.match(tokenValidationBody, /email_order\.status <> 'cancelled'/u);
+  assert.match(
+    tokenValidationBody,
+    /email_order\.commitment_status = 'pending_confirmation'/u
+  );
+  assert.match(tokenValidationBody, /and not exists \(/u);
+  assert.match(tokenValidationBody, /from order_documents purchase_order/u);
+  assert.match(tokenValidationBody, /purchase_order\.order_id = email_order\.id/u);
+  assert.match(tokenValidationBody, /purchase_order\.type = 'purchase_order'/u);
+  assert.match(tokenValidationBody, /purchase_order\.deleted_at is null/u);
+  assert.match(
+    tokenValidationBody,
+    /purchase_order\.format_marker = any\(\$4::text\[\]\)/u
+  );
+  assert.match(
+    tokenValidationBody,
+    /\[\.\.\.SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS\]/u
+  );
+  assert.match(
+    worker,
+    /if \(!job\.payloadEncrypted\) \{[\s\S]*?persistEncryptedClaimedEnvelope/u
   );
   assert.match(worker, /classifyOrderEmailDeliveryValidationFailure\(error\)/u);
   assert.match(worker, /redactOrderEmailDeliveryEnvelope\(envelope\)/u);
+  assert.ok(
+    worker.includes(
+      ".replace(/ath_order_[A-Za-z0-9_-]{43}/gu, '[order-access-token]')"
+    ),
+    'persisted last_error and logs must redact every order access token'
+  );
+  assert.match(
+    worker,
+    /classification\.category === 'invalid_payload'[\s\S]*?redactOrderEmailDeliveryEnvelope\(job\.envelope\)[\s\S]*?payload_json = coalesce\(\$6::jsonb, payload_json\)/u
+  );
   assert.match(worker, /classifyResendFailure/u);
   assert.match(worker, /MAX_CLAIM_SIZE = 2/u);
   assert.match(worker, /maxJobs: IMMEDIATE_MAX_JOBS/u);

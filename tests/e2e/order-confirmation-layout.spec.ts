@@ -338,7 +338,7 @@ test.describe('order confirmation layout', () => {
     ).toBeVisible();
     await expect(pageContent).not.toContainText('Številka naročila');
     await expect(pageContent).not.toContainText('#42');
-    await expect(documents.locator('a')).toHaveAttribute(
+    await expect(documents.locator('a[href^="/api/orders/documents/"]')).toHaveAttribute(
       'href',
       '/api/orders/documents/123e4567-e89b-42d3-a456-426614174010'
     );

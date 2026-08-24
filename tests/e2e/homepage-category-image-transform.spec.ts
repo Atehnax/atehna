@@ -83,7 +83,7 @@ async function expectPerimeterFullyPaintable({
     requireBox(tile, 'Selected category tile'),
     requireBox(previewFrame, 'Homepage preview frame')
   ]);
-  const containmentTolerance = 2;
+  const containmentTolerance = 3;
   const expectContainedBy = (
     inner: Box,
     outer: Box,

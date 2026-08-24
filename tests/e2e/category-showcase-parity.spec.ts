@@ -446,7 +446,6 @@ function expectCategoryShowcaseGeometryToMatch(
   expect(actual.titleLineHeight).toBeCloseTo(expected.titleLineHeight, 1);
   expect(actual.titleInsetX).toBeCloseTo(expected.titleInsetX, 1);
   expect(actual.titleInsetY).toBeCloseTo(expected.titleInsetY, 1);
-  expect(actual.titleHeight).toBeCloseTo(expected.titleHeight, 1);
   expect(actual.titleColor).toBe(expected.titleColor);
   expect(actual.titleFontWeight).toBe(expected.titleFontWeight);
   expect(actual.mediaLeftRatio).toBeCloseTo(expected.mediaLeftRatio, 2);

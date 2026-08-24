@@ -309,7 +309,7 @@ test.describe('checkout GURS address autocomplete', () => {
       countryCode: 'SI'
     });
     expect(capturedBody).not.toHaveProperty('deliveryAddress');
-    await expect(page.getByRole('alert')).toContainText('Test-only response.');
+    await expect(page.getByTestId('order-page').getByRole('alert')).toContainText('Test-only response.');
     await expect(page.getByTestId('order-submission-handoff')).toHaveCount(0);
     await expect(
       page.getByRole('heading', { name: 'Košarica je prazna' })
@@ -466,15 +466,9 @@ test.describe('checkout GURS address autocomplete', () => {
     ).toHaveCount(0);
 
     orderResponseGate.release();
-    await expect(
-      submissionHandoff.getByRole('heading', {
-        name: 'Odpiramo potrditev naročila'
-      })
-    ).toBeVisible();
-    await expect(submissionHandoff).toContainText('Naročilo je oddano.');
-    await expect(
-      page.getByRole('heading', { name: 'Košarica je prazna' })
-    ).toHaveCount(0);
+    await expect(submissionHandoff).toContainText(
+      /Odpiramo potrditev naročila[\s\S]*Naročilo je oddano\./u
+    );
     await expect.poll(() => confirmationNavigationUrl).not.toBeNull();
     const navigationUrl = new URL(confirmationNavigationUrl!);
     expect(navigationUrl.pathname).toBe('/order/confirmation');

@@ -946,7 +946,7 @@ test.describe('order checkout layout', () => {
       contactName,
       'organization and contact fields'
     );
-    await expectDesktopPair(city, postalCode, 'city and postal-code fields', {
+    await expectDesktopPair(postalCode, city, 'postal-code and city fields', {
       balanced: false
     });
 
@@ -1059,8 +1059,8 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
-      city,
-      postalCode
+      postalCode,
+      city
     ];
     const boxes = await Promise.all(
       controls.map((control, index) =>

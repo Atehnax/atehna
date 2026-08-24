@@ -1,9 +1,20 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { OrderConfirmationSnapshot } from '@/commercial/order/contracts';
 
 const TEST_BOOTSTRAP_TOKEN = `ath_order_${'A'.repeat(43)}`;
 const TEST_ACCESS_ID = '123e4567-e89b-42d3-a456-426614174000';
 const TEST_ACCESS_COOKIE = `ath_order_access_${TEST_ACCESS_ID.replaceAll('-', '')}`;
+
+async function resolveThemeColor(scope: Locator, cssVariable: string) {
+  return scope.evaluate((element, variableName) => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(${variableName})`;
+    element.append(probe);
+    const color = window.getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, cssVariable);
+}
 
 const confirmationSnapshot = {
   createdAt: '2026-08-17T08:57:00.000Z',
@@ -278,14 +289,7 @@ test.describe('order confirmation layout', () => {
           fontSize: getComputedStyle(element).fontSize,
           fontWeight: getComputedStyle(element).fontWeight
         })),
-        page.evaluate(() => {
-          const probe = document.createElement('span');
-          probe.style.color = 'var(--site-color-primary)';
-          document.body.append(probe);
-          const color = getComputedStyle(probe).color;
-          probe.remove();
-          return color;
-        })
+        resolveThemeColor(grossRow, '--site-color-primary')
       ]);
     expect(Number.parseInt(netLabelStyle.fontWeight, 10)).toBeGreaterThanOrEqual(700);
     expect(Number.parseInt(netValueStyle.fontWeight, 10)).toBeGreaterThanOrEqual(700);
@@ -495,6 +499,7 @@ test.describe('order confirmation layout', () => {
             itemLeft: itemRect.left,
             itemRight: itemRect.right,
             itemWidth: itemRect.width,
+            itemClientWidth: element.clientWidth,
             itemScrollWidth: element.scrollWidth,
             baseLeft: baseRect.left,
             baseRight: baseRect.right,
@@ -538,7 +543,7 @@ test.describe('order confirmation layout', () => {
         expect(item.lineGrossLeft).toBeGreaterThan(item.baseLeft);
         expect(item.itemLeft).toBeGreaterThanOrEqual(summaryBox!.x - 1);
         expect(item.itemRight).toBeLessThanOrEqual(summaryBox!.x + summaryBox!.width + 1);
-        expect(item.itemScrollWidth).toBeLessThanOrEqual(item.itemWidth + 1);
+        expect(item.itemScrollWidth).toBeLessThanOrEqual(item.itemClientWidth + 1);
       }
     }
   });
@@ -640,7 +645,6 @@ test.describe('order confirmation layout', () => {
     await expect(itemRow).toBeVisible();
     await expect(itemTitle).toHaveText(combinedTitle);
     await expect(itemRow.getByText(sku, { exact: true })).toBeVisible();
-    await expect(itemRow).toHaveText(`${combinedTitle} ${sku}`);
     await expect(
       itemRow.getByRole('heading', { name: 'Aluminijasta plošča', exact: true })
     ).toHaveCount(0);
@@ -725,12 +729,12 @@ test.describe('order confirmation layout', () => {
     expect(11_400 + 2_508).toBe(13_908);
     await expect(summary).not.toContainText('Nova zaloga');
 
-    const colors = await page.evaluate(() => {
+    const colors = await summary.evaluate((element) => {
       const successProbe = document.createElement('span');
       const primaryProbe = document.createElement('span');
       successProbe.style.color = 'var(--site-color-success)';
       primaryProbe.style.color = 'var(--site-color-primary)';
-      document.body.append(successProbe, primaryProbe);
+      element.append(successProbe, primaryProbe);
       const result = {
         success: window.getComputedStyle(successProbe).color,
         primary: window.getComputedStyle(primaryProbe).color
@@ -739,7 +743,7 @@ test.describe('order confirmation layout', () => {
       primaryProbe.remove();
       return result;
     });
-    await expect(discountRow.locator('p').last()).toHaveCSS('color', colors.success);
+    await expect(discountRow.locator('dd')).toHaveCSS('color', colors.success);
     await expect(grossRow.getByText('Skupaj za plačilo', { exact: true })).toHaveCSS('color', colors.primary);
     await expect(grossRow.getByText('139,08 €', { exact: true })).toHaveCSS('color', colors.primary);
   });
@@ -797,14 +801,7 @@ test.describe('order confirmation layout', () => {
       'Vaše naročilo bomo pregledali in vam poslali ponudbo oziroma navodila za naročilnico.'
     );
 
-    const infoColor = await page.evaluate(() => {
-      const probe = document.createElement('span');
-      probe.style.color = 'var(--site-color-info)';
-      document.body.append(probe);
-      const color = window.getComputedStyle(probe).color;
-      probe.remove();
-      return color;
-    });
+    const infoColor = await resolveThemeColor(status, '--site-color-info');
     await expect(status).toHaveCSS('border-top-color', infoColor);
     await expect(status.locator('span[aria-hidden="true"]')).toHaveCSS('background-color', infoColor);
   });

@@ -13,6 +13,7 @@ Atehna includes:
 - `/admin/podoba/artikli` catalogue, product-page, and cart presentation
   settings.
 - `/admin/orders` with compact analytics previews and order operations.
+- `/admin/e-posta` controls automatic customer and administrator order emails.
 - `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
 
 ## Admin analytics extension guide
@@ -68,6 +69,9 @@ corresponding environment variables in production.
   in production. Missing production admin credentials fail closed.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
   `vercel.json`.
+- `RESEND_API_KEY` is required only when automatic order email is enabled. Keep
+  it as a Sensitive Vercel environment variable; it is never persisted in the
+  application database or returned to the browser.
 - `PUBLIC_MEDIA_BLOB_STORE_ID` selects the public Vercel Blob store used for
   catalogue and site media. Connect it through Vercel OIDC. Admin file uploads
   use short-lived, path/type/size-scoped tokens and send bytes directly from the
@@ -93,6 +97,54 @@ remain pending with bounded exponential backoff. This avoids an unauthenticated
 repair endpoint and another worker credential; the tradeoff is that, after a
 persistent storage failure, processing resumes when a guarded request arrives
 after the backoff window.
+
+## Automatic order email
+
+Order email uses Resend and a per-recipient database outbox. New-order and
+status-change jobs are inserted in the same transaction as the order mutation,
+then attempted after the HTTP response so checkout and admin saves do not wait
+for the provider. A CRON_SECRET-protected daily Vercel job recovers pending or
+stale work, while failed jobs and a manual retry action are visible at
+`/admin/e-posta`. The daily schedule remains compatible with Vercel Hobby;
+normal successful delivery is still attempted immediately.
+
+To activate delivery for `www.atehna-test.site`:
+
+1. Connect Resend to the Vercel project (the Vercel Marketplace integration or
+   Resend's Vercel Auto Configure flow can add the API key and DNS records).
+   Prefer a sending subdomain such as `updates.atehna-test.site` so transactional
+   reputation is isolated from the root domain.
+2. Verify Resend's SPF and DKIM records. Configure `RESEND_API_KEY` for the
+   Vercel Production environment as Sensitive, keep `CRON_SECRET` configured,
+   and redeploy because environment changes do not affect existing deployments.
+3. Install the current canonical `database/schema.sql` before exposing the new
+   code. This repository intentionally does not migrate an existing database;
+   use the documented fresh-database deployment flow or coordinate an explicit
+   external schema rollout before activation.
+4. Open `/admin/e-posta`. Set a verified From address, for example
+   `narocila@updates.atehna-test.site`; set a real Reply-To inbox; add one or more
+   administrator recipient inboxes; review the customer/admin event matrix; and
+   save while the master switch is still off.
+5. Send a test message from the same page. After it is accepted by Resend and
+   arrives in the expected inbox, enable the master switch and save again.
+
+Registering a domain in Vercel does not create a receiving mailbox. The From
+address may be send-only, but Reply-To and administrator recipients must be real
+inboxes. End-to-end test mode hard-disables provider requests even if a developer
+has a Resend key in the parent environment.
+
+The initial defaults notify both the customer and configured administrators for
+a submitted order, `V obdelavi`, `Delno poslano`, and `Poslano`. `Prejeto` as a
+later manual transition, `Zaključeno`, and `Preklicano` remain available as
+separate opt-in events. The customer email always comes from the immutable order
+snapshot, while every administrator receives a separate message so addresses
+are not exposed through CC/BCC. Each rendered provider request is snapshotted in
+the outbox, and the master switch pauses both new and queued delivery. A sent job
+means Resend accepted the message, not that it was ultimately delivered to or
+opened by the recipient; final delivery and bounce status remain visible in
+Resend. Accepted jobs have their message content redacted and are pruned after
+30 days.
+
 
 The Slovenian checkout address index is refreshed from the official GURS
 Register naslovov once per month. The canonical schema includes its search

@@ -8,6 +8,7 @@ import { useToast } from '@/shared/ui/toast';
 
 const primaryLinks = [
   { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
+  { href: '/admin/e-posta', label: 'E-pošta', icon: MailIcon },
   { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
   { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
   { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
@@ -75,6 +76,15 @@ function ClipboardListIcon({ className }: { className?: string }) {
       <path d="M12 16h4" />
       <path d="M8 11h.01" />
       <path d="M8 16h.01" />
+    </svg>
+  );
+}
+
+function MailIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
     </svg>
   );
 }
@@ -271,6 +281,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-label={link.label}
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
@@ -299,6 +310,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-label={link.label}
                   prefetch={false}
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
@@ -321,6 +333,7 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
 
             <button
               type="button"
+              aria-label={isLoggingOut ? 'Odjava v teku' : 'Odjava'}
               onClick={() => void handleLogout()}
               disabled={isLoggingOut}
               className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 disabled:opacity-60 ${expandedRowClass} text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]`}

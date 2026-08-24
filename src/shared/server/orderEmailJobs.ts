@@ -1,0 +1,724 @@
+import 'server-only';
+
+import { randomUUID } from 'node:crypto';
+import { after } from 'next/server';
+import type { Pool, PoolClient } from 'pg';
+import {
+  type OrderEmailJobPayload,
+  type OrderEmailOrderSnapshot
+} from '@/shared/domain/order/orderEmailTemplates';
+import {
+  classifyResendFailure,
+  createOrderEmailDeliveryEnvelope,
+  parseOrderEmailDeliveryEnvelope,
+  redactOrderEmailDeliveryEnvelope,
+  serializeOrderEmailDeliveryEnvelope,
+  type OrderEmailDeliveryEnvelope,
+  type PersistedOrderEmailMessage,
+  type ResendFailure,
+  type ResendFailureClassification
+} from '@/shared/domain/order/orderEmailDelivery';
+import {
+  isOrderEmailEventType,
+  normalizeOrderEmailSettings,
+  toStoredOrderEmailSettings,
+  validateOrderEmailSettingsInput,
+  type OrderEmailEventType,
+  type OrderEmailSettings
+} from '@/shared/domain/order/orderEmailSettings';
+import {
+  getOrderEmailSettings,
+  isOrderEmailTransportDisabledForE2e,
+  isResendApiKeyConfigured
+} from '@/shared/server/orderEmailSettings';
+import { runOrderEmailWorker } from '@/shared/server/orderEmailWorker';
+
+const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails';
+const STALE_CLAIM_INTERVAL = '5 minutes';
+const MAX_ATTEMPTS = 8;
+const MAX_CLAIM_SIZE = 2;
+const IMMEDIATE_MAX_JOBS = 21;
+const WORKER_DEADLINE_MS = 45_000;
+const DEFAULT_SENT_RETENTION_DAYS = 30;
+const DEFAULT_PRUNE_LIMIT = 1_000;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+type EnqueueOrderEmailEventInput = {
+  orderId: number;
+  eventKey: string;
+  eventType: OrderEmailEventType;
+  occurredAt?: string;
+  previousStatus?: string | null;
+};
+
+type ClaimedOrderEmailJob = {
+  id: string;
+  claimId: string;
+  orderId: number;
+  attempts: number;
+  payloadJson: unknown;
+};
+
+export type OrderEmailProcessingResult = {
+  claimed: number;
+  sent: number;
+  retried: number;
+  failed: number;
+  disabled: boolean;
+};
+
+export class OrderEmailDeliveryError extends Error {
+  readonly status: number;
+  readonly resendFailure: ResendFailure | null;
+
+  constructor(
+    message: string,
+    status = 502,
+    resendFailure: ResendFailure | null = null
+  ) {
+    super(message);
+    this.name = 'OrderEmailDeliveryError';
+    this.status = status;
+    this.resendFailure =
+      resendFailure ??
+      (status >= 502 && status <= 504 ? { kind: 'http', status } : null);
+  }
+}
+
+class OrderEmailClaimPersistenceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OrderEmailClaimPersistenceError';
+  }
+}
+
+function numberValue(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isoValue(value: unknown): string {
+  const parsed = value instanceof Date ? value : new Date(String(value ?? ''));
+  return Number.isNaN(parsed.getTime())
+    ? new Date().toISOString()
+    : parsed.toISOString();
+}
+
+function optionalString(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+  return normalized || null;
+}
+
+function redactDeliveryError(value: unknown): string {
+  const message = value instanceof Error ? value.message : String(value ?? 'Unknown error');
+  return message
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, '[email]')
+    .replace(/re_[A-Za-z0-9_-]+/gu, '[api-key]')
+    .slice(0, 2000);
+}
+
+function clampClaimSize(value: number | undefined): number {
+  if (!Number.isFinite(value)) return MAX_CLAIM_SIZE;
+  return Math.max(1, Math.min(MAX_CLAIM_SIZE, Math.trunc(value ?? MAX_CLAIM_SIZE)));
+}
+
+async function readOrderSnapshot(
+  client: PoolClient,
+  orderId: number
+): Promise<OrderEmailOrderSnapshot | null> {
+  const [orderResult, itemsResult] = await Promise.all([
+    client.query(
+      `
+        select
+          id,
+          order_number,
+          organization_name,
+          contact_name,
+          email,
+          reference,
+          subtotal,
+          tax,
+          shipping,
+          total,
+          created_at
+        from orders
+        where id = $1
+          and deleted_at is null
+          and is_draft = false
+        limit 1
+      `,
+      [orderId]
+    ),
+    client.query(
+      `
+        select sku, name, unit, quantity, line_gross
+        from order_items
+        where order_id = $1
+        order by id asc
+      `,
+      [orderId]
+    )
+  ]);
+  const row = orderResult.rows[0] as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  return {
+    orderId: Number(row.id),
+    orderNumber: String(row.order_number ?? `#${orderId}`),
+    createdAt: isoValue(row.created_at),
+    customer: {
+      organizationName: optionalString(row.organization_name),
+      contactName: String(row.contact_name ?? ''),
+      email: String(row.email ?? ''),
+      reference: optionalString(row.reference)
+    },
+    items: itemsResult.rows.map((item) => ({
+      sku: String(item.sku ?? ''),
+      name: String(item.name ?? ''),
+      unit: optionalString(item.unit),
+      quantity: Math.max(1, Math.trunc(numberValue(item.quantity))),
+      lineGross: numberValue(item.line_gross)
+    })),
+    totals: {
+      net: numberValue(row.subtotal),
+      tax: numberValue(row.tax),
+      shipping: numberValue(row.shipping),
+      gross: numberValue(row.total)
+    }
+  };
+}
+
+export async function enqueueOrderEmailEvent(
+  client: PoolClient,
+  input: EnqueueOrderEmailEventInput
+): Promise<string[]> {
+  if (!Number.isFinite(input.orderId) || !isOrderEmailEventType(input.eventType)) {
+    return [];
+  }
+  const settings = await getOrderEmailSettings(client);
+  if (!settings.enabled) return [];
+  const eventSettings = settings.events[input.eventType];
+  if (!eventSettings?.customer && !eventSettings?.admins) return [];
+
+  const order = await readOrderSnapshot(client, input.orderId);
+  if (!order) return [];
+
+  const recipients: Array<{
+    audience: 'customer' | 'admin';
+    email: string;
+    name: string | null;
+  }> = [];
+  if (eventSettings.customer && EMAIL_PATTERN.test(order.customer.email)) {
+    recipients.push({
+      audience: 'customer',
+      email: order.customer.email.trim().toLowerCase(),
+      name: order.customer.contactName.trim() || null
+    });
+  }
+  if (eventSettings.admins) {
+    for (const email of settings.adminRecipients) {
+      recipients.push({ audience: 'admin', email, name: null });
+    }
+  }
+  if (recipients.length === 0) return [];
+
+  const settingsSnapshot = toStoredOrderEmailSettings(settings);
+  const occurredAt = input.occurredAt ?? new Date().toISOString();
+  const insertedIds: string[] = [];
+  for (const recipient of recipients) {
+    const payload: OrderEmailJobPayload = {
+      eventType: input.eventType,
+      audience: recipient.audience,
+      recipientEmail: recipient.email,
+      recipientName: recipient.name,
+      occurredAt,
+      previousStatus: input.previousStatus ?? null,
+      settingsSnapshot,
+      order
+    };
+    const envelope = createOrderEmailDeliveryEnvelope(payload);
+    const serializedEnvelope = serializeOrderEmailDeliveryEnvelope(envelope);
+    const result = await client.query(
+      `
+        insert into order_email_jobs (
+          order_id,
+          event_key,
+          event_type,
+          audience,
+          recipient_email,
+          recipient_name,
+          payload_json
+        )
+        values ($1, $2, $3, $4, $5, $6, $7::jsonb)
+        on conflict do nothing
+        returning id
+      `,
+      [
+        input.orderId,
+        input.eventKey,
+        envelope.eventType,
+        envelope.audience,
+        envelope.recipient.email,
+        envelope.recipient.name,
+        serializedEnvelope
+      ]
+    );
+    if (result.rows[0]?.id) insertedIds.push(String(result.rows[0].id));
+  }
+  return insertedIds;
+}
+
+async function claimDueOrderEmailJobs(
+  pool: Pool,
+  options: { orderId?: number; limit?: number } = {}
+): Promise<ClaimedOrderEmailJob[]> {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const result = await client.query(
+      `
+        select id, order_id, attempts, payload_json
+        from order_email_jobs
+        where (
+          (status = 'pending' and next_attempt_at <= now())
+          or (
+            status = 'processing'
+            and locked_at <= now() - $2::interval
+          )
+        )
+          and ($1::bigint is null or order_id = $1)
+        order by next_attempt_at asc, created_at asc
+        for update skip locked
+        limit $3
+      `,
+      [options.orderId ?? null, STALE_CLAIM_INTERVAL, clampClaimSize(options.limit)]
+    );
+    const claimed: ClaimedOrderEmailJob[] = [];
+    for (const row of result.rows) {
+      const claimId = randomUUID();
+      const claimResult = await client.query(
+        `
+          update order_email_jobs
+          set status = 'processing',
+              attempts = attempts + 1,
+              claim_id = $2,
+              locked_at = now(),
+              updated_at = now()
+          where id = $1
+        `,
+        [row.id, claimId]
+      );
+      if ((claimResult.rowCount ?? 0) !== 1) {
+        throw new OrderEmailClaimPersistenceError(
+          `Claim update did not affect exactly one email job (${row.id}).`
+        );
+      }
+      claimed.push({
+        id: String(row.id),
+        claimId,
+        orderId: Number(row.order_id),
+        attempts: Math.max(1, Math.trunc(numberValue(row.attempts)) + 1),
+        payloadJson: row.payload_json
+      });
+    }
+    await client.query('commit');
+    return claimed;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function markOrderEmailJobSent(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  providerMessageId: string,
+  envelope: OrderEmailDeliveryEnvelope
+): Promise<void> {
+  const redactedPayload = JSON.stringify(redactOrderEmailDeliveryEnvelope(envelope));
+  const result = await pool.query(
+    `
+      update order_email_jobs
+      set status = 'sent',
+          recipient_name = null,
+          payload_json = $4::jsonb,
+          claim_id = null,
+          locked_at = null,
+          provider_message_id = $3,
+          last_error = null,
+          sent_at = coalesce(sent_at, now()),
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [job.id, job.claimId, providerMessageId, redactedPayload]
+  );
+  if ((result.rowCount ?? 0) !== 1) {
+    throw new OrderEmailClaimPersistenceError(
+      `Sent update lost its email job claim (${job.id}).`
+    );
+  }
+}
+
+async function markOrderEmailJobFailed(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  error: unknown,
+  classification: ResendFailureClassification
+): Promise<'retried' | 'failed'> {
+  const terminal =
+    classification.disposition === 'terminal' || job.attempts >= MAX_ATTEMPTS;
+  const outcome = terminal ? 'failed' : 'retried';
+  const fallbackRetryDelayMs = Math.min(
+    6 * 60 * 60 * 1_000,
+    30_000 * 2 ** Math.max(0, Math.min(job.attempts, 10) - 1)
+  );
+  const retryDelayMs = classification.retryAfterMs ?? fallbackRetryDelayMs;
+  const result = await pool.query(
+    `
+      update order_email_jobs
+      set status = $3,
+          claim_id = null,
+          locked_at = null,
+          next_attempt_at = case
+            when $3 = 'pending' then now() + ($4::bigint * interval '1 millisecond')
+            else next_attempt_at
+          end,
+          last_error = $5,
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [
+      job.id,
+      job.claimId,
+      outcome === 'failed' ? 'failed' : 'pending',
+      retryDelayMs,
+      `[${classification.category}] ${redactDeliveryError(error)}`
+    ]
+  );
+  if ((result.rowCount ?? 0) !== 1) {
+    throw new OrderEmailClaimPersistenceError(
+      `Failure update lost its email job claim (${job.id}).`
+    );
+  }
+  return outcome;
+}
+
+async function readProviderError(response: Response): Promise<string> {
+  const text = (await response.text().catch(() => '')).slice(0, 1500);
+  if (!text) return `Resend je vrnil HTTP ${response.status}.`;
+  try {
+    const parsed = JSON.parse(text) as { message?: unknown; name?: unknown };
+    const providerMessage = optionalString(parsed.message);
+    const providerName = optionalString(parsed.name);
+    return [providerName, providerMessage].filter(Boolean).join(': ') || `Resend je vrnil HTTP ${response.status}.`;
+  } catch {
+    return `Resend je vrnil HTTP ${response.status}.`;
+  }
+}
+
+async function sendOrderEmailMessage(
+  message: PersistedOrderEmailMessage,
+  idempotencyKey: string
+): Promise<string> {
+  if (isOrderEmailTransportDisabledForE2e()) {
+    throw new OrderEmailDeliveryError('Pošiljanje e-pošte je v E2E okolju onemogočeno.', 503);
+  }
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    throw new OrderEmailDeliveryError('RESEND_API_KEY ni nastavljen.', 503);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  let response: Response;
+  try {
+    response = await fetch(RESEND_EMAILS_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify({
+        from: message.from,
+        to: [message.to],
+        ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        subject: message.subject,
+        html: message.html,
+        text: message.text
+      }),
+      cache: 'no-store',
+      signal: controller.signal
+    });
+  } catch {
+    if (controller.signal.aborted) {
+      throw new OrderEmailDeliveryError('Čas za povezavo s ponudnikom e-pošte je potekel.', 504);
+    }
+    throw new OrderEmailDeliveryError(
+      'Povezava s ponudnikom e-po\u0161te ni uspela.',
+      502,
+      { kind: 'network' }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    throw new OrderEmailDeliveryError(
+      await readProviderError(response),
+      response.status,
+      {
+        kind: 'http',
+        status: response.status,
+        retryAfter: response.headers.get('retry-after')
+      }
+    );
+  }
+  const body = (await response.json().catch(() => ({}))) as { id?: unknown };
+  const providerMessageId = optionalString(body.id);
+  if (!providerMessageId) {
+    throw new OrderEmailDeliveryError('Ponudnik e-pošte ni vrnil ID-ja sporočila.');
+  }
+  return providerMessageId;
+}
+
+function classifyOrderEmailJobFailure(
+  error: unknown,
+  nowMs: number
+): ResendFailureClassification {
+  if (error instanceof OrderEmailDeliveryError) {
+    if (error.resendFailure) {
+      return classifyResendFailure(error.resendFailure, nowMs);
+    }
+    if (error.status === 504) {
+      return classifyResendFailure({ kind: 'network' }, nowMs);
+    }
+  }
+  return classifyResendFailure({ kind: 'http', status: 400 }, nowMs);
+}
+
+export async function processDueOrderEmailJobs(
+  pool: Pool,
+  options: {
+    orderId?: number;
+    maxJobs?: number;
+    deadlineMs?: number;
+  } = {}
+): Promise<OrderEmailProcessingResult> {
+  if (isOrderEmailTransportDisabledForE2e()) {
+    return { claimed: 0, sent: 0, retried: 0, failed: 0, disabled: true };
+  }
+
+  return runOrderEmailWorker<ClaimedOrderEmailJob>(
+    {
+      maxJobs: options.maxJobs,
+      deadlineMs: options.deadlineMs
+    },
+    {
+      readEnabled: async () =>
+        (await getOrderEmailSettings(pool)).enabled &&
+        isResendApiKeyConfigured(),
+      claimJobs: (limit) =>
+        claimDueOrderEmailJobs(pool, { orderId: options.orderId, limit }),
+      processJob: async (job) => {
+        const envelope = parseOrderEmailDeliveryEnvelope(job.payloadJson);
+        const providerMessageId = await sendOrderEmailMessage(
+          envelope.message,
+          `atehna-order-email/${job.id}`
+        );
+        try {
+          await markOrderEmailJobSent(pool, job, providerMessageId, envelope);
+        } catch (error) {
+          if (error instanceof OrderEmailClaimPersistenceError) throw error;
+          throw new OrderEmailClaimPersistenceError(
+            `Unable to persist sent email job ${job.id}: ${redactDeliveryError(error)}`
+          );
+        }
+      },
+      handleJobError: async (job, error) => {
+        if (error instanceof OrderEmailClaimPersistenceError) throw error;
+        const classification = classifyOrderEmailJobFailure(error, Date.now());
+        const outcome = await markOrderEmailJobFailed(
+          pool,
+          job,
+          error,
+          classification
+        );
+        console.error('[orders.email-job] delivery failed', {
+          jobId: job.id,
+          orderId: job.orderId,
+          attempt: job.attempts,
+          disposition: classification.disposition,
+          category: classification.category,
+          message: redactDeliveryError(error)
+        });
+        return outcome;
+      }
+    }
+  );
+}
+
+export function scheduleOrderEmailJobs(pool: Pool, orderId?: number): void {
+  try {
+    after(async () => {
+      try {
+        await processDueOrderEmailJobs(pool, {
+          orderId,
+          maxJobs: IMMEDIATE_MAX_JOBS,
+          deadlineMs: WORKER_DEADLINE_MS
+        });
+      } catch (error) {
+        console.error('[orders.email-job] background processing failed', {
+          orderId: orderId ?? null,
+          message: redactDeliveryError(error)
+        });
+      }
+    });
+  } catch (error) {
+    console.error('[orders.email-job] scheduling failed', {
+      orderId: orderId ?? null,
+      message: redactDeliveryError(error)
+    });
+  }
+}
+
+export async function pruneSentOrderEmailJobs(
+  pool: Pool,
+  options: { retentionDays?: number; limit?: number } = {}
+): Promise<number> {
+  const retentionDays = Math.max(
+    1,
+    Math.min(
+      3_650,
+      Math.trunc(options.retentionDays ?? DEFAULT_SENT_RETENTION_DAYS)
+    )
+  );
+  const limit = Math.max(
+    1,
+    Math.min(5_000, Math.trunc(options.limit ?? DEFAULT_PRUNE_LIMIT))
+  );
+  const result = await pool.query(
+    `
+      with expired as (
+        select id
+        from order_email_jobs
+        where status = 'sent'
+          and sent_at < now() - ($1::integer * interval '1 day')
+        order by sent_at asc, id asc
+        for update skip locked
+        limit $2
+      )
+      delete from order_email_jobs jobs
+      using expired
+      where jobs.id = expired.id
+    `,
+    [retentionDays, limit]
+  );
+  return result.rowCount ?? 0;
+}
+
+export async function resetFailedOrderEmailJobs(pool: Pool): Promise<number> {
+  const result = await pool.query(
+    `
+      update order_email_jobs
+      set status = 'pending',
+          attempts = 0,
+          next_attempt_at = now(),
+          claim_id = null,
+          locked_at = null,
+          last_error = null,
+          updated_at = now()
+      where status = 'failed'
+    `
+  );
+  return result.rowCount ?? 0;
+}
+
+export async function sendOrderEmailTest(
+  input: unknown,
+  recipientInput: unknown
+): Promise<{ providerMessageId: string }> {
+  const recipient = typeof recipientInput === 'string'
+    ? recipientInput.trim().toLowerCase()
+    : '';
+  if (!EMAIL_PATTERN.test(recipient) || recipient.length > 320) {
+    throw new OrderEmailDeliveryError('Vnesite veljaven naslov za testno e-pošto.', 400);
+  }
+  const rawConfig = input && typeof input === 'object' && !Array.isArray(input)
+    ? {
+        ...(input as Record<string, unknown>),
+        enabled: false,
+        adminRecipients: []
+      }
+    : input;
+  const validationErrors = validateOrderEmailSettingsInput(rawConfig);
+  if (validationErrors.length > 0) {
+    throw new OrderEmailDeliveryError(validationErrors[0], 400);
+  }
+  const config = normalizeOrderEmailSettings(input);
+  if (!config.senderName) {
+    throw new OrderEmailDeliveryError('Vnesite ime pošiljatelja.', 400);
+  }
+  if (!config.fromEmail) {
+    throw new OrderEmailDeliveryError('Vnesite e-poštni naslov pošiljatelja.', 400);
+  }
+  if (isOrderEmailTransportDisabledForE2e()) {
+    throw new OrderEmailDeliveryError(
+      'Po\u0161iljanje e-po\u0161te je v E2E okolju onemogo\u010deno.',
+      503
+    );
+  }
+  if (!isResendApiKeyConfigured()) {
+    throw new OrderEmailDeliveryError('RESEND_API_KEY ni nastavljen.', 503);
+  }
+
+  const settingsSnapshot = toStoredOrderEmailSettings({
+    ...config,
+    subjectPrefix: `${config.subjectPrefix || 'Atehna'} · PREIZKUS`
+  } satisfies OrderEmailSettings);
+  const now = new Date().toISOString();
+  const payload: OrderEmailJobPayload = {
+    eventType: 'order_submitted',
+    audience: 'admin',
+    recipientEmail: recipient,
+    recipientName: null,
+    occurredAt: now,
+    previousStatus: null,
+    settingsSnapshot,
+    order: {
+      orderId: 0,
+      orderNumber: '#PREIZKUS',
+      createdAt: now,
+      customer: {
+        organizationName: 'Primer naročnika',
+        contactName: 'Testni prejemnik',
+        email: recipient,
+        reference: 'TEST'
+      },
+      items: [
+        {
+          sku: 'TEST-001',
+          name: 'Testni izdelek',
+          unit: 'kos',
+          quantity: 1,
+          lineGross: 12.2
+        }
+      ],
+      totals: {
+        net: 10,
+        tax: 2.2,
+        shipping: 0,
+        gross: 12.2
+      }
+    }
+  };
+  const envelope = createOrderEmailDeliveryEnvelope(payload);
+  const providerMessageId = await sendOrderEmailMessage(
+    envelope.message,
+    `atehna-order-email-test/${randomUUID()}`
+  );
+  return { providerMessageId };
+}

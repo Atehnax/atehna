@@ -58,6 +58,8 @@ export async function GET() {
           where key = 'canonical-schema'
         ) as schema_sha256,
         to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
+        to_regclass('public.order_email_settings') is not null as has_order_email_settings,
+        to_regclass('public.order_email_jobs') is not null as has_order_email_jobs,
         exists (
           select 1
           from e2e_seed_metadata
@@ -77,6 +79,8 @@ export async function GET() {
       effective_user?: string;
       schema_sha256?: string;
       has_order_access_tokens?: boolean;
+      has_order_email_settings?: boolean;
+      has_order_email_jobs?: boolean;
       has_seed?: boolean;
       has_reference_product?: boolean;
     } | undefined;
@@ -86,6 +90,8 @@ export async function GET() {
       || typeof row.effective_user !== 'string'
       || row.schema_sha256 !== expectedSchemaSha256
       || row.has_order_access_tokens !== true
+      || row.has_order_email_settings !== true
+      || row.has_order_email_jobs !== true
       || row.has_seed !== true
       || row.has_reference_product !== true
     ) {

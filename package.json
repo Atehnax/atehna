@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:unit": "tsx --test tests/unit/*.test.ts",
+    "test:unit": "tsx --test --test-concurrency=4 tests/unit/*.test.ts",
     "test:e2e": "playwright test",
     "e2e:db:prepare": "node scripts/e2e-database.mjs prepare",
     "e2e:db:check": "node scripts/e2e-database.mjs check",

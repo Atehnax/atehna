@@ -25,6 +25,7 @@ async function main() {
         SUPABASE_DB_URL: databaseUrl,
         PGSSLMODE: 'disable',
         BLOB_READ_WRITE_TOKEN: 'e2e-external-blob-disabled',
+        E2E_LOCAL_PRIVATE_BLOB: '1',
         ORDER_ACCESS_BOOTSTRAP_KEY: 'e2e-only-order-bootstrap-key-with-at-least-32-characters',
         RESEND_API_KEY: '',
         E2E_MODE: '1',

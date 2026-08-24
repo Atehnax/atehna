@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED,
+  schoolPurchaseOrderUploadBlock,
+  type SchoolOrderWorkflowBlock
+} from '@/shared/domain/order/schoolOrderWorkflow';
+import {
   buildOrderDocumentBlobPath,
   deletePrivateOrderDocumentBlob,
   uploadPrivateOrderDocumentBlob
@@ -21,6 +26,13 @@ type UploadFormat = {
   contentType: 'application/pdf' | 'image/jpeg';
   formatMarker: 'customer-upload-pdf-v1' | 'customer-upload-jpeg-v1';
 };
+
+class PurchaseOrderWorkflowConflict extends Error {
+  constructor(readonly block: SchoolOrderWorkflowBlock) {
+    super(block.message);
+    this.name = 'PurchaseOrderWorkflowConflict';
+  }
+}
 
 function detectUploadFormat(buffer: Buffer): UploadFormat | null {
   if (buffer.length >= 5 && buffer.subarray(0, 5).toString('ascii') === '%PDF-') {
@@ -86,7 +98,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
 
     const orderLookupResult = await pool.query(
       `
-        select id, customer_type, status, deleted_at
+        select id, customer_type, status, commitment_status, deleted_at
         from orders
         where id = $1
         limit 1
@@ -98,6 +110,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
           id: string | number;
           customer_type: string;
           status: string;
+          commitment_status: string | null;
           deleted_at: string | null;
         }
       | undefined;
@@ -147,6 +160,15 @@ export async function uploadPurchaseOrder(request: NextRequest) {
         { status: 409 }
       );
     }
+    const initialUploadBlock = schoolPurchaseOrderUploadBlock(
+      order.customer_type,
+      order.commitment_status,
+      order.status,
+      false
+    );
+    if (initialUploadBlock) {
+      return NextResponse.json(initialUploadBlock, { status: 409 });
+    }
 
     const contentHash = createHash('sha256').update(fileBuffer).digest('hex');
     const documentAccessId = randomUUID();
@@ -161,7 +183,35 @@ export async function uploadPurchaseOrder(request: NextRequest) {
     const client = await pool.connect();
     try {
       await client.query('begin');
-      await client.query('select id from orders where id = $1 for update', [orderId]);
+      const lockedOrderResult = await client.query(
+        `
+          select id, customer_type, status, commitment_status, deleted_at
+          from orders
+          where id = $1
+          for update
+        `,
+        [orderId]
+      );
+      const lockedOrder = lockedOrderResult.rows[0] as
+        | {
+            id: string | number;
+            customer_type: string;
+            status: string;
+            commitment_status: string | null;
+            deleted_at: string | null;
+          }
+        | undefined;
+      const lockedUploadBlock = lockedOrder
+        ? schoolPurchaseOrderUploadBlock(
+            lockedOrder.customer_type,
+            lockedOrder.commitment_status,
+            lockedOrder.status,
+            Boolean(lockedOrder.deleted_at)
+          )
+        : SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED;
+      if (lockedUploadBlock) {
+        throw new PurchaseOrderWorkflowConflict(lockedUploadBlock);
+      }
       const versionResult = await client.query(
         `
           select coalesce(max(version_number), 0)::integer + 1 as next_version
@@ -234,6 +284,9 @@ export async function uploadPurchaseOrder(request: NextRequest) {
   } catch (error) {
     if (uploadedPath && !documentPersisted) {
       await deletePrivateOrderDocumentBlob(uploadedPath).catch(() => undefined);
+    }
+    if (error instanceof PurchaseOrderWorkflowConflict) {
+      return NextResponse.json(error.block, { status: 409 });
     }
     console.error('[orders.purchase-order.upload] failed', {
       message: error instanceof Error ? error.message : 'Unknown error'

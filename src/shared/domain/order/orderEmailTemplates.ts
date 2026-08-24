@@ -1,4 +1,5 @@
 import { formatEuro } from '../formatting';
+import type { CustomerType } from './customerType';
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
   type OrderEmailEventType,
@@ -9,6 +10,7 @@ import { getStatusLabel } from './orderStatus';
 export type OrderEmailAudience = 'customer' | 'admin';
 
 export type OrderEmailCustomerSnapshot = {
+  customerType: CustomerType;
   organizationName: string | null;
   contactName: string;
   email: string;
@@ -53,6 +55,7 @@ type OrderEmailJobPayloadBase = {
 export type OrderEmailCustomerJobPayload = OrderEmailJobPayloadBase & {
   audience: 'customer';
   order: OrderEmailCustomerOrderSnapshot;
+  purchaseOrderUploadUrl: string | null;
 };
 
 export type OrderEmailAdminJobPayload = OrderEmailJobPayloadBase & {
@@ -76,6 +79,8 @@ export type OrderEmailMessage = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const HEADER_CONTROLS_PATTERN = /[\u0000-\u001f\u007f]+/gu;
 const BODY_CONTROLS_PATTERN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/gu;
+const ORDER_ACCESS_TOKEN_PATTERN = /^ath_order_[A-Za-z0-9_-]{43}$/u;
+const PURCHASE_ORDER_UPLOAD_PATH = '/order/narocilnica';
 const slDateFormatter = new Intl.DateTimeFormat('sl-SI', {
   dateStyle: 'long',
   timeStyle: 'short',
@@ -214,11 +219,52 @@ function safeItemImageUrl(
   }
 }
 
+function safePurchaseOrderUploadUrl(
+  uploadUrlValue: unknown,
+  siteUrlValue: unknown
+): string | null {
+  const uploadUrl = safeBodyText(uploadUrlValue);
+  if (!uploadUrl) return null;
+
+  try {
+    const siteUrl = new URL(String(siteUrlValue ?? ''));
+    const parsed = new URL(uploadUrl);
+    if (
+      siteUrl.protocol !== 'https:' ||
+      !hasSafeUrlHost(siteUrl) ||
+      parsed.protocol !== 'https:' ||
+      !hasSafeUrlHost(parsed) ||
+      parsed.origin !== siteUrl.origin ||
+      parsed.pathname !== PURCHASE_ORDER_UPLOAD_PATH ||
+      parsed.search
+    ) {
+      return null;
+    }
+    const fragment = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+    const entries = Array.from(fragment.entries());
+    if (
+      entries.length !== 1 ||
+      entries[0]?.[0] !== 'token' ||
+      !ORDER_ACCESS_TOKEN_PATTERN.test(entries[0]?.[1] ?? '')
+    ) {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 type TemplateValues = Record<string, string>;
 
 function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
   const values: TemplateValues = {
     customer_name: customerDisplayName(payload.order.customer),
+    organization_name: safeBodyText(
+      payload.order.customer.organizationName
+    ),
+    contact_name: safeBodyText(payload.order.customer.contactName),
+    reference: safeBodyText(payload.order.customer.reference),
     status: orderStatusLabel(payload.eventType),
     previous_status: payload.previousStatus
       ? getStatusLabel(payload.previousStatus)
@@ -245,11 +291,22 @@ function buildTemplateContent(payload: OrderEmailJobPayload): {
   greeting: string;
 } {
   const audience = payload.audience === 'admin' ? 'admin' : 'customer';
-  const defaults =
-    DEFAULT_ORDER_EMAIL_SETTINGS.templates[payload.eventType][audience];
-  const configured =
-    payload.settingsSnapshot.templates?.[payload.eventType]?.[audience] ??
-    defaults;
+  const schoolCustomer =
+    payload.audience === 'customer' &&
+    payload.eventType === 'order_submitted' &&
+    payload.order.customer.customerType === 'school';
+  const defaultEventTemplates =
+    DEFAULT_ORDER_EMAIL_SETTINGS.templates[payload.eventType];
+  const configuredEventTemplates =
+    payload.settingsSnapshot.templates?.[payload.eventType];
+  const defaults = schoolCustomer
+    ? defaultEventTemplates.schoolCustomer ?? defaultEventTemplates.customer
+    : defaultEventTemplates[audience];
+  const configured = schoolCustomer
+    ? configuredEventTemplates?.schoolCustomer ??
+      configuredEventTemplates?.customer ??
+      defaults
+    : configuredEventTemplates?.[audience] ?? defaults;
   const variables = buildTemplateValues(payload);
   const heading =
     safeHeaderText(renderTemplate(configured.subject, variables)) ||
@@ -343,6 +400,52 @@ function buildTextTotals(order: OrderEmailCustomerOrderSnapshot): string {
   ].join('\n');
 }
 
+function buildSchoolOrderHtmlDetails(
+  order: OrderEmailCustomerOrderSnapshot,
+  uploadUrl: string | null
+): string {
+  const organization =
+    safeBodyText(order.customer.organizationName) ||
+    customerDisplayName(order.customer);
+  const contact = safeBodyText(order.customer.contactName);
+  const reference = safeBodyText(order.customer.reference);
+
+  return `
+    <div style="margin:20px 0;padding:16px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc;color:#334155;">
+      <strong style="display:block;margin-bottom:10px;color:#0f172a;">Podatki za naro\u010dilnico</strong>
+      ${organization ? `<div><strong style="color:#0f172a;">Naro\u010dnik:</strong> ${escapeHtml(organization)}</div>` : ''}
+      ${contact ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Kontaktna oseba:</strong> ${escapeHtml(contact)}</div>` : ''}
+      ${reference ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Va\u0161a referenca:</strong> ${escapeHtml(reference)}</div>` : ''}
+      ${uploadUrl ? `
+        <p style="margin:16px 0 0;">
+          <a href="${escapeHtml(uploadUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Nalo\u017ei naro\u010dilnico</a>
+        </p>
+      ` : ''}
+    </div>
+  `;
+}
+
+function buildSchoolOrderTextDetails(
+  order: OrderEmailCustomerOrderSnapshot,
+  uploadUrl: string | null
+): string {
+  const organization =
+    safeBodyText(order.customer.organizationName) ||
+    customerDisplayName(order.customer);
+  const contact = safeBodyText(order.customer.contactName);
+  const reference = safeBodyText(order.customer.reference);
+
+  return [
+    'Podatki za naro\u010dilnico',
+    organization ? `Naro\u010dnik: ${organization}` : null,
+    contact ? `Kontaktna oseba: ${contact}` : null,
+    reference ? `Va\u0161a referenca: ${reference}` : null,
+    uploadUrl ? `Varna oddaja naro\u010dilnice: ${uploadUrl}` : null
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join('\n');
+}
+
 export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmailMessage {
   const from = formatFromHeader(
     payload.settingsSnapshot.senderName,
@@ -355,6 +458,16 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const content = buildTemplateContent(payload);
   const order = payload.order;
   const customerName = customerDisplayName(order.customer);
+  const isSchoolSubmission =
+    payload.audience === 'customer' &&
+    payload.eventType === 'order_submitted' &&
+    payload.order.customer.customerType === 'school';
+  const schoolUploadUrl = isSchoolSubmission
+    ? safePurchaseOrderUploadUrl(
+        payload.purchaseOrderUploadUrl,
+        payload.settingsSnapshot.siteUrl
+      )
+    : null;
   const adminOrderUrl =
     payload.audience === 'admin'
       ? safeAdminOrderUrl(payload.settingsSnapshot.siteUrl, payload.order.orderId)
@@ -379,6 +492,9 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
       </p>
     `
     : '';
+  const schoolDetailsHtml = isSchoolSubmission
+    ? buildSchoolOrderHtmlDetails(order, schoolUploadUrl)
+    : '';
 
   const html = `<!doctype html>
 <html lang="sl">
@@ -387,6 +503,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
       <p style="margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
       <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(content.heading)}</h1>
       <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${multilineHtml(content.body)}</p>
+      ${schoolDetailsHtml}
       ${adminCustomerDetails}
       <div style="margin:20px 0 12px;font-size:14px;color:#64748b;">
         ${adminOrderNumber}
@@ -412,12 +529,16 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
           : null
       ].filter((line): line is string => Boolean(line)).join('\n')
     : '';
+  const schoolDetailsText = isSchoolSubmission
+    ? buildSchoolOrderTextDetails(order, schoolUploadUrl)
+    : '';
   const text = [
     content.greeting,
     '',
     content.heading,
     content.body,
     adminText ? `\n${adminText}` : '',
+    schoolDetailsText ? `\n${schoolDetailsText}` : '',
     '',
     payload.audience === 'admin'
       ? `Naročilo: ${safeBodyText(payload.order.orderNumber)}`

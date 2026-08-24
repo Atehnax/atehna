@@ -30,10 +30,34 @@ export type OrderEmailTemplate = {
 export type OrderEmailEventTemplates = {
   customer: OrderEmailTemplate;
   admin: OrderEmailTemplate;
+  schoolCustomer?: OrderEmailTemplate;
+};
+
+export type OrderEmailTemplates = Record<
+  Exclude<OrderEmailEventType, 'order_submitted'>,
+  OrderEmailEventTemplates
+> & {
+  order_submitted: OrderEmailEventTemplates & {
+    schoolCustomer: OrderEmailTemplate;
+  };
 };
 
 export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
-  customer: ['customer_name', 'status', 'previous_status'],
+  customer: [
+    'customer_name',
+    'organization_name',
+    'contact_name',
+    'reference',
+    'status',
+    'previous_status'
+  ],
+  schoolCustomer: [
+    'customer_name',
+    'organization_name',
+    'contact_name',
+    'reference',
+    'status'
+  ],
   admin: [
     'customer_name',
     'status',
@@ -47,7 +71,7 @@ export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
 export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
 
 export type OrderEmailSettings = {
-  version: 2;
+  version: 3;
   enabled: boolean;
   senderName: string;
   fromEmail: string;
@@ -57,7 +81,7 @@ export type OrderEmailSettings = {
   siteUrl: string;
   footerText: string;
   events: Record<OrderEmailEventType, OrderEmailAudienceSettings>;
-  templates: Record<OrderEmailEventType, OrderEmailEventTemplates>;
+  templates: OrderEmailTemplates;
   updatedAt?: string | null;
 };
 
@@ -99,6 +123,10 @@ const defaultTemplates = Object.fromEntries(
             subject: 'Va\u0161e naro\u010dilo je bilo prejeto',
             body: 'Va\u0161e naro\u010dilo smo uspe\u0161no prejeli. O nadaljnjih spremembah vas bomo obvestili po e-po\u0161ti.'
           },
+          schoolCustomer: {
+            subject: 'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico',
+            body: 'Na podpisani oziroma odobreni naro\u010dilnici navedite spodaj izpisane podatke o naro\u010dniku, kontaktni osebi in morebitni referenci ter naro\u010dene artikle in zneske iz povzetka naro\u010dila. Naro\u010dilnico nato nalo\u017eite v obliki PDF ali JPG (najve\u010d 10 MB) prek varne povezave v tem sporo\u010dilu. Naro\u010dilo bomo za\u010deli obdelovati po prejemu in pregledu naro\u010dilnice. Dokument se samodejno in varno pove\u017ee z va\u0161im naro\u010dilom, zato interne \u0161tevilke naro\u010dila ni treba vpisati.'
+          },
           admin: {
             subject: 'Novo naro\u010dilo {{order_number}}',
             body: 'Novo naro\u010dilo {{order_number}} je pripravljeno za pregled v administraciji.'
@@ -121,10 +149,10 @@ const defaultTemplates = Object.fromEntries(
       }
     ];
   })
-) as Record<OrderEmailEventType, OrderEmailEventTemplates>;
+) as OrderEmailTemplates;
 
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 2,
+  version: 3,
   enabled: false,
   senderName: 'Atehna',
   fromEmail: '',
@@ -225,10 +253,17 @@ export function cloneOrderEmailSettings(
         eventType,
         {
           customer: { ...value.templates[eventType].customer },
-          admin: { ...value.templates[eventType].admin }
+          admin: { ...value.templates[eventType].admin },
+          ...(value.templates[eventType].schoolCustomer
+            ? {
+                schoolCustomer: {
+                  ...value.templates[eventType].schoolCustomer
+                }
+              }
+            : {})
         }
       ])
-    ) as Record<OrderEmailEventType, OrderEmailEventTemplates>
+    ) as OrderEmailTemplates
   };
 }
 
@@ -263,6 +298,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[eventType];
       const rawCustomer = asRecord(rawEventTemplates.customer);
       const rawAdmin = asRecord(rawEventTemplates.admin);
+      const rawSchoolCustomer = asRecord(rawEventTemplates.schoolCustomer);
       return [
         eventType,
         {
@@ -276,11 +312,25 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
           admin: {
             subject: sanitizeHeaderText(rawAdmin.subject, defaults.admin.subject),
             body: sanitizeBodyText(rawAdmin.body, defaults.admin.body)
-          }
+          },
+          ...(defaults.schoolCustomer
+            ? {
+                schoolCustomer: {
+                  subject: sanitizeHeaderText(
+                    rawSchoolCustomer.subject,
+                    defaults.schoolCustomer.subject
+                  ),
+                  body: sanitizeBodyText(
+                    rawSchoolCustomer.body,
+                    defaults.schoolCustomer.body
+                  )
+                }
+              }
+            : {})
         }
       ];
     })
-  ) as Record<OrderEmailEventType, OrderEmailEventTemplates>;
+  ) as OrderEmailTemplates;
 
   const updatedAt =
     typeof record.updatedAt === 'string'
@@ -290,7 +340,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 2,
+    version: 3,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
@@ -359,7 +409,12 @@ function validateTemplate(
   fallback: OrderEmailTemplate
 ): string[] {
   const record = asRecord(value);
-  const audienceLabel = audience === 'customer' ? 'stranko' : 'administratorja';
+  const audienceLabel =
+    audience === 'admin'
+      ? 'administratorja'
+      : audience === 'schoolCustomer'
+        ? '\u0161olo ali javni zavod'
+        : 'stranko';
   const errors: string[] = [];
   if (
     value !== undefined &&
@@ -492,7 +547,15 @@ export function validateOrderEmailSettingsInput(value: unknown): string[] {
     const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value];
     errors.push(
       ...validateTemplate(rawEvent.customer, event.label, 'customer', defaults.customer),
-      ...validateTemplate(rawEvent.admin, event.label, 'admin', defaults.admin)
+      ...validateTemplate(rawEvent.admin, event.label, 'admin', defaults.admin),
+      ...(event.value === 'order_submitted' && defaults.schoolCustomer
+        ? validateTemplate(
+            rawEvent.schoolCustomer,
+            'Oddano naro\u010dilo \u2013 \u0161ola / javni zavod',
+            'schoolCustomer',
+            defaults.schoolCustomer
+          )
+        : [])
     );
   }
 

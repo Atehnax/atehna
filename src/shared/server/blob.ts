@@ -1,3 +1,8 @@
+import { createReadStream } from 'node:fs';
+import { lstat, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { Readable } from 'node:stream';
 import { del, get, put } from '@vercel/blob';
 
 type UploadResult = {
@@ -14,6 +19,11 @@ export type PrivateOrderDocumentBlob = {
 const FORBIDDEN_PATH_CHARS = /[#?%\n\r]/g;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const E2E_STORAGE_NAMESPACE_PATTERN =
+  /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
+const E2E_PRIVATE_BLOB_PATH_SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/u;
+const E2E_PRIVATE_BLOB_ROOT_NAME = 'atehna-e2e-private-order-documents-v1';
+const E2E_LOCAL_PRIVATE_BLOB_FLAG = 'E2E_LOCAL_PRIVATE_BLOB';
 
 const sanitizeBlobSegment = (value: string): string =>
   value
@@ -25,22 +35,148 @@ const sanitizeBlobSegment = (value: string): string =>
 
 const normalizePathname = (pathname: string): string => pathname.trim().replace(/^\/+/, '');
 
+const readE2eStorageNamespace = (): string => {
+  const namespace = process.env.E2E_STORAGE_NAMESPACE?.trim() ?? '';
+  if (!E2E_STORAGE_NAMESPACE_PATTERN.test(namespace)) {
+    throw new Error('[e2e-preflight] E2E_STORAGE_NAMESPACE is missing or invalid.');
+  }
+  return namespace;
+};
+
 const withStorageNamespace = (segments: string[]): string => {
   if (process.env.E2E_MODE !== '1') {
     return segments.join('/');
   }
 
-  const rawNamespace = process.env.E2E_STORAGE_NAMESPACE?.trim() ?? '';
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u.test(rawNamespace)) {
-    throw new Error('[e2e-preflight] E2E_STORAGE_NAMESPACE is missing or invalid.');
-  }
-  return [rawNamespace, ...segments].join('/');
+  return [readE2eStorageNamespace(), ...segments].join('/');
 };
 
+type E2ePrivateBlobTarget = {
+  absolutePath: string;
+  normalizedPathname: string;
+};
+
+function resolveE2ePrivateBlobTarget(pathname: string): E2ePrivateBlobTarget {
+  const namespace = readE2eStorageNamespace();
+  const normalizedPathname = normalizePathname(pathname);
+  const segments = normalizedPathname.split('/');
+  if (
+    segments[0] !== namespace ||
+    segments.length < 2 ||
+    segments.some((segment) => (
+      !E2E_PRIVATE_BLOB_PATH_SEGMENT_PATTERN.test(segment) ||
+      segment === '.' ||
+      segment === '..'
+    ))
+  ) {
+    throw new Error(
+      '[e2e-preflight] Private order-document blob path must stay inside its E2E namespace.'
+    );
+  }
+
+  const namespaceRoot = resolve(
+    tmpdir(),
+    E2E_PRIVATE_BLOB_ROOT_NAME,
+    namespace
+  );
+  const absolutePath = resolve(namespaceRoot, ...segments.slice(1));
+  const relativePath = relative(namespaceRoot, absolutePath);
+  if (
+    !relativePath ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${sep}`) ||
+    isAbsolute(relativePath)
+  ) {
+    throw new Error(
+      '[e2e-preflight] Private order-document blob path escaped its E2E namespace.'
+    );
+  }
+
+  return { absolutePath, normalizedPathname };
+}
+
+function e2ePrivateBlobContentType(pathname: string): string {
+  const lowerPathname = pathname.toLowerCase();
+  if (lowerPathname.endsWith('.pdf')) return 'application/pdf';
+  if (lowerPathname.endsWith('.jpg')) return 'image/jpeg';
+  throw new Error(
+    '[e2e-preflight] Private order-document blob has an unsupported extension.'
+  );
+}
+
+async function uploadE2ePrivateOrderDocumentBlob(
+  pathname: string,
+  payload: Buffer,
+  contentType: string
+): Promise<UploadResult> {
+  const target = resolveE2ePrivateBlobTarget(pathname);
+  if (e2ePrivateBlobContentType(target.normalizedPathname) !== contentType) {
+    throw new Error(
+      '[e2e-preflight] Private order-document blob extension does not match its content type.'
+    );
+  }
+
+  await mkdir(dirname(target.absolutePath), { recursive: true });
+  await writeFile(target.absolutePath, payload, { flag: 'wx' });
+  return {
+    url: `https://e2e-private-order-document.invalid/${target.normalizedPathname}`,
+    pathname: target.normalizedPathname
+  };
+}
+
+async function readE2ePrivateOrderDocumentBlob(
+  pathname: string
+): Promise<PrivateOrderDocumentBlob | null> {
+  const target = resolveE2ePrivateBlobTarget(pathname);
+  let fileStats;
+  try {
+    fileStats = await lstat(target.absolutePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+  if (!fileStats.isFile() || fileStats.isSymbolicLink()) {
+    throw new Error(
+      '[e2e-preflight] Private order-document blob target must be a regular file.'
+    );
+  }
+
+  return {
+    stream: Readable.toWeb(createReadStream(target.absolutePath)) as ReadableStream<Uint8Array>,
+    contentType: e2ePrivateBlobContentType(target.normalizedPathname),
+    size: fileStats.size
+  };
+}
+
+async function deleteE2ePrivateOrderDocumentBlob(pathname: string): Promise<void> {
+  const target = resolveE2ePrivateBlobTarget(pathname);
+  let fileStats;
+  try {
+    fileStats = await lstat(target.absolutePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
+  if (!fileStats.isFile() || fileStats.isSymbolicLink()) {
+    throw new Error(
+      '[e2e-preflight] Private order-document blob target must be a regular file.'
+    );
+  }
+  await rm(target.absolutePath);
+
+}
 const refuseExternalBlobInE2e = () => {
   if (process.env.E2E_MODE === '1') {
     throw new Error(
       '[e2e-preflight] External Blob storage is disabled in E2E mode; use deterministic local media fixtures.'
+    );
+  }
+};
+
+const assertE2eLocalPrivateBlobEnabled = () => {
+  if (process.env[E2E_LOCAL_PRIVATE_BLOB_FLAG] !== '1') {
+    throw new Error(
+      `[e2e-preflight] ${E2E_LOCAL_PRIVATE_BLOB_FLAG}=1 is required for local private order-document storage.`
     );
   }
 };
@@ -156,13 +292,21 @@ export async function uploadPrivateOrderDocumentBlob(
   data: Buffer | Uint8Array,
   contentType: string
 ): Promise<UploadResult> {
-  refuseExternalBlobInE2e();
-  const storeId = getOrderDocumentBlobStoreId();
   const { payload, normalizedPathname, effectiveContentType } = validateUpload(
     pathname,
     data,
     contentType
   );
+  if (process.env.E2E_MODE === '1') {
+    assertE2eLocalPrivateBlobEnabled();
+    return uploadE2ePrivateOrderDocumentBlob(
+      normalizedPathname,
+      payload,
+      effectiveContentType
+    );
+  }
+  const storeId = getOrderDocumentBlobStoreId();
+
 
   const blob = await put(normalizedPathname, payload, {
     access: 'private',
@@ -176,10 +320,14 @@ export async function uploadPrivateOrderDocumentBlob(
 export async function readPrivateOrderDocumentBlob(
   pathname: string
 ): Promise<PrivateOrderDocumentBlob | null> {
-  refuseExternalBlobInE2e();
-  const storeId = getOrderDocumentBlobStoreId();
   const normalizedPathname = normalizePathname(pathname);
   if (!normalizedPathname) return null;
+  if (process.env.E2E_MODE === '1') {
+    assertE2eLocalPrivateBlobEnabled();
+    return readE2ePrivateOrderDocumentBlob(normalizedPathname);
+  }
+  const storeId = getOrderDocumentBlobStoreId();
+
 
   const result = await get(normalizedPathname, {
     access: 'private',
@@ -196,10 +344,15 @@ export async function readPrivateOrderDocumentBlob(
 }
 
 export async function deletePrivateOrderDocumentBlob(pathname: string): Promise<void> {
-  refuseExternalBlobInE2e();
-  const storeId = getOrderDocumentBlobStoreId();
   const normalizedPathname = normalizePathname(pathname);
   if (!normalizedPathname) return;
+  if (process.env.E2E_MODE === '1') {
+    assertE2eLocalPrivateBlobEnabled();
+    await deleteE2ePrivateOrderDocumentBlob(normalizedPathname);
+    return;
+  }
+  const storeId = getOrderDocumentBlobStoreId();
+
 
   await del(normalizedPathname, { storeId });
 }

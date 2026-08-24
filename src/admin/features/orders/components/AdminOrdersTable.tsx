@@ -83,6 +83,7 @@ import {
 import { CustomSelect } from '@/shared/ui/select';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
+import { orderCustomerTypeChangeBlock } from '@/shared/domain/order/schoolOrderWorkflow';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
@@ -113,6 +114,7 @@ import {
 } from '@/admin/features/orders/components/adminOrdersTableUtils';
 type OrderQuickEditState = {
   orderId: number;
+  isDraft: boolean;
   draftOrderNumber: string;
   initialOrderNumber: string;
   draftOrderDate: string;
@@ -204,6 +206,11 @@ const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) 
   value: option.value,
   label: getCustomerTypeLabel(option.value)
 }));
+const getOrderCustomerTypeRowOptions = (currentCustomerType: string, isDraft: boolean) =>
+  ORDER_CUSTOMER_TYPE_ROW_OPTIONS.filter(
+    (option) =>
+      orderCustomerTypeChangeBlock(currentCustomerType, option.value, isDraft) === null
+  );
 const ORDERS_HEADER_CELL_BASE_CLASS = 'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
 const ORDERS_HEADER_CELL_CENTER_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-center`;
 const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-left`;
@@ -1196,6 +1203,8 @@ export default function AdminOrdersTable({
       const normalizedPaymentStatus = isPaymentStatus(nextPaymentStatus ?? '') ? nextPaymentStatus ?? '' : '';
       const nextCreatedAt = typeof detailOverrides.created_at === 'string' ? detailOverrides.created_at : order.created_at;
       const nextCustomerType = typeof detailOverrides.customer_type === 'string' ? detailOverrides.customer_type : order.customer_type;
+      const nextIsDraft =
+        typeof detailOverrides.is_draft === 'boolean' ? detailOverrides.is_draft : Boolean(order.is_draft);
       const nextOrganizationName =
         typeof detailOverrides.organization_name === 'string' ? detailOverrides.organization_name : order.organization_name;
       const nextContactName =
@@ -1205,6 +1214,7 @@ export default function AdminOrdersTable({
 
       setQuickEdit({
         orderId: order.id,
+        isDraft: nextIsDraft,
         draftOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         initialOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         draftOrderDate: toDateInputValue(new Date(nextCreatedAt)),
@@ -1265,6 +1275,7 @@ export default function AdminOrdersTable({
     let nextInitialCustomerName = quickEdit.initialCustomerName;
     let nextInitialAddress = quickEdit.initialAddress;
     let nextInitialCustomerType = quickEdit.initialCustomerType;
+    let nextIsDraft = quickEdit.isDraft;
     let nextInitialStatus = quickEdit.initialStatus;
     let nextInitialPaymentStatus = quickEdit.initialPaymentStatus;
     let hasError = false;
@@ -1310,6 +1321,7 @@ export default function AdminOrdersTable({
           nextInitialCustomerName = normalizedCustomerName;
           nextInitialAddress = normalizedAddress;
           nextInitialCustomerType = quickEdit.draftCustomerType;
+          nextIsDraft = false;
           setRowDetailOverrides((current) => ({
             ...current,
             [quickEdit.orderId]: {
@@ -1317,6 +1329,7 @@ export default function AdminOrdersTable({
               order_number: nextOrderNumber || toDisplayOrderNumberValue(quickEdit.initialOrderNumber),
               created_at: `${(nextOrderDate || quickEdit.initialOrderDate)}T00:00:00.000Z`,
               customer_type: quickEdit.draftCustomerType,
+              is_draft: false,
               organization_name: nextOrganizationName || null,
               contact_name: nextContactName,
               address_line1: normalizedAddress,
@@ -1387,6 +1400,7 @@ export default function AdminOrdersTable({
               initialCustomerName: nextInitialCustomerName,
               initialAddress: nextInitialAddress,
               initialCustomerType: nextInitialCustomerType,
+              isDraft: nextIsDraft,
               initialStatus: nextInitialStatus,
               initialPaymentStatus: nextInitialPaymentStatus,
               isSaving: false
@@ -2444,8 +2458,11 @@ export default function AdminOrdersTable({
                                     : current
                                 )
                               }
-                              options={ORDER_CUSTOMER_TYPE_ROW_OPTIONS}
-                              disabled={activeQuickEdit.isSaving}
+                              options={getOrderCustomerTypeRowOptions(
+                                activeQuickEdit.initialCustomerType,
+                                activeQuickEdit.isDraft
+                              )}
+                              disabled={activeQuickEdit.isSaving || (!activeQuickEdit.isDraft && activeQuickEdit.initialCustomerType === 'school')}
                               className="w-full"
                               triggerClassName={ORDERS_TYPE_SELECT_TRIGGER_CLASS}
                               menuClassName="min-w-full"

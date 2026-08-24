@@ -3,6 +3,12 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
+import { isCustomerType } from '@/shared/domain/order/customerType';
+import { SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS } from '@/shared/domain/order/schoolOrderWorkflow';
+import {
+  buildPurchaseOrderAccessUrl,
+  hashOrderAccessToken
+} from '@/shared/server/orderAccess';
 import {
   type OrderEmailCustomerOrderSnapshot,
   type OrderEmailJobPayload,
@@ -13,6 +19,7 @@ import {
   classifyResendFailure,
   createOrderEmailDeliveryEnvelope,
   parseOrderEmailDeliveryEnvelope,
+  OrderEmailDeliveryEnvelopeValidationError,
   redactOrderEmailDeliveryEnvelope,
   serializeOrderEmailDeliveryEnvelope,
   type OrderEmailDeliveryEnvelope,
@@ -34,6 +41,10 @@ import {
   isResendApiKeyConfigured
 } from '@/shared/server/orderEmailSettings';
 import { runOrderEmailWorker } from '@/shared/server/orderEmailWorker';
+import {
+  decryptOrderEmailDeliveryEnvelope,
+  encryptOrderEmailDeliveryEnvelope
+} from '@/shared/server/orderEmailDeliveryCipher';
 
 const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails';
 const STALE_CLAIM_INTERVAL = '5 minutes';
@@ -45,12 +56,14 @@ const DEFAULT_SENT_RETENTION_DAYS = 30;
 const DEFAULT_PRUNE_LIMIT = 1_000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
+const ORDER_ACCESS_TOKEN_PATTERN = /ath_order_[A-Za-z0-9_-]{43}/gu;
 type EnqueueOrderEmailEventInput = {
   orderId: number;
   eventKey: string;
   eventType: OrderEmailEventType;
   occurredAt?: string;
   previousStatus?: string | null;
+  customerOrderAccessToken?: string | null;
 };
 
 type ClaimedOrderEmailJob = {
@@ -59,6 +72,10 @@ type ClaimedOrderEmailJob = {
   orderId: number;
   attempts: number;
   payloadJson: unknown;
+  eventType: OrderEmailEventType;
+  audience: 'customer' | 'admin';
+  envelope?: OrderEmailDeliveryEnvelope;
+  payloadEncrypted: boolean;
 };
 
 export type OrderEmailProcessingResult = {
@@ -116,7 +133,62 @@ function redactDeliveryError(value: unknown): string {
   return message
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, '[email]')
     .replace(/re_[A-Za-z0-9_-]+/gu, '[api-key]')
+    .replace(/ath_order_[A-Za-z0-9_-]{43}/gu, '[order-access-token]')
     .slice(0, 2000);
+}
+
+function isEncryptedDeliveryPayload(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return [
+    'algorithm',
+    'ciphertext',
+    'initializationVector',
+    'authenticationTag'
+  ].some((key) => Object.prototype.hasOwnProperty.call(value, key));
+}
+
+function parseClaimedOrderEmailEnvelope(
+  job: ClaimedOrderEmailJob
+): OrderEmailDeliveryEnvelope {
+  let persistedValue = job.payloadJson;
+  if (job.payloadEncrypted) {
+    try {
+      persistedValue = decryptOrderEmailDeliveryEnvelope(
+        job.payloadJson,
+        job.id,
+        job.orderId
+      );
+    } catch {
+      throw new OrderEmailDeliveryEnvelopeValidationError(
+        '$.encryptedPayload',
+        'could not be authenticated or decrypted'
+      );
+    }
+  }
+  const envelope = parseOrderEmailDeliveryEnvelope(persistedValue);
+  job.envelope = envelope;
+  return envelope;
+}
+
+function purchaseOrderTokenFromEnvelope(
+  envelope: OrderEmailDeliveryEnvelope
+): string | null {
+  const tokens = new Set(
+    [envelope.message.subject, envelope.message.html, envelope.message.text]
+      .flatMap((value) => value.match(ORDER_ACCESS_TOKEN_PATTERN) ?? [])
+  );
+  if (tokens.size === 0) return null;
+  if (
+    tokens.size !== 1 ||
+    envelope.audience !== 'customer' ||
+    envelope.eventType !== 'order_submitted'
+  ) {
+    throw new OrderEmailDeliveryEnvelopeValidationError(
+      '$.message',
+      'contains an unexpected order access token'
+    );
+  }
+  return tokens.values().next().value ?? null;
 }
 
 function clampClaimSize(value: number | undefined): number {
@@ -134,6 +206,7 @@ async function readOrderSnapshot(
         select
           id,
           order_number,
+          customer_type,
           organization_name,
           contact_name,
           email,
@@ -169,6 +242,9 @@ async function readOrderSnapshot(
     orderNumber: String(row.order_number ?? `#${orderId}`),
     createdAt: isoValue(row.created_at),
     customer: {
+      customerType: isCustomerType(String(row.customer_type ?? ''))
+        ? (String(row.customer_type) as 'individual' | 'company' | 'school')
+        : 'individual',
       organizationName: optionalString(row.organization_name),
       contactName: String(row.contact_name ?? ''),
       email: String(row.email ?? ''),
@@ -200,6 +276,33 @@ function toCustomerOrderSnapshot(
     items: order.items,
     totals: order.totals
   };
+}
+
+function buildCustomerPurchaseOrderUploadUrl(
+  order: OrderEmailOrderSnapshot,
+  input: EnqueueOrderEmailEventInput,
+  settings: OrderEmailSettings
+): string | null {
+  if (
+    input.eventType !== 'order_submitted' ||
+    order.customer.customerType !== 'school' ||
+    !input.customerOrderAccessToken
+  ) {
+    return null;
+  }
+  try {
+    const relativeUrl = buildPurchaseOrderAccessUrl(
+      input.customerOrderAccessToken
+    );
+    const absoluteUrl = new URL(relativeUrl, settings.siteUrl);
+    const settingsOrigin = new URL(settings.siteUrl).origin;
+    return absoluteUrl.protocol === 'https:' &&
+      absoluteUrl.origin === settingsOrigin
+      ? absoluteUrl.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function enqueueOrderEmailEvent(
@@ -237,6 +340,12 @@ export async function enqueueOrderEmailEvent(
   if (recipients.length === 0) return [];
 
   const settingsSnapshot = toStoredOrderEmailSettings(settings);
+  const purchaseOrderUploadUrl =
+    buildCustomerPurchaseOrderUploadUrl(
+      order,
+      input,
+      settings
+    );
   const occurredAt = input.occurredAt ?? new Date().toISOString();
   const insertedIds: string[] = [];
   for (const recipient of recipients) {
@@ -258,13 +367,21 @@ export async function enqueueOrderEmailEvent(
         : {
             ...payloadBase,
             audience: 'customer',
-            order: toCustomerOrderSnapshot(order)
+            order: toCustomerOrderSnapshot(order),
+            purchaseOrderUploadUrl
           };
     const envelope = createOrderEmailDeliveryEnvelope(payload);
     const serializedEnvelope = serializeOrderEmailDeliveryEnvelope(envelope);
+    const jobId = randomUUID();
+    const encryptedEnvelope = encryptOrderEmailDeliveryEnvelope(
+      serializedEnvelope,
+      jobId,
+      input.orderId
+    );
     const result = await client.query(
       `
         insert into order_email_jobs (
+          id,
           order_id,
           event_key,
           event_type,
@@ -273,18 +390,19 @@ export async function enqueueOrderEmailEvent(
           recipient_name,
           payload_json
         )
-        values ($1, $2, $3, $4, $5, $6, $7::jsonb)
+        values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
         on conflict do nothing
         returning id
       `,
       [
+        jobId,
         input.orderId,
         input.eventKey,
         envelope.eventType,
         envelope.audience,
         envelope.recipient.email,
         envelope.recipient.name,
-        serializedEnvelope
+        JSON.stringify(encryptedEnvelope)
       ]
     );
     if (result.rows[0]?.id) insertedIds.push(String(result.rows[0].id));
@@ -301,7 +419,7 @@ async function claimDueOrderEmailJobs(
     await client.query('begin');
     const result = await client.query(
       `
-        select id, order_id, attempts, payload_json
+        select id, order_id, event_type, audience, attempts, payload_json
         from order_email_jobs
         where (
           (status = 'pending' and next_attempt_at <= now())
@@ -342,7 +460,10 @@ async function claimDueOrderEmailJobs(
         claimId,
         orderId: Number(row.order_id),
         attempts: Math.max(1, Math.trunc(numberValue(row.attempts)) + 1),
-        payloadJson: row.payload_json
+        payloadJson: row.payload_json,
+        eventType: String(row.event_type) as OrderEmailEventType,
+        audience: row.audience === 'admin' ? 'admin' : 'customer',
+        payloadEncrypted: isEncryptedDeliveryPayload(row.payload_json)
       });
     }
     await client.query('commit');
@@ -352,6 +473,93 @@ async function claimDueOrderEmailJobs(
     throw error;
   } finally {
     client.release();
+  }
+}
+
+async function persistEncryptedClaimedEnvelope(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  envelope: OrderEmailDeliveryEnvelope
+): Promise<void> {
+  let encryptedPayload: string;
+  try {
+    encryptedPayload = JSON.stringify(
+      encryptOrderEmailDeliveryEnvelope(
+        serializeOrderEmailDeliveryEnvelope(envelope),
+        job.id,
+        job.orderId
+      )
+    );
+  } catch {
+    throw new OrderEmailDeliveryEnvelopeValidationError(
+      '$.encryptedPayload',
+      'could not be encrypted'
+    );
+  }
+  const result = await pool.query(
+    `
+      update order_email_jobs
+      set payload_json = $3::jsonb,
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [job.id, job.claimId, encryptedPayload]
+  );
+  if ((result.rowCount ?? 0) !== 1) {
+    throw new OrderEmailClaimPersistenceError(
+      `Legacy payload encryption lost its email job claim (${job.id}).`,
+    );
+  }
+  job.payloadEncrypted = true;
+  job.payloadJson = JSON.parse(encryptedPayload) as unknown;
+}
+
+async function validatePurchaseOrderTokenBeforeDelivery(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  envelope: OrderEmailDeliveryEnvelope
+): Promise<void> {
+  const token = purchaseOrderTokenFromEnvelope(envelope);
+  if (!token) return;
+  const result = await pool.query<{ active: boolean }>(
+    `
+      select exists (
+        select 1
+        from order_access_tokens token_record
+        join orders email_order
+          on email_order.id = token_record.order_id
+        where token_record.token_hash = $1
+          and token_record.order_id = $2
+          and $3 = any(token_record.scopes)
+          and token_record.revoked_at is null
+          and token_record.expires_at > now()
+          and email_order.customer_type = 'school'
+          and email_order.deleted_at is null
+          and email_order.status <> 'cancelled'
+          and email_order.commitment_status = 'pending_confirmation'
+          and not exists (
+            select 1
+            from order_documents purchase_order
+            where purchase_order.order_id = email_order.id
+              and purchase_order.type = 'purchase_order'
+              and purchase_order.deleted_at is null
+              and purchase_order.format_marker = any($4::text[])
+          )
+      ) as active
+    `,
+    [
+      hashOrderAccessToken(token),
+      job.orderId,
+      'purchase_order',
+      [...SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS]
+    ]
+  );
+  if (result.rows[0]?.active !== true) {
+    throw new OrderEmailDeliveryEnvelopeValidationError(
+      '$.message',
+      'contains an expired, revoked, or mismatched purchase-order access token'
+    );
   }
 }
 
@@ -395,6 +603,19 @@ async function markOrderEmailJobFailed(
   const terminal =
     classification.disposition === 'terminal' || job.attempts >= MAX_ATTEMPTS;
   const outcome = terminal ? 'failed' : 'retried';
+  const invalidPayload =
+    terminal && classification.category === 'invalid_payload'
+      ? JSON.stringify(
+          job.envelope
+            ? redactOrderEmailDeliveryEnvelope(job.envelope)
+            : {
+                version: 2,
+                redacted: true,
+                eventType: job.eventType,
+                audience: job.audience
+              }
+        )
+      : null;
   const fallbackRetryDelayMs = Math.min(
     6 * 60 * 60 * 1_000,
     30_000 * 2 ** Math.max(0, Math.min(job.attempts, 10) - 1)
@@ -411,6 +632,7 @@ async function markOrderEmailJobFailed(
             else next_attempt_at
           end,
           last_error = $5,
+          payload_json = coalesce($6::jsonb, payload_json),
           updated_at = now()
       where id = $1
         and claim_id = $2
@@ -420,7 +642,8 @@ async function markOrderEmailJobFailed(
       job.claimId,
       outcome === 'failed' ? 'failed' : 'pending',
       retryDelayMs,
-      `[${classification.category}] ${redactDeliveryError(error)}`
+      `[${classification.category}] ${redactDeliveryError(error)}`,
+      invalidPayload
     ]
   );
   if ((result.rowCount ?? 0) !== 1) {
@@ -552,7 +775,11 @@ export async function processDueOrderEmailJobs(
       claimJobs: (limit) =>
         claimDueOrderEmailJobs(pool, { orderId: options.orderId, limit }),
       processJob: async (job) => {
-        const envelope = parseOrderEmailDeliveryEnvelope(job.payloadJson);
+        const envelope = parseClaimedOrderEmailEnvelope(job);
+        if (!job.payloadEncrypted) {
+          await persistEncryptedClaimedEnvelope(pool, job, envelope);
+        }
+        await validatePurchaseOrderTokenBeforeDelivery(pool, job, envelope);
         const providerMessageId = await sendOrderEmailMessage(
           envelope.message,
           `atehna-order-email/${job.id}`
@@ -721,6 +948,7 @@ export async function sendOrderEmailTest(
       orderNumber: '#PREIZKUS',
       createdAt: now,
       customer: {
+        customerType: 'company',
         organizationName: 'Primer naročnika',
         contactName: 'Testni prejemnik',
         email: recipient,

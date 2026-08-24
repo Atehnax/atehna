@@ -3,9 +3,14 @@ import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readPrivateOrderDocumentBlob } from '@/shared/server/blob';
 import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
+import {
+  SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS,
+  schoolPurchaseOrderDeletionBlock
+} from '@/shared/domain/order/schoolOrderWorkflow';
 
 type OrderDocumentDeleteRow = {
   type: string;
+  format_marker: string | null;
   filename: string;
   order_number: string | null;
   contact_name: string | null;
@@ -15,6 +20,8 @@ type OrderDocumentDeleteRow = {
   city: string | null;
   country_code: string | null;
   customer_type: string | null;
+  status: string;
+  commitment_status: string | null;
   created_at: string | null;
   deleted_at: string | null;
 };
@@ -126,27 +133,76 @@ export async function DELETE(
 
     try {
       await client.query('BEGIN');
+      const orderResult = await client.query(
+        `
+          select order_number, contact_name, address_line1, address_line2,
+            postal_code, city, country_code, customer_type, created_at,
+            status, commitment_status
+          from orders
+          where id = $1
+          for update
+        `,
+        [orderId]
+      );
+      if (orderResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Dokument ne obstaja.' }, { status: 404 });
+      }
+
       const documentResult = await client.query(
         `
-        select d.id, d.type, d.filename, d.deleted_at,
-          o.order_number, o.contact_name, o.address_line1, o.address_line2,
-          o.postal_code, o.city, o.country_code, o.customer_type, o.created_at
-        from order_documents d
-        left join orders o on o.id = d.order_id
-        where d.id = $1 and d.order_id = $2
-        for update of d
+          select id, type, filename, deleted_at, format_marker
+          from order_documents
+          where id = $1 and order_id = $2
+          for update
         `,
         [documentId, orderId]
       );
-
       if (documentResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: 'Dokument ne obstaja.' }, { status: 404 });
       }
 
-      row = documentResult.rows[0] as OrderDocumentDeleteRow;
+      row = {
+        ...documentResult.rows[0],
+        ...orderResult.rows[0]
+      } as OrderDocumentDeleteRow;
 
       if (!row.deleted_at) {
+        if (row.type === 'purchase_order') {
+          const otherPurchaseOrderResult = await client.query(
+            `
+              select id
+              from order_documents
+              where order_id = $1
+                and id <> $2
+                and type = 'purchase_order'
+                and deleted_at is null
+                and format_marker = any($3::text[])
+              order by id desc
+              limit 1
+              for share
+            `,
+            [
+              orderId,
+              documentId,
+              [...SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS]
+            ]
+          );
+          const deletionBlock = schoolPurchaseOrderDeletionBlock(
+            row.customer_type ?? '',
+            row.commitment_status,
+            row.status,
+            row.type,
+            row.format_marker,
+            otherPurchaseOrderResult.rowCount === 1
+          );
+          if (deletionBlock) {
+            await client.query('ROLLBACK');
+            return NextResponse.json(deletionBlock, { status: 409 });
+          }
+        }
+
         const deletedAtResult = await client.query(
           `
           update order_documents

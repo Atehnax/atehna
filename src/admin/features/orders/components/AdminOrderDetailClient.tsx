@@ -19,6 +19,7 @@ import {
   useOrderNumberAvailability
 } from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
+import { orderCustomerTypeChangeBlock } from '@/shared/domain/order/schoolOrderWorkflow';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
@@ -643,6 +644,11 @@ export default function AdminOrderDetailClient({
   const adminNotesDirty = draftAdminNotes !== persistedAdminNotes;
   const hasUnsavedChanges = detailsDirty || adminNotesDirty || itemsDirty;
   const activeDetails = isEditing ? draftDetails : persistedDetails;
+  const availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS.filter(
+    (option) =>
+      orderCustomerTypeChangeBlock(persistedDetails.customerType, option.value, Boolean(order.is_draft)) === null
+  );
+  const customerTypeIsLocked = !order.is_draft && persistedDetails.customerType === 'school';
   const activeAdminNotes = isEditing ? draftAdminNotes : persistedAdminNotes;
   const pageIsBusy = isSaving || itemsSaving || isDeleting;
   const pageTitle = `Naročilo ${displayOrderNumber}`;
@@ -1075,9 +1081,9 @@ export default function AdminOrderDetailClient({
                       ariaLabel="Tip naročnika"
                       value={activeDetails.customerType}
                       onChange={(value) => updateDraftDetails({ customerType: value })}
-                      options={CUSTOMER_TYPE_FORM_OPTIONS}
-                      disabled={!isEditing || pageIsBusy}
-                      showArrow={isEditing}
+                      options={availableCustomerTypeOptions}
+                      disabled={!isEditing || pageIsBusy || customerTypeIsLocked}
+                      showArrow={isEditing && !customerTypeIsLocked}
                       containerClassName={adminCompactIconFieldSelectWrapperClassName}
                       triggerClassName={`${adminCompactIconFieldSelectClassName} disabled:!cursor-default disabled:!text-slate-900 disabled:!opacity-100`}
                       valueClassName={`${adminCompactIconFieldSelectValueClassName} !pb-0`}

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
   ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
@@ -8,43 +8,44 @@ import {
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   ORDER_EMAIL_EVENT_DEFINITIONS,
   normalizeOrderEmailSettings,
-  type OrderEmailSettings
-} from '@/shared/domain/order/orderEmailSettings';
-import type { OrderEmailAdminState } from '@/shared/server/orderEmailSettings';
-import { AdminPageHeader } from '@/shared/ui/admin-primitives';
-import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
-import EuiTabs from '@/shared/ui/eui-tabs';
-import { Spinner } from '@/shared/ui/loading';
-import { useToast } from '@/shared/ui/toast';
+  type OrderEmailSettings,
+} from "@/shared/domain/order/orderEmailSettings";
+import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
+import { AdminPageHeader } from "@/shared/ui/admin-primitives";
+import AdminCheckbox from "@/shared/ui/checkbox/admin-checkbox";
+import EuiTabs from "@/shared/ui/eui-tabs";
+import { Spinner } from "@/shared/ui/loading";
+import { useToast } from "@/shared/ui/toast";
 
 type UnknownRecord = Record<string, unknown>;
-type EventKey = keyof OrderEmailSettings['events'];
-type EventAudience = keyof OrderEmailSettings['events'][EventKey];
-type EmailPageTab = 'settings' | 'templates';
-type TemplateAudience = 'customer' | 'admin';
-type RecentFailure = OrderEmailAdminState['queue']['recentFailures'][number];
+type EventKey = keyof OrderEmailSettings["events"];
+type EventAudience = keyof OrderEmailSettings["events"][EventKey];
+type EmailPageTab = "settings" | "templates";
+type StandardTemplateAudience = "customer" | "admin";
+type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
+type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
 
 const fieldClassName =
   "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-400 focus:border-[color:var(--blue-500)] focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 const textareaClassName =
   "min-h-28 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-['Inter',system-ui,sans-serif] text-sm leading-5 text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-400 focus:border-[color:var(--blue-500)] focus:ring-2 focus:ring-blue-100";
 const primaryButtonClassName =
-  'inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60';
+  "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButtonClassName =
-  'inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60';
+  "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
 
 function asRecord(value: unknown): UnknownRecord {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as UnknownRecord
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as UnknownRecord)
     : {};
 }
 
-function asString(value: unknown, fallback = '') {
-  return typeof value === 'string' ? value : fallback;
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
 }
 
 function asBoolean(value: unknown, fallback: boolean) {
-  return typeof value === 'boolean' ? value : fallback;
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function asCount(value: unknown, fallback: number) {
@@ -52,7 +53,10 @@ function asCount(value: unknown, fallback: number) {
   return Number.isFinite(numeric) ? Math.max(0, Math.trunc(numeric)) : fallback;
 }
 
-function normalizeRecentFailure(value: unknown, index: number): RecentFailure | null {
+function normalizeRecentFailure(
+  value: unknown,
+  index: number,
+): RecentFailure | null {
   const record = asRecord(value);
   const id = asString(record.id, `failure-${index + 1}`).trim();
   const eventType = asString(record.eventType).trim();
@@ -65,17 +69,20 @@ function normalizeRecentFailure(value: unknown, index: number): RecentFailure | 
     eventType,
     recipientEmail,
     attempts: asCount(record.attempts, 0),
-    lastError: record.lastError === null ? null : asString(record.lastError, '') || null,
-    updatedAt
+    lastError:
+      record.lastError === null ? null : asString(record.lastError, "") || null,
+    updatedAt,
   };
 }
 
 function normalizeAdminStateResponse(
   value: unknown,
-  fallback: OrderEmailAdminState
+  fallback: OrderEmailAdminState,
 ): OrderEmailAdminState {
   const root = asRecord(value);
-  const candidate = asRecord(root.state ?? root.adminState ?? root.data ?? value);
+  const candidate = asRecord(
+    root.state ?? root.adminState ?? root.data ?? value,
+  );
   const delivery = asRecord(candidate.delivery);
   const queue = asRecord(candidate.queue);
   const failuresSource = Array.isArray(queue.recentFailures)
@@ -84,7 +91,9 @@ function normalizeAdminStateResponse(
 
   let config = fallback.config;
   try {
-    config = normalizeOrderEmailSettings(candidate.config ?? root.config ?? fallback.config);
+    config = normalizeOrderEmailSettings(
+      candidate.config ?? root.config ?? fallback.config,
+    );
   } catch {
     config = fallback.config;
   }
@@ -92,14 +101,20 @@ function normalizeAdminStateResponse(
   return {
     config,
     delivery: {
-      provider: 'Resend',
-      schemaReady: asBoolean(delivery.schemaReady, fallback.delivery.schemaReady),
+      provider: "Resend",
+      schemaReady: asBoolean(
+        delivery.schemaReady,
+        fallback.delivery.schemaReady,
+      ),
       apiKeyConfigured: asBoolean(
         delivery.apiKeyConfigured,
-        fallback.delivery.apiKeyConfigured
+        fallback.delivery.apiKeyConfigured,
       ),
-      e2eDisabled: asBoolean(delivery.e2eDisabled, fallback.delivery.e2eDisabled),
-      ready: asBoolean(delivery.ready, fallback.delivery.ready)
+      e2eDisabled: asBoolean(
+        delivery.e2eDisabled,
+        fallback.delivery.e2eDisabled,
+      ),
+      ready: asBoolean(delivery.ready, fallback.delivery.ready),
     },
     queue: {
       pending: asCount(queue.pending, fallback.queue.pending),
@@ -108,8 +123,8 @@ function normalizeAdminStateResponse(
       failed: asCount(queue.failed, fallback.queue.failed),
       recentFailures: failuresSource
         .map(normalizeRecentFailure)
-        .filter((failure): failure is RecentFailure => Boolean(failure))
-    }
+        .filter((failure): failure is RecentFailure => Boolean(failure)),
+    },
   };
 }
 
@@ -119,7 +134,7 @@ function comparableConfig(config: OrderEmailSettings) {
 }
 
 function responseMessage(payload: UnknownRecord, fallback: string) {
-  return typeof payload.message === 'string' && payload.message.trim()
+  return typeof payload.message === "string" && payload.message.trim()
     ? payload.message.trim()
     : fallback;
 }
@@ -127,10 +142,12 @@ function responseMessage(payload: UnknownRecord, fallback: string) {
 function responseErrors(payload: UnknownRecord, fallback: string) {
   const rawErrors = Array.isArray(payload.errors) ? payload.errors : [];
   const errors = rawErrors
-    .filter((error): error is string => typeof error === 'string')
+    .filter((error): error is string => typeof error === "string")
     .map((error) => error.trim())
     .filter((error) => error.length > 0);
-  return Array.from(new Set(errors.length > 0 ? errors : [responseMessage(payload, fallback)]));
+  return Array.from(
+    new Set(errors.length > 0 ? errors : [responseMessage(payload, fallback)]),
+  );
 }
 
 async function readPayload(response: Response) {
@@ -138,12 +155,12 @@ async function readPayload(response: Response) {
 }
 
 function formatUpdatedAt(value: string) {
-  if (!value) return '—';
+  if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('sl-SI', {
-    dateStyle: 'short',
-    timeStyle: 'short'
+  return new Intl.DateTimeFormat("sl-SI", {
+    dateStyle: "short",
+    timeStyle: "short",
   }).format(date);
 }
 
@@ -152,7 +169,7 @@ function SurfaceCard({
   description,
   actions,
   children,
-  testId
+  testId,
 }: {
   title: string;
   description?: string;
@@ -169,7 +186,9 @@ function SurfaceCard({
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           {description ? (
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">{description}</p>
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">
+              {description}
+            </p>
           ) : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
@@ -182,7 +201,7 @@ function SurfaceCard({
 function FieldLabel({
   htmlFor,
   label,
-  hint
+  hint,
 }: {
   htmlFor: string;
   label: string;
@@ -191,7 +210,9 @@ function FieldLabel({
   return (
     <label htmlFor={htmlFor} className="block">
       <span className="block text-sm font-medium text-slate-800">{label}</span>
-      {hint ? <span className="mt-0.5 block text-xs text-slate-500">{hint}</span> : null}
+      {hint ? (
+        <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
+      ) : null}
     </label>
   );
 }
@@ -205,7 +226,8 @@ function TemplateEditorCard({
   variables,
   onSubjectChange,
   onBodyChange,
-  onReset
+  onReset,
+  className = "",
 }: {
   audience: TemplateAudience;
   title: string;
@@ -216,15 +238,23 @@ function TemplateEditorCard({
   onSubjectChange: (value: string) => void;
   onBodyChange: (value: string) => void;
   onReset: () => void;
+  className?: string;
 }) {
-  const audienceLabel = audience === 'customer' ? 'stranko' : 'administratorja';
-  const subjectId = `order-email-template-${audience}-subject`;
-  const bodyId = `order-email-template-${audience}-body`;
+  const audienceLabel =
+    audience === "customer"
+      ? "stranko"
+      : audience === "schoolCustomer"
+        ? "\u0161olo ali javni zavod"
+        : "administratorja";
+  const audienceTestId =
+    audience === "schoolCustomer" ? "school-customer" : audience;
+  const subjectId = `order-email-template-${audienceTestId}-subject`;
+  const bodyId = `order-email-template-${audienceTestId}-body`;
 
   return (
     <section
-      className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5"
-      data-testid={`order-email-template-${audience}`}
+      className={`min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 ${className}`}
+      data-testid={`order-email-template-${audienceTestId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -236,7 +266,7 @@ function TemplateEditorCard({
           className={secondaryButtonClassName}
           onClick={onReset}
           aria-label={`Ponastavi privzeto predlogo za ${audienceLabel}`}
-          data-testid={`order-email-template-${audience}-reset`}
+          data-testid={`order-email-template-${audienceTestId}-reset`}
         >
           Ponastavi privzeto
         </button>
@@ -255,7 +285,7 @@ function TemplateEditorCard({
             value={subject}
             maxLength={ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
             onChange={(event) => onSubjectChange(event.target.value)}
-            data-testid={`order-email-template-${audience}-subject`}
+            data-testid={`order-email-template-${audienceTestId}-subject`}
           />
         </div>
         <div>
@@ -270,13 +300,15 @@ function TemplateEditorCard({
             value={body}
             maxLength={ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH}
             onChange={(event) => onBodyChange(event.target.value)}
-            data-testid={`order-email-template-${audience}-body`}
+            data-testid={`order-email-template-${audienceTestId}-body`}
           />
         </div>
       </div>
 
       <div className="mt-5 border-t border-slate-200 pt-4">
-        <p className="text-xs font-medium text-slate-700">Dovoljene spremenljivke</p>
+        <p className="text-xs font-medium text-slate-700">
+          Dovoljene spremenljivke
+        </p>
         <div
           className="mt-2 flex flex-wrap gap-2"
           aria-label={`Dovoljene spremenljivke za ${audienceLabel}`}
@@ -298,7 +330,7 @@ function TemplateEditorCard({
 function MasterSwitch({
   checked,
   disabled,
-  onChange
+  onChange,
 }: {
   checked: boolean;
   disabled: boolean;
@@ -309,18 +341,20 @@ function MasterSwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={checked ? 'Izklopi samodejno pošiljanje' : 'Vklopi samodejno pošiljanje'}
+      aria-label={
+        checked ? "Izklopi samodejno pošiljanje" : "Vklopi samodejno pošiljanje"
+      }
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
         checked
-          ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-500)]'
-          : 'border-slate-300 bg-slate-200'
+          ? "border-[color:var(--blue-500)] bg-[color:var(--blue-500)]"
+          : "border-slate-300 bg-slate-200"
       } disabled:cursor-not-allowed disabled:opacity-60`}
     >
       <span
         className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-0.5'
+          checked ? "translate-x-6" : "translate-x-0.5"
         }`}
       />
     </button>
@@ -330,17 +364,17 @@ function MasterSwitch({
 function QueueMetric({
   label,
   value,
-  tone = 'neutral'
+  tone = "neutral",
 }: {
   label: string;
   value: number;
-  tone?: 'neutral' | 'info' | 'success' | 'danger';
+  tone?: "neutral" | "info" | "success" | "danger";
 }) {
   const toneClassName = {
-    neutral: 'border-slate-200 bg-slate-50 text-slate-900',
-    info: 'border-blue-200 bg-blue-50 text-blue-900',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-    danger: 'border-rose-200 bg-rose-50 text-rose-900'
+    neutral: "border-slate-200 bg-slate-50 text-slate-900",
+    info: "border-blue-200 bg-blue-50 text-blue-900",
+    success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    danger: "border-rose-200 bg-rose-50 text-rose-900",
   }[tone];
 
   return (
@@ -352,19 +386,22 @@ function QueueMetric({
 }
 
 export default function AdminOrderEmailSettingsPageClient({
-  initialState
+  initialState,
 }: {
   initialState: OrderEmailAdminState;
 }) {
   const normalizedInitialState = useMemo(
     () => normalizeAdminStateResponse(initialState, initialState),
-    [initialState]
+    [initialState],
   );
   const [adminState, setAdminState] = useState(normalizedInitialState);
-  const [draft, setDraft] = useState<OrderEmailSettings>(normalizedInitialState.config);
-  const [activeTab, setActiveTab] = useState<EmailPageTab>('settings');
-  const [selectedTemplateEvent, setSelectedTemplateEvent] = useState<EventKey>('order_submitted');
-  const [testRecipient, setTestRecipient] = useState('');
+  const [draft, setDraft] = useState<OrderEmailSettings>(
+    normalizedInitialState.config,
+  );
+  const [activeTab, setActiveTab] = useState<EmailPageTab>("settings");
+  const [selectedTemplateEvent, setSelectedTemplateEvent] =
+    useState<EventKey>("order_submitted");
+  const [testRecipient, setTestRecipient] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -376,17 +413,21 @@ export default function AdminOrderEmailSettingsPageClient({
 
   const hasChanges = useMemo(
     () => comparableConfig(draft) !== comparableConfig(adminState.config),
-    [adminState.config, draft]
+    [adminState.config, draft],
   );
   const eventLabels = useMemo(
-    () => new Map(
-      ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => [
-        String(definition.value),
-        definition.label
-      ])
-    ),
-    []
+    () =>
+      new Map(
+        ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => [
+          String(definition.value),
+          definition.label,
+        ]),
+      ),
+    [],
   );
+  const schoolCustomerTemplate =
+    draft.templates.order_submitted.schoolCustomer ??
+    DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
 
   const draftBasicReady =
     adminState.delivery.schemaReady &&
@@ -395,42 +436,46 @@ export default function AdminOrderEmailSettingsPageClient({
     Boolean(draft.senderName.trim()) &&
     Boolean(draft.fromEmail.trim());
   const siteUrlInvalid = actionErrors.some((error) =>
-    error.toLowerCase().includes('spletni naslov')
+    error.toLowerCase().includes("spletni naslov"),
   );
 
   const readiness = !adminState.delivery.schemaReady
     ? {
-        label: 'Podatkovna shema e-pošte ni nameščena',
-        detail: 'Pred vklopom uvedite kanonično shemo za nastavitve in čakalno vrsto e-pošte.',
-        className: 'border-rose-200 bg-rose-50 text-rose-800'
+        label: "Podatkovna shema e-pošte ni nameščena",
+        detail:
+          "Pred vklopom uvedite kanonično shemo za nastavitve in čakalno vrsto e-pošte.",
+        className: "border-rose-200 bg-rose-50 text-rose-800",
       }
     : adminState.delivery.e2eDisabled
-    ? {
-        label: 'Pošiljanje je v E2E izklopljeno',
-        detail: 'Testno okolje e-pošte ne pošilja dejanskim prejemnikom.',
-        className: 'border-amber-200 bg-amber-50 text-amber-800'
-      }
-    : !adminState.delivery.apiKeyConfigured
       ? {
-          label: 'Povezava z Resend manjka',
-          detail: 'Skrbnik mora ponudnika povezati v nastavitvah okolja Vercel.',
-          className: 'border-rose-200 bg-rose-50 text-rose-800'
+          label: "Pošiljanje je v E2E izklopljeno",
+          detail: "Testno okolje e-pošte ne pošilja dejanskim prejemnikom.",
+          className: "border-amber-200 bg-amber-50 text-amber-800",
         }
-      : draftBasicReady
+      : !adminState.delivery.apiKeyConfigured
         ? {
-            label: 'Osnovna konfiguracija je izpolnjena',
-            detail: 'API ključ in trenutni podatki pošiljatelja so vneseni. Veljavnost domene potrdite s testnim sporočilom.',
-            className: 'border-blue-200 bg-blue-50 text-blue-800'
+            label: "Povezava z Resend manjka",
+            detail:
+              "Skrbnik mora ponudnika povezati v nastavitvah okolja Vercel.",
+            className: "border-rose-200 bg-rose-50 text-rose-800",
           }
-        : {
-            label: 'Dopolnite nastavitve pošiljatelja',
-            detail: 'Povezava obstaja, vendar trenutni podatki pošiljatelja še niso popolni.',
-            className: 'border-amber-200 bg-amber-50 text-amber-800'
-          };
+        : draftBasicReady
+          ? {
+              label: "Osnovna konfiguracija je izpolnjena",
+              detail:
+                "API ključ in trenutni podatki pošiljatelja so vneseni. Veljavnost domene potrdite s testnim sporočilom.",
+              className: "border-blue-200 bg-blue-50 text-blue-800",
+            }
+          : {
+              label: "Dopolnite nastavitve pošiljatelja",
+              detail:
+                "Povezava obstaja, vendar trenutni podatki pošiljatelja še niso popolni.",
+              className: "border-amber-200 bg-amber-50 text-amber-800",
+            };
 
   const updateConfig = <Key extends keyof OrderEmailSettings>(
     key: Key,
-    value: OrderEmailSettings[Key]
+    value: OrderEmailSettings[Key],
   ) => {
     setDraft((current) => ({ ...current, [key]: value }));
     setActionErrors([]);
@@ -439,7 +484,7 @@ export default function AdminOrderEmailSettingsPageClient({
   const updateEvent = (
     eventKey: EventKey,
     audience: EventAudience,
-    checked: boolean
+    checked: boolean,
   ) => {
     setDraft((current) => ({
       ...current,
@@ -447,19 +492,41 @@ export default function AdminOrderEmailSettingsPageClient({
         ...current.events,
         [eventKey]: {
           ...(current.events[eventKey] ?? { customer: false, admins: false }),
-          [audience]: checked
-        }
-      }
+          [audience]: checked,
+        },
+      },
     }));
     setActionErrors([]);
   };
 
   const updateTemplate = (
     audience: TemplateAudience,
-    field: 'subject' | 'body',
-    value: string
+    field: "subject" | "body",
+    value: string,
   ) => {
     setDraft((current) => {
+      if (audience === "schoolCustomer") {
+        const submissionTemplates = current.templates.order_submitted;
+        const currentSchoolTemplate =
+          submissionTemplates.schoolCustomer ??
+          DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
+        if (!currentSchoolTemplate) return current;
+        return {
+          ...current,
+          templates: {
+            ...current.templates,
+            order_submitted: {
+              ...submissionTemplates,
+              schoolCustomer: {
+                ...submissionTemplates.schoolCustomer,
+                ...currentSchoolTemplate,
+                [field]: value,
+              },
+            },
+          },
+        };
+      }
+
       const eventTemplates =
         current.templates[selectedTemplateEvent] ??
         DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent];
@@ -471,16 +538,34 @@ export default function AdminOrderEmailSettingsPageClient({
             ...eventTemplates,
             [audience]: {
               ...eventTemplates[audience],
-              [field]: value
-            }
-          }
-        }
+              [field]: value,
+            },
+          },
+        },
       };
     });
     setActionErrors([]);
   };
 
   const resetTemplate = (audience: TemplateAudience) => {
+    if (audience === "schoolCustomer") {
+      const defaultTemplate =
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
+      if (!defaultTemplate) return;
+      setDraft((current) => ({
+        ...current,
+        templates: {
+          ...current.templates,
+          order_submitted: {
+            ...current.templates.order_submitted,
+            schoolCustomer: { ...defaultTemplate },
+          },
+        },
+      }));
+      setActionErrors([]);
+      return;
+    }
+
     const defaultTemplate =
       DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent][audience];
     setDraft((current) => {
@@ -493,9 +578,9 @@ export default function AdminOrderEmailSettingsPageClient({
           ...current.templates,
           [selectedTemplateEvent]: {
             ...eventTemplates,
-            [audience]: { ...defaultTemplate }
-          }
-        }
+            [audience]: { ...defaultTemplate },
+          },
+        },
       };
     });
     setActionErrors([]);
@@ -503,17 +588,19 @@ export default function AdminOrderEmailSettingsPageClient({
 
   const updateAdminRecipient = (index: number, value: string) => {
     updateConfig(
-      'adminRecipients',
+      "adminRecipients",
       draft.adminRecipients.map((recipient, recipientIndex) =>
-        recipientIndex === index ? value : recipient
-      )
+        recipientIndex === index ? value : recipient,
+      ),
     );
   };
 
   const removeAdminRecipient = (index: number) => {
     updateConfig(
-      'adminRecipients',
-      draft.adminRecipients.filter((_, recipientIndex) => recipientIndex !== index)
+      "adminRecipients",
+      draft.adminRecipients.filter(
+        (_, recipientIndex) => recipientIndex !== index,
+      ),
     );
   };
 
@@ -523,16 +610,16 @@ export default function AdminOrderEmailSettingsPageClient({
     setSaving(true);
     setActionError(null);
     try {
-      const response = await fetch('/api/admin/order-email-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: submittedConfig })
+      const response = await fetch("/api/admin/order-email-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: submittedConfig }),
       });
       const payload = await readPayload(response);
       if (!response.ok) {
         const errors = responseErrors(
           payload,
-          'Nastavitev e-pošte ni bilo mogoče shraniti.'
+          "Nastavitev e-pošte ni bilo mogoče shraniti.",
         );
         setActionErrors(errors);
         toast.error(errors[0]);
@@ -544,13 +631,14 @@ export default function AdminOrderEmailSettingsPageClient({
       setDraft((current) =>
         comparableConfig(current) === submittedComparable
           ? nextState.config
-          : current
+          : current,
       );
-      toast.success('Nastavitve samodejne e-pošte so shranjene.');
+      toast.success("Nastavitve samodejne e-pošte so shranjene.");
     } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : 'Nastavitev e-pošte ni bilo mogoče shraniti.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Nastavitev e-pošte ni bilo mogoče shraniti.";
       setActionError(message);
       toast.error(message);
     } finally {
@@ -561,7 +649,7 @@ export default function AdminOrderEmailSettingsPageClient({
   const handleTest = async () => {
     const recipient = testRecipient.trim();
     if (!recipient) {
-      const message = 'Vnesite prejemnika testnega sporočila.';
+      const message = "Vnesite prejemnika testnega sporočila.";
       setActionError(message);
       toast.error(message);
       return;
@@ -570,26 +658,32 @@ export default function AdminOrderEmailSettingsPageClient({
     setTesting(true);
     setActionError(null);
     try {
-      const response = await fetch('/api/admin/order-email-settings/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient, config: draft })
+      const response = await fetch("/api/admin/order-email-settings/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient, config: draft }),
       });
       const payload = await readPayload(response);
       if (!response.ok) {
         const errors = responseErrors(
           payload,
-          'Testnega sporočila ni bilo mogoče poslati.'
+          "Testnega sporočila ni bilo mogoče poslati.",
         );
         setActionErrors(errors);
         toast.error(errors[0]);
         return;
       }
-      toast.success(responseMessage(payload, `Testno sporočilo je poslano na ${recipient}.`));
+      toast.success(
+        responseMessage(
+          payload,
+          `Testno sporočilo je poslano na ${recipient}.`,
+        ),
+      );
     } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : 'Testnega sporočila ni bilo mogoče poslati.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Testnega sporočila ni bilo mogoče poslati.";
       setActionError(message);
       toast.error(message);
     } finally {
@@ -601,14 +695,14 @@ export default function AdminOrderEmailSettingsPageClient({
     setRetrying(true);
     setActionError(null);
     try {
-      const response = await fetch('/api/admin/order-email-settings/retry', {
-        method: 'POST'
+      const response = await fetch("/api/admin/order-email-settings/retry", {
+        method: "POST",
       });
       const payload = await readPayload(response);
       if (!response.ok) {
         const errors = responseErrors(
           payload,
-          'Ponovnega pošiljanja ni bilo mogoče zagnati.'
+          "Ponovnega pošiljanja ni bilo mogoče zagnati.",
         );
         setActionErrors(errors);
         toast.error(errors[0]);
@@ -616,11 +710,17 @@ export default function AdminOrderEmailSettingsPageClient({
       }
 
       setAdminState((current) => normalizeAdminStateResponse(payload, current));
-      toast.success(responseMessage(payload, 'Neuspela sporočila so znova uvrščena za pošiljanje.'));
+      toast.success(
+        responseMessage(
+          payload,
+          "Neuspela sporočila so znova uvrščena za pošiljanje.",
+        ),
+      );
     } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : 'Ponovnega pošiljanja ni bilo mogoče zagnati.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Ponovnega pošiljanja ni bilo mogoče zagnati.";
       setActionError(message);
       toast.error(message);
     } finally {
@@ -633,7 +733,7 @@ export default function AdminOrderEmailSettingsPageClient({
       <AdminPageHeader
         title="Email"
         description="Nastavite obvestila za stranke in administratorje ob oddaji naročila ter spremembah statusa."
-        actions={(
+        actions={
           <button
             type="button"
             className={primaryButtonClassName}
@@ -642,9 +742,13 @@ export default function AdminOrderEmailSettingsPageClient({
             data-testid="order-email-settings-save"
           >
             {saving ? <Spinner size="sm" /> : null}
-            {saving ? 'Shranjujem …' : hasChanges ? 'Shrani spremembe' : 'Shranjeno'}
+            {saving
+              ? "Shranjujem …"
+              : hasChanges
+                ? "Shrani spremembe"
+                : "Shranjeno"}
           </button>
-        )}
+        }
       />
 
       <EuiTabs
@@ -653,8 +757,16 @@ export default function AdminOrderEmailSettingsPageClient({
         ariaLabel="Razdelki nastavitev e-pošte"
         idPrefix="order-email"
         tabs={[
-          { value: 'settings', label: 'Nastavitve', panelId: 'order-email-settings-panel' },
-          { value: 'templates', label: 'Predloge', panelId: 'order-email-templates-panel' }
+          {
+            value: "settings",
+            label: "Nastavitve",
+            panelId: "order-email-settings-panel",
+          },
+          {
+            value: "templates",
+            label: "Predloge",
+            panelId: "order-email-templates-panel",
+          },
         ]}
       />
 
@@ -667,13 +779,15 @@ export default function AdminOrderEmailSettingsPageClient({
           <p className="font-medium">{actionErrors[0]}</p>
           {actionErrors.length > 1 ? (
             <ul className="mt-1 list-disc space-y-0.5 pl-5">
-              {actionErrors.slice(1).map((error) => <li key={error}>{error}</li>)}
+              {actionErrors.slice(1).map((error) => (
+                <li key={error}>{error}</li>
+              ))}
             </ul>
           ) : null}
         </div>
       ) : null}
 
-      {activeTab === 'settings' ? (
+      {activeTab === "settings" ? (
         <div
           id="order-email-settings-panel"
           role="tabpanel"
@@ -682,323 +796,442 @@ export default function AdminOrderEmailSettingsPageClient({
           className="space-y-5"
           data-testid="order-email-settings-panel"
         >
-      <SurfaceCard
-        title="Pošiljanje"
-        description="Glavno stikalo ustavi ali omogoči vsa samodejna sporočila. Skrivni dostop do ponudnika se upravlja samo v okolju Vercel."
-        testId="order-email-delivery-settings"
-        actions={(
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-700">
-              {draft.enabled ? 'Vklopljeno' : 'Izklopljeno'}
-            </span>
-            <MasterSwitch
-              checked={draft.enabled}
-              disabled={saving}
-              onChange={(enabled) => updateConfig('enabled', enabled)}
-            />
-          </div>
-        )}
-      >
-        <div className={`rounded-lg border px-4 py-3 ${readiness.className}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-semibold">{readiness.label}</span>
-            <span className="rounded-full border border-current/20 px-2 py-0.5 text-xs font-semibold">
-              {adminState.delivery.provider}
-            </span>
-          </div>
-          <p className="mt-1 text-xs leading-5 opacity-90">{readiness.detail}</p>
-        </div>
-        {draft.enabled && !draftBasicReady ? (
-          <p className="mt-3 text-sm text-amber-700">
-            Pošiljanje ne bo delovalo, dokler shema, povezava in trenutne osnovne nastavitve niso pripravljene.
-          </p>
-        ) : null}
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Pošiljatelj in povezave"
-        description="Naslov pošiljatelja mora pripadati domeni, ki je preverjena pri ponudniku e-pošte."
-        testId="order-email-sender-settings"
-      >
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <FieldLabel htmlFor="order-email-sender-name" label="Ime pošiljatelja" />
-            <input
-              id="order-email-sender-name"
-              className={`${fieldClassName} mt-2`}
-              value={draft.senderName}
-              maxLength={120}
-              onChange={(event) => updateConfig('senderName', event.target.value)}
-              placeholder="Atehna"
-            />
-          </div>
-          <div>
-            <FieldLabel
-              htmlFor="order-email-from-address"
-              label="E-poštni naslov pošiljatelja"
-              hint="Primer za preverjeno poštno poddomeno: narocila@updates.atehna-test.site"
-            />
-            <input
-              id="order-email-from-address"
-              type="email"
-              className={`${fieldClassName} mt-2`}
-              value={draft.fromEmail}
-              maxLength={320}
-              onChange={(event) => updateConfig('fromEmail', event.target.value)}
-              placeholder="narocila@updates.atehna-test.site"
-              autoComplete="email"
-            />
-          </div>
-          <div>
-            <FieldLabel
-              htmlFor="order-email-reply-to"
-              label="Naslov za odgovore"
-              hint="Odgovori strank bodo poslani na ta naslov."
-            />
-            <input
-              id="order-email-reply-to"
-              type="email"
-              className={`${fieldClassName} mt-2`}
-              value={draft.replyToEmail}
-              maxLength={320}
-              onChange={(event) => updateConfig('replyToEmail', event.target.value)}
-              placeholder="narocila@atehna.si"
-              autoComplete="email"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <FieldLabel
-              htmlFor="order-email-site-url"
-              label="Naslov spletnega mesta"
-              hint="Osnovni naslov trgovine za povezave v sporočilih; to ni poštna poddomena Resend."
-            />
-            <input
-              id="order-email-site-url"
-              type="url"
-              className={`${fieldClassName} mt-2`}
-              value={draft.siteUrl}
-              maxLength={2048}
-              onChange={(event) => updateConfig('siteUrl', event.target.value)}
-              aria-invalid={siteUrlInvalid || undefined}
-              placeholder="https://www.atehna-test.site"
-              autoComplete="url"
-            />
-          </div>
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Prejemniki za administracijo"
-        description="Na te naslove se pošiljajo dogodki, pri katerih je v spodnji tabeli označen stolpec Administratorji."
-        testId="order-email-admin-recipients"
-        actions={(
-          <button
-            type="button"
-            className={secondaryButtonClassName}
-            onClick={() => updateConfig('adminRecipients', [...draft.adminRecipients, ''])}
-          >
-            <span aria-hidden>+</span>
-            Dodaj naslov
-          </button>
-        )}
-      >
-        {draft.adminRecipients.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
-            Administrator še nima nastavljenega prejemnika.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {draft.adminRecipients.map((recipient, index) => (
-              <div key={`admin-recipient-${index}`} className="flex items-center gap-2">
-                <label htmlFor={`order-email-admin-${index}`} className="sr-only">
-                  E-poštni naslov administratorja {index + 1}
-                </label>
-                <input
-                  id={`order-email-admin-${index}`}
-                  type="email"
-                  className={fieldClassName}
-                  value={recipient}
-                  maxLength={320}
-                  onChange={(event) => updateAdminRecipient(index, event.target.value)}
-                  placeholder="admin@atehna.si"
-                  autoComplete="off"
+          <SurfaceCard
+            title="Pošiljanje"
+            description="Glavno stikalo ustavi ali omogoči vsa samodejna sporočila. Skrivni dostop do ponudnika se upravlja samo v okolju Vercel."
+            testId="order-email-delivery-settings"
+            actions={
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-slate-700">
+                  {draft.enabled ? "Vklopljeno" : "Izklopljeno"}
+                </span>
+                <MasterSwitch
+                  checked={draft.enabled}
+                  disabled={saving}
+                  onChange={(enabled) => updateConfig("enabled", enabled)}
                 />
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-lg text-rose-600 transition hover:bg-rose-50"
-                  onClick={() => removeAdminRecipient(index)}
-                  aria-label={`Odstrani e-poštni naslov administratorja ${index + 1}`}
-                  title="Odstrani naslov"
-                >
-                  <span aria-hidden>×</span>
-                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Dogodki naročila"
-        description="Stranka pomeni e-poštni naslov, ki je shranjen na naročilu. Oddaja naročila in poznejša sprememba statusa Prejeto sta ločena dogodka."
-        testId="order-email-event-matrix"
-      >
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
-            <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">Dogodek</th>
-                <th scope="col" className="w-36 px-4 py-3 text-center font-semibold">Stranka</th>
-                <th scope="col" className="w-44 px-4 py-3 text-center font-semibold">Administratorji</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
-              {ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => {
-                const eventKey = definition.value as EventKey;
-                const eventSetting = draft.events[eventKey] ?? {
-                  customer: false,
-                  admins: false
-                };
-                return (
-                  <tr key={String(definition.value)} className="transition hover:bg-slate-50">
-                    <th scope="row" className="px-4 py-3 text-left font-normal">
-                      <span className="block font-medium text-slate-900">{definition.label}</span>
-                      <span className="mt-0.5 block text-xs leading-4 text-slate-500">
-                        {definition.description}
-                      </span>
-                    </th>
-                    <td className="px-4 py-3 text-center">
-                      <AdminCheckbox
-                        checked={eventSetting.customer}
-                        onChange={(event) => updateEvent(eventKey, 'customer', event.target.checked)}
-                        aria-label={`${definition.label}: obvesti stranko`}
-                        data-testid={`order-email-event-${String(definition.value)}-customer`}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <AdminCheckbox
-                        checked={eventSetting.admins}
-                        onChange={(event) => updateEvent(eventKey, 'admins', event.target.checked)}
-                        aria-label={`${definition.label}: obvesti administratorje`}
-                        data-testid={`order-email-event-${String(definition.value)}-admins`}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard
-        title="Preizkus pošiljanja"
-        description="Test pošlje administratorsko predlogo za dogodek Oddano naročilo in uporabi trenutno prikazane nastavitve, tudi če jih še niste shranili. API ključ se nikoli ne pošlje v brskalnik."
-        testId="order-email-test-delivery"
-      >
-        <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleTest();
-          }}
-        >
-          <div className="min-w-0 flex-1">
-            <FieldLabel htmlFor="order-email-test-recipient" label="Prejemnik testa" />
-            <input
-              id="order-email-test-recipient"
-              type="email"
-              className={`${fieldClassName} mt-2`}
-              value={testRecipient}
-              onChange={(event) => {
-                setTestRecipient(event.target.value);
-                setActionErrors([]);
-              }}
-              placeholder="vas@primer.si"
-              autoComplete="email"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className={secondaryButtonClassName}
-            disabled={testing}
-            data-testid="order-email-send-test"
+            }
           >
-            {testing ? <Spinner size="sm" /> : null}
-            {testing ? 'Pošiljam …' : 'Pošlji test'}
-          </button>
-        </form>
-      </SurfaceCard>
+            <div
+              className={`rounded-lg border px-4 py-3 ${readiness.className}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{readiness.label}</span>
+                <span className="rounded-full border border-current/20 px-2 py-0.5 text-xs font-semibold">
+                  {adminState.delivery.provider}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-5 opacity-90">
+                {readiness.detail}
+              </p>
+            </div>
+            {draft.enabled && !draftBasicReady ? (
+              <p className="mt-3 text-sm text-amber-700">
+                Pošiljanje ne bo delovalo, dokler shema, povezava in trenutne
+                osnovne nastavitve niso pripravljene.
+              </p>
+            ) : null}
+          </SurfaceCard>
 
-      <SurfaceCard
-        title="Čakalna vrsta pošiljanja"
-        description="Tukaj se zabeleži sprejem pri Resendu; končna dostava in zavrnitve so vidne v Resendu. Neuspela opravila lahko varno znova uvrstite v čakalno vrsto."
-        testId="order-email-queue"
-        actions={(
-          <button
-            type="button"
-            className={secondaryButtonClassName}
-            disabled={retrying || (adminState.queue.failed === 0 && adminState.queue.recentFailures.length === 0)}
-            onClick={() => void handleRetry()}
-            data-testid="order-email-retry-failed"
+          <SurfaceCard
+            title="Pošiljatelj in povezave"
+            description="Naslov pošiljatelja mora pripadati domeni, ki je preverjena pri ponudniku e-pošte."
+            testId="order-email-sender-settings"
           >
-            {retrying ? <Spinner size="sm" /> : null}
-            {retrying ? 'Uvrščam …' : 'Ponovi neuspele'}
-          </button>
-        )}
-      >
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <QueueMetric label="Na čakanju" value={adminState.queue.pending} />
-          <QueueMetric label="V obdelavi" value={adminState.queue.processing} tone="info" />
-          <QueueMetric label="Sprejeta pri Resendu" value={adminState.queue.sent} tone="success" />
-          <QueueMetric label="Neuspela" value={adminState.queue.failed} tone="danger" />
-        </div>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <FieldLabel
+                  htmlFor="order-email-sender-name"
+                  label="Ime pošiljatelja"
+                />
+                <input
+                  id="order-email-sender-name"
+                  className={`${fieldClassName} mt-2`}
+                  value={draft.senderName}
+                  maxLength={120}
+                  onChange={(event) =>
+                    updateConfig("senderName", event.target.value)
+                  }
+                  placeholder="Atehna"
+                />
+              </div>
+              <div>
+                <FieldLabel
+                  htmlFor="order-email-from-address"
+                  label="E-poštni naslov pošiljatelja"
+                  hint="Primer za preverjeno poštno poddomeno: narocila@updates.atehna-test.site"
+                />
+                <input
+                  id="order-email-from-address"
+                  type="email"
+                  className={`${fieldClassName} mt-2`}
+                  value={draft.fromEmail}
+                  maxLength={320}
+                  onChange={(event) =>
+                    updateConfig("fromEmail", event.target.value)
+                  }
+                  placeholder="narocila@updates.atehna-test.site"
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <FieldLabel
+                  htmlFor="order-email-reply-to"
+                  label="Naslov za odgovore"
+                  hint="Odgovori strank bodo poslani na ta naslov."
+                />
+                <input
+                  id="order-email-reply-to"
+                  type="email"
+                  className={`${fieldClassName} mt-2`}
+                  value={draft.replyToEmail}
+                  maxLength={320}
+                  onChange={(event) =>
+                    updateConfig("replyToEmail", event.target.value)
+                  }
+                  placeholder="narocila@atehna.si"
+                  autoComplete="email"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <FieldLabel
+                  htmlFor="order-email-site-url"
+                  label="Naslov spletnega mesta"
+                  hint="Osnovni naslov trgovine za povezave v sporočilih; to ni poštna poddomena Resend."
+                />
+                <input
+                  id="order-email-site-url"
+                  type="url"
+                  className={`${fieldClassName} mt-2`}
+                  value={draft.siteUrl}
+                  maxLength={2048}
+                  onChange={(event) =>
+                    updateConfig("siteUrl", event.target.value)
+                  }
+                  aria-invalid={siteUrlInvalid || undefined}
+                  placeholder="https://www.atehna-test.site"
+                  autoComplete="url"
+                />
+              </div>
+            </div>
+          </SurfaceCard>
 
-        <div className="mt-5">
-          <h3 className="text-sm font-semibold text-slate-900">Nedavne napake</h3>
-          {adminState.queue.recentFailures.length === 0 ? (
-            <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Ni nedavnih neuspelih pošiljanj.
-            </p>
-          ) : (
-            <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
+          <SurfaceCard
+            title="Prejemniki za administracijo"
+            description="Na te naslove se pošiljajo dogodki, pri katerih je v spodnji tabeli označen stolpec Administratorji."
+            testId="order-email-admin-recipients"
+            actions={
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() =>
+                  updateConfig("adminRecipients", [
+                    ...draft.adminRecipients,
+                    "",
+                  ])
+                }
+              >
+                <span aria-hidden>+</span>
+                Dodaj naslov
+              </button>
+            }
+          >
+            {draft.adminRecipients.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+                Administrator še nima nastavljenega prejemnika.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {draft.adminRecipients.map((recipient, index) => (
+                  <div
+                    key={`admin-recipient-${index}`}
+                    className="flex items-center gap-2"
+                  >
+                    <label
+                      htmlFor={`order-email-admin-${index}`}
+                      className="sr-only"
+                    >
+                      E-poštni naslov administratorja {index + 1}
+                    </label>
+                    <input
+                      id={`order-email-admin-${index}`}
+                      type="email"
+                      className={fieldClassName}
+                      value={recipient}
+                      maxLength={320}
+                      onChange={(event) =>
+                        updateAdminRecipient(index, event.target.value)
+                      }
+                      placeholder="admin@atehna.si"
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-lg text-rose-600 transition hover:bg-rose-50"
+                      onClick={() => removeAdminRecipient(index)}
+                      aria-label={`Odstrani e-poštni naslov administratorja ${index + 1}`}
+                      title="Odstrani naslov"
+                    >
+                      <span aria-hidden>×</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SurfaceCard>
+
+          <SurfaceCard
+            title="Dogodki naročila"
+            description="Stranka pomeni e-poštni naslov, ki je shranjen na naročilu. Oddaja naročila in poznejša sprememba statusa Prejeto sta ločena dogodka."
+            testId="order-email-event-matrix"
+          >
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
                 <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
                   <tr>
-                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">Dogodek</th>
-                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">Prejemnik</th>
-                    <th scope="col" className="px-3 py-2.5 text-center font-semibold">Poskusi</th>
-                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">Napaka</th>
-                    <th scope="col" className="px-3 py-2.5 text-left font-semibold">Posodobljeno</th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left font-semibold"
+                    >
+                      Dogodek
+                    </th>
+                    <th
+                      scope="col"
+                      className="w-36 px-4 py-3 text-center font-semibold"
+                    >
+                      Stranka
+                    </th>
+                    <th
+                      scope="col"
+                      className="w-44 px-4 py-3 text-center font-semibold"
+                    >
+                      Administratorji
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {adminState.queue.recentFailures.map((failure) => (
-                    <tr key={failure.id}>
-                      <td className="px-3 py-2.5 text-slate-800">
-                        {eventLabels.get(failure.eventType) ?? failure.eventType}
-                      </td>
-                      <td className="px-3 py-2.5 text-slate-700">{failure.recipientEmail}</td>
-                      <td className="px-3 py-2.5 text-center tabular-nums text-slate-700">
-                        {failure.attempts}
-                      </td>
-                      <td className="max-w-sm px-3 py-2.5 text-slate-600">
-                        <span className="block truncate" title={failure.lastError ?? undefined}>
-                          {failure.lastError || 'Neznana napaka'}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                        {formatUpdatedAt(failure.updatedAt)}
-                      </td>
-                    </tr>
-                  ))}
+                  {ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => {
+                    const eventKey = definition.value as EventKey;
+                    const eventSetting = draft.events[eventKey] ?? {
+                      customer: false,
+                      admins: false,
+                    };
+                    return (
+                      <tr
+                        key={String(definition.value)}
+                        className="transition hover:bg-slate-50"
+                      >
+                        <th
+                          scope="row"
+                          className="px-4 py-3 text-left font-normal"
+                        >
+                          <span className="block font-medium text-slate-900">
+                            {definition.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-4 text-slate-500">
+                            {definition.description}
+                          </span>
+                        </th>
+                        <td className="px-4 py-3 text-center">
+                          <AdminCheckbox
+                            checked={eventSetting.customer}
+                            onChange={(event) =>
+                              updateEvent(
+                                eventKey,
+                                "customer",
+                                event.target.checked,
+                              )
+                            }
+                            aria-label={`${definition.label}: obvesti stranko`}
+                            data-testid={`order-email-event-${String(definition.value)}-customer`}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <AdminCheckbox
+                            checked={eventSetting.admins}
+                            onChange={(event) =>
+                              updateEvent(
+                                eventKey,
+                                "admins",
+                                event.target.checked,
+                              )
+                            }
+                            aria-label={`${definition.label}: obvesti administratorje`}
+                            data-testid={`order-email-event-${String(definition.value)}-admins`}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      </SurfaceCard>
+          </SurfaceCard>
+
+          <SurfaceCard
+            title="Preizkus pošiljanja"
+            description="Test pošlje administratorsko predlogo za dogodek Oddano naročilo in uporabi trenutno prikazane nastavitve, tudi če jih še niste shranili. API ključ se nikoli ne pošlje v brskalnik."
+            testId="order-email-test-delivery"
+          >
+            <form
+              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleTest();
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <FieldLabel
+                  htmlFor="order-email-test-recipient"
+                  label="Prejemnik testa"
+                />
+                <input
+                  id="order-email-test-recipient"
+                  type="email"
+                  className={`${fieldClassName} mt-2`}
+                  value={testRecipient}
+                  onChange={(event) => {
+                    setTestRecipient(event.target.value);
+                    setActionErrors([]);
+                  }}
+                  placeholder="vas@primer.si"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className={secondaryButtonClassName}
+                disabled={testing}
+                data-testid="order-email-send-test"
+              >
+                {testing ? <Spinner size="sm" /> : null}
+                {testing ? "Pošiljam …" : "Pošlji test"}
+              </button>
+            </form>
+          </SurfaceCard>
+
+          <SurfaceCard
+            title="Čakalna vrsta pošiljanja"
+            description="Tukaj se zabeleži sprejem pri Resendu; končna dostava in zavrnitve so vidne v Resendu. Neuspela opravila lahko varno znova uvrstite v čakalno vrsto."
+            testId="order-email-queue"
+            actions={
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                disabled={
+                  retrying ||
+                  (adminState.queue.failed === 0 &&
+                    adminState.queue.recentFailures.length === 0)
+                }
+                onClick={() => void handleRetry()}
+                data-testid="order-email-retry-failed"
+              >
+                {retrying ? <Spinner size="sm" /> : null}
+                {retrying ? "Uvrščam …" : "Ponovi neuspele"}
+              </button>
+            }
+          >
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <QueueMetric
+                label="Na čakanju"
+                value={adminState.queue.pending}
+              />
+              <QueueMetric
+                label="V obdelavi"
+                value={adminState.queue.processing}
+                tone="info"
+              />
+              <QueueMetric
+                label="Sprejeta pri Resendu"
+                value={adminState.queue.sent}
+                tone="success"
+              />
+              <QueueMetric
+                label="Neuspela"
+                value={adminState.queue.failed}
+                tone="danger"
+              />
+            </div>
+
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Nedavne napake
+              </h3>
+              {adminState.queue.recentFailures.length === 0 ? (
+                <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  Ni nedavnih neuspelih pošiljanj.
+                </p>
+              ) : (
+                <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
+                  <table className="w-full min-w-[760px] border-collapse text-sm">
+                    <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-3 py-2.5 text-left font-semibold"
+                        >
+                          Dogodek
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2.5 text-left font-semibold"
+                        >
+                          Prejemnik
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2.5 text-center font-semibold"
+                        >
+                          Poskusi
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2.5 text-left font-semibold"
+                        >
+                          Napaka
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-2.5 text-left font-semibold"
+                        >
+                          Posodobljeno
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {adminState.queue.recentFailures.map((failure) => (
+                        <tr key={failure.id}>
+                          <td className="px-3 py-2.5 text-slate-800">
+                            {eventLabels.get(failure.eventType) ??
+                              failure.eventType}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-700">
+                            {failure.recipientEmail}
+                          </td>
+                          <td className="px-3 py-2.5 text-center tabular-nums text-slate-700">
+                            {failure.attempts}
+                          </td>
+                          <td className="max-w-sm px-3 py-2.5 text-slate-600">
+                            <span
+                              className="block truncate"
+                              title={failure.lastError ?? undefined}
+                            >
+                              {failure.lastError || "Neznana napaka"}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                            {formatUpdatedAt(failure.updatedAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </SurfaceCard>
         </div>
       ) : (
         <div
@@ -1026,7 +1259,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   className={`${fieldClassName} mt-2`}
                   value={draft.subjectPrefix}
                   maxLength={80}
-                  onChange={(event) => updateConfig('subjectPrefix', event.target.value)}
+                  onChange={(event) =>
+                    updateConfig("subjectPrefix", event.target.value)
+                  }
                   placeholder="Atehna"
                 />
               </div>
@@ -1041,7 +1276,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   className={`${textareaClassName} mt-2`}
                   value={draft.footerText}
                   maxLength={1000}
-                  onChange={(event) => updateConfig('footerText', event.target.value)}
+                  onChange={(event) =>
+                    updateConfig("footerText", event.target.value)
+                  }
                   placeholder="Hvala za vaše naročilo."
                 />
               </div>
@@ -1050,14 +1287,14 @@ export default function AdminOrderEmailSettingsPageClient({
 
           <SurfaceCard
             title="Predloge sporočil"
-            description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za stranko ter administratorje. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+            description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
             testId="order-email-message-templates"
           >
             <div className="max-w-xl">
               <FieldLabel
                 htmlFor="order-email-template-event"
                 label="Dogodek naročila"
-                hint="Izberite dogodek, katerega predlogi sta prikazani spodaj."
+                hint="Izberite dogodek, katerega predloge so prikazane spodaj."
               />
               <select
                 id="order-email-template-event"
@@ -1080,15 +1317,45 @@ export default function AdminOrderEmailSettingsPageClient({
             <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-2">
               <TemplateEditorCard
                 audience="customer"
-                title="Stranka"
+                title={
+                  selectedTemplateEvent === "order_submitted"
+                    ? "Stranka (fizi\u010dna oseba ali podjetje)"
+                    : "Stranka"
+                }
                 description="V predlogi za stranko interna zaporedna številka naročila ni na voljo in se kupcu ne razkrije."
-                subject={draft.templates[selectedTemplateEvent].customer.subject}
+                subject={
+                  draft.templates[selectedTemplateEvent].customer.subject
+                }
                 body={draft.templates[selectedTemplateEvent].customer.body}
                 variables={ORDER_EMAIL_TEMPLATE_VARIABLES.customer}
-                onSubjectChange={(value) => updateTemplate('customer', 'subject', value)}
-                onBodyChange={(value) => updateTemplate('customer', 'body', value)}
-                onReset={() => resetTemplate('customer')}
+                onSubjectChange={(value) =>
+                  updateTemplate("customer", "subject", value)
+                }
+                onBodyChange={(value) =>
+                  updateTemplate("customer", "body", value)
+                }
+                onReset={() => resetTemplate("customer")}
               />
+              {selectedTemplateEvent === "order_submitted" &&
+              schoolCustomerTemplate ? (
+                <TemplateEditorCard
+                  audience="schoolCustomer"
+                  title={"\u0160ola / javni zavod"}
+                  description={
+                    "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno."
+                  }
+                  subject={schoolCustomerTemplate.subject}
+                  body={schoolCustomerTemplate.body}
+                  variables={ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer}
+                  onSubjectChange={(value) =>
+                    updateTemplate("schoolCustomer", "subject", value)
+                  }
+                  onBodyChange={(value) =>
+                    updateTemplate("schoolCustomer", "body", value)
+                  }
+                  onReset={() => resetTemplate("schoolCustomer")}
+                />
+              ) : null}
               <TemplateEditorCard
                 audience="admin"
                 title="Administrator"
@@ -1096,9 +1363,16 @@ export default function AdminOrderEmailSettingsPageClient({
                 subject={draft.templates[selectedTemplateEvent].admin.subject}
                 body={draft.templates[selectedTemplateEvent].admin.body}
                 variables={ORDER_EMAIL_TEMPLATE_VARIABLES.admin}
-                onSubjectChange={(value) => updateTemplate('admin', 'subject', value)}
-                onBodyChange={(value) => updateTemplate('admin', 'body', value)}
-                onReset={() => resetTemplate('admin')}
+                onSubjectChange={(value) =>
+                  updateTemplate("admin", "subject", value)
+                }
+                onBodyChange={(value) => updateTemplate("admin", "body", value)}
+                onReset={() => resetTemplate("admin")}
+                className={
+                  selectedTemplateEvent === "order_submitted"
+                    ? "lg:col-span-2"
+                    : ""
+                }
               />
             </div>
           </SurfaceCard>

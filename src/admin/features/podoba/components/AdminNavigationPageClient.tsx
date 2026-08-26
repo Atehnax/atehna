@@ -14,6 +14,7 @@ import {
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import {
   DndContext,
   PointerSensor,
@@ -55,9 +56,7 @@ import {
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
 import {
-  HOMEPAGE_FOOTER_LOGO_MODES,
   HOMEPAGE_SOCIAL_TYPES,
-  homepageFooterLogoModeLabels,
   homepageSocialTypeLabels,
   type HomepageFooterColumn,
   type HomepageFooterContact,
@@ -72,6 +71,7 @@ import {
 } from '@/shared/domain/style/fontFamilies';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { CompactHexColorField, normalizeHexColor } from '@/shared/ui/admin-controls/CompactHexColorField';
 import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Input } from '@/shared/ui/input';
@@ -83,6 +83,7 @@ import {
 } from '@/shared/ui/icons/SiteNavigationLucideIcon';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { MenuPanel } from '@/shared/ui/menu';
+import RowActionsDropdown from '@/shared/ui/table/row-actions-dropdown';
 import {
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
@@ -109,9 +110,20 @@ import SiteFooter, {
   type SiteFooterLinkPlacement
 } from '@/commercial/components/SiteFooter';
 import SiteHeader from '@/commercial/components/SiteHeader';
+import { useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
+import {
+  resolveSiteLogoDisplaySize,
+  type SiteLogoDisplaySize,
+  type SiteLogoPurposeId
+} from '@/shared/domain/logo/siteLogo';
+import { sortTopBarTableItemsByResolvedX } from '../lib/topBarTableOrder';
 import AdminPodobaTabs from './AdminPodobaTabs';
-import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
+import {
+  AppearanceEditorAlignmentControl,
+  AppearanceEditorCompactSelect,
+  AppearanceEditorNumberInput
+} from './AppearanceEditorToolbarPrimitives';
 
 const compactInputClassName = adminFilterInputTokenClasses;
 const numberInputNoSpinnerClassName =
@@ -133,6 +145,7 @@ const topBarTechnicalPreviewVisualTopbarHeightPx =
 const topBarTechnicalPreviewSlotHeightPx = Math.ceil(
   topBarTechnicalPreviewVisualTopbarHeightPx + topBarPreviewRulerTopGutterPx + 2
 );
+const topBarLogoLinkPaddingFinalPx = 10 * COMMERCIAL_STOREFRONT_SCALE;
 const iconPickerPageSize = 24;
 const topActionSaveButtonClassName =
   `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
@@ -2076,69 +2089,19 @@ function TopBarAppearanceColorField({
   hideLabel?: boolean;
   onChange: (value: string) => void;
 }) {
-  const normalizedFallback = /^#[0-9A-F]{6}$/i.test(fallback) ? fallback.toUpperCase() : '#FFFFFF';
-  const normalizedValue = /^#[0-9A-F]{6}$/i.test(value) ? value.toUpperCase() : normalizedFallback;
-  const [draftValue, setDraftValue] = useState(normalizedValue);
-  const isValidDraft = /^#[0-9A-F]{6}$/.test(draftValue);
-
-  useEffect(() => {
-    setDraftValue(normalizedValue);
-  }, [normalizedValue]);
-
-  const commitDraft = (candidate: string) => {
-    const nextValue = candidate.toUpperCase();
-    if (!/^#[0-9A-F]{6}$/.test(nextValue)) {
-      setDraftValue(normalizedValue);
-      return;
-    }
-
-    setDraftValue(nextValue);
-    onChange(nextValue);
-  };
+  const normalizedValue = normalizeHexColor(value) ?? normalizeHexColor(fallback) ?? '#FFFFFF';
 
   return (
-    <div className="grid min-w-0 gap-1">
-      <span className={hideLabel ? 'sr-only' : 'text-[11px] font-medium leading-4 text-slate-500'}>{label}</span>
-      <span
-        className={`flex h-7 min-w-0 items-center overflow-hidden rounded-md border bg-slate-50/70 transition hover:bg-white focus-within:border-[color:var(--blue-500)] focus-within:bg-white ${
-          isValidDraft ? 'border-slate-200 hover:border-slate-300' : 'border-rose-300'
-        }`}
-      >
-        <input
-          type="color"
-          value={normalizedValue}
-          onChange={(event) => commitDraft(event.target.value)}
-          className="ml-1 h-5 w-5 shrink-0 cursor-pointer appearance-none overflow-hidden rounded border-0 bg-transparent p-0 ring-1 ring-inset ring-slate-300/80 outline-none [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded [&::-webkit-color-swatch]:border-0"
-          aria-label={`${ariaLabel}: izberi barvo`}
-        />
-        <input
-          type="text"
-          value={draftValue}
-          maxLength={7}
-          spellCheck={false}
-          autoCapitalize="characters"
-          aria-label={ariaLabel}
-          aria-invalid={!isValidDraft}
-          onBlur={(event) => commitDraft(event.currentTarget.value)}
-          onChange={(event) => {
-            const nextValue = event.target.value.toUpperCase();
-            setDraftValue(nextValue);
-            if (/^#[0-9A-F]{6}$/.test(nextValue)) onChange(nextValue);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              commitDraft(event.currentTarget.value);
-              event.currentTarget.blur();
-            } else if (event.key === 'Escape') {
-              setDraftValue(normalizedValue);
-              event.currentTarget.blur();
-            }
-          }}
-          className="h-full min-w-0 flex-1 border-0 bg-transparent px-1 font-mono text-[10px] uppercase tracking-[0.01em] text-slate-700 outline-none focus:ring-0"
-        />
-      </span>
-    </div>
+    <CompactHexColorField
+      label={label}
+      value={normalizedValue}
+      marker={`navigation-${ariaLabel}`}
+      tone="light"
+      layout={hideLabel ? 'inline' : 'compact'}
+      onChange={onChange}
+      inputAttributes={{ 'aria-label': ariaLabel }}
+      className="min-w-0"
+    />
   );
 }
 
@@ -2241,10 +2204,16 @@ function getTopBarContainerForWidthMode({
 function getTopBarElementVisualHeight(
   item: SiteNavigationTopBarResponsiveItem,
   device: SiteNavigationTopBarDevice,
-  settings: SiteNavigationTopBarResponsiveSettings
+  settings: SiteNavigationTopBarResponsiveSettings,
+  logoDisplaySize?: SiteLogoDisplaySize | null,
+  coordinateScale = 1
 ) {
   if (item.id === 'navigation') return device === 'mobile' || settings.navigationMode === 'hamburger' ? 32 : 43;
-  if (item.id === 'logo') return 34;
+  if (item.id === 'logo') {
+    return logoDisplaySize?.explicit
+      ? (logoDisplaySize.heightPx + topBarLogoLinkPaddingFinalPx) / Math.max(coordinateScale, 0.0001)
+      : 34;
+  }
   if (item.id === 'ai') return settings.aiMode === 'icon' ? 32 : 36;
   return 32;
 }
@@ -2291,15 +2260,22 @@ function getTopBarElementComputedWidth({
   item,
   items,
   device,
-  settings
+  settings,
+  logoDisplaySize
 }: {
   item: SiteNavigationTopBarResponsiveItem;
   items: SiteNavigationTopLevelItem[];
   device: SiteNavigationTopBarDevice;
   settings: SiteNavigationTopBarResponsiveSettings;
+  logoDisplaySize?: SiteLogoDisplaySize | null;
 }) {
   if (item.id === 'logo') {
-    return Math.max(item.widthPx, item.fixedWidthPx ?? 0, SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX);
+    return Math.max(
+      item.widthPx,
+      item.fixedWidthPx ?? 0,
+      SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX,
+      logoDisplaySize?.explicit ? logoDisplaySize.widthPx + topBarLogoLinkPaddingFinalPx : 0
+    );
   }
 
   if (item.widthPx > 0) return item.widthPx;
@@ -2317,22 +2293,29 @@ function getTopBarElementRenderedPlacementWidth({
   item,
   items,
   device,
-  settings
+  settings,
+  logoDisplaySize
 }: {
   item: SiteNavigationTopBarResponsiveItem;
   items: SiteNavigationTopLevelItem[];
   device: SiteNavigationTopBarDevice;
   settings: SiteNavigationTopBarResponsiveSettings;
+  logoDisplaySize?: SiteLogoDisplaySize | null;
 }) {
   if (item.id === 'navigation') {
     const compactNavigationWidth = getDerivedTopBarFixedWidthPx(item, device, settings);
     if (compactNavigationWidth !== null) return compactNavigationWidth;
   }
 
-  return getTopBarElementComputedWidth({ item, items, device, settings });
+  return getTopBarElementComputedWidth({ item, items, device, settings, logoDisplaySize });
 }
 
-function getTopBarElementXInBounds(item: SiteNavigationTopBarResponsiveItem, placementBoundsWidth: number, elementWidth: number) {
+function getTopBarElementXInBounds(
+  item: SiteNavigationTopBarResponsiveItem,
+  placementBoundsWidth: number,
+  elementWidth: number,
+  baseElementWidth = elementWidth
+) {
   const maxXPx = Math.max(0, placementBoundsWidth - elementWidth);
 
   if (item.region === 'edgeRight') {
@@ -2340,6 +2323,12 @@ function getTopBarElementXInBounds(item: SiteNavigationTopBarResponsiveItem, pla
   }
 
   const ratioX = item.xRatio * placementBoundsWidth;
+  const baseMaxXPx = Math.max(0, placementBoundsWidth - baseElementWidth);
+  const baseXPx = clampTopBarNumber(ratioX, 0, baseMaxXPx);
+  if (item.region === 'center') {
+    return Math.round(baseXPx - Math.max(0, elementWidth - baseElementWidth) / 2);
+  }
+
   return Math.round(clampTopBarNumber(ratioX, 0, maxXPx));
 }
 
@@ -2525,6 +2514,7 @@ function calculateTopBarGeometry({
   layoutItems,
   items,
   device,
+  logoDisplaySize,
   labelScale = 1,
   coordinateScale = 1
 }: {
@@ -2535,6 +2525,7 @@ function calculateTopBarGeometry({
   layoutItems: SiteNavigationTopBarResponsiveItem[];
   items: SiteNavigationTopLevelItem[];
   device: SiteNavigationTopBarDevice;
+  logoDisplaySize?: SiteLogoDisplaySize | null;
   labelScale?: number;
   coordinateScale?: number;
 }): TopBarGeometry {
@@ -2587,9 +2578,22 @@ function calculateTopBarGeometry({
   const placementBounds = selectedContainer.contentRect;
 
   visibleItems.forEach((item) => {
-    const width = getTopBarElementRenderedPlacementWidth({ item, items, device, settings }) / coordinateScaleFactor;
-    const height = getTopBarElementVisualHeight(item, device, settings);
-    const xInBounds = getTopBarElementXInBounds(item, placementBounds.width, width);
+    const baseWidth = getTopBarElementRenderedPlacementWidth({ item, items, device, settings }) / coordinateScaleFactor;
+    const width = getTopBarElementRenderedPlacementWidth({
+      item,
+      items,
+      device,
+      settings,
+      logoDisplaySize
+    }) / coordinateScaleFactor;
+    const height = getTopBarElementVisualHeight(
+      item,
+      device,
+      settings,
+      logoDisplaySize,
+      coordinateScaleFactor
+    );
+    const xInBounds = getTopBarElementXInBounds(item, placementBounds.width, width, baseWidth);
     const x = placementBounds.x + xInBounds;
     const y = getTopBarElementYInPlacementBounds(placementBounds, height);
     const elementRect = createTopBarRect(x, y, width, height);
@@ -3778,6 +3782,7 @@ function TopBarGeometryOverlay({
 
 function TopBarResponsivePreview({
   device,
+  logoDisplaySize,
   navigation,
   siteLayout,
   settings,
@@ -3796,6 +3801,7 @@ function TopBarResponsivePreview({
   onMoveElement
 }: {
   device: SiteNavigationTopBarDevice;
+  logoDisplaySize?: SiteLogoDisplaySize | null;
   navigation: SiteNavigationConfig;
   siteLayout: SiteNavigationSiteLayoutSettings;
   settings: SiteNavigationTopBarResponsiveSettings;
@@ -3868,10 +3874,11 @@ function TopBarResponsivePreview({
         layoutItems,
         items,
         device,
+        logoDisplaySize,
         labelScale: storefrontPreviewScale,
         coordinateScale: storefrontPreviewScale
       }),
-    [device, items, layoutItems, rendererSettings, rendererSiteLayout, rendererViewportHeight, rendererViewportWidth, storefrontPreviewScale]
+    [device, items, layoutItems, logoDisplaySize, rendererSettings, rendererSiteLayout, rendererViewportHeight, rendererViewportWidth, storefrontPreviewScale]
   );
   const geometryRef = useRef(geometry);
   const combinedRendererScaleRef = useRef(combinedRendererScale);
@@ -4230,6 +4237,7 @@ function TopBarElementRow({
   device,
   settings,
   items,
+  logoDisplaySize,
   placementBoundsWidth,
   currentXPx,
   offsets,
@@ -4248,6 +4256,7 @@ function TopBarElementRow({
   device: SiteNavigationTopBarDevice;
   settings: SiteNavigationTopBarResponsiveSettings;
   items: SiteNavigationTopLevelItem[];
+  logoDisplaySize?: SiteLogoDisplaySize | null;
   placementBoundsWidth: number;
   currentXPx: number;
   offsets: TopBarTableOffsets;
@@ -4262,11 +4271,14 @@ function TopBarElementRow({
   onChange: (updates: Partial<SiteNavigationTopBarResponsiveItem>) => void;
   onReset: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuDismissRefs = useMemo(() => [menuRef], []);
   const resolvedWidth = getTopBarElementComputedWidth({ item, items, device, settings });
-  const placementWidth = getTopBarElementRenderedPlacementWidth({ item, items, device, settings });
+  const placementWidth = getTopBarElementRenderedPlacementWidth({
+    item,
+    items,
+    device,
+    settings,
+    logoDisplaySize
+  });
   const minimumFixedWidth = item.id === 'logo'
     ? SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX
     : item.id === 'search' && item.slot !== 'menu'
@@ -4331,8 +4343,6 @@ function TopBarElementRow({
     moveElementToXPx(offsets.nextLeftPx - placementWidth - roundedValue);
   };
 
-  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
-
   const visibilityButton = (
     <button
       type="button"
@@ -4347,29 +4357,23 @@ function TopBarElementRow({
     </button>
   );
   const menuControl = (
-    <div ref={menuRef} className="relative" onClick={(event) => event.stopPropagation()}>
-      <button
-        type="button"
-        aria-label={`Možnosti za ${topBarLayoutLabels[item.id]}`}
-        className={`${adminMiniIconButtonTokenClasses} ${menuOpen ? '!text-[color:var(--blue-500)]' : ''}`}
-        onClick={() => setMenuOpen((current) => !current)}
-      >
-        <DotsGlyph className="h-4 w-4" />
-      </button>
-      {menuOpen ? (
-        <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-40 p-1">
-          <button
-            type="button"
-            className={adminActionMenuItemTokenClasses.base}
-            onClick={() => {
-              onReset();
-              setMenuOpen(false);
-            }}
-          >
-            Ponastavi
-          </button>
-        </MenuPanel>
-      ) : null}
+    <div onClick={(event) => event.stopPropagation()}>
+      <RowActionsDropdown
+        label={`Možnosti za ${topBarLayoutLabels[item.id]}`}
+        items={[
+          {
+            key: 'reset',
+            label: 'Ponastavi',
+            onSelect: onReset,
+            className: adminActionMenuItemTokenClasses.base
+          }
+        ]}
+        menuWidth={160}
+        menuZIndex={2147483647}
+        menuTestId={`top-bar-element-menu-${item.id}`}
+        menuClassName="!w-40"
+        triggerClassName={`${adminMiniIconButtonTokenClasses} !h-6 !w-6`}
+      />
     </div>
   );
 
@@ -4582,6 +4586,7 @@ function TopBarLayoutEditor({
   onSiteLayoutChange: (updates: Partial<SiteNavigationSiteLayoutSettings>) => void;
   onSetInitialLayout: (layout: SiteNavigationTopBarLayout) => void | Promise<void>;
 }) {
+  const siteLogoConfig = useSiteLogoConfig();
   const [showHeaderPreview, setShowHeaderPreview] = useState(false);
   const [showTechnicalOverlay, setShowTechnicalOverlay] = useState(false);
   const [device, setDevice] = useState<SiteNavigationTopBarDevice>('desktop');
@@ -4593,6 +4598,11 @@ function TopBarLayoutEditor({
   const addElementMenuRef = useRef<HTMLDivElement | null>(null);
   const addElementMenuDismissRefs = useMemo(() => [addElementMenuRef], []);
   const deviceLayout = layout.responsive[device];
+  const logoPurposeId = `header-${device}` as SiteLogoPurposeId;
+  const logoDisplaySize = resolveSiteLogoDisplaySize(
+    logoPurposeId,
+    siteLogoConfig.placements[logoPurposeId]
+  );
   const defaultDeviceLayout = initialLayout.responsive[device];
   const layoutItems = useMemo(() => sortedResponsiveItems(deviceLayout.items), [deviceLayout.items]);
   const layoutItemIdsKey = layoutItems.map((item) => item.id).join('|');
@@ -4770,7 +4780,8 @@ function TopBarLayoutEditor({
             item,
             items,
             device,
-            settings: current.settings
+            settings: current.settings,
+            logoDisplaySize
           });
           const maxXPx = Math.max(0, placementBoundsWidth - placementWidth);
 
@@ -4839,10 +4850,11 @@ function TopBarLayoutEditor({
         layoutItems,
         items,
         device,
+        logoDisplaySize,
         labelScale: COMMERCIAL_STOREFRONT_SCALE,
         coordinateScale: COMMERCIAL_STOREFRONT_SCALE
       }),
-    [device, deviceLayout.settings, items, layoutItems, selectedDevicePreviewWidth, siteLayout]
+    [device, deviceLayout.settings, items, layoutItems, logoDisplaySize, selectedDevicePreviewWidth, siteLayout]
   );
   const selectedWidthLabel = getTopBarSelectedWidthLabel(
     deviceLayout.settings,
@@ -4850,6 +4862,49 @@ function TopBarLayoutEditor({
     COMMERCIAL_STOREFRONT_SCALE
   );
   const placementBoundsWidth = Math.round(tablePlacementGeometry.contentRect.width * COMMERCIAL_STOREFRONT_SCALE);
+  const tableResolvedXPxById = useMemo(
+    () =>
+      layoutItems.reduce<Partial<Record<SiteNavigationTopBarElementId, number>>>((resolvedXPxById, item) => {
+        const renderedRect = tablePlacementGeometry.elementRects[item.id];
+        resolvedXPxById[item.id] = renderedRect
+          ? Math.round(
+              (renderedRect.x - tablePlacementGeometry.contentRect.x) *
+                COMMERCIAL_STOREFRONT_SCALE
+            )
+          : getTopBarElementXInBounds(
+              item,
+              placementBoundsWidth,
+              getTopBarElementRenderedPlacementWidth({
+                item,
+                items,
+                device,
+                settings: deviceLayout.settings,
+                logoDisplaySize
+              }),
+              getTopBarElementRenderedPlacementWidth({
+                item,
+                items,
+                device,
+                settings: deviceLayout.settings
+              })
+            );
+        return resolvedXPxById;
+      }, {}),
+    [
+      device,
+      deviceLayout.settings,
+      items,
+      layoutItems,
+      logoDisplaySize,
+      placementBoundsWidth,
+      tablePlacementGeometry.contentRect.x,
+      tablePlacementGeometry.elementRects
+    ]
+  );
+  const tableLayoutItems = useMemo(
+    () => sortTopBarTableItemsByResolvedX(layoutItems, tableResolvedXPxById),
+    [layoutItems, tableResolvedXPxById]
+  );
   const tableOffsets = useMemo(() => {
     const placementRects = layoutItems
       .filter((item) => isTopBarPlacementItemRendered(item, device, deviceLayout.settings))
@@ -4904,7 +4959,7 @@ function TopBarLayoutEditor({
   const tableGridClassName = topBarElementRowGridClassName;
   const tableMinWidthClassName = topBarElementRowMinWidthClassName;
   const selectedTableElementIdSet = useMemo(() => new Set(selectedTableElementIds), [selectedTableElementIds]);
-  const allTableRowsSelected = layoutItems.length > 0 && layoutItems.every((item) => selectedTableElementIdSet.has(item.id));
+  const allTableRowsSelected = tableLayoutItems.length > 0 && tableLayoutItems.every((item) => selectedTableElementIdSet.has(item.id));
   const addElementChoices = useMemo(() => {
     const currentIds = new Set(deviceLayout.items.map((item) => item.id));
 
@@ -4972,6 +5027,7 @@ function TopBarLayoutEditor({
           <div className="col-span-full">
             <TopBarResponsivePreview
               device={device}
+              logoDisplaySize={logoDisplaySize}
               navigation={previewNavigation}
               siteLayout={siteLayout}
               settings={deviceLayout.settings}
@@ -4997,6 +5053,8 @@ function TopBarLayoutEditor({
                 device === 'desktop' ? 'gap-3' : 'gap-2'
               }`}
               data-testid="top-bar-settings-panel"
+              data-appearance-editor-settings-surface
+              data-settings-scroll="none"
             >
               <section
                 className={`min-w-0 border-b border-slate-100 ${
@@ -5046,16 +5104,14 @@ function TopBarLayoutEditor({
                         hideLabel
                         onChange={(textColor) => updateSettings({ textColor })}
                       />
-                      <select
+                      <AppearanceEditorCompactSelect
                         value={deviceLayout.settings.fontFamily}
-                        onChange={(event) => updateSettings({ fontFamily: event.target.value as WebsiteFontFamily })}
-                        className={`${compactInputClassName} min-w-0 !h-7 !px-1.5 text-[11px]`}
-                        aria-label="Pisava zgornje vrstice"
-                      >
-                        {HOMEPAGE_WEBSITE_FONT_FAMILIES.map((fontFamily) => (
-                          <option key={fontFamily} value={fontFamily}>{fontFamily}</option>
-                        ))}
-                      </select>
+                        options={HOMEPAGE_WEBSITE_FONT_FAMILIES.map((fontFamily) => ({ value: fontFamily, label: fontFamily }))}
+                        ariaLabel="Pisava zgornje vrstice"
+                        marker={`topbar-${device}-font-family`}
+                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        onValueChange={(fontFamily) => updateSettings({ fontFamily: fontFamily as WebsiteFontFamily })}
+                      />
                     </div>
                   </div>
 
@@ -5073,28 +5129,24 @@ function TopBarLayoutEditor({
                         ariaLabel="Velikost pisave zgornje vrstice"
                         onChange={(fontSizePx) => updateSettings({ fontSizePx })}
                       />
-                      <select
-                        value={deviceLayout.settings.fontWeight}
-                        onChange={(event) => updateSettings({ fontWeight: Number(event.target.value) })}
-                        className={`${compactInputClassName} min-w-0 !h-7 !pl-1.5 !pr-6 text-[11px]`}
-                        aria-label="Debelina pisave zgornje vrstice"
-                      >
-                        {topBarFontWeightOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                      <select
+                      <AppearanceEditorCompactSelect
+                        value={String(deviceLayout.settings.fontWeight)}
+                        options={topBarFontWeightOptions.map((option) => ({ value: String(option.value), label: option.label }))}
+                        ariaLabel="Debelina pisave zgornje vrstice"
+                        marker={`topbar-${device}-font-weight`}
+                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        onValueChange={(fontWeight) => updateSettings({ fontWeight: Number(fontWeight) })}
+                      />
+                      <AppearanceEditorCompactSelect
                         value={deviceLayout.settings.fontStyle}
-                        onChange={(event) => updateSettings({
-                          fontStyle: event.target.value as SiteNavigationTopBarResponsiveSettings['fontStyle']
+                        options={topBarFontStyleOptions}
+                        ariaLabel="Slog pisave zgornje vrstice"
+                        marker={`topbar-${device}-font-style`}
+                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        onValueChange={(fontStyle) => updateSettings({
+                          fontStyle: fontStyle as SiteNavigationTopBarResponsiveSettings['fontStyle']
                         })}
-                        className={`${compactInputClassName} min-w-0 !h-7 !px-1.5 text-[11px]`}
-                        aria-label="Slog pisave zgornje vrstice"
-                      >
-                        {topBarFontStyleOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
+                      />
                     </div>
                   </div>
                 </div>
@@ -5328,7 +5380,7 @@ function TopBarLayoutEditor({
                   </IconButton>
                 </div>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" data-appearance-editor-scroll-purpose="data">
                 <div className={`grid ${tableMinWidthClassName} ${tableGridClassName} gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-500`}>
                   <span className="flex items-center justify-center">
                     <input
@@ -5337,7 +5389,7 @@ function TopBarLayoutEditor({
                       aria-label="Izberi vse elemente v vrstici"
                       className="h-4 w-4 rounded border-slate-300 text-[color:var(--blue-500)] focus:ring-[color:var(--blue-500)]"
                       onChange={(event) => {
-                        setSelectedTableElementIds(event.target.checked ? layoutItems.map((item) => item.id) : []);
+                        setSelectedTableElementIds(event.target.checked ? tableLayoutItems.map((item) => item.id) : []);
                       }}
                     />
                   </span>
@@ -5348,23 +5400,16 @@ function TopBarLayoutEditor({
                   <span className="text-center">Vidnost</span>
                   <span className="text-center">Uredi</span>
                 </div>
-                {layoutItems.length > 0 ? layoutItems.map((item, index) => (
+                {tableLayoutItems.length > 0 ? tableLayoutItems.map((item, index) => (
                   <TopBarElementRow
                     key={item.id}
                     item={item}
                     device={device}
                     settings={deviceLayout.settings}
                     items={items}
+                    logoDisplaySize={logoDisplaySize}
                     placementBoundsWidth={placementBoundsWidth}
-                    currentXPx={
-                      tablePlacementGeometry.elementRects[item.id]
-                        ? Math.round(((tablePlacementGeometry.elementRects[item.id]?.x ?? tablePlacementGeometry.contentRect.x) - tablePlacementGeometry.contentRect.x) * COMMERCIAL_STOREFRONT_SCALE)
-                        : getTopBarElementXInBounds(
-                            item,
-                            placementBoundsWidth,
-                            getTopBarElementRenderedPlacementWidth({ item, items, device, settings: deviceLayout.settings })
-                          )
-                    }
+                    currentXPx={tableResolvedXPxById[item.id] ?? item.xPx}
                     offsets={tableOffsets[item.id] ?? {
                       rendered: false,
                       leftValue: 0,
@@ -5376,7 +5421,7 @@ function TopBarLayoutEditor({
                     }}
                     selected={selectedElementId === item.id || activeEdit.elementId === item.id}
                     checked={selectedTableElementIdSet.has(item.id)}
-                    isLast={index === layoutItems.length - 1}
+                    isLast={index === tableLayoutItems.length - 1}
                     activeEdit={activeEdit}
                     onSelect={() => setSelectedElementId(item.id)}
                     onCheckedChange={(checked) => {
@@ -5420,8 +5465,21 @@ function IconPicker({
   onChange: (icon: SiteNavigationItemIcon) => void;
   highlighted?: boolean;
 }) {
+  const pickerId = useId();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const dismissRefs = useMemo(() => [rootRef], []);
+
+  useDropdownDismiss({
+    open,
+    refs: dismissRefs,
+    returnFocusRef: triggerRef,
+    dismissGroup: 'navigation-icon-picker',
+    onClose: () => setOpen(false)
+  });
+
   const selectedIconName = toSiteNavigationLucideIconName(icon);
   const filteredIconNames = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -5445,6 +5503,7 @@ function IconPicker({
 
   return (
     <div
+      ref={rootRef}
       className={`relative h-8 w-8 shrink-0 ${open ? 'z-[80]' : 'z-10'}`}
       onPointerDown={(event) => event.stopPropagation()}
       onBlur={(event) => {
@@ -5454,8 +5513,12 @@ function IconPicker({
       }}
     >
       <button
+        ref={triggerRef}
         type="button"
         aria-label={label}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? pickerId : undefined}
         title={icon}
         onClick={() => setOpen((current) => !current)}
         className={`inline-grid h-8 w-8 place-items-center rounded-md border bg-white transition hover:bg-[color:var(--hover-neutral)] ${adminControlFocusTokenClasses} ${
@@ -5468,63 +5531,65 @@ function IconPicker({
       </button>
       {open ? (
         <MenuPanel className="absolute left-0 top-full z-[90] mt-2 w-[294px] p-2">
-          <Input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(0);
-            }}
-            className={`${compactInputClassName} mb-2 h-7 w-full`}
-            placeholder="Poišči ikono"
-            aria-label="Poišči ikono"
-          />
-          <div className="grid grid-cols-6 gap-1">
-            {visibleIconNames.length > 0 ? visibleIconNames.map((option) => (
-              <button
-                key={option}
+          <div id={pickerId} role="dialog" aria-label={`${label}: izberite ikono`}>
+            <Input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              className={`${compactInputClassName} mb-2 h-7 w-full`}
+              placeholder="Poišči ikono"
+              aria-label="Poišči ikono"
+            />
+            <div className="grid grid-cols-6 gap-1">
+              {visibleIconNames.length > 0 ? visibleIconNames.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-label={`Izberi ikono ${option}`}
+                  title={option}
+                  onClick={() => {
+                    onChange(option);
+                    setOpen(false);
+                  }}
+                  className={`inline-grid h-7 w-7 place-items-center rounded-md border transition ${adminControlFocusTokenClasses} ${
+                    option === selectedIconName
+                      ? 'border-[color:var(--blue-500)] bg-[color:var(--hover-neutral)] text-[color:var(--blue-500)]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
+                  }`}
+                >
+                  <NavigationIconGlyph icon={option} className="h-3.5 w-3.5" />
+                </button>
+              )) : (
+                <div className="col-span-6 px-1 py-4 text-center text-[12px] text-slate-500">Ni zadetkov</div>
+              )}
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+              <Button
                 type="button"
-                aria-label={`Izberi ikono ${option}`}
-                title={option}
-                onClick={() => {
-                  onChange(option);
-                  setOpen(false);
-                }}
-                className={`inline-grid h-7 w-7 place-items-center rounded-md border transition ${adminControlFocusTokenClasses} ${
-                  option === selectedIconName
-                    ? 'border-[color:var(--blue-500)] bg-[color:var(--hover-neutral)] text-[color:var(--blue-500)]'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
-                }`}
+                variant="outline"
+                size="sm"
+                className="h-7 px-2"
+                disabled={page === 0}
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
               >
-                <NavigationIconGlyph icon={option} className="h-3.5 w-3.5" />
-              </button>
-            )) : (
-              <div className="col-span-6 px-1 py-4 text-center text-[12px] text-slate-500">Ni zadetkov</div>
-            )}
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-500">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2"
-              disabled={page === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-            >
-              Prej
-            </Button>
-            <span>
-              {page + 1} / {pageCount}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2"
-              disabled={page >= pageCount - 1}
-              onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
-            >
-              Naprej
-            </Button>
+                Prej
+              </Button>
+              <span>
+                {page + 1} / {pageCount}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2"
+                disabled={page >= pageCount - 1}
+                onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+              >
+                Naprej
+              </Button>
+            </div>
           </div>
         </MenuPanel>
       ) : null}
@@ -5629,6 +5694,7 @@ function InlineEditableText({
           }
         }}
         className={`${compactInputClassName} pointer-events-auto min-w-0 ${inputClassName ?? ''}`}
+        style={style}
       />
     );
   }
@@ -5648,6 +5714,119 @@ function InlineEditableText({
     >
       {value ? displayValue ?? value : placeholder}
     </button>
+  );
+}
+
+type FooterTextAlignment = 'left' | 'center' | 'right' | 'justify';
+
+const footerTextAlignmentOptions = ['left', 'center', 'right', 'justify'] as const;
+const footerShortTextAlignmentOptions = ['left', 'center', 'right'] as const;
+
+function FooterAlignmentGlyph({
+  alignment,
+  className = 'h-3.5 w-3.5'
+}: {
+  alignment: FooterTextAlignment;
+  className?: string;
+}) {
+  const lineStarts = alignment === 'right'
+    ? [3, 6, 4]
+    : alignment === 'center'
+      ? [3, 5, 4]
+      : [3, 3, 3];
+  const lineEnds = alignment === 'left'
+    ? [15, 12, 14]
+    : alignment === 'center'
+      ? [15, 13, 14]
+      : [15, 15, 15];
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 18 18" fill="none" className={className}>
+      {[4, 9, 14].map((y, index) => (
+        <path
+          key={y}
+          d={`M${lineStarts[index]} ${y}H${lineEnds[index]}`}
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function FooterTextAlignmentMenu<Value extends FooterTextAlignment>({
+  value,
+  options,
+  onValueChange,
+  ariaLabel,
+  side = 'right',
+  className
+}: {
+  value: Value;
+  options: readonly Value[];
+  onValueChange: (value: Value) => void;
+  ariaLabel: string;
+  side?: 'left' | 'right';
+  className?: string;
+}) {
+  const rootRef = useRef<HTMLSpanElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const dismissRefs = useMemo(() => [rootRef], []);
+
+  useDropdownDismiss({ open, refs: dismissRefs, onClose: () => setOpen(false) });
+
+  return (
+    <span
+      ref={rootRef}
+      className={`relative inline-flex shrink-0 ${open ? 'z-[120]' : 'z-20'} ${className ?? ''}`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (!open || event.key !== 'Escape') return;
+        event.stopPropagation();
+        setOpen(false);
+        window.requestAnimationFrame(() => triggerRef.current?.focus());
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title={ariaLabel}
+        data-footer-text-alignment-trigger={ariaLabel}
+        className={`${adminMiniIconButtonTokenClasses} ${open ? '!border-[color:var(--blue-500)] !text-[color:var(--blue-600)]' : ''}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <FooterAlignmentGlyph alignment={value} />
+      </button>
+      {open ? (
+        <div
+          role="dialog"
+          aria-label={ariaLabel}
+          data-footer-text-alignment-popover
+          className={`absolute top-full z-[130] mt-1 grid w-max gap-1.5 rounded-xl border border-white/15 bg-slate-950/95 p-2 text-white shadow-[0_16px_40px_rgba(15,23,42,0.35)] backdrop-blur-xl ${
+            side === 'left' ? 'left-0' : 'right-0'
+          }`}
+        >
+          <span className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
+            Poravnava
+          </span>
+          <AppearanceEditorAlignmentControl
+            value={value}
+            options={options}
+            onValueChange={onValueChange}
+            ariaLabel={ariaLabel}
+            tone="dark"
+          />
+        </div>
+      ) : null}
+    </span>
   );
 }
 
@@ -5984,8 +6163,8 @@ function FooterLinkEditor({
       }}
       className={`group/footer-link relative max-w-full items-center gap-1 rounded-md border border-transparent px-1 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${
         placement === 'column'
-          ? '-ml-1 grid min-h-7 w-full grid-cols-[minmax(0,1fr)_24px]'
-          : 'grid min-h-7 grid-cols-[minmax(0,1fr)_24px]'
+          ? '-ml-1 grid min-h-7 w-full grid-cols-[minmax(0,1fr)_24px_24px]'
+          : 'grid min-h-7 grid-cols-[minmax(0,1fr)_24px_24px]'
       } ${hidden ? 'opacity-50' : ''} ${isDragging ? 'z-20 bg-white opacity-80 shadow-sm' : ''}`}
     >
       <button
@@ -5996,17 +6175,24 @@ function FooterLinkEditor({
         {...attributes}
         {...listeners}
       />
-      <div className="pointer-events-none relative z-10 flex min-w-0 items-center gap-1">
+      <div className="pointer-events-none relative z-10 flex w-full min-w-0 items-center gap-1">
         <InlineEditableText
           value={link.label}
           onChange={(label) => onChange({ label })}
           ariaLabel="Naziv povezave v nogi"
-          className={`site-link block min-w-0 max-w-full truncate px-0.5 py-0 hover:!bg-transparent ${placement === 'column' ? 'text-[13px] leading-5' : 'text-[12px] leading-5'}`}
+          className={`site-link block w-full min-w-0 max-w-full truncate px-0.5 py-0 hover:!bg-transparent ${placement === 'column' ? 'text-[13px] leading-5' : 'text-[12px] leading-5'}`}
           inputClassName={placement === 'column' ? 'h-7 w-40 text-[13px]' : 'h-7 w-44 text-[12px]'}
+          style={{ textAlign: link.textAlign }}
           placeholder="Nova povezava"
         />
         {hidden ? <span className="shrink-0 text-[10px] font-semibold text-slate-500">Skrito</span> : null}
       </div>
+      <FooterTextAlignmentMenu
+        value={link.textAlign}
+        options={footerShortTextAlignmentOptions}
+        onValueChange={(textAlign) => onChange({ textAlign })}
+        ariaLabel={`Poravnava povezave ${link.label || 'v nogi'}`}
+      />
       <div
         ref={menuRef}
         className={`relative self-center ${menuOpen || urlOpen ? 'z-[80]' : 'z-10'}`}
@@ -6108,7 +6294,13 @@ function FooterColumnEditor({
           Skrito
         </span>
       ) : null}
-      <div className="absolute right-4 top-1.5 z-30 flex items-center">
+      <div className="absolute right-4 top-1.5 z-30 flex items-center gap-0.5">
+        <FooterTextAlignmentMenu
+          value={column.titleTextAlign}
+          options={footerShortTextAlignmentOptions}
+          onValueChange={(titleTextAlign) => onChange({ titleTextAlign })}
+          ariaLabel={`Poravnava naslova ${column.title || 'stolpca'}`}
+        />
         <div ref={menuRef} className="relative">
           <button
             type="button"
@@ -6182,7 +6374,13 @@ function FooterSocialLinkEditor({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuDismissRefs = useMemo(() => [menuRef], []);
 
-  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
+  useDropdownDismiss({
+    open: menuOpen,
+    refs: menuDismissRefs,
+    ignoreSelector: '[data-appearance-editor-compact-select-portal]',
+    ignoreEscapeSelector: '[data-appearance-editor-compact-select-portal]',
+    onClose: () => setMenuOpen(false)
+  });
 
   return (
     <div
@@ -6230,19 +6428,16 @@ function FooterSocialLinkEditor({
         {menuOpen ? (
           <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-64 p-2.5">
             <div className="grid gap-2.5">
-              <label className="grid gap-1.5">
+              <div className="grid gap-1">
                 <span className="text-[11px] font-medium text-slate-500">Omrežje</span>
-                <select
+                <AppearanceEditorCompactSelect
                   value={link.type}
-                  onChange={(event) => onChange({ type: event.target.value as HomepageFooterSocialLink['type'] })}
-                  className={`${compactInputClassName} min-w-0`}
-                  aria-label={`Omrežje za ${link.label || 'profil'}`}
-                >
-                  {HOMEPAGE_SOCIAL_TYPES.map((type) => (
-                    <option key={type} value={type}>{homepageSocialTypeLabels[type]}</option>
-                  ))}
-                </select>
-              </label>
+                  options={HOMEPAGE_SOCIAL_TYPES.map((type) => ({ value: type, label: homepageSocialTypeLabels[type] }))}
+                  ariaLabel={`Omrežje za ${link.label || 'profil'}`}
+                  marker={`footer-social-${link.id}`}
+                  onValueChange={(type) => onChange({ type: type as HomepageFooterSocialLink['type'] })}
+                />
+              </div>
               <label className="grid gap-1.5">
                 <span className="text-[11px] font-medium text-slate-500">Naziv</span>
                 <Input
@@ -6281,70 +6476,6 @@ function FooterSocialLinkEditor({
           </MenuPanel>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function FooterLogoEditor({
-  settings,
-  logo,
-  onChange
-}: {
-  settings: HomepageFooterSettings;
-  logo: ReactNode;
-  onChange: (updates: Partial<HomepageFooterSettings>) => void;
-}) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuDismissRefs = useMemo(() => [menuRef], []);
-
-  useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
-
-  return (
-    <div ref={menuRef} className="group/footer-logo relative inline-flex max-w-full">
-      <button
-        type="button"
-        aria-label="Uredi logotip v nogi"
-        aria-expanded={menuOpen}
-        className={`inline-flex min-h-10 min-w-10 items-center rounded-md border border-transparent p-1 text-left transition hover:border-[color:var(--blue-500)]/30 focus-visible:border-[color:var(--blue-500)] ${menuOpen ? 'border-[color:var(--blue-500)]/40' : ''}`}
-        onClick={() => setMenuOpen((current) => !current)}
-      >
-        {logo ?? <span className="text-[12px] font-medium text-slate-400">Logotip je skrit</span>}
-      </button>
-      {settings.logoMode === 'hidden' ? (
-        <span className="pointer-events-none absolute -right-2 -top-2 rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
-          Skrito
-        </span>
-      ) : null}
-      {menuOpen ? (
-        <MenuPanel className="absolute left-0 top-full z-[90] mt-1 w-64 p-2.5">
-          <div className="grid gap-2.5">
-            <label className="grid gap-1.5">
-              <span className="text-[11px] font-medium text-slate-500">Prikaz logotipa</span>
-              <select
-                value={settings.logoMode}
-                onChange={(event) => onChange({ logoMode: event.target.value as HomepageFooterSettings['logoMode'] })}
-                className={compactInputClassName}
-                aria-label="Prikaz logotipa v nogi"
-              >
-                {HOMEPAGE_FOOTER_LOGO_MODES.map((mode) => (
-                  <option key={mode} value={mode}>{homepageFooterLogoModeLabels[mode]}</option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5">
-              <span className="text-[11px] font-medium text-slate-500">Besedilo logotipa</span>
-              <Input
-                value={settings.logoText}
-                onChange={(event) => onChange({ logoText: event.target.value })}
-                className={compactInputClassName}
-                aria-label="Besedilo logotipa"
-                placeholder="ATEHNA"
-              />
-            </label>
-          </div>
-        </MenuPanel>
-      ) : null}
     </div>
   );
 }
@@ -6678,6 +6809,7 @@ export default function AdminNavigationPageClient({
           {
             id: createId('footer-column'),
             title: 'Nov stolpec',
+            titleTextAlign: 'left',
             links: [],
             visible: true,
             position: current.footer.columns.length
@@ -6723,6 +6855,7 @@ export default function AdminNavigationPageClient({
                   id: createId('footer-link'),
                   label: 'Nova povezava',
                   href: '#',
+                  textAlign: 'left',
                   visible: true,
                   position: column.links.length
                 }
@@ -6806,6 +6939,7 @@ export default function AdminNavigationPageClient({
             id: createId('footer-legal'),
             label: 'Nova pravna povezava',
             href: '#',
+            textAlign: 'left',
             visible: true,
             position: current.footer.legalLinks.length
           }
@@ -7167,18 +7301,47 @@ export default function AdminNavigationPageClient({
         ) : null}
       </div>
     ),
-    renderLogo: ({ settings, logo }) => (
-      <FooterLogoEditor settings={settings} logo={logo} onChange={updateFooter} />
+    renderUpperSection: ({ defaultNode, hidden }) => (
+      <div
+        data-admin-footer-section-preview="upper"
+        data-admin-footer-section-hidden={hidden ? 'true' : 'false'}
+        className={hidden ? 'opacity-45' : undefined}
+      >
+        {defaultNode}
+      </div>
+    ),
+    renderLowerSection: ({ defaultNode, hidden }) => (
+      <div
+        data-admin-footer-section-preview="lower"
+        data-admin-footer-section-hidden={hidden ? 'true' : 'false'}
+        className={hidden ? 'opacity-45' : undefined}
+      >
+        {defaultNode}
+      </div>
+    ),
+    renderLogo: ({ logo }) => (
+      <span data-testid="site-footer-shared-logo" className="inline-flex max-w-full">
+        {logo}
+      </span>
     ),
     renderDescription: ({ value }) => (
-      <InlineEditableText
-        value={value}
-        onChange={(description) => updateFooter({ description })}
-        ariaLabel="Opis noge"
-        className="site-paragraph mt-4 block max-w-xs px-1 py-0 text-[13px] leading-6"
-        inputClassName="h-8 w-full max-w-xs text-[13px]"
-        placeholder="Dodajte kratek opis podjetja"
-      />
+      <div className="mt-4 grid max-w-xs grid-cols-[minmax(0,1fr)_24px] items-start gap-1">
+        <InlineEditableText
+          value={value}
+          onChange={(description) => updateFooter({ description })}
+          ariaLabel="Opis noge"
+          className="site-paragraph block w-full max-w-xs px-1 py-0 text-[13px] leading-6"
+          inputClassName="h-8 w-full max-w-xs text-[13px]"
+          style={{ textAlign: config.footer.descriptionTextAlign }}
+          placeholder="Dodajte kratek opis podjetja"
+        />
+        <FooterTextAlignmentMenu
+          value={config.footer.descriptionTextAlign}
+          options={footerTextAlignmentOptions}
+          onValueChange={(descriptionTextAlign) => updateFooter({ descriptionTextAlign })}
+          ariaLabel="Poravnava opisa noge"
+        />
+      </div>
     ),
     renderColumns: ({ defaultNode }) => (
       <div className="flex min-w-0 items-start gap-1.5">
@@ -7209,13 +7372,17 @@ export default function AdminNavigationPageClient({
       </FooterColumnEditor>
     ),
     renderColumnTitle: ({ column, value }) => (
-      <h2 className="pr-7 text-[13px] font-semibold text-[color:var(--site-color-text)]">
+      <h2
+        className="pr-14 text-[13px] font-semibold text-[color:var(--site-color-text)]"
+        style={{ textAlign: column.titleTextAlign }}
+      >
         <InlineEditableText
           value={value}
           onChange={(title) => updateFooterColumn(column.id, { title })}
           ariaLabel="Naslov stolpca v nogi"
-          className="block max-w-full truncate px-0.5 py-0 text-[13px] font-semibold leading-5"
+          className="block w-full max-w-full truncate px-0.5 py-0 text-[13px] font-semibold leading-5"
           inputClassName="h-7 w-full font-semibold"
+          style={{ textAlign: column.titleTextAlign }}
           placeholder="Naslov stolpca"
         />
       </h2>
@@ -7235,7 +7402,35 @@ export default function AdminNavigationPageClient({
         }}
       />
     ),
-    renderContact: ({ defaultNode }) => defaultNode,
+    renderContact: ({ defaultNode }) => (
+      <div
+        className="relative flex min-w-0 items-start gap-1"
+        style={{ textAlign: config.footer.contact.textAlign }}
+      >
+        <div className="min-w-0 flex-1">{defaultNode}</div>
+        <FooterTextAlignmentMenu
+          value={config.footer.contact.textAlign}
+          options={footerShortTextAlignmentOptions}
+          onValueChange={(textAlign) => updateFooterContact({ textAlign })}
+          ariaLabel="Poravnava kontakta v nogi"
+        />
+      </div>
+    ),
+    renderLowerContact: ({ defaultNode, hidden }) => (
+      <div
+        data-admin-footer-lower-contact-preview="true"
+        className={`relative flex basis-full items-start gap-1 ${hidden ? 'opacity-45' : ''}`}
+        style={{ textAlign: config.footer.contact.textAlign }}
+      >
+        <div className="min-w-0 flex-1">{defaultNode}</div>
+        <FooterTextAlignmentMenu
+          value={config.footer.contact.textAlign}
+          options={footerShortTextAlignmentOptions}
+          onValueChange={(textAlign) => updateFooterContact({ textAlign })}
+          ariaLabel="Poravnava spodnjega kontakta v nogi"
+        />
+      </div>
+    ),
     renderContactField: ({ field, value }) => {
       const meta = footerContactFieldMeta[field];
       return (
@@ -7245,6 +7440,7 @@ export default function AdminNavigationPageClient({
           ariaLabel={meta.label}
           className={`block max-w-[220px] truncate px-0.5 py-0 text-[13px] leading-5 ${field === 'email' ? 'site-link hover:!bg-transparent' : ''}`}
           inputClassName="h-7 w-[220px] text-[13px]"
+          style={{ textAlign: config.footer.contact.textAlign }}
           placeholder={meta.placeholder}
         />
       );
@@ -7287,15 +7483,25 @@ export default function AdminNavigationPageClient({
       />
     ),
     renderCopyright: ({ rawValue, resolvedValue }) => (
-      <InlineEditableText
-        value={rawValue}
-        displayValue={resolvedValue}
-        onChange={(copyright) => updateFooter({ copyright })}
-        ariaLabel="Copyright"
-        className="inline-flex min-h-7 max-w-[420px] items-center truncate px-0.5 py-0 text-[12px] leading-5"
-        inputClassName="h-7 w-[320px] text-[12px]"
-        placeholder="© {year} Podjetje"
-      />
+      <div className="flex min-w-0 max-w-full items-start gap-1">
+        <InlineEditableText
+          value={rawValue}
+          displayValue={resolvedValue}
+          onChange={(copyright) => updateFooter({ copyright })}
+          ariaLabel="Copyright"
+          className="block min-h-7 w-[320px] max-w-full truncate px-0.5 py-1 text-[12px] leading-5"
+          inputClassName="h-7 w-[320px] text-[12px]"
+          style={{ textAlign: config.footer.copyrightTextAlign }}
+          placeholder="© {year} Podjetje"
+        />
+        <FooterTextAlignmentMenu
+          value={config.footer.copyrightTextAlign}
+          options={footerTextAlignmentOptions}
+          onValueChange={(copyrightTextAlign) => updateFooter({ copyrightTextAlign })}
+          ariaLabel="Poravnava avtorskih pravic"
+          side="left"
+        />
+      </div>
     ),
     renderLegal: ({ children }) => (
       <DndContext
@@ -7327,7 +7533,7 @@ export default function AdminNavigationPageClient({
   } satisfies SiteFooterEditorAdapter;
 
   return (
-    <div className="space-y-5" style={editorVars}>
+    <div className="space-y-4" style={editorVars} data-appearance-settings-density="compact" data-appearance-settings-page="navigacija">
       <AdminPageHeader
         title="Podoba"
         description="Urejanje vizualnih nastavitev."
@@ -7475,13 +7681,50 @@ export default function AdminNavigationPageClient({
               Iste povezave in kontaktni podatki so prikazani na vseh javnih straneh.
             </p>
           </div>
-          <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
-            <AdminCheckbox
-              checked={config.footer.visible}
-              onChange={(event) => updateFooter({ visible: event.target.checked })}
-            />
-            Prikaži nogo
-          </label>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href="/admin/podoba/logotip"
+              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-[color:var(--blue-600)]"
+            >
+              Uredi logotip
+            </Link>
+            <fieldset
+              aria-label="Vidnost delov noge"
+              className="m-0 flex min-w-0 flex-wrap items-center justify-end gap-2 border-0 p-0"
+            >
+              <legend className="sr-only">Vidnost delov noge</legend>
+              <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
+                <AdminCheckbox
+                  checked={config.footer.upperSectionVisible}
+                  onChange={(event) => updateFooter({ upperSectionVisible: event.target.checked })}
+                />
+                Prikaži zgornji del
+              </label>
+              <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
+                <AdminCheckbox
+                  checked={config.footer.lowerSectionVisible}
+                  onChange={(event) => updateFooter({ lowerSectionVisible: event.target.checked })}
+                />
+                Prikaži spodnji del
+              </label>
+              {!config.footer.upperSectionVisible ? (
+                <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
+                  <AdminCheckbox
+                    checked={config.footer.lowerContactVisible}
+                    onChange={(event) => updateFooter({ lowerContactVisible: event.target.checked })}
+                  />
+                  Prikaži kontakt v spodnjem delu
+                </label>
+              ) : null}
+            </fieldset>
+            <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
+              <AdminCheckbox
+                checked={config.footer.visible}
+                onChange={(event) => updateFooter({ visible: event.target.checked })}
+              />
+              Prikaži nogo
+            </label>
+          </div>
         </div>
 
         <div

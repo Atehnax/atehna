@@ -1,5 +1,5 @@
 import { generateOrderDocumentRoute } from '../../generateOrderDocumentRoute';
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
-  return generateOrderDocumentRoute(request, props, 'Povzetek naročila', 'order_summary');
+  return generateOrderDocumentRoute(request, props, 'order_summary');
 }

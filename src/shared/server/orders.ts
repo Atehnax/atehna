@@ -1,5 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { normalizeOrderPdfFilenameForPresentation } from '@/shared/domain/order/orderTypes';
 import type {
   OrderAnalyticsRow,
   OrderDocumentRow,
@@ -320,11 +321,12 @@ function buildAdminOrderDocumentUrl(orderId: number, documentId: number): string
 function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow {
   const id = Number(rawRow.id);
   const orderId = Number(rawRow.order_id);
+  const type = String(rawRow.type);
   return {
     id,
     order_id: orderId,
-    type: String(rawRow.type),
-    filename: String(rawRow.filename),
+    type,
+    filename: normalizeOrderPdfFilenameForPresentation(type, String(rawRow.filename)),
     url: buildAdminOrderDocumentUrl(orderId, id),
     created_at: toIsoTimestamp(rawRow.created_at)
   };
@@ -537,11 +539,12 @@ export async function fetchOrdersListPage(
       const row = rawDoc as Record<string, unknown>;
       const id = Number(row.id);
       const orderId = Number(row.order_id);
+      const type = String(row.type);
       const mapped: OrderListDocumentSummaryRow = {
         id,
         order_id: orderId,
-        type: String(row.type),
-        filename: String(row.filename),
+        type,
+        filename: normalizeOrderPdfFilenameForPresentation(type, String(row.filename)),
         url: buildAdminOrderDocumentUrl(orderId, id),
         created_at: toIsoTimestamp(row.created_at)
       };

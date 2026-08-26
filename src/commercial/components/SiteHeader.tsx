@@ -5,10 +5,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { CSSProperties, FormEvent } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
-import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
-import { SiteLogo } from '@/commercial/components/SiteLogo';
+import {
+  COMMERCIAL_STOREFRONT_SCALE,
+  toCommercialStorefrontLogicalPx
+} from '@/commercial/components/commercialStorefrontScale';
+import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
-import type { SiteLogoPurposeId } from '@/shared/domain/logo/siteLogo';
+import {
+  resolveSiteLogoDisplaySize,
+  type SiteLogoDisplaySize,
+  type SiteLogoPurposeId
+} from '@/shared/domain/logo/siteLogo';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
   SITE_NAVIGATION_DESKTOP_COLUMN_COUNT,
@@ -30,6 +37,7 @@ import {
   type SiteNavigationTopBarSearchMode,
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { SiteNavigationLucideIcon } from '@/shared/ui/icons/SiteNavigationLucideIcon';
 import { sharedIconTileBorderWidth } from '@/shared/ui/theme/tokens';
 
@@ -201,10 +209,16 @@ function isRenderedTopBarPlacementItem(
 function getTopBarItemRenderedWidthPx(
   item: SiteNavigationTopBarResponsiveItem,
   activeDevice: SiteNavigationTopBarDevice,
-  settings: SiteNavigationTopBarResponsiveSettings
+  settings: SiteNavigationTopBarResponsiveSettings,
+  logoDisplayWidthPx?: number
 ) {
   if (item.id === 'logo') {
-    return Math.max(item.widthPx, item.fixedWidthPx ?? 0, SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX);
+    return Math.max(
+      item.widthPx,
+      item.fixedWidthPx ?? 0,
+      SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX,
+      logoDisplayWidthPx ?? 0
+    );
   }
 
   if (item.id === 'navigation' && (activeDevice === 'mobile' || settings.navigationMode === 'hamburger')) {
@@ -217,17 +231,35 @@ function getTopBarItemRenderedWidthPx(
 function getTopBarItemLayoutStyle(
   item: SiteNavigationTopBarResponsiveItem,
   activeDevice: SiteNavigationTopBarDevice,
-  settings: SiteNavigationTopBarResponsiveSettings
+  settings: SiteNavigationTopBarResponsiveSettings,
+  logoDisplayWidthPx?: number
 ): CSSProperties {
   const leftPercent = Math.max(0, Math.min(1, item.xRatio)) * 100;
-  const itemWidthPx = getTopBarItemRenderedWidthPx(item, activeDevice, settings);
+  const baseItemWidthPx = getTopBarItemRenderedWidthPx(
+    item,
+    activeDevice,
+    settings
+  );
+  const itemWidthPx = getTopBarItemRenderedWidthPx(
+    item,
+    activeDevice,
+    settings,
+    logoDisplayWidthPx
+  );
+  const logicalBaseWidthPx = toCommercialStorefrontLogicalPx(baseItemWidthPx);
   const logicalWidthPx = toCommercialStorefrontLogicalPx(itemWidthPx);
+  const logicalCenteredExpansionShiftPx = toCommercialStorefrontLogicalPx(
+    (itemWidthPx - baseItemWidthPx) / 2
+  );
+  const baseLeft = `min(${leftPercent}%, calc(100% - ${logicalBaseWidthPx}px))`;
 
   return {
     position: 'absolute',
     ...(item.region === 'edgeRight'
       ? { left: 'auto', right: 0 }
-      : { left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))` }),
+      : item.region === 'center'
+        ? { left: `calc(${baseLeft} - ${logicalCenteredExpansionShiftPx}px)` }
+        : { left: `min(${leftPercent}%, calc(100% - ${logicalWidthPx}px))` }),
     top: '50%',
     zIndex: item.zIndex,
     width: `${logicalWidthPx}px`,
@@ -285,8 +317,23 @@ const headerLogoClassNames: Record<SiteNavigationTopBarDevice, string> = {
   tablet: 'h-[22px] w-[72px]',
   mobile: 'h-5 w-14'
 };
+const headerLogoLinkPaddingEndPx = 10 * COMMERCIAL_STOREFRONT_SCALE;
 
-function Brand({ device }: { device: SiteNavigationTopBarDevice }) {
+function explicitHeaderLogoStyle(displaySize: SiteLogoDisplaySize): CSSProperties | undefined {
+  if (!displaySize.explicit) return undefined;
+  return {
+    width: `calc(${displaySize.widthPx}px / var(--commercial-storefront-scale))`,
+    height: `calc(${displaySize.heightPx}px / var(--commercial-storefront-scale))`
+  };
+}
+
+function Brand({
+  device,
+  displaySize
+}: {
+  device: SiteNavigationTopBarDevice;
+  displaySize: SiteLogoDisplaySize;
+}) {
   const purposeId = `header-${device}` as SiteLogoPurposeId;
   return (
     <SiteLogo
@@ -294,6 +341,7 @@ function Brand({ device }: { device: SiteNavigationTopBarDevice }) {
       fallback={<DefaultBrand />}
       className={headerLogoClassNames[device]}
       alt="Atehna"
+      style={explicitHeaderLogoStyle(displaySize)}
     />
   );
 }
@@ -708,6 +756,7 @@ function NavbarSearch({
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const compactTriggerRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<CatalogSearchItem[]>(() => navbarSearchItemsCache ?? []);
   const [loading, setLoading] = useState(false);
@@ -718,6 +767,18 @@ function NavbarSearch({
   const hasQuery = normalizeSearchValue(query).length > 0;
   const desktopFieldMode = !mobile && mode === 'field';
   const desktopExpanded = desktopFieldMode || expanded;
+  const searchDismissRefs = useMemo(() => [rootRef] as const, []);
+  const closeSearchSurface = useCallback(() => {
+    setOpen(false);
+    if (!mobile && !desktopFieldMode) setExpanded(false);
+  }, [desktopFieldMode, mobile]);
+
+  useDropdownDismiss({
+    open: open || expanded,
+    onClose: closeSearchSurface,
+    refs: searchDismissRefs,
+    returnFocusRef: !mobile && !desktopFieldMode ? compactTriggerRef : inputRef
+  });
 
   const ensureItemsLoaded = () => {
     if (navbarSearchItemsCache) {
@@ -744,29 +805,6 @@ function NavbarSearch({
     void ensureItemsLoaded();
     window.requestAnimationFrame(() => inputRef.current?.focus());
   };
-
-  useEffect(() => {
-    if (mobile || desktopFieldMode || !expanded) return undefined;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (!rootRef.current?.contains(target) && !query) {
-        setOpen(false);
-        setExpanded(false);
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-    };
-  }, [desktopFieldMode, expanded, mobile, query]);
 
   const closeOrClearSearch = () => {
     if (query) {
@@ -818,6 +856,7 @@ function NavbarSearch({
     >
       {!mobile && !desktopFieldMode ? (
         <button
+          ref={compactTriggerRef}
           type="button"
           aria-label="Išči"
           aria-hidden={desktopExpanded}
@@ -870,7 +909,7 @@ function NavbarSearch({
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault();
-              closeOrClearSearch();
+              closeSearchSurface();
             } else if (event.key === 'Enter') {
               event.preventDefault();
               void submitSearch();
@@ -885,7 +924,10 @@ function NavbarSearch({
           }
         />
         {open && hasQuery ? (
-          <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-[#dedede] bg-white py-1 shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]">
+          <div
+            data-site-search-results
+            className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-lg border border-[#dedede] bg-white py-1 shadow-[0_12px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)]"
+          >
             {loading && items.length === 0 ? (
               <p className="px-3 py-2 text-[13px] font-medium text-[#666666]">Nalagam ...</p>
             ) : results.length > 0 ? (
@@ -1006,6 +1048,7 @@ export default function SiteHeader({
   previewViewportWidth
 }: SiteHeaderProps) {
   const pathname = usePathname();
+  const siteLogoConfig = useSiteLogoConfig();
   const headerRef = useRef<HTMLElement>(null);
   const katalogLabelRef = useRef<HTMLSpanElement>(null);
   const switchTimerRef = useRef<number | null>(null);
@@ -1037,6 +1080,11 @@ export default function SiteHeader({
   const activeTopBarDevice = useMemo(
     () => effectivePreviewDevice ?? resolveTopBarDeviceForViewportWidth(normalizedNavigation, resolvedViewportWidth),
     [effectivePreviewDevice, normalizedNavigation, resolvedViewportWidth]
+  );
+  const activeHeaderLogoPurposeId = `header-${activeTopBarDevice}` as SiteLogoPurposeId;
+  const activeHeaderLogoDisplaySize = resolveSiteLogoDisplaySize(
+    activeHeaderLogoPurposeId,
+    siteLogoConfig.placements[activeHeaderLogoPurposeId]
   );
   const activeTopBarLayout = normalizedNavigation.topBarLayout.responsive[activeTopBarDevice];
   const usesCompactTopBar =
@@ -1379,7 +1427,14 @@ export default function SiteHeader({
   }, [activeMenu, dropdownOrderIds]);
 
   const renderTopBarPlacementElement = (item: SiteNavigationTopBarResponsiveItem) => {
-    const wrapperStyle = getTopBarItemLayoutStyle(item, activeTopBarDevice, activeTopBarLayout.settings);
+    const wrapperStyle = getTopBarItemLayoutStyle(
+      item,
+      activeTopBarDevice,
+      activeTopBarLayout.settings,
+      activeHeaderLogoDisplaySize?.explicit
+        ? activeHeaderLogoDisplaySize.widthPx + headerLogoLinkPaddingEndPx
+        : undefined
+    );
     const wrapperClassName = 'inline-flex min-w-0 items-center overflow-visible';
 
     if (item.id === 'logo') {
@@ -1394,7 +1449,9 @@ export default function SiteHeader({
             className="inline-flex shrink-0 rounded-lg py-[5px] pl-0 pr-[10px] transition hover:bg-[#f5f5f5]"
             style={logoTextRenderingStyle}
           >
-            <Brand device={activeTopBarDevice} />
+            {activeHeaderLogoDisplaySize ? (
+              <Brand device={activeTopBarDevice} displaySize={activeHeaderLogoDisplaySize} />
+            ) : null}
           </Link>
         </div>
       );

@@ -5,7 +5,9 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -15,7 +17,17 @@ import {
   type RefObject
 } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Check,
+  ChevronDown,
+  Minus
+} from 'lucide-react';
 import type { ProductCanvasDevice } from '@/shared/domain/style/productAppearance';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { adminControlFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -131,11 +143,329 @@ export function AppearanceEditorNumberInput({
   );
 }
 
+export type AppearanceEditorCompactSelectOption<Value extends string> = {
+  value: Value;
+  label: string;
+  disabled?: boolean;
+};
+
+/**
+ * A dark portal listbox for appearance inspectors. Native option popups ignore
+ * the inspector theme on Windows; this keeps every option visible without a
+ * nested scroll region and preserves keyboard and focus behaviour.
+ */
+export function AppearanceEditorCompactSelect<Value extends string>({
+  value,
+  options,
+  onValueChange,
+  ariaLabel,
+  placeholder = 'Izberite',
+  marker,
+  testId,
+  disabled = false,
+  className,
+  triggerClassName
+}: {
+  value: Value | '';
+  options: readonly AppearanceEditorCompactSelectOption<Value>[];
+  onValueChange: (value: Value) => void;
+  ariaLabel: string;
+  placeholder?: string;
+  marker?: string;
+  testId?: string;
+  disabled?: boolean;
+  className?: string;
+  triggerClassName?: string;
+}) {
+  const generatedId = useId();
+  const listboxId = `${generatedId}-appearance-select`;
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const dismissRefs = useMemo(() => [triggerRef], []);
+  const portalRefs = useMemo(() => [listRef], []);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    columns: options.length > 8 ? 2 : 1,
+    ready: false
+  });
+  const selected = options.find((option) => option.value === value);
+  const controlMarker = marker ?? ariaLabel;
+
+  useDropdownDismiss({
+    open,
+    refs: dismissRefs,
+    portalRefs,
+    returnFocusRef: triggerRef,
+    dismissGroup: 'appearance-compact-select',
+    onClose: () => setOpen(false)
+  });
+
+  const openListbox = useCallback(() => {
+    if (!disabled && options.some((option) => !option.disabled)) {
+      setPosition((current) => ({ ...current, ready: false }));
+      setOpen(true);
+    }
+  }, [disabled, options]);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current || !listRef.current) return;
+    const trigger = triggerRef.current.getBoundingClientRect();
+    const viewportGap = 8;
+    const rowsPerColumn = Math.max(1, Math.floor((window.innerHeight - viewportGap * 2 - 12) / 32));
+    const columns = Math.min(
+      Math.max(1, options.length),
+      Math.max(options.length > 8 ? 2 : 1, Math.ceil(options.length / rowsPerColumn))
+    );
+    const width = Math.min(
+      window.innerWidth - viewportGap * 2,
+      Math.max(trigger.width, columns * 156, 190)
+    );
+    listRef.current.style.width = `${width}px`;
+    listRef.current.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+    const list = listRef.current.getBoundingClientRect();
+    const left = Math.min(
+      Math.max(trigger.left, viewportGap),
+      Math.max(viewportGap, window.innerWidth - width - viewportGap)
+    );
+    const spaceBelow = window.innerHeight - trigger.bottom - viewportGap;
+    const top = spaceBelow >= list.height + 6
+      ? trigger.bottom + 4
+      : Math.max(viewportGap, trigger.top - list.height - 4);
+    setPosition({ left, top, width, columns, ready: true });
+  }, [open, options.length]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeForViewportChange = () => setOpen(false);
+    window.addEventListener('resize', closeForViewportChange);
+    window.addEventListener('scroll', closeForViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', closeForViewportChange);
+      window.removeEventListener('scroll', closeForViewportChange, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    window.requestAnimationFrame(() => {
+      const selectedOption = listRef.current?.querySelector<HTMLButtonElement>(
+        '[role="option"][aria-selected="true"]:not(:disabled)'
+      );
+      const firstOption = listRef.current?.querySelector<HTMLButtonElement>(
+        '[role="option"]:not(:disabled)'
+      );
+      (selectedOption ?? firstOption)?.focus();
+    });
+  }, [open]);
+
+  return (
+    <div className={classNames('min-w-0', className)} data-appearance-editor-compact-select={controlMarker}>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        data-appearance-editor-compact-select-trigger={controlMarker}
+        data-testid={testId}
+        onClick={() => open ? setOpen(false) : openListbox()}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openListbox();
+          } else if (event.key === 'Escape' && open) {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(false);
+          }
+        }}
+        className={classNames(
+          `flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-white/15 bg-slate-800 px-2.5 text-left text-[11px] font-semibold text-slate-100 outline-none transition hover:border-white/25 hover:bg-slate-700 focus:border-blue-300 focus:ring-1 focus:ring-blue-300/35 disabled:cursor-not-allowed disabled:opacity-45 ${adminControlFocusTokenClasses}`,
+          triggerClassName
+        )}
+      >
+        <span className={classNames('min-w-0 flex-1 truncate', !selected && 'text-white/45')}>
+          {selected?.label ?? placeholder}
+        </span>
+        <ChevronDown className={classNames('h-3.5 w-3.5 shrink-0 transition', open && 'rotate-180')} />
+      </button>
+      {open && typeof document !== 'undefined' ? createPortal(
+        <div
+          ref={listRef}
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel}
+          data-appearance-editor-compact-select-portal={controlMarker}
+          data-appearance-editor-compact-select-columns={position.columns}
+          className="fixed z-[2147483647] grid gap-1 rounded-xl border border-white/15 bg-slate-950/95 p-1.5 text-white shadow-[0_18px_50px_rgba(15,23,42,.55)] backdrop-blur-xl"
+          style={{
+            left: position.left,
+            top: position.top,
+            width: position.width || undefined,
+            gridTemplateColumns: `repeat(${position.columns}, minmax(0, 1fr))`,
+            opacity: position.ready ? 1 : 0,
+            visibility: position.ready ? 'visible' : 'hidden'
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              setOpen(false);
+              triggerRef.current?.focus();
+              return;
+            }
+            if (event.key === 'Tab') {
+              setOpen(false);
+              return;
+            }
+            if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            const buttons = Array.from(
+              listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? []
+            );
+            if (buttons.length === 0) return;
+            event.preventDefault();
+            const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+            const currentIndex = Math.max(0, current);
+            const delta = event.key === 'ArrowDown'
+              ? position.columns
+              : event.key === 'ArrowUp'
+                ? -position.columns
+                : event.key === 'ArrowLeft' ? -1 : 1;
+            const next = event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? buttons.length - 1
+                : (currentIndex + delta + buttons.length) % buttons.length;
+            buttons[next]?.focus();
+          }}
+        >
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              disabled={option.disabled}
+              className={classNames(
+                'flex h-7 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[10px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-30',
+                option.value === value ? 'bg-blue-500/30 text-blue-100' : 'text-white/75 hover:bg-white/10 hover:text-white'
+              )}
+              onClick={() => {
+                onValueChange(option.value);
+                setOpen(false);
+                triggerRef.current?.focus();
+              }}
+            >
+              <Check className={classNames('h-3 w-3 shrink-0', option.value === value ? 'opacity-100' : 'opacity-0')} />
+              <span className="truncate">{option.label}</span>
+            </button>
+          ))}
+        </div>,
+        document.body
+      ) : null}
+    </div>
+  );
+}
+
 export type AppearanceEditorToolbarTone = 'light' | 'dark';
 export type AppearanceEditorToolbarPlacement = 'top' | 'bottom';
 export type AppearanceEditorToolbarPopoverPlacement =
   | 'inline'
   | AppearanceEditorToolbarPlacement;
+
+export type AppearanceEditorAlignment = 'inherit' | 'left' | 'center' | 'right' | 'justify';
+
+const appearanceEditorAlignmentMeta: Record<AppearanceEditorAlignment, {
+  label: string;
+  icon: typeof AlignLeft;
+}> = {
+  inherit: { label: 'Samodejno', icon: Minus },
+  left: { label: 'Poravnaj levo', icon: AlignLeft },
+  center: { label: 'Poravnaj na sredino', icon: AlignCenter },
+  right: { label: 'Poravnaj desno', icon: AlignRight },
+  justify: { label: 'Obojestranska poravnava', icon: AlignJustify }
+};
+
+export function AppearanceEditorAlignmentControl<Value extends AppearanceEditorAlignment>({
+  value,
+  onValueChange,
+  options,
+  ariaLabel = 'Poravnava',
+  mixed = false,
+  tone = 'dark',
+  className
+}: {
+  value: Value;
+  onValueChange: (value: Value) => void;
+  options: readonly Value[];
+  ariaLabel?: string;
+  mixed?: boolean;
+  tone?: AppearanceEditorToolbarTone;
+  className?: string;
+}) {
+  const dark = tone === 'dark';
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      data-appearance-editor-alignment-control
+      data-appearance-editor-alignment-mixed={mixed || undefined}
+      className={classNames(
+        'inline-flex h-8 min-w-0 items-center gap-0.5 rounded-lg border p-0.5',
+        dark ? 'border-white/15 bg-white/5' : 'border-slate-200 bg-slate-100/80',
+        className
+      )}
+    >
+      {options.map((option) => {
+        const meta = appearanceEditorAlignmentMeta[option];
+        const Icon = meta.icon;
+        const active = !mixed && option === value;
+        return (
+          <button
+            key={option}
+            type="button"
+            title={meta.label}
+            aria-label={meta.label}
+            role="radio"
+            aria-checked={active}
+            tabIndex={active || (mixed && option === options[0]) ? 0 : -1}
+            data-appearance-editor-alignment={option}
+            onClick={() => onValueChange(option)}
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const currentIndex = options.indexOf(option);
+              const nextIndex = event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? options.length - 1
+                  : (currentIndex + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) + options.length) % options.length;
+              const nextValue = options[nextIndex];
+              if (!nextValue) return;
+              onValueChange(nextValue);
+              const radios = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+              window.requestAnimationFrame(() => radios?.[nextIndex]?.focus());
+            }}
+            className={classNames(
+              `grid h-6 min-w-6 flex-1 place-items-center rounded-md px-1.5 transition ${adminControlFocusTokenClasses}`,
+              dark
+                ? active ? 'bg-white/20 text-white shadow-sm' : 'text-white/55 hover:bg-white/10 hover:text-white'
+                : active ? 'bg-white text-[color:var(--blue-600)] shadow-sm' : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export const appearanceEditorDarkGlassFrameClassName =
   'border-white/15 shadow-[0_16px_40px_rgba(30,41,53,0.38),0_3px_12px_rgba(30,41,53,0.28)] backdrop-blur-xl';

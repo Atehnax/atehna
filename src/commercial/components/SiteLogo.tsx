@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import {
   createContext,
   useContext,
@@ -13,12 +12,19 @@ import {
 } from 'react';
 import {
   cloneDefaultSiteLogoConfig,
+  isSiteLogoHeaderPurpose,
   normalizeSiteLogoConfig,
+  resolveSiteLogoCanvasLayout,
+  resolveSiteLogoFittedArtworkRect,
   resolveSiteLogoGeometry,
+  resolveSiteLogoMaster,
+  resolveSiteLogoPresentation,
   type SiteLogoConfig,
   type SiteLogoMasterVariant,
+  type SiteLogoPresentation,
   type SiteLogoPurposeId
 } from '@/shared/domain/logo/siteLogo';
+import { SiteLogoArtwork } from '@/shared/components/SiteLogoArtwork';
 
 type RenderSize = {
   width: number;
@@ -31,6 +37,7 @@ type SiteLogoProps = {
   className?: string;
   imageClassName?: string;
   alt?: string;
+  style?: CSSProperties;
 };
 
 type ResponsiveSiteLogoProps = Omit<SiteLogoProps, 'purposeId'> & {
@@ -58,7 +65,7 @@ export function useSiteLogoConfig() {
 function resolveMaster(config: SiteLogoConfig, purposeId: SiteLogoPurposeId): SiteLogoMasterVariant | null {
   const placement = config.placements[purposeId];
   if (!placement?.enabled || !placement.masterId) return null;
-  return config.masters.find((master) => master.id === placement.masterId && Boolean(master.url)) ?? null;
+  return resolveSiteLogoMaster(config, purposeId);
 }
 
 function useElementSize() {
@@ -94,37 +101,35 @@ function fittedImageStyle(
   master: SiteLogoMasterVariant,
   config: SiteLogoConfig,
   purposeId: SiteLogoPurposeId,
-  size: RenderSize
+  size: RenderSize,
+  presentation: SiteLogoPresentation
 ): CSSProperties {
   const geometry = resolveSiteLogoGeometry(config.placements[purposeId]);
-  const crop = geometry.crop;
-  const safeWidth = Math.max(1, size.width * (1 - geometry.safeAreaInset * 2));
-  const safeHeight = Math.max(1, size.height * (1 - geometry.safeAreaInset * 2));
-  const cropWidth = Math.max(0.0001, master.intrinsicWidth * crop.width);
-  const cropHeight = Math.max(0.0001, master.intrinsicHeight * crop.height);
-  const containScale = Math.min(safeWidth / cropWidth, safeHeight / cropHeight);
-  const renderedScale = containScale * geometry.scale;
-  const renderedWidth = master.intrinsicWidth * renderedScale;
-  const renderedHeight = master.intrinsicHeight * renderedScale;
-  const renderedCropWidth = cropWidth * renderedScale;
-  const renderedCropHeight = cropHeight * renderedScale;
-  const safeLeft = size.width * geometry.safeAreaInset;
-  const safeTop = size.height * geometry.safeAreaInset;
-  const left = safeLeft
-    + (safeWidth - renderedCropWidth) / 2
-    - crop.x * renderedWidth
-    + geometry.translateX * size.width;
-  const top = safeTop
-    + (safeHeight - renderedCropHeight) / 2
-    - crop.y * renderedHeight
-    + geometry.translateY * size.height;
+  const canvasLayout = resolveSiteLogoCanvasLayout(
+    master.intrinsicWidth,
+    master.intrinsicHeight,
+    presentation.canvasEdges
+  );
+  const placement = config.placements[purposeId];
+  const artworkScale = isSiteLogoHeaderPurpose(purposeId) && placement.displayHeightPx != null
+    ? 1
+    : geometry.scale;
+  const fitted = resolveSiteLogoFittedArtworkRect({
+    sourceWidth: canvasLayout.width,
+    sourceHeight: canvasLayout.height,
+    viewportWidth: size.width,
+    viewportHeight: size.height,
+    geometry,
+    fitMode: placement.fitMode,
+    artworkScale
+  });
 
   return {
     position: 'absolute',
-    left,
-    top,
-    width: renderedWidth,
-    height: renderedHeight,
+    left: fitted.left,
+    top: fitted.top,
+    width: fitted.width,
+    height: fitted.height,
     maxWidth: 'none',
     objectFit: 'fill',
     pointerEvents: 'none',
@@ -137,11 +142,13 @@ export function SiteLogo({
   fallback,
   className,
   imageClassName,
-  alt = ''
+  alt = '',
+  style
 }: SiteLogoProps) {
   const config = useSiteLogoConfig();
   const placement = config.placements[purposeId];
   const master = resolveMaster(config, purposeId);
+  const presentation = resolveSiteLogoPresentation(placement);
   const { ref, size } = useElementSize();
 
   if (placement && !placement.enabled) return null;
@@ -151,20 +158,17 @@ export function SiteLogo({
     <span
       ref={ref}
       className={classNames('relative inline-flex shrink-0 overflow-hidden', className)}
+      style={style}
       data-site-logo-purpose={purposeId}
       data-site-logo-master={master.id}
     >
       {size ? (
-        <Image
-          src={master.url}
+        <SiteLogoArtwork
+          master={master}
+          presentation={presentation}
           alt={alt}
-          aria-hidden={alt ? undefined : true}
-          draggable={false}
-          unoptimized
-          width={master.intrinsicWidth}
-          height={master.intrinsicHeight}
-          className={classNames('block', imageClassName)}
-          style={fittedImageStyle(master, config, purposeId, size)}
+          imageClassName={imageClassName}
+          style={fittedImageStyle(master, config, purposeId, size, presentation)}
         />
       ) : null}
     </span>
@@ -186,7 +190,8 @@ export function ResponsiveSiteLogo({
   className,
   purposeClassNames,
   imageClassName,
-  alt
+  alt,
+  style
 }: ResponsiveSiteLogoProps) {
   const config = useSiteLogoConfig();
   const hostRef = useRef<HTMLSpanElement>(null);
@@ -224,6 +229,7 @@ export function ResponsiveSiteLogo({
         className={purposeClassNames?.[device] ?? className}
         imageClassName={imageClassName}
         alt={alt}
+        style={style}
       />
     </span>
   );

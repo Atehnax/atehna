@@ -104,7 +104,7 @@ export type ProductCanvasElementDeviceSettings = {
   lineHeight: number;
   letterSpacingPx: number;
   fontWeight: number;
-  textAlign: 'inherit' | 'left' | 'center' | 'right';
+  textAlign: 'inherit' | 'left' | 'center' | 'right' | 'justify';
 };
 
 export type ProductCanvasElementSettings = {
@@ -698,7 +698,7 @@ export function normalizeProductCanvasElementDeviceSettings(
     fontWeight: asNumber(record.fontWeight, fallback.fontWeight, 0, 900),
     textAlign: asEnum(
       record.textAlign,
-      ['inherit', 'left', 'center', 'right'] as const,
+      ['inherit', 'left', 'center', 'right', 'justify'] as const,
       fallback.textAlign
     )
   };

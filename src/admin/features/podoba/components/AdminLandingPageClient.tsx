@@ -15,9 +15,6 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   ArrowDown,
   ArrowUp,
   Bold,
@@ -61,7 +58,6 @@ import {
   HOMEPAGE_CATEGORY_CARD_STYLES,
   HOMEPAGE_CATEGORY_ORDER_MODES,
   HOMEPAGE_CONTAINER_WIDTHS,
-  HOMEPAGE_FOOTER_LOGO_MODES,
   HOMEPAGE_FOOTER_SPACINGS,
   HOMEPAGE_HERO_FONT_FAMILIES,
   HOMEPAGE_INFO_ICONS,
@@ -80,7 +76,6 @@ import {
   homepageCategoryCardStyleLabels,
   homepageCategoryOrderModeLabels,
   homepageContainerWidthLabels,
-  homepageFooterLogoModeLabels,
   homepageFooterSpacingLabels,
   homepageInfoIconLabels,
   homepageInfoIconPositionLabels,
@@ -129,6 +124,8 @@ import {
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { Input } from '@/shared/ui/input';
 import {
   adminTablePrimaryButtonClassName
@@ -141,7 +138,11 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
-import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
+import {
+  AppearanceEditorAlignmentControl,
+  AppearanceEditorCompactSelect,
+  AppearanceEditorNumberInput
+} from './AppearanceEditorToolbarPrimitives';
 
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
@@ -1014,21 +1015,13 @@ function SelectControl<Value extends string>({
   ariaLabel: string;
 }) {
   return (
-    <span className="relative block min-w-0">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(event) => onChange(event.target.value as Value)}
-        className={`${inputClassName} appearance-none pr-8`}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--homepage-inspector-input-muted,#94a3b8)]" aria-hidden="true" />
-    </span>
+    <AppearanceEditorCompactSelect
+      value={value}
+      options={options}
+      onValueChange={onChange}
+      ariaLabel={ariaLabel}
+      marker={`homepage-${ariaLabel}`}
+    />
   );
 }
 
@@ -1044,10 +1037,10 @@ function SelectField<Value extends string>({
   onChange: (value: Value) => void;
 }) {
   return (
-    <label className={inspectorFieldRowClassName}>
+    <div className={inspectorFieldRowClassName} data-homepage-compact-setting={label}>
       <span className={labelClassName}>{label}</span>
       <SelectControl value={value} options={options} onChange={onChange} ariaLabel={label} />
-    </label>
+    </div>
   );
 }
 
@@ -1147,39 +1140,22 @@ function NumberField({
 function ColorField({
   label,
   value,
-  onChange,
-  fallback = '#ffffff'
+  onChange
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  fallback?: string;
 }) {
-  const swatchColor = /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
-
   return (
-    <div className={inspectorFieldRowClassName}>
-      <span className={labelClassName}>{label}</span>
-      <span className={`flex h-7 min-w-0 items-center gap-1.5 rounded-md border border-[color:var(--homepage-inspector-input-border,#e2e8f0)] bg-[color:var(--homepage-inspector-input-bg,#f8fafc)] px-1.5 transition hover:border-[color:var(--homepage-inspector-input-border-hover,#cbd5e1)] hover:bg-[color:var(--homepage-inspector-input-hover,#ffffff)] focus-within:bg-[color:var(--homepage-inspector-input-focus,#ffffff)] ${adminControlFocusWithinTokenClasses}`}>
-        <label className="relative grid h-4.5 w-4.5 shrink-0 cursor-pointer place-items-center overflow-hidden rounded ring-1 ring-inset ring-[color:var(--homepage-inspector-input-border,#e2e8f0)]" style={{ backgroundColor: swatchColor }}>
-          <span className="sr-only">{label}: izbirnik barve</span>
-          <input
-            type="color"
-            aria-label={`${label}: izbirnik barve`}
-            value={swatchColor}
-            onChange={(event) => onChange(event.target.value)}
-            className={`absolute inset-0 h-full w-full cursor-pointer opacity-0 ${adminInputFocusTokenClasses}`}
-          />
-        </label>
-        <input
-          aria-label={label}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={`h-full min-w-0 flex-1 border-0 bg-transparent text-[11px] text-[color:var(--homepage-inspector-input-text,#1e293b)] ${adminInputFocusTokenClasses}`}
-          spellCheck={false}
-        />
-      </span>
-    </div>
+    <CompactHexColorField
+      label={label}
+      value={value}
+      marker={`homepage-${label}`}
+      tone="light"
+      onChange={onChange}
+      inputAttributes={{ 'aria-label': label }}
+      className="min-w-0"
+    />
   );
 }
 
@@ -1422,7 +1398,7 @@ function ToolbarPopoverPanel({
       data-homepage-toolbar-popover-size={wide ? 'wide' : 'standard'}
       className={classNames(
         homepageToolbarPopoverSurfaceClassName,
-        'absolute left-0 z-[120] flex flex-col overflow-hidden text-left max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:max-h-[calc(100dvh-6rem)] max-md:w-auto',
+        'absolute left-0 z-[120] flex flex-col overflow-visible text-left max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:w-auto',
         panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]',
         wide ? 'w-[min(440px,calc(100vw-32px))]' : 'w-[min(360px,calc(100vw-32px))]'
       )}
@@ -1444,8 +1420,7 @@ function ToolbarPopoverPanel({
         '--homepage-inspector-subsurface-strong': 'rgba(47,59,72,0.9)',
         '--homepage-inspector-selected-bg': 'rgba(255,255,255,0.14)',
         '--homepage-inspector-selected-text': 'rgba(255,255,255,0.96)',
-        '--homepage-inspector-toggle-bg': 'rgba(30,41,53,0.82)',
-        maxHeight: panelLayout.maxHeight
+        '--homepage-inspector-toggle-bg': 'rgba(30,41,53,0.82)'
       } as CSSProperties}
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -1458,7 +1433,7 @@ function ToolbarPopoverPanel({
           <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
-      <div data-testid="homepage-toolbar-popover-body" className="min-h-0 overflow-y-auto overscroll-contain border-t border-white/15 px-3 py-2">
+      <div data-testid="homepage-toolbar-popover-body" data-appearance-settings-panel="glavna-stran-popover" data-appearance-editor-settings-surface data-settings-scroll="none" className="border-t border-white/15 px-2.5 py-2">
         {children}
       </div>
     </div>
@@ -1929,6 +1904,7 @@ function ScaledHomepagePreview({
               ref={scrollRegionRef}
               data-testid="homepage-preview-scroll-region"
               className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              data-appearance-editor-scroll-purpose="preview"
             >
               <div
                 ref={contentSizerRef}
@@ -2458,6 +2434,12 @@ function AdminLandingPageClient({
   const [sectionRenameValue, setSectionRenameValue] = useState('');
   const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
   const floatingToolbarRef = useRef<HTMLDivElement | null>(null);
+  const addSectionMenuRef = useRef<HTMLDivElement | null>(null);
+  const toolbarPopoverDismissRefs = useMemo(
+    () => [inlineToolbarRef, floatingToolbarRef],
+    []
+  );
+  const addSectionMenuDismissRefs = useMemo(() => [addSectionMenuRef], []);
   const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
   const appliedInitialDefaultsKeyRef = useRef(normalizedInitialDefaultsKey);
   const appliedInitialFooterDescriptionRef = useRef(initialFooterDescription);
@@ -2466,6 +2448,31 @@ function AdminLandingPageClient({
   const isDirtyRef = useRef(false);
   const pendingRemoteCategoryChangeRef = useRef<CategoryDataChangeMessage | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  useDropdownDismiss({
+    open: Boolean(activeToolbarPopover),
+    refs: toolbarPopoverDismissRefs,
+    ignoreSelector: '[data-admin-color-palette-portal]',
+    ignoreEscapeSelector: '[data-admin-color-palette-portal]',
+    dismissGroup: 'homepage-toolbar-popover',
+    onClose: () => {
+      setActiveToolbarPopover(null);
+      setActiveToolbarHost(null);
+      setAddSectionMenuOpen(false);
+    }
+  });
+  useDropdownDismiss({
+    open: Boolean(openSectionMenuId),
+    ignoreSelector: '[data-homepage-section-menu]',
+    dismissGroup: 'homepage-section-menu',
+    onClose: () => setOpenSectionMenuId(null)
+  });
+  useDropdownDismiss({
+    open: addSectionMenuOpen,
+    refs: addSectionMenuDismissRefs,
+    dismissGroup: 'homepage-add-section-menu',
+    onClose: () => setAddSectionMenuOpen(false)
+  });
 
   useEffect(() => {
     if (appliedInitialConfigKeyRef.current === normalizedInitialConfigKey) return;
@@ -2500,30 +2507,6 @@ function AdminLandingPageClient({
     categoryShowcaseEditor.resetAll();
     setCategories(normalizedInitialCategories);
   }, [categoryShowcaseEditor, normalizedInitialCategories, normalizedInitialCategoriesKey]);
-
-  useEffect(() => {
-    if (!activeToolbarPopover) return undefined;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (inlineToolbarRef.current?.contains(event.target as Node)) return;
-      if (floatingToolbarRef.current?.contains(event.target as Node)) return;
-      setActiveToolbarPopover(null);
-      setActiveToolbarHost(null);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setActiveToolbarPopover(null);
-        setActiveToolbarHost(null);
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [activeToolbarPopover]);
 
   const configWithPendingEdits = useMemo(
     () => renamingSectionId
@@ -2631,28 +2614,6 @@ function AdminLandingPageClient({
   useEffect(() => {
     if (availableSectionIds.length === 0) setAddSectionMenuOpen(false);
   }, [availableSectionIds.length]);
-
-  useEffect(() => {
-    if (!openSectionMenuId) return undefined;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('[data-homepage-section-menu]')) return;
-      setOpenSectionMenuId(null);
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenSectionMenuId(null);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [openSectionMenuId]);
 
   useEffect(() => {
     if (!isDirty) return undefined;
@@ -4166,7 +4127,15 @@ function AdminLandingPageClient({
             <NumberField label="Razmik" value={infoViewSettings.gap} onChange={(gap) => updateInfoBlocksView({ gap })} min={0} max={48} suffix="px" />
             <SelectField label="Slog" value={infoViewSettings.style} options={createOptions(HOMEPAGE_INFO_STYLES, homepageInfoStyleLabels)} onChange={(style) => updateInfoBlocksView({ style })} />
             <SelectField label="Pozicija ikon" value={infoViewSettings.iconPosition} options={createOptions(HOMEPAGE_INFO_ICON_POSITIONS, homepageInfoIconPositionLabels)} onChange={(iconPosition) => updateInfoBlocksView({ iconPosition })} />
-            <SelectField label="Poravnava" value={infoViewSettings.alignment} options={[{ value: 'left', label: 'Levo' }, { value: 'center', label: 'Sredina' }]} onChange={(alignment) => updateInfoBlocksView({ alignment })} />
+            <div className={inspectorFieldRowClassName} data-homepage-compact-setting="Poravnava">
+              <span className={labelClassName}>Poravnava</span>
+              <AppearanceEditorAlignmentControl
+                value={infoViewSettings.alignment}
+                options={['left', 'center'] as const}
+                ariaLabel="Poravnava informacijskih elementov"
+                onValueChange={(alignment) => updateInfoBlocksView({ alignment })}
+              />
+            </div>
           </div>
           <ToggleRow label="Ločilne črte" checked={infoViewSettings.dividers} onChange={(dividers) => updateInfoBlocksView({ dividers })} />
         </FieldBlock>
@@ -4206,9 +4175,8 @@ function AdminLandingPageClient({
       <div className="space-y-2">
         <FieldBlock title="Prikaz noge">
           <p className="rounded-lg bg-[color:var(--homepage-inspector-subsurface,#f8fafc)] px-2.5 py-2 text-[11px] leading-5 text-[color:var(--homepage-inspector-muted,#475569)]">
-            Vsebino noge, povezave in kontaktne podatke urejate v zavihku Navigacija.
+            Vsebino noge, povezave in kontaktne podatke urejate v zavihku Navigacija, logotip pa v zavihku Logotip.
           </p>
-          <SelectField label="Logotip" value={config.footer.logoMode} options={createOptions(HOMEPAGE_FOOTER_LOGO_MODES, homepageFooterLogoModeLabels)} onChange={(logoMode) => updateFooter({ logoMode })} />
           <div className="space-y-2 border-t border-[color:var(--homepage-inspector-divider,#e2e8f0)] pt-2">
             <p className="text-[11px] font-medium text-[color:var(--homepage-inspector-muted,#64748b)]">Nastavitve postavitve za pogled: {selectedViewLabel}</p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -4257,7 +4225,7 @@ function AdminLandingPageClient({
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] leading-4 text-[color:var(--homepage-inspector-muted,#64748b)]">Izberi, preimenuj ali prerazporedi sekcije. Izbrano sekcijo lahko premikaš tudi neposredno v predogledu.</p>
-          <div className="relative shrink-0">
+          <div ref={addSectionMenuRef} className="relative shrink-0">
             <HomepageToolbarToneContext.Provider value="dark">
               <ToolbarButton label="Dodaj sekcijo" disabled={availableSectionIds.length === 0} active={addSectionMenuOpen} onClick={() => setAddSectionMenuOpen((open) => !open)}>
                 <Plus className="h-4 w-4" />
@@ -4372,7 +4340,7 @@ function AdminLandingPageClient({
       <div className="space-y-2.5">
         {renderCategoryTitleScopeControl()}
         <div className="grid gap-1">
-          <label className={inspectorFieldRowClassName}>
+          <div className={inspectorFieldRowClassName}>
             <span className={labelClassName}>Pisava</span>
             <SelectControl<HomepageHeroFontFamily>
               value={selectedCanvasStyle.fontFamily as HomepageHeroFontFamily}
@@ -4383,7 +4351,7 @@ function AdminLandingPageClient({
                 if (selectedElementId) updateCanvasElementStyle(selectedElementId, { fontFamily });
               }}
             />
-          </label>
+          </div>
           <NumberField
             label="Velikost"
             value={selectedCanvasStyle.fontSizePx}
@@ -4405,9 +4373,12 @@ function AdminLandingPageClient({
           {selectedTypography ? <ToolbarButton label="Ležeče" active={selectedTypography.italic} pressed={selectedTypography.italic} onClick={() => updateSelectedTypography({ italic: !selectedTypography.italic })}><Italic className="h-4 w-4" /></ToolbarButton> : null}
           {selectedTypography ? <ToolbarButton label="Podčrtano" active={selectedTypography.underline} pressed={selectedTypography.underline} onClick={() => updateSelectedTypography({ underline: !selectedTypography.underline })}><Underline className="h-4 w-4" /></ToolbarButton> : null}
           <ToolbarDivider />
-          <ToolbarButton label="Poravnaj levo" active={selectedCanvasStyle.textAlign === 'left'} pressed={selectedCanvasStyle.textAlign === 'left'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'left' })}><AlignLeft className="h-4 w-4" /></ToolbarButton>
-          <ToolbarButton label="Poravnaj na sredino" active={selectedCanvasStyle.textAlign === 'center'} pressed={selectedCanvasStyle.textAlign === 'center'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'center' })}><AlignCenter className="h-4 w-4" /></ToolbarButton>
-          <ToolbarButton label="Poravnaj desno" active={selectedCanvasStyle.textAlign === 'right'} pressed={selectedCanvasStyle.textAlign === 'right'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign: 'right' })}><AlignRight className="h-4 w-4" /></ToolbarButton>
+          <AppearanceEditorAlignmentControl
+            value={selectedCanvasStyle.textAlign}
+            options={['left', 'center', 'right', 'justify'] as const}
+            ariaLabel="Poravnava besedila"
+            onValueChange={(textAlign) => selectedElementId && updateCanvasElementStyle(selectedElementId, { textAlign })}
+          />
         </div>
         <div className="grid gap-1">
           {selectedIsCategoryTitle && selectedCategoryTitleItem?.presentation ? (
@@ -4474,11 +4445,13 @@ function AdminLandingPageClient({
         </div>
         <div>
           <span className={labelClassName}>Poravnava elementa</span>
-          <div className={`mt-1.5 ${segmentedControlClassName}`}>
-            <ToolbarButton label="Levo" active={selectedCanvasStyle.horizontalAlign === 'left'} pressed={selectedCanvasStyle.horizontalAlign === 'left'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'left' })}><AlignLeft className="h-4 w-4" /></ToolbarButton>
-            <ToolbarButton label="Sredina" active={selectedCanvasStyle.horizontalAlign === 'center'} pressed={selectedCanvasStyle.horizontalAlign === 'center'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'center' })}><AlignCenter className="h-4 w-4" /></ToolbarButton>
-            <ToolbarButton label="Desno" active={selectedCanvasStyle.horizontalAlign === 'right'} pressed={selectedCanvasStyle.horizontalAlign === 'right'} onClick={() => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign: 'right' })}><AlignRight className="h-4 w-4" /></ToolbarButton>
-          </div>
+          <AppearanceEditorAlignmentControl
+            className="mt-1.5 w-full"
+            value={selectedCanvasStyle.horizontalAlign}
+            options={['left', 'center', 'right'] as const}
+            ariaLabel="Vodoravna poravnava elementa"
+            onValueChange={(horizontalAlign) => selectedElementId && updateCanvasElementStyle(selectedElementId, { horizontalAlign })}
+          />
         </div>
       </div>
     );
@@ -4713,7 +4686,7 @@ function AdminLandingPageClient({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="glavna-stran">
       <AdminPageHeader
         title="Glavna stran"
         description="Urejanje javne glavne strani pod zgornjo navigacijo."

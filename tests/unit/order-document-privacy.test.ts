@@ -116,9 +116,28 @@ test('customer and idempotency responses never carry raw document locations', ()
 
 test('generated order PDFs omit the internal order number', () => {
   const pdfSource = source('src/shared/server/pdf.ts');
+  const presentationSource = source(
+    'src/shared/domain/order/orderDocumentPreview.ts'
+  );
+  const generationSource = source('src/shared/server/pdfGeneration.ts');
+  const numberBuilder = generationSource.slice(
+    generationSource.indexOf('export function buildOrderDocumentNumber'),
+    generationSource.indexOf('export async function buildPdfContext')
+  );
 
-  assert.doesNotMatch(pdfSource, /Št\. naročila/u);
-  assert.match(pdfSource, /`Datum: \$\{formatDate\(order\.createdAt\)\}`/u);
+  assert.doesNotMatch(pdfSource, /\borderNumber\b|order\.orderNumber/u);
+  assert.doesNotMatch(presentationSource, /\borderNumber\b|order\.orderNumber/u);
+  assert.match(pdfSource, /documentNumber: string/u);
+  assert.match(
+    presentationSource,
+    /label: labels\.orderDate,\s+value: formatOrderDocumentDate\(order\.createdAt\)/u
+  );
+  assert.match(numberBuilder, /opaqueSeed/u);
+  assert.doesNotMatch(
+    numberBuilder,
+    /orderId/u,
+    'the printable number must be independent of the internal order id'
+  );
 });
 
 test('the customer confirmation DTO exposes only opaque same-origin document links', () => {

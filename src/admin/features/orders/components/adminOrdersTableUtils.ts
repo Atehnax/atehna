@@ -46,7 +46,7 @@ export type UnifiedDocument = {
 
 export const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
   { value: 'all', label: 'Vsi dokumenti' },
-  { value: 'order_summary', label: 'Povzetek (PN)' },
+  { value: 'order_summary', label: 'Potrditev naročila (PN)' },
   { value: 'purchase_order', label: 'Naročilnica (N)' },
   { value: 'dobavnica', label: 'Dobavnica (D)' },
   { value: 'predracun', label: 'Predračun (P)' },

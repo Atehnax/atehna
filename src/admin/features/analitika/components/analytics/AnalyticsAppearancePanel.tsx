@@ -1,31 +1,23 @@
 'use client';
 
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 
 function isHexColor(value: string) {
   return /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(value.trim());
 }
 
 function ColorPopoverField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  const isValid = isHexColor(value);
-  const safeValue = isValid ? value : '#000000';
   return (
-    <div className="text-xs text-slate-600">
-      <span>{label}</span>
-      <details className="relative mt-1">
-        <summary className="list-none cursor-pointer">
-          <span className={`inline-flex h-8 w-full items-center justify-between rounded border px-2 ${isValid ? 'border-slate-300 bg-white' : 'border-rose-300 bg-rose-50'}`}>
-            <span className="font-mono text-xs">{value}</span>
-            <span className="h-4 w-4 rounded border border-slate-300" style={{ backgroundColor: safeValue }} />
-          </span>
-        </summary>
-        <div className="absolute z-20 mt-1 w-56 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-          <input type="color" className="h-8 w-full cursor-pointer rounded border border-slate-200" value={safeValue} onChange={(event) => onChange(event.target.value)} />
-          <input className={`mt-2 w-full rounded border px-2 py-1 font-mono text-xs ${isValid ? 'border-slate-300' : 'border-rose-300 bg-rose-50'}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="#RRGGBB" aria-label={`${label} HEX`} />
-          {!isValid ? <span className="mt-1 block text-[11px] text-rose-500">Use HEX like #RRGGBB.</span> : null}
-        </div>
-      </details>
-    </div>
+    <CompactHexColorField
+      label={label}
+      value={value}
+      marker={`analytics-${label}`}
+      tone="light"
+      allowAlpha
+      onChange={onChange}
+      inputAttributes={{ 'aria-label': `${label} HEX` }}
+    />
   );
 }
 

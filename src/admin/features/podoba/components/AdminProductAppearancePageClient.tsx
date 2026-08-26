@@ -67,6 +67,7 @@ import {
 } from '@/shared/domain/style/productAppearance';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import {
   adminControlFocusTokenClasses,
   adminInputFocusTokenClasses
@@ -80,6 +81,8 @@ import ProductAppearanceContextToolbar, {
   createUploadedGalleryMedia
 } from './ProductAppearanceContextToolbar';
 import {
+  AppearanceEditorAlignmentControl,
+  AppearanceEditorCompactSelect,
   AppearanceEditorNumberInput,
   AppearanceEditorPreviewDeviceIcon as PreviewDeviceIcon,
   AppearanceEditorToolbarButton,
@@ -427,16 +430,18 @@ function SelectField<Value extends string>({
   disabled?: boolean;
 }) {
   return (
-    <Field label={label} hint={hint}>
-      <select
+    <div className="grid min-w-0 gap-1" data-product-appearance-compact-setting={label}>
+      <span className="text-[11px] font-medium leading-4 text-slate-600">{label}</span>
+      <AppearanceEditorCompactSelect
         value={value}
+        options={options}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value as Value)}
-        className={`${fieldClassName} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500`}
-      >
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-    </Field>
+        ariaLabel={label}
+        marker={`product-appearance-${label}`}
+        onValueChange={onChange}
+      />
+      {hint ? <span className="text-[10px] leading-4 text-slate-500">{hint}</span> : null}
+    </div>
   );
 }
 
@@ -511,32 +516,26 @@ function FieldGrid({ children }: { children: ReactNode }) {
 function ColorField({
   label,
   value,
+  inheritedColor,
   onChange
 }: {
   label: string;
   value: string;
+  inheritedColor: string;
   onChange: (value: string) => void;
 }) {
-  const colorValue = /^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff';
   return (
-    <Field label={label}>
-      <span className="flex h-9 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 focus-within:border-[color:var(--blue-500)] focus-within:bg-white">
-        <input
-          type="color"
-          value={colorValue}
-          aria-label={`${label} · izbirnik`}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-10 cursor-pointer border-0 bg-transparent p-1"
-        />
-        <input
-          value={value}
-          placeholder="Dedovano"
-          aria-label={label}
-          onChange={(event) => onChange(event.target.value)}
-          className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-[10px] text-slate-700 ${adminInputFocusTokenClasses}`}
-        />
-      </span>
-    </Field>
+    <CompactHexColorField
+      label={label}
+      value={value}
+      marker={`product-appearance-${label}`}
+      tone="light"
+      allowClear
+      clearLabel="Podeduj"
+      inheritedColor={inheritedColor}
+      onChange={onChange}
+      inputAttributes={{ 'aria-label': label }}
+    />
   );
 }
 
@@ -641,9 +640,9 @@ function CanvasElementInspector({
 
       <SettingsGroup title="Površina in rob">
         <FieldGrid>
-          <ColorField label="Barva besedila" value={settings.color} onChange={(color) => onChange({ color })} />
-          <ColorField label="Barva ozadja" value={settings.backgroundColor} onChange={(backgroundColor) => onChange({ backgroundColor })} />
-          <ColorField label="Barva roba" value={settings.borderColor} onChange={(borderColor) => onChange({ borderColor })} />
+          <ColorField label="Barva besedila" value={settings.color} inheritedColor="#0F172A" onChange={(color) => onChange({ color })} />
+          <ColorField label="Barva ozadja" value={settings.backgroundColor} inheritedColor="#FFFFFF" onChange={(backgroundColor) => onChange({ backgroundColor })} />
+          <ColorField label="Barva roba" value={settings.borderColor} inheritedColor="#CBD5E1" onChange={(borderColor) => onChange({ borderColor })} />
           <NumberField label="Debelina roba" value={settings.borderWidthPx} min={0} max={24} suffix="px" onChange={(borderWidthPx) => onChange({ borderWidthPx })} />
           <NumberField label="Zaobljenost" value={settings.borderRadiusPx} min={0} max={240} suffix="px" onChange={(borderRadiusPx) => onChange({ borderRadiusPx })} />
           <SelectField
@@ -667,17 +666,17 @@ function CanvasElementInspector({
           <NumberField label="Debelina" value={settings.fontWeight} min={0} max={900} onChange={(fontWeight) => onChange({ fontWeight })} />
           <NumberField label="Višina vrstice" value={settings.lineHeight} min={0} max={4} onChange={(lineHeight) => onChange({ lineHeight })} />
           <NumberField label="Razmik črk" value={settings.letterSpacingPx} min={-20} max={100} suffix="px" onChange={(letterSpacingPx) => onChange({ letterSpacingPx })} />
-          <SelectField
-            label="Poravnava"
-            value={settings.textAlign}
-            options={[
-              { value: 'inherit', label: 'Dedovano' },
-              { value: 'left', label: 'Levo' },
-              { value: 'center', label: 'Sredina' },
-              { value: 'right', label: 'Desno' }
-            ]}
-            onChange={(textAlign) => onChange({ textAlign })}
-          />
+          <div className="grid min-w-0 gap-1">
+            <span className="text-[11px] font-medium leading-4 text-slate-600">Poravnava</span>
+            <AppearanceEditorAlignmentControl
+              value={settings.textAlign}
+              options={['inherit', 'left', 'center', 'right', 'justify'] as const}
+              tone="light"
+              className="w-full"
+              ariaLabel="Poravnava besedila elementa"
+              onValueChange={(textAlign) => onChange({ textAlign })}
+            />
+          </div>
         </FieldGrid>
       </SettingsGroup>
 
@@ -2039,7 +2038,7 @@ export default function AdminProductAppearancePageClient({
   const previewWidth = previewDevice === 'desktop' ? 'w-full' : previewDevice === 'tablet' ? 'w-[76%]' : 'w-[390px] max-w-full';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="artikli">
       <AdminPageHeader
         title="Artikli"
         description="Urejajte resničen artikel neposredno v predogledu. Vsebina ostane skupna z Artikli, vizualni jezik pa se deduje iz Globalnih parametrov."
@@ -2067,27 +2066,27 @@ export default function AdminProductAppearancePageClient({
       <AdminPodobaTabs />
 
       <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 min-[860px]:grid-cols-[minmax(260px,1fr)_auto] min-[860px]:items-end">
-        <label className="grid max-w-xl gap-1.5">
+        <div className="grid max-w-xl gap-1">
           <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
             Artikel v predogledu
           </span>
-          <select
+          <AppearanceEditorCompactSelect
             value={selectedProductSlug}
             disabled={isLoadingProduct || productOptions.length === 0}
-            onChange={(event) => void changeSelectedProduct(event.target.value)}
-            className={`h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 hover:border-slate-300 hover:bg-white disabled:opacity-50 ${adminInputFocusTokenClasses}`}
-          >
-            {productOptions.length === 0 ? <option value="">Ni artiklov za predogled</option> : null}
-            {productOptions.map((item) => (
-              <option key={item.id} value={item.slug}>
-                {item.itemName} · {item.status === 'active' ? 'aktiven' : 'neaktiven'}
-              </option>
-            ))}
-          </select>
+            options={productOptions.map((item) => ({
+              value: item.slug,
+              label: `${item.itemName} · ${item.status === 'active' ? 'aktiven' : 'neaktiven'}`
+            }))}
+            placeholder="Ni artiklov za predogled"
+            ariaLabel="Artikel v predogledu"
+            marker="product-preview-product"
+            triggerClassName="h-9"
+            onValueChange={(slug) => void changeSelectedProduct(slug)}
+          />
           <span className="text-[10px] leading-4 text-slate-500">
             Predogled uporablja dejanske slike, različice, cene, zalogo, opis in specifikacije iz Artikli.
           </span>
-        </label>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {product ? (
             <a
@@ -2119,7 +2118,7 @@ export default function AdminProductAppearancePageClient({
             <h2 className="text-xs font-semibold text-slate-800">Produktni elementi</h2>
             <p className="mt-0.5 text-[10px] text-slate-500">Izberite sklop za urejanje.</p>
           </div>
-          <nav className="max-h-[calc(100vh-220px)] overflow-y-auto p-2">
+          <nav className="max-h-[calc(100vh-220px)] overflow-y-auto p-2" data-appearance-editor-scroll-purpose="navigation">
             {groupedSections.map((group) => (
               <div key={group.label} className="mb-3 last:mb-0">
                 <p className="mb-1 px-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">{group.label}</p>
@@ -2156,7 +2155,7 @@ export default function AdminProductAppearancePageClient({
           </div>
 
           <div className="grid min-w-0 items-start gap-4 bg-slate-50/50 p-4 min-[1220px]:grid-cols-[minmax(330px,0.82fr)_minmax(430px,1.18fr)]">
-            <div className="grid min-w-0 gap-5 rounded-xl border border-slate-200 bg-white p-4">
+            <div className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-white p-3" data-appearance-editor-settings-surface data-settings-scroll="none">
               {renderSettings(activeSection)}
             </div>
 
@@ -2173,7 +2172,7 @@ export default function AdminProductAppearancePageClient({
                   </div>
                 </div>
               </div>
-              <div className="overflow-auto bg-slate-100 p-3">
+              <div className="overflow-auto bg-slate-100 p-3" data-appearance-editor-scroll-purpose="preview">
                 <div className={`mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all ${previewWidth}`}>
                   {previewPage === 'product' && previewProduct ? (
                     <ProductAppearanceLivePreview
@@ -2271,7 +2270,7 @@ export default function AdminProductAppearancePageClient({
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <div className="grid max-h-72 gap-2 overflow-y-auto p-2">
+                    <div className="grid max-h-72 gap-2 overflow-y-auto p-2" data-appearance-editor-scroll-purpose="data">
                       {Array.from(new Set(pickerCanvasElements.map((element) => element.group))).map((group) => (
                         <div key={group}>
                           <p className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-white/55">{group}</p>
@@ -2387,7 +2386,7 @@ export default function AdminProductAppearancePageClient({
                   {previewPage === 'listing' ? 'Seznam in kartice' : previewPage === 'product' ? 'Stran artikla' : 'Košarica'}
                 </p>
               </div>
-              <nav className="max-h-[620px] overflow-y-auto p-2">
+              <nav className="max-h-[620px] overflow-y-auto p-2" data-appearance-editor-scroll-purpose="navigation">
                 {Array.from(new Set(visibleCanvasElements.map((element) => element.group))).map((group) => (
                   <div key={group} className="mb-3 last:mb-0">
                     <p className="mb-1 px-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">{group}</p>

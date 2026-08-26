@@ -5,6 +5,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -12,6 +13,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ImagePlus, RotateCcw, Trash2, X } from 'lucide-react';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   CATEGORY_SHOWCASE_CONSTRAINTS,
   DEFAULT_CATEGORY_SHOWCASE_MEDIA_SETTINGS,
@@ -133,47 +136,20 @@ function HexColorControl({
   field?: string;
   onChange: (value: string) => void;
 }) {
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  const commit = (nextValue: string) => {
-    const normalized = nextValue.trim().toUpperCase();
-    if (/^#[0-9A-F]{6}$/.test(normalized)) onChange(normalized);
-  };
-
   return (
-    <span className="flex h-8 overflow-hidden rounded-lg border border-[color:var(--category-control-field-border,#cbd5e1)] bg-[color:var(--category-control-field-bg,#ffffff)] transition focus-within:border-[color:var(--category-control-field-border-focus,var(--blue-500))] focus-within:bg-[color:var(--category-control-field-focus,#ffffff)] focus-within:ring-1 focus-within:ring-[color:var(--category-control-focus-ring,var(--blue-100))]">
-      <input
-        type="color"
-        aria-label={pickerLabel}
-        value={value}
-        className="h-full w-9 cursor-pointer border-0 bg-transparent p-1"
-        onChange={(event) => {
-          setDraft(event.target.value.toUpperCase());
-          onChange(event.target.value);
-        }}
-      />
-      <input
-        type="text"
-        aria-label={inputLabel}
-        data-category-media-field={field}
-        value={draft}
-        maxLength={7}
-        className="min-w-0 flex-1 bg-transparent px-2 text-[12px] uppercase text-[color:var(--category-control-field-text,#334155)] outline-none"
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setDraft(nextValue);
-          commit(nextValue);
-        }}
-        onBlur={() => {
-          commit(draft);
-          setDraft(/^#[0-9A-F]{6}$/i.test(draft.trim()) ? draft.trim().toUpperCase() : value);
-        }}
-      />
-    </span>
+    <CompactHexColorField
+      label={pickerLabel}
+      value={value}
+      marker={`category-${field}`}
+      tone="light"
+      layout="inline"
+      onChange={onChange}
+      inputAttributes={{
+        'aria-label': inputLabel,
+        'data-category-media-field': field
+      }}
+      className="w-full [&>label]:sr-only"
+    />
   );
 }
 
@@ -576,10 +552,22 @@ export function CategoryShowcaseEditor({
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const anchoredControlsRef = useRef<HTMLDivElement | null>(null);
+  const dismissRefs = useMemo(() => [editorRef], []);
+  const portalRefs = useMemo(() => [anchoredControlsRef], []);
   const [portalReady, setPortalReady] = useState(false);
   const [anchoredControls, setAnchoredControls] = useState<AnchoredCategoryControls | null>(null);
   const selectedSlug = selectedItem?.slug ?? null;
   const anchored = context === 'category-preview';
+
+  useDropdownDismiss({
+    open: Boolean(anchored && controlsOpen && selectedSlug && onClose),
+    refs: dismissRefs,
+    portalRefs,
+    ignoreSelector: '[data-admin-color-palette-portal]',
+    ignoreEscapeSelector: '[data-admin-color-palette-portal]',
+    dismissGroup: 'category-showcase-controls',
+    onClose: () => onClose?.()
+  });
 
   useEffect(() => {
     setPortalReady(true);
@@ -723,17 +711,6 @@ export function CategoryShowcaseEditor({
       resizeObserver?.disconnect();
     };
   }, [anchored, controlsOpen, portalReady, selectedSlug, updateAnchoredPosition]);
-
-  useEffect(() => {
-    if (!anchored || !controlsOpen || !selectedSlug || !onClose) return;
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [anchored, controlsOpen, onClose, selectedSlug]);
 
   const controls = controlsOpen && selectedItem ? (
     <CategoryMediaControls

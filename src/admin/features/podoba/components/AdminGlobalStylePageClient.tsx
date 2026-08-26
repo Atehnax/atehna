@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, RotateCcw, Save } from 'lucide-react';
+import { RotateCcw, Save } from 'lucide-react';
 import {
   GLOBAL_STYLE_BUTTON_APPEARANCES,
   GLOBAL_STYLE_CARD_APPEARANCES,
@@ -19,6 +19,7 @@ import {
 import { getWebsiteFontFamilyLabel } from '@/shared/domain/style/fontFamilies';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import {
   adminControlFocusTokenClasses,
   adminControlFocusWithinTokenClasses,
@@ -26,7 +27,10 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
-import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
+import {
+  AppearanceEditorCompactSelect,
+  AppearanceEditorNumberInput
+} from './AppearanceEditorToolbarPrimitives';
 
 type GroupKey = Exclude<keyof GlobalStyleConfig, 'updatedAt'>;
 type GlobalElementKey =
@@ -198,39 +202,17 @@ function ColorField({
   onChange: (value: string) => void;
   settingPath: string;
 }) {
-  const [draft, setDraft] = useState(value);
-  const isValidDraft = /^#[0-9A-F]{6}$/.test(draft);
-
-  useEffect(() => setDraft(value), [value]);
-
   return (
-    <fieldset className="grid min-w-0 gap-1.5 border-0 p-0" data-color-field={label} data-global-style-setting={settingPath}>
-      <legend className={labelClassName}>{label}</legend>
-      <span className={`flex h-8 min-w-0 items-center rounded-lg border bg-slate-50/70 transition hover:bg-white focus-within:bg-white ${adminControlFocusWithinTokenClasses} ${isValidDraft ? 'border-slate-200 hover:border-slate-300' : 'border-rose-300'}`}>
-        <input
-          type="color"
-          value={value}
-          onChange={(event) => onChange(event.target.value.toUpperCase())}
-          className={`ml-1 h-6 w-6 shrink-0 cursor-pointer appearance-none overflow-hidden rounded-md border-0 bg-transparent p-0 ring-1 ring-inset ring-slate-300/80 [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-0 ${adminInputFocusTokenClasses}`}
-          aria-label={`${label}: izberi barvo`}
-        />
-        <input
-          aria-label={`${label}: šestnajstiška vrednost`}
-          aria-invalid={!isValidDraft}
-          value={draft}
-          maxLength={7}
-          onChange={(event) => {
-            const next = event.target.value.toUpperCase();
-            setDraft(next);
-            if (/^#[0-9A-F]{6}$/.test(next)) onChange(next);
-          }}
-          className={`min-w-0 flex-1 border-0 bg-transparent px-2 font-mono text-[12px] uppercase tracking-[0.02em] text-slate-700 ${adminInputFocusTokenClasses}`}
-          spellCheck={false}
-          autoCapitalize="characters"
-        />
-      </span>
-      {!isValidDraft ? <span className="text-[10px] leading-4 text-rose-600">Uporabite zapis #RRGGBB.</span> : null}
-    </fieldset>
+    <div data-color-field={label} data-global-style-setting={settingPath}>
+      <CompactHexColorField
+        label={label}
+        value={value}
+        marker={`global-style-${settingPath}`}
+        tone="light"
+        onChange={onChange}
+        inputAttributes={{ 'aria-label': `${label}: šestnajstiška vrednost` }}
+      />
+    </div>
   );
 }
 
@@ -250,21 +232,25 @@ function SelectField<Value extends string>({
   settingPath: string;
 }) {
   return (
-    <Field label={label} hint={hint} settingPath={settingPath}>
-      <span className="relative block min-w-0">
-        <select value={value} onChange={(event) => onChange(event.target.value as Value)} className={`${fieldClassName} appearance-none pr-8`}>
-          {options.map((option) => (
-            <option key={option} value={option}>{appearanceLabels[option as keyof typeof appearanceLabels] ?? getWebsiteFontFamilyLabel(option)}</option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-      </span>
-    </Field>
+    <div className="grid min-w-0 gap-1" data-global-style-setting={settingPath}>
+      <span className={labelClassName}>{label}</span>
+      <AppearanceEditorCompactSelect
+        value={value}
+        options={options.map((option) => ({
+          value: option,
+          label: appearanceLabels[option as keyof typeof appearanceLabels] ?? getWebsiteFontFamilyLabel(option)
+        }))}
+        ariaLabel={label}
+        marker={`global-style-${settingPath}`}
+        onValueChange={onChange}
+      />
+      {hint ? <span className="text-[10px] leading-4 text-slate-500">{hint}</span> : null}
+    </div>
   );
 }
 
 function FieldGrid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-x-3 gap-y-2.5 sm:grid-cols-2">{children}</div>;
+  return <div className="grid gap-x-2 gap-y-2 sm:grid-cols-2">{children}</div>;
 }
 
 function SettingsSection({
@@ -277,7 +263,7 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-3 first:pt-0 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-slate-100 [&:not(:first-child)]:pt-4">
+    <section className="grid gap-2 first:pt-0 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-slate-100 [&:not(:first-child)]:pt-3">
       {title || description ? (
         <div>
           {title ? <h3 className="text-[12px] font-semibold text-slate-800">{title}</h3> : null}
@@ -788,7 +774,7 @@ export default function AdminGlobalStylePageClient({ initialConfig }: { initialC
   const previewWidth = previewDevice === 'desktop' ? 'w-full' : previewDevice === 'tablet' ? 'w-[76%]' : 'w-[390px] max-w-full';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="globalni-parametri">
       <AdminPageHeader
         title="Globalni parametri"
         description="Izberite element in prilagodite njegov skupni slog na celotnem javnem spletnem mestu."
@@ -820,6 +806,7 @@ export default function AdminGlobalStylePageClient({ initialConfig }: { initialC
           </div>
           <div
             className="max-h-[calc(100vh-220px)] overflow-y-auto p-2 [scrollbar-width:thin]"
+            data-appearance-editor-scroll-purpose="navigation"
             role="tablist"
             aria-label="Elementi globalnih parametrov"
             aria-orientation="vertical"
@@ -872,14 +859,17 @@ export default function AdminGlobalStylePageClient({ initialConfig }: { initialC
               id="global-element-panel"
               role="tabpanel"
               aria-labelledby={`global-element-tab-${activeElement.value}`}
-              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3.5"
+              className="min-w-0 rounded-xl border border-slate-200 bg-white p-3"
               data-testid="global-parameter-settings"
+              data-appearance-settings-panel="globalni-parametri"
+              data-appearance-editor-settings-surface
+              data-settings-scroll="none"
             >
               <div className="mb-3 border-b border-slate-100 pb-2.5">
                 <h3 className="text-[12px] font-semibold text-slate-800">Nastavitve</h3>
                 <p className="mt-0.5 text-[10px] text-slate-500">Lokalne izjeme imajo prednost samo, kadar so izrecno nastavljene.</p>
               </div>
-              <div className="grid gap-4">{renderElementSettings(activeElementKey)}</div>
+              <div className="grid gap-3">{renderElementSettings(activeElementKey)}</div>
             </div>
 
             <aside className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white min-[1180px]:sticky min-[1180px]:top-5">
@@ -903,7 +893,7 @@ export default function AdminGlobalStylePageClient({ initialConfig }: { initialC
                   ))}
                 </div>
               </div>
-              <div className="overflow-auto bg-slate-100 p-3">
+              <div className="overflow-auto bg-slate-100 p-3" data-appearance-editor-scroll-purpose="preview">
                 <div
                   data-storefront-theme
                   data-global-parameters-preview

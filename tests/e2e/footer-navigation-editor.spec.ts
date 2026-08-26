@@ -375,12 +375,12 @@ test.describe('admin podoba redesign', () => {
     });
     expect(addLegalBox.width).toBe(28);
     expect(addLegalBox.height).toBe(28);
-    expect(termsBox.x).toBeGreaterThan(copyrightBox.x + copyrightBox.width);
     expect(privacyBox.x).toBeGreaterThan(termsBox.x + termsBox.width);
     expect(cookiesBox.x).toBeGreaterThan(privacyBox.x + privacyBox.width);
     const legalAddGap = addLegalBox.x - (lastLegalOptionsBox.x + lastLegalOptionsBox.width);
     expect(legalAddGap).toBeGreaterThanOrEqual(4);
     expect(legalAddGap).toBeLessThanOrEqual(12);
+    expect(copyrightBox.x).toBeGreaterThan(addLegalBox.x + addLegalBox.width);
 
     const nextEmail = 'footer-test@atehna.si';
     await footerPreview.getByRole('button', { name: 'info@atehna.si', exact: true }).click();

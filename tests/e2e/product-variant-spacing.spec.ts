@@ -7,6 +7,11 @@ import {
 } from '@playwright/test';
 import { catalogCategoryItemHref } from '../../src/commercial/catalog/catalogRoutes';
 import type { CatalogItemEditorHydration } from '../../src/shared/domain/catalog/catalogAdminTypes';
+import {
+  chooseAppearanceEditorCompactSelectOption,
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectValue
+} from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogProduct = {
@@ -254,9 +259,17 @@ test.describe('product variant label-to-control spacing', () => {
       name: 'Artikli',
       exact: true
     })).toBeVisible({ timeout: 15_000 });
-    const productSelect = page.getByLabel('Artikel v predogledu');
-    await productSelect.selectOption(fixture.product.slug);
-    await expect(productSelect).toHaveValue(fixture.product.slug);
+    const productSelect = getAppearanceEditorCompactSelect(
+      page,
+      'Artikel v predogledu'
+    );
+    await chooseAppearanceEditorCompactSelectOption(
+      page,
+      productSelect,
+      fixture.product.slug
+    );
+    expect(await readAppearanceEditorCompactSelectValue(productSelect))
+      .toBe(fixture.product.slug);
     const pageControls = page.getByRole('group', { name: 'Stran predogleda' });
     const productPageButton = pageControls.getByRole('button', {
       name: 'Artikel',

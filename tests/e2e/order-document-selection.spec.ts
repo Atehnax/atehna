@@ -83,6 +83,10 @@ test.describe('order-document canvas additive selection', () => {
 
     const cell = page.locator('[data-order-document-table-scope="table_cell"]').first();
     await cell.dispatchEvent('click', modifiedClick);
+    await page
+      .getByTestId('order-document-element-inspector')
+      .getByRole('button', { name: 'Vsebina', exact: true })
+      .click();
     const columnScope = page.locator(
       '[data-order-document-table-typography-scope="table_column"]'
     );

@@ -3,6 +3,11 @@ import {
   test,
   type Locator
 } from '@playwright/test';
+import {
+  chooseAppearanceEditorCompactSelectOption,
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectValue
+} from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -518,10 +523,18 @@ test.describe('related-product compact commerce card', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Artikli', exact: true })
     ).toBeVisible({ timeout: 15_000 });
-    const productSelect = page.getByLabel('Artikel v predogledu');
+    const productSelect = getAppearanceEditorCompactSelect(
+      page,
+      'Artikel v predogledu'
+    );
     await expect(productSelect).toBeVisible();
-    await productSelect.selectOption('aluminijasta-plosca');
-    await expect(productSelect).toHaveValue('aluminijasta-plosca');
+    await chooseAppearanceEditorCompactSelectOption(
+      page,
+      productSelect,
+      'aluminijasta-plosca'
+    );
+    expect(await readAppearanceEditorCompactSelectValue(productSelect))
+      .toBe('aluminijasta-plosca');
 
     const articleButton = page.getByRole('group', {
       name: 'Stran predogleda'

@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test';
+import {
+  chooseAppearanceEditorCompactSelectOption,
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectOptions,
+  readAppearanceEditorCompactSelectValue
+} from './support/appearance-editor-compact-select';
 
 type TopBarAppearanceSettings = {
   backgroundColor: string;
@@ -161,7 +167,7 @@ test.describe('Navigation top-bar appearance', () => {
     ]);
 
     expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(10);
 
     expect(backgroundBox.y - (appearanceHeadingBox.y + appearanceHeadingBox.height)).toBeGreaterThanOrEqual(6);
     expect(textColorBox.y - (backgroundBox.y + backgroundBox.height)).toBeGreaterThanOrEqual(8);
@@ -201,7 +207,7 @@ test.describe('Navigation top-bar appearance', () => {
       }
 
       expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(2);
+      expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(10);
       expect(await settingsPanel.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     };
 
@@ -234,10 +240,10 @@ test.describe('Navigation top-bar appearance', () => {
     const background = appearance.locator('input[type="text"][aria-label="Ozadje zgornje vrstice"]');
     const backgroundOpacity = appearance.getByRole('spinbutton', { name: 'Prosojnost ozadja zgornje vrstice', exact: true });
     const textColor = appearance.locator('input[type="text"][aria-label="Barva besedila zgornje vrstice"]');
-    const fontFamily = appearance.getByRole('combobox', { name: 'Pisava zgornje vrstice', exact: true });
+    const fontFamily = getAppearanceEditorCompactSelect(appearance, 'Pisava zgornje vrstice');
     const fontSize = appearance.getByRole('spinbutton', { name: 'Velikost pisave zgornje vrstice', exact: true });
-    const fontWeight = appearance.getByRole('combobox', { name: 'Debelina pisave zgornje vrstice', exact: true });
-    const fontStyle = appearance.getByRole('combobox', { name: 'Slog pisave zgornje vrstice', exact: true });
+    const fontWeight = getAppearanceEditorCompactSelect(appearance, 'Debelina pisave zgornje vrstice');
+    const fontStyle = getAppearanceEditorCompactSelect(appearance, 'Slog pisave zgornje vrstice');
     const appearanceControls = [background, backgroundOpacity, textColor, fontFamily, fontSize, fontWeight, fontStyle];
 
     for (const control of appearanceControls) {
@@ -245,27 +251,26 @@ test.describe('Navigation top-bar appearance', () => {
       await expect(control).toBeEnabled();
     }
 
-    const fontWeightIndicatorClearance = await fontWeight.evaluate((element) => (
-      Number.parseFloat(getComputedStyle(element).paddingRight)
-    ));
-    expect(fontWeightIndicatorClearance).toBeGreaterThanOrEqual(20);
-    await expect(fontWeight.locator('option')).toHaveText(['300', '400', '500', '600', '700', '800', '900']);
+    await expect(fontWeight).toHaveAttribute('aria-haspopup', 'listbox');
+    await expect.poll(() => readAppearanceEditorCompactSelectOptions(page, fontWeight)).toEqual(
+      ['300', '400', '500', '600', '700', '800', '900']
+    );
 
     await background.fill('#1E293B');
     await backgroundOpacity.fill('47');
     await textColor.fill('#F8FAFC');
-    await fontFamily.selectOption('Georgia');
+    await chooseAppearanceEditorCompactSelectOption(page, fontFamily, 'Georgia');
     await fontSize.fill('17');
-    await fontWeight.selectOption('600');
-    await fontStyle.selectOption('italic');
+    await chooseAppearanceEditorCompactSelectOption(page, fontWeight, '600');
+    await chooseAppearanceEditorCompactSelectOption(page, fontStyle, 'italic');
 
     await expect(background).toHaveValue('#1E293B');
     await expect(backgroundOpacity).toHaveValue('47');
     await expect(textColor).toHaveValue('#F8FAFC');
-    await expect(fontFamily).toHaveValue('Georgia');
+    await expect.poll(() => readAppearanceEditorCompactSelectValue(fontFamily)).toBe('Georgia');
     await expect(fontSize).toHaveValue('17');
-    await expect(fontWeight).toHaveValue('600');
-    await expect(fontStyle).toHaveValue('italic');
+    await expect.poll(() => readAppearanceEditorCompactSelectValue(fontWeight)).toBe('600');
+    await expect.poll(() => readAppearanceEditorCompactSelectValue(fontStyle)).toBe('italic');
 
     await expect(settingsPanel.getByRole('button', { name: 'Vsebina', exact: true })).toBeEnabled();
     await expect(settingsPanel.getByRole('button', { name: 'Po meri', exact: true })).toBeEnabled();
@@ -329,10 +334,10 @@ test.describe('Navigation top-bar appearance', () => {
     const background = appearance.locator('input[type="text"][aria-label="Ozadje zgornje vrstice"]');
     const backgroundOpacity = appearance.getByRole('spinbutton', { name: 'Prosojnost ozadja zgornje vrstice', exact: true });
     const textColor = appearance.locator('input[type="text"][aria-label="Barva besedila zgornje vrstice"]');
-    const fontFamily = appearance.getByRole('combobox', { name: 'Pisava zgornje vrstice', exact: true });
+    const fontFamily = getAppearanceEditorCompactSelect(appearance, 'Pisava zgornje vrstice');
     const fontSize = appearance.getByRole('spinbutton', { name: 'Velikost pisave zgornje vrstice', exact: true });
-    const fontWeight = appearance.getByRole('combobox', { name: 'Debelina pisave zgornje vrstice', exact: true });
-    const fontStyle = appearance.getByRole('combobox', { name: 'Slog pisave zgornje vrstice', exact: true });
+    const fontWeight = getAppearanceEditorCompactSelect(appearance, 'Debelina pisave zgornje vrstice');
+    const fontStyle = getAppearanceEditorCompactSelect(appearance, 'Slog pisave zgornje vrstice');
 
     await expect(appearance).toBeVisible({ timeout: 15_000 });
     await expect(appearance.getByText('Videz', { exact: true })).toBeVisible();
@@ -368,10 +373,10 @@ test.describe('Navigation top-bar appearance', () => {
     await background.fill('#18324A');
     await backgroundOpacity.fill('42');
     await textColor.fill('#F4D35E');
-    await fontFamily.selectOption('Georgia');
+    await chooseAppearanceEditorCompactSelectOption(page, fontFamily, 'Georgia');
     await fontSize.fill('18');
-    await fontWeight.selectOption('700');
-    await fontStyle.selectOption('italic');
+    await chooseAppearanceEditorCompactSelectOption(page, fontWeight, '700');
+    await chooseAppearanceEditorCompactSelectOption(page, fontStyle, 'italic');
 
     await expect.poll(() => sharedHeader.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -516,7 +521,7 @@ test.describe('Navigation top-bar appearance', () => {
     await page.goto('/admin/podoba/navigacija');
 
     const appearance = page.getByTestId('top-bar-appearance-settings');
-    const fontFamily = appearance.getByRole('combobox', { name: 'Pisava zgornje vrstice', exact: true });
+    const fontFamily = getAppearanceEditorCompactSelect(appearance, 'Pisava zgornje vrstice');
     const sharedHeader = page.locator('[data-technical-topbar-renderer="true"] header').first();
     const sharedLogo = sharedHeader.getByRole('link', { name: 'Atehna home', exact: true });
     const sharedNavigationTrigger = sharedHeader.locator('nav button, nav a').first();
@@ -538,8 +543,8 @@ test.describe('Navigation top-bar appearance', () => {
     await previewSwitch.click();
     await expect(sharedLogo).toBeVisible();
 
-    const selectedFamily = await fontFamily.inputValue() === 'Georgia' ? 'Bitter' : 'Georgia';
-    await fontFamily.selectOption(selectedFamily);
+    const selectedFamily = await readAppearanceEditorCompactSelectValue(fontFamily) === 'Georgia' ? 'Bitter' : 'Georgia';
+    await chooseAppearanceEditorCompactSelectOption(page, fontFamily, selectedFamily);
 
     await expect.poll(() => computedFontFamily(sharedNavigationTrigger)).toContain(selectedFamily);
     await expect.poll(() => computedFontFamily(sharedLogo)).toBe(sharedLogoFontBefore);

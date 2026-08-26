@@ -8,6 +8,12 @@ import {
 import type {
   CatalogItemEditorHydration
 } from '@/shared/domain/catalog/catalogAdminTypes';
+import {
+  chooseAppearanceEditorCompactSelectOption,
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectOptions,
+  readAppearanceEditorCompactSelectValue
+} from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 type RectSize = {
@@ -27,11 +33,13 @@ async function selectDimensionalPreviewProduct(
   page: Page,
   request: APIRequestContext
 ) {
-  const productSelect = page.getByLabel('Artikel v predogledu');
-  const slugs = await productSelect.locator('option').evaluateAll((options) =>
-    options
-      .map((option) => (option as HTMLOptionElement).value)
-      .filter(Boolean)
+  const productSelect = getAppearanceEditorCompactSelect(
+    page,
+    'Artikel v predogledu'
+  );
+  const slugs = await readAppearanceEditorCompactSelectOptions(
+    page,
+    productSelect
   );
   let candidate: CatalogItemEditorHydration | null = null;
   for (const slug of slugs) {
@@ -59,9 +67,14 @@ async function selectDimensionalPreviewProduct(
     'catalogue should provide an active dimensional product for compact-control coverage'
   ).toBeDefined();
   if (!candidate) return;
-  if (await productSelect.inputValue() !== candidate.slug) {
-    await productSelect.selectOption(candidate.slug);
-    await expect(productSelect).toHaveValue(candidate.slug);
+  if (await readAppearanceEditorCompactSelectValue(productSelect) !== candidate.slug) {
+    await chooseAppearanceEditorCompactSelectOption(
+      page,
+      productSelect,
+      candidate.slug
+    );
+    expect(await readAppearanceEditorCompactSelectValue(productSelect))
+      .toBe(candidate.slug);
   }
   await expect(
     page

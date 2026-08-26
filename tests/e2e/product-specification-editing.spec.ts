@@ -5,6 +5,10 @@ import {
   type Page
 } from '@playwright/test';
 import type { CatalogItemEditorHydration } from '@/shared/domain/catalog/catalogAdminTypes';
+import {
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectValue
+} from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -13,11 +17,16 @@ async function loadSelectedProduct(
   page: Page,
   request: APIRequestContext
 ): Promise<CatalogItemEditorHydration> {
-  const productSelect = page.getByLabel('Artikel v predogledu');
+  const productSelect = getAppearanceEditorCompactSelect(
+    page,
+    'Artikel v predogledu'
+  );
   await expect(productSelect).toBeVisible();
-  const selectedSlug = await productSelect.inputValue();
-  expect(selectedSlug, 'appearance preview should select a catalogue item')
-    .not.toBe('');
+  await expect.poll(
+    () => readAppearanceEditorCompactSelectValue(productSelect),
+    { message: 'appearance preview should select a catalogue item' }
+  ).not.toBe('');
+  const selectedSlug = await readAppearanceEditorCompactSelectValue(productSelect);
 
   const response = await request.get(
     `/api/admin/artikli/${encodeURIComponent(selectedSlug)}`

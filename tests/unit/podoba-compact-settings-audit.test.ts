@@ -44,7 +44,15 @@ test('every Podoba selector uses the compact themed listbox instead of a native 
 test('compact selects are portal-layered, dismiss externally, and preserve keyboard/focus semantics', () => {
   assert.match(primitivesSource, /createPortal\(/u);
   assert.match(primitivesSource, /data-appearance-editor-compact-select-trigger/u);
+  assert.match(
+    primitivesSource,
+    /data-appearance-editor-compact-select-value=\{value \|\| undefined\}/u
+  );
   assert.match(primitivesSource, /data-appearance-editor-compact-select-portal/u);
+  assert.match(
+    primitivesSource,
+    /data-appearance-editor-compact-select-option=\{option\.value\}/u
+  );
   assert.match(primitivesSource, /role="listbox"/u);
   assert.match(primitivesSource, /role="option"/u);
   assert.match(primitivesSource, /aria-selected=/u);

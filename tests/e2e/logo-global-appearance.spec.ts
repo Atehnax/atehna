@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import {
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectOptions
+} from './support/appearance-editor-compact-select';
 
 test.describe('admin podoba redesign', () => {
   test('Logotip is the third podoba tab and its canonical route loads', async ({ page }) => {
@@ -92,10 +96,11 @@ test.describe('admin podoba redesign', () => {
 
     const elementTabs = page.getByRole('tablist', { name: 'Elementi globalnih parametrov' });
     await elementTabs.getByRole('tab', { name: /^Osnovno besedilo/ }).click();
-    const bodyFontSelect = page.getByRole('combobox', { name: 'Osnovna pisava', exact: true });
-    await expect(bodyFontSelect.getByRole('option', { name: 'IBM Plex Sans · priporočeno', exact: true })).toHaveCount(1);
-    await expect(bodyFontSelect.getByRole('option', { name: 'Manrope', exact: true })).toHaveCount(1);
-    await expect(bodyFontSelect.getByRole('option', { name: 'Bitter', exact: true })).toHaveCount(1);
+    const bodyFontSelect = getAppearanceEditorCompactSelect(page, 'Osnovna pisava');
+    await expect(bodyFontSelect).toBeVisible();
+    await expect.poll(() => readAppearanceEditorCompactSelectOptions(page, bodyFontSelect)).toEqual(
+      expect.arrayContaining(['IBM Plex Sans', 'Manrope', 'Bitter'])
+    );
   });
 
   test('global parameters use an element-centric live editor', async ({ page }) => {

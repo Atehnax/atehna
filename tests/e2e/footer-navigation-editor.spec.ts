@@ -192,11 +192,14 @@ test.describe('admin podoba redesign', () => {
     await expect(catalogMoveButton).toHaveAttribute('aria-describedby', /site-footer-column-links-/);
 
     const dragStart = {
-      x: catalogMoveBox.x + catalogMoveBox.width - 36,
+      // The right edge contains alignment and action buttons above the drag
+      // surface. Start on its unobstructed left edge so the pointer sensor owns
+      // the gesture instead of one of those controls.
+      x: catalogMoveBox.x + 8,
       y: catalogMoveBox.y + catalogMoveBox.height / 2
     };
     const dragEnd = {
-      x: projectsMoveBox.x + projectsMoveBox.width - 36,
+      x: projectsMoveBox.x + 8,
       y: projectsMoveBox.y + projectsMoveBox.height * 0.75
     };
     await page.mouse.move(dragStart.x, dragStart.y);

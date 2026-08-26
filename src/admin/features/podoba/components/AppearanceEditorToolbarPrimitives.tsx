@@ -272,6 +272,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
         aria-expanded={open}
         aria-controls={listboxId}
         data-appearance-editor-compact-select-trigger={controlMarker}
+        data-appearance-editor-compact-select-value={value || undefined}
         data-testid={testId}
         onClick={() => open ? setOpen(false) : openListbox()}
         onKeyDown={(event) => {
@@ -351,6 +352,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
               type="button"
               role="option"
               aria-selected={option.value === value}
+              data-appearance-editor-compact-select-option={option.value}
               disabled={option.disabled}
               className={classNames(
                 'flex h-7 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[10px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-30',

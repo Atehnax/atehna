@@ -82,7 +82,14 @@ test.describe('order-document canvas additive selection', () => {
     await expect(tableRow).toHaveAttribute('data-canvas-element-selected', 'true');
 
     const cell = page.locator('[data-order-document-table-scope="table_cell"]').first();
+    await cell.scrollIntoViewIfNeeded();
+    await expect(cell).toBeVisible();
     await cell.dispatchEvent('click', modifiedClick);
+    await expect(cell).toHaveAttribute('data-canvas-element-selected', 'true');
+    await expect(page.getByTestId('order-document-floating-toolbar')).toHaveAttribute(
+      'data-toolbar-ready',
+      'true'
+    );
     const inspector = page.getByTestId('order-document-element-inspector');
     await inspector.getByRole('button', { name: 'Vse nastavitve', exact: true }).click();
     const columnScope = page.locator('[data-order-document-table-quick-scope="column"]');

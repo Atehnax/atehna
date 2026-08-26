@@ -11,19 +11,16 @@ import {
   isGenerateKey,
   routeMap
 } from '@/admin/features/orders/components/adminOrdersPdfCellUtils';
+import { ORDER_PDF_TYPE_CONFIGS } from '@/shared/domain/order/orderTypes';
 import { useToast } from '@/shared/ui/toast';
 import { Spinner } from '@/shared/ui/loading';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 type PdfButton = { key: PdfTypeKey; short: string; full: string };
 
-const PDF_BUTTONS: PdfButton[] = [
-  { key: 'order_summary', short: 'PN', full: 'Povzetek naročila' },
-  { key: 'purchase_order', short: 'N', full: 'Naročilnica' },
-  { key: 'dobavnica', short: 'D', full: 'Dobavnica' },
-  { key: 'predracun', short: 'P', full: 'Predračun' },
-  { key: 'invoice', short: 'R', full: 'Račun' }
-];
+const PDF_BUTTONS: PdfButton[] = ORDER_PDF_TYPE_CONFIGS.map(
+  ({ key, shortLabel, label }) => ({ key, short: shortLabel, full: label })
+);
 
 const MENU_GAP = 6;
 const MENU_PADDING = 8;
@@ -198,6 +195,7 @@ export default function AdminOrdersPdfCell({
 
     const versions = groupedDocuments[button.key];
     const latest = versions[0];
+    const generateType = isGenerateKey(button.key) ? button.key : null;
 
     return createPortal(
       <div
@@ -210,15 +208,15 @@ export default function AdminOrdersPdfCell({
         <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <p className="text-[11px] font-semibold text-slate-800">{button.full}</p>
 
-          {isGenerateKey(button.key) ? (
+          {generateType ? (
             <button
               type="button"
               data-no-row-nav
-              onClick={() => handleGenerate(button.key)}
-              disabled={interactionsDisabled || loadingType === button.key}
+              onClick={() => handleGenerate(generateType)}
+              disabled={interactionsDisabled || loadingType === generateType}
               className="inline-flex h-7 items-center rounded-md border border-slate-300 bg-white px-2 text-[10px] font-medium text-slate-700 transition hover:bg-[color:var(--hover-neutral)] disabled:cursor-default disabled:text-slate-300"
             >
-              {loadingType === button.key ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
+              {loadingType === generateType ? <span className="inline-flex items-center gap-1"><Spinner size="sm" className="text-slate-500" />Generiram ...</span> : latest ? 'Nova verzija' : 'Ustvari'}
             </button>
           ) : null}
         </div>

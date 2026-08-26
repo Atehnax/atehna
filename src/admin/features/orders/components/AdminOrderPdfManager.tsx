@@ -18,21 +18,16 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { useToast } from '@/shared/ui/toast';
-import { groupDocumentsByType, routeMap, type PdfTypeKey } from '@/admin/features/orders/components/adminOrdersPdfCellUtils';
-import type { PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
+import {
+  groupDocumentsByType,
+  isGenerateKey,
+  routeMap,
+  type GeneratePdfType,
+  type PdfTypeKey
+} from '@/admin/features/orders/components/adminOrdersPdfCellUtils';
+import { ORDER_PDF_TYPE_CONFIGS, type PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
 
-type PdfTypeConfig = {
-  key: PdfTypeKey;
-  label: string;
-};
-
-const PDF_TYPES: PdfTypeConfig[] = [
-  { key: 'order_summary', label: 'Povzetek naročila' },
-  { key: 'purchase_order', label: 'Naročilnica' },
-  { key: 'dobavnica', label: 'Dobavnica' },
-  { key: 'predracun', label: 'Predračun' },
-  { key: 'invoice', label: 'Račun' }
-];
+const PDF_TYPES = ORDER_PDF_TYPE_CONFIGS;
 
 const pdfTimestampFormatter = new Intl.DateTimeFormat('sl-SI', {
   dateStyle: 'medium',
@@ -52,7 +47,7 @@ export default function AdminOrderPdfManager({
   adminNotesSlot?: ReactNode;
 }) {
   const [docList, setDocList] = useState(documents);
-  const [loadingType, setLoadingType] = useState<PdfTypeKey | null>(null);
+  const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
   const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
@@ -64,7 +59,7 @@ export default function AdminOrderPdfManager({
     return groupDocumentsByType(docList) as Record<PdfTypeKey, PersistedOrderPdfDocument[]>;
   }, [docList]);
 
-  const handleGenerate = async (type: PdfTypeKey) => {
+  const handleGenerate = async (type: GeneratePdfType) => {
     setLoadingType(type);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
@@ -181,6 +176,7 @@ export default function AdminOrderPdfManager({
           const hasMultipleVersions = docs.length > 1;
           const isExpanded = Boolean(expandedByType[pdfType.key]);
           const visibleDocs = isExpanded ? docs.slice(1) : [];
+          const generateType = isGenerateKey(pdfType.key) ? pdfType.key : null;
 
           return (
             <div key={pdfType.key} className="rounded-2xl border border-slate-200 p-4">
@@ -219,23 +215,29 @@ export default function AdminOrderPdfManager({
                         ) : null}
                       </>
                     ) : (
-                      <span>Ni shranjenih verzij.</span>
+                      <span>
+                        {pdfType.key === 'purchase_order'
+                          ? 'Naročilnico naloži šola ali administrator.'
+                          : 'Ni shranjenih verzij.'}
+                      </span>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <IconButton
-                    type="button"
-                    onClick={() => void handleGenerate(pdfType.key)}
-                    disabled={loadingType === pdfType.key}
-                    className={adminTableNeutralIconButtonClassName}
-                    title="Ustvari"
-                    tone="neutral"
-                    aria-label={`Ustvari ${pdfType.label}`}
-                  >
-                    {loadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <PdfFileIcon />}
-                  </IconButton>
+                  {generateType ? (
+                    <IconButton
+                      type="button"
+                      onClick={() => void handleGenerate(generateType)}
+                      disabled={loadingType === generateType}
+                      className={adminTableNeutralIconButtonClassName}
+                      title="Ustvari"
+                      tone="neutral"
+                      aria-label={`Ustvari ${pdfType.label}`}
+                    >
+                      {loadingType === generateType ? <Spinner size="sm" className="text-slate-500" /> : <PdfFileIcon />}
+                    </IconButton>
+                  ) : null}
 
                   <input
                     ref={(element) => {

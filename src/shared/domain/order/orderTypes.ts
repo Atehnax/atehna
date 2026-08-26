@@ -17,7 +17,25 @@ export type OrderPdfTypeKey =
   | 'predracun'
   | 'invoice';
 
-export type GenerateOrderPdfType = OrderPdfTypeKey;
+export type GenerateOrderPdfType = Exclude<OrderPdfTypeKey, 'purchase_order'>;
+
+export const ORDER_PDF_TYPE_CONFIGS: ReadonlyArray<{
+  key: OrderPdfTypeKey;
+  label: string;
+  shortLabel: string;
+  canGenerate: boolean;
+}> = [
+  { key: 'order_summary', label: 'Potrditev naročila', shortLabel: 'PN', canGenerate: true },
+  { key: 'purchase_order', label: 'Naročilnica', shortLabel: 'N', canGenerate: false },
+  { key: 'dobavnica', label: 'Dobavnica', shortLabel: 'D', canGenerate: true },
+  { key: 'predracun', label: 'Predračun', shortLabel: 'P', canGenerate: true },
+  { key: 'invoice', label: 'Račun', shortLabel: 'R', canGenerate: true }
+] as const;
+
+export function normalizeOrderPdfFilenameForPresentation(type: string, filename: string) {
+  if (type !== 'order_summary' || !filename.startsWith('POT-')) return filename;
+  return `PN-${filename.slice(4)}`;
+}
 
 export type OrderPdfDocument = {
   id?: number;

@@ -25,9 +25,23 @@ import {
   Minus,
   Underline
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref
+} from 'react';
 import { adminControlFocusTokenClasses } from '@/shared/ui/theme/tokens';
-import { AppearanceEditorNumberInput } from './AppearanceEditorToolbarPrimitives';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
+import {
+  AppearanceEditorCompactSelect,
+  AppearanceEditorNumberInput
+} from './AppearanceEditorToolbarPrimitives';
 
 const FontSize = Extension.create({
   name: 'productDescriptionFontSize',
@@ -78,21 +92,32 @@ function ToolbarButton({
   label,
   active = false,
   disabled = false,
+  buttonRef,
+  controls,
+  expanded,
   onClick,
   children
 }: {
   label: string;
   active?: boolean;
   disabled?: boolean;
+  buttonRef?: Ref<HTMLButtonElement>;
+  controls?: string;
+  expanded?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       aria-label={label}
       title={label}
       aria-pressed={active}
+      aria-haspopup={controls ? 'dialog' : undefined}
+      aria-expanded={controls ? expanded : undefined}
+      aria-controls={controls}
+      data-product-description-link-trigger={controls ? 'true' : undefined}
       disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
@@ -129,6 +154,32 @@ export default function ProductDescriptionRichTextEditor({
   const [textColor, setTextColor] = useState('#64748b');
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('https://');
+  const linkTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const linkPanelRef = useRef<HTMLDivElement | null>(null);
+  const linkInputRef = useRef<HTMLInputElement | null>(null);
+  const linkDismissRefs = useMemo(() => [linkTriggerRef, linkPanelRef] as const, []);
+  const linkPanelId = useId();
+
+  const closeLinkPanel = useCallback(() => setLinkOpen(false), []);
+  const closeLinkPanelAndRestoreFocus = useCallback(() => {
+    closeLinkPanel();
+    window.requestAnimationFrame(() => linkTriggerRef.current?.focus());
+  }, [closeLinkPanel]);
+
+  useDropdownDismiss({
+    open: linkOpen,
+    onClose: closeLinkPanel,
+    refs: linkDismissRefs,
+    returnFocusRef: linkTriggerRef,
+    dismissGroup: 'product-description-rich-text-toolbar'
+  });
+
+  useEffect(() => {
+    if (!linkOpen) return;
+    const frame = window.requestAnimationFrame(() => linkInputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [linkOpen]);
+
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
@@ -187,6 +238,7 @@ export default function ProductDescriptionRichTextEditor({
   }, [editable]);
 
   const editor = editorRef.current;
+  const activeFontFamily = (editor?.getAttributes('textStyle').fontFamily as string | undefined) ?? '';
   useEffect(() => {
     const activeFontSize = editorRef.current
       ?.getAttributes('textStyle')
@@ -237,21 +289,24 @@ export default function ProductDescriptionRichTextEditor({
         <ToolbarButton label="Oštevilčen seznam" active={Boolean(editor?.isActive('orderedList'))} disabled={!editable} onClick={() => run((instance) => instance.chain().toggleOrderedList().run())}>
           <ListOrdered className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <select
-          aria-label="Slog odstavka"
+        <AppearanceEditorCompactSelect
           value={editor?.isActive('heading', { level: 2 }) ? 'h2' : editor?.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
           disabled={!editable}
-          onChange={(event) => run((instance) => {
-            if (event.target.value === 'h2') instance.chain().toggleHeading({ level: 2 }).run();
-            else if (event.target.value === 'h3') instance.chain().toggleHeading({ level: 3 }).run();
+          options={[
+            { value: 'p', label: 'Odstavek' },
+            { value: 'h2', label: 'Naslov 2' },
+            { value: 'h3', label: 'Naslov 3' }
+          ]}
+          ariaLabel="Slog odstavka"
+          marker="product-description-block-style"
+          className="w-24"
+          triggerClassName="h-7 rounded-md px-2 text-[10px]"
+          onValueChange={(blockStyle) => run((instance) => {
+            if (blockStyle === 'h2') instance.chain().toggleHeading({ level: 2 }).run();
+            else if (blockStyle === 'h3') instance.chain().toggleHeading({ level: 3 }).run();
             else instance.chain().setParagraph().run();
           })}
-          className="h-7 rounded-md border border-white/15 bg-slate-700 px-2 text-[10px] text-white outline-none"
-        >
-          <option value="p">Odstavek</option>
-          <option value="h2">Naslov 2</option>
-          <option value="h3">Naslov 3</option>
-        </select>
+        />
         <label className="flex h-7 items-center overflow-hidden rounded-md border border-white/15 bg-slate-700">
           <span className="sr-only">Velikost pisave</span>
           <AppearanceEditorNumberInput
@@ -265,38 +320,47 @@ export default function ProductDescriptionRichTextEditor({
           />
           <span className="pr-1.5 text-[9px] text-white/55">px</span>
         </label>
-        <select
-          aria-label="Pisava"
-          defaultValue=""
+        <AppearanceEditorCompactSelect
+          value={activeFontFamily}
           disabled={!editable}
-          onChange={(event) => run((instance) => {
-            if (event.target.value) instance.chain().setFontFamily(event.target.value).run();
+          options={fontFamilies}
+          ariaLabel="Pisava"
+          marker="product-description-font-family"
+          className="w-28"
+          triggerClassName="h-7 rounded-md px-2 text-[10px]"
+          onValueChange={(fontFamily) => run((instance) => {
+            if (fontFamily) instance.chain().setFontFamily(fontFamily).run();
             else instance.chain().unsetFontFamily().run();
           })}
-          className="h-7 max-w-28 rounded-md border border-white/15 bg-slate-700 px-2 text-[10px] text-white outline-none"
-        >
-          {fontFamilies.map((font) => <option key={font.label} value={font.value}>{font.label}</option>)}
-        </select>
-        <label className="grid h-7 w-7 place-items-center rounded-md border border-white/15 bg-white/5" title="Barva besedila">
-          <span className="sr-only">Barva besedila</span>
-          <input
-            type="color"
-            value={textColor}
-            disabled={!editable}
-            onChange={(event) => {
-              setTextColor(event.target.value);
-              run((instance) => instance.chain().setColor(event.target.value).run());
-            }}
-            className="h-4 w-4 cursor-pointer border-0 bg-transparent p-0"
-          />
-        </label>
+        />
+        <CompactHexColorField
+          label="Barva besedila"
+          value={textColor}
+          marker="product-description-text-color"
+          tone="dark"
+          layout="inline"
+          disabled={!editable}
+          onChange={(color) => {
+            setTextColor(color);
+            run((instance) => instance.chain().setColor(color).run());
+          }}
+          className="[&>label]:sr-only"
+        />
         <ToolbarButton label="Označi besedilo" active={Boolean(editor?.isActive('highlight'))} disabled={!editable} onClick={() => run((instance) => instance.chain().toggleHighlight({ color: '#fde68a' }).run())}>
           <Highlighter className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton label="Povezava" active={Boolean(editor?.isActive('link'))} disabled={!editable} onClick={() => {
-          if (editor?.isActive('link')) run((instance) => instance.chain().unsetLink().run());
-          else setLinkOpen((open) => !open);
-        }}>
+        <ToolbarButton
+          label="Povezava"
+          active={Boolean(editor?.isActive('link'))}
+          disabled={!editable}
+          buttonRef={linkTriggerRef}
+          controls={linkPanelId}
+          expanded={linkOpen}
+          onClick={() => {
+            if (editor?.isActive('link')) run((instance) => instance.chain().unsetLink().run());
+            else setLinkOpen((open) => !open);
+          }}
+        >
           <Link2 className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton label="Vodoravna črta" disabled={!editable} onClick={() => run((instance) => instance.chain().setHorizontalRule().run())}>
@@ -315,10 +379,18 @@ export default function ProductDescriptionRichTextEditor({
         ))}
       </div>
       {linkOpen ? (
-        <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 p-2">
+        <div
+          id={linkPanelId}
+          ref={linkPanelRef}
+          role="dialog"
+          aria-label="Nastavitve povezave"
+          data-product-description-link-panel
+          className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 p-2"
+        >
           <label className="min-w-0 flex-1">
             <span className="sr-only">URL povezave</span>
             <input
+              ref={linkInputRef}
               type="url"
               value={linkUrl}
               onChange={(event) => setLinkUrl(event.target.value)}
@@ -327,17 +399,17 @@ export default function ProductDescriptionRichTextEditor({
                   event.preventDefault();
                   applyLink();
                 }
-                if (event.key === 'Escape') setLinkOpen(false);
               }}
               className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-800 outline-none focus:border-sky-500"
             />
           </label>
           <button type="button" onClick={applyLink} className="h-8 rounded-md bg-sky-600 px-3 text-[10px] font-semibold text-white">Uporabi</button>
-          <button type="button" onClick={() => setLinkOpen(false)} className="h-8 rounded-md border border-slate-300 px-3 text-[10px] font-semibold text-slate-600">Prekliči</button>
+          <button type="button" onClick={closeLinkPanelAndRestoreFocus} className="h-8 rounded-md border border-slate-300 px-3 text-[10px] font-semibold text-slate-600">Prekliči</button>
         </div>
       ) : null}
       <div
         ref={hostRef}
+        data-appearance-editor-scroll-purpose="content"
         className="max-h-64 min-h-32 overflow-y-auto bg-white text-slate-800 [&_.ProseMirror]:min-h-32 [&_.ProseMirror]:outline-none [&_.ProseMirror_a]:text-sky-600 [&_.ProseMirror_a]:underline [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_h2]:mb-1 [&_.ProseMirror_h2]:mt-2 [&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h3]:mb-1 [&_.ProseMirror_h3]:mt-2 [&_.ProseMirror_h3]:text-sm [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_hr]:my-3 [&_.ProseMirror_li]:ml-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_p]:my-1.5 [&_.ProseMirror_ul]:list-disc"
       />
     </div>

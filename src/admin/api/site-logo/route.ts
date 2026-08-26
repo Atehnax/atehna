@@ -1,13 +1,22 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { validateSiteLogoConfigInput } from '@/shared/domain/logo/siteLogo';
+import {
+  SITE_LOGO_PURPOSE_IDS,
+  normalizeSiteLogoConfig,
+  validateSiteLogoConfigInput
+} from '@/shared/domain/logo/siteLogo';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import {
   getSiteLogoConfig,
+  getSiteLogoConfigStrict,
   revalidateSiteLogoConfigCache,
   updateSiteLogoConfig
 } from '@/shared/server/siteLogo';
+import {
+  revalidateSiteLogoArtworkCache,
+  validateSiteLogoConfigContent
+} from '@/shared/server/siteLogoArtwork';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +37,21 @@ export async function PUT(request: Request) {
       );
     }
 
-    const result = await updateSiteLogoConfig(configInput, { request });
+    const normalizedConfig = normalizeSiteLogoConfig(configInput);
+    const previousConfig = await getSiteLogoConfigStrict();
+    try {
+      await validateSiteLogoConfigContent(normalizedConfig, previousConfig);
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Vsebina logotipa ni veljavna.';
+      return NextResponse.json({ message, errors: [message] }, { status: 400 });
+    }
+
+    const result = await updateSiteLogoConfig(normalizedConfig, { request });
     if (result.changed) {
       revalidateSiteLogoConfigCache();
+      revalidateSiteLogoArtworkCache();
       revalidatePath('/', 'layout');
       revalidatePath('/admin/podoba/logotip');
       revalidatePath('/admin/arhiv/podoba');
@@ -38,6 +59,9 @@ export async function PUT(request: Request) {
       revalidatePath('/icon');
       revalidatePath('/apple-icon');
       revalidatePath('/manifest.webmanifest');
+      for (const purposeId of SITE_LOGO_PURPOSE_IDS) {
+        revalidatePath(`/api/site-logo/${purposeId}`);
+      }
     }
     return NextResponse.json({ config: result.config });
   } catch (error) {

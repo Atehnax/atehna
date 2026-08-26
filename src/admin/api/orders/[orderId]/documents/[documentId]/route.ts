@@ -3,6 +3,7 @@ import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readPrivateOrderDocumentBlob } from '@/shared/server/blob';
 import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
+import { normalizeOrderPdfFilenameForPresentation } from '@/shared/domain/order/orderTypes';
 import {
   SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS,
   schoolPurchaseOrderDeletionBlock
@@ -27,6 +28,7 @@ type OrderDocumentDeleteRow = {
 };
 
 type OrderDocumentDownloadRow = {
+  type: string;
   filename: string;
   blob_pathname: string;
 };
@@ -65,7 +67,7 @@ export async function GET(
     const pool = await getPool();
     const result = await pool.query(
       `
-        select d.filename, d.blob_pathname
+        select d.type, d.filename, d.blob_pathname
         from order_documents d
         join orders o on o.id = d.order_id
         where d.id = $1
@@ -90,7 +92,11 @@ export async function GET(
       throw new Error('Order document has an unsupported content type.');
     }
     const extension = contentType === 'application/pdf' ? 'pdf' : 'jpg';
-    const safeFilename = document.filename.replace(/["\r\n]/gu, '_').trim()
+    const presentedFilename = normalizeOrderPdfFilenameForPresentation(
+      document.type,
+      document.filename
+    );
+    const safeFilename = presentedFilename.replace(/["\r\n]/gu, '_').trim()
       || `dokument.${extension}`;
 
     return new NextResponse(blob.stream, {

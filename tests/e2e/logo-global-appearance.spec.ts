@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import {
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectOptions
+} from './support/appearance-editor-compact-select';
 
 test.describe('admin podoba redesign', () => {
   test('Logotip is the third podoba tab and its canonical route loads', async ({ page }) => {
@@ -11,32 +15,27 @@ test.describe('admin podoba redesign', () => {
     await expect(page.getByRole('tab', { name: 'Logotip' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('logo outputs are purpose-based and independently overridable', async ({ page }) => {
+  test('logo outputs are selected from compact use cases and edited contextually', async ({ page }) => {
     await page.goto('/admin/podoba/logotip');
 
-    const masters = page.getByTestId('logo-master-variants');
     const catalogue = page.getByTestId('logo-purpose-catalogue');
-    await expect(masters.locator('[data-logo-master]')).toHaveCount(5);
     await expect(catalogue.getByRole('tab')).toHaveCount(4);
+    await expect(catalogue.getByRole('tab', { name: 'Glava' })).toBeVisible();
+    await expect(catalogue.getByRole('tab', { name: 'Noga' })).toBeVisible();
+    await expect(catalogue.getByRole('tab', { name: 'Samostojno' })).toBeVisible();
+    await expect(catalogue.getByRole('tab', { name: 'Dokumenti' })).toBeVisible();
+    await expect(page.locator('[data-logo-use-case="header-desktop"]')).toBeVisible();
+    await expect(page.getByTestId('logo-context-toolbar')).toBeVisible();
     await expect(page.getByText('Barva logotipa', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Pisava logotipa', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Filter', { exact: true })).toHaveCount(0);
 
-    await catalogue.getByRole('tab', { name: /^Ikone in aplikacija/ }).click();
-    const favicon = page.locator('[data-logo-placement="favicon"]');
-    const apple = page.locator('[data-logo-placement="apple-touch-icon"]');
-    const pwa = page.locator('[data-logo-placement="pwa-maskable"]');
-    await expect(favicon).toBeVisible();
-    await expect(apple).toBeVisible();
-    await expect(pwa).toBeVisible();
-
-    const faviconToggle = favicon.locator('button[aria-label^="Skrij"], button[aria-label^="Prikaži"]');
-    const appleToggle = apple.locator('button[aria-label^="Skrij"], button[aria-label^="Prikaži"]');
-    const faviconBefore = await faviconToggle.getAttribute('aria-label');
-    const appleBefore = await appleToggle.getAttribute('aria-label');
-    await faviconToggle.click();
-    await expect(faviconToggle).not.toHaveAttribute('aria-label', faviconBefore ?? '');
-    await expect(appleToggle).toHaveAttribute('aria-label', appleBefore ?? '');
+    await catalogue.getByRole('button', { name: 'Drugi izhodi' }).click();
+    await catalogue.getByRole('menuitem', { name: 'Favicon' }).click();
+    await expect(page.locator('[data-logo-use-case="favicon"]')).toBeVisible();
+    const visibilityToggle = page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Skrij uporabo' });
+    await visibilityToggle.click();
+    await expect(page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prikaži uporabo' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Shrani', exact: true })).toBeEnabled();
 
     await page.getByRole('button', { name: 'Zavrzi neshranjene spremembe' }).click();
@@ -45,7 +44,8 @@ test.describe('admin podoba redesign', () => {
 
   test('logo masters are optically analysed and remain non-destructive', async ({ page }) => {
     await page.goto('/admin/podoba/logotip');
-    const master = page.locator('[data-logo-master="full-lockup"]');
+    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Izvirnik' }).click();
+    const master = page.locator('[data-logo-master-library] [data-logo-master="full-lockup"]');
     await master.locator('input[type="file"]').setInputFiles({
       name: 'atehna-lockup.svg',
       mimeType: 'image/svg+xml',
@@ -55,18 +55,25 @@ test.describe('admin podoba redesign', () => {
     });
 
     await expect(master.locator('img')).toBeVisible();
-    await expect(page.getByText('1 / 5 naloženih', { exact: true })).toBeVisible();
     await expect(page.getByText('Neshranjeno', { exact: true })).toBeVisible();
-    const desktopOutput = page.locator('[data-logo-placement="header-desktop"]');
-    const tabletOutput = page.locator('[data-logo-placement="header-tablet"]');
-    await expect(desktopOutput.getByText('Samodejno', { exact: true })).toBeVisible();
-    await expect(tabletOutput.getByText('Samodejno', { exact: true })).toBeVisible();
+    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
 
-    await desktopOutput.getByRole('slider', { name: /Velikost logotipa/ }).fill('126');
-    await expect(desktopOutput.getByText('Ročno', { exact: true })).toBeVisible();
-    await expect(tabletOutput.getByText('Samodejno', { exact: true })).toBeVisible();
-    await desktopOutput.getByRole('button', { name: 'Samodejno prileganje' }).click();
-    await expect(desktopOutput.getByText('Samodejno', { exact: true })).toBeVisible();
+    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prileganje' }).click();
+    const headerHeight = page.getByRole('spinbutton', {
+      name: 'Višina logotipa za Glava · namizje'
+    });
+    await expect(headerHeight).toHaveAttribute('min', '8');
+    await expect(headerHeight).toHaveAttribute('max', '64');
+    await headerHeight.fill('14');
+    await expect(headerHeight).toHaveValue('14');
+    await expect(page.getByText('Višina: 14 px', { exact: true })).toBeVisible();
+    await expect(page.getByText('Ročno prilagojeno', { exact: true })).toBeVisible();
+    await page.locator('[data-logo-placement-option="header-tablet"]').click();
+    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
+    await page.locator('[data-logo-placement-option="header-desktop"]').click();
+    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prileganje' }).click();
+    await page.getByRole('button', { name: 'Uporabi predlagano prileganje' }).click();
+    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
   });
 
   test('Globalni parametri is the fourth podoba tab and its route loads', async ({ page }) => {
@@ -89,10 +96,11 @@ test.describe('admin podoba redesign', () => {
 
     const elementTabs = page.getByRole('tablist', { name: 'Elementi globalnih parametrov' });
     await elementTabs.getByRole('tab', { name: /^Osnovno besedilo/ }).click();
-    const bodyFontSelect = page.getByRole('combobox', { name: 'Osnovna pisava', exact: true });
-    await expect(bodyFontSelect.getByRole('option', { name: 'IBM Plex Sans · priporočeno', exact: true })).toHaveCount(1);
-    await expect(bodyFontSelect.getByRole('option', { name: 'Manrope', exact: true })).toHaveCount(1);
-    await expect(bodyFontSelect.getByRole('option', { name: 'Bitter', exact: true })).toHaveCount(1);
+    const bodyFontSelect = getAppearanceEditorCompactSelect(page, 'Osnovna pisava');
+    await expect(bodyFontSelect).toBeVisible();
+    await expect.poll(() => readAppearanceEditorCompactSelectOptions(page, bodyFontSelect)).toEqual(
+      expect.arrayContaining(['IBM Plex Sans', 'Manrope', 'Bitter'])
+    );
   });
 
   test('global parameters use an element-centric live editor', async ({ page }) => {

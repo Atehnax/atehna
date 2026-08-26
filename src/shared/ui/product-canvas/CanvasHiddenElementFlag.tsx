@@ -3,14 +3,15 @@
 import { Eye, X } from 'lucide-react';
 import {
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
 type FlagPosition = {
   ready: boolean;
@@ -65,6 +66,17 @@ export default function CanvasHiddenElementFlag({
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<FlagPosition>(initialPosition);
+  const dismissRefs = useMemo(() => [flagRef], []);
+  const portalRefs = useMemo(() => [panelRef], []);
+
+  useDropdownDismiss({
+    open,
+    refs: dismissRefs,
+    portalRefs,
+    returnFocusRef: flagRef,
+    dismissGroup: 'canvas-hidden-element',
+    onClose: () => setOpen(false)
+  });
 
   const updatePosition = useCallback(() => {
     const marker = markerRef.current;
@@ -135,32 +147,6 @@ export default function CanvasHiddenElementFlag({
       window.removeEventListener('scroll', updatePosition, true);
     };
   }, [updatePosition]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target instanceof Node ? event.target : null;
-      if (
-        target
-        && !flagRef.current?.contains(target)
-        && !panelRef.current?.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        flagRef.current?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [open]);
 
   const flagTransform = position.side === 'right'
     ? 'translateY(-50%)'

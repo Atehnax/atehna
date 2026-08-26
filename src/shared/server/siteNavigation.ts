@@ -113,7 +113,10 @@ const navigationFieldLabels: Record<string, string> = {
   label: 'Naziv',
   href: 'URL',
   description: 'Opis',
+  descriptionTextAlign: 'Poravnava opisa',
   title: 'Naslov',
+  titleTextAlign: 'Poravnava naslova',
+  textAlign: 'Poravnava besedila',
   icon: 'Ikona',
   email: 'E-poÅ¡ta',
   phone: 'Telefon',
@@ -121,6 +124,10 @@ const navigationFieldLabels: Record<string, string> = {
   workingHours: 'Delovni Äas',
   type: 'Vrsta',
   copyright: 'Copyright',
+  copyrightTextAlign: 'Poravnava avtorskih pravic',
+  upperSectionVisible: 'Prikaz zgornjega dela',
+  lowerSectionVisible: 'Prikaz spodnjega dela',
+  lowerContactVisible: 'Kontakt v spodnjem delu',
   logoMode: 'Logotip',
   logoText: 'Besedilo logotipa',
   layoutColumns: 'Å tevilo stolpcev',
@@ -151,6 +158,13 @@ const topBarRegionAuditLabels = {
   right: 'Desno',
   edgeRight: 'Skrajno desno',
   menu: 'Meni'
+} as const;
+
+const textAlignmentAuditLabels = {
+  left: 'Levo',
+  center: 'Sredinsko',
+  right: 'Desno',
+  justify: 'Obojestransko'
 } as const;
 
 const topBarSettingAuditLabels: Record<string, string> = {
@@ -224,11 +238,17 @@ function visibleLabel(value: unknown) {
 function auditValueLabel(field: string, value: unknown) {
   if (value === null || value === undefined || value === '') return '';
   if (field === 'topBorder' || field.endsWith('.topBorder')) return value === false ? 'Ne' : 'Da';
+  if (field === 'upperSectionVisible' || field === 'lowerSectionVisible' || field === 'lowerContactVisible') {
+    return visibleLabel(value);
+  }
   if (field.includes('.visible') || field.endsWith('.cartBadge') || field.endsWith('.sticky') || field.endsWith('.shadow') || field.endsWith('.safeArea')) {
     return visibleLabel(value);
   }
   if (field.endsWith('.region')) {
     return topBarRegionAuditLabels[value as keyof typeof topBarRegionAuditLabels] ?? String(value);
+  }
+  if (field === 'textAlign' || field.endsWith('TextAlign')) {
+    return textAlignmentAuditLabels[value as keyof typeof textAlignmentAuditLabels] ?? String(value);
   }
   if (field.endsWith('.fontStyle')) {
     return value === 'italic' ? 'Ležeče' : 'Navadno';
@@ -372,6 +392,7 @@ function flatFooterColumn(column: SiteFooterColumn, includeOrder: boolean): Site
     parentLabel: 'Noga',
     values: {
       title: column.title,
+      titleTextAlign: column.titleTextAlign,
       visible: column.visible !== false,
       ...(includeOrder ? { order: (column.position ?? 0) + 1 } : {})
     }
@@ -389,6 +410,7 @@ function flatFooterLink(column: SiteFooterColumn, link: SiteFooterLink, includeO
     values: {
       label: link.label,
       href: link.href,
+      textAlign: link.textAlign,
       visible: link.visible !== false,
       ...(includeOrder ? { order: (link.position ?? 0) + 1 } : {})
     }
@@ -406,7 +428,8 @@ function flatFooterContact(footer: SiteFooterSettings): SiteNavigationFlatEntity
       email: footer.contact.email,
       phone: footer.contact.phone,
       address: footer.contact.address,
-      workingHours: footer.contact.workingHours
+      workingHours: footer.contact.workingHours,
+      textAlign: footer.contact.textAlign
     }
   };
 }
@@ -438,6 +461,7 @@ function flatFooterLegalLink(link: SiteFooterSettings['legalLinks'][number], inc
     values: {
       label: link.label,
       href: link.href,
+      textAlign: link.textAlign,
       visible: link.visible !== false,
       ...(includeOrder ? { order: (link.position ?? 0) + 1 } : {})
     }
@@ -447,10 +471,15 @@ function flatFooterLegalLink(link: SiteFooterSettings['legalLinks'][number], inc
 function flatFooterSettings(footer: SiteFooterSettings): SiteNavigationFlatEntity {
   const values: Record<string, unknown> = {
     visible: footer.visible,
+    upperSectionVisible: footer.upperSectionVisible,
+    lowerSectionVisible: footer.lowerSectionVisible,
+    lowerContactVisible: footer.lowerContactVisible,
     logoMode: footer.logoMode,
     logoText: footer.logoText,
     description: footer.description,
+    descriptionTextAlign: footer.descriptionTextAlign,
     copyright: footer.copyright,
+    copyrightTextAlign: footer.copyrightTextAlign,
     layoutColumns: footer.layoutColumns,
     spacing: footer.spacing,
     topBorder: footer.topBorder

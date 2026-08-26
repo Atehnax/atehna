@@ -5,6 +5,7 @@ import type {
   ProductOptionValueDraft,
   Variant
 } from '@/admin/features/artikli/lib/familyModel';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 
 type Props = {
   editable: boolean;
@@ -196,23 +197,21 @@ export default function ProductVariantOptionsCard({
                           />
                         </td>
                         <td className="py-1 pr-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              className="h-9 w-11 rounded-md border border-slate-300 bg-white p-1 disabled:opacity-50"
-                              value={/^#[0-9a-f]{6}$/i.test(value.swatch ?? '') ? value.swatch ?? '#000000' : '#000000'}
-                              disabled={!editable}
-                              onChange={(event) => updateValue(axis, value.id, { swatch: event.target.value })}
-                              aria-label={`Barvni vzorec za ${value.value || `vrednost ${axisIndex + 1}`}`}
-                            />
-                            <input
-                              className={inputClass}
-                              value={value.swatch ?? ''}
-                              disabled={!editable}
-                              placeholder="#1f6feb ali prazno"
-                              onChange={(event) => updateValue(axis, value.id, { swatch: event.target.value || null })}
-                            />
-                          </div>
+                          <CompactHexColorField
+                            label={`Barvni vzorec za ${value.value || `vrednost ${axisIndex + 1}`}`}
+                            value={value.swatch ?? ''}
+                            marker={`product-option-${axis.id}-${value.id}`}
+                            tone="light"
+                            allowClear
+                            clearLabel="Brez"
+                            inheritedColor="#000000"
+                            disabled={!editable}
+                            onChange={(swatch) => updateValue(axis, value.id, { swatch: swatch || null })}
+                            inputAttributes={{
+                              'aria-label': `Barvni vzorec za ${value.value || `vrednost ${axisIndex + 1}`}`
+                            }}
+                            className="min-w-[15rem]"
+                          />
                         </td>
                         <td className="py-1 text-right">
                           <button

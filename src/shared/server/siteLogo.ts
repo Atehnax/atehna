@@ -92,6 +92,11 @@ export async function getSiteLogoConfig(): Promise<SiteLogoConfig> {
   }
 }
 
+export async function getSiteLogoConfigStrict(): Promise<SiteLogoConfig> {
+  noStore();
+  return readSiteLogoConfigFromDatabase();
+}
+
 export async function updateSiteLogoConfig(
   input: unknown,
   options: { request?: Request } = {}

@@ -13,6 +13,7 @@ export const HOMEPAGE_PREVIEW_DEVICES = ['desktop', 'tablet', 'mobile'] as const
 export const HOMEPAGE_HERO_MEDIA_TYPES = ['image', 'video'] as const;
 export const HOMEPAGE_HERO_HEIGHTS = ['compact', 'medium', 'large', 'viewport'] as const;
 export const HOMEPAGE_ALIGNMENTS = ['left', 'center', 'right'] as const;
+export const HOMEPAGE_TEXT_ALIGNMENTS = [...HOMEPAGE_ALIGNMENTS, 'justify'] as const;
 export const HOMEPAGE_TEXT_WIDTHS = ['small', 'medium', 'large'] as const;
 export const HOMEPAGE_HERO_TITLE_SIZES = ['small', 'medium', 'large', 'xlarge'] as const;
 export const HOMEPAGE_HERO_DESCRIPTION_SIZES = ['small', 'medium', 'large'] as const;
@@ -39,6 +40,7 @@ export type HomepagePreviewDevice = (typeof HOMEPAGE_PREVIEW_DEVICES)[number];
 export type HomepageHeroMediaType = (typeof HOMEPAGE_HERO_MEDIA_TYPES)[number];
 export type HomepageHeroHeight = (typeof HOMEPAGE_HERO_HEIGHTS)[number];
 export type HomepageAlignment = (typeof HOMEPAGE_ALIGNMENTS)[number];
+export type HomepageTextAlignment = (typeof HOMEPAGE_TEXT_ALIGNMENTS)[number];
 export type HomepageTextWidth = (typeof HOMEPAGE_TEXT_WIDTHS)[number];
 export type HomepageHeroTitleSize = (typeof HOMEPAGE_HERO_TITLE_SIZES)[number];
 export type HomepageHeroDescriptionSize = (typeof HOMEPAGE_HERO_DESCRIPTION_SIZES)[number];
@@ -204,7 +206,7 @@ export type HomepageCanvasElementDeviceSettings = {
   marginBottomPx: number;
   marginLeftPx: number;
   zIndex: number;
-  textAlign: HomepageAlignment;
+  textAlign: HomepageTextAlignment;
   horizontalAlign: HomepageAlignment;
   color: string;
   fontFamily: string;
@@ -373,6 +375,7 @@ export type HomepageFooterLink = {
   id: string;
   label: string;
   href: string;
+  textAlign: HomepageAlignment;
   visible?: boolean;
   position?: number;
 };
@@ -380,6 +383,7 @@ export type HomepageFooterLink = {
 export type HomepageFooterColumn = {
   id: string;
   title: string;
+  titleTextAlign: HomepageAlignment;
   visible?: boolean;
   position?: number;
   links: HomepageFooterLink[];
@@ -390,6 +394,7 @@ export type HomepageFooterContact = {
   phone: string;
   address: string;
   workingHours: string;
+  textAlign: HomepageAlignment;
 };
 
 export type HomepageFooterSocialLink = {
@@ -403,13 +408,18 @@ export type HomepageFooterSocialLink = {
 
 export type HomepageFooterSettings = {
   visible: boolean;
+  upperSectionVisible: boolean;
+  lowerSectionVisible: boolean;
+  lowerContactVisible: boolean;
   logoMode: HomepageFooterLogoMode;
   logoText: string;
   description: string;
+  descriptionTextAlign: HomepageTextAlignment;
   columns: HomepageFooterColumn[];
   contact: HomepageFooterContact;
   socialLinks: HomepageFooterSocialLink[];
   copyright: string;
+  copyrightTextAlign: HomepageTextAlignment;
   legalLinks: HomepageFooterLink[];
   layoutColumns: number;
   spacing: HomepageFooterSpacing;
@@ -847,35 +857,42 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
   },
   footer: {
     visible: true,
+    upperSectionVisible: true,
+    lowerSectionVisible: true,
+    lowerContactVisible: true,
     logoMode: 'mark',
     logoText: 'ATEHNA',
     description: 'Oprema, materiali in podpora za tehnično izobraževanje.',
+    descriptionTextAlign: 'left',
     columns: [
       {
         id: 'products',
         title: 'Izdelki',
+        titleTextAlign: 'left',
         links: [
-          { id: 'catalog', label: 'Katalog', href: '/products' },
-          { id: 'schools', label: 'Za šole', href: '/how-schools-order' },
-          { id: 'projects', label: 'Projekti', href: '/products' }
+          { id: 'catalog', label: 'Katalog', href: '/products', textAlign: 'left' },
+          { id: 'schools', label: 'Za šole', href: '/how-schools-order', textAlign: 'left' },
+          { id: 'projects', label: 'Projekti', href: '/products', textAlign: 'left' }
         ]
       },
       {
         id: 'support',
         title: 'Podpora',
+        titleTextAlign: 'left',
         links: [
-          { id: 'help', label: 'Pomoč', href: '/contact' },
-          { id: 'delivery', label: 'Dostava in plačilo', href: '/how-schools-order' },
-          { id: 'returns', label: 'Vračila in reklamacije', href: '/terms' }
+          { id: 'help', label: 'Pomoč', href: '/contact', textAlign: 'left' },
+          { id: 'delivery', label: 'Dostava in plačilo', href: '/how-schools-order', textAlign: 'left' },
+          { id: 'returns', label: 'Vračila in reklamacije', href: '/terms', textAlign: 'left' }
         ]
       },
       {
         id: 'about',
         title: 'O nas',
+        titleTextAlign: 'left',
         links: [
-          { id: 'company', label: 'O podjetju', href: '/about' },
-          { id: 'contact', label: 'Kontakt', href: '/contact' },
-          { id: 'work', label: 'Sodeluj z nami', href: '/contact' }
+          { id: 'company', label: 'O podjetju', href: '/about', textAlign: 'left' },
+          { id: 'contact', label: 'Kontakt', href: '/contact', textAlign: 'left' },
+          { id: 'work', label: 'Sodeluj z nami', href: '/contact', textAlign: 'left' }
         ]
       }
     ],
@@ -883,7 +900,8 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
       email: 'info@atehna.si',
       phone: '+386 1 234 56 78',
       address: '',
-      workingHours: 'Pon-Pet 8:00-16:00'
+      workingHours: 'Pon-Pet 8:00-16:00',
+      textAlign: 'left'
     },
     socialLinks: [
       { id: 'facebook', type: 'facebook', label: 'Facebook', href: '#' },
@@ -892,10 +910,11 @@ export const DEFAULT_HOMEPAGE_SETTINGS: HomepageSettings = {
       { id: 'linkedin', type: 'linkedin', label: 'LinkedIn', href: '#' }
     ],
     copyright: '© {year} Atehna d.o.o. Vse pravice pridržane.',
+    copyrightTextAlign: 'left',
     legalLinks: [
-      { id: 'terms', label: 'Pogoji uporabe', href: '/terms' },
-      { id: 'privacy', label: 'Zasebnost', href: '/privacy' },
-      { id: 'cookies', label: 'Piškotki', href: '/cookies' }
+      { id: 'terms', label: 'Pogoji uporabe', href: '/terms', textAlign: 'left' },
+      { id: 'privacy', label: 'Zasebnost', href: '/privacy', textAlign: 'left' },
+      { id: 'cookies', label: 'Piškotki', href: '/cookies', textAlign: 'left' }
     ],
     layoutColumns: 3,
     spacing: 'medium',
@@ -982,6 +1001,23 @@ function asDecimalNumber(value: unknown, fallback: number, min: number, max: num
 
 function enumValue<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
   return options.includes(value as T) ? value as T : fallback;
+}
+
+/**
+ * Canonical footer text-alignment resolver shared by persistence, editors, and renderers.
+ * Short labels can opt out of justified text without accepting a value the renderer cannot use.
+ */
+export function resolveHomepageFooterTextAlignment(
+  value: unknown,
+  fallback: HomepageTextAlignment = 'left',
+  allowJustify = true
+): HomepageTextAlignment {
+  if (allowJustify) {
+    return enumValue(value, HOMEPAGE_TEXT_ALIGNMENTS, fallback);
+  }
+
+  const alignmentFallback: HomepageAlignment = fallback === 'justify' ? 'left' : fallback;
+  return enumValue(value, HOMEPAGE_ALIGNMENTS, alignmentFallback);
 }
 
 function normalizeButton(value: unknown, fallback: HomepageButton): HomepageButton {
@@ -1504,6 +1540,7 @@ function normalizeFooterLink(value: unknown, index: number, fallback?: HomepageF
     id: asString(record.id, fallback?.id ?? `link-${index + 1}`, 100) || `link-${index + 1}`,
     label: asString(record.label, fallback?.label ?? `Povezava ${index + 1}`, SHORT_TEXT_MAX_LENGTH),
     href: asString(record.href ?? record.url, fallback?.href ?? '#', URL_MAX_LENGTH),
+    textAlign: resolveHomepageFooterTextAlignment(record.textAlign, fallback?.textAlign ?? 'left', false) as HomepageAlignment,
     visible: asBoolean(record.visible, fallback?.visible ?? true),
     position: asNumber(record.position, fallback?.position ?? index, 0, MAX_FOOTER_LINKS - 1)
   };
@@ -1535,6 +1572,7 @@ function normalizeFooterColumn(value: unknown, index: number): HomepageFooterCol
   return {
     id: asString(record.id, fallback?.id ?? `column-${index + 1}`, 100) || `column-${index + 1}`,
     title: asString(record.title, fallback?.title ?? `Stolpec ${index + 1}`, SHORT_TEXT_MAX_LENGTH),
+    titleTextAlign: resolveHomepageFooterTextAlignment(record.titleTextAlign, fallback?.titleTextAlign ?? 'left', false) as HomepageAlignment,
     visible: asBoolean(record.visible, fallback?.visible ?? true),
     position: asNumber(record.position, fallback?.position ?? index, 0, MAX_FOOTER_COLUMNS - 1),
     links
@@ -1549,7 +1587,8 @@ function normalizeFooterContact(value: unknown): HomepageFooterContact {
     email: asString(record.email, fallback.email, SHORT_TEXT_MAX_LENGTH),
     phone: asString(record.phone, fallback.phone, SHORT_TEXT_MAX_LENGTH),
     address: asString(record.address, fallback.address, SHORT_TEXT_MAX_LENGTH),
-    workingHours: asString(record.workingHours, fallback.workingHours, SHORT_TEXT_MAX_LENGTH)
+    workingHours: asString(record.workingHours, fallback.workingHours, SHORT_TEXT_MAX_LENGTH),
+    textAlign: resolveHomepageFooterTextAlignment(record.textAlign, fallback.textAlign, false) as HomepageAlignment
   };
 }
 
@@ -1623,13 +1662,24 @@ export function normalizeHomepageFooterSettings(value: unknown): HomepageFooterS
 
   const base = {
     visible: asBoolean(record.visible, fallback.visible),
+    upperSectionVisible: asBoolean(record.upperSectionVisible, fallback.upperSectionVisible),
+    lowerSectionVisible: asBoolean(record.lowerSectionVisible, fallback.lowerSectionVisible),
+    lowerContactVisible: asBoolean(record.lowerContactVisible, fallback.lowerContactVisible),
     logoMode: enumValue(record.logoMode, HOMEPAGE_FOOTER_LOGO_MODES, fallback.logoMode),
     logoText: asString(record.logoText ?? record.logo, fallback.logoText, SHORT_TEXT_MAX_LENGTH),
     description: asString(record.description, fallback.description, DESCRIPTION_MAX_LENGTH),
+    descriptionTextAlign: resolveHomepageFooterTextAlignment(
+      record.descriptionTextAlign,
+      fallback.descriptionTextAlign
+    ),
     columns,
     contact: normalizeFooterContact(record.contact),
     socialLinks,
     copyright: asString(record.copyright, fallback.copyright, SHORT_TEXT_MAX_LENGTH),
+    copyrightTextAlign: resolveHomepageFooterTextAlignment(
+      record.copyrightTextAlign,
+      fallback.copyrightTextAlign
+    ),
     legalLinks,
     layoutColumns: asNumber(record.layoutColumns, fallback.layoutColumns, 1, MAX_FOOTER_COLUMNS),
     spacing: enumValue(record.spacing, HOMEPAGE_FOOTER_SPACINGS, fallback.spacing),
@@ -1725,7 +1775,7 @@ function normalizeCanvasElementDeviceSettings(
     marginBottomPx: asNumber(record.marginBottomPx ?? margin.bottom ?? uniformMargin, fallback.marginBottomPx, -1000, 2000),
     marginLeftPx: asNumber(record.marginLeftPx ?? margin.left ?? uniformMargin, fallback.marginLeftPx, -1000, 2000),
     zIndex: asNumber(record.zIndex ?? record.layerOrder, fallback.zIndex, -100, 1000),
-    textAlign: enumValue(record.textAlign, HOMEPAGE_ALIGNMENTS, fallback.textAlign),
+    textAlign: enumValue(record.textAlign, HOMEPAGE_TEXT_ALIGNMENTS, fallback.textAlign),
     horizontalAlign: enumValue(record.horizontalAlign ?? record.alignment, HOMEPAGE_ALIGNMENTS, fallback.horizontalAlign),
     color: asString(record.color ?? record.colour, fallback.color, COLOR_MAX_LENGTH),
     fontFamily: asString(record.fontFamily ?? record.font, fallback.fontFamily, 120),
@@ -1965,7 +2015,7 @@ function validateCanvasElementDeviceSettingsInput(
   validateNumber(errors, record.marginBottomPx ?? margin.bottom ?? uniformMargin ?? fallback.marginBottomPx, `${label} - zunanji odmik spodaj`, -1000, 2000);
   validateNumber(errors, record.marginLeftPx ?? margin.left ?? uniformMargin ?? fallback.marginLeftPx, `${label} - zunanji odmik levo`, -1000, 2000);
   validateNumber(errors, record.zIndex ?? record.layerOrder ?? fallback.zIndex, `${label} - vrstni red plasti`, -100, 1000);
-  validateEnum(errors, record.textAlign ?? fallback.textAlign, HOMEPAGE_ALIGNMENTS, `${label} - poravnava besedila`);
+  validateEnum(errors, record.textAlign ?? fallback.textAlign, HOMEPAGE_TEXT_ALIGNMENTS, `${label} - poravnava besedila`);
   validateEnum(errors, record.horizontalAlign ?? record.alignment ?? fallback.horizontalAlign, HOMEPAGE_ALIGNMENTS, `${label} - vodoravna poravnava`);
   validateText(errors, record.color ?? record.colour ?? fallback.color, COLOR_MAX_LENGTH, `${label} - barva`);
   validateText(errors, record.fontFamily ?? record.font ?? fallback.fontFamily, 120, `${label} - pisava`);
@@ -2095,14 +2145,45 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
   validateEnum(errors, footer.logoMode, HOMEPAGE_FOOTER_LOGO_MODES, 'Logotip v nogi');
   validateText(errors, footer.logoText, SHORT_TEXT_MAX_LENGTH, 'Besedilo logotipa');
   validateText(errors, footer.description, DESCRIPTION_MAX_LENGTH, 'Opis noge');
+  validateEnum(
+    errors,
+    footer.descriptionTextAlign ?? normalized.footer.descriptionTextAlign,
+    HOMEPAGE_TEXT_ALIGNMENTS,
+    'Opis noge - poravnava besedila'
+  );
+  validateEnum(
+    errors,
+    footer.copyrightTextAlign ?? normalized.footer.copyrightTextAlign,
+    HOMEPAGE_TEXT_ALIGNMENTS,
+    'Avtorske pravice - poravnava besedila'
+  );
+  const footerContact = asRecord(footer.contact);
+  validateEnum(
+    errors,
+    footerContact.textAlign ?? normalized.footer.contact.textAlign,
+    HOMEPAGE_ALIGNMENTS,
+    'Kontakt v nogi - poravnava besedila'
+  );
   validateEnum(errors, footer.spacing, HOMEPAGE_FOOTER_SPACINGS, 'Odmik noge');
   asArray(footer.columns).forEach((column, columnIndex) => {
     const columnRecord = asRecord(column);
     validateText(errors, columnRecord.title, SHORT_TEXT_MAX_LENGTH, `Stolpec ${columnIndex + 1} - naslov`, true);
+    validateEnum(
+      errors,
+      columnRecord.titleTextAlign ?? normalized.footer.columns[columnIndex]?.titleTextAlign ?? 'left',
+      HOMEPAGE_ALIGNMENTS,
+      `Stolpec ${columnIndex + 1} - poravnava naslova`
+    );
     asArray(columnRecord.links).forEach((link, linkIndex) => {
       const linkRecord = asRecord(link);
       validateText(errors, linkRecord.label, SHORT_TEXT_MAX_LENGTH, `Stolpec ${columnIndex + 1}, povezava ${linkIndex + 1} - oznaka`, true);
       validateUrl(errors, linkRecord.href, `Stolpec ${columnIndex + 1}, povezava ${linkIndex + 1} - URL`, true);
+      validateEnum(
+        errors,
+        linkRecord.textAlign ?? normalized.footer.columns[columnIndex]?.links[linkIndex]?.textAlign ?? 'left',
+        HOMEPAGE_ALIGNMENTS,
+        `Stolpec ${columnIndex + 1}, povezava ${linkIndex + 1} - poravnava besedila`
+      );
     });
   });
   asArray(footer.socialLinks).forEach((link, index) => {
@@ -2115,6 +2196,12 @@ export function validateLandingPageConfigInput(input: unknown): string[] {
     const linkRecord = asRecord(link);
     validateText(errors, linkRecord.label, SHORT_TEXT_MAX_LENGTH, `Pravna povezava ${index + 1} - oznaka`, true);
     validateUrl(errors, linkRecord.href, `Pravna povezava ${index + 1} - URL`, true);
+    validateEnum(
+      errors,
+      linkRecord.textAlign ?? normalized.footer.legalLinks[index]?.textAlign ?? 'left',
+      HOMEPAGE_ALIGNMENTS,
+      `Pravna povezava ${index + 1} - poravnava besedila`
+    );
   });
 
   validateEnum(errors, page.containerWidth, HOMEPAGE_CONTAINER_WIDTHS, 'Širina strani');

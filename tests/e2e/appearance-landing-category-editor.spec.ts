@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import {
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectOptions
+} from './support/appearance-editor-compact-select';
 
 function hexToRgbCss(color: string) {
   const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(color.trim());
@@ -110,10 +114,11 @@ test.describe('admin podoba redesign', () => {
     await expect(toolbar.getByRole('button', { name: 'Skrij', exact: true })).toBeVisible();
 
     await toolbar.getByRole('button', { name: 'Slog besedila', exact: true }).click();
-    const fontSelect = page.getByRole('combobox', { name: 'Pisava', exact: true });
-    await expect(fontSelect.getByRole('option', { name: 'IBM Plex Sans · priporočeno', exact: true })).toHaveCount(1);
-    await expect(fontSelect.getByRole('option', { name: 'Source Sans 3', exact: true })).toHaveCount(1);
-    await expect(fontSelect.getByRole('option', { name: 'Space Grotesk', exact: true })).toHaveCount(1);
+    const fontSelect = getAppearanceEditorCompactSelect(page, 'Pisava');
+    await expect(fontSelect).toBeVisible();
+    await expect.poll(() => readAppearanceEditorCompactSelectOptions(page, fontSelect)).toEqual(
+      expect.arrayContaining(['IBM Plex Sans', 'Source Sans 3', 'Space Grotesk'])
+    );
     await expect(categoryImages.first()).toHaveCSS('filter', 'none');
   });
 
@@ -394,15 +399,17 @@ test.describe('admin podoba redesign', () => {
     await page.getByRole('spinbutton', { name: 'Višina px', exact: true }).fill('56');
 
     const resizedLogo = await logo.evaluate((element) => {
-      const svg = element.querySelector('svg');
       return {
         elementHeight: (element as HTMLElement).offsetHeight,
-        svgHeight: svg?.getBoundingClientRect().height ?? 0,
+        logoSurfaceHeight: element.querySelector<HTMLElement>(
+          '[data-site-logo-purpose], [data-site-logo-fallback="shared"]'
+        )?.getBoundingClientRect().height ?? 0,
         elementRenderedHeight: element.getBoundingClientRect().height
       };
     });
     expect(resizedLogo.elementHeight).toBe(56);
-    expect(Math.abs(resizedLogo.svgHeight - resizedLogo.elementRenderedHeight)).toBeLessThan(1.5);
+    expect(resizedLogo.logoSurfaceHeight).toBeGreaterThan(0);
+    expect(Math.abs(resizedLogo.logoSurfaceHeight - resizedLogo.elementRenderedHeight)).toBeLessThan(1.5);
 
     await page.getByRole('button', { name: 'Zapri', exact: true }).click();
     const logoTransformBeforeDrag = await logo.evaluate((element) => getComputedStyle(element).transform);

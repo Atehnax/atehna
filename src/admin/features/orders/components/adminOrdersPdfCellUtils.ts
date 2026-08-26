@@ -1,28 +1,15 @@
-import type { GenerateOrderPdfType, OrderPdfDocument, OrderPdfTypeKey } from '@/shared/domain/order/orderTypes';
+import type {
+  GenerateOrderPdfType,
+  OrderPdfDocument,
+  OrderPdfTypeKey
+} from '@/shared/domain/order/orderTypes';
 
 export type PdfDocument = OrderPdfDocument;
-
 export type PdfTypeKey = OrderPdfTypeKey;
-
 export type GeneratePdfType = GenerateOrderPdfType;
-
-type PdfTypeConfig = {
-  key: PdfTypeKey;
-  label: string;
-  canGenerate: boolean;
-};
-
-const pdfTypes: PdfTypeConfig[] = [
-  { key: 'order_summary', label: 'Povzetek', canGenerate: true },
-  { key: 'purchase_order', label: 'Naročilnica', canGenerate: true },
-  { key: 'dobavnica', label: 'Dobavnica', canGenerate: true },
-  { key: 'predracun', label: 'Predračun', canGenerate: true },
-  { key: 'invoice', label: 'Račun', canGenerate: true }
-];
 
 export const routeMap: Record<GeneratePdfType, string> = {
   order_summary: 'generate-order-summary',
-  purchase_order: 'generate-purchase-order',
   predracun: 'generate-predracun',
   dobavnica: 'generate-dobavnica',
   invoice: 'generate-invoice'
@@ -37,7 +24,8 @@ const normalizePdfType = (type: string): PdfTypeKey | null => {
   return null;
 };
 
-export const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType => Boolean(key);
+export const isGenerateKey = (key: PdfTypeKey): key is GeneratePdfType =>
+  key !== 'purchase_order';
 
 const padTwoDigits = (value: number) => String(value).padStart(2, '0');
 
@@ -54,7 +42,9 @@ export const formatDateTimeCompact = (value: string) => {
   return `${day}.${month}.${year} ${hour}:${minute}`;
 };
 
-export const groupDocumentsByType = (documents: PdfDocument[]): Record<PdfTypeKey, PdfDocument[]> => {
+export const groupDocumentsByType = (
+  documents: PdfDocument[]
+): Record<PdfTypeKey, PdfDocument[]> => {
   const grouped: Record<PdfTypeKey, PdfDocument[]> = {
     order_summary: [],
     purchase_order: [],
@@ -65,7 +55,8 @@ export const groupDocumentsByType = (documents: PdfDocument[]): Record<PdfTypeKe
 
   const sortedDocuments = [...documents].sort(
     (leftDocument, rightDocument) =>
-      new Date(rightDocument.created_at).getTime() - new Date(leftDocument.created_at).getTime()
+      new Date(rightDocument.created_at).getTime() -
+      new Date(leftDocument.created_at).getTime()
   );
 
   sortedDocuments.forEach((documentItem) => {

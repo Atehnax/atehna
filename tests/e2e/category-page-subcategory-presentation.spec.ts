@@ -11,6 +11,11 @@ import {
 } from '../../src/commercial/catalog/catalogRoutes';
 import { toStorefrontPlainText } from '../../src/commercial/features/products/storefrontProduct';
 import type { CatalogItemEditorHydration } from '../../src/shared/domain/catalog/catalogAdminTypes';
+import {
+  chooseAppearanceEditorCompactSelectOption,
+  getAppearanceEditorCompactSelect,
+  readAppearanceEditorCompactSelectValue,
+} from './support/appearance-editor-compact-select';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 type CatalogProduct = {
@@ -1267,10 +1272,18 @@ test('variant listing card keeps price, square media, and CTA parity in the admi
   await expect(
     page.getByRole('heading', { level: 1, name: 'Artikli', exact: true }),
   ).toBeVisible({ timeout: 15_000 });
-  const productSelect = page.getByLabel('Artikel v predogledu');
+  const productSelect = getAppearanceEditorCompactSelect(
+    page,
+    'Artikel v predogledu',
+  );
   await expect(productSelect).toBeVisible();
-  await productSelect.selectOption(branch.productRecord.slug);
-  await expect(productSelect).toHaveValue(branch.productRecord.slug);
+  await chooseAppearanceEditorCompactSelectOption(
+    page,
+    productSelect,
+    branch.productRecord.slug,
+  );
+  expect(await readAppearanceEditorCompactSelectValue(productSelect))
+    .toBe(branch.productRecord.slug);
 
   const listingButton = page.getByRole('group', {
     name: 'Stran predogleda',
@@ -1392,7 +1405,10 @@ test('admin Seznam preview uses the same compact listing card and toolbar withou
   await expect(
     page.getByRole('heading', { level: 1, name: 'Artikli', exact: true }),
   ).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByLabel('Artikel v predogledu')).toBeVisible();
+  await expect(getAppearanceEditorCompactSelect(
+    page,
+    'Artikel v predogledu',
+  )).toBeVisible();
 
   const pageControls = page.getByRole('group', {
     name: 'Stran predogleda',

@@ -107,7 +107,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         [orderId, normalizedType]
       );
       version = Number(versionResult.rows[0]?.next_version ?? 1);
-      documentNumber = buildOrderDocumentNumber(orderId, normalizedType, version);
+      documentNumber = buildOrderDocumentNumber(normalizedType, version, documentAccessId);
       const insertResult = await client.query(
         `
           insert into order_documents (

@@ -279,7 +279,7 @@ async function expectCompactToolbarPopover(dialog: Locator, size: 'standard' | '
   expect(geometry.body.paddingRight).toBeLessThanOrEqual(12);
   expect(geometry.body.paddingTop).toBeLessThanOrEqual(8);
   expect(geometry.body.paddingBottom).toBeLessThanOrEqual(8);
-  expect(geometry.body.overflowY).toBe('auto');
+  expect(geometry.body.overflowY).toBe('visible');
   expect(geometry.body.scrollWidth).toBeLessThanOrEqual(geometry.body.clientWidth + 1);
   expect(geometry.rect.x).toBeGreaterThanOrEqual(-1);
   expect(geometry.rect.y).toBeGreaterThanOrEqual(-1);

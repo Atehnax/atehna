@@ -49,6 +49,7 @@ import {
   adminControlFocusTokenClasses,
   adminInputFocusTokenClasses
 } from '@/shared/ui/theme/tokens';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import {
   migrateCatalogSpecificationKey,
   normalizeCatalogSpecificationToken,
@@ -61,6 +62,8 @@ import {
   type ProductCanvasResizeAxis
 } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import {
+  AppearanceEditorAlignmentControl,
+  AppearanceEditorCompactSelect,
   AppearanceEditorNumberInput,
   AppearanceEditorToolbarButton,
   AppearanceEditorToolbarDivider,
@@ -86,6 +89,33 @@ type Panel = 'content' | 'style' | 'layers' | null;
 
 const fieldClassName =
   `h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] text-slate-800 ${adminInputFocusTokenClasses}`;
+
+function CompactContextSelect<Value extends string>({
+  value,
+  options,
+  label,
+  marker,
+  testId,
+  onChange
+}: {
+  value: Value | '';
+  options: readonly { value: Value; label: string; disabled?: boolean }[];
+  label: string;
+  marker: string;
+  testId?: string;
+  onChange: (value: Value) => void;
+}) {
+  return (
+    <AppearanceEditorCompactSelect
+      value={value}
+      options={options}
+      ariaLabel={label}
+      marker={marker}
+      testId={testId}
+      onValueChange={onChange}
+    />
+  );
+}
 
 function CanonicalNumberField({
   label,
@@ -871,33 +901,33 @@ function ContentPanel({
         </label>
 
         <div className="grid grid-cols-2 gap-2">
-          <label className="grid gap-1">
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Samodejni izbor</span>
-            <select
+            <CompactContextSelect
               value={relatedProducts.sourceMode}
-              onChange={(event) => onRelatedProductsChange({
-                sourceMode: event.target.value as ProductAppearanceConfig['relatedProducts']['sourceMode']
-              })}
-              className={fieldClassName}
-            >
-              <option value="same-category">Ista kategorija</option>
-              <option value="same-subcategory">Ista podkategorija</option>
-              <option value="manual-only">Samo ročno</option>
-            </select>
-          </label>
-          <label className="grid gap-1">
+              options={[
+                { value: 'same-category', label: 'Ista kategorija' },
+                { value: 'same-subcategory', label: 'Ista podkategorija' },
+                { value: 'manual-only', label: 'Samo ročno' }
+              ]}
+              label="Samodejni izbor"
+              marker="related-source-mode"
+              onChange={(sourceMode) => onRelatedProductsChange({ sourceMode })}
+            />
+          </div>
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Ročni izbor</span>
-            <select
+            <CompactContextSelect
               value={relatedProducts.manualPlacement}
-              onChange={(event) => onRelatedProductsChange({
-                manualPlacement: event.target.value as ProductAppearanceConfig['relatedProducts']['manualPlacement']
-              })}
-              className={fieldClassName}
-            >
-              <option value="before-auto">Pred samodejnimi</option>
-              <option value="after-auto">Za samodejnimi</option>
-            </select>
-          </label>
+              options={[
+                { value: 'before-auto', label: 'Pred samodejnimi' },
+                { value: 'after-auto', label: 'Za samodejnimi' }
+              ]}
+              label="Ročni izbor"
+              marker="related-manual-placement"
+              onChange={(manualPlacement) => onRelatedProductsChange({ manualPlacement })}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -1000,33 +1030,29 @@ function ContentPanel({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <label className="grid gap-1">
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Položaj sklopa</span>
-            <select
+            <CompactContextSelect
               value={relatedProducts.sectionPlacement}
-              onChange={(event) => onRelatedProductsChange({
-                sectionPlacement: event.target.value as ProductAppearanceConfig['relatedProducts']['sectionPlacement']
-              })}
-              className={fieldClassName}
-            >
-              <option value="before-content">Pred opisom</option>
-              <option value="after-content">Za opisom</option>
-            </select>
-          </label>
-          <label className="grid gap-1">
+              options={[
+                { value: 'before-content', label: 'Pred opisom' },
+                { value: 'after-content', label: 'Za opisom' }
+              ]}
+              label="Položaj sklopa"
+              marker="related-section-placement"
+              onChange={(sectionPlacement) => onRelatedProductsChange({ sectionPlacement })}
+            />
+          </div>
+          <div className="grid gap-1">
             <span className="text-[9px] font-medium text-white/70">Poravnava</span>
-            <select
+            <AppearanceEditorAlignmentControl
               value={relatedProducts.sectionAlignment}
-              onChange={(event) => onRelatedProductsChange({
-                sectionAlignment: event.target.value as ProductAppearanceConfig['relatedProducts']['sectionAlignment']
-              })}
-              className={fieldClassName}
-            >
-              <option value="left">Levo</option>
-              <option value="center">Sredina</option>
-              <option value="right">Desno</option>
-            </select>
-          </label>
+              options={['left', 'center', 'right'] as const}
+              className="w-full"
+              ariaLabel="Poravnava sklopa povezanih izdelkov"
+              onValueChange={(sectionAlignment) => onRelatedProductsChange({ sectionAlignment })}
+            />
+          </div>
         </div>
 
         <label className="grid gap-1">
@@ -1060,7 +1086,7 @@ function ContentPanel({
             onChange={(event) => setRelatedSearch(event.target.value)}
             className={fieldClassName}
           />
-          <div className="max-h-52 overflow-y-auto rounded-lg border border-white/15">
+          <div className="max-h-52 overflow-y-auto rounded-lg border border-white/15" data-appearance-editor-scroll-purpose="data">
             {availableProducts.length > 0 ? availableProducts.map((item) => (
               <label
                 key={item.slug}
@@ -1367,28 +1393,29 @@ function ContentPanel({
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <label className="col-span-2 grid gap-1 sm:col-span-1">
+              <div className="col-span-2 grid gap-1 sm:col-span-1">
                 <span className="text-[9px] font-medium text-slate-500">Položaj</span>
-                <select
-                  data-testid="product-gallery-thumbnail-position"
+                <CompactContextSelect
                   value={thumbnailPosition}
-                  onChange={(event) => {
-                    const position = event.target.value as ProductAppearanceConfig['gallery']['thumbnailPositionDesktop'];
+                  options={[
+                    { value: 'left', label: 'Levo · navpično' },
+                    { value: 'right', label: 'Desno · navpično' },
+                    { value: 'top', label: 'Zgoraj · vodoravno' },
+                    { value: 'bottom', label: 'Spodaj · vodoravno' },
+                    { value: 'hidden', label: 'Skrito' }
+                  ]}
+                  label="Položaj sličic"
+                  marker="gallery-thumbnail-position"
+                  testId="product-gallery-thumbnail-position"
+                  onChange={(position) => {
                     onGalleryChange(
                       previewDevice === 'desktop'
                         ? { thumbnailPositionDesktop: position }
                         : { thumbnailPositionMobile: position }
                     );
                   }}
-                  className={fieldClassName}
-                >
-                  <option value="left">Levo · navpično</option>
-                  <option value="right">Desno · navpično</option>
-                  <option value="top">Zgoraj · vodoravno</option>
-                  <option value="bottom">Spodaj · vodoravno</option>
-                  <option value="hidden">Skrito</option>
-                </select>
-              </label>
+                />
+              </div>
               <label className="grid gap-1">
                 <span className="text-[9px] font-medium text-slate-500">Galerija</span>
                 <div className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -1481,7 +1508,7 @@ function ContentPanel({
             }}
           />
         </div>
-        <div className="grid max-h-72 gap-2 overflow-y-auto pr-1">
+        <div className="grid max-h-72 gap-2 overflow-y-auto pr-1" data-appearance-editor-scroll-purpose="data">
           {images.length === 0 ? (
             <p className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-[10px] text-slate-500">
               Artikel še nima galerijskih slik.
@@ -1644,18 +1671,16 @@ function ContentPanel({
         </div>
         {product.variants.length > 0 ? (
           <>
-            <label className="grid gap-1">
+            <div className="grid gap-1">
               <span className="text-[9px] font-medium text-slate-500">Različica</span>
-              <select
-                value={selectedVariant?.id ?? ''}
-                onChange={(event) => onSelectedVariantIdChange(Number(event.target.value) || null)}
-                className={fieldClassName}
-              >
-                {product.variants.map((variant, index) => (
-                  <option key={variant.id ?? index} value={variant.id ?? ''}>{variant.variantName}</option>
-                ))}
-              </select>
-            </label>
+              <CompactContextSelect
+                value={String(selectedVariant?.id ?? '')}
+                options={product.variants.map((variant) => ({ value: String(variant.id ?? ''), label: variant.variantName }))}
+                label="Različica"
+                marker="variant-specification-editor"
+                onChange={(variantId) => onSelectedVariantIdChange(Number(variantId) || null)}
+              />
+            </div>
             <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
               <div>
                 <p className="text-[10px] font-semibold text-slate-800">
@@ -1837,21 +1862,19 @@ function ContentPanel({
             ))}
           </div>
         </fieldset>
-        <label className="grid gap-1.5">
+        <div className="grid gap-1.5">
           <span className="text-xs font-semibold text-slate-900">Predogled različice</span>
           <span className="text-[10px] text-slate-500">
             Trgovske podatke različic urejate v Artikli; tukaj izberete vsebino, ki jo oblikujete.
           </span>
-          <select
-            value={selectedVariant?.id ?? ''}
-            onChange={(event) => onSelectedVariantIdChange(Number(event.target.value) || null)}
-            className={fieldClassName}
-          >
-            {product.variants.map((variant, index) => (
-              <option key={variant.id ?? index} value={variant.id ?? ''}>{variant.variantName}</option>
-            ))}
-          </select>
-        </label>
+          <CompactContextSelect
+            value={String(selectedVariant?.id ?? '')}
+            options={product.variants.map((variant) => ({ value: String(variant.id ?? ''), label: variant.variantName }))}
+            label="Predogled različice"
+            marker="variant-preview"
+            onChange={(variantId) => onSelectedVariantIdChange(Number(variantId) || null)}
+          />
+        </div>
       </div>
     );
   }
@@ -2057,6 +2080,8 @@ export default function ProductAppearanceContextToolbar({
       if (event.key === 'Escape') setPanel(null);
     };
     const closeOutside = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('[data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal]')) return;
       if (
         toolbarContentRef.current
         && event.target instanceof Node
@@ -2076,7 +2101,7 @@ export default function ProductAppearanceContextToolbar({
   return (
     <div ref={toolbarContentRef} className="relative">
       <AppearanceEditorToolbarToneProvider tone="dark">
-        <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-0 flex-wrap items-center gap-0.5">
           <span
             className="mr-1 inline-flex h-8 max-w-44 min-w-0 items-center truncate rounded-lg bg-white/10 px-2.5 text-[11px] font-semibold text-white"
             title={selectedElementLabel}
@@ -2145,8 +2170,7 @@ export default function ProductAppearanceContextToolbar({
           aria-label={panel === 'layers' ? 'Elementi predogleda' : panel === 'content' ? 'Vsebina artikla' : 'Slog elementa'}
           data-product-toolbar-popover
           data-product-toolbar-popover-side={panelLayout.side}
-          className={`absolute z-[130] flex w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:w-auto ${appearanceEditorToolbarPopoverSurfaceClassName} ${panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} ${panelAlignment === 'right' ? 'right-0' : 'left-0'}`}
-          style={{ maxHeight: panelLayout.maxHeight }}
+          className={`absolute z-[130] flex w-[min(440px,calc(100vw-32px))] flex-col overflow-visible max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:w-auto ${appearanceEditorToolbarPopoverSurfaceClassName} ${panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} ${panelAlignment === 'right' ? 'right-0' : 'left-0'}`}
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-center justify-between gap-3 px-3 pb-1.5 pt-2">
@@ -2165,10 +2189,12 @@ export default function ProductAppearanceContextToolbar({
 
           <div
             data-product-toolbar-dark-controls
-            className="min-h-0 overflow-y-auto border-t border-white/15 bg-[rgba(30,41,53,0.98)] p-3 [&_.bg-slate-100]:!bg-white/10 [&_.bg-slate-50]:!bg-white/5 [&_.bg-white]:!bg-white/10 [&_.border-slate-200]:!border-white/15 [&_.border-slate-300]:!border-white/20 [&_.text-slate-400]:!text-white/55 [&_.text-slate-500]:!text-white/65 [&_.text-slate-600]:!text-white/75 [&_.text-slate-700]:!text-white/85 [&_.text-slate-800]:!text-white/90 [&_.text-slate-900]:!text-white"
+            data-appearance-editor-settings-surface
+            data-settings-scroll="none"
+            className="border-t border-white/15 bg-[rgba(30,41,53,0.98)] p-2.5 [&_.bg-slate-100]:!bg-white/10 [&_.bg-slate-50]:!bg-white/5 [&_.bg-white]:!bg-white/10 [&_.border-slate-200]:!border-white/15 [&_.border-slate-300]:!border-white/20 [&_.text-slate-400]:!text-white/55 [&_.text-slate-500]:!text-white/65 [&_.text-slate-600]:!text-white/75 [&_.text-slate-700]:!text-white/85 [&_.text-slate-800]:!text-white/90 [&_.text-slate-900]:!text-white"
           >
           {panel === 'layers' ? (
-            <div className="grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
+            <div className="grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2" data-appearance-editor-scroll-purpose="navigation">
               {elements.map((element) => (
                 <div
                   key={element.id}
@@ -2404,30 +2430,30 @@ export default function ProductAppearanceContextToolbar({
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <label className="grid gap-1">
-                  <span className="text-[9px] font-medium text-slate-500">Besedilo</span>
-                  <div className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 px-2">
-                    <input
-                      type="color"
-                      value={settings.color || '#0f172a'}
-                      onChange={(event) => onCanvasChange({ color: event.target.value })}
-                      className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
-                    />
-                    <button type="button" onClick={() => onCanvasChange({ color: '' })} className="text-[9px] text-slate-500">Deduj</button>
-                  </div>
-                </label>
-                <label className="grid gap-1">
-                  <span className="text-[9px] font-medium text-slate-500">Ozadje</span>
-                  <div className="flex h-8 items-center gap-2 rounded-lg border border-slate-200 px-2">
-                    <input
-                      type="color"
-                      value={settings.backgroundColor || '#ffffff'}
-                      onChange={(event) => onCanvasChange({ backgroundColor: event.target.value })}
-                      className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
-                    />
-                    <button type="button" onClick={() => onCanvasChange({ backgroundColor: '' })} className="text-[9px] text-slate-500">Brez</button>
-                  </div>
-                </label>
+                <CompactHexColorField
+                  label="Besedilo"
+                  value={settings.color}
+                  marker="product-canvas-text-color"
+                  tone="light"
+                  allowClear
+                  clearLabel="Podeduj"
+                  inheritedColor="#0F172A"
+                  onChange={(color) => onCanvasChange({ color })}
+                  inputAttributes={{ 'aria-label': 'Barva besedila' }}
+                  className="min-w-0"
+                />
+                <CompactHexColorField
+                  label="Ozadje"
+                  value={settings.backgroundColor}
+                  marker="product-canvas-background-color"
+                  tone="light"
+                  allowClear
+                  clearLabel="Brez"
+                  inheritedColor="#FFFFFF"
+                  onChange={(backgroundColor) => onCanvasChange({ backgroundColor })}
+                  inputAttributes={{ 'aria-label': 'Barva ozadja' }}
+                  className="min-w-0"
+                />
                 <label className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Velikost pisave</span>
                   <AppearanceEditorNumberInput
@@ -2438,37 +2464,34 @@ export default function ProductAppearanceContextToolbar({
                     className={fieldClassName}
                   />
                 </label>
-                <label className="grid gap-1">
+                <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Debelina</span>
-                  <select
-                    value={settings.fontWeight}
-                    onChange={(event) => onCanvasChange({ fontWeight: Number(event.target.value) })}
-                    className={fieldClassName}
-                  >
-                    <option value={0}>Deduj</option>
-                    <option value={400}>Navadno</option>
-                    <option value={500}>Srednje</option>
-                    <option value={600}>Polkrepko</option>
-                    <option value={700}>Krepko</option>
-                  </select>
-                </label>
+                  <CompactContextSelect
+                    value={String(settings.fontWeight)}
+                    options={[
+                      { value: '0', label: 'Deduj' },
+                      { value: '400', label: 'Navadno' },
+                      { value: '500', label: 'Srednje' },
+                      { value: '600', label: 'Polkrepko' },
+                      { value: '700', label: 'Krepko' }
+                    ]}
+                    label="Debelina pisave"
+                    marker="canvas-font-weight"
+                    onChange={(fontWeight) => onCanvasChange({ fontWeight: Number(fontWeight) })}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <label className="grid gap-1">
+                <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Poravnava</span>
-                  <select
+                  <AppearanceEditorAlignmentControl
                     value={settings.textAlign}
-                    onChange={(event) => onCanvasChange({
-                      textAlign: event.target.value as ProductCanvasElementDeviceSettings['textAlign']
-                    })}
-                    className={fieldClassName}
-                  >
-                    <option value="inherit">Deduj</option>
-                    <option value="left">Levo</option>
-                    <option value="center">Sredina</option>
-                    <option value="right">Desno</option>
-                  </select>
-                </label>
+                    options={['inherit', 'left', 'center', 'right', 'justify'] as const}
+                    className="w-full"
+                    ariaLabel="Poravnava besedila elementa"
+                    onValueChange={(textAlign) => onCanvasChange({ textAlign })}
+                  />
+                </div>
                 <label className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Radij</span>
                   <AppearanceEditorNumberInput min={0} max={999} value={settings.borderRadiusPx} onValueChange={(value) => onCanvasChange({ borderRadiusPx: value })} className={fieldClassName} />
@@ -2477,33 +2500,41 @@ export default function ProductAppearanceContextToolbar({
                   <span className="text-[9px] font-medium text-slate-500">Prosojnost</span>
                   <input type="range" min={0.1} max={1} step={0.05} value={settings.opacity} onChange={(event) => onCanvasChange({ opacity: Number(event.target.value) })} className="h-8 w-full" />
                 </label>
-                <label className="grid gap-1">
+                <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Senca</span>
-                  <select value={settings.shadow} onChange={(event) => onCanvasChange({ shadow: event.target.value as ProductCanvasElementDeviceSettings['shadow'] })} className={fieldClassName}>
-                    <option value="none">Brez</option>
-                    <option value="sm">Majhna</option>
-                    <option value="md">Srednja</option>
-                    <option value="lg">Velika</option>
-                  </select>
-                </label>
+                  <CompactContextSelect
+                    value={settings.shadow}
+                    options={[
+                      { value: 'none', label: 'Brez' },
+                      { value: 'sm', label: 'Majhna' },
+                      { value: 'md', label: 'Srednja' },
+                      { value: 'lg', label: 'Velika' }
+                    ]}
+                    label="Senca"
+                    marker="canvas-shadow"
+                    onChange={(shadow) => onCanvasChange({ shadow })}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <label className="grid gap-1">
+                <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Pisava elementa</span>
-                  <select
+                  <CompactContextSelect
                     value={settings.fontFamily}
-                    onChange={(event) => onCanvasChange({ fontFamily: event.target.value })}
-                    className={fieldClassName}
-                  >
-                    <option value="">Deduj globalno pisavo</option>
-                    <option value="Inter, system-ui, sans-serif">Inter</option>
-                    <option value="Arial, sans-serif">Arial</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                    <option value="Verdana, sans-serif">Verdana</option>
-                    <option value="'Courier New', Courier, monospace">Courier New</option>
-                  </select>
-                </label>
+                    options={[
+                      { value: '', label: 'Deduj globalno pisavo' },
+                      { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
+                      { value: 'Arial, sans-serif', label: 'Arial' },
+                      { value: 'Georgia, serif', label: 'Georgia' },
+                      { value: "'Times New Roman', Times, serif", label: 'Times New Roman' },
+                      { value: 'Verdana, sans-serif', label: 'Verdana' },
+                      { value: "'Courier New', Courier, monospace", label: 'Courier New' }
+                    ]}
+                    label="Pisava elementa"
+                    marker="canvas-font-family"
+                    onChange={(fontFamily) => onCanvasChange({ fontFamily })}
+                  />
+                </div>
                 <label className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Višina vrstice</span>
                   <AppearanceEditorNumberInput

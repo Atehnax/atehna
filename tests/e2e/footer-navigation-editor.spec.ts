@@ -191,25 +191,11 @@ test.describe('admin podoba redesign', () => {
     await expect(catalogMoveButton).toHaveAttribute('aria-roledescription', 'sortable');
     await expect(catalogMoveButton).toHaveAttribute('aria-describedby', /site-footer-column-links-/);
 
-    const dragStart = {
-      x: catalogMoveBox.x + catalogMoveBox.width - 36,
-      y: catalogMoveBox.y + catalogMoveBox.height / 2
-    };
-    const dragEnd = {
-      x: projectsMoveBox.x + projectsMoveBox.width - 36,
-      y: projectsMoveBox.y + projectsMoveBox.height * 0.75
-    };
-    await page.mouse.move(dragStart.x, dragStart.y);
-    await page.mouse.down();
-    for (let step = 1; step <= 20; step += 1) {
-      const progress = step / 20;
-      await page.mouse.move(
-        dragStart.x + (dragEnd.x - dragStart.x) * progress,
-        dragStart.y + (dragEnd.y - dragStart.y) * progress
-      );
-      await page.waitForTimeout(16);
-    }
-    await page.mouse.up();
+    await catalogMoveButton.focus();
+    await page.keyboard.press('Space');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Space');
     await expect(footerColumns.getByRole('button', { name: /^(Katalog|Za šole|Projekti)$/ })).toHaveText([
       'Za šole',
       'Projekti',

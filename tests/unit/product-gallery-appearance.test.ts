@@ -120,7 +120,7 @@ describe('product gallery appearance contracts', () => {
 
     expect(detailSource).toContain('previewDevice={canvasEditor?.device}');
     expect(contextToolbarSource).toContain(
-      'data-testid="product-gallery-thumbnail-position"'
+      'testId="product-gallery-thumbnail-position"'
     );
     expect(contextToolbarSource).toContain(
       'data-testid="product-gallery-size"'

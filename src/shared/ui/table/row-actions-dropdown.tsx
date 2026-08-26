@@ -24,6 +24,8 @@ type RowActionsDropdownProps = {
   triggerClassName?: string;
   menuClassName?: string;
   menuWidth?: number;
+  menuZIndex?: number;
+  menuTestId?: string;
   editScope?: string;
 };
 
@@ -39,6 +41,8 @@ export default function RowActionsDropdown({
   triggerClassName,
   menuClassName,
   menuWidth = 112,
+  menuZIndex = 70,
+  menuTestId,
   editScope
 }: RowActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,11 +79,11 @@ export default function RowActionsDropdown({
       top,
       left,
       width: menuWidth,
-      zIndex: 70,
+      zIndex: menuZIndex,
       transformOrigin: shouldFlipAbove ? 'bottom right' : 'top right',
       visibility: 'visible'
     });
-  }, [menuWidth]);
+  }, [menuWidth, menuZIndex]);
 
   useDropdownDismiss({
     open: isOpen,
@@ -134,7 +138,14 @@ export default function RowActionsDropdown({
 
       {isOpen ? (
         createPortal(
-          <div ref={menuRef} role="menu" style={menuStyle} data-edit-scope={editScope}>
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label={label}
+            style={menuStyle}
+            data-edit-scope={editScope}
+            data-testid={menuTestId}
+          >
             <MenuPanel className={`w-28 ${menuClassName ?? ''}`.trim()}>
               {items.map((item) => (
                 <MenuItem

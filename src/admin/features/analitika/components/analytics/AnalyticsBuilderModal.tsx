@@ -5,6 +5,7 @@ import { buildChartModel, chartTypeOptions, metricOptions, newSeries, transformO
 import type { ChartTheme } from '@/admin/features/analitika/components/charts/chartTheme';
 import type { OrdersAnalyticsResponse } from '@/shared/server/orderAnalytics';
 import type { AnalyticsChartConfig, AnalyticsChartRow, AnalyticsChartSeries, AnalyticsChartType, AnalyticsGlobalAppearance, AnalyticsMetricField } from '@/shared/server/analyticsCharts';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 
 export default function AnalyticsBuilderModal({ title, description, comment, chartType, config, data, onChangeTitle, onChangeDescription, onChangeComment, onChangeChartType, onChangeConfig, onClose, onSave, chartTheme, appearance, mode, onDelete }: { title: string; description: string; comment: string; chartType: AnalyticsChartType; config: AnalyticsChartConfig; data: OrdersAnalyticsResponse; onChangeTitle: (value: string) => void; onChangeDescription: (value: string) => void; onChangeComment: (value: string) => void; onChangeChartType: (value: AnalyticsChartType) => void; onChangeConfig: (value: AnalyticsChartConfig) => void; onClose: () => void; onSave: () => void; chartTheme: ChartTheme; appearance: AnalyticsGlobalAppearance; mode: 'create' | 'edit'; onDelete?: () => void; }) {
   const previewChart: AnalyticsChartRow = { id: -1, dashboard_key: 'narocila', key: 'preview', title, description, comment, chart_type: chartType, config_json: config, position: 0, is_system: false, created_at: '', updated_at: '' };
@@ -39,7 +40,17 @@ export default function AnalyticsBuilderModal({ title, description, comment, cha
                   <td className="px-2 py-1"><select value={series.chart_type} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { chart_type: event.target.value as AnalyticsChartType }))}>{chartTypeOptions.map((typeOption) => <option key={typeOption} value={typeOption}>{typeOption}</option>)}</select></td>
                   <td className="px-2 py-1"><select value={series.axis_side} className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_side: event.target.value as 'left' | 'right' }))}><option value="left">left</option><option value="right">right</option></select></td>
                   <td className="px-2 py-1"><input value={series.axis_label} className="w-24 rounded border border-slate-700 bg-slate-950 px-1 py-0.5" onChange={(event) => onChangeConfig(updateSeries(config, index, { axis_label: event.target.value }))} aria-label="Axis label" /></td>
-                  <td className="px-2 py-1"><input type="color" value={series.color} onChange={(event) => onChangeConfig(updateSeries(config, index, { color: event.target.value }))} /></td>
+                  <td className="px-2 py-1">
+                    <CompactHexColorField
+                      label={`Series ${index + 1} color`}
+                      value={series.color}
+                      marker={`analytics-series-${index + 1}`}
+                      tone="dark"
+                      layout="inline"
+                      onChange={(color) => onChangeConfig(updateSeries(config, index, { color }))}
+                      className="[&>label]:sr-only"
+                    />
+                  </td>
                   <td className="px-2 py-1"><button className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-rose-300" onClick={() => onChangeConfig({ ...config, series: config.series.filter((_, seriesIndex) => seriesIndex !== index) })}>x</button></td>
                 </tr>
               ))}

@@ -1,27 +1,33 @@
 import { Fragment, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Clock, Globe2, Mail, MapPin, Phone } from 'lucide-react';
-import AtehnaLogo from '@/commercial/components/AtehnaLogo';
 import { ResponsiveSiteLogo } from '@/commercial/components/SiteLogo';
-import type {
-  HomepageFooterColumn,
-  HomepageFooterContact,
-  HomepageFooterLink,
-  HomepageFooterSettings,
-  HomepageFooterSocialLink,
-  HomepageFooterSpacing,
-  HomepageSocialType
+import { SiteLogoArtwork } from '@/shared/components/SiteLogoArtwork';
+import {
+  resolveHomepageFooterTextAlignment,
+  type HomepageTextAlignment,
+  type HomepageFooterColumn,
+  type HomepageFooterContact,
+  type HomepageFooterLink,
+  type HomepageFooterSettings,
+  type HomepageFooterSocialLink,
+  type HomepageFooterSpacing,
+  type HomepageSocialType
 } from '@/shared/domain/landing/landingPage';
+import { SITE_LOGO_BUILTIN_ORIGINAL_MASTER } from '@/shared/domain/logo/siteLogo';
 
 export type FooterPresentation = Pick<HomepageFooterSettings, 'logoMode' | 'layoutColumns' | 'spacing' | 'topBorder'>;
 
 export type SiteFooterLinkPlacement = 'column' | 'legal';
-export type SiteFooterContactField = keyof HomepageFooterContact;
+export type SiteFooterContactField = Exclude<keyof HomepageFooterContact, 'textAlign'>;
 
 export type SiteFooterControlTarget =
   | { scope: 'surface'; settings: HomepageFooterSettings; hidden: boolean }
+  | { scope: 'upperSection'; settings: HomepageFooterSettings; hidden: boolean }
+  | { scope: 'lowerSection'; settings: HomepageFooterSettings; hidden: boolean }
+  | { scope: 'lowerContact'; contact: HomepageFooterContact; hidden: boolean }
   | { scope: 'logo'; settings: HomepageFooterSettings; logoMode: HomepageFooterSettings['logoMode'] }
-  | { scope: 'description'; value: string }
+  | { scope: 'description'; value: string; textAlign: HomepageTextAlignment }
   | { scope: 'columns'; columns: HomepageFooterColumn[] }
   | { scope: 'column'; column: HomepageFooterColumn; hidden: boolean }
   | { scope: 'columnTitle'; column: HomepageFooterColumn; value: string; hidden: boolean }
@@ -36,11 +42,27 @@ export type SiteFooterControlTarget =
   | { scope: 'contactField'; contact: HomepageFooterContact; field: SiteFooterContactField; value: string }
   | { scope: 'social'; links: HomepageFooterSocialLink[] }
   | { scope: 'socialLink'; link: HomepageFooterSocialLink; hidden: boolean }
-  | { scope: 'copyright'; rawValue: string; resolvedValue: string }
+  | { scope: 'copyright'; rawValue: string; resolvedValue: string; textAlign: HomepageTextAlignment }
   | { scope: 'legal'; links: HomepageFooterLink[] };
 
 type SiteFooterSurfaceRenderProps = {
   settings: HomepageFooterSettings;
+  hidden: boolean;
+  children: ReactNode;
+  defaultNode: ReactNode;
+  controls: ReactNode;
+};
+
+type SiteFooterSectionRenderProps = {
+  settings: HomepageFooterSettings;
+  hidden: boolean;
+  children: ReactNode;
+  defaultNode: ReactNode;
+  controls: ReactNode;
+};
+
+type SiteFooterLowerContactRenderProps = {
+  contact: HomepageFooterContact;
   hidden: boolean;
   children: ReactNode;
   defaultNode: ReactNode;
@@ -57,6 +79,7 @@ type SiteFooterLogoRenderProps = {
 
 type SiteFooterDescriptionRenderProps = {
   value: string;
+  textAlign: HomepageTextAlignment;
   defaultNode: ReactNode;
   controls: ReactNode;
 };
@@ -130,6 +153,7 @@ type SiteFooterSocialLinkRenderProps = {
 type SiteFooterCopyrightRenderProps = {
   rawValue: string;
   resolvedValue: string;
+  textAlign: HomepageTextAlignment;
   defaultNode: ReactNode;
   controls: ReactNode;
 };
@@ -146,13 +170,16 @@ export type SiteFooterEditorAdapter = {
   editorMode?: boolean;
   /** Render the footer even when it is disabled in the public configuration. */
   forceVisible?: boolean;
-  /** Keep hidden columns and links in their configured order for editor display. */
+  /** Keep hidden sections, columns, and links mounted for editor display. */
   showHidden?: boolean;
   /** Keep empty editable regions mounted. Defaults to true whenever an adapter is supplied. */
   showEmpty?: boolean;
   /** Produce contextual controls. Matching slots receive them; without a slot they follow the default node. */
   renderControls?: (target: SiteFooterControlTarget) => ReactNode;
   renderSurface?: (props: SiteFooterSurfaceRenderProps) => ReactNode;
+  renderUpperSection?: (props: SiteFooterSectionRenderProps) => ReactNode;
+  renderLowerSection?: (props: SiteFooterSectionRenderProps) => ReactNode;
+  renderLowerContact?: (props: SiteFooterLowerContactRenderProps) => ReactNode;
   renderLogo?: (props: SiteFooterLogoRenderProps) => ReactNode;
   renderDescription?: (props: SiteFooterDescriptionRenderProps) => ReactNode;
   renderColumns?: (props: SiteFooterColumnsRenderProps) => ReactNode;
@@ -236,6 +263,19 @@ const socialLabels: Record<HomepageSocialType, string> = {
 
 const classNames = (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(' ');
 
+const footerTextAlignmentClassNames: Record<HomepageTextAlignment, string> = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+  justify: 'text-justify'
+};
+
+function footerTextAlignmentClassName(value: unknown, allowJustify = true) {
+  return footerTextAlignmentClassNames[
+    resolveHomepageFooterTextAlignment(value, 'left', allowJustify)
+  ];
+}
+
 function boundedColumnCount(value: number | undefined) {
   if (!Number.isFinite(value)) return 1;
   return Math.min(6, Math.max(1, Math.round(value ?? 1)));
@@ -253,33 +293,26 @@ function orderedFooterItems<T>(items: readonly T[], includeHidden = false) {
     .map(({ item }) => item);
 }
 
-function renderDefaultSiteFooterLogo(
-  settings: HomepageFooterSettings,
-  logoMode: HomepageFooterSettings['logoMode'],
-  fluid = false
-) {
-  if (logoMode === 'hidden') return null;
-
-  const logoText = settings.logoText.trim();
-  if (logoText && logoText.toUpperCase() !== 'ATEHNA') {
-    return (
-      <span className={`inline-flex items-center gap-3 text-[color:var(--site-color-primary)] ${fluid ? 'h-full min-h-0 w-full' : ''}`}>
-        <span className={`grid place-items-center rounded-[var(--site-radius-md,0.5rem)] bg-[color:var(--site-color-primary)] font-bold text-[color:var(--site-color-primary-foreground)] ${fluid ? 'aspect-square h-full text-[0.45em]' : 'h-9 w-9 text-base'}`}>
-          {logoText.slice(0, 1).toUpperCase()}
-        </span>
-        {logoMode === 'full' ? (
-          <span className={`${fluid ? 'text-[0.62em]' : 'text-xl'} font-bold tracking-[0.02em] text-[color:var(--site-color-text)]`}>{logoText}</span>
-        ) : null}
-      </span>
-    );
-  }
-
+function renderDefaultSiteFooterLogo(fluid = false) {
   return (
-    <AtehnaLogo
-      markOnly={logoMode === 'mark'}
-      fluid={fluid}
-      className={!fluid && logoMode === 'mark' ? '[&>svg]:h-10 [&>svg]:w-10' : ''}
-    />
+    <span
+      className={classNames(
+        'inline-flex items-center justify-center overflow-hidden',
+        fluid ? 'h-full min-h-0 w-full min-w-0' : 'h-10 w-[126px]'
+      )}
+      data-site-logo-fallback="shared"
+    >
+      <SiteLogoArtwork
+        master={SITE_LOGO_BUILTIN_ORIGINAL_MASTER}
+        alt="Atehna"
+        className="max-h-full max-w-full"
+        style={{
+          aspectRatio: `${SITE_LOGO_BUILTIN_ORIGINAL_MASTER.intrinsicWidth} / ${SITE_LOGO_BUILTIN_ORIGINAL_MASTER.intrinsicHeight}`,
+          height: '100%',
+          width: 'auto'
+        }}
+      />
+    </span>
   );
 }
 
@@ -290,12 +323,11 @@ const footerLogoPurposes = {
 } as const;
 
 export function renderSiteFooterLogo(
-  settings: HomepageFooterSettings,
-  logoMode: HomepageFooterSettings['logoMode'],
+  _settings: HomepageFooterSettings,
+  _logoMode: HomepageFooterSettings['logoMode'],
   fluid = false
 ) {
-  if (logoMode === 'hidden') return null;
-  const fallback = renderDefaultSiteFooterLogo(settings, logoMode, fluid);
+  const fallback = renderDefaultSiteFooterLogo(fluid);
   const className = fluid ? 'h-full w-full' : 'h-10 w-[126px]';
   const purposeClassNames = fluid
     ? undefined
@@ -420,6 +452,15 @@ export default function SiteFooter({
   const editorMode = editorAdapter?.editorMode ?? Boolean(editorAdapter);
   const showHidden = editorAdapter?.showHidden ?? false;
   const showEmpty = editorAdapter?.showEmpty ?? editorMode;
+  const shouldRenderUpperSection = settings.upperSectionVisible
+    || showHidden
+    || Boolean(editorAdapter?.renderUpperSection);
+  const shouldRenderLowerSection = settings.lowerSectionVisible
+    || showHidden
+    || Boolean(editorAdapter?.renderLowerSection);
+
+  if (!shouldRenderUpperSection && !shouldRenderLowerSection) return null;
+
   const columns = orderedFooterItems(settings.columns, showHidden);
   const socialLinks = orderedFooterItems(settings.socialLinks, showHidden);
   const legalLinks = orderedFooterItems(settings.legalLinks, showHidden);
@@ -430,6 +471,9 @@ export default function SiteFooter({
   const tabletColumns = boundedColumnCount(views.tablet.layoutColumns);
   const desktopColumns = boundedColumnCount(views.desktop.layoutColumns);
   const controlsFor = (target: SiteFooterControlTarget) => editorAdapter?.renderControls?.(target) ?? null;
+  const descriptionTextAlign = resolveHomepageFooterTextAlignment(settings.descriptionTextAlign);
+  const contactTextAlign = resolveHomepageFooterTextAlignment(contact.textAlign, 'left', false);
+  const copyrightTextAlign = resolveHomepageFooterTextAlignment(settings.copyrightTextAlign);
 
   const logo = renderSiteFooterLogo(settings, logoMode);
   const logoDefaultNode = (
@@ -448,32 +492,67 @@ export default function SiteFooter({
   const renderedDescription = (settings.description || showEmpty || editorAdapter?.renderDescription)
     ? slotNode(editorAdapter?.renderDescription, {
       value: settings.description,
+      textAlign: descriptionTextAlign,
       defaultNode: settings.description
-        ? <p className="site-paragraph mt-4 max-w-xs text-[13px] leading-6">{settings.description}</p>
+        ? (
+            <p
+              className={classNames(
+                'site-paragraph mt-4 max-w-xs text-[13px] leading-6',
+                footerTextAlignmentClassNames[descriptionTextAlign]
+              )}
+              data-footer-text-align={descriptionTextAlign}
+            >
+              {settings.description}
+            </p>
+          )
         : null,
-      controls: controlsFor({ scope: 'description', value: settings.description })
+      controls: controlsFor({
+        scope: 'description',
+        value: settings.description,
+        textAlign: descriptionTextAlign
+      })
     })
     : null;
 
   const renderedColumns = columns.map((column) => {
     const links = orderedFooterItems(column.links, showHidden);
     const columnHidden = column.visible === false;
+    const titleTextAlign = resolveHomepageFooterTextAlignment(column.titleTextAlign, 'left', false);
     const renderedTitle = slotNode(editorAdapter?.renderColumnTitle, {
       column,
       value: column.title,
       hidden: columnHidden,
-      defaultNode: <h2 className="text-[13px] font-semibold text-[color:var(--site-color-text)]">{column.title}</h2>,
+      defaultNode: (
+        <h2
+          className={classNames(
+            'w-full text-[13px] font-semibold text-[color:var(--site-color-text)]',
+            footerTextAlignmentClassNames[titleTextAlign]
+          )}
+          data-footer-text-align={titleTextAlign}
+        >
+          {column.title}
+        </h2>
+      ),
       controls: controlsFor({ scope: 'columnTitle', column, value: column.title, hidden: columnHidden })
     });
     const renderedLinks = links.map((link) => {
       const hidden = columnHidden || link.visible === false;
+      const textAlign = resolveHomepageFooterTextAlignment(link.textAlign, 'left', false);
       const renderedLink = slotNode(editorAdapter?.renderLink, {
         placement: 'column' as const,
         link,
         column,
         hidden,
         defaultNode: (
-          <Link href={link.href || '#'} prefetch={false} className="site-link text-[13px] leading-5 transition">
+          <Link
+            href={link.href || '#'}
+            prefetch={false}
+            className={classNames(
+              'site-link block w-full text-[13px] leading-5 transition',
+              footerTextAlignmentClassNames[textAlign]
+            )}
+            data-footer-text-align={textAlign}
+          >
             {link.label}
           </Link>
         ),
@@ -530,13 +609,13 @@ export default function SiteFooter({
   const contactFields: Array<{
     field: SiteFooterContactField;
     icon: ReactNode;
-    itemClassName: string;
+    alignItems: 'center' | 'start';
     defaultNode: ReactNode;
   }> = [
     {
       field: 'email',
       icon: <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />,
-      itemClassName: 'flex items-center gap-2',
+      alignItems: 'center',
       defaultNode: contact.email
         ? <a href={`mailto:${contact.email}`} className="site-link transition">{contact.email}</a>
         : null
@@ -544,7 +623,7 @@ export default function SiteFooter({
     {
       field: 'phone',
       icon: <Phone aria-hidden="true" className="h-4 w-4 shrink-0" />,
-      itemClassName: 'flex items-center gap-2',
+      alignItems: 'center',
       defaultNode: contact.phone
         ? <span>{contact.phone}</span>
         : null
@@ -552,34 +631,56 @@ export default function SiteFooter({
     {
       field: 'address',
       icon: <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />,
-      itemClassName: 'flex items-start gap-2',
+      alignItems: 'start',
       defaultNode: contact.address ? <span>{contact.address}</span> : null
     },
     {
       field: 'workingHours',
       icon: <Clock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />,
-      itemClassName: 'flex items-start gap-2',
+      alignItems: 'start',
       defaultNode: contact.workingHours ? <span>{contact.workingHours}</span> : null
     }
   ];
-  const renderedContactFields = contactFields
+  const renderContactFields = (layout: 'vertical' | 'horizontal') => contactFields
     .filter(({ field }) => Boolean(contact[field]) || showEmpty || Boolean(editorAdapter?.renderContactField))
-    .map(({ field, icon, itemClassName, defaultNode }) => (
-      <li key={field} className={itemClassName}>
+    .map(({ field, icon, alignItems, defaultNode }) => (
+      <li
+        key={field}
+        className={classNames(
+          'grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2',
+          alignItems === 'start' ? 'items-start' : 'items-center',
+          layout === 'horizontal' ? 'min-w-[12rem] flex-1' : 'w-full'
+        )}
+      >
         {icon}
-        {slotNode(editorAdapter?.renderContactField, {
-          contact,
-          field,
-          value: contact[field],
-          icon,
-          defaultNode,
-          controls: controlsFor({ scope: 'contactField', contact, field, value: contact[field] })
-        })}
+        <div
+          className={classNames('min-w-0', footerTextAlignmentClassName(contactTextAlign, false))}
+          data-footer-text-align={contactTextAlign}
+        >
+          {slotNode(editorAdapter?.renderContactField, {
+            contact,
+            field,
+            value: contact[field],
+            icon,
+            defaultNode,
+            controls: controlsFor({ scope: 'contactField', contact, field, value: contact[field] })
+          })}
+        </div>
       </li>
     ));
+  const renderedContactFields = renderContactFields(
+    settings.upperSectionVisible ? 'vertical' : 'horizontal'
+  );
   const contactChildren = (
     <>
-      <h2 id="site-footer-contact-heading" className="text-[13px] font-semibold text-[color:var(--site-color-text)]">
+      <h2
+        id="site-footer-contact-heading"
+        className={classNames(
+          'w-full text-[13px] font-semibold text-[color:var(--site-color-text)]',
+          footerTextAlignmentClassName(contactTextAlign, false)
+        )}
+        data-footer-text-align={contactTextAlign}
+      >
         Kontakt
       </h2>
       <ul className="mt-3 grid gap-2 text-[13px] leading-5 text-[color:var(--site-color-text-muted)]">
@@ -595,6 +696,50 @@ export default function SiteFooter({
       children: contactChildren,
       defaultNode: contactDefaultNode,
       controls: controlsFor({ scope: 'contact', contact })
+    })
+    : null;
+  const lowerContactHidden = !settings.lowerSectionVisible || !settings.lowerContactVisible;
+  const lowerContactChildren = (
+    <>
+      <h2
+        id="site-footer-lower-contact-heading"
+        className={classNames(
+          'min-w-[7rem] shrink-0 text-[13px] font-semibold text-[color:var(--site-color-text)]',
+          footerTextAlignmentClassName(contactTextAlign, false)
+        )}
+        data-footer-text-align={contactTextAlign}
+      >
+        Kontakt
+      </h2>
+      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-[13px] leading-5 text-[color:var(--site-color-text-muted)]">
+        {renderedContactFields}
+      </ul>
+    </>
+  );
+  const lowerContactDefaultNode = (
+    <section
+      aria-labelledby="site-footer-lower-contact-heading"
+      className="flex basis-full flex-wrap items-center gap-x-5 gap-y-2"
+      data-testid="site-footer-lower-contact"
+      data-footer-contact-layout="horizontal"
+    >
+      {lowerContactChildren}
+    </section>
+  );
+  const lowerContactEditorVisible = Boolean(editorAdapter)
+    && (showHidden || showEmpty || Boolean(editorAdapter?.renderLowerContact));
+  const shouldRenderLowerContact = !settings.upperSectionVisible
+    && (
+      (settings.lowerSectionVisible && settings.lowerContactVisible && hasContact)
+      || lowerContactEditorVisible
+    );
+  const lowerContactRegion = shouldRenderLowerContact
+    ? slotNode(editorAdapter?.renderLowerContact, {
+      contact,
+      hidden: lowerContactHidden,
+      children: lowerContactChildren,
+      defaultNode: lowerContactDefaultNode,
+      controls: controlsFor({ scope: 'lowerContact', contact, hidden: lowerContactHidden })
     })
     : null;
 
@@ -654,29 +799,103 @@ export default function SiteFooter({
     })
     : null;
 
+  const upperSectionChildren = (
+    <div className="grid gap-8 lg:grid-cols-[minmax(180px,1fr)_minmax(0,2.2fr)_minmax(220px,0.9fr)]">
+      <div className="min-w-0">
+        {renderedLogo}
+        {renderedDescription}
+      </div>
+
+      {columnsRegion}
+
+      <div className="min-w-0">
+        {contactRegion}
+        {socialRegion}
+      </div>
+    </div>
+  );
+  const upperSectionDefaultNode = (
+    <div data-testid="site-footer-upper-section">
+      {upperSectionChildren}
+    </div>
+  );
+  const upperSectionRegion = shouldRenderUpperSection
+    ? slotNode(editorAdapter?.renderUpperSection, {
+      settings,
+      hidden: !settings.upperSectionVisible,
+      children: upperSectionChildren,
+      defaultNode: upperSectionDefaultNode,
+      controls: controlsFor({
+        scope: 'upperSection',
+        settings,
+        hidden: !settings.upperSectionVisible
+      })
+    })
+    : null;
+
   const renderedCopyright = slotNode(editorAdapter?.renderCopyright, {
     rawValue: settings.copyright,
     resolvedValue: copyright,
-    defaultNode: copyright ? <p>{copyright}</p> : <span />,
-    controls: controlsFor({ scope: 'copyright', rawValue: settings.copyright, resolvedValue: copyright })
+    textAlign: copyrightTextAlign,
+    defaultNode: copyright ? (
+      <p
+        className={classNames(
+          footerTextAlignmentClassNames[copyrightTextAlign],
+          copyrightTextAlign !== 'left' && 'min-w-[16rem] flex-1'
+        )}
+        data-footer-text-align={copyrightTextAlign}
+      >
+        {copyright}
+      </p>
+    ) : <span />,
+    controls: controlsFor({
+      scope: 'copyright',
+      rawValue: settings.copyright,
+      resolvedValue: copyright,
+      textAlign: copyrightTextAlign
+    })
   });
+  const hasCustomLegalAlignment = legalLinks.some((link) => (
+    resolveHomepageFooterTextAlignment(link.textAlign, 'left', false) !== 'left'
+  ));
   const renderedLegalLinks = legalLinks.map((link) => {
     const hidden = link.visible === false;
+    const textAlign = resolveHomepageFooterTextAlignment(link.textAlign, 'left', false);
     const renderedLink = slotNode(editorAdapter?.renderLink, {
       placement: 'legal' as const,
       link,
       hidden,
       defaultNode: (
-        <Link key={link.id} href={link.href || '#'} prefetch={false} className="site-link transition">
+        <Link
+          href={link.href || '#'}
+          prefetch={false}
+          className={classNames(
+            'site-link transition',
+            footerTextAlignmentClassNames[textAlign],
+            hasCustomLegalAlignment && 'block w-full'
+          )}
+          data-footer-text-align={textAlign}
+        >
           {link.label}
         </Link>
       ),
       controls: controlsFor({ scope: 'link', placement: 'legal', link, hidden })
     });
-    return <Fragment key={link.id}>{renderedLink}</Fragment>;
+    return hasCustomLegalAlignment ? (
+      <div key={link.id} className="min-w-[7rem] flex-1">
+        {renderedLink}
+      </div>
+    ) : <Fragment key={link.id}>{renderedLink}</Fragment>;
   });
   const legalDefaultNode = (
-    <nav aria-label="Pravne povezave" className="flex flex-wrap gap-x-5 gap-y-2">
+    <nav
+      aria-label="Pravne povezave"
+      className={classNames(
+        'flex flex-wrap gap-x-5 gap-y-2',
+        hasCustomLegalAlignment && 'w-full sm:w-auto sm:min-w-[24rem]'
+      )}
+      data-footer-alignment-frame={hasCustomLegalAlignment ? 'distributed' : 'intrinsic'}
+    >
       {renderedLegalLinks}
     </nav>
   );
@@ -689,8 +908,56 @@ export default function SiteFooter({
       controls: controlsFor({ scope: 'legal', links: legalLinks })
     })
     : null;
-  const shouldRenderBottom = Boolean(copyright) || legalLinks.length > 0 || showEmpty
-    || Boolean(editorAdapter?.renderCopyright) || Boolean(editorAdapter?.renderLegal);
+  const shouldRenderCopyright = Boolean(copyright) || showEmpty
+    || Boolean(editorAdapter?.renderCopyright);
+  const shouldRenderLowerLeading = Boolean(lowerContactRegion) || shouldRenderLegal;
+  const lowerSectionChildren = (
+    <>
+      {shouldRenderLowerLeading ? (
+        <div
+          className="flex min-w-0 basis-full flex-wrap items-center gap-x-5 gap-y-3 lg:basis-0 lg:flex-1"
+          data-footer-lower-leading="true"
+        >
+          {lowerContactRegion}
+          {legalRegion}
+        </div>
+      ) : null}
+      {shouldRenderCopyright ? (
+        <div
+          className="min-w-0 basis-full lg:ml-auto lg:basis-auto lg:shrink-0 lg:whitespace-nowrap"
+          data-footer-lower-copyright="right"
+        >
+          {renderedCopyright}
+        </div>
+      ) : null}
+    </>
+  );
+  const lowerSectionDefaultNode = (
+    <div
+      className={classNames(
+        'site-divider flex flex-wrap items-center justify-between gap-3 border-t text-[12px] text-[color:var(--site-color-text-muted)]',
+        shouldRenderUpperSection ? 'mt-7' : '',
+        editorMode ? 'py-2' : 'pt-4'
+      )}
+      data-testid="site-footer-lower-section"
+      data-footer-lower-layout="responsive-split"
+    >
+      {lowerSectionChildren}
+    </div>
+  );
+  const lowerSectionRegion = shouldRenderLowerSection
+    ? slotNode(editorAdapter?.renderLowerSection, {
+      settings,
+      hidden: !settings.lowerSectionVisible,
+      children: lowerSectionChildren,
+      defaultNode: lowerSectionDefaultNode,
+      controls: controlsFor({
+        scope: 'lowerSection',
+        settings,
+        hidden: !settings.lowerSectionVisible
+      })
+    })
+    : null;
 
   const surfaceChildren = (
     <div
@@ -701,29 +968,8 @@ export default function SiteFooter({
         desktopSpacingClassNames[views.desktop.spacing]
       )}
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(180px,1fr)_minmax(0,2.2fr)_minmax(220px,0.9fr)]">
-        <div className="min-w-0">
-          {renderedLogo}
-          {renderedDescription}
-        </div>
-
-        {columnsRegion}
-
-        <div className="min-w-0">
-          {contactRegion}
-          {socialRegion}
-        </div>
-      </div>
-
-      {shouldRenderBottom ? (
-        <div className={classNames(
-          'site-divider mt-7 flex flex-wrap items-center justify-between gap-3 border-t text-[12px] text-[color:var(--site-color-text-muted)]',
-          editorMode ? 'py-2' : 'pt-4'
-        )}>
-          {renderedCopyright}
-          {legalRegion}
-        </div>
-      ) : null}
+      {upperSectionRegion}
+      {lowerSectionRegion}
     </div>
   );
   const surfaceControls = controlsFor({ scope: 'surface', settings, hidden: !settings.visible });

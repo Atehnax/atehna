@@ -9,7 +9,14 @@ import {
   uploadPrivateOrderDocumentBlob
 } from '@/shared/server/blob';
 import { formatStructuredOrderAddress } from '@/shared/domain/order/orderAddress';
+import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf } from '@/shared/server/pdf';
+import { getSiteLogoConfig } from '@/shared/server/siteLogo';
+import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import {
+  allocateOrderDocumentNumber,
+  buildGeneratedPdfFileName
+} from '@/shared/server/pdfGeneration';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 
 const DOCUMENT_TYPE = 'order_summary';
@@ -245,43 +252,10 @@ export async function processInitialOrderSummaryJob(
   let uploadedPath: string | null = null;
   try {
     const { payload } = claimed;
-    const pdfBuffer = await generateOrderPdf(
-      'Povzetek naročila',
-      {
-        orderNumber: payload.orderNumber,
-        customerType: payload.customer.customerType,
-        organizationName: payload.customer.organizationName,
-        contactName: payload.customer.contactName,
-        email: payload.customer.email,
-        deliveryAddress: formatStructuredOrderAddress(payload.customer),
-        reference: payload.customer.reference,
-        notes: payload.customer.notes,
-        createdAt: new Date(payload.createdAt),
-        subtotal: payload.totals.net,
-        tax: payload.totals.tax,
-        shipping: payload.totals.shipping,
-        commitmentStatus: payload.commitmentStatus,
-        total: payload.totals.gross
-      },
-      payload.items.map((item) => ({
-        sku: item.sku,
-        name: `${item.productName} – ${item.variantName}`,
-        unit: item.unit,
-        quantity: item.quantity,
-        unitPrice: item.unitNet
-      }))
-    );
-    const buffer = Buffer.from(pdfBuffer);
-    const contentHash = sha256(buffer);
+    const template = await getOrderDocumentTemplate(DOCUMENT_TYPE);
+    const issuedAt = new Date();
     const documentAccessId = randomUUID();
-    const fileName = `order-summary-${randomUUID()}.pdf`;
-    const requestedPath = buildOrderDocumentBlobPath(documentAccessId, 'pdf');
-    const blob = await uploadPrivateOrderDocumentBlob(
-      requestedPath,
-      buffer,
-      'application/pdf'
-    );
-    uploadedPath = blob.pathname;
+    const fileName = buildGeneratedPdfFileName(DOCUMENT_TYPE, issuedAt);
 
     const client = await pool.connect();
     let keepUploadedBlob = false;
@@ -326,7 +300,49 @@ export async function processInitialOrderSummaryJob(
         [orderId]
       );
       const version = Number(versionResult.rows[0]?.next_version ?? 1);
-      const documentNumber = `POVZETEK-${orderId}-V${version}`;
+      const documentNumber = await allocateOrderDocumentNumber(
+        client,
+        DOCUMENT_TYPE,
+        issuedAt
+      );
+      const logoConfig = await getSiteLogoConfig();
+      const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
+      const pdfBuffer = await generateOrderPdf({
+        type: DOCUMENT_TYPE,
+        template,
+        documentNumber,
+        issuedAt,
+        logoConfig,
+        logoArtwork: logoArtwork?.bytes ?? null,
+        order: {
+          customerType: payload.customer.customerType,
+          organizationName: payload.customer.organizationName,
+          contactName: payload.customer.contactName,
+          email: payload.customer.email,
+          deliveryAddress: formatStructuredOrderAddress(payload.customer),
+          reference: payload.customer.reference,
+          notes: payload.customer.notes,
+          createdAt: new Date(payload.createdAt),
+          subtotal: payload.totals.net,
+          tax: payload.totals.tax,
+          shipping: payload.totals.shipping,
+          commitmentStatus: payload.commitmentStatus,
+          total: payload.totals.gross
+        },
+        items: payload.items.map((item) => ({
+          sku: item.sku,
+          name: `${item.productName} - ${item.variantName}`,
+          unit: item.unit,
+          quantity: item.quantity,
+          unitPrice: item.unitNet,
+          lineTotal: item.unitNet * item.quantity
+        }))
+      });
+      const buffer = Buffer.from(pdfBuffer);
+      const contentHash = sha256(buffer);
+      const requestedPath = buildOrderDocumentBlobPath(documentAccessId, 'pdf');
+      const blob = await uploadPrivateOrderDocumentBlob(requestedPath, buffer, 'application/pdf');
+      uploadedPath = blob.pathname;
 
       await client.query(
         `
@@ -344,8 +360,8 @@ export async function processInitialOrderSummaryJob(
             format_marker
           )
           values (
-            $1, $2, 'order_summary', $3, $4, $5, $6, now(), $7,
-            'operational', 'atehna-order-summary-pdf-v2'
+            $1, $2, 'order_summary', $3, $4, $5, $6, $7, $8,
+            'operational', 'atehna-template-pdf-v3'
           )
         `,
         [
@@ -355,6 +371,7 @@ export async function processInitialOrderSummaryJob(
           blob.pathname,
           version,
           documentNumber,
+          issuedAt,
           contentHash
         ]
       );

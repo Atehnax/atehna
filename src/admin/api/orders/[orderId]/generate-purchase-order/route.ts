@@ -1,5 +1,12 @@
-import { generateOrderDocumentRoute } from '../../generateOrderDocumentRoute';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
-  return generateOrderDocumentRoute(request, props, 'Naročilnica', 'purchase_order');
+export async function POST() {
+  return NextResponse.json(
+    {
+      code: 'PURCHASE_ORDER_UPLOAD_ONLY',
+      message:
+        'Naročilnice ni mogoče ustvariti. Naloži jo lahko šola ali administrator.'
+    },
+    { status: 405 }
+  );
 }

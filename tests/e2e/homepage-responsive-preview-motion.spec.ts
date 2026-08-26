@@ -850,7 +850,8 @@ test.describe('admin podoba redesign', () => {
       { timeout: 1_000, intervals: [16, 16, 16] }
     ).toBeLessThan(1360);
 
-    const { samples } = await captureViewportSwitch(page, 'Tablica', 60);
+    const sampleRateHz = 60;
+    const { samples } = await captureViewportSwitch(page, 'Tablica', sampleRateHz);
     const last = samples.at(-1)!;
     const firstTabletSampleIndex = samples.findIndex((sample) => sample.selectedDevice === 'tablet');
     const firstTabletSample = samples[firstTabletSampleIndex];
@@ -899,8 +900,11 @@ test.describe('admin podoba redesign', () => {
     }
     const firstSettledTabletSample = retargetSamples.find((sample) => sample.phase === 'idle');
     expect(firstSettledTabletSample).toBeDefined();
+    const frameSamplingToleranceMs = Math.ceil(1_000 / sampleRateHz);
     expect(firstSettledTabletSample!.timestamp - firstTabletSample!.timestamp)
-      .toBeLessThanOrEqual(previewTransitionDurationMs + 100);
+      .toBeLessThanOrEqual(
+        previewTransitionDurationMs + previewPostDurationBufferMs + frameSamplingToleranceMs
+      );
 
     await expect(stage).toHaveAttribute('data-preview-target-device', 'tablet');
     await expect(stage).toHaveAttribute('data-preview-render-device', 'tablet');

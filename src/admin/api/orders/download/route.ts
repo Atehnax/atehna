@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
+import { normalizeOrderPdfFilenameForPresentation } from '@/shared/domain/order/orderTypes';
 
 function parseDate(value: string) {
   const parsed = new Date(value);
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
     const payload = rows.map((row) => ({
       orderNumber: row.order_number,
       type: row.type,
-      filename: row.filename,
+      filename: normalizeOrderPdfFilenameForPresentation(row.type, row.filename),
       url: `/api/admin/orders/${row.order_id}/documents/${row.document_id}`,
       createdAt: row.created_at
     }));

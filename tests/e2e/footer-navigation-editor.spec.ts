@@ -191,11 +191,19 @@ test.describe('admin podoba redesign', () => {
     await expect(catalogMoveButton).toHaveAttribute('aria-roledescription', 'sortable');
     await expect(catalogMoveButton).toHaveAttribute('aria-describedby', /site-footer-column-links-/);
 
+    const catalogColumn = catalogMoveButton.locator(
+      'xpath=ancestor::div[contains(@class, "group/footer-column")][1]'
+    );
+    const dragStatus = catalogColumn.getByRole('status');
     await catalogMoveButton.focus();
-    await page.keyboard.press('Space');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Space');
+    await catalogMoveButton.press('Space');
+    await expect(catalogMoveButton).toHaveAttribute('aria-pressed', 'true');
+    await catalogMoveButton.press('ArrowDown');
+    await expect(dragStatus).toContainText('droppable area schools');
+    await catalogMoveButton.press('ArrowDown');
+    await expect(dragStatus).toContainText('droppable area projects');
+    await catalogMoveButton.press('Enter');
+    await expect(catalogMoveButton).not.toHaveAttribute('aria-pressed', 'true');
     await expect(footerColumns.getByRole('button', { name: /^(Katalog|Za šole|Projekti)$/ })).toHaveText([
       'Za šole',
       'Projekti',
@@ -367,12 +375,12 @@ test.describe('admin podoba redesign', () => {
     });
     expect(addLegalBox.width).toBe(28);
     expect(addLegalBox.height).toBe(28);
-    expect(termsBox.x).toBeGreaterThan(copyrightBox.x + copyrightBox.width);
     expect(privacyBox.x).toBeGreaterThan(termsBox.x + termsBox.width);
     expect(cookiesBox.x).toBeGreaterThan(privacyBox.x + privacyBox.width);
     const legalAddGap = addLegalBox.x - (lastLegalOptionsBox.x + lastLegalOptionsBox.width);
     expect(legalAddGap).toBeGreaterThanOrEqual(4);
     expect(legalAddGap).toBeLessThanOrEqual(12);
+    expect(copyrightBox.x).toBeGreaterThan(addLegalBox.x + addLegalBox.width);
 
     const nextEmail = 'footer-test@atehna.si';
     await footerPreview.getByRole('button', { name: 'info@atehna.si', exact: true }).click();

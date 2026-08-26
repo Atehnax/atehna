@@ -17,13 +17,14 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   cloneDefaultSiteNavigationConfig,
@@ -6680,7 +6681,10 @@ export default function AdminNavigationPageClient({
   const [isSaving, setIsSaving] = useState(false);
   const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
   const saveInFlightRef = useRef(false);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     if (appliedInitialConfigKeyRef.current === normalizedInitialConfigKey) return;

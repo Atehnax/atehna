@@ -335,7 +335,8 @@ test.describe('product specification editing compatibility', () => {
     expect(unchangedProduct.material).toBe(product.material);
     expect(unchangedProduct.appearanceOverride).toEqual(product.appearanceOverride);
 
-    await panel.getByRole('button', { name: 'Zapri', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
     await page.goto(`/admin/artikli/${encodeURIComponent(product.slug)}`);
     await page.getByRole('tab', { name: 'Prodaja', exact: true }).click();
     await expect(page.getByTestId(

@@ -83,20 +83,17 @@ test.describe('order-document canvas additive selection', () => {
 
     const cell = page.locator('[data-order-document-table-scope="table_cell"]').first();
     await cell.dispatchEvent('click', modifiedClick);
-    await page
-      .getByTestId('order-document-element-inspector')
-      .getByRole('button', { name: 'Vsebina', exact: true })
-      .click();
-    const columnScope = page.locator(
-      '[data-order-document-table-typography-scope="table_column"]'
-    );
+    const inspector = page.getByTestId('order-document-element-inspector');
+    await inspector.getByRole('button', { name: 'Vse nastavitve', exact: true }).click();
+    const columnScope = page.locator('[data-order-document-table-quick-scope="column"]');
     await expect(columnScope).toBeVisible();
-    await columnScope.dispatchEvent('pointerdown', {
-      ...modifiedPointerDown,
-      ctrlKey: true
-    });
-    await columnScope.dispatchEvent('click', { ...modifiedClick, ctrlKey: true });
+    await expect(columnScope).toBeEnabled();
+    await columnScope.click({ modifiers: ['Control'] });
     await expect(cell).toHaveAttribute('data-canvas-element-selected', 'true');
-    await expect(columnScope).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('order-document-canvas')).toHaveAttribute(
+      'data-order-document-selection-count',
+      '2'
+    );
+    await expect(page.getByTestId('order-document-selection-count')).toHaveText('2 izbranih');
   });
 });

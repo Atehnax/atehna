@@ -17,6 +17,7 @@ export type OrderItemInput = {
   discount_percentage?: number;
   catalog_item_id?: number | null;
   catalog_variant_id?: number | null;
+  ship_later: boolean;
 };
 
 export type OrderPdfTypeKey =
@@ -128,6 +129,7 @@ export type OrderRow = {
   shipping_override_stale: boolean;
   parcel_count: number;
   pricing_revision: number;
+  delivery_plan_revision: number;
   total: number | null;
   created_at: string;
   is_draft?: boolean;
@@ -139,6 +141,7 @@ export type OrderItemRow = {
   order_id: number;
   catalog_item_id?: number | null;
   catalog_variant_id?: number | null;
+  ship_later: boolean;
   sku: string;
   name: string;
   unit: string | null;

@@ -792,9 +792,14 @@ test.describe.serial('shipping persistence and order authority', () => {
         `/api/admin/orders/${draftOrderId}/details`,
         { data: finalizePayload }
       );
-      expect(prematureFinalize.status()).toBe(409);
+      expect(prematureFinalize.status()).toBe(200);
       expect(await json(prematureFinalize)).toMatchObject({
-        code: 'ORDER_DRAFT_SHIPPING_INCOMPLETE'
+        success: true,
+        isDraft: true,
+        finalized: false,
+        finalizationBlock: {
+          code: 'ORDER_DRAFT_SHIPPING_INCOMPLETE'
+        }
       });
 
       const overrideResponse = await request.post(

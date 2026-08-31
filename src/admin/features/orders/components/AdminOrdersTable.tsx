@@ -84,7 +84,7 @@ import {
 import { CustomSelect } from '@/shared/ui/select';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
-import { orderCustomerTypeChangeBlock } from '@/shared/domain/order/schoolOrderWorkflow';
+import { orderCustomerTypeFinalContractBlock } from '@/shared/domain/order/schoolOrderWorkflow';
 import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
@@ -116,6 +116,7 @@ import {
 type OrderQuickEditState = {
   orderId: number;
   isDraft: boolean;
+  contractStatus: string | null;
   draftOrderNumber: string;
   initialOrderNumber: string;
   draftOrderDate: string;
@@ -214,11 +215,17 @@ const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) 
   value: option.value,
   label: getCustomerTypeLabel(option.value)
 }));
-const getOrderCustomerTypeRowOptions = (currentCustomerType: string, isDraft: boolean) =>
-  ORDER_CUSTOMER_TYPE_ROW_OPTIONS.filter(
-    (option) =>
-      orderCustomerTypeChangeBlock(currentCustomerType, option.value, isDraft) === null
-  );
+const getOrderCustomerTypeRowOptions = (currentCustomerType: string, contractStatus: string | null) =>
+  ORDER_CUSTOMER_TYPE_ROW_OPTIONS.map((option) => {
+    const changeBlock = orderCustomerTypeFinalContractBlock(
+      currentCustomerType,
+      option.value,
+      contractStatus
+    );
+    return changeBlock
+      ? { ...option, disabled: true, description: changeBlock.message }
+      : option;
+  });
 const ORDERS_HEADER_CELL_BASE_CLASS = 'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
 const ORDERS_HEADER_CELL_CENTER_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-center`;
 const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-left`;
@@ -475,6 +482,7 @@ export default function AdminOrdersTable({
         shipping_override_stale: row[21],
         parcel_count: 1,
         pricing_revision: 1,
+        delivery_plan_revision: 1,
         total: row[22] ?? 0,
         created_at: row[23],
         is_draft: row[24],
@@ -1235,6 +1243,7 @@ export default function AdminOrdersTable({
       setQuickEdit({
         orderId: order.id,
         isDraft: nextIsDraft,
+        contractStatus: order.contract_status ?? null,
         draftOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         initialOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         draftOrderDate: toDateInputValue(new Date(nextCreatedAt)),
@@ -1270,16 +1279,10 @@ export default function AdminOrdersTable({
 
   const saveQuickEdit = useCallback(async () => {
     if (!quickEdit) return;
-    if (!quickEdit.draftCustomerName.trim() || !quickEdit.draftOrderDate.trim() || !quickEdit.draftCustomerType.trim()) {
-      return;
-    }
-    if (!quickEditOrderNumberIsAllowed) {
-      toast.error(quickEditOrderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
-      return;
-    }
-
+    const orderNumberDirty =
+      quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim();
     const detailsDirty =
-      quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim() ||
+      orderNumberDirty ||
       quickEdit.draftOrderDate !== quickEdit.initialOrderDate ||
       quickEdit.draftCustomerName.trim() !== quickEdit.initialCustomerName.trim() ||
       quickEdit.draftAddress.trim() !== quickEdit.initialAddress.trim() ||
@@ -1287,6 +1290,10 @@ export default function AdminOrdersTable({
     const statusDirty = quickEdit.draftStatus !== quickEdit.initialStatus;
     const paymentDirty = quickEdit.draftPaymentStatus !== quickEdit.initialPaymentStatus;
     if (!detailsDirty && !statusDirty && !paymentDirty) return;
+    if (orderNumberDirty && !quickEditOrderNumberIsAllowed) {
+      toast.error(quickEditOrderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
+      return;
+    }
 
     setQuickEdit((current) => (current ? { ...current, isSaving: true } : current));
 
@@ -1299,8 +1306,9 @@ export default function AdminOrdersTable({
     let nextInitialStatus = quickEdit.initialStatus;
     let nextInitialPaymentStatus = quickEdit.initialPaymentStatus;
     let hasError = false;
+    let finalizationMessage: string | null = null;
 
-    if (detailsDirty) {
+    if (detailsDirty || quickEdit.isDraft) {
       const normalizedCustomerName = quickEdit.draftCustomerName.trim();
       const normalizedAddress = quickEdit.draftAddress.trim();
       const isCompanyLike = quickEdit.draftCustomerType === 'company' || quickEdit.draftCustomerType === 'school';
@@ -1326,12 +1334,17 @@ export default function AdminOrdersTable({
             orderDate: nextOrderDate
           })
         });
+        const detailsPayload = await response.json().catch(() => null) as {
+          message?: unknown;
+          isDraft?: unknown;
+          finalized?: unknown;
+          finalizationBlock?: { message?: unknown } | null;
+        } | null;
 
         if (!response.ok) {
-          const error = await response.json().catch(() => null);
           toast.error(
-            error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
-              ? error.message
+            typeof detailsPayload?.message === 'string'
+              ? detailsPayload.message
               : 'Shranjevanje številke naročila ni uspelo.'
           );
           hasError = true;
@@ -1341,7 +1354,14 @@ export default function AdminOrdersTable({
           nextInitialCustomerName = normalizedCustomerName;
           nextInitialAddress = normalizedAddress;
           nextInitialCustomerType = quickEdit.draftCustomerType;
-          nextIsDraft = false;
+          nextIsDraft =
+            typeof detailsPayload?.isDraft === 'boolean'
+              ? detailsPayload.isDraft
+              : quickEdit.isDraft;
+          finalizationMessage =
+            typeof detailsPayload?.finalizationBlock?.message === 'string'
+              ? detailsPayload.finalizationBlock.message
+              : null;
           setRowDetailOverrides((current) => ({
             ...current,
             [quickEdit.orderId]: {
@@ -1349,7 +1369,7 @@ export default function AdminOrdersTable({
               order_number: nextOrderNumber || toDisplayOrderNumberValue(quickEdit.initialOrderNumber),
               created_at: `${(nextOrderDate || quickEdit.initialOrderDate)}T00:00:00.000Z`,
               customer_type: quickEdit.draftCustomerType,
-              is_draft: false,
+              is_draft: nextIsDraft,
               organization_name: nextOrganizationName || null,
               contact_name: nextContactName,
               address_line1: normalizedAddress,
@@ -2481,9 +2501,9 @@ export default function AdminOrdersTable({
                               }
                               options={getOrderCustomerTypeRowOptions(
                                 activeQuickEdit.initialCustomerType,
-                                activeQuickEdit.isDraft
+                                activeQuickEdit.contractStatus
                               )}
-                              disabled={activeQuickEdit.isSaving || (!activeQuickEdit.isDraft && activeQuickEdit.initialCustomerType === 'school')}
+                              disabled={activeQuickEdit.isSaving}
                               className="w-full"
                               triggerClassName={ORDERS_TYPE_SELECT_TRIGGER_CLASS}
                               menuClassName="min-w-full"

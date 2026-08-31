@@ -626,7 +626,7 @@ test('ordinary direct orders are accepted automatically while school orders reta
   );
   assert.doesNotMatch(stockHolds, /where order_id = \$1[\s\S]*?state = 'released'[\s\S]*?inventory = inventory \+/u);
 
-  assert.match(statusRoute, /status !== 'cancelled'[\s\S]*?contract_status[\s\S]*?!== 'accepted'/u);
+  assert.match(statusRoute, /status !== 'cancelled'[\s\S]*?!effectiveContractAccepted/u);
   assert.match(paymentRoute, /\['paid', 'refunded'\][\s\S]*?contract_status[\s\S]*?!== 'accepted'/u);
   assert.match(documentRoute, /type !== 'order_summary'[\s\S]*?contract_status[\s\S]*?!== 'accepted'/u);
 

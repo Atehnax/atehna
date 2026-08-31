@@ -395,6 +395,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           shippingManualQuoteReason: string | null;
           total: number;
           pricingRevision: number;
+          deliveryPlanRevision: number;
           items: Array<{
             id: number;
             catalogItemId: number | null;
@@ -550,6 +551,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       );
       const oldRows = oldItemsResult.rows as Array<Record<string, unknown>>;
       const oldIds = new Set(oldRows.map((row) => Number(row.id)));
+      const deliveryPlanMembershipChanged =
+        oldRows.length !== pricedItems.length ||
+        pricedItems.some((item) => !item.id || !oldIds.has(item.id));
       const invalidPersistedId = pricedItems.find(
         (item) => item.id && !oldIds.has(item.id)
       );
@@ -1185,9 +1189,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
               shipping_snapshot_json = $5::jsonb,
               shipping_override_stale = $6,
               total = $7,
-              pricing_revision = pricing_revision + case when $8 then 1 else 0 end
-          where id = $9
-          returning pricing_revision
+              pricing_revision = pricing_revision + case when $8 then 1 else 0 end,
+              delivery_plan_revision = delivery_plan_revision + case when $9 then 1 else 0 end
+          where id = $10
+          returning pricing_revision, delivery_plan_revision
         `,
         [
           subtotal,
@@ -1198,6 +1203,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           shippingOverrideStale,
           total,
           Boolean(itemDiff),
+          deliveryPlanMembershipChanged,
           orderId
         ]
       );
@@ -1206,6 +1212,15 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       );
       if (!Number.isSafeInteger(pricingRevision) || pricingRevision < 1) {
         throw new Error('Shranjevanje postavk ni vrnilo veljavne revizije cen.');
+      }
+      const deliveryPlanRevision = Number(
+        pricingUpdateResult.rows[0]?.delivery_plan_revision
+      );
+      if (
+        !Number.isSafeInteger(deliveryPlanRevision) ||
+        deliveryPlanRevision < 1
+      ) {
+        throw new Error('Shranjevanje postavk ni vrnilo veljavne revizije načrta dobave.');
       }
       const shippingSource = hasShippingOverride
         ? 'manual_override'
@@ -1257,6 +1272,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         shippingManualQuoteReason,
         total,
         pricingRevision,
+        deliveryPlanRevision,
         items: savedItems
       };
       await client.query('COMMIT');
@@ -1273,6 +1289,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     return NextResponse.json({
       success: true,
       pricingRevision: responsePayload.pricingRevision,
+      deliveryPlanRevision: responsePayload.deliveryPlanRevision,
       totals: {
         subtotal: responsePayload.subtotal,
         tax: responsePayload.tax,

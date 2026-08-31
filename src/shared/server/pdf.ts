@@ -65,6 +65,7 @@ import {
   resolveOrderDocumentCustomerRows,
   resolveOrderDocumentFooterRows,
   resolveOrderDocumentItemCells,
+  resolveOrderDocumentItemSections,
   resolveOrderDocumentMetadataRows,
   resolveOrderDocumentPreviewText,
   resolveOrderDocumentTotalRows,
@@ -2437,7 +2438,7 @@ class OrderPdfRenderer {
     }));
   }
 
-  private drawTableHeader(columns: Column[], outerBottom = false) {
+  private tableHeaderLayout(columns: Column[]) {
     const columnStyles = columns.map((column) => {
       const target = { kind: 'table_header_cell', columnId: column.key } as const;
       return {
@@ -2452,6 +2453,11 @@ class OrderPdfRenderer {
       this.table.headerHeightPt,
       ...columnStyles.map(({ size }) => size + this.style.rowPaddingPt * 2 + 2)
     );
+    return { columnStyles, height };
+  }
+
+  private drawTableHeader(columns: Column[], outerBottom = false) {
+    const { columnStyles, height } = this.tableHeaderLayout(columns);
     this.ensureSpace(height + 20);
     const top = this.y;
     const bottom = top - height;
@@ -2491,112 +2497,225 @@ class OrderPdfRenderer {
     return resolveOrderDocumentItemCells(item)[key];
   }
 
+  private itemRowLayout(item: PdfItem, columns: Column[], rowNumber: number) {
+    const cells = columns.map((column) => {
+      const cellStyle = this.textStyle(
+        {
+          kind: 'table_cell',
+          columnId: column.key,
+          rowNumber
+        },
+        { fontWeight: 'regular', fontSizePt: this.style.tableSizePt }
+      );
+      const value = this.itemCell(item, column.key);
+      const size = column.key === 'sku'
+        ? fitTextSize(cellStyle.font, value, cellStyle.size, column.width - 10)
+        : cellStyle.size;
+      const lines = column.key === 'description'
+        ? wrapText(cellStyle.font, value, cellStyle.size, column.width - 10)
+        : [clampText(cellStyle.font, value, size, column.width - 10)];
+      return {
+        lines,
+        ...cellStyle,
+        size,
+        alignment: this.singleTextAlignment(
+          { kind: 'table_cell', columnId: column.key, rowNumber },
+          column.align
+        )
+      };
+    });
+    const rowHeight = Math.max(
+      resolveOrderDocumentTableRowHeight(this.table, rowNumber),
+      ...cells.map((cell) =>
+        cell.lines.length * cell.size * 1.35 + this.style.rowPaddingPt * 2
+      )
+    );
+    return { cells, rowHeight };
+  }
+
+  private itemSectionLabelStyle() {
+    return this.textStyle(
+      { kind: 'element', elementId: 'items' },
+      {
+        fontWeight: 'bold',
+        fontSizePt: Math.max(this.style.smallSizePt, this.style.tableSizePt + 0.5)
+      }
+    );
+  }
+
+  private itemSectionLabelHeight() {
+    return this.itemSectionLabelStyle().size * 1.35 + 3;
+  }
+
+  private drawItemSectionLabel(label: string, addGapBefore: boolean) {
+    const { font, size } = this.itemSectionLabelStyle();
+    if (addGapBefore) this.y -= 10;
+    const top = this.y;
+    this.page.drawText(clampText(font, label, size, this.contentWidth), {
+      x: this.margin,
+      y: top - size,
+      size,
+      font,
+      color: colorFromHex(this.style.textColor)
+    });
+    this.y = top - this.itemSectionLabelHeight();
+  }
+
+  private closeTableSegment(page: PDFPage, segmentBottom: number) {
+    if (!this.tableBorders.outer) return;
+    page.drawLine({
+      start: { x: this.margin, y: segmentBottom },
+      end: { x: this.margin + this.contentWidth, y: segmentBottom },
+      thickness: this.tableBorders.widthPt,
+      color: colorFromHex(this.tableBorders.color)
+    });
+  }
+
   private drawItems() {
     const columns = this.tableColumns();
-    this.ensureSpace(60);
-    this.drawTableHeader(columns, this.input.items.length === 0);
+    const sections = resolveOrderDocumentItemSections(
+      this.input.type,
+      this.input.items
+    );
+    const splitDeliveryNote = sections.length > 1;
     const rowGap = this.table.rowGapPt;
-    let rowIndex = 0;
-    let rowsInPageSegment = 0;
-    let segmentBottom = this.y;
+    const headerHeight = this.tableHeaderLayout(columns).height;
+    if (!splitDeliveryNote) this.ensureSpace(60);
 
-    for (const item of this.input.items) {
-      const rowNumber = rowIndex + 1;
-      const cells = columns.map((column) => {
-        const cellStyle = this.textStyle(
-          {
-            kind: 'table_cell',
-            columnId: column.key,
-            rowNumber
-          },
-          { fontWeight: 'regular', fontSizePt: this.style.tableSizePt }
+    sections.forEach((section, sectionIndex) => {
+      const firstRowNumber = section.startRowNumber;
+      const firstRowLayout = section.items[0]
+        ? this.itemRowLayout(section.items[0], columns, firstRowNumber)
+        : null;
+      if (section.label) {
+        const gapBefore = sectionIndex > 0 ? 10 : 0;
+        const movedToNewPage = this.ensureSpace(
+          gapBefore
+          + this.itemSectionLabelHeight()
+          + headerHeight
+          + (firstRowLayout?.rowHeight ?? 0)
+          + rowGap
+          + 4
         );
-        const value = this.itemCell(item, column.key);
-        const size = column.key === 'sku'
-          ? fitTextSize(cellStyle.font, value, cellStyle.size, column.width - 10)
-          : cellStyle.size;
-        const lines = column.key === 'description'
-          ? wrapText(cellStyle.font, value, cellStyle.size, column.width - 10)
-          : [clampText(cellStyle.font, value, size, column.width - 10)];
-        return {
-          lines,
-          ...cellStyle,
-          size,
-          alignment: this.singleTextAlignment(
-            { kind: 'table_cell', columnId: column.key, rowNumber },
-            column.align
-          )
-        };
-      });
-      const rowHeight = Math.max(
-        resolveOrderDocumentTableRowHeight(this.table, rowNumber),
-        ...cells.map((cell) =>
-          cell.lines.length * cell.size * 1.35 + this.style.rowPaddingPt * 2
-        )
-      );
-      const previousPage = this.page;
-      if (this.ensureSpace(rowHeight + rowGap + 4)) {
-        if (this.tableBorders.outer) {
-          previousPage.drawLine({
-            start: { x: this.margin, y: segmentBottom },
-            end: { x: this.margin + this.contentWidth, y: segmentBottom },
-            thickness: this.tableBorders.widthPt,
-            color: colorFromHex(this.tableBorders.color)
+        this.drawItemSectionLabel(section.label, gapBefore > 0 && !movedToNewPage);
+      }
+
+      this.drawTableHeader(columns, section.items.length === 0);
+      let rowsInPageSegment = 0;
+      let segmentBottom = this.y;
+
+      section.items.forEach((item, itemIndex) => {
+        const rowNumber = section.startRowNumber + itemIndex;
+        const { cells, rowHeight } = itemIndex === 0 && firstRowLayout
+          ? firstRowLayout
+          : this.itemRowLayout(item, columns, rowNumber);
+        const maximumLineCount = Math.max(1, ...cells.map((cell) => cell.lines.length));
+        const minimumRowHeight = resolveOrderDocumentTableRowHeight(this.table, rowNumber);
+        let lineOffset = 0;
+
+        while (lineOffset < maximumLineCount) {
+          const remainingHeight = Math.max(
+            lineOffset === 0 ? rowHeight : 0,
+            ...cells.map((cell) => (
+              Math.max(0, cell.lines.length - lineOffset) * cell.size * 1.35
+              + this.style.rowPaddingPt * 2
+            ))
+          );
+          const flowBottom = this.margin + this.footerReserve;
+          const availableBeforeBreak = this.activeCanvasFrame
+            ? Number.POSITIVE_INFINITY
+            : this.y - flowBottom - 4;
+          const currentSegmentCanSplit = rowsInPageSegment === 0
+            && remainingHeight + rowGap > availableBeforeBreak;
+          const previousPage = this.page;
+          if (
+            !currentSegmentCanSplit
+            && this.ensureSpace(remainingHeight + rowGap + 4)
+          ) {
+            this.closeTableSegment(previousPage, segmentBottom);
+            if (section.label) this.drawItemSectionLabel(section.label, false);
+            this.drawTableHeader(columns);
+            rowsInPageSegment = 0;
+            segmentBottom = this.y;
+          }
+
+          const availableHeight = this.activeCanvasFrame
+            ? remainingHeight
+            : Math.max(1, this.y - flowBottom - 4);
+          const maximumLineHeight = Math.max(...cells.map((cell) => cell.size * 1.35));
+          const availableLineCount = Math.max(
+            1,
+            Math.floor(
+              (availableHeight - this.style.rowPaddingPt * 2)
+              / Math.max(1, maximumLineHeight)
+            )
+          );
+          const chunkLineCount = Math.min(
+            maximumLineCount - lineOffset,
+            availableLineCount
+          );
+          const chunkCells = cells.map((cell) => ({
+            ...cell,
+            lines: cell.lines.slice(lineOffset, lineOffset + chunkLineCount)
+          }));
+          const isFinalChunk = lineOffset + chunkLineCount >= maximumLineCount;
+          const chunkHeight = Math.min(
+            availableHeight,
+            Math.max(
+              lineOffset === 0 ? minimumRowHeight : 0,
+              ...chunkCells.map((cell) => (
+                cell.lines.length * cell.size * 1.35
+                + this.style.rowPaddingPt * 2
+              ))
+            )
+          );
+          const top = this.y;
+          const bottom = top - chunkHeight;
+          const ruleTop = rowsInPageSegment > 0 ? top + rowGap : top;
+          if (
+            (rowNumber - 1) % 2 === 1
+            && this.style.tableStripeColor !== this.style.pageBackground
+          ) {
+            this.page.drawRectangle({
+              x: this.margin,
+              y: bottom,
+              width: this.contentWidth,
+              height: chunkHeight,
+              color: colorFromHex(this.style.tableStripeColor)
+            });
+          }
+          let x = this.margin;
+          columns.forEach((column, columnIndex) => {
+            const cell = chunkCells[columnIndex]!;
+            cell.lines.forEach((line, lineIndex) => {
+              this.drawAlignedTextLine(line, {
+                x: x + 5,
+                width: Math.max(1, column.width - 10),
+                y: this.y - this.style.rowPaddingPt - cell.size
+                  - lineIndex * cell.size * 1.35 + 2,
+                size: cell.size,
+                font: cell.font,
+                color: colorFromHex(this.style.textColor),
+                alignment: cell.alignment,
+                justify: lineIndex < cell.lines.length - 1
+              });
+            });
+            x += column.width;
           });
+          this.drawTableRules(this.page, columns, ruleTop, bottom, {
+            horizontalTop: rowsInPageSegment > 0
+          });
+          rowsInPageSegment += 1;
+          segmentBottom = bottom;
+          lineOffset += chunkLineCount;
+          this.y = bottom - (isFinalChunk ? rowGap : 0);
         }
-        this.drawTableHeader(columns);
-        rowsInPageSegment = 0;
-        segmentBottom = this.y;
+      });
+
+      if (section.items.length > 0) {
+        this.closeTableSegment(this.page, segmentBottom);
       }
-      const top = this.y;
-      const bottom = top - rowHeight;
-      const ruleTop = rowsInPageSegment > 0 ? top + rowGap : top;
-      if (
-        rowIndex % 2 === 1 &&
-        this.style.tableStripeColor !== this.style.pageBackground
-      ) {
-        this.page.drawRectangle({
-          x: this.margin,
-          y: bottom,
-          width: this.contentWidth,
-          height: rowHeight,
-          color: colorFromHex(this.style.tableStripeColor)
-        });
-      }
-      let x = this.margin;
-      columns.forEach((column, columnIndex) => {
-        const cell = cells[columnIndex]!;
-        cell.lines.forEach((line, lineIndex) => {
-          this.drawAlignedTextLine(line, {
-            x: x + 5,
-            width: Math.max(1, column.width - 10),
-            y: this.y - this.style.rowPaddingPt - cell.size
-              - lineIndex * cell.size * 1.35 + 2,
-            size: cell.size,
-            font: cell.font,
-            color: colorFromHex(this.style.textColor),
-            alignment: cell.alignment,
-            justify: lineIndex < cell.lines.length - 1
-          });
-        });
-        x += column.width;
-      });
-      this.drawTableRules(this.page, columns, ruleTop, bottom, {
-        horizontalTop: rowsInPageSegment > 0
-      });
-      rowsInPageSegment += 1;
-      segmentBottom = bottom;
-      this.y = bottom - rowGap;
-      rowIndex += 1;
-    }
-    if (this.input.items.length > 0 && this.tableBorders.outer) {
-      this.page.drawLine({
-        start: { x: this.margin, y: segmentBottom },
-        end: { x: this.margin + this.contentWidth, y: segmentBottom },
-        thickness: this.tableBorders.widthPt,
-        color: colorFromHex(this.tableBorders.color)
-      });
-    }
+    });
     this.y -= ORDER_DOCUMENT_FLOW_SECTION_GAP_PT;
   }
 

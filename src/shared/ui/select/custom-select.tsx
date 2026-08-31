@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import MenuItem from '../menu/menu-item';
 import MenuPanel from '../menu/menu-panel';
@@ -10,6 +10,8 @@ import { selectTokenClasses } from '@/shared/ui/theme/tokens';
 type CustomSelectOption<Value extends string> = {
   value: Value;
   label: string;
+  disabled?: boolean;
+  description?: string;
 };
 
 type CustomSelectProps<Value extends string> = {
@@ -60,12 +62,14 @@ export default function CustomSelect<Value extends string = string>({
   onOpenChange
 }: CustomSelectProps<Value>) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuContainerRef = useRef<HTMLDivElement | null>(null);
   const [menuRect, setMenuRect] = useState<MenuRect | null>(null);
   const closeSelect = useCallback(() => setIsOpen(false), []);
   const dismissRefs = useMemo(() => [containerRef, menuContainerRef], []);
+  const hasDescriptions = options.some((option) => Boolean(option.description));
 
   const selectedLabel = useMemo(
     () => options.find((option) => option.value === value)?.label ?? placeholder,
@@ -85,10 +89,17 @@ export default function CustomSelect<Value extends string = string>({
     const updateMenuRect = () => {
       const triggerBounds = triggerRef.current?.getBoundingClientRect();
       if (!triggerBounds) return;
+      const minimumWidth = hasDescriptions ? 280 : triggerBounds.width;
+      const availableWidth = Math.max(triggerBounds.width, window.innerWidth - VIEWPORT_PADDING * 2);
+      const width = Math.min(Math.max(triggerBounds.width, minimumWidth), availableWidth);
+      const left = Math.min(
+        Math.max(VIEWPORT_PADDING, triggerBounds.left),
+        Math.max(VIEWPORT_PADDING, window.innerWidth - width - VIEWPORT_PADDING)
+      );
       setMenuRect({
         top: triggerBounds.bottom + MENU_GAP,
-        left: triggerBounds.left,
-        width: triggerBounds.width
+        left,
+        width
       });
     };
 
@@ -101,7 +112,7 @@ export default function CustomSelect<Value extends string = string>({
       window.removeEventListener('resize', updateMenuRect);
       window.removeEventListener('scroll', updateMenuRect, true);
     };
-  }, [isOpen, onOpenChange]);
+  }, [hasDescriptions, isOpen, onOpenChange]);
 
   useLayoutEffect(() => {
     if (!isOpen || !menuRect) return;
@@ -137,6 +148,7 @@ export default function CustomSelect<Value extends string = string>({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
         style={triggerStyle}
         className={classNames(
           'relative',
@@ -156,6 +168,7 @@ export default function CustomSelect<Value extends string = string>({
         ? createPortal(
             <div
               ref={menuContainerRef}
+              id={menuId}
               role="listbox"
               className="fixed z-[140] overflow-y-auto"
               style={{
@@ -166,19 +179,45 @@ export default function CustomSelect<Value extends string = string>({
               }}
             >
               <MenuPanel className={classNames(selectTokenClasses.menu, menuClassName)}>
-                {options.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    role="option"
-                    ariaSelected={option.value === value}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
+                {options.map((option, index) => {
+                  const descriptionId = option.description
+                    ? `${menuId}-option-${index}-description`
+                    : undefined;
+                  const describedOptionClassName = option.description
+                    ? '!h-auto min-h-10 !items-start py-2'
+                    : '';
+                  const blockedOptionClassName = option.disabled
+                    ? '!cursor-not-allowed !text-slate-400 hover:!bg-transparent hover:!text-slate-400'
+                    : '';
+
+                  return (
+                    <MenuItem
+                      key={option.value}
+                      role="option"
+                      ariaSelected={option.value === value}
+                      ariaDisabled={option.disabled}
+                      ariaDescribedBy={descriptionId}
+                      className={classNames(describedOptionClassName, blockedOptionClassName)}
+                      onClick={() => {
+                        if (option.disabled) return;
+                        onChange(option.value);
+                        setIsOpen(false);
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="min-w-0">{option.label}</span>
+                        {option.description ? (
+                          <span
+                            id={descriptionId}
+                            className="mt-0.5 text-[10px] font-normal leading-4 text-slate-500"
+                          >
+                            {option.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </MenuItem>
+                  );
+                })}
               </MenuPanel>
             </div>,
             document.body

@@ -76,6 +76,10 @@ export async function GET(
           and d.deleted_at is null
           and o.deleted_at is null
           and d.order_pricing_revision = o.pricing_revision
+          and (
+            d.type <> 'dobavnica'
+            or d.order_delivery_plan_revision = o.delivery_plan_revision
+          )
         limit 1
       `,
       [documentId, orderId]

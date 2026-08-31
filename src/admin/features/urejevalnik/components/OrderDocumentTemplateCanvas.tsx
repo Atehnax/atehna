@@ -119,6 +119,7 @@ import {
   resolveOrderDocumentCustomerRows,
   resolveOrderDocumentFooterRows,
   resolveOrderDocumentItemCells,
+  resolveOrderDocumentItemSections,
   resolveOrderDocumentMetadataRows,
   resolveOrderDocumentPreviewText,
   resolveOrderDocumentTotalRows,
@@ -3481,7 +3482,10 @@ function ElementPreview({
     );
   }
   if (id === 'items') {
-    const rows = previewContext.items.map(resolveOrderDocumentItemCells);
+    const itemSections = resolveOrderDocumentItemSections(
+      previewContext.type,
+      previewContext.items
+    );
     const table = resolveOrderDocumentTable(template);
     const tableBorders = resolveOrderDocumentTableBorders(template, table);
     const tableBorder = `${tableBorders.widthPt}pt solid ${tableBorders.color}`;
@@ -3497,107 +3501,133 @@ function ElementPreview({
     };
     return (
       <div className={`h-full ${contentOverflowClass}`} style={baseStyle}>
-        <div
-          className="relative"
-          data-order-document-table-border-outer={tableBorders.outer || undefined}
-          data-order-document-table-border-horizontal={tableBorders.horizontal || undefined}
-          data-order-document-table-border-vertical={tableBorders.vertical || undefined}
-          style={tableBorders.outer
-            ? { outline: tableBorder, outlineOffset: `-${tableBorders.widthPt}pt` }
-            : undefined}
-        >
-        <CanvasGroupTarget
-          selection={tableHeaderChild()}
-          selectedChildId={selectedChildId}
-          onSelect={onSelectChild}
-          className="grid items-center gap-1 px-1 font-bold"
-          style={{
-            gridTemplateColumns: columns,
-            minHeight: `${table.headerHeightPt}pt`,
-            backgroundColor: template.style.tableHeaderBackground,
-            color: template.style.tableHeaderTextColor,
-            boxShadow: tableBorders.horizontal
-              ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
-              : undefined
-          }}
-        >
-          {visibleColumns.map((column) => (
-            <CanvasChildTarget
-              key={column.id}
-              selection={tableHeaderCellChild(column.id)}
-              selectedChildId={selectedChildId}
-              onSelect={onSelectChild}
-              className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
+        {itemSections.map((section, sectionIndex) => {
+          const sectionRows = section.items.map((item, index) => ({
+            cells: resolveOrderDocumentItemCells(item),
+            item,
+            rowNumber: section.startRowNumber + index
+          }));
+          return (
+            <div
+              key={section.id}
+              data-order-document-item-section={section.id}
+              style={{ marginTop: sectionIndex > 0 ? '10pt' : undefined }}
             >
-              {labels[columnLabelKeys[column.id]]}
-            </CanvasChildTarget>
-          ))}
-        </CanvasGroupTarget>
-        <CanvasGroupTarget
-          selection={tableBodyChild()}
-          selectedChildId={selectedChildId}
-          onSelect={onSelectChild}
-          className="block w-full"
-        >
-          {rows.map((row, index) => (
-            <CanvasGroupTarget
-              key={`${row.sku}-${index}`}
-              selection={tableRowChild(index + 1)}
-              selectedChildId={selectedChildId}
-              onSelect={onSelectChild}
-              className="grid w-full items-center gap-1 px-1 text-left"
-              style={{
-                gridTemplateColumns: columns,
-                minHeight: `${
-                  table.rowHeightOverrides.find((override) => override.rowNumber === index + 1)?.heightPt
-                    ?? table.rowHeightPt
-                }pt`,
-                marginTop: index === 0 ? 0 : `${table.rowGapPt}pt`,
-                backgroundColor: index % 2 ? template.style.tableStripeColor : 'transparent',
-                boxShadow: tableBorders.horizontal && index < rows.length - 1
-                  ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
-                  : undefined
-              }}
-            >
-              {visibleColumns.map((column) => (
-                <CanvasChildTarget
-                  key={column.id}
-                  selection={tableCellChild(index + 1, column.id)}
+              {section.label ? (
+                <div
+                  data-order-document-item-section-label={section.id}
+                  className="px-1 font-bold leading-[1.35]"
+                  style={{ paddingBottom: '3pt' }}
+                >
+                  {section.label}
+                </div>
+              ) : null}
+              <div
+                className="relative"
+                data-order-document-table-border-outer={tableBorders.outer || undefined}
+                data-order-document-table-border-horizontal={tableBorders.horizontal || undefined}
+                data-order-document-table-border-vertical={tableBorders.vertical || undefined}
+                style={tableBorders.outer
+                  ? { outline: tableBorder, outlineOffset: `-${tableBorders.widthPt}pt` }
+                  : undefined}
+              >
+                <CanvasGroupTarget
+                  selection={tableHeaderChild()}
                   selectedChildId={selectedChildId}
                   onSelect={onSelectChild}
-                  className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
+                  className="grid items-center gap-1 px-1 font-bold"
                   style={{
-                    ...(column.id === 'sku' || column.id === 'description'
-                      ? { minWidth: 0, overflowWrap: 'break-word' as const }
-                      : {})
+                    gridTemplateColumns: columns,
+                    minHeight: `${table.headerHeightPt}pt`,
+                    backgroundColor: template.style.tableHeaderBackground,
+                    color: template.style.tableHeaderTextColor,
+                    boxShadow: tableBorders.horizontal
+                      ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
+                      : undefined
                   }}
                 >
-                  {row[column.id]}
-                </CanvasChildTarget>
-              ))}
-            </CanvasGroupTarget>
-          ))}
-        </CanvasGroupTarget>
-          {tableBorders.vertical && visibleColumns.length > 1 ? (
-            <div
-              aria-hidden="true"
-              data-order-document-table-vertical-rule-overlay
-              className="pointer-events-none absolute inset-0 z-20 grid gap-1 px-1"
-              style={{ gridTemplateColumns: columns }}
-            >
-              {visibleColumns.slice(0, -1).map((column, index) => (
-                <span
-                  key={column.id}
-                  className="h-full"
-                  style={{
-                    gridColumn: index + 1,
-                    borderRight: tableBorder
-                  }}
-                />
-              ))}
+                  {visibleColumns.map((column) => (
+                    <CanvasChildTarget
+                      key={column.id}
+                      selection={tableHeaderCellChild(column.id)}
+                      selectedChildId={selectedChildId}
+                      onSelect={onSelectChild}
+                      className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
+                    >
+                      {labels[columnLabelKeys[column.id]]}
+                    </CanvasChildTarget>
+                  ))}
+                </CanvasGroupTarget>
+                <CanvasGroupTarget
+                  selection={tableBodyChild()}
+                  selectedChildId={selectedChildId}
+                  onSelect={onSelectChild}
+                  className="block w-full"
+                >
+                  {sectionRows.map(({ cells, item, rowNumber }, index) => (
+                    <CanvasGroupTarget
+                      key={`${item.sku}-${rowNumber}`}
+                      selection={tableRowChild(rowNumber)}
+                      selectedChildId={selectedChildId}
+                      onSelect={onSelectChild}
+                      className="grid w-full items-center gap-1 px-1 text-left"
+                      style={{
+                        gridTemplateColumns: columns,
+                        minHeight: `${
+                          table.rowHeightOverrides.find((override) => override.rowNumber === rowNumber)?.heightPt
+                            ?? table.rowHeightPt
+                        }pt`,
+                        marginTop: index === 0 ? 0 : `${table.rowGapPt}pt`,
+                        backgroundColor: (rowNumber - 1) % 2
+                          ? template.style.tableStripeColor
+                          : 'transparent',
+                        boxShadow: tableBorders.horizontal && index < sectionRows.length - 1
+                          ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
+                          : undefined
+                      }}
+                    >
+                      {visibleColumns.map((column) => (
+                        <CanvasChildTarget
+                          key={column.id}
+                          selection={tableCellChild(rowNumber, column.id)}
+                          selectedChildId={selectedChildId}
+                          onSelect={onSelectChild}
+                          className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
+                          style={{
+                            ...(column.id === 'sku' || column.id === 'description'
+                              ? { minWidth: 0, overflowWrap: 'break-word' as const }
+                              : {})
+                          }}
+                        >
+                          {cells[column.id]}
+                        </CanvasChildTarget>
+                      ))}
+                    </CanvasGroupTarget>
+                  ))}
+                </CanvasGroupTarget>
+                {tableBorders.vertical && visibleColumns.length > 1 ? (
+                  <div
+                    aria-hidden="true"
+                    data-order-document-table-vertical-rule-overlay
+                    className="pointer-events-none absolute inset-0 z-20 grid gap-1 px-1"
+                    style={{ gridTemplateColumns: columns }}
+                  >
+                    {visibleColumns.slice(0, -1).map((column, index) => (
+                      <span
+                        key={column.id}
+                        className="h-full"
+                        style={{
+                          gridColumn: index + 1,
+                          borderRight: tableBorder
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          ) : null}
-        </div>
+          );
+        })}
       </div>
     );
   }

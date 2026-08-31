@@ -326,6 +326,10 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     shipping_override_stale: rawRow.shipping_override_stale === true,
     parcel_count: Math.max(1, Math.trunc(Number(rawRow.parcel_count) || 1)),
     pricing_revision: Math.max(1, Math.trunc(Number(rawRow.pricing_revision) || 1)),
+    delivery_plan_revision: Math.max(
+      1,
+      Math.trunc(Number(rawRow.delivery_plan_revision) || 1)
+    ),
     total: parseNullableNumber(rawRow.total),
     created_at: toIsoTimestamp(rawRow.created_at),
     is_draft: Boolean(rawRow.is_draft),
@@ -357,7 +361,8 @@ function mapOrderItemRow(rawRow: Record<string, unknown>): OrderItemRow {
     line_net: lineNet,
     discount_percentage: discountPercentage,
     catalog_item_id: parseNullableNumber(rawRow.catalog_item_id),
-    catalog_variant_id: parseNullableNumber(rawRow.catalog_variant_id)
+    catalog_variant_id: parseNullableNumber(rawRow.catalog_variant_id),
+    ship_later: rawRow.ship_later === true
   };
 }
 
@@ -506,6 +511,11 @@ export async function fetchOrdersListPage(
           where od.order_id = orders.id
             and od.deleted_at is null
             and od.type = $${documentTypeIndex}
+            and od.order_pricing_revision = orders.pricing_revision
+            and (
+              od.type <> 'dobavnica'
+              or od.order_delivery_plan_revision = orders.delivery_plan_revision
+            )
         )
       )`);
     }
@@ -558,6 +568,7 @@ export async function fetchOrdersListPage(
           orders.parcel_count,
           orders.total::text as total,
           orders.pricing_revision,
+          orders.delivery_plan_revision,
           orders.created_at,
           orders.is_draft,
           orders.deleted_at
@@ -587,6 +598,10 @@ export async function fetchOrdersListPage(
           join paged_orders po
             on po.id = od.order_id
            and po.pricing_revision = od.order_pricing_revision
+           and (
+             od.type <> 'dobavnica'
+             or po.delivery_plan_revision = od.order_delivery_plan_revision
+           )
           where od.order_id in (select id from paged_orders)
             and od.deleted_at is null
         ) source_docs
@@ -771,6 +786,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.shipping_override_stale,
       orders.parcel_count,
       orders.pricing_revision,
+      orders.delivery_plan_revision,
       orders.total::text as total,
       orders.created_at,
       orders.is_draft,
@@ -856,7 +872,8 @@ export async function fetchOrderDetailSnapshot(
             orders.created_at,
             orders.is_draft,
             orders.deleted_at,
-            orders.pricing_revision
+            orders.pricing_revision,
+            orders.delivery_plan_revision
           from orders
           left join quote_offer_versions related_offer
             on related_offer.id = orders.source_quote_offer_version_id
@@ -882,9 +899,17 @@ export async function fetchOrderDetailSnapshot(
             where d.order_id = $1
               and d.deleted_at is null
               and d.order_pricing_revision = $2
+              and (
+                d.type <> 'dobavnica'
+                or d.order_delivery_plan_revision = $3
+              )
             order by d.created_at desc
           `,
-          [orderId, rawOrder.pricing_revision]
+          [
+            orderId,
+            rawOrder.pricing_revision,
+            rawOrder.delivery_plan_revision
+          ]
         );
         rawDocuments = documentsResult.rows as Record<string, unknown>[];
       }
@@ -989,6 +1014,10 @@ export async function fetchOrderDocuments(orderId: number, diagnosticsContext = 
         where d.order_id = $1
           and d.deleted_at is null
           and d.order_pricing_revision = o.pricing_revision
+          and (
+            d.type <> 'dobavnica'
+            or d.order_delivery_plan_revision = o.delivery_plan_revision
+          )
         order by d.created_at desc
       `,
       [orderId]
@@ -1014,6 +1043,10 @@ export async function fetchOrderDocumentsForOrders(
         where d.order_id = any($1::bigint[])
           and d.deleted_at is null
           and d.order_pricing_revision = o.pricing_revision
+          and (
+            d.type <> 'dobavnica'
+            or d.order_delivery_plan_revision = o.delivery_plan_revision
+          )
         order by d.created_at desc
       `,
       [orderIds]

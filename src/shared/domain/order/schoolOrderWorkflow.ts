@@ -1,6 +1,7 @@
 export type SchoolOrderWorkflowBlock = Readonly<{
   code:
     | 'ORDER_CUSTOMER_TYPE_IMMUTABLE'
+    | 'ORDER_CUSTOMER_TYPE_CONTRACT_FINAL'
     | 'SCHOOL_PURCHASE_ORDER_DELETE_BLOCKED'
     | 'SCHOOL_PURCHASE_ORDER_REQUIRED'
     | 'SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED'
@@ -14,6 +15,11 @@ export const ORDER_CUSTOMER_TYPE_IMMUTABLE: SchoolOrderWorkflowBlock = {
     'Po zaklju\u010dku osnutka tipa naro\u010dnika ni mogo\u010de spremeniti iz \u0161ole ali javnega zavoda v drug tip oziroma obratno.'
 };
 
+export const ORDER_CUSTOMER_TYPE_CONTRACT_FINAL: SchoolOrderWorkflowBlock = {
+  code: 'ORDER_CUSTOMER_TYPE_CONTRACT_FINAL',
+  message:
+    'Pogodbeno že sprejetega ali zavrnjenega naročila ni mogoče preklopiti med tipom »Šola / javni zavod« in drugim tipom naročnika.'
+};
 export const SCHOOL_PURCHASE_ORDER_DELETE_BLOCKED: SchoolOrderWorkflowBlock = {
   code: 'SCHOOL_PURCHASE_ORDER_DELETE_BLOCKED',
   message:
@@ -79,6 +85,49 @@ export function orderCustomerTypeChangeBlock(
     : null;
 }
 
+function crossesSchoolCustomerTypeBoundary(
+  currentCustomerType: string,
+  nextCustomerType: string
+): boolean {
+  return (
+    currentCustomerType !== nextCustomerType &&
+    (currentCustomerType === 'school' || nextCustomerType === 'school')
+  );
+}
+
+export function orderCustomerTypeFinalContractBlock(
+  currentCustomerType: string,
+  nextCustomerType: string,
+  contractStatus: string | null | undefined
+): SchoolOrderWorkflowBlock | null {
+  return (contractStatus === 'accepted' || contractStatus === 'rejected') &&
+    crossesSchoolCustomerTypeBoundary(currentCustomerType, nextCustomerType)
+    ? ORDER_CUSTOMER_TYPE_CONTRACT_FINAL
+    : null;
+}
+
+export function draftCommitmentStatusAfterCustomerTypeChange(input: {
+  currentCustomerType: string;
+  nextCustomerType: string;
+  currentCommitmentStatus: string | null;
+  contractStatus: string | null;
+  isDraft: boolean;
+}): string | null {
+  if (
+    !input.isDraft ||
+    input.contractStatus !== 'pending_seller_acceptance' ||
+    !crossesSchoolCustomerTypeBoundary(
+      input.currentCustomerType,
+      input.nextCustomerType
+    )
+  ) {
+    return input.currentCommitmentStatus;
+  }
+
+  return input.nextCustomerType === 'school'
+    ? 'pending_confirmation'
+    : 'binding';
+}
 export function schoolPurchaseOrderUploadBlock(
   customerType: string,
   commitmentStatus: string | null | undefined,

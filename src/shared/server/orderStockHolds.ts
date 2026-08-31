@@ -103,7 +103,7 @@ export async function commitOrderStockHolds(
         );
       });
     if (isExactReplay) return;
-    throw new Error('Order stock has already been recorded in a different state.');
+    throw new OrderStockReconciliationRequiredError();
   }
 
   for (const allocation of normalized) {

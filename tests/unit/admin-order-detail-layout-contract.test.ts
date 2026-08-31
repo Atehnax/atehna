@@ -40,6 +40,14 @@ const itemsEditor = readFileSync(
   'utf8'
 );
 
+const itemsEditorClient = readFileSync(
+  resolve(
+    process.cwd(),
+    'src/admin/features/orders/components/AdminOrderItemsEditorClient.tsx'
+  ),
+  'utf8'
+);
+
 const globalStyles = readFileSync(
   resolve(process.cwd(), 'src/shared/styles/globals.css'),
   'utf8'
@@ -346,7 +354,7 @@ test('order address remains structured inside one full-width field and persists 
   assert.match(orderDetailsRoute, /const countryCodeProvided = typeof countryCode === 'string'/u);
   assert.match(
     orderDetailsRoute,
-    /countryCodeProvided && normalizedCountryCode !== 'SI'/u
+    /countryCodeProvided[\s\S]*?normalizedCountryCode !== 'SI'/u
   );
   assert.match(
     orderDetailsRoute,
@@ -385,9 +393,12 @@ test('section actions toggle independent drafts while the top pencil activates e
   assert.match(detail, /<AdminNotesCard[\s\S]*?onToggle=\{\(\) => toggleSectionEdit\('notes'\)\}/u);
   assert.match(detail, /externalEditMode=\{isItemsEditing\}/u);
   assert.match(detail, /externalEditMode=\{isShippingEditing\}/u);
+  assert.match(detail, /if \(coreDetailsDirty\) \{[\s\S]*?fetch\([^)]*?\/details/u);
+  assert.doesNotMatch(detail, /if \(coreDetailsDirty \|\| order\.is_draft\)/u);
+  assert.match(detail, /Osnutek lahko urejate in shranjujete sproti\./u);
   assert.match(
     detail,
-    /await itemsSaveHandlerRef\.current\(\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\(\)/u
+    /await itemsSaveHandlerRef\.current\(\{[\s\S]*?deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'[\s\S]*?\}\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\(\)[\s\S]*?await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)[\s\S]*?commitDeferredDeliveryPlan/u
   );
 });
 
@@ -443,22 +454,113 @@ test('Postavke exposes a persistent reference-style section edit action', () => 
   assert.match(itemsEditor, /aria-label="Dodaj postavko"[\s\S]*?disabled=\{addItemDisabled\}/u);
   assert.match(
     itemsEditor,
-    /aria-label="Odstrani izbrane postavke"[\s\S]*?disabled=\{!itemsEditable \|\| !hasSelectedDraftItems\}/u
+    /aria-label="Odstrani izbrane postavke"[\s\S]*?disabled=\{!commercialItemsEditable \|\| !hasSelectedDraftItems\}/u
   );
 
   const addAction = itemsEditor.indexOf('aria-label="Dodaj postavko"');
+  const transferAction = itemsEditor.indexOf('data-testid="admin-order-items-transfer"');
   const deleteAction = itemsEditor.indexOf('aria-label="Odstrani izbrane postavke"');
   const sectionEditAction = itemsEditor.indexOf('aria-label="Uredi postavke naročila"');
-  assert.ok(addAction >= 0 && deleteAction > addAction && sectionEditAction > deleteAction);
+  assert.ok(
+    addAction >= 0 &&
+    transferAction > addAction &&
+    deleteAction > transferAction &&
+    sectionEditAction > deleteAction
+  );
   assert.match(itemsEditor, /const selectionCheckboxClassName =/u);
   assert.match(itemsEditor, /<col style=\{\{ width: '44px' \}\} \/>/u);
   assert.match(itemsEditor, /<col style=\{\{ width: '44px' \}\} \/>\s*<col \/>/u);
-  assert.equal(itemsEditor.match(/disabled=\{!itemsEditable\}/gu)?.length, 2);
-  assert.equal(itemsEditor.match(/className=\{selectionCheckboxClassName\}/gu)?.length, 2);
-  assert.match(itemsEditor, /checked=\{itemsEditable && areAllActiveItemsSelected\}/u);
-  assert.match(itemsEditor, /checked=\{itemsEditable && selectedDraftItemIds\.includes\(item\.id\)\}/u);
+  assert.equal(itemsEditor.match(/className=\{selectionCheckboxClassName\}/gu)?.length, 3);
+  assert.match(itemsEditor, /checked=\{itemSelectionEditable && selectedDraftItemIds\.includes\(item\.id\)\}/u);
+  assert.match(itemsEditor, /disabled=\{!itemSelectionEditable\}/u);
 });
 
+test('Postavke separates current and deferred delivery with atomic status coordination', () => {
+  assert.equal(itemsEditor.match(/<colgroup>/gu)?.length, 1);
+  assert.match(itemsEditor, /data-testid="admin-order-items-current-group"/u);
+  assert.match(itemsEditor, /data-testid="admin-order-items-later-group"/u);
+  assert.match(itemsEditor, />V tej pošiljki</u);
+  assert.match(itemsEditor, />Pošljemo pozneje</u);
+  assert.match(itemsEditor, /V trenutni pošiljki ni postavk\./u);
+  assert.match(itemsEditor, /Izberite postavke zgoraj in jih premaknite v poznejšo dobavo\./u);
+  assert.match(itemsEditor, /onChange=\{\(\) => toggleDraftSection\(false\)\}/u);
+  assert.match(itemsEditor, /onChange=\{\(\) => toggleDraftSection\(true\)\}/u);
+  assert.match(itemsEditor, /const itemSelectionEditable = commercialItemsEditable \\|\\| deliveryPlanEditable/u);
+  assert.match(itemsEditor, /const selectionMatchesSection/u);
+  assert.match(itemsEditor, /selectionMatchesSection \? \[\.\.\.previous, itemId\] : \[itemId\]/u);
+  assert.match(itemsEditor, /<ApplyToAllIcon/u);
+  assert.match(itemsEditor, /const moveSelectedDraftItems/u);
+  assert.match(itemsEditor, /shipLater: destinationShipLater/u);
+  assert.match(itemsEditor, /shipLater: false/u);
+
+  assert.match(itemsEditor, /const isCommercialItemsDirty/u);
+  assert.match(itemsEditor, /const deliveryPlanDirty/u);
+  assert.match(itemsEditor, /const isItemsDirty = isCommercialItemsDirty \|\| deliveryPlanDirty/u);
+  assert.match(itemsEditor, /\/delivery-plan`/u);
+  assert.match(
+    itemsEditor,
+    /JSON\.stringify\(\{\s*shipLaterItemIds: planSnapshot\.shipLaterItemIds,\s*expectedDeliveryPlanRevision\s*\}\)/u
+  );
+  assert.match(itemsEditor, /deliveryPlanPersistence !== 'immediate'/u);
+  assert.match(itemsEditor, /deliveryPlanPersistence === 'after-page-save'/u);
+  assert.match(itemsEditor, /persistDeferredDeliveryPlan: persistDeliveryPlan/u);
+  assert.match(itemsEditor, /commitDeferredDeliveryPlan/u);
+  assert.match(detail, /deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'/u);
+  assert.match(detail, /shipLaterItemIds: deliveryPlanSnapshotRef\.current\.shipLaterItemIds/u);
+  assert.match(detail, /await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)/u);
+  assert.match(detail, /itemsSaveResult\.commitDeferredDeliveryPlan\?\.\(\)/u);
+
+  assert.match(detail, /order\.delivery_plan_revision/u);
+  assert.match(detail, /expectedDeliveryPlanRevision: latestDeliveryPlanRevisionRef\.current/u);
+  assert.match(detail, /deliveryPlanRevision\?: number/u);
+  assert.match(detail, /updateLatestDeliveryPlanRevision\(nextDeliveryPlanRevision\)/u);
+  assert.match(detail, /initialDeliveryPlanRevision=\{latestDeliveryPlanRevisionRef\.current\}/u);
+  assert.match(detail, /onDeliveryPlanRevisionChange=\{updateLatestDeliveryPlanRevision\}/u);
+  assert.match(itemsEditor, /expectedDeliveryPlanRevision = deliveryPlanRevisionRef\.current/u);
+  assert.match(itemsEditor, /expectedDeliveryPlanRevision/u);
+  assert.match(itemsEditor, /deliveryPlanRevision\?: number/u);
+  assert.match(itemsEditor, /deliveryPlanRevisionRef\.current = nextDeliveryPlanRevision/u);
+  assert.match(itemsEditor, /onDeliveryPlanRevisionChange\?\.\(nextDeliveryPlanRevision\)/u);
+  assert.match(itemsEditor, /itemSaveDeliveryPlanRevision = Number\(payload\.deliveryPlanRevision\)/u);
+  assert.match(itemsEditor, /deliveryPlanRevisionRef\.current = itemSaveDeliveryPlanRevision/u);
+  assert.match(itemsEditor, /onDeliveryPlanRevisionChange\?\.\(itemSaveDeliveryPlanRevision\)/u);
+
+  const standalonePlanResponse = itemsEditor.slice(
+    itemsEditor.indexOf('const planResponse = await fetch'),
+    itemsEditor.indexOf("const deliveryPlanPersistence = options.deliveryPlanPersistence")
+  );
+  assert.ok(standalonePlanResponse.indexOf('if (!planResponse.ok)') >= 0);
+  assert.ok(
+    standalonePlanResponse.indexOf('if (!planResponse.ok)') <
+    standalonePlanResponse.indexOf('deliveryPlanRevisionRef.current = nextDeliveryPlanRevision')
+  );
+
+  assert.match(detail, /option\.value === 'partially_sent' && !canSelectPartiallySent/u);
+  assert.match(detail, /deliveryPlanSnapshot\.currentItemCount > 0 && deliveryPlanSnapshot\.laterItemCount > 0/u);
+  assert.match(detail, /Najprej premaknite vsaj eno postavko v razdelek »Pošljemo pozneje«\./u);
+  assert.match(detail, /V razdelku »V tej pošiljki« mora ostati vsaj ena postavka\./u);
+  assert.match(detail, /option\.value === 'sent' \|\| option\.value === 'finished'/u);
+  assert.match(detail, /Najprej premaknite vse postavke iz razdelka »Pošljemo pozneje«/u);
+  assert.match(detail, /const deliveryPlanEditingLockedReason = order\.deleted_at/u);
+  assert.match(detail, /Razporeda dobave izbrisanega naročila ni mogoče spreminjati\./u);
+  assert.match(detail, /getStatusLabel\(persistedDetails\.status\)/u);
+  const deliveryPlanLockSource = detail.slice(
+    detail.indexOf('const deliveryPlanEditingLockedReason'),
+    detail.indexOf('const deliveryPlanEditingLocked =')
+  );
+  assert.doesNotMatch(deliveryPlanLockSource, /order\.is_draft/u);
+  assert.doesNotMatch(deliveryPlanLockSource, /contract_status/u);
+  assert.match(detail, /deliveryPlanEditingLockedReason=\{deliveryPlanEditingLockedReason\}/u);
+  assert.match(itemsEditorClient, /deliveryPlanEditingLockedReason\?: string/u);
+  assert.match(itemsEditor, /deliveryPlanEditingLockedReason\?: string/u);
+  assert.match(itemsEditor, /const lockedDeliveryPlanReason = deliveryPlanEditingLocked/u);
+  assert.match(itemsEditor, /<span className="inline-flex" title=\{transferActionTitle\}>/u);
+  assert.match(itemsEditor, /aria-label=\{transferActionAriaLabel\}/u);
+  assert.match(
+    itemsEditor,
+    /\{lockedDeliveryPlanReason \?\? 'Izberite postavke zgoraj in jih premaknite v poznejšo dobavo\.'\}/u
+  );
+});
 test('order header uses the shared title slot for identical read and master-edit geometry', () => {
   assert.match(
     detail,
@@ -552,7 +654,7 @@ test('order item columns stay on one line while the article keeps separate name 
   assert.equal(itemsEditor.match(/data-admin-order-item-value-slot=/gu)?.length, 3);
   assert.equal(itemsEditor.match(/readOnly=\{isItemsSaving\}/gu)?.length, 3);
   assert.doesNotMatch(itemsEditor, /tabIndex=\{itemsEditable \? undefined : -1\}/u);
-  assert.match(itemsEditor, /data-admin-order-item-value-slot="quantity"[\s\S]*?itemsEditable \? \([\s\S]*?data-admin-order-item-value-input[\s\S]*?: \([\s\S]*?data-admin-order-item-value-display/u);
+  assert.match(itemsEditor, /data-admin-order-item-value-slot="quantity"[\s\S]*?commercialItemsEditable \? \([\s\S]*?data-admin-order-item-value-input[\s\S]*?: \([\s\S]*?data-admin-order-item-value-display/u);
   assert.match(itemsEditor, /h-8 w-\[88px\] items-center justify-center gap-1/u);
   assert.match(itemsEditor, /h-8 w-\[72px\] items-center justify-center gap-1/u);
   assert.doesNotMatch(itemsEditor, /readonlyCellFrameClassName/u);

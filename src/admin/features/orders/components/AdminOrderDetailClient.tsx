@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PaymentChip from '@/admin/features/orders/components/PaymentChip';
 import StatusChip from '@/admin/features/orders/components/StatusChip';
-import AdminOrderItemsEditorClient from '@/admin/features/orders/components/AdminOrderItemsEditorClient';
+import AdminOrderItemsEditorClient, {
+  type OrderDeliveryPlanSnapshot,
+  type OrderItemsSaveHandler
+} from '@/admin/features/orders/components/AdminOrderItemsEditorClient';
 import AdminOrderShippingOverride from '@/admin/features/orders/components/AdminOrderShippingOverride';
 import AdminOrderPdfManagerClient from '@/admin/features/orders/components/AdminOrderPdfManagerClient';
 import AdminOrderCustomerAccess from '@/admin/features/orders/components/AdminOrderCustomerAccess';
@@ -21,8 +24,8 @@ import {
   useOrderNumberAvailability
 } from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
-import { orderCustomerTypeChangeBlock } from '@/shared/domain/order/schoolOrderWorkflow';
-import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
+import { orderCustomerTypeFinalContractBlock } from '@/shared/domain/order/schoolOrderWorkflow';
+import { ORDER_STATUS_OPTIONS, getStatusLabel, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { Button } from '@/shared/ui/button';
@@ -115,6 +118,7 @@ type NormalizedOrder = {
   shipping_override_stale?: boolean | null;
   parcel_count: number;
   pricing_revision: number;
+  delivery_plan_revision?: number | null;
   total: number;
   is_draft?: boolean | null;
   deleted_at?: string | null;
@@ -679,6 +683,11 @@ export default function AdminOrderDetailClient({
   const [isSaving, setIsSaving] = useState(false);
   const [itemsDirty, setItemsDirty] = useState(false);
   const [itemsSaving, setItemsSaving] = useState(false);
+  const [deliveryPlanSnapshot, setDeliveryPlanSnapshot] = useState<OrderDeliveryPlanSnapshot>(() => ({
+    shipLaterItemIds: items.filter((item) => item.ship_later === true).map((item) => item.id),
+    currentItemCount: items.filter((item) => item.ship_later !== true).length,
+    laterItemCount: items.filter((item) => item.ship_later === true).length
+  }));
   const [shippingDirty, setShippingDirty] = useState(false);
   const [shippingSaving, setShippingSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -688,7 +697,13 @@ export default function AdminOrderDetailClient({
   const [auditHistoryOpen, setAuditHistoryOpen] = useState(false);
   const [activityRefreshToken, setActivityRefreshToken] = useState(0);
   const [pendingUnsavedAction, setPendingUnsavedAction] = useState<PendingUnsavedAction | null>(null);
-  const itemsSaveHandlerRef = useRef<(() => Promise<boolean>) | null>(null);
+  const itemsSaveHandlerRef = useRef<OrderItemsSaveHandler | null>(null);
+  const deliveryPlanSnapshotRef = useRef(deliveryPlanSnapshot);
+  const latestDeliveryPlanRevisionRef = useRef(
+    Number.isSafeInteger(order.delivery_plan_revision) && Number(order.delivery_plan_revision) >= 1
+      ? Number(order.delivery_plan_revision)
+      : 1
+  );
   const shippingSaveHandlerRef = useRef<
     ((expectedPricingRevision?: number) => Promise<boolean>) | null
   >(null);
@@ -721,19 +736,71 @@ export default function AdminOrderDetailClient({
   const hasUnsavedChanges =
     detailsDirty || adminNotesDirty || itemsDirty || shippingDirty;
   const activeHeaderDetails = isMasterEditing ? draftDetails : persistedDetails;
+  const canSelectPartiallySent =
+    deliveryPlanSnapshot.currentItemCount > 0 && deliveryPlanSnapshot.laterItemCount > 0;
+  const partiallySentUnavailableReason = deliveryPlanSnapshot.laterItemCount === 0
+    ? 'Najprej premaknite vsaj eno postavko v razdelek »Pošljemo pozneje«.'
+    : deliveryPlanSnapshot.currentItemCount === 0
+      ? 'V razdelku »V tej pošiljki« mora ostati vsaj ena postavka.'
+      : undefined;
+  const orderStatusOptions = useMemo(
+    () => ORDER_STATUS_OPTIONS.map((option) => {
+      if (option.value === 'partially_sent' && !canSelectPartiallySent) {
+        return {
+          ...option,
+          disabled: true,
+          description: partiallySentUnavailableReason
+        };
+      }
+      if (
+        (option.value === 'sent' || option.value === 'finished') &&
+        deliveryPlanSnapshot.laterItemCount > 0
+      ) {
+        return {
+          ...option,
+          disabled: true,
+          description: 'Najprej premaknite vse postavke iz razdelka »Pošljemo pozneje« v trenutno pošiljko.'
+        };
+      }
+      return option;
+    }),
+    [
+      canSelectPartiallySent,
+      deliveryPlanSnapshot.laterItemCount,
+      partiallySentUnavailableReason
+    ]
+  );
   const activeOrderDataDetails = isOrderDataEditing
     ? draftDetails
     : persistedDetails;
-  const availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS.filter(
-    (option) =>
-      orderCustomerTypeChangeBlock(persistedDetails.customerType, option.value, Boolean(order.is_draft)) === null
-  );
+  const availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
+    const changeBlock = orderCustomerTypeFinalContractBlock(
+      persistedDetails.customerType,
+      option.value,
+      order.contract_status
+    );
+    return changeBlock
+      ? { ...option, disabled: true, description: changeBlock.message }
+      : option;
+  });
   const activeCustomerTypeLabel =
     CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeOrderDataDetails.customerType)?.label
     ?? activeOrderDataDetails.customerType;
-  const customerTypeIsLocked = !order.is_draft && persistedDetails.customerType === 'school';
+
   const activeAdminNotes = isAdminNotesEditing ? draftAdminNotes : persistedAdminNotes;
   const pageIsBusy = isSaving || itemsSaving || shippingSaving || isDeleting || isRejecting;
+  const commercialItemsLocked =
+    Boolean(order.deleted_at) ||
+    Boolean(order.source_quote_offer_version_id) ||
+    ['partially_sent', 'sent', 'finished', 'cancelled'].includes(persistedDetails.status) ||
+    ['paid', 'refunded'].includes(persistedDetails.paymentStatus) ||
+    documents.some((document) => isShippingBearingOrderPdfType(document.type));
+  const deliveryPlanEditingLockedReason = order.deleted_at
+    ? 'Razporeda dobave izbrisanega naročila ni mogoče spreminjati.'
+    : ['sent', 'finished', 'cancelled'].includes(persistedDetails.status)
+      ? `Razporeda dobave ni mogoče spreminjati pri statusu »${getStatusLabel(persistedDetails.status)}«.`
+      : undefined;
+  const deliveryPlanEditingLocked = deliveryPlanEditingLockedReason !== undefined;
   const pageTitle = `Naročilo ${displayOrderNumber}`;
   const customerDisplayName = activeHeaderDetails.organizationName.trim() || activeHeaderDetails.contactName.trim() || activeHeaderDetails.email.trim() || '—';
   const activeOrderNumberValue = toEditableOrderNumber(isMasterEditing ? draftOrderNumber : displayOrderNumber);
@@ -768,13 +835,25 @@ export default function AdminOrderDetailClient({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  const registerItemsSaveHandler = useCallback((handler: () => Promise<boolean>) => {
+  const registerItemsSaveHandler = useCallback((handler: OrderItemsSaveHandler) => {
     itemsSaveHandlerRef.current = handler;
     return () => {
       if (itemsSaveHandlerRef.current === handler) {
         itemsSaveHandlerRef.current = null;
       }
     };
+  }, []);
+
+  const handleDeliveryPlanChange = useCallback((snapshot: OrderDeliveryPlanSnapshot) => {
+    deliveryPlanSnapshotRef.current = snapshot;
+    setDeliveryPlanSnapshot((current) =>
+      current.currentItemCount === snapshot.currentItemCount &&
+      current.laterItemCount === snapshot.laterItemCount &&
+      current.shipLaterItemIds.length === snapshot.shipLaterItemIds.length &&
+      current.shipLaterItemIds.every((id, index) => id === snapshot.shipLaterItemIds[index])
+        ? current
+        : snapshot
+    );
   }, []);
 
   const registerShippingSaveHandler = useCallback((
@@ -791,6 +870,12 @@ export default function AdminOrderDetailClient({
   const updateLatestPricingRevision = useCallback((pricingRevision: number) => {
     if (Number.isSafeInteger(pricingRevision) && pricingRevision >= 1) {
       latestPricingRevisionRef.current = pricingRevision;
+    }
+  }, []);
+
+  const updateLatestDeliveryPlanRevision = useCallback((deliveryPlanRevision: number) => {
+    if (Number.isSafeInteger(deliveryPlanRevision) && deliveryPlanRevision >= 1) {
+      latestDeliveryPlanRevisionRef.current = deliveryPlanRevision;
     }
   }, []);
 
@@ -908,18 +993,9 @@ export default function AdminOrderDetailClient({
     };
   }, [hasUnsavedChanges, requestUnsavedResolution]);
 
-  const saveDetails = async () => {
+  const saveDetails = async (): Promise<string | null> => {
     const requests: Promise<Response>[] = [];
-
-    if (statusDirty) {
-      requests.push(
-        fetch(`/api/admin/orders/${orderId}/status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: draftDetails.status })
-        })
-      );
-    }
+    let detailsResponseIndex: number | null = null;
 
     if (paymentStatusDirty || adminNotesDirty) {
       requests.push(
@@ -932,6 +1008,7 @@ export default function AdminOrderDetailClient({
     }
 
     if (coreDetailsDirty) {
+      detailsResponseIndex = requests.length;
       requests.push(
         fetch(`/api/admin/orders/${orderId}/details`, {
           method: 'POST',
@@ -954,16 +1031,55 @@ export default function AdminOrderDetailClient({
       );
     }
 
-    if (requests.length === 0) return;
+    if (requests.length > 0) {
+      const responses = await Promise.all(requests);
+      const failedResponse = responses.find((response) => !response.ok);
+      if (failedResponse) {
+        const error = await failedResponse.json().catch(() => ({}));
+        throw new Error(error.message || 'Shranjevanje ni uspelo.');
+      }
 
-    const responses = await Promise.all(requests);
-    const failedResponse = responses.find((response) => !response.ok);
-    if (failedResponse) {
-      const error = await failedResponse.json().catch(() => ({}));
-      throw new Error(error.message || 'Shranjevanje ni uspelo.');
+      if (detailsResponseIndex !== null) {
+        const detailsPayload = await responses[detailsResponseIndex].json().catch(() => null) as {
+          isDraft?: boolean;
+          finalized?: boolean;
+          finalizationBlock?: { message?: unknown } | null;
+        } | null;
+        const finalizationMessage = detailsPayload?.finalizationBlock?.message;
+        if (typeof finalizationMessage === 'string' && finalizationMessage.trim()) {
+          return finalizationMessage.trim();
+        }
+      }
     }
-  };
 
+    // The complete plan travels with a status change so entering partial shipment,
+    // clearing the last deferred rows, and completing shipment are one transaction.
+    if (statusDirty) {
+      const statusResponse = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: draftDetails.status,
+          shipLaterItemIds: deliveryPlanSnapshotRef.current.shipLaterItemIds,
+          expectedDeliveryPlanRevision: latestDeliveryPlanRevisionRef.current
+        })
+      });
+      const statusPayload = await statusResponse.json().catch(() => ({})) as {
+        message?: string;
+        deliveryPlanRevision?: number;
+      };
+      if (!statusResponse.ok) {
+        throw new Error(statusPayload.message || 'Shranjevanje statusa ni uspelo.');
+      }
+      const nextDeliveryPlanRevision = Number(statusPayload.deliveryPlanRevision);
+      if (!Number.isSafeInteger(nextDeliveryPlanRevision) || nextDeliveryPlanRevision < 1) {
+        throw new Error('Strežnik ni vrnil veljavne revizije načrta dobave.');
+      }
+      updateLatestDeliveryPlanRevision(nextDeliveryPlanRevision);
+    }
+
+    return null;
+  };
   const saveAll = async (afterSave?: () => void) => {
     if (!isEditing || pageIsBusy) return false;
     if (isMasterEditing && !orderNumberIsAllowed) {
@@ -973,15 +1089,21 @@ export default function AdminOrderDetailClient({
 
     setIsSaving(true);
     try {
-      const itemsSaved = itemsSaveHandlerRef.current ? await itemsSaveHandlerRef.current() : true;
-      if (!itemsSaved) return false;
+      const itemsSaveResult = itemsSaveHandlerRef.current
+        ? await itemsSaveHandlerRef.current({
+            deliveryPlanPersistence: statusDirty ? 'status' : 'after-page-save'
+          })
+        : { ok: true };
+      if (!itemsSaveResult.ok) return false;
 
       const shippingSaved = shippingSaveHandlerRef.current
         ? await shippingSaveHandlerRef.current(latestPricingRevisionRef.current)
         : true;
       if (!shippingSaved) return false;
 
-      await saveDetails();
+      const finalizationMessage = await saveDetails();
+      await itemsSaveResult.persistDeferredDeliveryPlan?.();
+      itemsSaveResult.commitDeferredDeliveryPlan?.();
 
       const resolvedOrderNumber = draftOrderNumber.trim()
         ? toDisplayOrderNumberValue(draftOrderNumber)
@@ -991,7 +1113,11 @@ export default function AdminOrderDetailClient({
       setDisplayOrderNumber(resolvedOrderNumber);
       setEditScopes({ ...EMPTY_ORDER_EDIT_SCOPES });
       setActivityRefreshToken((current) => current + 1);
-      toast.success('Naročilo je shranjeno.');
+      if (finalizationMessage) {
+        toast.info(finalizationMessage);
+      } else {
+        toast.success('Naročilo je shranjeno.');
+      }
       router.refresh();
       afterSave?.();
       return true;
@@ -1084,7 +1210,7 @@ export default function AdminOrderDetailClient({
 
         {order.is_draft && !hasUnsavedChanges ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            To naročilo je osnutek. Izpolni podatke in shrani.
+            Osnutek lahko urejate in shranjujete sproti. Dokumenti in rezervacija zaloge bodo na voljo, ko bodo podatki popolni.
           </div>
         ) : null}
 
@@ -1159,7 +1285,7 @@ export default function AdminOrderDetailClient({
                 >
                   <AdminChipDropdown
                     value={activeHeaderDetails.status}
-                    options={ORDER_STATUS_OPTIONS}
+                    options={orderStatusOptions}
                     disabled={pageIsBusy}
                     showArrow={isMasterEditing}
                     interactive={isMasterEditing}
@@ -1317,7 +1443,13 @@ export default function AdminOrderDetailClient({
               hideSectionEditControls
               onRequestEdit={() => toggleSectionEdit('items')}
               sectionEditDisabled={pageIsBusy}
+              commercialEditingLocked={commercialItemsLocked}
+              deliveryPlanEditingLocked={deliveryPlanEditingLocked}
+              deliveryPlanEditingLockedReason={deliveryPlanEditingLockedReason}
+              initialDeliveryPlanRevision={latestDeliveryPlanRevisionRef.current}
               onDirtyChange={setItemsDirty}
+              onDeliveryPlanChange={handleDeliveryPlanChange}
+              onDeliveryPlanRevisionChange={updateLatestDeliveryPlanRevision}
               onSavingChange={setItemsSaving}
               onRegisterSave={registerItemsSaveHandler}
               onPricingRevisionChange={updateLatestPricingRevision}
@@ -1396,8 +1528,8 @@ export default function AdminOrderDetailClient({
                       value={activeOrderDataDetails.customerType}
                       onChange={(value) => updateDraftDetails({ customerType: value })}
                       options={availableCustomerTypeOptions}
-                      disabled={pageIsBusy || customerTypeIsLocked}
-                      showArrow={!customerTypeIsLocked}
+                      disabled={pageIsBusy}
+                      showArrow
                       containerClassName={adminCompactIconFieldSelectWrapperClassName}
                       triggerClassName={`${adminCompactIconFieldSelectClassName} disabled:!cursor-default disabled:!text-slate-900 disabled:!opacity-100`}
                       valueClassName={`${adminCompactIconFieldSelectValueClassName} !pb-0`}

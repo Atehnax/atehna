@@ -20,7 +20,18 @@ export type OrderDocumentPreviewItem = {
   lineTotal?: number | null;
   taxRate?: number | null;
   discountPercentage?: number | null;
+  shipLater?: boolean;
 };
+
+export type OrderDocumentPreviewItemSection = {
+  id: 'all' | 'current' | 'later';
+  label: string | null;
+  items: OrderDocumentPreviewItem[];
+  startRowNumber: number;
+};
+
+export const DELIVERY_NOTE_CURRENT_ITEMS_LABEL = 'Postavke v tej dobavi';
+export const DELIVERY_NOTE_LATER_ITEMS_LABEL = 'Postavke za poznejšo dobavo';
 
 export type OrderDocumentPreviewOrder = {
   customerType: string;
@@ -154,7 +165,10 @@ export function createOrderDocumentPreviewContext(
       total: 79.67,
       commitmentStatus: 'binding'
     },
-    items: PREVIEW_ITEMS.map((item) => ({ ...item }))
+    items: PREVIEW_ITEMS.map((item, index) => ({
+      ...item,
+      ...(type === 'dobavnica' && index >= 3 ? { shipLater: true } : {})
+    }))
   };
 }
 
@@ -473,6 +487,33 @@ export function resolveOrderDocumentItemCells(
         : toOrderDocumentNumber(item.lineTotal)
     )
   };
+}
+
+export function resolveOrderDocumentItemSections(
+  type: OrderDocumentTemplateType,
+  items: readonly OrderDocumentPreviewItem[]
+): OrderDocumentPreviewItemSection[] {
+  const allItems = [...items];
+  if (type !== 'dobavnica' || !allItems.some((item) => item.shipLater === true)) {
+    return [{ id: 'all', label: null, items: allItems, startRowNumber: 1 }];
+  }
+
+  const currentItems = allItems.filter((item) => item.shipLater !== true);
+  const laterItems = allItems.filter((item) => item.shipLater === true);
+  return [
+    {
+      id: 'current',
+      label: DELIVERY_NOTE_CURRENT_ITEMS_LABEL,
+      items: currentItems,
+      startRowNumber: 1
+    },
+    {
+      id: 'later',
+      label: DELIVERY_NOTE_LATER_ITEMS_LABEL,
+      items: laterItems,
+      startRowNumber: currentItems.length + 1
+    }
+  ];
 }
 
 export function resolveOrderDocumentFooterRows(

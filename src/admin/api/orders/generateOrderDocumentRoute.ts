@@ -182,6 +182,7 @@ export async function generateOrderDocumentRoute(
            blob_pathname,
            version_number,
            order_pricing_revision,
+           order_delivery_plan_revision,
            document_number,
            issued_at,
            content_sha256,
@@ -190,8 +191,9 @@ export async function generateOrderDocumentRoute(
          )
          values (
            $1, $2, $3, $4, $5, $6,
-           (select pricing_revision from orders where id = $1), $7, $8, $9,
-           'operational', 'atehna-template-pdf-v3'
+           (select pricing_revision from orders where id = $1),
+           (select delivery_plan_revision from orders where id = $1),
+           $7, $8, $9, 'operational', 'atehna-template-pdf-v3'
          )
          returning id, created_at, issued_at`,
         [

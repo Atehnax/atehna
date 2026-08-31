@@ -50,6 +50,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const quoteClarificationEmailDeployment = source(
     'database/migrations/20260830_quote_clarification_email.sql'
   );
+  const orderItemDeliveryPlanDeployment = source(
+    'database/migrations/20260831_order_item_delivery_plan.sql'
+  );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
@@ -59,7 +62,8 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260829_quote_request_management.sql',
     '20260830_quote_clarification_email.sql',
     '20260830_quote_manual_documents.sql',
-    '20260830_quote_request_admin_title.sql'
+    '20260830_quote_request_admin_title.sql',
+    '20260831_order_item_delivery_plan.sql'
   ]);
   assert.equal(tableNames.length, 60);
   assert.equal(new Set(tableNames).size, 60);
@@ -82,7 +86,8 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     quoteManagementDeployment,
     quoteClarificationEmailDeployment,
     quoteManualDocumentsDeployment,
-    quoteAdminTitleDeployment
+    quoteAdminTitleDeployment,
+    orderItemDeliveryPlanDeployment
   ]) {
     assert.match(deployment, /begin;/u);
     assert.match(deployment, /set local search_path = public, pg_temp/u);
@@ -114,6 +119,10 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     quoteClarificationEmailDeployment,
     /quote_clarification_requested/u
   );
+  assert.match(orderItemDeliveryPlanDeployment, /ship_later boolean not null default false/u);
+  assert.match(orderItemDeliveryPlanDeployment, /delivery_plan_revision integer not null default 1/u);
+  assert.match(orderItemDeliveryPlanDeployment, /order_delivery_plan_revision integer not null default 1/u);
+  assert.match(orderItemDeliveryPlanDeployment, /idx_order_items_order_id_ship_later/u);
 
   const setup = source('scripts/e2e-database.mjs');
   assert.match(setup, /resolve\(projectRoot, 'database', 'schema\.sql'\)/u);

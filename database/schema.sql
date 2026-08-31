@@ -42,6 +42,7 @@ create table orders (
   tax_rate numeric(5, 4) not null default 0.2200,
   pricing_version text not null default 'unpriced-draft-v1',
   pricing_revision integer not null default 1,
+  delivery_plan_revision integer not null default 1,
   commitment_status text not null default 'binding',
   contract_status text not null default 'pending_seller_acceptance',
   contract_accepted_at timestamptz,
@@ -132,6 +133,7 @@ create table orders (
   constraint orders_contract_state_version_positive_check check (contract_state_version > 0),
   constraint orders_tax_rate_range_check check (tax_rate >= 0 and tax_rate <= 1),
   constraint orders_pricing_revision_positive_check check (pricing_revision > 0),
+  constraint orders_delivery_plan_revision_positive_check check (delivery_plan_revision > 0),
   constraint orders_shipping_non_negative_check check (shipping >= 0),
   constraint orders_automatic_shipping_non_negative_check check (
     automatic_shipping is null or automatic_shipping >= 0
@@ -167,6 +169,7 @@ create table order_documents (
   blob_pathname text not null,
   version_number integer not null,
   order_pricing_revision integer not null default 1,
+  order_delivery_plan_revision integer not null default 1,
   document_number text not null,
   issued_at timestamptz not null,
   content_sha256 text not null,
@@ -174,7 +177,8 @@ create table order_documents (
   format_marker text not null,
   deleted_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint order_documents_pricing_revision_positive_check check (order_pricing_revision > 0)
+  constraint order_documents_pricing_revision_positive_check check (order_pricing_revision > 0),
+  constraint order_documents_delivery_plan_revision_positive_check check (order_delivery_plan_revision > 0)
 );
 
 create index idx_order_documents_order_id_created_at on order_documents(order_id, created_at desc);
@@ -934,6 +938,7 @@ create table order_items (
   category_path text,
   selected_attributes jsonb not null default '{}'::jsonb,
   image_url text,
+  ship_later boolean not null default false,
   base_unit_net numeric(12, 2) not null,
   discount_pct numeric(5, 2) not null default 0,
   unit_net numeric(12, 2) not null,
@@ -966,6 +971,8 @@ create table order_items (
 );
 
 create index idx_order_items_order_id on order_items(order_id);
+create index idx_order_items_order_id_ship_later
+  on order_items(order_id, ship_later, id);
 create index idx_order_items_sku on order_items(lower(trim(sku)));
 create index idx_order_items_catalog_item_id
   on order_items(catalog_item_id);

@@ -254,14 +254,20 @@ async function enforceCurrentPricingRevisionForRestoredDocuments(
       from order_documents d
       join orders o on o.id = d.order_id
       where d.id = any($1::bigint[])
-        and d.order_pricing_revision <> o.pricing_revision
+        and (
+          d.order_pricing_revision <> o.pricing_revision
+          or (
+            d.type = 'dobavnica'
+            and d.order_delivery_plan_revision <> o.delivery_plan_revision
+          )
+        )
       for update of d, o
     `,
     [documentIds]
   );
   if (staleResult.rows.length > 0) {
     throw new ArchiveRestoreConflictError(
-      'Dokumenta ni mogoče obnoviti, ker se je po izdaji spremenila cena ali poštnina naročila.'
+      'Dokumenta ni mogoče obnoviti, ker se je po izdaji spremenila cena, poštnina ali načrt dobave naročila.'
     );
   }
 }

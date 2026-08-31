@@ -13,6 +13,7 @@ import {
 } from './orderDocumentTemplates';
 import {
   resolveOrderDocumentItemCells,
+  resolveOrderDocumentItemSections,
   resolveOrderDocumentPreviewText,
   resolveOrderDocumentTotalRows,
   shouldRenderOrderDocumentPreviewElement,
@@ -104,31 +105,51 @@ export function estimateOrderDocumentFlowElementHeightMm(
     const descriptionWidthMm = description
       ? widthMm * (description.widthRatio / totalRatio)
       : widthMm;
-    const rowsHeightPt = previewContext.items.reduce((sum, item, index) => {
-      const rowNumber = index + 1;
-      const descriptionColumnId = description?.id ?? columns[0]?.id ?? 'description';
-      const typography = resolveOrderDocumentTypography(template, {
-        kind: 'table_cell',
-        columnId: descriptionColumnId,
-        rowNumber
-      });
-      const descriptionText = resolveOrderDocumentItemCells(item).description;
-      const lines = Math.max(
-        1,
-        estimateLineCount(descriptionText, Math.max(1, descriptionWidthMm - 3.5), typography.fontSizePt)
-      );
-      const naturalHeightPt = Math.max(
-        lines * typography.fontSizePt * 1.35 + template.style.rowPaddingPt * 2,
-        ...columns.map((column) => resolveOrderDocumentTypography(template, {
+    const sections = resolveOrderDocumentItemSections(
+      previewContext.type,
+      previewContext.items
+    );
+    let rowNumber = 0;
+    const rowsHeightPt = sections.reduce((sectionSum, section) => (
+      sectionSum + section.items.reduce((sum, item) => {
+        rowNumber += 1;
+        const descriptionColumnId = description?.id ?? columns[0]?.id ?? 'description';
+        const typography = resolveOrderDocumentTypography(template, {
           kind: 'table_cell',
-          columnId: column.id,
+          columnId: descriptionColumnId,
           rowNumber
-        }).fontSizePt * 1.35 + template.style.rowPaddingPt * 2)
-      );
-      return sum + Math.max(resolveOrderDocumentTableRowHeight(table, rowNumber), naturalHeightPt)
-        + table.rowGapPt;
-    }, 0);
-    return roundMm((headerHeightPt + rowsHeightPt) * PT_TO_MM);
+        });
+        const descriptionText = resolveOrderDocumentItemCells(item).description;
+        const lines = Math.max(
+          1,
+          estimateLineCount(descriptionText, Math.max(1, descriptionWidthMm - 3.5), typography.fontSizePt)
+        );
+        const naturalHeightPt = Math.max(
+          lines * typography.fontSizePt * 1.35 + template.style.rowPaddingPt * 2,
+          ...columns.map((column) => resolveOrderDocumentTypography(template, {
+            kind: 'table_cell',
+            columnId: column.id,
+            rowNumber
+          }).fontSizePt * 1.35 + template.style.rowPaddingPt * 2)
+        );
+        return sum + Math.max(resolveOrderDocumentTableRowHeight(table, rowNumber), naturalHeightPt)
+          + table.rowGapPt;
+      }, 0)
+    ), 0);
+    const itemTypography = resolveOrderDocumentTypography(template, {
+      kind: 'element',
+      elementId: 'items'
+    });
+    const sectionLabelsHeightPt = sections.reduce((sum, section, index) => (
+      section.label
+        ? sum + itemTypography.fontSizePt * 1.35 + 3 + (index > 0 ? 10 : 0)
+        : sum
+    ), 0);
+    return roundMm((
+      headerHeightPt * sections.length
+      + rowsHeightPt
+      + sectionLabelsHeightPt
+    ) * PT_TO_MM);
   }
 
   if (id === 'totals') {

@@ -199,18 +199,34 @@ test('document deletion protects only the last active accepted purchase-order pr
   );
   assert.match(
     detailClient,
-    /availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS\.filter\([\s\S]*?orderCustomerTypeChangeBlock\(persistedDetails\.customerType, option\.value, Boolean\(order\.is_draft\)\) === null/u
+    /availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS\.map\([\s\S]*?const changeBlock = orderCustomerTypeFinalContractBlock\([\s\S]*?order\.contract_status[\s\S]*?disabled: true, description: changeBlock\.message/u
   );
-  assert.match(
+  assert.doesNotMatch(
     detailClient,
-    /customerTypeIsLocked = !order\.is_draft && persistedDetails\.customerType === 'school'/u
+    /availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS\.filter/u
   );
+  assert.doesNotMatch(detailClient, /customerTypeIsLocked/u);
   assert.match(
     detailClient,
     /<OrderDataRow\s+label="Tip naročnika"\s+value=\{activeCustomerTypeLabel\}\s+icon="type"\s+isEditing=\{isOrderDataEditing\}\s+reserveTrailingControl\s*>/u
   );
   assert.match(
     detailClient,
-    /disabled=\{pageIsBusy \|\| customerTypeIsLocked\}/u
+    /options=\{availableCustomerTypeOptions\}[\s\S]*?disabled=\{pageIsBusy\}[\s\S]*?showArrow/u
+  );
+  const ordersTable = source(
+    'src/admin/features/orders/components/AdminOrdersTable.tsx'
+  );
+  assert.match(
+    ordersTable,
+    /getOrderCustomerTypeRowOptions[\s\S]*?ORDER_CUSTOMER_TYPE_ROW_OPTIONS\.map\([\s\S]*?orderCustomerTypeFinalContractBlock\([\s\S]*?contractStatus[\s\S]*?disabled: true, description: changeBlock\.message/u
+  );
+  assert.doesNotMatch(
+    ordersTable,
+    /getOrderCustomerTypeRowOptions[\s\S]*?ORDER_CUSTOMER_TYPE_ROW_OPTIONS\.filter/u
+  );
+  assert.match(
+    ordersTable,
+    /options=\{getOrderCustomerTypeRowOptions\([\s\S]*?activeQuickEdit\.contractStatus[\s\S]*?disabled=\{activeQuickEdit\.isSaving\}/u
   );
 });

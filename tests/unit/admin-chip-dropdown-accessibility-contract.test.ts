@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const dropdownPath = 'src/shared/ui/admin-controls/AdminChipDropdown.tsx';
+const customSelectPath = 'src/shared/ui/select/custom-select.tsx';
 const menuItemPath = 'src/shared/ui/menu/menu-item.tsx';
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
@@ -56,6 +57,30 @@ test('admin chip dropdown supports menu keyboard navigation and predictable focu
   assert.match(dropdown, /data-menu-item-active="true"/u);
 });
 
+test('custom select keeps explanatory disabled options focusable and blocks activation', () => {
+  const select = source(customSelectPath);
+  const optionType = sliceBetween(
+    select,
+    'type CustomSelectOption<Value extends string> = {',
+    '\n};'
+  );
+  const optionRow = sliceBetween(select, '{options.map((option, index) => {', '</MenuItem>');
+
+  assert.match(optionType, /disabled\?: boolean;/u);
+  assert.match(optionType, /description\?: string;/u);
+  assert.match(select, /aria-controls=\{isOpen \? menuId : undefined\}/u);
+  assert.match(select, /const hasDescriptions = options\.some/u);
+  assert.match(select, /const minimumWidth = hasDescriptions \? 280 : triggerBounds\.width/u);
+  assert.match(optionRow, /ariaDisabled=\{option\.disabled\}/u);
+  assert.match(optionRow, /ariaDescribedBy=\{descriptionId\}/u);
+  assert.match(optionRow, /id=\{descriptionId\}[\s\S]*?\{option\.description\}/u);
+  assert.doesNotMatch(optionRow, /disabled=\{option\.disabled\}/u);
+
+  const guardIndex = optionRow.indexOf('if (option.disabled) return;');
+  const changeIndex = optionRow.indexOf('onChange(option.value);');
+  assert.ok(guardIndex >= 0, 'disabled select options must guard activation');
+  assert.ok(changeIndex > guardIndex, 'the disabled guard must run before onChange');
+});
 test('shared menu item exposes additive aria-disabled and description semantics', () => {
   const menuItem = source(menuItemPath);
 

@@ -242,9 +242,17 @@ export async function GET(request: NextRequest) {
                   where order_id = $1
                     and deleted_at is null
                     and order_pricing_revision = $2
+                    and (
+                      type <> 'dobavnica'
+                      or order_delivery_plan_revision = $3
+                    )
                   order by type, created_at desc, id desc
                 `,
-                [access.orderId, order?.pricing_revision]
+                [
+                  access.orderId,
+                  order?.pricing_revision,
+                  order?.delivery_plan_revision
+                ]
               );
               await client.query('release savepoint confirmation_document_lookup');
               return result.rows as ConfirmationDocumentRow[];

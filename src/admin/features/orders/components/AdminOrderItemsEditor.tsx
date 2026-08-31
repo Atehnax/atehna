@@ -28,7 +28,14 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { IconButton } from '@/shared/ui/icon-button';
-import { CheckIcon, CloseIcon, PencilIcon, PlusIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import {
+  ApplyToAllIcon,
+  CheckIcon,
+  CloseIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashCanIcon
+} from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
@@ -56,7 +63,28 @@ type EditableItem = {
   discountPercentage: number;
   catalogItemId?: number | null;
   catalogVariantId?: number | null;
+  shipLater: boolean;
 };
+
+export type OrderDeliveryPlanSnapshot = {
+  shipLaterItemIds: number[];
+  currentItemCount: number;
+  laterItemCount: number;
+};
+
+export type OrderItemsSaveOptions = {
+  deliveryPlanPersistence?: 'immediate' | 'status' | 'after-page-save';
+};
+
+export type OrderItemsSaveResult = {
+  ok: boolean;
+  persistDeferredDeliveryPlan?: () => Promise<void>;
+  commitDeferredDeliveryPlan?: () => void;
+};
+
+export type OrderItemsSaveHandler = (
+  options?: OrderItemsSaveOptions
+) => Promise<OrderItemsSaveResult>;
 
 type ItemsSectionMode = 'read' | 'edit';
 
@@ -94,13 +122,14 @@ const mapIncomingItems = (sourceItems: OrderItemInput[]): EditableItem[] =>
     unitPrice: item.base_unit_net,
     discountPercentage: item.discount_percentage ?? 0,
     catalogItemId: item.catalog_item_id,
-    catalogVariantId: item.catalog_variant_id
+    catalogVariantId: item.catalog_variant_id,
+    shipLater: item.ship_later === true
   }));
 
 const cloneEditableItems = (sourceItems: EditableItem[]): EditableItem[] =>
   sourceItems.map((item) => ({ ...item }));
 
-const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
+const areCommercialItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
   if (left.length !== right.length) return false;
   for (let index = 0; index < left.length; index += 1) {
     const leftItem = left[index];
@@ -122,6 +151,27 @@ const areEditableItemsEqual = (left: EditableItem[], right: EditableItem[]) => {
   }
   return true;
 };
+
+const isDeliveryPlanDirty = (draftItems: EditableItem[], persistedItems: EditableItem[]) => {
+  const persistedById = new Map(
+    persistedItems
+      .filter((item): item is EditableItem & { persistedId: number } => typeof item.persistedId === 'number')
+      .map((item) => [item.persistedId, item.shipLater] as const)
+  );
+
+  return draftItems.some((item) => {
+    if (typeof item.persistedId !== 'number') return item.shipLater;
+    return persistedById.get(item.persistedId) !== item.shipLater;
+  });
+};
+
+const toDeliveryPlanSnapshot = (sourceItems: EditableItem[]): OrderDeliveryPlanSnapshot => ({
+  shipLaterItemIds: sourceItems
+    .filter((item) => item.shipLater && typeof item.persistedId === 'number')
+    .map((item) => item.persistedId as number),
+  currentItemCount: sourceItems.filter((item) => !item.shipLater).length,
+  laterItemCount: sourceItems.filter((item) => item.shipLater).length
+});
 
 const orderItemsEditInputClassName =
   `${adminTableInlineEditInputClassName} !h-8 !px-2 !text-[12px] !leading-5`;
@@ -156,10 +206,16 @@ export default function AdminOrderItemsEditor({
   hideSectionEditControls = false,
   onRequestEdit,
   sectionEditDisabled = false,
+  commercialEditingLocked = false,
+  deliveryPlanEditingLocked = false,
+  deliveryPlanEditingLockedReason,
+  initialDeliveryPlanRevision = 1,
   onDirtyChange,
   onSavingChange,
   onRegisterSave,
-  onPricingRevisionChange
+  onPricingRevisionChange,
+  onDeliveryPlanChange,
+  onDeliveryPlanRevisionChange
 }: {
   orderId: number;
   items: OrderItemInput[];
@@ -174,10 +230,16 @@ export default function AdminOrderItemsEditor({
   hideSectionEditControls?: boolean;
   onRequestEdit?: () => void;
   sectionEditDisabled?: boolean;
+  commercialEditingLocked?: boolean;
+  deliveryPlanEditingLocked?: boolean;
+  deliveryPlanEditingLockedReason?: string;
+  initialDeliveryPlanRevision?: number;
   onDirtyChange?: (isDirty: boolean) => void;
   onSavingChange?: (isSaving: boolean) => void;
-  onRegisterSave?: (handler: () => Promise<boolean>) => void | (() => void);
+  onRegisterSave?: (handler: OrderItemsSaveHandler) => void | (() => void);
   onPricingRevisionChange?: (pricingRevision: number) => void;
+  onDeliveryPlanChange?: (snapshot: OrderDeliveryPlanSnapshot) => void;
+  onDeliveryPlanRevisionChange?: (deliveryPlanRevision: number) => void;
 }) {
   const initialMappedItems = useMemo(() => mapIncomingItems(items), [items]);
   const hasExternalEditMode = typeof externalEditMode === 'boolean';
@@ -194,12 +256,27 @@ export default function AdminOrderItemsEditor({
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { toast } = useToast();
-  const saveItemsRef = useRef<() => Promise<boolean>>(async () => true);
+  const saveItemsRef = useRef<OrderItemsSaveHandler>(async () => ({ ok: true }));
+  const deliveryPlanRevisionRef = useRef(
+    Number.isSafeInteger(initialDeliveryPlanRevision) && initialDeliveryPlanRevision >= 1
+      ? initialDeliveryPlanRevision
+      : 1
+  );
+  const lastExternalEditModeRef = useRef<boolean | undefined>(undefined);
   const pickerDialogRef = useRef<HTMLDivElement | null>(null);
   const pickerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const pickerDismissRefs = useMemo(() => [pickerDialogRef] as const, []);
   const pickerDialogId = useId();
   const pickerTitleId = useId();
+
+  useEffect(() => {
+    if (
+      Number.isSafeInteger(initialDeliveryPlanRevision) &&
+      initialDeliveryPlanRevision >= 1
+    ) {
+      deliveryPlanRevisionRef.current = initialDeliveryPlanRevision;
+    }
+  }, [initialDeliveryPlanRevision]);
 
   useEffect(() => {
     setPersistedShipping(initialShipping);
@@ -270,17 +347,50 @@ export default function AdminOrderItemsEditor({
     maximumFractionDigits: 2
   }).format(taxRate * 100);
 
-  const isItemsDirty = useMemo(
-    () => !areEditableItemsEqual(draftItems, persistedItems),
+  const isCommercialItemsDirty = useMemo(
+    () => !areCommercialItemsEqual(draftItems, persistedItems),
     [draftItems, persistedItems]
   );
-
+  const deliveryPlanDirty = useMemo(
+    () => isDeliveryPlanDirty(draftItems, persistedItems),
+    [draftItems, persistedItems]
+  );
+  const isItemsDirty = isCommercialItemsDirty || deliveryPlanDirty;
+  const commercialItemsEditable = itemsEditable && !commercialEditingLocked;
+  const deliveryPlanEditable = itemsEditable && !deliveryPlanEditingLocked;
+  const itemSelectionEditable = commercialItemsEditable || deliveryPlanEditable;
   const itemsSaveDisabled = !itemsEditable || isItemsSaving || !isItemsDirty;
-  const addItemDisabled = !itemsEditable || isItemsSaving;
+  const addItemDisabled = !commercialItemsEditable || isItemsSaving;
   const activeItems = itemsEditable ? draftItems : persistedItems;
-  const hasSelectedDraftItems = selectedDraftItemIds.length > 0;
-  const areAllActiveItemsSelected =
-    activeItems.length > 0 && activeItems.every((item) => selectedDraftItemIds.includes(item.id));
+  const activeCurrentItems = activeItems.filter((item) => !item.shipLater);
+  const activeLaterItems = activeItems.filter((item) => item.shipLater);
+  const selectedDraftItems = draftItems.filter((item) => selectedDraftItemIds.includes(item.id));
+  const hasSelectedDraftItems = selectedDraftItems.length > 0;
+  const selectedSectionShipLater = hasSelectedDraftItems
+    && selectedDraftItems.every((item) => item.shipLater === selectedDraftItems[0]?.shipLater)
+      ? selectedDraftItems[0]?.shipLater ?? null
+      : null;
+  const transferActionLabel = selectedSectionShipLater === true
+    ? 'Premakni izbrane v trenutno pošiljko'
+    : 'Premakni izbrane v poznejšo dobavo';
+  const lockedDeliveryPlanReason = deliveryPlanEditingLocked
+    ? deliveryPlanEditingLockedReason ?? 'Razporeda dobave trenutno ni mogoče spreminjati.'
+    : undefined;
+  const transferActionTitle = lockedDeliveryPlanReason
+    ?? (!itemsEditable
+      ? 'Najprej vključite urejanje postavk'
+      : isItemsSaving
+        ? 'Počakajte, da se shranjevanje konča'
+        : !hasSelectedDraftItems
+          ? 'Izberite postavke iz enega razdelka'
+          : selectedSectionShipLater === null
+            ? 'Izberite postavke samo iz enega razdelka'
+            : transferActionLabel);
+  const transferDisabled =
+    !deliveryPlanEditable || isItemsSaving || selectedSectionShipLater === null;
+  const transferActionAriaLabel = transferDisabled
+    ? `${transferActionLabel}. ${transferActionTitle}`
+    : transferActionLabel;
 
   const totals = useMemo(() => {
     const lineNets = activeItems.map(getEditableLineNet);
@@ -294,7 +404,7 @@ export default function AdminOrderItemsEditor({
   }, [activeItems, persistedShipping, taxRate]);
   const shippingPending = shippingManualQuote && !hasShippingOverride;
   const shippingIsStale =
-    shippingOverrideStale || (hasShippingOverride && isItemsDirty);
+    shippingOverrideStale || (hasShippingOverride && isCommercialItemsDirty);
   const shippingContextLabel = shippingManualQuote
     ? `Po dogovoru${shippingIsStale ? ' · zastarelo' : ''}`
     : hasShippingOverride
@@ -312,7 +422,7 @@ export default function AdminOrderItemsEditor({
   }, [catalogChoices, catalogQuery]);
 
   const updateItem = (id: string, updates: Partial<EditableItem>) => {
-    if (!itemsEditable) return;
+    if (!commercialItemsEditable) return;
     setDraftItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== id) return item;
@@ -356,7 +466,7 @@ export default function AdminOrderItemsEditor({
   };
 
   const addCatalogItem = (choice: CatalogChoice) => {
-    if (!itemsEditable) return;
+    if (!commercialItemsEditable) return;
 
     setDraftItems((currentItems) => {
       const existing = currentItems.find((item) =>
@@ -379,123 +489,217 @@ export default function AdminOrderItemsEditor({
           unitPrice: choice.unitPrice,
           discountPercentage: choice.discountPercentage,
           catalogItemId: choice.catalogItemId,
-          catalogVariantId: choice.catalogVariantId
+          catalogVariantId: choice.catalogVariantId,
+          shipLater: false
         }
       ];
     });
     closeItemPickerAndRestoreFocus();
   };
 
-  const saveItems = useCallback(async (): Promise<boolean> => {
-    if (!itemsEditable || isItemsSaving) return true;
+  const saveItems = useCallback<OrderItemsSaveHandler>(async (options = {}) => {
+    if (!itemsEditable) return { ok: true };
+    if (isItemsSaving) return { ok: false };
 
     if (!isItemsDirty) {
       if (!hasExternalEditMode) cancelItemsEdit();
-      return true;
+      return { ok: true };
     }
 
     if (draftItems.length === 0) {
       toast.error('Naročilo mora vsebovati vsaj eno postavko.');
-      return false;
+      return { ok: false };
     }
 
     setIsItemsSaving(true);
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}/items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: draftItems.map((item) => ({
-            id: item.persistedId,
-            catalogItemId: item.catalogItemId,
-            catalogVariantId: item.catalogVariantId,
-            sku: item.sku,
-            name: item.name,
-            unit: item.unit,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discountPercentage: item.discountPercentage
-          }))
-        })
-      });
+      let nextDesiredItems = cloneEditableItems(draftItems);
+      let nextServerItems = cloneEditableItems(persistedItems);
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
-      }
+      if (isCommercialItemsDirty) {
+        const response = await fetch(`/api/admin/orders/${orderId}/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: draftItems.map((item) => ({
+              id: item.persistedId,
+              catalogItemId: item.catalogItemId,
+              catalogVariantId: item.catalogVariantId,
+              sku: item.sku,
+              name: item.name,
+              unit: item.unit,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discountPercentage: item.discountPercentage
+            }))
+          })
+        });
 
-      const payload = (await response.json()) as {
-        pricingRevision?: number;
-        totals?: {
-          shipping?: number;
-          shippingOverrideStale?: boolean;
-          shippingSource?: 'automatic' | 'manual_override' | 'manual_quote';
-          shippingManualQuoteReason?: string | null;
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.message || 'Shranjevanje postavk ni uspelo.');
+        }
+
+        const payload = (await response.json()) as {
+          pricingRevision?: number;
+          deliveryPlanRevision?: number;
+          totals?: {
+            shipping?: number;
+            shippingOverrideStale?: boolean;
+            shippingSource?: 'automatic' | 'manual_override' | 'manual_quote';
+            shippingManualQuoteReason?: string | null;
+          };
+          items?: Array<{
+            id: number;
+            catalogItemId?: number | null;
+            catalogVariantId?: number | null;
+            sku: string;
+            name: string;
+            unit: string | null;
+            quantity: number;
+            unitPrice: number;
+            discountPercentage: number;
+          }>;
         };
-        items?: Array<{
-          id: number;
-          catalogItemId?: number | null;
-          catalogVariantId?: number | null;
-          sku: string;
-          name: string;
-          unit: string | null;
-          quantity: number;
-          unitPrice: number;
-          discountPercentage: number;
-        }>;
+        if (!payload.items || payload.items.length !== draftItems.length) {
+          throw new Error('Strežnik ni vrnil vseh shranjenih postavk.');
+        }
+        const itemSaveDeliveryPlanRevision = Number(payload.deliveryPlanRevision);
+        if (
+          !Number.isSafeInteger(itemSaveDeliveryPlanRevision) ||
+          itemSaveDeliveryPlanRevision < 1
+        ) {
+          throw new Error('Strežnik ni vrnil veljavne revizije načrta dobave.');
+        }
+        deliveryPlanRevisionRef.current = itemSaveDeliveryPlanRevision;
+        onDeliveryPlanRevisionChange?.(itemSaveDeliveryPlanRevision);
+
+        const previousPlanById = new Map(
+          persistedItems
+            .filter((item): item is EditableItem & { persistedId: number } => typeof item.persistedId === 'number')
+            .map((item) => [item.persistedId, item.shipLater] as const)
+        );
+        nextServerItems = payload.items.map((item) => ({
+          id: `saved-${item.id}`,
+          persistedId: item.id,
+          sku: item.sku,
+          name: item.name,
+          unit: item.unit ?? 'kos',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discountPercentage: item.discountPercentage,
+          catalogItemId: item.catalogItemId,
+          catalogVariantId: item.catalogVariantId,
+          shipLater: previousPlanById.get(item.id) ?? false
+        }));
+        nextDesiredItems = nextServerItems.map((item, index) => ({
+          ...item,
+          shipLater: draftItems[index]?.shipLater === true
+        }));
+
+        // Commercial mutations already committed server-side. Keep their returned IDs
+        // even if the following delivery-plan/status request fails, so a retry cannot
+        // create duplicate rows.
+        setPersistedItems(cloneEditableItems(nextServerItems));
+        setDraftItems(cloneEditableItems(nextDesiredItems));
+        setSelectedDraftItemIds([]);
+        if (typeof payload.totals?.shipping === 'number') {
+          setPersistedShipping(payload.totals.shipping);
+        }
+        setHasShippingOverride(payload.totals?.shippingSource === 'manual_override');
+        setShippingOverrideStale(payload.totals?.shippingOverrideStale === true);
+        setShippingManualQuote(payload.totals?.shippingSource === 'manual_quote');
+        if (
+          Number.isSafeInteger(payload.pricingRevision) &&
+          Number(payload.pricingRevision) >= 1
+        ) {
+          onPricingRevisionChange?.(Number(payload.pricingRevision));
+        }
+        onDeliveryPlanChange?.(toDeliveryPlanSnapshot(nextDesiredItems));
+      }
+
+      const planStillDirty = isDeliveryPlanDirty(nextDesiredItems, nextServerItems);
+      const planSnapshot = toDeliveryPlanSnapshot(nextDesiredItems);
+      const persistDeliveryPlan = async () => {
+        const expectedDeliveryPlanRevision = deliveryPlanRevisionRef.current;
+        const planResponse = await fetch(`/api/admin/orders/${orderId}/delivery-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shipLaterItemIds: planSnapshot.shipLaterItemIds,
+            expectedDeliveryPlanRevision
+          })
+        });
+        const responsePayload = await planResponse.json().catch(() => ({})) as {
+          message?: string;
+          deliveryPlanRevision?: number;
+        };
+        if (!planResponse.ok) {
+          throw new Error(responsePayload.message || 'Shranjevanje načrta dobave ni uspelo.');
+        }
+        const nextDeliveryPlanRevision = Number(responsePayload.deliveryPlanRevision);
+        if (!Number.isSafeInteger(nextDeliveryPlanRevision) || nextDeliveryPlanRevision < 1) {
+          throw new Error('Strežnik ni vrnil veljavne revizije načrta dobave.');
+        }
+        deliveryPlanRevisionRef.current = nextDeliveryPlanRevision;
+        onDeliveryPlanRevisionChange?.(nextDeliveryPlanRevision);
       };
-      const nextItems = payload.items?.map((item) => ({
-        id: `saved-${item.id}`,
-        persistedId: item.id,
-        sku: item.sku,
-        name: item.name,
-        unit: item.unit ?? 'kos',
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discountPercentage: item.discountPercentage,
-        catalogItemId: item.catalogItemId,
-        catalogVariantId: item.catalogVariantId
-      })) ?? cloneEditableItems(draftItems);
-      setPersistedItems(nextItems);
-      setDraftItems(cloneEditableItems(nextItems));
+      const deliveryPlanPersistence = options.deliveryPlanPersistence ?? 'immediate';
+
+      if (planStillDirty && deliveryPlanPersistence !== 'immediate') {
+        const committedItems = cloneEditableItems(nextDesiredItems);
+        return {
+          ok: true,
+          ...(deliveryPlanPersistence === 'after-page-save'
+            ? { persistDeferredDeliveryPlan: persistDeliveryPlan }
+            : {}),
+          commitDeferredDeliveryPlan: () => {
+            setPersistedItems(cloneEditableItems(committedItems));
+            setDraftItems(cloneEditableItems(committedItems));
+            setSelectedDraftItemIds([]);
+            onDeliveryPlanChange?.(toDeliveryPlanSnapshot(committedItems));
+          }
+        };
+      }
+
+      if (planStillDirty) {
+        await persistDeliveryPlan();
+      }
+
+      setPersistedItems(cloneEditableItems(nextDesiredItems));
+      setDraftItems(cloneEditableItems(nextDesiredItems));
       setSelectedDraftItemIds([]);
-      if (typeof payload.totals?.shipping === 'number') {
-        setPersistedShipping(payload.totals.shipping);
-      }
-      setHasShippingOverride(payload.totals?.shippingSource === 'manual_override');
-      setShippingOverrideStale(payload.totals?.shippingOverrideStale === true);
-      setShippingManualQuote(payload.totals?.shippingSource === 'manual_quote');
-      if (
-        Number.isSafeInteger(payload.pricingRevision) &&
-        Number(payload.pricingRevision) >= 1
-      ) {
-        onPricingRevisionChange?.(Number(payload.pricingRevision));
-      }
+      onDeliveryPlanChange?.(toDeliveryPlanSnapshot(nextDesiredItems));
       if (!hasExternalEditMode) {
         setItemsSectionMode('read');
         toast.success('Postavke so posodobljene.');
       }
-      return true;
+      return { ok: true };
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
-      return false;
+      return { ok: false };
     } finally {
       setIsItemsSaving(false);
     }
   }, [
     draftItems,
+    persistedItems,
     cancelItemsEdit,
     hasExternalEditMode,
+    isCommercialItemsDirty,
     isItemsDirty,
     isItemsSaving,
     itemsEditable,
     orderId,
+    onDeliveryPlanChange,
+    onDeliveryPlanRevisionChange,
     onPricingRevisionChange,
     toast
   ]);
-
   useEffect(() => {
     if (!hasExternalEditMode) return;
+    if (lastExternalEditModeRef.current === externalEditMode) return;
+    lastExternalEditModeRef.current = externalEditMode;
 
     setDraftItems(cloneEditableItems(persistedItems));
     setSelectedDraftItemIds([]);
@@ -511,6 +715,10 @@ export default function AdminOrderItemsEditor({
   }, [isItemsDirty, onDirtyChange]);
 
   useEffect(() => {
+    onDeliveryPlanChange?.(toDeliveryPlanSnapshot(activeItems));
+  }, [activeItems, onDeliveryPlanChange]);
+
+  useEffect(() => {
     onSavingChange?.(isItemsSaving);
   }, [isItemsSaving, onSavingChange]);
 
@@ -520,7 +728,7 @@ export default function AdminOrderItemsEditor({
 
   useEffect(() => {
     if (!onRegisterSave) return undefined;
-    return onRegisterSave(() => saveItemsRef.current());
+    return onRegisterSave((options) => saveItemsRef.current(options));
   }, [onRegisterSave]);
 
   useEffect(() => {
@@ -550,28 +758,147 @@ export default function AdminOrderItemsEditor({
   }, [cancelItemsEdit, hasExternalEditMode, itemsEditable, isPickerOpen, saveItems]);
 
   const toggleSelectedDraftItem = (itemId: string) => {
-    if (!itemsEditable) return;
-    setSelectedDraftItemIds((previous) =>
-      previous.includes(itemId) ? previous.filter((id) => id !== itemId) : [...previous, itemId]
+    if (!itemSelectionEditable) return;
+    const item = draftItems.find((candidate) => candidate.id === itemId);
+    if (!item) return;
+
+    setSelectedDraftItemIds((previous) => {
+      if (previous.includes(itemId)) return previous.filter((id) => id !== itemId);
+      const previousItems = draftItems.filter((candidate) => previous.includes(candidate.id));
+      const selectionMatchesSection = previousItems.every(
+        (candidate) => candidate.shipLater === item.shipLater
+      );
+      return selectionMatchesSection ? [...previous, itemId] : [itemId];
+    });
+  };
+
+  const toggleDraftSection = (shipLater: boolean) => {
+    if (!itemSelectionEditable) return;
+    const sectionItemIds = draftItems
+      .filter((item) => item.shipLater === shipLater)
+      .map((item) => item.id);
+    const sectionIsSelected =
+      sectionItemIds.length > 0 && sectionItemIds.every((id) => selectedDraftItemIds.includes(id));
+    setSelectedDraftItemIds(sectionIsSelected ? [] : sectionItemIds);
+  };
+
+  const moveSelectedDraftItems = () => {
+    if (transferDisabled || selectedSectionShipLater === null) return;
+    const selectedSet = new Set(selectedDraftItemIds);
+    const destinationShipLater = !selectedSectionShipLater;
+    setDraftItems((previous) => previous.map((item) =>
+      selectedSet.has(item.id) ? { ...item, shipLater: destinationShipLater } : item
+    ));
+    setSelectedDraftItemIds([]);
+    toast.info(
+      destinationShipLater
+        ? 'Izbrane postavke bodo poslane pozneje. Shrani za potrditev.'
+        : 'Izbrane postavke bodo vključene v trenutno pošiljko. Shrani za potrditev.'
     );
   };
 
-  const toggleAllDraftItems = () => {
-    if (!itemsEditable) return;
-    if (areAllActiveItemsSelected) {
-      setSelectedDraftItemIds([]);
-      return;
-    }
-    setSelectedDraftItemIds(activeItems.map((item) => item.id));
-  };
-
   const deleteSelectedDraftItems = () => {
-    if (!itemsEditable || selectedDraftItemIds.length === 0) return;
+    if (!commercialItemsEditable || selectedDraftItemIds.length === 0) return;
     const removedCount = selectedDraftItemIds.length;
     const selectedSet = new Set(selectedDraftItemIds);
     setDraftItems((previous) => previous.filter((item) => !selectedSet.has(item.id)));
     setSelectedDraftItemIds([]);
     toast.info(removedCount === 1 ? 'Postavka je odstranjena. Shrani za potrditev.' : `Odstranjenih postavk: ${removedCount}. Shrani za potrditev.`);
+  };
+
+  const renderItemRow = (item: EditableItem) => {
+    const lineTotal = getEditableLineNet(item);
+    return (
+      <tr key={item.id} className={`border-t border-slate-200/90 bg-white align-middle ${adminTableRowToneClasses.hover}`}>
+        <td className="py-3 pl-4 pr-2 text-left">
+          <AdminCheckbox
+            checked={itemSelectionEditable && selectedDraftItemIds.includes(item.id)}
+            onChange={() => toggleSelectedDraftItem(item.id)}
+            aria-label={`Izberi postavko ${item.name}`}
+            className={selectionCheckboxClassName}
+            disabled={!itemSelectionEditable}
+          />
+        </td>
+        <td className="px-3 py-3 align-middle">
+          <div className="grid gap-0.5">
+            <p className="truncate text-[12px] font-medium text-slate-900">{item.name}</p>
+            <p className="truncate text-[11px] text-slate-500">{item.sku}</p>
+          </div>
+        </td>
+        <td className="px-1 py-3 text-center">
+          <span
+            className="mx-auto inline-flex h-8 w-full items-center justify-center"
+            data-admin-order-item-value-slot="quantity"
+          >
+            {commercialItemsEditable ? (
+              <input
+                type="number"
+                min={1}
+                value={item.quantity}
+                onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
+                aria-label="Količina"
+                data-admin-order-item-value-input
+                className={`${orderItemsValueInputClassName} w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                readOnly={isItemsSaving}
+              />
+            ) : (
+              <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
+                {item.quantity}
+              </span>
+            )}
+          </span>
+        </td>
+        <td className="px-1.5 py-3 text-center">
+          <span
+            className="mx-auto inline-flex h-8 w-[88px] items-center justify-center gap-1"
+            data-admin-order-item-value-slot="unit-price"
+          >
+            {commercialItemsEditable ? (
+              <input
+                type="text"
+                inputMode="decimal"
+                value={formatDecimalInput(item.unitPrice)}
+                onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
+                aria-label="Cena brez DDV"
+                data-admin-order-item-value-input
+                className={`${orderItemsValueInputClassName} min-w-0 w-full`}
+                readOnly={isItemsSaving}
+              />
+            ) : (
+              <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
+                {formatDecimalInput(item.unitPrice)}
+              </span>
+            )}
+            <span className="text-[12px] text-slate-700">€</span>
+          </span>
+        </td>
+        <td className="px-1.5 py-3 text-center">
+          <span
+            className="mx-auto inline-flex h-8 w-[72px] items-center justify-center gap-1"
+            data-admin-order-item-value-slot="discount"
+          >
+            {commercialItemsEditable ? (
+              <input
+                type="text"
+                inputMode="decimal"
+                value={formatDecimalInput(item.discountPercentage)}
+                onChange={(event) => updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })}
+                aria-label="Popust"
+                data-admin-order-item-value-input
+                className={`${orderItemsValueInputClassName} min-w-0 w-full`}
+                readOnly={isItemsSaving}
+              />
+            ) : (
+              <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
+                {formatDecimalInput(item.discountPercentage)}
+              </span>
+            )}
+            <span className="text-[12px] text-slate-700">%</span>
+          </span>
+        </td>
+        <td className="py-3 pl-1.5 pr-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+      </tr>
+    );
   };
 
   return (
@@ -646,14 +973,29 @@ export default function AdminOrderItemsEditor({
               <PlusIcon />
             </IconButton>
 
+            <span className="inline-flex" title={transferActionTitle}>
+              <IconButton
+                type="button"
+                aria-label={transferActionAriaLabel}
+                onClick={moveSelectedDraftItems}
+                title={transferActionTitle}
+                tone="neutral"
+                className={adminTableNeutralIconButtonClassName}
+                disabled={transferDisabled}
+                data-testid="admin-order-items-transfer"
+              >
+                <ApplyToAllIcon className={selectedSectionShipLater === true ? 'h-4 w-4 rotate-180' : 'h-4 w-4'} />
+              </IconButton>
+            </span>
+
             <IconButton
               type="button"
               aria-label="Odstrani izbrane postavke"
               onClick={deleteSelectedDraftItems}
-              title="Izbriši izbrane"
-              tone={itemsEditable && hasSelectedDraftItems ? 'danger' : 'neutral'}
-              className={itemsEditable && hasSelectedDraftItems ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
-              disabled={!itemsEditable || !hasSelectedDraftItems}
+              title={commercialEditingLocked ? 'Vsebina postavk je zaklenjena' : 'Izbriši izbrane'}
+              tone={commercialItemsEditable && hasSelectedDraftItems ? 'danger' : 'neutral'}
+              className={commercialItemsEditable && hasSelectedDraftItems ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
+              disabled={!commercialItemsEditable || !hasSelectedDraftItems}
             >
               <TrashCanIcon />
             </IconButton>
@@ -689,15 +1031,7 @@ export default function AdminOrderItemsEditor({
             </colgroup>
             <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)] text-slate-600">
               <tr>
-                <th className="border-b border-slate-200 py-4 pl-4 pr-2 text-left align-middle" aria-label="Izbira">
-                  <AdminCheckbox
-                    checked={itemsEditable && areAllActiveItemsSelected}
-                    onChange={toggleAllDraftItems}
-                    aria-label="Izberi vse postavke"
-                    className={selectionCheckboxClassName}
-                    disabled={!itemsEditable}
-                  />
-                </th>
+                <th className="border-b border-slate-200 py-4 pl-4 pr-2 text-left align-middle" aria-label="Izbira" />
                 <th className="border-b border-slate-200 px-3 py-4 text-left text-[12px] font-semibold align-middle">Artikel</th>
                 <th className="border-b border-slate-200 px-1 py-4 text-center text-[12px] font-semibold align-middle">Količina</th>
                 <th className="border-b border-slate-200 px-1.5 py-4 text-center text-[12px] font-semibold align-middle">Cena brez DDV</th>
@@ -705,101 +1039,73 @@ export default function AdminOrderItemsEditor({
                 <th className="border-b border-slate-200 py-4 pl-1.5 pr-2 text-right text-[12px] font-semibold align-middle">Skupaj brez DDV</th>
               </tr>
             </thead>
-            <tbody>
-              {activeItems.map((item) => {
-                const lineTotal = getEditableLineNet(item);
-                return (
-                  <tr key={item.id} className={`border-t border-slate-200/90 bg-white align-middle ${adminTableRowToneClasses.hover}`}>
-                    <td className="py-3 pl-4 pr-2 text-left">
-                      <AdminCheckbox
-                        checked={itemsEditable && selectedDraftItemIds.includes(item.id)}
-                        onChange={() => toggleSelectedDraftItem(item.id)}
-                        aria-label={`Izberi postavko ${item.name}`}
-                        className={selectionCheckboxClassName}
-                        disabled={!itemsEditable}
-                      />
-                    </td>
-                    <td className="px-3 py-3 align-middle">
-                      <div className="grid gap-0.5">
-                        <p className="truncate text-[12px] font-medium text-slate-900">{item.name}</p>
-                        <p className="truncate text-[11px] text-slate-500">{item.sku}</p>
-                      </div>
-                    </td>
-                    <td className="px-1 py-3 text-center">
-                      <span
-                        className="mx-auto inline-flex h-8 w-full items-center justify-center"
-                        data-admin-order-item-value-slot="quantity"
-                      >
-                        {itemsEditable ? (
-                          <input
-                            type="number"
-                            min={1}
-                            value={item.quantity}
-                            onChange={(event) => updateItem(item.id, { quantity: Number(event.target.value) || 1 })}
-                            aria-label="Količina"
-                            data-admin-order-item-value-input
-                            className={`${orderItemsValueInputClassName} w-full appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                            readOnly={isItemsSaving}
-                          />
-                        ) : (
-                          <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
-                            {item.quantity}
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-1.5 py-3 text-center">
-                      <span
-                        className="mx-auto inline-flex h-8 w-[88px] items-center justify-center gap-1"
-                        data-admin-order-item-value-slot="unit-price"
-                      >
-                        {itemsEditable ? (
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={formatDecimalInput(item.unitPrice)}
-                            onChange={(event) => updateItem(item.id, { unitPrice: parseLocaleNumber(event.target.value) })}
-                            aria-label="Cena brez DDV"
-                            data-admin-order-item-value-input
-                            className={`${orderItemsValueInputClassName} min-w-0 w-full`}
-                            readOnly={isItemsSaving}
-                          />
-                        ) : (
-                          <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
-                            {formatDecimalInput(item.unitPrice)}
-                          </span>
-                        )}
-                        <span className="text-[12px] text-slate-700">€</span>
-                      </span>
-                    </td>
-                    <td className="px-1.5 py-3 text-center">
-                      <span
-                        className="mx-auto inline-flex h-8 w-[72px] items-center justify-center gap-1"
-                        data-admin-order-item-value-slot="discount"
-                      >
-                        {itemsEditable ? (
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={formatDecimalInput(item.discountPercentage)}
-                            onChange={(event) => updateItem(item.id, { discountPercentage: parseLocaleNumber(event.target.value) })}
-                            aria-label="Popust"
-                            data-admin-order-item-value-input
-                            className={`${orderItemsValueInputClassName} min-w-0 w-full`}
-                            readOnly={isItemsSaving}
-                          />
-                        ) : (
-                          <span className={orderItemsReadValueClassName} data-admin-order-item-value-display>
-                            {formatDecimalInput(item.discountPercentage)}
-                          </span>
-                        )}
-                        <span className="text-[12px] text-slate-700">%</span>
-                      </span>
-                    </td>
-                    <td className="py-3 pl-1.5 pr-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
-                  </tr>
-                );
-              })}
+            <tbody data-testid="admin-order-items-current-group">
+              <tr className="bg-slate-50/80 text-slate-700">
+                <td className="py-2.5 pl-4 pr-2 text-left align-middle">
+                  <AdminCheckbox
+                    checked={
+                      itemSelectionEditable &&
+                      activeCurrentItems.length > 0 &&
+                      activeCurrentItems.every((item) => selectedDraftItemIds.includes(item.id))
+                    }
+                    onChange={() => toggleDraftSection(false)}
+                    aria-label="Izberi vse postavke v tej pošiljki"
+                    className={selectionCheckboxClassName}
+                    disabled={!itemSelectionEditable || activeCurrentItems.length === 0}
+                  />
+                </td>
+                <td colSpan={5} className="px-3 py-2.5 align-middle">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900">V tej pošiljki</span>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-inset ring-slate-200">
+                      {activeCurrentItems.length}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              {activeCurrentItems.length > 0 ? (
+                activeCurrentItems.map(renderItemRow)
+              ) : (
+                <tr className="border-t border-slate-200/90 bg-white">
+                  <td colSpan={6} className="px-4 py-4 text-center text-[11px] text-slate-500">
+                    V trenutni pošiljki ni postavk.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tbody data-testid="admin-order-items-later-group">
+              <tr className="border-t border-slate-200 bg-sky-50/60 text-slate-700">
+                <td className="py-2.5 pl-4 pr-2 text-left align-middle">
+                  <AdminCheckbox
+                    checked={
+                      itemSelectionEditable &&
+                      activeLaterItems.length > 0 &&
+                      activeLaterItems.every((item) => selectedDraftItemIds.includes(item.id))
+                    }
+                    onChange={() => toggleDraftSection(true)}
+                    aria-label="Izberi vse postavke za poznejšo dobavo"
+                    className={selectionCheckboxClassName}
+                    disabled={!itemSelectionEditable || activeLaterItems.length === 0}
+                  />
+                </td>
+                <td colSpan={5} className="px-3 py-2.5 align-middle">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900">Pošljemo pozneje</span>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-inset ring-sky-200">
+                      {activeLaterItems.length}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+              {activeLaterItems.length > 0 ? (
+                activeLaterItems.map(renderItemRow)
+              ) : (
+                <tr className="border-t border-slate-200/90 bg-white">
+                  <td colSpan={6} className="px-4 py-4 text-center text-[11px] text-slate-500">
+                    {lockedDeliveryPlanReason ?? 'Izberite postavke zgoraj in jih premaknite v poznejšo dobavo.'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

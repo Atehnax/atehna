@@ -147,7 +147,8 @@ export async function buildPdfContext(database: Pick<Pool, 'query'>, orderId: nu
        unit_net as "unitPrice",
        line_net as "lineTotal",
        tax_rate as "taxRate",
-       discount_pct as "discountPercentage"
+       discount_pct as "discountPercentage",
+       ship_later as "shipLater"
      from order_items
      where order_id = $1
      order by id`,
@@ -162,7 +163,8 @@ export async function buildPdfContext(database: Pick<Pool, 'query'>, orderId: nu
     unitPrice: asNumber(row.unitPrice),
     lineTotal: asNumber(row.lineTotal),
     taxRate: asNumber(row.taxRate),
-    discountPercentage: asNumber(row.discountPercentage)
+    discountPercentage: asNumber(row.discountPercentage),
+    shipLater: row.shipLater === true
   }));
 
   if (itemsForPdf.length === 0) {

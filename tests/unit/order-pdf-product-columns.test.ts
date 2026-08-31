@@ -40,7 +40,8 @@ test('PDF items use immutable order-line SKU, product text, quantity, unit, and 
             unitPrice: '11.7225',
             lineTotal: '35.1675',
             taxRate: '0.22',
-            discountPercentage: '5'
+            discountPercentage: '5',
+            shipLater: true
           }]
         };
       }
@@ -60,7 +61,8 @@ test('PDF items use immutable order-line SKU, product text, quantity, unit, and 
     unitPrice: 11.7225,
     lineTotal: 35.1675,
     taxRate: 0.22,
-    discountPercentage: 5
+    discountPercentage: 5,
+    shipLater: true
   }]);
   assert.equal(result.orderForPdf.subtotal, 35.17);
   assert.equal(result.orderForPdf.tax, 7.74);
@@ -70,5 +72,6 @@ test('PDF items use immutable order-line SKU, product text, quantity, unit, and 
   assert.ok(itemQuery);
   assert.match(itemQuery, /unit_net\s+as\s+"unitPrice"/iu);
   assert.match(itemQuery, /line_net\s+as\s+"lineTotal"/iu);
+  assert.match(itemQuery, /ship_later\s+as\s+"shipLater"/iu);
   assert.doesNotMatch(itemQuery, /catalog_items|catalog_item_variants/iu);
 });

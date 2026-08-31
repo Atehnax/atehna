@@ -3,7 +3,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import type { CartItem } from '../../src/commercial/cart/cartTypes';
-import { buildOrderQuoteRequestKey, normalizeOrderQuoteCustomerName } from '../../src/commercial/order/useOrderQuote';
+import {
+  buildOrderEstimateRequestKey,
+  normalizeOrderEstimateCustomerLabels,
+  normalizeOrderEstimateCustomerName
+} from '../../src/commercial/order/useOrderEstimate';
 
 const source = (relativePath: string) => readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
@@ -13,28 +17,50 @@ const requestKeyItem = {
   variant: { id: 41001 }
 } as CartItem;
 
-test('customer-aware quote keys normalize and distinguish discount targets', () => {
-  assert.equal(normalizeOrderQuoteCustomerName(), '');
-  assert.equal(normalizeOrderQuoteCustomerName('  Primer d.o.o.  '), 'Primer d.o.o.');
+test('customer-aware estimate keys normalize and distinguish discount targets', () => {
+  assert.equal(normalizeOrderEstimateCustomerName(), '');
+  assert.equal(normalizeOrderEstimateCustomerName('  Primer d.o.o.  '), 'Primer d.o.o.');
   assert.equal(
-    buildOrderQuoteRequestKey([requestKeyItem], '  Primer d.o.o.  '),
-    buildOrderQuoteRequestKey([requestKeyItem], 'Primer d.o.o.')
+    buildOrderEstimateRequestKey([requestKeyItem], '  Primer d.o.o.  '),
+    buildOrderEstimateRequestKey([requestKeyItem], 'Primer d.o.o.')
   );
   assert.notEqual(
-    buildOrderQuoteRequestKey([requestKeyItem], 'Primer d.o.o.'),
-    buildOrderQuoteRequestKey([requestKeyItem], 'Drugi kupec')
+    buildOrderEstimateRequestKey([requestKeyItem], 'Primer d.o.o.'),
+    buildOrderEstimateRequestKey([requestKeyItem], 'Drugi kupec')
   );
-  assert.equal(buildOrderQuoteRequestKey([], 'Primer d.o.o.'), '');
+  assert.equal(buildOrderEstimateRequestKey([], 'Primer d.o.o.'), '');
+  assert.deepEqual(
+    normalizeOrderEstimateCustomerLabels(' Primer d.o.o. ', [
+      'ANA NOVAK',
+      'primer d.o.o.'
+    ]),
+    ['ana novak', 'primer d.o.o.']
+  );
+  assert.notEqual(
+    buildOrderEstimateRequestKey(
+      [requestKeyItem],
+      'Primer d.o.o.',
+      ['Ana Novak']
+    ),
+    buildOrderEstimateRequestKey(
+      [requestKeyItem],
+      'Primer d.o.o.',
+      ['Boris Novak']
+    )
+  );
 });
 
-test('checkout sends the normalized customer label and invalidates stale quotes', () => {
-  const hookSource = source('src/commercial/order/useOrderQuote.ts');
+test('checkout sends normalized customer labels and invalidates stale estimates', () => {
+  const hookSource = source('src/commercial/order/useOrderEstimate.ts');
   const pageSource = source('src/commercial/order/components/OrderPageClient.tsx');
   const cartPageSource = source('src/commercial/features/cart/CartPageClient.tsx');
   const cartDrawerSource = source('src/commercial/features/cart/CartDrawer.tsx');
 
-  assert.match(hookSource, /body: JSON\.stringify\(\{\s*customerName: normalizedCustomerName,/u);
-  const clearQuoteIndex = hookSource.indexOf('setState({ quote: null, isLoading: true, error: null });');
+  assert.match(
+    hookSource,
+    /body: JSON\.stringify\(\{\s*customerName: normalizedCustomerName,\s*customerLabels: normalizedCustomerLabels,/u
+  );
+  const clearQuoteIndex = hookSource.indexOf('setState({ estimate: null, isLoading: true, error: null });');
   const debounceIndex = hookSource.indexOf('const timeout = window.setTimeout(async () => {');
   assert.ok(
     clearQuoteIndex >= 0 && clearQuoteIndex < debounceIndex,
@@ -54,7 +80,32 @@ test('checkout sends the normalized customer label and invalidates stale quotes'
     pageSource,
     /formData\.customerType === 'company'[\s\S]*?formData\.customerType === 'school'[\s\S]*?formData\.organizationName\.trim\(\)/u
   );
-  assert.match(pageSource, /useOrderQuote\(\s*items,\s*items\.length > 0,\s*quoteCustomerName\s*\)/u);
-  assert.match(cartPageSource, /useOrderQuote\(items, items\.length > 0\)/u);
-  assert.match(cartDrawerSource, /useOrderQuote\(items, isOpen && items\.length > 0\)/u);
+  assert.match(
+    pageSource,
+    /useOrderEstimate\(\s*items,\s*items\.length > 0,\s*estimateCustomerName,\s*estimateCustomerLabels\s*\)/u
+  );
+  assert.match(cartPageSource, /useOrderEstimate\(items, items\.length > 0\)/u);
+  assert.match(cartDrawerSource, /useOrderEstimate\(items, isOpen && items\.length > 0\)/u);
+  assert.match(
+    pageSource,
+    /const currentShipping = estimateState\.estimate\.shipping;[\s\S]*?shippingConfigurationVersion:\s*currentShipping\.configurationVersion,[\s\S]*?quoteFingerprint:\s*estimateState\.estimate\.quoteFingerprint/u
+  );
+  assert.match(
+    pageSource,
+    /error\.code === 'SHIPPING_QUOTE_CHANGED'[\s\S]*?error\.code === 'ESTIMATE_CHANGED'[\s\S]*?idempotencyKeyRefs\.current\[intent\] = null;[\s\S]*?estimateState\.refresh\(\);[\s\S]*?return;/u,
+    'a stale estimate must be refreshed without accepting or clearing the cart'
+  );
+  assert.match(
+    pageSource,
+    /intent === 'order' && currentShipping\.status === 'manual_quote'/u,
+    'manual shipping must block only the direct-order intent'
+  );
+  assert.match(
+    pageSource,
+    /quoteRequestsEnabled && checkoutIntent === 'quote_request'[\s\S]*?value=\{activeCheckoutIntent\}/u
+  );
+  assert.match(
+    pageSource,
+    /quoteReason: STOREFRONT_QUOTE_REASON,[\s\S]*?quoteMessage: formData\.quoteMessage\.trim\(\)/u
+  );
 });

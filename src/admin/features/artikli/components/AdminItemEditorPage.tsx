@@ -73,6 +73,7 @@ import {
   computeSalePrice,
   createFamily,
   createVariant,
+  applyProportionalVariantWeights,
   applyVariantValueToAll,
   duplicateSelectedVariant,
   formatCurrency,
@@ -168,6 +169,15 @@ import {
   remapImageSlotAssignmentsAfterMove,
   type ImagePixelMetadata
 } from '@/admin/features/artikli/lib/imageMediaMetadata';
+import {
+  catalogWeightDisplayGramsToKilograms,
+  catalogWeightKilogramsToDisplayGrams
+} from '@/admin/features/artikli/lib/catalogMeasurementUnits';
+import {
+  CATALOG_SHIPPING_FIELD_LABELS,
+  deriveCatalogVariantShippingMeasurements,
+  getCatalogShippingReadiness,
+} from '@/shared/domain/catalog/catalogShipping';
 
 const inputClass = 'h-10 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[#3e67d6] focus:ring-0';
 const dimensionEditorInputHeightClassName =
@@ -175,6 +185,8 @@ const dimensionEditorInputHeightClassName =
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const editorSectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
+const dimensionVariantRowActionButtonClassName =
+  'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-slate-400 transition hover:border-sky-200 hover:bg-sky-50 hover:text-[color:var(--blue-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-400';
 type EditorMode = 'create' | 'edit';
 type CreateType = ProductEditorType | 'variants';
 type ProductEditorMainTab = 'basic' | 'sales' | 'simulator';
@@ -185,9 +197,7 @@ type GeneratorChip = { dimension: GeneratorDimension; values: number[] };
 type DimensionVariantViewMode = 'columns' | 'rows';
 type DimensionVariantMatrixRowKey =
   | 'default'
-  | 'thickness'
-  | 'length'
-  | 'width'
+  | 'dimensions'
   | 'weight'
   | 'tolerance'
   | 'cost'
@@ -209,9 +219,7 @@ const DIMENSION_VARIANT_MATRIX_ROWS: ReadonlyArray<{
   help: string;
 }> = [
   { key: 'default', label: 'Privzeta različica', help: 'Različica, ki je izbrana ob odprtju izdelka.' },
-  { key: 'thickness', label: 'Debelina/fi', help: 'Debelina ali premer v milimetrih.' },
-  { key: 'length', label: 'Dolžina', help: 'Dolžina različice v milimetrih.' },
-  { key: 'width', label: 'Širina', help: 'Širina različice v milimetrih.' },
+  { key: 'dimensions', label: 'Dimenzije', help: 'Dolžina, širina in višina oziroma debelina različice v milimetrih.' },
   { key: 'weight', label: 'Masa', help: 'Masa ene prodajne enote v gramih.' },
   { key: 'tolerance', label: 'Toleranca', help: 'Dovoljeno odstopanje mere v milimetrih.' },
   { key: 'cost', label: 'Nabavna cena brez DDV', help: 'Interna nabavna cena različice brez DDV.' },
@@ -303,7 +311,6 @@ type SideSettingsState = {
   taxRatePercent: string;
   thicknessTolerance: string;
   moq: number;
-  weightPerUnit: string;
   palletCount: string;
   dimensions: { width: string; depth: string; height: string };
   trackInventory: boolean;
@@ -378,6 +385,32 @@ type EditorPersistedState = {
   selectedCategoryPath: string[];
   videoAssignedVariantId: string | null;
 };
+
+function validateEditorPhysicalMeasurements(state: EditorPersistedState):
+  | { ok: true }
+  | { ok: false; message: string } {
+  if (!state.draft.active) return { ok: true };
+
+  for (const variant of state.draft.variants.filter((entry) => entry.active)) {
+    const readiness = getCatalogShippingReadiness(
+      {},
+      deriveCatalogVariantShippingMeasurements(variant)
+    );
+    if (readiness.isReady) continue;
+
+    const issueFields = Array.from(new Set([
+      ...readiness.missingFields,
+      ...readiness.invalidFields
+    ]));
+    const variantLabel = variant.sku || variant.label || 'brez naziva';
+    return {
+      ok: false,
+      message: `Aktivna različica »${variantLabel}« potrebuje popolne pozitivne mere v zavihku Prodaja: ${issueFields.map((field) => CATALOG_SHIPPING_FIELD_LABELS[field]).join(', ')}.`
+    };
+  }
+
+  return { ok: true };
+}
 type SaveChangeGroup = {
   title: string;
   items: string[];
@@ -920,7 +953,6 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
   pushSaveDiff(detailItems, 'Oblika', formatSaveDiffText(saved.sideSettings.surface), formatSaveDiffText(next.sideSettings.surface));
   pushSaveDiff(detailItems, 'Toleranca', formatSaveDiffText(saved.sideSettings.thicknessTolerance), formatSaveDiffText(next.sideSettings.thicknessTolerance));
   pushSaveDiff(detailItems, 'Min. naročilo', formatSaveDiffInteger(saved.sideSettings.moq), formatSaveDiffInteger(next.sideSettings.moq));
-  pushSaveDiff(detailItems, 'Teža / kos', formatSaveDiffText(saved.sideSettings.weightPerUnit), formatSaveDiffText(next.sideSettings.weightPerUnit));
   const savedSpecificationLabels = readCatalogSpecificationLabels(saved.appearanceOverride);
   const nextSpecificationLabels = readCatalogSpecificationLabels(next.appearanceOverride);
   if (JSON.stringify(savedSpecificationLabels) !== JSON.stringify(nextSpecificationLabels)) {
@@ -976,7 +1008,13 @@ function buildProposedSaveChanges(saved: EditorPersistedState, next: EditorPersi
     pushSaveDiff(variantItems, `${prefix} - debelina/fi`, formatSaveDiffNumber(savedVariant.thickness, 'mm'), formatSaveDiffNumber(variant.thickness, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - dolžina`, formatSaveDiffNumber(savedVariant.length, 'mm'), formatSaveDiffNumber(variant.length, 'mm'));
     pushSaveDiff(variantItems, `${prefix} - širina`, formatSaveDiffNumber(savedVariant.width, 'mm'), formatSaveDiffNumber(variant.width, 'mm'));
-    pushSaveDiff(variantItems, `${prefix} - teža`, formatSaveDiffNumber(savedVariant.weight, 'g'), formatSaveDiffNumber(variant.weight, 'g'));
+    const savedDisplayWeight = next.productType === 'dimensions'
+      ? catalogWeightKilogramsToDisplayGrams(savedVariant.weight)
+      : savedVariant.weight;
+    const nextDisplayWeight = next.productType === 'dimensions'
+      ? catalogWeightKilogramsToDisplayGrams(variant.weight)
+      : variant.weight;
+    pushSaveDiff(variantItems, `${prefix} - teža`, formatSaveDiffNumber(savedDisplayWeight, 'g'), formatSaveDiffNumber(nextDisplayWeight, 'g'));
     pushSaveDiff(variantItems, `${prefix} - toleranca`, formatSaveDiffText(savedVariant.errorTolerance), formatSaveDiffText(variant.errorTolerance));
     pushSaveDiff(variantItems, `${prefix} - cena`, formatSaveDiffCurrency(savedVariant.price), formatSaveDiffCurrency(variant.price));
     pushSaveDiff(variantItems, `${prefix} - popust`, formatSaveDiffNumber(savedVariant.discountPct, '%'), formatSaveDiffNumber(variant.discountPct, '%'));
@@ -1220,6 +1258,18 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     family.defaultVariantId = findFirstActiveVariant(family.variants)?.id ?? null;
   }
 
+  const productType: ProductEditorType =
+    initialData?.productType
+    ?? (initialData?.itemType === 'bulk'
+      ? 'weight'
+      : initialData?.itemType === 'sheet'
+        ? 'dimensions'
+        : createType === 'variants'
+          ? 'dimensions'
+          : family.variants.length > 1 || family.variants.some((variant) => variant.length !== null || variant.width !== null || variant.thickness !== null)
+            ? 'dimensions'
+            : normalizeCreateType(createType));
+
   const mediaImages = (initialData?.media
     .filter((media) => media.mediaKind === 'image' && media.role === 'gallery')
     .sort((left, right) => (left.position ?? 0) - (right.position ?? 0))
@@ -1269,7 +1319,6 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     taxRatePercent: String(Number(((initialData?.taxRate ?? 0.22) * 100).toFixed(2))),
     thicknessTolerance: initialData?.variants[0]?.errorTolerance ?? '',
     moq: initialData?.variants[0]?.minOrder ?? 1,
-    weightPerUnit: initialData?.variants[0]?.weight != null ? String(initialData.variants[0]?.weight) : '0',
     palletCount: '',
     dimensions: { width: '', depth: '', height: '' },
     trackInventory: true,
@@ -1311,17 +1360,6 @@ function buildInitialEditorPersistedState(initialData: CatalogItemEditorHydratio
     if (key && ITEM_NOTE_OPTIONS.some((entry) => entry.value === rawBadge)) variantTags[key] = rawBadge;
   });
 
-  const productType: ProductEditorType =
-    initialData?.productType
-    ?? (initialData?.itemType === 'bulk'
-      ? 'weight'
-      : initialData?.itemType === 'sheet'
-        ? 'dimensions'
-        : createType === 'variants'
-          ? 'dimensions'
-          : family.variants.length > 1 || family.variants.some((variant) => variant.length !== null || variant.width !== null || variant.thickness !== null)
-            ? 'dimensions'
-            : normalizeCreateType(createType));
   const typeSpecificData = createInitialTypeSpecificData(initialData?.typeSpecificData, {
     variants: family.variants,
     baseSku: sideSettings.sku
@@ -2664,6 +2702,16 @@ export default function AdminItemEditorPage({
   const [itemLevelNote, setItemLevelNote] = useState<VariantTag | ''>(initialPersistedState.itemLevelNote);
   const [editorTab, setEditorTab] = useState<ProductEditorMainTab>('basic');
   const [mediaTab, setMediaTab] = useState<MediaTab>('slike');
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('tab') !== 'sales' && url.hash !== '#product-measurements') return;
+    setEditorTab('sales');
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById('product-measurements')?.scrollIntoView({ block: 'start' });
+      });
+    });
+  }, []);
   const [mediaImageSlots, setMediaImageSlots] = useState<StagedImageSlot[]>(() => initialPersistedState.mediaImages.map(cloneMediaImage));
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const localBlobUrlsRef = useRef<Set<string>>(new Set());
@@ -3196,7 +3244,14 @@ export default function AdminItemEditorPage({
       length: { emptyFallback: null, apply: (value) => ({ length: value }) },
       width: { emptyFallback: null, apply: (value) => ({ width: value }) },
       thickness: { emptyFallback: null, apply: (value) => ({ thickness: value }) },
-      weight: { emptyFallback: null, apply: (value) => ({ weight: value }) },
+      weight: {
+        emptyFallback: null,
+        apply: (value) => ({
+          weight: productType === 'dimensions'
+            ? catalogWeightDisplayGramsToKilograms(value)
+            : value
+        })
+      },
       costNet: { emptyFallback: null, apply: (value) => ({ costNet: value === null ? null : Math.max(0, value) }) },
       price: { emptyFallback: 0, apply: (value) => ({ price: value ?? 0 }) },
       discountPct: { emptyFallback: 0, apply: (value) => ({ discountPct: Math.min(99.9, Math.max(0, value ?? 0)) }) }
@@ -3267,10 +3322,19 @@ export default function AdminItemEditorPage({
     return {
       nextDraft: changed ? { ...draft, variants: nextVariants } : draft
     };
-  }, [decimalInputDrafts, draft]);
+  }, [decimalInputDrafts, draft, productType]);
 
   const performSave = async (preparedState: EditorPersistedState) => {
     const nextDraft = preparedState.draft;
+    const physicalMeasurementsValidation = validateEditorPhysicalMeasurements(preparedState);
+    if (!physicalMeasurementsValidation.ok) {
+      setEditorTab('sales');
+      toast.error(physicalMeasurementsValidation.message);
+      window.requestAnimationFrame(() => {
+        document.getElementById('product-measurements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return;
+    }
 
     if (!nextDraft.name.trim()) {
       toast.error('Naziv je obvezen.');
@@ -3435,18 +3499,22 @@ export default function AdminItemEditorPage({
           }
           return {
             id: /^\d+$/.test(variant.id) ? Number(variant.id) : undefined,
-            variantName: buildPersistedVariantName({
-              ...variant,
-              weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null)
-            }, {
-              baseName: nextDraft.name,
-              variantCount: nextDraft.variants.length,
-              index
-            }),
+            variantName: preparedState.productType === 'dimensions'
+              ? buildPersistedVariantName({
+                  ...variant,
+                  weight: variant.weight ?? null
+                }, {
+                  baseName: nextDraft.name,
+                  variantCount: nextDraft.variants.length,
+                  index
+                })
+              : nextDraft.variants.length === 1
+                ? nextDraft.name.trim()
+                : variant.label.trim() || `Različica ${index + 1}`,
             length: variant.length,
             width: variant.width,
             thickness: variant.thickness,
-            weight: variant.weight ?? (preparedState.sideSettings.weightPerUnit ? Number(preparedState.sideSettings.weightPerUnit) : null),
+            weight: variant.weight ?? null,
             errorTolerance: (variant.errorTolerance ?? preparedState.sideSettings.thicknessTolerance) || null,
             price: variant.price,
             costNet: variant.costNet ?? null,
@@ -3610,6 +3678,15 @@ export default function AdminItemEditorPage({
 
     const savedSaveReadySnapshot = cloneEditorPersistedState(buildSaveReadyPersistedState(savedSnapshot));
     const nextPersistedState = cloneEditorPersistedState(buildSaveReadyPersistedState(buildPersistedState(decimalCommit.nextDraft)));
+    const physicalMeasurementsValidation = validateEditorPhysicalMeasurements(nextPersistedState);
+    if (!physicalMeasurementsValidation.ok) {
+      setEditorTab('sales');
+      toast.error(physicalMeasurementsValidation.message);
+      window.requestAnimationFrame(() => {
+        document.getElementById('product-measurements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return;
+    }
     const computedChangeGroups = buildProposedSaveChanges(savedSaveReadySnapshot, nextPersistedState);
     const computedChangeCount = computedChangeGroups.reduce((count, group) => count + group.items.length, 0);
     const changeGroups =
@@ -4288,7 +4365,10 @@ export default function AdminItemEditorPage({
         return;
       }
       if (rowKey === 'weight') {
-        resolvedSourceVariant = { ...sourceVariant, weight: parsed };
+        resolvedSourceVariant = {
+          ...sourceVariant,
+          weight: catalogWeightDisplayGramsToKilograms(parsed)
+        };
       } else if (rowKey === 'tolerance') {
         resolvedSourceVariant = {
           ...sourceVariant,
@@ -4434,6 +4514,77 @@ export default function AdminItemEditorPage({
     toast.info(
       `»${rowLabel}« iz »${sourceName}« uporabljena za ${changedVariantIds.length} različic${
         hiddenInactiveCount > 0 ? ` (${hiddenInactiveCount} neaktivnih)` : ''
+      }.`
+    );
+  };
+
+  const applyProportionalDimensionVariantWeights = () => {
+    if (!isTableEditable || draft.variants.length < 2 || !expandedDimensionVariantId) return;
+
+    const decimalCommit = commitPendingDecimalDrafts();
+    if (decimalCommit.error) {
+      toast.error(decimalCommit.error);
+      return;
+    }
+
+    const result = applyProportionalVariantWeights(
+      decimalCommit.nextDraft.variants,
+      expandedDimensionVariantId
+    );
+    if (result.error === 'SOURCE_DIMENSIONS_INVALID') {
+      toast.error('Izvorna različica potrebuje pozitivno debelino/fi, dolžino in širino.');
+      return;
+    }
+    if (result.error === 'SOURCE_WEIGHT_INVALID') {
+      toast.error('Masa izvorne različice mora biti pozitivno celo število gramov.');
+      return;
+    }
+    if (result.error === 'SOURCE_VARIANT_NOT_FOUND' || !result.sourceVariant) {
+      toast.error('Izvorne različice ni mogoče najti.');
+      return;
+    }
+    if (result.eligibleVariantIds.length === 0) {
+      toast.error('Ni drugih različic s popolnimi pozitivnimi dimenzijami za izračun mase.');
+      return;
+    }
+
+    const sourceName = buildDimensionVariantHeaderLabel(
+      result.sourceVariant,
+      Math.max(
+        0,
+        decimalCommit.nextDraft.variants.findIndex(
+          (variant) => variant.id === result.sourceVariant?.id
+        )
+      )
+    );
+    const hasPendingDecimalDrafts = Object.keys(decimalInputDrafts).length > 0;
+    if (result.changedVariantIds.length > 0 || hasPendingDecimalDrafts) {
+      applySelectionChange(() => {
+        setDraft({
+          ...decimalCommit.nextDraft,
+          variants: result.variants
+        });
+        if (hasPendingDecimalDrafts) setDecimalInputDrafts({});
+      });
+    }
+
+    if (result.changedVariantIds.length === 0) {
+      toast.info(`Mase drugih različic že ustrezajo prostorninskemu razmerju iz »${sourceName}«.`);
+      return;
+    }
+
+    const inactiveCount = result.changedVariantIds.filter((variantId) =>
+      decimalCommit.nextDraft.variants.some(
+        (variant) => variant.id === variantId && !variant.active
+      )
+    ).length;
+    toast.info(
+      `Po prostornini iz »${sourceName}« izračunanih mas: ${result.changedVariantIds.length}${
+        inactiveCount > 0 ? ` (${inactiveCount} neaktivnih)` : ''
+      }${
+        result.skippedVariantIds.length > 0
+          ? `. Brez popolnih dimenzij: ${result.skippedVariantIds.length}`
+          : ''
       }.`
     );
   };
@@ -4963,6 +5114,9 @@ export default function AdminItemEditorPage({
 
   const expandedDimensionVariant =
     draft.variants.find((variant) => variant.id === expandedDimensionVariantId) ?? null;
+  // The selected cell contains a 320px-wide field plus 8px horizontal padding
+  // on each side. Keep the highlighted column fitted to that content.
+  const expandedDimensionVariantTrackWidth = 336;
   const dimensionVariantLayoutCompactCount = Math.max(0, draft.variants.length - 1);
   const compactDimensionVariantWidth = dimensionVariantLayoutCompactCount <= 2
     ? 220
@@ -4988,14 +5142,6 @@ export default function AdminItemEditorPage({
   const dimensionVariantHeaderAngle = 45;
   const dimensionVariantHeaderTitleOpticalOffset = 6;
   const dimensionVariantHeaderSlant = dimensionVariantDiagonalHeight;
-  const flexibleDimensionVariantCount = collapseInactiveDimensionVariants
-    ? draft.variants.filter((variant) => variant.active).length
-    : draft.variants.length;
-  const flexibleCompactDimensionVariantCount = Math.max(
-    0,
-    flexibleDimensionVariantCount - 1
-  );
-  const expandedDimensionVariantFlex = Math.max(1, flexibleCompactDimensionVariantCount * 0.233);
   const dimensionVariantBaseTrackWidths = draft.variants.map((variant) =>
     variant.id !== expandedDimensionVariant?.id
     && collapseInactiveDimensionVariants
@@ -5008,30 +5154,25 @@ export default function AdminItemEditorPage({
   const getDimensionVariantTrack = (variant: Variant, variantIndex: number) => {
     const isExpanded = variant.id === expandedDimensionVariant?.id;
     const baseTrackWidth = dimensionVariantBaseTrackWidths[variantIndex] ?? compactDimensionVariantWidth;
-    if (!usesDenseDimensionVariantLayout) {
-      if (!isExpanded) return `${baseTrackWidth}px`;
-      return `calc(100% - ${dimensionMatrixBaseWidth - baseTrackWidth}px)`;
-    }
+    if (isExpanded) return `${expandedDimensionVariantTrackWidth}px`;
+    if (!usesDenseDimensionVariantLayout) return `${baseTrackWidth}px`;
     const isCompressedInactive =
-      !isExpanded && collapseInactiveDimensionVariants && !variant.active;
-    const minimumWidth = isExpanded
-      ? 170
-      : isCompressedInactive
-        ? Math.min(26, compactDimensionVariantWidth)
-        : compactDimensionVariantWidth;
-    const flexibleWidth = isExpanded
-      ? expandedDimensionVariantFlex
-      : isCompressedInactive
-        ? 0
-        : 1;
+      collapseInactiveDimensionVariants && !variant.active;
+    const minimumWidth = isCompressedInactive
+      ? Math.min(26, compactDimensionVariantWidth)
+      : compactDimensionVariantWidth;
+    const flexibleWidth = isCompressedInactive ? 0 : 1;
     return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
   };
-  // Non-dense layouts animate only length/percentage tracks, avoiding grid
-  // freeze/clamp changes while the selected column and remainder exchange space.
+  const dimensionMatrixOccupiedWidth =
+    dimensionMatrixBaseWidth
+    + (expandedDimensionVariant
+      ? expandedDimensionVariantTrackWidth - compactDimensionVariantWidth
+      : 0);
   const dimensionMatrixRemainderTrack =
-    usesDenseDimensionVariantLayout || expandedDimensionVariant
+    usesDenseDimensionVariantLayout
       ? '0px'
-      : `calc(100% - ${dimensionMatrixBaseWidth}px)`;
+      : `calc(100% - ${dimensionMatrixOccupiedWidth}px)`;
   const dimensionMatrixGridTemplateColumns = [
     '205px',
     ...draft.variants.map(getDimensionVariantTrack),
@@ -5041,7 +5182,7 @@ export default function AdminItemEditorPage({
     205
     + draft.variants.reduce((total, variant) => {
       if (variant.id === expandedDimensionVariant?.id) {
-        return total + (usesDenseDimensionVariantLayout ? 170 : 280);
+        return total + expandedDimensionVariantTrackWidth;
       }
       return total + (
         collapseInactiveDimensionVariants && !variant.active
@@ -5095,16 +5236,66 @@ export default function AdminItemEditorPage({
     reorderDimensionVariants(String(event.active.id), String(event.over.id));
   };
 
+  const renderDimensionVariantTriplet = (
+    variant: Variant,
+    variantName: string
+  ): ReactNode => (
+    <div className="grid w-full min-w-0 grid-cols-3 gap-1">
+      <CompactSegmentedField
+        editable={isTableEditable}
+        disabled={isThicknessLockActive}
+        value={isTableEditable ? readDecimalInputValue(variant.id, 'thickness', variant.thickness) : variant.thickness === null ? null : formatDecimalForDisplay(variant.thickness)}
+        suffix="mm"
+        placeholder="Debelina/fi"
+        ariaLabel={`Debelina oziroma fi za ${variantName}`}
+        className="min-w-0"
+        inputClassName="placeholder:text-[9px]"
+        onChange={(value) => updateDecimalInputDraft(variant.id, 'thickness', value)}
+        onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)}
+      />
+      <CompactSegmentedField
+        editable={isTableEditable}
+        disabled={isDimensionLockActive}
+        value={isTableEditable ? readDecimalInputValue(variant.id, 'length', variant.length) : variant.length === null ? null : formatDecimalForDisplay(variant.length)}
+        suffix="mm"
+        placeholder="Dolžina"
+        ariaLabel={`Dolžina za ${variantName}`}
+        className="min-w-0"
+        inputClassName="placeholder:text-[9px]"
+        onChange={(value) => updateDecimalInputDraft(variant.id, 'length', value)}
+        onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)}
+      />
+      <CompactSegmentedField
+        editable={isTableEditable}
+        disabled={isDimensionLockActive}
+        value={isTableEditable ? readDecimalInputValue(variant.id, 'width', variant.width) : variant.width === null ? null : formatDecimalForDisplay(variant.width)}
+        suffix="mm"
+        placeholder="Širina"
+        ariaLabel={`Širina za ${variantName}`}
+        className="min-w-0"
+        inputClassName="placeholder:text-[9px]"
+        onChange={(value) => updateDecimalInputDraft(variant.id, 'width', value)}
+        onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)}
+      />
+    </div>
+  );
+
   const getDimensionVariantSummaryValue = (
     variant: Variant,
     rowKey: DimensionVariantMatrixRowKey
   ) => {
     const decimal = (value: number | null | undefined) =>
       value === null || value === undefined ? '—' : formatDecimalForDisplay(value);
-    if (rowKey === 'thickness') return decimal(variant.thickness);
-    if (rowKey === 'length') return decimal(variant.length);
-    if (rowKey === 'width') return decimal(variant.width);
-    if (rowKey === 'weight') return decimal(variant.weight);
+    if (rowKey === 'dimensions') {
+      return `${[
+        decimal(variant.thickness),
+        decimal(variant.length),
+        decimal(variant.width)
+      ].join(' × ')} mm`;
+    }
+    if (rowKey === 'weight') {
+      return decimal(catalogWeightKilogramsToDisplayGrams(variant.weight));
+    }
     if (rowKey === 'tolerance') {
       return variant.errorTolerance ? `± ${variant.errorTolerance.replace('.', ',')}` : '—';
     }
@@ -5163,54 +5354,25 @@ export default function AdminItemEditorPage({
         />
       );
     }
-    if (rowKey === 'thickness') {
-      return (
-        <CompactSegmentedField
-          editable={isTableEditable}
-          disabled={isThicknessLockActive}
-          value={isTableEditable ? readDecimalInputValue(variant.id, 'thickness', variant.thickness) : variant.thickness === null ? null : formatDecimalForDisplay(variant.thickness)}
-          suffix="mm"
-          ariaLabel={`Debelina ali premer za ${variantName}`}
-          onChange={(value) => updateDecimalInputDraft(variant.id, 'thickness', value)}
-          onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)}
-        />
-      );
-    }
-    if (rowKey === 'length') {
-      return (
-        <CompactSegmentedField
-          editable={isTableEditable}
-          disabled={isDimensionLockActive}
-          value={isTableEditable ? readDecimalInputValue(variant.id, 'length', variant.length) : variant.length === null ? null : formatDecimalForDisplay(variant.length)}
-          suffix="mm"
-          ariaLabel={`Dolžina za ${variantName}`}
-          onChange={(value) => updateDecimalInputDraft(variant.id, 'length', value)}
-          onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)}
-        />
-      );
-    }
-    if (rowKey === 'width') {
-      return (
-        <CompactSegmentedField
-          editable={isTableEditable}
-          disabled={isDimensionLockActive}
-          value={isTableEditable ? readDecimalInputValue(variant.id, 'width', variant.width) : variant.width === null ? null : formatDecimalForDisplay(variant.width)}
-          suffix="mm"
-          ariaLabel={`Širina za ${variantName}`}
-          onChange={(value) => updateDecimalInputDraft(variant.id, 'width', value)}
-          onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)}
-        />
-      );
-    }
+    if (rowKey === 'dimensions') return renderDimensionVariantTriplet(variant, variantName);
     if (rowKey === 'weight') {
+      const displayWeightGrams = catalogWeightKilogramsToDisplayGrams(variant.weight);
       return (
         <CompactSegmentedField
           editable={isTableEditable}
-          value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', variant.weight) : variant.weight === null || variant.weight === undefined ? null : formatDecimalForDisplay(variant.weight)}
+          value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', displayWeightGrams) : displayWeightGrams === null ? null : formatDecimalForDisplay(displayWeightGrams)}
           suffix="g"
           ariaLabel={`Masa za ${variantName}`}
           onChange={(value) => updateDecimalInputDraft(variant.id, 'weight', value)}
-          onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)}
+          onBlur={() => commitDecimalInputDraft(
+            variant.id,
+            'weight',
+            displayWeightGrams,
+            (value) => updateVariant(variant.id, {
+              weight: catalogWeightDisplayGramsToKilograms(value)
+            }),
+            null
+          )}
         />
       );
     }
@@ -5676,6 +5838,7 @@ export default function AdminItemEditorPage({
         />
       </div>
       {editorTab === 'basic' ? (
+      <>
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
         <div className="space-y-4">
           <section className={`${adminWindowCardClassName} h-full p-6`} style={adminWindowCardStyle}>
@@ -6390,10 +6553,11 @@ export default function AdminItemEditorPage({
           </div>
         </aside>
       </div>
+      </>
       ) : null}
 
       {editorTab === 'sales' ? (
-      <>
+      <div id="product-measurements" className="scroll-mt-24">
       {isDimensionBasedMode ? (
       <section className={`${adminWindowCardClassName} ${dimensionEditorInputHeightClassName} px-5 pb-5 pt-5`} style={adminWindowCardStyle}>
         <div className="mb-3">
@@ -6644,9 +6808,7 @@ export default function AdminItemEditorPage({
             <colgroup>
               <col style={{ width: '28px' }} />
               <col style={{ width: '34px' }} />
-              <col style={{ width: '62px' }} />
-              <col style={{ width: '62px' }} />
-              <col style={{ width: '62px' }} />
+              <col style={{ width: '272px' }} />
               <col style={{ width: '48px' }} />
               <col style={{ width: '58px' }} />
               <col style={{ width: '58px' }} />
@@ -6680,9 +6842,7 @@ export default function AdminItemEditorPage({
                 >
                   Privz.
                 </TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Debelina ali premer">Deb./fi</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Dolžina">Dolž.</TH>
-                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-right text-[9px]`} title="Širina">Šir.</TH>
+                <TH className={`${adminTableRowHeightClassName} px-0.5 py-1.5 text-center text-[9px]`} title="Dolžina × širina × višina / debelina">Dimenzije</TH>
                 <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Masa">Masa</TH>
                 <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-center text-[9px]`} title="Toleranca">Tol.</TH>
                 <TH className={`${adminTableRowHeightClassName} whitespace-nowrap px-0.5 py-1.5 text-right text-[9px]`} title="Nabavna cena brez DDV">Nabavna</TH>
@@ -6732,47 +6892,33 @@ export default function AdminItemEditorPage({
                     />
                   </td>
                   <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      disabled={isThicknessLockActive}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'thickness', variant.thickness) : variant.thickness === null ? null : formatDecimalForDisplay(variant.thickness)}
-                      suffix="mm"
-                      ariaLabel={`Debelina ali premer za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'thickness', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'thickness', variant.thickness, (value) => updateVariant(variant.id, { thickness: value }), null)}
-                    />
+                    {renderDimensionVariantTriplet(
+                      variant,
+                      variant.label || variant.sku || 'različico'
+                    )}
                   </td>
                   <td className="px-0.5 py-1.5">
+                    {(() => {
+                      const displayWeightGrams = catalogWeightKilogramsToDisplayGrams(variant.weight);
+                      return (
                     <CompactSegmentedField
                       editable={isTableEditable}
-                      disabled={isDimensionLockActive}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'length', variant.length) : variant.length === null ? null : formatDecimalForDisplay(variant.length)}
-                      suffix="mm"
-                      ariaLabel={`Dolžina za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'length', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'length', variant.length, (value) => updateVariant(variant.id, { length: value }), null)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      disabled={isDimensionLockActive}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'width', variant.width) : variant.width === null ? null : formatDecimalForDisplay(variant.width)}
-                      suffix="mm"
-                      ariaLabel={`Širina za ${variant.label || variant.sku}`}
-                      onChange={(value) => updateDecimalInputDraft(variant.id, 'width', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'width', variant.width, (value) => updateVariant(variant.id, { width: value }), null)}
-                    />
-                  </td>
-                  <td className="px-0.5 py-1.5">
-                    <CompactSegmentedField
-                      editable={isTableEditable}
-                      value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', variant.weight) : variant.weight === null || variant.weight === undefined ? null : formatDecimalForDisplay(variant.weight)}
+                      value={isTableEditable ? readDecimalInputValue(variant.id, 'weight', displayWeightGrams) : displayWeightGrams === null ? null : formatDecimalForDisplay(displayWeightGrams)}
                       suffix="g"
                       ariaLabel={`Masa za ${variant.label || variant.sku}`}
                       onChange={(value) => updateDecimalInputDraft(variant.id, 'weight', value)}
-                      onBlur={() => commitDecimalInputDraft(variant.id, 'weight', variant.weight ?? null, (value) => updateVariant(variant.id, { weight: value }), null)}
+                      onBlur={() => commitDecimalInputDraft(
+                        variant.id,
+                        'weight',
+                        displayWeightGrams,
+                        (value) => updateVariant(variant.id, {
+                          weight: catalogWeightDisplayGramsToKilograms(value)
+                        }),
+                        null
+                      )}
                     />
+                      );
+                    })()}
                   </td>
                   <td className="px-0.5 py-1.5">
                     <CompactSegmentedField
@@ -7278,24 +7424,52 @@ export default function AdminItemEditorPage({
                         </span>
                       </span>
                       {bulkApplyRowKey ? (
-                        <button
-                          type="button"
-                          className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-slate-400 transition hover:border-sky-200 hover:bg-sky-50 hover:text-[color:var(--blue-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--blue-500)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-400"
-                          aria-label={
-                            bulkApplySourceName
-                              ? `Uporabi ${row.label} iz ${bulkApplySourceName} za vse različice`
-                              : `Uporabi ${row.label} za vse različice`
-                          }
-                          title={
-                            bulkApplySourceName
-                              ? `Uporabi »${row.label}« iz »${bulkApplySourceName}« za vse različice`
-                              : 'Najprej razširite izvorno različico'
-                          }
-                          disabled={!canBulkApplyRow}
-                          onClick={() => applyDimensionVariantRowValueToAll(bulkApplyRowKey)}
-                        >
-                          <ApplyToAllIcon className="!h-3.5 !w-3.5" />
-                        </button>
+                        <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">
+                          <button
+                            type="button"
+                            className={dimensionVariantRowActionButtonClassName}
+                            aria-label={
+                              bulkApplySourceName
+                                ? `Uporabi ${row.label} iz ${bulkApplySourceName} za vse različice`
+                                : `Uporabi ${row.label} za vse različice`
+                            }
+                            title={
+                              bulkApplySourceName
+                                ? `Uporabi »${row.label}« iz »${bulkApplySourceName}« za vse različice`
+                                : 'Najprej razširite izvorno različico'
+                            }
+                            disabled={!canBulkApplyRow}
+                            onClick={() => applyDimensionVariantRowValueToAll(bulkApplyRowKey)}
+                          >
+                            <ApplyToAllIcon className="!h-3.5 !w-3.5" />
+                          </button>
+                          {bulkApplyRowKey === 'weight' ? (
+                            <button
+                              type="button"
+                              className={dimensionVariantRowActionButtonClassName}
+                              data-testid="dimension-variant-proportional-mass"
+                              aria-label={
+                                bulkApplySourceName
+                                  ? `Izračunaj mase drugih različic po prostornini iz ${bulkApplySourceName}`
+                                  : 'Izračunaj mase drugih različic po prostornini'
+                              }
+                              title={
+                                bulkApplySourceName
+                                  ? `Izračunaj mase drugih različic sorazmerno s prostornino iz »${bulkApplySourceName}«`
+                                  : 'Najprej razširite izvorno različico'
+                              }
+                              disabled={!canBulkApplyRow}
+                              onClick={applyProportionalDimensionVariantWeights}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="inline-flex !h-3.5 !w-3.5 shrink-0 items-center justify-center text-[14px] font-semibold leading-none"
+                              >
+                                ∏
+                              </span>
+                            </button>
+                          ) : null}
+                        </span>
                       ) : null}
                     </div>
                     {draft.variants.map((variant) => {
@@ -7429,7 +7603,7 @@ export default function AdminItemEditorPage({
           )}
         />
       )}
-      </>
+      </div>
       ) : null}
 
       {editorTab === 'simulator' ? (

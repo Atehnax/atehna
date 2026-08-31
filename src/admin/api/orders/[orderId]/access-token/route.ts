@@ -198,7 +198,9 @@ export async function POST(
     try {
       await client.query('begin');
       const orderResult = await client.query(
-        'select id, order_number, customer_type, deleted_at from orders where id = $1 for update',
+        `select id, order_number, customer_type, deleted_at,
+                source_quote_offer_version_id
+         from orders where id = $1 for update`,
         [orderId]
       );
       const order = orderResult.rows[0] as
@@ -206,6 +208,7 @@ export async function POST(
             order_number: string;
             customer_type: string;
             deleted_at: string | null;
+            source_quote_offer_version_id: string | number | null;
           }
         | undefined;
       if (!order) {
@@ -236,7 +239,8 @@ export async function POST(
       const issued = await issueOrderAccessToken(client, orderId, {
         ttlDays,
         scopes:
-          order.customer_type === 'school'
+          order.customer_type === 'school' &&
+          order.source_quote_offer_version_id === null
             ? ['confirmation', 'purchase_order']
             : ['confirmation']
       });

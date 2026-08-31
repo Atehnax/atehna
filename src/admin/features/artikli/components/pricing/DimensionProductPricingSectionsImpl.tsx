@@ -34,6 +34,7 @@ import { computeSalePrice, formatCurrency } from '@/admin/features/artikli/lib/f
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
 import { formatEuroAmount } from '@/shared/domain/formatting';
 import {
+  adminPlaceholderTokenClasses,
   adminStatusInfoPillVariantTableClassName,
   getAdminStatusInfoMenuOptionClassName,
   hoverTokenClasses,
@@ -488,6 +489,7 @@ export function SimpleProductModule({
           <MachineInfoTable
             title="Osnovne informacije"
             editable={editable}
+            valueColumnWidth="62%"
             fixedRows={[
               {
                 key: 'costNet',
@@ -533,6 +535,32 @@ export function SimpleProductModule({
                 suffix: getMachineWorkingDayUnit,
                 hideCheckbox: true,
                 onChange: (deliveryTime) => update({ deliveryTime: formatMachineDeliveryTime(deliveryTime) })
+              },
+              {
+                key: 'weightGrams',
+                label: 'Masa',
+                value: simpleData.weightGrams ?? '',
+                suffix: 'g',
+                numeric: true,
+                hideCheckbox: true,
+                onEmpty: () => update({ weightGrams: null }),
+                onChange: (weightGrams) => update({ weightGrams: Math.max(0, Number(weightGrams) || 0) })
+              },
+              {
+                key: 'dimensions',
+                label: 'Dimenzije',
+                hideCheckbox: true,
+                valueContent: (
+                  <MachineDimensionsValueFields
+                    editable={editable}
+                    lengthMm={simpleData.lengthMm}
+                    widthMm={simpleData.widthMm}
+                    thicknessMm={simpleData.thicknessMm}
+                    onLengthChange={(lengthMm) => update({ lengthMm })}
+                    onWidthChange={(widthMm) => update({ widthMm })}
+                    onThicknessChange={(thicknessMm) => update({ thicknessMm })}
+                  />
+                )
               }
             ]}
             customRows={simpleData.basicInfoRows}
@@ -1296,6 +1324,7 @@ function FractionInventoryPanel({
 type WeightVariantMatrixRowKey =
   | 'default'
   | 'netMass'
+  | 'dimensions'
   | 'color'
   | 'fraction'
   | 'tolerance'
@@ -1319,6 +1348,7 @@ const WEIGHT_VARIANT_MATRIX_ROWS: ReadonlyArray<{
 }> = [
   { key: 'default', label: 'Privzeta različica', help: 'Različica, ki je izbrana ob odprtju izdelka.' },
   { key: 'netMass', label: 'Neto masa pakiranja', help: 'Masa posameznega prodajnega pakiranja v kilogramih.' },
+  { key: 'dimensions', label: 'Dimenzije', help: 'Dolžina, širina in višina oziroma debelina posameznega prodajnega pakiranja v milimetrih.' },
   { key: 'color', label: 'Barva', help: 'Barva skupaj s frakcijo določa skupino zaloge.' },
   { key: 'fraction', label: 'Frakcija', help: 'Frakcija skupaj z barvo določa skupino zaloge.' },
   { key: 'tolerance', label: 'Toleranca', help: 'Dovoljeno odstopanje frakcije v milimetrih.' },
@@ -1578,6 +1608,9 @@ export function WeightProductModule({
   };
   const expandedWeightVariant =
     weightData.variants.find((variant) => variant.id === expandedWeightVariantId) ?? null;
+  // The selected cell contains a 320px-wide field plus 8px horizontal padding
+  // on each side. Keep the highlighted column fitted to that content.
+  const expandedWeightVariantTrackWidth = 336;
   const weightVariantLayoutCompactCount = Math.max(0, weightData.variants.length - 1);
   const compactWeightVariantWidth = weightVariantLayoutCompactCount <= 2
     ? 220
@@ -1602,14 +1635,6 @@ export function WeightProductModule({
   const weightVariantHeaderAngle = 45;
   const weightVariantHeaderTitleOpticalOffset = 6;
   const weightVariantHeaderSlant = weightVariantDiagonalHeight;
-  const flexibleWeightVariantCount = collapseInactiveWeightVariants
-    ? weightData.variants.filter((variant) => variant.active).length
-    : weightData.variants.length;
-  const flexibleCompactWeightVariantCount = Math.max(
-    0,
-    flexibleWeightVariantCount - 1
-  );
-  const expandedWeightVariantFlex = Math.max(1, flexibleCompactWeightVariantCount * 0.233);
   const weightVariantBaseTrackWidths = weightData.variants.map((variant) =>
     variant.id !== expandedWeightVariant?.id
     && collapseInactiveWeightVariants
@@ -1622,30 +1647,25 @@ export function WeightProductModule({
   const getWeightVariantTrack = (variant: WeightVariant, variantIndex: number) => {
     const isExpanded = variant.id === expandedWeightVariant?.id;
     const baseTrackWidth = weightVariantBaseTrackWidths[variantIndex] ?? compactWeightVariantWidth;
-    if (!usesDenseWeightVariantLayout) {
-      if (!isExpanded) return `${baseTrackWidth}px`;
-      return `calc(100% - ${weightMatrixBaseWidth - baseTrackWidth}px)`;
-    }
+    if (isExpanded) return `${expandedWeightVariantTrackWidth}px`;
+    if (!usesDenseWeightVariantLayout) return `${baseTrackWidth}px`;
     const isCompressedInactive =
-      !isExpanded && collapseInactiveWeightVariants && !variant.active;
-    const minimumWidth = isExpanded
-      ? 170
-      : isCompressedInactive
-        ? Math.min(26, compactWeightVariantWidth)
-        : compactWeightVariantWidth;
-    const flexibleWidth = isExpanded
-      ? expandedWeightVariantFlex
-      : isCompressedInactive
-        ? 0
-        : 1;
+      collapseInactiveWeightVariants && !variant.active;
+    const minimumWidth = isCompressedInactive
+      ? Math.min(26, compactWeightVariantWidth)
+      : compactWeightVariantWidth;
+    const flexibleWidth = isCompressedInactive ? 0 : 1;
     return `minmax(${minimumWidth}px, ${flexibleWidth}fr)`;
   };
-  // Non-dense layouts animate only length/percentage tracks, avoiding grid
-  // freeze/clamp changes while the selected column and remainder exchange space.
+  const weightMatrixOccupiedWidth =
+    weightMatrixBaseWidth
+    + (expandedWeightVariant
+      ? expandedWeightVariantTrackWidth - compactWeightVariantWidth
+      : 0);
   const weightMatrixRemainderTrack =
-    usesDenseWeightVariantLayout || expandedWeightVariant
+    usesDenseWeightVariantLayout
       ? '0px'
-      : `calc(100% - ${weightMatrixBaseWidth}px)`;
+      : `calc(100% - ${weightMatrixOccupiedWidth}px)`;
   const weightMatrixGridTemplateColumns = [
     '205px',
     ...weightData.variants.map(getWeightVariantTrack),
@@ -1655,7 +1675,7 @@ export function WeightProductModule({
     205
     + weightData.variants.reduce((total, variant) => {
       if (variant.id === expandedWeightVariant?.id) {
-        return total + (usesDenseWeightVariantLayout ? 170 : 280);
+        return total + expandedWeightVariantTrackWidth;
       }
       return total + (
         collapseInactiveWeightVariants && !variant.active
@@ -1885,6 +1905,52 @@ export function WeightProductModule({
   const weightVariantSelectClassName =
     "h-[30px] w-full min-w-0 rounded-md border border-slate-300 bg-white px-1.5 font-['Inter',system-ui,sans-serif] text-[10px] font-normal text-slate-900 outline-none transition focus:border-[color:var(--blue-500)] focus:ring-0 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-600";
 
+  const renderWeightVariantDimensions = (
+    variant: WeightVariant,
+    variantName: string
+  ): ReactNode => {
+    const fields = [
+      { key: 'lengthMm', placeholder: 'Dolžina', ariaLabel: 'Dolžina' },
+      { key: 'widthMm', placeholder: 'Širina', ariaLabel: 'Širina' },
+      { key: 'thicknessMm', placeholder: 'Višina / debelina', ariaLabel: 'Višina oziroma debelina' }
+    ] as const;
+
+    return (
+      <div className="grid w-full min-w-0 grid-cols-3 gap-1">
+        {fields.map((field) => {
+          const draftKey = weightVariantFieldDraftKey(variant.id, field.key);
+          const dimensionValue = variant[field.key];
+          return (
+            <CompactSegmentedField
+              key={field.key}
+              editable={editable}
+              value={
+                weightVariantFieldDrafts[draftKey]
+                ?? (dimensionValue === null ? null : formatDecimalForDisplay(dimensionValue))
+              }
+              suffix="mm"
+              placeholder={field.placeholder}
+              ariaLabel={`${field.ariaLabel} za ${variantName}`}
+              className="min-w-0"
+              inputClassName="placeholder:text-[9px]"
+              onChange={(value) => setWeightVariantFieldDraft(variant.id, field.key, value)}
+              onBlur={() => {
+                const raw = weightVariantFieldDrafts[draftKey];
+                if (raw !== undefined) {
+                  const parsed = parseDecimalInput(raw);
+                  updateVariant(variant.id, {
+                    [field.key]: parsed === null ? null : Math.max(0, parsed)
+                  });
+                }
+                clearWeightVariantFieldDraft(variant.id, field.key);
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderExpandedWeightVariantCell = (
     variant: WeightVariant,
     rowKey: WeightVariantMatrixRowKey
@@ -1952,6 +2018,7 @@ export function WeightProductModule({
         />
       );
     }
+    if (rowKey === 'dimensions') return renderWeightVariantDimensions(variant, variantName);
     if (rowKey === 'color') {
       return editable ? (
         <select
@@ -2236,6 +2303,14 @@ export function WeightProductModule({
     let value = '—';
     let title = variantName;
     if (rowKey === 'netMass') value = variant.netMassKg === null ? '—' : formatDecimalForDisplay(variant.netMassKg);
+    if (rowKey === 'dimensions') {
+      value = `${[
+        variant.lengthMm,
+        variant.widthMm,
+        variant.thicknessMm
+      ].map((dimension) => dimension === null ? '—' : formatDecimalForDisplay(dimension)).join(' × ')} mm`;
+      title = `${variantName}: ${value}`;
+    }
     if (rowKey === 'color') value = normalizeSingleWeightColorValue(variant.color);
     if (rowKey === 'fraction') value = stripWeightFractionUnit(variant.fraction) || '—';
     if (rowKey === 'tolerance') value = variant.tolerance ? `± ${variant.tolerance.replace('.', ',')}` : '—';
@@ -3025,6 +3100,107 @@ function MachineTableValueField({
   );
 }
 
+function MachineDimensionValueField({
+  value,
+  placeholder,
+  editable,
+  onChange
+}: {
+  value: number | null;
+  placeholder: string;
+  editable: boolean;
+  onChange: (value: number | null) => void;
+}) {
+  const displayValue = value === null ? '—' : formatDecimalForDisplay(value);
+
+  return (
+    <span
+      className={classNames(
+        'flex h-[30px] min-w-0 overflow-hidden rounded-md border border-slate-300',
+        editable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)]'
+      )}
+    >
+      <input
+        type="text"
+        inputMode="decimal"
+        className={classNames(
+          "h-full min-w-0 flex-1 border-0 bg-transparent px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-semibold leading-[30px] text-left outline-none focus:ring-0",
+          adminPlaceholderTokenClasses,
+          editable
+            ? 'text-slate-900'
+            : 'cursor-not-allowed text-slate-500'
+        )}
+        value={editable ? (value === null ? '' : formatDecimalForDisplay(value)) : displayValue}
+        placeholder={editable ? placeholder : undefined}
+        aria-label={placeholder}
+        title={placeholder}
+        disabled={!editable}
+        readOnly={!editable}
+        onChange={(event) => {
+          const rawValue = event.target.value;
+          if (!rawValue.trim()) {
+            onChange(null);
+            return;
+          }
+          const parsedValue = parseDecimalInput(rawValue);
+          if (parsedValue !== null) onChange(Math.max(0, parsedValue));
+        }}
+      />
+      {value !== null || editable ? (
+        <span
+          className={classNames(
+            machineUnitAdornmentClassName,
+            !editable && 'bg-[color:var(--field-locked-bg)] text-slate-500'
+          )}
+        >
+          mm
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function MachineDimensionsValueFields({
+  editable,
+  lengthMm,
+  widthMm,
+  thicknessMm,
+  onLengthChange,
+  onWidthChange,
+  onThicknessChange
+}: {
+  editable: boolean;
+  lengthMm: number | null;
+  widthMm: number | null;
+  thicknessMm: number | null;
+  onLengthChange: (value: number | null) => void;
+  onWidthChange: (value: number | null) => void;
+  onThicknessChange: (value: number | null) => void;
+}) {
+  return (
+    <div className="grid w-full max-w-full min-w-0 grid-cols-3 gap-1.5">
+      <MachineDimensionValueField
+        value={lengthMm}
+        placeholder="Dolžina"
+        editable={editable}
+        onChange={onLengthChange}
+      />
+      <MachineDimensionValueField
+        value={widthMm}
+        placeholder="Širina"
+        editable={editable}
+        onChange={onWidthChange}
+      />
+      <MachineDimensionValueField
+        value={thicknessMm}
+        placeholder="Višina / debelina"
+        editable={editable}
+        onChange={onThicknessChange}
+      />
+    </div>
+  );
+}
+
 function MachineEditableSpecRow({
   editable,
   row,
@@ -3084,6 +3260,7 @@ function MachineInfoTable({
   onUpdateCustomRow,
   customRowUnits = true,
   flushBottom = false,
+  valueColumnWidth = '33%',
   className
 }: {
   title: string;
@@ -3092,7 +3269,8 @@ function MachineInfoTable({
   fixedRows: Array<{
     key: string;
     label: string;
-    value: string | number;
+    value?: string | number;
+    valueContent?: ReactNode;
     suffix?: MachineUnitSuffix;
     unitValue?: string;
     numeric?: boolean;
@@ -3100,7 +3278,7 @@ function MachineInfoTable({
     hideCheckbox?: boolean;
     onEmpty?: () => void;
     onLabelChange?: (value: string) => void;
-    onChange: (value: string | number) => void;
+    onChange?: (value: string | number) => void;
     onUnitChange?: (value: string) => void;
   }>;
   customRows: SpecRow[];
@@ -3109,6 +3287,7 @@ function MachineInfoTable({
   onUpdateCustomRow?: (id: string, updates: Partial<SpecRow>) => void;
   customRowUnits?: boolean;
   flushBottom?: boolean;
+  valueColumnWidth?: string;
   className?: string;
 }) {
   const [selectedCustomRowIds, setSelectedCustomRowIds] = useState<Set<string>>(() => new Set());
@@ -3165,7 +3344,7 @@ function MachineInfoTable({
         <colgroup>
           <col style={{ width: '44px' }} />
           <col />
-          <col style={{ width: '33%' }} />
+          <col style={{ width: valueColumnWidth }} />
         </colgroup>
         <thead>
           <tr>
@@ -3200,16 +3379,18 @@ function MachineInfoTable({
                 )}
               </td>
               <td className={machineTableCellClassName}>
-                <MachineTableValueField
-                  value={row.value}
-                  suffix={row.suffix}
-                  unitValue={row.unitValue}
-                  numeric={row.numeric}
-                  editable={editable && !row.locked}
-                  onEmpty={row.onEmpty}
-                  onChange={row.onChange}
-                  onUnitChange={editable && !row.locked ? row.onUnitChange : undefined}
-                />
+                {row.valueContent ?? (
+                  <MachineTableValueField
+                    value={row.value ?? ''}
+                    suffix={row.suffix}
+                    unitValue={row.unitValue}
+                    numeric={row.numeric}
+                    editable={editable && !row.locked}
+                    onEmpty={row.onEmpty}
+                    onChange={(value) => row.onChange?.(value)}
+                    onUnitChange={editable && !row.locked ? row.onUnitChange : undefined}
+                  />
+                )}
               </td>
             </tr>
           ))}
@@ -3537,8 +3718,33 @@ export function UniqueMachineProductModule({
             title="Tehnične specifikacije"
             editable={editable}
             onRequestEdit={onRequestEdit}
+            valueColumnWidth="62%"
             fixedRows={[
-              { key: 'packageDimensions', label: 'Dimenzije paketa', value: machineData.packageDimensions, onChange: (packageDimensions) => update({ packageDimensions: String(packageDimensions) }) }
+              {
+                key: 'packageWeightKg',
+                label: 'Masa paketa',
+                value: machineData.packageWeightKg,
+                suffix: 'kg',
+                numeric: true,
+                hideCheckbox: true,
+                onChange: (packageWeightKg) => update({ packageWeightKg: Math.max(0, Number(packageWeightKg) || 0) })
+              },
+              {
+                key: 'packageDimensions',
+                label: 'Dimenzije paketa',
+                hideCheckbox: true,
+                valueContent: (
+                  <MachineDimensionsValueFields
+                    editable={editable}
+                    lengthMm={machineData.packageLengthMm}
+                    widthMm={machineData.packageWidthMm}
+                    thicknessMm={machineData.packageThicknessMm}
+                    onLengthChange={(packageLengthMm) => update({ packageLengthMm })}
+                    onWidthChange={(packageWidthMm) => update({ packageWidthMm })}
+                    onThicknessChange={(packageThicknessMm) => update({ packageThicknessMm })}
+                  />
+                )
+              }
             ]}
             customRows={machineData.specs}
             onAddCustomRow={() => addSpecRow('specs')}

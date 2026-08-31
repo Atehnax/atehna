@@ -68,7 +68,7 @@ export default async function AdminAnalyticsIndexPage(
   const searchParams = await props.searchParams;
   return (
     <div className="w-full">
-      <AdminPageHeader title="Analitika" description="Pregled analitike naročil in spletnega obiska." />
+      <AdminPageHeader title="Analitika" description="Pregled analitike naročil, povpraševanj, ponudb in spletnega obiska." />
       <AdminAnalyticsTopTabs />
       {await AdminAnalyticsDashboardSection({ searchParams })}
     </div>

@@ -6,18 +6,27 @@ import { useState } from 'react';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
-const primaryLinks = [
-  { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
-  { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
-  { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
-  { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon },
-  { href: '/admin/stranke', label: 'Seznam strank', icon: UsersIcon },
-  { href: '/admin/podoba/glavna-stran', label: 'Podoba', icon: PaletteIcon },
-  { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
-  { href: '/admin/urejevalnik', label: 'Urejevalnik', icon: FilePenLineIcon },
-  { href: '/admin/email', label: 'Email', icon: MailIcon },
-  { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
-  { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
+const primaryLinkGroups = [
+  [
+    { href: '/admin/orders', label: 'Naročila', icon: ClipboardListIcon },
+    { href: '/admin/artikli', label: 'Artikli', icon: PackageIcon },
+    { href: '/admin/kategorije', label: 'Kategorije', icon: NetworkIcon },
+    { href: '/admin/stranke', label: 'Seznam strank', icon: UsersIcon },
+    { href: '/admin/analitika', label: 'Analitika', icon: ChartColumnIcon }
+  ],
+  [
+    { href: '/admin/katalog', label: 'Katalog', icon: BookOpenTextIcon },
+    { href: '/admin/urejevalnik', label: 'Urejevalnik', icon: FilePenLineIcon },
+    { href: '/admin/podoba/glavna-stran', label: 'Podoba', icon: PaletteIcon }
+  ],
+  [
+    { href: '/admin/email', label: 'Email', icon: MailIcon },
+    { href: '/admin/postnina', label: 'Poštnina', icon: ShippingIcon }
+  ],
+  [
+    { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
+    { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
+  ]
 ] as const;
 
 const bottomLinks = [{ href: '/', label: 'Glavna stran', icon: 'home' }] as const;
@@ -76,6 +85,17 @@ function ClipboardListIcon({ className }: { className?: string }) {
       <path d="M12 16h4" />
       <path d="M8 11h.01" />
       <path d="M8 16h.01" />
+    </svg>
+  );
+}
+
+function ShippingIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M10 17h4V5H2v12h3" />
+      <path d="M14 9h4l4 4v4h-3" />
+      <circle cx="7.5" cy="17.5" r="2.5" />
+      <circle cx="16.5" cy="17.5" r="2.5" />
     </svg>
   );
 }
@@ -273,34 +293,50 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
             </span>
           </Link>
 
-          <nav className="space-y-1">
-            {primaryLinks.map((link) => {
-              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-              const SidebarIconComponent = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-label={link.label}
-                  prefetch={false}
-                  onMouseEnter={() => router.prefetch(link.href)}
-                  onFocus={() => router.prefetch(link.href)}
-                  className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
-                    isActive
-                      ? 'bg-[color:var(--hover-neutral)] font-semibold text-[color:var(--blue-500)]'
-                      : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
-                  }`}
-                >
-                  <span className={sidebarIconWrapperClassName}>
-                    <SidebarIconComponent className={sidebarIconClassName} />
-                  </span>
-                  <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
-                    {link.label}
-                  </span>
-                  <ActiveChevron visible={isExpanded && isActive} />
-                </Link>
-              );
-            })}
+          <nav aria-label="Glavna administracijska navigacija">
+            {primaryLinkGroups.map((group, groupIndex) => (
+              <div key={group[0].href} data-admin-sidebar-group={groupIndex + 1}>
+                {groupIndex > 0 ? (
+                  <hr
+                    data-admin-sidebar-separator
+                    className={`my-2 border-0 border-t border-slate-300/75 transition-[width,margin] duration-300 ease-out ${
+                      isExpanded
+                        ? 'mx-2 w-[calc(100%-1rem)]'
+                        : 'ml-2.5 mr-auto w-4'
+                    }`}
+                  />
+                ) : null}
+                <div className="space-y-1">
+                  {group.map((link) => {
+                    const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                    const SidebarIconComponent = link.icon;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        aria-label={link.label}
+                        prefetch={false}
+                        onMouseEnter={() => router.prefetch(link.href)}
+                        onFocus={() => router.prefetch(link.href)}
+                        className={`flex rounded-xl py-1.5 text-sm transition-colors duration-200 ${expandedRowClass} ${
+                          isActive
+                            ? 'bg-[color:var(--hover-neutral)] font-semibold text-[color:var(--blue-500)]'
+                            : 'text-slate-900 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)] focus-visible:text-[color:var(--blue-500)]'
+                        }`}
+                      >
+                        <span className={sidebarIconWrapperClassName}>
+                          <SidebarIconComponent className={sidebarIconClassName} />
+                        </span>
+                        <span className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? 'max-w-[11.5rem] opacity-100' : 'pointer-events-none max-w-0 opacity-0'}`} aria-hidden={!isExpanded}>
+                          {link.label}
+                        </span>
+                        <ActiveChevron visible={isExpanded && isActive} />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           <div className="mt-auto space-y-1">

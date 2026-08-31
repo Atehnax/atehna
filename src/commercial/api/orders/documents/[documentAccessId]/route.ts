@@ -50,6 +50,7 @@ export async function GET(
         where d.customer_access_id = $1
           and d.deleted_at is null
           and o.deleted_at is null
+          and d.order_pricing_revision = o.pricing_revision
         limit 1
       `,
       [documentAccessId]

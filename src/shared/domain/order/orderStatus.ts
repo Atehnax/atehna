@@ -14,6 +14,12 @@ export const ORDER_STATUS_OPTIONS = [
 
 type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
 
+export const ORDER_ATTENTION_STATUSES = [
+  'received',
+  'in_progress',
+  'partially_sent'
+] as const satisfies readonly OrderStatus[];
+
 const STATUS_LABELS = new Map<OrderStatus, string>(
   ORDER_STATUS_OPTIONS.map((option) => [option.value, option.label])
 );

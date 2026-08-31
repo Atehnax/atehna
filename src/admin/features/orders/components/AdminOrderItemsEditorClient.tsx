@@ -14,12 +14,19 @@ export default function AdminOrderItemsEditorClient(props: {
   items: OrderItemInput[];
   initialSubtotal?: number;
   initialTax?: number;
+  initialShipping?: number;
+  initialShippingOverride?: boolean;
+  initialShippingOverrideStale?: boolean;
+  initialShippingManualQuote?: boolean;
   initialTaxRate?: number;
   externalEditMode?: boolean;
   hideSectionEditControls?: boolean;
+  onRequestEdit?: () => void;
+  sectionEditDisabled?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
   onSavingChange?: (isSaving: boolean) => void;
   onRegisterSave?: (handler: () => Promise<boolean>) => void | (() => void);
+  onPricingRevisionChange?: (pricingRevision: number) => void;
 }) {
   return <AdminOrderItemsEditor {...props} />;
 }

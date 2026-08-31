@@ -13,6 +13,7 @@ import type {
   PaymentLogRow
 } from '@/shared/domain/order/orderTypes';
 import { isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
+import { ORDER_ATTENTION_STATUSES } from '@/shared/domain/order/orderStatus';
 
 const PAGED_ORDER_NUMBER_DESC_SQL =
   "nullif(regexp_replace(order_number::text, '\\D', '', 'g'), '')::bigint desc nulls last, id desc";
@@ -250,6 +251,16 @@ function asNullableString(rawValue: unknown): string | null {
   return typeof rawValue === 'string' ? rawValue : null;
 }
 
+function toNullableIsoTimestamp(rawValue: unknown): string | null {
+  return rawValue === null || rawValue === undefined ? null : toIsoTimestamp(rawValue);
+}
+
+function nullableOrderJson<T>(value: unknown): T | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as T
+    : null;
+}
+
 function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
   return {
     id: Number(rawRow.id),
@@ -270,6 +281,32 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
       || rawRow.commitment_status === 'rejected'
         ? rawRow.commitment_status
         : null,
+    contract_status:
+      rawRow.contract_status === 'pending_seller_acceptance'
+      || rawRow.contract_status === 'accepted'
+      || rawRow.contract_status === 'rejected'
+        ? rawRow.contract_status
+        : null,
+    contract_accepted_at: toNullableIsoTimestamp(rawRow.contract_accepted_at),
+    contract_accepted_actor_type: asNullableString(rawRow.contract_accepted_actor_type),
+    contract_accepted_actor_id:
+      rawRow.contract_accepted_actor_id === null || rawRow.contract_accepted_actor_id === undefined
+        ? null
+        : String(rawRow.contract_accepted_actor_id),
+    contract_accepted_evidence_json: nullableOrderJson(rawRow.contract_accepted_evidence_json),
+    contract_rejected_at: toNullableIsoTimestamp(rawRow.contract_rejected_at),
+    contract_rejected_actor_type: asNullableString(rawRow.contract_rejected_actor_type),
+    contract_rejected_actor_id:
+      rawRow.contract_rejected_actor_id === null || rawRow.contract_rejected_actor_id === undefined
+        ? null
+        : String(rawRow.contract_rejected_actor_id),
+    contract_rejected_evidence_json: nullableOrderJson(rawRow.contract_rejected_evidence_json),
+    contract_rejected_reason: asNullableString(rawRow.contract_rejected_reason),
+    committed_at: toNullableIsoTimestamp(rawRow.committed_at),
+    source_quote_offer_version_id: parseNullableNumber(rawRow.source_quote_offer_version_id),
+    source_quote_request_id: parseNullableNumber(rawRow.source_quote_request_id),
+    source_quote_request_number: asNullableString(rawRow.source_quote_request_number),
+    source_quote_offer_number: asNullableString(rawRow.source_quote_offer_number),
     reference: asNullableString(rawRow.reference),
     notes: asNullableString(rawRow.notes),
     status: String(rawRow.status),
@@ -279,6 +316,16 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     tax: parseNullableNumber(rawRow.tax),
     tax_rate: parseNullableNumber(rawRow.tax_rate),
     shipping: parseNullableNumber(rawRow.shipping),
+    automatic_shipping: parseNullableNumber(rawRow.automatic_shipping),
+    shipping_snapshot_json: nullableOrderJson<OrderRow['shipping_snapshot_json']>(
+      rawRow.shipping_snapshot_json
+    ),
+    shipping_override_json: nullableOrderJson<OrderRow['shipping_override_json']>(
+      rawRow.shipping_override_json
+    ),
+    shipping_override_stale: rawRow.shipping_override_stale === true,
+    parcel_count: Math.max(1, Math.trunc(Number(rawRow.parcel_count) || 1)),
+    pricing_revision: Math.max(1, Math.trunc(Number(rawRow.pricing_revision) || 1)),
     total: parseNullableNumber(rawRow.total),
     created_at: toIsoTimestamp(rawRow.created_at),
     is_draft: Boolean(rawRow.is_draft),
@@ -336,9 +383,17 @@ function mapOrderAnalyticsRow(rawRow: Record<string, unknown>): OrderAnalyticsRo
   return {
     id: Number(rawRow.id),
     created_at: toIsoTimestamp(rawRow.created_at),
+    committed_at: toNullableIsoTimestamp(rawRow.committed_at),
+    contract_accepted_at: toNullableIsoTimestamp(rawRow.contract_accepted_at),
     status: asNullableString(rawRow.status),
     payment_status: asNullableString(rawRow.payment_status),
     commitment_status: asNullableString(rawRow.commitment_status),
+    contract_status:
+      rawRow.contract_status === 'pending_seller_acceptance'
+      || rawRow.contract_status === 'accepted'
+      || rawRow.contract_status === 'rejected'
+        ? rawRow.contract_status
+        : null,
     customer_type: asNullableString(rawRow.customer_type),
     total: Number(rawRow.total ?? 0)
   };
@@ -426,6 +481,17 @@ export async function fetchOrdersListPage(
           or orders.customer_type ilike $${queryIndex}
           or orders.status ilike $${queryIndex}
           or orders.payment_status ilike $${queryIndex}
+          or exists (
+            select 1
+            from quote_offer_versions related_offer
+            join quote_requests related_request
+              on related_request.id = related_offer.quote_request_id
+            where related_offer.id = orders.source_quote_offer_version_id
+              and (
+                related_offer.offer_number ilike $${queryIndex}
+                or related_request.request_number ilike $${queryIndex}
+              )
+          )
         )`
       );
     }
@@ -485,7 +551,13 @@ export async function fetchOrdersListPage(
           orders.admin_order_notes,
           orders.subtotal::text as subtotal,
           orders.tax::text as tax,
+          orders.shipping::text as shipping,
+          orders.automatic_shipping::text as automatic_shipping,
+          orders.shipping_override_json,
+          orders.shipping_override_stale,
+          orders.parcel_count,
           orders.total::text as total,
+          orders.pricing_revision,
           orders.created_at,
           orders.is_draft,
           orders.deleted_at
@@ -512,6 +584,9 @@ export async function fetchOrdersListPage(
             od.filename,
             od.created_at
           from order_documents od
+          join paged_orders po
+            on po.id = od.order_id
+           and po.pricing_revision = od.order_pricing_revision
           where od.order_id in (select id from paged_orders)
             and od.deleted_at is null
         ) source_docs
@@ -562,6 +637,24 @@ export async function fetchOrdersListPage(
   });
 }
 
+export async function fetchOrderAttentionCount(): Promise<number> {
+  const pool = await getPool();
+  const result = await profileRoutePhase(
+    'db',
+    'fetchOrderAttentionCount:query',
+    () => pool.query(
+      `
+        select count(*)::int as count
+        from orders
+        where orders.status = any($1::text[])
+          and orders.deleted_at is null
+      `,
+      [[...ORDER_ATTENTION_STATUSES]]
+    )
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
 export async function fetchOrdersAnalyticsRows(
   options?: {
     fromDate?: string | null;
@@ -576,20 +669,32 @@ export async function fetchOrdersAnalyticsRows(
     const queryParams: unknown[] = [];
 
     if (!options?.includeDrafts) {
-      conditions.push(`not (
-        coalesce(orders.is_draft, false) = true
-        and coalesce(orders.email, '') = 'draft@atehna.si'
-        and coalesce(orders.contact_name, '') = 'Osnutek'
-      )`);
+      conditions.push('coalesce(orders.is_draft, false) = false');
     }
     conditions.push('orders.deleted_at is null');
-    if (options?.fromDate) {
+    if (options?.fromDate && options?.toDate) {
+      queryParams.push(options.fromDate, options.toDate);
+      const fromIndex = queryParams.length - 1;
+      const toIndex = queryParams.length;
+      conditions.push(`(
+        (orders.created_at >= $${fromIndex} and orders.created_at <= $${toIndex})
+        or (
+          coalesce(orders.committed_at, orders.contract_accepted_at) >= $${fromIndex}
+          and coalesce(orders.committed_at, orders.contract_accepted_at) <= $${toIndex}
+        )
+      )`);
+    } else if (options?.fromDate) {
       queryParams.push(options.fromDate);
-      conditions.push(`orders.created_at >= $${queryParams.length}`);
-    }
-    if (options?.toDate) {
+      conditions.push(`(
+        orders.created_at >= $${queryParams.length}
+        or coalesce(orders.committed_at, orders.contract_accepted_at) >= $${queryParams.length}
+      )`);
+    } else if (options?.toDate) {
       queryParams.push(options.toDate);
-      conditions.push(`orders.created_at <= $${queryParams.length}`);
+      conditions.push(`(
+        orders.created_at <= $${queryParams.length}
+        or coalesce(orders.committed_at, orders.contract_accepted_at) <= $${queryParams.length}
+      )`);
     }
 
     const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
@@ -597,9 +702,12 @@ export async function fetchOrdersAnalyticsRows(
       select
         orders.id,
         orders.created_at,
+        orders.committed_at,
+        orders.contract_accepted_at,
         orders.status,
         orders.payment_status,
         orders.commitment_status,
+        orders.contract_status,
         orders.customer_type,
         coalesce(orders.total::numeric, orders.subtotal::numeric + orders.tax::numeric, 0::numeric)::text as total
       from orders
@@ -633,6 +741,21 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.gurs_house_number_id,
       orders.country_code,
       orders.commitment_status,
+      orders.contract_status,
+      orders.contract_accepted_at,
+      orders.contract_accepted_actor_type,
+      orders.contract_accepted_actor_id,
+      orders.contract_acceptance_evidence_json as contract_accepted_evidence_json,
+      orders.contract_rejected_at,
+      orders.contract_rejected_actor_type,
+      orders.contract_rejected_actor_id,
+      orders.contract_rejection_evidence_json as contract_rejected_evidence_json,
+      orders.contract_rejection_reason as contract_rejected_reason,
+      orders.committed_at,
+      orders.source_quote_offer_version_id,
+      related_request.id as source_quote_request_id,
+      related_request.request_number as source_quote_request_number,
+      related_offer.offer_number as source_quote_offer_number,
       orders.reference,
       orders.notes,
       orders.status,
@@ -642,11 +765,21 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.tax::text as tax,
       orders.tax_rate,
       orders.shipping::text as shipping,
+      orders.automatic_shipping::text as automatic_shipping,
+      orders.shipping_snapshot_json,
+      orders.shipping_override_json,
+      orders.shipping_override_stale,
+      orders.parcel_count,
+      orders.pricing_revision,
       orders.total::text as total,
       orders.created_at,
       orders.is_draft,
       orders.deleted_at
     from orders
+    left join quote_offer_versions related_offer
+      on related_offer.id = orders.source_quote_offer_version_id
+    left join quote_requests related_request
+      on related_request.id = related_offer.quote_request_id
     where orders.id = $1
     `,
       [orderId]
@@ -654,6 +787,120 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
 
     if (result.rows.length === 0) return null;
     return profileRoutePhase('transform', 'fetchOrderById:mapRow', async () => mapOrderRow(result.rows[0] as Record<string, unknown>));
+  });
+}
+
+export async function fetchOrderDetailSnapshot(
+  orderId: number,
+  diagnosticsContext = '/admin/orders/[orderId]'
+): Promise<{
+  order: OrderRow | null;
+  items: OrderItemRow[];
+  documents: OrderDocumentRow[];
+}> {
+  return instrumentCatalogLoader('fetchOrderDetailSnapshot', diagnosticsContext, async () => {
+    const pool = await getPool();
+    const client = await pool.connect();
+    let rawOrder: Record<string, unknown> | null = null;
+    let rawItems: Record<string, unknown>[] = [];
+    let rawDocuments: Record<string, unknown>[] = [];
+
+    try {
+      await client.query('begin isolation level repeatable read read only');
+      const orderResult = await client.query(
+        `
+          select
+            orders.id,
+            orders.order_number,
+            orders.customer_type,
+            orders.organization_name,
+            orders.contact_name,
+            orders.email,
+            orders.address_line1,
+            orders.address_line2,
+            orders.postal_code,
+            orders.city,
+            orders.gurs_house_number_id,
+            orders.country_code,
+            orders.commitment_status,
+            orders.contract_status,
+            orders.contract_accepted_at,
+            orders.contract_accepted_actor_type,
+            orders.contract_accepted_actor_id,
+            orders.contract_acceptance_evidence_json as contract_accepted_evidence_json,
+            orders.contract_rejected_at,
+            orders.contract_rejected_actor_type,
+            orders.contract_rejected_actor_id,
+            orders.contract_rejection_evidence_json as contract_rejected_evidence_json,
+            orders.contract_rejection_reason as contract_rejected_reason,
+            orders.committed_at,
+            orders.source_quote_offer_version_id,
+            related_request.id as source_quote_request_id,
+            related_request.request_number as source_quote_request_number,
+            related_offer.offer_number as source_quote_offer_number,
+            orders.reference,
+            orders.notes,
+            orders.status,
+            orders.payment_status,
+            orders.admin_order_notes,
+            orders.subtotal::text as subtotal,
+            orders.tax::text as tax,
+            orders.tax_rate,
+            orders.shipping::text as shipping,
+            orders.automatic_shipping::text as automatic_shipping,
+            orders.shipping_snapshot_json,
+            orders.shipping_override_json,
+            orders.shipping_override_stale,
+            orders.parcel_count,
+            orders.total::text as total,
+            orders.created_at,
+            orders.is_draft,
+            orders.deleted_at,
+            orders.pricing_revision
+          from orders
+          left join quote_offer_versions related_offer
+            on related_offer.id = orders.source_quote_offer_version_id
+          left join quote_requests related_request
+            on related_request.id = related_offer.quote_request_id
+          where orders.id = $1
+        `,
+        [orderId]
+      );
+      rawOrder = (orderResult.rows[0] as Record<string, unknown> | undefined) ?? null;
+
+      if (rawOrder) {
+        const itemsResult = await client.query(
+          'select * from order_items where order_id = $1 order by id',
+          [orderId]
+        );
+        rawItems = itemsResult.rows as Record<string, unknown>[];
+
+        const documentsResult = await client.query(
+          `
+            select d.id, d.order_id, d.type, d.filename, d.created_at
+            from order_documents d
+            where d.order_id = $1
+              and d.deleted_at is null
+              and d.order_pricing_revision = $2
+            order by d.created_at desc
+          `,
+          [orderId, rawOrder.pricing_revision]
+        );
+        rawDocuments = documentsResult.rows as Record<string, unknown>[];
+      }
+      await client.query('commit');
+    } catch (error) {
+      await client.query('rollback').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return {
+      order: rawOrder ? mapOrderRow(rawOrder) : null,
+      items: rawItems.map(mapOrderItemRow),
+      documents: rawDocuments.map(mapOrderDocumentRow)
+    };
   });
 }
 
@@ -686,7 +933,9 @@ export async function fetchOrderItemAllocationsForSkus(
       'lower(trim(order_items.sku)) = any($1::text[])',
       "coalesce(orders.status, '') <> 'cancelled'",
       'coalesce(orders.is_draft, false) = false',
-      'orders.deleted_at is null'
+      'orders.deleted_at is null',
+      "orders.commitment_status = 'binding'",
+      "orders.contract_status <> 'rejected'"
     ];
 
     const result = await profileRoutePhase('db', 'fetchOrderItemAllocationsForSkus:query', () =>
@@ -733,7 +982,15 @@ export async function fetchOrderDocuments(orderId: number, diagnosticsContext = 
   return instrumentCatalogLoader('fetchOrderDocuments', diagnosticsContext, async () => {
     const pool = await getPool();
     const result = await profileRoutePhase('db', 'fetchOrderDocuments:query', () => pool.query(
-      'select id, order_id, type, filename, created_at from order_documents where order_id = $1 and deleted_at is null order by created_at desc',
+      `
+        select d.id, d.order_id, d.type, d.filename, d.created_at
+        from order_documents d
+        join orders o on o.id = d.order_id
+        where d.order_id = $1
+          and d.deleted_at is null
+          and d.order_pricing_revision = o.pricing_revision
+        order by d.created_at desc
+      `,
       [orderId]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocuments:mapRows', async () =>
@@ -750,7 +1007,15 @@ export async function fetchOrderDocumentsForOrders(
     if (orderIds.length === 0) return [];
     const pool = await getPool();
     const result = await profileRoutePhase('db', 'fetchOrderDocumentsForOrders:query', () => pool.query(
-      'select id, order_id, type, filename, created_at from order_documents where order_id = any($1::bigint[]) and deleted_at is null order by created_at desc',
+      `
+        select d.id, d.order_id, d.type, d.filename, d.created_at
+        from order_documents d
+        join orders o on o.id = d.order_id
+        where d.order_id = any($1::bigint[])
+          and d.deleted_at is null
+          and d.order_pricing_revision = o.pricing_revision
+        order by d.created_at desc
+      `,
       [orderIds]
     ));
     return profileRoutePhase('transform', 'fetchOrderDocumentsForOrders:mapRows', async () =>

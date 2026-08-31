@@ -155,7 +155,7 @@ export default function AdminOrdersActivityHeatmap({ days }: { days: readonly Ad
           <div className="inline-flex h-8 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
             {[
               { value: 'orders', label: 'Naročila' },
-              { value: 'revenue', label: 'Prihodki' }
+              { value: 'revenue', label: 'Vrednost naročil' }
             ].map((option) => (
               <button
                 key={option.value}
@@ -248,7 +248,7 @@ export default function AdminOrdersActivityHeatmap({ days }: { days: readonly Ad
                       onFocus={(event) => showHover(day, event.currentTarget)}
                       onBlur={() => setHover(null)}
                       tabIndex={0}
-                      aria-label={`${formatDate(day.date)}, Naročila: ${formatInt(day.orderCount)}, Prihodki: ${formatCurrency(day.revenue)}`}
+                      aria-label={`${formatDate(day.date)}, Naročila: ${formatInt(day.orderCount)}, Vrednost naročil: ${formatCurrency(day.revenue)}`}
                     />
                   ))}
                 </div>
@@ -270,7 +270,7 @@ export default function AdminOrdersActivityHeatmap({ days }: { days: readonly Ad
               <span className="whitespace-nowrap text-right font-semibold text-[#15803d]">{formatInt(hover.day.orderCount)}</span>
             </p>
             <p className="grid grid-cols-[50px_1fr] gap-0.5 text-slate-500">
-              <span>Prihodki:</span>
+              <span>Vrednost:</span>
               <span className="whitespace-nowrap text-right font-semibold text-[#15803d]">{formatCurrency(hover.day.revenue)}</span>
             </p>
           </div>

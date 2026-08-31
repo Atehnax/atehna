@@ -8,7 +8,7 @@ import {
   getDistinctCartVariantName,
   type CartItem
 } from '@/commercial/cart/cartTypes';
-import type { OrderQuoteItem } from '@/commercial/order/contracts';
+import type { OrderEstimateItem } from '@/commercial/order/contracts';
 import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
 import { formatEuro } from '@/shared/domain/formatting';
 import IconButton from '@/shared/ui/icon-button/IconButton';
@@ -21,7 +21,7 @@ import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElemen
 
 type CartLineProps = {
   item: CartItem;
-  quoteItem?: OrderQuoteItem;
+  estimateItem?: OrderEstimateItem;
   compact?: boolean;
   presentation?: 'default' | 'order-summary';
   highlighted?: boolean;
@@ -43,7 +43,7 @@ const reconciliationTone = {
 
 export default function CartLine({
   item,
-  quoteItem,
+  estimateItem,
   compact = false,
   presentation = 'default',
   highlighted = false,
@@ -80,21 +80,23 @@ export default function CartLine({
     );
   };
   const baseUnitNet =
-    quoteItem?.baseUnitNet ?? item.pricing?.baseUnitNet ?? 0;
-  const unitNet = quoteItem?.unitNet ?? item.pricing?.unitNet ?? 0;
-  const taxRate = quoteItem?.taxRate ?? item.pricing?.taxRate ?? 0.22;
+    estimateItem?.baseUnitNet ?? item.pricing?.baseUnitNet ?? 0;
+  const unitNet = estimateItem?.unitNet ?? item.pricing?.unitNet ?? 0;
+  const taxRate = estimateItem?.taxRate ?? item.pricing?.taxRate ?? 0.22;
   const discountPct =
-    quoteItem?.discountPct ?? item.pricing?.discountPct ?? 0;
+    estimateItem?.discountPct ?? item.pricing?.discountPct ?? 0;
   const lineGross =
-    quoteItem?.lineGross ??
+    estimateItem?.lineGross ??
     (typeof item.pricing?.quotedUnitGross === 'number'
       ? item.pricing.quotedUnitGross * item.quantity
       : typeof item.pricing?.estimatedUnitGross === 'number'
         ? item.pricing.estimatedUnitGross * item.quantity
         : null);
-  const minimum = quoteItem?.minOrder ?? item.reconciliation.minOrder ?? 1;
+  const minimum = estimateItem?.minOrder ?? item.reconciliation.minOrder ?? 1;
   const maximum =
-    quoteItem?.availableStock ?? item.reconciliation.availableStock ?? undefined;
+    estimateItem?.availableStock ??
+    item.reconciliation.availableStock ??
+    undefined;
   const distinctVariantName = getDistinctCartVariantName(item);
 
   const commitQuantity = (value: number) => {
@@ -179,7 +181,7 @@ export default function CartLine({
               </p>
             ) : null}
             <p className="storefront-cart-line-sku mt-0.5 font-mono text-[10px] text-[color:var(--site-color-text-muted)]">
-              SKU: {quoteItem?.sku ?? item.sku}
+              SKU: {estimateItem?.sku ?? item.sku}
             </p>
 
             {unitNet > 0 ? (
@@ -188,7 +190,7 @@ export default function CartLine({
                 baseUnitNet={baseUnitNet || unitNet}
                 discountPct={discountPct}
                 taxRate={taxRate}
-                unit={quoteItem?.unit ?? item.unit}
+                unit={estimateItem?.unit ?? item.unit}
                 compact
                 className="mt-2"
               />

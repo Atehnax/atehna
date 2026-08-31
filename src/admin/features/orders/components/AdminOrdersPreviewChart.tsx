@@ -1,9 +1,13 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import AdminAnalyticsComparisonRow, {
+  createAdminAnalyticsTrend,
+  type AdminAnalyticsComparisonItem
+} from '@/shared/ui/admin-analytics-comparison-row';
+import AdminAnalyticsSummaryCard from '@/shared/ui/admin-analytics-summary-card';
 
 type RangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type StatusBucket = 'received' | 'in_progress' | 'sent' | 'finished' | 'other';
@@ -16,30 +20,22 @@ type PeriodMetrics = {
   maxOrderValue: number;
 };
 
-type TrendBadgeData = {
-  value: string;
-  direction: 'positive' | 'negative' | 'neutral';
-};
-
-type ComparisonItem = {
-  label: string;
-  value: string;
-  trend: TrendBadgeData;
-};
-
 type AnalyticsCard = {
   key: string;
   focusKey: string;
   title: string;
   metric: string;
-  comparisons: ComparisonItem[];
+  comparisons: AdminAnalyticsComparisonItem[];
 };
 
 type OrderAnalyticsPreviewRow = {
   created_at: string;
+  committed_at: string | null;
+  contract_accepted_at: string | null;
   status: string;
   total: number | string | null;
   commitment_status: string | null;
+  contract_status: string | null;
 };
 
 const rangeOptions: Array<{ key: Exclude<RangePreset, 'custom'>; label: string }> = [
@@ -107,8 +103,12 @@ const toStatusBucket = (status: string): StatusBucket => {
 };
 
 const isFinancialOrder = (order: OrderAnalyticsPreviewRow) =>
+  order.contract_status === 'accepted' &&
   order.commitment_status === 'binding' &&
   order.status.trim().toLowerCase() !== 'cancelled';
+
+const getFinancialTimestamp = (order: OrderAnalyticsPreviewRow) =>
+  new Date(order.committed_at ?? order.contract_accepted_at ?? order.created_at).getTime();
 
 const getPeriodMetrics = (orders: OrderAnalyticsPreviewRow[], start: Date, end: Date): PeriodMetrics => {
   const startTs = start.getTime();
@@ -121,7 +121,10 @@ const getPeriodMetrics = (orders: OrderAnalyticsPreviewRow[], start: Date, end: 
     const timestamp = new Date(order.created_at).getTime();
     return Number.isFinite(timestamp) && timestamp >= startTs && timestamp <= endTs;
   });
-  const financialOrders = periodOrders.filter(isFinancialOrder);
+  const financialOrders = orders.filter((order) => {
+    const timestamp = getFinancialTimestamp(order);
+    return isFinancialOrder(order) && Number.isFinite(timestamp) && timestamp >= startTs && timestamp <= endTs;
+  });
   const orderValues = financialOrders.map((order) => toAmount(order.total));
   const revenue = orderValues.reduce((sum, value) => sum + value, 0);
 
@@ -148,62 +151,15 @@ const getFinishedOrderCount = (orders: OrderAnalyticsPreviewRow[], start: Date, 
   }).length;
 };
 
-const trendPercent = (current: number, previous: number) => {
-  if (!Number.isFinite(current) || !Number.isFinite(previous)) return 0;
-  if (previous <= 0) return current > 0 ? 100 : 0;
-  return ((current - previous) / previous) * 100;
-};
-
-const trendBadge = (value: number): TrendBadgeData => {
-  const direction = value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
-  return {
-    direction,
-    value: `${Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1 }).format(Math.abs(value))}%`
-  };
-};
-
-function TrendBadge({ trend }: { trend: TrendBadgeData }) {
-  const arrowClass =
-    trend.direction === 'positive'
-      ? 'border-x-[4px] border-b-[6px] border-x-transparent border-b-current text-[#409762]'
-      : trend.direction === 'negative'
-        ? 'border-x-[4px] border-t-[6px] border-x-transparent border-t-current text-[#d25a0b]'
-        : '';
-  return (
-    <span className={`inline-flex items-center gap-1 text-[14px] font-semibold leading-none ${trend.direction === 'neutral' ? 'text-[#7c8798]' : trend.direction === 'positive' ? 'text-[#4f8d59]' : 'text-[#d25a0b]'}`}>
-      {arrowClass ? <span aria-hidden="true" className={`inline-block h-0 w-0 ${arrowClass}`} /> : null}
-      {trend.value}
-    </span>
-  );
-}
-
-function ComparisonRow({ items }: { items: ComparisonItem[] }) {
-  return (
-    <div className="mt-3 flex min-w-0 flex-col gap-y-2 whitespace-nowrap text-[14px] leading-none">
-      {items.map((item) => (
-        <div key={item.label} className="flex min-w-0 items-center gap-2">
-          <span className="font-semibold uppercase tracking-[0.04em] text-[#707986]">{item.label}</span>
-          <span className="font-semibold text-[#334155]" title={item.value}>{item.value}</span>
-          <TrendBadge trend={item.trend} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function AnalyticsMetricCard({ card }: { card: AnalyticsCard }) {
-  const router = useRouter();
-
   return (
-    <button
-      type="button"
-      onClick={() => router.push(`/admin/analitika?view=narocila&focus=${encodeURIComponent(card.focusKey)}`)}
-      className="min-h-[94px] min-w-0 rounded-[11px] border border-[#e5e7eb] bg-white px-5 py-[11px] text-left shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_rgba(15,23,42,0.035)] transition hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(15,23,42,0.07),0_14px_28px_rgba(15,23,42,0.05)] focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+    <AdminAnalyticsSummaryCard
+      href={`/admin/analitika?view=narocila&focus=${encodeURIComponent(card.focusKey)}`}
+      title={card.title}
+      metric={card.metric}
     >
-      <p className="min-w-0 whitespace-nowrap text-[11px] font-bold uppercase leading-3 tracking-[0.035em] text-[#6f7784]" title={card.title}>{card.title}</p>
-      <p className="mt-2 truncate text-[27px] font-semibold leading-none tracking-[-0.035em] text-[#334155]" title={card.metric}>{card.metric}</p>
-      <ComparisonRow items={card.comparisons} />
-    </button>
+      <AdminAnalyticsComparisonRow items={card.comparisons} />
+    </AdminAnalyticsSummaryCard>
   );
 }
 
@@ -247,7 +203,15 @@ function AdminOrdersPreviewChart({
         timestamp <= rangeEndBoundary.getTime()
       );
     });
-    const financialOrders = selectedOrders.filter(isFinancialOrder);
+    const financialOrders = orders.filter((order) => {
+      const timestamp = getFinancialTimestamp(order);
+      return (
+        isFinancialOrder(order) &&
+        Number.isFinite(timestamp) &&
+        timestamp >= rangeStartBoundary.getTime() &&
+        timestamp <= rangeEndBoundary.getTime()
+      );
+    });
 
     const thirtyDayMetrics = getPeriodMetrics(
       selectedOrders,
@@ -299,20 +263,20 @@ function AdminOrdersPreviewChart({
           {
             label: '30d',
             value: formatInt(thirtyDayMetrics.orders),
-            trend: trendBadge(trendPercent(thirtyDayMetrics.orders, previousThirtyDayMetrics.orders))
+            trend: createAdminAnalyticsTrend(thirtyDayMetrics.orders, previousThirtyDayMetrics.orders)
           }
         ]
       },
       {
         key: 'revenue-ma',
         focusKey: 'narocila-revenue-ma',
-        title: 'PRIHODKI',
+        title: 'VREDNOST NAROČIL',
         metric: formatCurrency(revenue),
         comparisons: [
           {
             label: '30d',
             value: formatCurrency(thirtyDayMetrics.revenue),
-            trend: trendBadge(trendPercent(thirtyDayMetrics.revenue, previousThirtyDayMetrics.revenue))
+            trend: createAdminAnalyticsTrend(thirtyDayMetrics.revenue, previousThirtyDayMetrics.revenue)
           }
         ]
       },
@@ -325,7 +289,7 @@ function AdminOrdersPreviewChart({
           {
             label: '30d',
             value: formatCurrency(thirtyDayMetrics.dailyAverage),
-            trend: trendBadge(trendPercent(thirtyDayMetrics.dailyAverage, previousThirtyDayMetrics.dailyAverage))
+            trend: createAdminAnalyticsTrend(thirtyDayMetrics.dailyAverage, previousThirtyDayMetrics.dailyAverage)
           }
         ]
       },
@@ -338,7 +302,7 @@ function AdminOrdersPreviewChart({
           {
             label: '30d',
             value: formatCurrency(thirtyDayMetrics.average),
-            trend: trendBadge(trendPercent(thirtyDayMetrics.average, previousThirtyDayMetrics.average))
+            trend: createAdminAnalyticsTrend(thirtyDayMetrics.average, previousThirtyDayMetrics.average)
           }
         ]
       },
@@ -351,7 +315,7 @@ function AdminOrdersPreviewChart({
           {
             label: '30d',
             value: formatCurrency(thirtyDayMetrics.maxOrderValue),
-            trend: trendBadge(trendPercent(thirtyDayMetrics.maxOrderValue, previousThirtyDayMetrics.maxOrderValue))
+            trend: createAdminAnalyticsTrend(thirtyDayMetrics.maxOrderValue, previousThirtyDayMetrics.maxOrderValue)
           }
         ]
       },
@@ -364,7 +328,7 @@ function AdminOrdersPreviewChart({
           {
             label: '30d',
             value: formatInt(thirtyDayFinished),
-            trend: trendBadge(trendPercent(thirtyDayFinished, previousThirtyDayFinished))
+            trend: createAdminAnalyticsTrend(thirtyDayFinished, previousThirtyDayFinished)
           }
         ]
       }

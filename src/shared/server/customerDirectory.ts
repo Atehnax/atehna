@@ -29,7 +29,71 @@ const EDITABLE_FIELD_KEYS = [
   'emails'
 ] as const;
 
-const customerDirectorySql = `
+type CustomerDirectoryIdentitySqlInput = Readonly<{
+  relation: string;
+  fallbackPrefix: 'order' | 'quote-request';
+}>;
+
+const customerDirectoryIdentityKeySql = ({
+  relation,
+  fallbackPrefix
+}: CustomerDirectoryIdentitySqlInput) => `
+      case
+        when ${relation}.customer_type in ('company', 'school')
+          and ${relation}.organization_name <> ''
+          and ${relation}.identity_postal_code <> '' then
+          'organization:'
+          || ${relation}.customer_type
+          || '|'
+          || lower(regexp_replace(${relation}.organization_name, '\\s+', ' ', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.identity_postal_code, '\\s+', '', 'g'))
+        when ${relation}.customer_type in ('company', 'school')
+          and ${relation}.organization_name <> ''
+          and ${relation}.email <> ''
+          and lower(${relation}.email) <> 'draft@atehna.si' then
+          'organization-email:'
+          || ${relation}.customer_type
+          || '|'
+          || lower(regexp_replace(${relation}.organization_name, '\\s+', ' ', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.email, '\\s+', '', 'g'))
+        when ${relation}.email <> ''
+          and lower(${relation}.email) <> 'draft@atehna.si'
+          and ${relation}.contact_name <> '' then
+          'person:'
+          || ${relation}.customer_type
+          || '|'
+          || lower(regexp_replace(${relation}.email, '\\s+', '', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.contact_name, '\\s+', ' ', 'g'))
+        when ${relation}.customer_name <> ''
+          and ${relation}.identity_street <> ''
+          and (
+            ${relation}.identity_postal_code <> ''
+            or ${relation}.identity_city <> ''
+          ) then
+          'profile:'
+          || ${relation}.customer_type
+          || '|'
+          || lower(regexp_replace(${relation}.customer_name, '\\s+', ' ', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.identity_street, '\\s+', ' ', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.identity_postal_code, '\\s+', '', 'g'))
+          || '|'
+          || lower(regexp_replace(${relation}.identity_city, '\\s+', ' ', 'g'))
+        when ${relation}.email <> ''
+          and lower(${relation}.email) <> 'draft@atehna.si' then
+          'email:'
+          || ${relation}.customer_type
+          || '|'
+          || lower(regexp_replace(${relation}.email, '\\s+', '', 'g'))
+        else '${fallbackPrefix}:' || ${relation}.id::text
+      end
+`;
+
+const customerDirectoryCtesSql = `
   with eligible_orders as (
     select
       orders.id,
@@ -37,6 +101,9 @@ const customerDirectorySql = `
       orders.customer_type,
       orders.status,
       orders.commitment_status,
+      orders.contract_status,
+      orders.committed_at,
+      orders.contract_accepted_at,
       coalesce(nullif(btrim(orders.organization_name), ''), nullif(btrim(orders.contact_name), '')) as customer_name,
       coalesce(nullif(btrim(orders.organization_name), ''), '') as organization_name,
       coalesce(nullif(btrim(orders.contact_name), ''), '') as contact_name,
@@ -61,61 +128,19 @@ const customerDirectorySql = `
       address_line1 as identity_street,
       postal_code as identity_postal_code,
       city as identity_city,
-      commitment_status = 'binding' and status <> 'cancelled' as is_purchase
+      contract_status = 'accepted'
+        and commitment_status = 'binding'
+        and status <> 'cancelled' as is_purchase,
+      coalesce(committed_at, contract_accepted_at, created_at) as purchase_at
     from eligible_orders
   ),
   identified_orders as (
     select
       normalized_orders.*,
-      case
-        when customer_type in ('company', 'school')
-          and organization_name <> ''
-          and identity_postal_code <> '' then
-          'organization:'
-          || customer_type
-          || '|'
-          || lower(regexp_replace(organization_name, '\\s+', ' ', 'g'))
-          || '|'
-          || lower(regexp_replace(identity_postal_code, '\\s+', '', 'g'))
-        when customer_type in ('company', 'school')
-          and organization_name <> ''
-          and email <> ''
-          and lower(email) <> 'draft@atehna.si' then
-          'organization-email:'
-          || customer_type
-          || '|'
-          || lower(regexp_replace(organization_name, '\\s+', ' ', 'g'))
-          || '|'
-          || lower(regexp_replace(email, '\\s+', '', 'g'))
-        when email <> ''
-          and lower(email) <> 'draft@atehna.si'
-          and contact_name <> '' then
-          'person:'
-          || customer_type
-          || '|'
-          || lower(regexp_replace(email, '\\s+', '', 'g'))
-          || '|'
-          || lower(regexp_replace(contact_name, '\\s+', ' ', 'g'))
-        when customer_name <> ''
-          and identity_street <> ''
-          and (identity_postal_code <> '' or identity_city <> '') then
-          'profile:'
-          || customer_type
-          || '|'
-          || lower(regexp_replace(customer_name, '\\s+', ' ', 'g'))
-          || '|'
-          || lower(regexp_replace(identity_street, '\\s+', ' ', 'g'))
-          || '|'
-          || lower(regexp_replace(identity_postal_code, '\\s+', '', 'g'))
-          || '|'
-          || lower(regexp_replace(identity_city, '\\s+', ' ', 'g'))
-        when email <> '' and lower(email) <> 'draft@atehna.si' then
-          'email:'
-          || customer_type
-          || '|'
-          || lower(regexp_replace(email, '\\s+', '', 'g'))
-        else 'order:' || id::text
-      end as customer_key
+      ${customerDirectoryIdentityKeySql({
+        relation: 'normalized_orders',
+        fallbackPrefix: 'order'
+      })} as customer_key
     from normalized_orders
   ),
   ranked_orders as (
@@ -156,8 +181,8 @@ const customerDirectorySql = `
         array[]::text[]
       ) as emails,
       count(*) filter (where is_purchase)::int as purchase_count,
-      min(created_at) filter (where is_purchase) as first_purchase_at,
-      max(created_at) filter (where is_purchase) as last_purchase_at,
+      min(purchase_at) filter (where is_purchase) as first_purchase_at,
+      max(purchase_at) filter (where is_purchase) as last_purchase_at,
       round(avg(purchase_value) filter (where is_purchase), 2) as average_purchase_value,
       round(coalesce(sum(purchase_value) filter (where is_purchase), 0::numeric), 2) as total_purchase_value
     from ranked_orders
@@ -250,9 +275,61 @@ const customerDirectorySql = `
     union all
     select * from visible_manual_rows
   )
+`;
+
+const customerDirectorySql = `
+  ${customerDirectoryCtesSql}
   select *
   from visible_rows
   order by lower(name), id
+`;
+
+const customerDirectoryForOrderSql = `
+  ${customerDirectoryCtesSql}
+  select visible_rows.*
+  from visible_rows
+  where visible_rows.id = (
+    select md5(identified_orders.customer_key)
+    from identified_orders
+    where identified_orders.id = $1
+  )
+  limit 1
+`;
+
+const customerDirectoryForQuoteRequestSql = `
+  ${customerDirectoryCtesSql},
+  normalized_quote_request as (
+    select
+      request_record.id,
+      request_record.customer_type,
+      coalesce(
+        nullif(btrim(request_record.organization_name), ''),
+        nullif(btrim(request_record.contact_name), '')
+      ) as customer_name,
+      coalesce(nullif(btrim(request_record.organization_name), ''), '') as organization_name,
+      coalesce(nullif(btrim(request_record.contact_name), ''), '') as contact_name,
+      coalesce(nullif(btrim(request_record.email), ''), '') as email,
+      coalesce(nullif(btrim(request_record.address_line1), ''), '') as identity_street,
+      coalesce(nullif(btrim(request_record.postal_code), ''), '') as identity_postal_code,
+      coalesce(nullif(btrim(request_record.city), ''), '') as identity_city
+    from quote_requests as request_record
+    where request_record.id = $1
+      and request_record.voided_at is null
+  ),
+  identified_quote_request as (
+    select
+      normalized_quote_request.*,
+      ${customerDirectoryIdentityKeySql({
+        relation: 'normalized_quote_request',
+        fallbackPrefix: 'quote-request'
+      })} as customer_key
+    from normalized_quote_request
+  )
+  select visible_rows.*
+  from visible_rows
+  join identified_quote_request
+    on visible_rows.id = md5(identified_quote_request.customer_key)
+  limit 1
 `;
 
 type RawCustomerDirectoryRow = {
@@ -358,6 +435,36 @@ export async function fetchCustomerDirectory(): Promise<CustomerDirectoryRow[]> 
   noStore();
   const pool = await getPool();
   return readCustomerDirectoryRows(pool);
+}
+
+export async function fetchCustomerDirectoryRowForOrder(
+  orderId: number
+): Promise<CustomerDirectoryRow | null> {
+  noStore();
+  if (!Number.isSafeInteger(orderId) || orderId <= 0) return null;
+
+  const pool = await getPool();
+  const result = await pool.query<RawCustomerDirectoryRow>(
+    customerDirectoryForOrderSql,
+    [orderId]
+  );
+  const row = result.rows[0];
+  return row ? mapCustomerDirectoryRow(row) : null;
+}
+
+export async function fetchCustomerDirectoryRowForQuoteRequest(
+  quoteRequestId: number
+): Promise<CustomerDirectoryRow | null> {
+  noStore();
+  if (!Number.isSafeInteger(quoteRequestId) || quoteRequestId <= 0) return null;
+
+  const pool = await getPool();
+  const result = await pool.query<RawCustomerDirectoryRow>(
+    customerDirectoryForQuoteRequestSql,
+    [quoteRequestId]
+  );
+  const row = result.rows[0];
+  return row ? mapCustomerDirectoryRow(row) : null;
 }
 
 export async function getCustomerDirectory(): Promise<CustomerDirectoryData> {

@@ -146,9 +146,10 @@ function formatDate(value: string): string {
 }
 
 function orderStatusLabel(eventType: OrderEmailEventType): string {
-  return eventType === 'order_submitted'
-    ? 'Prejeto'
-    : getStatusLabel(eventType);
+  if (eventType === 'order_submitted') return 'Prejeto – čaka na sprejem';
+  if (eventType === 'order_accepted') return 'Pogodbeno sprejeto';
+  if (eventType === 'order_rejected') return 'Pogodbeno zavrnjeno';
+  return getStatusLabel(eventType);
 }
 
 function hasSafeUrlHost(value: URL): boolean {

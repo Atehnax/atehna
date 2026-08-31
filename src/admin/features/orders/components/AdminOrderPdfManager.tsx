@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { IconButton } from '@/shared/ui/icon-button';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
@@ -10,13 +10,22 @@ import {
   UploadIcon
 } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
+import { RowActionsDropdown } from '@/shared/ui/table';
+import { adminTableInlineCancelButtonClassName } from '@/shared/ui/admin-table';
 import {
-  adminTableInlineCancelButtonClassName,
-  adminTableNeutralIconButtonClassName,
-  adminTableSelectedDangerIconButtonClassName,
-  adminWindowCardClassName,
-  adminWindowCardStyle
-} from '@/shared/ui/admin-table';
+  AdminDetailDocumentActions,
+  AdminDetailDocumentCurrent,
+  AdminDetailDocumentEmpty,
+  AdminDetailDocumentHistory,
+  AdminDetailDocumentHistoryItem,
+  AdminDetailDocumentHistoryLink,
+  AdminDetailDocumentHistoryMeta,
+  AdminDetailDocumentOpenLink,
+  AdminDetailDocumentPrimaryAction,
+  AdminDetailDocumentSummary,
+  AdminDetailDocumentsCard,
+  AdminDetailDocumentTypeRow
+} from '@/shared/ui/admin-detail';
 import { useToast } from '@/shared/ui/toast';
 import {
   groupDocumentsByType,
@@ -40,26 +49,35 @@ const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date
 export default function AdminOrderPdfManager({
   orderId,
   documents,
-  adminNotesSlot
+  adminNotesSlot,
+  generationDisabledReason
 }: {
   orderId: number;
   documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
+  generationDisabledReason?: string;
 }) {
   const [docList, setDocList] = useState(documents);
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
-  const [expandedByType, setExpandedByType] = useState<Partial<Record<PdfTypeKey, boolean>>>({});
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
   const uploadInputRefs = useRef<Partial<Record<PdfTypeKey, HTMLInputElement | null>>>({});
   const { toast } = useToast();
+
+  useEffect(() => {
+    setDocList(documents);
+  }, [documents]);
 
   const grouped = useMemo<Record<PdfTypeKey, PersistedOrderPdfDocument[]>>(() => {
     return groupDocumentsByType(docList) as Record<PdfTypeKey, PersistedOrderPdfDocument[]>;
   }, [docList]);
 
   const handleGenerate = async (type: GeneratePdfType) => {
+    if (generationDisabledReason) {
+      toast.info(generationDisabledReason);
+      return;
+    }
     setLoadingType(type);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/${routeMap[type]}`, {
@@ -163,178 +181,207 @@ export default function AdminOrderPdfManager({
   };
 
   return (
-    <section className={`${adminWindowCardClassName} flex h-full w-full min-w-0 flex-col p-6 font-['Inter',system-ui,sans-serif]`} style={adminWindowCardStyle}>
-      {adminNotesSlot ? (
-        <div className="mb-6 border-b border-slate-200 pb-6">{adminNotesSlot}</div>
-      ) : null}
-
-      <h2 className="text-lg font-semibold text-slate-900">PDF dokumenti</h2>
-      <div className="mt-5 space-y-4">
+    <>
+      <AdminDetailDocumentsCard
+        beforeTitle={adminNotesSlot}
+        notice={generationDisabledReason}
+      >
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
           const latestDoc = docs[0] ?? null;
-          const hasMultipleVersions = docs.length > 1;
-          const isExpanded = Boolean(expandedByType[pdfType.key]);
-          const visibleDocs = isExpanded ? docs.slice(1) : [];
+          const previousDocs = docs.slice(1);
           const generateType = isGenerateKey(pdfType.key) ? pdfType.key : null;
 
           return (
-            <div key={pdfType.key} className="rounded-2xl border border-slate-200 p-4">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{pdfType.label}</p>
-                  <div className="mt-1 flex min-h-5 min-w-0 flex-wrap items-center gap-2 text-[12px] leading-5 text-slate-500">
-                    {latestDoc ? (
-                      <>
-                        <a
-                          href={latestDoc.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="min-w-0 truncate font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]"
-                          title={latestDoc.filename}
-                        >
-                          {latestDoc.filename}
-                        </a>
-                        <span className="whitespace-nowrap">{formatTimestamp(latestDoc.created_at)}</span>
-                        {hasMultipleVersions ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedByType((previousState) => ({
-                                ...previousState,
-                                [pdfType.key]: !previousState[pdfType.key]
-                              }))
-                            }
-                            className="border border-transparent font-semibold text-slate-500 transition hover:text-slate-700 focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
-                            aria-label={isExpanded ? `Skrij verzije za ${pdfType.label}` : `Pokaži vse verzije za ${pdfType.label}`}
-                            aria-expanded={isExpanded}
-                            aria-controls={`pdf-versions-${pdfType.key}`}
-                          >
-                            {isExpanded ? 'Skrij verzije' : `${docs.length} verziji`}
-                          </button>
-                        ) : null}
-                      </>
-                    ) : (
-                      <span>
-                        {pdfType.key === 'purchase_order'
-                          ? 'Naročilnico naloži šola ali administrator.'
-                          : 'Ni shranjenih verzij.'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {generateType ? (
-                    <IconButton
-                      type="button"
-                      onClick={() => void handleGenerate(generateType)}
-                      disabled={loadingType === generateType}
-                      className={adminTableNeutralIconButtonClassName}
-                      title="Ustvari"
-                      tone="neutral"
-                      aria-label={`Ustvari ${pdfType.label}`}
-                    >
-                      {loadingType === generateType ? <Spinner size="sm" className="text-slate-500" /> : <PdfFileIcon />}
-                    </IconButton>
+            <AdminDetailDocumentTypeRow
+              key={pdfType.key}
+              summary={
+                <AdminDetailDocumentSummary label={pdfType.label}>
+                  {latestDoc ? (
+                    <AdminDetailDocumentCurrent
+                      href={latestDoc.url}
+                      filename={latestDoc.filename}
+                      timestamp={formatTimestamp(latestDoc.created_at)}
+                    />
+                  ) : (
+                    <AdminDetailDocumentEmpty>Ni ustvarjeno.</AdminDetailDocumentEmpty>
+                  )}
+                </AdminDetailDocumentSummary>
+              }
+              actions={
+                <AdminDetailDocumentActions>
+                  {pdfType.key === 'purchase_order' ? (
+                    <input
+                      ref={(element) => {
+                        uploadInputRefs.current[pdfType.key] = element;
+                      }}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      disabled={uploadingType === pdfType.key}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        void handleUpload(pdfType.key, file);
+                        event.currentTarget.value = '';
+                      }}
+                    />
                   ) : null}
 
-                  <input
-                    ref={(element) => {
-                      uploadInputRefs.current[pdfType.key] = element;
-                    }}
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    disabled={uploadingType === pdfType.key}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      void handleUpload(pdfType.key, file);
-                      event.currentTarget.value = '';
-                    }}
+                  {latestDoc ? (
+                    <AdminDetailDocumentOpenLink
+                      href={latestDoc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Odpri
+                    </AdminDetailDocumentOpenLink>
+                  ) : generateType ? (
+                    <AdminDetailDocumentPrimaryAction
+                      type="button"
+                      onClick={() => void handleGenerate(generateType)}
+                      disabled={
+                        Boolean(generationDisabledReason) ||
+                        loadingType === generateType
+                      }
+                      title={generationDisabledReason ?? 'Ustvari'}
+                    >
+                      {loadingType === generateType ? (
+                        <Spinner size="sm" className="text-slate-500" />
+                      ) : (
+                        'Ustvari'
+                      )}
+                    </AdminDetailDocumentPrimaryAction>
+                  ) : (
+                    <AdminDetailDocumentPrimaryAction
+                      type="button"
+                      onClick={() =>
+                        uploadInputRefs.current[pdfType.key]?.click()
+                      }
+                      disabled={uploadingType === pdfType.key}
+                    >
+                      {uploadingType === pdfType.key ? (
+                        <Spinner size="sm" className="text-slate-500" />
+                      ) : (
+                        'Naloži'
+                      )}
+                    </AdminDetailDocumentPrimaryAction>
+                  )}
+
+                  <RowActionsDropdown
+                    label={`Dejanja za ${pdfType.label}`}
+                    triggerClassName="!h-7 !w-7 !text-slate-500"
+                    menuWidth={174}
+                    menuClassName="!w-full"
+                    items={[
+                      ...(generateType
+                        ? [
+                            {
+                              key: 'generate',
+                              label: latestDoc
+                                ? 'Ustvari novo različico'
+                                : 'Ustvari',
+                              icon: <PdfFileIcon />,
+                              onSelect: () => void handleGenerate(generateType),
+                              disabled:
+                                Boolean(generationDisabledReason) ||
+                                loadingType === generateType
+                            }
+                          ]
+                        : []),
+                      ...(pdfType.key === 'purchase_order'
+                        ? [
+                            {
+                              key: 'upload',
+                              label: latestDoc
+                                ? 'Naloži novo različico'
+                                : 'Naloži',
+                              icon: <UploadIcon />,
+                              onSelect: () =>
+                                uploadInputRefs.current[pdfType.key]?.click(),
+                              disabled: uploadingType === pdfType.key
+                            }
+                          ]
+                        : []),
+                      ...(latestDoc
+                        ? [
+                            {
+                              key: 'download',
+                              label: 'Prenesi',
+                              icon: <DownloadIcon />,
+                              onSelect: () =>
+                                downloadLatestByType(pdfType.key)
+                            }
+                          ]
+                        : []),
+                      ...(latestDoc
+                        ? [
+                            {
+                              key: 'delete',
+                              label: 'Izbriši',
+                              icon:
+                                deletingDocumentId === latestDoc.id ? (
+                                  <Spinner
+                                    size="sm"
+                                    className="text-slate-500"
+                                  />
+                                ) : (
+                                  <TrashCanIcon />
+                                ),
+                              onSelect: () =>
+                                setConfirmDeleteDocumentId(latestDoc.id),
+                              disabled: deletingDocumentId === latestDoc.id,
+                              className: '!text-rose-700'
+                            }
+                          ]
+                        : [])
+                    ]}
                   />
-
-                  <IconButton
-                    type="button"
-                    onClick={() => uploadInputRefs.current[pdfType.key]?.click()}
-                    disabled={uploadingType === pdfType.key}
-                    className={adminTableNeutralIconButtonClassName}
-                    title="Naloži"
-                    tone="neutral"
-                    aria-label={`Naloži ${pdfType.label}`}
-                  >
-                    {uploadingType === pdfType.key ? <Spinner size="sm" className="text-slate-500" /> : <UploadIcon />}
-                  </IconButton>
-
-                  <IconButton
-                    type="button"
-                    onClick={() => downloadLatestByType(pdfType.key)}
-                    disabled={!latestDoc}
-                    className={adminTableNeutralIconButtonClassName}
-                    title="Prenesi"
-                    tone="neutral"
-                    aria-label={`Prenesi ${pdfType.label}`}
-                  >
-                    <DownloadIcon />
-                  </IconButton>
-
-                  <IconButton
-                    type="button"
-                    onClick={() => {
-                      if (latestDoc) setConfirmDeleteDocumentId(latestDoc.id);
-                    }}
-                    disabled={!latestDoc || deletingDocumentId === latestDoc.id}
-                    tone="danger"
-                    className={adminTableSelectedDangerIconButtonClassName}
-                    aria-label={latestDoc ? `Izbriši dokument ${latestDoc.filename}` : `Izbriši ${pdfType.label}`}
-                    title="Izbriši"
-                  >
-                    {latestDoc && deletingDocumentId === latestDoc.id ? <Spinner size="sm" className="text-slate-500" /> : <TrashCanIcon />}
-                  </IconButton>
-                </div>
-              </div>
-
-              {latestDoc && isExpanded && visibleDocs.length > 0 ? (
-                <div id={`pdf-versions-${pdfType.key}`} className="mt-3 rounded-xl bg-slate-50/80 p-2">
-                  <ul className="space-y-1">
-                    {visibleDocs.map((doc) => {
-                      return (
-                        <li
-                          key={`${doc.id}-${doc.created_at}`}
-                          className="grid min-w-0 grid-cols-[minmax(0,1fr)_120px_28px] items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] leading-4 text-slate-600 transition hover:bg-white"
+                </AdminDetailDocumentActions>
+              }
+              history={
+                latestDoc && previousDocs.length > 0 ? (
+                  <AdminDetailDocumentHistory>
+                    {previousDocs.map((doc) => (
+                      <AdminDetailDocumentHistoryItem
+                        key={`${doc.id}-${doc.created_at}`}
+                        hasTrailingAction
+                      >
+                        <AdminDetailDocumentHistoryLink
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={doc.filename}
                         >
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="truncate font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]"
-                            title={doc.filename}
-                          >
-                            {doc.filename}
-                          </a>
-                          <span className="whitespace-nowrap text-right text-slate-500">{formatTimestamp(doc.created_at)}</span>
-                          <IconButton
-                            type="button"
-                            onClick={() => setConfirmDeleteDocumentId(doc.id)}
-                            disabled={deletingDocumentId === doc.id}
-                            tone="neutral"
-                            className={`${adminTableInlineCancelButtonClassName} !text-rose-700`}
-                            aria-label={`Izbriši dokument ${doc.filename}`}
-                            title="Izbriši"
-                          >
-                            {deletingDocumentId === doc.id ? <Spinner size="sm" className="text-slate-500" /> : <TrashCanIcon />}
-                          </IconButton>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
+                          {doc.filename}
+                        </AdminDetailDocumentHistoryLink>
+                        <AdminDetailDocumentHistoryMeta>
+                          {formatTimestamp(doc.created_at)}
+                        </AdminDetailDocumentHistoryMeta>
+                        <IconButton
+                          type="button"
+                          onClick={() => setConfirmDeleteDocumentId(doc.id)}
+                          disabled={deletingDocumentId === doc.id}
+                          tone="neutral"
+                          className={`${adminTableInlineCancelButtonClassName} !text-rose-700`}
+                          aria-label={`Izbriši dokument ${doc.filename}`}
+                          title="Izbriši"
+                        >
+                          {deletingDocumentId === doc.id ? (
+                            <Spinner size="sm" className="text-slate-500" />
+                          ) : (
+                            <TrashCanIcon />
+                          )}
+                        </IconButton>
+                      </AdminDetailDocumentHistoryItem>
+                    ))}
+                  </AdminDetailDocumentHistory>
+                ) : undefined
+              }
+            />
           );
         })}
-      </div>
+      </AdminDetailDocumentsCard>
 
       {confirmDeleteDocumentId !== null ? (
         <LazyConfirmDialog
@@ -350,6 +397,6 @@ export default function AdminOrderPdfManager({
           }}
         />
       ) : null}
-    </section>
+    </>
   );
 }

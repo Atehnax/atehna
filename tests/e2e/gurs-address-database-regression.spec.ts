@@ -32,6 +32,19 @@ test.describe('GURS order address canonicalization', () => {
     request
   }) => {
     const email = `gurs-canonical-${Date.now()}@example.com`;
+    const items = [{ variantId: 920001, quantity: 1 }];
+    const estimateResponse = await request.post('/api/orders/estimate', {
+      data: {
+        customerName: 'E2E šola',
+        customerLabels: ['E2E šola', 'Ana Novak'],
+        items
+      }
+    });
+    expect(estimateResponse.ok()).toBeTruthy();
+    const estimate = await estimateResponse.json() as {
+      shippingConfigurationVersion: number;
+      quoteFingerprint: string;
+    };
     const response = await request.post('/api/orders', {
       headers: {
         'Idempotency-Key': `gurs-canonical-${crypto.randomUUID()}`
@@ -49,7 +62,9 @@ test.describe('GURS order address canonicalization', () => {
         gursHouseNumberId: TEST_GURS_ADDRESS.gursHouseNumberId,
         countryCode: 'SI',
         notes: '',
-        items: [{ variantId: 920001, quantity: 1 }]
+        items,
+        shippingConfigurationVersion: estimate.shippingConfigurationVersion,
+        quoteFingerprint: estimate.quoteFingerprint
       }
     });
 

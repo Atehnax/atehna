@@ -82,7 +82,7 @@ test('dimension, weight, and simple article editors all use the shared embedded 
   const simpleSalesBranch = sourceBetween(
     editorSource,
     ') : (\n        <SimpleProductModule',
-    '\n      )}\n      </>'
+    '\n      )}\n      </div>'
   );
 
   expect(dimensionSalesBranch).toContain('<QuantityDiscountsCard');

@@ -9,9 +9,12 @@ type MenuItemProps = {
   isActive?: boolean;
   role?: 'menuitem' | 'option';
   ariaSelected?: boolean;
+  ariaDisabled?: boolean;
+  ariaDescribedBy?: string;
 };
 
-const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
+const classNames = (...parts: Array<string | false | null | undefined>) =>
+  parts.filter(Boolean).join(' ');
 
 export default function MenuItem({
   className,
@@ -20,13 +23,18 @@ export default function MenuItem({
   disabled = false,
   isActive = false,
   role = 'menuitem',
-  ariaSelected
+  ariaSelected,
+  ariaDisabled = false,
+  ariaDescribedBy
 }: MenuItemProps) {
   return (
     <button
       type="button"
       role={role}
       aria-selected={role === 'option' ? ariaSelected : undefined}
+      aria-disabled={ariaDisabled || disabled || undefined}
+      aria-describedby={ariaDescribedBy}
+      data-menu-item-active={isActive ? 'true' : undefined}
       onClick={onClick}
       disabled={disabled}
       className={classNames(

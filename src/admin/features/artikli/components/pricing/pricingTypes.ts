@@ -27,6 +27,10 @@ export type SimpleProductData = {
   basePrice: number;
   actionPrice: number;
   actionPriceEnabled: boolean;
+  weightGrams: number | null;
+  lengthMm: number | null;
+  widthMm: number | null;
+  thicknessMm: number | null;
   stock: number;
   minStock: number;
   deliveryTime: string;
@@ -46,6 +50,9 @@ export type WeightVariant = {
   fraction: string;
   color: string;
   netMassKg: number | null;
+  lengthMm: number | null;
+  widthMm: number | null;
+  thicknessMm: number | null;
   minQuantity: number;
   unitPrice: number | null;
   costNet: number | null;
@@ -103,6 +110,9 @@ export type UniqueMachineProductData = {
   deliveryTime: string;
   packageWeightKg: number;
   packageWeightUnit?: string;
+  packageLengthMm: number | null;
+  packageWidthMm: number | null;
+  packageThicknessMm: number | null;
   packageDimensions: string;
   warnings: string;
   basicInfoRows: SpecRow[];

@@ -30,6 +30,10 @@ const contractVariants: CatalogItemEditorVariantPayload[] = [
     width: 80,
     thickness: 2,
     weight: 320,
+    shippingWeightGrams: 320,
+    shippingLengthMm: 110,
+    shippingWidthMm: 90,
+    shippingHeightMm: 5,
     contentOverride: {
       description: 'Opis različice',
       specifications: { Material: 'Aluminij' },
@@ -48,7 +52,7 @@ const contractVariants: CatalogItemEditorVariantPayload[] = [
 ];
 
 describe('product specification editing compatibility', () => {
-  test('uses the article-compatible weight unit in storefront specifications', () => {
+  test('normalizes legacy dimension-editor kilograms before displaying grams', () => {
     const build = (productType: 'dimensions' | 'weight') => (
       buildStorefrontProductFromCatalogItem({
         id: productType === 'dimensions' ? 81 : 82,
@@ -61,7 +65,7 @@ describe('product specification editing compatibility', () => {
           id: productType === 'dimensions' ? 811 : 821,
           variantName: 'Privzeta',
           variantSku: `TEST-${productType}`,
-          weight: 320,
+          weight: productType === 'dimensions' ? 0.014 : 0.32,
           price: 10,
           inventory: 1,
           status: 'active'
@@ -78,8 +82,8 @@ describe('product specification editing compatibility', () => {
       })
     );
 
-    expect(build('dimensions').variants[0]?.attributes.Teža).toBe('320 g');
-    expect(build('weight').variants[0]?.attributes.Teža).toBe('320 kg');
+    expect(build('dimensions').variants[0]?.attributes.Teža).toBe('14 g');
+    expect(build('weight').variants[0]?.attributes.Teža).toBe('0.32 kg');
   });
 
   test('validates specification identity and variant ownership before persistence', () => {
@@ -152,6 +156,10 @@ describe('product specification editing compatibility', () => {
       width: 80,
       thickness: 2.5,
       weight: 320,
+      shippingWeightGrams: 320,
+      shippingLengthMm: 110,
+      shippingWidthMm: 90,
+      shippingHeightMm: 5,
       errorTolerance: '±0,2 mm',
       contentOverride: {
         description: 'Opis različice',

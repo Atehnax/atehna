@@ -16,6 +16,8 @@ export const AUDIT_FIELD_LABELS: Record<string, string> = {
   tax: 'DDV',
   total: 'Skupaj',
   shipping: 'Postnina',
+  parcelCount: 'Število paketov, oddanih skupaj',
+  parcel_count: 'Število paketov, oddanih skupaj',
   inventory: 'Zaloga',
   stock: 'Zaloga',
   category: 'Kategorija',

@@ -23,6 +23,13 @@ export type OrderDocumentTemplatesUpdateResult = {
   changed: boolean;
 };
 
+export type OrderDocumentTemplatesConfigWithoutOffer = Omit<
+  OrderDocumentTemplatesConfig,
+  'templates'
+> & {
+  templates: Omit<OrderDocumentTemplatesConfig['templates'], 'offer'>;
+};
+
 const toIso = (value: unknown) =>
   value instanceof Date
     ? value.toISOString()
@@ -55,6 +62,13 @@ const getCachedOrderDocumentTemplates = unstable_cache(
 
 export function revalidateOrderDocumentTemplatesCache() {
   revalidateTag(ORDER_DOCUMENT_TEMPLATES_CACHE_TAG, { expire: 0 });
+}
+
+export function withoutQuoteOfferTemplate(
+  config: OrderDocumentTemplatesConfig
+): OrderDocumentTemplatesConfigWithoutOffer {
+  const { offer: _offer, ...templates } = config.templates;
+  return { ...config, templates };
 }
 
 export async function getOrderDocumentTemplatesConfig(): Promise<OrderDocumentTemplatesConfig> {
@@ -114,11 +128,10 @@ async function insertOrderDocumentTemplatesAuditEvent(
 
 export async function updateOrderDocumentTemplatesConfig(
   input: unknown,
-  options: { request?: Request } = {}
+  options: { request?: Request; preserveQuoteOfferTemplate?: boolean } = {}
 ): Promise<OrderDocumentTemplatesUpdateResult> {
   noStore();
-  const config = toStoredOrderDocumentTemplatesConfig(input);
-  const serializedConfig = serialize(config);
+  const requestedConfig = toStoredOrderDocumentTemplatesConfig(input);
   const pool = await getPool();
   const client = await pool.connect();
 
@@ -134,6 +147,16 @@ export async function updateOrderDocumentTemplatesConfig(
     const previousConfig = previousRow
       ? toStoredOrderDocumentTemplatesConfig(previousRow.config_json)
       : toStoredOrderDocumentTemplatesConfig(cloneDefaultOrderDocumentTemplatesConfig());
+    const config = options.preserveQuoteOfferTemplate
+      ? {
+          ...requestedConfig,
+          templates: {
+            ...requestedConfig.templates,
+            offer: previousConfig.templates.offer
+          }
+        }
+      : requestedConfig;
+    const serializedConfig = serialize(config);
 
     if (previousRow && serialize(previousConfig) === serializedConfig) {
       await client.query('commit');

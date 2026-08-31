@@ -7,15 +7,21 @@ import { getOrderSubmissionStatusContent } from '../../src/commercial/order/comp
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
-test('order submission copy distinguishes committed orders from pending confirmations', () => {
-  assert.deepEqual(getOrderSubmissionStatusContent('binding'), {
-    eyebrow: 'Uspešno oddano',
-    heading: 'Naročilo je sprejeto',
+test('order submission copy distinguishes received, accepted, school-pending, and rejected states', () => {
+  assert.deepEqual(
+    getOrderSubmissionStatusContent('binding', 'pending_seller_acceptance'),
+    {
+    eyebrow: 'Prejeto',
+    heading: 'Prejeli smo vaše naročilo',
     description:
-      'Potrditev je shranjena na tej strani. Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov; plačilo uredimo ročno po ponudbi ali predračunu.',
-    symbol: '✓',
+      'Naročilo še ni potrjeno. Atehna ga bo pregledala in vas o sprejemu ali zavrnitvi obvestila po e-pošti.',
+    symbol: '…',
     tone: 'success'
   });
+  assert.equal(
+    getOrderSubmissionStatusContent('binding', 'accepted').heading,
+    'Vaše naročilo je potrjeno'
+  );
   assert.deepEqual(getOrderSubmissionStatusContent('pending_confirmation'), {
     eyebrow: 'Potrditev',
     heading: 'Naročilo je prejeto',
@@ -24,16 +30,16 @@ test('order submission copy distinguishes committed orders from pending confirma
     symbol: '…',
     tone: 'info'
   });
-  assert.deepEqual(getOrderSubmissionStatusContent('rejected'), {
+  assert.deepEqual(getOrderSubmissionStatusContent('binding', 'rejected'), {
     eyebrow: 'Stanje naročila',
-    heading: 'Naročilo ni bilo potrjeno',
+    heading: 'Naročilo je zavrnjeno',
     description:
-      'Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
+      'Naročilo ni bilo potrjeno. Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
     symbol: '!',
     tone: 'danger'
   });
   assert.doesNotMatch(
-    getOrderSubmissionStatusContent('rejected').description,
+    getOrderSubmissionStatusContent('binding', 'rejected').description,
     /številk[ao] naročila/iu
   );
 });
@@ -155,14 +161,12 @@ test('checkout keeps an accessible loading handoff visible through cleanup and n
   const loadingSource = source(
     'src/commercial/order/components/OrderLoadingState.tsx'
   );
-  const submittingIndex = pageSource.indexOf(
-    "setSubmissionPhase('submitting');"
-  );
+  const submittingIndex = pageSource.indexOf("'submitting-order'");
   const selectorIndex = pageSource.indexOf(
     'storeOrderAccessId(accessId);'
   );
   const openingIndex = pageSource.indexOf(
-    "setSubmissionPhase('opening-confirmation');",
+    "'opening-order-confirmation'",
     selectorIndex
   );
   const clearCartIndex = pageSource.indexOf('clearCart();', openingIndex);
@@ -204,11 +208,11 @@ test('checkout keeps an accessible loading handoff visible through cleanup and n
   );
   assert.match(
     pageSource,
-    /flushSync\(\(\) => \{\s*setSubmissionPhase\('opening-confirmation'\);\s*\}\);/u,
+    /flushSync\(\(\) => \{[\s\S]*?'opening-order-confirmation'[\s\S]*?'opening-quote-confirmation'[\s\S]*?\}\);/u,
     'the success handoff must commit before synchronous cart cleanup and navigation'
   );
-  assert.match(pageSource, /testId="order-submission-handoff"/u);
-  assert.match(pageSource, /spinnerTestId="order-submission-spinner"/u);
+  assert.match(pageSource, /'order-submission-handoff'/u);
+  assert.match(pageSource, /'order-submission-spinner'/u);
   assert.match(loadingSource, /role="status"/u);
   assert.match(loadingSource, /aria-live="polite"/u);
   assert.match(loadingSource, /aria-atomic="true"/u);

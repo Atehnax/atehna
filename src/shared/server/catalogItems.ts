@@ -21,6 +21,16 @@ import type {
 } from '@/shared/domain/catalog/catalogAdminTypes';
 import { fetchOrderItemAllocationsForSkus } from '@/shared/server/orders';
 import { validateAndNormalizeCatalogAppearanceOverride } from '@/shared/domain/catalog/catalogSpecification';
+import {
+  CATALOG_SHIPPING_FIELD_LABELS,
+  CATALOG_SHIPPING_FIELDS,
+  catalogShippingMeasurementRequirement,
+  deriveCatalogVariantShippingMeasurements,
+  getCatalogShippingReadiness,
+  isValidCatalogShippingMeasurement,
+  type CatalogShippingField,
+  type CatalogShippingMeasurements
+} from '@/shared/domain/catalog/catalogShipping';
 
 export type CatalogItemSeedRow = {
   id: number;
@@ -38,6 +48,7 @@ export type CatalogItemSeedRow = {
   weight: number | null;
   price: number;
   sku: string;
+  unit: string;
   images: string[];
   discount_pct: number;
   item_position: number;
@@ -89,12 +100,13 @@ function asIsoTimestamp(value: unknown): string | null {
 
 function assertCatalogItemPublicationReady(
   categoryId: string | null,
+  itemShippingDefaults: CatalogShippingMeasurements,
   variants: Array<{
     variantName?: unknown;
     variantSku?: unknown;
     price?: unknown;
     status?: unknown;
-  }>
+  } & CatalogShippingMeasurements>
 ) {
   if (!categoryId) {
     throw new CatalogItemValidationError(
@@ -114,6 +126,22 @@ function assertCatalogItemPublicationReady(
   if (invalidActiveVariant) {
     throw new CatalogItemValidationError(
       `Aktivna različica »${asStringOrNull(invalidActiveVariant.variantName) ?? 'brez naziva'}« potrebuje veljaven SKU in nenegativno prodajno ceno brez DDV.`
+    );
+  }
+  const shippingIssue = activeVariants
+    .map((variant) => ({
+      variant,
+      readiness: getCatalogShippingReadiness(itemShippingDefaults, variant)
+    }))
+    .find((entry) => !entry.readiness.isReady);
+  if (shippingIssue) {
+    const issueFields = Array.from(new Set([
+      ...shippingIssue.readiness.missingFields,
+      ...shippingIssue.readiness.invalidFields
+    ]));
+    const sku = asStringOrNull(shippingIssue.variant.variantSku);
+    throw new CatalogItemValidationError(
+      `Aktivna različica »${asStringOrNull(shippingIssue.variant.variantName) ?? 'brez naziva'}«${sku ? ` (SKU ${sku})` : ''} potrebuje popolne pozitivne podatke za poštnino: ${issueFields.map((field) => CATALOG_SHIPPING_FIELD_LABELS[field]).join(', ')}.`
     );
   }
 }
@@ -166,6 +194,12 @@ function asStringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function asNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = asNumber(value, Number.NaN);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeActiveState(value: unknown): 'active' | 'inactive' {
   return String(value ?? 'inactive') === 'active' ? 'active' : 'inactive';
 }
@@ -195,6 +229,57 @@ function normalizeTypeSpecificData(value: unknown): CatalogItemTypeSpecificData 
     return value as CatalogItemTypeSpecificData;
   }
   return {};
+}
+
+function normalizeCanonicalShippingMeasurement(
+  value: unknown,
+  field: CatalogShippingField,
+  contextLabel: string
+): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (
+    typeof value === 'number'
+    && isValidCatalogShippingMeasurement(field, value)
+  ) {
+    return value;
+  }
+  throw new CatalogItemValidationError(
+    `${contextLabel}: ${CATALOG_SHIPPING_FIELD_LABELS[field]} mora biti ${catalogShippingMeasurementRequirement(field)}.`
+  );
+}
+
+function normalizeCanonicalShippingMeasurements(
+  value: CatalogShippingMeasurements,
+  contextLabel: string
+): Required<CatalogShippingMeasurements> {
+  return Object.fromEntries(
+    CATALOG_SHIPPING_FIELDS.map((field) => [
+      field,
+      normalizeCanonicalShippingMeasurement(value[field], field, contextLabel)
+    ])
+  ) as Required<CatalogShippingMeasurements>;
+}
+
+function normalizeCatalogEditorShippingPayload(
+  input: CatalogItemEditorPayload
+): CatalogItemEditorPayload {
+  requireCatalogEditorProductType(input.productType);
+  const itemShipping = normalizeCanonicalShippingMeasurements({}, 'Artikel');
+  const variants = input.variants.map((variant, index) => {
+    const derivedShipping = deriveCatalogVariantShippingMeasurements(variant);
+    return {
+      ...variant,
+      ...normalizeCanonicalShippingMeasurements(
+        derivedShipping,
+        `Različica »${variant.variantName || `#${index + 1}`}«`
+      )
+    };
+  });
+  return {
+    ...input,
+    ...itemShipping,
+    variants
+  };
 }
 
 type PublicCatalogSpecification = {
@@ -883,7 +968,8 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
     const sourceResult = await client.query(
       `
       select id, item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape,
-             description, admin_notes, position, default_variant_id, tax_rate, appearance_override_json
+             description, admin_notes, position, default_variant_id, tax_rate, appearance_override_json,
+             shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
       from catalog_items
       where id = $1
       limit 1
@@ -900,7 +986,8 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
       await client.query(
         `
         select id, variant_name, length, width, thickness, weight, error_tolerance, price, cost_net,
-               content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position
+               content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position,
+               shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
         from catalog_item_variants
         where item_id = $1
         order by position asc, id asc
@@ -992,11 +1079,21 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
       const categoryId = asStringOrNull(source.category_id);
       assertCatalogItemPublicationReady(
         categoryId,
+        normalizeCanonicalShippingMeasurements({}, 'Artikel'),
         variants.map((variant) => ({
           variantName: variant.variant_name,
           variantSku: variant.variant_sku,
           price: asNumber(variant.price, Number.NaN),
-          status: variant.status
+          status: variant.status,
+          ...normalizeCanonicalShippingMeasurements(
+            deriveCatalogVariantShippingMeasurements({
+              weight: asNullableNumber(variant.weight),
+              length: asNullableNumber(variant.length),
+              width: asNullableNumber(variant.width),
+              thickness: asNullableNumber(variant.thickness)
+            }),
+            `Različica »${String(variant.variant_name ?? '') || asNumber(variant.id)}«`
+          )
         }))
       );
       await assertCatalogCategoryPathActive(client, categoryId);
@@ -1021,8 +1118,9 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
       `
       insert into catalog_items (
         item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape,
-        description, admin_notes, position, tax_rate, appearance_override_json
-      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
+        description, admin_notes, position, tax_rate, appearance_override_json,
+        shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21)
       returning id
       `,
       [
@@ -1042,7 +1140,11 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
         asStringOrNull(source.admin_notes),
         nextPosition,
         asNumber(source.tax_rate, 0.22),
-        serializeJsonbValue(normalizeAppearanceOverride(source.appearance_override_json))
+        serializeJsonbValue(normalizeAppearanceOverride(source.appearance_override_json)),
+        null,
+        null,
+        null,
+        null
       ]
     );
     newItemId = asNumber(itemResult.rows[0]?.id, -1);
@@ -1051,12 +1153,22 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
     const variantIdBySourceId = new Map<number, number>();
     for (let index = 0; index < variants.length; index += 1) {
       const variant = variants[index];
+      const derivedShipping = normalizeCanonicalShippingMeasurements(
+        deriveCatalogVariantShippingMeasurements({
+          weight: asNullableNumber(variant.weight),
+          length: asNullableNumber(variant.length),
+          width: asNullableNumber(variant.width),
+          thickness: asNullableNumber(variant.thickness)
+        }),
+        `Različica »${String(variant.variant_name ?? '') || asNumber(variant.id)}«`
+      );
       const variantResult = await client.query(
         `
         insert into catalog_item_variants (
           item_id, variant_name, length, width, thickness, weight, error_tolerance, price, cost_net,
-          content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position
-        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)
+          content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position,
+          shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
         returning id
         `,
         [
@@ -1077,7 +1189,11 @@ export async function duplicateCatalogItemByIdentifier(itemIdentifier: string): 
           asStringOrNull(variant.unit),
           normalizeActiveState(variant.status),
           asStringOrNull(variant.badge),
-          asNumber(variant.position, index)
+          asNumber(variant.position, index),
+          derivedShipping.shippingWeightGrams,
+          derivedShipping.shippingLengthMm,
+          derivedShipping.shippingWidthMm,
+          derivedShipping.shippingHeightMm
         ]
       );
       variantIdBySourceId.set(asNumber(variant.id), asNumber(variantResult.rows[0]?.id));
@@ -1376,6 +1492,7 @@ export async function fetchCatalogItemSeeds(): Promise<CatalogItemSeedRow[]> {
       civ.weight::text as variant_weight,
       coalesce(civ.price, 0)::text as price,
       coalesce(nullif(civ.variant_sku, ''), nullif(ci.sku, ''), ci.slug) as sku,
+      coalesce(nullif(civ.unit, ''), nullif(ci.unit, ''), 'kos') as unit,
       coalesce(mi.image_urls, array[]::text[]) as images,
       coalesce(civ.discount_pct, 0)::text as discount_pct,
       ci.position as item_position
@@ -1407,6 +1524,7 @@ export async function fetchCatalogItemSeeds(): Promise<CatalogItemSeedRow[]> {
       weight: row.variant_weight === null ? null : asNumber(row.variant_weight),
       price: asNumber(row.price),
       sku: String(row.sku ?? ''),
+      unit: String(row.unit ?? 'kos'),
       images: Array.isArray(row.images) ? row.images.map((image) => String(image)) : [],
       discount_pct: asNumber(row.discount_pct),
       item_position: asNumber(row.item_position)
@@ -1725,6 +1843,10 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'width', civ.width,
               'thickness', civ.thickness,
               'weight', civ.weight,
+              'shippingWeightGrams', civ.shipping_weight_grams,
+              'shippingLengthMm', civ.shipping_length_mm,
+              'shippingWidthMm', civ.shipping_width_mm,
+              'shippingHeightMm', civ.shipping_height_mm,
               'price', civ.price,
               'costNet', civ.cost_net,
               'discountPct', civ.discount_pct,
@@ -1754,6 +1876,10 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       ci.tax_rate,
       ci.sku,
       ci.status,
+      ci.shipping_weight_grams,
+      ci.shipping_length_mm,
+      ci.shipping_width_mm,
+      ci.shipping_height_mm,
       ci.default_variant_id,
       ci.badge,
       ci.admin_notes,
@@ -1800,8 +1926,21 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
 
   return (result.rows as Record<string, unknown>[]).map((row) => {
     const variantsJson = Array.isArray(row.variants) ? row.variants : [];
+    const itemShipping = {
+      shippingWeightGrams: asNullableNumber(row.shipping_weight_grams),
+      shippingLengthMm: asNullableNumber(row.shipping_length_mm),
+      shippingWidthMm: asNullableNumber(row.shipping_width_mm),
+      shippingHeightMm: asNullableNumber(row.shipping_height_mm)
+    };
     const variants = variantsJson.map((variant) => {
       const entry = variant as Record<string, unknown>;
+      const shipping = {
+        shippingWeightGrams: asNullableNumber(entry.shippingWeightGrams),
+        shippingLengthMm: asNullableNumber(entry.shippingLengthMm),
+        shippingWidthMm: asNullableNumber(entry.shippingWidthMm),
+        shippingHeightMm: asNullableNumber(entry.shippingHeightMm)
+      };
+      const readiness = getCatalogShippingReadiness(itemShipping, shipping);
       return {
         id: asNumber(entry.id),
         variantName: String(entry.variantName ?? ''),
@@ -1817,9 +1956,15 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
         minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
         status: (String(entry.status ?? 'inactive') === 'active' ? 'active' : 'inactive') as 'active' | 'inactive',
         badge: asStringOrNull(entry.badge),
-        position: asNumber(entry.position)
+        position: asNumber(entry.position),
+        ...shipping,
+        shippingReady: readiness.isReady,
+        shippingMissingFields: [...readiness.missingFields, ...readiness.invalidFields]
       };
     });
+    const shippingIssueCount = variants.filter(
+      (variant) => variant.status === 'active' && !variant.shippingReady
+    ).length;
 
     return {
       id: Number(row.id),
@@ -1843,7 +1988,10 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       defaultDiscountPct: asNumber(row.default_discount_pct),
       adminNotes: asStringOrNull(row.admin_notes),
       defaultVariantId: row.default_variant_id === null ? null : asNumber(row.default_variant_id),
-      variants
+      ...itemShipping,
+      variants,
+      shippingReady: shippingIssueCount === 0,
+      shippingIssueCount
     };
   });
 }
@@ -1902,6 +2050,10 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       i.position,
       i.tax_rate,
       i.appearance_override_json,
+      i.shipping_weight_grams,
+      i.shipping_length_mm,
+      i.shipping_width_mm,
+      i.shipping_height_mm,
       i.default_variant_id,
       i.deleted_at,
       i.purge_after,
@@ -1928,6 +2080,10 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
             'width', civ.width,
             'thickness', civ.thickness,
             'weight', civ.weight,
+            'shippingWeightGrams', civ.shipping_weight_grams,
+            'shippingLengthMm', civ.shipping_length_mm,
+            'shippingWidthMm', civ.shipping_width_mm,
+            'shippingHeightMm', civ.shipping_height_mm,
             'errorTolerance', civ.error_tolerance,
             'price', civ.price,
             'costNet', civ.cost_net,
@@ -2049,6 +2205,10 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       width: variant.width === null ? null : asNumber(variant.width),
       thickness: variant.thickness === null ? null : asNumber(variant.thickness),
       weight: variant.weight === null ? null : asNumber(variant.weight),
+      shippingWeightGrams: asNullableNumber(variant.shippingWeightGrams),
+      shippingLengthMm: asNullableNumber(variant.shippingLengthMm),
+      shippingWidthMm: asNullableNumber(variant.shippingWidthMm),
+      shippingHeightMm: asNullableNumber(variant.shippingHeightMm),
       errorTolerance: asStringOrNull(variant.errorTolerance),
       price: asNumber(variant.price),
       costNet: variant.costNet === null ? null : asNumber(variant.costNet),
@@ -2164,6 +2324,10 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     adminNotes: asStringOrNull(row.admin_notes),
     taxRate: Math.min(1, Math.max(0, asNumber(row.tax_rate, 0.22))),
     appearanceOverride: normalizeAppearanceOverride(row.appearance_override_json),
+    shippingWeightGrams: asNullableNumber(row.shipping_weight_grams),
+    shippingLengthMm: asNullableNumber(row.shipping_length_mm),
+    shippingWidthMm: asNullableNumber(row.shipping_width_mm),
+    shippingHeightMm: asNullableNumber(row.shipping_height_mm),
     position: asNumber(row.position),
     defaultVariantId: row.default_variant_id === null ? null : asNumber(row.default_variant_id),
     optionAxes,
@@ -2194,7 +2358,8 @@ export async function quickPatchCatalogItemByIdentifier(
 
     const existingResult = await client.query(
       `
-      select id, item_name, sku, status, badge, category_id
+      select id, item_name, sku, status, badge, category_id,
+             shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
       from catalog_items
       where id = $1
       limit 1
@@ -2216,6 +2381,7 @@ export async function quickPatchCatalogItemByIdentifier(
     const nextItemName = patch.itemName !== undefined ? patch.itemName : String(existing.item_name ?? '');
     const nextSku = patch.sku !== undefined ? asStringOrNull(patch.sku) : asStringOrNull(existing.sku);
     const nextStatus = patch.status !== undefined ? patch.status : normalizeActiveState(existing.status);
+    const nextItemShipping = normalizeCanonicalShippingMeasurements({}, 'Artikel');
 
     if (nextCategoryId) {
       const categoryExists = await client.query(
@@ -2230,7 +2396,8 @@ export async function quickPatchCatalogItemByIdentifier(
       await assertCatalogCategoryPathActive(client, nextCategoryId);
       const variantsResult = await client.query(
         `
-        select variant_name, variant_sku, price, status
+        select variant_name, variant_sku, price, status,
+               shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
         from catalog_item_variants
         where item_id = $1
         `,
@@ -2238,11 +2405,16 @@ export async function quickPatchCatalogItemByIdentifier(
       );
       assertCatalogItemPublicationReady(
         nextCategoryId,
+        nextItemShipping,
         variantsResult.rows.map((variant) => ({
           variantName: variant.variant_name,
           variantSku: variant.variant_sku,
           price: asNumber(variant.price, Number.NaN),
-          status: variant.status
+          status: variant.status,
+          shippingWeightGrams: asNullableNumber(variant.shipping_weight_grams),
+          shippingLengthMm: asNullableNumber(variant.shipping_length_mm),
+          shippingWidthMm: asNullableNumber(variant.shipping_width_mm),
+          shippingHeightMm: asNullableNumber(variant.shipping_height_mm)
         }))
       );
     }
@@ -2261,8 +2433,12 @@ export async function quickPatchCatalogItemByIdentifier(
           status = $3,
           badge = $4,
           category_id = $5,
+          shipping_weight_grams = $6,
+          shipping_length_mm = $7,
+          shipping_width_mm = $8,
+          shipping_height_mm = $9,
           updated_at = now()
-      where id = $6
+      where id = $10
       `,
       [
         nextItemName,
@@ -2270,6 +2446,10 @@ export async function quickPatchCatalogItemByIdentifier(
         nextStatus,
         patch.badge !== undefined ? asStringOrNull(patch.badge) : asStringOrNull(existing.badge),
         nextCategoryId,
+        nextItemShipping.shippingWeightGrams,
+        nextItemShipping.shippingLengthMm,
+        nextItemShipping.shippingWidthMm,
+        nextItemShipping.shippingHeightMm,
         itemId
       ]
     );
@@ -2319,6 +2499,10 @@ export async function quickPatchCatalogVariantByIdentifier(
         civ.width,
         civ.thickness,
         civ.weight,
+        civ.shipping_weight_grams,
+        civ.shipping_length_mm,
+        civ.shipping_width_mm,
+        civ.shipping_height_mm,
         civ.error_tolerance,
         civ.price,
         civ.discount_pct,
@@ -2328,7 +2512,11 @@ export async function quickPatchCatalogVariantByIdentifier(
         civ.badge,
         civ.position,
         ci.status as item_status,
-        ci.category_id
+        ci.category_id,
+        ci.shipping_weight_grams as item_shipping_weight_grams,
+        ci.shipping_length_mm as item_shipping_length_mm,
+        ci.shipping_width_mm as item_shipping_width_mm,
+        ci.shipping_height_mm as item_shipping_height_mm
       from catalog_item_variants civ
       join catalog_items ci on ci.id = civ.item_id
       where civ.id = $1 and civ.item_id = $2
@@ -2344,12 +2532,27 @@ export async function quickPatchCatalogVariantByIdentifier(
     const nextVariantSku = patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku);
     const nextVariantStatus = patch.status !== undefined ? patch.status : normalizeActiveState(existing.status);
     const nextVariantPrice = patch.price !== undefined ? patch.price : asNumber(existing.price, Number.NaN);
+    const nextLength = patch.length !== undefined ? patch.length : asNullableNumber(existing.length);
+    const nextWidth = patch.width !== undefined ? patch.width : asNullableNumber(existing.width);
+    const nextThickness = patch.thickness !== undefined ? patch.thickness : asNullableNumber(existing.thickness);
+    const nextWeight = patch.weight !== undefined ? patch.weight : asNullableNumber(existing.weight);
+    const itemShipping = normalizeCanonicalShippingMeasurements({}, 'Artikel');
+    const nextVariantShipping = normalizeCanonicalShippingMeasurements(
+      deriveCatalogVariantShippingMeasurements({
+        weight: nextWeight,
+        length: nextLength,
+        width: nextWidth,
+        thickness: nextThickness
+      }),
+      `Različica »${String(existing.variant_name ?? '') || variantId}«`
+    );
 
     if (normalizeActiveState(existing.item_status) === 'active') {
       await assertCatalogCategoryPathActive(client, asStringOrNull(existing.category_id));
       const variantsResult = await client.query(
         `
-        select id, variant_name, variant_sku, price, status
+        select id, variant_name, variant_sku, price, status,
+               shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
         from catalog_item_variants
         where item_id = $1
         `,
@@ -2357,19 +2560,25 @@ export async function quickPatchCatalogVariantByIdentifier(
       );
       assertCatalogItemPublicationReady(
         asStringOrNull(existing.category_id),
+        itemShipping,
         variantsResult.rows.map((variant) => (
           asNumber(variant.id) === variantId
             ? {
                 variantName: patch.variantName ?? variant.variant_name,
                 variantSku: nextVariantSku,
                 price: nextVariantPrice,
-                status: nextVariantStatus
+                status: nextVariantStatus,
+                ...nextVariantShipping
               }
             : {
                 variantName: variant.variant_name,
                 variantSku: variant.variant_sku,
                 price: asNumber(variant.price, Number.NaN),
-                status: variant.status
+                status: variant.status,
+                shippingWeightGrams: asNullableNumber(variant.shipping_weight_grams),
+                shippingLengthMm: asNullableNumber(variant.shipping_length_mm),
+                shippingWidthMm: asNullableNumber(variant.shipping_width_mm),
+                shippingHeightMm: asNullableNumber(variant.shipping_height_mm)
               }
         ))
       );
@@ -2396,17 +2605,21 @@ export async function quickPatchCatalogVariantByIdentifier(
           min_order = $11,
           status = $12,
           badge = $13,
-          position = $14
-      where id = $15
-        and item_id = $16
+          position = $14,
+          shipping_weight_grams = $15,
+          shipping_length_mm = $16,
+          shipping_width_mm = $17,
+          shipping_height_mm = $18
+      where id = $19
+        and item_id = $20
       `,
       [
         patch.variantName !== undefined ? patch.variantName : String(existing.variant_name ?? ''),
         nextVariantSku,
-        patch.length !== undefined ? patch.length : existing.length,
-        patch.width !== undefined ? patch.width : existing.width,
-        patch.thickness !== undefined ? patch.thickness : existing.thickness,
-        patch.weight !== undefined ? patch.weight : existing.weight,
+        nextLength,
+        nextWidth,
+        nextThickness,
+        nextWeight,
         patch.errorTolerance !== undefined ? asStringOrNull(patch.errorTolerance) : asStringOrNull(existing.error_tolerance),
         nextVariantPrice,
         patch.discountPct !== undefined ? patch.discountPct : asNumber(existing.discount_pct),
@@ -2415,6 +2628,10 @@ export async function quickPatchCatalogVariantByIdentifier(
         nextVariantStatus,
         patch.badge !== undefined ? asStringOrNull(patch.badge) : asStringOrNull(existing.badge),
         patch.position !== undefined ? Math.max(1, patch.position) : asNumber(existing.position, 1),
+        nextVariantShipping.shippingWeightGrams,
+        nextVariantShipping.shippingLengthMm,
+        nextVariantShipping.shippingWidthMm,
+        nextVariantShipping.shippingHeightMm,
         variantId,
         itemId
       ]
@@ -2427,7 +2644,11 @@ export async function quickPatchCatalogVariantByIdentifier(
     await client.query(
       `
       update catalog_items
-      set updated_at = now()
+      set shipping_weight_grams = null,
+          shipping_length_mm = null,
+          shipping_width_mm = null,
+          shipping_height_mm = null,
+          updated_at = now()
       where id = $1
       `,
       [itemId]
@@ -2748,7 +2969,8 @@ async function assertPersistedCatalogOptionAssignmentsReady(
   );
 }
 
-export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Promise<{ id: number; slug: string; updatedAt: string }> {
+export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload): Promise<{ id: number; slug: string; updatedAt: string }> {
+  const payload = normalizeCatalogEditorShippingPayload(inputPayload);
   const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
     payload.appearanceOverride
   );
@@ -2763,7 +2985,7 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath, client);
     if (payload.status === 'active') {
-      assertCatalogItemPublicationReady(categoryId, payload.variants);
+      assertCatalogItemPublicationReady(categoryId, payload, payload.variants);
       await assertCatalogCategoryPathActive(client, categoryId);
     }
     let effectiveId = payload.id ?? null;
@@ -2909,10 +3131,14 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
               position = $15,
               tax_rate = $16,
               appearance_override_json = $17::jsonb,
+              shipping_weight_grams = $18,
+              shipping_length_mm = $19,
+              shipping_width_mm = $20,
+              shipping_height_mm = $21,
               deleted_at = null,
               purge_after = null,
               status_before_delete = null
-          where id = $18
+          where id = $22
           returning id, slug, updated_at
           `,
           [
@@ -2933,6 +3159,10 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             payload.position ?? 0,
             Math.min(1, Math.max(0, payload.taxRate ?? 0.22)),
             serializeJsonbValue(normalizedAppearanceOverride),
+            payload.shippingWeightGrams,
+            payload.shippingLengthMm,
+            payload.shippingWidthMm,
+            payload.shippingHeightMm,
             effectiveId
           ]
         )
@@ -2940,8 +3170,9 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
           `
           insert into catalog_items (
             item_name, item_type, badge, status, category_id, sku, slug, unit, brand, material, colour, shape,
-            description, admin_notes, position, tax_rate, appearance_override_json
-          ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
+            description, admin_notes, position, tax_rate, appearance_override_json,
+            shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+          ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21)
           returning id, slug, updated_at
           `,
           [
@@ -2961,7 +3192,11 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             asStringOrNull(payload.adminNotes),
             payload.position ?? 0,
             Math.min(1, Math.max(0, payload.taxRate ?? 0.22)),
-            serializeJsonbValue(normalizedAppearanceOverride)
+            serializeJsonbValue(normalizedAppearanceOverride),
+            payload.shippingWeightGrams,
+            payload.shippingLengthMm,
+            payload.shippingWidthMm,
+            payload.shippingHeightMm
           ]
         );
 
@@ -3034,9 +3269,13 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
                 status = $15,
                 badge = $16,
                 position = $17,
+                shipping_weight_grams = $18,
+                shipping_length_mm = $19,
+                shipping_width_mm = $20,
+                shipping_height_mm = $21,
                 updated_at = now()
-            where id = $18
-              and item_id = $19
+            where id = $22
+              and item_id = $23
             returning id
             `,
             [
@@ -3057,6 +3296,10 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
               variant.status ?? 'active',
               asStringOrNull(variant.badge),
               variant.position ?? index,
+              variant.shippingWeightGrams,
+              variant.shippingLengthMm,
+              variant.shippingWidthMm,
+              variant.shippingHeightMm,
               existingVariantId,
               itemRow.id
             ]
@@ -3065,8 +3308,9 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
             `
             insert into catalog_item_variants (
               item_id, variant_name, length, width, thickness, weight, error_tolerance, price, cost_net,
-              content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)
+              content_override_json, discount_pct, inventory, min_order, variant_sku, unit, status, badge, position,
+              shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
             returning id
             `,
             [
@@ -3087,7 +3331,11 @@ export async function upsertCatalogItem(payload: CatalogItemEditorPayload): Prom
               asStringOrNull(variant.unit),
               variant.status ?? 'active',
               asStringOrNull(variant.badge),
-              variant.position ?? index
+              variant.position ?? index,
+              variant.shippingWeightGrams,
+              variant.shippingLengthMm,
+              variant.shippingWidthMm,
+              variant.shippingHeightMm
             ]
           );
       const persistedVariantId = asNumber(variantResult.rows[0]?.id);
@@ -3490,7 +3738,8 @@ export async function restoreCatalogItemBySlug(slug: string): Promise<boolean> {
     await client.query('begin');
     const itemResult = await client.query(
       `
-      select id, category_id, status_before_delete
+      select id, category_id, status_before_delete,
+             shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
       from catalog_items
       where (slug = $1 or id::text = $1)
         and status = 'deleted'
@@ -3511,7 +3760,8 @@ export async function restoreCatalogItemBySlug(slug: string): Promise<boolean> {
       try {
         const variantsResult = await client.query(
           `
-          select variant_name, variant_sku, price, status
+          select variant_name, variant_sku, price, status,
+                 shipping_weight_grams, shipping_length_mm, shipping_width_mm, shipping_height_mm
           from catalog_item_variants
           where item_id = $1
           `,
@@ -3520,11 +3770,21 @@ export async function restoreCatalogItemBySlug(slug: string): Promise<boolean> {
         const categoryId = asStringOrNull(item.category_id);
         assertCatalogItemPublicationReady(
           categoryId,
+          {
+            shippingWeightGrams: asNullableNumber(item.shipping_weight_grams),
+            shippingLengthMm: asNullableNumber(item.shipping_length_mm),
+            shippingWidthMm: asNullableNumber(item.shipping_width_mm),
+            shippingHeightMm: asNullableNumber(item.shipping_height_mm)
+          },
           variantsResult.rows.map((variant) => ({
             variantName: variant.variant_name,
             variantSku: variant.variant_sku,
             price: asNumber(variant.price, Number.NaN),
-            status: variant.status
+            status: variant.status,
+            shippingWeightGrams: asNullableNumber(variant.shipping_weight_grams),
+            shippingLengthMm: asNullableNumber(variant.shipping_length_mm),
+            shippingWidthMm: asNullableNumber(variant.shipping_width_mm),
+            shippingHeightMm: asNullableNumber(variant.shipping_height_mm)
           }))
         );
         await assertCatalogCategoryPathActive(client, categoryId);

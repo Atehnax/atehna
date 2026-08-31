@@ -1,5 +1,9 @@
 import { formatEuro } from '@/shared/domain/formatting';
 import type { CatalogVariantContentOverride } from '@/shared/domain/catalog/catalogAdminTypes';
+import {
+  CATALOG_SHIPPING_MAX_WEIGHT_GRAMS,
+  type CatalogShippingField
+} from '@/shared/domain/catalog/catalogShipping';
 import { formatDecimalForDisplay } from './decimalFormat';
 
 type SeedItemTuple = [
@@ -24,6 +28,8 @@ export type Variant = {
   thickness: number | null;
   errorTolerance?: string | null;
   weight?: number | null;
+  shippingReady?: boolean;
+  shippingMissingFields?: CatalogShippingField[];
   minOrder?: number;
   badge?: string | null;
   position?: number;
@@ -124,7 +130,7 @@ const buildVariantMeasurementName = (
   }
 
   if (isFiniteMeasurement(variant.weight)) {
-    return `${formatDecimalForDisplay(variant.weight)} g`;
+    return `${formatDecimalForDisplay(variant.weight)} kg`;
   }
 
   const label = variant.label?.trim();
@@ -352,6 +358,112 @@ export const applyVariantValueToAll = (
     variants: changedVariantIds.length > 0 ? nextVariants : variants,
     changedVariantIds,
     sourceVariant
+  };
+};
+
+export type ProportionalVariantWeightError =
+  | 'SOURCE_VARIANT_NOT_FOUND'
+  | 'SOURCE_DIMENSIONS_INVALID'
+  | 'SOURCE_WEIGHT_INVALID';
+
+export type ApplyProportionalVariantWeightsResult = {
+  variants: Variant[];
+  changedVariantIds: string[];
+  eligibleVariantIds: string[];
+  skippedVariantIds: string[];
+  sourceVariant: Variant | null;
+  error: ProportionalVariantWeightError | null;
+};
+
+const getPositiveVariantVolumeMm3 = (variant: Variant): number | null => {
+  const dimensions = [variant.length, variant.width, variant.thickness];
+  if (!dimensions.every(
+    (value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0
+  )) {
+    return null;
+  }
+  const volume = dimensions.reduce((product, value) => product * value, 1);
+  return Number.isFinite(volume) && volume > 0 ? volume : null;
+};
+
+/**
+ * Calculates other variant masses from the source variant's mass-to-volume ratio.
+ * Dimensions are millimetres, while variant mass is stored as kilograms with
+ * whole-gram precision. Incomplete targets are skipped instead of guessed.
+ */
+export const applyProportionalVariantWeights = (
+  variants: Variant[],
+  sourceVariantId: string
+): ApplyProportionalVariantWeightsResult => {
+  const sourceVariant = variants.find((variant) => variant.id === sourceVariantId) ?? null;
+  const noOp = (
+    error: ProportionalVariantWeightError | null,
+    skippedVariantIds: string[] = []
+  ): ApplyProportionalVariantWeightsResult => ({
+    variants,
+    changedVariantIds: [],
+    eligibleVariantIds: [],
+    skippedVariantIds,
+    sourceVariant,
+    error
+  });
+
+  if (!sourceVariant) return noOp('SOURCE_VARIANT_NOT_FOUND');
+
+  const sourceVolumeMm3 = getPositiveVariantVolumeMm3(sourceVariant);
+  if (sourceVolumeMm3 === null) return noOp('SOURCE_DIMENSIONS_INVALID');
+
+  const sourceWeightGramsRaw = (sourceVariant.weight ?? Number.NaN) * 1000;
+  const sourceWeightGrams = Math.round(sourceWeightGramsRaw);
+  if (
+    !Number.isFinite(sourceWeightGramsRaw)
+    || sourceWeightGrams <= 0
+    || sourceWeightGrams > CATALOG_SHIPPING_MAX_WEIGHT_GRAMS
+    || !Number.isSafeInteger(sourceWeightGrams)
+    || Math.abs(sourceWeightGramsRaw - sourceWeightGrams) > 1e-6
+  ) {
+    return noOp('SOURCE_WEIGHT_INVALID');
+  }
+
+  const changedVariantIds: string[] = [];
+  const eligibleVariantIds: string[] = [];
+  const skippedVariantIds: string[] = [];
+  const nextVariants = variants.map((variant) => {
+    if (variant.id === sourceVariant.id) return variant;
+
+    const targetVolumeMm3 = getPositiveVariantVolumeMm3(variant);
+    if (targetVolumeMm3 === null) {
+      skippedVariantIds.push(variant.id);
+      return variant;
+    }
+
+    const calculatedWeightGrams = Math.round(
+      sourceWeightGrams * (targetVolumeMm3 / sourceVolumeMm3)
+    );
+    if (
+      calculatedWeightGrams <= 0
+      || calculatedWeightGrams > CATALOG_SHIPPING_MAX_WEIGHT_GRAMS
+      || !Number.isSafeInteger(calculatedWeightGrams)
+    ) {
+      skippedVariantIds.push(variant.id);
+      return variant;
+    }
+
+    eligibleVariantIds.push(variant.id);
+    const calculatedWeightKilograms = calculatedWeightGrams / 1000;
+    if ((variant.weight ?? null) === calculatedWeightKilograms) return variant;
+
+    changedVariantIds.push(variant.id);
+    return { ...variant, weight: calculatedWeightKilograms };
+  });
+
+  return {
+    variants: changedVariantIds.length > 0 ? nextVariants : variants,
+    changedVariantIds,
+    eligibleVariantIds,
+    skippedVariantIds,
+    sourceVariant,
+    error: null
   };
 };
 

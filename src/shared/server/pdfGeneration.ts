@@ -118,8 +118,8 @@ export async function allocateOrderDocumentNumber(
   return `${sequence}/${shortYear}`;
 }
 
-export async function buildPdfContext(pool: Pool, orderId: number): Promise<BuildPdfContextResult> {
-  const orderResult = await pool.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+export async function buildPdfContext(database: Pick<Pool, 'query'>, orderId: number): Promise<BuildPdfContextResult> {
+  const orderResult = await database.query('SELECT * FROM orders WHERE id = $1', [orderId]);
   const order = (orderResult.rows[0] ?? null) as RawOrder | null;
 
   if (!order) return { ok: false, status: 404, message: 'Naročilo ne obstaja.' };
@@ -138,7 +138,7 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
     };
   }
 
-  const itemsResult = await pool.query(
+  const itemsResult = await database.query(
     `select
        sku,
        name,
@@ -191,6 +191,7 @@ export async function buildPdfContext(pool: Pool, orderId: number): Promise<Buil
       tax: asNumber(order.tax),
       taxRate: asNumber(order.tax_rate),
       shipping: asNumber(order.shipping),
+      shippingOverride: Boolean(order.shipping_override_json),
       total: asNumber(order.total),
       commitmentStatus: asNullableString(order.commitment_status)
     }

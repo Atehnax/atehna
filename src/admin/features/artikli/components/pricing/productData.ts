@@ -15,6 +15,7 @@ import type {
   WeightVariant
 } from './pricingTypes';
 import type { QuantityDiscountDraft } from '@/shared/domain/catalog/catalogAdminTypes';
+import { parseExplicitPackageDimensionsMm } from '@/shared/domain/catalog/catalogShipping';
 
 export const allDiscountTargetLabel = 'Vse';
 export const adminProductInputChipClassName =
@@ -33,6 +34,10 @@ export const defaultSimpleProductData: SimpleProductData = {
   basePrice: 18.9,
   actionPrice: 15.9,
   actionPriceEnabled: false,
+  weightGrams: null,
+  lengthMm: null,
+  widthMm: null,
+  thicknessMm: null,
   stock: 0,
   minStock: 0,
   deliveryTime: '2-3 dni',
@@ -79,6 +84,9 @@ export const defaultMachineProductData: UniqueMachineProductData = {
   deliveryTime: '1-2 delovna dneva',
   packageWeightKg: 8.2,
   packageWeightUnit: '',
+  packageLengthMm: 620,
+  packageWidthMm: 380,
+  packageThicknessMm: 330,
   packageDimensions: '620 x 380 x 330 mm',
   warnings: 'Lomljivi deli pri neustrezni uporabi.\nUporabljajte zaščitna očala.',
   basicInfoRows: [],
@@ -449,6 +457,9 @@ export function createWeightVariantFromCombination(options: {
     fraction,
     color: normalizedColor,
     netMassKg,
+    lengthMm: null,
+    widthMm: null,
+    thicknessMm: null,
     minQuantity: Math.max(1, Math.floor(data.minQuantity || 1)),
     unitPrice: 0,
     costNet: null,
@@ -544,6 +555,18 @@ function normalizeWeightVariant(
     fraction,
     color: normalizeSingleWeightColorValue(asString(record.color, fallback.color)),
     netMassKg,
+    lengthMm: normalizeOptionalNonNegativeNumber(
+      record.lengthMm ?? record.length,
+      matchingCatalogVariant?.length ?? fallback.lengthMm
+    ),
+    widthMm: normalizeOptionalNonNegativeNumber(
+      record.widthMm ?? record.width,
+      matchingCatalogVariant?.width ?? fallback.widthMm
+    ),
+    thicknessMm: normalizeOptionalNonNegativeNumber(
+      record.thicknessMm ?? record.thickness,
+      matchingCatalogVariant?.thickness ?? fallback.thicknessMm
+    ),
     minQuantity: Math.max(0, asNumber(record.minQuantity, fallback.minQuantity)),
     unitPrice: record.unitPrice === null ? null : Math.max(0, asNumber(record.unitPrice ?? record.price, getWeightVariantUnitPrice(fallback))),
     costNet: normalizeOptionalNonNegativeNumber(
@@ -670,6 +693,22 @@ export function normalizeSimpleProductData(value: unknown, context: ProductDataN
     basePrice,
     actionPrice,
     actionPriceEnabled,
+    weightGrams: normalizeOptionalNonNegativeNumber(
+      record.weightGrams,
+      firstVariant?.weight == null ? null : firstVariant.weight * 1000
+    ),
+    lengthMm: normalizeOptionalNonNegativeNumber(
+      record.lengthMm ?? record.length,
+      firstVariant?.length ?? null
+    ),
+    widthMm: normalizeOptionalNonNegativeNumber(
+      record.widthMm ?? record.width,
+      firstVariant?.width ?? null
+    ),
+    thicknessMm: normalizeOptionalNonNegativeNumber(
+      record.thicknessMm ?? record.thickness,
+      firstVariant?.thickness ?? null
+    ),
     stock: Math.max(0, Math.floor(asNumber(record.stock, firstVariant?.stock ?? defaultSimpleProductData.stock))),
     minStock: Math.max(0, Math.floor(asNumber(record.minStock, defaultSimpleProductData.minStock))),
     deliveryTime: asString(record.deliveryTime, defaultSimpleProductData.deliveryTime),
@@ -748,6 +787,22 @@ function normalizeMachineSerialRows(value: unknown): UniqueMachineProductData['s
 export function normalizeUniqueMachineProductData(value: unknown, context: ProductDataNormalizationContext = {}): UniqueMachineProductData {
   const record = asRecord(value);
   const firstVariant = context.variants?.[0];
+  const legacyPackageDimensions = parseExplicitPackageDimensionsMm(asString(record.packageDimensions));
+  const packageLengthMm = normalizeOptionalNonNegativeNumber(
+    record.packageLengthMm !== undefined ? record.packageLengthMm : record.lengthMm,
+    legacyPackageDimensions?.shippingLengthMm ?? firstVariant?.length ?? defaultMachineProductData.packageLengthMm
+  );
+  const packageWidthMm = normalizeOptionalNonNegativeNumber(
+    record.packageWidthMm !== undefined ? record.packageWidthMm : record.widthMm,
+    legacyPackageDimensions?.shippingWidthMm ?? firstVariant?.width ?? defaultMachineProductData.packageWidthMm
+  );
+  const packageThicknessMm = normalizeOptionalNonNegativeNumber(
+    record.packageThicknessMm !== undefined ? record.packageThicknessMm : record.thicknessMm,
+    legacyPackageDimensions?.shippingHeightMm ?? firstVariant?.thickness ?? defaultMachineProductData.packageThicknessMm
+  );
+  const packageDimensions = packageLengthMm !== null && packageWidthMm !== null && packageThicknessMm !== null
+    ? `${formatDecimalForDisplay(packageLengthMm)} x ${formatDecimalForDisplay(packageWidthMm)} x ${formatDecimalForDisplay(packageThicknessMm)} mm`
+    : '';
   return {
     ...defaultMachineProductData,
     basePrice: asNumber(record.basePrice, firstVariant?.price ?? defaultMachineProductData.basePrice),
@@ -762,7 +817,10 @@ export function normalizeUniqueMachineProductData(value: unknown, context: Produ
     deliveryTime: asString(record.deliveryTime, defaultMachineProductData.deliveryTime),
     packageWeightKg: Math.max(0, asNumber(record.packageWeightKg, defaultMachineProductData.packageWeightKg)),
     packageWeightUnit: asString(record.packageWeightUnit, defaultMachineProductData.packageWeightUnit),
-    packageDimensions: asString(record.packageDimensions, defaultMachineProductData.packageDimensions),
+    packageLengthMm,
+    packageWidthMm,
+    packageThicknessMm,
+    packageDimensions,
     warnings: asString(record.warnings, defaultMachineProductData.warnings),
     basicInfoRows: normalizeSpecRows(record.basicInfoRows ?? record.basicInfo, defaultMachineProductData.basicInfoRows, 'machine-basic-info'),
     serialNumbers: normalizeMachineSerialRows(record.serialNumbers),
@@ -815,6 +873,10 @@ export function buildSimpleCatalogVariants(dataInput: TypeSpecificProductData, f
       label: name || 'Osnovni artikel',
       sku: fallback?.sku || baseSku,
       price: data.basePrice,
+      weight: data.weightGrams === null ? null : data.weightGrams / 1000,
+      length: data.lengthMm,
+      width: data.widthMm,
+      thickness: data.thicknessMm,
       discountPct,
       stock: data.stock,
       minOrder: data.moq,
@@ -832,6 +894,9 @@ export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, b
       id: variant.id,
       label: getWeightVariantDisplayLabel(variant),
       weight: getWeightVariantTotalMass(variant) ?? variant.netMassKg,
+      length: variant.lengthMm,
+      width: variant.widthMm,
+      thickness: variant.thicknessMm,
       minOrder: Math.max(1, Math.ceil(variant.minQuantity || 1)),
       errorTolerance: variant.tolerance || null,
       sku: variant.sku || `${baseSku || 'SKU'}-${index + 1}`,
@@ -855,6 +920,10 @@ export function buildMachineCatalogVariants(dataInput: TypeSpecificProductData, 
       label: name || 'Stroj / unikaten artikel',
       sku: fallback?.sku || baseSku,
       price: data.basePrice,
+      weight: data.packageWeightKg > 0 ? data.packageWeightKg : null,
+      length: data.packageLengthMm,
+      width: data.packageWidthMm,
+      thickness: data.packageThicknessMm,
       discountPct: data.discountPercent,
       stock: data.stock,
       minOrder: 1,

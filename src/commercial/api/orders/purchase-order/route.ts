@@ -16,10 +16,16 @@ import {
   verifyOrderAccessToken
 } from '@/shared/server/orderAccess';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
+import { validateLockedOrderShippingReadiness } from '@/shared/server/orderShippingReadiness';
 
 export const runtime = 'nodejs';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED = {
+  code: 'QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED',
+  message:
+    'Naročilnico za ponudbo je mogoče oddati samo prek varnega postopka ponudbe.'
+} as const;
 
 type UploadFormat = {
   extension: 'pdf' | 'jpg';
@@ -28,10 +34,18 @@ type UploadFormat = {
 };
 
 class PurchaseOrderWorkflowConflict extends Error {
-  constructor(readonly block: SchoolOrderWorkflowBlock) {
+  constructor(
+    readonly block:
+      | SchoolOrderWorkflowBlock
+      | typeof QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED
+  ) {
     super(block.message);
     this.name = 'PurchaseOrderWorkflowConflict';
   }
+}
+
+class PurchaseOrderShippingConflict extends Error {
+  readonly code = 'PURCHASE_ORDER_SHIPPING_NOT_READY';
 }
 
 function detectUploadFormat(buffer: Buffer): UploadFormat | null {
@@ -98,7 +112,8 @@ export async function uploadPurchaseOrder(request: NextRequest) {
 
     const orderLookupResult = await pool.query(
       `
-        select id, customer_type, status, commitment_status, deleted_at
+        select id, customer_type, status, commitment_status, deleted_at,
+               source_quote_offer_version_id
         from orders
         where id = $1
         limit 1
@@ -112,11 +127,17 @@ export async function uploadPurchaseOrder(request: NextRequest) {
           status: string;
           commitment_status: string | null;
           deleted_at: string | null;
+          source_quote_offer_version_id: string | number | null;
         }
       | undefined;
 
     if (!order || order.deleted_at) {
       return accessDeniedResponse();
+    }
+    if (order.source_quote_offer_version_id !== null) {
+      return NextResponse.json(QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED, {
+        status: 409
+      });
     }
 
     const orderId = Number(order.id);
@@ -185,7 +206,23 @@ export async function uploadPurchaseOrder(request: NextRequest) {
       await client.query('begin');
       const lockedOrderResult = await client.query(
         `
-          select id, customer_type, status, commitment_status, deleted_at
+          select
+            id,
+            customer_type,
+            status,
+            commitment_status,
+            source_quote_offer_version_id,
+            deleted_at,
+            is_draft,
+            subtotal,
+            tax,
+            shipping,
+            automatic_shipping,
+            shipping_snapshot_json,
+            shipping_override_json,
+            shipping_override_stale,
+            parcel_count,
+            total
           from orders
           where id = $1
           for update
@@ -198,9 +235,28 @@ export async function uploadPurchaseOrder(request: NextRequest) {
             customer_type: string;
             status: string;
             commitment_status: string | null;
+            source_quote_offer_version_id: string | number | null;
             deleted_at: string | null;
+            is_draft: boolean;
+            subtotal: unknown;
+            tax: unknown;
+            shipping: unknown;
+            automatic_shipping: unknown;
+            shipping_snapshot_json: unknown;
+            shipping_override_json: unknown;
+            shipping_override_stale: unknown;
+            parcel_count: unknown;
+            total: unknown;
           }
         | undefined;
+      if (
+        lockedOrder &&
+        lockedOrder.source_quote_offer_version_id !== null
+      ) {
+        throw new PurchaseOrderWorkflowConflict(
+          QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED
+        );
+      }
       const lockedUploadBlock = lockedOrder
         ? schoolPurchaseOrderUploadBlock(
             lockedOrder.customer_type,
@@ -211,6 +267,14 @@ export async function uploadPurchaseOrder(request: NextRequest) {
         : SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED;
       if (lockedUploadBlock) {
         throw new PurchaseOrderWorkflowConflict(lockedUploadBlock);
+      }
+      const shippingReadiness = await validateLockedOrderShippingReadiness(
+        client,
+        orderId,
+        lockedOrder as unknown as Record<string, unknown>
+      );
+      if (!shippingReadiness.ok) {
+        throw new PurchaseOrderShippingConflict(shippingReadiness.message);
       }
       const versionResult = await client.query(
         `
@@ -232,6 +296,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
             filename,
             blob_pathname,
             version_number,
+            order_pricing_revision,
             document_number,
             issued_at,
             content_sha256,
@@ -239,7 +304,8 @@ export async function uploadPurchaseOrder(request: NextRequest) {
             format_marker
           )
           values (
-            $1, $2, 'purchase_order', $3, $4, $5, $6, now(), $7,
+            $1, $2, 'purchase_order', $3, $4, $5,
+            (select pricing_revision from orders where id = $1), $6, now(), $7,
             'operational', $8
           )
         `,
@@ -287,6 +353,12 @@ export async function uploadPurchaseOrder(request: NextRequest) {
     }
     if (error instanceof PurchaseOrderWorkflowConflict) {
       return NextResponse.json(error.block, { status: 409 });
+    }
+    if (error instanceof PurchaseOrderShippingConflict) {
+      return NextResponse.json(
+        { code: error.code, message: error.message },
+        { status: 409 }
+      );
     }
     console.error('[orders.purchase-order.upload] failed', {
       message: error instanceof Error ? error.message : 'Unknown error'

@@ -186,7 +186,7 @@ export async function fetchOrdersAnalytics(params?: {
     const window = resolveWindow({ range, from: params?.from, to: params?.to });
 
     const orders = await profileRoutePhase('db', 'fetchOrdersAnalytics:ordersRows', () => fetchOrdersAnalyticsRows(
-      { includeDrafts: true, fromDate: window.fromIso, toDate: window.toIso },
+      { includeDrafts: false, fromDate: window.fromIso, toDate: window.toIso },
       '/admin/analitika'
     ));
     const paidAtByOrder = await profileRoutePhase('db', 'fetchOrdersAnalytics:paidLogs', () =>
@@ -196,6 +196,7 @@ export async function fetchOrdersAnalytics(params?: {
     const bucketByDay = new Map<
       string,
       OrdersAnalyticsDay & {
+        cancellationCohortCount: number;
         leadHours: number[];
         orderValues: number[];
       }
@@ -219,6 +220,7 @@ export async function fetchOrdersAnalytics(params?: {
         paid_count: 0,
         payment_success_rate: 0,
         cancellation_rate: 0,
+        cancellationCohortCount: 0,
         status_buckets: {},
         payment_status_buckets: {},
         customer_type_buckets: { P: 0, Š: 0, F: 0 },
@@ -235,40 +237,54 @@ export async function fetchOrdersAnalytics(params?: {
         const createdAt = new Date(order.created_at);
         if (Number.isNaN(createdAt.getTime())) return;
 
-        const dayKey = createdAt.toISOString().slice(0, 10);
-        const dayBucket = bucketByDay.get(dayKey);
-        if (!dayBucket) return;
-
         const orderTotal = toFiniteNumber(order.total);
         const status = statusLabel(order.status);
         const isBindingFinancialOrder =
-          order.commitment_status === 'binding' && status !== 'cancelled';
-        dayBucket.order_count += 1;
-        if (isBindingFinancialOrder) {
-          dayBucket.binding_order_count += 1;
-          dayBucket.revenue_total += orderTotal;
-          dayBucket.orderValues.push(orderTotal);
+          order.contract_status === 'accepted'
+          && order.commitment_status === 'binding'
+          && status !== 'cancelled';
+        const isAcceptedCancellationCohort =
+          order.contract_status === 'accepted'
+          && order.commitment_status === 'binding';
+
+        const createdDayBucket = bucketByDay.get(createdAt.toISOString().slice(0, 10));
+        if (createdDayBucket) {
+          createdDayBucket.order_count += 1;
+          createdDayBucket.status_buckets[status] =
+            (createdDayBucket.status_buckets[status] ?? 0) + 1;
+          if (isAcceptedCancellationCohort) {
+            createdDayBucket.cancellationCohortCount += 1;
+            if (status === 'cancelled') createdDayBucket.cancelled_count += 1;
+          }
+          const customer = customerBucket(order.customer_type);
+          createdDayBucket.customer_type_buckets[customer] += 1;
         }
 
-        dayBucket.status_buckets[status] = (dayBucket.status_buckets[status] ?? 0) + 1;
-        if (status === 'cancelled') dayBucket.cancelled_count += 1;
+        if (!isBindingFinancialOrder) return;
+        const committedAt = new Date(
+          order.committed_at ?? order.contract_accepted_at ?? order.created_at
+        );
+        if (Number.isNaN(committedAt.getTime())) return;
+        const financialDayBucket = bucketByDay.get(committedAt.toISOString().slice(0, 10));
+        if (!financialDayBucket) return;
+
+        financialDayBucket.binding_order_count += 1;
+        financialDayBucket.revenue_total += orderTotal;
+        financialDayBucket.orderValues.push(orderTotal);
 
         const paymentStatus = statusLabel(order.payment_status);
-        if (isBindingFinancialOrder) {
-          dayBucket.payment_status_buckets[paymentStatus] =
-            (dayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
-          if (paymentStatus === 'paid') dayBucket.paid_count += 1;
-        }
+        financialDayBucket.payment_status_buckets[paymentStatus] =
+          (financialDayBucket.payment_status_buckets[paymentStatus] ?? 0) + 1;
+        if (paymentStatus === 'paid') financialDayBucket.paid_count += 1;
 
-        const customer = customerBucket(order.customer_type);
-        dayBucket.customer_type_buckets[customer] += 1;
-
-        const paidAt = isBindingFinancialOrder ? paidAtByOrder.get(order.id) : undefined;
+        const paidAt = paidAtByOrder.get(order.id);
         if (paidAt) {
           const paidTimestamp = new Date(paidAt).getTime();
           if (!Number.isNaN(paidTimestamp)) {
-            const leadHours = (paidTimestamp - createdAt.getTime()) / (1000 * 60 * 60);
-            if (Number.isFinite(leadHours) && leadHours >= 0) dayBucket.leadHours.push(leadHours);
+            const leadHours = (paidTimestamp - committedAt.getTime()) / (1000 * 60 * 60);
+            if (Number.isFinite(leadHours) && leadHours >= 0) {
+              financialDayBucket.leadHours.push(leadHours);
+            }
           }
         }
       });
@@ -285,7 +301,9 @@ export async function fetchOrdersAnalytics(params?: {
         bucket.binding_order_count > 0
           ? (bucket.paid_count / bucket.binding_order_count) * 100
           : 0;
-      const cancellationRate = bucket.order_count > 0 ? (bucket.cancelled_count / bucket.order_count) * 100 : 0;
+      const cancellationRate = bucket.cancellationCohortCount > 0
+        ? (bucket.cancelled_count / bucket.cancellationCohortCount) * 100
+        : 0;
       const p50 = percentile(bucket.leadHours, 0.5);
       const p90 = percentile(bucket.leadHours, 0.9);
 

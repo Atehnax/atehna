@@ -1,5 +1,7 @@
 'use client';
 
+import { adminPlaceholderTokenClasses } from '@/shared/ui/theme/tokens';
+
 export const adminNumberInputClassName =
   '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
@@ -22,7 +24,7 @@ export const adminCompactIconFieldShellClassName =
   'mt-0.5 flex h-[30px] items-center gap-2 rounded-md border border-slate-300 bg-white pl-[10px] pr-3 transition-[border-color,box-shadow] focus-within:border-[color:var(--blue-500)]';
 
 export const adminCompactIconFieldInputClassName =
-  "h-5 w-full border-0 bg-transparent p-0 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-slate-900 disabled:opacity-100";
+  `h-5 w-full border-0 bg-transparent p-0 font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-slate-900 disabled:opacity-100 ${adminPlaceholderTokenClasses}`;
 
 export const adminCompactExpandableTextareaClassName =
   "h-8 min-h-8 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-[5px] font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color] focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 read-only:cursor-default disabled:cursor-not-allowed disabled:text-slate-900 disabled:opacity-100";

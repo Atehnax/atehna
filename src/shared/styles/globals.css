@@ -2890,11 +2890,20 @@ textarea[readonly] {
 .admin-scope .euiTextArea,
 .admin-scope .euiSelect,
 .admin-scope .euiSelect__button,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input):not(.site-topbar-typography-input),
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input):not(.site-topbar-typography-input):not([data-admin-order-item-value-input]),
 .admin-scope select,
 .admin-scope textarea {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 11px !important;
+}
+
+.admin-scope input[data-admin-order-item-value-input] {
+  font-size: 12px !important;
+  line-height: 20px !important;
+}
+
+.admin-scope input[data-admin-order-item-value-input]:read-only {
+  -webkit-text-fill-color: currentColor;
 }
 
 /* The Artikli appearance editor renders the canonical storefront controls.

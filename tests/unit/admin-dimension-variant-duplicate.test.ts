@@ -125,6 +125,7 @@ test('variant duplication appends one inactive, uniquely identified deep clone w
     width: before[0].width,
     length: before[0].length,
     thickness: before[0].thickness,
+    weight: before[0].weight,
     price: before[0].price,
     stock: before[0].stock,
     sort: 4

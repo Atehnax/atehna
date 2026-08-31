@@ -6,6 +6,15 @@ import {
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import type { ArchiveEntry, ArchiveItemType, RestoreTarget } from '@/shared/domain/archive/archiveTypes';
 
+export class ArchiveRestoreConflictError extends Error {
+  constructor(
+    message: string,
+    readonly code = 'ARCHIVE_DOCUMENT_PRICING_REVISION_MISMATCH'
+  ) {
+    super(message);
+  }
+}
+
 type DatabaseDateValue = string | number | Date;
 
 type ArchiveEntryRow = {
@@ -121,6 +130,16 @@ export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
           )
           or exists (
             select 1
+            from quote_documents
+            where blob_pathname = $1
+          )
+          or exists (
+            select 1
+            from quote_manual_documents
+            where blob_pathname = $1
+          )
+          or exists (
+            select 1
             from catalog_media
             where blob_pathname = $1
                or blob_url = $1
@@ -220,6 +239,62 @@ async function enforceParentOrderRestoreForDeletedPdfChildren(
   }
 }
 
+async function enforceCurrentPricingRevisionForRestoredDocuments(
+  client: ArchiveTransactionClient,
+  pdfCandidates: Array<{ order_id: number | null; document_id: number | null }>
+) {
+  const documentIds = pdfCandidates
+    .map((candidate) => Number(candidate.document_id))
+    .filter((documentId) => Number.isSafeInteger(documentId) && documentId > 0);
+  if (documentIds.length === 0) return;
+
+  const staleResult = await client.query(
+    `
+      select d.id
+      from order_documents d
+      join orders o on o.id = d.order_id
+      where d.id = any($1::bigint[])
+        and d.order_pricing_revision <> o.pricing_revision
+      for update of d, o
+    `,
+    [documentIds]
+  );
+  if (staleResult.rows.length > 0) {
+    throw new ArchiveRestoreConflictError(
+      'Dokumenta ni mogoče obnoviti, ker se je po izdaji spremenila cena ali poštnina naročila.'
+    );
+  }
+}
+
+async function enforceImmutableQuotePurchaseOrderEvidence(
+  client: ArchiveTransactionClient,
+  pdfCandidates: Array<{ order_id: number | null; document_id: number | null }>
+) {
+  const documentIds = pdfCandidates
+    .map((candidate) => Number(candidate.document_id))
+    .filter((documentId) => Number.isSafeInteger(documentId) && documentId > 0);
+  if (documentIds.length === 0) return;
+
+  const quoteEvidenceResult = await client.query(
+    `
+      select document.id
+      from order_documents document
+      join orders order_record on order_record.id = document.order_id
+      where document.id = any($1::bigint[])
+        and document.type = 'purchase_order'
+        and order_record.source_quote_offer_version_id is not null
+      for update of document, order_record
+    `,
+    [documentIds]
+  );
+  if (quoteEvidenceResult.rows.length > 0) {
+    throw new ArchiveRestoreConflictError(
+      'Naročilnice, ki je dokaz sprejema ponudbe, ni mogoče obnoviti prek splošnega arhiva.',
+      'ARCHIVE_QUOTE_PURCHASE_ORDER_IMMUTABLE'
+    );
+  }
+}
+
 export async function fetchArchiveEntries(itemType?: 'all' | ArchiveItemType): Promise<ArchiveEntry[]> {
   return instrumentCatalogLoader('fetchArchiveEntries', '/admin/arhiv', async () => {
     const pool = await getPool();
@@ -315,6 +390,8 @@ export async function restoreArchiveEntries(entryIds: number[]): Promise<number>
       .map((entry) => ({ order_id: entry.order_id, document_id: entry.document_id }));
 
     await enforceParentOrderRestoreForDeletedPdfChildren(client, selectedOrderIds, selectedPdfCandidates);
+    await enforceCurrentPricingRevisionForRestoredDocuments(client, selectedPdfCandidates);
+    await enforceImmutableQuotePurchaseOrderEvidence(client, selectedPdfCandidates);
 
     for (const entry of entries) {
       if (entry.item_type === 'order' && entry.order_id) {
@@ -355,6 +432,8 @@ export async function restoreArchiveTargets(targets: RestoreTarget[]): Promise<n
       .map((target) => ({ order_id: target.order_id, document_id: target.document_id }));
 
     await enforceParentOrderRestoreForDeletedPdfChildren(client, selectedOrderIds, selectedPdfCandidates);
+    await enforceCurrentPricingRevisionForRestoredDocuments(client, selectedPdfCandidates);
+    await enforceImmutableQuotePurchaseOrderEvidence(client, selectedPdfCandidates);
 
     for (const target of targets) {
       if (target.item_type === 'order' && target.order_id) {
@@ -433,6 +512,28 @@ export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promi
     const selectedOrderIdSet = new Set(selectedOrderIds);
 
     if (selectedOrderIds.length > 0) {
+      const durableCommerceEvidence = await client.query(
+        `
+          select order_record.id
+          from orders order_record
+          where order_record.id = any($1::bigint[])
+            and (
+              order_record.source_quote_offer_version_id is not null
+              or exists (
+                select 1
+                from order_stock_holds stock_hold
+                where stock_hold.order_id = order_record.id
+              )
+            )
+          limit 1
+        `,
+        [selectedOrderIds]
+      );
+      if (durableCommerceEvidence.rows.length > 0) {
+        throw new Error(
+          'Naročila z evidenco zaloge ali izvorno ponudbo ni mogoče trajno izbrisati; ohraniti je treba pogodbeno in zalogovno sled.'
+        );
+      }
       const protectedChildrenResult = await client.query(
         `
         select id
@@ -505,6 +606,22 @@ export async function cleanupExpiredArchiveEntries(): Promise<number> {
     select e.id
     from deleted_archive_entries e
     where e.expires_at <= now()
+      and not (
+        e.item_type = 'order'
+        and exists (
+          select 1
+          from orders durable_order
+          where durable_order.id = e.order_id
+            and (
+              durable_order.source_quote_offer_version_id is not null
+              or exists (
+                select 1
+                from order_stock_holds stock_hold
+                where stock_hold.order_id = durable_order.id
+              )
+            )
+        )
+      )
       and not (
         e.item_type = 'order'
         and exists (

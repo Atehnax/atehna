@@ -16,7 +16,7 @@ export const rangeOptions: RangeOption[] = ['7d', '30d', '90d', '180d', '365d', 
 
 export const metricOptions: Array<{ value: AnalyticsMetricField; label: string; unit: 'count' | 'eur' | 'percent' | 'hours' }> = [
   { value: 'order_count', label: 'Orders', unit: 'count' },
-  { value: 'revenue_total', label: 'Revenue', unit: 'eur' },
+  { value: 'revenue_total', label: 'Vrednost naročil', unit: 'eur' },
   { value: 'aov', label: 'AOV', unit: 'eur' },
   { value: 'median_order_value', label: 'Median order value', unit: 'eur' },
   { value: 'payment_success_rate', label: 'Payment success rate', unit: 'percent' },

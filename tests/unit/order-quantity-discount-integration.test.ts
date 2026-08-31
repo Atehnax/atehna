@@ -15,13 +15,15 @@ test('authoritative quote loads scoped rules and uses the editor type for machin
   assert.match(commerceSource, /productType: row\.editor_product_type/u);
 });
 
-test('customer labels and discount provenance flow through both commercial quote paths', () => {
+test('customer labels and discount provenance flow through both commercial estimate paths', () => {
+  const estimateRouteSource = source('src/commercial/api/orders/estimate/route.ts');
   const quoteRouteSource = source('src/commercial/api/orders/quote/route.ts');
   const orderRouteSource = source('src/commercial/api/orders/route.ts');
   const commerceSource = source('src/shared/server/orderCommerce.ts');
 
-  assert.match(quoteRouteSource, /bodyResult\.body\.customerName/u);
-  assert.match(quoteRouteSource, /customerLabels: customerName \? \[customerName\] : \[\]/u);
+  assert.match(estimateRouteSource, /bodyResult\.body\.customerName/u);
+  assert.match(estimateRouteSource, /customerLabels: customerName \? \[customerName\] : \[\]/u);
+  assert.match(quoteRouteSource, /orders\/estimate\/route/u);
   assert.match(orderRouteSource, /customer\.organizationName/u);
   assert.match(orderRouteSource, /customer\.contactName/u);
   assert.match(orderRouteSource, /customer\.customerName/u);

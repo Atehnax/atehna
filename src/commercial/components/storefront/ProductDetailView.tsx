@@ -910,11 +910,9 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
               Dostava
             </dt>
             <dd className="mt-1 text-[color:var(--site-color-text-muted)]">
-              {appearance.purchaseArea.copy.freeShippingMessage ? (
-                <span className="block font-semibold text-[color:var(--site-color-success)]">
-                  {appearance.purchaseArea.copy.freeShippingMessage}
-                </span>
-              ) : null}
+              <span className="block font-semibold text-[color:var(--site-color-text)]">
+                Poštnina se izračuna v košarici glede na skupno težo in mere.
+              </span>
               {selectedVariant?.deliveryEstimate ??
                 product.deliveryEstimate ??
                 appearance.purchaseArea.copy.deliveryFallbackMessage}

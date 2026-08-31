@@ -20,6 +20,7 @@ const storefrontDetailSource = readSource(
 );
 const orderCommerceSource = readSource('src/shared/server/orderCommerce.ts');
 const orderRouteSource = readSource('src/commercial/api/orders/route.ts');
+const orderPlacementSource = readSource('src/shared/server/orderPlacement.ts');
 const orderConfirmationRouteSource = readSource(
   'src/commercial/api/orders/confirmation/route.ts'
 );
@@ -71,9 +72,7 @@ test('dimension and weight variant matrices remain the canonical editing surface
     'type DimensionVariantBulkApplyRowKey ='
   );
   for (const rowKey of [
-    'thickness',
-    'length',
-    'width',
+    'dimensions',
     'weight',
     'tolerance',
     'price',
@@ -85,6 +84,29 @@ test('dimension and weight variant matrices remain the canonical editing surface
     expect(dimensionRows).toContain(`key: '${rowKey}'`);
   }
   expect(editorSource).toContain('renderExpandedDimensionVariantCell');
+  expect(editorSource).toContain('renderDimensionVariantTriplet');
+  const dimensionTriplet = sourceBetween(
+    editorSource,
+    'const renderDimensionVariantTriplet =',
+    'const getDimensionVariantSummaryValue ='
+  );
+  expect(dimensionTriplet).toContain('grid-cols-3');
+  const dimensionPlaceholders = [
+    'placeholder="Debelina/fi"',
+    'placeholder="Dolžina"',
+    'placeholder="Širina"'
+  ];
+  for (const [index, placeholder] of dimensionPlaceholders.entries()) {
+    expect(dimensionTriplet).toContain(placeholder);
+    if (index > 0) {
+      expect(dimensionTriplet.indexOf(placeholder)).toBeGreaterThan(
+        dimensionTriplet.indexOf(dimensionPlaceholders[index - 1])
+      );
+    }
+  }
+  expect(editorSource).toContain("readDecimalInputValue(variant.id, 'length', variant.length)");
+  expect(editorSource).toContain("readDecimalInputValue(variant.id, 'width', variant.width)");
+  expect(editorSource).toContain("readDecimalInputValue(variant.id, 'thickness', variant.thickness)");
   expect(editorSource).toContain('{DIMENSION_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {');
   expect(editorSource).toContain(
     'aria-label="Razli\u010dice artikla s polji v vrsticah"'
@@ -109,6 +131,18 @@ test('dimension and weight variant matrices remain the canonical editing surface
     expect(weightRows).toContain(`key: '${rowKey}'`);
   }
   expect(weightEditorSource).toContain('renderExpandedWeightVariantCell');
+  const weightDimensionTriplet = sourceBetween(
+    weightEditorSource,
+    'const renderWeightVariantDimensions =',
+    'const renderExpandedWeightVariantCell ='
+  );
+  expect(weightDimensionTriplet).toContain('grid-cols-3');
+  const sharedDimensionTriplet = sourceBetween(
+    weightEditorSource,
+    'function MachineDimensionsValueFields({',
+    'function MachineEditableSpecRow({'
+  );
+  expect(sharedDimensionTriplet).toContain('grid-cols-3');
   expect(weightEditorSource).toContain('{WEIGHT_VARIANT_MATRIX_ROWS.map((row, rowIndex) => {');
   expect(weightEditorSource).toContain(
     'aria-label="Razli\u010dice artikla po masi s polji v vrsticah"'
@@ -158,7 +192,8 @@ test('canonical matrix values remain snapshotted and restored with customer orde
   expect(orderContractsSource).toContain(
     'attributes: Record<string, string | number>;'
   );
-  expect(orderRouteSource).toContain('JSON.stringify(item.attributes)');
+  expect(orderRouteSource).toContain('placeOrderFromFrozenSnapshot');
+  expect(orderPlacementSource).toContain('JSON.stringify(item.attributes)');
   expect(orderConfirmationRouteSource).toContain(
     'attributes: objectValue(row.selected_attributes)'
   );

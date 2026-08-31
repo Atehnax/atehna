@@ -103,8 +103,12 @@ test("admin can configure order email settings and templates without sending mai
       name: "Nastavitve",
       exact: true,
     });
-    const templatesTab = page.getByRole("tab", {
-      name: "Predloge",
+    const ordersTab = page.getByRole("tab", {
+      name: "Naročila",
+      exact: true,
+    });
+    const quotesTab = page.getByRole("tab", {
+      name: "Ponudbe",
       exact: true,
     });
     const emailTabList = page.getByRole("tablist", {
@@ -112,35 +116,53 @@ test("admin can configure order email settings and templates without sending mai
     });
     await expect(emailTabList).toBeVisible();
     await expect(settingsTab).toHaveAttribute("aria-selected", "true");
-    await expect(templatesTab).toHaveAttribute("aria-selected", "false");
+    await expect(ordersTab).toHaveAttribute("aria-selected", "false");
+    await expect(quotesTab).toHaveAttribute("aria-selected", "false");
     await expect(settingsTab).toHaveAttribute(
       "aria-controls",
       "order-email-settings-panel",
     );
-    await expect(templatesTab).toHaveAttribute(
+    await expect(ordersTab).toHaveAttribute(
       "aria-controls",
-      "order-email-templates-panel",
+      "order-email-orders-panel",
+    );
+    await expect(quotesTab).toHaveAttribute(
+      "aria-controls",
+      "order-email-quotes-panel",
     );
     await expect(page.getByTestId("order-email-settings-panel")).toBeVisible();
     await expect(
       page.getByTestId("order-email-settings-panel"),
     ).toHaveAttribute("aria-labelledby", "order-email-tab-settings");
-    await expect(page.getByTestId("order-email-templates-panel")).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId("order-email-orders-panel")).toBeHidden();
+    await expect(page.getByTestId("order-email-quotes-panel")).toBeHidden();
 
+    await expect(async () => {
+      await ordersTab.click();
+      await expect(ordersTab).toHaveAttribute("aria-selected", "true", {
+        timeout: 250,
+      });
+    }).toPass({ timeout: 5_000 });
+    await settingsTab.click();
+    await expect(settingsTab).toHaveAttribute("aria-selected", "true");
     await settingsTab.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(templatesTab).toBeFocused();
-    await expect(templatesTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("order-email-templates-panel")).toBeVisible();
-    await page.keyboard.press("Home");
+    await settingsTab.press("ArrowRight");
+    await expect(ordersTab).toBeFocused();
+    await expect(ordersTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("order-email-orders-panel")).toBeVisible();
+    await ordersTab.press("Home");
     await expect(settingsTab).toBeFocused();
     await expect(settingsTab).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("End");
-    await expect(templatesTab).toBeFocused();
-    await expect(templatesTab).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("ArrowLeft");
+    await settingsTab.press("End");
+    await expect(quotesTab).toBeFocused();
+    await expect(quotesTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("order-email-quotes-panel")).toBeVisible();
+    await expect(page.getByTestId("order-email-settings-save")).toHaveCount(0);
+    await quotesTab.press("ArrowLeft");
+    await expect(ordersTab).toBeFocused();
+    await expect(ordersTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("order-email-settings-save")).toBeVisible();
+    await ordersTab.press("ArrowLeft");
     await expect(settingsTab).toBeFocused();
     await expect(settingsTab).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("order-email-settings-panel")).toBeVisible();
@@ -148,13 +170,6 @@ test("admin can configure order email settings and templates without sending mai
     await expect(
       page.getByText("Pošiljanje je v E2E izklopljeno"),
     ).toBeVisible();
-    await expect(
-      page.getByTestId("order-email-event-order_submitted-customer"),
-    ).toBeChecked();
-    await expect(
-      page.getByTestId("order-email-event-in_progress-admins"),
-    ).toBeChecked();
-
     const saveButton = page.getByTestId("order-email-settings-save");
     const senderName = page.getByLabel("Ime po\u0161iljatelja");
     const fromAddress = page.getByLabel("E-po\u0161tni naslov po\u0161iljatelja");
@@ -204,6 +219,14 @@ test("admin can configure order email settings and templates without sending mai
         });
       },
     );
+    await ordersTab.click();
+    await expect(page.getByTestId("order-email-orders-panel")).toBeVisible();
+    await expect(
+      page.getByTestId("order-email-event-order_submitted-customer"),
+    ).toBeChecked();
+    await expect(
+      page.getByTestId("order-email-event-in_progress-admins"),
+    ).toBeChecked();
     const testRecipient = page.getByLabel("Prejemnik testa");
     await testRecipient.fill("e2e-test@example.com");
     await testRecipient.press("Enter");
@@ -220,21 +243,22 @@ test("admin can configure order email settings and templates without sending mai
     expect(serializedTestRequest).not.toContain("RESEND_API_KEY");
     expect(serializedTestRequest).not.toContain("apiKey");
 
+    await settingsTab.click();
     await page.getByRole("button", { name: "Dodaj naslov" }).click();
     const recipient = page
       .getByLabel(/E-poštni naslov administratorja/u)
       .last();
     await recipient.fill("  E2E-ORDER-EMAIL@EXAMPLE.COM  ");
 
+    await ordersTab.click();
     const finishedCustomer = page.getByTestId(
       "order-email-event-finished-customer",
     );
     const originalFinishedCustomer = await finishedCustomer.isChecked();
     await finishedCustomer.setChecked(!originalFinishedCustomer);
 
-    await templatesTab.click();
-    await expect(templatesTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("order-email-templates-panel")).toBeVisible();
+    await expect(ordersTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("order-email-orders-panel")).toBeVisible();
     await page.getByLabel("Dogodek naročila").selectOption("order_submitted");
     const templateEvent = page.getByLabel("Dogodek naro\u010dila");
     const schoolCustomerCard = page.getByTestId(
@@ -333,7 +357,7 @@ test("admin can configure order email settings and templates without sending mai
 
     await settingsTab.click();
     await expect(page.getByTestId("order-email-settings-panel")).toBeVisible();
-    await templatesTab.click();
+    await ordersTab.click();
     await expect(customerSubject).toHaveValue(customerSubjectValue);
     await expect(customerBody).toHaveValue(customerBodyValue);
     await expect(adminSubject).toHaveValue(adminSubjectValue);
@@ -388,7 +412,12 @@ test("admin can configure order email settings and templates without sending mai
       page.getByTestId("order-email-event-finished-customer"),
     ).toBeChecked({ checked: !originalFinishedCustomer });
 
-    await templatesTab.click();
+    await expect(async () => {
+      await ordersTab.click();
+      await expect(ordersTab).toHaveAttribute("aria-selected", "true", {
+        timeout: 250,
+      });
+    }).toPass({ timeout: 5_000 });
     await page.getByLabel("Dogodek naročila").selectOption("order_submitted");
     await expect(page.getByLabel("Zadeva za stranko")).toHaveValue(
       customerSubjectValue,
@@ -411,7 +440,8 @@ test("admin can configure order email settings and templates without sending mai
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(settingsTab).toBeVisible();
-    await expect(templatesTab).toBeVisible();
+    await expect(ordersTab).toBeVisible();
+    await expect(quotesTab).toBeVisible();
     const viewportMetrics = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,
       documentWidth: Math.max(

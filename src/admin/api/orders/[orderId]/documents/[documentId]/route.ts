@@ -23,6 +23,7 @@ type OrderDocumentDeleteRow = {
   customer_type: string | null;
   status: string;
   commitment_status: string | null;
+  source_quote_offer_version_id: string | number | null;
   created_at: string | null;
   deleted_at: string | null;
 };
@@ -74,6 +75,7 @@ export async function GET(
           and d.order_id = $2
           and d.deleted_at is null
           and o.deleted_at is null
+          and d.order_pricing_revision = o.pricing_revision
         limit 1
       `,
       [documentId, orderId]
@@ -143,7 +145,7 @@ export async function DELETE(
         `
           select order_number, contact_name, address_line1, address_line2,
             postal_code, city, country_code, customer_type, created_at,
-            status, commitment_status
+            status, commitment_status, source_quote_offer_version_id
           from orders
           where id = $1
           for update
@@ -175,6 +177,20 @@ export async function DELETE(
       } as OrderDocumentDeleteRow;
 
       if (!row.deleted_at) {
+        if (
+          row.type === 'purchase_order' &&
+          row.source_quote_offer_version_id !== null
+        ) {
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              code: 'QUOTE_PURCHASE_ORDER_EVIDENCE_IMMUTABLE',
+              message:
+                'Naročilnica, oddana kot dokaz sprejema ponudbe, je nespremenljiv del zgodovine ponudbe.'
+            },
+            { status: 409 }
+          );
+        }
         if (row.type === 'purchase_order') {
           const otherPurchaseOrderResult = await client.query(
             `
@@ -185,6 +201,9 @@ export async function DELETE(
                 and type = 'purchase_order'
                 and deleted_at is null
                 and format_marker = any($3::text[])
+                and order_pricing_revision = (
+                  select pricing_revision from orders where id = $1
+                )
               order by id desc
               limit 1
               for share

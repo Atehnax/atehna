@@ -338,18 +338,18 @@ const buildSystemCharts = (dashboardKey: string) => [
   },
   {
     key: `${dashboardKey}-revenue-ma`,
-    title: 'Revenue/day + 7d MA',
-    description: 'Revenue in EUR with moving average.',
+    title: 'Vrednost naročil/dan + 7-dnevno povprečje',
+    description: 'Vrednost sprejetih naročil v EUR z drsečim povprečjem.',
     comment: null,
     chart_type: 'combo' as AnalyticsChartType,
     position: 1,
     config_json: {
       ...defaultConfig(),
-      yLeftTitle: 'Revenue (EUR)',
+      yLeftTitle: 'Vrednost naročil (EUR)',
       yLeftTickFormat: ',.2f',
       series: [
-        defaultSeries('revenue_total', { chart_type: 'bar', color: '#38bdf8', axis_label: 'Revenue' }),
-        defaultSeries('revenue_total', { transform: 'moving_average_7d', chart_type: 'line', color: '#f59e0b', axis_label: 'Revenue 7d MA' })
+        defaultSeries('revenue_total', { chart_type: 'bar', color: '#38bdf8', axis_label: 'Vrednost naročil' }),
+        defaultSeries('revenue_total', { transform: 'moving_average_7d', chart_type: 'line', color: '#f59e0b', axis_label: '7-dnevno povprečje vrednosti' })
       ]
     }
   },
@@ -372,19 +372,19 @@ const buildSystemCharts = (dashboardKey: string) => [
   },
   {
     key: `${dashboardKey}-cumulative-dual`,
-    title: 'Cumulative revenue vs cumulative orders',
-    description: 'Dual axis cumulative trends.',
+    title: 'Kumulativna vrednost in število naročil',
+    description: 'Kumulativni trend sprejetih naročil na dveh oseh.',
     comment: null,
     chart_type: 'combo' as AnalyticsChartType,
     position: 3,
     config_json: {
       ...defaultConfig(),
-      yLeftTitle: 'Cumulative revenue (EUR)',
+      yLeftTitle: 'Kumulativna vrednost naročil (EUR)',
       yLeftTickFormat: ',.0f',
       yRightEnabled: true,
       yRightTitle: 'Cumulative orders',
       series: [
-        defaultSeries('revenue_total', { transform: 'cumulative', chart_type: 'line', color: '#22d3ee', axis_side: 'left', axis_label: 'Cumulative revenue' }),
+        defaultSeries('revenue_total', { transform: 'cumulative', chart_type: 'line', color: '#22d3ee', axis_side: 'left', axis_label: 'Kumulativna vrednost naročil' }),
         defaultSeries('order_count', { transform: 'cumulative', chart_type: 'line', color: '#f59e0b', axis_side: 'right', axis_label: 'Cumulative orders' })
       ]
     }

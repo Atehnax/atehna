@@ -13,6 +13,10 @@
       "schedule": "40 3 * * *"
     },
     {
+      "path": "/api/admin/quote-workflow/process",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/admin/addresses/sync",
       "schedule": "0 2 1 * *"
     }

@@ -35,7 +35,6 @@ const purchaseCopyKeys = [
   'selectOptionsActionLabel',
   'addToCartActionLabel',
   'unavailableActionLabel',
-  'freeShippingMessage',
   'deliveryFallbackMessage',
   'paymentMessage',
   'secondaryActionLabel'
@@ -57,7 +56,6 @@ describe('product purchase copy contracts', () => {
       insufficientStockDetail: expect.stringContaining('{minimum}'),
       quantityLabel: 'Količina',
       addToCartActionLabel: 'Dodaj v košarico',
-      freeShippingMessage: 'Brezplačna dostava po Sloveniji'
     });
     expect(defaults.deliveryFallbackMessage).toBe(
       'Predvideni rok sporočimo ob potrditvi naročila.'
@@ -82,7 +80,6 @@ describe('product purchase copy contracts', () => {
           inStockDetail: '  Available: {stock} {unit}  ',
           insufficientStockDetail:
             'Only {stock} {unit}; minimum {minimum} {unit}.',
-          freeShippingMessage: '   ',
           paymentMessage: `  ${'x'.repeat(360)}  `,
           addToCartActionLabel: '  Add item  '
         }
@@ -95,10 +92,12 @@ describe('product purchase copy contracts', () => {
       inStockDetail: 'Available: {stock} {unit}',
       insufficientStockDetail:
         'Only {stock} {unit}; minimum {minimum} {unit}.',
-      freeShippingMessage: '',
       paymentMessage: 'x'.repeat(320),
       addToCartActionLabel: 'Add item'
     });
+    expect(normalized.purchaseArea.copy).not.toHaveProperty(
+      ['free', 'ShippingMessage'].join('')
+    );
 
     const stored = toStoredProductAppearanceConfig(normalized);
     expect(stored.purchaseArea.copy).toEqual(normalized.purchaseArea.copy);
@@ -205,7 +204,6 @@ describe('product purchase copy contracts', () => {
       'selectOptionsActionLabel',
       'addToCartActionLabel',
       'unavailableActionLabel',
-      'freeShippingMessage',
       'deliveryFallbackMessage',
       'paymentMessage',
       'secondaryActionLabel'
@@ -254,5 +252,11 @@ describe('product purchase copy contracts', () => {
     expect(detailSource).toContain(
       'appearance.purchaseArea.copy.unavailableActionLabel'
     );
+    const shippingMessage =
+      'Poštnina se izračuna v košarici glede na skupno težo in mere.';
+    expect(purchasePanelSource).toContain(shippingMessage);
+    expect(detailSource).toContain(shippingMessage);
+    expect(purchasePanelSource).not.toMatch(/free.?Shipping|Brezplačn[a]? dostav/u);
+    expect(detailSource).not.toMatch(/free.?Shipping|Brezplačn[a]? dostav/u);
   });
 });

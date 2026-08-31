@@ -1,18 +1,42 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { validateOrderDocumentTemplatesInput } from '@/shared/domain/order/orderDocumentTemplates';
+import {
+  cloneDefaultOrderDocumentTemplate,
+  validateOrderDocumentTemplatesInput
+} from '@/shared/domain/order/orderDocumentTemplates';
 import { isDatabaseUnavailableError } from '@/shared/server/db';
 import {
   getOrderDocumentTemplatesConfig,
   revalidateOrderDocumentTemplatesCache,
-  updateOrderDocumentTemplatesConfig
+  updateOrderDocumentTemplatesConfig,
+  withoutQuoteOfferTemplate
 } from '@/shared/server/orderDocumentTemplates';
+import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({ config: await getOrderDocumentTemplatesConfig() });
+  const config = await getOrderDocumentTemplatesConfig();
+  return NextResponse.json({
+    config: isQuoteAdminEnabled() ? config : withoutQuoteOfferTemplate(config)
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function offerSafeValidationInput(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const templates = isRecord(value.templates) ? value.templates : {};
+  return {
+    ...value,
+    templates: {
+      ...templates,
+      offer: cloneDefaultOrderDocumentTemplate('offer')
+    }
+  };
 }
 
 export async function PUT(request: Request) {
@@ -20,7 +44,10 @@ export async function PUT(request: Request) {
     const body = await readRequiredJsonRecord(request);
     if (!body.ok) return body.response;
     const configInput = body.body.config ?? body.body;
-    const errors = validateOrderDocumentTemplatesInput(configInput);
+    const quoteAdminEnabled = isQuoteAdminEnabled();
+    const errors = validateOrderDocumentTemplatesInput(
+      quoteAdminEnabled ? configInput : offerSafeValidationInput(configInput)
+    );
     if (errors.length > 0) {
       return NextResponse.json(
         { message: errors[0] ?? 'Nastavitve predlog PDF niso veljavne.', errors },
@@ -28,12 +55,19 @@ export async function PUT(request: Request) {
       );
     }
 
-    const result = await updateOrderDocumentTemplatesConfig(configInput, { request });
+    const result = await updateOrderDocumentTemplatesConfig(configInput, {
+      request,
+      preserveQuoteOfferTemplate: !quoteAdminEnabled
+    });
     if (result.changed) {
       revalidateOrderDocumentTemplatesCache();
       revalidatePath('/admin/urejevalnik');
     }
-    return NextResponse.json({ config: result.config });
+    return NextResponse.json({
+      config: quoteAdminEnabled
+        ? result.config
+        : withoutQuoteOfferTemplate(result.config)
+    });
   } catch (error) {
     console.error('Failed to update order document templates', error);
     return NextResponse.json(

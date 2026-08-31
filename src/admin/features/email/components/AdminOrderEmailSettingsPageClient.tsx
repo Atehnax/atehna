@@ -11,30 +11,37 @@ import {
   type OrderEmailSettings,
 } from "@/shared/domain/order/orderEmailSettings";
 import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
+import type { QuoteEmailAdminState } from "@/shared/server/quoteEmailSettings";
+import AdminQuoteEmailSettingsSection from "@/admin/features/email/components/AdminQuoteEmailSettingsSection";
 import { AdminPageHeader } from "@/shared/ui/admin-primitives";
+import { AdminSwitch } from "@/shared/ui/admin-switch";
 import AdminCheckbox from "@/shared/ui/checkbox/admin-checkbox";
 import EuiTabs from "@/shared/ui/eui-tabs";
 import { Spinner } from "@/shared/ui/loading";
+import {
+  adminWindowCardClassName,
+  adminWindowCardStyle,
+} from "@/shared/ui/admin-table";
 import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
 import { useToast } from "@/shared/ui/toast";
 
 type UnknownRecord = Record<string, unknown>;
 type EventKey = keyof OrderEmailSettings["events"];
 type EventAudience = keyof OrderEmailSettings["events"][EventKey];
-type EmailPageTab = "settings" | "templates";
+type EmailPageTab = "settings" | "orders" | "quotes";
 type StandardTemplateAudience = "customer" | "admin";
 type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
 type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
 
 const fieldClassName =
-  `h-10 w-full rounded-lg border border-slate-300 bg-white px-3 font-['Inter',system-ui,sans-serif] text-sm text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
+  `h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
 const textareaClassName =
-  `min-h-28 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-['Inter',system-ui,sans-serif] text-sm leading-5 text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 ${adminInputFocusTokenClasses}`;
+  `min-h-24 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-5 text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 ${adminInputFocusTokenClasses}`;
 const alignedFieldClassName = "grid min-w-0 grid-rows-[1fr_auto]";
 const primaryButtonClassName =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-3.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButtonClassName =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
 
 function asRecord(value: unknown): UnknownRecord {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -181,14 +188,14 @@ function SurfaceCard({
 }) {
   return (
     <section
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+      className="min-w-0 bg-white px-4 py-4 sm:px-5"
       data-testid={testId}
     >
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2.5">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
           {description ? (
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">
+            <p className="mt-0.5 max-w-3xl text-xs leading-4 text-slate-600">
               {description}
             </p>
           ) : null}
@@ -211,7 +218,7 @@ function FieldLabel({
 }) {
   return (
     <label htmlFor={htmlFor} className="block">
-      <span className="block text-sm font-medium text-slate-800">{label}</span>
+      <span className="block text-xs font-semibold text-slate-700">{label}</span>
       {hint ? (
         <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
       ) : null}
@@ -255,13 +262,13 @@ function TemplateEditorCard({
 
   return (
     <section
-      className={`min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 ${className}`}
+      className={`min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 ${className}`}
       data-testid={`order-email-template-${audienceTestId}`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-xs leading-5 text-slate-600">{description}</p>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600">{description}</p>
         </div>
         <button
           type="button"
@@ -274,7 +281,7 @@ function TemplateEditorCard({
         </button>
       </div>
 
-      <div className="mt-5 space-y-5">
+      <div className="mt-3 space-y-3">
         <div>
           <FieldLabel
             htmlFor={subjectId}
@@ -283,7 +290,7 @@ function TemplateEditorCard({
           />
           <input
             id={subjectId}
-            className={`${fieldClassName} mt-2`}
+            className={`${fieldClassName} mt-1.5`}
             value={subject}
             maxLength={ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
             onChange={(event) => onSubjectChange(event.target.value)}
@@ -298,7 +305,7 @@ function TemplateEditorCard({
           />
           <textarea
             id={bodyId}
-            className={`${textareaClassName} mt-2 min-h-52`}
+            className={`${textareaClassName} mt-1.5 min-h-40`}
             value={body}
             maxLength={ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH}
             onChange={(event) => onBodyChange(event.target.value)}
@@ -307,12 +314,12 @@ function TemplateEditorCard({
         </div>
       </div>
 
-      <div className="mt-5 border-t border-slate-200 pt-4">
+      <div className="mt-3 border-t border-slate-200 pt-3">
         <p className="text-xs font-medium text-slate-700">
           Dovoljene spremenljivke
         </p>
         <div
-          className="mt-2 flex flex-wrap gap-2"
+          className="mt-1.5 flex flex-wrap gap-1.5"
           aria-label={`Dovoljene spremenljivke za ${audienceLabel}`}
         >
           {variables.map((variable) => (
@@ -326,40 +333,6 @@ function TemplateEditorCard({
         </div>
       </div>
     </section>
-  );
-}
-
-function MasterSwitch({
-  checked,
-  disabled,
-  onChange,
-}: {
-  checked: boolean;
-  disabled: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={
-        checked ? "Izklopi samodejno pošiljanje" : "Vklopi samodejno pošiljanje"
-      }
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition ${
-        checked
-          ? "border-[color:var(--blue-500)] bg-[color:var(--blue-500)]"
-          : "border-slate-300 bg-slate-200"
-      } disabled:cursor-not-allowed disabled:opacity-60`}
-    >
-      <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-6" : "translate-x-0.5"
-        }`}
-      />
-    </button>
   );
 }
 
@@ -380,8 +353,8 @@ function QueueMetric({
   }[tone];
 
   return (
-    <div className={`rounded-xl border px-4 py-3 ${toneClassName}`}>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+    <div className={`rounded-lg border px-3 py-2.5 ${toneClassName}`}>
+      <div className="text-xl font-semibold tabular-nums">{value}</div>
       <div className="mt-0.5 text-xs font-medium opacity-75">{label}</div>
     </div>
   );
@@ -389,8 +362,10 @@ function QueueMetric({
 
 export default function AdminOrderEmailSettingsPageClient({
   initialState,
+  initialQuoteState,
 }: {
   initialState: OrderEmailAdminState;
+  initialQuoteState: QuoteEmailAdminState;
 }) {
   const normalizedInitialState = useMemo(
     () => normalizeAdminStateResponse(initialState, initialState),
@@ -731,25 +706,27 @@ export default function AdminOrderEmailSettingsPageClient({
   };
 
   return (
-    <div className="w-full space-y-5 font-['Inter',system-ui,sans-serif]">
+    <div className="w-full space-y-4">
       <AdminPageHeader
         title="Email"
-        description="Nastavite obvestila za stranke in administratorje ob oddaji naročila ter spremembah statusa."
+        description="Skupni profil pošiljatelja ter ločeni dogodki, predloge in čakalne vrste za naročila in ponudbe."
         actions={
-          <button
-            type="button"
-            className={primaryButtonClassName}
-            disabled={saving || !hasChanges}
-            onClick={() => void handleSave()}
-            data-testid="order-email-settings-save"
-          >
-            {saving ? <Spinner size="sm" /> : null}
-            {saving
-              ? "Shranjujem …"
-              : hasChanges
-                ? "Shrani spremembe"
-                : "Shranjeno"}
-          </button>
+          activeTab === "quotes" ? undefined : (
+            <button
+              type="button"
+              className={primaryButtonClassName}
+              disabled={saving || !hasChanges}
+              onClick={() => void handleSave()}
+              data-testid="order-email-settings-save"
+            >
+              {saving ? <Spinner size="sm" /> : null}
+              {saving
+                ? "Shranjujem …"
+                : hasChanges
+                  ? "Shrani spremembe"
+                  : "Shranjeno"}
+            </button>
+          )
         }
       />
 
@@ -758,6 +735,7 @@ export default function AdminOrderEmailSettingsPageClient({
         onChange={(next) => setActiveTab(next as EmailPageTab)}
         ariaLabel="Razdelki nastavitev e-pošte"
         idPrefix="order-email"
+        tabClassName="!min-w-0 flex-1 !px-2 sm:!min-w-[118px] sm:!flex-none sm:!px-6"
         tabs={[
           {
             value: "settings",
@@ -765,9 +743,14 @@ export default function AdminOrderEmailSettingsPageClient({
             panelId: "order-email-settings-panel",
           },
           {
-            value: "templates",
-            label: "Predloge",
-            panelId: "order-email-templates-panel",
+            value: "orders",
+            label: "Naročila",
+            panelId: "order-email-orders-panel",
+          },
+          {
+            value: "quotes",
+            label: "Ponudbe",
+            panelId: "order-email-quotes-panel",
           },
         ]}
       />
@@ -789,15 +772,17 @@ export default function AdminOrderEmailSettingsPageClient({
         </div>
       ) : null}
 
-      {activeTab === "settings" ? (
-        <div
-          id="order-email-settings-panel"
-          role="tabpanel"
-          aria-labelledby="order-email-tab-settings"
-          tabIndex={0}
-          className="space-y-5"
-          data-testid="order-email-settings-panel"
-        >
+      <div
+        id="order-email-settings-panel"
+        role="tabpanel"
+        aria-labelledby="order-email-tab-settings"
+        aria-hidden={activeTab !== "settings"}
+        hidden={activeTab !== "settings"}
+        tabIndex={activeTab === "settings" ? 0 : -1}
+        className={`${adminWindowCardClassName} divide-y divide-slate-200 bg-white`}
+        style={adminWindowCardStyle}
+        data-testid="order-email-settings-panel"
+      >
           <SurfaceCard
             title="Pošiljanje"
             description="Glavno stikalo ustavi ali omogoči vsa samodejna sporočila. Skrivni dostop do ponudnika se upravlja samo v okolju Vercel."
@@ -807,16 +792,21 @@ export default function AdminOrderEmailSettingsPageClient({
                 <span className="text-sm font-medium text-slate-700">
                   {draft.enabled ? "Vklopljeno" : "Izklopljeno"}
                 </span>
-                <MasterSwitch
+                <AdminSwitch
                   checked={draft.enabled}
                   disabled={saving}
+                  ariaLabel={
+                    draft.enabled
+                      ? "Izklopi samodejno pošiljanje"
+                      : "Vklopi samodejno pošiljanje"
+                  }
                   onChange={(enabled) => updateConfig("enabled", enabled)}
                 />
               </div>
             }
           >
             <div
-              className={`rounded-lg border px-4 py-3 ${readiness.className}`}
+              className={`rounded-lg border px-3 py-2.5 ${readiness.className}`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-semibold">{readiness.label}</span>
@@ -829,7 +819,7 @@ export default function AdminOrderEmailSettingsPageClient({
               </p>
             </div>
             {draft.enabled && !draftBasicReady ? (
-              <p className="mt-3 text-sm text-amber-700">
+              <p className="mt-2 text-xs text-amber-700">
                 Pošiljanje ne bo delovalo, dokler shema, povezava in trenutne
                 osnovne nastavitve niso pripravljene.
               </p>
@@ -841,7 +831,7 @@ export default function AdminOrderEmailSettingsPageClient({
             description="Naslov pošiljatelja mora pripadati domeni, ki je preverjena pri ponudniku e-pošte."
             testId="order-email-sender-settings"
           >
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <div className={alignedFieldClassName}>
                 <FieldLabel
                   htmlFor="order-email-sender-name"
@@ -849,7 +839,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 />
                 <input
                   id="order-email-sender-name"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={draft.senderName}
                   maxLength={120}
                   onChange={(event) =>
@@ -867,7 +857,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 <input
                   id="order-email-from-address"
                   type="email"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={draft.fromEmail}
                   maxLength={320}
                   onChange={(event) =>
@@ -886,7 +876,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 <input
                   id="order-email-reply-to"
                   type="email"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={draft.replyToEmail}
                   maxLength={320}
                   onChange={(event) =>
@@ -905,7 +895,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 <input
                   id="order-email-site-url"
                   type="url"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={draft.siteUrl}
                   maxLength={2048}
                   onChange={(event) =>
@@ -940,11 +930,11 @@ export default function AdminOrderEmailSettingsPageClient({
             }
           >
             {draft.adminRecipients.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
                 Administrator še nima nastavljenega prejemnika.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {draft.adminRecipients.map((recipient, index) => (
                   <div
                     key={`admin-recipient-${index}`}
@@ -970,7 +960,7 @@ export default function AdminOrderEmailSettingsPageClient({
                     />
                     <button
                       type="button"
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-lg text-rose-600 transition hover:bg-rose-50"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-lg text-rose-600 transition hover:bg-rose-50"
                       onClick={() => removeAdminRecipient(index)}
                       aria-label={`Odstrani e-poštni naslov administratorja ${index + 1}`}
                       title="Odstrani naslov"
@@ -982,7 +972,19 @@ export default function AdminOrderEmailSettingsPageClient({
               </div>
             )}
           </SurfaceCard>
+      </div>
 
+      <div
+        id="order-email-orders-panel"
+        role="tabpanel"
+        aria-labelledby="order-email-tab-orders"
+        aria-hidden={activeTab !== "orders"}
+        hidden={activeTab !== "orders"}
+        tabIndex={activeTab === "orders" ? 0 : -1}
+        className={`${adminWindowCardClassName} divide-y divide-slate-200 bg-white`}
+        style={adminWindowCardStyle}
+        data-testid="order-email-orders-panel"
+      >
           <SurfaceCard
             title="Dogodki naročila"
             description="Stranka pomeni e-poštni naslov, ki je shranjen na naročilu. Oddaja naročila in poznejša sprememba statusa Prejeto sta ločena dogodka."
@@ -994,19 +996,19 @@ export default function AdminOrderEmailSettingsPageClient({
                   <tr>
                     <th
                       scope="col"
-                      className="px-4 py-3 text-left font-semibold"
+                      className="px-4 py-2.5 text-left font-semibold"
                     >
                       Dogodek
                     </th>
                     <th
                       scope="col"
-                      className="w-36 px-4 py-3 text-center font-semibold"
+                      className="w-36 px-4 py-2.5 text-center font-semibold"
                     >
                       Stranka
                     </th>
                     <th
                       scope="col"
-                      className="w-44 px-4 py-3 text-center font-semibold"
+                      className="w-44 px-4 py-2.5 text-center font-semibold"
                     >
                       Administratorji
                     </th>
@@ -1026,7 +1028,7 @@ export default function AdminOrderEmailSettingsPageClient({
                       >
                         <th
                           scope="row"
-                          className="px-4 py-3 text-left font-normal"
+                          className="px-4 py-2.5 text-left font-normal"
                         >
                           <span className="block font-medium text-slate-900">
                             {definition.label}
@@ -1035,7 +1037,7 @@ export default function AdminOrderEmailSettingsPageClient({
                             {definition.description}
                           </span>
                         </th>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-2.5 text-center">
                           <AdminCheckbox
                             checked={eventSetting.customer}
                             onChange={(event) =>
@@ -1049,7 +1051,7 @@ export default function AdminOrderEmailSettingsPageClient({
                             data-testid={`order-email-event-${String(definition.value)}-customer`}
                           />
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-2.5 text-center">
                           <AdminCheckbox
                             checked={eventSetting.admins}
                             onChange={(event) =>
@@ -1077,7 +1079,7 @@ export default function AdminOrderEmailSettingsPageClient({
             testId="order-email-test-delivery"
           >
             <form
-              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
               onSubmit={(event) => {
                 event.preventDefault();
                 void handleTest();
@@ -1091,7 +1093,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 <input
                   id="order-email-test-recipient"
                   type="email"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={testRecipient}
                   onChange={(event) => {
                     setTestRecipient(event.target.value);
@@ -1135,7 +1137,7 @@ export default function AdminOrderEmailSettingsPageClient({
               </button>
             }
           >
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               <QueueMetric
                 label="Na čakanju"
                 value={adminState.queue.pending}
@@ -1157,16 +1159,16 @@ export default function AdminOrderEmailSettingsPageClient({
               />
             </div>
 
-            <div className="mt-5">
+            <div className="mt-3">
               <h3 className="text-sm font-semibold text-slate-900">
                 Nedavne napake
               </h3>
               {adminState.queue.recentFailures.length === 0 ? (
-                <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
                   Ni nedavnih neuspelih pošiljanj.
                 </p>
               ) : (
-                <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
+                <div className="mt-1.5 overflow-x-auto rounded-lg border border-slate-200">
                   <table className="w-full min-w-[760px] border-collapse text-sm">
                     <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
                       <tr>
@@ -1234,22 +1236,12 @@ export default function AdminOrderEmailSettingsPageClient({
               )}
             </div>
           </SurfaceCard>
-        </div>
-      ) : (
-        <div
-          id="order-email-templates-panel"
-          role="tabpanel"
-          aria-labelledby="order-email-tab-templates"
-          tabIndex={0}
-          className="space-y-5"
-          data-testid="order-email-templates-panel"
-        >
           <SurfaceCard
             title="Skupna vsebina"
             description="Predpona se doda zadevi vsakega sporočila, besedilo v nogi pa se prikaže za povzetkom naročila."
             testId="order-email-shared-content"
           >
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-4">
               <div>
                 <FieldLabel
                   htmlFor="order-email-subject-prefix"
@@ -1258,7 +1250,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 />
                 <input
                   id="order-email-subject-prefix"
-                  className={`${fieldClassName} mt-2`}
+                  className={`${fieldClassName} mt-1.5`}
                   value={draft.subjectPrefix}
                   maxLength={80}
                   onChange={(event) =>
@@ -1267,7 +1259,7 @@ export default function AdminOrderEmailSettingsPageClient({
                   placeholder="Atehna"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="lg:col-span-3">
                 <FieldLabel
                   htmlFor="order-email-footer"
                   label="Dodatno besedilo v nogi"
@@ -1275,7 +1267,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 />
                 <textarea
                   id="order-email-footer"
-                  className={`${textareaClassName} mt-2`}
+                  className={`${textareaClassName} mt-1.5`}
                   value={draft.footerText}
                   maxLength={1000}
                   onChange={(event) =>
@@ -1292,7 +1284,7 @@ export default function AdminOrderEmailSettingsPageClient({
             description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
             testId="order-email-message-templates"
           >
-            <div className="max-w-xl">
+            <div className="max-w-sm">
               <FieldLabel
                 htmlFor="order-email-template-event"
                 label="Dogodek naročila"
@@ -1300,7 +1292,7 @@ export default function AdminOrderEmailSettingsPageClient({
               />
               <select
                 id="order-email-template-event"
-                className={`${fieldClassName} mt-2`}
+                className={`${fieldClassName} mt-1.5`}
                 value={selectedTemplateEvent}
                 onChange={(event) => {
                   setSelectedTemplateEvent(event.target.value as EventKey);
@@ -1316,7 +1308,7 @@ export default function AdminOrderEmailSettingsPageClient({
               </select>
             </div>
 
-            <div className="mt-5 grid min-w-0 gap-5 lg:grid-cols-2">
+            <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
               <TemplateEditorCard
                 audience="customer"
                 title={
@@ -1378,8 +1370,19 @@ export default function AdminOrderEmailSettingsPageClient({
               />
             </div>
           </SurfaceCard>
-        </div>
-      )}
+      </div>
+
+      <div
+        id="order-email-quotes-panel"
+        role="tabpanel"
+        aria-labelledby="order-email-tab-quotes"
+        aria-hidden={activeTab !== "quotes"}
+        hidden={activeTab !== "quotes"}
+        tabIndex={activeTab === "quotes" ? 0 : -1}
+        data-testid="order-email-quotes-panel"
+      >
+        <AdminQuoteEmailSettingsSection initialState={initialQuoteState} />
+      </div>
     </div>
   );
 }

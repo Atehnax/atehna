@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Pool } from 'pg';
+import {
+  SHIPPING_CALCULATION_VERSION,
+  validatePersistedOrderShippingReadiness,
+  type ShippingCalculation,
+  type ShippingManualOverride
+} from '@/shared/domain/shipping/shipping';
 import { getPool } from '@/shared/server/db';
 import {
   readOrderAccessSession,
@@ -10,7 +16,8 @@ import { scheduleInitialOrderSummaryJob } from '@/shared/server/orderSummaryJobs
 import {
   readConfirmationDocumentsSafely,
   scheduleConfirmationDocumentRepairSafely,
-  type ConfirmationDocumentRow
+  type ConfirmationDocumentRow,
+  type CustomerConfirmationDocument
 } from '@/commercial/api/orders/confirmation/documentResilience';
 
 export const runtime = 'nodejs';
@@ -24,6 +31,60 @@ function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function nullableObjectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function moneyCents(value: unknown): number {
+  return Math.round(numberValue(value) * 100);
+}
+
+function frozenShippingValue(order: Record<string, unknown>): ShippingCalculation {
+  const snapshot = nullableObjectValue(order.shipping_snapshot_json);
+  const override = nullableObjectValue(order.shipping_override_json);
+  if (snapshot?.status === 'calculated') {
+    const automaticAmountCents =
+      order.automatic_shipping === null || order.automatic_shipping === undefined
+        ? numberValue(snapshot.automaticAmountCents)
+        : moneyCents(order.automatic_shipping);
+    return {
+      ...(snapshot as unknown as ShippingCalculation & Record<string, unknown>),
+      status: 'calculated',
+      source: override ? 'manual_override' : 'automatic',
+      automaticAmountCents,
+      finalAmountCents: moneyCents(order.shipping),
+      manualOverride: override as ShippingManualOverride | null
+    } as ShippingCalculation;
+  }
+  if (snapshot?.status === 'manual_quote') {
+    return snapshot as unknown as ShippingCalculation;
+  }
+  const reason =
+    'Shranjeni podatki o izračunu poštnine niso na voljo za to starejše naročilo.';
+  return {
+    status: 'manual_quote',
+    calculationVersion: SHIPPING_CALCULATION_VERSION,
+    configurationVersion: 1,
+    items: [],
+    combinedWeightGrams: null,
+    largestDimensionMm: null,
+    triggeringItem: null,
+    reason,
+    issues: [{ code: 'INVALID_CONFIGURATION', message: reason }]
+  };
+}
+
+function frozenShippingOverrideValue(order: Record<string, unknown>) {
+  const override = nullableObjectValue(order.shipping_override_json);
+  if (!override) return null;
+  return {
+    amount: numberValue(order.shipping),
+    reason: typeof override.reason === 'string' ? override.reason : ''
+  };
 }
 
 function reportDocumentSubsystemFailure(
@@ -83,28 +144,13 @@ export async function GET(request: NextRequest) {
       (error) => reportDocumentSubsystemFailure('scheduling', access.orderId, error)
     );
 
-    const documentsPromise = readConfirmationDocumentsSafely(
-      async () => {
-        const result = await pool.query(
-          `
-            select
-              distinct on (type)
-              type,
-              customer_access_id
-            from order_documents
-            where order_id = $1
-              and deleted_at is null
-            order by type, created_at desc, id desc
-          `,
-          [access.orderId]
-        );
-        return result.rows as ConfirmationDocumentRow[];
-      },
-      (error) => reportDocumentSubsystemFailure('lookup', access.orderId, error)
-    );
-
-    const [orderResult, snapshotsResult, documents] = await Promise.all([
-      pool.query(
+    const client = await pool.connect();
+    let order: Record<string, unknown> | undefined;
+    let itemRows: Record<string, unknown>[] = [];
+    let documents: CustomerConfirmationDocument[] = [];
+    try {
+      await client.query('begin isolation level repeatable read read only');
+      const orderResult = await client.query(
         `
           select
             customer_type,
@@ -122,20 +168,32 @@ export async function GET(request: NextRequest) {
             status,
             payment_status,
             commitment_status,
+            contract_status,
             subtotal,
             tax,
             shipping,
+            automatic_shipping,
+            shipping_snapshot_json,
+            shipping_override_json,
+            shipping_override_stale,
+            parcel_count,
             total,
             currency,
             pricing_version,
+            pricing_revision,
+            is_draft,
+            (select count(*)::integer from order_items where order_id = orders.id) as item_count,
             created_at,
             deleted_at
           from orders
           where id = $1
         `,
         [access.orderId]
-      ),
-      pool.query(
+      );
+      order = orderResult.rows[0] as Record<string, unknown> | undefined;
+
+      if (order) {
+        const snapshotsResult = await client.query(
         `
           select
             line_number,
@@ -167,11 +225,46 @@ export async function GET(request: NextRequest) {
           order by line_number asc
         `,
         [access.orderId]
-      ),
-      documentsPromise
-    ]);
+        );
+        itemRows = snapshotsResult.rows as Record<string, unknown>[];
 
-    const order = orderResult.rows[0] as Record<string, unknown> | undefined;
+        documents = await readConfirmationDocumentsSafely(
+          async () => {
+            await client.query('savepoint confirmation_document_lookup');
+            try {
+              const result = await client.query(
+                `
+                  select
+                    distinct on (type)
+                    type,
+                    customer_access_id
+                  from order_documents
+                  where order_id = $1
+                    and deleted_at is null
+                    and order_pricing_revision = $2
+                  order by type, created_at desc, id desc
+                `,
+                [access.orderId, order?.pricing_revision]
+              );
+              await client.query('release savepoint confirmation_document_lookup');
+              return result.rows as ConfirmationDocumentRow[];
+            } catch (error) {
+              await client.query('rollback to savepoint confirmation_document_lookup');
+              await client.query('release savepoint confirmation_document_lookup');
+              throw error;
+            }
+          },
+          (error) => reportDocumentSubsystemFailure('lookup', access.orderId, error)
+        );
+      }
+      await client.query('commit');
+    } catch (error) {
+      await client.query('rollback').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+
     if (!order || order.deleted_at) {
       return NextResponse.json(
         { code: 'CONFIRMATION_NOT_FOUND', message: 'Potrditev ne obstaja.' },
@@ -182,7 +275,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const itemRows = snapshotsResult.rows as Record<string, unknown>[];
     if (itemRows.length === 0) {
       return NextResponse.json(
         {
@@ -193,6 +285,50 @@ export async function GET(request: NextRequest) {
           status: 409,
           headers: {
             'Cache-Control': 'no-store',
+            'Referrer-Policy': 'no-referrer'
+          }
+        }
+      );
+    }
+
+    const shippingReadiness = validatePersistedOrderShippingReadiness({
+      expectedItemCount: Number(order.item_count ?? 0),
+      snapshotLineCount: itemRows.length,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      shipping: order.shipping,
+      automaticShipping: order.automatic_shipping,
+      total: order.total,
+      shippingSnapshot: order.shipping_snapshot_json,
+      shippingOverride: order.shipping_override_json,
+      shippingOverrideStale: order.shipping_override_stale,
+      parcelCount: order.parcel_count
+    });
+    if (order.is_draft === true) {
+      return NextResponse.json(
+        {
+          code: 'CONFIRMATION_SHIPPING_PENDING',
+          message: 'Potrditev bo na voljo, ko bo naročilo dokončano.'
+        },
+        {
+          status: 409,
+          headers: {
+            'Cache-Control': 'no-store, private',
+            'Referrer-Policy': 'no-referrer'
+          }
+        }
+      );
+    }
+    if (!shippingReadiness.ok) {
+      return NextResponse.json(
+        {
+          code: 'CONFIRMATION_SHIPPING_PENDING',
+          message: shippingReadiness.message
+        },
+        {
+          status: 409,
+          headers: {
+            'Cache-Control': 'no-store, private',
             'Referrer-Policy': 'no-referrer'
           }
         }
@@ -264,9 +400,13 @@ export async function GET(request: NextRequest) {
         status: String(order.status ?? 'received'),
         paymentStatus: String(order.payment_status ?? 'unpaid'),
         commitmentStatus: String(order.commitment_status ?? 'binding'),
+        contractStatus: String(
+          order.contract_status ?? 'pending_seller_acceptance'
+        ),
         stockNotCommitted: order.commitment_status === 'pending_confirmation',
         createdAt: String(order.created_at ?? ''),
         pricingVersion: String(order.pricing_version),
+        parcelCount: Math.max(1, Math.trunc(numberValue(order.parcel_count) || 1)),
         customer: {
           customerType: String(order.customer_type ?? ''),
           customerName,
@@ -294,6 +434,8 @@ export async function GET(request: NextRequest) {
           gross: numberValue(order.total),
           currency: String(order.currency)
         },
+        shipping: frozenShippingValue(order),
+        frozenShippingOverride: frozenShippingOverrideValue(order),
         documents
       },
       {

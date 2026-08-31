@@ -1,14 +1,20 @@
 import type { CustomerType } from '@/shared/domain/order/customerType';
+import type { OrderContractStatus } from '@/shared/domain/order/contractStatus';
+import {
+  SHIPPING_CALCULATION_VERSION,
+  type ShippingCalculation
+} from '@/shared/domain/shipping/shipping';
 
-export type OrderQuoteRequest = {
+export type OrderEstimateRequest = {
   customerName?: string;
+  customerLabels?: string[];
   items: Array<{
     variantId: number;
     quantity: number;
   }>;
 };
 
-export type OrderQuoteItem = {
+export type OrderEstimateItem = {
   variantId: number;
   productId: number;
   productSlug: string;
@@ -30,20 +36,36 @@ export type OrderQuoteItem = {
   taxRate: number;
 };
 
-export type OrderQuoteTotals = {
+export type OrderEstimateTotals = {
   net: number;
   tax: number;
-  shipping: number;
-  gross: number;
+  shipping: number | null;
+  gross: number | null;
   currency: 'EUR';
 };
 
-export type OrderQuote = {
-  items: OrderQuoteItem[];
-  totals: OrderQuoteTotals;
+export type OrderEstimate = {
+  items: OrderEstimateItem[];
+  totals: OrderEstimateTotals;
+  shipping: ShippingCalculation;
+  shippingConfigurationVersion: number;
+  /**
+   * Compatibility wire name from the original `/api/orders/quote` endpoint.
+   * It fingerprints a short-lived estimate, never an issued seller offer.
+   */
+  quoteFingerprint: string;
 };
 
-export type OrderConfirmationItem = OrderQuoteItem & {
+/** @deprecated Use OrderEstimateRequest. */
+export type OrderQuoteRequest = OrderEstimateRequest;
+/** @deprecated Use OrderEstimateItem. */
+export type OrderQuoteItem = OrderEstimateItem;
+/** @deprecated Use OrderEstimateTotals. */
+export type OrderQuoteTotals = OrderEstimateTotals;
+/** @deprecated Use OrderEstimate. */
+export type OrderQuote = OrderEstimate;
+
+export type OrderConfirmationItem = OrderEstimateItem & {
   lineListNet: number;
   lineDiscountNet: number;
   discountKind: 'quantity' | 'variant' | null;
@@ -61,6 +83,9 @@ export type OrderApiError = {
   code?: string;
   message: string;
   issues?: OrderApiIssue[];
+  estimate?: OrderEstimate;
+  /** @deprecated Use estimate. */
+  quote?: OrderEstimate;
 };
 
 export type SubmitOrderRequest = {
@@ -77,6 +102,8 @@ export type SubmitOrderRequest = {
   countryCode?: 'SI';
   reference?: string;
   notes: string;
+  shippingConfigurationVersion: number;
+  quoteFingerprint: string;
   items: Array<{
     variantId: number;
     quantity: number;
@@ -97,7 +124,9 @@ export type OrderConfirmationSnapshot = {
   status?: string;
   paymentStatus?: string;
   commitmentStatus?: 'binding' | 'pending_confirmation' | 'rejected';
+  contractStatus?: OrderContractStatus;
   stockNotCommitted?: boolean;
+  parcelCount: number;
   customer?: {
     customerType?: CustomerType;
     customerName?: string;
@@ -114,20 +143,99 @@ export type OrderConfirmationSnapshot = {
     notes?: string;
   };
   items: OrderConfirmationItem[];
-  totals: OrderQuoteTotals;
+  totals: OrderEstimateTotals;
+  shipping: ShippingCalculation;
+  frozenShippingOverride?: { amount: number; reason: string } | null;
   documents: OrderConfirmationDocument[];
 };
 
-export function isOrderQuote(value: unknown): value is OrderQuote {
+function isFiniteMoneyOrNull(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value));
+}
+
+const ORDER_QUOTE_FINGERPRINT_PATTERN = /^order-quote-v1:[a-f0-9]{64}$/u;
+
+function isShippingCalculation(value: unknown): value is ShippingCalculation {
+  if (typeof value !== 'object' || value === null) return false;
+  const shipping = value as Record<string, unknown>;
+  if (
+    shipping.calculationVersion !== SHIPPING_CALCULATION_VERSION ||
+    typeof shipping.configurationVersion !== 'number' ||
+    !Number.isInteger(shipping.configurationVersion) ||
+    shipping.configurationVersion < 1 ||
+    !(
+      shipping.combinedWeightGrams === null ||
+      (typeof shipping.combinedWeightGrams === 'number' &&
+        Number.isSafeInteger(shipping.combinedWeightGrams) &&
+        shipping.combinedWeightGrams >= 0)
+    )
+  ) {
+    return false;
+  }
+
+  if (shipping.status === 'manual_quote') {
+    return (
+      typeof shipping.reason === 'string' &&
+      Array.isArray(shipping.issues) &&
+      shipping.issues.every(
+        (issue) =>
+          typeof issue === 'object' &&
+          issue !== null &&
+          typeof (issue as Record<string, unknown>).code === 'string' &&
+          typeof (issue as Record<string, unknown>).message === 'string'
+      )
+    );
+  }
+  if (shipping.status !== 'calculated') return false;
+
+  return [
+    'basePriceCents',
+    'surchargeAmountCents',
+    'automaticAmountCents',
+    'finalAmountCents'
+  ].every(
+    (key) =>
+      typeof shipping[key] === 'number' &&
+      Number.isSafeInteger(shipping[key]) &&
+      (shipping[key] as number) >= 0
+  );
+}
+
+export function isOrderEstimate(value: unknown): value is OrderEstimate {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
   if (!Array.isArray(record.items)) return false;
   if (typeof record.totals !== 'object' || record.totals === null) return false;
   const totals = record.totals as Record<string, unknown>;
-  return ['net', 'tax', 'shipping', 'gross'].every(
-    (key) => typeof totals[key] === 'number' && Number.isFinite(totals[key])
+  if (
+    !['net', 'tax'].every(
+      (key) => typeof totals[key] === 'number' && Number.isFinite(totals[key])
+    ) ||
+    !isFiniteMoneyOrNull(totals.shipping) ||
+    !isFiniteMoneyOrNull(totals.gross) ||
+    totals.currency !== 'EUR' ||
+    !isShippingCalculation(record.shipping) ||
+    typeof record.shippingConfigurationVersion !== 'number' ||
+    !Number.isSafeInteger(record.shippingConfigurationVersion) ||
+    record.shippingConfigurationVersion < 1 ||
+    record.shippingConfigurationVersion !== record.shipping.configurationVersion ||
+    typeof record.quoteFingerprint !== 'string' ||
+    !ORDER_QUOTE_FINGERPRINT_PATTERN.test(record.quoteFingerprint)
+  ) {
+    return false;
+  }
+  if (record.shipping.status === 'manual_quote') {
+    return totals.shipping === null && totals.gross === null;
+  }
+  return (
+    typeof totals.shipping === 'number' &&
+    typeof totals.gross === 'number' &&
+    Math.round(totals.shipping * 100) === record.shipping.finalAmountCents
   );
 }
+
+/** @deprecated Use isOrderEstimate. */
+export const isOrderQuote = isOrderEstimate;
 
 export function parseOrderApiError(
   value: unknown,
@@ -135,6 +243,11 @@ export function parseOrderApiError(
 ): OrderApiError {
   if (typeof value !== 'object' || value === null) return { message: fallback };
   const record = value as Record<string, unknown>;
+  const estimateCandidate =
+    record.estimate ??
+    record.currentEstimate ??
+    record.quote ??
+    record.currentQuote;
   const issues = Array.isArray(record.issues)
     ? record.issues.reduce<OrderApiIssue[]>((result, entry) => {
         if (typeof entry !== 'object' || entry === null) return result;
@@ -162,6 +275,10 @@ export function parseOrderApiError(
       typeof record.message === 'string' && record.message.trim()
         ? record.message.trim()
         : fallback,
-    issues
+    issues,
+    estimate: isOrderEstimate(estimateCandidate)
+      ? estimateCandidate
+      : undefined,
+    quote: isOrderEstimate(estimateCandidate) ? estimateCandidate : undefined
   };
 }

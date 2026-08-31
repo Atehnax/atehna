@@ -74,6 +74,7 @@ import {
 import StatusChip from '@/admin/features/orders/components/StatusChip';
 import PaymentChip from '@/admin/features/orders/components/PaymentChip';
 import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
+import AdminManualShippingPendingValue from '@/admin/features/shipping/components/AdminManualShippingPendingValue';
 import {
   getOrderNumberValidationMessage,
   isOrderNumberAllowed,
@@ -148,10 +149,17 @@ type ColumnPaymentFilter = 'all' | PaymentStatus;
 type SortCycleState = { column: SortableColumnKey; index: number } | null;
 type OrderAnalyticsPreviewRow = {
   created_at: string;
+  committed_at: string | null;
+  contract_accepted_at: string | null;
   status: string;
   total: number;
   commitment_status: string | null;
+  contract_status: string | null;
 };
+
+const isOrderShippingPending = (
+  order: Pick<OrderRow, 'automatic_shipping' | 'shipping_override_json'>
+) => order.automatic_shipping === null && !order.shipping_override_json;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
@@ -460,11 +468,17 @@ export default function AdminOrdersTable({
         admin_order_notes: row[15],
         subtotal: row[16] ?? 0,
         tax: row[17] ?? 0,
-        shipping: 0,
-        total: row[18] ?? 0,
-        created_at: row[19],
-        is_draft: row[20],
-        deleted_at: row[21] ?? null
+        shipping: Number(row[18] ?? 0),
+        automatic_shipping: row[19] === null ? null : Number(row[19]),
+        shipping_snapshot_json: null,
+        shipping_override_json: row[20],
+        shipping_override_stale: row[21],
+        parcel_count: 1,
+        pricing_revision: 1,
+        total: row[22] ?? 0,
+        created_at: row[23],
+        is_draft: row[24],
+        deleted_at: row[25] ?? null
       })),
     [serializedOrders]
   );
@@ -473,13 +487,16 @@ export default function AdminOrdersTable({
       (
         serializedAnalyticsOrders ??
         serializedOrders.map(
-          (row) => [row[19], row[13], Number(row[18] ?? 0), null] as const
+          (row) => [row[23], row[13], Number(row[22] ?? 0), null, null, null, null] as const
         )
       ).map((row) => ({
         created_at: row[0],
         status: row[1] ?? '',
         total: Number(row[2] ?? 0),
-        commitment_status: row[3] ?? null
+        commitment_status: row[3] ?? null,
+        contract_status: row[4] ?? null,
+        committed_at: row[5] ?? null,
+        contract_accepted_at: row[6] ?? null
       })),
     [serializedAnalyticsOrders, serializedOrders]
   );
@@ -1167,12 +1184,15 @@ export default function AdminOrdersTable({
         status: rowStatusOverrides[order.id] ?? order.status,
         payment_status: rowPaymentOverrides[order.id] ?? order.payment_status ?? null
       };
+      const shippingPending = isOrderShippingPending(effectiveOrder);
       next.set(order.id, {
         dateLabel: formatSlDate(effectiveOrder.created_at),
         dateTimeLabel: formatSlDateTime(effectiveOrder.created_at),
         orderAddress: formatOrderAddress(effectiveOrder),
         typeLabel: getCustomerTypeLabel(effectiveOrder.customer_type),
-        totalLabel: formatCurrency(effectiveOrder.total)
+        totalLabel: shippingPending
+          ? 'N/A'
+          : formatCurrency(effectiveOrder.total)
       });
     });
     return next;
@@ -2242,6 +2262,7 @@ export default function AdminOrdersTable({
                   const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(effectiveOrder.customer_type);
                   const rowStatus = effectiveOrder.status;
                   const rowPaymentStatus = effectiveOrder.payment_status ?? null;
+                  const shippingPending = isOrderShippingPending(effectiveOrder);
                   const normalizedRowPaymentStatus = isPaymentStatus(rowPaymentStatus ?? '') ? rowPaymentStatus ?? 'unpaid' : 'unpaid';
                   const isRowSelected = selected.includes(order.id);
                   const isSingleSelectedOrder = singleSelectedOrderId === order.id;
@@ -2557,13 +2578,28 @@ export default function AdminOrdersTable({
                       </TD> : null}
 
                       {visibleColumns.total ? <TD className={ORDERS_BODY_CELL_CENTER_CLASS}>
-                        <span
-                          className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? formatCurrency(order.total))}`}
+                        <div
+                          className="flex flex-col items-center leading-tight"
                           onMouseEnter={() => setHoveredCellMatch({ column: 'total', value: getComparableCellValue(rowDisplay?.totalLabel ?? formatCurrency(order.total)) })}
                           onMouseLeave={() => setHoveredCellMatch(null)}
                         >
-                          {rowDisplay?.totalLabel ?? formatCurrency(order.total)}
-                        </span>
+                          {shippingPending ? (
+                            <AdminManualShippingPendingValue
+                              className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? 'N/A')}`}
+                            />
+                          ) : (
+                            <>
+                              <span
+                                className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? formatCurrency(order.total))}`}
+                              >
+                                {rowDisplay?.totalLabel ?? formatCurrency(order.total)}
+                              </span>
+                              <span className="text-[10px] font-medium text-admin-text-muted">
+                                {`${effectiveOrder.shipping_override_json ? 'Ročna' : 'Samodejna'} poštnina ${formatCurrency(effectiveOrder.shipping)}${effectiveOrder.shipping_override_stale ? ' · zastarelo' : ''}`}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </TD> : null}
 
                       {visibleColumns.documents ? <TD className="relative z-10 h-12 px-0 py-0 text-center align-middle" style={{ minWidth: columnWidths.documents }} data-no-row-nav>

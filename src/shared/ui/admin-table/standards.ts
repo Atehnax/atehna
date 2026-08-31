@@ -17,6 +17,12 @@ export const adminWindowCardClassName =
 
 export const adminWindowCardStyle = adminTableCardStyle;
 
+export const adminCardSectionActionButtonClassName =
+  'inline-flex h-7 shrink-0 items-center justify-center gap-2 rounded-md px-2 text-[12px] font-semibold text-[color:var(--blue-500)] transition hover:bg-[color:var(--hover-neutral)] disabled:cursor-not-allowed disabled:opacity-50';
+
+export const adminCardSectionEditIconButtonClassName =
+  `${adminCardSectionActionButtonClassName} !w-7 !gap-0 !px-0`;
+
 export const adminTableHeaderClassName = 'px-5 pt-5 pb-2 [&>div:last-child]:!mt-3';
 export const adminTableContentClassName = 'overflow-x-auto bg-white';
 export const adminTableToolbarGroupClassName = 'flex min-h-9 items-center gap-2';
@@ -35,6 +41,9 @@ export const adminTableSearchIconClassName = 'left-4 h-[18px] w-[18px] text-slat
 
 export const adminTableNeutralIconButtonClassName =
   '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-slate-200/90 !bg-white !text-slate-600 hover:!bg-slate-50 hover:!text-[color:var(--blue-500)] active:!text-[color:var(--blue-500)]';
+
+export const adminTableEditIconButtonClassName =
+  '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-slate-200/90 !bg-white !text-[color:var(--blue-500)] hover:!bg-slate-50 active:!bg-slate-50 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
 export const adminTableSelectedSuccessIconButtonClassName =
   '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-emerald-300/80 !bg-white !text-emerald-700 hover:!bg-emerald-50 active:!bg-emerald-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import {
+  ArchiveRestoreConflictError,
   fetchArchiveEntries,
   permanentlyDeleteArchiveEntries,
   restoreArchiveEntries,
@@ -149,8 +150,14 @@ export async function PATCH(request: Request) {
     return NextResponse.json<ArchiveRestoreResponse>({ success: true, restoredCount: restoredFromIds + restoredFromTargets });
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
-      { status: 500 }
+      {
+        code:
+          error instanceof ArchiveRestoreConflictError
+            ? error.code
+            : undefined,
+        message: error instanceof Error ? error.message : 'Napaka na strežniku.'
+      },
+      { status: error instanceof ArchiveRestoreConflictError ? 409 : 500 }
     );
   }
 }

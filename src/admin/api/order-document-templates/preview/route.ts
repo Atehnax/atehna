@@ -9,6 +9,7 @@ import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { normalizeSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -22,6 +23,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: 'Vrsta predloge PDF ni veljavna.' },
         { status: 400 }
+      );
+    }
+    if (type === 'offer' && !isQuoteAdminEnabled()) {
+      return NextResponse.json(
+        { message: 'Ponudbe niso omogočene.' },
+        { status: 404 }
       );
     }
     const template = normalizeOrderDocumentTemplate(type, body.body.template);

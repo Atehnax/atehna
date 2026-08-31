@@ -267,11 +267,9 @@ export default function PurchasePanel({
             className="mt-0.5 h-6 w-6 shrink-0 text-[color:var(--site-color-text-muted)]"
           />
           <div className="min-w-0">
-            {copy.freeShippingMessage ? (
-              <p className="font-semibold text-[color:var(--site-color-success)]">
-                {copy.freeShippingMessage}
-              </p>
-            ) : null}
+            <p className="font-semibold text-[color:var(--site-color-text)]">
+              Poštnina se izračuna v košarici glede na skupno težo in mere.
+            </p>
             {appearance.purchaseArea.showDeliveryEstimate ? (
               resolvedDeliveryEstimate ? (
                 <p>

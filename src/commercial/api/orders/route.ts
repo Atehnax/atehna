@@ -4,16 +4,18 @@ import type { PoolClient } from 'pg';
 import { getPool } from '@/shared/server/db';
 import { getGursAddressById } from '@/shared/server/gursAddresses';
 import { isCustomerType, type CustomerType } from '@/shared/domain/order/customerType';
+import type { OrderContractStatus } from '@/shared/domain/order/contractStatus';
 import {
   buildAuthoritativeOrderQuote,
-  moneyToDatabaseValue,
-  ORDER_DEFAULT_TAX_RATE,
+  normalizeOrderQuoteCustomerLabels,
+  ORDER_QUOTE_FINGERPRINT_VERSION,
   OrderCommerceError,
   parseOrderSelections,
   type AuthoritativeOrderLine,
   type AuthoritativeOrderQuote,
   type OrderSelection
 } from '@/shared/server/orderCommerce';
+import { placeOrderFromFrozenSnapshot } from '@/shared/server/orderPlacement';
 import {
   issueOrderAccessToken,
   setOrderAccessSessionCookie,
@@ -59,10 +61,20 @@ type StoredOrderResponse = {
   status: 'received';
   paymentStatus: 'unpaid';
   commitmentStatus: 'binding' | 'pending_confirmation';
+  contractStatus: OrderContractStatus;
   stockNotCommitted: boolean;
   createdAt: string;
   items: AuthoritativeOrderLine[];
-  totals: AuthoritativeOrderQuote['totals'];
+  totals: {
+    net: number;
+    tax: number;
+    shipping: number;
+    gross: number;
+    currency: 'EUR';
+  };
+  shipping: AuthoritativeOrderQuote['shipping'];
+  shippingConfigurationVersion: number;
+  quoteFingerprint: string;
   pricingVersion: AuthoritativeOrderQuote['pricingVersion'];
   customer: NormalizedCustomer;
 };
@@ -71,6 +83,47 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_CODE_PATTERN = /^\d{4}$/;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 200;
 const MIN_IDEMPOTENCY_KEY_LENGTH = 8;
+const QUOTE_FINGERPRINT_PATTERN = new RegExp(
+  `^${ORDER_QUOTE_FINGERPRINT_VERSION}:[a-f0-9]{64}$`
+);
+
+function readShippingConfigurationVersion(body: Record<string, unknown>): number {
+  const version = Number(body.shippingConfigurationVersion);
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new OrderCommerceError(
+      400,
+      'SHIPPING_CONFIGURATION_VERSION_REQUIRED',
+      'Pred oddajo ponovno osvežite izračun poštnine.'
+    );
+  }
+  return version;
+}
+
+function readQuoteFingerprint(body: Record<string, unknown>): string {
+  const fingerprint = text(body.quoteFingerprint);
+  if (!QUOTE_FINGERPRINT_PATTERN.test(fingerprint)) {
+    throw new OrderCommerceError(
+      400,
+      'QUOTE_FINGERPRINT_REQUIRED',
+      'Pred oddajo ponovno osvežite celoten izračun naročila.'
+    );
+  }
+  return fingerprint;
+}
+
+function shippingQuoteResponse(
+  code: 'SHIPPING_QUOTE_CHANGED' | 'SHIPPING_MANUAL_QUOTE_REQUIRED',
+  message: string,
+  quote: AuthoritativeOrderQuote
+) {
+  return NextResponse.json(
+    { code, message, quote },
+    {
+      status: 409,
+      headers: { 'Cache-Control': 'no-store' }
+    }
+  );
+}
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
@@ -233,9 +286,19 @@ function sha256(value: string | Buffer): string {
 
 function requestFingerprint(
   customer: NormalizedCustomer,
-  selections: OrderSelection[]
+  selections: OrderSelection[],
+  quoteFingerprint: string,
+  shippingConfigurationVersion: number
 ): string {
-  return sha256(JSON.stringify({ customer, items: selections }));
+  return sha256(
+    JSON.stringify({
+      intent: 'direct_order',
+      customer,
+      items: selections,
+      quoteFingerprint,
+      shippingConfigurationVersion
+    })
+  );
 }
 
 function toCustomerOrderResponse(accessId: string) {
@@ -347,297 +410,70 @@ async function reserveIdempotencyKey(
   };
 }
 
-async function decrementBindingStock(
-  client: PoolClient,
-  items: AuthoritativeOrderLine[]
-) {
-  for (const item of items) {
-    const result = await client.query(
-      `
-        update catalog_item_variants
-        set inventory = inventory - $1,
-            updated_at = now()
-        where id = $2
-          and inventory >= $1
-        returning id
-      `,
-      [item.quantity, item.variantId]
-    );
-    if (result.rowCount !== 1) {
-      throw new OrderCommerceError(
-        409,
-        'STOCK_CHANGED',
-        `Zaloga za ${item.productName} – ${item.variantName} se je spremenila.`,
-        [
-          {
-            code: 'STOCK_CHANGED',
-            message: 'Ponovno preverite košarico.',
-            variantId: item.variantId
-          }
-        ]
-      );
-    }
-  }
-}
-
 async function insertOrder(
   client: PoolClient,
   customer: NormalizedCustomer,
   quote: AuthoritativeOrderQuote
 ) {
+  if (
+    quote.shipping.status !== 'calculated' ||
+    quote.totals.shipping === null ||
+    quote.totals.gross === null
+  ) {
+    throw new OrderCommerceError(
+      409,
+      'SHIPPING_MANUAL_QUOTE_REQUIRED',
+      'Naročila brez dokončnega izračuna poštnine ni mogoče oddati.'
+    );
+  }
+
   const commitmentStatus: 'binding' | 'pending_confirmation' =
     customer.customerType === 'school' ? 'pending_confirmation' : 'binding';
   const stockNotCommitted = commitmentStatus === 'pending_confirmation';
-  const pricingVersion = stockNotCommitted
-    ? `${quote.pricingVersion}-school-uncommitted`
-    : `${quote.pricingVersion}-stock-committed`;
-  const taxRates = Array.from(new Set(quote.items.map((item) => item.taxRate)));
-  const orderTaxRate = taxRates.length === 1 ? taxRates[0] : ORDER_DEFAULT_TAX_RATE;
+  const contractStatus: OrderContractStatus = stockNotCommitted
+    ? 'pending_seller_acceptance'
+    : 'accepted';
 
-  if (!stockNotCommitted) {
-    await decrementBindingStock(client, quote.items);
-  }
-
-  const orderResult = await client.query(
-    `
-      with next_id as (
-        select nextval('orders_id_seq') as id
-      )
-      insert into orders (
-        id,
-        order_number,
-        customer_type,
-        organization_name,
-        contact_name,
-        email,
-        address_line1,
-        postal_code,
-        city,
-        gurs_house_number_id,
-        address_line2,
-        country_code,
-        reference,
-        notes,
-        status,
-        payment_status,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        currency,
-        tax_rate,
-        pricing_version,
-        commitment_status,
-        is_draft
-      )
-      select
-        id,
-        '#' || id,
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11,
-        $12,
-        'received',
-        'unpaid',
-        $13,
-        $14,
-        $15,
-        $16,
-        'EUR',
-        $17,
-        $18,
-        $19,
-        false
-      from next_id
-      returning id, order_number, created_at
-    `,
-    [
-      customer.customerType,
-      customer.organizationName,
-      customer.contactName,
-      customer.email,
-      customer.addressLine1,
-      customer.postalCode,
-      customer.city,
-      customer.gursHouseNumberId,
-      customer.addressLine2,
-      customer.countryCode,
-      customer.reference,
-      customer.notes,
-      moneyToDatabaseValue(quote.totals.net),
-      moneyToDatabaseValue(quote.totals.tax),
-      moneyToDatabaseValue(quote.totals.shipping),
-      moneyToDatabaseValue(quote.totals.gross),
-      orderTaxRate,
-      pricingVersion,
-      commitmentStatus
-    ]
-  );
-  const order = orderResult.rows[0] as {
-    id: string | number;
-    order_number: string;
-    created_at: string | Date;
-  };
-  const orderId = Number(order.id);
-
-  for (const [index, item] of quote.items.entries()) {
-    const orderItemResult = await client.query(
-      `
-        insert into order_items (
-          order_id,
-          sku,
-          name,
-          unit,
-          quantity,
-          catalog_item_id,
-          catalog_variant_id,
-          product_slug,
-          variant_name,
-          category_id,
-          category_path,
-          selected_attributes,
-          image_url,
-          base_unit_net,
-          discount_pct,
-          unit_net,
-          unit_tax,
-          unit_gross,
-          line_net,
-          line_tax,
-          line_gross,
-          tax_rate,
-          currency,
-          product_snapshot_json
-        )
-        values (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-          $12::jsonb, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
-          'EUR', $23::jsonb
-        )
-        returning id
-      `,
-      [
-        orderId,
-        item.sku,
-        `${item.productName} – ${item.variantName}`,
-        item.unit,
-        item.quantity,
-        item.productId,
-        item.variantId,
-        item.productSlug,
-        item.variantName,
-        item.categoryId,
-        item.categoryPath,
-        JSON.stringify(item.attributes),
-        item.imageUrl,
-        moneyToDatabaseValue(item.listUnitNet),
-        item.discountPct,
-        moneyToDatabaseValue(item.unitNet),
-        moneyToDatabaseValue(item.unitTax),
-        moneyToDatabaseValue(item.unitGross),
-        moneyToDatabaseValue(item.lineNet),
-        moneyToDatabaseValue(item.lineTax),
-        moneyToDatabaseValue(item.lineGross),
-        item.taxRate,
-        JSON.stringify(item.snapshot)
-      ]
-    );
-    const orderItemId = Number(orderItemResult.rows[0].id);
-
-    await client.query(
-      `
-        insert into order_line_snapshots (
-          order_id,
-          order_item_id,
-          line_number,
-          catalog_item_id,
-          catalog_variant_id,
-          product_slug,
-          product_name,
-          variant_name,
-          sku,
-          unit,
-          quantity,
-          category_id,
-          category_path,
-          selected_attributes,
-          image_url,
-          base_unit_net,
-          discount_pct,
-          unit_net,
-          unit_tax,
-          unit_gross,
-          line_net,
-          line_tax,
-          line_gross,
-          tax_rate,
-          currency,
-          snapshot_json
-        )
-        values (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-          $14::jsonb, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-          'EUR', $25::jsonb
-        )
-      `,
-      [
-        orderId,
-        orderItemId,
-        index + 1,
-        item.productId,
-        item.variantId,
-        item.productSlug,
-        item.productName,
-        item.variantName,
-        item.sku,
-        item.unit,
-        item.quantity,
-        item.categoryId,
-        item.categoryPath,
-        JSON.stringify(item.attributes),
-        item.imageUrl,
-        moneyToDatabaseValue(item.listUnitNet),
-        item.discountPct,
-        moneyToDatabaseValue(item.unitNet),
-        moneyToDatabaseValue(item.unitTax),
-        moneyToDatabaseValue(item.unitGross),
-        moneyToDatabaseValue(item.lineNet),
-        moneyToDatabaseValue(item.lineTax),
-        moneyToDatabaseValue(item.lineGross),
-        item.taxRate,
-        JSON.stringify(item.snapshot)
-      ]
-    );
-  }
-
-  await client.query(
-    `
-      insert into order_status_logs (order_id, previous_status, new_status)
-      values ($1, null, 'received')
-    `,
-    [orderId]
-  );
-
-  return {
-    orderId,
-    orderNumber: order.order_number,
-    createdAt:
-      order.created_at instanceof Date
-        ? order.created_at.toISOString()
-        : String(order.created_at),
+  return placeOrderFromFrozenSnapshot(client, {
+    customer,
+    items: quote.items,
+    totals: {
+      net: quote.totals.net,
+      tax: quote.totals.tax,
+      shipping: quote.totals.shipping,
+      gross: quote.totals.gross,
+      currency: quote.totals.currency
+    },
+    shipping: {
+      automaticAmount: quote.shipping.automaticAmountCents / 100,
+      snapshot: quote.shipping as unknown as Record<string, unknown>,
+      override: null,
+      parcelCount: quote.shipping.parcelCount
+    },
+    pricingVersion: stockNotCommitted
+      ? `${quote.pricingVersion}-school-uncommitted`
+      : `${quote.pricingVersion}-stock-committed`,
     commitmentStatus,
-    stockNotCommitted
-  };
+    contractStatus,
+    contractActor:
+      contractStatus === 'accepted' ? { type: 'system' } : undefined,
+    contractEvidence: {
+      channel: 'checkout',
+      action:
+        contractStatus === 'accepted'
+          ? 'automatic_direct_order_acceptance'
+          : 'await_school_purchase_order_review',
+      buttonWording:
+        customer.customerType === 'school'
+          ? 'Pošlji naročilo v potrditev'
+          : 'Naročilo z obveznostjo plačila'
+    },
+    commitStock: !stockNotCommitted,
+    stockActor: {
+      type: customer.customerType === 'school' ? 'school_purchase_order' : 'customer'
+    }
+  });
 }
-
 function safelyRevalidateAdminOrderPaths(orderId: number) {
   try {
     revalidateAdminOrderPaths(orderId);
@@ -684,6 +520,8 @@ export async function POST(request: Request) {
   try {
     const body = bodyResult.body;
     let customer = normalizeCustomer(body);
+    const shippingConfigurationVersion = readShippingConfigurationVersion(body);
+    const submittedQuoteFingerprint = readQuoteFingerprint(body);
     const idempotencyKey = readIdempotencyKey(request, body);
     const keyHash = sha256(idempotencyKey);
     const pool = await getPool();
@@ -692,7 +530,12 @@ export async function POST(request: Request) {
     customer = await canonicalizeGursAddress(client, customer);
 
     const selections = parseOrderSelections(body.items);
-    const requestHash = requestFingerprint(customer, selections);
+    const requestHash = requestFingerprint(
+      customer,
+      selections,
+      submittedQuoteFingerprint,
+      shippingConfigurationVersion
+    );
     const reservation = await reserveIdempotencyKey(client, keyHash, requestHash);
 
     if (reservation.kind === 'replay') {
@@ -745,14 +588,55 @@ export async function POST(request: Request) {
       );
     }
 
+    const quoteCustomerLabels = normalizeOrderQuoteCustomerLabels([
+      customer.organizationName,
+      customer.contactName,
+      customer.customerName
+    ]);
     const quote = await buildAuthoritativeOrderQuote(client, selections, {
       lockVariants: true,
-      customerLabels: [
-        customer.organizationName,
-        customer.contactName,
-        customer.customerName
-      ].filter((label): label is string => Boolean(label))
+      customerLabels: quoteCustomerLabels
     });
+    if (
+      quote.shippingConfigurationVersion !== shippingConfigurationVersion ||
+      quote.quoteFingerprint !== submittedQuoteFingerprint
+    ) {
+      await client.query('rollback');
+      client.release();
+      client = null;
+      return shippingQuoteResponse(
+        'SHIPPING_QUOTE_CHANGED',
+        'Izračun naročila se je spremenil. Preverite posodobljene cene in poštnino ter naročilo oddajte znova.',
+        quote
+      );
+    }
+    if (quote.shipping.status === 'manual_quote') {
+      await client.query('rollback');
+      client.release();
+      client = null;
+      return shippingQuoteResponse(
+        'SHIPPING_MANUAL_QUOTE_REQUIRED',
+        quote.shipping.reason,
+        quote
+      );
+    }
+    if (quote.totals.shipping === null || quote.totals.gross === null) {
+      await client.query('rollback');
+      client.release();
+      client = null;
+      return shippingQuoteResponse(
+        'SHIPPING_MANUAL_QUOTE_REQUIRED',
+        'Poštnine za naročilo ni mogoče varno določiti. Potrebna je ročna ponudba.',
+        quote
+      );
+    }
+    const storedTotals: StoredOrderResponse['totals'] = {
+      net: quote.totals.net,
+      tax: quote.totals.tax,
+      shipping: quote.totals.shipping,
+      gross: quote.totals.gross,
+      currency: quote.totals.currency
+    };
     const inserted = await insertOrder(client, customer, quote);
     const accessToken = await issueOrderAccessToken(client, inserted.orderId, {
       scopes:
@@ -766,10 +650,14 @@ export async function POST(request: Request) {
       status: 'received',
       paymentStatus: 'unpaid',
       commitmentStatus: inserted.commitmentStatus,
+      contractStatus: inserted.contractStatus,
       stockNotCommitted: inserted.stockNotCommitted,
       createdAt: inserted.createdAt,
       items: quote.items,
-      totals: quote.totals,
+      totals: storedTotals,
+      shipping: quote.shipping,
+      shippingConfigurationVersion: quote.shippingConfigurationVersion,
+      quoteFingerprint: quote.quoteFingerprint,
       pricingVersion: quote.pricingVersion,
       customer
     };
@@ -780,10 +668,19 @@ export async function POST(request: Request) {
       inserted.orderId
     );
     await enqueueInitialOrderSummaryJob(client, storedResponse);
+    const initialEmailEvent =
+      inserted.contractStatus === 'accepted'
+        ? {
+            eventKey: `order-auto-accepted:${inserted.orderId}`,
+            eventType: 'order_accepted' as const
+          }
+        : {
+            eventKey: `order-submitted:${inserted.orderId}`,
+            eventType: 'order_submitted' as const
+          };
     await enqueueOrderEmailEvent(client, {
       orderId: inserted.orderId,
-      eventKey: `order-submitted:${inserted.orderId}`,
-      eventType: 'order_submitted',
+      ...initialEmailEvent,
       occurredAt: inserted.createdAt,
       previousStatus: null,
       customerOrderAccessToken:

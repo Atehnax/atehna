@@ -54,11 +54,44 @@ Key places:
 
 A new empty database installs `database/schema.sql` once. This is the single
 canonical clean-slate schema. It contains only current definitions, with no
-numbered schema history or ledger. Existing databases are not transformed; the
-deployment process instead rebuilds disposable test data and installs this
-complete schema before exposing a new deployment.
+embedded upgrade history. Existing databases normally use a fresh database or
+database branch, but preserving existing order and quote history requires the
+reviewed quote/contract artifacts below, applied in this exact order:
+
+1. `database/migrations/20260828_quote_workflow_and_order_contract.sql`
+2. `database/migrations/20260829_quote_request_admin_details.sql`
+3. `database/migrations/20260829_quote_request_management.sql`
+4. `database/migrations/20260830_quote_manual_documents.sql`
+5. `database/migrations/20260830_quote_request_admin_title.sql`
+6. `database/migrations/20260830_quote_clarification_email.sql`
+
+The admin-details follow-up is only for a database on the verified 20260828
+schema. The management follow-up requires that verified admin-details guard and
+adds manual-intake provenance plus guarded logical removal. The manual-documents
+follow-up adds isolated, append-only administrator PDF attachments without changing
+the immutable evidence used to issue or accept an offer. The admin-title follow-up
+adds a separate internal display title while preserving the immutable POV number
+and commercial history. The clarification-email follow-up adds a dedicated customer
+outbox event while preserving the append-only clarification log even when delivery is
+declined or fails. No artifact is run by application startup. Do not apply one without
+production database authority, a verified backup, and the rollout review in
+`docs/quote-workflow-rollout.md`.
 
 ## Runtime configuration
+
+### Isolated localhost on Windows
+
+This workspace has a gitignored .env.development.local and an isolated
+PostgreSQL cluster under the parent workspace runtime directory. Start or
+resume both safely with:
+
+    npm run dev:local
+
+The launcher refuses remote or mismatched database URLs, starts the existing
+PostgreSQL cluster only when needed, runs the non-destructive canonical-schema
+check, and binds Next.js only to 127.0.0.1:3000. It never prepares, resets, or
+reseeds the database. Use the explicit guarded E2E preparation command only
+when intentionally resetting disposable test data.
 
 Copy `.env.example` to `.env.local` for local development and provide the
 corresponding environment variables in production.
@@ -87,7 +120,17 @@ corresponding environment variables in production.
   without keeping that credential as plaintext. Rotating this key intentionally
   makes earlier idempotent submissions non-replayable; their already-issued
   confirmation links remain governed by the hashed access-token record.
+- `QUOTE_ACCESS_BOOTSTRAP_KEY` is required before accepting quote requests or
+  online offer responses. Use a separate stable secret of at least 32 random
+  characters; quote replay encryption uses a quote-specific KDF/AAD domain and
+  must not reuse the order bootstrap key.
 - `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
+- `QUOTE_ADMIN_ENABLED`, `QUOTE_PUBLIC_REQUESTS_ENABLED`,
+  `QUOTE_ONLINE_ACCEPTANCE_ENABLED`, and `QUOTE_EMAIL_DELIVERY_ENABLED` are
+  independent server-side rollout gates. They default off. Enable admin review
+  first, public request submission second, and online acceptance last; keep
+  quote email delivery off until the sender configuration and templates have
+  been verified.
 
 Initial order-summary generation is recorded as a durable database job in the
 same transaction as the order. The post-response callback is only a low-latency
@@ -203,8 +246,9 @@ refresh. Source, capacity, validation, recovery, and privacy
 details are documented in [docs/gurs-address-register.md](docs/gurs-address-register.md).
 
 Catalogue prices are stored as net amounts. Customer pages and order documents
-show the net amount, DDV rate/amount, and gross amount. Delivery is currently
-free, and delivery/payment processing remains manual.
+show the net amount, DDV rate/amount, gross amount, and the authoritative
+configured shipping calculation. Delivery and payment fulfilment remain
+manual operational processes.
 
 Deleted products, orders, and order documents are retained for 90 days before
 eligible database and blob cleanup. Active and inactive products have no

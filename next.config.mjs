@@ -8,7 +8,13 @@ const sensitiveOrderPageHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
-    return ['/order/confirmation', '/order/narocilnica'].map((source) => ({
+    return [
+      '/order/confirmation',
+      '/order/narocilnica',
+      '/quote-request/confirmation',
+      '/quote/offer',
+      '/offer/review'
+    ].map((source) => ({
       source,
       headers: sensitiveOrderPageHeaders
     }));

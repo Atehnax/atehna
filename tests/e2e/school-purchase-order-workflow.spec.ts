@@ -120,6 +120,8 @@ function schoolWorkflowSettings(
     siteUrl: 'https://www.atehna-test.site',
     events: {
       order_submitted: { customer: true, admins: false },
+      order_accepted: { ...disabledEvent },
+      order_rejected: { ...disabledEvent },
       received: { ...disabledEvent },
       in_progress: { ...disabledEvent },
       partially_sent: { ...disabledEvent },
@@ -296,6 +298,26 @@ async function cleanupOrderThroughArchive(
   if (orderArchiveEntry.rowCount !== 1) {
     throw new Error('Order archive cleanup did not create its scoped archive entry.');
   }
+  const durableCommerceEvidence = await database.query(
+    `select 1
+     from orders order_record
+     where order_record.id = $1
+       and (
+         order_record.source_quote_offer_version_id is not null
+         or exists (
+           select 1
+           from order_stock_holds stock_hold
+           where stock_hold.order_id = order_record.id
+         )
+       )
+     limit 1`,
+    [orderId]
+  );
+  if (durableCommerceEvidence.rowCount === 1) {
+    // Production intentionally retains archived orders that have contractual
+    // or stock-ledger evidence. The disposable E2E database is reset later.
+    return;
+  }
   await permanentlyDeleteArchivedEntries(
     request,
     [Number(orderArchiveEntry.rows[0].id)]
@@ -391,6 +413,18 @@ test.describe('school purchase-order workflow', () => {
         ]
       );
 
+      const estimateResponse = await request.post('/api/orders/estimate', {
+        data: {
+          customerName: 'E2E javni zavod',
+          customerLabels: ['E2E javni zavod', 'Ana Novak'],
+          items: [{ variantId: SCHOOL_VARIANT_ID, quantity: 1 }]
+        }
+      });
+      expect(estimateResponse.ok()).toBeTruthy();
+      const estimate = await estimateResponse.json() as {
+        shippingConfigurationVersion: number;
+        quoteFingerprint: string;
+      };
       const createResponse = await request.post('/api/orders', {
         headers: {
           'Idempotency-Key': `school-purchase-order-${crypto.randomUUID()}`
@@ -407,7 +441,9 @@ test.describe('school purchase-order workflow', () => {
           countryCode: 'SI',
           reference: 'E2E-NAROCILNICA-2026',
           notes: '',
-          items: [{ variantId: SCHOOL_VARIANT_ID, quantity: 1 }]
+          items: [{ variantId: SCHOOL_VARIANT_ID, quantity: 1 }],
+          shippingConfigurationVersion: estimate.shippingConfigurationVersion,
+          quoteFingerprint: estimate.quoteFingerprint
         }
       });
       expect(createResponse.status()).toBe(201);
@@ -443,7 +479,7 @@ test.describe('school purchase-order workflow', () => {
       );
       expect(processingBlocked.status()).toBe(409);
       await expect(processingBlocked.json()).resolves.toMatchObject({
-        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
+        code: 'ORDER_CONTRACT_NOT_ACCEPTED'
       });
       const blockedState = await database.query<{
         commitment_status: string;
@@ -512,7 +548,7 @@ test.describe('school purchase-order workflow', () => {
       );
       expect(generatedProcessingBlocked.status()).toBe(409);
       await expect(generatedProcessingBlocked.json()).resolves.toMatchObject({
-        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
+        code: 'ORDER_CONTRACT_NOT_ACCEPTED'
       });
       const inventoryAfterGeneratedDocument = await database.query<{
         inventory: string;
@@ -738,7 +774,7 @@ test.describe('school purchase-order workflow', () => {
         { data: { status: 'in_progress' } }
       );
       expect(processingResponse.ok()).toBeTruthy();
-      await expect(processingResponse.json()).resolves.toEqual({
+      await expect(processingResponse.json()).resolves.toMatchObject({
         status: 'in_progress'
       });
 
@@ -836,7 +872,16 @@ test.describe('school purchase-order workflow', () => {
       if (orderId !== null && !cleanupCompleted) {
         const cleanupOrderId = orderId;
         await cleanupOrderThroughArchive(request, cleanupOrderId).catch(async () => {
-          await database.query('delete from orders where id = $1', [cleanupOrderId]);
+          await database.query(
+            `delete from orders order_record
+             where order_record.id = $1
+               and not exists (
+                 select 1
+                 from order_stock_holds stock_hold
+                 where stock_hold.order_id = order_record.id
+               )`,
+            [cleanupOrderId]
+          );
         });
       }
       if (orderId !== null) {
@@ -857,7 +902,16 @@ test.describe('school purchase-order workflow', () => {
         [originalInventory, SCHOOL_VARIANT_ID]
       );
       await restoreSettings(originalSettings);
-      await database.query('delete from orders where email = $1', [email]);
+      await database.query(
+        `delete from orders order_record
+         where order_record.email = $1
+           and not exists (
+             select 1
+             from order_stock_holds stock_hold
+             where stock_hold.order_id = order_record.id
+           )`,
+        [email]
+      );
     }
   });
 });

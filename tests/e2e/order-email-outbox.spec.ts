@@ -20,6 +20,11 @@ const ORDER_ACCESS_TOKEN_PATTERN = /ath_order_[A-Za-z0-9_-]{43}/u;
 const PURCHASE_ORDER_UPLOAD_URL_PATTERN =
   /https:\/\/www\.atehna-test\.site\/order\/narocilnica#token=ath_order_[A-Za-z0-9_-]{43}/u;
 
+function standaloneOrderNumberPattern(orderNumber: string): RegExp {
+  const escapedOrderNumber = orderNumber.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  return new RegExp(`${escapedOrderNumber}(?![0-9A-Fa-f])`, 'u');
+}
+
 type StoredSettingsRow = {
   config_json: unknown;
   updated_at: Date;
@@ -75,6 +80,8 @@ function enabledE2eSettings(original: OrderEmailSettings): OrderEmailSettings {
     siteUrl: 'https://www.atehna-test.site',
     events: {
       order_submitted: { customer: true, admins: true },
+      order_accepted: { ...disabledEvent },
+      order_rejected: { ...disabledEvent },
       received: { ...disabledEvent },
       in_progress: { customer: true, admins: true },
       partially_sent: { ...disabledEvent },
@@ -244,9 +251,25 @@ test.describe('order email outbox integration', () => {
         notes: '',
         items: [{ variantId: 920001, quantity: 1 }]
       };
+      const estimateResponse = await request.post('/api/orders/estimate', {
+        data: {
+          customerName: orderData.customerName,
+          customerLabels: [orderData.customerName, orderData.contactName],
+          items: orderData.items
+        }
+      });
+      expect(estimateResponse.ok()).toBeTruthy();
+      const estimate = await estimateResponse.json() as {
+        shippingConfigurationVersion: number;
+        quoteFingerprint: string;
+      };
       const createResponse = await request.post('/api/orders', {
         headers: { 'Idempotency-Key': idempotencyKey },
-        data: orderData
+        data: {
+          ...orderData,
+          shippingConfigurationVersion: estimate.shippingConfigurationVersion,
+          quoteFingerprint: estimate.quoteFingerprint
+        }
       });
       expect(createResponse.status()).toBe(201);
 
@@ -312,7 +335,9 @@ test.describe('order email outbox integration', () => {
         ORDER_ACCESS_TOKEN_PATTERN
       )?.[0];
       expect(accessToken).toMatch(ORDER_ACCESS_TOKEN_PATTERN);
-      expect(customerSubmissionContent).not.toContain(orderNumber);
+      expect(customerSubmissionContent).not.toMatch(
+        standaloneOrderNumberPattern(orderNumber)
+      );
       expect(customerSubmissionContent).not.toContain(`/admin/orders/${createdOrderId}`);
       expect(customerSubmissionContent).not.toContain('Naro\u010dilo:');
       expect(adminSubmissionMessage.html).toContain(orderNumber);
@@ -337,7 +362,11 @@ test.describe('order email outbox integration', () => {
 
       const replayResponse = await request.post('/api/orders', {
         headers: { 'Idempotency-Key': idempotencyKey },
-        data: orderData
+        data: {
+          ...orderData,
+          shippingConfigurationVersion: estimate.shippingConfigurationVersion,
+          quoteFingerprint: estimate.quoteFingerprint
+        }
       });
       expect(replayResponse.status()).toBe(200);
       const replayedJobs = await readOutbox(orderId);
@@ -390,9 +419,19 @@ test.describe('order email outbox integration', () => {
           '0'.repeat(64)
         ]
       );
+      // This test owns the email outbox contract, not the separately covered
+      // school acceptance workflow. Seed a constraint-valid accepted state so
+      // fulfilment status mail can be exercised without moving shared stock.
       const bindingResult = await database.query(
         `update orders
-         set commitment_status = 'binding'
+         set commitment_status = 'binding',
+             contract_status = 'accepted',
+             contract_accepted_at = now(),
+             contract_accepted_actor_type = 'system',
+             contract_accepted_actor_id = null,
+             contract_acceptance_evidence_json =
+               '{"channel":"e2e_fixture","action":"accept_order"}'::jsonb,
+             committed_at = now()
          where id = $1 and customer_type = 'school'`,
         [orderId]
       );
@@ -425,7 +464,9 @@ test.describe('order email outbox integration', () => {
         customerStatusMessage.html,
         customerStatusMessage.text
       ].join('\n');
-      expect(customerStatusContent).not.toContain(orderNumber);
+      expect(customerStatusContent).not.toMatch(
+        standaloneOrderNumberPattern(orderNumber)
+      );
       expect(customerStatusContent).not.toContain(`/admin/orders/${createdOrderId}`);
       for (const statusJob of jobs.filter((job) => job.event_type === 'in_progress')) {
         const rawPayload = JSON.stringify(statusJob.payload_json);

@@ -59,6 +59,8 @@ const cartItem = {
 } as const;
 
 const quote = {
+  quoteFingerprint: `order-quote-v1:${'2'.repeat(64)}`,
+  shippingConfigurationVersion: 1,
   items: [
     {
       variantId: 42001,
@@ -85,9 +87,46 @@ const quote = {
   totals: {
     net: 10,
     tax: 2.2,
-    shipping: 0,
-    gross: 12.2,
+    shipping: 3,
+    gross: 15.2,
     currency: 'EUR'
+  },
+  shipping: {
+    status: 'calculated',
+    source: 'automatic',
+    calculationVersion: 'shipping-v2',
+    configurationVersion: 1,
+    items: [
+      {
+        productId: '420',
+        variantId: '42001',
+        sku: 'GURS-ADDRESS-001',
+        name: 'Preizkusni artikel',
+        quantity: 1,
+        weightGrams: 1_000,
+        lengthMm: 100,
+        widthMm: 100,
+        heightMm: 10
+      }
+    ],
+    combinedWeightGrams: 1_000,
+    largestDimensionMm: 100,
+    triggeringItem: null,
+    basePriceCents: 300,
+    surchargeAmountCents: 0,
+    automaticAmountCents: 300,
+    finalAmountCents: 300,
+    matchedWeightBand: {
+      id: 'under-5000',
+      name: 'Do 5 kg',
+      minWeightGrams: 1,
+      maxWeightGrams: 4_999,
+      priceCents: 300,
+      enabled: true,
+      position: 0
+    },
+    matchedDimensionalRule: null,
+    manualOverride: null
   }
 } as const;
 
@@ -110,7 +149,7 @@ const cankarjevaAlternate = {
 } as const;
 
 async function seedCheckout(page: Page) {
-  await page.route('**/api/orders/quote', async (route) => {
+  await page.route('**/api/orders/estimate', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -215,7 +254,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await seedCheckout(page);
   });
 
-  test('waits for three characters and supports accessible keyboard selection', async ({
+  test('starts promptly after three characters and supports accessible keyboard selection', async ({
     page
   }) => {
     const requestedQueries: string[] = [];
@@ -258,15 +297,15 @@ test.describe('checkout GURS address autocomplete', () => {
     expect(requestedQueries).toEqual([]);
 
     await address.fill('can');
-    await page.waitForTimeout(50);
-    expect(
-      requestedQueries,
-      'the request should be debounced rather than sent on every keystroke'
-    ).toEqual([]);
-    await expect.poll(() => requestedQueries).toEqual(['can']);
+    await expect
+      .poll(() => requestedQueries, {
+        timeout: 500,
+        intervals: [10, 20, 50]
+      })
+      .toEqual(['can']);
 
     const listbox = page.getByRole('listbox');
-    await expect(listbox).toBeVisible();
+    await expect(listbox).toBeVisible({ timeout: 500 });
     await expect(address).toHaveAttribute('aria-expanded', 'true');
     const controlsId = await address.getAttribute('aria-controls');
     expect(controlsId, 'the combobox should identify its suggestion list').toBeTruthy();
@@ -304,7 +343,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await page.getByLabel('Kontaktna oseba *', { exact: true }).fill('Ana Novak');
     await page
       .getByTestId('order-summary-column')
-      .getByRole('button', { name: 'Oddaj naročilo' })
+      .getByRole('button', { name: 'Pošlji naročilo v potrditev' })
       .click();
 
     await expect.poll(() => submittedBody).not.toBeNull();
@@ -445,7 +484,7 @@ test.describe('checkout GURS address autocomplete', () => {
 
     await page
       .getByTestId('order-summary-column')
-      .getByRole('button', { name: 'Oddaj naročilo' })
+      .getByRole('button', { name: 'Pošlji naročilo v potrditev' })
       .click();
 
     await expect.poll(() => submittedBody).not.toBeNull();

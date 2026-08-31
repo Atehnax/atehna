@@ -207,6 +207,10 @@ test('document deletion protects only the last active accepted purchase-order pr
   );
   assert.match(
     detailClient,
-    /disabled=\{!isEditing \|\| pageIsBusy \|\| customerTypeIsLocked\}/u
+    /<OrderDataRow\s+label="Tip naročnika"\s+value=\{activeCustomerTypeLabel\}\s+icon="type"\s+isEditing=\{isOrderDataEditing\}\s+reserveTrailingControl\s*>/u
+  );
+  assert.match(
+    detailClient,
+    /disabled=\{pageIsBusy \|\| customerTypeIsLocked\}/u
   );
 });

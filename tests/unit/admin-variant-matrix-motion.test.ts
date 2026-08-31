@@ -22,7 +22,7 @@ function sourceBetween(source: string, start: string, end: string): string {
   return source.slice(startIndex, endIndex);
 }
 
-test('non-dense variant tracks exchange explicit length-percentage space without fr clamps', () => {
+test('selected variant tracks stay fitted to their 320px input content', () => {
   const implementations = [
     {
       source: dimensionEditorSource,
@@ -32,8 +32,10 @@ test('non-dense variant tracks exchange explicit length-percentage space without
       variantCollection: 'draft.variants',
       denseLayoutName: 'usesDenseDimensionVariantLayout',
       expandedVariantName: 'expandedDimensionVariant',
+      expandedTrackWidthName: 'expandedDimensionVariantTrackWidth',
       baseTrackWidthsName: 'dimensionVariantBaseTrackWidths',
       baseWidthName: 'dimensionMatrixBaseWidth',
+      occupiedWidthName: 'dimensionMatrixOccupiedWidth',
       remainderTrackName: 'dimensionMatrixRemainderTrack'
     },
     {
@@ -44,8 +46,10 @@ test('non-dense variant tracks exchange explicit length-percentage space without
       variantCollection: 'weightData.variants',
       denseLayoutName: 'usesDenseWeightVariantLayout',
       expandedVariantName: 'expandedWeightVariant',
+      expandedTrackWidthName: 'expandedWeightVariantTrackWidth',
       baseTrackWidthsName: 'weightVariantBaseTrackWidths',
       baseWidthName: 'weightMatrixBaseWidth',
+      occupiedWidthName: 'weightMatrixOccupiedWidth',
       remainderTrackName: 'weightMatrixRemainderTrack'
     }
   ] as const;
@@ -63,7 +67,7 @@ test('non-dense variant tracks exchange explicit length-percentage space without
     );
     const nonDenseTrackSource = sourceBetween(
       trackSource,
-      `if (!${implementation.denseLayoutName}) {`,
+      `if (!${implementation.denseLayoutName}) return`,
       '    const isCompressedInactive ='
     );
     const gridSource = sourceBetween(
@@ -81,24 +85,37 @@ test('non-dense variant tracks exchange explicit length-percentage space without
     expect(trackSource).toContain(
       `const baseTrackWidth = ${implementation.baseTrackWidthsName}[variantIndex]`
     );
-    expect(nonDenseTrackSource).toContain(
-      'if (!isExpanded) return `${baseTrackWidth}px`;'
+    expect(implementation.source).toContain(
+      `const ${implementation.expandedTrackWidthName} = 336;`
     );
-    expect(nonDenseTrackSource).toContain(
-      `return \`calc(100% - \${${implementation.baseWidthName} - baseTrackWidth}px)\`;`
+    expect(trackSource).toContain(
+      `if (isExpanded) return \`\${${implementation.expandedTrackWidthName}}px\`;`
     );
+    expect(nonDenseTrackSource).toContain('return `${baseTrackWidth}px`;');
     expect(nonDenseTrackSource).not.toContain('minmax(');
     expect(nonDenseTrackSource).not.toMatch(/\dfr|flexibleWidth/u);
 
     expect(layoutSource).toContain(`const ${implementation.remainderTrackName} =`);
+    expect(layoutSource).toContain(`const ${implementation.occupiedWidthName} =`);
+    expect(layoutSource).toContain(
+      `? ${implementation.expandedTrackWidthName} - compact`
+    );
     expect(layoutSource).toMatch(
       new RegExp(
-        `${implementation.denseLayoutName}\\s*\\|\\|\\s*${implementation.expandedVariantName}\\s*\\?\\s*'0px'`,
+        `${implementation.denseLayoutName}\\s*\\?\\s*'0px'`,
         'u'
       )
     );
     expect(layoutSource).toContain(
-      '`calc(100% - ${' + implementation.baseWidthName + '}px)`'
+      '`calc(100% - ${' + implementation.occupiedWidthName + '}px)`'
+    );
+    expect(implementation.source).toContain(
+      `return total + ${implementation.expandedTrackWidthName};`
+    );
+    // 336px = the 320px standardized field shell plus px-2 on both sides.
+    expect(implementation.source).toContain('bg-sky-50/45 px-2 py-1');
+    expect(implementation.source).toContain(
+      'admin-dimension-variant-content-enter w-full max-w-[320px]'
     );
 
     // The trailing remainder is unconditional and remains after one mapped

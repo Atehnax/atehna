@@ -8,6 +8,8 @@ type CatalogChoice = {
   catalogVariantId: number;
   sku: string;
   name: string;
+  productName: string;
+  variantName: string | null;
   unit: string;
   unitPrice: number;
   discountPercentage: number;
@@ -45,7 +47,9 @@ async function collectCatalogChoices(): Promise<CatalogChoice[]> {
         catalogVariantId: row.variant_id,
         sku: row.sku,
         name: buildChoiceName(row),
-        unit: DEFAULT_UNIT,
+        productName: row.item_name.trim(),
+        variantName: row.variant_name.trim() || null,
+        unit: row.unit || DEFAULT_UNIT,
         unitPrice: row.price,
         discountPercentage: row.discount_pct,
         display_order: row.item_position

@@ -389,7 +389,6 @@ const purchaseCopyGroups: Array<{
     id: 'product-delivery',
     title: 'Dostava in plačilo',
     fields: [
-      { key: 'freeShippingMessage', label: 'Brezplačna dostava', multiline: true },
       { key: 'deliveryFallbackMessage', label: 'Nadomestni dobavni rok', multiline: true },
       { key: 'paymentMessage', label: 'Način plačila', multiline: true }
     ]

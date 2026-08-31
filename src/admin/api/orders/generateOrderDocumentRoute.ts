@@ -11,6 +11,7 @@ import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { validatePersistedOrderShippingReadiness } from '@/shared/domain/shipping/shipping';
 import {
   allocateOrderDocumentNumber,
   buildGeneratedPdfFileName,
@@ -34,14 +35,18 @@ export async function generateOrderDocumentRoute(
     }
 
     const pool = await getPool();
-    const [context, template, logoConfig] = await Promise.all([
+    const [initialContext, template, logoConfig] = await Promise.all([
       buildPdfContext(pool, orderId),
       getOrderDocumentTemplate(type),
       getSiteLogoConfig()
     ]);
-    if (!context.ok) {
-      return NextResponse.json({ message: context.message }, { status: context.status });
+    if (!initialContext.ok) {
+      return NextResponse.json(
+        { message: initialContext.message },
+        { status: initialContext.status }
+      );
     }
+    let context = initialContext;
     const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
 
     const issuedAt = new Date();
@@ -55,12 +60,87 @@ export async function generateOrderDocumentRoute(
     try {
       await client.query('begin');
       const lockedOrder = await client.query(
-        'select id from orders where id = $1 for update',
+        'select id, contract_status from orders where id = $1 for update',
         [orderId]
       );
       if ((lockedOrder.rowCount ?? 0) === 0) {
         await client.query('rollback');
         return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+      }
+
+      const lockedContext = await buildPdfContext(client, orderId);
+      if (!lockedContext.ok) {
+        await client.query('rollback');
+        return NextResponse.json(
+          { message: lockedContext.message },
+          { status: lockedContext.status }
+        );
+      }
+      if (
+        type !== 'order_summary' &&
+        String(lockedOrder.rows[0]?.contract_status ?? '') !== 'accepted'
+      ) {
+        await client.query('rollback');
+        return NextResponse.json(
+          {
+            code: 'ORDER_CONTRACT_NOT_ACCEPTED',
+            message:
+              'Operativni dokument lahko izdate šele po sprejemu naročila.'
+          },
+          { status: 409 }
+        );
+      }
+      context = lockedContext;
+      if (context.order.is_draft === true) {
+        await client.query('rollback');
+        return NextResponse.json(
+          {
+            code: 'ORDER_DRAFT_DOCUMENT_BLOCKED',
+            message:
+              'Dokument lahko ustvarite šele po dokončanju osnutka in potrditvi poštnine.'
+          },
+          { status: 409 }
+        );
+      }
+
+      const shippingCountsResult = await client.query(
+        `
+          select
+            (select count(*)::integer from order_items where order_id = $1) as item_count,
+            (
+              select count(*)::integer
+              from order_line_snapshots
+              where order_id = $1
+            ) as snapshot_line_count
+        `,
+        [orderId]
+      );
+      const shippingCounts = shippingCountsResult.rows[0] as {
+        item_count?: number;
+        snapshot_line_count?: number;
+      } | undefined;
+      const shippingReadiness = validatePersistedOrderShippingReadiness({
+        expectedItemCount: Number(shippingCounts?.item_count ?? 0),
+        snapshotLineCount: Number(shippingCounts?.snapshot_line_count ?? 0),
+        subtotal: context.order.subtotal,
+        tax: context.order.tax,
+        shipping: context.order.shipping,
+        automaticShipping: context.order.automatic_shipping,
+        total: context.order.total,
+        shippingSnapshot: context.order.shipping_snapshot_json,
+        shippingOverride: context.order.shipping_override_json,
+        shippingOverrideStale: context.order.shipping_override_stale,
+        parcelCount: context.order.parcel_count
+      });
+      if (!shippingReadiness.ok) {
+        await client.query('rollback');
+        return NextResponse.json(
+          {
+            code: 'ORDER_SHIPPING_NOT_READY',
+            message: shippingReadiness.message
+          },
+          { status: 409 }
+        );
       }
 
       const versionResult = await client.query(
@@ -101,6 +181,7 @@ export async function generateOrderDocumentRoute(
            filename,
            blob_pathname,
            version_number,
+           order_pricing_revision,
            document_number,
            issued_at,
            content_sha256,
@@ -108,7 +189,8 @@ export async function generateOrderDocumentRoute(
            format_marker
          )
          values (
-           $1, $2, $3, $4, $5, $6, $7, $8, $9,
+           $1, $2, $3, $4, $5, $6,
+           (select pricing_revision from orders where id = $1), $7, $8, $9,
            'operational', 'atehna-template-pdf-v3'
          )
          returning id, created_at, issued_at`,

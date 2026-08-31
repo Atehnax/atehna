@@ -1,11 +1,22 @@
 import 'server-only';
 
+import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
+import {
+  SHIPPING_CALCULATION_VERSION,
+  SHIPPING_MAX_AMOUNT_CENTS,
+  calculateShipping,
+  shippingCentsToEuros,
+  type ShippingCalculation,
+  type ShippingConfiguration,
+  type ShippingMeasurement
+} from '@/shared/domain/shipping/shipping';
 import {
   getBestQuantityDiscount,
   resolveEffectiveOrderDiscount,
   type DiscountKind
 } from '@/shared/server/orderQuantityDiscount';
+import { getShippingConfiguration } from '@/shared/server/shipping';
 
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
@@ -15,12 +26,24 @@ const MONEY_SCALE = 100n;
 const PERCENT_SCALE = 10_000n;
 const DEFAULT_TAX_RATE = 0.22;
 
+// Keep the established wire prefix while making the domain meaning explicit:
+// this is an authoritative checkout estimate, not an issued seller offer.
+export const ORDER_ESTIMATE_FINGERPRINT_VERSION = 'order-quote-v1' as const;
+/** @deprecated Use ORDER_ESTIMATE_FINGERPRINT_VERSION. */
+export const ORDER_QUOTE_FINGERPRINT_VERSION =
+  ORDER_ESTIMATE_FINGERPRINT_VERSION;
+
 export type OrderSelection = {
   variantId: number;
   quantity: number;
 };
 
-export type OrderQuoteIssue = {
+export type ManualQuoteCatalogSelection = OrderSelection & {
+  catalogItemId: number | null;
+  sku: string | null;
+};
+
+export type OrderEstimateIssue = {
   code: string;
   message: string;
   variantId?: number;
@@ -32,13 +55,13 @@ export type OrderQuoteIssue = {
 export class OrderCommerceError extends Error {
   readonly status: number;
   readonly code: string;
-  readonly issues: OrderQuoteIssue[];
+  readonly issues: OrderEstimateIssue[];
 
   constructor(
     status: number,
     code: string,
     message: string,
-    issues: OrderQuoteIssue[] = []
+    issues: OrderEstimateIssue[] = []
   ) {
     super(message);
     this.name = 'OrderCommerceError';
@@ -80,6 +103,7 @@ export type AuthoritativeOrderLine = {
   lineGross: number;
   taxRate: number;
   currency: 'EUR';
+  shippingMeasurement: Partial<ShippingMeasurement>;
   snapshot: Record<string, unknown>;
 };
 
@@ -93,17 +117,26 @@ export type VariantOptionAssignment = {
   swatch: string | null;
 };
 
-export type AuthoritativeOrderQuote = {
+export type AuthoritativeOrderEstimate = {
   items: AuthoritativeOrderLine[];
   totals: {
     net: number;
     tax: number;
-    shipping: number;
-    gross: number;
+    shipping: number | null;
+    gross: number | null;
     currency: 'EUR';
   };
+  shipping: ShippingCalculation;
+  shippingConfigurationVersion: number;
+  quoteFingerprint: string;
   pricingVersion: 'authoritative-net-v1';
 };
+
+/** @deprecated Use AuthoritativeOrderEstimate. */
+export type AuthoritativeOrderQuote = AuthoritativeOrderEstimate;
+
+/** @deprecated Use OrderEstimateIssue. */
+export type OrderQuoteIssue = OrderEstimateIssue;
 
 type CatalogVariantRow = {
   variant_id: string | number;
@@ -127,6 +160,14 @@ type CatalogVariantRow = {
   variant_status: string;
   variant_sku: string | null;
   variant_unit: string | null;
+  item_shipping_weight_grams: string | number | null;
+  item_shipping_length_mm: string | number | null;
+  item_shipping_width_mm: string | number | null;
+  item_shipping_height_mm: string | number | null;
+  variant_shipping_weight_grams: string | number | null;
+  variant_shipping_length_mm: string | number | null;
+  variant_shipping_width_mm: string | number | null;
+  variant_shipping_height_mm: string | number | null;
   length: string | number | null;
   width: string | number | null;
   thickness: string | number | null;
@@ -202,6 +243,119 @@ function optionalNumber(value: unknown): number | null {
 
 function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+}
+
+export function normalizeOrderEstimateCustomerLabels(
+  labels: readonly unknown[]
+): string[] {
+  return Array.from(
+    new Set(
+      labels
+        .map((label) => cleanText(label).toLocaleLowerCase('sl-SI'))
+        .filter(Boolean)
+    )
+  ).sort();
+}
+
+/** @deprecated Use normalizeOrderEstimateCustomerLabels. */
+export const normalizeOrderQuoteCustomerLabels =
+  normalizeOrderEstimateCustomerLabels;
+
+function canonicalJson(value: unknown): string {
+  const normalize = (candidate: unknown): unknown => {
+    if (Array.isArray(candidate)) return candidate.map(normalize);
+    if (candidate && typeof candidate === 'object') {
+      return Object.keys(candidate as Record<string, unknown>)
+        .sort()
+        .reduce<Record<string, unknown>>((result, key) => {
+          const nested = (candidate as Record<string, unknown>)[key];
+          if (nested !== undefined) result[key] = normalize(nested);
+          return result;
+        }, {});
+    }
+    if (typeof candidate === 'number' && Object.is(candidate, -0)) return 0;
+    return candidate;
+  };
+
+  return JSON.stringify(normalize(value));
+}
+
+function orderEstimateFingerprint(input: {
+  selections: OrderSelection[];
+  customerLabels: string[];
+  items: AuthoritativeOrderLine[];
+  totals: AuthoritativeOrderEstimate['totals'];
+  shipping: ShippingCalculation;
+  shippingConfiguration: Omit<ShippingConfiguration, 'draftRules'> | null;
+}): string {
+  const fingerprintInput = {
+    version: ORDER_ESTIMATE_FINGERPRINT_VERSION,
+    selections: input.selections.map(({ variantId, quantity }) => ({
+      variantId,
+      quantity
+    })),
+    customerContext: {
+      labels: input.customerLabels
+    },
+    catalogContext: input.items.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      pricing: {
+        listUnitNet: item.listUnitNet,
+        discountKind: item.discountKind,
+        quantityDiscountPct: item.quantityDiscountPct,
+        discountPct: item.discountPct,
+        unitNet: item.unitNet,
+        unitTax: item.unitTax,
+        unitGross: item.unitGross,
+        lineNet: item.lineNet,
+        lineTax: item.lineTax,
+        lineGross: item.lineGross,
+        taxRate: item.taxRate,
+        currency: item.currency
+      },
+      shippingMeasurement: {
+        weightGrams: item.shippingMeasurement.weightGrams ?? null,
+        lengthMm: item.shippingMeasurement.lengthMm ?? null,
+        widthMm: item.shippingMeasurement.widthMm ?? null,
+        heightMm: item.shippingMeasurement.heightMm ?? null
+      }
+    })),
+    shippingConfiguration: input.shippingConfiguration,
+    shippingCalculation: input.shipping,
+    totals: input.totals,
+    pricingVersion: 'authoritative-net-v1'
+  };
+  const digest = createHash('sha256')
+    .update(canonicalJson(fingerprintInput))
+    .digest('hex');
+  return `${ORDER_ESTIMATE_FINGERPRINT_VERSION}:${digest}`;
+}
+
+function buildShippingMeasurement(
+  row: CatalogVariantRow
+): Partial<ShippingMeasurement> {
+  const value = (variantValue: unknown, itemValue: unknown) =>
+    optionalNumber(variantValue) ?? optionalNumber(itemValue) ?? undefined;
+  return {
+    weightGrams: value(
+      row.variant_shipping_weight_grams,
+      row.item_shipping_weight_grams
+    ),
+    lengthMm: value(
+      row.variant_shipping_length_mm,
+      row.item_shipping_length_mm
+    ),
+    widthMm: value(
+      row.variant_shipping_width_mm,
+      row.item_shipping_width_mm
+    ),
+    heightMm: value(
+      row.variant_shipping_height_mm,
+      row.item_shipping_height_mm
+    )
+  };
 }
 
 export function parseOrderSelections(rawItems: unknown): OrderSelection[] {
@@ -394,6 +548,7 @@ function priceLine(
   const unit = cleanText(row.variant_unit) || cleanText(row.product_unit) || null;
   const minOrder = Math.max(1, asInteger(row.min_order));
   const availableStock = Math.max(0, asInteger(row.inventory));
+  const shippingMeasurement = buildShippingMeasurement(row);
 
   const snapshot = {
     productId,
@@ -401,16 +556,20 @@ function priceLine(
     productSlug: row.product_slug,
     productName: row.product_name,
     productType: row.product_type,
+    productStatus: row.product_status,
     variantName: row.variant_name,
+    variantStatus: row.variant_status,
     sku,
     unit,
     minOrder,
     availableStock,
     categoryId: row.category_id,
     categoryPath: row.category_path,
+    categoryIsActive: row.category_is_active,
     imageUrl: row.image_url,
     attributes,
     optionAssignments,
+    shippingMeasurement,
     listUnitNet: centsToNumber(listUnitNetCents),
     discountKind: effectiveDiscount.discountKind,
     quantityDiscountPct: effectiveDiscount.quantityDiscountPct,
@@ -438,6 +597,7 @@ function priceLine(
     categoryPath: row.category_path ? String(row.category_path) : null,
     attributes,
     optionAssignments,
+    shippingMeasurement,
     listUnitNet: centsToNumber(listUnitNetCents),
     baseUnitNet: centsToNumber(listUnitNetCents),
     discountKind: effectiveDiscount.discountKind,
@@ -458,13 +618,17 @@ function priceLine(
   };
 }
 
-export async function buildAuthoritativeOrderQuote(
+async function buildAuthoritativeOrderEstimateInternal(
   database: Queryable,
   selections: OrderSelection[],
-  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
-): Promise<AuthoritativeOrderQuote> {
+  options: { lockVariants?: boolean; customerLabels?: readonly string[] } | undefined,
+  enforceOrderability: boolean
+): Promise<AuthoritativeOrderEstimate> {
   const variantIds = selections.map((selection) => selection.variantId);
   const lockClause = options?.lockVariants ? 'for update of civ, ci' : '';
+  const customerLabels = normalizeOrderEstimateCustomerLabels(
+    options?.customerLabels ?? []
+  );
 
   const result = await database.query(
     `
@@ -511,6 +675,14 @@ export async function buildAuthoritativeOrderQuote(
         civ.status as variant_status,
         civ.variant_sku,
         civ.unit as variant_unit,
+        ci.shipping_weight_grams as item_shipping_weight_grams,
+        ci.shipping_length_mm as item_shipping_length_mm,
+        ci.shipping_width_mm as item_shipping_width_mm,
+        ci.shipping_height_mm as item_shipping_height_mm,
+        civ.shipping_weight_grams as variant_shipping_weight_grams,
+        civ.shipping_length_mm as variant_shipping_length_mm,
+        civ.shipping_width_mm as variant_shipping_width_mm,
+        civ.shipping_height_mm as variant_shipping_height_mm,
         civ.length,
         civ.width,
         civ.thickness,
@@ -607,6 +779,7 @@ export async function buildAuthoritativeOrderQuote(
         where cqd.item_id = ci.id
       ) quantity_discount_rules on true
       where civ.id = any($1::bigint[])
+      order by civ.id asc
       ${lockClause}
     `,
     [variantIds]
@@ -615,7 +788,7 @@ export async function buildAuthoritativeOrderQuote(
   const rowsByVariantId = new Map<number, CatalogVariantRow>(
     (result.rows as CatalogVariantRow[]).map((row) => [Number(row.variant_id), row])
   );
-  const issues: OrderQuoteIssue[] = [];
+  const issues: OrderEstimateIssue[] = [];
 
   selections.forEach((selection) => {
     const row = rowsByVariantId.get(selection.variantId);
@@ -627,6 +800,8 @@ export async function buildAuthoritativeOrderQuote(
       });
       return;
     }
+
+    if (!enforceOrderability) return;
 
     if (
       row.product_status !== 'active' ||
@@ -679,7 +854,7 @@ export async function buildAuthoritativeOrderQuote(
       row,
       selection,
       resolveEffectiveTaxRate(row.catalog_tax_rate),
-      options?.customerLabels ?? []
+      customerLabels
     );
   });
   const netCents = items.reduce(
@@ -690,20 +865,207 @@ export async function buildAuthoritativeOrderQuote(
     (sum, item) => sum + parseScaledDecimal(item.lineTax, 2),
     0n
   );
-  const shippingCents = 0n;
-  const grossCents = netCents + taxCents + shippingCents;
+  const merchandiseSubtotalCents = Number(netCents + taxCents);
+  const parcelCount = 1;
+  let shippingConfigurationVersion = 1;
+  let shippingCalculationConfiguration: Omit<
+    ShippingConfiguration,
+    'draftRules'
+  > | null = null;
+  let shipping: ShippingCalculation;
+  try {
+    const shippingConfiguration = await getShippingConfiguration(database, {
+      lockForTransaction: options?.lockVariants === true
+    });
+    const { draftRules: _draftRules, ...calculationConfiguration } =
+      shippingConfiguration;
+    shippingCalculationConfiguration = calculationConfiguration;
+    shippingConfigurationVersion = shippingConfiguration.version;
+    shipping = calculateShipping(
+      shippingConfiguration,
+      items.map((item) => ({
+        productId: String(item.productId),
+        variantId: String(item.variantId),
+        sku: item.sku,
+        name: `${item.productName} – ${item.variantName}`,
+        quantity: item.quantity,
+        measurement: item.shippingMeasurement
+      })),
+      { merchandiseSubtotalCents, parcelCount }
+    );
+  } catch (error) {
+    const isDatabaseError =
+      typeof error === 'object' &&
+      error !== null &&
+      typeof (error as { code?: unknown }).code === 'string';
+    if (isDatabaseError) {
+      throw error;
+    }
+    const reason =
+      'Konfiguracije poštnine trenutno ni mogoče varno uporabiti. Potrebna je ročna ponudba.';
+    shipping = {
+      status: 'manual_quote',
+      calculationVersion: SHIPPING_CALCULATION_VERSION,
+      configurationVersion: shippingConfigurationVersion,
+      items: items.map((item) => ({
+        productId: String(item.productId),
+        variantId: String(item.variantId),
+        sku: item.sku,
+        name: [item.productName, item.variantName].filter(Boolean).join(' - '),
+        quantity: item.quantity,
+        weightGrams: Number.isFinite(item.shippingMeasurement.weightGrams)
+          ? item.shippingMeasurement.weightGrams ?? null
+          : null,
+        lengthMm: Number.isFinite(item.shippingMeasurement.lengthMm)
+          ? item.shippingMeasurement.lengthMm ?? null
+          : null,
+        widthMm: Number.isFinite(item.shippingMeasurement.widthMm)
+          ? item.shippingMeasurement.widthMm ?? null
+          : null,
+        heightMm: Number.isFinite(item.shippingMeasurement.heightMm)
+          ? item.shippingMeasurement.heightMm ?? null
+          : null
+      })),
+      combinedWeightGrams: null,
+      largestDimensionMm: null,
+      triggeringItem: null,
+      reason,
+      issues: [{ code: 'INVALID_CONFIGURATION', message: reason }]
+    };
+  }
+  if (
+    shipping.status === 'calculated'
+    && netCents + taxCents + BigInt(shipping.finalAmountCents) > BigInt(SHIPPING_MAX_AMOUNT_CENTS)
+  ) {
+    const reason =
+      'Skupni znesek naročila presega podprto vrednost. Potrebna je ročna ponudba.';
+    shipping = {
+      status: 'manual_quote',
+      calculationVersion: shipping.calculationVersion,
+      configurationVersion: shipping.configurationVersion,
+      items: shipping.items,
+      combinedWeightGrams: shipping.combinedWeightGrams,
+      largestDimensionMm: shipping.largestDimensionMm,
+      triggeringItem: shipping.triggeringItem,
+      reason,
+      issues: [{ code: 'INVALID_CONFIGURATION', message: reason }]
+    };
+  }
+  const shippingAmount =
+    shipping.status === 'calculated'
+      ? shippingCentsToEuros(shipping.finalAmountCents)
+      : null;
+  const grossCents =
+    shipping.status === 'calculated'
+      ? netCents + taxCents + BigInt(shipping.finalAmountCents)
+      : null;
+  const totals: AuthoritativeOrderEstimate['totals'] = {
+    net: centsToNumber(netCents),
+    tax: centsToNumber(taxCents),
+    shipping: shippingAmount,
+    gross: grossCents === null ? null : centsToNumber(grossCents),
+    currency: 'EUR'
+  };
+  const quoteFingerprint = orderEstimateFingerprint({
+    selections,
+    customerLabels,
+    items,
+    totals,
+    shipping,
+    shippingConfiguration: shippingCalculationConfiguration
+  });
 
   return {
     items,
-    totals: {
-      net: centsToNumber(netCents),
-      tax: centsToNumber(taxCents),
-      shipping: centsToNumber(shippingCents),
-      gross: centsToNumber(grossCents),
-      currency: 'EUR'
-    },
+    totals,
+    shipping,
+    shippingConfigurationVersion: shipping.configurationVersion,
+    quoteFingerprint,
     pricingVersion: 'authoritative-net-v1'
   };
+}
+
+export async function buildAuthoritativeOrderEstimate(
+  database: Queryable,
+  selections: OrderSelection[],
+  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
+): Promise<AuthoritativeOrderEstimate> {
+  return buildAuthoritativeOrderEstimateInternal(
+    database,
+    selections,
+    options,
+    true
+  );
+}
+
+/**
+ * Loads a locked, canonical catalog snapshot for a non-binding manual quote
+ * request. Unlike checkout, intake records the requested quantity even when
+ * the item is inactive, below its minimum, or above current stock. It neither
+ * reserves stock nor makes the inquiry orderable.
+ */
+export async function loadAuthoritativeManualQuoteCatalogSnapshot(
+  database: Queryable,
+  selection: ManualQuoteCatalogSelection,
+  options?: { customerLabels?: readonly string[] }
+): Promise<AuthoritativeOrderEstimate> {
+  const [normalizedSelection] = parseOrderSelections([selection]);
+  const estimate = await buildAuthoritativeOrderEstimateInternal(
+    database,
+    [normalizedSelection],
+    { lockVariants: true, customerLabels: options?.customerLabels },
+    false
+  );
+  const item = estimate.items[0];
+  if (!item) {
+    throw new OrderCommerceError(
+      409,
+      'CATALOG_SELECTION_MISMATCH',
+      'Izbrane kataloške različice ni bilo mogoče preveriti.'
+    );
+  }
+  if (
+    selection.catalogItemId !== null
+    && item.productId !== selection.catalogItemId
+  ) {
+    throw new OrderCommerceError(
+      409,
+      'CATALOG_SELECTION_MISMATCH',
+      'Izbrana kataloška različica ne pripada izbranemu artiklu.'
+    );
+  }
+  const expectedSku = cleanText(selection.sku).toLocaleLowerCase('sl-SI');
+  if (expectedSku && item.sku.trim().toLocaleLowerCase('sl-SI') !== expectedSku) {
+    throw new OrderCommerceError(
+      409,
+      'CATALOG_SELECTION_MISMATCH',
+      'SKU izbrane kataloške različice se je spremenil. Osvežite izbor.'
+    );
+  }
+
+  item.snapshot = {
+    ...item.snapshot,
+    manualQuoteIntake: {
+      snapshotOnly: true,
+      orderabilityEnforced: false,
+      minimumOrderMet: selection.quantity >= item.minOrder,
+      stockSufficient: selection.quantity <= item.availableStock,
+      stockReserved: false
+    }
+  };
+  return estimate;
+}
+
+/**
+ * Compatibility alias for older callers and `/api/orders/quote`. The returned
+ * value is an estimate and must never be persisted as a seller offer.
+ */
+export async function buildAuthoritativeOrderQuote(
+  database: Queryable,
+  selections: OrderSelection[],
+  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
+): Promise<AuthoritativeOrderEstimate> {
+  return buildAuthoritativeOrderEstimate(database, selections, options);
 }
 
 export function moneyToDatabaseValue(value: number): string {

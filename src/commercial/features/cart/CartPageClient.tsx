@@ -8,23 +8,24 @@ import {
   getCartSubtotal
 } from '@/commercial/cart/cartTypes';
 import CartLine from '@/commercial/components/storefront/CartLine';
-import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
-import { useOrderQuote } from '@/commercial/order/useOrderQuote';
+import ShippingCalculationRows, {
+  ShippingManualQuoteNotice
+} from '@/commercial/order/components/ShippingCalculationRows';
+import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
 import { formatEuro } from '@/shared/domain/formatting';
 
 export default function CartPageClient() {
-  const appearance = useProductAppearance();
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
-  const quoteState = useOrderQuote(items, items.length > 0);
-  const quoteByVariant = useMemo(
+  const estimateState = useOrderEstimate(items, items.length > 0);
+  const estimateByVariant = useMemo(
     () =>
       new Map(
-        (quoteState.quote?.items ?? []).map((item) => [item.variantId, item])
+        (estimateState.estimate?.items ?? []).map((item) => [item.variantId, item])
       ),
-    [quoteState.quote]
+    [estimateState.estimate]
   );
   const fallbackGross = getCartSubtotal(items);
   const fallbackNet = items.reduce(
@@ -37,17 +38,12 @@ export default function CartPageClient() {
       typeof item.pricing?.unitNet === 'number' &&
       typeof item.pricing?.estimatedUnitGross === 'number'
   );
-  const totals = quoteState.quote?.totals ?? {
-    net: fallbackNet,
-    tax: Math.max(0, fallbackGross - fallbackNet),
-    shipping: 0,
-    gross: fallbackGross,
-    currency: 'EUR' as const
-  };
-  const totalsKnown = Boolean(quoteState.quote) || hasCompleteFallbackPricing;
+  const totals = estimateState.estimate?.totals;
+  const totalsKnown = Boolean(estimateState.estimate) || hasCompleteFallbackPricing;
   const checkoutBlocked =
-    quoteState.isLoading ||
-    Boolean(quoteState.error) ||
+    !estimateState.estimate ||
+    estimateState.isLoading ||
+    Boolean(estimateState.error) ||
     cartHasBlockingIssue(items);
 
   if (items.length === 0) {
@@ -100,9 +96,9 @@ export default function CartPageClient() {
               <CartLine
                 key={item.lineId}
                 item={item}
-                quoteItem={
+                estimateItem={
                   typeof item.variant?.id === 'number'
-                    ? quoteByVariant.get(item.variant.id)
+                    ? estimateByVariant.get(item.variant.id)
                     : undefined
                 }
                 onQuantityChange={(quantity) =>
@@ -123,39 +119,49 @@ export default function CartPageClient() {
               <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
                 <dt>Cena brez DDV</dt>
                 <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                  {totalsKnown ? formatEuro(totals.net) : '—'}
+                  {totals
+                    ? formatEuro(totals.net)
+                    : totalsKnown
+                      ? formatEuro(fallbackNet)
+                      : '—'}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
                 <dt>DDV</dt>
                 <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                  {totalsKnown ? formatEuro(totals.tax) : '—'}
+                  {totals
+                    ? formatEuro(totals.tax)
+                    : totalsKnown
+                      ? formatEuro(Math.max(0, fallbackGross - fallbackNet))
+                      : '—'}
                 </dd>
               </div>
-              <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
-                <dt>Dostava</dt>
-                <dd className="font-semibold text-[color:var(--site-color-success)]">
-                  {appearance.pricing.freeShippingLabel}
-                </dd>
-              </div>
+              <ShippingCalculationRows calculation={estimateState.estimate?.shipping ?? null} />
               <div className="mt-3 flex justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-3 text-base font-semibold">
                 <dt>Skupaj z DDV</dt>
                 <dd className="tabular-nums text-[color:var(--site-color-primary)]">
-                  {totalsKnown ? formatEuro(totals.gross) : '—'}
+                  {totals?.gross !== null && totals?.gross !== undefined
+                    ? formatEuro(totals.gross)
+                    : '—'}
                 </dd>
               </div>
             </dl>
 
-            {quoteState.isLoading ? (
+            <ShippingManualQuoteNotice
+              calculation={estimateState.estimate?.shipping ?? null}
+              className="site-radius-sm mt-3 bg-[color:var(--site-color-surface-muted)] p-3 text-xs text-[color:var(--site-color-danger)]"
+            />
+
+            {estimateState.isLoading ? (
               <p className="mt-3 text-xs text-[color:var(--site-color-text-muted)]">
                 Preverjamo veljavne cene in zalogo …
               </p>
-            ) : quoteState.error ? (
+            ) : estimateState.error ? (
               <div
                 role="alert"
                 className="site-radius-sm mt-3 bg-[color:var(--site-color-surface-muted)] p-3 text-xs text-[color:var(--site-color-danger)]"
               >
-                {quoteState.error.message}
+                {estimateState.error.message}
               </div>
             ) : (
               <p className="mt-3 text-xs text-[color:var(--site-color-text-muted)]">

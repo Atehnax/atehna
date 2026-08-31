@@ -17,7 +17,7 @@ const implementationSource = (relativeDirectory: string): string => {
     .join('\n');
 };
 
-test('database setup is one canonical final schema', () => {
+test('database setup has one canonical schema and ordered reviewed deployment artifacts', () => {
   const schemaPath = resolve(process.cwd(), 'database', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf8');
   const tableNames = Array.from(
@@ -27,19 +27,92 @@ test('database setup is one canonical final schema', () => {
   const schemaSqlFiles = readdirSync(resolve(process.cwd(), 'database'))
     .filter((fileName) => fileName.endsWith('.sql'))
     .sort();
+  const deploymentArtifacts = readdirSync(
+    resolve(process.cwd(), 'database', 'migrations')
+  )
+    .filter((fileName) => fileName.endsWith('.sql'))
+    .sort();
+  const quoteDeployment = source(
+    'database/migrations/20260828_quote_workflow_and_order_contract.sql'
+  );
+  const quoteDetailsDeployment = source(
+    'database/migrations/20260829_quote_request_admin_details.sql'
+  );
+  const quoteManagementDeployment = source(
+    'database/migrations/20260829_quote_request_management.sql'
+  );
+  const quoteManualDocumentsDeployment = source(
+    'database/migrations/20260830_quote_manual_documents.sql'
+  );
+  const quoteAdminTitleDeployment = source(
+    'database/migrations/20260830_quote_request_admin_title.sql'
+  );
+  const quoteClarificationEmailDeployment = source(
+    'database/migrations/20260830_quote_clarification_email.sql'
+  );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
-  assert.equal(tableNames.length, 41);
-  assert.equal(new Set(tableNames).size, 41);
-  assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 1);
+  assert.deepEqual(deploymentArtifacts, [
+    '20260828_quote_workflow_and_order_contract.sql',
+    '20260829_quote_request_admin_details.sql',
+    '20260829_quote_request_management.sql',
+    '20260830_quote_clarification_email.sql',
+    '20260830_quote_manual_documents.sql',
+    '20260830_quote_request_admin_title.sql'
+  ]);
+  assert.equal(tableNames.length, 60);
+  assert.equal(new Set(tableNames).size, 60);
+  assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
   assert.match(
     schema,
     /alter table catalog_items[\s\S]*?catalog_items_default_variant_id_fkey[\s\S]*?catalog_items_default_variant_same_item_fkey/u
   );
+  assert.match(
+    schema,
+    /alter table orders[\s\S]*?orders_source_quote_offer_version_id_fkey/u
+  );
   assert.doesNotMatch(
     schema,
-    /create\s+(?:unique\s+)?(?:table|index)\s+if\s+not\s+exists|create\s+or\s+replace\s+function|drop\s+trigger\s+if\s+exists|on\s+conflict[^;]*do\s+nothing|add\s+column\s+if\s+not\s+exists|drop\s+constraint\s+if\s+exists|not\s+valid|validate\s+constraint|\bdo\s+\$\$|\b(?:upgrade|backfill|legacy|retrofit|migration)\w*\b/iu
+    /create\s+(?:unique\s+)?(?:table|index)\s+if\s+not\s+exists|create\s+or\s+replace\s+function|drop\s+trigger\s+if\s+exists|on\s+conflict[^;]*do\s+nothing|add\s+column\s+if\s+not\s+exists|drop\s+constraint\s+if\s+exists|not\s+valid|validate\s+constraint|\bdo\s+\$\$|\b(?:upgrade|retrofit|migration)\w*\b/iu
+  );
+  for (const deployment of [
+    quoteDeployment,
+    quoteDetailsDeployment,
+    quoteManagementDeployment,
+    quoteClarificationEmailDeployment,
+    quoteManualDocumentsDeployment,
+    quoteAdminTitleDeployment
+  ]) {
+    assert.match(deployment, /begin;/u);
+    assert.match(deployment, /set local search_path = public, pg_temp/u);
+    assert.match(deployment, /set local lock_timeout = '10s'/u);
+    assert.match(deployment, /set local statement_timeout = '15min'/u);
+    assert.match(deployment, /pg_advisory_xact_lock/u);
+    assert.match(deployment, /commit;/u);
+  }
+  assert.match(quoteDeployment, /add column contract_status/u);
+  assert.match(quoteDeployment, /legacy_unknown/u);
+  assert.match(quoteDeployment, /inventoryChangedByMigration', false/u);
+  assert.match(quoteDetailsDeployment, /quote_request_details_changed/u);
+  assert.match(quoteDetailsDeployment, /Customer details on a current issued offer are immutable\./u);
+  assert.match(quoteManagementDeployment, /add column if not exists intake_source/u);
+  assert.match(quoteManagementDeployment, /add column if not exists voided_at/u);
+  assert.match(quoteManagementDeployment, /request_voided/u);
+  assert.match(quoteManagementDeployment, /Quote requests are durable records and cannot be deleted\./u);
+  assert.match(quoteManualDocumentsDeployment, /quote_manual_documents/u);
+  assert.match(quoteManualDocumentsDeployment, /quote_documents_id_seq/u);
+  assert.match(quoteManualDocumentsDeployment, /quote_manual_documents_append_only/u);
+  assert.match(quoteAdminTitleDeployment, /add column if not exists admin_title text/u);
+  assert.match(quoteAdminTitleDeployment, /quote_requests_admin_title_check/u);
+  assert.match(quoteAdminTitleDeployment, /'admin_title'/u);
+  assert.match(
+    quoteClarificationEmailDeployment,
+    /quote_email_jobs_event_type_check/u
+  );
+  assert.match(
+    quoteClarificationEmailDeployment,
+    /quote_clarification_requested/u
   );
 
   const setup = source('scripts/e2e-database.mjs');
@@ -52,6 +125,13 @@ test('database setup is one canonical final schema', () => {
   assert.match(setup, /has_order_access_tokens/u);
   assert.match(setup, /has_order_email_settings/u);
   assert.match(setup, /has_order_email_jobs/u);
+  assert.match(setup, /has_order_stock_holds/u);
+  assert.match(setup, /has_quote_requests/u);
+  assert.match(setup, /has_quote_events/u);
+  assert.match(setup, /has_quote_access_tokens/u);
+  assert.match(setup, /has_quote_email_settings/u);
+  assert.match(setup, /has_quote_email_jobs/u);
+  assert.match(setup, /has_order_contract_status/u);
   assert.match(setup, /canonical-schema fingerprint is missing or stale/u);
 
   const health = source('src/app/api/e2e/health/route.ts');
@@ -60,6 +140,68 @@ test('database setup is one canonical final schema', () => {
   assert.match(health, /row\.has_order_access_tokens !== true/u);
   assert.match(health, /row\.has_order_email_settings !== true/u);
   assert.match(health, /row\.has_order_email_jobs !== true/u);
+  assert.match(health, /row\.has_order_stock_holds !== true/u);
+  assert.match(health, /row\.has_quote_requests !== true/u);
+  assert.match(health, /row\.has_quote_events !== true/u);
+  assert.match(health, /row\.has_quote_access_tokens !== true/u);
+  assert.match(health, /row\.has_quote_email_settings !== true/u);
+  assert.match(health, /row\.has_quote_email_jobs !== true/u);
+  assert.match(health, /row\.has_order_contract_status !== true/u);
+});
+
+test('the commerce reset is explicit, scoped, and rebuilds from the canonical schema', () => {
+  const reset = source('scripts/reset-commerce-database.mjs');
+  const resetTableBlock = reset.match(/const RESET_TABLES = \[([\s\S]*?)\n\];/u)?.[1] ?? '';
+
+  assert.match(reset, /resolve\(projectRoot, 'database', 'schema\.sql'\)/u);
+  assert.match(reset, /process\.argv\.includes\('--execute'\)/u);
+  assert.match(reset, /process\.argv\.includes\('--verify-build'\)/u);
+  assert.match(reset, /mode: 'verified-build-rolled-back'/u);
+  assert.match(reset, /ATEHNA_ALLOW_COMMERCE_RESET/u);
+  assert.match(reset, /ATEHNA_COMMERCE_RESET_TARGET/u);
+  assert.match(reset, /assertLiveIdentity/u);
+  assert.match(reset, /assertNoExternalForeignKeys/u);
+  assert.match(reset, /restoreSequenceHighWaterMarks/u);
+  assert.match(reset, /select max\(\$\{quoteIdentifier\(columnName\)\}\)::text/u);
+  assert.match(reset, /currentShippingSettingsVersion/u);
+  assert.match(reset, /previousShippingVersion\.version \+ 1/u);
+  assert.match(reset, /drop table if exists \$\{quotedResetTables\.join/u);
+  assert.match(reset, /await client\.query\('rollback'\)/u);
+  assert.doesNotMatch(reset, /drop schema (?:if exists )?public/iu);
+  assert.doesNotMatch(reset, /drop table if exists \$\{quotedResetTables\.join\([^\n]+cascade/iu);
+
+  for (const requiredResetTable of [
+    'orders',
+    'order_items',
+    'order_stock_holds',
+    'order_documents',
+    'quote_requests',
+    'quote_offer_versions',
+    'quote_manual_documents',
+    'quote_events',
+    'catalog_items',
+    'catalog_item_variants',
+    'shipping_settings',
+    'analytics_charts',
+    'website_events'
+  ]) {
+    assert.match(resetTableBlock, new RegExp(`'${requiredResetTable}'`, 'u'));
+  }
+
+  for (const preservedTable of [
+    'order_email_settings',
+    'quote_email_settings',
+    'audit_events',
+    'audit_settings',
+    'site_navigation_settings',
+    'product_appearance_settings',
+    'school_directory_rows',
+    'gurs_addresses',
+    'document_scene_revisions',
+    'archive_blob_deletion_outbox'
+  ]) {
+    assert.doesNotMatch(resetTableBlock, new RegExp(`'${preservedTable}'`, 'u'));
+  }
 });
 
 test('order persistence has no removed address or amount columns', () => {
@@ -184,6 +326,7 @@ test('runtime server modules assume the canonical schema instead of mutating it'
     'src/shared/server/globalStyle.ts',
     'src/shared/server/landingPage.ts',
     'src/shared/server/productAppearance.ts',
+    'src/shared/server/shipping.ts',
     'src/shared/server/siteLogo.ts',
     'src/shared/server/siteNavigation.ts'
   ];

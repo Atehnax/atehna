@@ -59,7 +59,7 @@ test('a document repair scheduling failure is contained', () => {
   assert.equal(reported, failure);
 });
 
-test('the confirmation route uses the isolated document promise alongside core data', async () => {
+test('the confirmation route isolates document failure inside one consistent snapshot', async () => {
   const source = await readFile(
     resolve(process.cwd(), 'src/commercial/api/orders/confirmation/route.ts'),
     'utf8'
@@ -67,18 +67,17 @@ test('the confirmation route uses the isolated document promise alongside core d
 
   assert.match(
     source,
-    /const documentsPromise = readConfirmationDocumentsSafely\([\s\S]*?from order_documents[\s\S]*?reportDocumentSubsystemFailure\('lookup'/u
+    /begin isolation level repeatable read read only[\s\S]*?readConfirmationDocumentsSafely\([\s\S]*?savepoint confirmation_document_lookup[\s\S]*?from order_documents[\s\S]*?reportDocumentSubsystemFailure\('lookup'/u
   );
   assert.match(
     source,
-    /const \[orderResult, snapshotsResult, documents\] = await Promise\.all\([\s\S]*?documentsPromise/u
+    /order_pricing_revision = \$2/u
   );
   assert.match(
     source,
     /scheduleConfirmationDocumentRepairSafely\([\s\S]*?scheduleInitialOrderSummaryJob/u
   );
-  assert.doesNotMatch(
-    source,
-    /const \[orderResult, snapshotsResult, documentsResult\] = await Promise\.all/u
-  );
+  assert.doesNotMatch(source, /Promise\.all\(\[\s*pool\.query/u);
+  assert.match(source, /validatePersistedOrderShippingReadiness/u);
+  assert.match(source, /CONFIRMATION_SHIPPING_PENDING/u);
 });

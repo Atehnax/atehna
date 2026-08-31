@@ -42,6 +42,8 @@ const cartItem = {
 } as const;
 
 const quote = {
+  quoteFingerprint: `order-quote-v1:${'1'.repeat(64)}`,
+  shippingConfigurationVersion: 1,
   items: [
     {
       variantId: 41001,
@@ -68,14 +70,51 @@ const quote = {
   totals: {
     net: 10,
     tax: 2.2,
-    shipping: 0,
-    gross: 12.2,
+    shipping: 3,
+    gross: 15.2,
     currency: 'EUR'
+  },
+  shipping: {
+    status: 'calculated',
+    source: 'automatic',
+    calculationVersion: 'shipping-v2',
+    configurationVersion: 1,
+    items: [
+      {
+        productId: '410',
+        variantId: '41001',
+        sku: 'CHECKOUT-LAYOUT-001',
+        name: 'Preizkusni artikel',
+        quantity: 1,
+        weightGrams: 1_000,
+        lengthMm: 100,
+        widthMm: 100,
+        heightMm: 10
+      }
+    ],
+    combinedWeightGrams: 1_000,
+    largestDimensionMm: 100,
+    triggeringItem: null,
+    basePriceCents: 300,
+    surchargeAmountCents: 0,
+    automaticAmountCents: 300,
+    finalAmountCents: 300,
+    matchedWeightBand: {
+      id: 'under-5000',
+      name: 'Do 5 kg',
+      minWeightGrams: 1,
+      maxWeightGrams: 4_999,
+      priceCents: 300,
+      enabled: true,
+      position: 0
+    },
+    matchedDimensionalRule: null,
+    manualOverride: null
   }
 } as const;
 
 async function seedCheckout(page: Page) {
-  await page.route('**/api/orders/quote', async (route) => {
+  await page.route('**/api/orders/estimate', async (route) => {
     expect(route.request().method()).toBe('POST');
     await route.fulfill({
       status: 200,
@@ -422,6 +461,117 @@ test.describe('order checkout layout', () => {
     await expect(heading).toHaveCSS('font-size', '24px');
   });
 
+  test('selects the checkout intent at the top and shows one contextual action', async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/order');
+
+    const formColumn = page.getByTestId('order-form-column');
+    const intentSection = formColumn.getByTestId(
+      'order-checkout-intent-section'
+    );
+    const intentGroup = intentSection.getByRole('radiogroup', {
+      name: 'Način oddaje'
+    });
+    const orderIntent = intentGroup.getByRole('radio', {
+      name: 'Naročilo',
+      exact: true
+    });
+    const quoteIntent = intentGroup.getByRole('radio', {
+      name: 'Zahtevaj ponudbo',
+      exact: true
+    });
+    const customerTypeGroup = formColumn.getByRole('radiogroup', {
+      name: 'Vrsta naročnika'
+    });
+    const desktopActions = page.getByTestId('order-summary-column');
+
+    await expect(intentSection).toBeVisible({ timeout: 15_000 });
+    await expect(orderIntent).toHaveAttribute('aria-checked', 'true');
+    await expect(quoteIntent).toHaveAttribute('aria-checked', 'false');
+    await expect(page.getByTestId('quote-request-details-section')).toHaveCount(
+      0
+    );
+    await expect(
+      page.getByText('Vrsta povpraševanja', { exact: true })
+    ).toHaveCount(0);
+
+    const intentBox = await intentSection.boundingBox();
+    const customerTypeBox = await customerTypeGroup.boundingBox();
+    expect(intentBox).not.toBeNull();
+    expect(customerTypeBox).not.toBeNull();
+    expect(intentBox!.y).toBeLessThan(customerTypeBox!.y);
+
+    await expect(desktopActions).toBeVisible({ timeout: 15_000 });
+    await expect(desktopActions.locator('button[type="submit"]')).toHaveCount(
+      1
+    );
+    await expect(desktopActions.locator('button[type="submit"]')).toHaveAttribute(
+      'value',
+      'order'
+    );
+    await expect(
+      desktopActions.getByRole('button', {
+        name: 'Naročilo z obveznostjo plačila',
+        exact: true
+      })
+    ).toBeVisible();
+
+    await quoteIntent.click();
+    await expect(orderIntent).toHaveAttribute('aria-checked', 'false');
+    await expect(quoteIntent).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByTestId('order-page-heading')).toHaveText(
+      'Oddaja povpraševanja'
+    );
+    await customerTypeGroup
+      .getByRole('radio', { name: 'Fizična oseba' })
+      .click();
+    const quoteDetails = page.getByTestId('quote-request-details-section');
+    await expect(quoteDetails).toBeVisible();
+    await expect(quoteDetails.getByTestId('quote-request-fixed-type')).toContainText(
+      'Vrsta povpraševanja'
+    );
+    await expect(quoteDetails.getByTestId('quote-request-fixed-type')).toContainText(
+      'Formalno ponudbo za izbrane artikle'
+    );
+    await expect(quoteDetails.locator('#quoteReason')).toHaveCount(0);
+    await expect(
+      desktopActions.getByRole('button', {
+        name: 'Zahtevaj ponudbo',
+        exact: true
+      })
+    ).toBeVisible();
+    await expect(desktopActions.locator('button[type="submit"]')).toHaveAttribute(
+      'value',
+      'quote_request'
+    );
+
+    await orderIntent.click();
+    await expect(page.getByTestId('quote-request-details-section')).toHaveCount(
+      0
+    );
+    await expect(
+      page.getByText('Vrsta povpraševanja', { exact: true })
+    ).toHaveCount(0);
+    await quoteIntent.click();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(desktopActions).toBeHidden();
+
+    const mobileActions = page
+      .locator('form')
+      .locator('div[class~="sticky"][class~="bottom-0"][class~="lg:hidden"]');
+    await expect(mobileActions).toBeVisible();
+    await expect(mobileActions.locator('button[type="submit"]')).toHaveCount(1);
+    await expect(
+      mobileActions.getByRole('button', {
+        name: 'Zahtevaj ponudbo',
+        exact: true
+      })
+    ).toBeVisible();
+  });
+
 
   test('quickly expands and collapses the school-order notice', async ({
     page
@@ -502,9 +652,6 @@ test.describe('order checkout layout', () => {
     await expect(layout).toBeVisible({ timeout: 15_000 });
     await expect(formColumn).toBeVisible();
     await expect(summaryColumn).toBeVisible();
-    await expect(
-      page.getByText('Dostava po Sloveniji je brezplačna.', { exact: false })
-    ).toHaveCount(0);
     const customerDetailsCard = formColumn.getByTestId(
       'order-customer-details-card'
     );
@@ -531,11 +678,6 @@ test.describe('order checkout layout', () => {
       })
     ).toHaveCount(0);
     await expect(
-      customerDetailsCard.getByText('Brezplačna dostava po Sloveniji', {
-        exact: true
-      })
-    ).toHaveCount(0);
-    await expect(
       customerDetailsCard.locator('.site-card'),
       'contact, delivery and payment should share one outer card without nested card windows'
     ).toHaveCount(0);
@@ -543,6 +685,20 @@ test.describe('order checkout layout', () => {
       summaryColumn.getByRole('heading', { name: 'Povzetek naročila' })
     ).toBeVisible();
     await expect(summaryColumn.getByText('Preizkusni artikel')).toBeVisible();
+    await expect(
+      summaryColumn.getByText('Osnovna poštnina', { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      summaryColumn.getByText('Samodejno izračunana poštnina', { exact: true })
+    ).toHaveCount(0);
+    const summaryShippingRow = summaryColumn.locator(
+      '[data-summary-row="shipping"]'
+    );
+    await expect(summaryShippingRow).toHaveCount(1);
+    await expect(summaryShippingRow).toContainText('3,00 €');
+    await expect(
+      summaryColumn.getByText('Poštnina', { exact: true })
+    ).toBeVisible();
     const summaryCartLine = summaryColumn.locator(
       `[data-cart-line-id="${cartItem.lineId}"]`
     );
@@ -589,7 +745,7 @@ test.describe('order checkout layout', () => {
     const desktopTotal = summaryColumn
       .getByText('Skupaj z DDV', { exact: true })
       .locator('..');
-    await expect(desktopTotal).toContainText('12,20 €');
+    await expect(desktopTotal).toContainText('15,20 €');
 
     await page.getByRole('button', { name: /^Košarica/ }).click();
     const cartDrawer = page.getByRole('dialog', { name: 'Košarica (1)' });
@@ -850,7 +1006,7 @@ test.describe('order checkout layout', () => {
     );
     const submit = page
       .getByTestId('order-summary-column')
-      .getByRole('button', { name: 'Oddaj naročilo' });
+      .locator('button[type="submit"]');
 
     await expect(customerTypeGroup).toHaveAttribute('aria-required', 'true');
     await expect(customerTypeGroup.getByRole('radio')).toHaveCount(3);
@@ -870,6 +1026,7 @@ test.describe('order checkout layout', () => {
     await page.getByRole('radio', { name: 'Šola / javni zavod' }).click();
     await expect(customerTypePrompt).toHaveCount(0);
     await expect(customerDetailsCard).toBeVisible();
+    await expect(submit).toHaveText('Pošlji naročilo v potrditev');
 
     const email = formColumn.getByLabel('E-poštni naslov *', { exact: true });
     const organizationName = formColumn.getByLabel('Naziv naročnika *', {
@@ -1123,7 +1280,7 @@ test.describe('order checkout layout', () => {
     const mobileTotal = mobileSummary
       .getByText('Skupaj z DDV', { exact: true })
       .locator('..');
-    await expect(mobileTotal).toContainText('12,20 €');
+    await expect(mobileTotal).toContainText('15,20 €');
 
     const overflow = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,

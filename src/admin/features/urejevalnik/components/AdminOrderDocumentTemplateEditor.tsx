@@ -29,8 +29,9 @@ import { useToast } from '@/shared/ui/toast';
 import OrderDocumentTemplateCanvas from './OrderDocumentTemplateCanvas';
 
 type Props = {
-  initialConfig?: OrderDocumentTemplatesConfig;
+  initialConfig?: unknown;
   initialLogoConfig?: SiteLogoConfig;
+  quoteOfferTemplateEnabled?: boolean;
 };
 
 type PreviewState = {
@@ -51,6 +52,10 @@ const TEMPLATE_META: Record<
   order_summary: {
     label: 'Potrditev naročila',
     description: 'Potrdilo o prejemu in vsebini naročila.'
+  },
+  offer: {
+    label: 'Ponudba',
+    description: 'Ločena ponudba z obvezno identiteto, veljavnostjo, vsotami in načinom sprejema.'
   },
   dobavnica: {
     label: 'Dobavnica',
@@ -102,7 +107,8 @@ function Spinner() {
 
 export default function AdminOrderDocumentTemplateEditor({
   initialConfig,
-  initialLogoConfig
+  initialLogoConfig,
+  quoteOfferTemplateEnabled = false
 }: Props) {
   const normalizedInitial = useMemo(
     () =>
@@ -130,6 +136,13 @@ export default function AdminOrderDocumentTemplateEditor({
   );
   const [selectedType, setSelectedType] =
     useState<OrderDocumentTemplateType>('order_summary');
+  const availableTemplateTypes = useMemo(
+    () =>
+      ORDER_DOCUMENT_TEMPLATE_TYPES.filter(
+        (type) => quoteOfferTemplateEnabled || type !== 'offer'
+      ),
+    [quoteOfferTemplateEnabled]
+  );
   const [viewMode, setViewMode] = useState<'canvas' | 'pdf'>('canvas');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -439,9 +452,9 @@ export default function AdminOrderDocumentTemplateEditor({
       <div
         role="tablist"
         aria-label="Vrsta predloge PDF"
-        className="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+        className="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-2 xl:grid-cols-5"
       >
-        {ORDER_DOCUMENT_TEMPLATE_TYPES.map((type) => {
+        {availableTemplateTypes.map((type) => {
           const active = type === selectedType;
           return (
             <button

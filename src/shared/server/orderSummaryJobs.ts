@@ -8,16 +8,20 @@ import {
   deletePrivateOrderDocumentBlob,
   uploadPrivateOrderDocumentBlob
 } from '@/shared/server/blob';
-import { formatStructuredOrderAddress } from '@/shared/domain/order/orderAddress';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf } from '@/shared/server/pdf';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 import {
   allocateOrderDocumentNumber,
-  buildGeneratedPdfFileName
+  buildGeneratedPdfFileName,
+  buildPdfContext
 } from '@/shared/server/pdfGeneration';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
+import {
+  validatePersistedOrderShippingReadiness,
+  type ShippingCalculation
+} from '@/shared/domain/shipping/shipping';
 
 const DOCUMENT_TYPE = 'order_summary';
 const STALE_CLAIM_INTERVAL = '5 minutes';
@@ -54,6 +58,7 @@ export type InitialOrderSummaryJobPayload = {
     shipping: number;
     gross: number;
   };
+  shipping?: ShippingCalculation;
 };
 
 type ClaimedJob = {
@@ -251,7 +256,6 @@ export async function processInitialOrderSummaryJob(
 
   let uploadedPath: string | null = null;
   try {
-    const { payload } = claimed;
     const template = await getOrderDocumentTemplate(DOCUMENT_TYPE);
     const issuedAt = new Date();
     const documentAccessId = randomUUID();
@@ -290,6 +294,43 @@ export async function processInitialOrderSummaryJob(
         return 'completed';
       }
 
+      const context = await buildPdfContext(client, orderId);
+      if (!context.ok) {
+        throw new Error(context.message);
+      }
+      const shippingCountsResult = await client.query(
+        `
+          select
+            (select count(*)::integer from order_items where order_id = $1) as item_count,
+            (
+              select count(*)::integer
+              from order_line_snapshots
+              where order_id = $1
+            ) as snapshot_line_count
+        `,
+        [orderId]
+      );
+      const shippingCounts = shippingCountsResult.rows[0] as {
+        item_count?: number;
+        snapshot_line_count?: number;
+      } | undefined;
+      const shippingReadiness = validatePersistedOrderShippingReadiness({
+        expectedItemCount: Number(shippingCounts?.item_count ?? 0),
+        snapshotLineCount: Number(shippingCounts?.snapshot_line_count ?? 0),
+        subtotal: context.order.subtotal,
+        tax: context.order.tax,
+        shipping: context.order.shipping,
+        automaticShipping: context.order.automatic_shipping,
+        total: context.order.total,
+        shippingSnapshot: context.order.shipping_snapshot_json,
+        shippingOverride: context.order.shipping_override_json,
+        shippingOverrideStale: context.order.shipping_override_stale,
+        parcelCount: context.order.parcel_count
+      });
+      if (!shippingReadiness.ok) {
+        throw new Error(shippingReadiness.message);
+      }
+
       const versionResult = await client.query(
         `
           select coalesce(max(version_number), 0)::integer + 1 as next_version
@@ -314,29 +355,8 @@ export async function processInitialOrderSummaryJob(
         issuedAt,
         logoConfig,
         logoArtwork: logoArtwork?.bytes ?? null,
-        order: {
-          customerType: payload.customer.customerType,
-          organizationName: payload.customer.organizationName,
-          contactName: payload.customer.contactName,
-          email: payload.customer.email,
-          deliveryAddress: formatStructuredOrderAddress(payload.customer),
-          reference: payload.customer.reference,
-          notes: payload.customer.notes,
-          createdAt: new Date(payload.createdAt),
-          subtotal: payload.totals.net,
-          tax: payload.totals.tax,
-          shipping: payload.totals.shipping,
-          commitmentStatus: payload.commitmentStatus,
-          total: payload.totals.gross
-        },
-        items: payload.items.map((item) => ({
-          sku: item.sku,
-          name: `${item.productName} - ${item.variantName}`,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPrice: item.unitNet,
-          lineTotal: item.unitNet * item.quantity
-        }))
+        order: context.orderForPdf,
+        items: context.itemsForPdf
       });
       const buffer = Buffer.from(pdfBuffer);
       const contentHash = sha256(buffer);
@@ -353,6 +373,7 @@ export async function processInitialOrderSummaryJob(
             filename,
             blob_pathname,
             version_number,
+            order_pricing_revision,
             document_number,
             issued_at,
             content_sha256,
@@ -360,7 +381,8 @@ export async function processInitialOrderSummaryJob(
             format_marker
           )
           values (
-            $1, $2, 'order_summary', $3, $4, $5, $6, $7, $8,
+            $1, $2, 'order_summary', $3, $4, $5,
+            (select pricing_revision from orders where id = $1), $6, $7, $8,
             'operational', 'atehna-template-pdf-v3'
           )
         `,

@@ -1,10 +1,6 @@
 import { notFound } from 'next/navigation';
 import AdminOrderDetailClient from '@/admin/features/orders/components/AdminOrderDetailClient';
-import {
-  fetchOrderById,
-  fetchOrderDocuments,
-  fetchOrderItems
-} from '@/shared/server/orders';
+import { fetchOrderDetailSnapshot } from '@/shared/server/orders';
 import type { OrderRow } from '@/shared/domain/order/orderTypes';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 
@@ -23,6 +19,7 @@ const asNumber = (value: unknown, fallback = 0) => {
   }
   return fallback;
 };
+const asNullableText = (value: unknown) => value === null || value === undefined ? null : String(value);
 
 function normalizeOrder(order: OrderRow, orderId: number) {
   return {
@@ -42,6 +39,29 @@ function normalizeOrder(order: OrderRow, orderId: number) {
       (order as Record<string, unknown>).commitment_status,
       order.customer_type === 'school' ? 'pending_confirmation' : 'binding'
     ) as 'binding' | 'pending_confirmation' | 'rejected',
+    contract_status: (
+      order.contract_status === 'accepted'
+      || order.contract_status === 'rejected'
+      || order.contract_status === 'pending_seller_acceptance'
+        ? order.contract_status
+        : order.source_quote_offer_version_id
+          ? 'accepted'
+          : 'pending_seller_acceptance'
+    ),
+    contract_accepted_at: asNullableText(order.contract_accepted_at),
+    contract_accepted_actor_type: asNullableText(order.contract_accepted_actor_type),
+    contract_accepted_actor_id: asNullableText(order.contract_accepted_actor_id),
+    contract_accepted_evidence_json: order.contract_accepted_evidence_json ?? null,
+    contract_rejected_at: asNullableText(order.contract_rejected_at),
+    contract_rejected_actor_type: asNullableText(order.contract_rejected_actor_type),
+    contract_rejected_actor_id: asNullableText(order.contract_rejected_actor_id),
+    contract_rejected_evidence_json: order.contract_rejected_evidence_json ?? null,
+    contract_rejected_reason: asNullableText(order.contract_rejected_reason),
+    committed_at: asNullableText(order.committed_at),
+    source_quote_offer_version_id: order.source_quote_offer_version_id ?? null,
+    source_quote_request_id: order.source_quote_request_id ?? null,
+    source_quote_request_number: order.source_quote_request_number ?? null,
+    source_quote_offer_number: order.source_quote_offer_number ?? null,
     reference: asText(order.reference),
     notes: asText(order.notes),
     status: asText(order.status, 'received'),
@@ -52,6 +72,12 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     tax: asNumber(order.tax, 0),
     tax_rate: asNumber(order.tax_rate, 0.22),
     shipping: asNumber(order.shipping, 0),
+    automatic_shipping: order.automatic_shipping === null ? null : asNumber(order.automatic_shipping, 0),
+    shipping_snapshot_json: order.shipping_snapshot_json ?? null,
+    shipping_override_json: order.shipping_override_json ?? null,
+    shipping_override_stale: Boolean(order.shipping_override_stale),
+    parcel_count: Math.max(1, Math.trunc(asNumber(order.parcel_count, 1))),
+    pricing_revision: Math.max(1, Math.trunc(asNumber(order.pricing_revision, 1))),
     total: asNumber(order.total, 0)
   };
 }
@@ -64,11 +90,11 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ or
       notFound();
     }
 
-    const orderPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderById', () => fetchOrderById(orderId));
-    const itemsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderItems', () => fetchOrderItems(orderId));
-    const documentsPromise = profileRoutePhase('db', 'AdminOrderDetailPage:fetchOrderDocuments', () => fetchOrderDocuments(orderId));
-
-    const [order, items, documents] = await Promise.all([orderPromise, itemsPromise, documentsPromise]);
+    const { order, items, documents } = await profileRoutePhase(
+      'db',
+      'AdminOrderDetailPage:fetchOrderDetailSnapshot',
+      () => fetchOrderDetailSnapshot(orderId)
+    );
     if (!order) {
       notFound();
     }

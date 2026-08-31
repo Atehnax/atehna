@@ -233,7 +233,13 @@ test('sensitive customer order pages send non-caching privacy headers', async ()
   const rules: HeaderRule[] = (await configModule.default.headers?.()) ?? [];
 
   assert.ok(rules.length > 0, 'next.config.mjs must configure response headers');
-  for (const source of ['/order/confirmation', '/order/narocilnica']) {
+  for (const source of [
+    '/order/confirmation',
+    '/order/narocilnica',
+    '/quote-request/confirmation',
+    '/quote/offer',
+    '/offer/review'
+  ]) {
     const rule: HeaderRule | undefined = rules.find(
       (candidate: HeaderRule) => candidate.source === source
     );
@@ -255,7 +261,13 @@ test('sensitive customer order pages send non-caching privacy headers', async ()
 });
 
 test('the request proxy enforces sensitive page headers without dropping admin matchers', () => {
-  for (const pathname of ['/order/confirmation', '/order/narocilnica']) {
+  for (const pathname of [
+    '/order/confirmation',
+    '/order/narocilnica',
+    '/quote-request/confirmation',
+    '/quote/offer',
+    '/offer/review'
+  ]) {
     const response = proxy(
       new NextRequest(`https://storefront.example${pathname}`)
     );
@@ -272,7 +284,10 @@ test('the request proxy enforces sensitive page headers without dropping admin m
     '/admin/:path*',
     '/api/admin/:path*',
     '/order/confirmation',
-    '/order/narocilnica'
+    '/order/narocilnica',
+    '/quote-request/confirmation',
+    '/quote/offer',
+    '/offer/review'
   ]);
 });
 
@@ -282,7 +297,13 @@ test('the request proxy scrubs unsupported query credentials without bootstrappi
     ['access', '123e4567-e89b-42d3-a456-426614174099']
   ] as const;
 
-  for (const pathname of ['/order/confirmation', '/order/narocilnica']) {
+  for (const pathname of [
+    '/order/confirmation',
+    '/order/narocilnica',
+    '/quote-request/confirmation',
+    '/quote/offer',
+    '/offer/review'
+  ]) {
     for (const [name, value] of credentials) {
       const response = proxy(
         new NextRequest(

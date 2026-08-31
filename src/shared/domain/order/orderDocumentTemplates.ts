@@ -2,6 +2,7 @@ export const ORDER_DOCUMENT_TEMPLATE_SETTINGS_KEY = 'order-document-templates';
 
 export const ORDER_DOCUMENT_TEMPLATE_TYPES = [
   'order_summary',
+  'offer',
   'dobavnica',
   'predracun',
   'invoice'
@@ -927,6 +928,44 @@ export const DEFAULT_ORDER_DOCUMENT_TEMPLATES_CONFIG: OrderDocumentTemplatesConf
         closing: true
       }),
       rules: { dueDays: 0, validityDays: 0 }
+    },
+    offer: {
+      type: 'offer',
+      name: 'Ponudba',
+      style: {
+        ...COMMON_STYLE,
+        titleAlignment: 'left'
+      },
+      company: { ...COMMON_COMPANY },
+      text: {
+        ...commonText(),
+        title: 'PONUDBA',
+        subtitle: 'Nespremenljiva komercialna ponudba Atehne za navedeno različico.',
+        intro:
+          'Ponudba vsebuje preverjene postavke, cene, dostavo in pogoje za navedeno obdobje veljavnosti.',
+        paymentTerms: 'Plačilni pogoji so navedeni v ponudbi in veljajo samo za to različico.',
+        closing:
+          'Ponudbo sprejmete ali zavrnete prek varne povezave, navedene v spremnem sporočilu. Sprejem se vedno nanaša na točno navedeno številko in različico ponudbe.',
+        labels: {
+          ...COMMON_LABELS,
+          documentNumber: 'Številka in različica ponudbe',
+          issueDate: 'Datum izdaje',
+          dueDate: 'Ponudba velja do',
+          subtotal: 'Neto vrednost',
+          shipping: 'Dostava',
+          tax: 'DDV',
+          total: 'SKUPAJ PONUDBA EUR'
+        }
+      },
+      layout: sectionLayout({
+        document_details: true,
+        intro: true,
+        items: true,
+        totals: true,
+        notes: true,
+        closing: true
+      }),
+      rules: { dueDays: 0, validityDays: 15 }
     },
     dobavnica: {
       type: 'dobavnica',
@@ -1924,6 +1963,7 @@ const DEFAULT_DOCUMENT_META_ROW_IDS: Record<
   readonly OrderDocumentFieldRowId[]
 > = {
   order_summary: ['issue_date', 'order_date', 'customer_type', 'status', 'reference'],
+  offer: ['issue_date', 'due_date', 'reference'],
   dobavnica: [
     'issue_date',
     'dispatch_date',
@@ -1949,6 +1989,7 @@ const DEFAULT_TOTAL_ROW_IDS: Record<
   readonly OrderDocumentFieldRowId[]
 > = {
   order_summary: ['subtotal', 'shipping', 'tax', 'total'],
+  offer: ['subtotal', 'shipping', 'tax', 'total'],
   dobavnica: ['subtotal', 'tax'],
   predracun: ['subtotal', 'shipping', 'tax', 'total'],
   invoice: ['shipping', 'subtotal', 'tax', 'total']
@@ -4010,6 +4051,89 @@ function validateFieldRowsInput(
   }
 }
 
+const REQUIRED_OFFER_SECTIONS: readonly OrderDocumentSectionId[] = [
+  'document_details',
+  'items',
+  'totals',
+  'closing'
+];
+
+const REQUIRED_OFFER_CANVAS_ELEMENTS: readonly OrderDocumentCanvasElementId[] = [
+  'company',
+  'title',
+  'customer',
+  'document_meta',
+  'items',
+  'totals',
+  'closing',
+  'footer'
+];
+
+const REQUIRED_OFFER_FIELD_ROWS: Partial<Record<
+  OrderDocumentFieldGroupId,
+  readonly OrderDocumentFieldRowId[]
+>> = {
+  title: ['title_text', 'document_number'],
+  document_meta: ['issue_date', 'due_date'],
+  totals: ['subtotal', 'shipping', 'tax', 'total'],
+  closing: ['payment_terms', 'closing_text'],
+  footer: ['registration_text', 'footer_text']
+};
+
+function validateRequiredOfferContent(template: UnknownRecord, errors: string[]) {
+  const layout = asRecord(template.layout);
+  const sections = Array.isArray(layout.sections) ? layout.sections.map(asRecord) : [];
+  for (const sectionId of REQUIRED_OFFER_SECTIONS) {
+    const section = sections.find((candidate) => candidate.id === sectionId);
+    if (!section || section.enabled !== true) {
+      errors.push(`Obveznega razdelka ponudbe ${sectionId} ni dovoljeno skriti ali odstraniti.`);
+    }
+  }
+
+  const columns = asRecord(layout.columns);
+  for (const columnId of ['quantity', 'unitPrice', 'lineTotal'] as const) {
+    if (columns[columnId] !== true) {
+      errors.push(`Obveznega stolpca ponudbe ${columnId} ni dovoljeno skriti.`);
+    }
+  }
+
+  const canvas = asRecord(layout.canvas);
+  const deleted = Array.isArray(canvas.deletedElementIds) ? canvas.deletedElementIds : [];
+  const elements = asRecord(canvas.elements);
+  for (const elementId of REQUIRED_OFFER_CANVAS_ELEMENTS) {
+    if (deleted.includes(elementId) || asRecord(elements[elementId]).visible === false) {
+      errors.push(`Obveznega elementa ponudbe ${elementId} ni dovoljeno skriti ali odstraniti.`);
+    }
+  }
+
+  const fieldRows = asRecord(layout.fieldRows);
+  for (const [group, requiredIds] of Object.entries(REQUIRED_OFFER_FIELD_ROWS) as Array<[
+    OrderDocumentFieldGroupId,
+    readonly OrderDocumentFieldRowId[]
+  ]>) {
+    if (!hasOwn(fieldRows, group)) continue;
+    const rows = Array.isArray(fieldRows[group]) ? fieldRows[group].map(asRecord) : [];
+    for (const rowId of requiredIds) {
+      const row = rows.find((candidate) => candidate.id === rowId);
+      if (!row || row.visible !== true) {
+        errors.push(`Obvezne vrstice ponudbe ${group}.${rowId} ni dovoljeno skriti ali odstraniti.`);
+      }
+    }
+  }
+
+  const rules = asRecord(template.rules);
+  if (!Number.isFinite(Number(rules.validityDays)) || Number(rules.validityDays) < 1) {
+    errors.push('Ponudba mora imeti najmanj en dan veljavnosti.');
+  }
+  const text = asRecord(template.text);
+  if (typeof text.paymentTerms !== 'string' || !text.paymentTerms.trim()) {
+    errors.push('Ponudba mora vsebovati plačilne pogoje.');
+  }
+  if (typeof text.closing !== 'string' || !text.closing.trim()) {
+    errors.push('Ponudba mora vsebovati bistveno informacijo o načinu sprejema.');
+  }
+}
+
 export function validateOrderDocumentTemplatesInput(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return ['Nastavitve predlog PDF niso veljavne.'];
@@ -4038,6 +4162,7 @@ export function validateOrderDocumentTemplatesInput(value: unknown): string[] {
     validateCanvasInput(type, layout, errors);
     validateTableInput(type, layout, errors);
     validateFieldRowsInput(type, layout, errors);
+    if (type === 'offer') validateRequiredOfferContent(template, errors);
   }
 
   return errors;

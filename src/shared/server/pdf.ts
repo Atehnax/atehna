@@ -2123,7 +2123,7 @@ class OrderPdfRenderer {
     const drawTitle = (baseline: number) =>
       this.drawCanvasTitleBlock(this.margin, baseline, this.contentWidth);
 
-    if (this.input.type === 'predracun') {
+    if (this.input.type === 'predracun' || this.input.type === 'offer') {
       const top = this.y;
       const leftWidth = this.contentWidth * 0.54;
       const gap = 24;

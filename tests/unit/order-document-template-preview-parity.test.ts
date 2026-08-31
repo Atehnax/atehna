@@ -27,6 +27,7 @@ import { generateOrderPdf } from '../../src/shared/server/pdf';
 
 const EXPECTED_DOCUMENT_NUMBERS: Record<OrderDocumentTemplateType, string> = {
   order_summary: '101/26',
+  offer: 'PON-2026-000123-V1',
   dobavnica: '98/26',
   predracun: '96/26',
   invoice: '063/26'
@@ -51,6 +52,11 @@ const EXPECTED_METADATA: Record<
     ['order_date', 'Datum naročila', '17. 08. 2026'],
     ['customer_type', 'Vrsta naročnika', 'Šola / javni zavod'],
     ['status', 'Status', 'Potrjeno naročilo'],
+    ['reference', 'Referenca naročnika', 'NAR-2026-0186']
+  ],
+  offer: [
+    ['issue_date', 'Datum izdaje', '25. 08. 2026'],
+    ['due_date', 'Ponudba velja do', '09. 09. 2026'],
     ['reference', 'Referenca naročnika', 'NAR-2026-0186']
   ],
   dobavnica: [
@@ -85,6 +91,11 @@ const EXPECTED_TOTALS: Record<
     ['tax', 'Davek 22 %', 14.37, false],
     ['total', 'VREDNOST NAROČILA EUR', 79.67, true]
   ],
+  offer: [
+    ['subtotal', 'Neto vrednost', 65.3, false],
+    ['tax', 'DDV 22 %', 14.37, false],
+    ['total', 'SKUPAJ PONUDBA EUR', 79.67, true]
+  ],
   dobavnica: [
     ['subtotal', 'Skupaj', 65.3, false],
     ['tax', 'Davek 22 %', 14.37, false]
@@ -103,7 +114,7 @@ const EXPECTED_TOTALS: Record<
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
-test('all four preview types share one canonical, independently cloned sample context', () => {
+test('all five preview types share one canonical, independently cloned sample context', () => {
   for (const type of ORDER_DOCUMENT_TEMPLATE_TYPES) {
     const context = createOrderDocumentPreviewContext(type);
     assert.equal(context.type, type);

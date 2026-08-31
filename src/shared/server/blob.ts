@@ -238,6 +238,20 @@ export function buildOrderDocumentBlobPath(
   ]);
 }
 
+export function buildQuoteDocumentBlobPath(
+  customerAccessId: string,
+  extension: 'pdf' | 'jpg'
+): string {
+  const normalizedAccessId = customerAccessId.trim().toLowerCase();
+  if (!UUID_PATTERN.test(normalizedAccessId)) {
+    throw new Error('Invalid quote document customer access id.');
+  }
+  return withStorageNamespace([
+    'quote-documents',
+    `${normalizedAccessId}.${extension}`
+  ]);
+}
+
 export function buildCatalogImageBlobPath(
   categorySlug: string,
   fileName: string,

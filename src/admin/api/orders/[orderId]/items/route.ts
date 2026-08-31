@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
+import {
+  SHIPPING_MAX_AMOUNT_CENTS,
+  calculateShipping,
+  shippingCentsToEuros,
+  type ShippingCalculation,
+  type ShippingMeasurement
+} from '@/shared/domain/shipping/shipping';
 import { getPool } from '@/shared/server/db';
 import { computeOrderLineItemsDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import type { AuditDiff } from '@/shared/audit/auditTypes';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { isJsonRecord, readRequiredJsonRecord } from '@/shared/server/requestJson';
+import { getShippingConfiguration } from '@/shared/server/shipping';
+import { SHIPPING_BEARING_ORDER_PDF_TYPES } from '@/shared/domain/order/orderTypes';
 
 type IncomingItem = {
   id?: number;
@@ -28,6 +37,7 @@ type CatalogMetadata = {
   categoryPath: string | null;
   selectedAttributes: Record<string, unknown>;
   imageUrl: string | null;
+  shippingMeasurement: Partial<ShippingMeasurement>;
 };
 
 type PricedItem = IncomingItem & {
@@ -43,6 +53,15 @@ type PricedItem = IncomingItem & {
 const FALLBACK_TAX_RATE = 0.22;
 
 const roundAmount = (value: number) => Math.round(value * 100) / 100;
+
+const supportedMoneyCents = (value: number) => {
+  const cents = Math.round(value * 100);
+  return Number.isSafeInteger(cents)
+    && cents >= 0
+    && cents <= SHIPPING_MAX_AMOUNT_CENTS
+    ? cents
+    : null;
+};
 
 const normalizeNumber = (value: unknown) => {
   if (typeof value === 'number') return value;
@@ -60,6 +79,11 @@ const normalizeOptionalId = (value: unknown) => {
 
 const asNullableText = (value: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : null;
+
+const shippingMeasurementValue = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 function mergeOptionAttributes(
   staticAttributes: Record<string, unknown>,
@@ -134,6 +158,14 @@ async function resolveCatalogMetadata(
         ci.slug as product_slug,
         ci.item_name as product_name,
         civ.variant_name,
+        ci.shipping_weight_grams as item_shipping_weight_grams,
+        ci.shipping_length_mm as item_shipping_length_mm,
+        ci.shipping_width_mm as item_shipping_width_mm,
+        ci.shipping_height_mm as item_shipping_height_mm,
+        civ.shipping_weight_grams as variant_shipping_weight_grams,
+        civ.shipping_length_mm as variant_shipping_length_mm,
+        civ.shipping_width_mm as variant_shipping_width_mm,
+        civ.shipping_height_mm as variant_shipping_height_mm,
         ci.category_id,
         cp.full_path as category_path,
         jsonb_strip_nulls(
@@ -213,7 +245,21 @@ async function resolveCatalogMetadata(
       isJsonRecord(row.selected_attributes) ? row.selected_attributes : {},
       row.option_assignments
     ),
-    imageUrl: asNullableText(row.image_url)
+    imageUrl: asNullableText(row.image_url),
+    shippingMeasurement: {
+      weightGrams: shippingMeasurementValue(
+        row.variant_shipping_weight_grams ?? row.item_shipping_weight_grams
+      ),
+      lengthMm: shippingMeasurementValue(
+        row.variant_shipping_length_mm ?? row.item_shipping_length_mm
+      ),
+      widthMm: shippingMeasurementValue(
+        row.variant_shipping_width_mm ?? row.item_shipping_width_mm
+      ),
+      heightMm: shippingMeasurementValue(
+        row.variant_shipping_height_mm ?? row.item_shipping_height_mm
+      )
+    }
   };
 }
 
@@ -224,6 +270,7 @@ function operationalSnapshot(
   currency: string
 ) {
   return {
+    shippingMeasurement: metadata?.shippingMeasurement ?? {},
     operationalEdit: {
       catalogItemId:
         metadata?.catalogItemId ?? (item.id ? item.catalogItemId ?? null : null),
@@ -342,7 +389,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           subtotal: number;
           tax: number;
           shipping: number;
+          automaticShipping: number | null;
+          shippingOverrideStale: boolean;
+          shippingSource: 'automatic' | 'manual_override' | 'manual_quote';
+          shippingManualQuoteReason: string | null;
           total: number;
+          pricingRevision: number;
           items: Array<{
             id: number;
             catalogItemId: number | null;
@@ -366,12 +418,20 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             subtotal,
             tax,
             shipping,
+            automatic_shipping,
+            shipping_snapshot_json,
+            shipping_override_json,
+            shipping_override_stale,
+            parcel_count,
             total,
             tax_rate,
             currency,
             customer_type,
             commitment_status,
+            source_quote_offer_version_id,
+            is_draft,
             status,
+            payment_status,
             deleted_at
           from orders
           where id = $1
@@ -385,12 +445,70 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       }
 
       const order = orderBeforeResult.rows[0] as Record<string, unknown>;
-      if (order.deleted_at || order.status === 'cancelled') {
+      const parcelCount = Number(order.parcel_count);
+      if (!Number.isSafeInteger(parcelCount) || parcelCount < 1) {
         await client.query('ROLLBACK');
         return NextResponse.json(
           {
+            code: 'ORDER_PARCEL_COUNT_INVALID',
+            message: 'Shranjeno število paketov ni veljavno.'
+          },
+          { status: 409 }
+        );
+      }
+      const orderStatus = String(order.status ?? 'received');
+      const paymentStatus = String(order.payment_status ?? 'unpaid');
+      const stateLocked =
+        order.deleted_at ||
+        ['partially_sent', 'sent', 'finished', 'cancelled'].includes(orderStatus) ||
+        ['paid', 'refunded'].includes(paymentStatus);
+      if (stateLocked) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_SHIPPING_LOCKED',
             message:
-              'Postavk izbrisanega ali preklicanega naročila ni mogoče spreminjati.'
+              'Postavk plačanega, povrnjenega, poslanega, zaključenega ali preklicanega naročila ni mogoče spreminjati.'
+          },
+          { status: 409 }
+        );
+      }
+
+      const stockHoldResult = await client.query(
+        `select 1 from order_stock_holds where order_id = $1 limit 1`,
+        [orderId]
+      );
+      if (
+        order.source_quote_offer_version_id !== null ||
+        (stockHoldResult.rowCount ?? 0) > 0
+      ) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_ITEMS_STOCK_LEDGER_LOCKED',
+            message:
+              'Postavk naročila z evidentirano zalogo ali izvornim posnetkom ponudbe ni mogoče spreminjati. Za spremembo je potreben ločen popravek z novo sledjo zaloge.'
+          },
+          { status: 409 }
+        );
+      }
+
+      const issuedDocumentResult = await client.query(
+        `select 1
+         from order_documents
+         where order_id = $1
+           and type = any($2::text[])
+           and deleted_at is null
+         limit 1`,
+        [orderId, [...SHIPPING_BEARING_ORDER_PDF_TYPES]]
+      );
+      if (issuedDocumentResult.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_SHIPPING_LOCKED',
+            message:
+              'Postavk naročila z že izdanim dokumentom ni mogoče spreminjati.'
           },
           { status: 409 }
         );
@@ -409,8 +527,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       const tax = roundAmount(
         pricedItems.reduce((sum, item) => sum + item.lineTax, 0)
       );
-      const shipping = 0;
-      const total = roundAmount(subtotal + tax);
 
       const oldItemsResult = await client.query(
         `
@@ -445,11 +561,46 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      const metadataByInputIndex = await Promise.all(
-        pricedItems.map((item) => resolveCatalogMetadata(client, item))
-      );
       const oldRowsById = new Map(
         oldRows.map((row) => [Number(row.id), row])
+      );
+      const catalogIdentityConflict = pricedItems.find((item) => {
+        if (!item.id) return false;
+        const oldRow = oldRowsById.get(item.id);
+        const persistedItemId = normalizeOptionalId(oldRow?.catalog_item_id);
+        const persistedVariantId = normalizeOptionalId(oldRow?.catalog_variant_id);
+        return (
+          persistedVariantId === null
+          || item.catalogVariantId !== persistedVariantId
+          || (
+            item.catalogItemId !== undefined
+            && item.catalogItemId !== persistedItemId
+          )
+        );
+      });
+      if (catalogIdentityConflict?.id) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_ITEM_CATALOG_IDENTITY_MISMATCH',
+            message:
+              'Shranjene postavke ni mogoče povezati z drugo kataloško različico.'
+          },
+          { status: 409 }
+        );
+      }
+
+      const metadataInputItems = pricedItems.map((item) => {
+        if (!item.id) return item;
+        const oldRow = oldRowsById.get(item.id);
+        return {
+          ...item,
+          catalogItemId: normalizeOptionalId(oldRow?.catalog_item_id),
+          catalogVariantId: normalizeOptionalId(oldRow?.catalog_variant_id)
+        };
+      });
+      const metadataByInputIndex = await Promise.all(
+        metadataInputItems.map((item) => resolveCatalogMetadata(client, item))
       );
       const nextVariantIds = pricedItems.map((item, index) => {
         const oldRow = item.id ? oldRowsById.get(item.id) : undefined;
@@ -464,7 +615,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         quantityDelta: number;
       }> = [];
 
-      if (order.commitment_status === 'binding') {
+      if (order.is_draft !== true && order.commitment_status === 'binding') {
         const oldVariantQuantities = new Map<number, number>();
         const nextVariantQuantities = new Map<number, number>();
         const addQuantity = (
@@ -799,18 +950,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         [orderId, savedItemIds]
       );
 
-      await client.query(
-        `
-          update orders
-          set subtotal = $1,
-              tax = $2,
-              shipping = 0,
-              total = $3
-          where id = $4
-        `,
-        [subtotal, tax, total, orderId]
-      );
-
       const oldItems = oldRows.map((row) => ({
         id: row.id,
         sku: row.sku,
@@ -826,6 +965,257 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         totalPrice: pricedItems[index].lineNet
       }));
       const itemDiff = computeOrderLineItemsDiff(oldItems, newItems);
+      if (itemDiff) {
+        await client.query(
+          'delete from order_line_snapshots where order_id = $1',
+          [orderId]
+        );
+        await client.query(
+          `
+            insert into order_line_snapshots (
+              order_id,
+              order_item_id,
+              line_number,
+              catalog_item_id,
+              catalog_variant_id,
+              product_slug,
+              product_name,
+              variant_name,
+              sku,
+              unit,
+              quantity,
+              category_id,
+              category_path,
+              selected_attributes,
+              image_url,
+              base_unit_net,
+              discount_pct,
+              unit_net,
+              unit_tax,
+              unit_gross,
+              line_net,
+              line_tax,
+              line_gross,
+              tax_rate,
+              currency,
+              snapshot_json
+            )
+            select
+              order_line.order_id,
+              order_line.id,
+              selected.line_number::integer,
+              order_line.catalog_item_id,
+              order_line.catalog_variant_id,
+              coalesce(nullif(order_line.product_slug, ''), 'order-item'),
+              coalesce(
+                nullif(order_line.product_snapshot_json #>> '{operationalEdit,productName}', ''),
+                nullif(order_line.name, ''),
+                'Artikel'
+              ),
+              coalesce(
+                nullif(order_line.variant_name, ''),
+                nullif(order_line.product_snapshot_json #>> '{operationalEdit,variantName}', ''),
+                ''
+              ),
+              order_line.sku,
+              order_line.unit,
+              order_line.quantity,
+              order_line.category_id,
+              order_line.category_path,
+              coalesce(order_line.selected_attributes, '{}'::jsonb),
+              order_line.image_url,
+              order_line.base_unit_net,
+              order_line.discount_pct,
+              order_line.unit_net,
+              order_line.unit_tax,
+              order_line.unit_gross,
+              order_line.line_net,
+              order_line.line_tax,
+              order_line.line_gross,
+              order_line.tax_rate,
+              order_line.currency,
+              coalesce(order_line.product_snapshot_json, '{}'::jsonb)
+            from unnest($2::bigint[]) with ordinality
+              as selected(order_item_id, line_number)
+            join order_items order_line
+              on order_line.id = selected.order_item_id
+             and order_line.order_id = $1
+            order by selected.line_number
+          `,
+          [orderId, savedItemIds]
+        );
+      }
+      const hasShippingOverride = isJsonRecord(order.shipping_override_json);
+      let shipping = normalizeNumber(order.shipping);
+      if (!Number.isFinite(shipping) || shipping < 0) {
+        throw new Error('Shranjena poštnina naročila ni veljavna.');
+      }
+      let automaticShipping =
+        order.automatic_shipping === null || order.automatic_shipping === undefined
+          ? null
+          : normalizeNumber(order.automatic_shipping);
+      let shippingSnapshot: Record<string, unknown> = isJsonRecord(
+        order.shipping_snapshot_json
+      )
+        ? order.shipping_snapshot_json
+        : {};
+      let shippingOverrideStale = Boolean(order.shipping_override_stale);
+      let shippingCalculation: ShippingCalculation | null = null;
+      const subtotalCents = supportedMoneyCents(subtotal);
+      const taxCents = supportedMoneyCents(tax);
+      const merchandiseSubtotalCents =
+        subtotalCents === null || taxCents === null
+          ? null
+          : subtotalCents + taxCents;
+      if (
+        merchandiseSubtotalCents === null
+        || !Number.isSafeInteger(merchandiseSubtotalCents)
+        || merchandiseSubtotalCents > SHIPPING_MAX_AMOUNT_CENTS
+      ) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_MERCHANDISE_SUBTOTAL_OUT_OF_RANGE',
+            message: 'Vrednost blaga presega podprto denarno območje.'
+          },
+          { status: 409 }
+        );
+      }
+
+      if (itemDiff) {
+        try {
+          const shippingConfiguration = await getShippingConfiguration(client, {
+            lockForTransaction: true
+          });
+          shippingCalculation = calculateShipping(
+            shippingConfiguration,
+            pricedItems.map((item, index) => ({
+              productId: String(metadataByInputIndex[index]?.catalogItemId ?? item.catalogItemId ?? ''),
+              variantId: String(metadataByInputIndex[index]?.catalogVariantId ?? item.catalogVariantId ?? ''),
+              sku: item.sku,
+              name: item.name,
+              quantity: item.quantity,
+              measurement: metadataByInputIndex[index]?.shippingMeasurement ?? null
+            })),
+            { merchandiseSubtotalCents, parcelCount }
+          );
+        } catch (error) {
+          const isDatabaseError =
+            typeof error === 'object' &&
+            error !== null &&
+            typeof (error as { code?: unknown }).code === 'string';
+          if (isDatabaseError) throw error;
+          await client.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              code: 'SHIPPING_MANUAL_QUOTE_REQUIRED',
+              message:
+                'Poštnine po spremembi postavk ni mogoče varno izračunati. Potrebna je ročna ponudba.'
+            },
+            { status: 409 }
+          );
+        }
+        if (shippingCalculation.status !== 'calculated') {
+          if (hasShippingOverride) {
+            automaticShipping = null;
+            shippingSnapshot = shippingCalculation;
+            shippingOverrideStale = true;
+          } else if (order.is_draft === true) {
+            // A draft must be able to retain the complete item and calculation
+            // snapshots before an administrator can supply the required quote.
+            // The zero is only a non-operational database placeholder: draft
+            // finalization and all shipping-bearing output remain readiness-gated.
+            shipping = 0;
+            automaticShipping = null;
+            shippingSnapshot = shippingCalculation;
+            shippingOverrideStale = false;
+          } else {
+            await client.query('ROLLBACK');
+            return NextResponse.json(
+              {
+                code: 'SHIPPING_MANUAL_QUOTE_REQUIRED',
+                message: shippingCalculation.reason,
+                shipping: shippingCalculation
+              },
+              { status: 409 }
+            );
+          }
+        } else {
+          automaticShipping = shippingCentsToEuros(
+            shippingCalculation.automaticAmountCents
+          );
+          shippingSnapshot = shippingCalculation;
+          if (hasShippingOverride) {
+            shippingOverrideStale = true;
+          } else {
+            shipping = shippingCentsToEuros(shippingCalculation.finalAmountCents);
+            shippingOverrideStale = false;
+          }
+        }
+      }
+
+      const shippingCents = supportedMoneyCents(shipping);
+      const totalCents =
+        subtotalCents === null || taxCents === null || shippingCents === null
+          ? null
+          : subtotalCents + taxCents + shippingCents;
+      if (
+        totalCents === null
+        || !Number.isSafeInteger(totalCents)
+        || totalCents > SHIPPING_MAX_AMOUNT_CENTS
+      ) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'ORDER_TOTAL_OUT_OF_RANGE',
+            message: 'Skupni znesek naročila presega podprto denarno območje.'
+          },
+          { status: 409 }
+        );
+      }
+
+      const total = totalCents / 100;
+      const pricingUpdateResult = await client.query(
+        `
+          update orders
+          set subtotal = $1,
+              tax = $2,
+              shipping = $3,
+              automatic_shipping = $4,
+              shipping_snapshot_json = $5::jsonb,
+              shipping_override_stale = $6,
+              total = $7,
+              pricing_revision = pricing_revision + case when $8 then 1 else 0 end
+          where id = $9
+          returning pricing_revision
+        `,
+        [
+          subtotal,
+          tax,
+          shipping,
+          automaticShipping,
+          JSON.stringify(shippingSnapshot),
+          shippingOverrideStale,
+          total,
+          Boolean(itemDiff),
+          orderId
+        ]
+      );
+      const pricingRevision = Number(
+        pricingUpdateResult.rows[0]?.pricing_revision
+      );
+      if (!Number.isSafeInteger(pricingRevision) || pricingRevision < 1) {
+        throw new Error('Shranjevanje postavk ni vrnilo veljavne revizije cen.');
+      }
+      const shippingSource = hasShippingOverride
+        ? 'manual_override'
+        : shippingSnapshot.status === 'manual_quote'
+          ? 'manual_quote'
+          : 'automatic';
+      const shippingManualQuoteReason =
+        shippingSource === 'manual_quote' && typeof shippingSnapshot.reason === 'string'
+          ? shippingSnapshot.reason
+          : null;
       const diff: AuditDiff = {
         ...(itemDiff ? { items: itemDiff } : {})
       };
@@ -846,9 +1236,11 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
               line_item_count: newItems.length,
               pricing_basis: 'net',
               tax_rate: taxRate,
-              shipping: 0,
+              shipping,
+              shipping_source: shippingSource,
+              shipping_override_stale: shippingOverrideStale,
               inventory_adjustments: inventoryAdjustments,
-              placement_snapshots_preserved: true
+              confirmation_snapshots_refreshed: Boolean(itemDiff)
             }
           },
           client
@@ -859,7 +1251,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         subtotal,
         tax,
         shipping,
+        automaticShipping,
+        shippingOverrideStale,
+        shippingSource,
+        shippingManualQuoteReason,
         total,
+        pricingRevision,
         items: savedItems
       };
       await client.query('COMMIT');
@@ -870,15 +1267,23 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       client.release();
     }
 
+    if (!responsePayload) {
+      throw new Error('Shranjevanje postavk ni vrnilo dokončnih zneskov naročila.');
+    }
     return NextResponse.json({
       success: true,
+      pricingRevision: responsePayload.pricingRevision,
       totals: {
-        subtotal: responsePayload?.subtotal ?? 0,
-        tax: responsePayload?.tax ?? 0,
-        shipping: 0,
-        total: responsePayload?.total ?? 0
+        subtotal: responsePayload.subtotal,
+        tax: responsePayload.tax,
+        shipping: responsePayload.shipping,
+        automaticShipping: responsePayload.automaticShipping,
+        shippingOverrideStale: responsePayload.shippingOverrideStale,
+        shippingSource: responsePayload.shippingSource,
+        shippingManualQuoteReason: responsePayload.shippingManualQuoteReason,
+        total: responsePayload.total
       },
-      items: responsePayload?.items ?? []
+      items: responsePayload.items
     });
   } catch (error) {
     return NextResponse.json(

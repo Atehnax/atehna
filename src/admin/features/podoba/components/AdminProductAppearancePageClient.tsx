@@ -940,8 +940,8 @@ function ProductPreview({
           </div>
           {wrapElement('cart-summary', <div className="border-t border-slate-200 bg-white p-4">
             {config.cartSidebar.showNetTaxBreakdown ? <><div className="flex justify-between text-[10px] text-slate-500"><span>Neto</span><span>{priceFormatter.format(unitNet)}</span></div><div className="mt-1 flex justify-between text-[10px] text-slate-500"><span>DDV {Math.round(taxRate * 100)} %</span><span>{priceFormatter.format(taxAmount)}</span></div></> : null}
-            {config.cartSidebar.showFreeShipping ? <div className="mt-1 flex justify-between text-[10px] text-emerald-700"><span>Poštnina</span><span>Brezplačna</span></div> : null}
-            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Skupaj</span><span>{priceFormatter.format(unitGross)}</span></div>
+            <div className="mt-1 flex justify-between gap-3 text-[10px] text-slate-500"><span>Poštnina</span><span className="text-right">Izračun v košarici</span></div>
+            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Skupaj s poštnino</span><span>—</span></div>
             {wrapElement('cart-primary-action', <div className="rounded-lg bg-[color:var(--blue-600)] py-2.5 text-center text-[10px] font-semibold text-white">Nadaljuj na naročilo</div>, 'mt-3', true)}
           </div>, 'absolute inset-x-0 bottom-0', true)}
           </div>, 'h-full', true)}
@@ -1212,9 +1212,7 @@ function ProductPreview({
             {wrapElement('product-primary-action', <div className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-2.5 text-center text-[9px] font-semibold text-slate-400">{config.purchaseArea.copy.unavailableActionLabel}</div>, 'mt-3', true)}
             {config.purchaseArea.showDeliveryEstimate ? (
               wrapElement('product-delivery', <div className="border-t border-slate-100 pt-3 text-[8px] leading-3.5 text-slate-500">
-                {config.purchaseArea.copy.freeShippingMessage ? (
-                  <p className="font-semibold text-emerald-600">{config.purchaseArea.copy.freeShippingMessage}</p>
-                ) : null}
+                <p className="font-semibold text-slate-700">Poštnina se izračuna v košarici glede na skupno težo in mere.</p>
                 {config.purchaseArea.copy.deliveryFallbackMessage ? (
                   <p>{config.purchaseArea.copy.deliveryFallbackMessage}</p>
                 ) : null}
@@ -1845,7 +1843,6 @@ export default function AdminProductAppearancePageClient({
         <SettingsGroup title="Poudarek in razčlenitev" description="Končna cena z DDV je zaradi jasnosti za kupca vedno prikazana.">
           <FieldGrid>
             <SelectField label="Poudarek cene" value={config.pricing.emphasis} options={[{ value: 'standard', label: 'Standardni' }, { value: 'strong', label: 'Močan' }]} onChange={(emphasis) => updateSection('pricing', { emphasis })} />
-            <TextField label="Besedilo brezplačne dostave" value={config.pricing.freeShippingLabel} onChange={(freeShippingLabel) => updateSection('pricing', { freeShippingLabel })} />
           </FieldGrid>
           <div className="grid gap-2 sm:grid-cols-2">
             <ToggleField label="Cena z DDV" description="Obvezna javna končna cena." checked={config.pricing.showGrossPrice} onChange={() => undefined} locked />
@@ -2009,7 +2006,6 @@ export default function AdminProductAppearancePageClient({
             <ToggleField label="Kompaktne vrstice" checked={config.cartSidebar.compactRows} onChange={(compactRows) => updateSection('cartSidebar', { compactRows })} />
             <ToggleField label="Lepljiv povzetek" checked={config.cartSidebar.stickySummary} onChange={(stickySummary) => updateSection('cartSidebar', { stickySummary })} />
             <ToggleField label="Neto in DDV razčlenitev" description="Dogovorjena preglednost cene." checked={config.cartSidebar.showNetTaxBreakdown} onChange={() => undefined} locked />
-            <ToggleField label="Brezplačna dostava" description="Dostava je vedno brezplačna." checked={config.cartSidebar.showFreeShipping} onChange={() => undefined} locked />
             <ToggleField label="Poudari dodano vrstico" checked={config.cartSidebar.highlightAddedLine} onChange={(highlightAddedLine) => updateSection('cartSidebar', { highlightAddedLine })} />
             <ToggleField label="Sorodni artikli v košarici" description="Izključeno, da nakupna pot ostane mirna." checked={config.cartSidebar.showRelatedProducts} onChange={() => undefined} locked />
           </div>

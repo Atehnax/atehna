@@ -18,7 +18,6 @@ import { flushSync } from 'react-dom';
 import { useCartStore } from '@/commercial/cart/store';
 import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
 import CartLine from '@/commercial/components/storefront/CartLine';
-import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import {
   parseOrderApiError,
   type SubmitOrderRequest,
@@ -26,8 +25,18 @@ import {
 } from '@/commercial/order/contracts';
 import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
 import PostalLocationCombobox from '@/commercial/order/components/PostalLocationCombobox';
+import {
+  ShippingManualQuoteNotice,
+  shippingManualQuoteMessage
+} from '@/commercial/order/components/ShippingCalculationRows';
 import { storeOrderAccessId } from '@/commercial/order/orderAccessClient';
-import { useOrderQuote } from '@/commercial/order/useOrderQuote';
+import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
+import {
+  type QuoteRequestReason,
+  type SubmitQuoteRequestRequest,
+  type SubmitQuoteRequestResponse
+} from '@/commercial/quote/contracts';
+import { storeQuoteAccessSession } from '@/commercial/quote/quoteAccessClient';
 import {
   isAddressSearchQueryEligible,
   type GursAddressSearchResponse,
@@ -45,8 +54,8 @@ import {
   FloatingTextarea
 } from '@/shared/ui/floating-field';
 
-const FORM_STORAGE_KEY = 'atehna-order-form-v3';
-const ADDRESS_SEARCH_DEBOUNCE_MS = 125;
+const FORM_STORAGE_KEY = 'atehna-order-form-v4';
+const ADDRESS_SEARCH_DEBOUNCE_MS = 50;
 
 type OrderFormData = {
   customerType: CustomerType | '';
@@ -63,6 +72,8 @@ type OrderFormData = {
   countryCode: 'SI';
   reference: string;
   notes: string;
+  quoteReason: QuoteRequestReason;
+  quoteMessage: string;
 };
 
 type FieldName = Exclude<
@@ -71,7 +82,32 @@ type FieldName = Exclude<
 >;
 type FieldErrors = Partial<Record<FieldName, string>>;
 type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
-type SubmissionPhase = 'idle' | 'submitting' | 'opening-confirmation';
+type CheckoutIntent = 'order' | 'quote_request';
+type SubmissionPhase =
+  | 'idle'
+  | 'submitting-order'
+  | 'submitting-quote-request'
+  | 'opening-order-confirmation'
+  | 'opening-quote-confirmation';
+type SubmissionFeedback = { error: string | null; issues: string[] };
+
+const STOREFRONT_QUOTE_REASON: QuoteRequestReason = 'formal_offer';
+const CHECKOUT_INTENT_OPTIONS = [
+  {
+    value: 'order',
+    label: 'Naročilo',
+    description: 'Oddajte naročilo z obveznostjo plačila.'
+  },
+  {
+    value: 'quote_request',
+    label: 'Zahtevaj ponudbo',
+    description: 'Pošljite neobvezujoče povpraševanje za ponudbo.'
+  }
+] as const satisfies ReadonlyArray<{
+  value: CheckoutIntent;
+  label: string;
+  description: string;
+}>;
 
 const initialForm: OrderFormData = {
   customerType: '',
@@ -87,7 +123,9 @@ const initialForm: OrderFormData = {
   gursHouseNumberId: '',
   countryCode: 'SI',
   reference: '',
-  notes: ''
+  notes: '',
+  quoteReason: STOREFRONT_QUOTE_REASON,
+  quoteMessage: ''
 };
 
 const isValidEmail = (value: string) =>
@@ -184,8 +222,11 @@ function CheckoutTextarea({
   );
 }
 
-export default function OrderPageClient() {
-  const appearance = useProductAppearance();
+export default function OrderPageClient({
+  quoteRequestsEnabled = false
+}: {
+  quoteRequestsEnabled?: boolean;
+}) {
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -193,8 +234,16 @@ export default function OrderPageClient() {
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitIssues, setSubmitIssues] = useState<string[]>([]);
+  const [checkoutIntent, setCheckoutIntent] =
+    useState<CheckoutIntent>('order');
+  const [lastSubmissionIntent, setLastSubmissionIntent] =
+    useState<CheckoutIntent>('order');
+  const [submissionFeedback, setSubmissionFeedback] = useState<
+    Record<CheckoutIntent, SubmissionFeedback>
+  >({
+    order: { error: null, issues: [] },
+    quote_request: { error: null, issues: [] }
+  });
   const [submissionPhase, setSubmissionPhase] =
     useState<SubmissionPhase>('idle');
   const [addressSuggestions, setAddressSuggestions] = useState<
@@ -206,12 +255,22 @@ export default function OrderPageClient() {
   const [activeAddressIndex, setActiveAddressIndex] = useState(-1);
   const [addressSearchStatus, setAddressSearchStatus] =
     useState<AddressSearchStatus>('idle');
-  const idempotencyKeyRef = useRef<string | null>(null);
+  const idempotencyKeyRefs = useRef<Record<CheckoutIntent, string | null>>({
+    order: null,
+    quote_request: null
+  });
   const addressRequestRef = useRef<AbortController | null>(null);
   const addressListboxId = useId();
   const isSubmitting = submissionPhase !== 'idle';
+  const activeCheckoutIntent: CheckoutIntent =
+    quoteRequestsEnabled && checkoutIntent === 'quote_request'
+      ? 'quote_request'
+      : 'order';
+  const isQuoteRequest = activeCheckoutIntent === 'quote_request';
+  const submitError = submissionFeedback[lastSubmissionIntent].error;
+  const submitIssues = submissionFeedback[lastSubmissionIntent].issues;
 
-  const quoteCustomerName = useMemo(() => {
+  const estimateCustomerName = useMemo(() => {
     if (formData.customerType === 'individual') {
       return `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
     }
@@ -228,16 +287,52 @@ export default function OrderPageClient() {
     formData.lastName,
     formData.organizationName
   ]);
-  const quoteState = useOrderQuote(items, items.length > 0, quoteCustomerName);
+  const estimateCustomerLabels = useMemo(() => {
+    if (formData.customerType === 'individual') {
+      return estimateCustomerName ? [estimateCustomerName] : [];
+    }
+    if (
+      formData.customerType === 'company' ||
+      formData.customerType === 'school'
+    ) {
+      return [
+        formData.organizationName.trim(),
+        formData.contactName.trim()
+      ].filter(Boolean);
+    }
+    return [];
+  }, [
+    formData.contactName,
+    formData.customerType,
+    formData.organizationName,
+    estimateCustomerName
+  ]);
+  const estimateState = useOrderEstimate(
+    items,
+    items.length > 0,
+    estimateCustomerName,
+    estimateCustomerLabels
+  );
+  const shippingRequiresManualQuote =
+    estimateState.estimate?.shipping.status === 'manual_quote';
 
-  const quoteByVariant = useMemo(
+  const estimateByVariant = useMemo(
     () =>
       new Map(
-        (quoteState.quote?.items ?? []).map((item) => [item.variantId, item])
+        (estimateState.estimate?.items ?? []).map((item) => [item.variantId, item])
       ),
-    [quoteState.quote]
+    [estimateState.estimate]
   );
-  const formFingerprint = JSON.stringify({ formData, items: items.map((item) => [item.lineId, item.quantity]) });
+  const orderSubmissionFingerprint = JSON.stringify({
+    intent: 'order',
+    formData,
+    items: items.map((item) => [item.lineId, item.quantity])
+  });
+  const quoteRequestSubmissionFingerprint = JSON.stringify({
+    intent: 'quote_request',
+    formData,
+    items: items.map((item) => [item.lineId, item.quantity])
+  });
 
   useEffect(() => {
     try {
@@ -256,6 +351,11 @@ export default function OrderPageClient() {
             typeof restored.gursHouseNumberId === 'string'
               ? restored.gursHouseNumberId
               : '',
+          quoteReason: STOREFRONT_QUOTE_REASON,
+          quoteMessage:
+            typeof restored.quoteMessage === 'string'
+              ? restored.quoteMessage
+              : '',
           countryCode: 'SI'
         });
       }
@@ -272,8 +372,12 @@ export default function OrderPageClient() {
   }, [formData, isFormHydrated]);
 
   useEffect(() => {
-    idempotencyKeyRef.current = null;
-  }, [formFingerprint]);
+    idempotencyKeyRefs.current.order = null;
+  }, [orderSubmissionFingerprint]);
+
+  useEffect(() => {
+    idempotencyKeyRefs.current.quote_request = null;
+  }, [quoteRequestSubmissionFingerprint]);
 
   useEffect(() => {
     addressRequestRef.current?.abort();
@@ -381,6 +485,12 @@ export default function OrderPageClient() {
     if (field !== 'customerType') {
       setFieldErrors((previous) => ({ ...previous, [field]: undefined }));
     }
+  };
+
+  const selectCheckoutIntent = (intent: CheckoutIntent) => {
+    if (isSubmitting) return;
+    setCheckoutIntent(intent);
+    setLastSubmissionIntent(intent);
   };
 
   const updateAddressField = (
@@ -491,11 +601,31 @@ export default function OrderPageClient() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitError(null);
-    setSubmitIssues([]);
+    const intent = activeCheckoutIntent;
+    const setIntentFeedback = (feedback: SubmissionFeedback) => {
+      setSubmissionFeedback((previous) => ({
+        ...previous,
+        [intent]: feedback
+      }));
+    };
+    const setIntentError = (error: string | null) => {
+      setSubmissionFeedback((previous) => ({
+        ...previous,
+        [intent]: { ...previous[intent], error }
+      }));
+    };
+    const setIntentIssues = (issues: string[]) => {
+      setSubmissionFeedback((previous) => ({
+        ...previous,
+        [intent]: { ...previous[intent], issues }
+      }));
+    };
+
+    setLastSubmissionIntent(intent);
+    setIntentFeedback({ error: null, issues: [] });
     if (!isCustomerType(formData.customerType)) {
       document.getElementById('order-customer-type')?.focus();
-      setSubmitError('Za nadaljevanje izberite vrsto naročnika.');
+      setIntentError('Za nadaljevanje izberite vrsto naročnika.');
       return;
     }
     const customerType = formData.customerType;
@@ -505,25 +635,39 @@ export default function OrderPageClient() {
         email: 'Vnesite veljaven e-poštni naslov.'
       }));
       document.getElementById('email')?.focus();
-      setSubmitError('Za nadaljevanje vnesite veljaven e-poštni naslov.');
+      setIntentError('Za nadaljevanje vnesite veljaven e-poštni naslov.');
       return;
     }
     const errors = validate();
     const firstInvalid = Object.keys(errors)[0] as FieldName | undefined;
     if (firstInvalid) {
       document.getElementById(firstInvalid)?.focus();
-      setSubmitError('Preverite označena obvezna polja.');
+      setIntentError('Preverite označena obvezna polja.');
       return;
     }
-    if (!quoteState.quote || quoteState.error || cartHasBlockingIssue(items)) {
-      setSubmitError(
-        quoteState.error?.message ??
+    if (
+      !estimateState.estimate ||
+      estimateState.error ||
+      cartHasBlockingIssue(items)
+    ) {
+      setIntentError(
+        estimateState.error?.message ??
           'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
       );
       return;
     }
+    const currentShipping = estimateState.estimate.shipping;
+    if (intent === 'order' && currentShipping.status === 'manual_quote') {
+      setIntentError(
+        shippingManualQuoteMessage(currentShipping) ??
+          'Poštnino je treba pred oddajo naročila določiti ročno.'
+      );
+      setIntentIssues(currentShipping.issues.map((issue) => issue.message));
+      return;
+    }
 
-    const individualName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    const individualName =
+      `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
     const customerName =
       customerType === 'individual'
         ? individualName
@@ -532,7 +676,7 @@ export default function OrderPageClient() {
       customerType === 'individual'
         ? individualName
         : formData.contactName.trim();
-    const payload: SubmitOrderRequest = {
+    const commonPayload = {
       customerType,
       customerName,
       organizationName:
@@ -550,37 +694,80 @@ export default function OrderPageClient() {
       reference:
         customerType === 'school' ? formData.reference.trim() : '',
       notes: formData.notes.trim(),
+      shippingConfigurationVersion: currentShipping.configurationVersion,
+      quoteFingerprint: estimateState.estimate.quoteFingerprint,
       items: items.map((item) => ({
         variantId: item.variant!.id as number,
         quantity: item.quantity
       }))
     };
+    const payload: SubmitOrderRequest | SubmitQuoteRequestRequest =
+      intent === 'quote_request'
+        ? {
+            ...commonPayload,
+            quoteReason: STOREFRONT_QUOTE_REASON,
+            quoteMessage: formData.quoteMessage.trim()
+          }
+        : commonPayload;
 
-    idempotencyKeyRef.current ??= createIdempotencyKey();
-    setSubmissionPhase('submitting');
+    idempotencyKeyRefs.current[intent] ??= createIdempotencyKey();
+    const idempotencyKey = idempotencyKeyRefs.current[intent] as string;
+    setSubmissionPhase(
+      intent === 'order' ? 'submitting-order' : 'submitting-quote-request'
+    );
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Idempotency-Key': idempotencyKeyRef.current
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        intent === 'order' ? '/api/orders' : '/api/quote-requests',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey
+          },
+          body: JSON.stringify(payload)
+        }
+      );
       const responsePayload: unknown = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = parseOrderApiError(responsePayload, 'Oddaja naročila ni uspela.');
-        setSubmitIssues((error.issues ?? []).map((issue) => issue.message));
+        const error = parseOrderApiError(
+          responsePayload,
+          intent === 'order'
+            ? 'Oddaja naročila ni uspela.'
+            : 'Oddaja povpraševanja ni uspela.'
+        );
+        setIntentIssues((error.issues ?? []).map((issue) => issue.message));
+        if (
+          error.code === 'SHIPPING_QUOTE_CHANGED' ||
+          error.code === 'ESTIMATE_CHANGED'
+        ) {
+          idempotencyKeyRefs.current[intent] = null;
+          setIntentError(error.message);
+          setSubmissionPhase('idle');
+          estimateState.refresh();
+          return;
+        }
         throw new Error(error.message);
       }
-      const result = responsePayload as SubmitOrderResponse;
+
+      const result = responsePayload as
+        | SubmitOrderResponse
+        | SubmitQuoteRequestResponse;
       const accessId = result.accessId?.trim();
       if (!accessId) {
-        throw new Error('Varne seje za prikaz potrditve ni bilo mogoče ustvariti.');
+        throw new Error(
+          intent === 'order'
+            ? 'Varne seje za prikaz potrditve ni bilo mogoče ustvariti.'
+            : 'Varne seje za prikaz povpraševanja ni bilo mogoče ustvariti.'
+        );
       }
 
       try {
-        storeOrderAccessId(accessId);
+        if (intent === 'order') {
+          storeOrderAccessId(accessId);
+        } else {
+          const quoteResult = result as SubmitQuoteRequestResponse;
+          storeQuoteAccessSession(accessId, quoteResult.csrfToken);
+        }
       } catch (error) {
         throw new Error(
           error instanceof Error
@@ -590,48 +777,76 @@ export default function OrderPageClient() {
       }
 
       flushSync(() => {
-        setSubmissionPhase('opening-confirmation');
+        setSubmissionPhase(
+          intent === 'order'
+            ? 'opening-order-confirmation'
+            : 'opening-quote-confirmation'
+        );
       });
       try {
         clearCart();
       } catch (error) {
-        console.error('[order.submit] cart cleanup failed', error);
+        console.error(`[${intent}.submit] cart cleanup failed`, error);
       }
       try {
         sessionStorage.removeItem(FORM_STORAGE_KEY);
       } catch (error) {
-        console.error('[order.submit] form cleanup failed', error);
+        console.error(`[${intent}.submit] form cleanup failed`, error);
       }
       // Give the success live region a rendered frame before replacing the document.
       await waitForNextPaint();
-      window.location.replace('/order/confirmation');
+      if (intent === 'order') {
+        window.location.replace('/order/confirmation');
+      } else {
+        window.location.replace('/quote-request/confirmation');
+      }
       return;
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : 'Oddaja naročila ni uspela.'
+      setIntentError(
+        error instanceof Error
+          ? error.message
+          : intent === 'order'
+            ? 'Oddaja naročila ni uspela.'
+            : 'Oddaja povpraševanja ni uspela.'
       );
       setSubmissionPhase('idle');
     }
   };
 
   if (submissionPhase !== 'idle') {
-    const isOpeningConfirmation =
-      submissionPhase === 'opening-confirmation';
+    const isQuoteRequest = submissionPhase.includes('quote');
+    const isOpeningConfirmation = submissionPhase.startsWith('opening');
 
     return (
       <OrderLoadingState
         heading={
           isOpeningConfirmation
-            ? 'Odpiramo potrditev naročila'
-            : 'Oddajamo naročilo'
+            ? isQuoteRequest
+              ? 'Odpiramo potrditev povpraševanja'
+              : 'Odpiramo potrditev naročila'
+            : isQuoteRequest
+              ? 'Pošiljamo povpraševanje'
+              : 'Oddajamo naročilo'
         }
         description={
           isOpeningConfirmation
-            ? 'Naročilo je oddano. Prosimo, počakajte, da odpremo potrditev.'
-            : 'Varno shranjujemo vaše naročilo. Prosimo, počakajte in ne zapirajte strani.'
+            ? isQuoteRequest
+              ? 'Povpraševanje je poslano. Prosimo, počakajte, da odpremo potrditev.'
+              : 'Naročilo je oddano. Prosimo, počakajte, da odpremo potrditev.'
+            : isQuoteRequest
+              ? 'Varno shranjujemo vaše povpraševanje. Prosimo, počakajte in ne zapirajte strani.'
+              : 'Varno shranjujemo vaše naročilo. Prosimo, počakajte in ne zapirajte strani.'
         }
-        testId="order-submission-handoff"
-        spinnerTestId="order-submission-spinner"
+        testId={
+          isQuoteRequest
+            ? 'quote-request-submission-handoff'
+            : 'order-submission-handoff'
+        }
+        spinnerTestId={
+          isQuoteRequest
+            ? 'quote-request-submission-spinner'
+            : 'order-submission-spinner'
+        }
       />
     );
   }
@@ -653,10 +868,22 @@ export default function OrderPageClient() {
     );
   }
 
-  const totals = quoteState.quote?.totals;
+  const totals = estimateState.estimate?.totals;
   const hasCustomerType = isCustomerType(formData.customerType);
   const isSchool = formData.customerType === 'school';
   const canContinue = hasCustomerType && isValidEmail(formData.email);
+  const checkoutActionLabel = isQuoteRequest
+    ? 'Zahtevaj ponudbo'
+    : isSchool
+      ? 'Pošlji naročilo v potrditev'
+      : 'Naročilo z obveznostjo plačila';
+  const checkoutActionDisabled =
+    !canContinue ||
+    isSubmitting ||
+    estimateState.isLoading ||
+    !estimateState.estimate ||
+    (!isQuoteRequest && shippingRequiresManualQuote) ||
+    cartHasBlockingIssue(items);
   const addressSearchStatusMessage =
     addressSearchStatus === 'loading'
       ? 'Iščemo uradne naslove …'
@@ -672,11 +899,11 @@ export default function OrderPageClient() {
       item.reconciliation.status === 'unavailable' ||
       item.reconciliation.status === 'needs_review'
   )?.reconciliation.message;
-  const quoteStatusMessage = quoteState.isLoading
+  const estimateStatusMessage = estimateState.isLoading
     ? 'Preverjamo cene in zalogo …'
-    : quoteState.error?.message ||
+    : estimateState.error?.message ||
       blockingCartMessage ||
-      (!quoteState.quote
+      (!estimateState.estimate
         ? 'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
         : null);
 
@@ -687,9 +914,9 @@ export default function OrderPageClient() {
           <CartLine
             key={item.lineId}
             item={item}
-            quoteItem={
+            estimateItem={
               typeof item.variant?.id === 'number'
-                ? quoteByVariant.get(item.variant.id)
+                ? estimateByVariant.get(item.variant.id)
                 : undefined
             }
             compact
@@ -712,19 +939,36 @@ export default function OrderPageClient() {
             {totals ? formatEuro(totals.tax) : '—'}
           </dd>
         </div>
-        <div className="flex justify-between">
-          <dt>Dostava</dt>
-          <dd className="font-semibold text-[color:var(--site-color-success)]">
-            {appearance.pricing.freeShippingLabel}
+        <div
+          className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]"
+          data-testid="order-summary-shipping"
+          data-summary-row="shipping"
+          data-shipping-status={
+            estimateState.estimate?.shipping.status ?? 'pending'
+          }
+        >
+          <dt>Poštnina</dt>
+          <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
+            {totals?.shipping !== null && totals?.shipping !== undefined
+              ? formatEuro(totals.shipping)
+              : estimateState.estimate?.shipping.status === 'manual_quote'
+                ? 'Po dogovoru'
+                : '—'}
           </dd>
         </div>
         <div className="flex justify-between border-t border-[color:var(--site-divider-color)] pt-3 text-base font-semibold">
           <dt>Skupaj z DDV</dt>
           <dd className="tabular-nums text-[color:var(--site-color-primary)]">
-            {totals ? formatEuro(totals.gross) : '—'}
+            {totals?.gross !== null && totals?.gross !== undefined
+              ? formatEuro(totals.gross)
+              : '—'}
           </dd>
         </div>
       </dl>
+      <ShippingManualQuoteNotice
+        calculation={estimateState.estimate?.shipping ?? null}
+        className="site-radius-sm mt-3 bg-[color:var(--site-color-surface-muted)] p-3 text-xs text-[color:var(--site-color-danger)]"
+      />
     </div>
   );
 
@@ -736,7 +980,7 @@ export default function OrderPageClient() {
           className="site-heading-1 mt-2 !text-2xl sm:!text-3xl"
           data-testid="order-page-heading"
         >
-          Oddaja naročila
+          {isQuoteRequest ? 'Oddaja povpraševanja' : 'Oddaja naročila'}
         </h1>
       </header>
 
@@ -761,6 +1005,50 @@ export default function OrderPageClient() {
         data-testid="order-checkout-layout"
       >
         <div className="min-w-0 space-y-6" data-testid="order-form-column">
+          {quoteRequestsEnabled ? (
+            <section
+              className="site-card"
+              data-testid="order-checkout-intent-section"
+            >
+              <h2 className="text-xl font-semibold">Kaj želite oddati?</h2>
+              <p className="mt-2 text-sm text-[color:var(--site-color-text-muted)]">
+                Izberite naročilo ali neobvezujoče povpraševanje za ponudbo.
+              </p>
+              <div
+                className="mt-4 grid gap-2 sm:grid-cols-2"
+                role="radiogroup"
+                aria-label="Način oddaje"
+              >
+                {CHECKOUT_INTENT_OPTIONS.map((option) => {
+                  const selected = activeCheckoutIntent === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-label={option.label}
+                      aria-checked={selected}
+                      disabled={isSubmitting}
+                      onClick={() => selectCheckoutIntent(option.value)}
+                      className={`site-radius-md min-h-16 border px-4 py-3 text-left transition ${
+                        selected
+                          ? 'border-[color:var(--site-color-primary)] bg-[color:var(--blue-50)] text-[color:var(--site-color-primary)]'
+                          : 'border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)]'
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">
+                        {option.label}
+                      </span>
+                      <span className="mt-1 block text-xs font-normal leading-5 text-[color:var(--site-color-text-muted)]">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
           <section className="site-card">
             <h2 className="text-xl font-semibold">Vrsta naročnika</h2>
             <div
@@ -1049,10 +1337,15 @@ export default function OrderPageClient() {
                 data-testid="order-payment-section"
               >
               <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
-                <p className="font-semibold">Obdelava plačila</p>
+                <p className="font-semibold">
+                  {isQuoteRequest
+                    ? 'Neobvezujoče povpraševanje'
+                    : 'Obdelava plačila'}
+                </p>
                 <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
-                  Po oddaji pripravimo ponudbo ali predračun. Plačilne kartice
-                  ne potrebujete.
+                  {isQuoteRequest
+                    ? 'Povpraševanje ni naročilo in ne povzroči obveznosti plačila. Ponudbo boste lahko sprejeli ali zavrnili.'
+                    : 'Plačilne kartice ne potrebujete. Neposredno naročilo bomo po oddaji pregledali in ga posebej potrdili ali zavrnili.'}
                 </p>
               </div>
               <div className="mt-5 grid gap-4">
@@ -1076,13 +1369,60 @@ export default function OrderPageClient() {
                 />
               </div>
               </section>
+
+              {isQuoteRequest ? (
+              <section
+                className="border-t border-[color:var(--site-divider-color)] pt-6"
+                data-testid="quote-request-details-section"
+              >
+                <h2 className="text-lg font-semibold">Kaj potrebujete?</h2>
+                <p className="mt-2 text-sm leading-6 text-[color:var(--site-color-text-muted)]">
+                  Povpraševanje ni naročilo in ne povzroči obveznosti plačila.
+                  Ponudbo boste lahko sprejeli ali zavrnili.
+                </p>
+                <div className="mt-5 grid gap-4">
+                  <div
+                    className="site-radius-sm border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] px-4 py-3"
+                    data-testid="quote-request-fixed-type"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--site-color-text-muted)]">
+                      Vrsta povpraševanja
+                    </p>
+                    <p className="mt-1 text-sm font-semibold">
+                      Formalno ponudbo za izbrane artikle
+                    </p>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="quoteMessage"
+                      className="mb-2 block text-sm font-semibold"
+                    >
+                      Dodatne želje ali vprašanja
+                    </label>
+                    <textarea
+                      id="quoteMessage"
+                      value={formData.quoteMessage}
+                      onChange={(event) =>
+                        updateField('quoteMessage', event.target.value)
+                      }
+                      maxLength={2000}
+                      rows={4}
+                      disabled={!canContinue}
+                      placeholder="Na primer želeni dobavni rok, druga količina, posebna dostava, alternativni artikel ali interna referenca."
+                      className="site-radius-sm w-full resize-y border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)] px-4 py-3 text-sm text-[color:var(--site-color-text)] placeholder:text-[color:var(--site-color-text-muted)]"
+                    />
+                  </div>
+                </div>
+              </section>
+              ) : null}
             </div>
             </div>
           ) : null}
 
           <details className="site-card lg:hidden">
             <summary className="cursor-pointer font-semibold">
-              Povzetek naročila ({items.length})
+              {isQuoteRequest ? 'Povzetek povpraševanja' : 'Povzetek naročila'} (
+              {items.length})
             </summary>
             <div className="mt-4">{summary}</div>
           </details>
@@ -1093,34 +1433,40 @@ export default function OrderPageClient() {
           data-testid="order-summary-column"
         >
           <div className="site-card lg:sticky lg:top-8">
-            <h2 className="text-xl font-semibold">Povzetek naročila</h2>
+            <h2 className="text-xl font-semibold">
+              {isQuoteRequest
+                ? 'Povzetek povpraševanja'
+                : 'Povzetek naročila'}
+            </h2>
             <div className="mt-5">{summary}</div>
 
-            {quoteStatusMessage ? (
+            {estimateStatusMessage ? (
               <p
                 className={`mt-4 text-sm ${
-                  quoteState.isLoading
+                  estimateState.isLoading
                     ? 'text-[color:var(--site-color-text-muted)]'
                     : 'text-[color:var(--site-color-danger)]'
                 }`}
               >
-                {quoteStatusMessage}
+                {estimateStatusMessage}
               </p>
             ) : null}
 
             <button
               type="submit"
-              disabled={
-                !canContinue ||
-                isSubmitting ||
-                quoteState.isLoading ||
-                !quoteState.quote ||
-                cartHasBlockingIssue(items)
-              }
+              name="checkoutIntent"
+              value={activeCheckoutIntent}
+              disabled={checkoutActionDisabled}
               className="site-button site-button--primary mt-5 w-full"
             >
-              {isSubmitting ? 'Oddajanje …' : 'Oddaj naročilo'}
+              {checkoutActionLabel}
             </button>
+            {isQuoteRequest ? (
+              <p className="mt-3 text-xs leading-5 text-[color:var(--site-color-text-muted)]">
+                Povpraševanje ni naročilo in ne povzroči obveznosti plačila.
+                Ponudbo boste lahko sprejeli ali zavrnili.
+              </p>
+            ) : null}
             <p className="mt-3 text-xs leading-5 text-[color:var(--site-color-text-muted)]">
               Z oddajo potrjujete pravilnost podatkov in se strinjate s{' '}
               <Link href="/terms" className="site-link">
@@ -1133,31 +1479,33 @@ export default function OrderPageClient() {
       </div>
 
       <div className="sticky bottom-0 z-20 -mx-[var(--site-gutter)] mt-6 border-t border-[color:var(--site-divider-color)] bg-[color:var(--site-color-surface)] px-[var(--site-gutter)] py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] lg:hidden">
-        {quoteStatusMessage ? (
+        {estimateStatusMessage ? (
           <p
             className={`mb-2 text-xs ${
-              quoteState.isLoading
+              estimateState.isLoading
                 ? 'text-[color:var(--site-color-text-muted)]'
                 : 'text-[color:var(--site-color-danger)]'
             }`}
-            role={quoteState.isLoading ? 'status' : 'alert'}
+            role={estimateState.isLoading ? 'status' : 'alert'}
           >
-            {quoteStatusMessage}
+            {estimateStatusMessage}
           </p>
         ) : null}
         <button
           type="submit"
-          disabled={
-            !canContinue ||
-            isSubmitting ||
-            quoteState.isLoading ||
-            !quoteState.quote ||
-            cartHasBlockingIssue(items)
-          }
+          name="checkoutIntent"
+          value={activeCheckoutIntent}
+          disabled={checkoutActionDisabled}
           className="site-button site-button--primary w-full"
         >
-          {isSubmitting ? 'Oddajanje …' : 'Oddaj naročilo'}
+          {checkoutActionLabel}
         </button>
+        {isQuoteRequest ? (
+          <p className="mt-2 text-center text-[10px] leading-4 text-[color:var(--site-color-text-muted)]">
+            Povpraševanje ni naročilo in ne povzroči obveznosti plačila. Ponudbo
+            boste lahko sprejeli ali zavrnili.
+          </p>
+        ) : null}
         <p className="mt-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
           Z oddajo se strinjate s{' '}
           <Link href="/terms" className="site-link">

@@ -15,7 +15,10 @@ import {
 import CartLine from '@/commercial/components/storefront/CartLine';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
-import { useOrderQuote } from '@/commercial/order/useOrderQuote';
+import ShippingCalculationRows, {
+  ShippingManualQuoteNotice
+} from '@/commercial/order/components/ShippingCalculationRows';
+import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
 import { formatEuro } from '@/shared/domain/formatting';
 import { resolveProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
 import ProductCanvasElement, {
@@ -69,17 +72,17 @@ export default function CartDrawer() {
   const closeDrawer = useCartStore((state) => state.closeDrawer);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
-  const quoteState = useOrderQuote(items, isOpen && items.length > 0);
+  const estimateState = useOrderEstimate(items, isOpen && items.length > 0);
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  const quoteByVariant = useMemo(
+  const estimateByVariant = useMemo(
     () =>
       new Map(
-        (quoteState.quote?.items ?? []).map((item) => [item.variantId, item])
+        (estimateState.estimate?.items ?? []).map((item) => [item.variantId, item])
       ),
-    [quoteState.quote]
+    [estimateState.estimate]
   );
   const fallbackGross = getCartSubtotal(items);
   const fallbackNet = items.reduce(
@@ -92,18 +95,13 @@ export default function CartDrawer() {
       typeof item.pricing?.unitNet === 'number' &&
       typeof item.pricing?.estimatedUnitGross === 'number'
   );
-  const totals = quoteState.quote?.totals ?? {
-    net: fallbackNet,
-    tax: Math.max(0, fallbackGross - fallbackNet),
-    shipping: 0,
-    gross: fallbackGross,
-    currency: 'EUR' as const
-  };
-  const totalsKnown = Boolean(quoteState.quote) || hasCompleteFallbackPricing;
+  const totals = estimateState.estimate?.totals;
+  const totalsKnown = Boolean(estimateState.estimate) || hasCompleteFallbackPricing;
   const checkoutBlocked =
     items.length === 0 ||
-    quoteState.isLoading ||
-    Boolean(quoteState.error) ||
+    !estimateState.estimate ||
+    estimateState.isLoading ||
+    Boolean(estimateState.error) ||
     cartHasBlockingIssue(items);
 
   useEffect(() => {
@@ -278,9 +276,9 @@ export default function CartDrawer() {
                   <CartLine
                     key={item.lineId}
                     item={item}
-                    quoteItem={
+                    estimateItem={
                       typeof item.variant?.id === 'number'
-                        ? quoteByVariant.get(item.variant.id)
+                        ? estimateByVariant.get(item.variant.id)
                         : undefined
                     }
                     compact={appearance.cartSidebar.compactRows}
@@ -305,36 +303,46 @@ export default function CartDrawer() {
               <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
                 <dt>Brez DDV</dt>
                 <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                  {totalsKnown ? formatEuro(totals.net) : '—'}
+                  {totals
+                    ? formatEuro(totals.net)
+                    : totalsKnown
+                      ? formatEuro(fallbackNet)
+                      : '—'}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
                 <dt>DDV</dt>
                 <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                  {totalsKnown ? formatEuro(totals.tax) : '—'}
+                  {totals
+                    ? formatEuro(totals.tax)
+                    : totalsKnown
+                      ? formatEuro(Math.max(0, fallbackGross - fallbackNet))
+                      : '—'}
                 </dd>
               </div>
-              <div className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]">
-                <dt>Dostava</dt>
-                <dd className="font-semibold text-[color:var(--site-color-success)]">
-                  {appearance.pricing.freeShippingLabel}
-                </dd>
-              </div>
+              <ShippingCalculationRows calculation={estimateState.estimate?.shipping ?? null} />
               <div className="mt-2 flex justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-2 text-base font-semibold">
                 <dt>Skupaj z DDV</dt>
                 <dd className="tabular-nums text-[color:var(--site-color-primary)]">
-                  {totalsKnown ? formatEuro(totals.gross) : '—'}
+                  {totals?.gross !== null && totals?.gross !== undefined
+                    ? formatEuro(totals.gross)
+                    : '—'}
                 </dd>
               </div>
             </dl>
 
-            {quoteState.isLoading ? (
+            <ShippingManualQuoteNotice
+              calculation={estimateState.estimate?.shipping ?? null}
+              className="site-radius-sm mt-2 bg-[color:var(--site-color-surface-muted)] p-3 text-xs text-[color:var(--site-color-danger)]"
+            />
+
+            {estimateState.isLoading ? (
               <p className="mt-2 text-xs text-[color:var(--site-color-text-muted)]">
                 Preverjamo cene in zalogo …
               </p>
-            ) : quoteState.error ? (
+            ) : estimateState.error ? (
               <p className="mt-2 text-xs text-[color:var(--site-color-danger)]">
-                {quoteState.error.message}
+                {estimateState.error.message}
               </p>
             ) : (
               <p className="mt-2 text-xs text-[color:var(--site-color-text-muted)]">

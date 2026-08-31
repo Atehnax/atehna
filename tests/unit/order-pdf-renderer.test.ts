@@ -74,6 +74,7 @@ const SAMPLE_ITEMS: PdfItem[] = [
 
 const DOCUMENT_NUMBERS: Record<OrderDocumentTemplateType, string> = {
   order_summary: 'PN-2026-0042',
+  offer: 'PON-2026-0042-V1',
   dobavnica: 'D-2026-0042',
   predracun: 'P-2026-0042',
   invoice: 'R-2026-0042'

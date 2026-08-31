@@ -1,53 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getPool } from '@/shared/server/db';
-import {
-  buildAuthoritativeOrderQuote,
-  OrderCommerceError,
-  parseOrderSelections
-} from '@/shared/server/orderCommerce';
-import { readRequiredJsonRecord } from '@/shared/server/requestJson';
-
-export const runtime = 'nodejs';
-
-export async function POST(request: Request) {
-  try {
-    const bodyResult = await readRequiredJsonRecord(request);
-    if (!bodyResult.ok) return bodyResult.response;
-
-    const pool = await getPool();
-    const selections = parseOrderSelections(bodyResult.body.items);
-    const customerName = typeof bodyResult.body.customerName === 'string' ? bodyResult.body.customerName.trim() : '';
-    const quote = await buildAuthoritativeOrderQuote(pool, selections, {
-      customerLabels: customerName ? [customerName] : []
-    });
-
-    return NextResponse.json(quote, {
-      headers: { 'Cache-Control': 'no-store' }
-    });
-  } catch (error) {
-    if (error instanceof OrderCommerceError) {
-      return NextResponse.json(
-        {
-          code: error.code,
-          message: error.message,
-          issues: error.issues
-        },
-        {
-          status: error.status,
-          headers: { 'Cache-Control': 'no-store' }
-        }
-      );
-    }
-
-    console.error('[orders.quote] failed', {
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-    return NextResponse.json(
-      { code: 'QUOTE_FAILED', message: 'Izračuna naročila trenutno ni mogoče pripraviti.' },
-      {
-        status: 500,
-        headers: { 'Cache-Control': 'no-store' }
-      }
-    );
-  }
-}
+/**
+ * Backward-compatible endpoint. Despite its historical URL, this returns only
+ * a live checkout estimate and never creates an immutable seller offer.
+ */
+export { POST, runtime } from '@/commercial/api/orders/estimate/route';

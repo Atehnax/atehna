@@ -23,9 +23,10 @@ import {
   validateOrderDocumentTemplatesInput
 } from '../../src/shared/domain/order/orderDocumentTemplates';
 
-test('defaults expose only the four generated PDFs with colorful headers and Slovene titles', () => {
+test('defaults expose five distinct generated PDF templates with colorful headers and Slovene titles', () => {
   assert.deepEqual(ORDER_DOCUMENT_TEMPLATE_TYPES, [
     'order_summary',
+    'offer',
     'dobavnica',
     'predracun',
     'invoice'
@@ -41,6 +42,7 @@ test('defaults expose only the four generated PDFs with colorful headers and Slo
 
   const expectedTitles = {
     order_summary: ['Potrditev naročila', 'POTRDITEV NAROČILA'],
+    offer: ['Ponudba', 'PONUDBA'],
     dobavnica: ['Dobavnica', 'DOBAVNICA'],
     predracun: ['Predračun', 'PREDRAČUN'],
     invoice: ['Račun', 'RAČUN']
@@ -66,6 +68,24 @@ test('defaults expose only the four generated PDFs with colorful headers and Slo
       );
     }
   }
+});
+
+test('Ponudba rejects removal of essential identity, validity, totals, and acceptance content', () => {
+  const config = cloneDefaultOrderDocumentTemplatesConfig();
+  config.templates.offer.layout.sections = config.templates.offer.layout.sections.map((section) =>
+    section.id === 'totals' ? { ...section, enabled: false } : section
+  );
+  config.templates.offer.layout.fieldRows = {
+    document_meta: [{ id: 'issue_date', visible: true }]
+  };
+  config.templates.offer.text.closing = '';
+  config.templates.offer.rules.validityDays = 0;
+
+  const errors = validateOrderDocumentTemplatesInput(config);
+  assert.ok(errors.some((message) => message.includes('totals')));
+  assert.ok(errors.some((message) => message.includes('due_date')));
+  assert.ok(errors.some((message) => message.includes('veljavnosti')));
+  assert.ok(errors.some((message) => message.includes('načinu sprejema')));
 });
 
 test('default template cloning isolates every nested mutable value', () => {
@@ -278,6 +298,7 @@ test('validation reports malformed input, missing templates, groups, and section
   ]);
   assert.deepEqual(validateOrderDocumentTemplatesInput({}), [
     'Predloga order_summary manjka.',
+    'Predloga offer manjka.',
     'Predloga dobavnica manjka.',
     'Predloga predracun manjka.',
     'Predloga invoice manjka.'

@@ -1,0 +1,21 @@
+# Keep deployment uploads limited to production source and build inputs.
+/.github/
+/.next/
+/.playwright/
+/.vercel/
+/database/
+/docs/
+/node_modules/
+/playwright-report/
+/scripts/
+/test-results/
+/tests/
+/.env*
+/.git
+/.gitignore
+/.gitkeep
+/AGENTS.md
+/README.md
+/debug.log
+/playwright.config.ts
+/tsconfig.tsbuildinfo

@@ -20,6 +20,8 @@ import {
 
 const requestedEvents = new Set<OrderEmailEventType>([
   'order_submitted',
+  'order_accepted',
+  'order_rejected',
   'in_progress',
   'partially_sent',
   'sent'
@@ -99,7 +101,12 @@ describe('order email settings', () => {
   test('defines submission plus every canonical status event in stable order', () => {
     assert.deepEqual(
       ORDER_EMAIL_EVENT_DEFINITIONS.map((event) => event.value),
-      ['order_submitted', ...ORDER_STATUS_OPTIONS.map((status) => status.value)]
+      [
+        'order_submitted',
+        'order_accepted',
+        'order_rejected',
+        ...ORDER_STATUS_OPTIONS.map((status) => status.value)
+      ]
     );
     assert.ok(
       ORDER_EMAIL_EVENT_DEFINITIONS.every(
@@ -440,7 +447,7 @@ describe('order email templates', () => {
     );
     assert.match(
       message.html,
-      /Vaše naročilo smo uspešno prejeli\. O nadaljnjih spremembah vas bomo obvestili po e-pošti\./u
+      /Prejeli smo vaše naročilo\. Naročilo še ni potrjeno\. O sprejemu ali zavrnitvi vas bomo obvestili po e-pošti\./u
     );
     assert.match(message.html, /&lt;img src=x onerror=alert\(1\)&gt;/u);
     assert.doesNotMatch(message.html, /<script>|<img src=x/iu);

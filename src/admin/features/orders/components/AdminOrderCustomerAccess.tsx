@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { adminCardSectionEditIconButtonClassName } from '@/shared/ui/admin-table';
 import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 
@@ -46,11 +48,13 @@ const formatDateTime = (value: string | null | undefined) => {
 export default function AdminOrderCustomerAccess({
   orderId,
   customerType,
-  initialCommitmentStatus
+  initialCommitmentStatus,
+  compact = false
 }: {
   orderId: number;
   customerType: string;
   initialCommitmentStatus: CommitmentStatus;
+  compact?: boolean;
 }) {
   const { toast } = useToast();
   const [status, setStatus] = useState<AccessStatusResponse | null>(null);
@@ -59,6 +63,7 @@ export default function AdminOrderCustomerAccess({
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'revoke' | 'reject' | null>(null);
+  const [compactExpanded, setCompactExpanded] = useState(false);
   const latestActive = useMemo(
     () => status?.tokens.find((token) => token.active) ?? null,
     [status]
@@ -143,8 +148,8 @@ export default function AdminOrderCustomerAccess({
       setCommitmentStatus(body.commitmentStatus ?? nextStatus);
       toast.success(
         nextStatus === 'binding'
-          ? 'Šolsko povpraševanje je potrjeno kot zavezujoče naročilo.'
-          : 'Šolsko povpraševanje je zavrnjeno.'
+          ? 'Šolsko naročilo je potrjeno kot zavezujoče.'
+          : 'Šolsko naročilo je zavrnjeno.'
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Statusa ni bilo mogoče spremeniti.');
@@ -167,8 +172,130 @@ export default function AdminOrderCustomerAccess({
     commitmentStatus === 'binding'
       ? 'Zavezujoče naročilo'
       : commitmentStatus === 'rejected'
-        ? 'Zavrnjeno povpraševanje'
+        ? 'Zavrnjeno šolsko naročilo'
         : 'Čaka na potrditev';
+
+  if (compact) {
+    return (
+      <>
+        <section
+          className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.04)]"
+          data-testid="admin-order-customer-access-compact"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-slate-900">Stranka in dostop</h2>
+            <button
+              type="button"
+              className={`${adminCardSectionEditIconButtonClassName} ${compactExpanded ? 'bg-[color:var(--hover-neutral)]' : ''}`}
+              onClick={() => setCompactExpanded((expanded) => !expanded)}
+              aria-label={compactExpanded ? 'Skrij upravljanje dostopa' : 'Upravljaj dostop'}
+              aria-expanded={compactExpanded}
+              aria-controls={`admin-order-customer-access-management-${orderId}`}
+              title={compactExpanded ? 'Skrij upravljanje' : 'Upravljaj dostop'}
+              data-admin-card-edit-action="customer-access"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </button>
+          </div>
+
+          <dl className="mt-4 divide-y divide-slate-200 text-xs">
+            <div className="flex items-center justify-between gap-4 py-2 first:pt-0">
+              <dt className="text-slate-600">Zavezanost naročila</dt>
+              <dd className={`font-semibold ${
+                commitmentStatus === 'binding'
+                  ? 'text-emerald-700'
+                  : commitmentStatus === 'rejected'
+                    ? 'text-rose-700'
+                    : 'text-amber-700'
+              }`}>
+                {commitmentLabel}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2">
+              <dt className="text-slate-600">Dostop stranke</dt>
+              <dd className={`font-semibold ${latestActive ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {isLoading ? 'Preverjam …' : latestActive ? 'Omogočen' : 'Ni omogočen'}
+              </dd>
+            </div>
+          </dl>
+
+          {compactExpanded ? (
+            <div
+              id={`admin-order-customer-access-management-${orderId}`}
+              className="mt-4 border-t border-slate-200 pt-4"
+            >
+              {customerType === 'school' && commitmentStatus === 'pending_confirmation' ? (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs leading-5 text-amber-800">
+                    Zaloga še ni rezervirana. Potrditev ponovno preveri trenutno zalogo.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void updateCommitment('binding')}>
+                      Potrdi kot zavezujoče
+                    </Button>
+                    <Button type="button" variant="danger" size="sm" disabled={isWorking} onClick={() => setConfirmAction('reject')}>
+                      Zavrni
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <dl className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <dt className="text-slate-500">Velja do</dt>
+                  <dd className="mt-1 font-medium text-slate-800">{formatDateTime(latestActive?.expiresAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Nazadnje uporabljena</dt>
+                  <dd className="mt-1 font-medium text-slate-800">{formatDateTime(latestActive?.lastUsedAt)}</dd>
+                </div>
+              </dl>
+
+              {issuedUrl ? (
+                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
+                  <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-9 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a href={issuedUrl} target="_blank" rel="noreferrer noopener" className={`${buttonTokenClasses.primary} no-underline`}>
+                      Odpri povezavo
+                    </a>
+                    <Button type="button" variant="outline" size="sm" onClick={() => void copyIssuedUrl()}>
+                      Kopiraj
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void regenerate()}>
+                  {latestActive ? 'Obnovi povezavo' : 'Ustvari povezavo'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" disabled={isWorking || !latestActive} onClick={() => setConfirmAction('revoke')}>
+                  Prekliči dostop
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <ConfirmDialog
+          open={confirmAction !== null}
+          title={confirmAction === 'reject' ? 'Zavrnitev šolskega naročila' : 'Preklic dostopa stranke'}
+          description={confirmAction === 'reject'
+            ? 'Šolsko naročilo bo označeno kot zavrnjeno. Zaloga ne bo spremenjena.'
+            : 'Vse aktivne povezave za to naročilo bodo takoj neveljavne.'}
+          confirmLabel={confirmAction === 'reject' ? 'Zavrni' : 'Prekliči dostop'}
+          cancelLabel="Nazaj"
+          isDanger
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            if (confirmAction === 'reject') void updateCommitment('rejected');
+            else void revoke();
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -210,7 +337,7 @@ export default function AdminOrderCustomerAccess({
             <p className="mt-4 text-xs leading-5 text-slate-600">
               {commitmentStatus === 'binding'
                 ? 'Zaloga je zavezana naročilu. Samodejno vračilo ob preklicu ni omogočeno, dokler ni uvedena evidenca premikov zaloge.'
-                : 'To povpraševanje ni zavezujoče in zaloga zanj ni rezervirana.'}
+                : 'To šolsko naročilo še ni zavezujoče in zaloga zanj ni rezervirana.'}
             </p>
           )}
         </div>
@@ -278,9 +405,9 @@ export default function AdminOrderCustomerAccess({
 
       <ConfirmDialog
         open={confirmAction !== null}
-        title={confirmAction === 'reject' ? 'Zavrnitev povpraševanja' : 'Preklic dostopa stranke'}
+        title={confirmAction === 'reject' ? 'Zavrnitev šolskega naročila' : 'Preklic dostopa stranke'}
         description={confirmAction === 'reject'
-          ? 'Povpraševanje bo označeno kot zavrnjeno. Zaloga ne bo spremenjena.'
+          ? 'Šolsko naročilo bo označeno kot zavrnjeno. Zaloga ne bo spremenjena.'
           : 'Vse aktivne povezave za to naročilo bodo takoj neveljavne.'}
         confirmLabel={confirmAction === 'reject' ? 'Zavrni' : 'Prekliči dostop'}
         cancelLabel="Nazaj"

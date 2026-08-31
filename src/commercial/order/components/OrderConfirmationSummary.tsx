@@ -1,9 +1,9 @@
-import type { OrderConfirmationItem, OrderQuoteTotals } from '@/commercial/order/contracts';
+import type { OrderConfirmationItem, OrderEstimateTotals } from '@/commercial/order/contracts';
 import { formatEuro } from '@/shared/domain/formatting';
 
 type OrderConfirmationSummaryProps = {
   items: OrderConfirmationItem[];
-  totals: OrderQuoteTotals;
+  totals: OrderEstimateTotals;
   className?: string;
 };
 
@@ -180,7 +180,11 @@ function CalculationRow({
   );
 }
 
-export default function OrderConfirmationSummary({ items, totals, className }: OrderConfirmationSummaryProps) {
+export default function OrderConfirmationSummary({
+  items,
+  totals,
+  className
+}: OrderConfirmationSummaryProps) {
   const taxRows = getTaxSummaryRows(items, totals.tax);
 
   return (
@@ -301,16 +305,18 @@ export default function OrderConfirmationSummary({ items, totals, className }: O
               taxRate={taxRow.rate ?? 'aggregate'}
             />
           ))}
-          {totals.shipping > 0 ? (
-            <CalculationRow row="shipping" label="Dostava" value={formatEuro(totals.shipping)} />
-          ) : null}
+          <CalculationRow
+            row="shipping"
+            label="Poštnina"
+            value={totals.shipping === null ? '—' : formatEuro(totals.shipping)}
+          />
           <div
             className="mt-3 flex min-w-0 items-center justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-3 text-[color:var(--site-color-primary)]"
             data-summary-row="gross"
           >
             <dt className="min-w-0 text-base font-semibold leading-6">Skupaj za plačilo</dt>
             <dd className="shrink-0 text-right text-xl font-semibold leading-7 tabular-nums">
-              {formatEuro(totals.gross)}
+              {totals.gross === null ? '—' : formatEuro(totals.gross)}
             </dd>
           </div>
         </dl>

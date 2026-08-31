@@ -340,7 +340,8 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
 
 const normalizeAttributes = (
   raw: UnknownRecord,
-  weightUnit: 'g' | 'kg' = 'kg'
+  weightUnit: 'g' | 'kg' = 'kg',
+  weightScale = 1
 ): Record<string, string> => {
   const explicit = asRecord(raw.attributes);
   const entries = new Map<string, string>();
@@ -368,9 +369,12 @@ const normalizeAttributes = (
     if (!normalized) continue;
     const numeric = Number.parseFloat(normalized.replace(',', '.'));
     if (key === 'weight' && Number.isFinite(numeric) && numeric <= 0) continue;
+    const displayValue = key === 'weight' && Number.isFinite(numeric)
+      ? asDisplayString(Number((numeric * weightScale).toPrecision(12)))
+      : normalized;
     entries.set(
       ATTRIBUTE_LABELS[key],
-      `${normalized} ${key === 'weight' ? weightUnit : 'mm'}`
+      `${displayValue} ${key === 'weight' ? weightUnit : 'mm'}`
     );
   }
 
@@ -623,7 +627,8 @@ export function buildStorefrontProductFromCatalogItem(
         ...contentOverride,
         attributes: contentOverride.attributes ?? raw.attributes
       },
-      productType === 'dimensions' ? 'g' : 'kg'
+      productType === 'dimensions' ? 'g' : 'kg',
+      productType === 'dimensions' ? 1000 : 1
     );
     const attributeSpecifications = Object.entries(attributes).map(
       ([label, value], specificationIndex) => ({

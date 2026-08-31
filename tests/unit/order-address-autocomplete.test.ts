@@ -30,8 +30,8 @@ test('address autocomplete ignores stale successful responses', () => {
   );
 });
 
-test('address autocomplete starts after the shortened 125 ms debounce', () => {
-  assert.match(checkoutSource, /const ADDRESS_SEARCH_DEBOUNCE_MS = 125;/u);
+test('address autocomplete starts after the fast 50 ms debounce', () => {
+  assert.match(checkoutSource, /const ADDRESS_SEARCH_DEBOUNCE_MS = 50;/u);
   assert.match(
     checkoutSource,
     /window\.setTimeout\(async \(\) => \{[\s\S]+?\}, ADDRESS_SEARCH_DEBOUNCE_MS\)/u

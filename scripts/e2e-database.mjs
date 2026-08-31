@@ -272,6 +272,18 @@ export async function verifyCanonicalE2eSchemaState(
       to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
       to_regclass('public.order_email_settings') is not null as has_order_email_settings,
       to_regclass('public.order_email_jobs') is not null as has_order_email_jobs,
+      to_regclass('public.order_stock_holds') is not null as has_order_stock_holds,
+      to_regclass('public.quote_requests') is not null as has_quote_requests,
+      to_regclass('public.quote_events') is not null as has_quote_events,
+      to_regclass('public.quote_access_tokens') is not null as has_quote_access_tokens,
+      to_regclass('public.quote_email_settings') is not null as has_quote_email_settings,
+      to_regclass('public.quote_email_jobs') is not null as has_quote_email_jobs,
+      exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'orders'
+          and column_name = 'contract_status'
+      ) as has_order_contract_status,
       exists (
         select 1 from information_schema.columns
         where table_schema = 'public'

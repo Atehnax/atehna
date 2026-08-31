@@ -13,13 +13,10 @@ export const runtime = 'nodejs';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-const ALLOWED_DOCUMENT_TYPES = new Set([
-  'order_summary',
-  'purchase_order',
-  'predracun',
-  'dobavnica',
-  'invoice'
-]);
+// Opaque administrator bytes cannot prove that financial totals and shipping
+// match the current order revision. Operational documents are server-generated;
+// only external purchase-order evidence may be uploaded.
+const ALLOWED_DOCUMENT_TYPES = new Set(['purchase_order']);
 
 function isPdfFile(file: File): boolean {
   const fileNameLower = file.name.toLowerCase();
@@ -69,14 +66,32 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const pool = await getPool();
     const orderResult = await pool.query(
-      'select id, order_number from orders where id = $1',
+      `select id, order_number, source_quote_offer_version_id
+       from orders where id = $1`,
       [orderId]
     );
     const order = orderResult.rows[0] as
-      | { id: string | number; order_number: string | null }
+      | {
+          id: string | number;
+          order_number: string | null;
+          source_quote_offer_version_id: string | number | null;
+        }
       | undefined;
     if (!order) {
       return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+    }
+    if (
+      normalizedType === 'purchase_order' &&
+      order.source_quote_offer_version_id !== null
+    ) {
+      return NextResponse.json(
+        {
+          code: 'QUOTE_PURCHASE_ORDER_EVIDENCE_IMMUTABLE',
+          message:
+            'Naročilnice, vezane na ponudbo, ni mogoče nadomestiti prek splošnega nalaganja dokumentov.'
+        },
+        { status: 409 }
+      );
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -97,7 +112,58 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     let documentNumber: string;
     try {
       await client.query('begin');
-      await client.query('select id from orders where id = $1 for update', [orderId]);
+      const lockedOrderResult = await client.query(
+        `
+          select
+            id,
+            deleted_at,
+            source_quote_offer_version_id
+          from orders
+          where id = $1
+          for update
+        `,
+        [orderId]
+      );
+      const lockedOrder = lockedOrderResult.rows[0] as
+        | Record<string, unknown>
+        | undefined;
+      if (!lockedOrder) {
+        await client.query('rollback');
+        await deletePrivateOrderDocumentBlob(blob.pathname).catch(() => undefined);
+        uploadedPath = null;
+        return NextResponse.json(
+          { message: 'Naročilo ne obstaja.' },
+          { status: 404 }
+        );
+      }
+      if (lockedOrder.deleted_at) {
+        await client.query('rollback');
+        await deletePrivateOrderDocumentBlob(blob.pathname).catch(() => undefined);
+        uploadedPath = null;
+        return NextResponse.json(
+          {
+            code: 'ORDER_DOCUMENT_ORDER_DELETED',
+            message: 'Dokumenta ni mogoče naložiti na izbrisano naročilo.'
+          },
+          { status: 409 }
+        );
+      }
+      if (
+        normalizedType === 'purchase_order' &&
+        lockedOrder.source_quote_offer_version_id !== null
+      ) {
+        await client.query('rollback');
+        await deletePrivateOrderDocumentBlob(blob.pathname).catch(() => undefined);
+        uploadedPath = null;
+        return NextResponse.json(
+          {
+            code: 'QUOTE_PURCHASE_ORDER_EVIDENCE_IMMUTABLE',
+            message:
+              'Naročilnice, vezane na ponudbo, ni mogoče nadomestiti prek splošnega nalaganja dokumentov.'
+          },
+          { status: 409 }
+        );
+      }
       const versionResult = await client.query(
         `
           select coalesce(max(version_number), 0)::integer + 1 as next_version
@@ -117,6 +183,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             filename,
             blob_pathname,
             version_number,
+            order_pricing_revision,
             document_number,
             issued_at,
             content_sha256,
@@ -124,7 +191,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             format_marker
           )
           values (
-            $1, $2, $3, $4, $5, $6, $7, now(), $8,
+            $1, $2, $3, $4, $5, $6,
+            (select pricing_revision from orders where id = $1), $7, now(), $8,
             'operational', 'admin-upload-pdf-v1'
           )
           returning id, created_at, issued_at

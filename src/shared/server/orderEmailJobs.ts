@@ -545,6 +545,7 @@ async function validatePurchaseOrderTokenBeforeDelivery(
               and purchase_order.type = 'purchase_order'
               and purchase_order.deleted_at is null
               and purchase_order.format_marker = any($4::text[])
+              and purchase_order.order_pricing_revision = email_order.pricing_revision
           )
       ) as active
     `,

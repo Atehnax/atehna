@@ -1,4 +1,11 @@
-import { useEffect, type MouseEvent, type ReactNode, type RefObject } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject
+} from 'react';
 import { createPortal } from 'react-dom';
 
 export const dialogOverlayClassName =
@@ -21,6 +28,42 @@ type DialogProps = {
   panelClassName?: string;
 };
 
+const focusableSelectors = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])'
+];
+
+const focusableSelector = focusableSelectors.join(',');
+const portaledFocusableSelector = ['[role="listbox"]', '[role="menu"]']
+  .flatMap((rootSelector) =>
+    focusableSelectors.map((selector) => rootSelector + ' ' + selector)
+  )
+  .join(',');
+
+let bodyScrollLockCount = 0;
+let bodyOverflowBeforeLock = '';
+const openDialogStack: symbol[] = [];
+
+const focusableElements = (panel: HTMLElement) => {
+  const panelElements = Array.from(
+    panel.querySelectorAll<HTMLElement>(focusableSelector)
+  );
+  const portaledControls = Array.from(
+    document.querySelectorAll<HTMLElement>(portaledFocusableSelector)
+  );
+
+  return Array.from(new Set([...panelElements, ...portaledControls])).filter(
+    (element) =>
+      !element.hasAttribute('disabled') &&
+      element.getAttribute('aria-hidden') !== 'true'
+  );
+};
+
 export default function Dialog({
   open,
   onOpenChange,
@@ -31,10 +74,119 @@ export default function Dialog({
   initialFocusRef,
   panelClassName
 }: DialogProps) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dialogTokenRef = useRef(Symbol('dialog'));
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
-    if (!open) return;
-    initialFocusRef?.current?.focus();
+    if (!open || typeof document === 'undefined') return;
+    const dialogToken = dialogTokenRef.current;
+    previousActiveElementRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    openDialogStack.push(dialogToken);
+
+    if (bodyScrollLockCount === 0) {
+      bodyOverflowBeforeLock = document.body.style.overflow;
+    }
+    bodyScrollLockCount += 1;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      const stackIndex = openDialogStack.lastIndexOf(dialogToken);
+      if (stackIndex >= 0) openDialogStack.splice(stackIndex, 1);
+
+      bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+      if (bodyScrollLockCount === 0) {
+        document.body.style.overflow = bodyOverflowBeforeLock;
+      }
+
+      const previousActiveElement = previousActiveElementRef.current;
+      previousActiveElementRef.current = null;
+      if (previousActiveElement?.isConnected) {
+        window.requestAnimationFrame(() => {
+          const anotherDialogIsOpen = openDialogStack.length > 0;
+          const focusWasInsideDialog = Boolean(
+            previousActiveElement.closest('[role="dialog"][aria-modal="true"]')
+          );
+          if (!anotherDialogIsOpen || focusWasInsideDialog) {
+            previousActiveElement.focus();
+          }
+        });
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const frame = window.requestAnimationFrame(() => {
+      const requestedTarget = initialFocusRef?.current;
+      const target =
+        requestedTarget && !requestedTarget.hasAttribute('disabled')
+          ? requestedTarget
+          : panelRef.current
+            ? focusableElements(panelRef.current)[0] ?? panelRef.current
+            : null;
+      target?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [open, initialFocusRef]);
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return;
+    const dialogToken = dialogTokenRef.current;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        openDialogStack[openDialogStack.length - 1] !== dialogToken
+      ) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        if (!isDismissable) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onOpenChange(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const elements = focusableElements(panel);
+      if (elements.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const firstElement = elements[0];
+      const lastElement = elements[elements.length - 1];
+      const activeElement = document.activeElement;
+      const activeIndex =
+        activeElement instanceof HTMLElement
+          ? elements.indexOf(activeElement)
+          : -1;
+
+      if (event.shiftKey && activeIndex <= 0) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        (activeIndex === -1 || activeIndex === elements.length - 1)
+      ) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDismissable, onOpenChange, open]);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -52,10 +204,22 @@ export default function Dialog({
       className={dialogOverlayClassName}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
       onClick={handleOverlayClick}
     >
-      <div className={`${dialogPanelBaseClassName} ${panelClassName ?? ''}`.trim()} onClick={handleCardClick}>
-        {title ? <p className={dialogTitleClassName}>{title}</p> : null}
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className={
+          (dialogPanelBaseClassName + ' ' + (panelClassName ?? '')).trim()
+        }
+        onClick={handleCardClick}
+      >
+        {title ? (
+          <p id={titleId} className={dialogTitleClassName}>
+            {title}
+          </p>
+        ) : null}
         {children}
         {footer}
       </div>

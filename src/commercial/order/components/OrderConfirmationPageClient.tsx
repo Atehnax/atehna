@@ -266,7 +266,10 @@ export default function OrderConfirmationPageClient() {
 
   return (
     <div>
-      <OrderSubmissionStatus commitmentStatus={snapshot.commitmentStatus} />
+      <OrderSubmissionStatus
+        commitmentStatus={snapshot.commitmentStatus}
+        contractStatus={snapshot.contractStatus}
+      />
 
       <article
         className="site-card mt-6 grid overflow-hidden !p-0 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"

@@ -1,11 +1,16 @@
 'use client';
 
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import AdminNotificationCountBadge from '@/shared/ui/admin-notification-count-badge';
 
 type EuiTabItem = {
   value: string;
-  label: string;
+  label: ReactNode;
   panelId?: string;
+  notification?: {
+    count: number;
+    label: string;
+  };
 };
 
 type EuiTabsProps = {
@@ -84,7 +89,15 @@ export default function EuiTabs({
               }`
             }
           >
-            {tab.label}
+            <span className="inline-flex min-w-0 items-center justify-center gap-1.5">
+              <span className="min-w-0">{tab.label}</span>
+              {tab.notification ? (
+                <AdminNotificationCountBadge
+                  count={tab.notification.count}
+                  label={tab.notification.label}
+                />
+              ) : null}
+            </span>
           </button>
         );
       })}

@@ -1,14 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PaymentChip from '@/admin/features/orders/components/PaymentChip';
 import StatusChip from '@/admin/features/orders/components/StatusChip';
 import AdminOrderItemsEditorClient from '@/admin/features/orders/components/AdminOrderItemsEditorClient';
+import AdminOrderShippingOverride from '@/admin/features/orders/components/AdminOrderShippingOverride';
 import AdminOrderPdfManagerClient from '@/admin/features/orders/components/AdminOrderPdfManagerClient';
 import AdminOrderCustomerAccess from '@/admin/features/orders/components/AdminOrderCustomerAccess';
+import AdminOrderActivityCard from '@/admin/features/orders/components/AdminOrderActivityCard';
+import AdminOrderCustomerCard from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
 import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
@@ -33,11 +35,15 @@ import {
   SaveIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { CustomSelect } from '@/shared/ui/select';
+import { RowActionsDropdown } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
+import { AdminChipDropdown } from '@/shared/ui/admin-controls/AdminChipDropdown';
+import { AdminDetailTitleSlot } from '@/shared/ui/admin-detail/AdminDetailTitleSlot';
+import { AdminNotesCard } from '@/shared/ui/admin-detail/AdminNotesCard';
 import {
+  adminCardSectionEditIconButtonClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
   adminTableSelectedDangerIconButtonClassName,
@@ -46,20 +52,25 @@ import {
 } from '@/shared/ui/admin-table';
 import {
   adminControlFocusTokenClasses,
-  adminInputFocusTokenClasses,
   adminStatusInfoPillGroupClassName
 } from '@/shared/ui/theme/tokens';
 import {
-  adminCompactExpandableTextareaClassName,
   adminCompactIconFieldInputClassName,
   adminCompactIconFieldSelectClassName,
   adminCompactIconFieldSelectValueClassName,
   adminCompactIconFieldSelectWrapperClassName,
   adminCompactIconFieldShellClassName,
-  adminTopBarArticleNameInputClassName,
-  adminTopBarTitleTextClassName
+  adminTopBarArticleNameInputClassName
 } from '@/shared/ui/admin-controls/adminCompactFieldStyles';
-import type { OrderItemInput, PersistedOrderPdfDocument } from '@/shared/domain/order/orderTypes';
+import {
+  isShippingBearingOrderPdfType,
+  type OrderItemInput,
+  type PersistedOrderPdfDocument
+} from '@/shared/domain/order/orderTypes';
+import type {
+  ShippingCalculation,
+  ShippingManualOverride
+} from '@/shared/domain/shipping/shipping';
 
 type NormalizedOrder = {
   order_number: string;
@@ -68,9 +79,26 @@ type NormalizedOrder = {
   contact_name: string;
   email: string;
   address_line1: string;
+  address_line2?: string;
   postal_code: string;
   city: string;
+  country_code?: string;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
+  contract_status: 'pending_seller_acceptance' | 'accepted' | 'rejected';
+  contract_accepted_at: string | null;
+  contract_accepted_actor_type: string | null;
+  contract_accepted_actor_id: string | null;
+  contract_accepted_evidence_json: Record<string, unknown> | null;
+  contract_rejected_at: string | null;
+  contract_rejected_actor_type: string | null;
+  contract_rejected_actor_id: string | null;
+  contract_rejected_evidence_json: Record<string, unknown> | null;
+  contract_rejected_reason: string | null;
+  committed_at: string | null;
+  source_quote_offer_version_id: number | null;
+  source_quote_request_id: number | null;
+  source_quote_request_number: string | null;
+  source_quote_offer_number: string | null;
   reference: string;
   notes: string;
   status: string;
@@ -80,6 +108,13 @@ type NormalizedOrder = {
   subtotal: number;
   tax: number;
   tax_rate?: number | null;
+  shipping: number;
+  automatic_shipping?: number | null;
+  shipping_snapshot_json?: ShippingCalculation | null;
+  shipping_override_json?: ShippingManualOverride | null;
+  shipping_override_stale?: boolean | null;
+  parcel_count: number;
+  pricing_revision: number;
   total: number;
   is_draft?: boolean | null;
   deleted_at?: string | null;
@@ -90,6 +125,8 @@ type DetailData = {
   customerType: string;
   postalCode: string;
   city: string;
+  addressLine2: string;
+  countryCode: string;
   organizationName: string;
   contactName: string;
   email: string;
@@ -99,30 +136,42 @@ type DetailData = {
   paymentStatus: string;
 };
 
-type ChipDropdownProps = {
-  value: string;
-  options: ReadonlyArray<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-  renderChip: (value: string) => ReactNode;
-  disabled?: boolean;
-  showArrow?: boolean;
-  interactive?: boolean;
-  optionClassName?: (value: string) => string;
-};
-
 type PendingUnsavedAction =
   | { kind: 'exit-edit'; label: string }
   | { kind: 'navigate'; href: string; label: string };
+
+type OrderEditScopes = {
+  master: boolean;
+  details: boolean;
+  items: boolean;
+  shipping: boolean;
+  notes: boolean;
+};
+
+type OrderSectionEditScope = Exclude<keyof OrderEditScopes, 'master'>;
+
+const EMPTY_ORDER_EDIT_SCOPES: OrderEditScopes = {
+  master: false,
+  details: false,
+  items: false,
+  shipping: false,
+  notes: false
+};
 
 const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
-const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 !h-8 w-full`;
-const detailFieldLockedShellClassName = '!bg-[color:var(--field-locked-bg)]';
-const adminNotesTextareaClassName =
-  `h-[64px] min-h-[64px] w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-[13px] leading-5 text-slate-900 transition ${adminInputFocusTokenClasses}`;
-const labelClassName = 'text-sm font-semibold leading-5 text-slate-900';
+const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 !h-7 w-full`;
+const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';
+const orderDataValueControlClassName =
+  `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
+const orderDataCompositeInputClassName =
+  `${adminCompactIconFieldInputClassName} min-w-0 !px-2`;
+const orderDataInlineTextareaClassName =
+  `${orderDataValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
+const orderDataReadValueClassName =
+  "block h-5 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900";
 
 const toDisplayOrderNumberValue = (value: string) => {
   const trimmed = value.trim();
@@ -137,6 +186,22 @@ const toDisplayOrderDate = (value: string) => {
   const [year, month, day] = normalized.split('-');
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+};
+
+const orderHeaderDateFormatter = new Intl.DateTimeFormat('sl-SI', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Europe/Ljubljana'
+});
+
+const orderHeaderCurrencyFormatter = new Intl.NumberFormat('sl-SI', {
+  style: 'currency',
+  currency: 'EUR'
+});
+
+const formatOrderHeaderDate = (value: string) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : orderHeaderDateFormatter.format(parsed);
 };
 
 const toApiOrderDate = (value: string) => {
@@ -170,12 +235,38 @@ const asDetailData = (order: NormalizedOrder): DetailData => ({
   email: order.email,
   city: order.city.trim(),
   deliveryAddress: order.address_line1.trim(),
+  addressLine2: order.address_line2?.trim() ?? '',
+  countryCode: order.country_code?.trim().toUpperCase() || 'SI',
   notes: order.notes?.trim() ? order.notes : '',
   status: order.status,
   paymentStatus: isPaymentStatus(order.payment_status ?? '') ? order.payment_status : 'unpaid'
 });
 
 const displayValue = (value: string) => (value.trim() ? value : '—');
+
+const formatOrderDataAddress = (
+  details: Pick<
+    DetailData,
+    'deliveryAddress' | 'addressLine2' | 'postalCode' | 'city' | 'countryCode'
+  >
+) => {
+  const locality = [details.postalCode.trim(), details.city.trim()]
+    .filter(Boolean)
+    .join(' ');
+  return [
+    details.deliveryAddress.trim(),
+    details.addressLine2.trim(),
+    locality,
+    details.countryCode.trim().toUpperCase()
+  ].filter(Boolean).join(', ');
+};
+
+const formatOrderDataDate = (value: string) => {
+  const isoDate = toApiOrderDate(value);
+  if (!isoDate) return displayValue(value);
+  const [year, month, day] = isoDate.split('-');
+  return `${Number(day)}. ${Number(month)}. ${year}`;
+};
 
 function HeaderOrderIcon({ className = '' }: { className?: string }) {
   return (
@@ -289,21 +380,99 @@ function DetailFieldIcon({ icon }: { icon: DetailFieldIconType }) {
 }
 
 function DetailFieldShell({
-  icon,
   isEditing,
   children,
   className = ''
 }: {
-  icon?: DetailFieldIconType | null;
   isEditing: boolean;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
-      {icon ? <DetailFieldIcon icon={icon} /> : null}
       {children}
     </div>
+  );
+}
+
+function OrderAddressEditor({
+  details,
+  disabled,
+  onChange
+}: {
+  details: DetailData;
+  disabled: boolean;
+  onChange: (patch: Partial<DetailData>) => void;
+}) {
+  return (
+    <DetailFieldShell isEditing>
+      <div
+        role="group"
+        aria-label="Naslovni podatki"
+        className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        data-testid="admin-order-address-fields"
+      >
+        <input
+          aria-label="Naslov"
+          autoComplete="address-line1"
+          type="text"
+          value={details.deliveryAddress}
+          disabled={disabled}
+          placeholder="Naslov"
+          onChange={(event) => onChange({ deliveryAddress: event.target.value })}
+          className={`${orderDataCompositeInputClassName} !pl-0`}
+        />
+        <input
+          aria-label="Dodatni naslov"
+          autoComplete="address-line2"
+          type="text"
+          value={details.addressLine2}
+          disabled={disabled}
+          placeholder="Dodatek"
+          onChange={(event) => onChange({ addressLine2: event.target.value })}
+          className={orderDataCompositeInputClassName}
+        />
+        <input
+          aria-label="Poštna številka"
+          autoComplete="postal-code"
+          type="text"
+          inputMode="numeric"
+          value={details.postalCode}
+          disabled={disabled}
+          placeholder="P. št."
+          onChange={(event) => onChange({
+            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
+          })}
+          className={`${orderDataCompositeInputClassName} text-center`}
+        />
+        <input
+          aria-label="Kraj"
+          autoComplete="address-level2"
+          type="text"
+          value={details.city}
+          disabled={disabled}
+          placeholder="Kraj"
+          onChange={(event) => onChange({ city: event.target.value })}
+          className={orderDataCompositeInputClassName}
+        />
+        <input
+          aria-label="Država"
+          autoComplete="country"
+          type="text"
+          maxLength={2}
+          value={details.countryCode}
+          disabled={disabled}
+          placeholder="SI"
+          onChange={(event) => onChange({
+            countryCode: event.target.value
+              .toUpperCase()
+              .replace(/[^A-Z]/g, '')
+              .slice(0, 2)
+          })}
+          className={`${orderDataCompositeInputClassName} !px-1 text-center`}
+        />
+      </div>
+    </DetailFieldShell>
   );
 }
 
@@ -356,16 +525,7 @@ function OrderDatePickerField({
     syncVisibleMonthToDate(selectedDate ?? today);
     setIsOpen(true);
   };
-  const toggleCalendar = () => {
-    if (disabled || !isEditing) return;
-    if (isOpen) {
-      setIsOpen(false);
-      return;
-    }
 
-    syncVisibleMonthToDate(selectedDate ?? today);
-    setIsOpen(true);
-  };
   const selectDate = (date: Date) => {
     onChange(toDisplayOrderDate(toIsoDate(date)));
     setIsOpen(false);
@@ -386,28 +546,36 @@ function OrderDatePickerField({
   return (
     <div ref={rootRef} className="relative">
       <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
-        <button
-          type="button"
-          onClick={toggleCalendar}
-          disabled={disabled || !isEditing}
-          aria-label="Odpri izbirnik datuma"
-          title="Odpri izbirnik datuma"
-          className={`inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-sm border border-transparent disabled:cursor-default ${adminControlFocusTokenClasses}`}
-        >
-          <DetailFieldIcon icon="calendar" />
-        </button>
+
         <input
           type="text"
-          value={isEditing ? value : displayValue(value)}
+          value={formatOrderDataDate(value)}
           readOnly
           disabled={disabled}
+          role="combobox"
+          aria-label="Datum naročila"
+          aria-autocomplete="none"
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-controls={isOpen ? 'admin-order-date-picker-calendar' : undefined}
           onClick={openCalendar}
-          className={adminCompactIconFieldInputClassName}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              openCalendar();
+            }
+          }}
+          className={orderDataValueControlClassName}
         />
       </div>
 
       {isOpen && isEditing && !disabled ? (
-        <div className="absolute left-0 top-[calc(100%+4px)] z-[60] w-[218px] rounded-md border border-slate-200 bg-white p-3 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]">
+        <div
+          id="admin-order-date-picker-calendar"
+          role="dialog"
+          aria-label="Izbira datuma"
+          className="absolute left-0 top-[calc(100%+4px)] z-[60] w-[218px] rounded-md border border-slate-200 bg-white p-3 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <button
               type="button"
@@ -485,122 +653,6 @@ function OrderDatePickerField({
   );
 }
 
-function ChipDropdown({
-  value,
-  options,
-  onChange,
-  renderChip,
-  disabled = false,
-  showArrow = true,
-  interactive = true,
-  optionClassName
-}: ChipDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuRect, setMenuRect] = useState<{ left: number; top: number; width: number } | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const closeMenu = useCallback(() => setIsOpen(false), []);
-  const dismissRefs = useMemo(() => [containerRef, menuRef], []);
-
-  const updateMenuRect = useCallback(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    setMenuRect({
-      left: rect.left,
-      top: rect.bottom + 4,
-      width: Math.max(rect.width, 150)
-    });
-  }, []);
-
-  useDropdownDismiss({
-    open: isOpen,
-    refs: dismissRefs,
-    onClose: closeMenu
-  });
-
-  useEffect(() => {
-    if (!isOpen) {
-      setMenuRect(null);
-      return;
-    }
-
-    updateMenuRect();
-    window.addEventListener('resize', updateMenuRect);
-    window.addEventListener('scroll', updateMenuRect, true);
-    return () => {
-      window.removeEventListener('resize', updateMenuRect);
-      window.removeEventListener('scroll', updateMenuRect, true);
-    };
-  }, [isOpen, updateMenuRect]);
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => {
-          if (disabled || !interactive) return;
-          setIsOpen((previousOpen) => !previousOpen);
-        }}
-        disabled={disabled}
-        aria-haspopup="menu"
-        aria-expanded={interactive ? isOpen : false}
-        className="relative block rounded-md focus:outline-none disabled:cursor-default disabled:opacity-60"
-      >
-        {showArrow ? (
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">▾</span>
-        ) : null}
-        <span className="block">{renderChip(value)}</span>
-      </button>
-
-      {isOpen && menuRect && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className="fixed z-[1100]"
-              style={{ left: menuRect.left, top: menuRect.top, minWidth: menuRect.width }}
-            >
-              <MenuPanel className="w-full min-w-[150px]">
-                {options.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    isActive={option.value === value}
-                    className={optionClassName?.(option.value)}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </MenuPanel>
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
-  );
-}
-
-function DetailField({
-  label,
-  children,
-  className = ''
-}: {
-  label: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`min-w-0 ${className}`}>
-      <p className={labelClassName}>{label}</p>
-      <div className="mt-1 min-h-8">{children}</div>
-    </div>
-  );
-}
-
 export default function AdminOrderDetailClient({
   orderId,
   order,
@@ -621,14 +673,38 @@ export default function AdminOrderDetailClient({
   const [draftOrderNumber, setDraftOrderNumber] = useState(toEditableOrderNumber(initialOrderNumber));
   const [persistedAdminNotes, setPersistedAdminNotes] = useState(order.admin_order_notes ?? '');
   const [draftAdminNotes, setDraftAdminNotes] = useState(order.admin_order_notes ?? '');
-  const [isEditing, setIsEditing] = useState(false);
+  const [editScopes, setEditScopes] = useState<OrderEditScopes>(() => ({
+    ...EMPTY_ORDER_EDIT_SCOPES
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [itemsDirty, setItemsDirty] = useState(false);
   const [itemsSaving, setItemsSaving] = useState(false);
+  const [shippingDirty, setShippingDirty] = useState(false);
+  const [shippingSaving, setShippingSaving] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [auditHistoryOpen, setAuditHistoryOpen] = useState(false);
+  const [activityRefreshToken, setActivityRefreshToken] = useState(0);
   const [pendingUnsavedAction, setPendingUnsavedAction] = useState<PendingUnsavedAction | null>(null);
   const itemsSaveHandlerRef = useRef<(() => Promise<boolean>) | null>(null);
+  const shippingSaveHandlerRef = useRef<
+    ((expectedPricingRevision?: number) => Promise<boolean>) | null
+  >(null);
+  const latestPricingRevisionRef = useRef(order.pricing_revision);
+
+  const isMasterEditing = editScopes.master;
+  const isOrderDataEditing = editScopes.details;
+  const isItemsEditing = editScopes.items;
+  const isShippingEditing = editScopes.shipping;
+  const isAdminNotesEditing = editScopes.notes;
+  const isEditing =
+    isMasterEditing ||
+    editScopes.details ||
+    editScopes.items ||
+    editScopes.shipping ||
+    editScopes.notes;
 
   const coreDetailsDirty = useMemo(() => {
     const { status: _draftStatus, paymentStatus: _draftPaymentStatus, ...draftCoreDetails } = draftDetails;
@@ -642,24 +718,32 @@ export default function AdminOrderDetailClient({
   const paymentStatusDirty = draftDetails.paymentStatus !== persistedDetails.paymentStatus;
   const detailsDirty = coreDetailsDirty || statusDirty || paymentStatusDirty;
   const adminNotesDirty = draftAdminNotes !== persistedAdminNotes;
-  const hasUnsavedChanges = detailsDirty || adminNotesDirty || itemsDirty;
-  const activeDetails = isEditing ? draftDetails : persistedDetails;
+  const hasUnsavedChanges =
+    detailsDirty || adminNotesDirty || itemsDirty || shippingDirty;
+  const activeHeaderDetails = isMasterEditing ? draftDetails : persistedDetails;
+  const activeOrderDataDetails = isOrderDataEditing
+    ? draftDetails
+    : persistedDetails;
   const availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS.filter(
     (option) =>
       orderCustomerTypeChangeBlock(persistedDetails.customerType, option.value, Boolean(order.is_draft)) === null
   );
+  const activeCustomerTypeLabel =
+    CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeOrderDataDetails.customerType)?.label
+    ?? activeOrderDataDetails.customerType;
   const customerTypeIsLocked = !order.is_draft && persistedDetails.customerType === 'school';
-  const activeAdminNotes = isEditing ? draftAdminNotes : persistedAdminNotes;
-  const pageIsBusy = isSaving || itemsSaving || isDeleting;
+  const activeAdminNotes = isAdminNotesEditing ? draftAdminNotes : persistedAdminNotes;
+  const pageIsBusy = isSaving || itemsSaving || shippingSaving || isDeleting || isRejecting;
   const pageTitle = `Naročilo ${displayOrderNumber}`;
-  const activeOrderNumberValue = toEditableOrderNumber(isEditing ? draftOrderNumber : displayOrderNumber);
+  const customerDisplayName = activeHeaderDetails.organizationName.trim() || activeHeaderDetails.contactName.trim() || activeHeaderDetails.email.trim() || '—';
+  const activeOrderNumberValue = toEditableOrderNumber(isMasterEditing ? draftOrderNumber : displayOrderNumber);
   const orderNumberSuggestionsId = `order-number-suggestions-${orderId}`;
   const orderNumberInputRef = useRef<HTMLInputElement | null>(null);
   const [isOrderNumberMenuOpen, setIsOrderNumberMenuOpen] = useState(false);
   const orderNumberAvailability = useOrderNumberAvailability({
     orderId,
     value: draftOrderNumber,
-    enabled: isEditing
+    enabled: isMasterEditing
   });
   const orderNumberIsAllowed = isOrderNumberAllowed(draftOrderNumber, displayOrderNumber, orderNumberAvailability);
   const orderNumberValidationMessage = getOrderNumberValidationMessage(
@@ -669,8 +753,8 @@ export default function AdminOrderDetailClient({
   );
 
   useEffect(() => {
-    if (!isEditing) setIsOrderNumberMenuOpen(false);
-  }, [isEditing]);
+    if (!isMasterEditing) setIsOrderNumberMenuOpen(false);
+  }, [isMasterEditing]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -693,6 +777,23 @@ export default function AdminOrderDetailClient({
     };
   }, []);
 
+  const registerShippingSaveHandler = useCallback((
+    handler: (expectedPricingRevision?: number) => Promise<boolean>
+  ) => {
+    shippingSaveHandlerRef.current = handler;
+    return () => {
+      if (shippingSaveHandlerRef.current === handler) {
+        shippingSaveHandlerRef.current = null;
+      }
+    };
+  }, []);
+
+  const updateLatestPricingRevision = useCallback((pricingRevision: number) => {
+    if (Number.isSafeInteger(pricingRevision) && pricingRevision >= 1) {
+      latestPricingRevisionRef.current = pricingRevision;
+    }
+  }, []);
+
   const resetDraftsToPersisted = useCallback(() => {
     setDraftDetails({ ...persistedDetails });
     setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
@@ -702,7 +803,8 @@ export default function AdminOrderDetailClient({
   const discardUnsavedChanges = useCallback(() => {
     resetDraftsToPersisted();
     setItemsDirty(false);
-    setIsEditing(false);
+    setShippingDirty(false);
+    setEditScopes({ ...EMPTY_ORDER_EDIT_SCOPES });
   }, [resetDraftsToPersisted]);
 
   const runPendingUnsavedAction = useCallback((action: PendingUnsavedAction) => {
@@ -723,22 +825,54 @@ export default function AdminOrderDetailClient({
     setPendingUnsavedAction(action);
   }, [hasUnsavedChanges, runPendingUnsavedAction]);
 
-  const toggleEdit = () => {
-    if (isEditing) {
+  const toggleMasterEdit = () => {
+    if (isMasterEditing) {
       requestUnsavedResolution({ kind: 'exit-edit', label: 'zaključkom urejanja naročila' });
       return;
     }
 
-    resetDraftsToPersisted();
-    setIsEditing(true);
+    if (!isEditing) resetDraftsToPersisted();
+    setEditScopes({
+      master: true,
+      details: true,
+      items: true,
+      shipping: true,
+      notes: true
+    });
   };
 
-  const handleBack = () => {
-    requestUnsavedResolution({
-      kind: 'navigate',
-      href: '/admin/orders',
-      label: 'vrnitvijo na seznam naročil'
-    });
+  const toggleSectionEdit = (scope: OrderSectionEditScope) => {
+    if (editScopes[scope]) {
+      if (scope === 'details') {
+        setDraftDetails((current) => ({
+          ...persistedDetails,
+          status: isMasterEditing ? current.status : persistedDetails.status,
+          paymentStatus: isMasterEditing
+            ? current.paymentStatus
+            : persistedDetails.paymentStatus
+        }));
+        if (!isMasterEditing) {
+          setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
+        }
+      } else if (scope === 'notes') {
+        setDraftAdminNotes(persistedAdminNotes);
+      }
+
+      setEditScopes((current) => ({ ...current, [scope]: false }));
+      return;
+    }
+
+    if (!isEditing) resetDraftsToPersisted();
+    setEditScopes((current) => ({ ...current, [scope]: true }));
+  };
+
+  const handleRevert = () => {
+    if (!isEditing || pageIsBusy) return;
+    const discardedChanges = hasUnsavedChanges;
+    discardUnsavedChanges();
+    if (discardedChanges) {
+      toast.info('Neshranjene spremembe so razveljavljene.');
+    }
   };
 
   useEffect(() => {
@@ -809,8 +943,10 @@ export default function AdminOrderDetailClient({
             contactName: draftDetails.organizationName.trim() || draftDetails.contactName.trim(),
             email: draftDetails.email,
             addressLine1: draftDetails.deliveryAddress,
+            addressLine2: draftDetails.addressLine2,
             postalCode: draftDetails.postalCode,
             city: draftDetails.city,
+            countryCode: draftDetails.countryCode,
             notes: draftDetails.notes,
             orderDate: toApiOrderDate(draftDetails.orderDate)
           })
@@ -830,7 +966,7 @@ export default function AdminOrderDetailClient({
 
   const saveAll = async (afterSave?: () => void) => {
     if (!isEditing || pageIsBusy) return false;
-    if (!orderNumberIsAllowed) {
+    if (isMasterEditing && !orderNumberIsAllowed) {
       toast.error(orderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
       return false;
     }
@@ -840,6 +976,11 @@ export default function AdminOrderDetailClient({
       const itemsSaved = itemsSaveHandlerRef.current ? await itemsSaveHandlerRef.current() : true;
       if (!itemsSaved) return false;
 
+      const shippingSaved = shippingSaveHandlerRef.current
+        ? await shippingSaveHandlerRef.current(latestPricingRevisionRef.current)
+        : true;
+      if (!shippingSaved) return false;
+
       await saveDetails();
 
       const resolvedOrderNumber = draftOrderNumber.trim()
@@ -848,7 +989,8 @@ export default function AdminOrderDetailClient({
       setPersistedDetails({ ...draftDetails });
       setPersistedAdminNotes(draftAdminNotes);
       setDisplayOrderNumber(resolvedOrderNumber);
-      setIsEditing(false);
+      setEditScopes({ ...EMPTY_ORDER_EDIT_SCOPES });
+      setActivityRefreshToken((current) => current + 1);
       toast.success('Naročilo je shranjeno.');
       router.refresh();
       afterSave?.();
@@ -902,6 +1044,31 @@ export default function AdminOrderDetailClient({
     }
   };
 
+  const confirmRejectOrder = async () => {
+    setIsRejecting(true);
+    setIsRejectModalOpen(false);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Zavrnitev naročila ni uspela.');
+      }
+      setPersistedDetails((current) => ({ ...current, status: 'cancelled' }));
+      setDraftDetails((current) => ({ ...current, status: 'cancelled' }));
+      setActivityRefreshToken((current) => current + 1);
+      toast.success('Naročilo je zavrnjeno.');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Napaka pri zavrnitvi naročila.');
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   const updateDraftDetails = (updates: Partial<DetailData>) => {
     setDraftDetails((current) => ({ ...current, ...updates }));
   };
@@ -927,114 +1094,119 @@ export default function AdminOrderDetailClient({
           </div>
         ) : null}
 
-        <section className={`${adminWindowCardClassName} px-5 py-4`} style={adminWindowCardStyle}>
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
-              <div className="relative w-full min-w-[270px] max-w-[50%] flex-none xl:max-w-[210px]">
-                <div className={`${adminCompactIconFieldShellClassName} !mt-0 !h-[38.4px] w-full ${isEditing ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-500'} ${isEditing && orderNumberValidationMessage ? '!border-rose-400' : ''}`}>
-                <HeaderOrderIcon />
-                <div className="flex min-w-0 flex-1 items-center">
-                  <span className={`shrink-0 text-slate-900 ${adminTopBarTitleTextClassName}`}>
-                    Naročilo #
-                  </span>
-                  <input
-                    ref={orderNumberInputRef}
-                    aria-label="Številka naročila"
-                    aria-invalid={isEditing && Boolean(orderNumberValidationMessage)}
-                    aria-describedby={isEditing && orderNumberValidationMessage ? `${orderNumberSuggestionsId}-message` : undefined}
-                    name={`order-number-${orderId}`}
-                    value={activeOrderNumberValue}
-                    disabled={!isEditing || pageIsBusy}
-                    title={orderNumberValidationMessage ?? undefined}
-                    onFocus={() => setIsOrderNumberMenuOpen(true)}
-                    onBlur={() => setIsOrderNumberMenuOpen(false)}
-                    onChange={(event) => {
-                      setDraftOrderNumber(sanitizeOrderNumberInput(event.target.value));
-                      setIsOrderNumberMenuOpen(true);
-                    }}
-                    autoComplete="off"
-                    spellCheck={false}
-                    className={`${adminTopBarArticleNameInputClassName} admin-order-number-input !w-[8ch] flex-none ${isEditing ? 'text-slate-900' : 'cursor-not-allowed text-slate-900'}`}
+        <section
+          className={`${adminWindowCardClassName} px-5 py-4`}
+          style={adminWindowCardStyle}
+          data-testid="admin-order-detail-header"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminDetailTitleSlot
+                  editing={isMasterEditing}
+                  editor={(
+                    <input
+                      ref={orderNumberInputRef}
+                      aria-label="Številka naročila"
+                      aria-invalid={Boolean(orderNumberValidationMessage)}
+                      aria-describedby={orderNumberValidationMessage ? `${orderNumberSuggestionsId}-message` : undefined}
+                      name={`order-number-${orderId}`}
+                      value={activeOrderNumberValue}
+                      disabled={pageIsBusy}
+                      title={orderNumberValidationMessage ?? undefined}
+                      onFocus={() => setIsOrderNumberMenuOpen(true)}
+                      onBlur={() => setIsOrderNumberMenuOpen(false)}
+                      onChange={(event) => {
+                        setDraftOrderNumber(sanitizeOrderNumberInput(event.target.value));
+                        setIsOrderNumberMenuOpen(true);
+                      }}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className={`${adminTopBarArticleNameInputClassName} admin-order-number-input !w-auto min-w-0 flex-1 text-slate-900`}
+                    />
+                  )}
+                  editorAccessory={(
+                    <>
+                      <OrderNumberSuggestionMenu
+                        anchorRef={orderNumberInputRef}
+                        open={isOrderNumberMenuOpen}
+                        currentValue={toEditableOrderNumber(displayOrderNumber)}
+                        suggestions={orderNumberAvailability.suggestions}
+                        onSelect={(suggestion) => {
+                          setDraftOrderNumber(sanitizeOrderNumberInput(suggestion));
+                          setIsOrderNumberMenuOpen(false);
+                          window.setTimeout(() => orderNumberInputRef.current?.focus(), 0);
+                        }}
+                      />
+                      {orderNumberValidationMessage ? (
+                        <span id={`${orderNumberSuggestionsId}-message`} className="sr-only">
+                          {orderNumberValidationMessage}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                  editorPrefix="Naročilo #"
+                  icon={<HeaderOrderIcon />}
+                  invalid={Boolean(orderNumberValidationMessage)}
+                  testId="admin-order-title-slot"
+                  title={pageTitle}
+                  width="compact"
+                />
+
+                <div
+                  className={adminStatusInfoPillGroupClassName}
+                  data-testid="admin-order-header-statuses"
+                >
+                  <AdminChipDropdown
+                    value={activeHeaderDetails.status}
+                    options={ORDER_STATUS_OPTIONS}
+                    disabled={pageIsBusy}
+                    showArrow={isMasterEditing}
+                    interactive={isMasterEditing}
+                    onChange={(value) => updateDraftDetails({ status: value })}
+                    renderChip={(value) => <StatusChip status={value} />}
+                    optionClassName={getStatusMenuItemClassName}
                   />
-                  <OrderNumberSuggestionMenu
-                    anchorRef={orderNumberInputRef}
-                    open={isEditing && isOrderNumberMenuOpen}
-                    currentValue={toEditableOrderNumber(displayOrderNumber)}
-                    suggestions={orderNumberAvailability.suggestions}
-                    onSelect={(suggestion) => {
-                      setDraftOrderNumber(sanitizeOrderNumberInput(suggestion));
-                      setIsOrderNumberMenuOpen(false);
-                      window.setTimeout(() => orderNumberInputRef.current?.focus(), 0);
-                    }}
+                  <AdminChipDropdown
+                    value={activeHeaderDetails.paymentStatus}
+                    options={PAYMENT_STATUS_OPTIONS}
+                    disabled={pageIsBusy}
+                    showArrow={isMasterEditing}
+                    interactive={isMasterEditing}
+                    onChange={(value) => updateDraftDetails({ paymentStatus: value })}
+                    renderChip={(value) => <PaymentChip status={value} />}
+                    optionClassName={getPaymentMenuItemClassName}
                   />
-                  {isEditing && orderNumberValidationMessage ? (
-                    <span id={`${orderNumberSuggestionsId}-message`} className="sr-only">
-                      {orderNumberValidationMessage}
-                    </span>
-                  ) : null}
                 </div>
               </div>
-              </div>
 
-              <div className={adminStatusInfoPillGroupClassName}>
-                <ChipDropdown
-                  value={activeDetails.status}
-                  options={ORDER_STATUS_OPTIONS}
-                  disabled={pageIsBusy}
-                  showArrow={isEditing}
-                  interactive={isEditing}
-                  onChange={(value) => updateDraftDetails({ status: value })}
-                  renderChip={(value) => (
-                    <StatusChip status={value} />
-                  )}
-                  optionClassName={getStatusMenuItemClassName}
-                />
-                <ChipDropdown
-                  value={activeDetails.paymentStatus}
-                  options={PAYMENT_STATUS_OPTIONS}
-                  disabled={pageIsBusy}
-                  showArrow={isEditing}
-                  interactive={isEditing}
-                  onChange={(value) => updateDraftDetails({ paymentStatus: value })}
-                  renderChip={(value) => (
-                    <PaymentChip status={value} />
-                  )}
-                  optionClassName={getPaymentMenuItemClassName}
-                />
-              </div>
             </div>
 
-            <div className="flex flex-nowrap items-center justify-end gap-3">
+            <div className="flex flex-nowrap items-center justify-end gap-2">
               <IconButton
                 type="button"
-                onClick={toggleEdit}
+                onClick={toggleMasterEdit}
                 tone="neutral"
                 size="sm"
                 className={adminTableNeutralIconButtonClassName}
-                aria-label={isEditing ? 'Končaj urejanje naročila' : 'Uredi naročilo'}
-                title={isEditing ? 'Končaj urejanje' : 'Uredi'}
+                aria-label={isMasterEditing ? 'Končaj urejanje naročila' : 'Uredi celotno naročilo'}
+                title={isMasterEditing ? 'Končaj urejanje' : 'Uredi vse podatke naročila'}
                 disabled={pageIsBusy}
               >
                 <PencilIcon />
               </IconButton>
               <IconButton
                 type="button"
-                onClick={handleBack}
+                onClick={handleRevert}
                 tone="neutral"
                 size="sm"
                 className={adminTableNeutralIconButtonClassName}
-                aria-label="Nazaj na seznam naročil"
-                title="Nazaj"
-                disabled={pageIsBusy}
+                aria-label="Razveljavi neshranjene spremembe"
+                title="Razveljavi neshranjene spremembe"
+                disabled={!isEditing || pageIsBusy}
               >
                 <ActionUndoIcon />
               </IconButton>
-              <AuditHistoryDrawer
-                entityType="order"
-                entityId={orderId}
-                entityLabel={displayOrderNumber}
-                buttonClassName={adminTableNeutralIconButtonClassName}
-              />
               <IconButton
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
@@ -1053,177 +1225,301 @@ export default function AdminOrderDetailClient({
                 size="toolbar"
                 className={topActionSaveButtonClassName}
                 onClick={() => void saveAll()}
-                disabled={!isEditing || pageIsBusy || !orderNumberIsAllowed}
+                disabled={
+                  !isEditing ||
+                  pageIsBusy ||
+                  (isMasterEditing && !orderNumberIsAllowed)
+                }
               >
                 <SaveIcon className={topSaveActionButtonIconClassName} />
                 <span>Shrani</span>
               </Button>
+              <RowActionsDropdown
+                label="Več dejanj za naročilo"
+                triggerClassName={adminTableNeutralIconButtonClassName}
+                menuWidth={190}
+                items={[
+                  {
+                    key: 'history',
+                    label: 'Zgodovina sprememb',
+                    onSelect: () => setAuditHistoryOpen(true)
+                  },
+                  {
+                    key: 'reject',
+                    label: 'Zavrni naročilo',
+                    onSelect: () => setIsRejectModalOpen(true),
+                    disabled: pageIsBusy || isEditing || Boolean(order.deleted_at) || Boolean(order.is_draft) || activeHeaderDetails.status === 'cancelled',
+                    className: '!text-rose-700'
+                  }
+                ]}
+              />
             </div>
           </div>
+
+          <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-end">
+            <div className="min-w-0 lg:max-w-[360px]">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                <span>{formatOrderHeaderDate(order.created_at)}</span>
+                <span aria-hidden>·</span>
+                <span>{customerDisplayName}</span>
+                <span aria-hidden>·</span>
+                <span className="font-semibold tabular-nums text-slate-700">{orderHeaderCurrencyFormatter.format(order.total)}</span>
+              </p>
+              {order.source_quote_request_id ? (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                  {order.source_quote_offer_number ? (
+                    <span>Iz ponudbe {order.source_quote_offer_number}</span>
+                  ) : null}
+                  {order.source_quote_request_number ? (
+                    <Link
+                      href={'/admin/orders/quotes/' + order.source_quote_request_id}
+                      className="font-semibold text-[color:var(--blue-500)] hover:underline"
+                    >
+                      Povpraševanje {order.source_quote_request_number}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <AdminOrderActivityCard
+              orderId={orderId}
+              refreshToken={activityRefreshToken}
+            />
+          </div>
+
+          <AuditHistoryDrawer
+            entityType="order"
+            entityId={orderId}
+            entityLabel={displayOrderNumber}
+            open={auditHistoryOpen}
+            onOpenChange={setAuditHistoryOpen}
+            hideTrigger
+          />
         </section>
 
-        <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
           <div className="flex min-w-0 flex-col gap-5">
-            <section className={`${adminWindowCardClassName} p-6`} style={adminWindowCardStyle}>
-              <div className="grid gap-x-10 gap-y-5 md:grid-cols-2">
-                <DetailField label="Datum">
+            <AdminOrderItemsEditorClient
+              orderId={orderId}
+              items={items}
+              initialSubtotal={order.subtotal}
+              initialTax={order.tax}
+              initialShipping={order.shipping}
+              initialShippingOverride={Boolean(order.shipping_override_json)}
+              initialShippingOverrideStale={order.shipping_override_stale === true}
+              initialShippingManualQuote={
+                order.shipping_snapshot_json?.status === 'manual_quote'
+                && !order.shipping_override_json
+              }
+              initialTaxRate={order.tax_rate ?? 0.22}
+              externalEditMode={isItemsEditing}
+              hideSectionEditControls
+              onRequestEdit={() => toggleSectionEdit('items')}
+              sectionEditDisabled={pageIsBusy}
+              onDirtyChange={setItemsDirty}
+              onSavingChange={setItemsSaving}
+              onRegisterSave={registerItemsSaveHandler}
+              onPricingRevisionChange={updateLatestPricingRevision}
+            />
+
+            <AdminOrderShippingOverride
+              orderId={orderId}
+              shipping={order.shipping}
+              automaticShipping={order.automatic_shipping ?? null}
+              shippingCalculation={order.shipping_snapshot_json ?? null}
+              shippingOverride={order.shipping_override_json ?? null}
+              shippingOverrideStale={order.shipping_override_stale === true}
+              parcelCount={order.parcel_count}
+              pricingRevision={order.pricing_revision}
+              orderStatus={persistedDetails.status}
+              paymentStatus={persistedDetails.paymentStatus}
+              deleted={Boolean(order.deleted_at)}
+              hasActiveDocuments={documents.some((document) =>
+                isShippingBearingOrderPdfType(document.type)
+              )}
+              quoteDerived={order.source_quote_offer_version_id !== null}
+              externalEditMode={isShippingEditing}
+              onRequestEdit={() => toggleSectionEdit('shipping')}
+              onDirtyChange={setShippingDirty}
+              onSavingChange={setShippingSaving}
+              onPricingRevisionChange={updateLatestPricingRevision}
+              onRegisterSave={registerShippingSaveHandler}
+              pageBusy={pageIsBusy}
+            />
+
+            <section
+              className={`${adminWindowCardClassName} order-first p-4`}
+              style={adminWindowCardStyle}
+              data-testid="admin-order-data-card"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-base font-semibold text-slate-900">Podatki naročila</h2>
+                <button
+                  type="button"
+                  className={`${adminCardSectionEditIconButtonClassName} ${isOrderDataEditing ? 'bg-[color:var(--hover-neutral)]' : ''}`}
+                  onClick={() => toggleSectionEdit('details')}
+                  aria-label="Uredi podatke naročila"
+                  aria-pressed={isOrderDataEditing}
+                  title="Uredi podatke"
+                  disabled={pageIsBusy}
+                  data-admin-card-edit-action="order-data"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              <dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">
+                <OrderDataRow
+                  label="Datum"
+                  value={formatOrderDataDate(activeOrderDataDetails.orderDate)}
+                  icon="calendar"
+                  isEditing={isOrderDataEditing}
+                >
                   <OrderDatePickerField
-                    value={activeDetails.orderDate}
-                    isEditing={isEditing}
+                    value={activeOrderDataDetails.orderDate}
+                    isEditing={isOrderDataEditing}
                     disabled={pageIsBusy}
                     onChange={(value) => updateDraftDetails({ orderDate: value })}
                   />
-                </DetailField>
-
-                <DetailField label="Tip naročnika">
-                  <DetailFieldShell icon="type" isEditing={isEditing}>
+                </OrderDataRow>
+                <OrderDataRow
+                  label="Tip naročnika"
+                  value={activeCustomerTypeLabel}
+                  icon="type"
+                  isEditing={isOrderDataEditing}
+                  reserveTrailingControl
+                >
+                  <DetailFieldShell isEditing>
                     <CustomSelect
                       ariaLabel="Tip naročnika"
-                      value={activeDetails.customerType}
+                      value={activeOrderDataDetails.customerType}
                       onChange={(value) => updateDraftDetails({ customerType: value })}
                       options={availableCustomerTypeOptions}
-                      disabled={!isEditing || pageIsBusy || customerTypeIsLocked}
-                      showArrow={isEditing && !customerTypeIsLocked}
+                      disabled={pageIsBusy || customerTypeIsLocked}
+                      showArrow={!customerTypeIsLocked}
                       containerClassName={adminCompactIconFieldSelectWrapperClassName}
                       triggerClassName={`${adminCompactIconFieldSelectClassName} disabled:!cursor-default disabled:!text-slate-900 disabled:!opacity-100`}
                       valueClassName={`${adminCompactIconFieldSelectValueClassName} !pb-0`}
                     />
                   </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Naročnik">
-                  <DetailFieldShell icon="customer" isEditing={isEditing}>
+                </OrderDataRow>
+                <OrderDataRow label="Naročnik" value={activeOrderDataDetails.organizationName} icon="customer" isEditing={isOrderDataEditing}>
+                  <DetailFieldShell isEditing>
                     <input
                       type="text"
-                      value={isEditing ? activeDetails.organizationName : displayValue(activeDetails.organizationName)}
-                      disabled={!isEditing || pageIsBusy}
+                      aria-label="Naročnik"
+                      value={activeOrderDataDetails.organizationName}
+                      disabled={pageIsBusy}
                       onChange={(event) => updateDraftDetails({ organizationName: event.target.value })}
-                      className={adminCompactIconFieldInputClassName}
+                      className={orderDataValueControlClassName}
                     />
                   </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Email">
-                  <DetailFieldShell icon="email" isEditing={isEditing}>
+                </OrderDataRow>
+                <OrderDataRow label="Email" value={activeOrderDataDetails.email} icon="email" isEditing={isOrderDataEditing}>
+                  <DetailFieldShell isEditing>
                     <input
                       type="email"
-                      value={isEditing ? activeDetails.email : displayValue(activeDetails.email)}
-                      disabled={!isEditing || pageIsBusy}
+                      aria-label="Email"
+                      value={activeOrderDataDetails.email}
+                      disabled={pageIsBusy}
                       onChange={(event) => updateDraftDetails({ email: event.target.value })}
-                      className={adminCompactIconFieldInputClassName}
+                      className={orderDataValueControlClassName}
                     />
                   </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Poštna številka">
-                  <DetailFieldShell icon="postal" isEditing={isEditing}>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={4}
-                      value={isEditing ? activeDetails.postalCode : displayValue(activeDetails.postalCode)}
-                      disabled={!isEditing || pageIsBusy}
-                      onChange={(event) =>
-                        updateDraftDetails({ postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4) })
-                      }
-                      className={adminCompactIconFieldInputClassName}
-                    />
-                  </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Kraj">
-                  <DetailFieldShell icon="address" isEditing={isEditing}>
-                    <input
-                      type="text"
-                      value={isEditing ? activeDetails.city : displayValue(activeDetails.city)}
-                      disabled={!isEditing || pageIsBusy}
-                      onChange={(event) => updateDraftDetails({ city: event.target.value })}
-                      className={adminCompactIconFieldInputClassName}
-                    />
-                  </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Naslov">
-                  <DetailFieldShell icon="address" isEditing={isEditing}>
-                    <input
-                      type="text"
-                      value={isEditing ? activeDetails.deliveryAddress : displayValue(activeDetails.deliveryAddress)}
-                      disabled={!isEditing || pageIsBusy}
-                      onChange={(event) => updateDraftDetails({ deliveryAddress: event.target.value })}
-                      className={adminCompactIconFieldInputClassName}
-                    />
-                  </DetailFieldShell>
-                </DetailField>
-
-                <DetailField label="Opombe stranke" className="md:col-span-2">
-                  <textarea
-                    rows={1}
-                    value={isEditing ? activeDetails.notes : displayValue(activeDetails.notes)}
-                    readOnly={!isEditing || pageIsBusy}
-                    onChange={(event) => updateDraftDetails({ notes: event.target.value })}
-                    aria-label="Opombe stranke"
-                    className={`${adminCompactExpandableTextareaClassName} ${isEditing ? '' : '!bg-[color:var(--field-locked-bg)] text-slate-600'}`}
+                </OrderDataRow>
+                <OrderDataRow
+                  label="Naslov"
+                  value={formatOrderDataAddress(activeOrderDataDetails)}
+                  icon="address"
+                  isEditing={isOrderDataEditing}
+                  fullWidth
+                >
+                  <OrderAddressEditor
+                    details={activeOrderDataDetails}
+                    disabled={pageIsBusy}
+                    onChange={updateDraftDetails}
                   />
-                </DetailField>
-              </div>
+                </OrderDataRow>
+                <OrderDataRow
+                  label="Opombe stranke"
+                  value={activeOrderDataDetails.notes}
+                  icon="notes"
+                  isEditing={isOrderDataEditing}
+                  fullWidth
+                >
+                  <DetailFieldShell isEditing>
+                    <textarea
+                      rows={1}
+                      wrap="off"
+                      value={activeOrderDataDetails.notes}
+                      readOnly={pageIsBusy}
+                      onChange={(event) => updateDraftDetails({ notes: event.target.value })}
+                      aria-label="Opombe stranke"
+                      className={orderDataInlineTextareaClassName}
+                    />
+                  </DetailFieldShell>
+                </OrderDataRow>
+              </dl>
             </section>
-
-            <div className="flex flex-1 flex-col [&>section]:flex-1">
-              <AdminOrderItemsEditorClient
-                orderId={orderId}
-                items={items}
-                initialSubtotal={order.subtotal}
-                initialTax={order.tax}
-                initialTaxRate={order.tax_rate ?? 0.22}
-                externalEditMode={isEditing}
-                hideSectionEditControls
-                onDirtyChange={setItemsDirty}
-                onSavingChange={setItemsSaving}
-                onRegisterSave={registerItemsSaveHandler}
-              />
-            </div>
           </div>
 
-          <aside className="flex w-full min-w-0 lg:self-stretch [&>section]:h-full">
-            <AdminOrderPdfManagerClient
+          <aside className="flex w-full min-w-0 flex-col gap-5">
+            <AdminOrderCustomerCard
+              orderId={orderId}
+              customerType={persistedDetails.customerType}
+              organizationName={persistedDetails.organizationName}
+              contactName={persistedDetails.contactName}
+              email={persistedDetails.email}
+              addressLine1={persistedDetails.deliveryAddress}
+              addressLine2={persistedDetails.addressLine2}
+              postalCode={persistedDetails.postalCode}
+              city={persistedDetails.city}
+              countryCode={persistedDetails.countryCode}
+            />
+
+            <AdminNotesCard
+              headingId="admin-order-notes-title"
+              testId="admin-order-admin-notes-card"
+              editActionId="notes"
+              isEditing={isAdminNotesEditing}
+              value={activeAdminNotes}
+              persistedValue={persistedAdminNotes}
+              onChange={setDraftAdminNotes}
+              onToggle={() => toggleSectionEdit('notes')}
+              disabled={pageIsBusy}
+              autoFocus={editScopes.notes && !isMasterEditing}
+            />            <AdminOrderPdfManagerClient
               orderId={orderId}
               documents={documents}
-              adminNotesSlot={(
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Opombe administratorja</h2>
-                  <div className="mt-4">
-                    <textarea
-                      value={activeAdminNotes}
-                      onChange={(event) => setDraftAdminNotes(event.target.value)}
-                      rows={3}
-                      placeholder=""
-                      aria-label="Opombe administratorja"
-                      readOnly={!isEditing}
-                      className={`${adminNotesTextareaClassName} ${isEditing ? 'bg-white' : '!bg-[color:var(--field-locked-bg)] text-slate-600'}`}
-                    />
-                  </div>
-                </div>
-              )}
+              generationDisabledReason={
+                order.is_draft
+                  ? 'Dokument lahko ustvarite po shranitvi dokončanega osnutka z veljavno poštnino.'
+                  : order.shipping_override_stale
+                    ? 'Pred izdajo dokumenta preračunajte ali odstranite zastarelo ročno poštnino.'
+                    : undefined
+              }
             />
+
+            {!order.is_draft ? (
+              <AdminOrderCustomerAccess
+                orderId={orderId}
+                customerType={order.customer_type}
+                initialCommitmentStatus={
+                  order.commitment_status
+                  ?? (order.customer_type === 'school' ? 'pending_confirmation' : 'binding')
+                }
+                compact
+              />
+            ) : null}
           </aside>
         </div>
-
-        {!order.is_draft ? (
-          <AdminOrderCustomerAccess
-            orderId={orderId}
-            customerType={order.customer_type}
-            initialCommitmentStatus={
-              order.commitment_status
-              ?? (order.customer_type === 'school' ? 'pending_confirmation' : 'binding')
-            }
-          />
-        ) : null}
       </div>
 
       <UnsavedChangesDialog
         open={pendingUnsavedAction !== null}
         label={pendingUnsavedAction?.label}
-        isSaving={isSaving || itemsSaving}
+        isSaving={isSaving || itemsSaving || shippingSaving}
         saveDisabled={!hasUnsavedChanges || pageIsBusy}
         onSave={savePendingUnsavedChanges}
         onContinueEditing={closeUnsavedDialog}
@@ -1242,6 +1538,71 @@ export default function AdminOrderDetailClient({
           void confirmDeleteOrder();
         }}
       />
+
+      <ConfirmDialog
+        open={isRejectModalOpen}
+        title="Zavrnitev naročila"
+        description="Naročilo bo zavrnjeno in označeno kot preklicano. Morebitna zadržana zaloga bo varno sproščena."
+        confirmLabel="Zavrni naročilo"
+        cancelLabel="Prekliči"
+        isDanger
+        onCancel={() => setIsRejectModalOpen(false)}
+        onConfirm={() => {
+          void confirmRejectOrder();
+        }}
+      />
+    </div>
+  );
+}
+
+function OrderDataRow({
+  label,
+  value,
+  icon,
+  isEditing,
+  fullWidth = false,
+  reserveTrailingControl = false,
+  children
+}: {
+  label: string;
+  value: string;
+  icon: DetailFieldIconType;
+  isEditing: boolean;
+  fullWidth?: boolean;
+  reserveTrailingControl?: boolean;
+  children: ReactNode;
+}) {
+  const display = displayValue(value);
+
+  return (
+    <div
+      className={`grid h-[35px] items-center gap-3 ${
+        fullWidth
+          ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
+          : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
+      }`}
+      data-order-data-row={label}
+      data-order-data-span={fullWidth ? 'full' : undefined}
+    >
+      <dt className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-slate-500">
+        <DetailFieldIcon icon={icon} />
+        <span className="min-w-0 truncate">{label}</span>
+      </dt>
+      <dd
+        className="min-w-0"
+        title={!isEditing && display !== '—' ? display : undefined}
+        data-order-data-value
+      >
+        {isEditing ? (
+          children
+        ) : (
+          <DetailFieldShell isEditing={false}>
+            <span className={`${orderDataReadValueClassName} ${reserveTrailingControl ? 'pr-5' : ''}`}>
+              {display}
+            </span>
+          </DetailFieldShell>
+        )}
+      </dd>
     </div>
   );
 }

@@ -16,7 +16,11 @@ export const routeMap: Record<GeneratePdfType, string> = {
 };
 
 const normalizePdfType = (type: string): PdfTypeKey | null => {
-  if (type === 'offer' || type === 'order_summary') return 'order_summary';
+  // Historical order_documents rows named `offer` are deliberately quarantined.
+  // Genuine seller offers live in quote_documents and must never be presented
+  // or regenerated as an order confirmation.
+  if (type === 'offer') return null;
+  if (type === 'order_summary') return 'order_summary';
   if (type === 'purchase_order') return 'purchase_order';
   if (type === 'predracun') return 'predracun';
   if (type === 'dobavnica') return 'dobavnica';

@@ -5,6 +5,8 @@ import { getPool } from '@/shared/server/db';
 import { computeObjectDiff, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
+import { validateLockedOrderShippingReadiness } from '@/shared/server/orderShippingReadiness';
+import { acceptedContractRequiredMessage } from '@/shared/server/orderStockHolds';
 
 export async function POST(request: Request, props: { params: Promise<{ orderId: string }> }) {
   const params = await props.params;
@@ -28,12 +30,63 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     const client = await pool.connect();
     try {
       await client.query('begin');
-      const current = await client.query('SELECT id, order_number, payment_status, admin_order_notes FROM orders WHERE id = $1 FOR UPDATE', [orderId]);
+      const current = await client.query(
+        `
+          select
+            id,
+            order_number,
+            payment_status,
+            contract_status,
+            admin_order_notes,
+            deleted_at,
+            is_draft,
+            subtotal,
+            tax,
+            shipping,
+            automatic_shipping,
+            shipping_snapshot_json,
+            shipping_override_json,
+            shipping_override_stale,
+            parcel_count,
+            total
+          from orders
+          where id = $1
+          for update
+        `,
+        [orderId]
+      );
       if (current.rows.length === 0) {
         await client.query('rollback');
         return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
       }
       const previousStatus = current.rows[0]?.payment_status ?? null;
+      if (previousStatus !== status && ['paid', 'refunded'].includes(status)) {
+        if (String(current.rows[0]?.contract_status ?? '') !== 'accepted') {
+          await client.query('rollback');
+          return NextResponse.json(
+            {
+              code: 'ORDER_CONTRACT_NOT_ACCEPTED',
+              message: acceptedContractRequiredMessage()
+            },
+            { status: 409 }
+          );
+        }
+        const readiness = await validateLockedOrderShippingReadiness(
+          client,
+          orderId,
+          current.rows[0] as Record<string, unknown>
+        );
+        if (!readiness.ok) {
+          await client.query('rollback');
+          return NextResponse.json(
+            {
+              code: 'ORDER_PAYMENT_SHIPPING_NOT_READY',
+              message: readiness.message
+            },
+            { status: 409 }
+          );
+        }
+      }
 
       await client.query('UPDATE orders SET payment_status = $1, admin_order_notes = $2 WHERE id = $3', [status, note || null, orderId]);
 

@@ -1,3 +1,8 @@
+import type { OrderContractStatus } from '@/shared/domain/order/contractStatus';
+import SubmissionStatusPanel, {
+  type SubmissionStatusTone
+} from '@/commercial/components/SubmissionStatusPanel';
+
 export type OrderSubmissionCommitmentStatus =
   | 'binding'
   | 'pending_confirmation'
@@ -5,6 +10,7 @@ export type OrderSubmissionCommitmentStatus =
 
 type OrderSubmissionStatusProps = {
   commitmentStatus?: OrderSubmissionCommitmentStatus;
+  contractStatus?: OrderContractStatus;
 };
 
 export type OrderSubmissionStatusContent = {
@@ -12,12 +18,24 @@ export type OrderSubmissionStatusContent = {
   heading: string;
   description: string;
   symbol: string;
-  tone: 'success' | 'info' | 'warning' | 'danger';
+  tone: SubmissionStatusTone;
 };
 
 export function getOrderSubmissionStatusContent(
-  commitmentStatus?: OrderSubmissionCommitmentStatus
+  commitmentStatus?: OrderSubmissionCommitmentStatus,
+  contractStatus?: OrderContractStatus
 ): OrderSubmissionStatusContent {
+  if (commitmentStatus === 'rejected' || contractStatus === 'rejected') {
+    return {
+      eyebrow: 'Stanje naročila',
+      heading: 'Naročilo je zavrnjeno',
+      description:
+        'Naročilo ni bilo potrjeno. Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
+      symbol: '!',
+      tone: 'danger'
+    };
+  }
+
   if (commitmentStatus === 'pending_confirmation') {
     return {
       eyebrow: 'Potrditev',
@@ -29,78 +47,45 @@ export function getOrderSubmissionStatusContent(
     };
   }
 
-  if (commitmentStatus === 'rejected') {
+  if (contractStatus === 'accepted') {
     return {
-      eyebrow: 'Stanje naročila',
-      heading: 'Naročilo ni bilo potrjeno',
+      eyebrow: 'Potrjeno',
+      heading: 'Vaše naročilo je potrjeno',
       description:
-        'Za pojasnilo se obrnite na našo ekipo z istega e-poštnega naslova, ki ste ga uporabili pri naročilu.',
-      symbol: '!',
-      tone: 'danger'
+        'Atehna je naročilo sprejela. Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
+      symbol: '✓',
+      tone: 'success'
     };
   }
 
   return {
-    eyebrow: 'Uspešno oddano',
-    heading: 'Naročilo je sprejeto',
+    eyebrow: 'Prejeto',
+    heading: 'Prejeli smo vaše naročilo',
     description:
-      'Potrditev je shranjena na tej strani. Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov; plačilo uredimo ročno po ponudbi ali predračunu.',
-    symbol: '✓',
+      'Naročilo še ni potrjeno. Atehna ga bo pregledala in vas o sprejemu ali zavrnitvi obvestila po e-pošti.',
+    symbol: '…',
     tone: 'success'
   };
 }
 
-const TONE_STYLES = {
-  success: {
-    border: 'border-[color:var(--site-color-success)]',
-    symbol: 'bg-[color:var(--site-color-success)]'
-  },
-  info: {
-    border: 'border-[color:var(--site-color-info)]',
-    symbol: 'bg-[color:var(--site-color-info)]'
-  },
-  warning: {
-    border: 'border-[color:var(--site-color-warning)]',
-    symbol: 'bg-[color:var(--site-color-warning)]'
-  },
-  danger: {
-    border: 'border-[color:var(--site-color-danger)]',
-    symbol: 'bg-[color:var(--site-color-danger)]'
-  }
-} as const;
-
 export default function OrderSubmissionStatus({
-  commitmentStatus
+  commitmentStatus,
+  contractStatus
 }: OrderSubmissionStatusProps) {
-  const content = getOrderSubmissionStatusContent(commitmentStatus);
-  const tone = TONE_STYLES[content.tone];
+  const content = getOrderSubmissionStatusContent(
+    commitmentStatus,
+    contractStatus
+  );
 
   return (
-    <div
-      className={`site-radius-md border ${tone.border} bg-[color:var(--site-color-surface)] p-5`}
-      data-testid="order-submission-status"
-      role={content.tone === 'danger' ? 'alert' : 'status'}
-      aria-live={content.tone === 'danger' ? 'assertive' : 'polite'}
-      aria-atomic="true"
-    >
-      <div className="flex items-start gap-4">
-        <span
-          aria-hidden="true"
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone.symbol} text-xl font-bold text-white`}
-        >
-          {content.symbol}
-        </span>
-        <div>
-          <p className="site-eyebrow">{content.eyebrow}</p>
-          <h1
-            className="site-heading-1 mt-1 !text-2xl sm:!text-3xl"
-            data-testid="order-confirmation-heading"
-          >
-            {content.heading}
-          </h1>
-          <p className="site-paragraph mt-3">{content.description}</p>
-        </div>
-      </div>
-    </div>
+    <SubmissionStatusPanel
+      eyebrow={content.eyebrow}
+      heading={content.heading}
+      description={content.description}
+      symbol={content.symbol}
+      tone={content.tone}
+      testId="order-submission-status"
+      headingTestId="order-confirmation-heading"
+    />
   );
 }

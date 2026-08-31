@@ -11,7 +11,7 @@ declare module 'pg' {
 
   export type PoolClient = {
     query: <T = Record<string, unknown>>(text: string, params?: unknown[]) => Promise<QueryResult<T>>;
-    release: () => void;
+    release: (error?: Error | boolean) => void;
   };
 
   export class Pool {

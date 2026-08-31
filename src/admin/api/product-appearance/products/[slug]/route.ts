@@ -196,6 +196,10 @@ function toEditorPayload(
     adminNotes: item.adminNotes,
     position: item.position,
     taxRate: item.taxRate,
+    shippingWeightGrams: item.shippingWeightGrams ?? null,
+    shippingLengthMm: item.shippingLengthMm ?? null,
+    shippingWidthMm: item.shippingWidthMm ?? null,
+    shippingHeightMm: item.shippingHeightMm ?? null,
     appearanceOverride: mergePresentationAppearanceOverride(
       item,
       patch.appearanceOverride,

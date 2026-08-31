@@ -1,3 +1,12 @@
+import type { ShippingCalculation, ShippingManualOverride } from '@/shared/domain/shipping/shipping';
+
+export type OrderContractStatus =
+  | 'pending_seller_acceptance'
+  | 'accepted'
+  | 'rejected';
+
+export type OrderContractEvidence = Record<string, unknown>;
+
 export type OrderItemInput = {
   id: number;
   sku: string;
@@ -18,6 +27,19 @@ export type OrderPdfTypeKey =
   | 'invoice';
 
 export type GenerateOrderPdfType = Exclude<OrderPdfTypeKey, 'purchase_order'>;
+
+export const SHIPPING_BEARING_ORDER_PDF_TYPES: readonly GenerateOrderPdfType[] = [
+  'order_summary',
+  'dobavnica',
+  'predracun',
+  'invoice'
+] as const;
+
+export function isShippingBearingOrderPdfType(
+  value: string
+): value is GenerateOrderPdfType {
+  return (SHIPPING_BEARING_ORDER_PDF_TYPES as readonly string[]).includes(value);
+}
 
 export const ORDER_PDF_TYPE_CONFIGS: ReadonlyArray<{
   key: OrderPdfTypeKey;
@@ -76,6 +98,21 @@ export type OrderRow = {
   gurs_house_number_id: string | null;
   country_code: string | null;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
+  contract_status?: OrderContractStatus | null;
+  contract_accepted_at?: string | null;
+  contract_accepted_actor_type?: string | null;
+  contract_accepted_actor_id?: string | null;
+  contract_accepted_evidence_json?: OrderContractEvidence | null;
+  contract_rejected_at?: string | null;
+  contract_rejected_actor_type?: string | null;
+  contract_rejected_actor_id?: string | null;
+  contract_rejected_evidence_json?: OrderContractEvidence | null;
+  contract_rejected_reason?: string | null;
+  committed_at?: string | null;
+  source_quote_offer_version_id?: number | null;
+  source_quote_request_id?: number | null;
+  source_quote_request_number?: string | null;
+  source_quote_offer_number?: string | null;
   reference: string | null;
   notes: string | null;
   status: string;
@@ -85,6 +122,12 @@ export type OrderRow = {
   tax: number | null;
   tax_rate?: number | null;
   shipping: number | null;
+  automatic_shipping: number | null;
+  shipping_snapshot_json: ShippingCalculation | null;
+  shipping_override_json: ShippingManualOverride | null;
+  shipping_override_stale: boolean;
+  parcel_count: number;
+  pricing_revision: number;
   total: number | null;
   created_at: string;
   is_draft?: boolean;
@@ -138,9 +181,12 @@ export type OrderItemSkuAllocationRow = {
 export type OrderAnalyticsRow = {
   id: number;
   created_at: string;
+  committed_at: string | null;
+  contract_accepted_at: string | null;
   status: string | null;
   payment_status: string | null;
   commitment_status: string | null;
+  contract_status: OrderContractStatus | null;
   customer_type: string | null;
   total: number;
 };
@@ -184,6 +230,10 @@ export type AdminOrderRowTuple = readonly [
   adminOrderNotes: string | null,
   subtotal: number | string | null,
   tax: number | string | null,
+  shipping: number | string | null,
+  automaticShipping: number | string | null,
+  shippingOverride: ShippingManualOverride | null,
+  shippingOverrideStale: boolean,
   total: number | string | null,
   createdAt: string,
   isDraft: boolean,
@@ -203,5 +253,8 @@ export type AdminOrderAnalyticsTuple = readonly [
   createdAt: string,
   status: string | null,
   total: number,
-  commitmentStatus: string | null
+  commitmentStatus: string | null,
+  contractStatus: OrderContractStatus | null,
+  committedAt: string | null,
+  contractAcceptedAt: string | null
 ];

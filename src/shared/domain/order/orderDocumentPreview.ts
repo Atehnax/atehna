@@ -35,6 +35,7 @@ export type OrderDocumentPreviewOrder = {
   tax: number;
   taxRate?: number | null;
   shipping?: number;
+  shippingOverride?: boolean;
   total: number;
   commitmentStatus?: 'binding' | 'pending_confirmation' | 'rejected' | string | null;
 };
@@ -74,6 +75,7 @@ export type OrderDocumentPreviewItemCells = Record<
 
 const PREVIEW_DOCUMENT_NUMBERS: Record<OrderDocumentTemplateType, string> = {
   order_summary: '101/26',
+  offer: 'PON-2026-000123-V1',
   dobavnica: '98/26',
   predracun: '96/26',
   invoice: '063/26'
@@ -289,7 +291,7 @@ export function resolveOrderDocumentMetadataRows(
 ): OrderDocumentSemanticTextRow[] {
   const { order, issuedAt, documentNumber, type } = context;
   const labels = template.text.labels;
-  const validityOrDueDays = type === 'predracun'
+  const validityOrDueDays = type === 'predracun' || type === 'offer'
     ? template.rules.validityDays
     : template.rules.dueDays;
   const candidates: OrderDocumentSemanticTextRow[] = [
@@ -415,7 +417,10 @@ export function resolveOrderDocumentTotalRows(
   );
   const shippingEnabled = explicit || (
     template.layout.showShipping
-    && toOrderDocumentNumber(context.order.shipping) !== 0
+    && (
+      toOrderDocumentNumber(context.order.shipping) !== 0
+      || context.order.shippingOverride === true
+    )
   );
   const taxEnabled = explicit || template.layout.showTaxSummary;
   const taxRows = taxEnabled
@@ -507,7 +512,10 @@ export function matchesOrderDocumentElementCondition(
     return Boolean(toSafeOrderDocumentText(context.order.notes));
   }
   if (element.condition === 'has_shipping') {
-    return toOrderDocumentNumber(context.order.shipping) !== 0;
+    return (
+      toOrderDocumentNumber(context.order.shipping) !== 0
+      || context.order.shippingOverride === true
+    );
   }
   if (element.condition === 'has_tax') {
     return toOrderDocumentNumber(context.order.tax) !== 0;

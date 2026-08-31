@@ -56,20 +56,31 @@ export default function AuditHistoryDrawer({
   entityType,
   entityId,
   entityLabel,
-  buttonClassName
+  buttonClassName,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false
 }: {
   entityType: AuditEntityType;
   entityId?: string | number | null;
   entityLabel?: string | null;
   buttonClassName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [events, setEvents] = useState<AuditEventRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const normalizedEntityId = entityId === null || entityId === undefined ? '' : String(entityId);
   const groups = useMemo(() => groupAuditEvents(events), [events]);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
 
   const fullHref = useMemo(() => {
     const params = new URLSearchParams({ entity_type: entityType });
@@ -103,21 +114,23 @@ export default function AuditHistoryDrawer({
 
   return (
     <>
-      <IconButton
-        type="button"
-        tone="neutral"
-        size="sm"
-        className={classNames(
-          adminTableNeutralIconButtonClassName,
-          '!h-9 !w-9 !p-0',
-          buttonClassName
-        )}
-        aria-label="Odpri zgodovino"
-        title="Zgodovina"
-        onClick={() => setOpen(true)}
-      >
-        <HistoryIcon className="h-[18px] w-[18px]" />
-      </IconButton>
+      {!hideTrigger ? (
+        <IconButton
+          type="button"
+          tone="neutral"
+          size="sm"
+          className={classNames(
+            adminTableNeutralIconButtonClassName,
+            '!h-9 !w-9 !p-0',
+            buttonClassName
+          )}
+          aria-label="Odpri zgodovino"
+          title="Zgodovina"
+          onClick={() => setOpen(true)}
+        >
+          <HistoryIcon className="h-[18px] w-[18px]" />
+        </IconButton>
+      ) : null}
 
       {open ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 font-['Inter',system-ui,sans-serif]">

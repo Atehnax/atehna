@@ -1,11 +1,30 @@
 import AdminOrdersTableLoader from '@/admin/features/orders/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/features/orders/components/AdminCreateDraftOrderButton';
-import { fetchOrdersAnalyticsRows, fetchOrdersListPage } from '@/shared/server/orders';
+import AdminOrdersTabs from '@/admin/features/orders/components/AdminOrdersTabs';
+import AdminQuotesTable from '@/admin/features/quotes/components/AdminQuotesTable';
+import {
+  fetchOrderAttentionCount,
+  fetchOrdersAnalyticsRows,
+  fetchOrdersListPage
+} from '@/shared/server/orders';
 import type { OrderAnalyticsRow, OrderRow } from '@/shared/domain/order/orderTypes';
+import {
+  normalizeAdminQuoteAmountBound,
+  normalizeAdminQuoteCustomerTypeFilter,
+  normalizeAdminQuoteDateRange,
+  normalizeAdminQuoteRequestNumberRange,
+  type AdminQuoteStatusFilter
+} from '@/shared/domain/quote/quoteAdminTypes';
+import {
+  fetchAdminQuoteFunnel,
+  fetchAdminQuoteRequestsPage,
+  fetchNewQuoteRequestCount
+} from '@/shared/server/quotes';
 import { isAllPageSize, parsePageSizeValue } from '@/shared/domain/pagination';
 import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
+import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 
 export const metadata = {
   title: 'Naročila'
@@ -15,6 +34,15 @@ export const dynamic = 'force-dynamic';
 
 const DATE_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ORDERS_PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+const QUOTE_STATUS_FILTERS: readonly AdminQuoteStatusFilter[] = [
+  'all',
+  'preparation',
+  'received',
+  'issued',
+  'ordered',
+  'declined',
+  'expired'
+];
 
 function normalizeSearchParam(value: string | string[] | undefined): string {
   if (typeof value === 'string') return value;
@@ -45,6 +73,11 @@ const getToDateIsoOrNull = (value: string) => {
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 };
+
+const normalizeQuoteStatus = (value: string): AdminQuoteStatusFilter =>
+  QUOTE_STATUS_FILTERS.includes(value as AdminQuoteStatusFilter)
+    ? value as AdminQuoteStatusFilter
+    : 'all';
 
 async function AdminOrdersTableSection({
   searchParams
@@ -113,7 +146,7 @@ async function AdminOrdersTableSection({
           pageSize
         }),
         fetchOrdersAnalyticsRows({
-          includeDrafts: true,
+          includeDrafts: false,
           fromDate: toIsoOrNull(from),
           toDate: getToDateIsoOrNull(to)
         }, '/admin/orders:analytics-preview'),
@@ -164,6 +197,10 @@ async function AdminOrdersTableSection({
       order.admin_order_notes ?? null,
       order.subtotal,
       order.tax,
+      order.shipping,
+      order.automatic_shipping,
+      order.shipping_override_json,
+      order.shipping_override_stale,
       order.total,
       order.created_at,
       order.is_draft ?? false,
@@ -173,7 +210,10 @@ async function AdminOrdersTableSection({
       order.created_at,
       order.status,
       order.total,
-      order.commitment_status
+      order.commitment_status,
+      order.contract_status,
+      order.committed_at,
+      order.contract_accepted_at
     ] as const);
     const compactDocuments = documents.map((document) => [
       document.id,
@@ -211,6 +251,106 @@ async function AdminOrdersTableSection({
   });
 }
 
+async function AdminQuotesTableSection({
+  searchParams
+}: {
+  searchParams?: {
+    q?: string | string[];
+    quoteStatus?: string | string[];
+    quoteCustomerType?: string | string[];
+    quoteFrom?: string | string[];
+    quoteTo?: string | string[];
+    quoteMinRequestNumber?: string | string[];
+    quoteMaxRequestNumber?: string | string[];
+    quoteMinTotal?: string | string[];
+    quoteMaxTotal?: string | string[];
+    quotePage?: string | string[];
+    quotePageSize?: string | string[];
+  };
+}) {
+  const query = normalizeSearchParam(searchParams?.q).trim();
+  const status = normalizeQuoteStatus(normalizeSearchParam(searchParams?.quoteStatus));
+  const customerType = normalizeAdminQuoteCustomerTypeFilter(
+    normalizeSearchParam(searchParams?.quoteCustomerType)
+  );
+  const quoteDateRange = normalizeAdminQuoteDateRange(
+    normalizeSearchParam(searchParams?.quoteFrom),
+    normalizeSearchParam(searchParams?.quoteTo)
+  );
+  const quoteFrom = quoteDateRange.from;
+  const quoteTo = quoteDateRange.to;
+  const quoteRequestNumberRange = normalizeAdminQuoteRequestNumberRange(
+    normalizeSearchParam(searchParams?.quoteMinRequestNumber),
+    normalizeSearchParam(searchParams?.quoteMaxRequestNumber)
+  );
+  const minRequestNumber = quoteRequestNumberRange.min;
+  const maxRequestNumber = quoteRequestNumberRange.max;
+  const minTotal = normalizeAdminQuoteAmountBound(
+    normalizeSearchParam(searchParams?.quoteMinTotal)
+  );
+  const maxTotal = normalizeAdminQuoteAmountBound(
+    normalizeSearchParam(searchParams?.quoteMaxTotal)
+  );
+  const page = Math.max(1, Math.trunc(Number(normalizeSearchParam(searchParams?.quotePage)) || 1));
+  const pageSize = [25, 50, 100].includes(Number(normalizeSearchParam(searchParams?.quotePageSize)))
+    ? Number(normalizeSearchParam(searchParams?.quotePageSize))
+    : 25;
+
+  if (!getDatabaseUrl()) {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+        Povezava z bazo ni nastavljena.
+      </div>
+    );
+  }
+
+  const loaded = await Promise.all([
+    fetchAdminQuoteRequestsPage({
+      query,
+      status,
+      customerType,
+      fromDate: quoteFrom || undefined,
+      toDate: quoteTo || undefined,
+      minRequestNumber: minRequestNumber ? Number(minRequestNumber) : undefined,
+      maxRequestNumber: maxRequestNumber ? Number(maxRequestNumber) : undefined,
+      minTotal: minTotal ? Number(minTotal) : undefined,
+      maxTotal: maxTotal ? Number(maxTotal) : undefined,
+      page,
+      pageSize
+    }),
+    fetchAdminQuoteFunnel().catch(() => null)
+  ])
+    .then(([result, funnel]) => ({ result, funnel }))
+    .catch((error: unknown) => {
+      console.error('Failed to load quote administration list', error);
+      return null;
+    });
+  if (!loaded) {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
+        Povpraševanj in ponudb trenutno ni mogoče naložiti. Preverite, ali je bila nameščena podatkovna migracija za ponudbe.
+      </div>
+    );
+  }
+  return (
+    <AdminQuotesTable
+      result={loaded.result}
+      funnel={loaded.funnel}
+      query={query}
+      status={status}
+      customerType={customerType}
+      fromDate={quoteFrom}
+      toDate={quoteTo}
+      minRequestNumber={minRequestNumber}
+      maxRequestNumber={maxRequestNumber}
+      minTotal={minTotal}
+      maxTotal={maxTotal}
+      page={page}
+      pageSize={pageSize}
+    />
+  );
+}
+
 export default async function AdminOrdersPage(
   props: {
     searchParams?: Promise<{
@@ -221,27 +361,60 @@ export default async function AdminOrdersPage(
       docType?: string | string[];
       page?: string | string[];
       pageSize?: string | string[];
+      view?: string | string[];
+      quoteStatus?: string | string[];
+      quoteCustomerType?: string | string[];
+      quoteFrom?: string | string[];
+      quoteTo?: string | string[];
+      quoteMinRequestNumber?: string | string[];
+      quoteMaxRequestNumber?: string | string[];
+      quoteMinTotal?: string | string[];
+      quoteMaxTotal?: string | string[];
+      quotePage?: string | string[];
+      quotePageSize?: string | string[];
     }>;
   }
 ) {
   const searchParams = await props.searchParams;
+  const quoteAdminEnabled = isQuoteAdminEnabled();
+  const activeView =
+    quoteAdminEnabled && normalizeSearchParam(searchParams?.view) === 'quotes'
+      ? 'quotes'
+      : 'orders';
+  const [attentionOrderCount, newQuoteCount] = getDatabaseUrl()
+    ? await Promise.all([
+        fetchOrderAttentionCount().catch(() => 0),
+        quoteAdminEnabled
+          ? fetchNewQuoteRequestCount().catch(() => 0)
+          : Promise.resolve(0)
+      ])
+    : [0, 0];
   return (
     <div className="w-full">
       <div className="flex w-full flex-col gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Naročila</h1>
-          <p className="mt-1 text-sm text-slate-500">Pregled in urejanje naročil.</p>
-          <details className="mt-2 max-w-3xl rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600">
-            <summary className="cursor-pointer select-none font-semibold text-slate-700">Navodila</summary>
-            <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
-              <p className="leading-relaxed">
-                Uporabite filtre v glavi tabele za hitro omejitev rezultatov po datumu, znesku, tipu dokumenta in statusih.
-                Pri serijskih opravilih najprej izberite vrstice s potrditvenimi polji, nato uporabite dejanja v zgornji vrstici.
-              </p>
-            </div>
-          </details>
+          <p className="mt-1 text-sm text-slate-500">
+            {activeView === 'orders'
+              ? 'Pregled in urejanje naročil.'
+              : 'Ločen pregled neobvezujočih povpraševanj in izdanih ponudb.'}
+          </p>
         </div>
-        {await AdminOrdersTableSection({ searchParams })}
+        <AdminOrdersTabs
+          activeView={activeView}
+          quoteAdminEnabled={quoteAdminEnabled}
+          attentionOrderCount={attentionOrderCount}
+          newQuoteCount={newQuoteCount}
+        />
+        <div
+          id={`admin-orders-panel-${activeView}`}
+          role="tabpanel"
+          aria-labelledby={`admin-orders-tab-${activeView}`}
+        >
+          {activeView === 'quotes'
+            ? await AdminQuotesTableSection({ searchParams })
+            : await AdminOrdersTableSection({ searchParams })}
+        </div>
       </div>
     </div>
   );

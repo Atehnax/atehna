@@ -9,7 +9,10 @@ import { normalizeAdminReturnPath } from '@/shared/auth/adminReturnPath';
 
 const sensitiveOrderPages = new Set([
   '/order/confirmation',
-  '/order/narocilnica'
+  '/order/narocilnica',
+  '/quote-request/confirmation',
+  '/quote/offer',
+  '/offer/review'
 ]);
 
 function applySensitiveOrderPageHeaders(response: NextResponse) {
@@ -46,6 +49,7 @@ export function proxy(request: NextRequest) {
     pathname === '/api/admin/archive/cleanup' ||
     pathname === '/api/admin/audit-events/prune' ||
     pathname === '/api/admin/order-email-settings/process' ||
+    pathname === '/api/admin/quote-workflow/process' ||
     pathname === '/api/admin/addresses/sync';
   const isAuthorizedCron =
     isConfiguredCronPath &&
@@ -92,6 +96,9 @@ export const config = {
     '/admin/:path*',
     '/api/admin/:path*',
     '/order/confirmation',
-    '/order/narocilnica'
+    '/order/narocilnica',
+    '/quote-request/confirmation',
+    '/quote/offer',
+    '/offer/review'
   ]
 };

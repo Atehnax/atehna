@@ -45,20 +45,24 @@ test('status transitions serialize mutation, log, audit, and email enqueue in on
 
   assert.match(
     route,
-    /select id, order_number, status, customer_type, commitment_status from orders where id = \$1 for update/u
+    /select[\s\S]*?id,[\s\S]*?order_number,[\s\S]*?status,[\s\S]*?customer_type,[\s\S]*?commitment_status,[\s\S]*?shipping_override_stale,[\s\S]*?from orders[\s\S]*?where id = \$1[\s\S]*?for update/u
   );
   assert.match(route, /const changed = previousStatus !== status;/u);
   assert.match(
     route,
-    /if \(changed\) \{[\s\S]*?update orders set status[\s\S]*?insert into order_status_logs[\s\S]*?returning id, created_at[\s\S]*?enqueueOrderEmailEvent\(client,[\s\S]*?insertAuditEventForRequest\([\s\S]*?client[\s\S]*?\n\s*\);[\s\S]*?\n\s*\}/u
+    /if \(changed\) \{[\s\S]*?update orders set status[\s\S]*?insert into order_status_logs[\s\S]*?returning id, created_at[\s\S]*?if \(shouldEnqueueStatusEmail\)[\s\S]*?enqueueOrderEmailEvent\(client,[\s\S]*?insertAuditEventForRequest\([\s\S]*?client[\s\S]*?\n\s*\);[\s\S]*?\n\s*\}/u
   );
   assert.match(route, /eventKey: `order-status:\$\{statusLog\.id\}`/u);
 
   const enqueueIndex = route.indexOf('await enqueueOrderEmailEvent(client, {');
   const commitIndex = route.indexOf("await client.query('commit');");
-  const scheduleIndex = route.indexOf('if (changed) scheduleOrderEmailJobs(pool, orderId);');
+  const scheduleIndex = route.indexOf('if (shouldEnqueueStatusEmail) scheduleOrderEmailJobs(pool, orderId);');
   assert.ok(enqueueIndex > 0 && enqueueIndex < commitIndex);
   assert.ok(scheduleIndex > commitIndex);
+  assert.match(
+    route,
+    /if \(status === 'cancelled'\)[\s\S]*?shouldEnqueueStatusEmail = false/u
+  );
 });
 
 test('email worker is per-recipient, idempotent, retryable, and hard-disabled in E2E', () => {

@@ -16,6 +16,7 @@ type OrderDeleteRow = {
   country_code: string | null;
   created_at: string | null;
   deleted_at: string | null;
+  source_quote_offer_version_id: string | number | null;
 };
 
 export async function DELETE(request: Request, props: { params: Promise<{ orderId: string }> }) {
@@ -35,7 +36,9 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       await client.query('BEGIN');
       const orderResult = await client.query(
         `
-        select id, order_number, contact_name, customer_type, address_line1, address_line2, postal_code, city, country_code, created_at, deleted_at
+        select id, order_number, contact_name, customer_type, address_line1,
+               address_line2, postal_code, city, country_code, created_at,
+               deleted_at, source_quote_offer_version_id
         from orders
         where id = $1
         for update
@@ -49,6 +52,18 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       }
 
       order = orderResult.rows[0] as OrderDeleteRow;
+
+      if (order.source_quote_offer_version_id !== null) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          {
+            code: 'QUOTE_DERIVED_ORDER_DELETE_BLOCKED',
+            message:
+              'Naročila, ustvarjenega iz ponudbe, ni mogoče izbrisati. Uporabite ustrezen preklic ali zavrnitev, da se ohrani sled ponudbe.'
+          },
+          { status: 409 }
+        );
+      }
 
       if (!order.deleted_at) {
         const deletedAtResult = await client.query(

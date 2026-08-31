@@ -4,8 +4,18 @@ import { ORDER_STATUS_OPTIONS } from './orderStatus';
 export const ORDER_EMAIL_EVENT_DEFINITIONS = [
   {
     value: 'order_submitted',
-    label: 'Oddano naročilo',
-    description: 'Ko kupec uspešno odda novo naročilo.'
+    label: 'Naročilo prejeto',
+    description: 'Ko kupec uspešno odda novo naročilo; to še ni sprejem prodajalca.'
+  },
+  {
+    value: 'order_accepted',
+    label: 'Naročilo sprejeto',
+    description: 'Ko Atehna izrecno sprejme neposredno naročilo.'
+  },
+  {
+    value: 'order_rejected',
+    label: 'Naročilo zavrnjeno',
+    description: 'Ko Atehna izrecno zavrne neposredno naročilo.'
   },
   ...ORDER_STATUS_OPTIONS.map((status) => ({
     value: status.value,
@@ -98,6 +108,8 @@ const MAX_ADMIN_RECIPIENTS = 20;
 
 const requestedByDefault = new Set<OrderEmailEventType>([
   'order_submitted',
+  'order_accepted',
+  'order_rejected',
   'in_progress',
   'partially_sent',
   'sent'
@@ -121,7 +133,7 @@ const defaultTemplates = Object.fromEntries(
         {
           customer: {
             subject: 'Va\u0161e naro\u010dilo je bilo prejeto',
-            body: 'Va\u0161e naro\u010dilo smo uspe\u0161no prejeli. O nadaljnjih spremembah vas bomo obvestili po e-po\u0161ti.'
+            body: 'Prejeli smo va\u0161e naro\u010dilo. Naro\u010dilo \u0161e ni potrjeno. O sprejemu ali zavrnitvi vas bomo obvestili po e-po\u0161ti.'
           },
           schoolCustomer: {
             subject: 'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico',
@@ -130,6 +142,38 @@ const defaultTemplates = Object.fromEntries(
           admin: {
             subject: 'Novo naro\u010dilo {{order_number}}',
             body: 'Novo naro\u010dilo {{order_number}} je pripravljeno za pregled v administraciji.'
+          }
+        }
+      ];
+    }
+
+    if (value === 'order_accepted') {
+      return [
+        value,
+        {
+          customer: {
+            subject: 'Va\u0161e naro\u010dilo je potrjeno',
+            body: 'Atehna je sprejela va\u0161e naro\u010dilo. Va\u0161e naro\u010dilo je potrjeno.'
+          },
+          admin: {
+            subject: 'Naro\u010dilo {{order_number}} je sprejeto',
+            body: 'Naro\u010dilo {{order_number}} je bilo pogodbeno sprejeto.'
+          }
+        }
+      ];
+    }
+
+    if (value === 'order_rejected') {
+      return [
+        value,
+        {
+          customer: {
+            subject: 'Va\u0161e naro\u010dilo ni bilo sprejeto',
+            body: 'Atehna va\u0161ega naro\u010dila ni sprejela. Naro\u010dilo zato ni potrjeno in ne bo izpolnjeno. Za dodatna pojasnila odgovorite na to sporo\u010dilo.'
+          },
+          admin: {
+            subject: 'Naro\u010dilo {{order_number}} je zavrnjeno',
+            body: 'Naro\u010dilo {{order_number}} je bilo pogodbeno zavrnjeno.'
           }
         }
       ];

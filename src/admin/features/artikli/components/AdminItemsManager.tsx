@@ -115,6 +115,11 @@ import type {
   CatalogItemQuickSaveResponse,
   CatalogVariantQuickSaveResponse
 } from '@/shared/domain/catalog/catalogAdminTypes';
+import {
+  CATALOG_SHIPPING_FIELD_LABELS,
+  getCatalogShippingReadiness,
+  type CatalogShippingField
+} from '@/shared/domain/catalog/catalogShipping';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type NoteFilter = 'all' | NoteTag;
@@ -136,6 +141,8 @@ type ListFamily = ProductFamily & {
   itemBadge: NoteValue;
   productType: ProductType;
   typeSpecificData: AdminCatalogListItem['typeSpecificData'];
+  shippingReady: boolean;
+  shippingIssueCount: number;
 };
 type NoteValue = NoteTagValue;
 type FamilyDraft = { name: string; sku: string; categoryPath: string[]; active: boolean; badge: NoteValue };
@@ -195,6 +202,8 @@ const SKU_CHIP_CLASS =
   'inline-flex h-6 min-w-0 max-w-full items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium leading-none text-slate-600';
 const SKU_CHIP_IDLE_CLASS = 'bg-slate-50';
 const SKU_CHIP_TEXT_CLASS = 'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap';
+const formatShippingMissingFields = (fields: CatalogShippingField[] | undefined) =>
+  (fields ?? []).map((field) => CATALOG_SHIPPING_FIELD_LABELS[field]).join(', ');
 const normalizeCategoryPath = (value: string) =>
   value
     .split('/')
@@ -421,26 +430,48 @@ const getListVariantName = (item: AdminCatalogListItem, variant: AdminCatalogLis
 };
 function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
   return items.map((item, itemIndex) => {
-    const variants: Variant[] = item.variants.map((variant, variantIndex) => ({
-      id: String(variant.id),
-      label: getListVariantName(item, variant, variantIndex),
-      width: variant.width,
-      length: variant.length,
-      thickness: variant.thickness,
-      weight: variant.weight,
-      minOrder: variant.minOrder,
-      badge: variant.badge,
-      position: variant.position,
-      sku: variant.variantSku ?? '',
-      price: variant.price,
-      costNet: variant.costNet,
-      discountPct: variant.discountPct,
-      stock: variant.inventory,
-      active: variant.status === 'active',
-      sort: variantIndex + 1,
-      imageAssignments: [],
-      imageOverride: null
-    }));
+    const itemShipping = {
+      shippingWeightGrams: item.shippingWeightGrams ?? null,
+      shippingLengthMm: item.shippingLengthMm ?? null,
+      shippingWidthMm: item.shippingWidthMm ?? null,
+      shippingHeightMm: item.shippingHeightMm ?? null
+    };
+    const variants: Variant[] = item.variants.map((variant, variantIndex) => {
+      const shipping = {
+        shippingWeightGrams: variant.shippingWeightGrams ?? null,
+        shippingLengthMm: variant.shippingLengthMm ?? null,
+        shippingWidthMm: variant.shippingWidthMm ?? null,
+        shippingHeightMm: variant.shippingHeightMm ?? null
+      };
+      const readiness = getCatalogShippingReadiness(itemShipping, shipping);
+      return {
+        id: String(variant.id),
+        label: getListVariantName(item, variant, variantIndex),
+        width: variant.width,
+        length: variant.length,
+        thickness: variant.thickness,
+        weight: variant.weight,
+        ...shipping,
+        shippingReady: variant.shippingReady ?? readiness.isReady,
+        shippingMissingFields: variant.shippingMissingFields
+          ?? [...readiness.missingFields, ...readiness.invalidFields],
+        minOrder: variant.minOrder,
+        badge: variant.badge,
+        position: variant.position,
+        sku: variant.variantSku ?? '',
+        price: variant.price,
+        costNet: variant.costNet,
+        discountPct: variant.discountPct,
+        stock: variant.inventory,
+        active: variant.status === 'active',
+        sort: variantIndex + 1,
+        imageAssignments: [],
+        imageOverride: null
+      };
+    });
+    const shippingIssueCount = variants.filter(
+      (variant) => variant.active && !variant.shippingReady
+    ).length;
 
     return {
       id: String(item.id),
@@ -464,7 +495,9 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
       baseSku: item.baseSku ?? '',
       material: item.material,
       productType: item.productType,
-      typeSpecificData: item.typeSpecificData
+      typeSpecificData: item.typeSpecificData,
+      shippingReady: item.shippingReady ?? shippingIssueCount === 0,
+      shippingIssueCount: item.shippingIssueCount ?? shippingIssueCount
     };
   });
 }
@@ -2479,14 +2512,28 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           }
                                         />
                                       ) : (
-                                        <span
-                                          className={SUB_TEXT_SLOT_CLASS}
-                                          onMouseEnter={() => setHoveredArticleCell('sku', variantSkuDisplay)}
-                                          onMouseLeave={() => setHoveredCellMatch(null)}
-                                        >
-                                          <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('sku', variantSkuDisplay)}`}>
-                                            {variantSkuDisplay}
+                                        <span className="flex min-w-0 items-center gap-1">
+                                          <span
+                                            className={SUB_TEXT_SLOT_CLASS}
+                                            onMouseEnter={() => setHoveredArticleCell('sku', variantSkuDisplay)}
+                                            onMouseLeave={() => setHoveredCellMatch(null)}
+                                          >
+                                            <span className={`${adminTableMatchingValueBaseClassName} whitespace-nowrap ${getMatchingValueClassName('sku', variantSkuDisplay)}`}>
+                                              {variantSkuDisplay}
+                                            </span>
                                           </span>
+                                          <a
+                                            href={`${getItemEditHref(family)}?tab=sales#product-measurements`}
+                                            className={`inline-flex h-5 shrink-0 items-center rounded-full px-1.5 text-[10px] font-semibold ${variant.shippingReady ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}
+                                            title={variant.shippingReady
+                                              ? `SKU ${variantSkuDisplay}: podatki za poštnino so pripravljeni.`
+                                              : `SKU ${variantSkuDisplay}: manjka ${formatShippingMissingFields(variant.shippingMissingFields)}. Odpri urejevalnik.`}
+                                            aria-label={variant.shippingReady
+                                              ? `SKU ${variantSkuDisplay} je pripravljen za izračun poštnine`
+                                              : `Odpri manjkajoče podatke za poštnino za SKU ${variantSkuDisplay}`}
+                                          >
+                                            {variant.shippingReady ? '✓' : '!'}
+                                          </a>
                                         </span>
                                       )}
                                       {isEditing ? (

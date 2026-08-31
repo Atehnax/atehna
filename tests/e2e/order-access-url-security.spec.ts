@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { OrderConfirmationSnapshot } from '@/commercial/order/contracts';
+import { SHIPPING_CALCULATION_VERSION } from '@/shared/domain/shipping/shipping';
 
 const FRAGMENT_BOOTSTRAP_TOKEN = `ath_order_${'B'.repeat(43)}`;
 const REJECTED_QUERY_TOKEN = `ath_order_${'C'.repeat(43)}`;
@@ -9,6 +10,8 @@ const ACCESS_COOKIE_NAME = `ath_order_access_${ACCESS_ID.replaceAll('-', '')}`;
 const confirmationSnapshot = {
   createdAt: '2026-08-17T08:57:00.000Z',
   commitmentStatus: 'binding',
+  contractStatus: 'accepted',
+  parcelCount: 1,
   customer: {
     customerType: 'individual',
     customerName: 'Maja Primer',
@@ -22,9 +25,61 @@ const confirmationSnapshot = {
   totals: {
     net: 19.8,
     tax: 4.36,
-    shipping: 0,
-    gross: 24.16,
+    shipping: 3,
+    gross: 27.16,
     currency: 'EUR'
+  },
+  shipping: {
+    status: 'calculated',
+    source: 'automatic',
+    calculationVersion: SHIPPING_CALCULATION_VERSION,
+    configurationVersion: 1,
+    items: [],
+    combinedWeightGrams: 1_000,
+    largestDimensionMm: 100,
+    triggeringItem: null,
+    basePriceCents: 300,
+    surchargeAmountCents: 0,
+    merchandiseSubtotalCents: 2_416,
+    parcelCount: 1,
+    singleParcelAmountCents: 300,
+    parcelCountGrossAmountCents: 300,
+    multiPieceDiscountAmountCents: 0,
+    afterMultiPieceAmountCents: 300,
+    orderValueDiscountAmountCents: 0,
+    automaticAmountCents: 300,
+    finalAmountCents: 300,
+    matchedWeightBand: {
+      id: 'under-5kg',
+      name: 'Do 5 kg',
+      minWeightGrams: 1,
+      maxWeightGrams: 4_999,
+      priceCents: 300,
+      enabled: true,
+      position: 0
+    },
+    matchedDimensionalRule: null,
+    matchedMultiPieceDiscountRule: null,
+    matchedOrderValueDiscountRule: null,
+    configurationSnapshot: {
+      version: 1,
+      manualQuoteFallbackEnabled: true,
+      weightBands: [
+        {
+          id: 'under-5kg',
+          name: 'Do 5 kg',
+          minWeightGrams: 1,
+          maxWeightGrams: 4_999,
+          priceCents: 300,
+          enabled: true,
+          position: 0
+        }
+      ],
+      dimensionalRules: [],
+      orderValueDiscountRules: [],
+      multiPieceDiscountRules: []
+    },
+    manualOverride: null
   },
   documents: [
     {
@@ -146,7 +201,7 @@ test.describe('order access URL security', () => {
     );
     const initialHtml = await documentResponse!.text();
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Naročilo je sprejeto' })
+      page.getByRole('heading', { level: 1, name: 'Vaše naročilo je potrjeno' })
     ).toBeVisible();
 
     expect(observations.exchangedTokens).toEqual([FRAGMENT_BOOTSTRAP_TOKEN]);
@@ -194,7 +249,7 @@ test.describe('order access URL security', () => {
 
     await page.reload();
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Naročilo je sprejeto' })
+      page.getByRole('heading', { level: 1, name: 'Vaše naročilo je potrjeno' })
     ).toBeVisible();
     expect(observations.exchangedTokens).toEqual([FRAGMENT_BOOTSTRAP_TOKEN]);
     expect(observations.confirmationRequests).toHaveLength(2);

@@ -83,13 +83,13 @@ test('upload route rechecks locked state and cleans the blob before returning a 
   assert.ok(lockedGate < versionRead && versionRead < insert);
   assert.match(
     route.slice(lockedRead, lockedGate),
-    /select id, customer_type, status, commitment_status, deleted_at[\s\S]*?from orders[\s\S]*?where id = \$1[\s\S]*?for update/u
+    /select[\s\S]*?id,[\s\S]*?customer_type,[\s\S]*?status,[\s\S]*?commitment_status,[\s\S]*?deleted_at,[\s\S]*?shipping_override_stale,[\s\S]*?from orders[\s\S]*?where id = \$1[\s\S]*?for update/u
   );
 
   const lockedRejection = route.slice(lockedGate, versionRead);
   assert.match(
     lockedRejection,
-    /schoolPurchaseOrderUploadBlock\([\s\S]*?throw new PurchaseOrderWorkflowConflict\(lockedUploadBlock\)/u
+    /schoolPurchaseOrderUploadBlock\([\s\S]*?throw new PurchaseOrderWorkflowConflict\(lockedUploadBlock\)[\s\S]*?validateLockedOrderShippingReadiness/u
   );
   assert.doesNotMatch(lockedRejection, /return NextResponse/u);
 

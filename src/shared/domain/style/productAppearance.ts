@@ -147,7 +147,6 @@ export type ProductPurchaseAreaCopy = {
   selectOptionsActionLabel: string;
   addToCartActionLabel: string;
   unavailableActionLabel: string;
-  freeShippingMessage: string;
   deliveryFallbackMessage: string;
   paymentMessage: string;
   secondaryActionLabel: string;
@@ -283,7 +282,6 @@ export type ProductAppearanceConfig = {
     showAbsoluteSavings: boolean;
     showUnitPrice: boolean;
     listingUsesPriceRange: boolean;
-    freeShippingLabel: string;
   };
   variants: {
     selectorStyle: ProductVariantSelectorStyle;
@@ -357,7 +355,6 @@ export type ProductAppearanceConfig = {
     compactRows: boolean;
     stickySummary: boolean;
     showNetTaxBreakdown: boolean;
-    showFreeShipping: boolean;
     highlightAddedLine: boolean;
     showRelatedProducts: boolean;
   };
@@ -460,8 +457,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     showDiscountPercentage: true,
     showAbsoluteSavings: false,
     showUnitPrice: true,
-    listingUsesPriceRange: true,
-    freeShippingLabel: 'Brezplačna'
+    listingUsesPriceRange: true
   },
   variants: {
     selectorStyle: 'auto',
@@ -517,7 +513,6 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
       selectOptionsActionLabel: 'Izberite vse možnosti',
       addToCartActionLabel: 'Dodaj v košarico',
       unavailableActionLabel: 'Trenutno ni mogoče naročiti',
-      freeShippingMessage: 'Brezplačna dostava po Sloveniji',
       deliveryFallbackMessage:
         'Predvideni rok sporočimo ob potrditvi naročila.',
       paymentMessage: 'Plačilo uredimo ročno po ponudbi ali predračunu.',
@@ -590,7 +585,6 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
     compactRows: false,
     stickySummary: true,
     showNetTaxBreakdown: true,
-    showFreeShipping: true,
     highlightAddedLine: true,
     showRelatedProducts: false
   },
@@ -932,7 +926,6 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       showAbsoluteSavings: asBoolean(pricing.showAbsoluteSavings, defaults.pricing.showAbsoluteSavings),
       showUnitPrice: asBoolean(pricing.showUnitPrice, defaults.pricing.showUnitPrice),
       listingUsesPriceRange: asBoolean(pricing.listingUsesPriceRange, defaults.pricing.listingUsesPriceRange),
-      freeShippingLabel: asString(pricing.freeShippingLabel, defaults.pricing.freeShippingLabel)
     },
     variants: {
       selectorStyle: asEnum(variants.selectorStyle, PRODUCT_VARIANT_SELECTOR_STYLES, defaults.variants.selectorStyle),
@@ -1107,11 +1100,6 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
           purchaseAreaCopy.unavailableActionLabel,
           defaults.purchaseArea.copy.unavailableActionLabel
         ),
-        freeShippingMessage: asOptionalString(
-          purchaseAreaCopy.freeShippingMessage,
-          defaults.purchaseArea.copy.freeShippingMessage,
-          240
-        ),
         deliveryFallbackMessage,
         paymentMessage: asOptionalString(
           purchaseAreaCopy.paymentMessage,
@@ -1265,8 +1253,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       compactRows: asBoolean(cartSidebar.compactRows, defaults.cartSidebar.compactRows),
       stickySummary: asBoolean(cartSidebar.stickySummary, defaults.cartSidebar.stickySummary),
       showNetTaxBreakdown: true,
-      showFreeShipping: true,
-      highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
+        highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
       showRelatedProducts: false
     },
     canvas: normalizeProductCanvas(canvas),

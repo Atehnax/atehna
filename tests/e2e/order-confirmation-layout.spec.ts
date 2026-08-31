@@ -1,9 +1,88 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { OrderConfirmationSnapshot } from '@/commercial/order/contracts';
+import { SHIPPING_CALCULATION_VERSION } from '@/shared/domain/shipping/shipping';
 
 const TEST_BOOTSTRAP_TOKEN = `ath_order_${'A'.repeat(43)}`;
 const TEST_ACCESS_ID = '123e4567-e89b-42d3-a456-426614174000';
 const TEST_ACCESS_COOKIE = `ath_order_access_${TEST_ACCESS_ID.replaceAll('-', '')}`;
+
+const zeroOverrideShipping: OrderConfirmationSnapshot['shipping'] = {
+  status: 'calculated',
+  source: 'manual_override',
+  calculationVersion: SHIPPING_CALCULATION_VERSION,
+  configurationVersion: 3,
+  items: [
+    {
+      productId: '410',
+      variantId: '41001',
+      sku: 'MAT-KOV-ALU-0P3X100X100',
+      name: 'Aluminijasta plošča',
+      quantity: 5,
+      weightGrams: 14,
+      lengthMm: 100,
+      widthMm: 100,
+      heightMm: 1
+    }
+  ],
+  combinedWeightGrams: 70,
+  largestDimensionMm: 100,
+  triggeringItem: {
+    variantId: '41001',
+    sku: 'MAT-KOV-ALU-0P3X100X100',
+    name: 'Aluminijasta plošča',
+    largestDimensionMm: 100
+  },
+  basePriceCents: 300,
+  surchargeAmountCents: 0,
+  merchandiseSubtotalCents: 2_416,
+  parcelCount: 1,
+  singleParcelAmountCents: 300,
+  parcelCountGrossAmountCents: 300,
+  multiPieceDiscountAmountCents: 0,
+  afterMultiPieceAmountCents: 300,
+  orderValueDiscountAmountCents: 0,
+  automaticAmountCents: 300,
+  finalAmountCents: 0,
+  matchedWeightBand: {
+    id: 'under-5kg',
+    name: 'Do 5 kg',
+    minWeightGrams: 1,
+    maxWeightGrams: 4_999,
+    priceCents: 300,
+    enabled: true,
+    position: 0
+  },
+  matchedDimensionalRule: null,
+  matchedMultiPieceDiscountRule: null,
+  matchedOrderValueDiscountRule: null,
+  configurationSnapshot: {
+    version: 3,
+    manualQuoteFallbackEnabled: true,
+    weightBands: [
+      {
+        id: 'under-5kg',
+        name: 'Do 5 kg',
+        minWeightGrams: 1,
+        maxWeightGrams: 4_999,
+        priceCents: 300,
+        enabled: true,
+        position: 0
+      }
+    ],
+    dimensionalRules: [],
+    orderValueDiscountRules: [],
+    multiPieceDiscountRules: []
+  },
+  manualOverride: {
+    reason: 'Dogovorjen osebni prevzem',
+    automaticAmountCents: 300,
+    originalAmountCents: 300,
+    overrideAmountCents: 0,
+    actorId: 'admin-1',
+    actorName: 'Skrbnik',
+    appliedAt: '2026-08-17T08:55:00.000Z'
+  }
+};
 
 async function resolveThemeColor(scope: Locator, cssVariable: string) {
   return scope.evaluate((element, variableName) => {
@@ -21,6 +100,8 @@ const confirmationSnapshot = {
   status: 'received',
   paymentStatus: 'unpaid',
   commitmentStatus: 'binding',
+  contractStatus: 'accepted',
+  parcelCount: 1,
   customer: {
     customerType: 'individual',
     customerName: 'Maja Primer',
@@ -71,6 +152,7 @@ const confirmationSnapshot = {
     gross: 24.16,
     currency: 'EUR'
   },
+  shipping: zeroOverrideShipping,
   documents: [
     {
       type: 'order_summary',
@@ -204,7 +286,7 @@ test.describe('order confirmation layout', () => {
 
     const confirmationHeading = page.getByTestId('order-confirmation-heading');
     await expect(confirmationHeading).toHaveJSProperty('tagName', 'H1');
-    await expect(confirmationHeading).toHaveText('Naročilo je sprejeto');
+    await expect(confirmationHeading).toHaveText('Vaše naročilo je potrjeno');
     await expect(confirmationHeading).toHaveCSS('font-size', '30px');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(confirmationHeading).toHaveCSS('font-size', '24px');
@@ -246,6 +328,12 @@ test.describe('order confirmation layout', () => {
     await expect(summary.locator('[data-summary-row="tax"]')).toHaveAttribute('data-summary-tax-rate', '0.22');
     await expect(summary.locator('[data-summary-row="tax"]')).toContainText('DDV (22 %)');
     await expect(summary.locator('[data-summary-row="tax"]')).toContainText('4,36 €');
+    const shippingRows = summary.locator('[data-summary-row="shipping"]');
+    await expect(shippingRows).toHaveCount(1);
+    await expect(shippingRows.getByText('Poštnina', { exact: true })).toBeVisible();
+    await expect(shippingRows).toContainText('0,00 €');
+    await expect(summary.locator('[data-shipping-row]')).toHaveCount(0);
+    await expect(summary).not.toContainText('Dogovorjen osebni prevzem');
     await expect(summary.locator('[data-summary-row="gross"]')).toContainText('Skupaj za plačilo');
     await expect(summary.locator('[data-summary-row="gross"]')).toContainText('24,16 €');
 
@@ -788,6 +876,27 @@ test.describe('order confirmation layout', () => {
     await expect(summary).not.toContainText('Popust');
   });
 
+  test('uses green success styling for a received order awaiting seller review', async ({ page }) => {
+    await mockConfirmation(page, () => ({
+      ...confirmationSnapshot,
+      contractStatus: 'pending_seller_acceptance'
+    }));
+    await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
+
+    const status = page.getByTestId('order-submission-status');
+    await expect(status.getByText('Prejeto', { exact: true })).toBeVisible();
+    await expect(
+      status.getByRole('heading', { level: 1, name: 'Prejeli smo vaše naročilo' })
+    ).toBeVisible();
+
+    const successColor = await resolveThemeColor(status, '--site-color-success');
+    await expect(status).toHaveCSS('border-top-color', successColor);
+    await expect(status.locator('span[aria-hidden="true"]')).toHaveCSS(
+      'background-color',
+      successColor
+    );
+  });
+
   test('uses informational styling and order wording while confirmation is pending', async ({ page }) => {
     await mockConfirmation(page, () => ({
       ...confirmationSnapshot,
@@ -923,7 +1032,7 @@ test.describe('order confirmation layout', () => {
 
     const successHeading = page.getByRole('heading', {
       level: 1,
-      name: 'Naročilo je sprejeto'
+      name: 'Vaše naročilo je potrjeno'
     });
     const documents = page.getByTestId('confirmation-documents-section');
     await expect(successHeading).toBeVisible();

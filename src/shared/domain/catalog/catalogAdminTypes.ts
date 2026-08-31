@@ -1,6 +1,10 @@
 import type { CatalogItemType } from '@/shared/domain/catalog/itemType';
 import type { CatalogSpecificationLabelOverrides } from '@/shared/domain/catalog/catalogSpecification';
 import type { OrderItemSkuAllocationRow } from '@/shared/domain/order/orderTypes';
+import type {
+  CatalogShippingField,
+  CatalogShippingMeasurements
+} from '@/shared/domain/catalog/catalogShipping';
 
 export type CatalogEditorProductType = 'simple' | 'dimensions' | 'weight' | 'unique_machine';
 export type ProductEditorType = CatalogEditorProductType;
@@ -47,7 +51,7 @@ export type CatalogItemQuantityDiscountRule = {
   position?: number | null;
 };
 
-export type CatalogItemEditorVariantPayload = {
+export type CatalogItemEditorVariantPayload = CatalogShippingMeasurements & {
   id?: number;
   variantName: string;
   length?: number | null;
@@ -108,7 +112,7 @@ export type CatalogMediaUploadResponse = UploadedCatalogMediaFile & {
   ok: true;
 };
 
-export type CatalogItemEditorPayload = {
+export type CatalogItemEditorPayload = CatalogShippingMeasurements & {
   id?: number;
   expectedUpdatedAt?: string;
   itemName: string;
@@ -138,7 +142,7 @@ export type CatalogItemEditorPayload = {
   media: CatalogItemMediaPayload[];
 };
 
-export type AdminCatalogVariantSummary = {
+export type AdminCatalogVariantSummary = CatalogShippingMeasurements & {
   id: number;
   variantName: string;
   variantSku: string | null;
@@ -154,9 +158,11 @@ export type AdminCatalogVariantSummary = {
   status: 'active' | 'inactive';
   badge: string | null;
   position: number;
+  shippingReady?: boolean;
+  shippingMissingFields?: CatalogShippingField[];
 };
 
-export type AdminCatalogListItem = {
+export type AdminCatalogListItem = CatalogShippingMeasurements & {
   id: number;
   slug: string;
   itemName: string;
@@ -179,9 +185,11 @@ export type AdminCatalogListItem = {
   adminNotes: string | null;
   defaultVariantId: number | null;
   variants: AdminCatalogVariantSummary[];
+  shippingReady?: boolean;
+  shippingIssueCount?: number;
 };
 
-export type CatalogItemEditorHydration = {
+export type CatalogItemEditorHydration = CatalogShippingMeasurements & {
   id: number;
   updatedAt: string;
   itemName: string;
@@ -257,7 +265,7 @@ export type ArchivedCatalogItemSummary = {
   canPurge: boolean;
 };
 
-export type CatalogItemQuickPatch = {
+export type CatalogItemQuickPatch = CatalogShippingMeasurements & {
   itemName?: string;
   sku?: string | null;
   status?: 'active' | 'inactive';
@@ -266,7 +274,7 @@ export type CatalogItemQuickPatch = {
   categoryId?: string | null;
 };
 
-export type CatalogVariantQuickPatch = {
+export type CatalogVariantQuickPatch = CatalogShippingMeasurements & {
   variantName?: string;
   variantSku?: string | null;
   length?: number | null;

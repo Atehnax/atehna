@@ -11,6 +11,7 @@ import { cloneDefaultSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
 
 const filenames: Record<OrderDocumentTemplateType, string> = {
   order_summary: 'potrditev-narocila-preview.pdf',
+  offer: 'ponudba-preview.pdf',
   dobavnica: 'dobavnica-preview.pdf',
   predracun: 'predracun-preview.pdf',
   invoice: 'racun-preview.pdf'

@@ -49,7 +49,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await database.end();
+  await (database as PgPool & { end: () => Promise<void> }).end();
 });
 
 test('admin cancellation removes a pending quote email from the worker without sending it', async ({

@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1]
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:16-alpine
@@ -105,17 +105,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright shard
-        run: npm run test:e2e -- tests/e2e/admin-order-quote-visual-regression.spec.ts --workers=1 --retries=0 --update-snapshots=all
-
-      - name: Upload generated Linux visual baselines
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: linux-admin-order-quote-visual-baselines
-          path: tests/e2e/admin-order-quote-visual-regression.spec.ts-snapshots/*-linux.png
-          if-no-files-found: error
-          retention-days: 1
-          overwrite: true
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4 --workers=1 --retries=0
 
       - name: Upload blob report
         if: always()

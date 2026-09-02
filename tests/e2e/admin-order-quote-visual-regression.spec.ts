@@ -500,7 +500,7 @@ async function assertOrderItemsTerminalGutter(page: Page) {
       return {
         paddingRight: Number.parseFloat(styles.paddingRight),
         textAlign: styles.textAlign,
-        cellRight: cellBounds.right,
+        cellRight: cellBounds.right
       };
     });
     const valueGeometry = await valueCell.evaluate((cell) => {
@@ -684,9 +684,6 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
 
   test.beforeEach(async ({}, testInfo) => {
     testInfo.setTimeout(60_000);
-    // Keep the established Windows baselines while allowing Linux CI to use
-    // snapshots captured with its own system-font rasterization.
-    testInfo.snapshotSuffix = process.platform === 'win32' ? '' : process.platform;
   });
 
   for (const viewport of VIEWPORTS) {

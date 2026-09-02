@@ -681,8 +681,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
 
   test.beforeEach(async ({}, testInfo) => {
     testInfo.setTimeout(60_000);
-    // Keep one approved Chromium baseline portable across Windows and Linux.
-    testInfo.snapshotSuffix = '';
+    // Keep the established Windows baselines while allowing Linux CI to use
+    // snapshots captured with its own system-font rasterization.
+    testInfo.snapshotSuffix = process.platform === 'win32' ? '' : process.platform;
   });
 
   for (const viewport of VIEWPORTS) {

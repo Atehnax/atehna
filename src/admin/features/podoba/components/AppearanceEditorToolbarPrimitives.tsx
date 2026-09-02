@@ -266,7 +266,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
       const firstOption = listRef.current?.querySelector<HTMLButtonElement>(
         '[role="option"]:not(:disabled)'
       );
-      (selectedOption ?? firstOption)?.focus();
+      (selectedOption ?? firstOption)?.focus({ preventScroll: true });
     });
   }, [open]);
 

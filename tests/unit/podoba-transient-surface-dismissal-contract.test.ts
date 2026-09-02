@@ -46,6 +46,19 @@ test('appearance listboxes use the shared portaled-layer dismissal contract', ()
   assert.match(compactSelect, /window\.addEventListener\('resize', closeForViewportChange\)/u);
 });
 
+test('appearance listboxes focus their active option without triggering viewport dismissal', () => {
+  const compactSelect = sourceBetween(
+    primitivesSource,
+    'export function AppearanceEditorCompactSelect',
+    'export type AppearanceEditorToolbarPlacement'
+  );
+
+  assert.match(
+    compactSelect,
+    /\(selectedOption \?\? firstOption\)\?\.focus\(\{ preventScroll: true \}\)/u
+  );
+});
+
 test('hidden canvas flags close outside and restore their own trigger', () => {
   assert.match(hiddenFlagSource, /useDropdownDismiss\(\{/u);
   assert.match(hiddenFlagSource, /refs: dismissRefs/u);

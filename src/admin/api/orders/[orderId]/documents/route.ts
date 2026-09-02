@@ -66,7 +66,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const pool = await getPool();
     const orderResult = await pool.query(
-      `select id, order_number, source_quote_offer_version_id
+      `select id, order_number, source_quote_offer_version_id, contract_status
        from orders where id = $1`,
       [orderId]
     );
@@ -75,6 +75,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           id: string | number;
           order_number: string | null;
           source_quote_offer_version_id: string | number | null;
+          contract_status: string | null;
         }
       | undefined;
     if (!order) {
@@ -82,7 +83,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     }
     if (
       normalizedType === 'purchase_order' &&
-      order.source_quote_offer_version_id !== null
+      order.source_quote_offer_version_id !== null &&
+      order.contract_status !== 'accepted'
     ) {
       return NextResponse.json(
         {
@@ -117,7 +119,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           select
             id,
             deleted_at,
-            source_quote_offer_version_id
+            source_quote_offer_version_id,
+            contract_status
           from orders
           where id = $1
           for update
@@ -150,7 +153,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       }
       if (
         normalizedType === 'purchase_order' &&
-        lockedOrder.source_quote_offer_version_id !== null
+        lockedOrder.source_quote_offer_version_id !== null &&
+        lockedOrder.contract_status !== 'accepted'
       ) {
         await client.query('rollback');
         await deletePrivateOrderDocumentBlob(blob.pathname).catch(() => undefined);

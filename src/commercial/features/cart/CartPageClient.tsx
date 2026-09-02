@@ -12,9 +12,11 @@ import ShippingCalculationRows, {
   ShippingManualQuoteNotice
 } from '@/commercial/order/components/ShippingCalculationRows';
 import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import { formatEuro } from '@/shared/domain/formatting';
 
 export default function CartPageClient() {
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -69,8 +71,9 @@ export default function CartPageClient() {
         <p className="site-eyebrow">Nakup</p>
         <h1 className="site-heading-1 mt-2">Vaša košarica</h1>
         <p className="site-paragraph mt-3 max-w-2xl">
-          Preglejte različice in količine. Cene ter zalogo pred oddajo vedno
-          ponovno preverimo.
+          {stockEnforcementEnabled
+            ? 'Preglejte različice in količine. Cene ter zalogo pred oddajo vedno ponovno preverimo.'
+            : 'Preglejte različice in količine. Cene ter izbrane različice pred oddajo vedno ponovno preverimo.'}
         </p>
       </header>
 
@@ -154,7 +157,9 @@ export default function CartPageClient() {
 
             {estimateState.isLoading ? (
               <p className="mt-3 text-xs text-[color:var(--site-color-text-muted)]">
-                Preverjamo veljavne cene in zalogo …
+                {stockEnforcementEnabled
+                  ? 'Preverjamo veljavne cene in zalogo …'
+                  : 'Preverjamo veljavne cene in izbrane različice …'}
               </p>
             ) : estimateState.error ? (
               <div

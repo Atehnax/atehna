@@ -649,7 +649,11 @@ export default function SiteFooter({
         className={classNames(
           'grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2',
           alignItems === 'start' ? 'items-start' : 'items-center',
-          layout === 'horizontal' ? 'min-w-[12rem] flex-1' : 'w-full'
+          layout === 'horizontal'
+            ? editorMode
+              ? 'shrink-0'
+              : 'min-w-[12rem] flex-1'
+            : 'w-full'
         )}
       >
         {icon}
@@ -711,7 +715,11 @@ export default function SiteFooter({
       >
         Kontakt
       </h2>
-      <ul className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-[13px] leading-5 text-[color:var(--site-color-text-muted)]">
+      <ul
+        className={editorMode
+          ? 'flex min-w-0 flex-1 flex-nowrap items-center gap-x-3 gap-y-2 text-[13px] leading-5 text-[color:var(--site-color-text-muted)]'
+          : 'flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-[13px] leading-5 text-[color:var(--site-color-text-muted)]'}
+      >
         {renderedContactFields}
       </ul>
     </>
@@ -719,7 +727,9 @@ export default function SiteFooter({
   const lowerContactDefaultNode = (
     <section
       aria-labelledby="site-footer-lower-contact-heading"
-      className="flex basis-full flex-wrap items-center gap-x-5 gap-y-2"
+      className={editorMode
+        ? 'flex basis-full flex-nowrap items-center gap-x-3 gap-y-2'
+        : 'flex basis-full flex-wrap items-center gap-x-5 gap-y-2'}
       data-testid="site-footer-lower-contact"
       data-footer-contact-layout="horizontal"
     >

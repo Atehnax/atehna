@@ -18,6 +18,7 @@ import {
 } from '@/shared/server/quoteEmailJobs';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
+import { requireQuoteCustomerEmailConfirmation } from '@/shared/server/adminCustomerEmailConfirmation';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import {
   hasValidQuoteAdminSession,
@@ -27,6 +28,8 @@ import {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const POSTAL_CODE_PATTERN = /^\d{4}$/u;
+const ADMIN_DRAFT_CONTACT_NAME = 'Osnutek';
+const ADMIN_DRAFT_EMAIL = 'draft@atehna.si';
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
@@ -232,33 +235,6 @@ export async function POST(
         { status: 409 }
       );
     }
-    const customerType = text(quoteRequest.customer_type, 32);
-    const organizationName = text(quoteRequest.organization_name, 240);
-    const contactName = text(quoteRequest.contact_name, 240);
-    const email = text(quoteRequest.email, 320).toLowerCase();
-    const addressLine1 = text(quoteRequest.address_line1, 300);
-    const postalCode = text(quoteRequest.postal_code, 16);
-    const city = text(quoteRequest.city, 160);
-    const countryCode = text(quoteRequest.country_code, 2).toUpperCase();
-    const customerDetailsComplete =
-      Boolean(contactName)
-      && EMAIL_PATTERN.test(email)
-      && (customerType === 'individual' || Boolean(organizationName))
-      && Boolean(addressLine1)
-      && POSTAL_CODE_PATTERN.test(postalCode)
-      && Boolean(city)
-      && countryCode === 'SI';
-    if (!customerDetailsComplete) {
-      await client.query('rollback');
-      return NextResponse.json(
-        {
-          code: 'QUOTE_CUSTOMER_DETAILS_INCOMPLETE',
-          message:
-            'Pred izdajo dopolnite identiteto, e-pošto in celoten naslov stranke.'
-        },
-        { status: 409 }
-      );
-    }
     const pendingPurchaseOrder = await lockPendingQuotePurchaseOrder(
       client,
       quoteRequestId
@@ -305,8 +281,82 @@ export async function POST(
         { status: 409 }
       );
     }
+    const draftCustomer = jsonRecord(draft.customer_snapshot_json);
+    const snapshotValue = (key: string, requestKey: string) =>
+      Object.prototype.hasOwnProperty.call(draftCustomer, key)
+        ? draftCustomer[key]
+        : quoteRequest[requestKey];
+    const customerType = text(snapshotValue('customerType', 'customer_type'), 32);
+    const organizationName = text(
+      snapshotValue('organizationName', 'organization_name'),
+      240
+    );
+    const contactName = text(snapshotValue('contactName', 'contact_name'), 240);
+    const email = text(snapshotValue('email', 'email'), 320).toLowerCase();
+    const addressLine1 = text(
+      snapshotValue('addressLine1', 'address_line1'),
+      300
+    );
+    const addressLine2 =
+      text(snapshotValue('addressLine2', 'address_line2'), 500) || null;
+    const postalCode = text(snapshotValue('postalCode', 'postal_code'), 16);
+    const city = text(snapshotValue('city', 'city'), 160);
+    const countryCode = text(
+      snapshotValue('countryCode', 'country_code'),
+      2
+    ).toUpperCase();
+    const gursHouseNumberId =
+      text(snapshotValue('gursHouseNumberId', 'gurs_house_number_id'), 120) || null;
+    const reference =
+      text(snapshotValue('reference', 'reference'), 240) || null;
+    const quoteReason =
+      text(snapshotValue('quoteReason', 'quote_reason'), 80) || null;
+    const customerMessage =
+      text(snapshotValue('customerMessage', 'customer_message'), 8_000) || null;
+    const customerDetailsComplete =
+      Boolean(contactName)
+      && EMAIL_PATTERN.test(email)
+      && contactName !== ADMIN_DRAFT_CONTACT_NAME
+      && email !== ADMIN_DRAFT_EMAIL
+      && (
+        customerType === 'individual'
+        || (Boolean(organizationName) && organizationName !== ADMIN_DRAFT_CONTACT_NAME)
+      )
+      && Boolean(addressLine1)
+      && POSTAL_CODE_PATTERN.test(postalCode)
+      && Boolean(city)
+      && countryCode === 'SI';
+    if (!customerDetailsComplete) {
+      await client.query('rollback');
+      return NextResponse.json(
+        {
+          code: 'QUOTE_CUSTOMER_DETAILS_INCOMPLETE',
+          message:
+            'Pred izdajo dopolnite identiteto, e-pošto in celoten naslov stranke.'
+        },
+        { status: 409 }
+      );
+    }
+    if (parsed.body.confirmationOnly === true) {
+      const confirmationChallenge =
+        await requireQuoteCustomerEmailConfirmation({
+          client,
+          quoteRequestId,
+          eventType: 'quote_issued',
+          action: 'issue_quote',
+          actionLabel: 'Izdaja ponudbe',
+          customerEmailConfirmationToken:
+            parsed.body.customerEmailConfirmationToken,
+          recipientEmail: email
+        });
+      await client.query('rollback');
+      if (confirmationChallenge) {
+        return NextResponse.json(confirmationChallenge, { status: 428 });
+      }
+      return NextResponse.json({ confirmationRequired: false });
+    }
     const acceptanceMethod =
-      quoteRequest.customer_type === 'school' ? 'purchase_order' : 'online';
+      customerType === 'school' ? 'purchase_order' : 'online';
     if (draft.acceptance_method !== acceptanceMethod) {
       await client.query('rollback');
       return NextResponse.json(
@@ -344,12 +394,12 @@ export async function POST(
       parsed.body.termsVersion ?? draft.terms_version,
       120
     );
-    if (!deliveryTerms || !paymentTerms || !termsText || !termsVersion) {
+    if (!deliveryTerms || !paymentTerms || !termsVersion) {
       await client.query('rollback');
       return NextResponse.json(
         {
           message:
-            'Pred izdajo vnesite dobavne pogoje, plačilne pogoje in besedilo pogojev sprejema.'
+            'Pred izdajo vnesite dobavne in plačilne pogoje.'
         },
         { status: 409 }
       );
@@ -460,6 +510,22 @@ export async function POST(
     });
     const contentHash = quoteContentSha256(contentSnapshot);
 
+    const confirmationChallenge =
+      await requireQuoteCustomerEmailConfirmation({
+        client,
+        quoteRequestId,
+        eventType: 'quote_issued',
+        action: 'issue_quote',
+        actionLabel: 'Izdaja ponudbe',
+        customerEmailConfirmationToken:
+          parsed.body.customerEmailConfirmationToken,
+        recipientEmail: email
+      });
+    if (confirmationChallenge) {
+      await client.query('rollback');
+      return NextResponse.json(confirmationChallenge, { status: 428 });
+    }
+
     const previousIssued = await client.query(
       `
         select id
@@ -501,6 +567,46 @@ export async function POST(
         ]
       );
     }
+
+    await client.query(
+      `
+        update quote_requests
+        set customer_type = $2,
+            organization_name = $3,
+            contact_name = $4,
+            email = $5,
+            address_line1 = $6,
+            address_line2 = $7,
+            postal_code = $8,
+            city = $9,
+            country_code = $10,
+            gurs_house_number_id = $11,
+            reference = $12,
+            quote_reason = $13,
+            customer_message = $14,
+            billing_snapshot_json = $15::jsonb,
+            state_version = state_version + 1,
+            updated_at = now()
+        where id = $1
+      `,
+      [
+        quoteRequestId,
+        customerType,
+        customerType === 'individual' ? null : organizationName,
+        contactName,
+        email,
+        addressLine1 || null,
+        addressLine2,
+        postalCode || null,
+        city || null,
+        countryCode,
+        gursHouseNumberId,
+        reference,
+        quoteReason,
+        customerMessage,
+        JSON.stringify(jsonRecord(draft.billing_snapshot_json))
+      ]
+    );
 
     await client.query(
       `
@@ -671,7 +777,7 @@ export async function POST(
               quote_request_id, quote_offer_version_id, event_key, event_type,
               actor_type, occurred_at, metadata_json
             )
-            values ($1, $2, $3, 'quote_email_queued', 'system', now(), $4::jsonb)
+            values ($1, $2, $3, 'quote_email_queued', 'system', clock_timestamp(), $4::jsonb)
             on conflict (event_key) where event_key is not null do nothing
           `,
           [
@@ -692,7 +798,7 @@ export async function POST(
             quote_request_id, quote_offer_version_id, event_key, event_type,
             actor_type, occurred_at, reason, metadata_json
           )
-          values ($1, $2, $3, 'quote_email_provider_failed', 'system', now(), $4, $5::jsonb)
+          values ($1, $2, $3, 'quote_email_provider_failed', 'system', clock_timestamp(), $4, $5::jsonb)
           on conflict (event_key) where event_key is not null do nothing
         `,
         [

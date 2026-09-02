@@ -1,12 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import type {
-  StorefrontOptionAxis,
-  StorefrontOptionValue,
-  StorefrontVariant
+import {
+  isStorefrontVariantPurchasable,
+  type StorefrontOptionAxis,
+  type StorefrontOptionValue,
+  type StorefrontVariant
 } from '@/commercial/features/products/storefrontProduct';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import {
   buildDimensionalVariantSelectorModel,
   type DimensionalVariantGroup
@@ -47,17 +49,13 @@ const variantMatchesSelection = (
     return !selectedValueId || variant.optionValueIds.includes(selectedValueId);
   });
 
-const isPurchasable = (variant: StorefrontVariant) =>
-  variant.commerceId !== null &&
-  variant.status === 'active' &&
-  (variant.inventory === null || variant.inventory >= variant.minOrder);
-
 const optionAvailability = (
   option: StorefrontOptionValue,
   axis: StorefrontOptionAxis,
   axes: StorefrontOptionAxis[],
   variants: StorefrontVariant[],
-  selection: VariantSelection
+  selection: VariantSelection,
+  stockEnforcementEnabled: boolean
 ) => {
   const matchingVariants = variants.filter((variant) =>
     variantMatchesSelection(variant, axes, selection, axis.id, option.id)
@@ -68,7 +66,9 @@ const optionAvailability = (
   return {
     exists: globalVariants.length > 0,
     compatible: matchingVariants.length > 0,
-    compatiblePurchasable: matchingVariants.some(isPurchasable)
+    compatiblePurchasable: matchingVariants.some((variant) =>
+      isStorefrontVariantPurchasable(variant, stockEnforcementEnabled)
+    )
   };
 };
 
@@ -82,6 +82,9 @@ export default function VariantSelector({
   className
 }: VariantSelectorProps) {
   const appearance = useProductAppearance();
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
+  const isPurchasable = (variant: StorefrontVariant) =>
+    isStorefrontVariantPurchasable(variant, stockEnforcementEnabled);
   const canvasActive = appearance.canvas?.mode === 'free';
   const localCanvasWrapper = (
     elementId: string,
@@ -168,13 +171,16 @@ export default function VariantSelector({
               'product-variant-thickness-options',
               'Gumbi debeline',
               <div className="flex flex-wrap gap-2">
-                {groups.map((group) => {
+                {groups.map((group, groupIndex) => {
                   const selected = group.thickness === selectedGroup?.thickness;
                   const groupPurchasable = group.choices.some((choice) =>
                     isPurchasable(choice.variant)
                   );
                   return (
-                    <button
+                    wrapCanvasElement(
+                      `product-variant-thickness-option-${groupIndex + 1}`,
+                      group.thicknessLabel,
+                      <button
                       key={group.thickness}
                       type="button"
                       onClick={() => selectThickness(group)}
@@ -197,7 +203,9 @@ export default function VariantSelector({
                       }`}
                     >
                       {group.thicknessLabel}
-                    </button>
+                      </button>,
+                      'inline-flex'
+                    )
                   );
                 })}
               </div>
@@ -311,7 +319,8 @@ export default function VariantSelector({
                     axis,
                     axes,
                     publicVariants,
-                    selection
+                    selection,
+                    stockEnforcementEnabled
                   );
                   return (
                     <option
@@ -335,13 +344,14 @@ export default function VariantSelector({
               </select>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {axis.values.map((option) => {
+                {axis.values.map((option, optionIndex) => {
                   const availability = optionAvailability(
                     option,
                     axis,
                     axes,
                     publicVariants,
-                    selection
+                    selection,
+                    stockEnforcementEnabled
                   );
                   const selected = selectedValue?.id === option.id;
                   const unavailable = !availability.exists;
@@ -352,7 +362,10 @@ export default function VariantSelector({
                     !availability.compatiblePurchasable;
 
                   return (
-                    <button
+                    wrapCanvasElement(
+                      `${controlCanvasId}-option-${optionIndex + 1}`,
+                      option.label,
+                      <button
                       key={option.id}
                       type="button"
                       onClick={() => {
@@ -413,7 +426,9 @@ export default function VariantSelector({
                           <path d="m5 10 3 3 7-7" />
                         </svg>
                       ) : null}
-                    </button>
+                      </button>,
+                      'inline-flex'
+                    )
                   );
                 })}
               </div>

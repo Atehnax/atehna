@@ -31,7 +31,7 @@ import {
   DEFAULT_SITE_LAYOUT_SETTINGS,
   DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT,
   getSiteNavigationDesktopGroupPlacements,
-  getSiteNavigationTopBarSearchReservedWidth,
+  SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX,
   normalizeSiteNavigationConfig,
   SITE_CONTENT_MAX_WIDTH_PX,
   SITE_NAVIGATION_ADMIN_SELECTION_ROW_GAP_PX,
@@ -111,7 +111,7 @@ import SiteFooter, {
   type SiteFooterLinkPlacement
 } from '@/commercial/components/SiteFooter';
 import SiteHeader from '@/commercial/components/SiteHeader';
-import { useSiteLogoConfig } from '@/commercial/components/SiteLogo';
+import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import {
   resolveSiteLogoDisplaySize,
@@ -372,7 +372,7 @@ function estimateTopBarElementWidth({
   settings: SiteNavigationTopBarResponsiveSettings;
 }) {
   if (id === 'logo') return SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX;
-  if (id === 'search') return getTopBarSearchVariant(settings) === 'input' ? getSiteNavigationTopBarSearchReservedWidth(device) : 32;
+  if (id === 'search') return SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
   if (id === 'ai') return settings.aiMode === 'icon' ? 32 : 116;
   if (id === 'cart') return 32;
 
@@ -1004,7 +1004,7 @@ function AdminTopBarCartGlyph() {
   );
 }
 
-function AdminTopBarBrandPreview() {
+function AdminTopBarDefaultBrandPreview() {
   return (
     <span className="inline-flex items-center gap-1.5 text-black">
       <span className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-[4px] bg-black text-[11px] font-semibold leading-none text-white">
@@ -1012,6 +1012,38 @@ function AdminTopBarBrandPreview() {
       </span>
       <span className="text-[17px] font-semibold leading-none tracking-normal">Atehna</span>
     </span>
+  );
+}
+
+const adminTopBarLogoClassNames: Record<SiteNavigationTopBarDevice, string> = {
+  desktop: 'h-6 w-[88px]',
+  tablet: 'h-[22px] w-[72px]',
+  mobile: 'h-5 w-14'
+};
+
+function AdminTopBarBrandPreview({
+  device,
+  displaySize
+}: {
+  device: SiteNavigationTopBarDevice;
+  displaySize?: SiteLogoDisplaySize | null;
+}) {
+  const purposeId = `header-${device}` as SiteLogoPurposeId;
+  const style = displaySize?.explicit
+    ? {
+        width: `calc(${displaySize.widthPx}px / var(--commercial-storefront-scale))`,
+        height: `calc(${displaySize.heightPx}px / var(--commercial-storefront-scale))`
+      }
+    : undefined;
+
+  return (
+    <SiteLogo
+      purposeId={purposeId}
+      fallback={<AdminTopBarDefaultBrandPreview />}
+      className={adminTopBarLogoClassNames[device]}
+      alt="Atehna"
+      style={style}
+    />
   );
 }
 
@@ -1122,17 +1154,19 @@ function AdminTopBarElementPreview({
   items,
   highlighted = false,
   device = 'desktop',
-  settings
+  settings,
+  logoDisplaySize
 }: {
   id: SiteNavigationTopBarElementId;
   items: SiteNavigationTopLevelItem[];
   highlighted?: boolean;
   device?: SiteNavigationTopBarDevice;
+  logoDisplaySize?: SiteLogoDisplaySize | null;
   settings?: SiteNavigationTopBarLayout['responsive'][SiteNavigationTopBarDevice]['settings'];
 }) {
   const previewSettings = settings ?? DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT.responsive.desktop.settings;
 
-  if (id === 'logo') return <AdminTopBarBrandPreview />;
+  if (id === 'logo') return <AdminTopBarBrandPreview device={device} displaySize={logoDisplaySize} />;
   if (id === 'navigation') {
     return (
       <AdminTopBarNavigationPreview
@@ -2249,10 +2283,7 @@ function getDerivedTopBarFixedWidthPx(
   if (item.id === 'logo') return Math.max(item.fixedWidthPx ?? 0, SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX);
   if (item.id === 'cart') return 32;
   if (item.id === 'navigation' && (device === 'mobile' || settings.navigationMode === 'hamburger')) return 32;
-  if (item.id === 'search' && item.slot !== 'menu') {
-    if (getTopBarSearchVariant(settings) === 'icon') return 32;
-    return Math.max(item.fixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device));
-  }
+  if (item.id === 'search' && item.slot !== 'menu') return SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
 
   return null;
 }
@@ -2279,6 +2310,10 @@ function getTopBarElementComputedWidth({
     );
   }
 
+
+  if (item.id === 'search' && item.slot !== 'menu') {
+    return SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
+  }
   if (item.widthPx > 0) return item.widthPx;
 
   const derivedFixedWidth = getDerivedTopBarFixedWidthPx(item, device, settings);
@@ -3747,7 +3782,7 @@ function TopBarGeometryOverlay({
         const elementId = resizeHandleElementId;
         const item = layoutItems.find((currentItem) => currentItem.id === elementId);
         const rect = geometry.widthRects[elementId];
-        if (!item || !rect) return null;
+        if (!item || !rect || item.id === 'search' && item.slot !== 'menu') return null;
         const active = activeEdit.kind === 'element-width' && activeEdit.elementId === elementId || dragState?.type === 'width' && dragState.elementId === elementId;
 
         return (
@@ -3888,6 +3923,7 @@ function TopBarResponsivePreview({
       ? { type: 'element', elementId: dragState.elementId }
       : { type: 'width', elementId: dragState.elementId, edge: dragState.edge }
     : null;
+  const isDraggingLogo = dragState?.type === 'element' && dragState.elementId === 'logo';
   const activeGuide = getTopBarGuideFromActiveEdit(activeEdit);
   const overflowStatus = useMemo(
     () => computeOverflowStatus({ geometry, settings }),
@@ -4050,11 +4086,10 @@ function TopBarResponsivePreview({
     const item = layoutItems.find((currentItem) => currentItem.id === elementId);
     const rect = geometry.widthRects[elementId];
     if (!item || !rect) return;
+    if (item.id === 'search' && item.slot !== 'menu') return;
     const minimumFixedWidth = item.id === 'logo'
       ? SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX
-      : item.id === 'search' && item.slot !== 'menu'
-        ? getSiteNavigationTopBarSearchReservedWidth(device)
-        : 0;
+      : 0;
 
     event.preventDefault();
     event.stopPropagation();
@@ -4157,7 +4192,11 @@ function TopBarResponsivePreview({
                   transformOrigin: 'top left'
                 }}
               >
-                <div className="absolute inset-0 z-10 overflow-visible">
+                <div
+                  className={`absolute inset-0 z-10 overflow-visible ${
+                    isDraggingLogo ? '[&_a[data-navbar-left]]:invisible' : ''
+                  }`}
+                >
                   <SiteHeader
                     navigation={navigation}
                     previewMode="inline"
@@ -4175,7 +4214,7 @@ function TopBarResponsivePreview({
                       key={item.id}
                       type="button"
                       className={`absolute z-[90] inline-flex cursor-grab items-center justify-center overflow-hidden rounded-lg border border-transparent bg-transparent transition active:cursor-grabbing ${adminControlFocusTokenClasses}`}
-                      style={topBarRectStyle(rect)}
+                      style={{ ...topBarRectStyle(rect), zIndex: 90 + item.zIndex }}
                       onClick={() => {
                         onSelectElement(item.id);
                         onSetActiveEdit({ kind: 'position', elementId: item.id, fieldName: 'element' });
@@ -4183,7 +4222,7 @@ function TopBarResponsivePreview({
                       }}
                       onPointerDown={(event) => startElementDrag(item.id, event)}
                     >
-                      {dragging ? <span className="pointer-events-none h-full w-full rounded-lg border border-dashed border-[color:var(--blue-500)]/35 bg-white/75" /> : null}
+                      {dragging ? <span className="pointer-events-none h-full w-full rounded-lg border border-dashed border-[color:var(--blue-500)]/35" /> : null}
                     </button>
                   );
                 })}
@@ -4202,6 +4241,7 @@ function TopBarResponsivePreview({
                       items={items}
                       highlighted
                       device={device}
+                      logoDisplaySize={logoDisplaySize}
                       settings={settings}
                     />
                   </div>
@@ -4283,8 +4323,9 @@ function TopBarElementRow({
   const minimumFixedWidth = item.id === 'logo'
     ? SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX
     : item.id === 'search' && item.slot !== 'menu'
-      ? getSiteNavigationTopBarSearchReservedWidth(device)
+      ? SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
       : 0;
+  const searchWidthLocked = item.id === 'search' && item.slot !== 'menu';
   const rowGridClassName = topBarElementRowGridClassName;
   const rowMinWidthClassName = topBarElementRowMinWidthClassName;
   const rowActive = selected || activeEdit.elementId === item.id;
@@ -4439,11 +4480,12 @@ function TopBarElementRow({
         className="w-[84px]"
         inputClassName="w-10"
         ariaLabel={`Širina za ${topBarLayoutLabels[item.id]}`}
+        disabled={searchWidthLocked}
         stopPropagation
-        active={widthActive}
+        active={widthActive && !searchWidthLocked}
         onBlur={onClearActiveEditSoon}
-        onFocus={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
-        onMouseEnter={() => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
+        onFocus={searchWidthLocked ? undefined : () => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
+        onMouseEnter={searchWidthLocked ? undefined : () => activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' })}
         onMouseLeave={onClearActiveEditSoon}
         onChange={(fixedWidthPx) => {
           activateEdit({ kind: 'element-width', elementId: item.id, fieldName: 'width' });
@@ -4629,7 +4671,7 @@ function TopBarLayoutEditor({
               enabled: true,
               navigation: previewNavigation,
               previewDevice: device,
-              previewViewportWidth: selectedRendererPreviewViewportWidth
+              previewViewportWidth: selectedRendererPreviewViewportWidth,
             }
           : { enabled: false }
       })
@@ -4693,6 +4735,16 @@ function TopBarLayoutEditor({
     item: SiteNavigationTopBarResponsiveItem,
     settings: SiteNavigationTopBarResponsiveSettings
   ): SiteNavigationTopBarResponsiveItem => {
+    if (item.id === 'search' && item.slot !== 'menu') {
+      return {
+        ...item,
+        widthMode: 'fixed',
+        fixedWidthPx: SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX,
+        widthPx: SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX,
+        widthEditable: false
+      };
+    }
+
     const widthMode = deriveTopBarElementWidthMode(item, device, settings);
     const fixedWidthPx = widthMode === 'fixed'
       ? getDerivedTopBarFixedWidthPx(item, device, settings)
@@ -5096,7 +5148,7 @@ function TopBarLayoutEditor({
 
                   <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
                     <span className="truncate text-[11px] font-medium text-slate-500">Besedilo</span>
-                    <div className="grid min-w-0 grid-cols-[minmax(0,0.9fr)_minmax(82px,1.1fr)] gap-1.5">
+                    <div className="grid min-w-0 grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] gap-2.5">
                       <TopBarAppearanceColorField
                         label="Barva besedila"
                         ariaLabel="Barva besedila zgornje vrstice"
@@ -5110,7 +5162,8 @@ function TopBarLayoutEditor({
                         options={HOMEPAGE_WEBSITE_FONT_FAMILIES.map((fontFamily) => ({ value: fontFamily, label: fontFamily }))}
                         ariaLabel="Pisava zgornje vrstice"
                         marker={`topbar-${device}-font-family`}
-                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        tone="light"
+                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
                         onValueChange={(fontFamily) => updateSettings({ fontFamily: fontFamily as WebsiteFontFamily })}
                       />
                     </div>
@@ -5118,7 +5171,7 @@ function TopBarLayoutEditor({
 
                   <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
                     <span className="truncate text-[11px] font-medium text-slate-500">Tipografija</span>
-                    <div className="grid min-w-0 grid-cols-[66px_minmax(72px,1.05fr)_minmax(58px,0.95fr)] gap-1.5">
+                    <div className="grid min-w-0 grid-cols-[66px_minmax(72px,1.05fr)_minmax(58px,0.95fr)] gap-2">
                       <TopBarUnitNumberInput
                         value={deviceLayout.settings.fontSizePx}
                         min={10}
@@ -5135,7 +5188,8 @@ function TopBarLayoutEditor({
                         options={topBarFontWeightOptions.map((option) => ({ value: String(option.value), label: option.label }))}
                         ariaLabel="Debelina pisave zgornje vrstice"
                         marker={`topbar-${device}-font-weight`}
-                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        tone="light"
+                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
                         onValueChange={(fontWeight) => updateSettings({ fontWeight: Number(fontWeight) })}
                       />
                       <AppearanceEditorCompactSelect
@@ -5143,7 +5197,8 @@ function TopBarLayoutEditor({
                         options={topBarFontStyleOptions}
                         ariaLabel="Slog pisave zgornje vrstice"
                         marker={`topbar-${device}-font-style`}
-                        triggerClassName="h-7 rounded-md px-1.5 text-[10px]"
+                        tone="light"
+                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
                         onValueChange={(fontStyle) => updateSettings({
                           fontStyle: fontStyle as SiteNavigationTopBarResponsiveSettings['fontStyle']
                         })}
@@ -5874,6 +5929,7 @@ function TopLevelNavItemEditor({
         setMenuOpen(true);
         onSelect();
       }}
+      data-navigation-hidden={item.visible ? undefined : 'true'}
       className={`group/nav-item relative flex min-h-10 items-center gap-1.5 ${isDragging ? 'z-20 opacity-80' : ''}`}
     >
       {renaming ? (
@@ -5896,7 +5952,7 @@ function TopLevelNavItemEditor({
           type="button"
           className={`inline-flex h-9 max-w-[160px] items-center gap-1.5 rounded-md px-3 text-[13px] leading-5 transition ${
             !item.visible
-              ? 'text-slate-400 hover:text-slate-500'
+              ? 'text-slate-400 opacity-50 hover:text-slate-500 hover:opacity-75'
               : selected
               ? 'text-[color:var(--blue-500)]'
               : 'text-[var(--navbar-link-default)] hover:text-[var(--navbar-link-hover)]'
@@ -6523,6 +6579,7 @@ function GroupEditor({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
+      data-navigation-group-hidden={group.visible ? undefined : 'true'}
       className={`group min-w-0 transition ${groupColumnSpanClassNames[columnCount]} ${isDragging ? 'z-20 opacity-80' : ''}`}
     >
       <div
@@ -6583,7 +6640,7 @@ function GroupEditor({
                 <DotsGlyph className="h-3.5 w-3.5" />
               </button>
               {menuOpen ? (
-                <MenuPanel className="absolute left-0 top-full z-30 mt-1 w-36">
+                <MenuPanel className="absolute left-0 top-full z-30 mt-1 w-40">
                 <button
                   type="button"
                   className={adminActionMenuItemTokenClasses.flex}
@@ -6593,7 +6650,7 @@ function GroupEditor({
                     setMenuOpen(false);
                   }}
                 >
-                  <span>Prikaži / Skrij</span>
+                  <span>{group.visible ? 'Skrij skupino' : 'Prikaži skupino'}</span>
                   <EyeGlyph visible={group.visible} className="h-3.5 w-3.5" />
                 </button>
                 <button
@@ -6635,7 +6692,11 @@ function GroupEditor({
       </div>
       <DndContext id={`site-navigation-links-${group.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onReorderLink}>
         <SortableContext items={linkIds} strategy={rectSortingStrategy}>
-          <div className={`mt-2 grid gap-x-1 gap-y-[var(--navbar-dropdown-selection-row-gap)] ${groupLinkGridClassNames[columnCount]}`}>
+          <div
+            className={`mt-2 grid gap-x-1 gap-y-[var(--navbar-dropdown-selection-row-gap)] transition-opacity ${
+              group.visible ? '' : 'opacity-50'
+            } ${groupLinkGridClassNames[columnCount]}`}
+          >
             {group.links.map((link) => (
               <LinkEditor
                 key={link.id}
@@ -7423,7 +7484,7 @@ export default function AdminNavigationPageClient({
     renderLowerContact: ({ defaultNode, hidden }) => (
       <div
         data-admin-footer-lower-contact-preview="true"
-        className={`relative flex basis-full items-start gap-1 ${hidden ? 'opacity-45' : ''}`}
+        className={`relative flex w-full min-w-0 basis-full items-center gap-1 ${hidden ? 'opacity-45' : ''}`}
         style={{ textAlign: config.footer.contact.textAlign }}
       >
         <div className="min-w-0 flex-1">{defaultNode}</div>
@@ -7487,7 +7548,7 @@ export default function AdminNavigationPageClient({
       />
     ),
     renderCopyright: ({ rawValue, resolvedValue }) => (
-      <div className="flex min-w-0 max-w-full items-start gap-1">
+      <div className="flex min-w-0 max-w-full items-center gap-1">
         <InlineEditableText
           value={rawValue}
           displayValue={resolvedValue}
@@ -7624,7 +7685,9 @@ export default function AdminNavigationPageClient({
 
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">{selectedItem?.label ?? 'Izberite element navigacije'}</h2>
+            <h2 className={`text-xl font-semibold ${selectedItem?.visible === false ? 'text-slate-400' : 'text-slate-900'}`}>
+              {selectedItem?.label ?? 'Izberite element navigacije'}
+            </h2>
           </div>
           <Button type="button" variant="primary" size="toolbar" className={adminTablePrimaryButtonClassName} onClick={addGroup} disabled={!selectedItem}>
             Dodaj skupino
@@ -7632,7 +7695,12 @@ export default function AdminNavigationPageClient({
         </div>
         {selectedItem ? (
           selectedItem.groups.length > 0 ? (
-            <div className="rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.6)]">
+            <div
+              data-navigation-parent-hidden={selectedItem.visible ? undefined : 'true'}
+              className={`rounded-2xl border border-[var(--navbar-dropdown-border)] bg-white p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.6)] transition-opacity ${
+                selectedItem.visible ? '' : 'opacity-50'
+              }`}
+            >
               <DndContext id={`site-navigation-groups-${selectedItem.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
                 <SortableContext items={selectedGroupIds} strategy={rectSortingStrategy}>
                   <div className="grid gap-x-8 gap-y-7 lg:grid-cols-3">

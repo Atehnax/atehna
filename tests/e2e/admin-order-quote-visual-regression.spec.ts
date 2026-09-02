@@ -247,8 +247,8 @@ async function assertDetailColumns(
     ? page.getByTestId('quote-request-details-card')
     : page.getByTestId('admin-order-data-card');
   const rightCard = kind === 'quote'
-    ? page.getByTestId('quote-customer-card')
-    : page.getByTestId('admin-order-customer-card');
+    ? page.getByTestId('quote-admin-notes-card')
+    : page.getByTestId('admin-order-admin-notes-card');
   const [left, right] = await Promise.all([box(leftCard.locator('..')), box(rightCard.locator('..'))]);
   if (viewport.key === 'desktop') {
     expect(Math.abs(left.y - right.y)).toBeLessThanOrEqual(1);
@@ -286,6 +286,41 @@ async function assertSectionEditIcons(page: Page, minimumCount: number) {
   }
 }
 
+async function assertQuoteSectionTitleStyles(page: Page) {
+  const sectionTitles = [
+    'Podatki povpraševanja',
+    'Ponudba',
+    'Opombe administratorja',
+    'PDF dokumenti',
+    'Stranka in dostop'
+  ] as const;
+  const renderedStyles: Array<{
+    fontSize: string;
+    fontWeight: string;
+    lineHeight: string;
+    color: string;
+  }> = [];
+
+  for (const name of sectionTitles) {
+    const heading = page.getByRole('heading', { name, exact: true, level: 2 });
+    await expect(heading).toHaveCount(1);
+    await expect(heading).toBeVisible();
+    renderedStyles.push(await heading.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
+        color: style.color
+      };
+    }));
+  }
+
+  const reference = renderedStyles[0]!;
+  expect(reference.fontSize).toBe('16px');
+  expect(reference.fontWeight).toBe('600');
+  for (const style of renderedStyles.slice(1)) expect(style).toEqual(reference);
+}
 async function assertQuoteTitleDescenders(page: Page) {
   const title = page.getByTestId('quote-title-slot').locator('h1 > span');
   await expect(title).toHaveText(VISUAL_QUOTE_TITLE);
@@ -443,6 +478,55 @@ async function captureOrderItemSlots(page: Page) {
   return slots.map(({ horizontalOffset: _horizontalOffset, verticalOffset: _verticalOffset, ...slot }) => slot);
 }
 
+async function assertOrderItemsTerminalGutter(page: Page) {
+  const table = page.getByTestId('admin-order-items-toolbar').locator('..').locator('table');
+  const scroller = table.locator('..');
+  const headerLabel = page.getByTestId('admin-order-items-total-header');
+  const valueCell = table.locator('[data-admin-order-item-total]').first();
+  const originalScrollLeft = await scroller.evaluate((element) => element.scrollLeft);
+
+  await scroller.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+  });
+  try {
+    await expect(headerLabel).toBeVisible();
+    await expect(valueCell).toBeVisible();
+
+    const headerGeometry = await headerLabel.evaluate((label) => {
+      const cell = label.closest('th');
+      if (!cell) throw new Error('Order total header is missing its table cell.');
+      const cellBounds = cell.getBoundingClientRect();
+      const labelBounds = label.getBoundingClientRect();
+      return {
+        paddingRight: Number.parseFloat(getComputedStyle(cell).paddingRight),
+        rightEdge: labelBounds.right,
+        gap: cellBounds.right - labelBounds.right
+      };
+    });
+    const valueGeometry = await valueCell.evaluate((cell) => {
+      const value = cell.querySelector('[data-admin-order-item-total-value]');
+      if (!value) throw new Error('Order total value is missing its label.');
+      const cellBounds = cell.getBoundingClientRect();
+      const valueBounds = value.getBoundingClientRect();
+      return {
+        paddingRight: Number.parseFloat(getComputedStyle(cell).paddingRight),
+        rightEdge: valueBounds.right,
+        gap: cellBounds.right - valueBounds.right
+      };
+    });
+
+    expect(headerGeometry.paddingRight).toBe(16);
+    expect(valueGeometry.paddingRight).toBe(16);
+    expect(headerGeometry.gap).toBeGreaterThanOrEqual(15);
+    expect(valueGeometry.gap).toBeGreaterThanOrEqual(15);
+    expect(Math.abs(headerGeometry.rightEdge - valueGeometry.rightEdge)).toBeLessThanOrEqual(1);
+  } finally {
+    await scroller.evaluate((element, left) => {
+      element.scrollLeft = left;
+    }, originalScrollLeft);
+  }
+}
+
 async function normalizeVolatileActivityTimestamps(page: Page) {
   await page
     .locator('[data-testid$="-activity-timeline"] time')
@@ -487,6 +571,42 @@ async function expectPageScreenshot(page: Page, name: string, masks: Locator[] =
     threshold: 0.25,
     maxDiffPixelRatio: 0.01
   });
+}
+
+async function expectOrderShippingScreenshot(page: Page, name: string) {
+  const shippingCard = page.getByTestId('admin-order-shipping-card');
+  await expect(shippingCard).toBeVisible();
+  await shippingCard.scrollIntoViewIfNeeded();
+  await expect(shippingCard).toHaveScreenshot(name, {
+    animations: 'disabled',
+    caret: 'hide',
+    scale: 'css',
+    threshold: 0.25,
+    maxDiffPixelRatio: 0.003
+  });
+}
+
+async function expectOrderItemsScreenshot(page: Page, name: string) {
+  const card = page.getByTestId('admin-order-items-toolbar').locator('..');
+  const scroller = card.locator('table').locator('..');
+  await card.scrollIntoViewIfNeeded();
+  const originalScrollLeft = await scroller.evaluate((element) => element.scrollLeft);
+  await scroller.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+  });
+  try {
+    await expect(card).toHaveScreenshot(name, {
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+      threshold: 0.25,
+      maxDiffPixelRatio: 0.003
+    });
+  } finally {
+    await scroller.evaluate((element, left) => {
+      element.scrollLeft = left;
+    }, originalScrollLeft);
+  }
 }
 
 function quoteMasks(page: Page) {
@@ -574,6 +694,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await settleRenderedPage(page);
 
       await assertQuoteTitleDescenders(page);
+      await assertQuoteSectionTitleStyles(page);
       await assertSectionEditIcons(page, 3);
       await assertDetailColumns(page, 'quote', viewport);
       await assertQuoteItemGeometry(page);
@@ -617,6 +738,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       expectSameBox(before.title, await box(titleSlot));
       expectSameBox(before.request, await box(requestCard));
       assertQuoteOfferLayoutUnchanged(before.offer, await captureQuoteOfferLayout(page));
+      await assertQuoteSectionTitleStyles(page);
       await assertSectionEditIcons(page, 3);
       await assertDetailColumns(page, 'quote', viewport);
       await assertQuoteItemGeometry(page);
@@ -643,7 +765,10 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await assertSectionEditIcons(page, 4);
       await assertDetailColumns(page, 'order', viewport);
       await captureOrderItemSlots(page);
+      await assertOrderItemsTerminalGutter(page);
       await expectPageScreenshot(page, `order-${viewport.key}-read.png`);
+      await expectOrderItemsScreenshot(page, `order-items-${viewport.key}-read.png`);
+      await expectOrderShippingScreenshot(page, `order-shipping-${viewport.key}-read.png`);
     });
 
     test(`order ${viewport.key} edit mode`, async ({ page }) => {
@@ -675,7 +800,10 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       });
       await assertSectionEditIcons(page, 4);
       await assertDetailColumns(page, 'order', viewport);
+      await assertOrderItemsTerminalGutter(page);
       await expectPageScreenshot(page, `order-${viewport.key}-edit.png`);
+      await expectOrderItemsScreenshot(page, `order-items-${viewport.key}-edit.png`);
+      await expectOrderShippingScreenshot(page, `order-shipping-${viewport.key}-edit.png`);
     });
   }
 });

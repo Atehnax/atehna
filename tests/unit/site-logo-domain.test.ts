@@ -209,6 +209,7 @@ test('storefront header and footer renderer consume shared masters and presentat
   assert.match(source, /<SiteLogoArtwork\b/u);
   assert.match(source, /resolveSiteLogoCanvasLayout/u);
   assert.match(source, /resolveSiteLogoFittedArtworkRect/u);
+  assert.match(source, /resolveSiteLogoCropClipPath\(geometry\.crop\)/u);
   assert.match(source, /fitMode:\s*placement\.fitMode/u);
 });
 

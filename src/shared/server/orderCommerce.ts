@@ -16,6 +16,7 @@ import {
   resolveEffectiveOrderDiscount,
   type DiscountKind
 } from '@/shared/server/orderQuantityDiscount';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
 import { getShippingConfiguration } from '@/shared/server/shipping';
 
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
@@ -41,6 +42,12 @@ export type OrderSelection = {
 export type ManualQuoteCatalogSelection = OrderSelection & {
   catalogItemId: number | null;
   sku: string | null;
+};
+
+export type OrderEstimateOptions = {
+  lockVariants?: boolean;
+  customerLabels?: readonly string[];
+  stockEnforcementEnabled?: boolean;
 };
 
 export type OrderEstimateIssue = {
@@ -621,7 +628,7 @@ function priceLine(
 async function buildAuthoritativeOrderEstimateInternal(
   database: Queryable,
   selections: OrderSelection[],
-  options: { lockVariants?: boolean; customerLabels?: readonly string[] } | undefined,
+  options: OrderEstimateOptions | undefined,
   enforceOrderability: boolean
 ): Promise<AuthoritativeOrderEstimate> {
   const variantIds = selections.map((selection) => selection.variantId);
@@ -629,6 +636,10 @@ async function buildAuthoritativeOrderEstimateInternal(
   const customerLabels = normalizeOrderEstimateCustomerLabels(
     options?.customerLabels ?? []
   );
+  const stockEnforcementEnabled = enforceOrderability
+    ? (options?.stockEnforcementEnabled ??
+      (await isStockEnforcementEnabled(database)))
+    : false;
 
   const result = await database.query(
     `
@@ -828,7 +839,7 @@ async function buildAuthoritativeOrderEstimateInternal(
         availableStock
       });
     }
-    if (selection.quantity > availableStock) {
+    if (stockEnforcementEnabled && selection.quantity > availableStock) {
       issues.push({
         code: 'INSUFFICIENT_STOCK',
         message: `Za ${row.product_name} – ${row.variant_name} je na voljo ${availableStock}.`,
@@ -988,7 +999,7 @@ async function buildAuthoritativeOrderEstimateInternal(
 export async function buildAuthoritativeOrderEstimate(
   database: Queryable,
   selections: OrderSelection[],
-  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
+  options?: OrderEstimateOptions
 ): Promise<AuthoritativeOrderEstimate> {
   return buildAuthoritativeOrderEstimateInternal(
     database,
@@ -1063,7 +1074,7 @@ export async function loadAuthoritativeManualQuoteCatalogSnapshot(
 export async function buildAuthoritativeOrderQuote(
   database: Queryable,
   selections: OrderSelection[],
-  options?: { lockVariants?: boolean; customerLabels?: readonly string[] }
+  options?: OrderEstimateOptions
 ): Promise<AuthoritativeOrderEstimate> {
   return buildAuthoritativeOrderEstimate(database, selections, options);
 }

@@ -18,6 +18,7 @@ import { flushSync } from 'react-dom';
 import { useCartStore } from '@/commercial/cart/store';
 import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
 import CartLine from '@/commercial/components/storefront/CartLine';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import {
   parseOrderApiError,
   type SubmitOrderRequest,
@@ -56,6 +57,8 @@ import {
 
 const FORM_STORAGE_KEY = 'atehna-order-form-v4';
 const ADDRESS_SEARCH_DEBOUNCE_MS = 50;
+const ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME =
+  'flex justify-between gap-4 text-sm font-normal not-italic text-[color:var(--site-color-text)]';
 
 type OrderFormData = {
   customerType: CustomerType | '';
@@ -227,6 +230,7 @@ export default function OrderPageClient({
 }: {
   quoteRequestsEnabled?: boolean;
 }) {
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -652,7 +656,9 @@ export default function OrderPageClient({
     ) {
       setIntentError(
         estimateState.error?.message ??
-          'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+          (stockEnforcementEnabled
+            ? 'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+            : 'Pred oddajo moramo potrditi cene in izbrane različice.')
       );
       return;
     }
@@ -900,11 +906,15 @@ export default function OrderPageClient({
       item.reconciliation.status === 'needs_review'
   )?.reconciliation.message;
   const estimateStatusMessage = estimateState.isLoading
-    ? 'Preverjamo cene in zalogo …'
+    ? stockEnforcementEnabled
+      ? 'Preverjamo cene in zalogo …'
+      : 'Preverjamo cene in izbrane različice …'
     : estimateState.error?.message ||
       blockingCartMessage ||
       (!estimateState.estimate
-        ? 'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+        ? stockEnforcementEnabled
+          ? 'Pred oddajo moramo potrditi cene, zalogo in izbrane različice.'
+          : 'Pred oddajo moramo potrditi cene in izbrane različice.'
         : null);
 
   const summary = (
@@ -927,20 +937,20 @@ export default function OrderPageClient({
         ))}
       </div>
       <dl className="mt-5 space-y-2 border-t border-[color:var(--site-divider-color)] pt-4 text-sm">
-        <div className="flex justify-between">
+        <div className={ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME}>
           <dt>Cena brez DDV</dt>
           <dd className="font-semibold tabular-nums">
             {totals ? formatEuro(totals.net) : '—'}
           </dd>
         </div>
-        <div className="flex justify-between">
+        <div className={ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME}>
           <dt>DDV</dt>
           <dd className="font-semibold tabular-nums">
             {totals ? formatEuro(totals.tax) : '—'}
           </dd>
         </div>
         <div
-          className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]"
+          className={ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME}
           data-testid="order-summary-shipping"
           data-summary-row="shipping"
           data-shipping-status={
@@ -948,7 +958,7 @@ export default function OrderPageClient({
           }
         >
           <dt>Poštnina</dt>
-          <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
+          <dd className="font-semibold tabular-nums">
             {totals?.shipping !== null && totals?.shipping !== undefined
               ? formatEuro(totals.shipping)
               : estimateState.estimate?.shipping.status === 'manual_quote'

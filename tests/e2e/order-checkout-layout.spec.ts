@@ -699,6 +699,30 @@ test.describe('order checkout layout', () => {
     await expect(
       summaryColumn.getByText('Poštnina', { exact: true })
     ).toBeVisible();
+    const summaryLabelStyles = await Promise.all(
+      ['Cena brez DDV', 'DDV', 'Poštnina'].map((label) =>
+        summaryColumn
+          .getByText(label, { exact: true })
+          .evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+              color: style.color,
+              fontFamily: style.fontFamily,
+              fontSize: style.fontSize,
+              fontStyle: style.fontStyle,
+              fontWeight: style.fontWeight,
+              letterSpacing: style.letterSpacing,
+              lineHeight: style.lineHeight
+            };
+          })
+      )
+    );
+    for (const style of summaryLabelStyles.slice(1)) {
+      expect(
+        style,
+        'all non-total checkout summary labels should share one rendered text style'
+      ).toEqual(summaryLabelStyles[0]);
+    }
     const summaryCartLine = summaryColumn.locator(
       `[data-cart-line-id="${cartItem.lineId}"]`
     );
@@ -750,6 +774,29 @@ test.describe('order checkout layout', () => {
     await page.getByRole('button', { name: /^Košarica/ }).click();
     const cartDrawer = page.getByRole('dialog', { name: 'Košarica (1)' });
     await expect(cartDrawer).toBeVisible();
+    const drawerShippingRow = cartDrawer.getByTestId('cart-drawer-shipping');
+    await expect(drawerShippingRow).toHaveCount(1);
+    await expect(drawerShippingRow).toHaveAttribute('data-summary-row', 'shipping');
+    await expect(drawerShippingRow).toContainText('3,00 €');
+    await expect(cartDrawer.locator('[data-shipping-row]')).toHaveCount(0);
+    await expect.poll(async () => (
+      (await cartDrawer.innerText()).match(/poštnina/giu) ?? []
+    ).length).toBe(1);
+    await expect(
+      cartDrawer.getByText('Poštnina', { exact: true })
+    ).toHaveCount(1);
+    for (const oldShippingLabel of [
+      'Osnovna poštnina',
+      'Referenčna cena posameznega paketa (S)',
+      '1 × S',
+      'Po popustu za več kosov',
+      'Izračun',
+      'Samodejno izračunana poštnina'
+    ]) {
+      await expect(
+        cartDrawer.getByText(oldShippingLabel, { exact: true })
+      ).toHaveCount(0);
+    }
     const drawerRemoveMetrics = await expectAdminStyleRemoveAction(
       page,
       cartDrawer.getByRole('button', {

@@ -33,33 +33,29 @@ test('school purchase-order proof accepts only customer or admin upload provenan
   assert.equal(isSchoolPurchaseOrderProofFormatMarker(undefined), false);
 });
 
-test('purchase-order upload stays open only for an active received school order awaiting confirmation', () => {
+test('purchase-order upload stays open for any active received school order awaiting seller acceptance', () => {
   assert.equal(
     schoolPurchaseOrderUploadBlock(
       'school',
-      'pending_confirmation',
       'received',
+      'pending_seller_acceptance',
       false
     ),
     null
   );
   for (const args of [
-    ['company', 'pending_confirmation', 'received', false],
-    ['school', 'binding', 'received', false],
-    ['school', 'pending_confirmation', 'in_progress', false],
-    ['school', 'pending_confirmation', 'received', true]
+    ['company', 'received', 'pending_seller_acceptance', false],
+    ['school', 'in_progress', 'pending_seller_acceptance', false],
+    ['school', 'received', 'accepted', false],
+    ['school', 'received', 'rejected', false],
+    ['school', 'received', 'pending_seller_acceptance', true]
   ] as const) {
-    const [
-      customerType,
-      commitmentStatus,
-      orderStatus,
-      isDeleted
-    ] = args;
+    const [customerType, orderStatus, contractStatus, isDeleted] = args;
     assert.equal(
       schoolPurchaseOrderUploadBlock(
         customerType,
-        commitmentStatus,
         orderStatus,
+        contractStatus,
         isDeleted
       ),
       SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED
@@ -70,7 +66,6 @@ test('purchase-order upload stays open only for an active received school order 
     'SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED'
   );
 });
-
 test('school and public-institution orders require an active purchase order before becoming binding', () => {
   assert.equal(
     schoolBindingBlock('school', 'binding', false),
@@ -88,67 +83,115 @@ test('school and public-institution orders require an active purchase order befo
   );
 });
 
-test('school execution states require both an active purchase order and binding commitment', () => {
+test('pending school acceptance requires purchase-order evidence while accepted corrections can progress', () => {
   for (const status of ['in_progress', 'partially_sent', 'sent', 'finished']) {
     assert.equal(
-      schoolExecutionBlock('school', 'binding', status, false),
+      schoolExecutionBlock(
+        'school',
+        'binding',
+        status,
+        false,
+        'pending_seller_acceptance'
+      ),
       SCHOOL_PURCHASE_ORDER_REQUIRED
     );
     assert.equal(
-      schoolExecutionBlock('school', 'pending_confirmation', status, true),
+      schoolExecutionBlock(
+        'school',
+        'pending_confirmation',
+        status,
+        true,
+        'pending_seller_acceptance'
+      ),
       SCHOOL_ORDER_NOT_BINDING
     );
-    assert.equal(schoolExecutionBlock('school', 'binding', status, true), null);
+    assert.equal(
+      schoolExecutionBlock(
+        'school',
+        'binding',
+        status,
+        true,
+        'pending_seller_acceptance'
+      ),
+      null
+    );
+    assert.equal(
+      schoolExecutionBlock('school', 'binding', status, false, 'accepted'),
+      null
+    );
   }
   assert.equal(
-    schoolExecutionBlock('school', 'pending_confirmation', 'received', false),
+    schoolExecutionBlock(
+      'school',
+      'pending_confirmation',
+      'received',
+      false,
+      'pending_seller_acceptance'
+    ),
     null
   );
   assert.equal(
-    schoolExecutionBlock('school', 'pending_confirmation', 'cancelled', false),
+    schoolExecutionBlock(
+      'school',
+      'pending_confirmation',
+      'cancelled',
+      false,
+      'pending_seller_acceptance'
+    ),
     null
   );
   assert.equal(
-    schoolExecutionBlock('individual', 'pending_confirmation', 'sent', false),
+    schoolExecutionBlock(
+      'individual',
+      'pending_confirmation',
+      'sent',
+      false,
+      'pending_seller_acceptance'
+    ),
     null
   );
   assert.match(SCHOOL_ORDER_NOT_BINDING.message, /šole ali javnega zavoda/u);
 });
-
-test('admin routes gate stock and execution mutations on an active purchase order', () => {
-  const commitmentRoute = source(
-    'src/admin/api/orders/[orderId]/commitment-status/route.ts'
+test('admin routes gate stock and execution mutations on active purchase-order evidence', () => {
+  const acceptance = source(
+    'src/shared/server/schoolOrderSellerAcceptance.ts'
   );
   const statusRoute = source('src/admin/api/orders/[orderId]/status/route.ts');
-  const bindingDocument = commitmentRoute.indexOf('from order_documents');
-  const bindingGate = commitmentRoute.indexOf(
-    'const purchaseOrderBlock = schoolBindingBlock'
-  );
-  const stockRead = commitmentRoute.indexOf('from order_items');
-  const executionDocument = statusRoute.indexOf('from order_documents');
+  const evidenceRead = statusRoute.indexOf('from order_documents');
   const executionGate = statusRoute.indexOf(
     'const executionBlock = schoolExecutionBlock'
   );
-  const statusMutation = statusRoute.indexOf('update orders set status = $1');
-
-  assert.ok(bindingDocument < bindingGate && bindingGate < stockRead);
-  assert.ok(
-    executionDocument < executionGate && executionGate < statusMutation
+  const acceptanceCall = statusRoute.indexOf(
+    'await acceptSchoolOrderForProcessing'
   );
-  for (const route of [commitmentRoute, statusRoute]) {
-    assert.match(
-      route,
-      /type = 'purchase_order'[\s\S]*?deleted_at is null[\s\S]*?format_marker = any\(\$2::text\[\]\)[\s\S]*?order by id desc[\s\S]*?limit 1[\s\S]*?for share/u
-    );
-    assert.match(route, /\[orderId, \[\.\.\.SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS\]\]/u);
-    assert.match(route, /purchaseOrderResult\.rowCount === 1/u);
-  }
+  const statusMutation = statusRoute.indexOf('update orders set status = $1');
+  const stockRead = acceptance.indexOf('from order_items');
+  const stockCommit = acceptance.indexOf('await commitOrderStockHolds');
+
+  assert.ok(evidenceRead >= 0);
+  assert.ok(executionGate > evidenceRead);
+  assert.ok(acceptanceCall > executionGate);
+  assert.ok(statusMutation > acceptanceCall);
+  assert.ok(stockRead >= 0);
+  assert.ok(stockCommit > stockRead);
   assert.match(
     statusRoute,
-    /schoolExecutionBlock\([\s\S]*?purchaseOrderResult\.rowCount === 1/u
+    /type = 'purchase_order'[\s\S]*?deleted_at is null[\s\S]*?format_marker = any\(\$2::text\[\]\)[\s\S]*?order by id desc[\s\S]*?limit 1[\s\S]*?for share/u
+  );
+  assert.match(
+    statusRoute,
+    /\[orderId, \[\.\.\.SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS\]\]/u
+  );
+  assert.match(statusRoute, /purchaseOrderDocument !== undefined/u);
+  assert.match(
+    statusRoute,
+    /schoolExecutionBlock\([\s\S]*?purchaseOrderDocument !== undefined/u
+  );
+  assert.match(
+    acceptance,
+    /customer_type = 'school'[\s\S]*?commitment_status in \('pending_confirmation', 'binding'\)[\s\S]*?contract_status = 'pending_seller_acceptance'/u
   );
 });
-
 test('upload guidance is explicit and requests no internal order number', () => {
   const page = source('src/commercial/pages/order/narocilnica/page.tsx');
   const form = source(

@@ -14,6 +14,7 @@ export default function AdminOrderPdfManagerClient(props: {
   orderId: number;
   documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
+  unsavedChangesReason?: string;
   generationDisabledReason?: string;
 }) {
   return <AdminOrderPdfManager {...props} />;

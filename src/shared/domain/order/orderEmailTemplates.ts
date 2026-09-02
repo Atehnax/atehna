@@ -2,6 +2,7 @@ import { formatEuro } from '../formatting';
 import type { CustomerType } from './customerType';
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
+  type OrderEmailImageAttachment,
   type OrderEmailEventType,
   type StoredOrderEmailSettings
 } from './orderEmailSettings';
@@ -67,6 +68,11 @@ export type OrderEmailJobPayload =
   | OrderEmailCustomerJobPayload
   | OrderEmailAdminJobPayload;
 
+export type EmailMessageAttachment = Readonly<{
+  path: string;
+  filename: string;
+}>;
+
 export type OrderEmailMessage = {
   from: string;
   to: string;
@@ -74,6 +80,7 @@ export type OrderEmailMessage = {
   subject: string;
   html: string;
   text: string;
+  attachments?: readonly EmailMessageAttachment[];
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
@@ -81,6 +88,12 @@ const HEADER_CONTROLS_PATTERN = /[\u0000-\u001f\u007f]+/gu;
 const BODY_CONTROLS_PATTERN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/gu;
 const ORDER_ACCESS_TOKEN_PATTERN = /^ath_order_[A-Za-z0-9_-]{43}$/u;
 const PURCHASE_ORDER_UPLOAD_PATH = '/order/narocilnica';
+const SHARED_IMAGE_ATTACHMENT_PATH_PATTERN =
+  /^\/email\/shared\/[A-Za-z0-9][A-Za-z0-9._-]{0,254}\.(?:png|jpg|webp|gif)$/u;
+const SHARED_IMAGE_ATTACHMENT_FILENAME_EXTENSION_PATTERN =
+  /\.(?:png|jpe?g|webp|gif)$/iu;
+const VERCEL_PUBLIC_BLOB_HOST_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.public\.blob\.vercel-storage\.com$/u;
 const slDateFormatter = new Intl.DateTimeFormat('sl-SI', {
   dateStyle: 'long',
   timeStyle: 'short',
@@ -150,6 +163,58 @@ function orderStatusLabel(eventType: OrderEmailEventType): string {
   if (eventType === 'order_accepted') return 'Pogodbeno sprejeto';
   if (eventType === 'order_rejected') return 'Pogodbeno zavrnjeno';
   return getStatusLabel(eventType);
+}
+
+/**
+ * Normalizes the provider's remote-file attachment shape. The shared settings
+ * normalizer already enforces these constraints; this second boundary check
+ * prevents a hand-built or tampered snapshot from turning into an arbitrary
+ * provider fetch.
+ */
+export function normalizeEmailMessageAttachment(
+  value:
+    | OrderEmailImageAttachment
+    | EmailMessageAttachment
+    | null
+    | undefined
+): EmailMessageAttachment | null {
+  if (!value) return null;
+  const path = 'path' in value ? value.path : value.url;
+  const filename = value.filename;
+  if (
+    typeof path !== 'string' ||
+    path !== path.trim() ||
+    typeof filename !== 'string' ||
+    filename !== filename.trim() ||
+    filename.length === 0 ||
+    filename.length > 255 ||
+    filename === '.' ||
+    filename === '..' ||
+    /[\\/]/u.test(filename) ||
+    /[\u0000-\u001f\u007f]/u.test(filename) ||
+    !SHARED_IMAGE_ATTACHMENT_FILENAME_EXTENSION_PATTERN.test(filename)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(path);
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.username ||
+      parsed.password ||
+      parsed.port ||
+      parsed.search ||
+      parsed.hash ||
+      !VERCEL_PUBLIC_BLOB_HOST_PATTERN.test(parsed.hostname.toLowerCase()) ||
+      !SHARED_IMAGE_ATTACHMENT_PATH_PATTERN.test(parsed.pathname)
+    ) {
+      return null;
+    }
+    return Object.freeze({ path, filename });
+  } catch {
+    return null;
+  }
 }
 
 function hasSafeUrlHost(value: URL): boolean {
@@ -473,7 +538,11 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     payload.audience === 'admin'
       ? safeAdminOrderUrl(payload.settingsSnapshot.siteUrl, payload.order.orderId)
       : null;
+  const header = safeBodyText(payload.settingsSnapshot.headerText);
   const footer = safeBodyText(payload.settingsSnapshot.footerText);
+  const attachment = normalizeEmailMessageAttachment(
+    payload.settingsSnapshot.imageAttachment
+  );
   const adminCustomerDetails = payload.audience === 'admin'
     ? `
       <div style="margin:20px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
@@ -501,6 +570,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
 <html lang="sl">
   <body style="margin:0;background:#f1f5f9;padding:24px;font-family:Arial,sans-serif;color:#0f172a;">
     <div style="max-width:680px;margin:0 auto;border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:28px;">
+      ${header ? `<p style="margin:0 0 18px;line-height:1.6;color:#334155;">${multilineHtml(header)}</p>` : ''}
       <p style="margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
       <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(content.heading)}</h1>
       <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${multilineHtml(content.body)}</p>
@@ -534,6 +604,8 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     ? buildSchoolOrderTextDetails(order, schoolUploadUrl)
     : '';
   const text = [
+    header,
+    header ? '' : null,
     content.greeting,
     '',
     content.heading,
@@ -562,6 +634,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     ...(replyTo ? { replyTo } : {}),
     subject: content.subject,
     html,
-    text
+    text,
+    ...(attachment ? { attachments: [attachment] } : {})
   };
 }

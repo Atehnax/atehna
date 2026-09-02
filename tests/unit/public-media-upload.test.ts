@@ -34,6 +34,43 @@ test('public media policy creates an immutable opaque catalogue image path', () 
   assert.ok(policy.cacheControlMaxAge >= 365 * 24 * 60 * 60);
 });
 
+test('public media policy isolates immutable shared email images', () => {
+  const policy = getPublicMediaUploadPolicy({
+    scope: 'email-shared-image',
+    originalFileName: 'Glava ponudbe.gif',
+    contentType: 'image/gif',
+    uploadId: '123e4567-e89b-42d3-a456-426614174004'
+  });
+
+  assert.equal(
+    policy.pathname,
+    'email/shared/123e4567-e89b-42d3-a456-426614174004-Glava-ponudbe.gif'
+  );
+  assert.equal(
+    policy.maximumSizeInBytes,
+    PUBLIC_MEDIA_UPLOAD_LIMITS.emailSharedImage
+  );
+  assert.equal(policy.contentType, 'image/gif');
+  assert.equal(policy.mediaKind, 'image');
+  assert.deepEqual(policy.allowedContentTypes, [
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif'
+  ]);
+
+  assert.throws(
+    () =>
+      getPublicMediaUploadPolicy({
+        scope: 'email-shared-image',
+        originalFileName: 'Glava ponudbe.svg',
+        contentType: 'image/svg+xml',
+        uploadId: '123e4567-e89b-42d3-a456-426614174004'
+      }),
+    /Vrsta datoteke ni dovoljena/u
+  );
+});
+
 test('public media policy infers a technical-document MIME type without widening image permissions', () => {
   assert.equal(resolvePublicMediaContentType('drawing.dwg', ''), 'image/vnd.dwg');
 

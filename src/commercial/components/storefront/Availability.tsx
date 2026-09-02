@@ -1,6 +1,7 @@
 'use client';
 
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import type { StorefrontVariant } from '@/commercial/features/products/storefrontProduct';
 
 type AvailabilityProps = {
@@ -32,6 +33,7 @@ export default function Availability({
   className
 }: AvailabilityProps) {
   const copy = useProductAppearance().purchaseArea.copy;
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   let tone = 'var(--site-color-warning)';
   let label = copy.selectVariantLabel;
   let detail = copy.selectVariantDetail;
@@ -41,6 +43,14 @@ export default function Availability({
       tone = 'var(--site-color-danger)';
       label = copy.inactiveVariantLabel;
       detail = copy.inactiveVariantDetail;
+    } else if (!stockEnforcementEnabled) {
+      tone = 'var(--site-color-info)';
+      label = 'Na voljo za naročilo';
+      detail = typeof variant.inventory === 'number'
+        ? `Trenutna zaloga: ${variant.inventory} ${variant.unit}. Naročite lahko tudi večjo količino.`
+        : variant.deliveryEstimate ??
+          fallbackDeliveryEstimate ??
+          copy.confirmationAvailabilityDetail;
     } else if (variant.inventory === 0) {
       tone = 'var(--site-color-warning)';
       label = copy.outOfStockLabel;
@@ -76,6 +86,7 @@ export default function Availability({
   return (
     <div
       className={classNames('flex items-start gap-2', className)}
+      data-stock-enforcement={stockEnforcementEnabled ? 'enabled' : 'disabled'}
       role="status"
       aria-live="polite"
     >

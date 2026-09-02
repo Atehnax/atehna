@@ -23,6 +23,8 @@ const QUOTE_ACCESS_BOOTSTRAP_KEY =
 const QUOTE_CRON_SECRET =
   'e2e-only-quote-cron-secret-with-at-least-32-characters';
 const ORIGIN_HEADERS = { Origin: E2E_BASE_URL };
+const CUSTOMER_EMAIL_CONFIRMATION_REQUIRED =
+  'CUSTOMER_EMAIL_CONFIRMATION_REQUIRED';
 
 type StoredSettingsRow = { config_json: unknown; updated_at: Date };
 type Estimate = {
@@ -123,6 +125,22 @@ async function requireOk(
   throw new Error(
     `${label} failed with ${response.status()}: ${await response.text()}`
   );
+}
+
+async function readCustomerEmailConfirmationToken(
+  response: { status(): number; json(): Promise<unknown> },
+  label: string
+): Promise<string> {
+  expect(response.status(), `${label} must require explicit confirmation`).toBe(428);
+  const challenge = await response.json() as {
+    code?: unknown;
+    confirmationToken?: unknown;
+  };
+  expect(challenge).toMatchObject({
+    code: CUSTOMER_EMAIL_CONFIRMATION_REQUIRED,
+    confirmationToken: expect.any(String)
+  });
+  return String(challenge.confirmationToken);
 }
 
 async function inventory(): Promise<number> {
@@ -322,22 +340,30 @@ async function issueOffer(
     'select state_version from quote_requests where id = $1',
     [fixture.quoteRequestId]
   );
-  const issueResponse = await adminRequest.post(
-    `/api/admin/quote-requests/${fixture.quoteRequestId}/issue`,
-    {
-      data: {
-        actionId: randomUUID(),
-        offerVersionId: draft.quoteOfferVersionId,
-        expectedStateVersion: draft.stateVersion,
-        expectedRequestStateVersion: Number(requestState.rows[0].state_version),
-        validUntil,
-        termsText,
-        termsVersion,
-        freeShippingConfirmed: true,
-        shippingReason: 'E2E izrecna potrditev brezplačne dostave.'
-      }
-    }
-  );
+  const issuePath =
+    `/api/admin/quote-requests/${fixture.quoteRequestId}/issue`;
+  const issueData = {
+    actionId: randomUUID(),
+    offerVersionId: draft.quoteOfferVersionId,
+    expectedStateVersion: draft.stateVersion,
+    expectedRequestStateVersion: Number(requestState.rows[0].state_version),
+    validUntil,
+    termsText,
+    termsVersion,
+    freeShippingConfirmed: true,
+    shippingReason: 'E2E izrecna potrditev brezplačne dostave.'
+  };
+  const challengeResponse = await adminRequest.post(issuePath, {
+    data: issueData
+  });
+  const customerEmailConfirmationToken =
+    await readCustomerEmailConfirmationToken(
+      challengeResponse,
+      'issue quote offer'
+    );
+  const issueResponse = await adminRequest.post(issuePath, {
+    data: { ...issueData, customerEmailConfirmationToken }
+  });
   await requireOk(issueResponse, 'issue quote offer');
   expect(issueResponse.status()).toBe(201);
   const issued = (await issueResponse.json()) as {
@@ -610,6 +636,7 @@ test.describe('quote and seller-contract workflow', () => {
     const { updatedAt: _sharedUpdatedAt, ...storedSharedEmail } = sharedEmail;
 
     const quoteEmail = cloneDefaultQuoteEmailSettings();
+    quoteEmail.stockAcceptanceMode = 'automatic';
     for (const event of Object.keys(quoteEmail.events)) {
       quoteEmail.events[event as keyof typeof quoteEmail.events] = {
         customer: false,
@@ -618,6 +645,7 @@ test.describe('quote and seller-contract workflow', () => {
     }
     quoteEmail.events.quote_issued.customer = true;
     quoteEmail.events.quote_access_otp.customer = true;
+    quoteEmail.events.quote_clarification_requested.customer = true;
     const { updatedAt: _quoteUpdatedAt, ...storedQuoteEmail } = quoteEmail;
 
     await database.query(
@@ -1308,7 +1336,7 @@ test.describe('quote and seller-contract workflow', () => {
         'true'
       );
       await expect(blockedIssuedStatus).toHaveAccessibleDescription(
-        'Ponudbo izdajte z gumbom »Izdaj in pošlji ponudbo«.'
+        'Ponudbo izdajte z gumbom »Izdaj ponudbo«.'
       );
       await expect(
         statusMenu.getByRole('menuitem', { name: /^Naročeno/u })
@@ -1623,7 +1651,7 @@ test.describe('quote and seller-contract workflow', () => {
       await advance.click();
 
       const confirmDialog = page.getByRole('dialog', {
-        name: 'Pošljem pojasnilo stranki?'
+        name: 'E-poštno obvestilo stranki'
       });
       await expect(confirmDialog).toBeVisible();
       await expect(confirmDialog).toContainText(fixture.email);
@@ -1646,13 +1674,35 @@ test.describe('quote and seller-contract workflow', () => {
       await advance.click();
       await expect(confirmDialog).toBeVisible();
 
+      const clarificationConfirmationResponsePromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === endpoint &&
+          response.status() === 428
+      );
       const clarificationResponsePromise = page.waitForResponse(
         (response) =>
           response.request().method() === 'POST' &&
-          new URL(response.url()).pathname === endpoint
+          new URL(response.url()).pathname === endpoint &&
+          response.status() === 200
       );
       await page
         .getByTestId('quote-clarification-record-and-send')
+        .click();
+      const clarificationConfirmationResponse =
+        await clarificationConfirmationResponsePromise;
+      const clarificationConfirmationToken =
+        await readCustomerEmailConfirmationToken(
+          clarificationConfirmationResponse,
+          'record and send clarification'
+        );
+      const customerEmailDialog = page.getByRole('dialog', {
+        name: 'Pošljem e-pošto stranki?'
+      });
+      await expect(customerEmailDialog).toBeVisible();
+      await expect(customerEmailDialog).toContainText(fixture.email);
+      await customerEmailDialog
+        .getByRole('button', { name: 'Potrdi in nadaljuj' })
         .click();
       const clarificationResponse = await clarificationResponsePromise;
       await requireOk(
@@ -1660,7 +1710,7 @@ test.describe('quote and seller-contract workflow', () => {
         'record and send clarification'
       );
       expect(clarificationResponse.status()).toBe(200);
-      expect(clarificationRequestCount).toBe(1);
+      expect(clarificationRequestCount).toBe(2);
 
       const requestPayload = clarificationResponse.request().postDataJSON() as {
         offerVersionId?: number | null;
@@ -1668,12 +1718,14 @@ test.describe('quote and seller-contract workflow', () => {
         clarification?: string;
         sendEmail?: boolean;
         actionId?: string;
+        customerEmailConfirmationToken?: string;
       };
       expect(requestPayload).toMatchObject({
         offerVersionId: fixture.draftOfferVersionId,
         expectedRequestStateVersion: initialRequestStateVersion,
         clarification,
-        sendEmail: true
+        sendEmail: true,
+        customerEmailConfirmationToken: clarificationConfirmationToken
       });
       expect(requestPayload.actionId).toMatch(/^[0-9a-f-]{36}$/u);
 
@@ -1821,8 +1873,31 @@ test.describe('quote and seller-contract workflow', () => {
         timeline
           .locator('[data-activity-compact-label]')
           .filter({ hasText: 'Pojasnilo' })
+      ).toHaveCount(0);
+
+      await page.getByRole('button', {
+        name: /^Odpri dnevnik sprememb za Povpraševanje /u
+      }).click();
+      const historyDialog = page.getByRole('dialog', {
+        name: 'Dnevnik sprememb'
+      });
+      await expect(historyDialog).toBeVisible();
+      await expect(
+        historyDialog.getByRole('heading', {
+          name: 'Celoten potek ponudbe',
+          exact: true
+        })
+      ).toBeVisible();
+      await expect(
+        historyDialog.getByText('Zahtevano pojasnilo', { exact: true }).first()
+      ).toBeVisible();
+      await expect(
+        historyDialog
+          .getByText('E-pošta uvrščena v čakalno vrsto', { exact: true })
           .first()
       ).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(historyDialog).toHaveCount(0);
 
       const emailEvidence = page
         .getByTestId('quote-customer-access-card')
@@ -2095,11 +2170,17 @@ test.describe('quote and seller-contract workflow', () => {
         response.url().endsWith(`/api/admin/quote-requests/${fixture.quoteRequestId}/draft`) &&
         response.request().method() === 'PUT'
       );
+      const confirmationResponsePromise = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/admin/quote-requests/${fixture.quoteRequestId}/issue`) &&
+        response.request().method() === 'POST' &&
+        response.status() === 428
+      );
       const issueResponsePromise = page.waitForResponse((response) =>
         response.url().endsWith(`/api/admin/quote-requests/${fixture.quoteRequestId}/issue`) &&
-        response.request().method() === 'POST'
+        response.request().method() === 'POST' &&
+        response.status() === 201
       );
-      await page.getByRole('button', { name: 'Izdaj in pošlji ponudbo' }).click();
+      await page.getByRole('button', { name: 'Izdaj ponudbo' }).click();
 
       const issueDialog = page.getByTestId('quote-issue-dialog');
       await expect(issueDialog).toBeVisible();
@@ -2112,9 +2193,23 @@ test.describe('quote and seller-contract workflow', () => {
       await page.getByTestId('quote-issue-cancel').click();
       await expect(issueDialog).toBeHidden();
 
-      await page.getByRole('button', { name: 'Izdaj in pošlji ponudbo' }).click();
+      await page.getByRole('button', { name: 'Izdaj ponudbo' }).click();
       await expect(issueDialog).toBeVisible();
       await page.getByTestId('quote-issue-confirm').click();
+
+      const confirmationResponse = await confirmationResponsePromise;
+      const customerEmailConfirmationToken =
+        await readCustomerEmailConfirmationToken(
+          confirmationResponse,
+          'direct UI quote issue'
+        );
+      const customerEmailDialog = page.getByRole('dialog', {
+        name: 'Pošljem e-pošto stranki?'
+      });
+      await expect(customerEmailDialog).toBeVisible();
+      await customerEmailDialog
+        .getByRole('button', { name: 'Potrdi in nadaljuj' })
+        .click();
 
       const draftResponse = await draftResponsePromise;
       await requireOk(draftResponse, 'automatic draft save before issue');
@@ -2130,6 +2225,9 @@ test.describe('quote and seller-contract workflow', () => {
       const issueResponse = await issueResponsePromise;
       await requireOk(issueResponse, 'direct UI quote issue');
       expect(issueResponse.status()).toBe(201);
+      expect(issueResponse.request().postDataJSON()).toMatchObject({
+        customerEmailConfirmationToken
+      });
       await expect(page.getByTestId('quote-workflow-status')).toContainText(
         'Izdano'
       );
@@ -2429,10 +2527,6 @@ test.describe('quote and seller-contract workflow', () => {
       });
       expect(dialogEvidence).toEqual([
         {
-          type: 'confirm',
-          message: expect.stringContaining('Ponudba ne bo več veljavna')
-        },
-        {
           type: 'prompt',
           message: expect.stringContaining(
             'Razlog umika izdane ponudbe'
@@ -2607,16 +2701,42 @@ test.describe('quote and seller-contract workflow', () => {
       });
       await expect(retryEmailButton).toBeVisible();
       await expect(retryEmailButton).toHaveText('Ponovi pošiljanje');
+      const retryConfirmationResponsePromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          response.url().endsWith(
+            `/api/admin/quote-email-jobs/${jobId}/retry`
+          ) &&
+          response.status() === 428
+      );
       const retryResponsePromise = page.waitForResponse(
         (response) =>
           response.request().method() === 'POST' &&
           response.url().endsWith(
             `/api/admin/quote-email-jobs/${jobId}/retry`
-          )
+          ) &&
+          response.status() === 200
       );
       await retryEmailButton.click();
+      const retryConfirmationResponse =
+        await retryConfirmationResponsePromise;
+      const retryConfirmationToken = await readCustomerEmailConfirmationToken(
+        retryConfirmationResponse,
+        'manual quote email retry'
+      );
+      const retryConfirmationDialog = page.getByRole('dialog', {
+        name: 'Pošljem e-pošto stranki?'
+      });
+      await expect(retryConfirmationDialog).toBeVisible();
+      await expect(retryConfirmationDialog).toContainText(fixture.email);
+      await retryConfirmationDialog
+        .getByRole('button', { name: 'Potrdi in nadaljuj' })
+        .click();
       const retryResponse = await retryResponsePromise;
       await requireOk(retryResponse, 'manual quote email retry');
+      expect(retryResponse.request().postDataJSON()).toEqual({
+        customerEmailConfirmationToken: retryConfirmationToken
+      });
       await expect(retryResponse.json()).resolves.toMatchObject({
         jobId,
         status: 'pending'
@@ -3256,18 +3376,19 @@ test.describe('quote and seller-contract workflow', () => {
       const displayOrderNumber = toDisplayOrderNumber(
         String(pending.rows[0].order_number)
       );
-      const validateResponse = await request.post(
-        `/api/admin/orders/${orderId}/commitment-status`,
-        { data: { commitmentStatus: 'binding' } }
+      const processingResponse = await request.post(
+        `/api/admin/orders/${orderId}/status`,
+        { data: { status: 'in_progress' } }
       );
-      await requireOk(validateResponse, 'admin school PO validation');
-      await expect(validateResponse.json()).resolves.toMatchObject({
+      await requireOk(processingResponse, 'admin school PO validation');
+      await expect(processingResponse.json()).resolves.toMatchObject({
+        status: 'in_progress',
         commitmentStatus: 'binding',
-        stockNotCommitted: false
+        contractStatus: 'accepted'
       });
       expect(await inventory()).toBe(startingInventory - 1);
-
       const accepted = await database.query<{
+        status: string;
         commitment_status: string;
         contract_status: string;
         request_status: string;
@@ -3276,13 +3397,18 @@ test.describe('quote and seller-contract workflow', () => {
         channel: string;
         acceptance_wording: string;
         hold_state: string;
+        active_access_token_count: number;
       }>(
         `
-          select orders.commitment_status, orders.contract_status,
+          select orders.status, orders.commitment_status, orders.contract_status,
                  request.status as request_status,
                  offer.status as offer_status, offer.is_current,
                  acceptance.channel, acceptance.acceptance_wording,
-                 hold.state as hold_state
+                 hold.state as hold_state,
+                 (select count(*)::int
+                  from quote_access_tokens access
+                  where access.quote_request_id = request.id
+                    and access.revoked_at is null) as active_access_token_count
           from orders
           join quote_offer_versions offer
             on offer.id = orders.source_quote_offer_version_id
@@ -3295,14 +3421,16 @@ test.describe('quote and seller-contract workflow', () => {
         [orderId]
       );
       expect(accepted.rows[0]).toMatchObject({
+        status: 'in_progress',
         commitment_status: 'binding',
         contract_status: 'accepted',
         request_status: 'converted_to_order',
         offer_status: 'accepted',
         is_current: false,
         channel: 'purchase_order_validation',
-        acceptance_wording: 'Potrdi naročilnico in naročilo',
-        hold_state: 'held'
+        acceptance_wording: 'V obdelavi',
+        hold_state: 'held',
+        active_access_token_count: 0
       });
       const eventResult = await database.query<{ event_type: string }>(
         `select event_type from quote_events where quote_request_id = $1`,
@@ -3318,12 +3446,25 @@ test.describe('quote and seller-contract workflow', () => {
         expect(events.has(eventType), `missing ${eventType}`).toBe(true);
       }
       const replay = await request.post(
+        `/api/admin/orders/${orderId}/status`,
+        { data: { status: 'in_progress' } }
+      );
+      await requireOk(replay, 'idempotent school PO validation');
+      await expect(replay.json()).resolves.toMatchObject({
+        status: 'in_progress',
+        commitmentStatus: 'binding',
+        contractStatus: 'accepted'
+      });
+      expect(await inventory()).toBe(startingInventory - 1);
+      const legacyBinding = await request.post(
         `/api/admin/orders/${orderId}/commitment-status`,
         { data: { commitmentStatus: 'binding' } }
       );
-      await requireOk(replay, 'idempotent school PO validation');
+      expect(legacyBinding.status()).toBe(409);
+      await expect(legacyBinding.json()).resolves.toMatchObject({
+        code: 'ORDER_STATUS_SELLER_ACCEPTANCE_REQUIRED'
+      });
       expect(await inventory()).toBe(startingInventory - 1);
-
       await page.goto(
         `/admin/orders?view=quotes&q=${encodeURIComponent(fixture.email)}`
       );

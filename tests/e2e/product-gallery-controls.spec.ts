@@ -387,6 +387,37 @@ async function exerciseGalleryControls(
     parseCssColor(closeBackground).alpha,
     'lightbox close control should retain a visible surface',
   ).toBeGreaterThanOrEqual(0.9);
+
+  const lightboxContent = dialog.locator(
+    '[data-storefront-gallery-lightbox-content]',
+  );
+  await expect(lightboxContent).toBeVisible();
+  await lightboxContent.click();
+  await expect(
+    dialog,
+    'clicking the enlarged image should not dismiss the lightbox',
+  ).toBeVisible();
+
+  const dialogBox = await dialog.boundingBox();
+  expect(dialogBox, 'lightbox backdrop should fill the viewport').not.toBeNull();
+  await page.mouse.click(dialogBox!.x + 4, dialogBox!.y + 4);
+  await expect(
+    dialog,
+    'clicking outside the enlarged image should dismiss the lightbox',
+  ).toBeHidden({ timeout: 2_000 });
+  await expect(zoom).toBeFocused();
+
+  await zoom.click();
+  await expect(dialog).toBeVisible();
+  await close.click();
+  await expect(
+    dialog,
+    'the explicit close control should dismiss the lightbox',
+  ).toBeHidden({ timeout: 2_000 });
+  await expect(zoom).toBeFocused();
+
+  await zoom.click();
+  await expect(dialog).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden({ timeout: 2_000 });
   await expect(zoom).toBeFocused();

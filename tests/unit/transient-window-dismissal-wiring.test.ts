@@ -71,11 +71,11 @@ test('navbar search results dismiss in every mode without query-gated outside lo
   assert.match(navbarSearch, /refs:\s*searchDismissRefs/u);
   assert.match(
     navbarSearch,
-    /returnFocusRef:\s*!mobile && !desktopFieldMode \? compactTriggerRef : inputRef/u
+    /returnFocusRef:\s*!mobile \? compactTriggerRef : inputRef/u
   );
   assert.match(
     dismissCallback,
-    /setOpen\(false\);\s*if \(!mobile && !desktopFieldMode\) setExpanded\(false\)/u
+    /setOpen\(false\);\s*if \(!mobile\) setExpanded\(false\)/u
   );
   assert.doesNotMatch(dismissCallback, /setQuery/u);
   assert.match(navbarSearch, /data-site-search-results/u);

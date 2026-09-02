@@ -1,15 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Info, RotateCcw } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import type {
   ShippingCalculation,
   ShippingManualOverride
 } from '@/shared/domain/shipping/shipping';
 import { SHIPPING_MAX_PARCEL_COUNT } from '@/shared/domain/shipping/shipping';
 import { formatEuro } from '@/shared/domain/formatting';
-import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { IconButton } from '@/shared/ui/icon-button';
 import { PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import {
@@ -116,16 +116,6 @@ function parseEuroInputToCents(value: string): number | null {
   return Number(cents);
 }
 
-function formatAppliedAt(value: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('sl-SI', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(date);
-}
-
 function getLockMessage(input: {
   deleted: boolean;
   paymentStatus: string;
@@ -141,102 +131,6 @@ function getLockMessage(input: {
     return 'Po\u0161tnine ni mogo\u010de spreminjati v trenutnem stanju dostave naro\u010dila.';
   }
   return null;
-}
-
-function getWarningMessage(input: {
-  hasActiveDocuments: boolean;
-  quoteDerived: boolean;
-}) {
-  const warnings: string[] = [];
-  if (input.quoteDerived) {
-    warnings.push(
-      'Sprejeta ponudba ostane nespremenjena; sprememba po\u0161tnine velja le za naro\u010dilo, \u0161tevilo paketov pa ostane del ponudbe.'
-    );
-  }
-  if (input.hasActiveDocuments) {
-    warnings.push(
-      'Izdani dokumenti ostanejo zgodovinski; po spremembi po potrebi ustvarite novo razli\u010dico.'
-    );
-  }
-  return warnings.length > 0 ? warnings.join(' ') : null;
-}
-
-function ShippingBreakdown({
-  calculation,
-  automaticAmountCents
-}: {
-  calculation: ShippingCalculation | null;
-  automaticAmountCents: number | null;
-}) {
-  if (!calculation) {
-    return (
-      <p className="text-xs leading-5 text-slate-500">
-        {'Raz\u010dlenitev samodejnega izra\u010duna ni na voljo.'}
-      </p>
-    );
-  }
-
-  if (calculation.status === 'manual_quote') {
-    return (
-      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-        <p className="text-xs font-semibold text-amber-800">{'Potrebna je ro\u010dna ponudba'}</p>
-        <p className="mt-1 text-xs leading-5 text-amber-700">{calculation.reason}</p>
-      </div>
-    );
-  }
-
-  const resolvedAutomaticAmountCents =
-    automaticAmountCents ?? calculation.automaticAmountCents;
-
-  return (
-    <div className="space-y-1 text-xs text-slate-600" data-shipping-breakdown>
-      <div className="flex items-center justify-between gap-4">
-        <span>{calculation.matchedWeightBand.name || 'Osnovna po\u0161tnina'}</span>
-        <span className="font-medium text-slate-800">
-          {formatCents(calculation.basePriceCents)}
-        </span>
-      </div>
-      {calculation.matchedDimensionalRule && calculation.surchargeAmountCents > 0 ? (
-        <div className="flex items-center justify-between gap-4">
-          <span>{calculation.matchedDimensionalRule.name}</span>
-          <span className="font-medium text-slate-800">
-            {formatCents(calculation.surchargeAmountCents)}
-          </span>
-        </div>
-      ) : null}
-      {calculation.parcelCount > 1 ? (
-        <div className="flex items-center justify-between gap-4">
-          <span>
-            {calculation.parcelCount} paketov po {formatCents(calculation.singleParcelAmountCents)}
-          </span>
-          <span className="font-medium text-slate-800">
-            {formatCents(calculation.parcelCountGrossAmountCents)}
-          </span>
-        </div>
-      ) : null}
-      {calculation.multiPieceDiscountAmountCents > 0 ? (
-        <div className="flex items-center justify-between gap-4">
-          <span>Popust za ve\u010d paketov</span>
-          <span className="font-medium text-emerald-700">
-            −{formatCents(calculation.multiPieceDiscountAmountCents)}
-          </span>
-        </div>
-      ) : null}
-      {calculation.orderValueDiscountAmountCents > 0 ? (
-        <div className="flex items-center justify-between gap-4">
-          <span>
-            {calculation.matchedOrderValueDiscountRule?.name || 'Popust glede na vrednost naro\u010dila'}
-          </span>
-          <span className="font-medium text-emerald-700">
-            −{formatCents(calculation.orderValueDiscountAmountCents)}
-          </span>
-        </div>
-      ) : null}
-      <span className="sr-only" data-shipping-automatic-total>
-        Samodejni znesek: {formatCents(resolvedAutomaticAmountCents)}
-      </span>
-    </div>
-  );
 }
 
 function isShippingMutationResponse(value: unknown): value is ShippingMutationResponse {
@@ -270,7 +164,6 @@ export default function AdminOrderShippingOverride({
   automaticShipping,
   shippingCalculation,
   shippingOverride,
-  shippingOverrideStale,
   parcelCount,
   pricingRevision,
   orderStatus,
@@ -295,8 +188,6 @@ export default function AdminOrderShippingOverride({
   );
   const [currentOverride, setCurrentOverride] =
     useState<ShippingManualOverride | null>(shippingOverride);
-  const [currentOverrideStale, setCurrentOverrideStale] =
-    useState(shippingOverrideStale);
   const [currentCalculation, setCurrentCalculation] =
     useState<ShippingCalculation | null>(shippingCalculation);
   const [currentParcelCount, setCurrentParcelCount] = useState(parcelCount);
@@ -317,7 +208,6 @@ export default function AdminOrderShippingOverride({
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [parcelCountDialogOpen, setParcelCountDialogOpen] = useState(false);
   const [parcelCountReason, setParcelCountReason] = useState('');
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const saveDraftRef = useRef<(expectedPricingRevision?: number) => Promise<boolean>>(
     async () => true
   );
@@ -331,7 +221,6 @@ export default function AdminOrderShippingOverride({
       automaticShipping === null ? null : eurosToCents(automaticShipping)
     );
     setCurrentOverride(shippingOverride);
-    setCurrentOverrideStale(shippingOverrideStale);
     setCurrentCalculation(shippingCalculation);
     setCurrentParcelCount(parcelCount);
     setParcelCountInput(String(parcelCount));
@@ -350,7 +239,6 @@ export default function AdminOrderShippingOverride({
     shipping,
     shippingCalculation,
     shippingOverride,
-    shippingOverrideStale,
     parcelCount,
     pricingRevision
   ]);
@@ -391,10 +279,6 @@ export default function AdminOrderShippingOverride({
     deleted,
     paymentStatus,
     orderStatus
-  });
-  const warningMessage = getWarningMessage({
-    hasActiveDocuments,
-    quoteDerived
   });
   const controlsDisabled =
     !externalEditMode || Boolean(lockMessage) || pageBusy || isSaving;
@@ -447,25 +331,16 @@ export default function AdminOrderShippingOverride({
       currentCalculation?.status === 'manual_quote'
       || automaticAmountCents === null
     );
-  const appliedAtLabel = currentOverride
-    ? formatAppliedAt(currentOverride.appliedAt)
-    : null;
-
   const automaticSummaryLabel =
     currentCalculation?.status === 'calculated'
       ? currentCalculation.matchedWeightBand.name || 'Osnovna poštnina'
       : currentCalculation?.status === 'manual_quote'
         ? 'Potrebna je ročna ponudba'
         : 'Izračun ni na voljo';
-  const impactMessage =
-    quoteDerived || hasActiveDocuments
-      ? 'Spremembe veljajo le za naročilo. Ponudba in izdani dokumenti ostanejo nespremenjeni.'
-      : 'Spremembe poštnine veljajo le za to naročilo.';
   const applyMutationResponse = useCallback((body: ShippingMutationResponse) => {
     setFinalAmountCents(body.shippingCents);
     setAutomaticAmountCents(body.automaticAmountCents);
     setCurrentOverride(body.shippingOverride);
-    setCurrentOverrideStale(body.shippingOverrideStale);
     if (body.shippingCalculation) {
       setCurrentCalculation(body.shippingCalculation);
     }
@@ -697,10 +572,10 @@ export default function AdminOrderShippingOverride({
         data-testid="admin-order-shipping-card"
       >
         <div
-          className="flex min-h-[56px] items-center gap-3 px-4 py-3"
+          className="flex min-h-11 items-center gap-2 px-4 py-2"
           data-shipping-summary-row
         >
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             <h2
               id="admin-order-shipping-title"
               className="text-base font-semibold text-slate-900"
@@ -717,10 +592,10 @@ export default function AdminOrderShippingOverride({
               }
               className={
                 shippingPending
-                  ? 'rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800'
+                  ? 'rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-amber-800'
                   : currentOverride
-                    ? 'rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600'
-                    : 'rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700'
+                    ? 'rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-600'
+                    : 'rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-emerald-700'
               }
             >
               {shippingPending
@@ -729,19 +604,19 @@ export default function AdminOrderShippingOverride({
                   ? 'Ročno'
                   : 'Samodejno'}
             </span>
-            <span className="text-xs text-slate-400" aria-hidden="true">•</span>
-            <p className="min-w-0 text-xs text-slate-600">
+            <span className="text-[10px] leading-4 text-slate-400" aria-hidden="true">•</span>
+            <p className="min-w-0 text-[11px] leading-4 text-slate-600">
               {shippingPending
                 ? 'Ročni znesek je potreben'
                 : String(currentParcelCount) + ' ' + (currentParcelCount === 1 ? 'paket' : 'paketov')}
             </p>
           </div>
           <p
-            className="shrink-0 whitespace-nowrap text-lg font-semibold tabular-nums text-slate-950"
+            className="shrink-0 whitespace-nowrap text-sm font-semibold leading-5 tabular-nums text-slate-950"
             data-shipping-final-amount
           >
             {shippingPending
-              ? 'Potreben je ročni znesek'
+              ? '—'
               : formatCents(finalAmountCents)}
           </p>
           <button
@@ -766,13 +641,13 @@ export default function AdminOrderShippingOverride({
           {externalEditMode ? (
             <div
               id={'admin-order-shipping-editor-' + orderId}
-              className="grid min-h-[84px] items-end gap-x-2 gap-y-2 px-4 py-3 md:grid-cols-[96px_116px_minmax(180px,1fr)]"
+              className="grid items-end gap-2 px-4 py-2 sm:grid-cols-[72px_96px_minmax(120px,1fr)]"
               data-shipping-editor-row
               data-testid="admin-order-shipping-editor"
             >
               <label className="block min-w-0" data-parcel-count-control>
                 <span
-                  className="text-[11px] font-semibold text-slate-700"
+                  className="text-[10px] font-semibold leading-4 text-slate-700"
                   title="Število paketov, oddanih skupaj"
                 >
                   Paketi
@@ -788,7 +663,7 @@ export default function AdminOrderShippingOverride({
                   disabled={parcelCountControlsDisabled}
                   aria-label="Število paketov, oddanih skupaj"
                   aria-describedby={'admin-order-shipping-parcel-help-' + orderId}
-                  className={'mt-1 ' + fieldClassName + ' !h-8 !px-2.5 !text-xs'}
+                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
                 />
                 <span
                   id={'admin-order-shipping-parcel-help-' + orderId}
@@ -799,7 +674,7 @@ export default function AdminOrderShippingOverride({
                 </span>
               </label>
               <label className="block min-w-0">
-                <span className="text-[11px] font-semibold text-slate-700">
+                <span className="text-[10px] font-semibold leading-4 text-slate-700">
                   Znesek (€)
                 </span>
                 <input
@@ -811,11 +686,11 @@ export default function AdminOrderShippingOverride({
                   inputMode="decimal"
                   disabled={controlsDisabled}
                   aria-label="Ročni znesek poštnine v evrih"
-                  className={'mt-1 ' + fieldClassName + ' !h-8 !px-2.5 !text-xs'}
+                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
                 />
               </label>
               <label className="block min-w-0">
-                <span className="text-[11px] font-semibold text-slate-700">
+                <span className="text-[10px] font-semibold leading-4 text-slate-700">
                   Razlog spremembe
                 </span>
                 <input
@@ -827,17 +702,20 @@ export default function AdminOrderShippingOverride({
                   }}
                   disabled={controlsDisabled}
                   aria-label="Razlog ročne spremembe poštnine"
-                  className={'mt-1 ' + fieldClassName + ' !h-8 !px-2.5 !text-xs'}
+                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
                 />
               </label>
             </div>
           ) : (
             <div
-              className="flex min-h-[84px] flex-col justify-center px-4 py-3"
+              className="grid min-h-10 grid-cols-[112px_minmax(0,1fr)] items-center gap-3 px-4 py-1.5"
               data-shipping-read-reason
             >
-              <p className="text-xs font-medium text-slate-500">Razlog spremembe</p>
-              <p className="mt-1 text-sm leading-5 text-slate-900">
+              <p className="text-[11px] font-medium leading-4 text-slate-500">Razlog spremembe</p>
+              <p
+                className="truncate text-[11px] leading-4 text-slate-900"
+                title={currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
+              >
                 {currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
               </p>
             </div>
@@ -845,14 +723,14 @@ export default function AdminOrderShippingOverride({
         </div>
 
         {externalEditMode && parcelCountHardLocked && !quoteDerived ? (
-          <p className="border-t border-rose-200 bg-rose-50 px-4 py-2 text-xs font-medium leading-4 text-rose-700">
+          <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
             Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
           </p>
         ) : null}
 
         {lockMessage ? (
           <p
-            className="border-t border-slate-300 bg-slate-100 px-4 py-2 text-xs font-medium leading-4 text-slate-700"
+            className="border-t border-slate-300 bg-slate-100 px-4 py-1.5 text-[11px] font-medium leading-4 text-slate-700"
             data-shipping-lock-message
           >
             {lockMessage}
@@ -860,113 +738,44 @@ export default function AdminOrderShippingOverride({
         ) : null}
 
         <div
-          className="grid min-h-[72px] gap-3 border-t border-slate-200 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+          className="grid min-h-12 gap-2 border-t border-slate-200 px-4 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           data-shipping-automatic-summary
         >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900">Samodejni izračun</p>
-            <p className="mt-0.5 truncate text-xs text-slate-600" title={automaticSummaryLabel}>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <p className="shrink-0 text-[11px] font-semibold leading-4 text-slate-900">Samodejni izračun</p>
+            <p className="min-w-0 truncate text-[10px] leading-4 text-slate-500" title={automaticSummaryLabel}>
               {automaticSummaryLabel}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-700">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <span className="shrink-0 text-[11px] font-semibold leading-4 tabular-nums text-slate-700">
               {automaticAmountCents === null
                 ? 'Ni na voljo'
                 : formatCents(automaticAmountCents)}
             </span>
             {currentOverride ? (
-              <Button
+              <IconButton
                 type="button"
-                variant="outline"
-                size="toolbar"
+                size="sm"
+                tone="neutral"
                 disabled={!canRequestReset}
                 onClick={() => {
                   if (!externalEditMode) onRequestEdit();
                   setResetDialogOpen(true);
                 }}
-                className="!h-8 gap-1.5 whitespace-nowrap !rounded-md !px-2.5 !text-xs"
+                className="shrink-0"
+                aria-label="Uporabi samodejno poštnino"
                 title={
                   automaticAmountCents === null
                     ? 'Samodejni znesek ni na voljo.'
-                    : undefined
+                    : 'Uporabi samodejno poštnino'
                 }
+                data-testid="admin-order-shipping-reset-button"
               >
-                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                Uporabi samodejno
-              </Button>
+                <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
+              </IconButton>
             ) : null}
           </div>
-        </div>
-
-        <div
-          className="border-t border-slate-200 px-4 py-3"
-          data-shipping-info-row
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-            <Info
-              className="h-4 w-4 shrink-0 text-slate-500"
-              aria-hidden="true"
-            />
-            <p className="min-w-[220px] flex-1 text-xs leading-5 text-slate-600">
-              {impactMessage}
-            </p>
-            <button
-              type="button"
-              className="shrink-0 text-xs font-semibold text-[color:var(--blue-500)] hover:underline"
-              aria-expanded={breakdownOpen}
-              aria-controls={'admin-order-shipping-breakdown-' + orderId}
-              data-shipping-details-toggle
-              onClick={() => setBreakdownOpen((current) => !current)}
-            >
-              Podrobnosti
-            </button>
-          </div>
-
-          {breakdownOpen ? (
-            <div
-              id={'admin-order-shipping-breakdown-' + orderId}
-              className="mt-3 border-t border-slate-200 pt-3"
-              data-shipping-breakdown-panel
-              data-testid="admin-order-shipping-details"
-            >
-              <ShippingBreakdown
-                calculation={currentCalculation}
-                automaticAmountCents={automaticAmountCents}
-              />
-
-              {currentOverride && (currentOverride.actorName || appliedAtLabel) ? (
-                <p
-                  className="mt-2 text-[11px] leading-4 text-slate-500"
-                  data-shipping-current-override
-                >
-                  Ročna nastavitev
-                  {' · '}
-                  {[currentOverride.actorName, appliedAtLabel]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              ) : null}
-
-              {currentOverrideStale ? (
-                <p
-                  className="mt-2 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-xs leading-4 text-orange-800"
-                  data-shipping-override-stale
-                >
-                  Ročni znesek je zastarel glede na trenutni samodejni izračun.
-                </p>
-              ) : null}
-
-              {warningMessage ? (
-                <p
-                  className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs leading-4 text-amber-800"
-                  data-shipping-warning
-                >
-                  {warningMessage}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       </section>
 

@@ -2,17 +2,13 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
 import { getOrderNumberAvailability } from '@/shared/server/orders';
+import { getGursAddressById } from '@/shared/server/gursAddresses';
 import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
-import {
-  SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS,
-  draftCommitmentStatusAfterCustomerTypeChange,
-  orderCustomerTypeChangeBlock,
-  orderCustomerTypeFinalContractBlock,
-  schoolBindingBlock,
-  schoolExecutionBlock
-} from '@/shared/domain/order/schoolOrderWorkflow';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
+import { stockEnforcementAppliedAfterDraftFinalization } from '@/shared/domain/inventory/inventoryPolicy';
+
 import { validatePersistedOrderShippingReadiness } from '@/shared/domain/shipping/shipping';
 import {
   commitOrderStockHolds,
@@ -44,11 +40,31 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       postalCode,
       city,
       countryCode,
+      gursHouseNumberId,
       reference,
       notes,
       orderDate,
       orderNumber
     } = body ?? {};
+
+    const gursHouseNumberIdProvided = Object.prototype.hasOwnProperty.call(
+      body,
+      'gursHouseNumberId'
+    );
+    if (
+      gursHouseNumberIdProvided &&
+      gursHouseNumberId !== null &&
+      typeof gursHouseNumberId !== 'string'
+    ) {
+      return NextResponse.json(
+        { message: 'Izbrani naslov ni veljaven.' },
+        { status: 400 }
+      );
+    }
+    const requestedGursHouseNumberId =
+      typeof gursHouseNumberId === 'string'
+        ? gursHouseNumberId.trim() || null
+        : null;
 
     const requestedCustomerType =
       typeof customerType === 'string' ? customerType.trim() : '';
@@ -166,6 +182,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
       }
       const before = beforeResult.rows[0] as Record<string, unknown>;
+      const stockEnforcementEnabled = await isStockEnforcementEnabled(client);
       if (before.deleted_at) {
         await client.query('rollback');
         return NextResponse.json(
@@ -182,12 +199,26 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         before.commitment_status === null || before.commitment_status === undefined
           ? null
           : String(before.commitment_status);
-      const currentStatus = String(before.status ?? '');
       const currentContractStatus =
         before.contract_status === null || before.contract_status === undefined
           ? null
           : String(before.contract_status);
       const isDraft = before.is_draft === true;
+      let activeStockHoldCountBeforeFinalization = 0;
+      if (isDraft) {
+        const activeStockHoldsResult = await client.query(
+          `
+            select count(*)::int as active_hold_count
+            from order_stock_holds
+            where order_id = $1
+              and state = 'held'
+          `,
+          [orderId]
+        );
+        activeStockHoldCountBeforeFinalization = Number(
+          activeStockHoldsResult.rows[0]?.active_hold_count ?? 0
+        );
+      }
       const normalizedCustomerType = requestedCustomerType || currentCustomerType;
       const normalizedContactName =
         typeof contactName === 'string'
@@ -232,6 +263,49 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       const nextCountryCode = countryCodeProvided
         ? normalizedCountryCode ?? ''
         : String(before.country_code ?? '').trim().toUpperCase();
+      const addressWasEdited =
+        (addressLine1Provided &&
+          normalizedAddressLine1 !== String(before.address_line1 ?? '').trim()) ||
+        (postalCodeProvided &&
+          normalizedPostalCode !== String(before.postal_code ?? '').trim()) ||
+        (cityProvided && normalizedCity !== String(before.city ?? '').trim()) ||
+        (countryCodeProvided &&
+          normalizedCountryCode !== String(before.country_code ?? '').trim().toUpperCase());
+      let normalizedGursHouseNumberId =
+        String(before.gurs_house_number_id ?? '').trim() || null;
+
+      if (gursHouseNumberIdProvided) {
+        if (requestedGursHouseNumberId) {
+          const canonicalAddress = await getGursAddressById(
+            requestedGursHouseNumberId,
+            client
+          );
+          if (!canonicalAddress) {
+            await client.query('rollback');
+            return NextResponse.json(
+              { message: 'Izbranega naslova ni več v imeniku GURS. Poiščite ga znova.' },
+              { status: 400 }
+            );
+          }
+          if (
+            nextAddressLine1 !== canonicalAddress.addressLine1 ||
+            nextPostalCode !== canonicalAddress.postalCode ||
+            nextCity !== canonicalAddress.postalName ||
+            nextCountryCode !== 'SI'
+          ) {
+            await client.query('rollback');
+            return NextResponse.json(
+              { message: 'Izbrani naslov se ne ujema z naslovnimi podatki. Izberite predlog znova.' },
+              { status: 400 }
+            );
+          }
+          normalizedGursHouseNumberId = canonicalAddress.gursHouseNumberId;
+        } else {
+          normalizedGursHouseNumberId = null;
+        }
+      } else if (addressWasEdited) {
+        normalizedGursHouseNumberId = null;
+      }
 
       if (!CUSTOMER_TYPES.has(normalizedCustomerType)) {
         await client.query('rollback');
@@ -241,40 +315,13 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      const finalContractCustomerTypeBlock =
-        orderCustomerTypeFinalContractBlock(
-          currentCustomerType,
-          normalizedCustomerType,
-          currentContractStatus
-        );
-      if (finalContractCustomerTypeBlock) {
-        await client.query('rollback');
-        return NextResponse.json(finalContractCustomerTypeBlock, {
-          status: 409
-        });
-      }
-      const customerTypeBlock = orderCustomerTypeChangeBlock(
-        currentCustomerType,
-        normalizedCustomerType,
-        isDraft
-      );
-      if (customerTypeBlock) {
-        await client.query('rollback');
-        return NextResponse.json(customerTypeBlock, { status: 409 });
-      }
+      const nextCommitmentStatus = currentCommitmentStatus;
 
-      const nextCommitmentStatus =
-        draftCommitmentStatusAfterCustomerTypeChange({
-          currentCustomerType,
-          nextCustomerType: normalizedCustomerType,
-          currentCommitmentStatus,
-          contractStatus: currentContractStatus,
-          isDraft
-        });
-      let draftPurchaseOrderId: number | null = null;
       let draftStockFinalizationOutcome = isDraft
         ? nextCommitmentStatus === 'binding'
-          ? 'not_attempted'
+          ? stockEnforcementEnabled
+            ? 'not_attempted'
+            : 'not_required_stock_enforcement_disabled'
           : 'not_required_non_binding'
         : 'not_applicable';
       let draftFinalizationBlock: { code: string; message: string } | null =
@@ -293,42 +340,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
                 'Osnutek je shranjen. Za zaključek dopolnite prejemnika in njegov veljaven naslov za dostavo.'
             }
           : null;
-      if (isDraft && normalizedCustomerType === 'school') {
-        const purchaseOrderResult = await client.query(
-          `
-            select id
-            from order_documents
-            where order_id = $1
-              and type = 'purchase_order'
-              and deleted_at is null
-              and format_marker = any($2::text[])
-              and order_pricing_revision = (
-                select pricing_revision from orders where id = $1
-              )
-            order by id desc
-            limit 1
-            for share
-          `,
-          [orderId, [...SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS]]
-        );
-        const hasActivePurchaseOrder = purchaseOrderResult.rowCount === 1;
-        draftPurchaseOrderId = hasActivePurchaseOrder
-          ? Number(purchaseOrderResult.rows[0].id)
-          : null;
-        const draftSchoolBlock =
-          schoolBindingBlock(
-            normalizedCustomerType,
-            nextCommitmentStatus ?? '',
-            hasActivePurchaseOrder
-          ) ??
-          schoolExecutionBlock(
-            normalizedCustomerType,
-            nextCommitmentStatus,
-            currentStatus,
-            hasActivePurchaseOrder
-          );
-        draftFinalizationBlock ??= draftSchoolBlock;
-      }
+
       if (isDraft) {
         const shippingCountsResult = await client.query(
           `
@@ -367,6 +379,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         }
         if (
           draftFinalizationBlock === null &&
+          stockEnforcementEnabled &&
           nextCommitmentStatus === 'binding'
         ) {
           const allocationsResult = await client.query(
@@ -440,17 +453,13 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         }
       }
       const finalizesDraft = isDraft && draftFinalizationBlock === null;
+      const finalizedStockEnforcementApplied =
+        stockEnforcementAppliedAfterDraftFinalization({
+          stockEnforcementEnabled,
+          hasActiveStockHolds: activeStockHoldCountBeforeFinalization > 0
+        });
       const normalizedOrderNumber =
         orderNumberAvailability?.formattedOrderNumber ?? null;
-      const addressWasEdited =
-        (addressLine1Provided &&
-          normalizedAddressLine1 !== String(before.address_line1 ?? '').trim()) ||
-        (postalCodeProvided &&
-          normalizedPostalCode !== String(before.postal_code ?? '').trim()) ||
-        (cityProvided && normalizedCity !== String(before.city ?? '').trim()) ||
-        (countryCodeProvided &&
-          normalizedCountryCode !== String(before.country_code ?? '').trim().toUpperCase());
-
       await client.query(
         `
           UPDATE orders
@@ -482,15 +491,15 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
               notes = $9,
               order_number = coalesce(nullif($10::text, ''), order_number),
               created_at = coalesce($11::timestamptz, created_at),
-              gurs_house_number_id = case
-                when $12::boolean then null
-                else gurs_house_number_id
-              end,
+              gurs_house_number_id = $12,
               is_draft = case
                 when $21::boolean then false
                 else is_draft
               end,
-              commitment_status = $22
+              stock_enforcement_applied = case
+                when $21::boolean then $22::boolean
+                else stock_enforcement_applied
+              end
           WHERE id = $16
         `,
         [
@@ -505,7 +514,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           normalizedNotes,
           normalizedOrderNumber,
           normalizedOrderDate,
-          addressWasEdited,
+          normalizedGursHouseNumberId,
           addressLine1Provided,
           postalCodeProvided,
           cityProvided,
@@ -515,40 +524,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           countryCodeProvided,
           normalizedCountryCode,
           finalizesDraft,
-          nextCommitmentStatus
+          finalizedStockEnforcementApplied
         ]
       );
-
-      if (
-        finalizesDraft &&
-        normalizedCustomerType === 'school' &&
-        nextCommitmentStatus === 'binding' &&
-        currentContractStatus === 'pending_seller_acceptance' &&
-        draftPurchaseOrderId
-      ) {
-        await client.query(
-          `
-            update orders
-            set contract_status = 'accepted',
-                contract_accepted_at = now(),
-                contract_accepted_actor_type = 'school_purchase_order',
-                contract_accepted_actor_id = $2,
-                contract_acceptance_evidence_json = $3::jsonb,
-                contract_state_version = contract_state_version + 1,
-                committed_at = now()
-            where id = $1
-              and contract_status = 'pending_seller_acceptance'
-          `,
-          [
-            orderId,
-            String(draftPurchaseOrderId),
-            JSON.stringify({
-              channel: 'admin_draft_purchase_order',
-              purchaseOrderDocumentId: draftPurchaseOrderId
-            })
-          ]
-        );
-      }
 
       const afterResult = await client.query(
         `
@@ -589,11 +567,21 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           metadata: {
             order_number: orderNumberLabel,
             changed_field_count: countAuditChangedFields(diff),
+            customer_type_corrected:
+              currentCustomerType !== normalizedCustomerType,
+            customer_type_before: currentCustomerType,
+            customer_type_after: normalizedCustomerType,
             draft_finalization_attempted: isDraft,
             draft_finalized: finalizesDraft,
             draft_finalization_block_code: draftFinalizationBlock?.code ?? null,
             draft_finalization_block_message: draftFinalizationBlock?.message ?? null,
             stock_finalization_outcome: draftStockFinalizationOutcome,
+            stock_enforcement_enabled: stockEnforcementEnabled,
+            active_stock_hold_count_before_finalization:
+              activeStockHoldCountBeforeFinalization,
+            stock_enforcement_preserved:
+              !stockEnforcementEnabled &&
+              activeStockHoldCountBeforeFinalization > 0,
             commitment_status_before: currentCommitmentStatus,
             commitment_status_after: after?.commitment_status ?? null,
             contract_status_before: currentContractStatus,

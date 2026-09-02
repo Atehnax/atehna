@@ -112,7 +112,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
 
     const orderLookupResult = await pool.query(
       `
-        select id, customer_type, status, commitment_status, deleted_at,
+        select id, customer_type, status, commitment_status, contract_status, deleted_at,
                source_quote_offer_version_id
         from orders
         where id = $1
@@ -126,6 +126,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
           customer_type: string;
           status: string;
           commitment_status: string | null;
+          contract_status: string | null;
           deleted_at: string | null;
           source_quote_offer_version_id: string | number | null;
         }
@@ -183,8 +184,8 @@ export async function uploadPurchaseOrder(request: NextRequest) {
     }
     const initialUploadBlock = schoolPurchaseOrderUploadBlock(
       order.customer_type,
-      order.commitment_status,
       order.status,
+      order.contract_status,
       false
     );
     if (initialUploadBlock) {
@@ -211,6 +212,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
             customer_type,
             status,
             commitment_status,
+            contract_status,
             source_quote_offer_version_id,
             deleted_at,
             is_draft,
@@ -235,6 +237,7 @@ export async function uploadPurchaseOrder(request: NextRequest) {
             customer_type: string;
             status: string;
             commitment_status: string | null;
+            contract_status: string | null;
             source_quote_offer_version_id: string | number | null;
             deleted_at: string | null;
             is_draft: boolean;
@@ -260,8 +263,8 @@ export async function uploadPurchaseOrder(request: NextRequest) {
       const lockedUploadBlock = lockedOrder
         ? schoolPurchaseOrderUploadBlock(
             lockedOrder.customer_type,
-            lockedOrder.commitment_status,
             lockedOrder.status,
+            lockedOrder.contract_status,
             Boolean(lockedOrder.deleted_at)
           )
         : SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED;

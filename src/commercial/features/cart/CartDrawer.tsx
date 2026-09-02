@@ -14,10 +14,8 @@ import {
 } from '@/commercial/cart/cartTypes';
 import CartLine from '@/commercial/components/storefront/CartLine';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
-import ShippingCalculationRows, {
-  ShippingManualQuoteNotice
-} from '@/commercial/order/components/ShippingCalculationRows';
 import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
 import { formatEuro } from '@/shared/domain/formatting';
 import { resolveProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
@@ -36,6 +34,7 @@ const FOCUSABLE_SELECTOR = [
 
 export default function CartDrawer() {
   const appearance = useProductAppearance();
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const canvasDevice = useProductCanvasDevice();
   const canvasActive = appearance.canvas?.mode === 'free';
   const wrapCanvasElement = (
@@ -235,7 +234,9 @@ export default function CartDrawer() {
                 id="cart-drawer-description"
                 className="mt-1 text-xs text-[color:var(--site-color-text-muted)]"
               >
-                Cene in zalogo preverimo po veljavnem ceniku.
+                {stockEnforcementEnabled
+                  ? 'Cene in zalogo preverimo po veljavnem ceniku.'
+                  : 'Cene in izbrane različice preverimo po veljavnem ceniku.'}
               </p>
             </div>
             <button
@@ -320,7 +321,23 @@ export default function CartDrawer() {
                       : '—'}
                 </dd>
               </div>
-              <ShippingCalculationRows calculation={estimateState.estimate?.shipping ?? null} />
+              <div
+                className="flex justify-between gap-4 text-[color:var(--site-color-text-muted)]"
+                data-testid="cart-drawer-shipping"
+                data-summary-row="shipping"
+                data-shipping-status={
+                  estimateState.estimate?.shipping.status ?? 'pending'
+                }
+              >
+                <dt>Poštnina</dt>
+                <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
+                  {totals?.shipping !== null && totals?.shipping !== undefined
+                    ? formatEuro(totals.shipping)
+                    : estimateState.estimate?.shipping.status === 'manual_quote'
+                      ? 'Po dogovoru'
+                      : '—'}
+                </dd>
+              </div>
               <div className="mt-2 flex justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-2 text-base font-semibold">
                 <dt>Skupaj z DDV</dt>
                 <dd className="tabular-nums text-[color:var(--site-color-primary)]">
@@ -331,14 +348,11 @@ export default function CartDrawer() {
               </div>
             </dl>
 
-            <ShippingManualQuoteNotice
-              calculation={estimateState.estimate?.shipping ?? null}
-              className="site-radius-sm mt-2 bg-[color:var(--site-color-surface-muted)] p-3 text-xs text-[color:var(--site-color-danger)]"
-            />
-
             {estimateState.isLoading ? (
               <p className="mt-2 text-xs text-[color:var(--site-color-text-muted)]">
-                Preverjamo cene in zalogo …
+                {stockEnforcementEnabled
+                  ? 'Preverjamo cene in zalogo …'
+                  : 'Preverjamo cene in izbrane različice …'}
               </p>
             ) : estimateState.error ? (
               <p className="mt-2 text-xs text-[color:var(--site-color-danger)]">

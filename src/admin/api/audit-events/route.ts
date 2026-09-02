@@ -4,6 +4,10 @@ import { deleteAuditEventsByIds, fetchAuditEvents, normalizeAuditFilters } from 
 import { isDatabaseUnavailableError } from '@/shared/server/db';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
+const AUDIT_RESPONSE_HEADERS = {
+  'Cache-Control': 'private, no-store'
+} as const;
+
 export async function GET(request: Request) {
   let requestedPageSize: PageSizeValue = 25;
   try {
@@ -24,21 +28,24 @@ export async function GET(request: Request) {
     });
     requestedPageSize = filters.pageSize;
     const result = await fetchAuditEvents(filters);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: AUDIT_RESPONSE_HEADERS });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
-      return NextResponse.json({
-        events: [],
-        total: 0,
-        page: 1,
-        pageSize: requestedPageSize,
-        pageCount: 1,
-        warning: 'Dnevnika sprememb trenutno ni mogoče naložiti, ker baza ni dosegljiva.'
-      });
+      return NextResponse.json(
+        {
+          events: [],
+          total: 0,
+          page: 1,
+          pageSize: requestedPageSize,
+          pageCount: 1,
+          warning: 'Dnevnika sprememb trenutno ni mogoče naložiti, ker baza ni dosegljiva.'
+        },
+        { headers: AUDIT_RESPONSE_HEADERS }
+      );
     }
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka pri nalaganju dnevnika sprememb.' },
-      { status: 500 }
+      { status: 500, headers: AUDIT_RESPONSE_HEADERS }
     );
   }
 }
@@ -46,22 +53,31 @@ export async function GET(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const parsedBody = await readRequiredJsonRecord(request);
-    if (!parsedBody.ok) return parsedBody.response;
+    if (!parsedBody.ok) {
+      parsedBody.response.headers.set('Cache-Control', AUDIT_RESPONSE_HEADERS['Cache-Control']);
+      return parsedBody.response;
+    }
     const body = parsedBody.body;
     const eventIds = Array.isArray(body?.eventIds)
       ? body.eventIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
       : [];
 
     if (eventIds.length === 0) {
-      return NextResponse.json({ message: 'Izberite vsaj en zapis za izbris.' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Izberite vsaj en zapis za izbris.' },
+        { status: 400, headers: AUDIT_RESPONSE_HEADERS }
+      );
     }
 
     const result = await deleteAuditEventsByIds(eventIds);
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json(
+      { success: true, ...result },
+      { headers: AUDIT_RESPONSE_HEADERS }
+    );
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Brisanje zapisov ni uspelo.' },
-      { status: 500 }
+      { status: 500, headers: AUDIT_RESPONSE_HEADERS }
     );
   }
 }

@@ -1,7 +1,11 @@
 import type { AdminQuoteEvent } from '@/shared/domain/quote/quoteAdminTypes';
 import { AdminActivityTimeline } from '@/shared/ui/admin-detail/AdminActivityTimeline';
+import {
+  getQuoteProgressStatusLabel,
+  selectQuoteProgressEvents
+} from '@/admin/features/quotes/quoteProgressEvents';
 
-const EVENT_LABELS: Record<string, string> = {
+export const QUOTE_EVENT_LABELS: Record<string, string> = {
   request_received: 'Povpraševanje prejeto',
   draft_created: 'Osnutek ponudbe ustvarjen',
   draft_changed: 'Osnutek ponudbe spremenjen',
@@ -34,8 +38,8 @@ const EVENT_LABELS: Record<string, string> = {
   purchase_order_rejected: 'Naročilnica zavrnjena',
   offer_withdrawn: 'Ponudba umaknjena',
   offer_expired: 'Ponudba potekla',
-  offer_superseded: 'Izdana nova različica',
-  new_version_issued: 'Izdana nova različica',
+  offer_superseded: 'Prejšnja ponudba nadomeščena',
+  new_version_issued: 'Nova različica ponudbe izdana',
   order_created: 'Ustvarjeno naročilo',
   quote_request_closed: 'Povpraševanje zaključeno'
 };
@@ -88,11 +92,17 @@ const compactDateFormatter = new Intl.DateTimeFormat('sl-SI', {
   timeZone: 'Europe/Ljubljana'
 });
 
+const fullDateFormatter = new Intl.DateTimeFormat('sl-SI', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Europe/Ljubljana'
+});
+
 const formatFullTimestamp = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat('sl-SI', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    : fullDateFormatter.format(date);
 };
 
 const formatCompactTimestamp = (value: string) => {
@@ -113,16 +123,20 @@ export default function AdminQuoteActivityTimeline({
 }: {
   events: AdminQuoteEvent[];
 }) {
-  const items = [...events].slice(0, 5).reverse().map((event) => {
-    const label = EVENT_LABELS[event.eventType] ?? event.eventType;
+  const items = selectQuoteProgressEvents(events).reverse().map((event) => {
+    const statusLabel = getQuoteProgressStatusLabel(event);
+    const label = statusLabel
+      ? `Status povpraševanja: ${statusLabel}`
+      : QUOTE_EVENT_LABELS[event.eventType] ?? event.eventType;
     const actor = event.actorId ? `${event.actorType} ${event.actorId}` : event.actorType;
     const reason = event.reason?.trim();
 
     return {
       id: event.id,
       occurredAt: event.occurredAt,
+      timestampKnown: true,
       timestampLabel: formatCompactTimestamp(event.occurredAt),
-      compactLabel: COMPACT_EVENT_LABELS[event.eventType] ?? label,
+      compactLabel: statusLabel ?? COMPACT_EVENT_LABELS[event.eventType] ?? label,
       fullLabel: `${label} · ${actor} · ${formatFullTimestamp(event.occurredAt)}${reason ? ` · ${reason}` : ''}`
     };
   });
@@ -133,7 +147,7 @@ export default function AdminQuoteActivityTimeline({
       ariaLabel="Časovnica povpraševanja"
       progressAriaLabel="Napredovanje povpraševanja"
       items={items}
-      emptyMessage="Za povpraševanje še ni zabeležene dejavnosti."
+      emptyMessage="Za povpraševanje še ni zabeleženega napredovanja."
     />
   );
 }

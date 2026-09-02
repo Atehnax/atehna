@@ -24,7 +24,7 @@ test.beforeEach(async ({ request }) => {
   await assertAuthenticatedAdmin(request);
 });
 
-test('customer actions share the compact name row and preserve behavior', async ({
+test('customer actions sit beside the order data title and preserve behavior', async ({
   page,
   request
 }) => {
@@ -167,32 +167,51 @@ test('customer actions share the compact name row and preserve behavior', async 
     await expect(orderDataCard.locator('input, select, textarea')).toHaveCount(0);
     expect(detailMutationRequests).toEqual([]);
 
-    const card = page.getByTestId('admin-order-customer-card');
-    const nameRow = page.getByTestId('admin-order-customer-name-row');
-    const openButton = nameRow.getByTestId('admin-order-customer-open');
-    const copyButton = nameRow.getByTestId('admin-order-customer-copy');
-    await expect(card).toBeVisible();
-    await expect(nameRow.getByText(organizationName, { exact: true })).toBeVisible();
+    const orderDataTitle = orderDataCard.getByRole('heading', {
+      name: 'Podatki naročila',
+      exact: true
+    });
+    const customerActions = orderDataCard.getByTestId('admin-order-customer-actions');
+    const openButton = customerActions.getByTestId('admin-order-customer-open');
+    const copyButton = customerActions.getByTestId('admin-order-customer-copy');
+    await expect(orderDataTitle).toBeVisible();
+    await expect(customerActions).toBeVisible();
+    await expect(customerActions.getByRole('button')).toHaveCount(2);
+    await expect(
+      page.getByRole('heading', { name: 'Naročnik in dostava', exact: true })
+    ).toHaveCount(0);
+    expect(
+      await customerActions.evaluate(
+        (element) => element.previousElementSibling?.textContent?.trim()
+      )
+    ).toBe('Podatki naročila');
     await expect(openButton).toHaveAttribute('aria-label', 'Odpri stranko');
     await expect(openButton).toHaveAttribute('title', 'Odpri stranko');
     await expect(openButton).toHaveText('');
     await expect(copyButton).toHaveAttribute('aria-label', 'Kopiraj podatke');
     await expect(copyButton).toHaveAttribute('title', 'Kopiraj podatke');
     await expect(copyButton).toHaveText('');
-    await expect(card.getByText('Kopiraj podatke', { exact: true })).toHaveCount(0);
+    await expect(customerActions.getByText('Kopiraj podatke', { exact: true })).toHaveCount(0);
 
-    const [nameRowBox, openButtonBox, copyButtonBox] = await Promise.all([
-      nameRow.boundingBox(),
+    const [orderDataTitleBox, customerActionsBox, openButtonBox, copyButtonBox] = await Promise.all([
+      orderDataTitle.boundingBox(),
+      customerActions.boundingBox(),
       openButton.boundingBox(),
       copyButton.boundingBox()
     ]);
-    expect(nameRowBox).not.toBeNull();
+    expect(orderDataTitleBox).not.toBeNull();
+    expect(customerActionsBox).not.toBeNull();
     expect(openButtonBox).not.toBeNull();
     expect(copyButtonBox).not.toBeNull();
-    if (nameRowBox && openButtonBox && copyButtonBox) {
-      const rowCenter = nameRowBox.y + nameRowBox.height / 2;
-      expect(Math.abs(openButtonBox.y + openButtonBox.height / 2 - rowCenter)).toBeLessThan(2);
-      expect(Math.abs(copyButtonBox.y + copyButtonBox.height / 2 - rowCenter)).toBeLessThan(2);
+    if (orderDataTitleBox && customerActionsBox && openButtonBox && copyButtonBox) {
+      const titleCenter = orderDataTitleBox.y + orderDataTitleBox.height / 2;
+      const actionsCenter = customerActionsBox.y + customerActionsBox.height / 2;
+      expect(Math.abs(actionsCenter - titleCenter)).toBeLessThan(2);
+      expect(customerActionsBox.x).toBeGreaterThan(
+        orderDataTitleBox.x + orderDataTitleBox.width
+      );
+      expect(Math.abs(openButtonBox.y + openButtonBox.height / 2 - actionsCenter)).toBeLessThan(2);
+      expect(Math.abs(copyButtonBox.y + copyButtonBox.height / 2 - actionsCenter)).toBeLessThan(2);
       expect(openButtonBox.width).toBe(copyButtonBox.width);
       expect(openButtonBox.height).toBe(copyButtonBox.height);
       expect(copyButtonBox.x).toBeGreaterThan(openButtonBox.x);

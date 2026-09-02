@@ -2,6 +2,7 @@
 
 import { useId, type RefObject } from 'react';
 import { Button } from '@/shared/ui/button';
+import { adminPlaceholderTokenClasses } from '@/shared/ui/theme/tokens';
 import {
   Dialog,
   dialogActionButtonClassName,
@@ -31,7 +32,7 @@ type AdminQuoteClarificationDialogProps = {
 const MAX_CLARIFICATION_LENGTH = 2_000;
 
 const clarificationTextareaClassName =
-  "min-h-32 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3e67d6] focus:ring-1 focus:ring-[#3e67d6] disabled:cursor-default disabled:bg-slate-50 disabled:text-slate-500";
+  `min-h-32 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition ${adminPlaceholderTokenClasses} focus:border-[#3e67d6] focus:ring-1 focus:ring-[#3e67d6] disabled:cursor-default disabled:bg-slate-50 disabled:text-slate-500`;
 
 export default function AdminQuoteClarificationDialog({
   open,
@@ -73,7 +74,7 @@ export default function AdminQuoteClarificationDialog({
       title={
         step === 'compose'
           ? 'Zahteva za pojasnilo'
-          : 'Pošljem pojasnilo stranki?'
+          : 'E-poštno obvestilo stranki'
       }
       isDismissable={step === 'compose' && !busy}
       initialFocusRef={step === 'compose' ? textareaRef : sendButtonRef}
@@ -138,7 +139,7 @@ export default function AdminQuoteClarificationDialog({
               className={dialogActionButtonClassName}
               data-testid="quote-clarification-record-and-send"
             >
-              {busy ? 'Pošiljam …' : 'Zabeleži in pošlji'}
+              {busy ? 'Beležim …' : 'Zabeleži z e-pošto'}
             </Button>
           </div>
         )
@@ -163,7 +164,7 @@ export default function AdminQuoteClarificationDialog({
                   .filter(Boolean)
                   .join(' ')}
                 aria-invalid={Boolean(inlineError)}
-                placeholder="Na primer: Prosimo, potrdite želene dimenzije in količino artikla."
+                placeholder="Prosimo, potrdite želene dimenzije in količino artikla."
                 className={clarificationTextareaClassName + ' mt-1.5'}
                 data-testid="quote-clarification-textarea"
               />
@@ -192,8 +193,8 @@ export default function AdminQuoteClarificationDialog({
         ) : (
           <>
             <p className={dialogDescriptionClassName}>
-              Izberite, ali želite zahtevo samo zabeležiti ali jo tudi poslati
-              stranki.
+              Izberite, ali želite zahtevo samo zabeležiti ali zahtevati tudi
+              e-poštno obvestilo stranki.
             </p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
@@ -210,8 +211,13 @@ export default function AdminQuoteClarificationDialog({
               </p>
             </div>
             <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] leading-4 text-blue-800">
-              Ob izbiri »Zabeleži in pošlji« bo stranki poslana nastavljena
-              e-poštna predloga, ki ji bo dodano zgornje pojasnilo.
+              Ob izbiri »Zabeleži z e-pošto« bo obvestilo uvrščeno v čakalno
+              vrsto samo, če je dogodek »Zahteva za pojasnilo« za stranko
+              omogočen v{' '}
+              <a className="font-semibold underline" href="/admin/email">
+                nastavitvah E-pošta
+              </a>
+              . Nastavljeni predlogi bo dodano zgornje pojasnilo.
             </p>
             {!normalizedRecipientEmail ? (
               <p

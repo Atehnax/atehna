@@ -26,58 +26,73 @@ test('order customer details reuse the canonical customer directory identity', (
   );
 });
 
-test('order customer card exposes compact delivery data and full directory metrics', () => {
-  const card = source(
+test('order customer actions keep profile and copy controls without a redundant summary card', () => {
+  const actions = source(
     'src/admin/features/orders/components/AdminOrderCustomerCard.tsx'
   );
+  const adminTableStandards = source('src/shared/ui/admin-table/standards.ts');
 
-  assert.match(card, /Naročnik in dostava/u);
-  assert.match(card, /Odpri stranko/u);
-  assert.match(card, /Kopiraj podatke/u);
-  assert.match(card, /data-testid="admin-order-customer-card"/u);
-  assert.match(card, /data-testid="admin-order-customer-name-row"/u);
-  const nameRow = card.slice(
-    card.indexOf('data-testid="admin-order-customer-name-row"'),
-    card.indexOf('data-testid="admin-order-customer-contact-details"')
+  assert.match(actions, /export type AdminOrderCustomerActionsProps/u);
+  assert.match(actions, /export default function AdminOrderCustomerActions/u);
+  assert.match(actions, /data-testid="admin-order-customer-actions"/u);
+  assert.doesNotMatch(
+    actions,
+    /Naročnik in dostava|admin-order-customer-card|admin-order-customer-name-row|admin-order-customer-contact-details|admin-order-customer-email|admin-order-customer-address/u
   );
-  assert.match(nameRow, /data-testid="admin-order-customer-open"/u);
-  assert.match(nameRow, /onClick=\{\(\) => setDrawerOpen\(true\)\}/u);
-  assert.match(nameRow, /aria-label="Odpri stranko"/u);
-  assert.match(nameRow, /title="Odpri stranko"/u);
-  assert.match(nameRow, /data-testid="admin-order-customer-copy"/u);
-  assert.match(nameRow, /onClick=\{\(\) => void copyCustomerData\(\)\}/u);
-  assert.match(nameRow, /aria-label="Kopiraj podatke"/u);
-  assert.match(nameRow, /title="Kopiraj podatke"/u);
-  assert.equal(card.match(/className=\{customerHeaderActionButtonClassName\}/gu)?.length, 2);
-  assert.equal(card.match(/className=\{customerHeaderActionIconClassName\}/gu)?.length, 2);
-  assert.match(card, /const customerHeaderActionIconClassName = '!h-3\.5 !w-3\.5';/u);
-  assert.match(nameRow, /<CopyIcon className=\{customerHeaderActionIconClassName\} \/>\s*<\/button>/u);
-  assert.doesNotMatch(nameRow, /<OpenCustomerIcon[^>]*\/>\s*Odpri stranko/u);
-  assert.doesNotMatch(nameRow, /<CopyIcon[^>]*\/>\s*Kopiraj podatke/u);
-  assert.doesNotMatch(card, /border-t border-slate-100 pt-3/u);
-  assert.match(card, /navigator\.clipboard\.writeText\(lines\.join\('\\n'\)\)/u);
-  assert.match(card, /Podatki stranke so kopirani\./u);
-  assert.match(card, /customerEndpoint\?: string/u);
+  assert.doesNotMatch(actions, /customerType|getCustomerTypeLabel|adminWindowCardClassName/u);
+
+  const actionGroup = actions.slice(
+    actions.indexOf('data-testid="admin-order-customer-actions"'),
+    actions.indexOf('{drawer}')
+  );
+  assert.match(actionGroup, /data-testid="admin-order-customer-open"/u);
+  assert.match(actionGroup, /onClick=\{\(\) => setDrawerOpen\(true\)\}/u);
+  assert.match(actionGroup, /aria-label="Odpri stranko"/u);
+  assert.match(actionGroup, /title="Odpri stranko"/u);
+  assert.match(actionGroup, /data-testid="admin-order-customer-copy"/u);
+  assert.match(actionGroup, /onClick=\{\(\) => void copyCustomerData\(\)\}/u);
+  assert.match(actionGroup, /aria-label="Kopiraj podatke"/u);
+  assert.match(actionGroup, /title="Kopiraj podatke"/u);
+  assert.match(actions, /from '@\/shared\/ui\/admin-table'/u);
+  assert.equal(
+    actions.match(/className=\{adminCardSectionIconActionButtonClassName\}/gu)?.length,
+    2
+  );
+  assert.equal(
+    actions.match(/className=\{adminCardSectionIconClassName\}/gu)?.length,
+    2
+  );
   assert.match(
-    card,
+    adminTableStandards,
+    /export const adminCardSectionIconActionButtonClassName =\s*`\$\{adminCardSectionEditIconButtonClassName\} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-\[#3e67d6\]\/30`;/u
+  );
+  assert.match(
+    adminTableStandards,
+    /export const adminCardSectionIconClassName = '!h-3\.5 !w-3\.5';/u
+  );
+  assert.doesNotMatch(actions, /customerHeaderActionButtonClassName|customerHeaderActionIconClassName/u);
+  assert.match(actionGroup, /<CopyIcon className=\{adminCardSectionIconClassName\} \/>\s*<\/button>/u);
+  assert.doesNotMatch(actionGroup, /<OpenCustomerIcon[^>]*\/>\s*Odpri stranko/u);
+  assert.doesNotMatch(actionGroup, /<CopyIcon[^>]*\/>\s*Kopiraj podatke/u);
+  assert.match(actions, /navigator\.clipboard\.writeText\(lines\.join\('\\n'\)\)/u);
+  assert.match(actions, /Podatki stranke so kopirani\./u);
+  assert.match(actions, /customerEndpoint\?: string/u);
+  assert.match(
+    actions,
     /fetch\(customerEndpoint \?\? `\/api\/admin\/orders\/\$\{orderId\}\/customer`/u
   );
-  assert.match(card, /\[customerEndpoint, drawerOpen, orderId\]/u);
-  assert.match(card, /\/api\/admin\/orders\/\$\{orderId\}\/customer/u);
-  assert.match(card, /role="dialog"/u);
-  assert.match(card, /aria-modal="true"/u);
-  assert.match(card, /event\.key === 'Escape'/u);
-  assert.match(card, /Podatki iz Stranke › Vse/u);
+  assert.match(actions, /\[customerEndpoint, drawerOpen, orderId\]/u);
+  assert.match(actions, /\/api\/admin\/orders\/\$\{orderId\}\/customer/u);
+  assert.match(actions, /role="dialog"/u);
+  assert.match(actions, /aria-modal="true"/u);
+  assert.match(actions, /event\.key === 'Escape'/u);
+  assert.match(actions, /Podatki iz Stranke › Vse/u);
   assert.match(
-    card,
+    actions,
     /\[clean\(addressLine1\), clean\(addressLine2\)\]\.filter\(Boolean\)\.join\(', '\)[\s\S]*?locality,[\s\S]*?clean\(countryCode\)[\s\S]*?\.filter\(Boolean\)\.join\(', '\)/u
   );
-  assert.match(card, /data-testid="admin-order-customer-contact-details"/u);
-  assert.match(card, /className="mt-1 space-y-0\.5 text-\[11px\] leading-4 text-slate-600"/u);
-  assert.match(card, /data-testid="admin-order-customer-email"/u);
-  assert.match(card, /data-testid="admin-order-customer-address"/u);
-  assert.match(card, /\{fullAddress\}/u);
-  assert.doesNotMatch(card, /addressLines\.map/u);
+  assert.match(actions, /const lines = \[[\s\S]*?fullAddress[\s\S]*?\]\.filter\(Boolean\)/u);
+  assert.doesNotMatch(actions, /addressLines\.map/u);
 
   for (const label of [
     'Kontakti',
@@ -88,6 +103,6 @@ test('order customer card exposes compact delivery data and full directory metri
     'Zadnji nakup',
     'Povprečna vrednost nakupa'
   ]) {
-    assert.match(card, new RegExp(label, 'u'));
+    assert.match(actions, new RegExp(label, 'u'));
   }
 });

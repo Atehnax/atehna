@@ -7,9 +7,11 @@ import {
   type Page
 } from '@playwright/test';
 import pg, { type Pool as PgPool } from 'pg';
+import type { OrderEmailSettings } from '@/shared/domain/order/orderEmailSettings';
 import { assertAuthenticatedAdmin } from './support/auth';
 
 const { Pool } = pg;
+const EMAIL_SETTINGS_KEY = 'order-email-notifications';
 
 const CATALOG_LINES = [
   {
@@ -42,6 +44,8 @@ const FOREIGN_ITEM_MESSAGE =
   'Ena ali več izbranih postavk ne pripada temu naročilu. Osvežite stran in poskusite znova.';
 const STALE_DELIVERY_PLAN_MESSAGE =
   'Načrt dobave je medtem spremenil drug uporabnik. Osvežite stran in poskusite znova.';
+const CUSTOMER_EMAIL_CONFIRMATION_REQUIRED =
+  'CUSTOMER_EMAIL_CONFIRMATION_REQUIRED';
 
 type CreatedOrder = {
   orderId: number;
@@ -51,10 +55,106 @@ type CreatedOrder = {
 };
 
 let database: PgPool;
+let originalEmailSettings: {
+  config_json: unknown;
+  updated_at: Date;
+} | null = null;
+
+function confirmationEnabledSettings(
+  current: OrderEmailSettings
+): OrderEmailSettings {
+  return {
+    ...current,
+    enabled: true,
+    confirmCustomerEmails: true,
+    senderName: 'Atehna E2E',
+    fromEmail: 'orders@e2e.example.com',
+    events: {
+      ...current.events,
+      in_progress: { ...current.events.in_progress, customer: true },
+      partially_sent: { ...current.events.partially_sent, customer: true },
+      sent: { ...current.events.sent, customer: true }
+    },
+    updatedAt: null
+  };
+}
 
 async function requireOk(response: APIResponse, label: string) {
   if (response.ok()) return;
   throw new Error(`${label} failed with ${response.status()}: ${await response.text()}`);
+}
+
+async function postConfirmedOrderStatus(
+  request: APIRequestContext,
+  orderId: number,
+  data: Record<string, unknown>
+): Promise<APIResponse> {
+  const path = `/api/admin/orders/${orderId}/status`;
+  const challengeResponse = await request.post(path, { data });
+  expect(challengeResponse.status()).toBe(428);
+  const challenge = await challengeResponse.json() as {
+    code?: unknown;
+    confirmationToken?: unknown;
+  };
+  expect(challenge).toMatchObject({
+    code: CUSTOMER_EMAIL_CONFIRMATION_REQUIRED,
+    confirmationToken: expect.any(String)
+  });
+  const customerEmailConfirmationToken = String(challenge.confirmationToken);
+  return request.post(path, {
+    data: { ...data, customerEmailConfirmationToken }
+  });
+}
+
+async function saveStatusWithCustomerEmailConfirmation(
+  page: Page,
+  statusPath: string
+) {
+  const challengeResponsePromise = page.waitForResponse((response) => {
+    if (
+      response.request().method() !== 'POST' ||
+      new URL(response.url()).pathname !== statusPath ||
+      response.status() !== 428
+    ) return false;
+    const body = response.request().postDataJSON() as {
+      confirmationOnly?: unknown;
+    };
+    return body.confirmationOnly === true;
+  });
+  const statusResponsePromise = page.waitForResponse((response) => {
+    if (
+      response.request().method() !== 'POST' ||
+      new URL(response.url()).pathname !== statusPath
+    ) return false;
+    const body = response.request().postDataJSON() as {
+      confirmationOnly?: unknown;
+    };
+    return body.confirmationOnly !== true;
+  });
+
+  await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+  const challengeResponse = await challengeResponsePromise;
+  const challenge = await challengeResponse.json() as {
+    code?: unknown;
+    confirmationToken?: unknown;
+  };
+  expect(challenge).toMatchObject({
+    code: CUSTOMER_EMAIL_CONFIRMATION_REQUIRED,
+    confirmationToken: expect.any(String)
+  });
+  const customerEmailConfirmationToken = String(challenge.confirmationToken);
+  const dialog = page.getByRole('dialog', {
+    name: 'Pošljem e-pošto stranki?'
+  });
+  await expect(dialog).toBeVisible();
+  await dialog
+    .getByRole('button', { name: 'Potrdi in nadaljuj' })
+    .click();
+
+  return {
+    response: await statusResponsePromise,
+    customerEmailConfirmationToken
+  };
 }
 
 async function createOrderWithItems(
@@ -126,9 +226,10 @@ async function finalizeAndAcceptOrder(
   });
   await requireOk(detailsResponse, 'finalize order details');
 
-  const acceptResponse = await request.post(
-    `/api/admin/orders/${orderId}/contract-status`,
-    { data: { contractStatus: 'accepted' } }
+  const acceptResponse = await postConfirmedOrderStatus(
+    request,
+    orderId,
+    { status: 'in_progress' }
   );
   await requireOk(acceptResponse, 'accept direct order');
 }
@@ -197,21 +298,68 @@ async function cleanupOrders(
     [hardDeleteOrderIds]
   );
 }
-test.beforeAll(() => {
+test.beforeAll(async () => {
   const databaseUrl = process.env.E2E_DATABASE_URL?.trim();
   if (!databaseUrl) {
     throw new Error('[e2e-preflight] E2E_DATABASE_URL is required.');
   }
   database = new Pool({ connectionString: databaseUrl, ssl: false });
+  const stored = await database.query<{
+    config_json: unknown;
+    updated_at: Date;
+  }>(
+    `select config_json, updated_at
+     from order_email_settings
+     where key = $1`,
+    [EMAIL_SETTINGS_KEY]
+  );
+  originalEmailSettings = stored.rows[0] ?? null;
 });
 
 test.afterAll(async () => {
   if (!database) return;
+  if (originalEmailSettings) {
+    await database.query(
+      `insert into order_email_settings (key, config_json, updated_at)
+       values ($1, $2::jsonb, $3)
+       on conflict (key)
+       do update set config_json = excluded.config_json,
+                     updated_at = excluded.updated_at`,
+      [
+        EMAIL_SETTINGS_KEY,
+        JSON.stringify(originalEmailSettings.config_json),
+        originalEmailSettings.updated_at
+      ]
+    );
+  } else {
+    await database.query(
+      'delete from order_email_settings where key = $1',
+      [EMAIL_SETTINGS_KEY]
+    );
+  }
   await (database as PgPool & { end: () => Promise<void> }).end();
 });
 
 test.beforeEach(async ({ request }) => {
   await assertAuthenticatedAdmin(request);
+  const settingsResponse = await request.get('/api/admin/order-email-settings');
+  expect(settingsResponse.ok()).toBe(true);
+  const settingsPayload = await settingsResponse.json() as {
+    state: { config: OrderEmailSettings };
+  };
+  await database.query(
+    `insert into order_email_settings (key, config_json, updated_at)
+     values ($1, $2::jsonb, now())
+     on conflict (key)
+     do update set config_json = excluded.config_json,
+                   updated_at = excluded.updated_at`,
+    [
+      EMAIL_SETTINGS_KEY,
+      JSON.stringify(
+        confirmationEnabledSettings(settingsPayload.state.config)
+      )
+    ]
+  );
 });
 
 test('requires and atomically persists a two-section plan for partial delivery', async ({
@@ -231,14 +379,13 @@ test('requires and atomically persists a two-section plan for partial delivery',
     const foreignOrder = await createOrderWithItems(request, [CATALOG_LINES[0]]);
     ownedOrderIds.push(foreignOrder.orderId);
 
-    const missingPlanResponse = await request.post(
-      `/api/admin/orders/${order.orderId}/status`,
+    const missingPlanResponse = await postConfirmedOrderStatus(
+      request,
+      order.orderId,
       {
-        data: {
-          status: 'partially_sent',
-          shipLaterItemIds: [],
-          expectedDeliveryPlanRevision: order.deliveryPlanRevision
-        }
+        status: 'partially_sent',
+        shipLaterItemIds: [],
+        expectedDeliveryPlanRevision: order.deliveryPlanRevision
       }
     );
     expect(missingPlanResponse.status()).toBe(409);
@@ -323,6 +470,25 @@ test('requires and atomically persists a two-section plan for partial delivery',
     await expect(currentGroup).not.toContainText(laterItemName);
     await expect(laterGroup).toContainText(laterItemName);
 
+    const pdfSaveFirstMessage = page.getByText(
+      'Pred ustvarjanjem ali nalaganjem PDF dokumentov najprej shranite spremembe.',
+      { exact: true }
+    );
+    const createPdfActions = page.getByRole('button', {
+      name: 'Ustvari',
+      exact: true
+    });
+    const uploadPdfAction = page.getByRole('button', {
+      name: 'Naloži',
+      exact: true
+    });
+    await expect(pdfSaveFirstMessage).toBeVisible();
+    await expect(createPdfActions).toHaveCount(4);
+    for (let index = 0; index < await createPdfActions.count(); index += 1) {
+      await expect(createPdfActions.nth(index)).toBeDisabled();
+    }
+    await expect(uploadPdfAction).toBeDisabled();
+
     await openStatusMenu(page);
     const partialOption = page.getByRole('menuitem', {
       name: /^Delno poslano/u
@@ -338,20 +504,27 @@ test('requires and atomically persists a two-section plan for partial delivery',
         pathname === `/api/admin/orders/${order.orderId}/status`
         || pathname === `/api/admin/orders/${order.orderId}/delivery-plan`
       ) {
+        if (
+          pathname === `/api/admin/orders/${order.orderId}/status`
+          && (outboundRequest.postDataJSON() as {
+            confirmationOnly?: unknown;
+          }).confirmationOnly === true
+        ) return;
         firstSaveMutations.push(pathname);
       }
     });
-    const partialStatusResponsePromise = page.waitForResponse((response) =>
-      response.request().method() === 'POST'
-      && new URL(response.url()).pathname === `/api/admin/orders/${order.orderId}/status`
+    const partialSave = await saveStatusWithCustomerEmailConfirmation(
+      page,
+      `/api/admin/orders/${order.orderId}/status`
     );
-    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
-    const partialStatusResponse = await partialStatusResponsePromise;
+    const partialStatusResponse = partialSave.response;
     expect(partialStatusResponse.status()).toBe(200);
     expect(partialStatusResponse.request().postDataJSON()).toEqual({
       status: 'partially_sent',
       shipLaterItemIds: [order.itemIds[1]],
-      expectedDeliveryPlanRevision: order.deliveryPlanRevision
+      expectedDeliveryPlanRevision: order.deliveryPlanRevision,
+      customerEmailConfirmationToken:
+        partialSave.customerEmailConfirmationToken
     });
     const partialStatusPayload = await partialStatusResponse.json() as {
       deliveryPlanRevision?: unknown;
@@ -361,6 +534,11 @@ test('requires and atomically persists a two-section plan for partial delivery',
     );
     expect(partialDeliveryPlanRevision).toBe(order.deliveryPlanRevision + 1);
     await expect(page.getByText('Naročilo je shranjeno.', { exact: true })).toBeVisible();
+    await expect(pdfSaveFirstMessage).toHaveCount(0);
+    for (let index = 0; index < await createPdfActions.count(); index += 1) {
+      await expect(createPdfActions.nth(index)).toBeEnabled();
+    }
+    await expect(uploadPdfAction).toBeEnabled();
     expect(firstSaveMutations).toEqual([
       `/api/admin/orders/${order.orderId}/status`
     ]);
@@ -480,6 +658,42 @@ test('requires and atomically persists a two-section plan for partial delivery',
     await page.reload();
     await expect(page.getByText(staleDocumentFilename, { exact: true })).toHaveCount(0);
     await expect(page.getByTestId('admin-order-detail-header')).toContainText('Delno poslano');
+    const orderTimeline = page
+      .getByTestId('admin-order-detail-header')
+      .getByTestId('admin-order-activity-timeline');
+    const orderProgressLabels = orderTimeline.locator(
+      '[data-activity-compact-label]'
+    );
+    await expect(
+      orderProgressLabels.filter({ hasText: 'Prejeto ·' }).first()
+    ).toBeVisible();
+    await expect(
+      orderProgressLabels.filter({ hasText: 'V obdelavi ·' }).first()
+    ).toBeVisible();
+    await expect(
+      orderProgressLabels.filter({ hasText: 'Delno poslano ·' }).first()
+    ).toBeVisible();
+    await expect(orderTimeline).not.toContainText('Postavke');
+    await expect(orderTimeline).not.toContainText('Poštnina');
+
+    await page.getByRole('button', {
+      name: /^Odpri dnevnik sprememb za #/u
+    }).click();
+    const orderHistoryDialog = page.getByRole('dialog', {
+      name: 'Dnevnik sprememb'
+    });
+    await expect(orderHistoryDialog).toBeVisible();
+    const changeGroup = orderHistoryDialog.getByRole('button', {
+      name: /Naročilo #\d+: \d+ sprememb/iu
+    }).first();
+    await expect(changeGroup).toBeVisible();
+    await changeGroup.click();
+    await expect(
+      orderHistoryDialog.locator('table tbody tr').first()
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(orderHistoryDialog).toHaveCount(0);
+
     await expect(page.getByTestId('admin-order-items-current-group')).toContainText(
       currentItemName
     );
@@ -511,20 +725,26 @@ test('requires and atomically persists a two-section plan for partial delivery',
         pathname === `/api/admin/orders/${order.orderId}/status`
         || pathname === `/api/admin/orders/${order.orderId}/delivery-plan`
       ) {
+        if (
+          pathname === `/api/admin/orders/${order.orderId}/status`
+          && (outboundRequest.postDataJSON() as {
+            confirmationOnly?: unknown;
+          }).confirmationOnly === true
+        ) return;
         finalSaveMutations.push(pathname);
       }
     });
-    const sentStatusResponsePromise = page.waitForResponse((response) =>
-      response.request().method() === 'POST'
-      && new URL(response.url()).pathname === `/api/admin/orders/${order.orderId}/status`
+    const sentSave = await saveStatusWithCustomerEmailConfirmation(
+      page,
+      `/api/admin/orders/${order.orderId}/status`
     );
-    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
-    const sentStatusResponse = await sentStatusResponsePromise;
+    const sentStatusResponse = sentSave.response;
     expect(sentStatusResponse.status()).toBe(200);
     expect(sentStatusResponse.request().postDataJSON()).toEqual({
       status: 'sent',
       shipLaterItemIds: [],
-      expectedDeliveryPlanRevision: partialDeliveryPlanRevision
+      expectedDeliveryPlanRevision: partialDeliveryPlanRevision,
+      customerEmailConfirmationToken: sentSave.customerEmailConfirmationToken
     });
     const sentStatusPayload = await sentStatusResponse.json() as {
       deliveryPlanRevision?: unknown;
@@ -595,6 +815,12 @@ test('manual draft persists its delivery plan before implicit seller acceptance'
     page.on('request', (outboundRequest) => {
       if (outboundRequest.method() !== 'POST') return;
       const pathname = new URL(outboundRequest.url()).pathname;
+      if (
+        pathname === statusPath
+        && (outboundRequest.postDataJSON() as {
+          confirmationOnly?: unknown;
+        }).confirmationOnly === true
+      ) return;
       if ([detailsPath, planPath, statusPath].includes(pathname)) {
         saveMutations.push(pathname);
       }
@@ -673,6 +899,9 @@ test('manual draft persists its delivery plan before implicit seller acceptance'
 
     saveMutations.length = 0;
     await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
+    await page
+      .getByRole('textbox', { name: 'Naročnik', exact: true })
+      .fill('E2E delno shranjen ročni osnutek');
     await openStatusMenu(page);
     const inProgressOption = page.getByRole('menuitem', {
       name: /^V obdelavi/u
@@ -680,12 +909,26 @@ test('manual draft persists its delivery plan before implicit seller acceptance'
     await expect(inProgressOption).not.toHaveAttribute('aria-disabled', 'true');
     await inProgressOption.click();
 
+    const detailsResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === detailsPath
+    );
     const statusResponsePromise = page.waitForResponse((response) =>
       response.request().method() === 'POST'
       && new URL(response.url()).pathname === statusPath
+      && (response.request().postDataJSON() as {
+        confirmationOnly?: unknown;
+      }).confirmationOnly !== true
     );
     await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+    const detailsResponse = await detailsResponsePromise;
     const statusResponse = await statusResponsePromise;
+    expect(detailsResponse.status()).toBe(200);
+    expect(await detailsResponse.json()).toMatchObject({
+      isDraft: true,
+      finalized: false,
+      finalizationBlock: { message: expect.any(String) }
+    });
     expect(statusResponse.status()).toBe(200);
     expect(statusResponse.request().postDataJSON()).toEqual({
       status: 'in_progress',
@@ -699,8 +942,7 @@ test('manual draft persists its delivery plan before implicit seller acceptance'
       shipLaterItemIds: [order.itemIds[1]],
       deliveryPlanRevision: savedPlanRevision
     });
-    expect(saveMutations).toEqual([statusPath]);
-    expect(saveMutations).not.toContain(detailsPath);
+    expect(saveMutations).toEqual([detailsPath, statusPath]);
 
     const acceptedDraft = await database.query<{
       is_draft: boolean;

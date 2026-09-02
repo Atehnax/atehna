@@ -848,6 +848,16 @@ export function toStorefrontProductSummary(
   };
 }
 
-export function isStorefrontVariantPurchasable(variant: StorefrontVariant | null) {
-  return Boolean(variant && variantIsPurchasable(variant) && variant.commerceId !== null);
+export function isStorefrontVariantPurchasable(
+  variant: StorefrontVariant | null,
+  stockEnforcementEnabled = true
+) {
+  return Boolean(
+    variant &&
+      variant.commerceId !== null &&
+      variant.status === 'active' &&
+      (!stockEnforcementEnabled ||
+        variant.inventory === null ||
+        variant.inventory >= variant.minOrder)
+  );
 }

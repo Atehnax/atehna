@@ -16,6 +16,7 @@ import { validateSiteLogoFileContent } from '@/shared/client/siteLogoFileValidat
 import {
   Check,
   Copy,
+  Crop,
   Eye,
   EyeOff,
   FileText,
@@ -56,6 +57,7 @@ import {
   SITE_LOGO_TEXT_POSITION_MIN,
   SITE_LOGO_USE_CASE_PURPOSE_IDS,
   copySiteLogoPlacement,
+  deriveSiteLogoFitSuggestion,
   getSiteLogoPresentationCapabilities,
   isBuiltInAtehnaLogoMaster,
   isSiteLogoHeaderPurpose,
@@ -64,6 +66,7 @@ import {
   normalizeSiteLogoConfig,
   resolveSiteLogoCanvasEdges,
   resolveSiteLogoCanvasLayout,
+  resolveSiteLogoCropClipPath,
   resolveSiteLogoFittedArtworkRect,
   resolveSiteLogoGeometry,
   resolveSiteLogoDisplaySize,
@@ -96,7 +99,7 @@ import { SiteLogoArtwork } from '@/shared/components/SiteLogoArtwork';
 import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
-import { adminControlFocusTokenClasses, adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
+import { adminControlFocusTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import AdminPodobaTabs from './AdminPodobaTabs';
 import {
@@ -109,10 +112,9 @@ import {
   AppearanceEditorNumberInput,
   AppearanceEditorToolbarButton,
   AppearanceEditorToolbarDivider,
+  AppearanceEditorToolbarPopover,
   AppearanceEditorToolbarToneProvider,
-  FloatingAppearanceEditorContextToolbar,
-  appearanceEditorToolbarPopoverSurfaceClassName,
-  useAppearanceEditorToolbarPlacement
+  FloatingAppearanceEditorContextToolbar
 } from './AppearanceEditorToolbarPrimitives';
 
 type MasterSlot = {
@@ -138,6 +140,66 @@ type DragState = {
   frame: HTMLElement;
 };
 
+type LogoEditMode = 'move' | 'resize' | 'crop';
+type LogoResizeHandle = 'nw' | 'ne' | 'se' | 'sw';
+type LogoCropHandle = LogoResizeHandle | 'n' | 'e' | 's' | 'w';
+
+type LogoResizeDragState = {
+  purposeId: SiteLogoPurposeId;
+  handle: LogoResizeHandle;
+  startClientX: number;
+  startClientY: number;
+  startScale: number;
+  startDisplayHeightPx: number | null;
+  frameWidth: number;
+  frameHeight: number;
+};
+
+type LogoCropDragState = {
+  purposeId: SiteLogoPurposeId;
+  handle: LogoCropHandle;
+  startClientX: number;
+  startClientY: number;
+  startCrop: SiteLogoGeometry['crop'];
+  frameWidth: number;
+  frameHeight: number;
+};
+
+const LOGO_RESIZE_HANDLES: readonly LogoResizeHandle[] = ['nw', 'ne', 'se', 'sw'];
+const LOGO_CROP_HANDLES: readonly LogoCropHandle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+const LOGO_CROP_MIN_SIZE = 0.04;
+const LOGO_EDITOR_SCALE_MIN = 0.25;
+const LOGO_EDITOR_SCALE_MAX = 4;
+
+function normalizeEditorCrop(crop: SiteLogoGeometry['crop']): SiteLogoGeometry['crop'] {
+  const x = clamp(crop.x, 0, 1 - LOGO_CROP_MIN_SIZE);
+  const y = clamp(crop.y, 0, 1 - LOGO_CROP_MIN_SIZE);
+  const width = clamp(crop.width, LOGO_CROP_MIN_SIZE, 1 - x);
+  const height = clamp(crop.height, LOGO_CROP_MIN_SIZE, 1 - y);
+  return { x, y, width, height };
+}
+
+function cropFromPointerDelta(
+  start: SiteLogoGeometry['crop'],
+  handle: LogoCropHandle,
+  deltaX: number,
+  deltaY: number
+): SiteLogoGeometry['crop'] {
+  let left = start.x;
+  let top = start.y;
+  let right = start.x + start.width;
+  let bottom = start.y + start.height;
+  if (handle.includes('w')) left = clamp(start.x + deltaX, 0, right - LOGO_CROP_MIN_SIZE);
+  if (handle.includes('e')) right = clamp(right + deltaX, left + LOGO_CROP_MIN_SIZE, 1);
+  if (handle.includes('n')) top = clamp(start.y + deltaY, 0, bottom - LOGO_CROP_MIN_SIZE);
+  if (handle.includes('s')) bottom = clamp(bottom + deltaY, top + LOGO_CROP_MIN_SIZE, 1);
+  return normalizeEditorCrop({
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top
+  });
+}
 const MASTER_SLOTS: MasterSlot[] = [
   {
     id: 'full-lockup',
@@ -230,8 +292,6 @@ const LOGO_PLACEMENT_PRESETS = [
   { id: 'bottom-right', label: 'Spodaj desno', x: 0.25, y: 0.25 }
 ] as const;
 
-const fieldClassName = `h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-[12px] text-slate-800 transition hover:border-slate-300 hover:bg-white focus:bg-white ${adminInputFocusTokenClasses}`;
-
 function LogoUseCaseIcon({ id, className = 'h-4 w-4' }: { id: LogoUseCaseSelection; className?: string }) {
   if (id === 'header') return <PanelTop className={className} />;
   if (id === 'footer') return <PanelBottom className={className} />;
@@ -259,7 +319,9 @@ function getPurposeDefinition(purposeId: SiteLogoPurposeId): SiteLogoPurposeDefi
 }
 
 function getPreferredMasterId(config: SiteLogoConfig, purposeId: SiteLogoPurposeId): string | null {
-  const current = config.placements[purposeId]?.masterId;
+  const placement = config.placements[purposeId];
+  const current = placement?.masterId;
+  if (current === null) return null;
   if (current && getMaster(config, current)) return current;
   const preferred = purposeId === 'favicon' || purposeId === 'apple-touch-icon' || purposeId === 'pwa-maskable'
     ? 'symbol'
@@ -289,7 +351,8 @@ function imagePlacementStyle(
     viewportWidth: purpose.widthPx,
     viewportHeight: purpose.heightPx,
     geometry,
-    fitMode
+    fitMode,
+    artworkScale: geometry.scale
   });
 
   return {
@@ -299,6 +362,8 @@ function imagePlacementStyle(
     left: `${(fitted.left / purpose.widthPx) * 100}%`,
     top: `${(fitted.top / purpose.heightPx) * 100}%`,
     maxWidth: 'none',
+    clipPath: resolveSiteLogoCropClipPath(geometry.crop),
+    WebkitClipPath: resolveSiteLogoCropClipPath(geometry.crop),
     userSelect: 'none',
     pointerEvents: 'none'
   };
@@ -509,7 +574,7 @@ function MasterCard({
             <span className="truncate text-[10px] font-semibold text-white/85">{slot.label}</span>
             {master ? <Check className="h-3 w-3 shrink-0 text-emerald-300" /> : null}
           </span>
-          <span className="block truncate text-[9px] text-white/40">{master ? master.filename : 'Ni naloženo'}</span>
+          <span className="block truncate text-[10px] text-white/45">{master ? master.filename : 'Ni naloženo'}</span>
         </span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5">
@@ -524,7 +589,7 @@ function MasterCard({
             <Trash2 className="h-3 w-3" />
           </button>
         ) : null}
-        <label className={`grid h-7 cursor-pointer place-items-center rounded-md px-2 text-[9px] font-semibold text-white/60 transition hover:bg-white/10 hover:text-white ${adminControlFocusTokenClasses}`} title={master ? 'Zamenjaj datoteko' : 'Naloži datoteko'}>
+        <label className={`grid h-7 cursor-pointer place-items-center rounded-md px-2 text-[10px] font-semibold text-white/60 transition hover:bg-white/10 hover:text-white ${adminControlFocusTokenClasses}`} title={master ? 'Zamenjaj datoteko' : 'Naloži datoteko'}>
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -537,278 +602,6 @@ function MasterCard({
       </div>
     </article>
   );
-}
-
-function PlacementCard({
-  config,
-  purposeId,
-  active,
-  showSafeArea,
-  onActivate,
-  onPlacementChange,
-  onShowSafeAreaChange,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp
-}: {
-  config: SiteLogoConfig;
-  purposeId: SiteLogoPurposeId;
-  active: boolean;
-  showSafeArea: boolean;
-  onActivate: () => void;
-  onPlacementChange: (placement: SiteLogoPlacement) => void;
-  onShowSafeAreaChange: (show: boolean) => void;
-  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
-}) {
-  const purpose = getPurposeDefinition(purposeId);
-  const placement = config.placements[purposeId];
-  const masterId = getPreferredMasterId(config, purposeId);
-  const effectivePlacement = placement.masterId === masterId ? placement : { ...placement, masterId };
-  const master = getMaster(config, effectivePlacement.masterId);
-  const geometry = resolveSiteLogoGeometry(effectivePlacement);
-  const presentation = resolveSiteLogoPresentation(effectivePlacement);
-  const displaySize = resolveSiteLogoDisplaySize(purposeId, effectivePlacement);
-  const isOverridden = Boolean(effectivePlacement.override) || Boolean(displaySize?.explicit);
-  const masterOptions = config.masters;
-
-  function setOverride(updates: NonNullable<SiteLogoPlacement['override']>) {
-    onPlacementChange({
-      ...effectivePlacement,
-      override: { ...effectivePlacement.override, ...updates }
-    });
-  }
-
-  function setDisplayHeightPx(displayHeightPx: number) {
-    onPlacementChange({
-      ...effectivePlacement,
-      displayHeightPx: clamp(
-        displayHeightPx,
-        SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX,
-        SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX
-      ),
-      override: { ...effectivePlacement.override, scale: 1 }
-    });
-  }
-
-  return (
-    <article
-      className={`min-w-0 overflow-hidden rounded-xl border bg-white transition ${active ? 'border-[color:var(--blue-300)] ring-1 ring-[color:var(--blue-100)]' : 'border-slate-200 hover:border-slate-300'}`}
-      data-logo-placement={purposeId}
-      onFocusCapture={onActivate}
-    >
-      <div className="flex min-w-0 items-center gap-2 border-b border-slate-100 px-3 py-2.5">
-        <button type="button" onClick={onActivate} className={`min-w-0 flex-1 text-left ${adminControlFocusTokenClasses}`}>
-          <span className="block truncate text-[12px] font-semibold text-slate-800">{purpose.label}</span>
-          <span className="block text-[9px] text-slate-400">{purpose.widthPx} × {purpose.heightPx} px</span>
-        </button>
-        <span className={`hidden items-center gap-1 rounded-full px-2 py-1 text-[9px] font-semibold sm:inline-flex ${isOverridden ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700'}`}>
-          {isOverridden ? <Move className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
-          {isOverridden ? 'Ročno' : 'Samodejno'}
-        </span>
-        <button
-          type="button"
-          aria-label={effectivePlacement.enabled ? `Skrij ${purpose.label}` : `Prikaži ${purpose.label}`}
-          title={effectivePlacement.enabled ? 'Skrij to uporabo' : 'Prikaži to uporabo'}
-          onClick={() => onPlacementChange({ ...effectivePlacement, enabled: !effectivePlacement.enabled })}
-          className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 ${adminControlFocusTokenClasses}`}
-        >
-          {effectivePlacement.enabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-        </button>
-      </div>
-
-      <div className="grid min-w-0 gap-3 p-3 min-[1250px]:grid-cols-[minmax(180px,1.2fr)_minmax(170px,0.8fr)]">
-        <div className="min-w-0">
-          <div className="mb-1.5 flex items-center justify-between text-[9px] text-slate-400">
-            <span>Povlecite znak za premik</span>
-            {!effectivePlacement.enabled ? <span className="font-semibold uppercase tracking-wide">Skrito</span> : null}
-          </div>
-          <div
-            role="img"
-            aria-label={`Predogled: ${purpose.label}`}
-            tabIndex={0}
-            onClick={onActivate}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            className={`relative mx-auto w-full touch-none overflow-hidden rounded-lg border border-slate-200 ${purposeBackgroundClass(purposeId, master)} ${effectivePlacement.enabled ? 'cursor-grab active:cursor-grabbing' : 'opacity-45'} ${adminControlFocusTokenClasses}`}
-            style={{ aspectRatio: `${purpose.widthPx} / ${purpose.heightPx}` }}
-          >
-            {master ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={master.url} alt="" draggable={false} style={imagePlacementStyle(master, purpose, geometry, presentation)} />
-            ) : (
-              <div className="absolute inset-0 grid place-items-center px-4 text-center">
-                <div>
-                  <ImageIcon className="mx-auto h-5 w-5 text-slate-300" />
-                  <p className="mt-1 text-[10px] text-slate-400">Najprej naložite glavno različico.</p>
-                </div>
-              </div>
-            )}
-            {showSafeArea ? <SafeAreaOverlay purpose={purpose} inset={geometry.safeAreaInset} /> : null}
-          </div>
-        </div>
-
-        <div className="grid content-start gap-2.5">
-          <div className="grid gap-1">
-            <span className="text-[10px] font-medium text-slate-500">Glavna različica</span>
-            <AppearanceEditorCompactSelect
-              value={effectivePlacement.masterId ?? ''}
-              disabled={masterOptions.length === 0}
-              onValueChange={(masterId) => onPlacementChange({
-                ...effectivePlacement,
-                masterId: resolveSelectedSiteLogoMasterId(
-                  purposeId,
-                  effectivePlacement,
-                  masterId || null
-                ),
-                override: null
-              })}
-              options={masterOptions.length === 0
-                ? [{ value: '', label: 'Ni naložene različice' }]
-                : masterOptions.map((option) => ({ value: option.id, label: option.label }))}
-              ariaLabel={`Glavna različica za ${purpose.label}`}
-              marker={`logo-placement-${purposeId}-master`}
-              triggerClassName="border-slate-200 bg-slate-50/70 text-slate-800 hover:bg-white"
-            />
-          </div>
-
-          {displaySize ? (
-            <label className="grid gap-1" data-logo-header-size-control>
-              <span className="flex items-center justify-between text-[10px] font-medium text-slate-500">
-                <span className="inline-flex items-center gap-1"><ZoomIn className="h-3 w-3" /> Višina logotipa</span>
-                <span className="flex h-8 w-[90px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70">
-                  <AppearanceEditorNumberInput
-                    min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
-                    max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
-                    step={0.5}
-                    value={displaySize.heightPx}
-                    disabled={!master}
-                    onValueChange={setDisplayHeightPx}
-                    className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-right text-[11px] ${adminInputFocusTokenClasses}`}
-                    aria-label={`Višina logotipa za ${purpose.label}`}
-                  />
-                  <span className="grid min-w-7 place-items-center text-[9px] text-slate-400">px</span>
-                </span>
-              </span>
-              <input
-                type="range"
-                min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
-                max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
-                step={0.5}
-                value={displaySize.heightPx}
-                disabled={!master}
-                onChange={(event) => setDisplayHeightPx(Number(event.target.value))}
-                className="h-5 w-full accent-[color:var(--blue-600)] disabled:opacity-40"
-                aria-label={`Velikost logotipa za ${purpose.label}`}
-              />
-            </label>
-          ) : (
-            <label className="grid gap-1">
-              <span className="flex items-center justify-between text-[10px] font-medium text-slate-500">
-                <span className="inline-flex items-center gap-1"><ZoomIn className="h-3 w-3" /> Velikost</span>
-                <span>{Math.round(geometry.scale * 100)}%</span>
-              </span>
-              <input
-                type="range"
-                min={50}
-                max={180}
-                step={1}
-                value={Math.round(geometry.scale * 100)}
-                disabled={!master}
-                onChange={(event) => setOverride({ scale: Number(event.target.value) / 100 })}
-                className="h-5 w-full accent-[color:var(--blue-600)] disabled:opacity-40"
-                aria-label={`Velikost logotipa za ${purpose.label}`}
-              />
-            </label>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1">
-              <span className="text-[10px] font-medium text-slate-500">Vodoravno</span>
-              <span className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 focus-within:bg-white">
-                <AppearanceEditorNumberInput
-                  min={-100}
-                  max={100}
-                  value={Math.round(geometry.translateX * 100)}
-                  disabled={!master}
-                  onValueChange={(value) => setOverride({ translateX: clamp(value / 100, -1, 1) })}
-                  className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-[11px] ${adminInputFocusTokenClasses}`}
-                  aria-label={`Vodoravni premik za ${purpose.label}`}
-                />
-                <span className="grid min-w-6 place-items-center text-[9px] text-slate-400">%</span>
-              </span>
-            </label>
-            <label className="grid gap-1">
-              <span className="text-[10px] font-medium text-slate-500">Navpično</span>
-              <span className="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 focus-within:bg-white">
-                <AppearanceEditorNumberInput
-                  min={-100}
-                  max={100}
-                  value={Math.round(geometry.translateY * 100)}
-                  disabled={!master}
-                  onValueChange={(value) => setOverride({ translateY: clamp(value / 100, -1, 1) })}
-                  className={`min-w-0 flex-1 border-0 bg-transparent px-2 text-[11px] ${adminInputFocusTokenClasses}`}
-                  aria-label={`Navpični premik za ${purpose.label}`}
-                />
-                <span className="grid min-w-6 place-items-center text-[9px] text-slate-400">%</span>
-              </span>
-            </label>
-          </div>
-
-          <div className="flex items-center gap-1.5 pt-0.5">
-            <button
-              type="button"
-              onClick={() => onPlacementChange({ ...effectivePlacement, displayHeightPx: displaySize ? null : effectivePlacement.displayHeightPx, override: null })}
-              disabled={!master || !isOverridden}
-              className={`inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40 ${adminControlFocusTokenClasses}`}
-              title="Ponovno uporabi optično samodejno prileganje"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Samodejno prileganje
-            </button>
-            <button
-              type="button"
-              aria-pressed={showSafeArea}
-              onClick={() => onShowSafeAreaChange(!showSafeArea)}
-              className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border transition ${adminControlFocusTokenClasses} ${showSafeArea ? 'border-sky-200 bg-sky-50 text-sky-600' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}
-              title="Prikaži ali skrij varno območje"
-              aria-label={`Varno območje za ${purpose.label}`}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {showSafeArea ? (
-            <label className="grid gap-1">
-              <span className="flex items-center justify-between text-[10px] font-medium text-slate-500">
-                <span>Notranji varni odmik</span>
-                <span>{Math.round(geometry.safeAreaInset * 100)}%</span>
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={30}
-                step={1}
-                value={Math.round(geometry.safeAreaInset * 100)}
-                onChange={(event) => setOverride({ safeAreaInset: Number(event.target.value) / 100 })}
-                className="h-5 w-full accent-[color:var(--blue-600)]"
-                aria-label={`Varni odmik za ${purpose.label}`}
-              />
-            </label>
-          ) : null}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function purposeBackgroundClass(purposeId: SiteLogoPurposeId, master: SiteLogoMasterVariant | null) {
-  if (master?.tone === 'light') return 'bg-slate-900';
-  if (purposeId.startsWith('footer')) return 'bg-slate-50';
-  if (purposeId === 'social-share') return 'bg-gradient-to-br from-slate-50 to-slate-100';
-  return 'bg-white';
 }
 
 type LogoToolbarPanel = 'masters' | 'fit' | 'text' | 'appearance' | 'sync' | null;
@@ -833,10 +626,10 @@ function CompactLogoRangeField({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="grid gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2" data-logo-presentation-control={marker}>
+    <label className="grid gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5" data-logo-presentation-control={marker}>
       <span className="flex items-center justify-between gap-3 text-[10px] font-medium text-white/70">
         <span>{label}</span>
-        <span className="font-mono text-[9px] text-white/45">{value}{unit}</span>
+        <span className="font-mono text-[10px] text-white/45">{value}{unit}</span>
       </span>
       <input
         type="range"
@@ -882,7 +675,7 @@ function LogoColorChannelField({
         title={transparent ? 'Uporabi izbrano barvo' : 'Nastavi prosojno'}
         data-logo-color-transparency={channel}
         onClick={() => onTransparencyChange(!transparent)}
-        className={`grid min-w-14 place-items-center gap-0.5 rounded-lg border px-1.5 py-1 text-[8px] font-semibold transition ${adminControlFocusTokenClasses} ${
+        className={`grid min-w-16 place-items-center gap-0.5 rounded-lg border px-1.5 py-1 text-[10px] font-semibold transition ${adminControlFocusTokenClasses} ${
           transparent
             ? 'border-blue-300/60 bg-blue-400/20 text-blue-100'
             : 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80'
@@ -1032,16 +825,173 @@ function LogoTextLayerTargets({
   );
 }
 
+function logoTransformHandleClass(handle: LogoCropHandle) {
+  if (handle === 'n') return '-top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize';
+  if (handle === 'e') return '-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize';
+  if (handle === 's') return '-bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize';
+  if (handle === 'w') return '-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize';
+  if (handle === 'nw') return '-left-1.5 -top-1.5 cursor-nwse-resize';
+  if (handle === 'ne') return '-right-1.5 -top-1.5 cursor-nesw-resize';
+  if (handle === 'se') return '-bottom-1.5 -right-1.5 cursor-nwse-resize';
+  return '-bottom-1.5 -left-1.5 cursor-nesw-resize';
+}
+
+function LogoTransformOverlay({
+  artworkStyle,
+  crop,
+  mode,
+  onResizePointerDown,
+  onResizePointerMove,
+  onResizePointerUp,
+  onResizeKeyboard,
+  onCropPointerDown,
+  onCropPointerMove,
+  onCropPointerUp,
+  onCropKeyboard
+}: {
+  artworkStyle: CSSProperties;
+  crop: SiteLogoGeometry['crop'];
+  mode: Exclude<LogoEditMode, 'move'>;
+  onResizePointerDown: (handle: LogoResizeHandle, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizePointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizePointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizeKeyboard: (direction: -1 | 1) => void;
+  onCropPointerDown: (handle: LogoCropHandle, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropKeyboard: (handle: LogoCropHandle, deltaX: number, deltaY: number) => void;
+}) {
+  const normalizedCrop = normalizeEditorCrop(crop);
+  const handles = mode === 'resize' ? LOGO_RESIZE_HANDLES : LOGO_CROP_HANDLES;
+  return (
+    <>
+      {mode === 'crop' ? (
+        <span
+          data-logo-crop-shade
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{ borderRadius: 'inherit' }}
+        >
+          <span
+            style={{
+              ...artworkStyle,
+              overflow: 'visible',
+              clipPath: 'none',
+              WebkitClipPath: 'none'
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                left: `${normalizedCrop.x * 100}%`,
+                top: `${normalizedCrop.y * 100}%`,
+                width: `${normalizedCrop.width * 100}%`,
+                height: `${normalizedCrop.height * 100}%`,
+                boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.28)'
+              }}
+            />
+          </span>
+        </span>
+      ) : null}
+    <span
+      data-logo-editable-artwork-frame
+      data-logo-edit-mode={mode}
+      style={{
+        ...artworkStyle,
+        overflow: 'visible',
+        clipPath: 'none',
+        WebkitClipPath: 'none',
+        pointerEvents: 'none'
+      }}
+    >
+      <span
+        data-logo-transform-bounds
+        style={{
+          position: 'absolute',
+          left: `${normalizedCrop.x * 100}%`,
+          top: `${normalizedCrop.y * 100}%`,
+          width: `${normalizedCrop.width * 100}%`,
+          height: `${normalizedCrop.height * 100}%`,
+          pointerEvents: 'none'
+        }}
+        className={mode === 'crop' ? 'border border-dashed border-blue-300' : 'border border-blue-500'}
+      >
+        <span className="pointer-events-none absolute -top-6 left-0 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+          {mode === 'crop' ? 'Izrez' : 'Velikost'}
+        </span>
+        {handles.map((handle) => (
+          <button
+            key={handle}
+            type="button"
+            data-logo-transform-handle={handle}
+            data-logo-resize-handle={mode === 'resize' ? handle : undefined}
+            data-logo-crop-handle={mode === 'crop' ? handle : undefined}
+            aria-label={mode === 'crop' ? `Prilagodi izrez: ${handle}` : `Spremeni velikost: ${handle}`}
+            title={mode === 'crop' ? 'Povlecite rob izreza' : 'Povlecite za spremembo velikosti'}
+            className={`absolute z-20 h-3 w-3 rounded-sm border border-white bg-blue-500 shadow-[0_1px_4px_rgba(15,23,42,0.35)] ${logoTransformHandleClass(handle)} ${adminControlFocusTokenClasses}`}
+            style={{ pointerEvents: 'auto' }}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (mode === 'resize') onResizePointerDown(handle as LogoResizeHandle, event);
+              else onCropPointerDown(handle, event);
+            }}
+            onPointerMove={(event) => {
+              event.stopPropagation();
+              if (mode === 'resize') onResizePointerMove(event);
+              else onCropPointerMove(event);
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              if (mode === 'resize') onResizePointerUp(event);
+              else onCropPointerUp(event);
+            }}
+            onPointerCancel={(event) => {
+              event.stopPropagation();
+              if (mode === 'resize') onResizePointerUp(event);
+              else onCropPointerUp(event);
+            }}
+            onKeyDown={(event) => {
+              const step = event.shiftKey ? 0.05 : 0.01;
+              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+              event.preventDefault();
+              event.stopPropagation();
+              if (mode === 'resize') {
+                onResizeKeyboard(event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : -1);
+              } else {
+                onCropKeyboard(
+                  handle,
+                  event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
+                  event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
+                );
+              }
+            }}
+          />
+        ))}
+      </span>
+    </span>
+    </>
+  );
+}
 function LogoUseCasePreview({
   config,
   purposeId,
   showSafeArea,
   active,
+  editMode,
   selectedTextLayerId,
   onActivate,
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onResizePointerDown,
+  onResizePointerMove,
+  onResizePointerUp,
+  onResizeKeyboard,
+  onCropPointerDown,
+  onCropPointerMove,
+  onCropPointerUp,
+  onCropKeyboard,
   onSelectTextLayer,
   onTextPointerDown,
   onTextPointerMove,
@@ -1051,11 +1001,20 @@ function LogoUseCasePreview({
   purposeId: SiteLogoPurposeId;
   showSafeArea: boolean;
   active: boolean;
+  editMode: LogoEditMode;
   selectedTextLayerId: SiteLogoTextLayerId | null;
   onActivate: () => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onResizePointerDown: (handle: LogoResizeHandle, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizePointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizePointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onResizeKeyboard: (direction: -1 | 1) => void;
+  onCropPointerDown: (handle: LogoCropHandle, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onCropKeyboard: (handle: LogoCropHandle, deltaX: number, deltaY: number) => void;
   onSelectTextLayer: (layerId: SiteLogoTextLayerId) => void;
   onTextPointerDown: (layerId: SiteLogoTextLayerId, event: ReactPointerEvent<HTMLButtonElement>) => void;
   onTextPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
@@ -1114,12 +1073,12 @@ function LogoUseCasePreview({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`relative mx-auto w-full touch-none ${displaySize ? 'overflow-visible' : 'overflow-hidden'} rounded-xl border bg-[linear-gradient(135deg,#f8fafc,#eef2f7)] shadow-[0_18px_55px_rgba(15,23,42,0.12)] ${effectivePlacement.enabled ? 'cursor-grab active:cursor-grabbing' : 'opacity-45'} ${active ? 'border-[color:var(--blue-300)] ring-2 ring-[color:var(--blue-100)]' : 'border-slate-200'} ${adminControlFocusTokenClasses}`}
+        className={`relative mx-auto w-full touch-none overflow-visible rounded-xl border bg-[linear-gradient(135deg,#f8fafc,#eef2f7)] shadow-[0_18px_55px_rgba(15,23,42,0.12)] ${effectivePlacement.enabled ? editMode === 'move' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default' : 'opacity-45'} ${active ? 'border-[color:var(--blue-300)] ring-2 ring-[color:var(--blue-100)]' : 'border-slate-200'} ${adminControlFocusTokenClasses}`}
         style={{ aspectRatio: `${purpose.widthPx} / ${purpose.heightPx}` }}
       >
         {master && displaySize ? (
           <span
-            className="absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+            className="absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 overflow-visible"
             style={{
               width: `${displaySize.widthPx}px`,
               height: `${displaySize.heightPx}px`
@@ -1127,11 +1086,20 @@ function LogoUseCasePreview({
             data-logo-header-preview-viewport
             data-logo-display-height-px={displaySize.heightPx}
           >
+            <span
+              data-logo-clipped-artwork-layer
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+              style={{ borderRadius: 'inherit' }}
+            >
             <MeasuredSiteLogoArtwork
               master={master}
               presentation={presentation}
               alt="ATEHNA"
-              style={headerArtworkStyle!}
+              style={editMode === 'crop' ? {
+                ...headerArtworkStyle!,
+                clipPath: 'none',
+                WebkitClipPath: 'none'
+              } : headerArtworkStyle!}
             />
             {capabilities.editableText && headerArtworkStyle ? (
               <LogoTextLayerTargets
@@ -1146,6 +1114,22 @@ function LogoUseCasePreview({
                 onPointerUp={onTextPointerUp}
               />
             ) : null}
+            </span>
+            {active && !selectedTextLayerId && headerArtworkStyle && editMode !== 'move' ? (
+              <LogoTransformOverlay
+                artworkStyle={headerArtworkStyle}
+                crop={geometry.crop}
+                mode={editMode}
+                onResizePointerDown={onResizePointerDown}
+                onResizePointerMove={onResizePointerMove}
+                onResizePointerUp={onResizePointerUp}
+                onResizeKeyboard={onResizeKeyboard}
+                onCropPointerDown={onCropPointerDown}
+                onCropPointerMove={onCropPointerMove}
+                onCropPointerUp={onCropPointerUp}
+                onCropKeyboard={onCropKeyboard}
+              />
+            ) : null}
             {showSafeArea ? (
               <SafeAreaOverlay
                 purpose={{ ...purpose, widthPx: displaySize.widthPx, heightPx: displaySize.heightPx }}
@@ -1155,11 +1139,20 @@ function LogoUseCasePreview({
           </span>
         ) : master ? (
           <>
+            <span
+              data-logo-clipped-artwork-layer
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+              style={{ borderRadius: 'inherit' }}
+            >
             <MeasuredSiteLogoArtwork
               master={master}
               presentation={presentation}
               alt="ATEHNA"
-              style={artworkStyle!}
+              style={editMode === 'crop' ? {
+                ...artworkStyle!,
+                clipPath: 'none',
+                WebkitClipPath: 'none'
+              } : artworkStyle!}
             />
             {capabilities.editableText && artworkStyle ? (
               <LogoTextLayerTargets
@@ -1172,6 +1165,22 @@ function LogoUseCasePreview({
                 onPointerDown={onTextPointerDown}
                 onPointerMove={onTextPointerMove}
                 onPointerUp={onTextPointerUp}
+              />
+            ) : null}
+            </span>
+            {active && !selectedTextLayerId && artworkStyle && editMode !== 'move' ? (
+              <LogoTransformOverlay
+                artworkStyle={artworkStyle}
+                crop={geometry.crop}
+                mode={editMode}
+                onResizePointerDown={onResizePointerDown}
+                onResizePointerMove={onResizePointerMove}
+                onResizePointerUp={onResizePointerUp}
+                onResizeKeyboard={onResizeKeyboard}
+                onCropPointerDown={onCropPointerDown}
+                onCropPointerMove={onCropPointerMove}
+                onCropPointerUp={onCropPointerUp}
+                onCropKeyboard={onCropKeyboard}
               />
             ) : null}
           </>
@@ -1195,9 +1204,11 @@ function LogoContextToolbar({
   config,
   purposeId,
   showSafeArea,
+  editMode,
   isAnalyzing,
   onConfigChange,
   onPlacementChange,
+  onEditModeChange,
   onShowSafeAreaChange,
   onUpload,
   onRemoveMaster,
@@ -1207,9 +1218,11 @@ function LogoContextToolbar({
   config: SiteLogoConfig;
   purposeId: SiteLogoPurposeId;
   showSafeArea: boolean;
+  editMode: LogoEditMode;
   isAnalyzing: string | null;
   onConfigChange: (config: SiteLogoConfig) => void;
   onPlacementChange: (placement: SiteLogoPlacement) => void;
+  onEditModeChange: (mode: LogoEditMode) => void;
   onShowSafeAreaChange: (show: boolean) => void;
   onUpload: (slot: MasterSlot, event: ChangeEvent<HTMLInputElement>) => void;
   onRemoveMaster: (slotId: string) => void;
@@ -1220,7 +1233,6 @@ function LogoContextToolbar({
   const [copyGeometry, setCopyGeometry] = useState(false);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const panelTriggerRef = useRef<HTMLElement | null>(null);
-  const toolbarPlacement = useAppearanceEditorToolbarPlacement();
   const purpose = getPurposeDefinition(purposeId);
   const placement = config.placements[purposeId];
   const preferredMasterId = getPreferredMasterId(config, purposeId);
@@ -1249,6 +1261,19 @@ function LogoContextToolbar({
     onPlacementChange({
       ...effectivePlacement,
       override: { ...effectivePlacement.override, ...updates }
+    });
+  };
+  const selectMaster = (selectedMasterId: string | null) => {
+    const masterId = resolveSelectedSiteLogoMasterId(
+      purposeId,
+      effectivePlacement,
+      selectedMasterId
+    );
+    onPlacementChange({
+      ...effectivePlacement,
+      masterId,
+      suggestion: deriveSiteLogoFitSuggestion(purposeId, getMaster(config, masterId)),
+      override: null
     });
   };
   const selectPlacementPreset = (index: number, focusFrom?: HTMLButtonElement) => {
@@ -1317,20 +1342,13 @@ function LogoContextToolbar({
   }, [panel]);
 
   const panelContent = panel === 'masters' ? (
-    <div className="space-y-3" data-logo-master-library>
+    <div className="space-y-2" data-logo-master-library>
       <div className="grid gap-1 text-[10px] font-medium text-white/65">
         <span>Izbrani izvirnik</span>
         <AppearanceEditorCompactSelect
           value={effectivePlacement.masterId ?? ''}
-          onValueChange={(masterId) => onPlacementChange({
-            ...effectivePlacement,
-            masterId: resolveSelectedSiteLogoMasterId(
-              purposeId,
-              effectivePlacement,
-              masterId || null
-            ),
-            override: null
-          })}
+          tone="dark"
+          onValueChange={(masterId) => selectMaster(masterId || null)}
           options={[
             { value: '', label: 'Brez izvirnika' },
             ...allMasters.map((option) => ({ value: option.id, label: option.label }))
@@ -1339,10 +1357,10 @@ function LogoContextToolbar({
           marker={`logo-${purposeId}-master`}
         />
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <button
           type="button"
-          onClick={() => onPlacementChange({ ...effectivePlacement, masterId: SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID, override: null })}
+          onClick={() => selectMaster(SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID)}
           className={`flex min-h-16 items-center gap-2 rounded-lg border p-2 text-left transition ${effectivePlacement.masterId === SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID ? 'border-blue-300/60 bg-blue-400/15' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
         >
           <span className="grid h-10 w-16 shrink-0 place-items-center overflow-hidden rounded bg-[#39362D] p-1">
@@ -1359,7 +1377,7 @@ function LogoContextToolbar({
             isActive={effectivePlacement.masterId === slot.id}
             isAnalyzing={isAnalyzing === slot.id}
             onSelect={() => {
-              if (masterForSlot(config, slot.id)) onPlacementChange({ ...effectivePlacement, masterId: slot.id, override: null });
+              if (masterForSlot(config, slot.id)) selectMaster(slot.id);
             }}
             onUpload={(event) => onUpload(slot, event)}
             onRemove={() => onRemoveMaster(slot.id)}
@@ -1368,8 +1386,12 @@ function LogoContextToolbar({
       </div>
     </div>
   ) : panel === 'fit' ? (
-    <div className="space-y-3" data-logo-toolbar-panel="fit">
-      <div className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-white/5 p-1" aria-label="Način prileganja">
+    <div className="space-y-2" data-logo-toolbar-panel="fit">
+      <div
+        className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-white/5 p-1"
+        role="group"
+        aria-label="Način prileganja"
+      >
         {(['contain', 'fill'] as const).map((fitMode) => (
           <button
             key={fitMode}
@@ -1383,10 +1405,15 @@ function LogoContextToolbar({
           </button>
         ))}
       </div>
-      <div className="grid gap-2 sm:grid-cols-[104px_minmax(0,1fr)]">
-        <div className="grid gap-1" data-logo-placement-alignment>
-          <span className="text-[9px] font-semibold text-white/55">Poravnava</span>
-          <div className="grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-white/5 p-1" role="radiogroup" aria-label="Poravnava logotipa">
+
+      <div className="grid grid-cols-[86px_minmax(0,1fr)] gap-2">
+        <div className="grid content-start gap-1" data-logo-placement-alignment>
+          <span className="text-[10px] font-semibold text-white/55">Poravnava</span>
+          <div
+            className="grid grid-cols-3 gap-0.5 rounded-lg border border-white/10 bg-white/5 p-0.5"
+            role="radiogroup"
+            aria-label="Poravnava logotipa"
+          >
             {LOGO_PLACEMENT_PRESETS.map((preset, index) => {
               const selected = Math.abs(geometry.translateX - preset.x) < 0.001
                 && Math.abs(geometry.translateY - preset.y) < 0.001;
@@ -1402,7 +1429,7 @@ function LogoContextToolbar({
                   data-logo-placement-preset={preset.id}
                   onClick={() => selectPlacementPreset(index)}
                   onKeyDown={(event) => onPlacementPresetKeyDown(index, event)}
-                  className={`grid h-7 place-items-center rounded-md transition ${adminControlFocusTokenClasses} ${selected ? 'bg-blue-400/25 text-blue-100' : 'text-white/40 hover:bg-white/10 hover:text-white/75'}`}
+                  className={`grid h-6 place-items-center rounded transition ${adminControlFocusTokenClasses} ${selected ? 'bg-blue-400/25 text-blue-100' : 'text-white/40 hover:bg-white/10 hover:text-white/75'}`}
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${selected ? 'bg-blue-200' : 'bg-current'}`} />
                 </button>
@@ -1410,99 +1437,186 @@ function LogoContextToolbar({
             })}
           </div>
         </div>
-        <div className="grid gap-1" data-logo-canvas-edge-controls>
-          <span className="flex items-center justify-between gap-2 text-[9px] font-semibold text-white/55">
-            <span>Robovi platna <span className="font-normal text-white/35">(− izreže, + razširi)</span></span>
-            <button
-              type="button"
-              onClick={() => onConfigChange(updateSiteLogoCanvasEdges(config, purposeId, { top: null, right: null, bottom: null, left: null }))}
-              disabled={SITE_LOGO_CANVAS_EDGE_IDS.every((edge) => canvasEdges[edge] === 0)}
-              className={`rounded px-1.5 py-0.5 text-[8px] font-semibold text-white/55 transition hover:bg-white/10 hover:text-white disabled:opacity-30 ${adminControlFocusTokenClasses}`}
-            >
-              Ponastavi
-            </button>
-          </span>
-          <div className="grid grid-cols-2 gap-1.5">
-            {SITE_LOGO_CANVAS_EDGE_IDS.map((edge) => (
-              <label key={edge} className="flex h-7 min-w-0 items-center overflow-hidden rounded-md border border-white/15 bg-slate-800" data-logo-canvas-edge={edge}>
-                <span className="min-w-12 pl-2 text-[8px] font-medium text-white/45">{LOGO_CANVAS_EDGE_LABELS[edge]}</span>
+
+        <div className="grid content-start gap-2">
+          {displaySize ? (
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_74px] items-center gap-2" data-logo-header-size-control>
+              <span className="text-[10px] font-medium text-white/65">Višina</span>
+              <input
+                type="range"
+                min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
+                max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
+                step={0.5}
+                value={displaySize.heightPx}
+                onChange={(event) => setDisplayHeightPx(Number(event.target.value))}
+                className="h-4 min-w-0 accent-blue-400"
+                aria-label={`Velikost logotipa za ${purpose.label}`}
+              />
+              <span className="flex h-7 w-[74px] overflow-hidden rounded-md border border-white/15 bg-slate-800">
                 <AppearanceEditorNumberInput
-                  min={SITE_LOGO_CANVAS_EDGE_MIN * 100}
-                  max={SITE_LOGO_CANVAS_EDGE_MAX * 100}
+                  min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
+                  max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
                   step={0.5}
-                  value={Math.round(canvasEdges[edge] * 1000) / 10}
-                  onValueChange={(value) => onConfigChange(updateSiteLogoCanvasEdges(config, purposeId, {
-                    [edge]: clamp(value / 100, SITE_LOGO_CANVAS_EDGE_MIN, SITE_LOGO_CANVAS_EDGE_MAX)
-                  }))}
-                  className="min-w-0 flex-1 border-0 bg-transparent px-1 text-right text-[10px] text-white outline-none"
-                  aria-label={`${LOGO_CANVAS_EDGE_LABELS[edge]}: rob platna v odstotkih`}
+                  value={displaySize.heightPx}
+                  onValueChange={setDisplayHeightPx}
+                  className="min-w-0 flex-1 border-0 bg-transparent px-1.5 text-right text-[10px] text-white outline-none"
+                  aria-label={`Višina logotipa za ${purpose.label}`}
                 />
-                <span className="grid min-w-5 place-items-center text-[8px] text-white/35">%</span>
+                <span className="grid w-6 place-items-center text-[10px] text-white/40">px</span>
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_68px] items-center gap-2">
+              <span className="text-[10px] font-medium text-white/65">Velikost</span>
+              <input
+                type="range"
+                min={LOGO_EDITOR_SCALE_MIN * 100}
+                max={LOGO_EDITOR_SCALE_MAX * 100}
+                step={1}
+                value={Math.round(geometry.scale * 100)}
+                onChange={(event) => setOverride({ scale: Number(event.target.value) / 100 })}
+                className="h-4 min-w-0 accent-blue-400"
+                aria-label={`Velikost logotipa za ${purpose.label}`}
+              />
+              <span className="flex h-7 w-[68px] overflow-hidden rounded-md border border-white/15 bg-slate-800">
+                <AppearanceEditorNumberInput
+                  min={LOGO_EDITOR_SCALE_MIN * 100}
+                  max={LOGO_EDITOR_SCALE_MAX * 100}
+                  step={1}
+                  value={Math.round(geometry.scale * 100)}
+                  onValueChange={(value) => setOverride({ scale: value / 100 })}
+                  className="min-w-0 flex-1 border-0 bg-transparent px-1.5 text-right text-[10px] text-white outline-none"
+                  aria-label={`Velikost logotipa za ${purpose.label}`}
+                />
+                <span className="grid w-5 place-items-center text-[10px] text-white/40">%</span>
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-1.5" aria-label="Položaj logotipa">
+            {([
+              ['x', 'X', 'Vodoravno', geometry.translateX, 'translateX'],
+              ['y', 'Y', 'Navpično', geometry.translateY, 'translateY']
+            ] as const).map(([axis, shortLabel, label, value, key]) => (
+              <label
+                key={axis}
+                data-logo-translation-field={axis}
+                className="flex h-7 min-w-0 items-center overflow-hidden rounded-md border border-white/15 bg-slate-800"
+                title={label}
+              >
+                <span className="grid w-7 shrink-0 place-items-center text-[10px] font-semibold text-white/55">{shortLabel}</span>
+                <AppearanceEditorNumberInput
+                  min={-100}
+                  max={100}
+                  value={Math.round(value * 100)}
+                  onValueChange={(nextValue) => setOverride({ [key]: clamp(nextValue / 100, -1, 1) })}
+                  className="w-[58px] min-w-0 flex-1 border-0 bg-transparent px-1 text-right text-[10px] text-white outline-none"
+                  aria-label={`${label} za ${purpose.label}`}
+                />
+                <span className="grid w-5 shrink-0 place-items-center text-[10px] text-white/40">%</span>
               </label>
             ))}
           </div>
         </div>
       </div>
-      {displaySize ? (
-        <label className="grid gap-1" data-logo-header-size-control>
-          <span className="flex items-center justify-between text-[10px] font-medium text-white/70">
-            <span>Višina logotipa</span>
-            <span className="flex h-7 w-[86px] overflow-hidden rounded-lg border border-white/15 bg-slate-800">
-              <AppearanceEditorNumberInput
-                min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
-                max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
-                step={0.5}
-                value={displaySize.heightPx}
-                onValueChange={setDisplayHeightPx}
-                className="min-w-0 flex-1 border-0 bg-transparent px-2 text-right text-[11px] text-white outline-none"
-                aria-label={`Višina logotipa za ${purpose.label}`}
-              />
-              <span className="grid min-w-7 place-items-center text-[9px] text-white/40">px</span>
-            </span>
-          </span>
-          <input
-            type="range"
-            min={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX}
-            max={SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX}
-            step={0.5}
-            value={displaySize.heightPx}
-            onChange={(event) => setDisplayHeightPx(Number(event.target.value))}
-            className="h-5 w-full accent-blue-400"
-            aria-label={`Velikost logotipa za ${purpose.label}`}
-          />
-        </label>
-      ) : (
-        <label className="grid gap-1">
-          <span className="flex items-center justify-between text-[10px] font-medium text-white/70"><span>Velikost</span><span>{Math.round(geometry.scale * 100)}%</span></span>
-          <input type="range" min={50} max={180} value={Math.round(geometry.scale * 100)} onChange={(event) => setOverride({ scale: Number(event.target.value) / 100 })} className="h-5 w-full accent-blue-400" aria-label={`Velikost logotipa za ${purpose.label}`} />
-        </label>
-      )}
-      <div className="grid grid-cols-2 gap-2">
-        {([
-          ['Vodoravno', geometry.translateX, 'translateX'],
-          ['Navpično', geometry.translateY, 'translateY']
-        ] as const).map(([label, value, key]) => (
-          <label key={key} className="grid gap-1 text-[10px] font-medium text-white/65">
-            {label}
-            <span className="flex h-8 overflow-hidden rounded-lg border border-white/15 bg-slate-800">
-              <AppearanceEditorNumberInput
-                min={-100}
-                max={100}
-                value={Math.round(value * 100)}
-                onValueChange={(nextValue) => setOverride({ [key]: clamp(nextValue / 100, -1, 1) })}
-                className="min-w-0 flex-1 border-0 bg-transparent px-2 text-[11px] text-white outline-none"
-                aria-label={`${label} za ${purpose.label}`}
-              />
-              <span className="grid min-w-7 place-items-center text-[9px] text-white/40">%</span>
-            </span>
-          </label>
-        ))}
+
+      <div className="rounded-lg border border-white/10 bg-white/5 p-1.5" data-logo-crop-controls>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold text-white/60">Izrez slike</span>
+          <button
+            type="button"
+            onClick={() => setOverride({ crop: { x: 0, y: 0, width: 1, height: 1 } })}
+            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold text-white/55 transition hover:bg-white/10 hover:text-white ${adminControlFocusTokenClasses}`}
+          >
+            Celotna slika
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-1">
+          {([
+            ['Levo', 'x'],
+            ['Zgoraj', 'y'],
+            ['Širina', 'width'],
+            ['Višina', 'height']
+          ] as const).map(([label, key]) => (
+            <label key={key} className="grid min-w-0 gap-0.5 text-[10px] font-medium text-white/50">
+              <span className="truncate">{label}</span>
+              <span className="flex h-7 min-w-0 overflow-hidden rounded-md border border-white/15 bg-slate-800">
+                <AppearanceEditorNumberInput
+                  data-logo-crop-field={key}
+                  min={key === 'width' || key === 'height' ? LOGO_CROP_MIN_SIZE * 100 : 0}
+                  max={100}
+                  step={0.5}
+                  value={Math.round(geometry.crop[key] * 1000) / 10}
+                  onValueChange={(value) => setOverride({
+                    crop: normalizeEditorCrop({ ...geometry.crop, [key]: value / 100 })
+                  })}
+                  className="min-w-0 flex-1 border-0 bg-transparent px-1 text-right text-[10px] text-white outline-none"
+                  aria-label={`${label} izreza za ${purpose.label}`}
+                />
+                <span className="grid w-5 shrink-0 place-items-center text-[10px] text-white/40">%</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
-      <label className="grid gap-1">
-        <span className="flex items-center justify-between text-[10px] font-medium text-white/70"><span>Varni odmik</span><span>{Math.round(geometry.safeAreaInset * 100)}%</span></span>
-        <input type="range" min={0} max={30} value={Math.round(geometry.safeAreaInset * 100)} onChange={(event) => setOverride({ safeAreaInset: Number(event.target.value) / 100 })} className="h-5 w-full accent-blue-400" aria-label={`Varni odmik za ${purpose.label}`} />
-      </label>
-      <button type="button" onClick={() => onPlacementChange({ ...effectivePlacement, displayHeightPx: displaySize ? null : effectivePlacement.displayHeightPx, override: null })} disabled={!effectivePlacement.override && !displaySize?.explicit} className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 bg-white/5 text-[10px] font-semibold text-white/80 hover:bg-white/10 disabled:opacity-35">
+
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_38px] items-center gap-2">
+        <span className="text-[10px] font-medium text-white/65">Varni odmik</span>
+        <input
+          type="range"
+          min={0}
+          max={30}
+          value={Math.round(geometry.safeAreaInset * 100)}
+          onChange={(event) => setOverride({ safeAreaInset: Number(event.target.value) / 100 })}
+          className="h-4 min-w-0 accent-blue-400"
+          aria-label={`Varni odmik za ${purpose.label}`}
+        />
+        <span className="text-right text-[10px] font-semibold tabular-nums text-white/65">{Math.round(geometry.safeAreaInset * 100)}%</span>
+      </div>
+
+      <details className="rounded-lg border border-white/10 bg-white/[0.03]" data-logo-canvas-edge-controls>
+        <summary className={`cursor-pointer list-none px-2 py-1.5 text-[10px] font-semibold text-white/55 hover:text-white/80 ${adminControlFocusTokenClasses}`}>
+          Platno (napredno)
+        </summary>
+        <div className="grid grid-cols-2 gap-1 border-t border-white/10 p-1.5">
+          {SITE_LOGO_CANVAS_EDGE_IDS.map((edge) => (
+            <label key={edge} className="flex h-7 min-w-0 items-center overflow-hidden rounded-md border border-white/15 bg-slate-800" data-logo-canvas-edge={edge}>
+              <span className="w-12 shrink-0 pl-1.5 text-[10px] font-medium text-white/45">{LOGO_CANVAS_EDGE_LABELS[edge]}</span>
+              <AppearanceEditorNumberInput
+                min={SITE_LOGO_CANVAS_EDGE_MIN * 100}
+                max={SITE_LOGO_CANVAS_EDGE_MAX * 100}
+                step={0.5}
+                value={Math.round(canvasEdges[edge] * 1000) / 10}
+                onValueChange={(value) => onConfigChange(updateSiteLogoCanvasEdges(config, purposeId, {
+                  [edge]: clamp(value / 100, SITE_LOGO_CANVAS_EDGE_MIN, SITE_LOGO_CANVAS_EDGE_MAX)
+                }))}
+                className="min-w-0 flex-1 border-0 bg-transparent px-1 text-right text-[10px] text-white outline-none"
+                aria-label={`${LOGO_CANVAS_EDGE_LABELS[edge]}: rob platna v odstotkih`}
+              />
+              <span className="grid w-5 shrink-0 place-items-center text-[10px] text-white/40">%</span>
+            </label>
+          ))}
+          <button
+            type="button"
+            onClick={() => onConfigChange(updateSiteLogoCanvasEdges(config, purposeId, { top: null, right: null, bottom: null, left: null }))}
+            disabled={SITE_LOGO_CANVAS_EDGE_IDS.every((edge) => canvasEdges[edge] === 0)}
+            className={`col-span-2 h-7 rounded-md border border-white/10 bg-white/5 text-[10px] font-semibold text-white/60 hover:bg-white/10 disabled:opacity-35 ${adminControlFocusTokenClasses}`}
+          >
+            Ponastavi robove platna
+          </button>
+        </div>
+      </details>
+
+      <button
+        type="button"
+        onClick={() => onPlacementChange({
+          ...effectivePlacement,
+          displayHeightPx: displaySize ? null : effectivePlacement.displayHeightPx,
+          override: null
+        })}
+        disabled={!effectivePlacement.override && !displaySize?.explicit}
+        className={`inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-white/15 bg-white/5 text-[10px] font-semibold text-white/80 hover:bg-white/10 disabled:opacity-35 ${adminControlFocusTokenClasses}`}
+      >
         <Sparkles className="h-3.5 w-3.5" /> Uporabi predlagano prileganje
       </button>
     </div>
@@ -1520,7 +1634,7 @@ function LogoContextToolbar({
     </div>
   ) : panel === 'appearance' ? (
     <div className="space-y-2" data-logo-toolbar-panel="appearance">
-      <div className="grid gap-1.5 sm:grid-cols-2" data-logo-transparent-color-controls>
+      <div className="grid grid-cols-2 gap-1.5" data-logo-transparent-color-controls>
         <LogoColorChannelField label="Zgornje ozadje" value={presentation.backgroundColor} marker="backgroundColor" channel="background" transparent={transparentColors.background} onColorChange={(backgroundColor) => setPresentation({ backgroundColor })} onTransparencyChange={(transparent) => onConfigChange(updateSiteLogoColorTransparency(config, purposeId, 'background', transparent))} />
       {capabilities.artworkColors ? (
         <>
@@ -1529,16 +1643,16 @@ function LogoContextToolbar({
           <LogoColorChannelField label="Barva d.o.o." value={presentation.secondaryTextColor} marker="secondaryTextColor" channel="secondary" transparent={transparentColors.secondary} onColorChange={(secondaryTextColor) => setPresentation({ secondaryTextColor })} onTransparencyChange={(transparent) => onConfigChange(updateSiteLogoColorTransparency(config, purposeId, 'secondary', transparent))} />
           <LogoColorChannelField label="Barva slogana" value={presentation.taglineTextColor} marker="taglineTextColor" channel="tagline" transparent={transparentColors.tagline} onColorChange={(taglineTextColor) => setPresentation({ taglineTextColor })} onTransparencyChange={(transparent) => onConfigChange(updateSiteLogoColorTransparency(config, purposeId, 'tagline', transparent))} />
         </>
-      ) : <p className="rounded-lg bg-white/5 px-2.5 py-2 text-[10px] leading-4 text-white/55">Barve samega znaka so na voljo za vgrajeni izvirni logotip. Pri naloženi sliki ostanejo njene barve nespremenjene.</p>}
+      ) : <p className="rounded-lg bg-white/5 px-2 py-1.5 text-[10px] leading-4 text-white/55">Barve samega znaka so na voljo za vgrajeni izvirni logotip. Pri naloženi sliki ostanejo njene barve nespremenjene.</p>}
       </div>
       {capabilities.outline ? (
         <>
-          <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-[10px] font-medium text-white/75" data-logo-presentation-control="outline.enabled">
+          <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] font-medium text-white/75" data-logo-presentation-control="outline.enabled">
             Obroba znaka
             <input type="checkbox" checked={presentation.outline.enabled} onChange={(event) => setPresentation({ outline: { ...presentation.outline, enabled: event.target.checked } })} className="accent-blue-400" />
           </label>
           {presentation.outline.enabled ? (
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <CompactHexColorField label="Barva obrobe" value={presentation.outline.color} marker="outline.color" onChange={(color) => setPresentation({ outline: { ...presentation.outline, color } })} />
               <CompactLogoRangeField label="Debelina obrobe" value={presentation.outline.widthPx} marker="outline.widthPx" min={0} max={24} unit=" px" onChange={(widthPx) => setPresentation({ outline: { ...presentation.outline, widthPx } })} />
             </div>
@@ -1547,12 +1661,12 @@ function LogoContextToolbar({
       ) : null}
       {capabilities.shadow ? (
         <>
-          <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-[10px] font-medium text-white/75" data-logo-presentation-control="shadow.enabled">
+          <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] font-medium text-white/75" data-logo-presentation-control="shadow.enabled">
             Senca znaka
             <input type="checkbox" checked={presentation.shadow.enabled} onChange={(event) => setPresentation({ shadow: { ...presentation.shadow, enabled: event.target.checked } })} className="accent-blue-400" />
           </label>
           {presentation.shadow.enabled ? (
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <CompactHexColorField label="Barva sence" value={presentation.shadow.color} marker="shadow.color" onChange={(color) => setPresentation({ shadow: { ...presentation.shadow, color } })} />
               <CompactLogoRangeField label="Prosojnost" value={presentation.shadow.opacity} marker="shadow.opacity" min={0} max={1} step={0.01} onChange={(opacity) => setPresentation({ shadow: { ...presentation.shadow, opacity } })} />
               <CompactLogoRangeField label="Mehkoba" value={presentation.shadow.blurPx} marker="shadow.blurPx" min={0} max={64} unit=" px" onChange={(blurPx) => setPresentation({ shadow: { ...presentation.shadow, blurPx } })} />
@@ -1566,11 +1680,11 @@ function LogoContextToolbar({
   ) : panel === 'sync' ? (
     <div className="space-y-2" data-logo-toolbar-panel="sync" data-logo-sync-suggestion>
       <p className="text-[10px] leading-4 text-white/60">Predlog kopira izvirnik in videz šele, ko izberete cilj. Obstoječe nastavitve se ne spreminjajo samodejno.</p>
-      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-[10px] font-medium text-white/75">
+      <label className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] font-medium text-white/75">
         Kopiraj tudi položaj in velikost
         <input type="checkbox" checked={copyGeometry} onChange={(event) => setCopyGeometry(event.target.checked)} className="accent-blue-400" />
       </label>
-      <div className="grid gap-1">
+      <div className="grid grid-cols-2 gap-1">
         {syncTargets.map((targetPurposeId) => {
           const target = config.placements[targetPurposeId];
           const suggestion = suggestSiteLogoPlacement(sourceConfig, purposeId, targetPurposeId);
@@ -1582,10 +1696,10 @@ function LogoContextToolbar({
               data-logo-apply-to-purpose={targetPurposeId}
               disabled={!differs && !copyGeometry}
               onClick={() => onConfigChange(copySiteLogoPlacement(sourceConfig, purposeId, targetPurposeId, { geometry: copyGeometry }))}
-              className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left text-[10px] text-white/80 transition hover:bg-white/10 disabled:opacity-40"
+              className="grid min-w-0 gap-0.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-left text-[10px] text-white/80 transition hover:bg-white/10 disabled:opacity-40"
             >
-              <span>{getPurposeDefinition(targetPurposeId).label}</span>
-              <span className={differs ? 'text-amber-200' : 'text-emerald-200'}>{differs ? 'Uporabi predlog' : 'Usklajeno'}</span>
+              <span className="truncate font-medium">{getPurposeDefinition(targetPurposeId).label}</span>
+              <span className={differs ? 'text-amber-200' : 'text-emerald-200'}>{differs ? 'Uporabi' : 'Usklajeno'}</span>
             </button>
           );
         })}
@@ -1599,6 +1713,21 @@ function LogoContextToolbar({
         <div className="flex items-center gap-0.5">
           <span className="mr-1 inline-flex h-8 max-w-40 items-center truncate rounded-lg bg-white/10 px-2.5 text-[11px] font-semibold text-white">{purpose.label}</span>
           <AppearanceEditorToolbarDivider />
+          <div className="flex items-center gap-0.5" role="group" aria-label="Način urejanja logotipa">
+            {(['move', 'resize', 'crop'] as const).map((mode) => (
+              <AppearanceEditorToolbarButton
+                key={mode}
+                data-logo-edit-mode-control={mode}
+                label={mode === 'move' ? 'Premakni logotip' : mode === 'resize' ? 'Spremeni velikost logotipa' : 'Izreži logotip'}
+                title={mode === 'move' ? 'Premik' : mode === 'resize' ? 'Velikost' : 'Izrez'}
+                pressed={editMode === mode}
+                onClick={() => onEditModeChange(mode)}
+              >
+                {mode === 'move' ? <Move className="h-3.5 w-3.5" /> : mode === 'resize' ? <ZoomIn className="h-3.5 w-3.5" /> : <Crop className="h-3.5 w-3.5" />}
+              </AppearanceEditorToolbarButton>
+            ))}
+          </div>
+          <AppearanceEditorToolbarDivider />
           <AppearanceEditorToolbarButton label="Izvirnik" popover active={panel === 'masters'} onClick={() => togglePanel('masters')}><Library className="h-3.5 w-3.5" /></AppearanceEditorToolbarButton>
           <AppearanceEditorToolbarButton label="Prileganje" popover active={panel === 'fit'} onClick={() => togglePanel('fit')}><Settings2 className="h-3.5 w-3.5" /></AppearanceEditorToolbarButton>
           {capabilities.editableText ? <AppearanceEditorToolbarButton label="Besedilo logotipa" popover active={panel === 'text'} onClick={() => togglePanel('text')}><Type className="h-3.5 w-3.5" /></AppearanceEditorToolbarButton> : null}
@@ -1611,15 +1740,15 @@ function LogoContextToolbar({
           <AppearanceEditorToolbarButton label="Zapri" onClick={onClose}><X className="h-3.5 w-3.5" /></AppearanceEditorToolbarButton>
         </div>
       </AppearanceEditorToolbarToneProvider>
-      {panelContent ? (
-        <div
-          data-logo-toolbar-panel={panel}
-          data-appearance-editor-settings-surface
-          data-settings-scroll="none"
-          className={`absolute z-[220] w-[min(640px,calc(100vw-32px))] p-2.5 ${appearanceEditorToolbarPopoverSurfaceClassName} ${toolbarPlacement === 'top' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} left-0`}
+      {panelContent && panel ? (
+        <AppearanceEditorToolbarPopover
+          ariaLabel={panel === 'masters' ? 'Izvirniki logotipa' : panel === 'fit' ? 'Prileganje logotipa' : panel === 'text' ? 'Besedilo logotipa' : panel === 'appearance' ? 'Videz logotipa' : 'Uporabi logotip drugje'}
+          size={panel === 'masters' || panel === 'appearance' ? 'wide' : 'compact'}
         >
-          {panelContent}
-        </div>
+          <div data-logo-toolbar-panel={panel}>
+            {panelContent}
+          </div>
+        </AppearanceEditorToolbarPopover>
       ) : null}
     </div>
   );
@@ -1645,7 +1774,6 @@ function LogoTextContextToolbar({
   const [panel, setPanel] = useState<'edit' | 'layers' | null>('edit');
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const panelTriggerRef = useRef<HTMLElement | null>(null);
-  const toolbarPlacement = useAppearanceEditorToolbarPlacement();
   const presentation = resolveSiteLogoPresentation(config.placements[purposeId]);
   const layer = presentation[layerId];
   const meta = SITE_LOGO_TEXT_LAYER_META[layerId];
@@ -1653,7 +1781,6 @@ function LogoTextContextToolbar({
     panelTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPanel((current) => current === next ? null : next);
   };
-
   useEffect(() => {
     if (!panel) return;
     const isTransientPortal = (target: EventTarget | null) => target instanceof Element
@@ -1691,7 +1818,7 @@ function LogoTextContextToolbar({
 
   const panelContent = panel === 'edit' ? (
     <div className="space-y-2" data-logo-text-toolbar-panel="edit">
-      <p className="text-[9px] leading-4 text-white/45">Povlecite besedilo neposredno na logotipu ali vnesite natančen položaj.</p>
+      <p className="text-[10px] leading-4 text-white/50">Povlecite besedilo neposredno na logotipu ali vnesite natančen položaj.</p>
       <SiteLogoTextLayerFields
         layerId={layerId}
         layer={layer}
@@ -1734,14 +1861,13 @@ function LogoTextContextToolbar({
           <AppearanceEditorToolbarButton label="Zapri" onClick={onClose}><X className="h-3.5 w-3.5" /></AppearanceEditorToolbarButton>
         </div>
       </AppearanceEditorToolbarToneProvider>
-      {panelContent ? (
-        <div
-          data-appearance-editor-settings-surface
-          data-settings-scroll="none"
-          className={`absolute z-[220] w-[min(420px,calc(100vw-32px))] p-2.5 ${appearanceEditorToolbarPopoverSurfaceClassName} ${toolbarPlacement === 'top' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} left-0`}
+      {panelContent && panel ? (
+        <AppearanceEditorToolbarPopover
+          ariaLabel={panel === 'edit' ? 'Besedilo in tipografija' : 'Besedilne plasti logotipa'}
+          size="compact"
         >
           {panelContent}
-        </div>
+        </AppearanceEditorToolbarPopover>
       ) : null}
     </div>
   );
@@ -1757,6 +1883,7 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
   const [activePurposeId, setActivePurposeId] = useState<SiteLogoPurposeId>('header-desktop');
   const [activeTextLayerId, setActiveTextLayerId] = useState<SiteLogoTextLayerId | null>(null);
   const [toolbarOpen, setToolbarOpen] = useState(true);
+  const [logoEditMode, setLogoEditMode] = useState<LogoEditMode>('move');
   const [otherOutputsOpen, setOtherOutputsOpen] = useState(false);
   const [safeAreaVisibility, setSafeAreaVisibility] = useState<Partial<Record<SiteLogoPurposeId, boolean>>>({
     favicon: true,
@@ -1767,6 +1894,8 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
   const [analyzingMasterId, setAnalyzingMasterId] = useState<string | null>(null);
   const pendingMastersRef = useRef(new Map<string, PendingMaster>());
   const dragStateRef = useRef<DragState | null>(null);
+  const resizeDragStateRef = useRef<LogoResizeDragState | null>(null);
+  const cropDragStateRef = useRef<LogoCropDragState | null>(null);
   const textLayerDragStateRef = useRef<TextLayerDragState | null>(null);
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
@@ -1777,6 +1906,7 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
     activePurposeId,
     config.placements[activePurposeId]
   );
+  const showOverflowingTransformHandles = toolbarOpen && !activeTextLayerId && logoEditMode !== 'move';
   const visiblePurposes = useMemo(
     () => (activeUseCase === 'other'
       ? OTHER_LOGO_PURPOSE_IDS
@@ -1835,19 +1965,27 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
     const pending = pendingMastersRef.current.get(slotId);
     if (pending) URL.revokeObjectURL(pending.objectUrl);
     pendingMastersRef.current.delete(slotId);
-    setConfig((current) => ({
-      ...current,
-      masters: current.masters.filter((master) => master.id !== slotId),
-      placements: Object.fromEntries(SITE_LOGO_PURPOSE_IDS.map((purposeId) => {
+    setConfig((current) => {
+      const configWithoutMaster: SiteLogoConfig = {
+        ...current,
+        masters: current.masters.filter((master) => master.id !== slotId)
+      };
+      const placements = Object.fromEntries(SITE_LOGO_PURPOSE_IDS.map((purposeId) => {
         const placement = current.placements[purposeId];
         if (placement.masterId !== slotId) return [purposeId, placement];
+        const fallbackMasterId = getPreferredMasterId(configWithoutMaster, purposeId);
         return [purposeId, {
           ...placement,
-          masterId: resolveSelectedSiteLogoMasterId(purposeId, placement, null),
+          masterId: fallbackMasterId,
+          suggestion: deriveSiteLogoFitSuggestion(
+            purposeId,
+            getMaster(configWithoutMaster, fallbackMasterId)
+          ),
           override: null
         }];
-      })) as SiteLogoConfig['placements']
-    }));
+      })) as SiteLogoConfig['placements'];
+      return { ...configWithoutMaster, placements };
+    });
   }
 
   async function stageMaster(slot: MasterSlot, event: ChangeEvent<HTMLInputElement>) {
@@ -1903,14 +2041,7 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
           return [purposeId, usesThisMaster ? {
             ...placement,
             masterId: slot.id,
-            suggestion: {
-              ...placement.suggestion,
-              scale: 1,
-              translateX: 0,
-              translateY: 0,
-              crop: analysis.opticalBounds,
-              algorithmVersion: 'optical-fit-v1'
-            },
+            suggestion: deriveSiteLogoFitSuggestion(purposeId, nextMaster),
             override: null
           } : placement];
         })) as SiteLogoConfig['placements'];
@@ -1926,7 +2057,10 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
   }
 
   function beginDrag(purposeId: SiteLogoPurposeId, event: ReactPointerEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest('[data-logo-text-layer]')) return;
+    if (
+      logoEditMode !== 'move'
+      || (event.target as HTMLElement).closest('[data-logo-text-layer], [data-logo-transform-handle]')
+    ) return;
     const placement = config.placements[purposeId];
     const masterId = getPreferredMasterId(config, purposeId);
     if (!getMaster(config, masterId)) return;
@@ -1961,6 +2095,167 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     dragStateRef.current = null;
+  }
+
+  function applyResize(
+    purposeId: SiteLogoPurposeId,
+    scale: number,
+    displayHeightPx: number | null
+  ) {
+    setConfig((current) => updatePlacement(current, purposeId, (placement) => {
+      const masterId = getPreferredMasterId(current, purposeId);
+      if (isSiteLogoHeaderPurpose(purposeId) && displayHeightPx != null) {
+        return {
+          ...placement,
+          masterId,
+          displayHeightPx: clamp(
+            displayHeightPx,
+            SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX,
+            SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX
+          ),
+          override: { ...placement.override, scale: 1 }
+        };
+      }
+      return {
+        ...placement,
+        masterId,
+        override: {
+          ...placement.override,
+          scale: clamp(scale, LOGO_EDITOR_SCALE_MIN, LOGO_EDITOR_SCALE_MAX)
+        }
+      };
+    }));
+  }
+
+  function beginResize(
+    purposeId: SiteLogoPurposeId,
+    handle: LogoResizeHandle,
+    event: ReactPointerEvent<HTMLButtonElement>
+  ) {
+    const frame = event.currentTarget.closest<HTMLElement>('[data-logo-transform-bounds]');
+    const placement = config.placements[purposeId];
+    const masterId = getPreferredMasterId(config, purposeId);
+    if (!frame || !getMaster(config, masterId)) return;
+    const rect = frame.getBoundingClientRect();
+    const geometry = resolveSiteLogoGeometry(
+      placement.masterId === masterId ? placement : { ...placement, masterId }
+    );
+    const displaySize = resolveSiteLogoDisplaySize(purposeId, placement);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizeDragStateRef.current = {
+      purposeId,
+      handle,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startScale: geometry.scale,
+      startDisplayHeightPx: displaySize?.heightPx ?? null,
+      frameWidth: Math.max(1, rect.width),
+      frameHeight: Math.max(1, rect.height)
+    };
+    setActivePurposeId(purposeId);
+    setActiveTextLayerId(null);
+  }
+
+  function moveResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = resizeDragStateRef.current;
+    if (!drag) return;
+    const directionX = drag.handle.includes('e') ? 1 : -1;
+    const directionY = drag.handle.includes('s') ? 1 : -1;
+    const delta = (
+      ((event.clientX - drag.startClientX) / drag.frameWidth) * directionX
+      + ((event.clientY - drag.startClientY) / drag.frameHeight) * directionY
+    ) / 2;
+    const factor = Math.exp(delta);
+    applyResize(
+      drag.purposeId,
+      drag.startScale * factor,
+      drag.startDisplayHeightPx == null ? null : drag.startDisplayHeightPx * factor
+    );
+  }
+
+  function endResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    resizeDragStateRef.current = null;
+  }
+
+  function stepResize(purposeId: SiteLogoPurposeId, direction: -1 | 1) {
+    const placement = config.placements[purposeId];
+    const geometry = resolveSiteLogoGeometry(placement);
+    const displaySize = resolveSiteLogoDisplaySize(purposeId, placement);
+    const factor = direction > 0 ? 1.05 : 1 / 1.05;
+    applyResize(
+      purposeId,
+      geometry.scale * factor,
+      displaySize ? displaySize.heightPx * factor : null
+    );
+  }
+
+  function applyCrop(purposeId: SiteLogoPurposeId, crop: SiteLogoGeometry['crop']) {
+    setConfig((current) => updatePlacement(current, purposeId, (placement) => ({
+      ...placement,
+      masterId: getPreferredMasterId(current, purposeId),
+      override: { ...placement.override, crop: normalizeEditorCrop(crop) }
+    })));
+  }
+
+  function beginCrop(
+    purposeId: SiteLogoPurposeId,
+    handle: LogoCropHandle,
+    event: ReactPointerEvent<HTMLButtonElement>
+  ) {
+    const frame = event.currentTarget.closest<HTMLElement>('[data-logo-editable-artwork-frame]');
+    const placement = config.placements[purposeId];
+    const masterId = getPreferredMasterId(config, purposeId);
+    if (!frame || !getMaster(config, masterId)) return;
+    const rect = frame.getBoundingClientRect();
+    const geometry = resolveSiteLogoGeometry(
+      placement.masterId === masterId ? placement : { ...placement, masterId }
+    );
+    event.currentTarget.setPointerCapture(event.pointerId);
+    cropDragStateRef.current = {
+      purposeId,
+      handle,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startCrop: normalizeEditorCrop(geometry.crop),
+      frameWidth: Math.max(1, rect.width),
+      frameHeight: Math.max(1, rect.height)
+    };
+    setActivePurposeId(purposeId);
+    setActiveTextLayerId(null);
+  }
+
+  function moveCrop(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = cropDragStateRef.current;
+    if (!drag) return;
+    applyCrop(
+      drag.purposeId,
+      cropFromPointerDelta(
+        drag.startCrop,
+        drag.handle,
+        (event.clientX - drag.startClientX) / drag.frameWidth,
+        (event.clientY - drag.startClientY) / drag.frameHeight
+      )
+    );
+  }
+
+  function endCrop(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    cropDragStateRef.current = null;
+  }
+
+  function stepCrop(
+    purposeId: SiteLogoPurposeId,
+    handle: LogoCropHandle,
+    deltaX: number,
+    deltaY: number
+  ) {
+    const crop = resolveSiteLogoGeometry(config.placements[purposeId]).crop;
+    applyCrop(purposeId, cropFromPointerDelta(crop, handle, deltaX, deltaY));
   }
 
   function beginTextLayerDrag(
@@ -2171,12 +2466,13 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
           </div>
         </div>
 
-        <div ref={previewViewportRef} className={`relative min-h-[430px] ${activeHeaderDisplaySize ? 'overflow-visible' : 'overflow-hidden'} border-t border-slate-200 bg-[radial-gradient(circle_at_top,_#f8fafc,_#e9eef5)] p-5 sm:p-8`} data-testid="logo-output-cards" data-logo-use-case-preview>
+        <div ref={previewViewportRef} className={`relative min-h-[430px] ${activeHeaderDisplaySize || showOverflowingTransformHandles ? 'overflow-visible' : 'overflow-hidden'} border-t border-slate-200 bg-[radial-gradient(circle_at_top,_#f8fafc,_#e9eef5)] p-5 sm:p-8`} data-testid="logo-output-cards" data-logo-use-case-preview>
           <div className="mx-auto flex min-h-[360px] max-w-5xl items-center justify-center">
             <LogoUseCasePreview
               config={config}
               purposeId={activePurposeId}
               active={!activeTextLayerId}
+              editMode={logoEditMode}
               selectedTextLayerId={activeTextLayerId}
               showSafeArea={safeAreaVisibility[activePurposeId] ?? false}
               onActivate={() => {
@@ -2186,6 +2482,14 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
               onPointerDown={(event) => beginDrag(activePurposeId, event)}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
+              onResizePointerDown={(handle, event) => beginResize(activePurposeId, handle, event)}
+              onResizePointerMove={moveResize}
+              onResizePointerUp={endResize}
+              onResizeKeyboard={(direction) => stepResize(activePurposeId, direction)}
+              onCropPointerDown={(handle, event) => beginCrop(activePurposeId, handle, event)}
+              onCropPointerMove={moveCrop}
+              onCropPointerUp={endCrop}
+              onCropKeyboard={(handle, deltaX, deltaY) => stepCrop(activePurposeId, handle, deltaX, deltaY)}
               onSelectTextLayer={(layerId) => {
                 setActiveTextLayerId(layerId);
                 setToolbarOpen(true);
@@ -2195,7 +2499,16 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
               onTextPointerUp={endTextLayerDrag}
             />
           </div>
-          <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-[9px] font-medium text-slate-500 shadow-sm backdrop-blur"><Move className="h-3 w-3" /> Povlecite logotip ali njegovo besedilo · kliknite za orodja</div>
+          <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-[10px] font-medium text-slate-500 shadow-sm backdrop-blur">
+            {activeTextLayerId ? <Move className="h-3 w-3" /> : logoEditMode === 'crop' ? <Crop className="h-3 w-3" /> : logoEditMode === 'resize' ? <ZoomIn className="h-3 w-3" /> : <Move className="h-3 w-3" />}
+            {activeTextLayerId
+              ? 'Povlecite izbrano besedilo'
+              : logoEditMode === 'crop'
+                ? 'Povlecite robove izreza'
+                : logoEditMode === 'resize'
+                  ? 'Povlecite vogale za velikost'
+                  : 'Povlecite logotip za premik'}
+          </div>
         </div>
       </section>
 
@@ -2223,6 +2536,8 @@ export default function AdminLogoPageClient({ initialConfig }: { initialConfig: 
               config={config}
               purposeId={activePurposeId}
               showSafeArea={safeAreaVisibility[activePurposeId] ?? false}
+              editMode={logoEditMode}
+              onEditModeChange={setLogoEditMode}
               isAnalyzing={analyzingMasterId}
               onConfigChange={setConfig}
               onPlacementChange={(placement) => applyPlacement(activePurposeId, placement)}

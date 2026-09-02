@@ -22,6 +22,7 @@ import {
   type ProductCanvasDevice,
   type ProductCanvasElementDeviceSettings
 } from '@/shared/domain/style/productAppearance';
+import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import ProductCanvasGuidesOverlay from '@/shared/ui/product-canvas/ProductCanvasGuidesOverlay';
 
 const logicalWidthByDevice: Record<Exclude<ProductCanvasDevice, 'desktop'>, number> = {
@@ -36,6 +37,7 @@ export default function ProductAppearanceLivePreview({
   product,
   device,
   selectedElementId,
+  selectedElementIds,
   onSelectElement,
   onElementChange
 }: {
@@ -45,7 +47,8 @@ export default function ProductAppearanceLivePreview({
   product: StorefrontProduct;
   device: ProductCanvasDevice;
   selectedElementId: string | null;
-  onSelectElement: (elementId: string) => void;
+  selectedElementIds: readonly string[];
+  onSelectElement: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
   onElementChange: (
     elementId: string,
     updates: Partial<ProductCanvasElementDeviceSettings>
@@ -133,6 +136,7 @@ export default function ProductAppearanceLivePreview({
               device,
               selectedElementId,
               scale,
+              selectedElementIds,
               onSelectElement,
               onElementChange
             }}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ImagePlus } from "lucide-react";
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
+  ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES,
   ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_VARIABLES,
@@ -12,17 +14,43 @@ import {
 } from "@/shared/domain/order/orderEmailSettings";
 import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
 import type { QuoteEmailAdminState } from "@/shared/server/quoteEmailSettings";
-import AdminQuoteEmailSettingsSection from "@/admin/features/email/components/AdminQuoteEmailSettingsSection";
+import AdminQuoteEmailSettingsSection, {
+  type AdminQuoteEmailSaveState,
+  type AdminQuoteEmailSettingsHandle,
+} from "@/admin/features/email/components/AdminQuoteEmailSettingsSection";
+import CustomerEmailConfirmationDialog from "@/admin/features/email/components/CustomerEmailConfirmationDialog";
+import EmailQueueMetricCard from "@/admin/features/email/components/EmailQueueMetricCard";
+import { parseCustomerEmailConfirmationRequired } from "@/admin/features/email/customerEmailConfirmation";
+import { useCustomerEmailConfirmation } from "@/admin/features/email/useCustomerEmailConfirmation";
+import { getOrderEmailEventStatusPresentation } from "@/admin/features/email/emailEventStatusPresentation";
+import { uploadAdminPublicMedia } from "@/shared/client/publicMediaUpload";
 import { AdminPageHeader } from "@/shared/ui/admin-primitives";
 import { AdminSwitch } from "@/shared/ui/admin-switch";
+import { Button } from "@/shared/ui/button";
 import AdminCheckbox from "@/shared/ui/checkbox/admin-checkbox";
 import EuiTabs from "@/shared/ui/eui-tabs";
+import { TrashCanIcon } from "@/shared/ui/icons/AdminActionIcons";
+import { Input } from "@/shared/ui/input";
 import { Spinner } from "@/shared/ui/loading";
 import {
+  AdminTablePrimaryActionButton,
+  adminTableBodyCellCenterClassName,
+  adminTableBodyCellLeftClassName,
+  adminTableBulkHeaderButtonClassName,
+  adminTableHeaderCellCenterClassName,
+  adminTableHeaderCellLeftClassName,
+  adminTableRowHeightClassName,
+  adminTableSelectedDangerIconButtonClassName,
   adminWindowCardClassName,
   adminWindowCardStyle,
 } from "@/shared/ui/admin-table";
-import { adminInputFocusTokenClasses } from "@/shared/ui/theme/tokens";
+import { IconButton } from "@/shared/ui/icon-button";
+import { CustomSelect } from "@/shared/ui/select";
+import { Table, TBody, TD, TH, THead, TR } from "@/shared/ui/table";
+import {
+  adminInputFocusTokenClasses,
+  adminPlaceholderTokenClasses,
+} from "@/shared/ui/theme/tokens";
 import { useToast } from "@/shared/ui/toast";
 
 type UnknownRecord = Record<string, unknown>;
@@ -32,16 +60,31 @@ type EmailPageTab = "settings" | "orders" | "quotes";
 type StandardTemplateAudience = "customer" | "admin";
 type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
 type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
+type EmailImageAttachment = NonNullable<OrderEmailSettings["imageAttachment"]>;
+type StagedEmailImageAttachment = {
+  file: File;
+  previewUrl: string;
+  uploaded: EmailImageAttachment | null;
+};
 
-const fieldClassName =
-  `h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
-const textareaClassName =
-  `min-h-24 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-5 text-slate-900 transition-[border-color,box-shadow] placeholder:text-slate-400 ${adminInputFocusTokenClasses}`;
+const fieldClassName = "h-9 px-3 text-[13px] leading-5";
+const textareaClassName = `min-h-24 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 const alignedFieldClassName = "grid min-w-0 grid-rows-[1fr_auto]";
-const primaryButtonClassName =
-  "inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-[color:var(--blue-500)] px-3.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60";
-const secondaryButtonClassName =
-  "inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60";
+const templateEventOptions = ORDER_EMAIL_EVENT_DEFINITIONS.map(
+  ({ value, label }) => ({ value, label }),
+);
+const acceptedEmailImageContentTypes = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
+
+function formatFileSize(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function asRecord(value: unknown): UnknownRecord {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -175,35 +218,60 @@ function formatUpdatedAt(value: string) {
 
 function SurfaceCard({
   title,
+  titleAccessory,
   description,
   actions,
   children,
   testId,
+  className = "bg-white",
+  statusTone,
 }: {
   title: string;
+  titleAccessory?: React.ReactNode;
   description?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
   testId?: string;
+  className?: string;
+  statusTone?: string;
 }) {
   return (
     <section
-      className="min-w-0 bg-white px-4 py-4 sm:px-5"
+      className={`min-w-0 px-5 py-4 ${className}`}
       data-testid={testId}
+      data-status-tone={statusTone}
     >
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-2.5">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+            {titleAccessory}
+          </div>
           {description ? (
-            <p className="mt-0.5 max-w-3xl text-xs leading-4 text-slate-600">
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">
               {description}
             </p>
           ) : null}
         </div>
-        {actions ? <div className="shrink-0">{actions}</div> : null}
+        {actions ? (
+          <div className="flex shrink-0 items-center sm:justify-end">
+            {actions}
+          </div>
+        ) : null}
       </div>
       {children}
     </section>
+  );
+}
+
+function SettingsCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className={`${adminWindowCardClassName} bg-white`}
+      style={adminWindowCardStyle}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -218,7 +286,9 @@ function FieldLabel({
 }) {
   return (
     <label htmlFor={htmlFor} className="block">
-      <span className="block text-xs font-semibold text-slate-700">{label}</span>
+      <span className="block text-xs font-semibold text-slate-700">
+        {label}
+      </span>
       {hint ? (
         <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
       ) : null}
@@ -262,23 +332,27 @@ function TemplateEditorCard({
 
   return (
     <section
-      className={`min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 ${className}`}
+      className={`min-w-0 rounded-lg border border-slate-200 bg-slate-50/60 p-4 ${className}`}
       data-testid={`order-email-template-${audienceTestId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600">{description}</p>
+          <p className="mt-0.5 text-xs leading-4 text-slate-600">
+            {description}
+          </p>
         </div>
-        <button
+        <Button
           type="button"
-          className={secondaryButtonClassName}
+          variant="default"
+          size="toolbar"
+          className={adminTableBulkHeaderButtonClassName}
           onClick={onReset}
           aria-label={`Ponastavi privzeto predlogo za ${audienceLabel}`}
           data-testid={`order-email-template-${audienceTestId}-reset`}
         >
           Ponastavi privzeto
-        </button>
+        </Button>
       </div>
 
       <div className="mt-3 space-y-3">
@@ -288,8 +362,9 @@ function TemplateEditorCard({
             label={`Zadeva za ${audienceLabel}`}
             hint="Predpona zadeve se doda samodejno."
           />
-          <input
+          <Input
             id={subjectId}
+            aria-label={`Zadeva za ${audienceLabel}`}
             className={`${fieldClassName} mt-1.5`}
             value={subject}
             maxLength={ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
@@ -336,30 +411,6 @@ function TemplateEditorCard({
   );
 }
 
-function QueueMetric({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number;
-  tone?: "neutral" | "info" | "success" | "danger";
-}) {
-  const toneClassName = {
-    neutral: "border-slate-200 bg-slate-50 text-slate-900",
-    info: "border-blue-200 bg-blue-50 text-blue-900",
-    success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    danger: "border-rose-200 bg-rose-50 text-rose-900",
-  }[tone];
-
-  return (
-    <div className={`rounded-lg border px-3 py-2.5 ${toneClassName}`}>
-      <div className="text-xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-0.5 text-xs font-medium opacity-75">{label}</div>
-    </div>
-  );
-}
-
 export default function AdminOrderEmailSettingsPageClient({
   initialState,
   initialQuoteState,
@@ -376,21 +427,54 @@ export default function AdminOrderEmailSettingsPageClient({
     normalizedInitialState.config,
   );
   const [activeTab, setActiveTab] = useState<EmailPageTab>("settings");
+  const [isClientReady, setIsClientReady] = useState(false);
+  const quoteEmailSettingsRef = useRef<AdminQuoteEmailSettingsHandle>(null);
+  const [quoteEmailSaveState, setQuoteEmailSaveState] =
+    useState<AdminQuoteEmailSaveState>({
+      hasChanges: false,
+      saving: false,
+      saveDisabled:
+        !initialQuoteState.schemaReady || !initialQuoteState.flags.admin,
+      updatedAt: initialQuoteState.config.updatedAt,
+      enabled: initialQuoteState.config.enabled,
+      stockAcceptanceMode: initialQuoteState.config.stockAcceptanceMode,
+      mutationsDisabled:
+        !initialQuoteState.schemaReady || !initialQuoteState.flags.admin,
+    });
   const [selectedTemplateEvent, setSelectedTemplateEvent] =
     useState<EventKey>("order_submitted");
   const [testRecipient, setTestRecipient] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [uploadingImageAttachment, setUploadingImageAttachment] =
+    useState(false);
+  const [stagedImageAttachment, setStagedImageAttachment] =
+    useState<StagedEmailImageAttachment | null>(null);
+  const imageAttachmentInputRef = useRef<HTMLInputElement>(null);
   const [actionErrors, setActionErrors] = useState<string[]>([]);
   const setActionError = (message: string | null) => {
     setActionErrors(message ? [message] : []);
   };
   const { toast } = useToast();
+  const customerEmailConfirmation = useCustomerEmailConfirmation();
+
+  useEffect(() => {
+    setIsClientReady(true);
+  }, []);
+
+  useEffect(() => {
+    const previewUrl = stagedImageAttachment?.previewUrl;
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [stagedImageAttachment?.previewUrl]);
 
   const hasChanges = useMemo(
-    () => comparableConfig(draft) !== comparableConfig(adminState.config),
-    [adminState.config, draft],
+    () =>
+      stagedImageAttachment !== null ||
+      comparableConfig(draft) !== comparableConfig(adminState.config),
+    [adminState.config, draft, stagedImageAttachment],
   );
   const eventLabels = useMemo(
     () =>
@@ -405,6 +489,15 @@ export default function AdminOrderEmailSettingsPageClient({
   const schoolCustomerTemplate =
     draft.templates.order_submitted.schoolCustomer ??
     DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
+  const selectedTemplateStatusPresentation =
+    getOrderEmailEventStatusPresentation(selectedTemplateEvent);
+  const displayedImageAttachment = stagedImageAttachment
+    ? {
+        url: stagedImageAttachment.previewUrl,
+        filename: stagedImageAttachment.file.name,
+        size: stagedImageAttachment.file.size,
+      }
+    : draft.imageAttachment;
 
   const draftBasicReady =
     adminState.delivery.schemaReady &&
@@ -581,12 +674,96 @@ export default function AdminOrderEmailSettingsPageClient({
     );
   };
 
+  const handleImageAttachmentSelected = (file: File | null) => {
+    if (!file) return;
+    if (!acceptedEmailImageContentTypes.has(file.type)) {
+      const message = "Izberite sliko PNG, JPEG, WebP ali GIF.";
+      setActionError(message);
+      toast.error(message);
+      if (imageAttachmentInputRef.current) {
+        imageAttachmentInputRef.current.value = "";
+      }
+      return;
+    }
+    if (file.size <= 0) {
+      const message = "Izbrana slikovna datoteka je prazna.";
+      setActionError(message);
+      toast.error(message);
+      if (imageAttachmentInputRef.current) {
+        imageAttachmentInputRef.current.value = "";
+      }
+      return;
+    }
+    if (file.size > ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES) {
+      const message = "Slikovna datoteka je lahko velika največ 5 MB.";
+      setActionError(message);
+      toast.error(message);
+      if (imageAttachmentInputRef.current) {
+        imageAttachmentInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setStagedImageAttachment({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      uploaded: null,
+    });
+    setActionErrors([]);
+  };
+
+  const removeImageAttachment = () => {
+    setStagedImageAttachment(null);
+    updateConfig("imageAttachment", null);
+    if (imageAttachmentInputRef.current) {
+      imageAttachmentInputRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
-    const submittedConfig = draft;
-    const submittedComparable = comparableConfig(submittedConfig);
+    if (saving || uploadingImageAttachment) return;
+    const submittedDraft = draft;
+    const submittedDraftComparable = comparableConfig(submittedDraft);
+    const submittedStagedImage = stagedImageAttachment;
     setSaving(true);
     setActionError(null);
     try {
+      let submittedConfig = submittedDraft;
+      if (submittedStagedImage) {
+        setUploadingImageAttachment(true);
+        let imageAttachment = submittedStagedImage.uploaded;
+        if (!imageAttachment) {
+          const uploaded = await uploadAdminPublicMedia(
+            submittedStagedImage.file,
+            { scope: "email-shared-image" },
+          );
+          if (
+            uploaded.mediaKind !== "image" ||
+            !acceptedEmailImageContentTypes.has(uploaded.contentType)
+          ) {
+            throw new Error("Nalo\u017eena datoteka ni podprta slika.");
+          }
+          imageAttachment = {
+            url: uploaded.url,
+            pathname: uploaded.pathname,
+            filename: uploaded.filename,
+            contentType:
+              uploaded.contentType as EmailImageAttachment["contentType"],
+            size: uploaded.size,
+          };
+          setStagedImageAttachment((current) =>
+            current?.file === submittedStagedImage.file
+              ? { ...current, uploaded: imageAttachment }
+              : current,
+          );
+        }
+        submittedConfig = {
+          ...submittedDraft,
+          imageAttachment,
+        };
+        setUploadingImageAttachment(false);
+      }
+
       const response = await fetch("/api/admin/order-email-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -605,11 +782,26 @@ export default function AdminOrderEmailSettingsPageClient({
 
       const nextState = normalizeAdminStateResponse(payload, adminState);
       setAdminState(nextState);
-      setDraft((current) =>
-        comparableConfig(current) === submittedComparable
-          ? nextState.config
-          : current,
-      );
+      setDraft((current) => {
+        if (comparableConfig(current) === submittedDraftComparable) {
+          return nextState.config;
+        }
+        return submittedStagedImage
+          ? {
+              ...current,
+              imageAttachment: nextState.config.imageAttachment,
+              updatedAt: nextState.config.updatedAt,
+            }
+          : current;
+      });
+      if (submittedStagedImage) {
+        setStagedImageAttachment((current) =>
+          current?.file === submittedStagedImage.file ? null : current,
+        );
+        if (imageAttachmentInputRef.current) {
+          imageAttachmentInputRef.current.value = "";
+        }
+      }
       toast.success("Nastavitve samodejne e-pošte so shranjene.");
     } catch (error) {
       const message =
@@ -619,11 +811,18 @@ export default function AdminOrderEmailSettingsPageClient({
       setActionError(message);
       toast.error(message);
     } finally {
+      setUploadingImageAttachment(false);
       setSaving(false);
     }
   };
 
   const handleTest = async () => {
+    if (saving || uploadingImageAttachment || stagedImageAttachment) {
+      const message = "Pred preizkusom najprej shranite slikovno priponko.";
+      setActionError(message);
+      toast.error(message);
+      return;
+    }
     const recipient = testRecipient.trim();
     if (!recipient) {
       const message = "Vnesite prejemnika testnega sporočila.";
@@ -668,15 +867,31 @@ export default function AdminOrderEmailSettingsPageClient({
     }
   };
 
-  const handleRetry = async () => {
+  const handleRetry = async (
+    customerEmailConfirmationToken: string | null = null,
+  ) => {
     setRetrying(true);
     setActionError(null);
     try {
       const response = await fetch("/api/admin/order-email-settings/retry", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {}),
+        }),
       });
       const payload = await readPayload(response);
       if (!response.ok) {
+        const confirmation = parseCustomerEmailConfirmationRequired(payload);
+        if (response.status === 428 && confirmation) {
+          customerEmailConfirmation.requestConfirmation(
+            confirmation,
+            () => void handleRetry(confirmation.confirmationToken),
+          );
+          return;
+        }
         const errors = responseErrors(
           payload,
           "Ponovnega pošiljanja ni bilo mogoče zagnati.",
@@ -705,27 +920,110 @@ export default function AdminOrderEmailSettingsPageClient({
     }
   };
 
+  const nonQuoteHasChanges =
+    activeTab === "settings"
+      ? hasChanges || quoteEmailSaveState.hasChanges
+      : hasChanges;
+  const nonQuoteSaving =
+    saving ||
+    uploadingImageAttachment ||
+    (activeTab === "settings" && quoteEmailSaveState.saving);
+  const nonQuoteSaveDisabled =
+    uploadingImageAttachment ||
+    (activeTab === "settings"
+      ? (saving || !hasChanges) && quoteEmailSaveState.saveDisabled
+      : saving || !hasChanges);
+  const handleNonQuoteSave = () => {
+    if (!saving && !uploadingImageAttachment && hasChanges) void handleSave();
+    if (activeTab === "settings" && !quoteEmailSaveState.saveDisabled) {
+      void quoteEmailSettingsRef.current?.save();
+    }
+  };
+
   return (
-    <div className="w-full space-y-4">
+    <fieldset
+      className="m-0 w-full min-w-0 space-y-4 border-0 p-0 font-['Inter',system-ui,sans-serif]"
+      disabled={!isClientReady}
+      aria-busy={!isClientReady}
+      data-client-ready={isClientReady ? "true" : "false"}
+      data-testid="order-email-client-surface"
+    >
       <AdminPageHeader
         title="Email"
         description="Skupni profil pošiljatelja ter ločeni dogodki, predloge in čakalne vrste za naročila in ponudbe."
         actions={
-          activeTab === "quotes" ? undefined : (
-            <button
-              type="button"
-              className={primaryButtonClassName}
-              disabled={saving || !hasChanges}
-              onClick={() => void handleSave()}
-              data-testid="order-email-settings-save"
-            >
-              {saving ? <Spinner size="sm" /> : null}
-              {saving
-                ? "Shranjujem …"
-                : hasChanges
-                  ? "Shrani spremembe"
-                  : "Shranjeno"}
-            </button>
+          activeTab === "quotes" ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span
+                className="mr-1 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500"
+                role="status"
+                aria-live="polite"
+                data-testid="quote-email-save-status"
+                title={
+                  quoteEmailSaveState.hasChanges
+                    ? "Spremembe še niso shranjene."
+                    : quoteEmailSaveState.updatedAt
+                      ? `Shranjeno: ${formatUpdatedAt(quoteEmailSaveState.updatedAt)}`
+                      : "Shranjeno"
+                }
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    quoteEmailSaveState.hasChanges
+                      ? "bg-amber-500"
+                      : "bg-emerald-500"
+                  }`}
+                  aria-hidden="true"
+                />
+                {quoteEmailSaveState.hasChanges ? "Neshranjeno" : "Shranjeno"}
+              </span>
+              <AdminTablePrimaryActionButton
+                type="button"
+                className="gap-2"
+                disabled={quoteEmailSaveState.saveDisabled}
+                onClick={() => void quoteEmailSettingsRef.current?.save()}
+                data-testid="quote-email-settings-save"
+              >
+                {quoteEmailSaveState.saving ? <Spinner size="sm" /> : null}
+                {quoteEmailSaveState.saving
+                  ? "Shranjujem …"
+                  : "Shrani spremembe"}
+              </AdminTablePrimaryActionButton>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span
+                className="mr-1 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500"
+                role="status"
+                aria-live="polite"
+                data-testid="order-email-save-status"
+                title={
+                  nonQuoteHasChanges
+                    ? "Spremembe še niso shranjene."
+                    : adminState.config.updatedAt
+                      ? `Shranjeno: ${formatUpdatedAt(adminState.config.updatedAt)}`
+                      : "Shranjeno"
+                }
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    nonQuoteHasChanges ? "bg-amber-500" : "bg-emerald-500"
+                  }`}
+                  aria-hidden="true"
+                />
+                {nonQuoteHasChanges ? "Neshranjeno" : "Shranjeno"}
+              </span>
+              <AdminTablePrimaryActionButton
+                type="button"
+                className="gap-2"
+                disabled={nonQuoteSaveDisabled}
+                onClick={handleNonQuoteSave}
+                data-testid="order-email-settings-save"
+              >
+                {nonQuoteSaving ? <Spinner size="sm" /> : null}
+                {nonQuoteSaving ? "Shranjujem …" : "Shrani spremembe"}
+              </AdminTablePrimaryActionButton>
+            </div>
           )
         }
       />
@@ -779,53 +1077,165 @@ export default function AdminOrderEmailSettingsPageClient({
         aria-hidden={activeTab !== "settings"}
         hidden={activeTab !== "settings"}
         tabIndex={activeTab === "settings" ? 0 : -1}
-        className={`${adminWindowCardClassName} divide-y divide-slate-200 bg-white`}
-        style={adminWindowCardStyle}
+        className="space-y-3 outline-none"
         data-testid="order-email-settings-panel"
       >
+        <SettingsCard>
           <SurfaceCard
             title="Pošiljanje"
-            description="Glavno stikalo ustavi ali omogoči vsa samodejna sporočila. Skrivni dostop do ponudnika se upravlja samo v okolju Vercel."
             testId="order-email-delivery-settings"
-            actions={
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700">
-                  {draft.enabled ? "Vklopljeno" : "Izklopljeno"}
-                </span>
-                <AdminSwitch
-                  checked={draft.enabled}
-                  disabled={saving}
-                  ariaLabel={
-                    draft.enabled
-                      ? "Izklopi samodejno pošiljanje"
-                      : "Vklopi samodejno pošiljanje"
-                  }
-                  onChange={(enabled) => updateConfig("enabled", enabled)}
-                />
-              </div>
-            }
           >
-            <div
-              className={`rounded-lg border px-3 py-2.5 ${readiness.className}`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-semibold">{readiness.label}</span>
-                <span className="rounded-full border border-current/20 px-2 py-0.5 text-xs font-semibold">
-                  {adminState.delivery.provider}
-                </span>
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-5">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Pošiljanje naročil
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
+                    To stikalo ustavi ali omogoči poslovna e-poštna sporočila za
+                    naročila. Obvezna varnostna sporočila, kot je OTP za dostop
+                    do ponudbe, ostanejo aktivna. Skrivni dostop do ponudnika se
+                    upravlja samo v okolju Vercel.
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <AdminSwitch
+                    checked={draft.enabled}
+                    disabled={saving}
+                    ariaLabel={
+                      draft.enabled
+                        ? "Izklopi samodejno pošiljanje"
+                        : "Vklopi samodejno pošiljanje"
+                    }
+                    onChange={(enabled) => updateConfig("enabled", enabled)}
+                  />
+                </div>
               </div>
-              <p className="mt-1 text-xs leading-5 opacity-90">
-                {readiness.detail}
-              </p>
-            </div>
-            {draft.enabled && !draftBasicReady ? (
-              <p className="mt-2 text-xs text-amber-700">
-                Pošiljanje ne bo delovalo, dokler shema, povezava in trenutne
-                osnovne nastavitve niso pripravljene.
-              </p>
-            ) : null}
-          </SurfaceCard>
 
+              <div
+                className={`rounded-lg border px-3 py-2.5 ${readiness.className}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{readiness.label}</p>
+                    <p className="mt-1 text-xs leading-5 opacity-90">
+                      {readiness.detail}
+                    </p>
+                    {draft.enabled && !draftBasicReady ? (
+                      <p className="mt-1 text-xs leading-5">
+                        Pošiljanje ne bo delovalo, dokler shema, povezava in
+                        trenutne osnovne nastavitve niso pripravljene.
+                      </p>
+                    ) : null}
+                  </div>
+                  <span className="rounded-full border border-current/20 px-2 py-0.5 text-xs font-semibold">
+                    {adminState.delivery.provider}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="mt-4 border-t border-slate-200 pt-4"
+              data-testid="quote-email-delivery-settings"
+            >
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="min-w-0 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-5">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Pošiljanje ponudb
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
+                    Uporablja isti profil pošiljatelja, Reply-To, ponudnika in
+                    administratorske prejemnike kot naročila. Dogodki, predloge
+                    in čakalna vrsta ponudb ostanejo ločeni na zavihku Ponudbe.
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <AdminSwitch
+                    checked={quoteEmailSaveState.enabled}
+                    disabled={
+                      quoteEmailSaveState.saving ||
+                      quoteEmailSaveState.mutationsDisabled
+                    }
+                    ariaLabel={
+                      quoteEmailSaveState.enabled
+                        ? "Izklopi poslovno e-pošto za ponudbe"
+                        : "Vključi poslovno e-pošto za ponudbe"
+                    }
+                    onChange={(enabled) => {
+                      setQuoteEmailSaveState((current) => ({
+                        ...current,
+                        enabled,
+                      }));
+                      quoteEmailSettingsRef.current?.setEnabled(enabled);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {!initialQuoteState.schemaReady ? (
+                <div
+                  role="alert"
+                  className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800"
+                >
+                  Podatkovna shema e-pošte za ponudbe ni nameščena.
+                </div>
+              ) : (
+                <div
+                  className="mt-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-3"
+                  data-testid="quote-stock-acceptance-policy"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        Samodejna blokada sprejema zaradi zaloge
+                      </h3>
+                      <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-600">
+                        Ročni način (privzeto): konflikt zaloge varno ustavi
+                        sprejem, ponudba pa ostane izdana in jo je mogoče po
+                        uskladitvi zaloge znova sprejeti. Sistem ne ustvari
+                        trajne blokade in ne pošlje obvestila o blokadi.
+                      </p>
+                      <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-600">
+                        Samodejni način: konflikt zabeleži kot blokiran sprejem
+                        in pošlje obvestila prejemnikom, izbranim pri dogodku
+                        »Sprejem blokiran zaradi zaloge«.
+                      </p>
+                    </div>
+                    <AdminSwitch
+                      checked={
+                        quoteEmailSaveState.stockAcceptanceMode === "automatic"
+                      }
+                      disabled={
+                        quoteEmailSaveState.saving ||
+                        quoteEmailSaveState.mutationsDisabled
+                      }
+                      ariaLabel={
+                        quoteEmailSaveState.stockAcceptanceMode === "automatic"
+                          ? "Preklopi blokado sprejema zaradi zaloge na ročni način"
+                          : "Preklopi blokado sprejema zaradi zaloge na samodejni način"
+                      }
+                      onChange={(automatic) => {
+                        const stockAcceptanceMode = automatic
+                          ? "automatic"
+                          : "manual";
+                        setQuoteEmailSaveState((current) => ({
+                          ...current,
+                          stockAcceptanceMode,
+                        }));
+                        quoteEmailSettingsRef.current?.setStockAcceptanceMode(
+                          stockAcceptanceMode,
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </SurfaceCard>
+        </SettingsCard>
+
+        <SettingsCard>
           <SurfaceCard
             title="Pošiljatelj in povezave"
             description="Naslov pošiljatelja mora pripadati domeni, ki je preverjena pri ponudniku e-pošte."
@@ -837,8 +1247,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   htmlFor="order-email-sender-name"
                   label="Ime pošiljatelja"
                 />
-                <input
+                <Input
                   id="order-email-sender-name"
+                  aria-label="Ime pošiljatelja"
                   className={`${fieldClassName} mt-1.5`}
                   value={draft.senderName}
                   maxLength={120}
@@ -854,8 +1265,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   label="E-poštni naslov pošiljatelja"
                   hint="Primer za preverjeno poštno poddomeno: narocila@updates.atehna-test.site"
                 />
-                <input
+                <Input
                   id="order-email-from-address"
+                  aria-label="E-poštni naslov pošiljatelja"
                   type="email"
                   className={`${fieldClassName} mt-1.5`}
                   value={draft.fromEmail}
@@ -873,8 +1285,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   label="Naslov za odgovore"
                   hint="Odgovori strank bodo poslani na ta naslov."
                 />
-                <input
+                <Input
                   id="order-email-reply-to"
+                  aria-label="Naslov za odgovore"
                   type="email"
                   className={`${fieldClassName} mt-1.5`}
                   value={draft.replyToEmail}
@@ -892,8 +1305,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   label="Naslov spletnega mesta"
                   hint="Osnovni naslov trgovine za povezave v sporočilih; to ni poštna poddomena Resend."
                 />
-                <input
+                <Input
                   id="order-email-site-url"
+                  aria-label="Naslov spletnega mesta"
                   type="url"
                   className={`${fieldClassName} mt-1.5`}
                   value={draft.siteUrl}
@@ -908,70 +1322,397 @@ export default function AdminOrderEmailSettingsPageClient({
               </div>
             </div>
           </SurfaceCard>
+        </SettingsCard>
 
+        <SettingsCard>
           <SurfaceCard
-            title="Prejemniki za administracijo"
-            description="Na te naslove se pošiljajo dogodki, pri katerih je v spodnji tabeli označen stolpec Administratorji."
-            testId="order-email-admin-recipients"
-            actions={
-              <button
-                type="button"
-                className={secondaryButtonClassName}
-                onClick={() =>
-                  updateConfig("adminRecipients", [
-                    ...draft.adminRecipients,
-                    "",
-                  ])
-                }
-              >
-                <span aria-hidden>+</span>
-                Dodaj naslov
-              </button>
+            title="Skupna vsebina"
+            titleAccessory={
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                Naročila in ponudbe
+              </span>
             }
+            description="Privzeta vsebina za vsa poslovna sporočila naročil in ponudb."
+            testId="order-email-shared-content"
           >
-            {draft.adminRecipients.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
-                Administrator še nima nastavljenega prejemnika.
+            <div className="grid items-stretch gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+              <div
+                className="min-w-0 space-y-3 lg:pr-5"
+                data-testid="order-email-shared-text-panel"
+              >
+                <div className="min-w-0">
+                  <FieldLabel
+                    htmlFor="order-email-subject-prefix"
+                    label="Predpona zadeve"
+                    hint="Dodana bo pred zadevo vsakega sporočila."
+                  />
+                  <Input
+                    id="order-email-subject-prefix"
+                    aria-label="Predpona zadeve"
+                    className={fieldClassName + " mt-1.5"}
+                    value={draft.subjectPrefix}
+                    maxLength={80}
+                    disabled={saving || uploadingImageAttachment}
+                    onChange={(event) =>
+                      updateConfig("subjectPrefix", event.target.value)
+                    }
+                    placeholder="Atehna"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <FieldLabel
+                    htmlFor="order-email-header"
+                    label="Besedilo glave"
+                    hint="Neobvezno besedilo pred glavno vsebino sporočila."
+                  />
+                  <textarea
+                    id="order-email-header"
+                    aria-label="Besedilo glave"
+                    className={textareaClassName + " mt-1.5"}
+                    value={draft.headerText}
+                    maxLength={1000}
+                    disabled={saving || uploadingImageAttachment}
+                    onChange={(event) =>
+                      updateConfig("headerText", event.target.value)
+                    }
+                    placeholder="Pozdravljeni,"
+                  />
+                </div>
+
+                <div
+                  className="flex items-center gap-2 py-0.5"
+                  aria-hidden="true"
+                >
+                  <span className="h-px flex-1 bg-slate-200" />
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                    Samodejna vsebina e-pošte
+                  </span>
+                  <span className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <div className="min-w-0">
+                  <FieldLabel
+                    htmlFor="order-email-footer"
+                    label="Dodatno besedilo v nogi"
+                    hint="Neobvezno besedilo na koncu sporočila."
+                  />
+                  <textarea
+                    id="order-email-footer"
+                    aria-label="Dodatno besedilo v nogi"
+                    className={textareaClassName + " mt-1.5"}
+                    value={draft.footerText}
+                    maxLength={1000}
+                    disabled={saving || uploadingImageAttachment}
+                    onChange={(event) =>
+                      updateConfig("footerText", event.target.value)
+                    }
+                    placeholder="Hvala za vaše naročilo."
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {draft.adminRecipients.map((recipient, index) => (
-                  <div
-                    key={`admin-recipient-${index}`}
-                    className="flex items-center gap-2"
-                  >
-                    <label
-                      htmlFor={`order-email-admin-${index}`}
-                      className="sr-only"
-                    >
-                      E-poštni naslov administratorja {index + 1}
-                    </label>
-                    <input
-                      id={`order-email-admin-${index}`}
-                      type="email"
-                      className={fieldClassName}
-                      value={recipient}
-                      maxLength={320}
-                      onChange={(event) =>
-                        updateAdminRecipient(index, event.target.value)
-                      }
-                      placeholder="admin@atehna.si"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="button"
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-lg text-rose-600 transition hover:bg-rose-50"
-                      onClick={() => removeAdminRecipient(index)}
-                      aria-label={`Odstrani e-poštni naslov administratorja ${index + 1}`}
-                      title="Odstrani naslov"
-                    >
-                      <span aria-hidden>×</span>
-                    </button>
+
+              <div
+                className="mt-4 min-w-0 border-t border-slate-200 pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
+                data-testid="order-email-shared-image-panel"
+              >
+                <FieldLabel
+                  htmlFor="order-email-image-attachment"
+                  label="Slikovna priponka"
+                  hint="Neobvezna priponka · PNG, JPEG, WebP ali GIF · največ 5 MB."
+                />
+                <Input
+                  ref={imageAttachmentInputRef}
+                  id="order-email-image-attachment"
+                  type="file"
+                  hidden
+                  className="sr-only"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  aria-label="Slikovna priponka"
+                  disabled={saving || uploadingImageAttachment}
+                  onChange={(event) =>
+                    handleImageAttachmentSelected(
+                      event.target.files?.[0] ?? null,
+                    )
+                  }
+                />
+
+                {displayedImageAttachment ? (
+                  <div className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70">
+                    <div className="flex min-h-40 items-center justify-center bg-white p-4 sm:min-h-44">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={displayedImageAttachment.url}
+                        alt=""
+                        className="max-h-36 max-w-full rounded-md border border-slate-200 bg-white object-contain"
+                        data-testid="order-email-image-preview"
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 border-t border-slate-200 p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="truncate text-[13px] font-medium leading-5 text-slate-900"
+                          data-testid="order-email-image-filename"
+                        >
+                          {displayedImageAttachment.filename}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {formatFileSize(displayedImageAttachment.size)}
+                          {stagedImageAttachment ? " \u00b7 Neshranjeno" : ""}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <IconButton
+                          type="button"
+                          tone="neutral"
+                          size="md"
+                          disabled={saving || uploadingImageAttachment}
+                          onClick={() =>
+                            imageAttachmentInputRef.current?.click()
+                          }
+                          aria-label="Zamenjaj slikovno priponko"
+                          title="Zamenjaj slikovno priponko"
+                          data-testid="order-email-image-replace"
+                        >
+                          {uploadingImageAttachment ? (
+                            <Spinner size="sm" />
+                          ) : (
+                            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                          )}
+                        </IconButton>
+                        <IconButton
+                          type="button"
+                          tone="danger"
+                          size="md"
+                          disabled={saving || uploadingImageAttachment}
+                          onClick={removeImageAttachment}
+                          aria-label="Odstrani slikovno priponko"
+                          title="Odstrani slikovno priponko"
+                          data-testid="order-email-image-remove"
+                        >
+                          <TrashCanIcon className="!h-4 !w-4" />
+                        </IconButton>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <div
+                    className="mt-1.5 flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-6 text-center sm:min-h-44"
+                    data-testid="order-email-image-empty-state"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-slate-200">
+                      <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium leading-5 text-slate-800">
+                        Ni izbrane slike
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Priponka se doda v izvirni velikosti.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="toolbar"
+                      className={adminTableBulkHeaderButtonClassName}
+                      disabled={saving || uploadingImageAttachment}
+                      onClick={() => imageAttachmentInputRef.current?.click()}
+                      data-testid="order-email-image-upload"
+                    >
+                      {uploadingImageAttachment ? <Spinner size="sm" /> : null}
+                      {"Nalo\u017ei"}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </SurfaceCard>
+        </SettingsCard>
+
+        <SettingsCard>
+          <SurfaceCard
+            title="Potrditve in prejemniki"
+            description="Nastavite dodatno potrditev pred e-pošto stranki in naslove za administratorska obvestila."
+          >
+            <div className="divide-y divide-slate-200">
+              <section
+                className="pb-4"
+                data-testid="order-email-customer-confirmation-settings"
+              >
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                  <div className="min-w-0 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-5">
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Potrditev e-pošte stranki
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
+                      Pred dejanjem, ki stranki uvrsti e-pošto v čakalno vrsto,
+                      zahtevaj dodatno potrditev. Poslovno pomembne potrditve,
+                      na primer izdaja ali umik ponudbe, lahko ostanejo obvezne
+                      neodvisno od te nastavitve.
+                    </p>
+                  </div>
+                  <AdminSwitch
+                    checked={draft.confirmCustomerEmails}
+                    disabled={saving}
+                    ariaLabel="Zahtevaj dodatno potrditev pred dejanji, ki pošljejo e-pošto stranki"
+                    onChange={(confirmCustomerEmails) =>
+                      updateConfig(
+                        "confirmCustomerEmails",
+                        confirmCustomerEmails,
+                      )
+                    }
+                  />
+                </div>
+              </section>
+
+              <section
+                className="pt-4"
+                data-testid="order-email-admin-recipients"
+              >
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                  <div className="min-w-0 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-5">
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Prejemniki za administracijo
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
+                      Na te naslove se pošiljajo dogodki, pri katerih je v
+                      tabeli dogodkov označen stolpec Administratorji.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="toolbar"
+                    className={adminTableBulkHeaderButtonClassName}
+                    onClick={() =>
+                      updateConfig("adminRecipients", [
+                        ...draft.adminRecipients,
+                        "",
+                      ])
+                    }
+                  >
+                    <span aria-hidden>+</span>
+                    Dodaj naslov
+                  </Button>
+                </div>
+
+                {draft.adminRecipients.length === 0 ? (
+                  <div className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    Administrator še nima nastavljenega prejemnika.
+                  </div>
+                ) : (
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {draft.adminRecipients.map((recipient, index) => (
+                      <div
+                        key={`admin-recipient-${index}`}
+                        className="flex min-w-0 items-center gap-2"
+                      >
+                        <label
+                          htmlFor={`order-email-admin-${index}`}
+                          className="sr-only"
+                        >
+                          E-poštni naslov administratorja {index + 1}
+                        </label>
+                        <Input
+                          id={`order-email-admin-${index}`}
+                          aria-label={`E-poštni naslov administratorja ${index + 1}`}
+                          type="email"
+                          className={fieldClassName}
+                          value={recipient}
+                          maxLength={320}
+                          onChange={(event) =>
+                            updateAdminRecipient(index, event.target.value)
+                          }
+                          placeholder="admin@atehna.si"
+                          autoComplete="off"
+                        />
+                        <IconButton
+                          type="button"
+                          tone="danger"
+                          size="md"
+                          className={
+                            adminTableSelectedDangerIconButtonClassName
+                          }
+                          onClick={() => removeAdminRecipient(index)}
+                          aria-label={`Odstrani e-poštni naslov administratorja ${index + 1}`}
+                          title="Odstrani naslov"
+                        >
+                          <TrashCanIcon className="!h-4 !w-4" />
+                        </IconButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </SurfaceCard>
+        </SettingsCard>
+
+        <SettingsCard>
+          <section
+            className="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,0.9fr)] lg:items-end"
+            data-testid="order-email-test-delivery"
+          >
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-slate-900">
+                Preizkus pošiljanja
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">
+                Pošlje administratorsko predlogo za dogodek Oddano naročilo.
+                Uporabi tudi neshranjeno besedilo; novo slikovno priponko morate
+                najprej shraniti. API ključ se nikoli ne pošlje v brskalnik.
+              </p>
+            </div>
+            <form
+              className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleTest();
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <FieldLabel
+                  htmlFor="order-email-test-recipient"
+                  label="Prejemnik testa"
+                />
+                <Input
+                  id="order-email-test-recipient"
+                  aria-label="Prejemnik testa"
+                  type="email"
+                  className={`${fieldClassName} mt-1.5`}
+                  value={testRecipient}
+                  onChange={(event) => {
+                    setTestRecipient(event.target.value);
+                    setActionErrors([]);
+                  }}
+                  placeholder="vas@primer.si"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+              <AdminTablePrimaryActionButton
+                type="submit"
+                className="gap-2"
+                disabled={
+                  testing ||
+                  saving ||
+                  uploadingImageAttachment ||
+                  stagedImageAttachment !== null
+                }
+                title={
+                  stagedImageAttachment
+                    ? "Pred preizkusom shranite slikovno priponko."
+                    : undefined
+                }
+                data-testid="order-email-send-test"
+              >
+                {testing ? <Spinner size="sm" /> : null}
+                {testing ? "Pošiljam …" : "Pošlji test"}
+              </AdminTablePrimaryActionButton>
+            </form>
+          </section>
+        </SettingsCard>
       </div>
 
       <div
@@ -985,391 +1726,316 @@ export default function AdminOrderEmailSettingsPageClient({
         style={adminWindowCardStyle}
         data-testid="order-email-orders-panel"
       >
-          <SurfaceCard
-            title="Dogodki naročila"
-            description="Stranka pomeni e-poštni naslov, ki je shranjen na naročilu. Oddaja naročila in poznejša sprememba statusa Prejeto sta ločena dogodka."
-            testId="order-email-event-matrix"
-          >
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[640px] border-collapse text-sm">
-                <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-4 py-2.5 text-left font-semibold"
-                    >
-                      Dogodek
-                    </th>
-                    <th
-                      scope="col"
-                      className="w-36 px-4 py-2.5 text-center font-semibold"
-                    >
-                      Stranka
-                    </th>
-                    <th
-                      scope="col"
-                      className="w-44 px-4 py-2.5 text-center font-semibold"
-                    >
-                      Administratorji
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => {
-                    const eventKey = definition.value as EventKey;
-                    const eventSetting = draft.events[eventKey] ?? {
-                      customer: false,
-                      admins: false,
-                    };
-                    return (
-                      <tr
-                        key={String(definition.value)}
-                        className="transition hover:bg-slate-50"
-                      >
-                        <th
-                          scope="row"
-                          className="px-4 py-2.5 text-left font-normal"
-                        >
-                          <span className="block font-medium text-slate-900">
-                            {definition.label}
-                          </span>
-                          <span className="mt-0.5 block text-xs leading-4 text-slate-500">
-                            {definition.description}
-                          </span>
-                        </th>
-                        <td className="px-4 py-2.5 text-center">
-                          <AdminCheckbox
-                            checked={eventSetting.customer}
-                            onChange={(event) =>
-                              updateEvent(
-                                eventKey,
-                                "customer",
-                                event.target.checked,
-                              )
-                            }
-                            aria-label={`${definition.label}: obvesti stranko`}
-                            data-testid={`order-email-event-${String(definition.value)}-customer`}
-                          />
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <AdminCheckbox
-                            checked={eventSetting.admins}
-                            onChange={(event) =>
-                              updateEvent(
-                                eventKey,
-                                "admins",
-                                event.target.checked,
-                              )
-                            }
-                            aria-label={`${definition.label}: obvesti administratorje`}
-                            data-testid={`order-email-event-${String(definition.value)}-admins`}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </SurfaceCard>
-
-          <SurfaceCard
-            title="Preizkus pošiljanja"
-            description="Test pošlje administratorsko predlogo za dogodek Oddano naročilo in uporabi trenutno prikazane nastavitve, tudi če jih še niste shranili. API ključ se nikoli ne pošlje v brskalnik."
-            testId="order-email-test-delivery"
-          >
-            <form
-              className="flex flex-col gap-2 sm:flex-row sm:items-end"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void handleTest();
-              }}
+        <SurfaceCard
+          title="Dogodki naročila"
+          description="Stranka pomeni e-poštni naslov, ki je shranjen na naročilu. Oddaja naročila in poznejša sprememba statusa Prejeto sta ločena dogodka."
+          testId="order-email-event-matrix"
+        >
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <Table
+              className="min-w-[640px] table-fixed text-[12px]"
+              data-testid="order-email-event-table"
             >
-              <div className="min-w-0 flex-1">
-                <FieldLabel
-                  htmlFor="order-email-test-recipient"
-                  label="Prejemnik testa"
-                />
-                <input
-                  id="order-email-test-recipient"
-                  type="email"
-                  className={`${fieldClassName} mt-1.5`}
-                  value={testRecipient}
-                  onChange={(event) => {
-                    setTestRecipient(event.target.value);
-                    setActionErrors([]);
-                  }}
-                  placeholder="vas@primer.si"
-                  autoComplete="email"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className={secondaryButtonClassName}
-                disabled={testing}
-                data-testid="order-email-send-test"
-              >
-                {testing ? <Spinner size="sm" /> : null}
-                {testing ? "Pošiljam …" : "Pošlji test"}
-              </button>
-            </form>
-          </SurfaceCard>
+              <THead>
+                <TR className="hover:bg-transparent">
+                  <TH scope="col" className={adminTableHeaderCellLeftClassName}>
+                    Dogodek
+                  </TH>
+                  <TH
+                    scope="col"
+                    className={`${adminTableHeaderCellCenterClassName} w-36`}
+                  >
+                    Stranka
+                  </TH>
+                  <TH
+                    scope="col"
+                    className={`${adminTableHeaderCellCenterClassName} w-44`}
+                  >
+                    Administratorji
+                  </TH>
+                </TR>
+              </THead>
+              <TBody className="divide-y divide-slate-200 bg-white">
+                {ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => {
+                  const eventKey = definition.value as EventKey;
+                  const eventSetting = draft.events[eventKey] ?? {
+                    customer: false,
+                    admins: false,
+                  };
+                  const statusPresentation =
+                    getOrderEmailEventStatusPresentation(eventKey);
+                  return (
+                    <TR
+                      key={String(definition.value)}
+                      className={`${adminTableRowHeightClassName} ${statusPresentation.rowClassName}`}
+                      data-testid={`order-email-event-row-${String(definition.value)}`}
+                      data-status-tone={statusPresentation.tone}
+                    >
+                      <TH
+                        scope="row"
+                        className={`${adminTableBodyCellLeftClassName} border-b-0 !font-normal`}
+                      >
+                        <span className="block font-medium text-slate-900">
+                          {definition.label}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-4 text-slate-500">
+                          {definition.description}
+                        </span>
+                      </TH>
+                      <TD className={adminTableBodyCellCenterClassName}>
+                        <AdminCheckbox
+                          checked={eventSetting.customer}
+                          onChange={(event) =>
+                            updateEvent(
+                              eventKey,
+                              "customer",
+                              event.target.checked,
+                            )
+                          }
+                          aria-label={`${definition.label}: obvesti stranko`}
+                          data-testid={`order-email-event-${String(definition.value)}-customer`}
+                        />
+                      </TD>
+                      <TD className={adminTableBodyCellCenterClassName}>
+                        <AdminCheckbox
+                          checked={eventSetting.admins}
+                          onChange={(event) =>
+                            updateEvent(
+                              eventKey,
+                              "admins",
+                              event.target.checked,
+                            )
+                          }
+                          aria-label={`${definition.label}: obvesti administratorje`}
+                          data-testid={`order-email-event-${String(definition.value)}-admins`}
+                        />
+                      </TD>
+                    </TR>
+                  );
+                })}
+              </TBody>
+            </Table>
+          </div>
+        </SurfaceCard>
+        <SurfaceCard
+          title="Predloge sporočil"
+          description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+          testId="order-email-message-templates"
+          className={selectedTemplateStatusPresentation.sectionClassName}
+          statusTone={selectedTemplateStatusPresentation.tone}
+        >
+          <div className="max-w-sm">
+            <FieldLabel
+              htmlFor="order-email-template-event"
+              label="Dogodek naročila"
+              hint="Izberite dogodek, katerega predloge so prikazane spodaj."
+            />
+            <CustomSelect<EventKey>
+              id="order-email-template-event"
+              testId="order-email-template-event"
+              value={selectedTemplateEvent}
+              onChange={(value) => {
+                setSelectedTemplateEvent(value);
+                setActionErrors([]);
+              }}
+              options={templateEventOptions}
+              ariaLabel="Dogodek naročila"
+              containerClassName="mt-1.5"
+              triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
+            />
+          </div>
 
-          <SurfaceCard
-            title="Čakalna vrsta pošiljanja"
-            description="Tukaj se zabeleži sprejem pri Resendu; končna dostava in zavrnitve so vidne v Resendu. Neuspela opravila lahko varno znova uvrstite v čakalno vrsto."
-            testId="order-email-queue"
-            actions={
-              <button
-                type="button"
-                className={secondaryButtonClassName}
-                disabled={
-                  retrying ||
-                  (adminState.queue.failed === 0 &&
-                    adminState.queue.recentFailures.length === 0)
-                }
-                onClick={() => void handleRetry()}
-                data-testid="order-email-retry-failed"
-              >
-                {retrying ? <Spinner size="sm" /> : null}
-                {retrying ? "Uvrščam …" : "Ponovi neuspele"}
-              </button>
-            }
-          >
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-              <QueueMetric
-                label="Na čakanju"
-                value={adminState.queue.pending}
-              />
-              <QueueMetric
-                label="V obdelavi"
-                value={adminState.queue.processing}
-                tone="info"
-              />
-              <QueueMetric
-                label="Sprejeta pri Resendu"
-                value={adminState.queue.sent}
-                tone="success"
-              />
-              <QueueMetric
-                label="Neuspela"
-                value={adminState.queue.failed}
-                tone="danger"
-              />
-            </div>
-
-            <div className="mt-3">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Nedavne napake
-              </h3>
-              {adminState.queue.recentFailures.length === 0 ? (
-                <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                  Ni nedavnih neuspelih pošiljanj.
-                </p>
-              ) : (
-                <div className="mt-1.5 overflow-x-auto rounded-lg border border-slate-200">
-                  <table className="w-full min-w-[760px] border-collapse text-sm">
-                    <thead className="bg-[color:var(--admin-table-header-bg)] text-slate-700">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-3 py-2.5 text-left font-semibold"
-                        >
-                          Dogodek
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2.5 text-left font-semibold"
-                        >
-                          Prejemnik
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2.5 text-center font-semibold"
-                        >
-                          Poskusi
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2.5 text-left font-semibold"
-                        >
-                          Napaka
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-2.5 text-left font-semibold"
-                        >
-                          Posodobljeno
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {adminState.queue.recentFailures.map((failure) => (
-                        <tr key={failure.id}>
-                          <td className="px-3 py-2.5 text-slate-800">
-                            {eventLabels.get(failure.eventType) ??
-                              failure.eventType}
-                          </td>
-                          <td className="px-3 py-2.5 text-slate-700">
-                            {failure.recipientEmail}
-                          </td>
-                          <td className="px-3 py-2.5 text-center tabular-nums text-slate-700">
-                            {failure.attempts}
-                          </td>
-                          <td className="max-w-sm px-3 py-2.5 text-slate-600">
-                            <span
-                              className="block truncate"
-                              title={failure.lastError ?? undefined}
-                            >
-                              {failure.lastError || "Neznana napaka"}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                            {formatUpdatedAt(failure.updatedAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </SurfaceCard>
-          <SurfaceCard
-            title="Skupna vsebina"
-            description="Predpona se doda zadevi vsakega sporočila, besedilo v nogi pa se prikaže za povzetkom naročila."
-            testId="order-email-shared-content"
-          >
-            <div className="grid gap-3 lg:grid-cols-4">
-              <div>
-                <FieldLabel
-                  htmlFor="order-email-subject-prefix"
-                  label="Predpona zadeve"
-                  hint="Dodana bo pred zadevo vsakega sporočila."
-                />
-                <input
-                  id="order-email-subject-prefix"
-                  className={`${fieldClassName} mt-1.5`}
-                  value={draft.subjectPrefix}
-                  maxLength={80}
-                  onChange={(event) =>
-                    updateConfig("subjectPrefix", event.target.value)
-                  }
-                  placeholder="Atehna"
-                />
-              </div>
-              <div className="lg:col-span-3">
-                <FieldLabel
-                  htmlFor="order-email-footer"
-                  label="Dodatno besedilo v nogi"
-                  hint="Neobvezno besedilo, ki se prikaže na koncu vseh sporočil."
-                />
-                <textarea
-                  id="order-email-footer"
-                  className={`${textareaClassName} mt-1.5`}
-                  value={draft.footerText}
-                  maxLength={1000}
-                  onChange={(event) =>
-                    updateConfig("footerText", event.target.value)
-                  }
-                  placeholder="Hvala za vaše naročilo."
-                />
-              </div>
-            </div>
-          </SurfaceCard>
-
-          <SurfaceCard
-            title="Predloge sporočil"
-            description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
-            testId="order-email-message-templates"
-          >
-            <div className="max-w-sm">
-              <FieldLabel
-                htmlFor="order-email-template-event"
-                label="Dogodek naročila"
-                hint="Izberite dogodek, katerega predloge so prikazane spodaj."
-              />
-              <select
-                id="order-email-template-event"
-                className={`${fieldClassName} mt-1.5`}
-                value={selectedTemplateEvent}
-                onChange={(event) => {
-                  setSelectedTemplateEvent(event.target.value as EventKey);
-                  setActionErrors([]);
-                }}
-                data-testid="order-email-template-event"
-              >
-                {ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => (
-                  <option key={definition.value} value={definition.value}>
-                    {definition.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
+          <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
+            <TemplateEditorCard
+              audience="customer"
+              title={
+                selectedTemplateEvent === "order_submitted"
+                  ? "Stranka (fizi\u010dna oseba ali podjetje)"
+                  : "Stranka"
+              }
+              description="V predlogi za stranko interna zaporedna številka naročila ni na voljo in se kupcu ne razkrije."
+              subject={draft.templates[selectedTemplateEvent].customer.subject}
+              body={draft.templates[selectedTemplateEvent].customer.body}
+              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.customer}
+              onSubjectChange={(value) =>
+                updateTemplate("customer", "subject", value)
+              }
+              onBodyChange={(value) =>
+                updateTemplate("customer", "body", value)
+              }
+              onReset={() => resetTemplate("customer")}
+            />
+            {selectedTemplateEvent === "order_submitted" &&
+            schoolCustomerTemplate ? (
               <TemplateEditorCard
-                audience="customer"
-                title={
-                  selectedTemplateEvent === "order_submitted"
-                    ? "Stranka (fizi\u010dna oseba ali podjetje)"
-                    : "Stranka"
+                audience="schoolCustomer"
+                title={"\u0160ola / javni zavod"}
+                description={
+                  "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno."
                 }
-                description="V predlogi za stranko interna zaporedna številka naročila ni na voljo in se kupcu ne razkrije."
-                subject={
-                  draft.templates[selectedTemplateEvent].customer.subject
-                }
-                body={draft.templates[selectedTemplateEvent].customer.body}
-                variables={ORDER_EMAIL_TEMPLATE_VARIABLES.customer}
+                subject={schoolCustomerTemplate.subject}
+                body={schoolCustomerTemplate.body}
+                variables={ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer}
                 onSubjectChange={(value) =>
-                  updateTemplate("customer", "subject", value)
+                  updateTemplate("schoolCustomer", "subject", value)
                 }
                 onBodyChange={(value) =>
-                  updateTemplate("customer", "body", value)
+                  updateTemplate("schoolCustomer", "body", value)
                 }
-                onReset={() => resetTemplate("customer")}
+                onReset={() => resetTemplate("schoolCustomer")}
               />
-              {selectedTemplateEvent === "order_submitted" &&
-              schoolCustomerTemplate ? (
-                <TemplateEditorCard
-                  audience="schoolCustomer"
-                  title={"\u0160ola / javni zavod"}
-                  description={
-                    "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno."
-                  }
-                  subject={schoolCustomerTemplate.subject}
-                  body={schoolCustomerTemplate.body}
-                  variables={ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer}
-                  onSubjectChange={(value) =>
-                    updateTemplate("schoolCustomer", "subject", value)
-                  }
-                  onBodyChange={(value) =>
-                    updateTemplate("schoolCustomer", "body", value)
-                  }
-                  onReset={() => resetTemplate("schoolCustomer")}
-                />
-              ) : null}
-              <TemplateEditorCard
-                audience="admin"
-                title="Administrator"
-                description="Interno številko lahko vključite s {{order_number}}, povezava do naročila pa se doda samodejno."
-                subject={draft.templates[selectedTemplateEvent].admin.subject}
-                body={draft.templates[selectedTemplateEvent].admin.body}
-                variables={ORDER_EMAIL_TEMPLATE_VARIABLES.admin}
-                onSubjectChange={(value) =>
-                  updateTemplate("admin", "subject", value)
-                }
-                onBodyChange={(value) => updateTemplate("admin", "body", value)}
-                onReset={() => resetTemplate("admin")}
-                className={
-                  selectedTemplateEvent === "order_submitted"
-                    ? "lg:col-span-2"
-                    : ""
-                }
-              />
-            </div>
-          </SurfaceCard>
+            ) : null}
+            <TemplateEditorCard
+              audience="admin"
+              title="Administrator"
+              description="Interno številko lahko vključite s {{order_number}}, povezava do naročila pa se doda samodejno."
+              subject={draft.templates[selectedTemplateEvent].admin.subject}
+              body={draft.templates[selectedTemplateEvent].admin.body}
+              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.admin}
+              onSubjectChange={(value) =>
+                updateTemplate("admin", "subject", value)
+              }
+              onBodyChange={(value) => updateTemplate("admin", "body", value)}
+              onReset={() => resetTemplate("admin")}
+              className={
+                selectedTemplateEvent === "order_submitted"
+                  ? "lg:col-span-2"
+                  : ""
+              }
+            />
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard
+          title="Čakalna vrsta naročil"
+          description="Tukaj se zabeleži sprejem pri Resendu; končna dostava in zavrnitve so vidne v Resendu. Neuspela opravila lahko varno znova uvrstite v čakalno vrsto."
+          testId="order-email-queue"
+          actions={
+            <Button
+              type="button"
+              variant="default"
+              size="toolbar"
+              className={adminTableBulkHeaderButtonClassName}
+              disabled={
+                retrying ||
+                (adminState.queue.failed === 0 &&
+                  adminState.queue.recentFailures.length === 0)
+              }
+              onClick={() => void handleRetry()}
+              data-testid="order-email-retry-failed"
+            >
+              {retrying ? <Spinner size="sm" /> : null}
+              {retrying ? "Uvrščam …" : "Ponovi neuspele"}
+            </Button>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <EmailQueueMetricCard
+              label="Na čakanju"
+              value={adminState.queue.pending}
+            />
+            <EmailQueueMetricCard
+              label="V obdelavi"
+              value={adminState.queue.processing}
+            />
+            <EmailQueueMetricCard
+              label="Sprejeta pri Resendu"
+              value={adminState.queue.sent}
+            />
+            <EmailQueueMetricCard
+              label="Neuspela"
+              value={adminState.queue.failed}
+            />
+          </div>
+
+          <div className="mt-3">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Nedavne napake
+            </h3>
+            {adminState.queue.recentFailures.length === 0 ? (
+              <p className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
+                Ni nedavnih neuspelih pošiljanj.
+              </p>
+            ) : (
+              <div className="mt-1.5 overflow-x-auto rounded-lg border border-slate-200">
+                <Table className="min-w-[760px] table-fixed text-[12px]">
+                  <THead>
+                    <TR className="hover:bg-transparent">
+                      <TH
+                        scope="col"
+                        className={adminTableHeaderCellLeftClassName}
+                      >
+                        Dogodek
+                      </TH>
+                      <TH
+                        scope="col"
+                        className={adminTableHeaderCellLeftClassName}
+                      >
+                        Prejemnik
+                      </TH>
+                      <TH
+                        scope="col"
+                        className={`${adminTableHeaderCellCenterClassName} w-20`}
+                      >
+                        Poskusi
+                      </TH>
+                      <TH
+                        scope="col"
+                        className={adminTableHeaderCellLeftClassName}
+                      >
+                        Napaka
+                      </TH>
+                      <TH
+                        scope="col"
+                        className={`${adminTableHeaderCellLeftClassName} w-36`}
+                      >
+                        Posodobljeno
+                      </TH>
+                    </TR>
+                  </THead>
+                  <TBody className="divide-y divide-slate-200 bg-white">
+                    {adminState.queue.recentFailures.map((failure) => (
+                      <TR
+                        key={failure.id}
+                        className={adminTableRowHeightClassName}
+                      >
+                        <TD
+                          className={`${adminTableBodyCellLeftClassName} text-slate-800`}
+                        >
+                          {eventLabels.get(failure.eventType) ??
+                            failure.eventType}
+                        </TD>
+                        <TD className={adminTableBodyCellLeftClassName}>
+                          {failure.recipientEmail}
+                        </TD>
+                        <TD
+                          className={`${adminTableBodyCellCenterClassName} tabular-nums`}
+                        >
+                          {failure.attempts}
+                        </TD>
+                        <TD
+                          className={`${adminTableBodyCellLeftClassName} max-w-sm text-slate-600`}
+                        >
+                          <span
+                            className="block truncate"
+                            title={failure.lastError ?? undefined}
+                          >
+                            {failure.lastError || "Neznana napaka"}
+                          </span>
+                        </TD>
+                        <TD
+                          className={`${adminTableBodyCellLeftClassName} whitespace-nowrap text-slate-600`}
+                        >
+                          {formatUpdatedAt(failure.updatedAt)}
+                        </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </SurfaceCard>
       </div>
 
       <div
@@ -1381,8 +2047,18 @@ export default function AdminOrderEmailSettingsPageClient({
         tabIndex={activeTab === "quotes" ? 0 : -1}
         data-testid="order-email-quotes-panel"
       >
-        <AdminQuoteEmailSettingsSection initialState={initialQuoteState} />
+        <AdminQuoteEmailSettingsSection
+          ref={quoteEmailSettingsRef}
+          initialState={initialQuoteState}
+          onSaveStateChange={setQuoteEmailSaveState}
+        />
       </div>
-    </div>
+      <CustomerEmailConfirmationDialog
+        confirmation={customerEmailConfirmation.confirmation}
+        onCancel={customerEmailConfirmation.cancelConfirmation}
+        onConfirm={customerEmailConfirmation.confirm}
+        confirmDisabled={retrying}
+      />
+    </fieldset>
   );
 }

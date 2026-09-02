@@ -585,9 +585,15 @@ export default function ProductGallery({
               aria-label={`Povečana slika: ${selected.altText || productName}`}
               data-storefront-gallery-lightbox
               data-state={isZoomVisible ? 'open' : 'closing'}
+              onPointerDown={(event) => {
+                // Portals retain React event bubbling through their logical
+                // ancestors, so keep the admin canvas drag handlers out of
+                // lightbox pointer interactions.
+                event.stopPropagation();
+              }}
               onClick={(event) => {
                 event.stopPropagation();
-                closeZoom();
+                if (event.target === event.currentTarget) closeZoom();
               }}
             >
               <button

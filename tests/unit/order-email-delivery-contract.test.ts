@@ -55,7 +55,10 @@ test('status transitions serialize mutation, log, audit, and email enqueue in on
   assert.match(route, /eventKey: `order-status:\$\{statusLog\.id\}`/u);
 
   const enqueueIndex = route.indexOf('await enqueueOrderEmailEvent(client, {');
-  const commitIndex = route.indexOf("await client.query('commit');");
+  const commitIndex = route.indexOf(
+    "await client.query('commit');",
+    enqueueIndex
+  );
   const scheduleIndex = route.indexOf('if (shouldEnqueueStatusEmail) scheduleOrderEmailJobs(pool, orderId);');
   assert.ok(enqueueIndex > 0 && enqueueIndex < commitIndex);
   assert.ok(scheduleIndex > commitIndex);
@@ -79,6 +82,10 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   assert.match(worker, /'Idempotency-Key': idempotencyKey/u);
   assert.match(worker, /`atehna-order-email\/\$\{job\.id\}`/u);
   assert.match(worker, /for update skip locked/u);
+  assert.match(
+    worker,
+    /select id, order_id, event_type, audience, recipient_email,[\s\S]*?recipientEmail: String\(row\.recipient_email\)/u
+  );
   assert.match(worker, /status = 'processing'/u);
   assert.match(worker, /MAX_ATTEMPTS = 8/u);
   assert.match(worker, /status = \$3/u);
@@ -95,25 +102,49 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   assert.match(worker, /decryptOrderEmailDeliveryEnvelope\(/u);
   assert.match(worker, /parseClaimedOrderEmailEnvelope\(job\)/u);
   assert.match(worker, /sendOrderEmailMessage\(\s*envelope\.message,/u);
-  const processStart = worker.indexOf('processJob: async (job) => {');
-  const parseIndex = worker.indexOf(
-    'const envelope = parseClaimedOrderEmailEnvelope(job);',
-    processStart
+  const deliveryStart = worker.indexOf(
+    'async function deliverOrderEmailWhileRecipientCurrent'
   );
-  const validationIndex = worker.indexOf(
-    'await validatePurchaseOrderTokenBeforeDelivery(pool, job, envelope);',
-    parseIndex
+  const deliveryEnd = worker.indexOf(
+    'function classifyOrderEmailJobFailure',
+    deliveryStart
   );
-  const sendIndex = worker.indexOf(
+  const deliveryBody = worker.slice(deliveryStart, deliveryEnd);
+  const validationIndex = deliveryBody.indexOf(
+    'await validatePurchaseOrderTokenBeforeDelivery(client, job, envelope);'
+  );
+  const sendIndex = deliveryBody.indexOf(
     'const providerMessageId = await sendOrderEmailMessage(',
     validationIndex
   );
   assert.ok(
-    processStart > 0 &&
-      parseIndex > processStart &&
-      validationIndex > parseIndex &&
+    deliveryStart > 0 &&
+      deliveryEnd > deliveryStart &&
+      validationIndex > 0 &&
       sendIndex > validationIndex,
-    'decrypt/parse and active-token validation must precede every provider request'
+    'locked recipient and active-token validation must precede every provider request'
+  );
+  assert.match(deliveryBody, /client\.query\('begin'\)/u);
+  assert.match(
+    deliveryBody,
+    /select email, status, contract_status, is_draft, deleted_at[\s\S]*?from orders[\s\S]*?for share/u
+  );
+  assert.match(
+    deliveryBody,
+    /from order_email_settings[\s\S]*?for share[\s\S]*?currentAdminRecipients[\s\S]*?envelopeMatchesClaim[\s\S]*?recipientIsCurrent/u
+  );
+  assert.match(
+    deliveryBody,
+    /currentOrder\.is_draft === false[\s\S]*?currentOrder\.deleted_at === null[\s\S]*?isOrderEmailRetryEventCurrent\([\s\S]*?\[obsolete_order\] no longer matches the current order lifecycle/u
+  );
+  assert.match(deliveryBody, /\[stale_recipient\] is no longer an authorized recipient/u);
+  assert.match(
+    deliveryBody,
+    /sendOrderEmailMessage\([\s\S]*?client\.query\('commit'\)/u
+  );
+  assert.match(
+    worker,
+    /processJob: async \(job\) => \{[\s\S]*?parseClaimedOrderEmailEnvelope\(job\)[\s\S]*?deliverOrderEmailWhileRecipientCurrent\(/u
   );
   const tokenValidationStart = worker.indexOf(
     'async function validatePurchaseOrderTokenBeforeDelivery'
@@ -189,6 +220,7 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   );
   const manualRetryBody = worker.slice(manualRetryStart, manualRetryEnd);
   assert.match(manualRetryBody, /set status = 'pending'/u);
+  assert.match(manualRetryBody, /and id = any\(\$1::uuid\[\]\)/u);
   assert.doesNotMatch(manualRetryBody, /payload_json/u);
   assert.doesNotMatch(worker, /buildOrderEmailMessage\(job\./u);
   assert.doesNotMatch(worker, /\bcc\s*:|\bbcc\s*:/iu);

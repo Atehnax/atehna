@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ShoppingCart, Truck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import Availability from '@/commercial/components/storefront/Availability';
 import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
 import {
@@ -48,6 +49,7 @@ export default function PurchasePanel({
   className
 }: PurchasePanelProps) {
   const appearance = useProductAppearance();
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const copy = appearance.purchaseArea.copy;
   const canvasActive = appearance.canvas?.mode === 'free';
   const localCanvasWrapper = (
@@ -78,11 +80,12 @@ export default function PurchasePanel({
   const wrapCanvasElement = canvasWrapper ?? localCanvasWrapper;
   const minimum = variant?.minOrder ?? 1;
   const maximum =
-    typeof variant?.inventory === 'number'
+    stockEnforcementEnabled && typeof variant?.inventory === 'number'
       ? Math.max(minimum, variant.inventory)
       : undefined;
   const canPurchase =
-    selectionComplete && isStorefrontVariantPurchasable(variant);
+    selectionComplete &&
+    isStorefrontVariantPurchasable(variant, stockEnforcementEnabled);
   const primaryActionLabel = !selectionComplete
     ? copy.selectOptionsActionLabel
     : canPurchase
@@ -109,6 +112,7 @@ export default function PurchasePanel({
       className={`storefront-product-purchase-area ${panelClass} ${
         className ?? ''
       }`.trim()}
+      data-stock-enforcement={stockEnforcementEnabled ? 'enabled' : 'disabled'}
       aria-label="Nakup izdelka"
     >
       {wrapCanvasElement(
@@ -161,17 +165,20 @@ export default function PurchasePanel({
                 {variant.sku}
               </dd>
             </div>
-            {appearance.purchaseArea.showMinimumOrder && variant.minOrder > 1 ? (
-              <div className="flex justify-between gap-3">
-                <dt>{copy.minimumOrderLabel}</dt>
-                <dd className="text-right font-semibold text-[color:var(--site-color-text)]">
-                  {variant.minOrder} {variant.unit}
-                </dd>
-              </div>
-            ) : null}
           </dl>
         )
       ) : null}
+      {appearance.purchaseArea.showMinimumOrder && variant && variant.minOrder > 1 ? (
+        wrapCanvasElement(
+          'product-minimum-order',
+          'Minimalno naročilo',
+          <p className="storefront-product-minimum-order text-sm font-medium text-[color:var(--site-color-text)]">
+            <span>{copy.minimumOrderLabel}</span>: {variant.minOrder}
+          </p>,
+          'mt-4 block'
+        )
+      ) : null}
+
 
       {appearance.purchaseArea.showQuantityStepper && variant ? (
         wrapCanvasElement(
@@ -193,36 +200,51 @@ export default function PurchasePanel({
               'product-quantity-controls',
               'Kontrole količine',
               <div className="storefront-product-quantity-controls inline-flex max-w-full items-center align-middle">
-                <div className="storefront-product-quantity-stepper inline-flex shrink-0 items-stretch overflow-hidden rounded-[var(--site-field-radius)] border border-[color:var(--site-border-color)] bg-[color:var(--site-field-bg)]">
-                  <button
-                    type="button"
-                    onClick={() => commitQuantity(quantity - 1)}
-                    disabled={quantity <= minimum}
-                    className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label={copy.decreaseQuantityLabel}
-                  >
-                    −
-                  </button>
-                  <input
-                    id="product-quantity"
-                    type="number"
-                    inputMode="numeric"
-                    min={minimum}
-                    max={maximum}
-                    step={1}
-                    value={quantity}
-                    onChange={(event) => commitQuantity(Number(event.target.value))}
-                    className="storefront-product-quantity-input shrink-0 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center font-semibold text-[color:var(--site-color-text)] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => commitQuantity(quantity + 1)}
-                    disabled={typeof maximum === 'number' && quantity >= maximum}
-                    className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label={copy.increaseQuantityLabel}
-                  >
-                    +
-                  </button>
+                <div className={`storefront-product-quantity-stepper inline-flex shrink-0 items-stretch rounded-[var(--site-field-radius)] border border-[color:var(--site-border-color)] bg-[color:var(--site-field-bg)] ${canvasWrapper ? 'overflow-visible' : 'overflow-hidden'}`}>
+                  {wrapCanvasElement(
+                    'product-quantity-decrease',
+                    'Zmanjšaj količino',
+                    <button
+                      type="button"
+                      onClick={() => commitQuantity(quantity - 1)}
+                      disabled={quantity <= minimum}
+                      className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={copy.decreaseQuantityLabel}
+                    >
+                      −
+                    </button>,
+                    'inline-flex shrink-0'
+                  )}
+                  {wrapCanvasElement(
+                    'product-quantity-input',
+                    'Vnos količine',
+                    <input
+                      id="product-quantity"
+                      type="number"
+                      inputMode="numeric"
+                      min={minimum}
+                      max={maximum}
+                      step={1}
+                      value={quantity}
+                      onChange={(event) => commitQuantity(Number(event.target.value))}
+                      className="storefront-product-quantity-input shrink-0 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center font-semibold text-[color:var(--site-color-text)] outline-none"
+                    />,
+                    'inline-flex shrink-0'
+                  )}
+                  {wrapCanvasElement(
+                    'product-quantity-increase',
+                    'Povečaj količino',
+                    <button
+                      type="button"
+                      onClick={() => commitQuantity(quantity + 1)}
+                      disabled={typeof maximum === 'number' && quantity >= maximum}
+                      className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={copy.increaseQuantityLabel}
+                    >
+                      +
+                    </button>,
+                    'inline-flex shrink-0'
+                  )}
                 </div>
                 {variant?.unit ? (
                   <span className="storefront-product-quantity-unit ml-2 inline-flex shrink-0 items-center self-center text-xs leading-none text-[color:var(--site-color-text-muted)]">

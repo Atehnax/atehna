@@ -89,6 +89,15 @@ export default function EuiTabs({
               }`
             }
           >
+            {active ? (
+              <span
+                aria-hidden="true"
+                data-eui-tab-divider-mask="true"
+                className={`pointer-events-none absolute -bottom-[2px] -left-px -right-px z-20 h-[3px] ${
+                  surface === 'panel' ? 'bg-white' : 'bg-[color:var(--bg)]'
+                }`}
+              />
+            ) : null}
             <span className="inline-flex min-w-0 items-center justify-center gap-1.5">
               <span className="min-w-0">{tab.label}</span>
               {tab.notification ? (

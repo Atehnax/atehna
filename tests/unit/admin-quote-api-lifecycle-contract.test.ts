@@ -50,13 +50,18 @@ test('preview renders the saved draft without storing or binding a document', ()
 
 test('revision copies an immutable source into a new draft and never supersedes it early', () => {
   const route = source('src/admin/api/quote-requests/[quoteRequestId]/revise/route.ts');
+  const revision = source('src/shared/server/quoteOfferRevision.ts');
   assert.match(route, /'issued', 'withdrawn', 'expired'/u);
-  assert.match(route, /insert into quote_offer_versions/u);
-  assert.match(route, /insert into quote_offer_version_items/u);
-  assert.match(route, /source\.terms_text/u);
+  assert.match(route, /createQuoteOfferDraftRevision\(client/u);
+  assert.doesNotMatch(route, /insert into quote_offer_versions/u);
+  assert.doesNotMatch(route, /insert into quote_offer_version_items/u);
+  assert.match(revision, /insert into quote_offer_versions/u);
+  assert.match(revision, /insert into quote_offer_version_items/u);
+  assert.match(revision, /input\.source\.terms_text/u);
   assert.match(route, /sourceRemainsCurrentUntilIssue/u);
   assert.match(route, /status = 'in_preparation'/u);
   assert.doesNotMatch(route, /update quote_offer_versions/u);
+  assert.doesNotMatch(revision, /update quote_offer_versions/u);
   assert.doesNotMatch(route, /status = 'superseded'/u);
 });
 
@@ -85,12 +90,17 @@ test('withdrawal and close use distinct legal transitions and revoke access', ()
 
 test('manual quote-email retry validates encrypted payload and suppresses obsolete links and OTP', () => {
   const route = source('src/admin/api/quote-email-jobs/[jobId]/retry/route.ts');
+  const retryEligibility = source(
+    'src/shared/domain/quote/quoteEmailRetryEligibility.ts'
+  );
   const wrapper = source('src/app/api/admin/quote-email-jobs/[jobId]/retry/route.ts');
   assert.match(route, /hasValidQuoteAdminSession\(request\)/u);
   assert.match(route, /isQuoteEmailDeliveryEnabled/u);
-  assert.match(route, /eventType === 'quote_access_otp'\) return false/u);
-  assert.match(route, /offerStatus === 'issued'/u);
-  assert.match(route, /job\.offer_is_current === true/u);
+  assert.match(route, /quoteEmailRetryStateIsCurrent/u);
+  assert.match(route, /return quoteEmailRetryStateIsCurrent\(\{/u);
+  assert.match(retryEligibility, /eventType === 'quote_access_otp'/u);
+  assert.match(retryEligibility, /job\.offerStatus === 'issued'/u);
+  assert.match(retryEligibility, /job\.offerIsCurrent/u);
   assert.match(route, /decryptQuoteEmailEnvelope/u);
   assert.match(route, /status = 'pending'/u);
   assert.match(route, /scheduleQuoteEmailJobs\(pool\)/u);
@@ -171,8 +181,7 @@ test('clarification is idempotently recorded before an optional isolated custome
   );
   assert.match(route, /eventType: 'clarification_requested'/u);
   assert.match(route, /eventType: 'quote_clarification_requested'/u);
-  assert.equal(route.match(/forceCustomer: true/gu)?.length, 2);
-  assert.equal(route.match(/suppressAdmin: true/gu)?.length, 2);
+  assert.doesNotMatch(helpers, /forceCustomer: input\.forceCustomer|suppressAdmin: input\.suppressAdmin/u);
   assert.match(route, /commercialStateChanged: false/u);
   assert.match(route, /mirrorQuoteAdminAudit/u);
   assert.match(route, /enqueueQuoteEmailIsolated/u);
@@ -234,8 +243,8 @@ test('clarification is idempotently recorded before an optional isolated custome
     }
   });
   assert.deepEqual(fixedClarificationRecipients.events.quote_clarification_requested, {
-    customer: true,
-    admins: false
+    customer: false,
+    admins: true
   });
   fixedClarificationRecipients.templates.quote_clarification_requested.admin.subject = '';
   fixedClarificationRecipients.templates.quote_clarification_requested.admin.body = '';
@@ -243,7 +252,7 @@ test('clarification is idempotently recorded before an optional isolated custome
     validateQuoteEmailSettings(fixedClarificationRecipients).some((error) =>
       error.includes('quote_clarification_requested/admin')
     ),
-    false
+    true
   );
   assert.deepEqual(second.events.quote_delivery_failed, {
     customer: false,
@@ -277,19 +286,40 @@ test('clarification is idempotently recorded before an optional isolated custome
   assert.match(orderUi, /label: "Naročila"/u);
   assert.match(orderUi, /label: "Ponudbe"/u);
   assert.match(orderUi, /AdminQuoteEmailSettingsSection/u);
-  assert.match(quoteUi, />Ponudbe</u);
-  assert.match(quoteUi, /isti profil pošiljatelja/u);
+  assert.match(
+    orderUi,
+    /data-testid="quote-email-delivery-settings"[\s\S]*?Pošiljanje ponudb/u
+  );
+  assert.match(orderUi, /isti profil pošiljatelja/u);
+  assert.doesNotMatch(quoteUi, /Pošiljanje ponudb/u);
   assert.doesNotMatch(quoteUi, /fromEmail|replyToEmail|senderName/u);
-  assert.match(quoteUi, /quoteEmailEventSupportsAdminAudience/u);
-  assert.match(quoteUi, /disabled=\{mutationsDisabled \|\| !supportsAdmin\}/u);
-  assert.match(quoteUi, /checked=\{supportsAdmin && event\.admins\}/u);
-  assert.match(quoteUi, /\{supportsAdmin \? 'Admin' : 'Samo stranka'\}/u);
+  assert.doesNotMatch(quoteUi, /quoteEmailEventSupportsAdminAudience/u);
   assert.match(
     quoteUi,
-    /audience === 'customer' \|\|[\s\S]*?quoteEmailEventSupportsAdminAudience\(selectedEvent\)/u
+    /checked=\{event\.customer\}[\s\S]*?disabled=\{mutationsDisabled\}/u
+  );
+  assert.match(
+    quoteUi,
+    /checked=\{event\.admins\}[\s\S]*?disabled=\{mutationsDisabled\}/u
+  );
+  assert.doesNotMatch(quoteUi, /Samo stranka|!supportsAdmin/u);
+  assert.match(quoteUi, />Administratorji<\/TH>/u);
+  assert.match(quoteUi, /forwardRef<[\s\S]*?AdminQuoteEmailSettingsHandle/u);
+  assert.match(quoteUi, /onSaveStateChange\?\.\(\{/u);
+  assert.match(orderUi, /data-testid="quote-email-save-status"/u);
+  assert.match(orderUi, /data-testid="quote-email-settings-save"/u);
+  assert.match(orderUi, /ref=\{quoteEmailSettingsRef\}/u);
+  assert.match(orderUi, /onSaveStateChange=\{setQuoteEmailSaveState\}/u);
+  assert.match(orderUi, /quoteEmailSettingsRef\.current\?\.setEnabled\(enabled\)/u);
+  assert.match(
+    quoteUi,
+    /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)/u
   );
   assert.match(worker, /QUOTE_EMAIL_EVENT_DEFAULTS/u);
-  assert.match(worker, /forceCustomer\?: boolean/u);
-  assert.match(worker, /input\.forceCustomer === true \|\|/u);
+  assert.doesNotMatch(worker, /forceCustomer|suppressAdmin/u);
+  assert.match(worker, /!settings\.enabled && input\.eventType !== 'quote_access_otp'/u);
+  assert.match(worker, /customerEnabled && EMAIL_PATTERN\.test\(identity\.email\)/u);
+  assert.match(worker, /if \(adminEnabled\)/u);
+  assert.match(worker, /if \(recipients\.length === 0\)/u);
   assert.match(worker, /Preglej ponudbo/u);
 });

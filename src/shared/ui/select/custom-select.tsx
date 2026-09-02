@@ -15,6 +15,8 @@ type CustomSelectOption<Value extends string> = {
 };
 
 type CustomSelectProps<Value extends string> = {
+  id?: string;
+  testId?: string;
   value: Value;
   onChange: (value: Value) => void;
   options: ReadonlyArray<CustomSelectOption<Value>>;
@@ -45,6 +47,8 @@ const VIEWPORT_PADDING = 8;
 const classNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
 export default function CustomSelect<Value extends string = string>({
+  id,
+  testId,
   value,
   onChange,
   options,
@@ -142,6 +146,8 @@ export default function CustomSelect<Value extends string = string>({
     <div ref={containerRef} className={classNames('relative', containerClassName)}>
       <button
         ref={triggerRef}
+        id={id}
+        data-testid={testId}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((previousOpen) => !previousOpen)}

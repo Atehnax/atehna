@@ -4,14 +4,18 @@ import {
   cloneDefaultQuoteEmailSettings,
   normalizeQuoteEmailSettings,
   validateQuoteEmailSettings,
-  type QuoteEmailSettings
+  type QuoteEmailSettings,
+  type QuoteStockAcceptanceMode
 } from '@/shared/domain/quote/quoteEmailSettings';
+import type { PoolClient } from 'pg';
 import { getPool } from '@/shared/server/db';
 import {
   getQuoteFeatureFlags,
   type QuoteFeatureFlags
 } from '@/shared/server/quoteFeatureFlags';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
+import { getQuoteEmailRetryEligibility } from '@/shared/domain/quote/quoteEmailRetryEligibility';
 
 export type QuoteEmailRecentFailure = {
   id: string;
@@ -21,6 +25,18 @@ export type QuoteEmailRecentFailure = {
   attempts: number;
   lastError: string | null;
   updatedAt: string;
+  retryEligible: boolean;
+  retryIneligibleReason: string | null;
+};
+
+export type QuoteEmailPendingJob = {
+  id: string;
+  eventType: string;
+  audience: string;
+  recipientEmail: string;
+  attempts: number;
+  nextAttemptAt: string;
+  createdAt: string;
 };
 
 export type QuoteEmailAdminState = {
@@ -32,6 +48,7 @@ export type QuoteEmailAdminState = {
     processing: number;
     sent: number;
     failed: number;
+    pendingJobs: QuoteEmailPendingJob[];
     recentFailures: QuoteEmailRecentFailure[];
   };
 };
@@ -42,6 +59,21 @@ export class QuoteEmailSettingsValidationError extends Error {
   constructor(public readonly errors: string[]) {
     super(errors[0] ?? 'Nastavitve e-pošte za ponudbe niso veljavne.');
   }
+}
+
+export async function getQuoteStockAcceptanceMode(
+  client: PoolClient
+): Promise<QuoteStockAcceptanceMode> {
+  const readiness = await client.query(
+    `select to_regclass('public.quote_email_settings') is not null as ready`
+  );
+  if (readiness.rows[0]?.ready !== true) return 'manual';
+  const result = await client.query(
+    `select config_json from quote_email_settings where key = 'default'`
+  );
+  return normalizeQuoteEmailSettings(
+    result.rows[0]?.config_json
+  ).stockAcceptanceMode;
 }
 
 function iso(value: unknown): string {
@@ -61,6 +93,7 @@ function emptyState(schemaReady: boolean): QuoteEmailAdminState {
       processing: 0,
       sent: 0,
       failed: 0,
+      pendingJobs: [],
       recentFailures: []
     }
   };
@@ -80,9 +113,25 @@ export async function getQuoteEmailAdminState(): Promise<QuoteEmailAdminState> {
     readiness.rows[0]?.jobs_ready === true;
   if (!schemaReady) return emptyState(false);
 
-  const [settingsResult, countsResult, failuresResult] = await Promise.all([
+  const [
+    settingsResult,
+    pendingJobsResult,
+    countsResult,
+    failuresResult,
+    orderEmailSettings
+  ] = await Promise.all([
     pool.query(
       `select config_json, updated_at from quote_email_settings where key = 'default'`
+    ),
+    pool.query(
+      `
+        select id, event_type, audience, recipient_email, attempts,
+               next_attempt_at, created_at
+        from quote_email_jobs
+        where status = 'pending'
+        order by next_attempt_at asc, created_at asc, id asc
+        limit 100
+      `
     ),
     pool.query(
       `
@@ -96,14 +145,30 @@ export async function getQuoteEmailAdminState(): Promise<QuoteEmailAdminState> {
     ),
     pool.query(
       `
-        select id, event_type, audience, recipient_email, attempts,
-               last_error, updated_at
-        from quote_email_jobs
-        where status = 'failed'
-        order by updated_at desc, created_at desc
+        select job.id, job.quote_offer_version_id, job.event_type, job.audience,
+               job.recipient_email, job.attempts, job.last_error, job.updated_at,
+               request.email as request_email, request.status as request_status,
+               request.voided_at as request_voided_at,
+               offer.status as offer_status, offer.is_current as offer_is_current,
+               offer.valid_until,
+               exists (
+                 select 1
+                 from quote_offer_versions newer_offer
+                 where newer_offer.quote_request_id = job.quote_request_id
+                   and newer_offer.version_number > offer.version_number
+                   and newer_offer.status <> 'draft'
+               ) as has_newer_non_draft_offer_version
+        from quote_email_jobs job
+        join quote_requests request on request.id = job.quote_request_id
+        left join quote_offer_versions offer
+          on offer.id = job.quote_offer_version_id
+         and offer.quote_request_id = job.quote_request_id
+        where job.status = 'failed'
+        order by job.updated_at desc, job.created_at desc
         limit 20
       `
-    )
+    ),
+    getOrderEmailSettings(pool)
   ]);
   const settingsRow = settingsResult.rows[0];
   const config = normalizeQuoteEmailSettings(settingsRow?.config_json);
@@ -119,15 +184,48 @@ export async function getQuoteEmailAdminState(): Promise<QuoteEmailAdminState> {
       processing: Number(counts.processing ?? 0),
       sent: Number(counts.sent ?? 0),
       failed: Number(counts.failed ?? 0),
-      recentFailures: failuresResult.rows.map((row) => ({
+      pendingJobs: pendingJobsResult.rows.map((row) => ({
         id: String(row.id),
         eventType: String(row.event_type),
         audience: String(row.audience),
         recipientEmail: String(row.recipient_email),
         attempts: Number(row.attempts),
-        lastError: row.last_error === null ? null : String(row.last_error),
-        updatedAt: iso(row.updated_at)
-      }))
+        nextAttemptAt: iso(row.next_attempt_at),
+        createdAt: iso(row.created_at)
+      })),
+      recentFailures: failuresResult.rows.map((row) => {
+        const retry = getQuoteEmailRetryEligibility({
+          settings: config,
+          emailDeliveryEnabled: flags.emailDelivery,
+          job: {
+            eventType: String(row.event_type),
+            audience: String(row.audience),
+            recipientEmail: String(row.recipient_email),
+            requestStatus: String(row.request_status),
+            requestVoided: Boolean(row.request_voided_at),
+            offerVersionId: row.quote_offer_version_id === null
+              ? null
+              : Number(row.quote_offer_version_id),
+            offerStatus: row.offer_status === null ? null : String(row.offer_status),
+            offerIsCurrent: row.offer_is_current === true,
+            hasNewerNonDraftOfferVersion:
+              row.has_newer_non_draft_offer_version === true,
+            validUntil: row.valid_until === null ? null : iso(row.valid_until),
+            currentCustomerEmail: String(row.request_email ?? ''),
+            currentAdminRecipients: orderEmailSettings.adminRecipients
+          }
+        });
+        return {
+          id: String(row.id),
+          eventType: String(row.event_type),
+          audience: String(row.audience),
+          recipientEmail: String(row.recipient_email),
+          attempts: Number(row.attempts),
+          lastError: row.last_error === null ? null : String(row.last_error),
+          updatedAt: iso(row.updated_at),
+          ...retry
+        };
+      })
     }
   };
 }
@@ -178,6 +276,7 @@ export async function updateQuoteEmailSettings(
         },
         metadata: {
           enabled: normalized.enabled,
+          stock_acceptance_mode: normalized.stockAcceptanceMode,
           shared_sender_profile: true
         }
       },

@@ -7,6 +7,7 @@ import {
   isSiteLogoHeaderPurpose,
   normalizeSiteLogoConfig,
   resolveSiteLogoFittedArtworkRect,
+  resolveSiteLogoFittedCropRect,
   resolveSiteLogoGeometry,
   toStoredSiteLogoConfig,
   type SiteLogoConfig,
@@ -47,10 +48,11 @@ async function renderPurposeSizedCachedArtwork(
       ? 1
       : geometry.scale
   });
-  const targetLeft = Math.max(0, Math.ceil(fitted.left));
-  const targetTop = Math.max(0, Math.ceil(fitted.top));
-  const targetRight = Math.min(purpose.widthPx, Math.floor(fitted.left + fitted.width));
-  const targetBottom = Math.min(purpose.heightPx, Math.floor(fitted.top + fitted.height));
+  const fittedCrop = resolveSiteLogoFittedCropRect(fitted, geometry.crop);
+  const targetLeft = Math.max(0, Math.ceil(fittedCrop.left));
+  const targetTop = Math.max(0, Math.ceil(fittedCrop.top));
+  const targetRight = Math.min(purpose.widthPx, Math.floor(fittedCrop.left + fittedCrop.width));
+  const targetBottom = Math.min(purpose.heightPx, Math.floor(fittedCrop.top + fittedCrop.height));
   let canvas = sharp({
     create: {
       width: purpose.widthPx,
@@ -61,13 +63,29 @@ async function renderPurposeSizedCachedArtwork(
   });
 
   if (targetRight > targetLeft && targetBottom > targetTop) {
-    const sourceLeft = Math.max(0, Math.floor((targetLeft - fitted.left) / fitted.scale));
-    const sourceTop = Math.max(0, Math.floor((targetTop - fitted.top) / fitted.scale));
+    const cropSourceLeft = Math.ceil(geometry.crop.x * artwork.intrinsicWidth);
+    const cropSourceTop = Math.ceil(geometry.crop.y * artwork.intrinsicHeight);
+    const cropSourceRight = Math.floor(
+      (geometry.crop.x + geometry.crop.width) * artwork.intrinsicWidth
+    );
+    const cropSourceBottom = Math.floor(
+      (geometry.crop.y + geometry.crop.height) * artwork.intrinsicHeight
+    );
+    const sourceLeft = Math.max(
+      cropSourceLeft,
+      Math.floor((targetLeft - fitted.left) / fitted.scale)
+    );
+    const sourceTop = Math.max(
+      cropSourceTop,
+      Math.floor((targetTop - fitted.top) / fitted.scale)
+    );
     const sourceRight = Math.min(
+      cropSourceRight,
       artwork.intrinsicWidth,
       Math.ceil((targetRight - fitted.left) / fitted.scale)
     );
     const sourceBottom = Math.min(
+      cropSourceBottom,
       artwork.intrinsicHeight,
       Math.ceil((targetBottom - fitted.top) / fitted.scale)
     );

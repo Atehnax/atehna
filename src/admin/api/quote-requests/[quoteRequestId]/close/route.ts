@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { scheduleQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
+import { requireQuoteCustomerEmailConfirmation } from '@/shared/server/adminCustomerEmailConfirmation';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
 import {
@@ -118,6 +119,21 @@ export async function POST(
       );
     }
 
+    const confirmationChallenge =
+      await requireQuoteCustomerEmailConfirmation({
+        client,
+        quoteRequestId,
+        eventType: 'quote_request_closed',
+        action: 'close_quote_request',
+        actionLabel: 'Zaključek povpraševanja',
+        customerEmailConfirmationToken:
+          parsed.body.customerEmailConfirmationToken
+      });
+    if (confirmationChallenge) {
+      await client.query('rollback');
+      return NextResponse.json(confirmationChallenge, { status: 428 });
+    }
+
     await client.query(
       `
         update quote_requests
@@ -157,7 +173,6 @@ export async function POST(
       eventKey: `quote-request-closed:${quoteRequestId}`,
       eventType: 'quote_request_closed',
       detail: reason,
-      suppressAdmin: true,
       requestId: evidence.requestId
     });
     await mirrorQuoteAdminAudit(request, client, {

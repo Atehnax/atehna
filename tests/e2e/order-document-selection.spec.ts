@@ -18,6 +18,9 @@ test.describe('order-document canvas additive selection', () => {
     const title = page.locator('[data-order-document-element-id="title"]');
     const intro = page.locator('[data-order-document-element-id="intro"]');
 
+    // Dispatch to the top-level drag targets themselves. Their visible content
+    // contains independently selectable child rows, so a geometric click is
+    // intentionally owned by whichever child happens to occupy that point.
     await title.dispatchEvent('click', modifiedClick);
     await intro.dispatchEvent('pointerdown', {
       ...modifiedPointerDown,
@@ -38,12 +41,8 @@ test.describe('order-document canvas additive selection', () => {
     const firstRow = semanticRows.nth(0);
     const secondRow = semanticRows.nth(1);
 
-    await firstRow.dispatchEvent('click', modifiedClick);
-    await secondRow.dispatchEvent('pointerdown', {
-      ...modifiedPointerDown,
-      metaKey: true
-    });
-    await secondRow.dispatchEvent('click', { ...modifiedClick, metaKey: true });
+    await firstRow.click();
+    await secondRow.click({ modifiers: ['Meta'] });
     await expect(firstRow).toHaveAttribute('data-canvas-element-selected', 'true');
     await expect(secondRow).toHaveAttribute('data-canvas-element-selected', 'true');
 
@@ -51,12 +50,8 @@ test.describe('order-document canvas additive selection', () => {
     expect(await tableCells.count()).toBeGreaterThanOrEqual(2);
     const firstCell = tableCells.nth(0);
     const secondCell = tableCells.nth(1);
-    await firstCell.dispatchEvent('click', modifiedClick);
-    await secondCell.dispatchEvent('pointerdown', {
-      ...modifiedPointerDown,
-      ctrlKey: true
-    });
-    await secondCell.dispatchEvent('click', { ...modifiedClick, ctrlKey: true });
+    await firstCell.click();
+    await secondCell.click({ modifiers: ['Control'] });
     await expect(firstCell).toHaveAttribute('data-canvas-element-selected', 'true');
     await expect(secondCell).toHaveAttribute('data-canvas-element-selected', 'true');
   });
@@ -64,27 +59,35 @@ test.describe('order-document canvas additive selection', () => {
   test('table header/body/row/column scope buttons retain additive selections', async ({ page }) => {
     const header = page.locator('[data-order-document-table-scope="table_header"]');
     const body = page.locator('[data-order-document-table-scope="table_body"]');
-    await header.dispatchEvent('click', modifiedClick);
-    await body.dispatchEvent('pointerdown', {
-      ...modifiedPointerDown,
-      ctrlKey: true
-    });
-    await body.dispatchEvent('click', { ...modifiedClick, ctrlKey: true });
+    const headerHandle = header.locator(
+      '[data-order-document-table-scope-keyboard-handle="table_header"]'
+    );
+    const bodyHandle = body.locator(
+      '[data-order-document-table-scope-keyboard-handle="table_body"]'
+    );
+    await headerHandle.focus();
+    await headerHandle.click();
+    await bodyHandle.focus();
+    await bodyHandle.click({ modifiers: ['Control'] });
     await expect(header).toHaveAttribute('data-canvas-element-selected', 'true');
     await expect(body).toHaveAttribute('data-canvas-element-selected', 'true');
 
     const tableRow = page.locator('[data-order-document-table-scope="table_row"]').first();
-    await tableRow.dispatchEvent('pointerdown', {
-      ...modifiedPointerDown,
-      ctrlKey: true
-    });
-    await tableRow.dispatchEvent('click', { ...modifiedClick, ctrlKey: true });
+    const rowHandle = tableRow.locator(
+      '[data-order-document-table-scope-keyboard-handle="table_row"]'
+    );
+    await rowHandle.focus();
+    await rowHandle.click({ modifiers: ['Control'] });
     await expect(tableRow).toHaveAttribute('data-canvas-element-selected', 'true');
 
     const cell = page.locator('[data-order-document-table-scope="table_cell"]').first();
     await cell.scrollIntoViewIfNeeded();
     await expect(cell).toBeVisible();
-    await cell.dispatchEvent('click', modifiedClick);
+    // Moving keyboard focus hides the preceding row scope handle before the
+    // cell activation, matching how a keyboard user proceeds through controls.
+    await cell.focus();
+    await expect(cell).toBeFocused();
+    await cell.press('Enter');
     await expect(cell).toHaveAttribute('data-canvas-element-selected', 'true');
     await expect(page.getByTestId('order-document-floating-toolbar')).toHaveAttribute(
       'data-toolbar-ready',

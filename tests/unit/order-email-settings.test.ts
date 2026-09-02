@@ -4,6 +4,8 @@ import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import {
   cloneOrderEmailSettings,
   DEFAULT_ORDER_EMAIL_SETTINGS,
+  ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES,
+  ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   isOrderEmailEventType,
   normalizeOrderEmailSettings,
@@ -26,6 +28,14 @@ const requestedEvents = new Set<OrderEmailEventType>([
   'partially_sent',
   'sent'
 ]);
+
+const validImageAttachment = {
+  url: 'https://atehna-test.public.blob.vercel-storage.com/email/shared/123e4567-e89b-42d3-a456-426614174003-glava.png',
+  pathname: 'email/shared/123e4567-e89b-42d3-a456-426614174003-glava.png',
+  filename: 'glava.png',
+  contentType: 'image/png' as const,
+  size: 1024
+};
 
 function configuredSettings(): OrderEmailSettings {
   const settings = cloneOrderEmailSettings();
@@ -119,12 +129,15 @@ describe('order email settings', () => {
 
   test('uses safe disabled defaults and enables only the requested event matrix', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.enabled, false);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.confirmCustomerEmails, true);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.senderName, 'Atehna');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.fromEmail, '');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl, 'https://www.atehna-test.site');
-    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 3);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 5);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.headerText, '');
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.imageAttachment, null);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
       'customer_name',
       'organization_name',
@@ -177,11 +190,16 @@ describe('order email settings', () => {
   });
 
   test('clones nested settings and normalizes header fields and recipient addresses', () => {
-    const clone = cloneOrderEmailSettings();
+    const sourceSettings = cloneOrderEmailSettings();
+    sourceSettings.imageAttachment = { ...validImageAttachment };
+    const clone = cloneOrderEmailSettings(sourceSettings);
     clone.events.order_submitted.customer = false;
     clone.adminRecipients.push('changed@example.com');
     clone.templates.order_submitted.customer.subject = 'Spremenjeno';
     clone.templates.order_submitted.schoolCustomer.subject = 'Spremenjeno za \u0161olo';
+    assert.notStrictEqual(clone.imageAttachment, sourceSettings.imageAttachment);
+    clone.imageAttachment!.filename = 'spremenjeno.png';
+    assert.equal(sourceSettings.imageAttachment!.filename, 'glava.png');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.events.order_submitted.customer, true);
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(
@@ -196,6 +214,7 @@ describe('order email settings', () => {
 
     const normalized = normalizeOrderEmailSettings({
       enabled: true,
+      confirmCustomerEmails: false,
       senderName: '  Atehna\r\n Bcc  ',
       fromEmail: ' ORDERS@MAIL.ATEHNA-TEST.SITE ',
       replyToEmail: ' NAROCILA@ATEHNA.SI ',
@@ -206,7 +225,9 @@ describe('order email settings', () => {
       ],
       subjectPrefix: '  Naročila\n Atehna ',
       siteUrl: 'https://www.atehna-test.site/?preview=1',
+      headerText: '  Pomembno.\r\nDruga vrstica.  ',
       footerText: '  Hvala.  ',
+      imageAttachment: validImageAttachment,
       events: {
         order_submitted: { customer: false, admins: true }
       },
@@ -222,6 +243,7 @@ describe('order email settings', () => {
     });
 
     assert.equal(normalized.senderName, 'Atehna Bcc');
+    assert.equal(normalized.confirmCustomerEmails, false);
     assert.equal(normalized.fromEmail, 'orders@mail.atehna-test.site');
     assert.equal(normalized.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(normalized.adminRecipients, [
@@ -230,7 +252,9 @@ describe('order email settings', () => {
     ]);
     assert.equal(normalized.subjectPrefix, 'Naročila Atehna');
     assert.equal(normalized.siteUrl, 'https://www.atehna-test.site');
+    assert.equal(normalized.headerText, 'Pomembno.\nDruga vrstica.');
     assert.equal(normalized.footerText, 'Hvala.');
+    assert.deepEqual(normalized.imageAttachment, validImageAttachment);
     assert.deepEqual(normalized.events.order_submitted, {
       customer: false,
       admins: true
@@ -267,7 +291,10 @@ describe('order email settings', () => {
       }
     });
 
-    assert.equal(legacy.version, 3);
+    assert.equal(legacy.version, 5);
+    assert.equal(legacy.confirmCustomerEmails, true);
+    assert.equal(legacy.headerText, '');
+    assert.equal(legacy.imageAttachment, null);
     assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
     assert.deepEqual(
       legacy.templates.order_submitted.schoolCustomer,
@@ -278,6 +305,75 @@ describe('order email settings', () => {
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Mutated'
     );
+  });
+
+  test('sanitizes and bounds shared header and footer text', () => {
+    const normalized = normalizeOrderEmailSettings({
+      headerText: `  Glava\u0001\r\n${'x'.repeat(ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH)}  `,
+      footerText: `  Noga\u0002  `
+    });
+    assert.equal(normalized.headerText.includes('\u0001'), false);
+    assert.equal(normalized.headerText.length, ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH);
+    assert.equal(normalized.footerText, 'Noga');
+
+    const errors = validateOrderEmailSettingsInput({
+      ...configuredSettings(),
+      headerText: `Glava\u0001`,
+      footerText: 'x'.repeat(ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH + 1)
+    });
+    assert.ok(errors.some((error) => /Besedilo glave.*kontrolne znake/u.test(error)));
+    assert.ok(errors.some((error) => /Besedilo noge.*1000 znakov/u.test(error)));
+  });
+
+  test('accepts only trusted immutable Vercel Blob image attachments', () => {
+    const settings = configuredSettings();
+    settings.imageAttachment = { ...validImageAttachment };
+    assert.deepEqual(validateOrderEmailSettingsInput(settings), []);
+    assert.deepEqual(
+      normalizeOrderEmailSettings(settings).imageAttachment,
+      validImageAttachment
+    );
+
+    const invalidAttachments: unknown[] = [
+      {
+        ...validImageAttachment,
+        url: validImageAttachment.url.replace('https://', 'http://')
+      },
+      {
+        ...validImageAttachment,
+        url: 'https://evil.example/email/shared/123e4567-e89b-42d3-a456-426614174003-glava.png'
+      },
+      {
+        ...validImageAttachment,
+        pathname: 'email/shared/../glava.png'
+      },
+      {
+        ...validImageAttachment,
+        filename: 'glava.svg',
+        contentType: 'image/svg+xml'
+      },
+      {
+        ...validImageAttachment,
+        size: ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES + 1
+      },
+      {
+        ...validImageAttachment,
+        unexpected: true
+      }
+    ];
+
+    for (const imageAttachment of invalidAttachments) {
+      assert.equal(
+        normalizeOrderEmailSettings({ imageAttachment }).imageAttachment,
+        null
+      );
+      assert.ok(
+        validateOrderEmailSettingsInput({
+          ...configuredSettings(),
+          imageAttachment
+        }).some((error) => /Slikovna priponka/u.test(error))
+      );
+    }
   });
 
   test('requires HTTPS and falls back safely for malformed stored site URLs', () => {
@@ -417,13 +513,17 @@ describe('order email settings', () => {
 
   test('removes runtime metadata from the stored settings snapshot', () => {
     const settings = configuredSettings();
+    settings.confirmCustomerEmails = false;
+    settings.imageAttachment = { ...validImageAttachment };
     settings.updatedAt = '2026-08-24T09:00:00.000Z';
     const stored = toStoredOrderEmailSettings(settings);
     assert.equal('updatedAt' in stored, false);
-    assert.equal(stored.version, 3);
+    assert.equal(stored.version, 5);
+    assert.equal(stored.confirmCustomerEmails, false);
     assert.notStrictEqual(stored.events, settings.events);
     assert.notStrictEqual(stored.templates, settings.templates);
     assert.notStrictEqual(stored.adminRecipients, settings.adminRecipients);
+    assert.notStrictEqual(stored.imageAttachment, settings.imageAttachment);
   });
 });
 

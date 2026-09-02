@@ -23,6 +23,11 @@ export const adminCardSectionActionButtonClassName =
 export const adminCardSectionEditIconButtonClassName =
   `${adminCardSectionActionButtonClassName} !w-7 !gap-0 !px-0`;
 
+export const adminCardSectionIconActionButtonClassName =
+  `${adminCardSectionEditIconButtonClassName} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30`;
+
+export const adminCardSectionIconClassName = '!h-3.5 !w-3.5';
+
 export const adminTableHeaderClassName = 'px-5 pt-5 pb-2 [&>div:last-child]:!mt-3';
 export const adminTableContentClassName = 'overflow-x-auto bg-white';
 export const adminTableToolbarGroupClassName = 'flex min-h-9 items-center gap-2';

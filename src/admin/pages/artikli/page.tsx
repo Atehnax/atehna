@@ -1,7 +1,9 @@
 import AdminItemsManagerLoader from '@/admin/features/artikli/components/AdminItemsManagerLoader';
+import AdminInventoryPolicyControl from '@/admin/features/artikli/components/AdminInventoryPolicyControl';
 import { fetchAdminCatalogListItems } from '@/shared/server/catalogItems';
 import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
+import { getInventoryPolicySettings } from '@/shared/server/inventoryPolicy';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 
 export const dynamic = 'force-dynamic';
@@ -21,14 +23,25 @@ async function AdminItemsManagerSection() {
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             {warningMessage}
           </div>
+          <AdminInventoryPolicyControl initialStockEnforcementEnabled />
           <AdminItemsManagerLoader items={[]} />
         </div>
       );
     }
 
     try {
-      const items = await fetchAdminCatalogListItems();
-      return <AdminItemsManagerLoader items={items} />;
+      const [items, inventoryPolicy] = await Promise.all([
+        fetchAdminCatalogListItems(),
+        getInventoryPolicySettings()
+      ]);
+      return (
+        <div className="space-y-4">
+          <AdminInventoryPolicyControl
+            initialStockEnforcementEnabled={inventoryPolicy.stockEnforcementEnabled}
+          />
+          <AdminItemsManagerLoader items={items} />
+        </div>
+      );
     } catch (error) {
       if (!isDatabaseUnavailableError(error)) throw error;
 
@@ -41,6 +54,7 @@ async function AdminItemsManagerSection() {
           <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-amber-700">
             {warningMessage}
           </div>
+          <AdminInventoryPolicyControl initialStockEnforcementEnabled />
           <AdminItemsManagerLoader items={[]} />
         </div>
       );

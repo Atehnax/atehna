@@ -149,9 +149,13 @@ export type AppearanceEditorCompactSelectOption<Value extends string> = {
   disabled?: boolean;
 };
 
+export type AppearanceEditorToolbarTone = 'light' | 'dark';
+const AppearanceEditorToolbarToneContext =
+  createContext<AppearanceEditorToolbarTone>('light');
+
 /**
- * A dark portal listbox for appearance inspectors. Native option popups ignore
- * the inspector theme on Windows; this keeps every option visible without a
+ * A themed portal listbox for appearance inspectors. Native option popups
+ * ignore the inspector theme on Windows; this keeps every option visible without a
  * nested scroll region and preserves keyboard and focus behaviour.
  */
 export function AppearanceEditorCompactSelect<Value extends string>({
@@ -163,6 +167,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
   marker,
   testId,
   disabled = false,
+  tone,
   className,
   triggerClassName
 }: {
@@ -174,9 +179,13 @@ export function AppearanceEditorCompactSelect<Value extends string>({
   marker?: string;
   testId?: string;
   disabled?: boolean;
+  tone?: AppearanceEditorToolbarTone;
   className?: string;
   triggerClassName?: string;
 }) {
+  const inheritedTone = useContext(AppearanceEditorToolbarToneContext);
+  const resolvedTone = tone ?? inheritedTone;
+  const dark = resolvedTone === 'dark';
   const generatedId = useId();
   const listboxId = `${generatedId}-appearance-select`;
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -273,6 +282,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
         aria-controls={listboxId}
         data-appearance-editor-compact-select-trigger={controlMarker}
         data-appearance-editor-compact-select-value={value || undefined}
+        data-appearance-editor-compact-select-tone={resolvedTone}
         data-testid={testId}
         onClick={() => open ? setOpen(false) : openListbox()}
         onKeyDown={(event) => {
@@ -286,11 +296,17 @@ export function AppearanceEditorCompactSelect<Value extends string>({
           }
         }}
         className={classNames(
-          `flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-white/15 bg-slate-800 px-2.5 text-left text-[11px] font-semibold text-slate-100 outline-none transition hover:border-white/25 hover:bg-slate-700 focus:border-blue-300 focus:ring-1 focus:ring-blue-300/35 disabled:cursor-not-allowed disabled:opacity-45 ${adminControlFocusTokenClasses}`,
+          `flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-2.5 text-left text-[11px] outline-none transition disabled:cursor-not-allowed disabled:opacity-45 ${adminControlFocusTokenClasses}`,
+          dark
+            ? 'border-white/15 bg-slate-800 font-semibold text-slate-100 hover:border-white/25 hover:bg-slate-700 focus:border-blue-300 focus:ring-1 focus:ring-blue-300/35'
+            : 'border-slate-300 bg-white font-normal text-slate-700 hover:border-slate-300 hover:bg-white focus:border-[color:var(--blue-500)] focus:bg-white focus:ring-0',
           triggerClassName
         )}
       >
-        <span className={classNames('min-w-0 flex-1 truncate', !selected && 'text-white/45')}>
+        <span className={classNames(
+          'min-w-0 flex-1 truncate',
+          !selected && (dark ? 'text-white/45' : 'text-slate-400')
+        )}>
           {selected?.label ?? placeholder}
         </span>
         <ChevronDown className={classNames('h-3.5 w-3.5 shrink-0 transition', open && 'rotate-180')} />
@@ -303,7 +319,13 @@ export function AppearanceEditorCompactSelect<Value extends string>({
           aria-label={ariaLabel}
           data-appearance-editor-compact-select-portal={controlMarker}
           data-appearance-editor-compact-select-columns={position.columns}
-          className="fixed z-[2147483647] grid gap-1 rounded-xl border border-white/15 bg-slate-950/95 p-1.5 text-white shadow-[0_18px_50px_rgba(15,23,42,.55)] backdrop-blur-xl"
+          data-appearance-editor-compact-select-tone={resolvedTone}
+          className={classNames(
+            'fixed z-[2147483647] grid gap-1 border p-1.5',
+            dark
+              ? 'rounded-xl border-white/15 bg-slate-950/95 text-white shadow-[0_18px_50px_rgba(15,23,42,.55)] backdrop-blur-xl'
+              : 'rounded-md border-slate-200 bg-white text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]'
+          )}
           style={{
             left: position.left,
             top: position.top,
@@ -355,8 +377,17 @@ export function AppearanceEditorCompactSelect<Value extends string>({
               data-appearance-editor-compact-select-option={option.value}
               disabled={option.disabled}
               className={classNames(
-                'flex h-7 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[10px] font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300 disabled:opacity-30',
-                option.value === value ? 'bg-blue-500/30 text-blue-100' : 'text-white/75 hover:bg-white/10 hover:text-white'
+                'flex h-7 min-w-0 items-center gap-2 px-2 text-left text-[10px] outline-none transition focus-visible:ring-2 disabled:opacity-30',
+                dark
+                  ? 'rounded-lg font-semibold focus-visible:ring-blue-300'
+                  : 'rounded-md font-normal focus-visible:ring-[color:var(--blue-500)]/25',
+                dark
+                  ? option.value === value
+                    ? 'bg-blue-500/30 text-blue-100'
+                    : 'text-white/75 hover:bg-white/10 hover:text-white'
+                  : option.value === value
+                    ? 'bg-[color:var(--hover-neutral)] text-[color:var(--blue-500)]'
+                    : 'text-slate-700 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
               )}
               onClick={() => {
                 onValueChange(option.value);
@@ -375,7 +406,6 @@ export function AppearanceEditorCompactSelect<Value extends string>({
   );
 }
 
-export type AppearanceEditorToolbarTone = 'light' | 'dark';
 export type AppearanceEditorToolbarPlacement = 'top' | 'bottom';
 export type AppearanceEditorToolbarPopoverPlacement =
   | 'inline'
@@ -481,8 +511,6 @@ export const appearanceEditorContextToolbarBaseClassName =
 export const appearanceEditorContextToolbarDarkSurfaceClassName =
   `${appearanceEditorContextToolbarBaseClassName} bg-black/90 ${appearanceEditorDarkGlassFrameClassName}`;
 
-const AppearanceEditorToolbarToneContext =
-  createContext<AppearanceEditorToolbarTone>('light');
 const AppearanceEditorToolbarPlacementContext =
   createContext<AppearanceEditorToolbarPopoverPlacement>('inline');
 
@@ -502,6 +530,234 @@ export function AppearanceEditorToolbarToneProvider({
 
 export function useAppearanceEditorToolbarPlacement() {
   return useContext(AppearanceEditorToolbarPlacementContext);
+}
+
+
+export type AppearanceEditorToolbarPopoverSize = 'compact' | 'wide';
+
+export type AppearanceEditorToolbarPopoverPositionInput = {
+  anchorRect: Pick<DOMRectReadOnly, 'bottom' | 'left' | 'top'>;
+  panelSize: { height: number; width: number };
+  viewportRect: { height: number; left: number; top: number; width: number };
+  preferredPlacement: AppearanceEditorToolbarPlacement;
+  gapPx?: number;
+  marginPx?: number;
+};
+
+export type AppearanceEditorToolbarPopoverPosition = {
+  left: number;
+  top: number;
+  placement: AppearanceEditorToolbarPlacement;
+};
+
+const appearanceEditorToolbarPopoverGapPx = 6;
+const appearanceEditorToolbarPopoverMarginPx = 8;
+
+export function resolveAppearanceEditorToolbarPopoverPosition({
+  anchorRect,
+  panelSize,
+  viewportRect,
+  preferredPlacement,
+  gapPx = appearanceEditorToolbarPopoverGapPx,
+  marginPx = appearanceEditorToolbarPopoverMarginPx
+}: AppearanceEditorToolbarPopoverPositionInput): AppearanceEditorToolbarPopoverPosition {
+  const panelWidth = Math.max(1, panelSize.width);
+  const panelHeight = Math.max(1, panelSize.height);
+  const viewportRight = viewportRect.left + Math.max(1, viewportRect.width);
+  const viewportBottom = viewportRect.top + Math.max(1, viewportRect.height);
+  const minimumLeft = viewportRect.left + marginPx;
+  const maximumLeft = Math.max(minimumLeft, viewportRight - panelWidth - marginPx);
+  const minimumTop = viewportRect.top + marginPx;
+  const maximumTop = Math.max(minimumTop, viewportBottom - panelHeight - marginPx);
+  const availableTop = Math.max(0, anchorRect.top - gapPx - minimumTop);
+  const availableBottom = Math.max(0, viewportBottom - marginPx - anchorRect.bottom - gapPx);
+  const alternatePlacement = preferredPlacement === 'top' ? 'bottom' : 'top';
+  const availableByPlacement = {
+    top: availableTop,
+    bottom: availableBottom
+  } satisfies Record<AppearanceEditorToolbarPlacement, number>;
+  const placement = availableByPlacement[preferredPlacement] >= panelHeight
+    || availableByPlacement[preferredPlacement] >= availableByPlacement[alternatePlacement]
+    ? preferredPlacement
+    : alternatePlacement;
+  const requestedTop = placement === 'top'
+    ? anchorRect.top - gapPx - panelHeight
+    : anchorRect.bottom + gapPx;
+
+  return {
+    left: Math.round(Math.min(Math.max(anchorRect.left, minimumLeft), maximumLeft)),
+    top: Math.round(Math.min(Math.max(requestedTop, minimumTop), maximumTop)),
+    placement
+  };
+}
+
+export type AppearanceEditorToolbarPopoverProps = {
+  children: ReactNode;
+  ariaLabel: string;
+  size?: AppearanceEditorToolbarPopoverSize;
+  className?: string;
+};
+
+/**
+ * A compact settings surface anchored to its parent toolbar. It measures its
+ * own content before choosing a side, clamps itself to the visual viewport and
+ * only introduces internal vertical scrolling when the viewport is too short.
+ */
+export function AppearanceEditorToolbarPopover({
+  children,
+  ariaLabel,
+  size = 'compact',
+  className
+}: AppearanceEditorToolbarPopoverProps) {
+  const toolbarPlacement = useAppearanceEditorToolbarPlacement();
+  const preferredPlacement: AppearanceEditorToolbarPlacement = toolbarPlacement === 'top'
+    ? 'top'
+    : 'bottom';
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const scheduledFrameRef = useRef<number | null>(null);
+  const [position, setPosition] = useState<AppearanceEditorToolbarPopoverPosition & {
+    maxHeight: number | null;
+    ready: boolean;
+  }>({
+    left: 0,
+    top: 0,
+    placement: preferredPlacement,
+    maxHeight: null,
+    ready: false
+  });
+
+  const updatePosition = useCallback(() => {
+    const panel = panelRef.current;
+    const anchor = panel?.parentElement;
+    if (!panel || !anchor || typeof window === 'undefined') return;
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const visualViewport = window.visualViewport;
+    const viewportRect = {
+      left: visualViewport?.offsetLeft ?? 0,
+      top: visualViewport?.offsetTop ?? 0,
+      width: visualViewport?.width ?? window.innerWidth,
+      height: visualViewport?.height ?? window.innerHeight
+    };
+    const preferredAvailableHeight = preferredPlacement === 'top'
+      ? anchorRect.top - appearanceEditorToolbarPopoverGapPx
+        - (viewportRect.top + appearanceEditorToolbarPopoverMarginPx)
+      : viewportRect.top + viewportRect.height - appearanceEditorToolbarPopoverMarginPx
+        - anchorRect.bottom - appearanceEditorToolbarPopoverGapPx;
+    const constrainedPanelHeight = Math.max(
+      1,
+      Math.min(panelRect.height, preferredAvailableHeight)
+    );
+    const viewportPosition = resolveAppearanceEditorToolbarPopoverPosition({
+      anchorRect,
+      panelSize: { width: panelRect.width, height: constrainedPanelHeight },
+      viewportRect,
+      preferredPlacement
+    });
+    const availableHeight = viewportPosition.placement === 'top'
+      ? anchorRect.top - appearanceEditorToolbarPopoverGapPx
+        - (viewportRect.top + appearanceEditorToolbarPopoverMarginPx)
+      : viewportRect.top + viewportRect.height - appearanceEditorToolbarPopoverMarginPx
+        - anchorRect.bottom - appearanceEditorToolbarPopoverGapPx;
+    const offsetParent = panel.offsetParent instanceof HTMLElement ? panel.offsetParent : null;
+    const offsetParentRect = offsetParent?.getBoundingClientRect();
+    const nextPosition = {
+      left: viewportPosition.left - (offsetParentRect?.left ?? 0) + (offsetParent?.scrollLeft ?? 0),
+      top: viewportPosition.top - (offsetParentRect?.top ?? 0) + (offsetParent?.scrollTop ?? 0),
+      placement: viewportPosition.placement,
+      maxHeight: Math.max(
+        1,
+        Math.min(
+          viewportRect.height - appearanceEditorToolbarPopoverMarginPx * 2,
+          availableHeight
+        )
+      ),
+      ready: true
+    };
+
+    setPosition((current) => (
+      Math.abs(current.left - nextPosition.left) < 0.5
+      && Math.abs(current.top - nextPosition.top) < 0.5
+      && current.placement === nextPosition.placement
+      && current.maxHeight === nextPosition.maxHeight
+      && current.ready === nextPosition.ready
+        ? current
+        : nextPosition
+    ));
+  }, [preferredPlacement]);
+
+  const schedulePosition = useCallback(() => {
+    if (scheduledFrameRef.current !== null || typeof window === 'undefined') return;
+    scheduledFrameRef.current = window.requestAnimationFrame(() => {
+      scheduledFrameRef.current = null;
+      updatePosition();
+    });
+  }, [updatePosition]);
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const anchor = panel?.parentElement;
+    if (!panel || !anchor || typeof window === 'undefined') return undefined;
+
+    updatePosition();
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(schedulePosition);
+    observer?.observe(anchor);
+    observer?.observe(panel);
+    window.addEventListener('resize', schedulePosition);
+    window.addEventListener('scroll', schedulePosition, true);
+    window.visualViewport?.addEventListener('resize', schedulePosition);
+    window.visualViewport?.addEventListener('scroll', schedulePosition);
+    schedulePosition();
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', schedulePosition);
+      window.removeEventListener('scroll', schedulePosition, true);
+      window.visualViewport?.removeEventListener('resize', schedulePosition);
+      window.visualViewport?.removeEventListener('scroll', schedulePosition);
+      if (scheduledFrameRef.current !== null) {
+        window.cancelAnimationFrame(scheduledFrameRef.current);
+        scheduledFrameRef.current = null;
+      }
+    };
+  }, [schedulePosition, size, updatePosition]);
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label={ariaLabel}
+      aria-modal="false"
+      data-appearance-editor-toolbar-popover
+      data-appearance-editor-toolbar-popover-size={size}
+      data-appearance-editor-toolbar-popover-placement={position.placement}
+      data-appearance-editor-toolbar-popover-preferred-placement={preferredPlacement}
+      data-appearance-editor-toolbar-popover-ready={position.ready ? 'true' : 'false'}
+      data-appearance-editor-settings-surface
+      data-settings-scroll="internal"
+      className={classNames(
+        appearanceEditorToolbarPopoverSurfaceClassName,
+        'absolute z-[220] overflow-x-hidden overflow-y-auto overscroll-contain p-2 text-left',
+        size === 'wide'
+          ? 'w-[min(440px,calc(100dvw-16px))]'
+          : 'w-[min(360px,calc(100dvw-16px))]',
+        className
+      )}
+      style={{
+        left: position.left,
+        top: position.top,
+        maxHeight: position.maxHeight ?? 'calc(100dvh - 16px)',
+        opacity: position.ready ? 1 : 0,
+        visibility: position.ready ? 'visible' : 'hidden',
+        pointerEvents: position.ready ? 'auto' : 'none'
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export type AppearanceEditorToolbarButtonProps = Omit<
@@ -707,6 +963,7 @@ export type FloatingAppearanceEditorContextToolbarProps = {
   ariaLabel?: string;
   testId?: string;
   className?: string;
+  onDismiss?: () => void;
   children: ReactNode;
 };
 
@@ -723,6 +980,7 @@ export function FloatingAppearanceEditorContextToolbar({
   ariaLabel = 'Orodna vrstica izbranega elementa',
   testId = 'appearance-editor-context-toolbar',
   className,
+  onDismiss,
   children
 }: FloatingAppearanceEditorContextToolbarProps) {
   const toolbarElementRef = useRef<HTMLDivElement | null>(null);
@@ -978,6 +1236,42 @@ export function FloatingAppearanceEditorContextToolbar({
       scheduledFrameRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (!anchorId || !portalReady || !toolbarMounted || !onDismiss) return undefined;
+
+    const dismissOutside = (event: PointerEvent) => {
+      const target = event.target;
+      const viewport = viewportRef.current;
+      const toolbar = toolbarElementRef.current;
+      const anchor = viewport ? resolveAnchor(viewport, anchorId) : null;
+      const node = target instanceof Node ? target : null;
+      if (
+        !node
+        || toolbar?.contains(node)
+        || anchor?.contains(node)
+      ) {
+        return;
+      }
+      const element = target instanceof Element ? target : null;
+      if (element?.closest(
+        '[data-product-canvas-element], [data-product-appearance-layers-panel], [data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar], [data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal]'
+      )) {
+        return;
+      }
+      onDismiss();
+    };
+
+    window.addEventListener('pointerdown', dismissOutside, true);
+    return () => window.removeEventListener('pointerdown', dismissOutside, true);
+  }, [
+    anchorId,
+    onDismiss,
+    portalReady,
+    resolveAnchor,
+    toolbarMounted,
+    viewportRef
+  ]);
 
   if (!anchorId || !portalReady || typeof document === 'undefined') return null;
 

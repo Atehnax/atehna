@@ -83,6 +83,7 @@ export type ProductCanvasElementDeviceSettings = {
   offsetYPx: number;
   widthPx: number;
   heightPx: number;
+  contentScale: number;
   paddingTopPx: number;
   paddingRightPx: number;
   paddingBottomPx: number;
@@ -160,6 +161,7 @@ export const DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS: ProductCanvasElemen
   offsetYPx: 0,
   widthPx: 0,
   heightPx: 0,
+  contentScale: 1,
   paddingTopPx: 0,
   paddingRightPx: 0,
   paddingBottomPx: 0,
@@ -377,7 +379,7 @@ export type ProductAppearanceOverride = {
 };
 
 export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
-  schemaVersion: 8,
+  schemaVersion: 10,
   listings: {
     availableModes: 'grid',
     defaultMode: 'grid',
@@ -506,7 +508,7 @@ export const DEFAULT_PRODUCT_APPEARANCE_CONFIG: ProductAppearanceConfig = {
         'Dobavljivost in rok potrdimo po prejemu naročila.',
       variantLabel: 'Različica',
       skuLabel: 'SKU',
-      minimumOrderLabel: 'Najmanjše naročilo',
+      minimumOrderLabel: 'Minimalno naročilo',
       quantityLabel: 'Količina',
       decreaseQuantityLabel: 'Zmanjšaj količino',
       increaseQuantityLabel: 'Povečaj količino',
@@ -669,6 +671,7 @@ export function normalizeProductCanvasElementDeviceSettings(
     offsetYPx: asNumber(record.offsetYPx, fallback.offsetYPx, -5000, 5000),
     widthPx: asNumber(record.widthPx, fallback.widthPx, 0, 5000),
     heightPx: asNumber(record.heightPx, fallback.heightPx, 0, 5000),
+    contentScale: asDecimal(record.contentScale, fallback.contentScale, 0.1, 4),
     paddingTopPx: asNumber(record.paddingTopPx, fallback.paddingTopPx, 0, 1000),
     paddingRightPx: asNumber(record.paddingRightPx, fallback.paddingRightPx, 0, 1000),
     paddingBottomPx: asNumber(record.paddingBottomPx, fallback.paddingBottomPx, 0, 1000),
@@ -809,6 +812,12 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
     defaults.purchaseArea.copy.deliveryFallbackMessage,
     320
   );
+  const minimumOrderLabel = asString(
+    purchaseAreaCopy.minimumOrderLabel,
+    defaults.purchaseArea.copy.minimumOrderLabel
+  );
+  const normalizedMinimumOrderLabel = minimumOrderLabel === 'Najmanjše naročilo'
+    ? defaults.purchaseArea.copy.minimumOrderLabel : minimumOrderLabel;
   return {
     schemaVersion: defaults.schemaVersion,
     listings: {
@@ -925,7 +934,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       showDiscountPercentage: asBoolean(pricing.showDiscountPercentage, defaults.pricing.showDiscountPercentage),
       showAbsoluteSavings: asBoolean(pricing.showAbsoluteSavings, defaults.pricing.showAbsoluteSavings),
       showUnitPrice: asBoolean(pricing.showUnitPrice, defaults.pricing.showUnitPrice),
-      listingUsesPriceRange: asBoolean(pricing.listingUsesPriceRange, defaults.pricing.listingUsesPriceRange),
+      listingUsesPriceRange: asBoolean(pricing.listingUsesPriceRange, defaults.pricing.listingUsesPriceRange)
     },
     variants: {
       selectorStyle: asEnum(variants.selectorStyle, PRODUCT_VARIANT_SELECTOR_STYLES, defaults.variants.selectorStyle),
@@ -1072,10 +1081,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
           purchaseAreaCopy.skuLabel,
           defaults.purchaseArea.copy.skuLabel
         ),
-        minimumOrderLabel: asString(
-          purchaseAreaCopy.minimumOrderLabel,
-          defaults.purchaseArea.copy.minimumOrderLabel
-        ),
+        minimumOrderLabel: normalizedMinimumOrderLabel,
         quantityLabel: asString(
           purchaseAreaCopy.quantityLabel,
           defaults.purchaseArea.copy.quantityLabel
@@ -1253,7 +1259,7 @@ export function normalizeProductAppearanceConfig(value: unknown): ProductAppeara
       compactRows: asBoolean(cartSidebar.compactRows, defaults.cartSidebar.compactRows),
       stickySummary: asBoolean(cartSidebar.stickySummary, defaults.cartSidebar.stickySummary),
       showNetTaxBreakdown: true,
-        highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
+      highlightAddedLine: asBoolean(cartSidebar.highlightAddedLine, defaults.cartSidebar.highlightAddedLine),
       showRelatedProducts: false
     },
     canvas: normalizeProductCanvas(canvas),

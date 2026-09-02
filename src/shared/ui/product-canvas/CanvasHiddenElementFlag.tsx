@@ -174,6 +174,7 @@ export default function CanvasHiddenElementFlag({
       data-canvas-hidden-placeholder
       data-canvas-hidden-element-id={elementId}
       data-product-canvas-element={kind === 'product' ? elementId : undefined}
+      data-product-canvas-label={kind === 'product' ? label : undefined}
       data-product-canvas-hidden={kind === 'product' ? 'true' : undefined}
       data-homepage-canvas-element={kind === 'homepage' ? true : undefined}
       data-canvas-element-id={kind === 'homepage' ? elementId : undefined}

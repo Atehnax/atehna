@@ -94,6 +94,51 @@ describe('persisted order email delivery envelope', () => {
     assert.deepEqual(envelope.message, expectedMessage);
   });
 
+  test('snapshots shared header, footer, and one image attachment while old v2 jobs remain readable', () => {
+    const source = payload();
+    source.settingsSnapshot.headerText = 'Skupna glava\nDruga vrstica';
+    source.settingsSnapshot.footerText = 'Lep pozdrav,\nAtehna';
+    source.settingsSnapshot.imageAttachment = {
+      url: 'https://atehna.public.blob.vercel-storage.com/email/shared/brand-header.png',
+      pathname: 'email/shared/brand-header.png',
+      filename: 'brand-header.png',
+      contentType: 'image/png',
+      size: 1_024
+    };
+
+    const envelope = createOrderEmailDeliveryEnvelope(source);
+    assert.deepEqual(envelope.message.attachments, [
+      {
+        path: 'https://atehna.public.blob.vercel-storage.com/email/shared/brand-header.png',
+        filename: 'brand-header.png'
+      }
+    ]);
+    assert.equal(Object.isFrozen(envelope.message.attachments), true);
+    assert.equal(Object.isFrozen(envelope.message.attachments?.[0]), true);
+    assert.ok(
+      envelope.message.html.indexOf('Skupna glava') <
+        envelope.message.html.indexOf('Pozdravljeni')
+    );
+    assert.ok(
+      envelope.message.html.lastIndexOf('Lep pozdrav') >
+        envelope.message.html.lastIndexOf('Skupaj z DDV')
+    );
+    assert.ok(
+      envelope.message.text.startsWith(
+        'Skupna glava\nDruga vrstica\n\nPozdravljeni'
+      )
+    );
+    assert.ok(envelope.message.text.endsWith('Lep pozdrav,\nAtehna'));
+
+    const legacyV2 = mutableJsonObject(
+      serializeOrderEmailDeliveryEnvelope(envelope)
+    );
+    const legacyMessage = legacyV2.message as Record<string, unknown>;
+    delete legacyMessage.attachments;
+    const parsedLegacy = parseOrderEmailDeliveryEnvelope(legacyV2);
+    assert.equal('attachments' in parsedLegacy.message, false);
+  });
+
   test('snapshots one school upload fragment for retries and redacts it after delivery', () => {
     const source = payload() as Extract<
       OrderEmailJobPayload,
@@ -239,6 +284,53 @@ describe('persisted order email delivery envelope', () => {
     assert.throws(
       () => parseOrderEmailDeliveryEnvelope('{not-json'),
       /must be valid JSON/u
+    );
+  });
+
+  test('rejects untrusted or malformed attachment snapshots', () => {
+    const source = payload();
+    source.settingsSnapshot.imageAttachment = {
+      url: 'https://atehna.public.blob.vercel-storage.com/email/shared/header.png',
+      pathname: 'email/shared/header.png',
+      filename: 'header.png',
+      contentType: 'image/png',
+      size: 512
+    };
+    const serialized = serializeOrderEmailDeliveryEnvelope(
+      createOrderEmailDeliveryEnvelope(source)
+    );
+
+    const untrustedHost = mutableJsonObject(serialized);
+    const untrustedMessage = untrustedHost.message as Record<string, unknown>;
+    const untrustedAttachments = untrustedMessage.attachments as Array<
+      Record<string, unknown>
+    >;
+    untrustedAttachments[0]!.path = 'https://example.com/email/shared/header.png';
+    assert.throws(
+      () => parseOrderEmailDeliveryEnvelope(untrustedHost),
+      /trusted shared image attachment/u
+    );
+
+    const unsafeFilename = mutableJsonObject(serialized);
+    const unsafeMessage = unsafeFilename.message as Record<string, unknown>;
+    const unsafeAttachments = unsafeMessage.attachments as Array<
+      Record<string, unknown>
+    >;
+    unsafeAttachments[0]!.filename = '../header.png';
+    assert.throws(
+      () => parseOrderEmailDeliveryEnvelope(unsafeFilename),
+      /trusted shared image attachment/u
+    );
+
+    const extraField = mutableJsonObject(serialized);
+    const extraMessage = extraField.message as Record<string, unknown>;
+    const extraAttachments = extraMessage.attachments as Array<
+      Record<string, unknown>
+    >;
+    extraAttachments[0]!.contentId = 'inline-image';
+    assert.throws(
+      () => parseOrderEmailDeliveryEnvelope(extraField),
+      /contentId: is not an allowed field/u
     );
   });
 

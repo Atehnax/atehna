@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const quoteDetailPath = 'src/admin/features/quotes/components/AdminQuoteDetailClient.tsx';
 const orderDetailPath = 'src/admin/features/orders/components/AdminOrderDetailClient.tsx';
+const adminAddressAutocompletePath = 'src/admin/components/AdminAddressAutocompleteInput.tsx';
 const adminDetailsRoutePath = 'src/admin/api/quote-requests/[quoteRequestId]/details/route.ts';
 const appDetailsRoutePath = 'src/app/api/admin/quote-requests/[quoteRequestId]/details/route.ts';
 const adminStatusRoutePath = 'src/admin/api/quote-requests/[quoteRequestId]/status/route.ts';
@@ -236,7 +237,7 @@ test('quote header master pencil edits title and status without bypassing lifecy
   assert.match(statusRoute, /beforeStatus: previousStatus/u);
   assert.match(statusRoute, /afterStatus: status/u);
   assert.doesNotMatch(statusRoute, /customer_type|billing_snapshot_json|customer_snapshot_json/u);
-  assert.match(detailsRoute, /QUOTE_CUSTOMER_SNAPSHOT_LOCKED/u);
+  assert.match(detailsRoute, /correctionScope: currentIssuedOffer \? 'draft_revision' : 'request'/u);
 });
 test('quote header pencil activates every eligible editor and master Save persists every scope', () => {
   const detail = source(quoteDetailPath);
@@ -426,6 +427,44 @@ test('issuing automatically saves the complete live draft and uses returned conc
   assert.match(draftRoute, /requestStateVersion,/u);
 });
 
+test('acceptance terms stay optional while core issue fields remain required', () => {
+  const detail = source(quoteDetailPath);
+  const issueValidation = sliceBetween(
+    detail,
+    'const validateIssueDraft',
+    'const callAction'
+  );
+  const offerSection = sliceBetween(
+    detail,
+    'data-testid="quote-offer-card"',
+    'data-testid="quote-items-card"'
+  );
+  const acceptanceTermsField = sliceBetween(
+    offerSection,
+    'field="acceptanceTerms"',
+    '</QuoteOfferFieldRow>'
+  );
+
+  assert.match(issueValidation, /!draftToValidate\.validUntil/u);
+  assert.match(issueValidation, /!draftToValidate\.deliveryTerms\.trim\(\)/u);
+  assert.match(issueValidation, /!draftToValidate\.paymentTerms\.trim\(\)/u);
+  assert.doesNotMatch(issueValidation, /draftToValidate\.termsText/u);
+  assert.match(
+    issueValidation,
+    /Pred izdajo izpolnite veljavnost ter dobavne in plačilne pogoje\./u
+  );
+
+  assert.match(
+    acceptanceTermsField,
+    /aria-label="Pogoji sprejema ponudbe"/u
+  );
+  assert.match(
+    acceptanceTermsField,
+    /placeholder="Neobvezni pogoji sprejema ponudbe\."/u
+  );
+  assert.doesNotMatch(acceptanceTermsField, /\brequired\b/u);
+});
+
 test('offer fields use one stable compact surface and expose one customer message', () => {
   const detail = source(quoteDetailPath);
   const messageHelper = source(quoteCustomerMessagePath);
@@ -480,6 +519,7 @@ test('quote shipping exposes its frozen calculation and can revert a manual amou
   assert.match(offerSection, /aria-label="Prikaži izračun poštnine"/u);
   assert.match(offerSection, /data-testid="quote-shipping-reset-button"/u);
   assert.match(offerSection, /aria-label="Uporabi samodejno poštnino"/u);
+  assert.match(offerSection, /<Calculator className="h-3\.5 w-3\.5"/u);
   assert.match(explanation, /basePriceCents/u);
   assert.match(explanation, /surchargeAmountCents/u);
   assert.match(explanation, /multiPieceDiscountAmountCents/u);
@@ -524,6 +564,7 @@ test('quote reason uses the exact Slovenian storefront selection and terms ident
 });
 test('customer details use compact fixed-height rows with full-width address and message fields', () => {
   const detail = source(quoteDetailPath);
+  const adminAddressAutocomplete = source(adminAddressAutocompletePath);
   const requestSection = sliceBetween(
     detail,
     'data-testid="quote-request-details-card"',
@@ -577,9 +618,15 @@ test('customer details use compact fixed-height rows with full-width address and
   assert.match(addressEditor, /aria-label="Naslovni podatki"/u);
   assert.match(addressEditor, /data-testid="quote-request-address-fields"/u);
   assert.match(addressEditor, /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u);
-  for (const label of ['Naslov', 'Dodatni naslov', 'Poštna številka', 'Kraj', 'Država']) {
+  assert.match(
+    adminAddressAutocomplete,
+    /aria-label="Naslov"[\s\S]*?role="combobox"[\s\S]*?aria-autocomplete="list"/u
+  );
+  for (const label of ['Dodatni naslov', 'Poštna številka', 'Kraj', 'Država']) {
     assert.match(addressEditor, new RegExp(`aria-label="${label}"`, 'u'));
   }
+  assert.match(addressEditor, /<AdminAddressAutocompleteInput[\s\S]*?testId="admin-quote-address-autocomplete"/u);
+  assert.match(addressEditor, /gursHouseNumberId: suggestion\.gursHouseNumberId/u);
 
   for (const label of labels) {
     assert.match(requestSection, new RegExp(`label="${label.replace('?', '[?]')}"`, 'u'));
@@ -619,11 +666,13 @@ test('customer detail edits preserve identity and Slovenian address data when su
   assert.match(route, /const POSTAL_CODE_PATTERN = \/\^\\d\{4\}\$\//u);
   assert.match(route, /postalCode !== null && !POSTAL_CODE_PATTERN\.test\(postalCode\)/u);
   assert.match(route, /countryCode !== 'SI'/u);
+  assert.match(route, /getGursAddressById\([\s\S]*?submittedGursHouseNumberId,[\s\S]*?client/u);
   assert.match(
     route,
-    /const gursHouseNumberId = addressChanged[\s\S]*?before\.gurs_house_number_id[\s\S]*?const customerSnapshot = \{[\s\S]*?gursHouseNumberId,/u
+    /let resolvedGursHouseNumberId =[\s\S]*?gursHouseNumberIdProvided[\s\S]*?gursHouseNumberId: resolvedGursHouseNumberId/u
   );
-  assert.doesNotMatch(route, /gursHouseNumberId:\s*null/u);
+  assert.match(route, /gurs_house_number_id = \$11/u);
+  assert.doesNotMatch(route, /gurs_house_number_id = case when \$11 then null/u);
 });
 
 test('quote detail composes shared title, activity, notes, documents, field, action, and grid primitives', () => {
@@ -677,7 +726,7 @@ test('quote detail composes shared title, activity, notes, documents, field, act
 
   assert.match(
     quoteDetail,
-    /import AdminQuoteActivityTimeline from '@\/admin\/features\/quotes\/components\/AdminQuoteActivityTimeline';/u
+    /import AdminQuoteActivityTimeline, \{ QUOTE_EVENT_LABELS \} from '@\/admin\/features\/quotes\/components\/AdminQuoteActivityTimeline';/u
   );
   assert.match(
     quoteDetail,
@@ -741,11 +790,19 @@ test('quote activity stays in the header through the shared bounded horizontal t
 
   assert.match(
     quoteActivityTimeline,
-    /const items = \[\.\.\.events\]\.slice\(0, 5\)\.reverse\(\)\.map/u
+    /const items = selectQuoteProgressEvents\(events\)\.reverse\(\)\.map/u
   );
   assert.match(
     quoteActivityTimeline,
     /COMPACT_EVENT_LABELS\[event\.eventType\] \?\? label/u
+  );
+  assert.match(
+    quoteActivityTimeline,
+    /const statusLabel = getQuoteProgressStatusLabel\(event\)/u
+  );
+  assert.match(
+    quoteActivityTimeline,
+    /compactLabel: statusLabel \?\? COMPACT_EVENT_LABELS\[event\.eventType\] \?\? label/u
   );
   assert.match(quoteActivityTimeline, /draft_created: 'Osnutek'/u);
   assert.match(quoteActivityTimeline, /draft_changed: 'Osnutek'/u);
@@ -841,6 +898,45 @@ test('every writable quote window keeps one persistent blue icon-only pencil in 
     /disabled=\{!isClientReady \|\| Boolean\(busyAction\)\}/u
   );
   assert.match(detail, /if \(!canEditRequestDetails\)[\s\S]*?toast\.error/u);
+  assert.match(
+    detail,
+    /const canEditRequestDetails =[\s\S]*?Boolean\(draftVersion \|\| currentIssuedVersion\)[\s\S]*?detail.status === 'received'[\s\S]*?detail.status === 'in_preparation'/u
+  );
+  assert.match(detail, /data-testid="quote-customer-correction-revision-notice"/u);
+  assert.match(detail, /Popravki bodo ob shranjevanju ustvarili novo različico/u);
+  assert.match(detail, /Trenutno izdana ponudba ostaja nespremenjena/u);
+  assert.match(
+    detail,
+    /draftStateVersion\?: number \| null[\s\S]*?quoteOfferVersionId\?: number \| null[\s\S]*?draftVersionNumber\?: number \| null[\s\S]*?revisionCreated\?: boolean[\s\S]*?correctionScope\?: 'request' \| 'draft_revision'[\s\S]*?issuedOfferVersionId\?: number \| null/u
+  );
+  assert.match(
+    detail,
+    /payload\?\.correctionScope === 'draft_revision'[\s\S]*?offerVersionId: nextDraftOfferVersionId[\s\S]*?expectedStateVersion: nextDraftStateVersion/u
+  );
+  assert.match(
+    detail,
+    /payload\?\.correctionScope === 'draft_revision' && !isMasterEditing[\s\S]*?router\.refresh\(\)/u
+  );
+  assert.match(
+    detail,
+    /const canManuallyEditRequestStatus =[\s\S]*?!currentIssuedVersion[\s\S]*?detail.status === 'received'[\s\S]*?detail.status === 'in_preparation'/u
+  );
+  assert.match(
+    detail,
+    /expectedDraftStateVersion =[\s\S]*?persistedOfferDraft\?\.offerVersionId[\s\S]*?persistedOfferDraft\.expectedStateVersion/u
+  );
+  assert.match(
+    detail,
+    /body: JSON\.stringify\(\{[\s\S]*?expectedRequestStateVersion,[\s\S]*?expectedDraftStateVersion,[\s\S]*?\.\.\.draftRequestDetails/u
+  );
+  assert.match(
+    detail,
+    /let nextDraftStateVersion =[\s\S]*?persistedOfferDraft\?\.offerVersionId[\s\S]*?nextDraftStateVersion = saved\.stateVersion[\s\S]*?saveRequestDetails\([\s\S]*?nextDraftStateVersion/u
+  );
+  assert.match(
+    detail,
+    /status\?: string[\s\S]*?const nextStatus =[\s\S]*?setPersistedRequestDetails\(reconciledRequestDetails\)[\s\S]*?setDraftRequestDetails\(reconciledRequestDetails\)/u
+  );
   assert.match(
     offerSection,
     /aria-label=\{isEditingOffer \? 'Končaj urejanje ponudbe' : 'Uredi ponudbo'\}/u

@@ -74,7 +74,8 @@ import {
 } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import ProductCanvasElement, {
-  PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS
+  PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS,
+  type ProductCanvasSelectionOptions
 } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import ProductCanvasGuidesOverlay from '@/shared/ui/product-canvas/ProductCanvasGuidesOverlay';
 import ProductAppearanceContextToolbar, {
@@ -92,6 +93,10 @@ import {
   appearanceEditorToolbarPopoverSurfaceClassName
 } from './AppearanceEditorToolbarPrimitives';
 import ProductAppearanceLivePreview from './ProductAppearanceLivePreview';
+import ProductAppearanceLayersPanel, {
+  rankProductAppearanceLayersTopFirst,
+  type ProductAppearanceLayerItem
+} from './ProductAppearanceLayersPanel';
 import AdminPodobaTabs from './AdminPodobaTabs';
 import { buildProductAppearancePreviewProduct } from '../lib/productAppearancePreviewProduct';
 
@@ -109,7 +114,44 @@ type ProductCanvasElementDefinition = {
   group: string;
 };
 
+type RuntimeProductCanvasLayer = {
+  id: string;
+  label: string;
+  parentId: string | null;
+  domOrder: number;
+};
+
+function readRuntimeProductCanvasLayers(root: HTMLElement | null) {
+  if (!root) return [];
+  const seenIds = new Set<string>();
+  const layers: RuntimeProductCanvasLayer[] = [];
+  const elements = root.querySelectorAll<HTMLElement>(
+    '[data-product-canvas-element]'
+  );
+
+  elements.forEach((element) => {
+    const id = element.dataset.productCanvasElement?.trim();
+    if (!id || seenIds.has(id)) return;
+    seenIds.add(id);
+    const parentElement = element.parentElement?.closest<HTMLElement>(
+      '[data-product-canvas-element]'
+    );
+    const candidateParentId = parentElement?.dataset.productCanvasElement?.trim() || null;
+    layers.push({
+      id,
+      label: element.dataset.productCanvasLabel?.trim() || id,
+      parentId: candidateParentId === id ? null : candidateParentId,
+      domOrder: layers.length
+    });
+  });
+
+  return layers;
+}
+
 const productCanvasElements: ProductCanvasElementDefinition[] = [
+  { id: 'listing-view-grid', label: 'Gumb Mreža', page: 'listing', group: 'Glava seznama' },
+  { id: 'listing-view-list', label: 'Gumb Seznam', page: 'listing', group: 'Glava seznama' },
+  { id: 'listing-sort', label: 'Polje razvrščanja', page: 'listing', group: 'Glava seznama' },
   { id: 'listing-header', label: 'Glava seznama', page: 'listing', group: 'Seznam' },
   { id: 'listing-card', label: 'Kartica artikla', page: 'listing', group: 'Kartica' },
   { id: 'card-image', label: 'Slika kartice', page: 'listing', group: 'Kartica' },
@@ -150,7 +192,11 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'product-price', label: 'Cena in DDV', page: 'product', group: 'Nakup' },
   { id: 'product-availability', label: 'Razpoložljivost', page: 'product', group: 'Nakup' },
   { id: 'product-summary', label: 'Povzetek različice', page: 'product', group: 'Nakup' },
+  { id: 'product-minimum-order', label: 'Minimalno naročilo', page: 'product', group: 'Nakup' },
   { id: 'product-quantity', label: 'Količina', page: 'product', group: 'Nakup' },
+  { id: 'product-quantity-decrease', label: 'Zmanjšaj količino', page: 'product', group: 'Količina' },
+  { id: 'product-quantity-input', label: 'Vnos količine', page: 'product', group: 'Količina' },
+  { id: 'product-quantity-increase', label: 'Povečaj količino', page: 'product', group: 'Količina' },
   { id: 'product-quantity-label', label: 'Naslov količine', page: 'product', group: 'Količina' },
   { id: 'product-quantity-controls', label: 'Kontrole količine', page: 'product', group: 'Količina' },
   { id: 'product-primary-action', label: 'Primarno dejanje', page: 'product', group: 'Nakup' },
@@ -159,6 +205,7 @@ const productCanvasElements: ProductCanvasElementDefinition[] = [
   { id: 'product-secondary', label: 'Dodatna vsebina', page: 'product', group: 'Vsebina' },
   { id: 'product-secondary-tabs', label: 'Zavihki podrobnosti', page: 'product', group: 'Vsebina' },
   { id: 'product-secondary-tab-description', label: 'Zavihek opisa', page: 'product', group: 'Zavihki' },
+  { id: 'product-delivery-and-payment', label: 'Dostava in plačilo', page: 'product', group: 'Vsebina' },
   { id: 'product-secondary-tab-specifications', label: 'Zavihek specifikacij', page: 'product', group: 'Zavihki' },
   { id: 'product-secondary-tab-delivery-and-payment', label: 'Zavihek dostave in plačila', page: 'product', group: 'Zavihki' },
   { id: 'product-description', label: 'Opis izdelka', page: 'product', group: 'Vsebina' },
@@ -266,7 +313,12 @@ function PreviewPageControls({
   onChange: (page: PreviewPage) => void;
 }) {
   return (
-    <div role="group" aria-label="Stran predogleda" className="flex shrink-0 items-center gap-2">
+    <div
+      role="group"
+      aria-label="Stran predogleda"
+      data-product-page-controls
+      className="flex shrink-0 items-center gap-2"
+    >
       {(['listing', 'product', 'cart'] as const).map((page) => {
         const PageIcon = page === 'listing'
           ? List
@@ -737,6 +789,7 @@ function OrderEditor<Value extends string>({
 
 function ProductPreview({
   config,
+  selectedElementIds = [],
   globalStyle,
   page,
   device,
@@ -747,13 +800,14 @@ function ProductPreview({
   onElementChange
 }: {
   config: ProductAppearanceConfig;
+  selectedElementIds?: readonly string[];
   globalStyle: GlobalStyleConfig;
   page: PreviewPage;
   device: PreviewDevice;
   product?: StorefrontProduct | null;
   interactive?: boolean;
   selectedElementId?: string | null;
-  onSelectElement?: (elementId: string) => void;
+  onSelectElement?: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
   onElementChange?: (
     elementId: string,
     updates: Partial<ProductCanvasElementDeviceSettings>
@@ -803,11 +857,12 @@ function ProductPreview({
     return (
       <ProductCanvasElement
         elementId={elementId}
+        key={elementId}
         label={definition?.label ?? elementId}
         settings={resolveProductCanvasElementDeviceSettings(config, elementId, device)}
         active={canvasActive}
         interactive={interactive && editorRepresentative}
-        selected={selectedElementId === elementId && editorRepresentative}
+        selected={selectedElementIds.includes(elementId) && editorRepresentative}
         forceVisible={forceVisible || PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(elementId)}
         gridSizePx={config.canvas.gridSizePx}
         snapToGrid={config.canvas.snapToGrid}
@@ -848,6 +903,12 @@ function ProductPreview({
                       sort="recommended"
                       onModeChange={() => undefined}
                       onSortChange={() => undefined}
+                      canvasWrapper={(
+                        elementId,
+                        _label,
+                        children,
+                        className
+                      ) => wrapElement(elementId, children, className)}
                     />
                   )
                 : null
@@ -1314,10 +1375,11 @@ export default function AdminProductAppearancePageClient({
   const [activeSection, setActiveSection] = useState<SectionKey>('listings');
   const [previewPage, setPreviewPage] = useState<PreviewPage>('product');
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('desktop');
-  const [selectedCanvasElementId, setSelectedCanvasElementId] = useState<string | null>('product-title');
+  const [selectedCanvasElementIds, setSelectedCanvasElementIds] = useState<string[]>(['product-title']);
+  const [canvasElementLabels, setCanvasElementLabels] = useState<Record<string, string>>({});
   const [isElementPickerOpen, setIsElementPickerOpen] = useState(false);
   const [isGridSettingsOpen, setIsGridSettingsOpen] = useState(false);
-  const [renderedCanvasElementIds, setRenderedCanvasElementIds] = useState<Set<string> | null>(null);
+  const [runtimeCanvasLayers, setRuntimeCanvasLayers] = useState<RuntimeProductCanvasLayer[]>([]);
   const [productOptions, setProductOptions] = useState<AdminCatalogListItem[]>(initialProducts);
   const [selectedProductSlug, setSelectedProductSlug] = useState(initialProduct?.slug ?? '');
   const [product, setProduct] = useState<CatalogItemEditorHydration | null>(initialProduct);
@@ -1340,12 +1402,13 @@ export default function AdminProductAppearancePageClient({
   const isProductDirty = comparableProduct(product) !== comparableProduct(savedProduct);
   const isDirty = isAppearanceDirty || isProductDirty;
   const visibleCanvasElements = productCanvasElements.filter((element) => element.page === previewPage);
-  const pickerCanvasElements = renderedCanvasElementIds
-    ? visibleCanvasElements.filter((element) => renderedCanvasElementIds.has(element.id))
-    : visibleCanvasElements;
+  const selectedCanvasElementId = selectedCanvasElementIds.at(-1) ?? null;
   const selectedCanvasDefinition = productCanvasElements.find(
     (element) => element.id === selectedCanvasElementId
   ) ?? null;
+  const selectedCanvasElementLabel = selectedCanvasElementId
+    ? selectedCanvasDefinition?.label ?? canvasElementLabels[selectedCanvasElementId] ?? selectedCanvasElementId
+    : '';
   const selectedCanvasSettings = selectedCanvasElementId
     ? resolveProductCanvasElementDeviceSettings(config, selectedCanvasElementId, previewDevice)
     : null;
@@ -1362,16 +1425,76 @@ export default function AdminProductAppearancePageClient({
       : null,
     [config.relatedProducts, product, productOptions, selectedVariantId]
   );
-  const contextToolbarElements = visibleCanvasElements.map((element) => ({
-    ...element,
-    settings: resolveProductCanvasElementDeviceSettings(config, element.id, previewDevice),
-    protectedElement: PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(element.id)
-  }));
+  const productAppearanceLayerItems = useMemo<ProductAppearanceLayerItem[]>(() => {
+    const runtimeById = new Map(runtimeCanvasLayers.map((layer) => [layer.id, layer]));
+    return runtimeCanvasLayers.map((layer) => {
+      const definition = productCanvasElements.find((element) => element.id === layer.id);
+      return {
+        ...layer,
+        label: definition?.label ?? layer.label,
+        group: definition?.group
+          ?? (layer.parentId ? runtimeById.get(layer.parentId)?.label : null)
+          ?? previewPageLabels[previewPage],
+        settings: resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice),
+        protectedElement: PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(layer.id)
+      };
+    });
+  }, [config, previewDevice, previewPage, runtimeCanvasLayers]);
+  const selectCanvasElement = useCallback((
+    elementId: string,
+    options: ProductCanvasSelectionOptions = {}
+  ) => {
+    if (options.label) {
+      const label = options.label;
+      setCanvasElementLabels((current) => (
+        current[elementId] === label
+          ? current
+          : { ...current, [elementId]: label }
+      ));
+    }
+    setSelectedCanvasElementIds((current) => {
+      const selected = current.includes(elementId);
+      if (options.additive) {
+        return selected
+          ? current.filter((id) => id !== elementId)
+          : [...current, elementId];
+      }
+      if (options.preserveExisting && selected) return current;
+      return [elementId];
+    });
+  }, []);
+  const clearCanvasSelection = useCallback(() => {
+    setSelectedCanvasElementIds([]);
+  }, []);
   useEffect(() => {
     setIsElementPickerOpen(false);
     setIsGridSettingsOpen(false);
-    setRenderedCanvasElementIds(null);
   }, [previewDevice, previewPage, selectedCanvasElementId, showAdvancedSettings]);
+  useEffect(() => {
+    const root = interactivePreviewViewportRef.current;
+    if (!root) return undefined;
+
+    const refreshLayers = () => {
+      const next = readRuntimeProductCanvasLayers(root);
+      setRuntimeCanvasLayers((current) => (
+        JSON.stringify(current) === JSON.stringify(next) ? current : next
+      ));
+    };
+    const observer = typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(refreshLayers);
+    observer?.observe(root, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      attributeFilter: ['data-product-canvas-element', 'data-product-canvas-label']
+    });
+    const frame = window.requestAnimationFrame(refreshLayers);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [previewDevice, previewPage, previewProduct]);
   useEffect(() => {
     if (!isElementPickerOpen && !isGridSettingsOpen) return undefined;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -1412,41 +1535,236 @@ export default function AdminProductAppearancePageClient({
     }));
   }
 
+  function writeCanvasElementDeviceUpdates(
+    current: ProductAppearanceConfig,
+    elements: ProductAppearanceConfig['canvas']['elements'],
+    elementId: string,
+    device: PreviewDevice,
+    updates: Partial<ProductCanvasElementDeviceSettings>
+  ) {
+    const currentElement = current.canvas.elements[elementId] ?? {
+      responsive: {
+        desktop: resolveProductCanvasElementDeviceSettings(current, elementId, 'desktop'),
+        tablet: resolveProductCanvasElementDeviceSettings(current, elementId, 'tablet'),
+        mobile: resolveProductCanvasElementDeviceSettings(current, elementId, 'mobile')
+      }
+    };
+    const currentSettings = resolveProductCanvasElementDeviceSettings(
+      current,
+      elementId,
+      device
+    );
+    return {
+      ...elements,
+      [elementId]: {
+        responsive: {
+          ...currentElement.responsive,
+          [device]: normalizeProductCanvasElementDeviceSettings(
+            { ...currentSettings, ...updates },
+            currentSettings
+          )
+        }
+      }
+    };
+  }
+
   function updateCanvasElement(
     elementId: string,
     updates: Partial<ProductCanvasElementDeviceSettings>
   ) {
     setConfig((current) => {
-      const currentElement = current.canvas.elements[elementId] ?? {
-        responsive: {
-          desktop: resolveProductCanvasElementDeviceSettings(current, elementId, 'desktop'),
-          tablet: resolveProductCanvasElementDeviceSettings(current, elementId, 'tablet'),
-          mobile: resolveProductCanvasElementDeviceSettings(current, elementId, 'mobile')
-        }
-      };
-      const currentSettings = resolveProductCanvasElementDeviceSettings(
+      let elements = { ...current.canvas.elements };
+      const targetSettings = resolveProductCanvasElementDeviceSettings(
         current,
         elementId,
         previewDevice
       );
+      const changesHorizontalOffset = Object.hasOwn(updates, 'offsetXPx');
+      const changesVerticalOffset = Object.hasOwn(updates, 'offsetYPx');
+      const moveSelection = selectedCanvasElementIds.length > 1
+        && selectedCanvasElementIds.includes(elementId)
+        && (changesHorizontalOffset || changesVerticalOffset);
+      const deltaX = changesHorizontalOffset
+        ? (updates.offsetXPx ?? targetSettings.offsetXPx) - targetSettings.offsetXPx
+        : 0;
+      const deltaY = changesVerticalOffset
+        ? (updates.offsetYPx ?? targetSettings.offsetYPx) - targetSettings.offsetYPx
+        : 0;
+
+      elements = writeCanvasElementDeviceUpdates(
+        current,
+        elements,
+        elementId,
+        previewDevice,
+        updates
+      );
+      if (moveSelection) {
+        for (const selectedId of selectedCanvasElementIds) {
+          if (selectedId === elementId) continue;
+          const selectedSettings = resolveProductCanvasElementDeviceSettings(
+            current,
+            selectedId,
+            previewDevice
+          );
+          if (selectedSettings.locked) continue;
+          elements = writeCanvasElementDeviceUpdates(
+            current,
+            elements,
+            selectedId,
+            previewDevice,
+            {
+              offsetXPx: selectedSettings.offsetXPx + deltaX,
+              offsetYPx: selectedSettings.offsetYPx + deltaY
+            }
+          );
+        }
+      }
       return {
         ...current,
-        canvas: {
-          ...current.canvas,
-          mode: 'free',
-          elements: {
-            ...current.canvas.elements,
-            [elementId]: {
-              responsive: {
-                ...currentElement.responsive,
-                [previewDevice]: normalizeProductCanvasElementDeviceSettings(
-                  { ...currentSettings, ...updates },
-                  currentSettings
-                )
-              }
-            }
-          }
+        canvas: { ...current.canvas, mode: 'free', elements }
+      };
+    });
+  }
+
+  function updateSelectedCanvasElements(
+    updates: Partial<ProductCanvasElementDeviceSettings>
+  ) {
+    setConfig((current) => {
+      let elements = { ...current.canvas.elements };
+      for (const elementId of selectedCanvasElementIds) {
+        const elementSettings = resolveProductCanvasElementDeviceSettings(
+          current,
+          elementId,
+          previewDevice
+        );
+        if (
+          elementSettings.locked
+          && !Object.hasOwn(updates, 'locked')
+          && !Object.hasOwn(updates, 'visible')
+        ) {
+          continue;
         }
+        elements = writeCanvasElementDeviceUpdates(
+          current,
+          elements,
+          elementId,
+          previewDevice,
+          updates
+        );
+      }
+      return {
+        ...current,
+        canvas: { ...current.canvas, mode: 'free', elements }
+      };
+    });
+  }
+
+  function layerActionTargetIds(elementId: string) {
+    return selectedCanvasElementIds.includes(elementId)
+      ? selectedCanvasElementIds
+      : [elementId];
+  }
+
+  function toggleLayerVisibility(elementId: string) {
+    const targetIds = layerActionTargetIds(elementId);
+    setConfig((current) => {
+      const visible = !resolveProductCanvasElementDeviceSettings(
+        current,
+        elementId,
+        previewDevice
+      ).visible;
+      let elements = { ...current.canvas.elements };
+      for (const targetId of targetIds) {
+        if (!visible && PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(targetId)) continue;
+        elements = writeCanvasElementDeviceUpdates(
+          current,
+          elements,
+          targetId,
+          previewDevice,
+          { visible }
+        );
+      }
+      return {
+        ...current,
+        canvas: { ...current.canvas, mode: 'free', elements }
+      };
+    });
+  }
+
+  function toggleLayerLock(elementId: string) {
+    const targetIds = layerActionTargetIds(elementId);
+    setConfig((current) => {
+      const locked = !resolveProductCanvasElementDeviceSettings(
+        current,
+        elementId,
+        previewDevice
+      ).locked;
+      let elements = { ...current.canvas.elements };
+      for (const targetId of targetIds) {
+        elements = writeCanvasElementDeviceUpdates(
+          current,
+          elements,
+          targetId,
+          previewDevice,
+          { locked }
+        );
+      }
+      return {
+        ...current,
+        canvas: { ...current.canvas, mode: 'free', elements }
+      };
+    });
+  }
+
+  function reorderLayers(parentId: string | null, topFirstIds: readonly string[]) {
+    const scopeItems = productAppearanceLayerItems.filter(
+      (item) => item.parentId === parentId
+    );
+    const scopeIds = new Set(scopeItems.map((item) => item.id));
+    const uniqueTopFirstIds = Array.from(new Set(topFirstIds)).filter(
+      (elementId) => scopeIds.has(elementId)
+    );
+    scopeItems.forEach((item) => {
+      if (!uniqueTopFirstIds.includes(item.id)) uniqueTopFirstIds.push(item.id);
+    });
+    if (uniqueTopFirstIds.length < 2) return;
+
+    setConfig((current) => {
+      let elements = { ...current.canvas.elements };
+      rankProductAppearanceLayersTopFirst(uniqueTopFirstIds).forEach(({ id, zIndex }) => {
+        elements = writeCanvasElementDeviceUpdates(
+          current,
+          elements,
+          id,
+          previewDevice,
+          { zIndex }
+        );
+      });
+      return {
+        ...current,
+        canvas: { ...current.canvas, mode: 'free', elements }
+      };
+    });
+  }
+
+  function removeSelectedCanvasElements() {
+    setConfig((current) => {
+      let elements = { ...current.canvas.elements };
+      for (const elementId of selectedCanvasElementIds) {
+        if (PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(elementId)) continue;
+        for (const device of ['desktop', 'tablet', 'mobile'] as const) {
+          elements = writeCanvasElementDeviceUpdates(
+            current,
+            elements,
+            elementId,
+            device,
+            { visible: false }
+          );
+        }
+      }
+      return {
+        ...current,
+        canvas: { ...current.canvas, mode: 'free', elements }
       };
     });
   }
@@ -1626,24 +1944,12 @@ export default function AdminProductAppearancePageClient({
       (element) => element.id === selectedCanvasElementId && element.page === page
     );
     if (!currentBelongsToPage) {
-      setSelectedCanvasElementId(
-        productCanvasElements.find((element) => element.page === page)?.id ?? null
-      );
+      const nextElementId = productCanvasElements.find((element) => element.page === page)?.id;
+      setSelectedCanvasElementIds(nextElementId ? [nextElementId] : []);
     }
   }
 
   function toggleElementPicker() {
-    if (!isElementPickerOpen) {
-      const renderedIds = new Set(
-        Array.from(
-          interactivePreviewViewportRef.current?.querySelectorAll<HTMLElement>(
-            '[data-product-canvas-element]'
-          ) ?? []
-        ).map((element) => element.dataset.productCanvasElement ?? '')
-          .filter(Boolean)
-      );
-      setRenderedCanvasElementIds(renderedIds);
-    }
     setIsGridSettingsOpen(false);
     setIsElementPickerOpen((open) => !open);
   }
@@ -2062,7 +2368,7 @@ export default function AdminProductAppearancePageClient({
       <AdminPodobaTabs />
 
       <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 min-[860px]:grid-cols-[minmax(260px,1fr)_auto] min-[860px]:items-end">
-        <div className="grid max-w-xl gap-1">
+        <div className="grid max-w-xl gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
             Artikel v predogledu
           </span>
@@ -2076,7 +2382,8 @@ export default function AdminProductAppearancePageClient({
             placeholder="Ni artiklov za predogled"
             ariaLabel="Artikel v predogledu"
             marker="product-preview-product"
-            triggerClassName="h-9"
+            tone="light"
+            triggerClassName="!h-8 !rounded-md !border-slate-300 !bg-white !px-2.5 !text-[12px] !font-normal !text-slate-700"
             onValueChange={(slug) => void changeSelectedProduct(slug)}
           />
           <span className="text-[10px] leading-4 text-slate-500">
@@ -2178,6 +2485,7 @@ export default function AdminProductAppearancePageClient({
                       product={previewProduct}
                       device={previewDevice}
                       selectedElementId={null}
+                      selectedElementIds={[]}
                       onSelectElement={() => undefined}
                       onElementChange={() => undefined}
                     />
@@ -2211,6 +2519,7 @@ export default function AdminProductAppearancePageClient({
                 ref={inlineToolbarRef}
                 role="toolbar"
                 aria-label="Glavna orodna vrstica predogleda"
+                data-product-page-toolbar
                 data-toolbar-mode="inline"
                 data-toolbar-placement="inline"
                 data-toolbar-ready="true"
@@ -2247,59 +2556,16 @@ export default function AdminProductAppearancePageClient({
                   <div
                     role="dialog"
                     aria-label="Elementi predogleda"
-                    className={`absolute right-0 top-[calc(100%+6px)] z-[130] w-[min(360px,calc(100vw-32px))] overflow-hidden max-md:fixed max-md:inset-x-3 max-md:top-20 max-md:w-auto ${appearanceEditorToolbarPopoverSurfaceClassName}`}
+                    className="absolute right-0 top-[calc(100%+6px)] z-[130] w-[min(360px,calc(100vw-32px))] max-md:fixed max-md:inset-x-3 max-md:top-20 max-md:w-auto"
                   >
-                    <div className="flex items-start justify-between gap-2.5 border-b border-white/15 px-3 pb-1.5 pt-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-semibold text-white">Elementi predogleda</p>
-                        <p className="mt-0.5 truncate text-[10px] text-white/70">
-                          Izberite element, nato ga uredite z njegovo plavajočo orodno vrstico.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Zapri"
-                        title="Zapri"
-                        onClick={() => setIsElementPickerOpen(false)}
-                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-white/75 transition hover:bg-white/10 hover:text-white ${adminControlFocusTokenClasses}`}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <div className="grid max-h-72 gap-2 overflow-y-auto p-2" data-appearance-editor-scroll-purpose="data">
-                      {Array.from(new Set(pickerCanvasElements.map((element) => element.group))).map((group) => (
-                        <div key={group}>
-                          <p className="mb-1 px-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-white/55">{group}</p>
-                          <div className="grid gap-0.5">
-                            {pickerCanvasElements.filter((element) => element.group === group).map((element) => {
-                              const elementSettings = resolveProductCanvasElementDeviceSettings(config, element.id, previewDevice);
-                              return (
-                                <button
-                                  key={element.id}
-                                  type="button"
-                                  aria-pressed={selectedCanvasElementId === element.id}
-                                  onClick={() => {
-                                    setSelectedCanvasElementId(element.id);
-                                    setIsElementPickerOpen(false);
-                                  }}
-                                  className={`flex h-8 items-center gap-2 rounded-lg px-2 text-left text-[10px] font-medium transition ${adminControlFocusTokenClasses} ${
-                                    selectedCanvasElementId === element.id
-                                      ? 'bg-white/15 text-white'
-                                      : 'text-white/75 hover:bg-white/10 hover:text-white'
-                                  }`}
-                                >
-                                  {elementSettings.visible || PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(element.id)
-                                    ? <Eye className="h-3.5 w-3.5 shrink-0" />
-                                    : <EyeOff className="h-3.5 w-3.5 shrink-0" />}
-                                  <span className="min-w-0 flex-1 truncate">{element.label}</span>
-                                  {elementSettings.locked ? <Lock className="h-3 w-3 shrink-0 text-white/55" /> : null}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <ProductAppearanceLayersPanel
+                      items={productAppearanceLayerItems}
+                      selectedIds={selectedCanvasElementIds}
+                      onSelect={selectCanvasElement}
+                      onToggleVisibility={toggleLayerVisibility}
+                      onToggleLock={toggleLayerLock}
+                      onReorder={reorderLayers}
+                    />
                   </div>
                 ) : null}
                 {isGridSettingsOpen ? (
@@ -2374,7 +2640,7 @@ export default function AdminProductAppearancePageClient({
             </div>
           </div>
 
-          <div className="block min-h-[680px] min-w-0 bg-slate-50/60">
+          <div className="grid min-h-[680px] min-w-0 grid-cols-1 items-start bg-slate-50/60 lg:grid-cols-[minmax(0,1fr)_286px]">
             <aside className="hidden">
               <div className="border-b border-slate-200 px-3 py-3">
                 <h3 className="text-xs font-semibold text-slate-800">Elementi</h3>
@@ -2394,7 +2660,10 @@ export default function AdminProductAppearancePageClient({
                           <button
                             key={element.id}
                             type="button"
-                            onClick={() => setSelectedCanvasElementId(element.id)}
+                            onClick={(event) => selectCanvasElement(element.id, {
+                              additive: event.ctrlKey || event.metaKey,
+                              label: element.label
+                            })}
                             aria-pressed={selectedCanvasElementId === element.id}
                             className={`flex min-h-9 w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition ${adminControlFocusTokenClasses} ${
                               selectedCanvasElementId === element.id
@@ -2451,7 +2720,8 @@ export default function AdminProductAppearancePageClient({
                       product={previewProduct}
                       device={previewDevice}
                       selectedElementId={selectedCanvasElementId}
-                      onSelectElement={setSelectedCanvasElementId}
+                      selectedElementIds={selectedCanvasElementIds}
+                      onSelectElement={selectCanvasElement}
                       onElementChange={updateCanvasElement}
                     />
                   ) : (
@@ -2475,7 +2745,8 @@ export default function AdminProductAppearancePageClient({
                     product={previewProduct}
                     interactive
                     selectedElementId={selectedCanvasElementId}
-                    onSelectElement={setSelectedCanvasElementId}
+                    selectedElementIds={selectedCanvasElementIds}
+                    onSelectElement={selectCanvasElement}
                     onElementChange={updateCanvasElement}
                   />
                 )}
@@ -2487,12 +2758,18 @@ export default function AdminProductAppearancePageClient({
                 viewportRef={interactivePreviewViewportRef}
                 ariaLabel="Orodna vrstica izbranega elementa"
                 testId="product-appearance-context-toolbar"
+                onDismiss={clearCanvasSelection}
               >
                 <ProductAppearanceContextToolbar
                   selectedElementId={selectedCanvasElementId}
-                  selectedElementLabel={selectedCanvasDefinition?.label ?? ''}
+                  selectedElementIds={selectedCanvasElementIds}
+                  selectedElementLabel={selectedCanvasElementIds.length > 1
+                    ? `${selectedCanvasElementIds.length} izbranih elementov`
+                    : selectedCanvasElementLabel}
                   settings={selectedCanvasSettings}
-                  elements={contextToolbarElements}
+                  canRemoveSelected={selectedCanvasElementIds.some(
+                    (elementId) => !PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(elementId)
+                  )}
                   product={product}
                   previewProduct={previewProduct}
                   productOptions={productOptions}
@@ -2501,19 +2778,16 @@ export default function AdminProductAppearancePageClient({
                   purchaseArea={config.purchaseArea}
                   relatedProducts={config.relatedProducts}
                   secondaryContent={config.secondaryContent}
+                  globalStyle={initialGlobalStyle}
                   previewDevice={previewDevice}
                   selectedVariantId={selectedVariantId}
                   uploading={isUploadingMedia}
-                  onSelectElement={setSelectedCanvasElementId}
-                  onCanvasChange={(updates) => {
-                    if (selectedCanvasElementId) {
-                      updateCanvasElement(selectedCanvasElementId, updates);
-                    }
-                  }}
+                  onCanvasChange={updateSelectedCanvasElements}
                   onElementCanvasChange={updateCanvasElement}
                   onReset={() => {
-                    if (selectedCanvasElementId) resetCanvasElement(selectedCanvasElementId);
+                    selectedCanvasElementIds.forEach(resetCanvasElement);
                   }}
+                  onRemove={removeSelectedCanvasElements}
                   onProductChange={updateProduct}
                   onGalleryChange={(updates) => updateSection('gallery', updates)}
                   onVariantsChange={(updates) => updateSection('variants', updates)}
@@ -2525,6 +2799,16 @@ export default function AdminProductAppearancePageClient({
                 />
               </FloatingAppearanceEditorContextToolbar>
             </div>
+
+            <ProductAppearanceLayersPanel
+              items={productAppearanceLayerItems}
+              selectedIds={selectedCanvasElementIds}
+              className="sticky top-4 mr-3 mt-5 hidden lg:block"
+              onSelect={selectCanvasElement}
+              onToggleVisibility={toggleLayerVisibility}
+              onToggleLock={toggleLayerLock}
+              onReorder={reorderLayers}
+            />
 
             <aside className="hidden">
               <CanvasElementInspector

@@ -115,7 +115,7 @@ describe('related product appearance editor contracts', () => {
     expect(productCard).toContain('quantity={relatedQuantity}');
     expect(productCard).toContain('<ShoppingCart');
     expect(productCard).toContain(
-      "product.isAvailable ? 'Izberi razli"
+      "productIsAvailable ? 'Izberi razli"
     );
     expect(summary).toContain(
       'product.variants.length === 1 && purchasableVariants.length === 1'

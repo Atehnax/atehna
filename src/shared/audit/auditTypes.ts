@@ -123,6 +123,7 @@ export type AuditEventListResult = {
   page: number;
   pageSize: PageSizeValue;
   pageCount: number;
+  warning?: string;
 };
 
 export type AuditLoggingSettingsResponse = {

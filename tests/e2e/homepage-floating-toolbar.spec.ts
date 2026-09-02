@@ -279,7 +279,7 @@ async function expectCompactToolbarPopover(dialog: Locator, size: 'standard' | '
   expect(geometry.body.paddingRight).toBeLessThanOrEqual(12);
   expect(geometry.body.paddingTop).toBeLessThanOrEqual(8);
   expect(geometry.body.paddingBottom).toBeLessThanOrEqual(8);
-  expect(geometry.body.overflowY).toBe('visible');
+  expect(geometry.body.overflowY).toBe('auto');
   expect(geometry.body.scrollWidth).toBeLessThanOrEqual(geometry.body.clientWidth + 1);
   expect(geometry.rect.x).toBeGreaterThanOrEqual(-1);
   expect(geometry.rect.y).toBeGreaterThanOrEqual(-1);
@@ -726,5 +726,106 @@ test.describe('homepage floating toolbar at the reported browser viewport', () =
     await expectToolbarPopoverMatchesFloatingToolbar(carouselPopover, toolbar);
     await expectCompactToolbarPopover(carouselPopover, 'wide');
     await expect(carouselPopover.getByTestId('homepage-hero-carousel-settings')).toBeVisible();
+  });
+});
+
+test.describe('homepage toolbar short-viewport dismissal and overflow', () => {
+  test.use({ viewport: { width: 1024, height: 640 } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/podoba/glavna-stran');
+    await expect(page.getByTestId('homepage-preview-stage')).toHaveAttribute(
+      'data-preview-ready',
+      'true',
+      { timeout: 15_000 }
+    );
+  });
+
+  test('bounds a tall panel away from its selected anchor and scrolls only its body', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 440 });
+    const stage = page.getByTestId('homepage-preview-stage');
+    const toolbar = homepageToolbar(page, 'floating');
+    const heroTitle = page.locator(
+      '[data-testid="homepage-preview-live-layer"] [data-homepage-canvas-element][data-canvas-element-id="hero:title"]'
+    );
+
+    await heroTitle.click();
+    await expect(stage).toHaveAttribute('data-selected-element-id', 'hero:title');
+    await expect(toolbar).toHaveAttribute('data-toolbar-ready', 'true');
+    await toolbar.getByRole('button', { name: 'Notranji in zunanji razmiki', exact: true }).click();
+
+    const dialog = page.getByRole('dialog', { name: /^Razmiki/ });
+    const body = dialog.getByTestId('homepage-toolbar-popover-body');
+    await expect(dialog).toBeVisible();
+    await expect(body).toHaveAttribute('data-settings-scroll', 'internal');
+
+    const [dialogBox, toolbarBox, anchorBox, panelSide, toolbarPlacement, metrics] = await Promise.all([
+      requireBox(dialog, 'Short-viewport settings popover'),
+      requireBox(toolbar, 'Short-viewport floating toolbar'),
+      requireBox(heroTitle, 'Selected hero title'),
+      dialog.getAttribute('data-homepage-toolbar-popover-placement'),
+      toolbar.getAttribute('data-toolbar-placement'),
+      body.evaluate((element) => {
+        const panel = element.parentElement;
+        if (!panel) throw new Error('Popover body has no panel.');
+        const panelStyle = getComputedStyle(panel);
+        return {
+          bodyClientHeight: element.clientHeight,
+          bodyScrollHeight: element.scrollHeight,
+          bodyOverflowY: getComputedStyle(element).overflowY,
+          panelMaxHeight: Number.parseFloat(panelStyle.maxHeight)
+        };
+      })
+    ]);
+
+    expect(panelSide).toBe(toolbarPlacement === 'top' ? 'above' : 'below');
+    expect(dialogBox.y).toBeGreaterThanOrEqual(7);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(441);
+    expect(dialogBox.height).toBeLessThanOrEqual(metrics.panelMaxHeight + 1);
+    expect(metrics.bodyOverflowY).toBe('auto');
+    expect(metrics.bodyScrollHeight).toBeGreaterThan(metrics.bodyClientHeight);
+
+    if (panelSide === 'above') {
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(toolbarBox.y + 2);
+      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(anchorBox.y + 2);
+    } else {
+      expect(dialogBox.y).toBeGreaterThanOrEqual(toolbarBox.y + toolbarBox.height - 2);
+      expect(dialogBox.y).toBeGreaterThanOrEqual(anchorBox.y + anchorBox.height - 2);
+    }
+
+    await body.locator('input').last().scrollIntoViewIfNeeded();
+    expect(await body.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  });
+
+  test('keeps nested select and color portals selected, then clears selection outside', async ({ page }) => {
+    const stage = page.getByTestId('homepage-preview-stage');
+    const toolbar = homepageToolbar(page, 'floating');
+    const heroTitle = page.locator(
+      '[data-testid="homepage-preview-live-layer"] [data-homepage-canvas-element][data-canvas-element-id="hero:title"]'
+    );
+
+    await heroTitle.click();
+    await expect(stage).toHaveAttribute('data-selected-element-id', 'hero:title');
+    await toolbar.getByRole('button', { name: 'Slog besedila', exact: true }).click();
+
+    const dialog = page.getByRole('dialog', { name: /^Besedilo/ });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Pisava', exact: true }).click();
+    const listbox = page.getByRole('listbox', { name: 'Pisava', exact: true });
+    await expect(listbox).toBeVisible();
+    await listbox.getByRole('option').nth(1).click();
+    await expect(stage).toHaveAttribute('data-selected-element-id', 'hero:title');
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Odpri barvno paleto: Barva', exact: true }).click();
+    const palette = page.getByRole('dialog', { name: 'Barva', exact: true });
+    await expect(palette).toBeVisible();
+    await palette.getByRole('button', { name: 'Zapri barvno paleto', exact: true }).click();
+    await expect(stage).toHaveAttribute('data-selected-element-id', 'hero:title');
+    await expect(dialog).toBeVisible();
+
+    await page.getByRole('heading', { name: 'Glavna stran', exact: true }).first().click();
+    await expect(stage).toHaveAttribute('data-selected-element-id', '');
+    await expect(toolbar).toHaveCount(0);
   });
 });

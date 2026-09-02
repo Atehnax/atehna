@@ -49,7 +49,7 @@ export default function AdminQuoteIssueDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen && !busy) onCancel();
       }}
-      title="Izdaja in pošiljanje ponudbe"
+      title="Izdaja ponudbe"
       isDismissable={!busy}
       initialFocusRef={cancelButtonRef}
       panelClassName="max-w-lg"
@@ -77,7 +77,7 @@ export default function AdminQuoteIssueDialog({
             className={dialogActionButtonClassName}
             data-testid="quote-issue-confirm"
           >
-            {busy ? 'Izdajam in pošiljam …' : 'Izdaj in pošlji ponudbo'}
+            {busy ? 'Izdajam …' : 'Izdaj ponudbo'}
           </Button>
         </div>
       }
@@ -119,8 +119,13 @@ export default function AdminQuoteIssueDialog({
 
         <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] leading-4 text-blue-800">
           Ob potrditvi bo trenutna različica ponudbe shranjena in zamrznjena.
-          Nadaljnje spremembe bodo zahtevale novo različico, e-pošta stranki pa
-          bo, če bo priprava uspešna, uvrščena v čakalno vrsto.
+          Nadaljnje spremembe bodo zahtevale novo različico. E-pošta stranki bo
+          uvrščena v čakalno vrsto samo, če je dogodek »Ponudba izdana« zanjo
+          omogočen v{' '}
+          <a className="font-semibold underline" href="/admin/email">
+            nastavitvah E-pošta
+          </a>
+          .
         </p>
 
         {error ? (

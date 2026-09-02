@@ -272,8 +272,8 @@ export function CompactHexColorField({
     : 'border-slate-200 bg-white text-slate-900 shadow-slate-900/15';
   const mutedClasses = tone === 'dark' ? 'text-white/55' : 'text-slate-500';
   const rootLayoutClasses = layout === 'inline'
-    ? 'inline-flex items-center gap-2'
-    : `flex items-center justify-between gap-3 rounded-lg border px-2.5 py-2 ${rootToneClasses}`;
+    ? 'inline-flex min-w-0 items-center gap-2'
+    : `flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 ${rootToneClasses}`;
   const inlineToneClasses = tone === 'dark' ? 'text-white' : 'text-slate-900';
   const customInputAriaLabel = inputAttributes?.['aria-label'];
 
@@ -412,10 +412,14 @@ export function CompactHexColorField({
       data-admin-hex-color-layout={layout}
       data-logo-presentation-control={marker}
     >
-      <label htmlFor={inputId} className={`min-w-0 text-[10px] font-medium ${labelClasses}`}>
+      <label
+        htmlFor={inputId}
+        title={label}
+        className={`min-w-0 truncate text-[10px] font-medium ${labelClasses}`}
+      >
         {label}
       </label>
-      <span className="flex min-w-0 items-center gap-1.5">
+      <span className="ml-auto grid min-w-[6.25rem] max-w-[8.25rem] flex-1 grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-1.5">
         <button
           ref={triggerRef}
           type="button"
@@ -465,7 +469,7 @@ export function CompactHexColorField({
               closePalette();
             }
           }}
-          className={`h-7 w-[6.6rem] rounded-md border px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] outline-none transition focus:ring-1 disabled:cursor-not-allowed disabled:opacity-45 ${inputClasses}`}
+          className={`h-7 min-w-0 w-full rounded-md border px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.04em] outline-none transition focus:ring-1 disabled:cursor-not-allowed disabled:opacity-45 ${inputClasses}`}
           aria-label={customInputAriaLabel ?? `${label} (HEX)`}
           placeholder={allowAlpha ? '#RRGGBBAA' : '#RRGGBB'}
           autoComplete="off"

@@ -202,6 +202,7 @@ export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MIN = -512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_MAX = 512;
 export const SITE_NAVIGATION_TOP_BAR_CENTER_OFFSET_STEP = 1;
 export const SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX = 88;
+export const SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX = 32;
 export const SITE_NAVIGATION_TOP_BAR_SEARCH_EXPANDED_WIDTH_PX = 320;
 export const SITE_NAVIGATION_TOP_BAR_TABLET_SEARCH_EXPANDED_WIDTH_PX = 240;
 export const SITE_CONTENT_MAX_WIDTH_PX = 1500;
@@ -266,14 +267,10 @@ export function getSiteNavigationTopBarSearchReservedWidth(device: SiteNavigatio
 }
 
 export function getSiteNavigationTopBarReservedFixedWidth(
-  item: Pick<SiteNavigationTopBarResponsiveItem, 'id' | 'slot' | 'fixedWidthPx' | 'widthMode'>,
-  device: SiteNavigationTopBarDevice,
-  searchMode: SiteNavigationTopBarSearchMode = 'field'
+  item: Pick<SiteNavigationTopBarResponsiveItem, 'id' | 'slot' | 'fixedWidthPx' | 'widthMode'>
 ) {
   if (item.id === 'search' && item.slot !== 'menu') {
-    if (searchMode !== 'field') return 32;
-    const configuredWidth = item.widthMode === 'fixed' && item.fixedWidthPx !== null ? item.fixedWidthPx : 0;
-    return Math.max(configuredWidth, getSiteNavigationTopBarSearchReservedWidth(device));
+    return SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
   }
 
   return item.widthMode === 'fixed' && item.fixedWidthPx !== null ? item.fixedWidthPx : null;
@@ -779,7 +776,7 @@ function normalizeTopBarResponsiveSettings(
       breakpointTo: asBoundedNumber(record.breakpointTo, fallback.breakpointTo ?? 1024, 320, 1920),
       navigationMode: asNavigationMode(record.navigationMode, fallback.navigationMode ?? 'condensed'),
       maxVisibleLinks: asBoundedNumber(record.maxVisibleLinks, fallback.maxVisibleLinks ?? 3, 1, 8),
-      searchMode: asSearchMode(record.searchMode, fallback.searchMode ?? 'icon'),
+      searchMode: 'icon',
       aiMode: asAiMode(record.aiMode, fallback.aiMode ?? 'button'),
       cartBadge: asVisible(record.cartBadge ?? fallback.cartBadge),
       height: asBoundedNumber(record.height, fallback.height, 48, 120),
@@ -810,7 +807,7 @@ function normalizeTopBarResponsiveSettings(
   return {
     ...baseSettingsWithZones,
     navigationMode: asNavigationMode(record.navigationMode, fallback.navigationMode ?? 'full'),
-    searchMode: asSearchMode(record.searchMode, fallback.searchMode ?? 'icon'),
+    searchMode: 'icon',
     aiMode: asAiMode(record.aiMode, fallback.aiMode ?? 'button'),
     height: asBoundedNumber(record.height, fallback.height, 56, 120),
     paddingX: asBoundedNumber(record.paddingX, fallback.paddingX, 0, 96),
@@ -824,7 +821,7 @@ function normalizeTopBarResponsiveItems(
   device: SiteNavigationTopBarDevice,
   value: unknown,
   fallbackItems: SiteNavigationTopBarResponsiveItem[],
-  searchMode: SiteNavigationTopBarSearchMode = 'icon'
+  sourceSearchMode: SiteNavigationTopBarSearchMode = 'icon'
 ) {
   const hasExplicitItems = Array.isArray(value);
   const rawItems = hasExplicitItems ? value : [];
@@ -867,28 +864,75 @@ function normalizeTopBarResponsiveItems(
     const raw = rawItemsById.get(id);
 
     const slot = asTopBarSlot(raw?.slot, fallback.slot);
-    const widthMode = asTopBarItemWidthMode(raw?.widthMode, fallback.widthMode);
+    const isCollapsedSearch = id === 'search' && slot !== 'menu';
+    const widthMode = isCollapsedSearch
+      ? 'fixed'
+      : asTopBarItemWidthMode(raw?.widthMode, fallback.widthMode);
     const configuredFixedWidthPx = asNullableBoundedNumber(raw?.fixedWidthPx, fallback.fixedWidthPx, 0, 1200);
-    const fixedWidthPx = id === 'search' && slot !== 'menu'
-      ? searchMode === 'field'
-        ? Math.max(configuredFixedWidthPx ?? 0, getSiteNavigationTopBarSearchReservedWidth(device))
-        : 32
+    const fixedWidthPx = isCollapsedSearch
+      ? SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
       : configuredFixedWidthPx;
     const placementBoundsWidth = DEFAULT_TOP_BAR_PLACEMENT_BOUNDS_WIDTH[device];
-    const widthPx = asBoundedNumber(
+    const rawWidthPx = asBoundedNumber(
       raw?.widthPx,
       fallback.widthPx ?? fixedWidthPx ?? 88,
       1,
       1600
     );
-    const xPx = asBoundedNumber(raw?.xPx, fallback.xPx, 0, 2400);
-    const xRatio = asBoundedNumber(
+    const rawXPx = asBoundedNumber(raw?.xPx, fallback.xPx, 0, 2400);
+    const rawXRatio = asBoundedNumber(
       raw?.xRatio,
-      placementBoundsWidth > 0 ? xPx / placementBoundsWidth : fallback.xRatio,
+      placementBoundsWidth > 0 ? rawXPx / placementBoundsWidth : fallback.xRatio,
       0,
       1,
       0.0001
     );
+    let widthPx = rawWidthPx;
+    let xPx = rawXPx;
+    let xRatio = rawXRatio;
+
+    if (isCollapsedSearch) {
+      const previousWidthPx = Math.max(
+        rawWidthPx,
+        configuredFixedWidthPx ?? 0,
+        sourceSearchMode === 'field'
+          ? getSiteNavigationTopBarSearchReservedWidth(device)
+          : SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
+      );
+      const hasRawXRatio =
+        raw?.xRatio !== null &&
+        raw?.xRatio !== undefined &&
+        raw?.xRatio !== '' &&
+        Number.isFinite(Number(raw.xRatio));
+      const previousMaxXPx = Math.max(0, placementBoundsWidth - previousWidthPx);
+      const previousXPx = Math.min(
+        previousMaxXPx,
+        Math.max(0, hasRawXRatio ? rawXRatio * placementBoundsWidth : rawXPx)
+      );
+      const nextMaxXPx = Math.max(
+        0,
+        placementBoundsWidth - SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
+      );
+      const nextXPx = Math.round(
+        Math.min(
+          nextMaxXPx,
+          Math.max(
+            0,
+            previousXPx + previousWidthPx - SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
+          )
+        )
+      );
+
+      widthPx = SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
+      xPx = nextXPx;
+      xRatio = asBoundedNumber(
+        placementBoundsWidth > 0 ? nextXPx / placementBoundsWidth : 0,
+        0,
+        0,
+        1,
+        0.0001
+      );
+    }
 
     return {
       id,
@@ -903,7 +947,9 @@ function normalizeTopBarResponsiveItems(
       xPx,
       xRatio,
       widthPx,
-      widthEditable: asVisible(raw?.widthEditable ?? fallback.widthEditable),
+      widthEditable: isCollapsedSearch
+        ? false
+        : asVisible(raw?.widthEditable ?? fallback.widthEditable),
       zIndex: asBoundedNumber(raw?.zIndex, fallback.zIndex, 0, 999),
       region: asTopBarRegion(raw?.region, fallback.region),
       visible: asVisible(raw?.visible ?? fallback.visible),
@@ -921,12 +967,16 @@ export function normalizeSiteNavigationTopBarResponsiveLayouts(
 
   return SITE_NAVIGATION_TOP_BAR_DEVICES.reduce((layouts, device) => {
     const rawLayout = asRecord(record[device]);
+    const rawSettings = asRecord(rawLayout.settings);
     const fallback = defaultLayouts[device];
+    const sourceSearchMode = device === 'mobile'
+      ? 'menu'
+      : asSearchMode(rawSettings.searchMode, fallback.settings.searchMode ?? 'icon');
 
     const settings = normalizeTopBarResponsiveSettings(device, rawLayout.settings, fallback.settings);
 
     layouts[device] = {
-      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, settings.searchMode),
+      items: normalizeTopBarResponsiveItems(device, rawLayout.items, fallback.items, sourceSearchMode),
       settings
     };
 
@@ -958,6 +1008,31 @@ function sortByPosition<T extends { position: number }>(items: T[]) {
 
 function getDesktopGroupSpan(group: SiteNavigationGroup) {
   return Math.min(Math.max(group.desktopSpan ?? 1, 1), SITE_NAVIGATION_DESKTOP_COLUMN_COUNT);
+}
+
+export function getSiteNavigationDesktopGroupLinkColumns(
+  group: SiteNavigationGroup,
+  slotSpan = getDesktopGroupSpan(group)
+): SiteNavigationLink[][] {
+  const finiteSlotSpan = Number.isFinite(slotSpan) ? Math.trunc(slotSpan) : 1;
+  const columnCount = Math.min(Math.max(finiteSlotSpan, 1), SITE_NAVIGATION_DESKTOP_COLUMN_COUNT);
+  const pageLinks = group.links.slice(0, columnCount * SITE_NAVIGATION_DESKTOP_LINK_ROWS);
+
+  return Array.from({ length: columnCount }, (_, columnIndex) =>
+    pageLinks.filter((_, linkIndex) => linkIndex % columnCount === columnIndex)
+  );
+}
+
+export function getSiteNavigationDesktopGroupDividerVisibility(
+  sourceGroupIds: readonly (string | undefined)[]
+): [boolean, boolean] {
+  const hasBoundaryAfterColumn = (columnIndex: number) => {
+    const sourceGroupId = sourceGroupIds[columnIndex];
+    const nextSourceGroupId = sourceGroupIds[columnIndex + 1];
+    return Boolean(sourceGroupId && nextSourceGroupId && sourceGroupId !== nextSourceGroupId);
+  };
+
+  return [hasBoundaryAfterColumn(0), hasBoundaryAfterColumn(1)];
 }
 
 export function getSiteNavigationDesktopGroupPlacements(groups: SiteNavigationGroup[]): Record<string, SiteNavigationDesktopGroupPlacement> {

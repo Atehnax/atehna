@@ -119,6 +119,25 @@ export function verifyAdminSessionToken(
   }
 }
 
+export function hasValidAdminSession(request: Request): boolean {
+  const cookieHeader = request.headers.get('cookie') ?? '';
+  let token: string | null = null;
+  for (const part of cookieHeader.split(';')) {
+    const separator = part.indexOf('=');
+    if (separator < 0) continue;
+    const name = part.slice(0, separator).trim();
+    if (name !== ADMIN_SESSION_COOKIE) continue;
+    const value = part.slice(separator + 1).trim();
+    try {
+      token = decodeURIComponent(value);
+    } catch {
+      token = value;
+    }
+    break;
+  }
+  return verifyAdminSessionToken(token, getAdminAuthConfig());
+}
+
 export function verifyAdminCredentials(
   username: unknown,
   password: unknown,

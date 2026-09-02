@@ -169,6 +169,7 @@ export function SiteLogoTextLayerFields({
         <span>Pisava</span>
         <AppearanceEditorCompactSelect
           value={layer.fontFamily}
+          tone="dark"
           options={SITE_LOGO_TEXT_FONT_FAMILIES.map((fontFamily) => ({ value: fontFamily, label: fontFamily }))}
           ariaLabel={`Pisava: ${meta.label}`}
           marker={`logo-text-${layerId}-font-family`}
@@ -205,6 +206,7 @@ export function SiteLogoTextLayerFields({
           <span>Debelina</span>
           <AppearanceEditorCompactSelect
             value={String(layer.fontWeight)}
+            tone="dark"
             options={SITE_LOGO_TEXT_FONT_WEIGHTS.map((fontWeight) => ({ value: String(fontWeight), label: String(fontWeight) }))}
             ariaLabel={`Debelina pisave: ${meta.label}`}
             marker={`logo-text-${layerId}-font-weight`}

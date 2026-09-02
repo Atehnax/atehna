@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { groupAuditEvents } from '@/shared/audit/auditPresentation';
-import type { AuditEventListResult, AuditEventRecord } from '@/shared/audit/auditTypes';
-import { ORDER_PDF_TYPE_CONFIGS } from '@/shared/domain/order/orderTypes';
+import type {
+  OrderProgressMilestone,
+  OrderProgressResponse
+} from '@/shared/domain/order/orderProgress';
+import { getStatusLabel } from '@/shared/domain/order/orderStatus';
 import { AdminActivityTimeline } from '@/shared/ui/admin-detail/AdminActivityTimeline';
 
 const fullDateFormatter = new Intl.DateTimeFormat('sl-SI', {
@@ -43,69 +45,6 @@ const formatCompactTimestamp = (value: string) => {
     : compactDateFormatter.format(parsed);
 };
 
-const compactSummary = (summary: string, entityLabel: string | null) => {
-  const prefix = entityLabel ? `${entityLabel}: ` : '';
-  return prefix && summary.startsWith(prefix)
-    ? summary.slice(prefix.length)
-    : summary;
-};
-
-type ActivityDocumentMetadataEvent = Pick<AuditEventRecord, 'metadata'>;
-
-const orderPdfActivityLabelByType = new Map<string, string>(
-  ORDER_PDF_TYPE_CONFIGS.map((config) => [config.key, config.shortLabel + ' PDF'])
-);
-
-const conciseDocumentActivitySummary = (
-  events: readonly ActivityDocumentMetadataEvent[]
-) => {
-  const documentTypes = Array.from(new Set(
-    events.flatMap((event) => {
-      const documentType = event.metadata.document_type;
-      return typeof documentType === 'string' && documentType.trim()
-        ? [documentType.trim().toLowerCase()]
-        : [];
-    })
-  ));
-
-  if (documentTypes.length === 0) return null;
-  if (documentTypes.length > 1) return 'PDF';
-  return orderPdfActivityLabelByType.get(documentTypes[0] ?? '') ?? 'PDF';
-};
-
-export const conciseActivitySummary = (
-  summary: string,
-  entityLabel: string | null,
-  actionLabel: string,
-  events: readonly ActivityDocumentMetadataEvent[] = []
-) => {
-  const compact = compactSummary(summary, entityLabel).trim();
-  const normalized = compact.toLocaleLowerCase('sl-SI');
-  const documentSummary = conciseDocumentActivitySummary(events);
-
-  if (documentSummary) return documentSummary;
-  if (normalized.includes('status')) return 'Status';
-  if (normalized.includes('dokument')) return 'PDF';
-  if (normalized.includes('plačil')) return 'Plačilo';
-  if (normalized.includes('poštnin')) return 'Poštnina';
-  if (normalized.includes('postavk') || normalized.includes('artikel')) return 'Postavke';
-  if (normalized.includes('naročnik') || normalized.includes('strank')) return 'Stranka';
-
-  const capitalized = compact
-    ? `${compact.charAt(0).toLocaleUpperCase('sl-SI')}${compact.slice(1)}`
-    : '';
-  if (capitalized.length <= 10) return capitalized || 'Dogodek';
-
-  const compactActionLabels: Record<string, string> = {
-    dodano: 'Dodano',
-    spremenjeno: 'Sprem.',
-    arhivirano: 'Arhiv.',
-    obnovljeno: 'Obnov.',
-    odstranjeno: 'Odstr.'
-  };
-  return compactActionLabels[actionLabel.toLocaleLowerCase('sl-SI')] ?? 'Dogodek';
-};
-
 export default function AdminOrderActivityCard({
   orderId,
   refreshToken = 0
@@ -113,53 +52,43 @@ export default function AdminOrderActivityCard({
   orderId: number;
   refreshToken?: number;
 }) {
-  const [events, setEvents] = useState<AuditEventRecord[]>([]);
+  const [milestones, setMilestones] = useState<OrderProgressMilestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const groups = useMemo(
-    () => groupAuditEvents(events).slice(0, 5).reverse(),
-    [events]
-  );
   const timelineItems = useMemo(
-    () => groups.map((group) => {
-      const actor = group.actorName || group.actorId || 'Sistem';
-      const fullTimestamp = formatTimestamp(group.occurredAt);
-      const compactLabel = conciseActivitySummary(
-        group.summary,
-        group.entityLabel,
-        group.actionLabel,
-        group.events
-      );
+    () => milestones.slice(-5).map((milestone) => {
+      const statusLabel = getStatusLabel(milestone.status);
+      const fullTimestamp = milestone.timestampKnown
+        ? formatTimestamp(milestone.occurredAt)
+        : 'čas ni zabeležen';
 
       return {
-        id: group.id,
-        occurredAt: group.occurredAt,
-        timestampLabel: formatCompactTimestamp(group.occurredAt),
-        compactLabel,
-        fullLabel: `${compactSummary(group.summary, group.entityLabel)} · ${actor} · ${group.actionLabel} · ${fullTimestamp}`
+        id: milestone.id,
+        occurredAt: milestone.occurredAt,
+        timestampKnown: milestone.timestampKnown,
+        timestampLabel: milestone.timestampKnown
+          ? formatCompactTimestamp(milestone.occurredAt)
+          : 'čas ni znan',
+        compactLabel: statusLabel,
+        fullLabel: `${statusLabel} · ${fullTimestamp}`
       };
     }),
-    [groups]
+    [milestones]
   );
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams({
-      entity_type: 'order',
-      entity_id: String(orderId),
-      page_size: '10'
-    });
 
     setLoading(true);
     setError(false);
-    fetch(`/api/admin/audit-events?${params.toString()}`, {
+    fetch(`/api/admin/orders/${orderId}/progress`, {
       cache: 'no-store',
       signal: controller.signal
     })
       .then(async (response) => {
-        const payload = (await response.json().catch(() => ({}))) as AuditEventListResult;
-        if (!response.ok) throw new Error('Dejavnosti ni bilo mogoče naložiti.');
-        setEvents(payload.events ?? []);
+        const payload = (await response.json().catch(() => ({}))) as Partial<OrderProgressResponse>;
+        if (!response.ok) throw new Error('Napredovanja ni bilo mogoče naložiti.');
+        setMilestones(payload.milestones ?? []);
       })
       .catch(() => {
         if (!controller.signal.aborted) setError(true);
@@ -174,12 +103,14 @@ export default function AdminOrderActivityCard({
   return (
     <AdminActivityTimeline
       testId="admin-order-activity-timeline"
-      ariaLabel="Časovnica dejavnosti naročila"
+      ariaLabel="Časovnica napredovanja naročila"
       progressAriaLabel="Napredovanje naročila"
       items={timelineItems}
-      emptyMessage="Za naročilo še ni zabeležene dejavnosti."
+      emptyMessage="Za naročilo še ni zabeleženega napredovanja."
       loading={loading}
       error={error}
+      loadingMessage="Nalaganje napredovanja …"
+      errorMessage="Napredovanja trenutno ni mogoče prikazati."
       messageMinHeightClassName="min-h-[52px]"
     />
   );

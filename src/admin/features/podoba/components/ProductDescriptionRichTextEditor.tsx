@@ -291,6 +291,7 @@ export default function ProductDescriptionRichTextEditor({
         </ToolbarButton>
         <AppearanceEditorCompactSelect
           value={editor?.isActive('heading', { level: 2 }) ? 'h2' : editor?.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
+          tone="dark"
           disabled={!editable}
           options={[
             { value: 'p', label: 'Odstavek' },
@@ -322,6 +323,7 @@ export default function ProductDescriptionRichTextEditor({
         </label>
         <AppearanceEditorCompactSelect
           value={activeFontFamily}
+          tone="dark"
           disabled={!editable}
           options={fontFamilies}
           ariaLabel="Pisava"

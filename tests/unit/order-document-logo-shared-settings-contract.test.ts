@@ -78,6 +78,12 @@ test('authentic PDF artwork keeps the full final A primary and d.o.o. secondary'
 });
 
 test('PDF renderer resolves the shared authentic artwork and never reconstructs a one-color wordmark', () => {
+  assert.match(rendererSource, /resolveSiteLogoFittedCropRect\(fitted, geometry\.crop\)/u);
+  assert.match(rendererSource, /cropRight\s*<=\s*cropLeft/u);
+  assert.match(rendererSource, /rectangle\(\s*x \+ cropLeft,/u);
+  assert.match(artworkRendererSource, /resolveSiteLogoFittedCropRect\(fitted, geometry\.crop\)/u);
+  assert.match(artworkRendererSource, /cropSourceLeft/u);
+  assert.match(artworkRendererSource, /cropSourceRight/u);
   assert.match(logoDomainSource, /atehna-document-wordmark\.png/u);
   assert.match(rendererSource, /logoArtwork\?: Uint8Array \| null/u);
   assert.match(rendererSource, /loadDocumentLogo\(doc, input\.logoArtwork\)/u);

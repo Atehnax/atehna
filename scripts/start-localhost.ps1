@@ -94,9 +94,10 @@ foreach ($entry in $environmentValues.GetEnumerator()) {
 $postgresBin = Join-Path $workspaceRoot '.tools\postgresql-17.11\pgsql\bin'
 $pgControl = Join-Path $postgresBin 'pg_ctl.exe'
 $pgIsReady = Join-Path $postgresBin 'pg_isready.exe'
+$psql = Join-Path $postgresBin 'psql.exe'
 $postgresData = Join-Path $workspaceRoot 'local-runtime\localhost\pgdata'
 $postgresLog = Join-Path $workspaceRoot 'local-runtime\localhost\postgres.log'
-foreach ($requiredPath in @($pgControl, $pgIsReady, (Join-Path $postgresData 'PG_VERSION'))) {
+foreach ($requiredPath in @($pgControl, $pgIsReady, $psql, (Join-Path $postgresData 'PG_VERSION'))) {
   if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
     throw "Missing localhost PostgreSQL runtime file: $requiredPath"
   }
@@ -112,11 +113,65 @@ if ($LASTEXITCODE -ne 0) {
   }
 }
 
+$npmCommand = (Get-Command npm.cmd -ErrorAction Stop).Source
+
 Push-Location $projectRoot
 try {
   & node scripts/e2e-database.mjs check
   if ($LASTEXITCODE -ne 0) {
     throw 'The localhost database failed its non-destructive schema check.'
+  }
+
+  $schemaHashRaw = & $psql -h 127.0.0.1 -p $databasePort -d $databaseName -U $databaseUser -t -A -v ON_ERROR_STOP=1 -c "select sha256 from e2e_schema_state where key = 'canonical-schema'"
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Could not read the localhost canonical schema fingerprint.'
+  }
+  $schemaHash = ($schemaHashRaw | Out-String).Trim()
+  if ($schemaHash -notmatch '^[a-f0-9]{64}$') {
+    throw 'The localhost canonical schema fingerprint is invalid.'
+  }
+  Set-Item -Path 'Env:E2E_SCHEMA_SHA256' -Value $schemaHash
+
+  $addressRegisterStateSql = @"
+with actual as (
+  select count(*)::bigint as record_count
+  from gurs_addresses
+),
+state as (
+  select
+    active_record_count::bigint as record_count,
+    active_imported_at,
+    last_success_at
+  from gurs_address_sync_state
+  where key = 'active'
+)
+select case
+  when state.record_count is null
+    or actual.record_count not between 400000 and 800000
+    or actual.record_count <> state.record_count
+    or state.active_imported_at is null
+    or state.last_success_at is null
+    or state.last_success_at < now() - interval '35 days'
+  then 'true'
+  else 'false'
+end
+from actual
+left join state on true
+"@
+  $addressRegisterNeedsSyncRaw = & $psql -h 127.0.0.1 -p $databasePort -d $databaseName -U $databaseUser -t -A -v ON_ERROR_STOP=1 -c $addressRegisterStateSql
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Could not inspect the localhost GURS address register.'
+  }
+  $addressRegisterNeedsSync = ($addressRegisterNeedsSyncRaw | Out-String).Trim()
+  if ($addressRegisterNeedsSync -notin @('true', 'false')) {
+    throw 'The localhost GURS address register state is invalid.'
+  }
+  if ($addressRegisterNeedsSync -eq 'true') {
+    Write-Host 'Loading the official GURS address register for localhost autocomplete ...'
+    & $npmCommand run addresses:sync
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning 'The GURS address register could not be loaded. The app will start, but address suggestions may be incomplete.'
+    }
   }
 
   $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
@@ -140,7 +195,6 @@ try {
     return
   }
 
-  $npmCommand = (Get-Command npm.cmd -ErrorAction Stop).Source
   Write-Host "Starting Atehna at http://127.0.0.1:$Port ..."
   & $npmCommand run dev -- --hostname 127.0.0.1 --port $Port
   exit $LASTEXITCODE

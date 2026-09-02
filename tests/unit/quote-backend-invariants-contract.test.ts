@@ -72,6 +72,7 @@ test('new and blank quote drafts use one calendar month without replacing stored
   const revision = source(
     'src/admin/api/quote-requests/[quoteRequestId]/revise/route.ts'
   );
+  const revisionHelper = source('src/shared/server/quoteOfferRevision.ts');
 
   assert.match(
     detail,
@@ -85,8 +86,9 @@ test('new and blank quote drafts use one calendar month without replacing stored
     detail,
     /const toNewDraftState[\s\S]*?validUntil: defaultQuoteValidityDateInput\(detail\.createdAt\)/u
   );
-  assert.match(revision, /now\(\) \+ interval '1 month'/u);
-  assert.doesNotMatch(revision, /interval '15 days'/u);
+  assert.match(revision, /createQuoteOfferDraftRevision\(client/u);
+  assert.match(revisionHelper, /now\(\) \+ interval '1 month'/u);
+  assert.doesNotMatch(revisionHelper, /interval '15 days'/u);
 });
 test('draft writes are optimistic, server-calculated, and commercially complete before issue', () => {
   const draft = source(
@@ -130,7 +132,7 @@ test('draft writes are optimistic, server-calculated, and commercially complete 
   assert.match(draft, /shipping_confirmation_json = \$15::jsonb/u);
   assert.match(
     draft,
-    /const acceptanceMethod =[\s\S]*?customer_type === 'school' \? 'purchase_order' : 'online'/u
+    /const acceptanceMethod =[\s\S]*?effectiveCustomerType === 'school' \? 'purchase_order' : 'online'/u
   );
   assert.match(
     draft,
@@ -149,7 +151,8 @@ test('draft writes are optimistic, server-calculated, and commercially complete 
   assert.match(issue, /where quote_request_id = \$1 and status = 'draft'[\s\S]*?for update/u);
   assert.match(issue, /Number\(parsed\.body\.expectedStateVersion\)[\s\S]*?draft\.state_version/u);
   assert.match(issue, /code: 'QUOTE_DRAFT_STALE'/u);
-  assert.match(issue, /!deliveryTerms \|\| !paymentTerms \|\| !termsText \|\| !termsVersion/u);
+  assert.match(issue, /!deliveryTerms \|\| !paymentTerms \|\| !termsVersion/u);
+  assert.doesNotMatch(issue, /!termsText/u);
   assert.match(issue, /shipping === 0 && !freeShippingConfirmed/u);
   assert.match(
     issue,
@@ -263,7 +266,7 @@ test('online acceptance is one frozen-snapshot conversion transaction and never 
   assert.match(acceptance, /acceptance_blocked_by_stock/u);
   assert.match(
     acceptance,
-    /for update of offer, request[\s\S]*?const stockBlockResult = await client\.query/u
+    /for update of offer, request[\s\S]*?getQuoteStockAcceptanceMode\(client\)[\s\S]*?stockAcceptanceMode === 'automatic'[\s\S]*?acceptance_blocked_by_stock/u
   );
   assert.match(acceptance, /STOCK_REVIEW_REQUIRED/u);
   assert.doesNotMatch(acceptance, /enqueueOrderEmailEvent|order_submitted/u);
@@ -291,7 +294,7 @@ test('quote email enqueue and provider outcomes cannot roll back business state'
     'src/commercial/api/quote-requests/decline/route.ts'
   );
   const schoolBridge = source(
-    'src/admin/api/orders/[orderId]/commitment-status/route.ts'
+    'src/shared/server/schoolOrderSellerAcceptance.ts'
   );
   const adminHelpers = source(
     'src/admin/api/quote-requests/quoteAdminRouteUtils.ts'
@@ -326,10 +329,33 @@ test('quote email enqueue and provider outcomes cannot roll back business state'
   );
   assert.match(
     worker,
-    /failureKind:\s*\| 'voided_request'\s*\| 'expired_otp'\s*\| 'obsolete_offer'\s*\| 'obsolete_clarification'/u
+    /job\.eventType !== 'quote_issued'[\s\S]*?job\.eventType !== 'quote_acceptance_blocked_stock'[\s\S]*?status = 'issued'[\s\S]*?is_current = true[\s\S]*?valid_until > now\(\)/u
+  );
+  assert.match(
+    worker,
+    /job\.eventType === 'quote_withdrawn'[\s\S]*?job\.eventType === 'quote_expired'[\s\S]*?request\.status in \(\$3, 'in_preparation'\)[\s\S]*?offer\.status = \$3[\s\S]*?not exists[\s\S]*?newer_offer\.version_number > offer\.version_number[\s\S]*?newer_offer\.status <> 'draft'/u
+  );
+  assert.match(
+    worker,
+    /failureKind:\s*\| 'voided_request'\s*\| 'expired_otp'\s*\| 'obsolete_offer'\s*\| 'obsolete_clarification'\s*\| 'stale_recipient'/u
   );
   assert.match(worker, /lockQuoteWorkflow\(client, job\.requestId\)/u);
-  assert.match(worker, /select voided_at from quote_requests where id = \$1/u);
+  assert.match(
+    worker,
+    /select id, quote_request_id, quote_offer_version_id, event_key, event_type,[\s\S]*?audience, recipient_email[\s\S]*?recipientEmail: String\(row\.recipient_email\)/u
+  );
+  assert.match(
+    worker,
+    /select voided_at, email from quote_requests where id = \$1 for share/u
+  );
+  assert.match(
+    worker,
+    /from order_email_settings[\s\S]*?for share[\s\S]*?currentAdminRecipients[\s\S]*?envelopeMatchesClaim[\s\S]*?recipientIsCurrent[\s\S]*?failureKind: 'stale_recipient'/u
+  );
+  assert.match(
+    worker,
+    /input\.failureKind !== 'stale_recipient'/u
+  );
   assert.match(worker, /eventType: 'quote_delivery_failed'/u);
   assert.match(worker, /job\.eventType !== 'quote_delivery_failed'/u);
   assert.match(
@@ -349,6 +375,9 @@ test('clarification email remains durable while delivery and retry fail closed o
   const retry = source(
     'src/admin/api/quote-email-jobs/[jobId]/retry/route.ts'
   );
+  const retryEligibility = source(
+    'src/shared/domain/quote/quoteEmailRetryEligibility.ts'
+  );
 
   assert.match(clarification, /lockQuoteWorkflow\(client, quoteRequestId\)/u);
   assert.match(clarification, /clarification-requested:\$\{quoteRequestId\}:\$\{actionId\}/u);
@@ -366,7 +395,7 @@ test('clarification email remains durable while delivery and retry fail closed o
     /client\.query\('commit'\)[\s\S]*?scheduleQuoteEmailJobs\(pool\)/u
   );
 
-  for (const contents of [worker, retry]) {
+  for (const contents of [worker, retryEligibility]) {
     assert.match(contents, /quote_clarification_requested/u);
     assert.match(
       contents,
@@ -389,21 +418,25 @@ test('clarification email remains durable while delivery and retry fail closed o
     workerClarificationBranch,
     /\[job\.requestId, job\.offerVersionId\]/u
   );
-  const retryClarificationBranch = retry.slice(
-    retry.indexOf("if (eventType === 'quote_clarification_requested')"),
-    retry.indexOf("return eventType === 'quote_request_submitted'")
+  assert.match(
+    retry,
+    /quoteEmailRetryStateIsCurrent[\s\S]*?return quoteEmailRetryStateIsCurrent\(\{/u
   );
-  assert.match(retryClarificationBranch, /job\.quote_offer_version_id === null/u);
-  assert.match(retryClarificationBranch, /offerStatus === 'draft'/u);
-  assert.match(retryClarificationBranch, /offerStatus === 'issued'/u);
-  assert.match(retryClarificationBranch, /job\.offer_is_current === true/u);
+  const retryClarificationBranch = retryEligibility.slice(
+    retryEligibility.indexOf("if (eventType === 'quote_clarification_requested')"),
+    retryEligibility.indexOf("return eventType === 'quote_request_submitted'")
+  );
+  assert.match(retryClarificationBranch, /job\.offerVersionId === null/u);
+  assert.match(retryClarificationBranch, /job\.offerStatus === 'draft'/u);
+  assert.match(retryClarificationBranch, /job\.offerStatus === 'issued'/u);
+  assert.match(retryClarificationBranch, /job\.offerIsCurrent/u);
   assert.match(
     worker,
     /quote_clarification_requested[\s\S]*?(?:obsolete_clarification|closed_request|stale_clarification)/u
   );
   assert.match(
-    retry,
-    /eventType === 'quote_clarification_requested'[\s\S]*?request_status/u
+    retryEligibility,
+    /eventType === 'quote_clarification_requested'[\s\S]*?job\.requestStatus/u
   );
   assert.doesNotMatch(
     clarification,
@@ -463,6 +496,12 @@ test('school purchase order requires consumed OTP and stays non-binding until ad
     'src/commercial/api/quote-requests/purchase-order/route.ts'
   );
   const bridge = source(
+    'src/shared/server/schoolOrderSellerAcceptance.ts'
+  );
+  const statusBridge = source(
+    'src/admin/api/orders/[orderId]/status/route.ts'
+  );
+  const rejectionBridge = source(
     'src/admin/api/orders/[orderId]/commitment-status/route.ts'
   );
   const genericUpload = source(
@@ -523,24 +562,29 @@ test('school purchase order requires consumed OTP and stays non-binding until ad
     bridge,
     /sourceQuote\.status !== 'issued'[\s\S]*?!sourceQuote\.isCurrent[\s\S]*?sourceQuote\.requestStatus !== 'awaiting_purchase_order_review'/u
   );
-  assert.match(bridge, /insert into order_stock_holds/u);
-  assert.match(bridge, /begin isolation level serializable/u);
+  assert.match(bridge, /await commitOrderStockHolds/u);
+  assert.match(statusBridge, /begin isolation level serializable/u);
   assert.match(
     bridge,
-    /catalog_item_id,[\s\S]*?group by catalog_item_id, catalog_variant_id[\s\S]*?variant\.itemId !== Number\(item\.catalog_item_id\)/u
+    /catalog_item_id,[\s\S]*?group by catalog_item_id, catalog_variant_id[\s\S]*?requireLockedCatalogVariantOrderable\([\s\S]*?productId: Number\(item\.catalog_item_id\)/u
   );
   assert.match(bridge, /contract_status = 'accepted'/u);
   assert.match(bridge, /channel,[\s\S]*?'purchase_order_validation'/u);
   assert.match(bridge, /insert into quote_offer_acceptances/u);
   assert.match(bridge, /status = 'converted_to_order'/u);
+  assert.match(
+    bridge,
+    /update quote_access_tokens[\s\S]*?where quote_request_id = \$1[\s\S]*?and revoked_at is null[\s\S]*?returning id/u
+  );
+  assert.match(statusBridge, /quote_access_tokens_revoked:/u);
   for (const eventType of [
     'admin_purchase_order_validated',
     'customer_accepted',
-    'order_created',
-    'admin_purchase_order_rejected'
+    'order_created'
   ]) {
     assert.match(bridge, new RegExp(`'${eventType}'`, 'u'));
   }
+  assert.match(rejectionBridge, /'admin_purchase_order_rejected'/u);
   assert.match(genericUpload, /QUOTE_PURCHASE_ORDER_WORKFLOW_REQUIRED/u);
   assert.match(genericUpload, /source_quote_offer_version_id/u);
   assert.match(genericAdminUpload, /QUOTE_PURCHASE_ORDER_EVIDENCE_IMMUTABLE/u);
@@ -602,11 +646,16 @@ test('ordinary direct orders are accepted automatically while school orders reta
     contractRoute,
     /current\.contract_status !== 'pending_seller_acceptance'/u
   );
-  assert.match(contractRoute, /set contract_status = 'accepted'/u);
+  assert.match(
+    contractRoute,
+    /contractStatus === 'accepted'[\s\S]*?ORDER_STATUS_SELLER_ACCEPTANCE_REQUIRED/u
+  );
+  assert.match(statusRoute, /set commitment_status = 'binding'/u);
+  assert.match(statusRoute, /contract_status = 'accepted'/u);
   assert.match(contractRoute, /set contract_status = 'rejected'/u);
   assert.match(contractRoute, /releaseOrderStockHolds/u);
   assert.match(contractRoute, /savepoint order_contract_email/u);
-  assert.match(contractRoute, /'order_accepted' : 'order_rejected'/u);
+  assert.match(contractRoute, /eventType: 'order_rejected'/u);
   assert.match(
     contractRoute,
     /client\.query\('commit'\)[\s\S]*?scheduleOrderEmailJobs/u

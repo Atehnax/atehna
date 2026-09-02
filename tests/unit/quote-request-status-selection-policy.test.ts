@@ -58,7 +58,7 @@ test('only received and preparation are selectable before issued history', () =>
     assert.equal(option(options, value).disabled, true);
   }
   assert.match(option(options, 'issued').description, /Najprej pripravite osnutek/u);
-  assert.match(option(options, 'issued').description, /Izdaj in pošlji ponudbo/u);
+  assert.match(option(options, 'issued').description, /Izdaj ponudbo/u);
   assert.match(option(options, 'ordered').description, /sprejemom stranke/u);
   assert.match(option(options, 'ordered').description, /potrditvijo naročilnice/u);
   assert.match(option(options, 'declined').description, /Zaključi brez izdaje ponudbe/u);
@@ -77,7 +77,7 @@ test('a prepared draft points the blocked issued option at the issue button', ()
   assert.equal(option(options, 'issued').disabled, true);
   assert.equal(
     option(options, 'issued').description,
-    'Ponudbo izdajte z gumbom »Izdaj in pošlji ponudbo«.'
+    'Ponudbo izdajte z gumbom »Izdaj ponudbo«.'
   );
 });
 
@@ -91,7 +91,7 @@ test('issued history blocks manual reversal while keeping the current group avai
   assert.equal(option(options, 'preparation').disabled, false);
   assert.equal(option(options, 'received').disabled, true);
   assert.match(option(options, 'received').description, /obstoječim osnutkom/u);
-  assert.match(option(options, 'received').description, /Izdaj in pošlji ponudbo/u);
+  assert.match(option(options, 'received').description, /Izdaj ponudbo/u);
 });
 
 test('each lifecycle-owned raw status keeps its grouped current option enabled', () => {

@@ -51,11 +51,11 @@ const lifecycleActionDescription = (
       return 'Zaključenega ali naročenega povpraševanja ni mogoče znova označiti kot izdano.';
     }
     if (['expired', 'withdrawn'].includes(context.currentStatus)) {
-      return 'Najprej uporabite »Pripravi novo različico«, nato novo ponudbo izdajte z gumbom »Izdaj in pošlji ponudbo«.';
+      return 'Najprej uporabite »Pripravi novo različico«, nato novo ponudbo izdajte z gumbom »Izdaj ponudbo«.';
     }
     return context.hasDraft
-      ? 'Ponudbo izdajte z gumbom »Izdaj in pošlji ponudbo«.'
-      : 'Najprej pripravite osnutek ponudbe, nato uporabite gumb »Izdaj in pošlji ponudbo«.';
+      ? 'Ponudbo izdajte z gumbom »Izdaj ponudbo«.'
+      : 'Najprej pripravite osnutek ponudbe, nato uporabite gumb »Izdaj ponudbo«.';
   }
   if (value === 'ordered') {
     if (context.currentStatus === 'awaiting_purchase_order_review') {
@@ -101,7 +101,7 @@ const blockedManualDescription = (
   }
   if (context.hasIssuedOfferHistory) {
     return context.hasDraft
-      ? 'Po izdaji se statusa ne da ročno vrniti. Nadaljujte z obstoječim osnutkom in uporabite gumb »Izdaj in pošlji ponudbo«.'
+      ? 'Po izdaji se statusa ne da ročno vrniti. Nadaljujte z obstoječim osnutkom in uporabite gumb »Izdaj ponudbo«.'
       : 'Po izdaji se statusa ne da ročno vrniti. Uporabite dejanje »Pripravi novo različico«.';
   }
   if (

@@ -15,6 +15,7 @@ import {
   ProductAppearanceProvider,
   useProductAppearance
 } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
 import ProductGallery from '@/commercial/components/storefront/ProductGallery';
@@ -44,7 +45,8 @@ import {
   type ProductSecondaryLayout
 } from '@/shared/domain/style/productAppearance';
 import ProductCanvasElement, {
-  PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS
+  PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS,
+  type ProductCanvasSelectionOptions
 } from '@/shared/ui/product-canvas/ProductCanvasElement';
 
 type ProductDetailViewProps = {
@@ -55,8 +57,9 @@ type ProductDetailViewProps = {
 export type ProductDetailCanvasEditor = {
   device: ProductCanvasDevice;
   selectedElementId: string | null;
+  selectedElementIds?: readonly string[];
   scale?: number;
-  onSelectElement: (elementId: string) => void;
+  onSelectElement: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
   onElementChange: (
     elementId: string,
     updates: Partial<ProductCanvasElementDeviceSettings>
@@ -510,6 +513,7 @@ function DetailLayout({
 
 function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps) {
   const appearance = useProductAppearance();
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const responsiveCanvasDevice = useProductCanvasDevice();
   const canvasDevice = canvasEditor?.device ?? responsiveCanvasDevice;
   const canvasActive = appearance.canvas?.mode === 'free';
@@ -532,7 +536,8 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         )}
         active={canvasActive}
         interactive={Boolean(canvasEditor)}
-        selected={canvasEditor?.selectedElementId === elementId}
+        selected={canvasEditor?.selectedElementIds?.includes(elementId)
+          ?? canvasEditor?.selectedElementId === elementId}
         forceVisible={PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS.has(elementId)}
         gridSizePx={appearance.canvas.gridSizePx}
         snapToGrid={appearance.canvas.snapToGrid}
@@ -744,7 +749,13 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
 
   const addSelectedVariant = () => {
     if (canvasEditor) return;
-    if (!selectedVariant || !isStorefrontVariantPurchasable(selectedVariant)) return;
+    if (
+      !selectedVariant ||
+      !isStorefrontVariantPurchasable(
+        selectedVariant,
+        stockEnforcementEnabled
+      )
+    ) return;
     const image = visibleMedia.find((entry) => entry.kind === 'image');
     addItem({
       ...buildProductCartItem({
@@ -762,7 +773,10 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
     openDrawer();
   };
 
-  const mobileCanPurchase = isStorefrontVariantPurchasable(selectedVariant);
+  const mobileCanPurchase = isStorefrontVariantPurchasable(
+    selectedVariant,
+    stockEnforcementEnabled
+  );
   const mobileHasAction = Boolean(selectionComplete && selectedVariant);
   const longDescription =
     selectedVariant?.description ?? product.description ?? product.shortDescription;
@@ -903,6 +917,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
       id: 'delivery-and-payment',
       title: 'Dostava in plačilo',
       openByDefault: false,
+      canvasElementId: 'product-delivery-and-payment',
       content: (
         <dl className="storefront-detail-delivery-list grid gap-4 text-sm sm:grid-cols-2">
           <div>

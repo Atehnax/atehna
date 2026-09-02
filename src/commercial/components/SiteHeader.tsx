@@ -18,12 +18,14 @@ import {
 } from '@/shared/domain/logo/siteLogo';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
-  SITE_NAVIGATION_DESKTOP_COLUMN_COUNT,
   SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
-  SITE_NAVIGATION_DESKTOP_LINK_ROWS,
   SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX,
+  SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX,
+  getSiteNavigationDesktopGroupLinkColumns,
+  getSiteNavigationDesktopGroupDividerVisibility,
   getVisibleSiteNavigationItems,
   getSiteNavigationDesktopGroupPlacements,
+  getSiteNavigationTopBarSearchReservedWidth,
   normalizeSiteNavigationConfig,
   toSiteNavigationTopBarBackgroundCssColor,
   toSiteNavigationTopBarAppearanceCssVariables,
@@ -34,7 +36,6 @@ import {
   type SiteNavigationTopBarDevice,
   type SiteNavigationTopBarResponsiveItem,
   type SiteNavigationTopBarResponsiveSettings,
-  type SiteNavigationTopBarSearchMode,
   type SiteNavigationTopLevelItem
 } from '@/shared/domain/navigation/siteNavigation';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
@@ -47,10 +48,11 @@ type DesktopMenuColumnSlot = {
   items: SiteNavigationLink[];
   sourceGroupId?: string;
   sourceSlotSpan?: number;
+  sourceGroupVisible?: boolean;
 };
 type DesktopMenuPage = {
   slots: DesktopMenuColumnSlot[];
-  showDivider: boolean;
+  dividerVisibility: [boolean, boolean];
 };
 
 type MenuDirection = 'forward' | 'backward';
@@ -125,6 +127,7 @@ const desktopDropdownColumnListExpandedHoverStyle: CSSProperties = {
   marginRight: 'calc(var(--navbar-dropdown-item-hover-x) * -1)'
 };
 const desktopDropdownColumnGridColumns = ['1', '3', '6'];
+const desktopDropdownDividerGridColumns = ['2', '4'];
 const navbarColorStyle = {
   '--navbar-link-default': '#4d4d4d',
   '--navbar-link-hover': '#171717',
@@ -164,7 +167,9 @@ const navbarColorStyle = {
 } as CSSProperties & Record<string, string>;
 const coreNavTextClassName =
   '[font-size:calc(var(--topbar-font-size)/var(--commercial-storefront-scale))] [font-weight:var(--topbar-font-weight)] [font-style:var(--topbar-font-style)] leading-[1.4286]';
-const compactNavbarControlSizePx = toCommercialStorefrontLogicalPx(32);
+const compactNavbarControlSizePx = toCommercialStorefrontLogicalPx(
+  SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX
+);
 const compactNavbarControlStyle = {
   width: `${compactNavbarControlSizePx}px`,
   minWidth: `${compactNavbarControlSizePx}px`,
@@ -223,6 +228,10 @@ function getTopBarItemRenderedWidthPx(
 
   if (item.id === 'navigation' && (activeDevice === 'mobile' || settings.navigationMode === 'hamburger')) {
     return 32;
+  }
+
+  if (item.id === 'search' && item.slot !== 'menu') {
+    return SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX;
   }
 
   return item.widthPx;
@@ -407,25 +416,24 @@ function createDesktopMenuPageFromGroups(groups: SiteNavigationGroup[]): Desktop
   for (const group of groups) {
     const placement = placements[group.id];
     if (!placement) continue;
+    const columnLinks = getSiteNavigationDesktopGroupLinkColumns(group, placement.slotSpan);
 
     for (let offset = 0; offset < placement.slotSpan && placement.slotIndex + offset < slots.length; offset += 1) {
       slots[placement.slotIndex + offset] = {
         heading: offset === 0 ? group.label : undefined,
-        items: group.links.slice(offset * SITE_NAVIGATION_DESKTOP_LINK_ROWS, offset * SITE_NAVIGATION_DESKTOP_LINK_ROWS + SITE_NAVIGATION_DESKTOP_LINK_ROWS),
+        items: columnLinks[offset] ?? [],
         sourceGroupId: group.id,
-        sourceSlotSpan: placement.slotSpan
+        sourceSlotSpan: placement.slotSpan,
+        sourceGroupVisible: group.visible
       };
     }
   }
 
-  const showDivider = slots.some((slot, index) =>
-    index < SITE_NAVIGATION_DESKTOP_COLUMN_COUNT - 1 &&
-    slot.sourceGroupId &&
-    slot.sourceGroupId === slots[index + 1]?.sourceGroupId &&
-    slots.slice(index + 2).some((nextSlot) => nextSlot.items.length > 0)
+  const dividerVisibility = getSiteNavigationDesktopGroupDividerVisibility(
+    slots.map((slot) => slot.sourceGroupId)
   );
 
-  return { slots, showDivider };
+  return { slots, dividerVisibility };
 }
 
 function createDesktopMenuPages(menuItem: SiteNavigationTopLevelItem): DesktopMenuPage[] {
@@ -439,7 +447,7 @@ function createDesktopMenuPages(menuItem: SiteNavigationTopLevelItem): DesktopMe
     groupedPages.set(pageIndex, pageGroups);
   }
 
-  if (groupedPages.size === 0) return [{ slots: createEmptyDesktopMenuSlots(), showDivider: false }];
+  if (groupedPages.size === 0) return [{ slots: createEmptyDesktopMenuSlots(), dividerVisibility: [false, false] }];
 
   return [...groupedPages.entries()]
     .sort(([firstPage], [secondPage]) => firstPage - secondPage)
@@ -530,7 +538,7 @@ function DesktopMenuContent({
   const motionClass = motion ? `site-menu-content-${motion}` : '';
   const pages = createDesktopMenuPages(menuItem);
   const resolvedPageIndex = Math.min(Math.max(pageIndex, 0), pages.length - 1);
-  const { slots: columns, showDivider } = pages[resolvedPageIndex] ?? pages[0];
+  const { slots: columns, dividerVisibility } = pages[resolvedPageIndex] ?? pages[0];
 
   return (
     <div
@@ -552,11 +560,12 @@ function DesktopMenuContent({
           <section
             key={`${menuItem.id}-desktop-column-${index + 1}`}
             aria-labelledby={headingId}
+            data-navigation-group-hidden={column.sourceGroupVisible === false ? 'true' : undefined}
             style={{
               ...desktopDropdownColumnGridStyle,
               gridColumn: desktopDropdownColumnGridColumns[index]
             }}
-            className="grid min-w-0"
+            className={`grid min-w-0 ${column.sourceGroupVisible === false ? 'opacity-50' : ''}`}
           >
             {column.heading ? (
               <h2
@@ -575,7 +584,10 @@ function DesktopMenuContent({
                     href={item.href}
                     prefetch={false}
                     onClick={onNavigate}
-                    className={`group grid h-[calc(var(--navbar-dropdown-item-slot-height)+var(--navbar-dropdown-item-hover-y)*2)] w-full -translate-y-[var(--navbar-dropdown-item-hover-y)] grid-cols-[var(--navbar-dropdown-icon-tile-size)_1fr] items-center gap-[var(--navbar-dropdown-item-content-gap)] rounded-lg px-[var(--navbar-dropdown-item-hover-x)] ${publicDropdownSelectionClassName}`}
+                    data-navigation-link-hidden={item.visible ? undefined : 'true'}
+                    className={`group grid h-[calc(var(--navbar-dropdown-item-slot-height)+var(--navbar-dropdown-item-hover-y)*2)] w-full -translate-y-[var(--navbar-dropdown-item-hover-y)] grid-cols-[var(--navbar-dropdown-icon-tile-size)_1fr] items-center gap-[var(--navbar-dropdown-item-content-gap)] rounded-lg px-[var(--navbar-dropdown-item-hover-x)] ${publicDropdownSelectionClassName} ${
+                      column.sourceGroupVisible === false || item.visible ? '' : 'opacity-50'
+                    }`}
                   >
                     <MenuItemGlyph icon={item.icon} size="desktopDropdown" />
                     <span className="flex h-[var(--navbar-dropdown-icon-tile-size)] min-w-0 flex-col justify-between">
@@ -593,11 +605,22 @@ function DesktopMenuContent({
           </section>
         );
       })}
-      <div
-        aria-hidden="true"
-        style={{ gridColumn: '4', gridRow: '1', width: 'var(--navbar-dropdown-divider-lane-width)' }}
-        className={showDivider ? 'h-full bg-[#eaeaea]' : 'h-full bg-transparent'}
-      />
+      {dividerVisibility.map((showDivider, index) =>
+        showDivider ? (
+          <div
+            key={`divider-after-column-${index + 1}`}
+            aria-hidden="true"
+            data-navigation-group-divider-after-column={index + 1}
+            style={{
+              gridColumn: desktopDropdownDividerGridColumns[index],
+              gridRow: '1',
+              justifySelf: 'center',
+              width: 'var(--navbar-dropdown-divider-lane-width)'
+            }}
+            className="h-full bg-[#eaeaea]"
+          />
+        ) : null
+      )}
       {!isExiting && onPageChange ? (
         <DesktopMenuPageControls pageIndex={resolvedPageIndex} pageCount={pages.length} onPageChange={onPageChange} />
       ) : null}
@@ -619,7 +642,10 @@ function MobileAccordion({
   const panelId = `site-mobile-${item.id}-panel`;
 
   return (
-    <div className="border-b border-[#eeeeee]">
+    <div
+      data-navigation-hidden={item.visible ? undefined : 'true'}
+      className={`border-b border-[#eeeeee] ${item.visible ? '' : 'opacity-50'}`}
+    >
       <button
         type="button"
         aria-expanded={open}
@@ -635,7 +661,8 @@ function MobileAccordion({
           {item.groups.map((group) => (
             <section
               key={group.id}
-              className="px-[27px] pb-4"
+              data-navigation-group-hidden={group.visible ? undefined : 'true'}
+              className={`px-[27px] pb-4 ${group.visible ? '' : 'opacity-50'}`}
             >
               <h2 className="pb-[5px] text-base font-medium uppercase tracking-normal text-[var(--navbar-dropdown-heading)]">
                 {group.label}
@@ -647,7 +674,10 @@ function MobileAccordion({
                     href={link.href}
                     prefetch={false}
                     onClick={onNavigate}
-                      className={`group grid min-h-[82px] grid-cols-[43px_1fr] items-center gap-[13px] rounded-lg px-3 py-[9px] ${publicDropdownSelectionClassName}`}
+                      data-navigation-link-hidden={link.visible ? undefined : 'true'}
+                      className={`group grid min-h-[82px] grid-cols-[43px_1fr] items-center gap-[13px] rounded-lg px-3 py-[9px] ${publicDropdownSelectionClassName} ${
+                        group.visible === false || link.visible ? '' : 'opacity-50'
+                      }`}
                     >
                       <MenuItemGlyph icon={link.icon} />
                       <span className="block min-w-0">
@@ -746,11 +776,11 @@ function getNavbarSearchResults(items: CatalogSearchItem[], query: string) {
 
 function NavbarSearch({
   mobile = false,
-  mode = 'icon',
+  device = 'desktop',
   onNavigate
 }: {
   mobile?: boolean;
-  mode?: SiteNavigationTopBarSearchMode;
+  device?: SiteNavigationTopBarDevice;
   onNavigate: () => void;
 }) {
   const router = useRouter();
@@ -763,21 +793,21 @@ function NavbarSearch({
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const inputId = mobile ? 'site-mobile-search' : 'site-desktop-search';
+  const searchSurfaceId = `${inputId}-surface`;
   const results = getNavbarSearchResults(items, query);
   const hasQuery = normalizeSearchValue(query).length > 0;
-  const desktopFieldMode = !mobile && mode === 'field';
-  const desktopExpanded = desktopFieldMode || expanded;
+  const desktopExpanded = !mobile && expanded;
   const searchDismissRefs = useMemo(() => [rootRef] as const, []);
   const closeSearchSurface = useCallback(() => {
     setOpen(false);
-    if (!mobile && !desktopFieldMode) setExpanded(false);
-  }, [desktopFieldMode, mobile]);
+    if (!mobile) setExpanded(false);
+  }, [mobile]);
 
   useDropdownDismiss({
     open: open || expanded,
     onClose: closeSearchSurface,
     refs: searchDismissRefs,
-    returnFocusRef: !mobile && !desktopFieldMode ? compactTriggerRef : inputRef
+    returnFocusRef: !mobile ? compactTriggerRef : inputRef
   });
 
   const ensureItemsLoaded = () => {
@@ -845,24 +875,19 @@ function NavbarSearch({
   return (
     <div
       ref={rootRef}
-        className={
-          mobile
-            ? 'relative'
-          : desktopFieldMode
-            ? 'relative flex h-[43px] w-full min-w-[240px] shrink-0 justify-end'
-            : 'relative flex shrink-0 items-center justify-end'
-      }
-      style={!mobile && !desktopFieldMode ? compactNavbarControlStyle : undefined}
+      className={mobile ? 'relative' : 'relative flex shrink-0 items-center justify-end'}
+      style={!mobile ? compactNavbarControlStyle : undefined}
     >
-      {!mobile && !desktopFieldMode ? (
+      {!mobile ? (
         <button
           ref={compactTriggerRef}
           type="button"
           aria-label="Išči"
+          aria-controls={searchSurfaceId}
+          aria-expanded={desktopExpanded}
           aria-hidden={desktopExpanded}
           tabIndex={desktopExpanded ? -1 : 0}
           onClick={openExpandedSearch}
-          onFocus={openExpandedSearch}
           className={`inline-flex items-center justify-center rounded-lg text-[var(--navbar-link-default)] transition duration-150 hover:bg-[var(--navbar-trigger-open-bg)] hover:text-[var(--navbar-link-hover)] ${
             desktopExpanded ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
@@ -873,18 +898,26 @@ function NavbarSearch({
       ) : null}
 
       <form
+        id={searchSurfaceId}
         role="search"
         aria-hidden={!mobile && !desktopExpanded}
         onSubmit={handleSubmit}
-        style={mobile ? undefined : coreNavTextRenderingStyle}
+        style={
+          mobile
+            ? undefined
+            : {
+                ...coreNavTextRenderingStyle,
+                width: `${toCommercialStorefrontLogicalPx(
+                  getSiteNavigationTopBarSearchReservedWidth(device)
+                )}px`
+              }
+        }
         className={
           mobile
             ? 'relative w-full'
-            : desktopFieldMode
-              ? 'relative z-30 w-full'
-              : `absolute right-0 top-1/2 z-30 w-[320px] -translate-y-1/2 transition-opacity duration-150 ease-out ${
-                  desktopExpanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
-                }`
+            : `absolute right-0 top-1/2 z-30 -translate-y-1/2 transition-opacity duration-150 ease-out ${
+                desktopExpanded ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+              }`
         }
       >
         <label htmlFor={inputId} className="sr-only">
@@ -1050,7 +1083,6 @@ export default function SiteHeader({
   const pathname = usePathname();
   const siteLogoConfig = useSiteLogoConfig();
   const headerRef = useRef<HTMLElement>(null);
-  const katalogLabelRef = useRef<HTMLSpanElement>(null);
   const switchTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const activeMenuRef = useRef<MenuKey | null>(null);
@@ -1060,7 +1092,6 @@ export default function SiteHeader({
   const [menuDirection, setMenuDirection] = useState<MenuDirection | null>(null);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [desktopMenuPageById, setDesktopMenuPageById] = useState<Record<MenuKey, number>>({});
-  const [dropdownPanelLeft, setDropdownPanelLeft] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMobileMenus, setOpenMobileMenus] = useState<MenuKey[]>([]);
   const [adminPreview, setAdminPreview] = useState<AdminSiteNavigationPreviewState | null>(null);
@@ -1101,6 +1132,11 @@ export default function SiteHeader({
       ),
     [activeTopBarDevice, activeTopBarLayout.items]
   );
+  const hasRenderedNavigation = activeTopBarPlacementItems.some((item) => item.id === 'navigation');
+  const compactSearchItem = activeTopBarLayout.items.find((item) => item.id === 'search');
+  const compactAiItem = activeTopBarLayout.items.find((item) => item.id === 'ai');
+  const showCompactSearch = compactSearchItem?.visible === true && compactSearchItem.slot === 'menu';
+  const showCompactAi = compactAiItem?.visible === true && compactAiItem.slot === 'menu';
   const topBarShellStyle = useMemo<TopBarCssProperties>(() => {
     const logicalSiteContentMaxWidthPx = toCommercialStorefrontLogicalPx(siteLayout.siteContentMaxWidthPx);
     const logicalSiteGutterMinPx = toCommercialStorefrontLogicalPx(siteLayout.siteGutterMinPx);
@@ -1191,25 +1227,6 @@ export default function SiteHeader({
     };
   }, [effectivePreviewViewportWidth]);
 
-  const updateDropdownPanelLeft = useCallback(() => {
-    const header = headerRef.current;
-    const katalogLabel = katalogLabelRef.current;
-
-    if (!header || !katalogLabel) {
-      return;
-    }
-
-    const headerRect = header.getBoundingClientRect();
-    const labelRect = katalogLabel.getBoundingClientRect();
-    const scaleX = header.offsetWidth > 0 ? headerRect.width / header.offsetWidth : 1;
-    const nextPanelLeft = (labelRect.left - headerRect.left) / (scaleX || 1);
-    const roundedPanelLeft = Math.round(nextPanelLeft * 100) / 100;
-
-    setDropdownPanelLeft((currentPanelLeft) =>
-      Math.abs(currentPanelLeft - roundedPanelLeft) < 0.5 ? currentPanelLeft : roundedPanelLeft
-    );
-  }, []);
-
   const clearSwitchTimer = () => {
     if (switchTimerRef.current !== null) {
       window.clearTimeout(switchTimerRef.current);
@@ -1276,7 +1293,6 @@ export default function SiteHeader({
 
   const openDesktopMenu = (nextMenu: MenuKey) => {
     cancelDesktopMenuClose();
-    updateDropdownPanelLeft();
     const currentMenu = activeMenuRef.current;
 
     if (currentMenu === nextMenu) {
@@ -1299,64 +1315,6 @@ export default function SiteHeader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  useLayoutEffect(() => {
-    updateDropdownPanelLeft();
-  }, [updateDropdownPanelLeft]);
-
-  useLayoutEffect(() => {
-    if (isAdminNavbarPreview || !isAdminPath) {
-      updateDropdownPanelLeft();
-    }
-  }, [isAdminNavbarPreview, isAdminPath, navigationItems, updateDropdownPanelLeft]);
-
-  useEffect(() => {
-    let animationFrame: number | null = null;
-    let disposed = false;
-
-    const scheduleDropdownPanelLeftUpdate = () => {
-      if (disposed) {
-        return;
-      }
-
-      if (animationFrame !== null) {
-        window.cancelAnimationFrame(animationFrame);
-      }
-
-      animationFrame = window.requestAnimationFrame(() => {
-        animationFrame = null;
-        updateDropdownPanelLeft();
-      });
-    };
-
-    scheduleDropdownPanelLeftUpdate();
-    window.addEventListener('resize', scheduleDropdownPanelLeftUpdate);
-
-    const resizeObserver =
-      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleDropdownPanelLeftUpdate) : null;
-
-    if (headerRef.current) {
-      resizeObserver?.observe(headerRef.current);
-    }
-
-    if (katalogLabelRef.current) {
-      resizeObserver?.observe(katalogLabelRef.current);
-    }
-
-    const fontSet = 'fonts' in document ? document.fonts : undefined;
-    void fontSet?.ready.then(scheduleDropdownPanelLeftUpdate);
-
-    return () => {
-      disposed = true;
-
-      if (animationFrame !== null) {
-        window.cancelAnimationFrame(animationFrame);
-      }
-
-      window.removeEventListener('resize', scheduleDropdownPanelLeftUpdate);
-      resizeObserver?.disconnect();
-    };
-  }, [updateDropdownPanelLeft]);
-
   useEffect(() => {
     activeMenuRef.current = activeMenu;
   }, [activeMenu]);
@@ -1374,7 +1332,7 @@ export default function SiteHeader({
         setAdminPreview({
           navigation: normalizeSiteNavigationConfig(detail.navigation),
           previewDevice: detail.previewDevice,
-          previewViewportWidth: detail.previewViewportWidth
+          previewViewportWidth: detail.previewViewportWidth,
         });
       } else {
         setAdminPreview(null);
@@ -1446,7 +1404,7 @@ export default function SiteHeader({
             aria-label="Atehna home"
             data-navbar-left
             onClick={closeMenus}
-            className="inline-flex shrink-0 rounded-lg py-[5px] pl-0 pr-[10px] transition hover:bg-[#f5f5f5]"
+            className="inline-flex shrink-0 rounded-lg py-[5px] pl-0 pr-[10px] transition"
             style={logoTextRenderingStyle}
           >
             {activeHeaderLogoDisplaySize ? (
@@ -1489,6 +1447,7 @@ export default function SiteHeader({
               return hasDropdown ? (
                 <button
                   key={navigationItem.id}
+                  data-navigation-hidden={navigationItem.visible ? undefined : 'true'}
                   type="button"
                   aria-expanded={open}
                   aria-controls={desktopPanelId}
@@ -1501,22 +1460,25 @@ export default function SiteHeader({
                   onPointerLeave={scheduleDesktopMenuClose}
                   className={`inline-flex h-[43px] shrink-0 items-center whitespace-nowrap rounded-lg px-4 ${coreNavTextClassName} ${
                     open ? publicCoreNavOpenClassName : `text-[var(--navbar-link-default)] ${publicCoreNavInteractiveClassName}`
-                  }`}
+                  } ${navigationItem.visible ? '' : 'opacity-50'}`}
                 >
                   <span className="inline-flex min-w-max items-center gap-2 whitespace-nowrap">
-                    <span className="whitespace-nowrap" ref={navigationItem.id === anchorMenuId ? katalogLabelRef : undefined}>{navigationItem.label}</span>
+                    <span className="whitespace-nowrap">{navigationItem.label}</span>
                     <ChevronIcon open={open} subtle />
                   </span>
                 </button>
               ) : navigationItem.href ? (
                 <Link
                   key={navigationItem.id}
+                  data-navigation-hidden={navigationItem.visible ? undefined : 'true'}
                   href={navigationItem.href}
                   prefetch={false}
                   onClick={closeMenus}
-                  className={`inline-flex h-[43px] shrink-0 items-center whitespace-nowrap rounded-lg px-4 ${coreNavTextClassName} text-[var(--navbar-link-default)] ${publicCoreNavInteractiveClassName}`}
+                  className={`inline-flex h-[43px] shrink-0 items-center whitespace-nowrap rounded-lg px-4 ${coreNavTextClassName} text-[var(--navbar-link-default)] ${publicCoreNavInteractiveClassName} ${
+                    navigationItem.visible ? '' : 'opacity-50'
+                  }`}
                 >
-                  <span className="whitespace-nowrap" ref={navigationItem.id === anchorMenuId ? katalogLabelRef : undefined}>{navigationItem.label}</span>
+                  <span className="whitespace-nowrap">{navigationItem.label}</span>
                 </Link>
               ) : null;
             })}
@@ -1528,7 +1490,7 @@ export default function SiteHeader({
     if (item.id === 'search') {
       return (
         <div key={item.id} className={wrapperClassName} style={wrapperStyle}>
-          <NavbarSearch mode={activeTopBarLayout.settings.searchMode} onNavigate={closeMenus} />
+          <NavbarSearch device={activeTopBarDevice} onNavigate={closeMenus} />
         </div>
       );
     }
@@ -1553,6 +1515,12 @@ export default function SiteHeader({
     // closeMenus intentionally stays local; this only clears menu state after responsive mode changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTopBarDevice]);
+
+  useEffect(() => {
+    if (!hasRenderedNavigation) closeMenus();
+    // closeMenus intentionally stays local; hiding Navigation must also dismiss its detached surface.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasRenderedNavigation]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -1637,13 +1605,15 @@ export default function SiteHeader({
         </div>
       </div>
 
-      {!usesCompactTopBar && activeMenuItem ? (
+      {!usesCompactTopBar && hasRenderedNavigation && activeMenuItem ? (
         <div
           id={desktopPanelId}
+          data-navigation-menu-alignment="site-center"
           style={{
-            left: dropdownPanelLeft,
+            left: '50%',
+            transform: 'translateX(-50%)',
             width: 'var(--navbar-dropdown-panel-width)',
-            maxWidth: 'calc((100vw - 32px) / var(--commercial-storefront-scale))'
+            maxWidth: 'calc(100% - (32px / var(--commercial-storefront-scale)))'
           }}
           onMouseEnter={cancelDesktopMenuClose}
           onMouseLeave={scheduleDesktopMenuClose}
@@ -1680,7 +1650,7 @@ export default function SiteHeader({
         </div>
       ) : null}
 
-      {usesCompactTopBar && mobileOpen ? (
+      {usesCompactTopBar && hasRenderedNavigation && mobileOpen ? (
         <div
           id={mobileMenuId}
           className="max-h-[calc(100vh-64px)] overflow-y-auto border-t border-[#eeeeee] bg-white"
@@ -1689,9 +1659,11 @@ export default function SiteHeader({
             aria-label="Mobile navigation"
             className="pb-[27px]"
           >
-            <div className="border-b border-[#eeeeee] px-[27px] py-[18px]">
-              <NavbarSearch mobile onNavigate={closeMenus} />
-            </div>
+            {showCompactSearch ? (
+              <div className="border-b border-[#eeeeee] px-[27px] py-[18px]">
+              <NavbarSearch mobile device={activeTopBarDevice} onNavigate={closeMenus} />
+              </div>
+            ) : null}
 
             {navigationItems.map((item) => (
               item.groups.length > 0 ? (
@@ -1709,7 +1681,11 @@ export default function SiteHeader({
                   onNavigate={closeMenus}
                 />
               ) : item.href ? (
-                <div key={item.id} className="border-b border-[#eeeeee] py-2">
+                <div
+                  key={item.id}
+                  data-navigation-hidden={item.visible ? undefined : 'true'}
+                  className={`border-b border-[#eeeeee] py-2 ${item.visible ? '' : 'opacity-50'}`}
+                >
                   <Link
                     href={item.href}
                     prefetch={false}
@@ -1722,7 +1698,8 @@ export default function SiteHeader({
               ) : null
             ))}
 
-            <div className="grid gap-[11px] px-[27px] pt-[21px]">
+            {showCompactAi ? (
+              <div className="grid gap-[11px] px-[27px] pt-[21px]">
               {ctas.map((cta) => (
                 <Link
                   key={cta.label}
@@ -1740,7 +1717,8 @@ export default function SiteHeader({
                   {cta.label}
                 </Link>
               ))}
-            </div>
+              </div>
+            ) : null}
           </nav>
         </div>
       ) : null}

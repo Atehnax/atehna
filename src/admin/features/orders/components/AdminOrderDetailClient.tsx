@@ -13,8 +13,12 @@ import AdminOrderShippingOverride from '@/admin/features/orders/components/Admin
 import AdminOrderPdfManagerClient from '@/admin/features/orders/components/AdminOrderPdfManagerClient';
 import AdminOrderCustomerAccess from '@/admin/features/orders/components/AdminOrderCustomerAccess';
 import AdminOrderActivityCard from '@/admin/features/orders/components/AdminOrderActivityCard';
-import AdminOrderCustomerCard from '@/admin/features/orders/components/AdminOrderCustomerCard';
+import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
+import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
+import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
+import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
 import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
 import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
 import {
@@ -24,8 +28,8 @@ import {
   useOrderNumberAvailability
 } from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
-import { orderCustomerTypeFinalContractBlock } from '@/shared/domain/order/schoolOrderWorkflow';
-import { ORDER_STATUS_OPTIONS, getStatusLabel, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
+
+import { ORDER_STATUS_ACTION_OPTIONS, getStatusLabel, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
 import { toDateInputValue } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { Button } from '@/shared/ui/button';
@@ -85,6 +89,7 @@ type NormalizedOrder = {
   address_line2?: string;
   postal_code: string;
   city: string;
+  gurs_house_number_id: string;
   country_code?: string;
   commitment_status?: 'binding' | 'pending_confirmation' | 'rejected' | null;
   contract_status: 'pending_seller_acceptance' | 'accepted' | 'rejected';
@@ -124,6 +129,34 @@ type NormalizedOrder = {
   deleted_at?: string | null;
 };
 
+const SCHOOL_PURCHASE_ORDER_EVIDENCE_FORMAT_MARKERS = new Set([
+  'customer-upload-pdf-v1',
+  'customer-upload-jpeg-v1',
+  'admin-upload-pdf-v1'
+]);
+
+const isActivePurchaseOrderEvidence = (document: PersistedOrderPdfDocument) => {
+  if (document.type !== 'purchase_order') return false;
+  const markerAwareDocument = document as PersistedOrderPdfDocument & {
+    format_marker?: unknown;
+    formatMarker?: unknown;
+  };
+  const hasSnakeCaseMarker = Object.prototype.hasOwnProperty.call(
+    markerAwareDocument,
+    'format_marker'
+  );
+  const hasCamelCaseMarker = Object.prototype.hasOwnProperty.call(
+    markerAwareDocument,
+    'formatMarker'
+  );
+  if (!hasSnakeCaseMarker && !hasCamelCaseMarker) return true;
+  const marker = hasSnakeCaseMarker
+    ? markerAwareDocument.format_marker
+    : markerAwareDocument.formatMarker;
+  return typeof marker === 'string' &&
+    SCHOOL_PURCHASE_ORDER_EVIDENCE_FORMAT_MARKERS.has(marker);
+};
+
 type DetailData = {
   orderDate: string;
   customerType: string;
@@ -131,6 +164,7 @@ type DetailData = {
   city: string;
   addressLine2: string;
   countryCode: string;
+  gursHouseNumberId: string;
   organizationName: string;
   contactName: string;
   email: string;
@@ -239,6 +273,7 @@ const asDetailData = (order: NormalizedOrder): DetailData => ({
   email: order.email,
   city: order.city.trim(),
   deliveryAddress: order.address_line1.trim(),
+  gursHouseNumberId: order.gurs_house_number_id.trim(),
   addressLine2: order.address_line2?.trim() ?? '',
   countryCode: order.country_code?.trim().toUpperCase() || 'SI',
   notes: order.notes?.trim() ? order.notes : '',
@@ -416,15 +451,23 @@ function OrderAddressEditor({
         className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
         data-testid="admin-order-address-fields"
       >
-        <input
-          aria-label="Naslov"
-          autoComplete="address-line1"
-          type="text"
+        <AdminAddressAutocompleteInput
           value={details.deliveryAddress}
+          gursHouseNumberId={details.gursHouseNumberId}
           disabled={disabled}
-          placeholder="Naslov"
-          onChange={(event) => onChange({ deliveryAddress: event.target.value })}
-          className={`${orderDataCompositeInputClassName} !pl-0`}
+          testId="admin-order-address-autocomplete"
+          onChange={(value) => onChange({
+            deliveryAddress: value,
+            gursHouseNumberId: ''
+          })}
+          onSelect={(suggestion) => onChange({
+            deliveryAddress: suggestion.addressLine1,
+            postalCode: suggestion.postalCode,
+            city: suggestion.postalName,
+            countryCode: 'SI',
+            gursHouseNumberId: suggestion.gursHouseNumberId
+          })}
+          className={orderDataCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
           aria-label="Dodatni naslov"
@@ -445,7 +488,8 @@ function OrderAddressEditor({
           disabled={disabled}
           placeholder="P. št."
           onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
+            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
           })}
           className={`${orderDataCompositeInputClassName} text-center`}
         />
@@ -456,7 +500,10 @@ function OrderAddressEditor({
           value={details.city}
           disabled={disabled}
           placeholder="Kraj"
-          onChange={(event) => onChange({ city: event.target.value })}
+          onChange={(event) => onChange({
+            city: event.target.value,
+            gursHouseNumberId: ''
+          })}
           className={orderDataCompositeInputClassName}
         />
         <input
@@ -471,7 +518,8 @@ function OrderAddressEditor({
             countryCode: event.target.value
               .toUpperCase()
               .replace(/[^A-Z]/g, '')
-              .slice(0, 2)
+              .slice(0, 2),
+            gursHouseNumberId: ''
           })}
           className={`${orderDataCompositeInputClassName} !px-1 text-center`}
         />
@@ -670,9 +718,18 @@ export default function AdminOrderDetailClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const customerEmailConfirmation = useCustomerEmailConfirmation();
   const initialOrderNumber = toDisplayOrderNumberValue(toDisplayOrderNumber(order.order_number));
+  const resolvedCommitmentStatus: NonNullable<NormalizedOrder['commitment_status']> =
+    order.commitment_status === 'rejected' || order.contract_status === 'rejected'
+      ? 'rejected'
+      : order.commitment_status === 'binding' && order.contract_status === 'accepted'
+        ? 'binding'
+        : 'pending_confirmation';
   const [displayOrderNumber, setDisplayOrderNumber] = useState(initialOrderNumber);
   const [persistedDetails, setPersistedDetails] = useState<DetailData>(() => asDetailData(order));
+  const [persistedCommitmentStatus, setPersistedCommitmentStatus] = useState(resolvedCommitmentStatus);
+  const hasActivePurchaseOrderEvidence = documents.some(isActivePurchaseOrderEvidence);
   const [draftDetails, setDraftDetails] = useState<DetailData>(() => asDetailData(order));
   const [draftOrderNumber, setDraftOrderNumber] = useState(toEditableOrderNumber(initialOrderNumber));
   const [persistedAdminNotes, setPersistedAdminNotes] = useState(order.admin_order_notes ?? '');
@@ -694,7 +751,6 @@ export default function AdminOrderDetailClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
-  const [auditHistoryOpen, setAuditHistoryOpen] = useState(false);
   const [activityRefreshToken, setActivityRefreshToken] = useState(0);
   const [pendingUnsavedAction, setPendingUnsavedAction] = useState<PendingUnsavedAction | null>(null);
   const itemsSaveHandlerRef = useRef<OrderItemsSaveHandler | null>(null);
@@ -708,6 +764,10 @@ export default function AdminOrderDetailClient({
     ((expectedPricingRevision?: number) => Promise<boolean>) | null
   >(null);
   const latestPricingRevisionRef = useRef(order.pricing_revision);
+
+  useEffect(() => {
+    setPersistedCommitmentStatus(resolvedCommitmentStatus);
+  }, [resolvedCommitmentStatus]);
 
   const isMasterEditing = editScopes.master;
   const isOrderDataEditing = editScopes.details;
@@ -744,7 +804,7 @@ export default function AdminOrderDetailClient({
       ? 'V razdelku »V tej pošiljki« mora ostati vsaj ena postavka.'
       : undefined;
   const orderStatusOptions = useMemo(
-    () => ORDER_STATUS_OPTIONS.map((option) => {
+    () => ORDER_STATUS_ACTION_OPTIONS.map((option) => {
       if (option.value === 'partially_sent' && !canSelectPartiallySent) {
         return {
           ...option,
@@ -773,16 +833,7 @@ export default function AdminOrderDetailClient({
   const activeOrderDataDetails = isOrderDataEditing
     ? draftDetails
     : persistedDetails;
-  const availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS.map((option) => {
-    const changeBlock = orderCustomerTypeFinalContractBlock(
-      persistedDetails.customerType,
-      option.value,
-      order.contract_status
-    );
-    return changeBlock
-      ? { ...option, disabled: true, description: changeBlock.message }
-      : option;
-  });
+
   const activeCustomerTypeLabel =
     CUSTOMER_TYPE_FORM_OPTIONS.find((option) => option.value === activeOrderDataDetails.customerType)?.label
     ?? activeOrderDataDetails.customerType;
@@ -993,7 +1044,11 @@ export default function AdminOrderDetailClient({
     };
   }, [hasUnsavedChanges, requestUnsavedResolution]);
 
-  const saveDetails = async (): Promise<string | null> => {
+  const saveDetails = async (
+    customerEmailConfirmationToken: string | null,
+    onCustomerEmailConfirmationRequired: (confirmationToken: string) => void
+  ): Promise<{ finalizationMessage: string | null; confirmationRequired: boolean }> => {
+    let finalizationMessage: string | null = null;
     const requests: Promise<Response>[] = [];
     let detailsResponseIndex: number | null = null;
 
@@ -1024,6 +1079,7 @@ export default function AdminOrderDetailClient({
             postalCode: draftDetails.postalCode,
             city: draftDetails.city,
             countryCode: draftDetails.countryCode,
+            gursHouseNumberId: draftDetails.gursHouseNumberId || null,
             notes: draftDetails.notes,
             orderDate: toApiOrderDate(draftDetails.orderDate)
           })
@@ -1045,9 +1101,9 @@ export default function AdminOrderDetailClient({
           finalized?: boolean;
           finalizationBlock?: { message?: unknown } | null;
         } | null;
-        const finalizationMessage = detailsPayload?.finalizationBlock?.message;
-        if (typeof finalizationMessage === 'string' && finalizationMessage.trim()) {
-          return finalizationMessage.trim();
+        const rawFinalizationMessage = detailsPayload?.finalizationBlock?.message;
+        if (typeof rawFinalizationMessage === 'string' && rawFinalizationMessage.trim()) {
+          finalizationMessage = rawFinalizationMessage.trim();
         }
       }
     }
@@ -1061,14 +1117,30 @@ export default function AdminOrderDetailClient({
         body: JSON.stringify({
           status: draftDetails.status,
           shipLaterItemIds: deliveryPlanSnapshotRef.current.shipLaterItemIds,
-          expectedDeliveryPlanRevision: latestDeliveryPlanRevisionRef.current
+          expectedDeliveryPlanRevision: latestDeliveryPlanRevisionRef.current,
+          ...(customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {})
         })
       });
       const statusPayload = await statusResponse.json().catch(() => ({})) as {
         message?: string;
+        commitmentStatus?: NonNullable<NormalizedOrder['commitment_status']>;
+        contractStatus?: NonNullable<NormalizedOrder['contract_status']>;
         deliveryPlanRevision?: number;
       };
       if (!statusResponse.ok) {
+        const confirmation = parseCustomerEmailConfirmationRequired(statusPayload);
+        if (
+          statusResponse.status === 428 &&
+          confirmation?.confirmationToken
+        ) {
+          customerEmailConfirmation.requestConfirmation(
+            confirmation,
+            () => onCustomerEmailConfirmationRequired(confirmation.confirmationToken)
+          );
+          return { finalizationMessage, confirmationRequired: true };
+        }
         throw new Error(statusPayload.message || 'Shranjevanje statusa ni uspelo.');
       }
       const nextDeliveryPlanRevision = Number(statusPayload.deliveryPlanRevision);
@@ -1076,11 +1148,23 @@ export default function AdminOrderDetailClient({
         throw new Error('Strežnik ni vrnil veljavne revizije načrta dobave.');
       }
       updateLatestDeliveryPlanRevision(nextDeliveryPlanRevision);
+      const nextCommitmentStatus = statusPayload.commitmentStatus;
+      const nextContractStatus = statusPayload.contractStatus;
+      if (nextCommitmentStatus === 'rejected' || nextContractStatus === 'rejected') {
+        setPersistedCommitmentStatus('rejected');
+      } else if (nextCommitmentStatus === 'binding' && nextContractStatus === 'accepted') {
+        setPersistedCommitmentStatus('binding');
+      } else if (nextCommitmentStatus || nextContractStatus) {
+        setPersistedCommitmentStatus('pending_confirmation');
+      }
     }
 
-    return null;
+    return { finalizationMessage, confirmationRequired: false };
   };
-  const saveAll = async (afterSave?: () => void) => {
+  const saveAll = async (
+    afterSave?: () => void,
+    customerEmailConfirmationToken: string | null = null
+  ) => {
     if (!isEditing || pageIsBusy) return false;
     if (isMasterEditing && !orderNumberIsAllowed) {
       toast.error(orderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
@@ -1089,6 +1173,45 @@ export default function AdminOrderDetailClient({
 
     setIsSaving(true);
     try {
+      if (statusDirty) {
+        const preflightResponse = await fetch(`/api/admin/orders/${orderId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: draftDetails.status,
+            shipLaterItemIds: deliveryPlanSnapshotRef.current.shipLaterItemIds,
+            expectedDeliveryPlanRevision: latestDeliveryPlanRevisionRef.current,
+            confirmationOnly: true,
+            ...(coreDetailsDirty
+              ? { prospectiveCustomerEmail: draftDetails.email }
+              : {}),
+            ...(customerEmailConfirmationToken
+              ? { customerEmailConfirmationToken }
+              : {})
+          })
+        });
+        const preflightPayload = await preflightResponse.json().catch(() => ({})) as {
+          message?: string;
+        };
+        if (!preflightResponse.ok) {
+          const confirmation = parseCustomerEmailConfirmationRequired(preflightPayload);
+          if (
+            preflightResponse.status === 428 &&
+            confirmation?.confirmationToken
+          ) {
+            customerEmailConfirmation.requestConfirmation(
+              confirmation,
+              () => void saveAll(afterSave, confirmation.confirmationToken)
+            );
+            return false;
+          }
+          throw new Error(
+            preflightPayload.message ||
+              'Preverjanje e-poštnega obvestila ni uspelo.'
+          );
+        }
+      }
+
       const itemsSaveResult = itemsSaveHandlerRef.current
         ? await itemsSaveHandlerRef.current({
             deliveryPlanPersistence: statusDirty ? 'status' : 'after-page-save'
@@ -1101,7 +1224,12 @@ export default function AdminOrderDetailClient({
         : true;
       if (!shippingSaved) return false;
 
-      const finalizationMessage = await saveDetails();
+      const saveResult = await saveDetails(
+        customerEmailConfirmationToken,
+        (confirmationToken) => void saveAll(afterSave, confirmationToken)
+      );
+      if (saveResult.confirmationRequired) return false;
+      const { finalizationMessage } = saveResult;
       await itemsSaveResult.persistDeferredDeliveryPlan?.();
       itemsSaveResult.commitDeferredDeliveryPlan?.();
 
@@ -1170,17 +1298,32 @@ export default function AdminOrderDetailClient({
     }
   };
 
-  const confirmRejectOrder = async () => {
+  const confirmRejectOrder = async (
+    customerEmailConfirmationToken: string | null = null
+  ) => {
     setIsRejecting(true);
     setIsRejectModalOpen(false);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' })
+        body: JSON.stringify({
+          status: 'cancelled',
+          ...(customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {})
+        })
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
+        const confirmation = parseCustomerEmailConfirmationRequired(error);
+        if (response.status === 428 && confirmation?.confirmationToken) {
+          customerEmailConfirmation.requestConfirmation(
+            confirmation,
+            () => void confirmRejectOrder(confirmation.confirmationToken)
+          );
+          return;
+        }
         throw new Error(error.message || 'Zavrnitev naročila ni uspela.');
       }
       setPersistedDetails((current) => ({ ...current, status: 'cancelled' }));
@@ -1308,7 +1451,7 @@ export default function AdminOrderDetailClient({
 
             </div>
 
-            <div className="flex flex-nowrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
               <IconButton
                 type="button"
                 onClick={toggleMasterEdit}
@@ -1333,6 +1476,11 @@ export default function AdminOrderDetailClient({
               >
                 <ActionUndoIcon />
               </IconButton>
+              <AuditHistoryDrawer
+                entityType="order"
+                entityId={orderId}
+                entityLabel={displayOrderNumber}
+              />
               <IconButton
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
@@ -1365,11 +1513,6 @@ export default function AdminOrderDetailClient({
                 triggerClassName={adminTableNeutralIconButtonClassName}
                 menuWidth={190}
                 items={[
-                  {
-                    key: 'history',
-                    label: 'Zgodovina sprememb',
-                    onSelect: () => setAuditHistoryOpen(true)
-                  },
                   {
                     key: 'reject',
                     label: 'Zavrni naročilo',
@@ -1414,14 +1557,6 @@ export default function AdminOrderDetailClient({
             />
           </div>
 
-          <AuditHistoryDrawer
-            entityType="order"
-            entityId={orderId}
-            entityLabel={displayOrderNumber}
-            open={auditHistoryOpen}
-            onOpenChange={setAuditHistoryOpen}
-            hideTrigger
-          />
         </section>
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
@@ -1455,30 +1590,6 @@ export default function AdminOrderDetailClient({
               onPricingRevisionChange={updateLatestPricingRevision}
             />
 
-            <AdminOrderShippingOverride
-              orderId={orderId}
-              shipping={order.shipping}
-              automaticShipping={order.automatic_shipping ?? null}
-              shippingCalculation={order.shipping_snapshot_json ?? null}
-              shippingOverride={order.shipping_override_json ?? null}
-              shippingOverrideStale={order.shipping_override_stale === true}
-              parcelCount={order.parcel_count}
-              pricingRevision={order.pricing_revision}
-              orderStatus={persistedDetails.status}
-              paymentStatus={persistedDetails.paymentStatus}
-              deleted={Boolean(order.deleted_at)}
-              hasActiveDocuments={documents.some((document) =>
-                isShippingBearingOrderPdfType(document.type)
-              )}
-              quoteDerived={order.source_quote_offer_version_id !== null}
-              externalEditMode={isShippingEditing}
-              onRequestEdit={() => toggleSectionEdit('shipping')}
-              onDirtyChange={setShippingDirty}
-              onSavingChange={setShippingSaving}
-              onPricingRevisionChange={updateLatestPricingRevision}
-              onRegisterSave={registerShippingSaveHandler}
-              pageBusy={pageIsBusy}
-            />
 
             <section
               className={`${adminWindowCardClassName} order-first p-4`}
@@ -1486,7 +1597,20 @@ export default function AdminOrderDetailClient({
               data-testid="admin-order-data-card"
             >
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-base font-semibold text-slate-900">Podatki naročila</h2>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="text-base font-semibold text-slate-900">Podatki naročila</h2>
+                  <AdminOrderCustomerActions
+                    orderId={orderId}
+                    organizationName={persistedDetails.organizationName}
+                    contactName={persistedDetails.contactName}
+                    email={persistedDetails.email}
+                    addressLine1={persistedDetails.deliveryAddress}
+                    addressLine2={persistedDetails.addressLine2}
+                    postalCode={persistedDetails.postalCode}
+                    city={persistedDetails.city}
+                    countryCode={persistedDetails.countryCode}
+                  />
+                </div>
                 <button
                   type="button"
                   className={`${adminCardSectionEditIconButtonClassName} ${isOrderDataEditing ? 'bg-[color:var(--hover-neutral)]' : ''}`}
@@ -1527,7 +1651,7 @@ export default function AdminOrderDetailClient({
                       ariaLabel="Tip naročnika"
                       value={activeOrderDataDetails.customerType}
                       onChange={(value) => updateDraftDetails({ customerType: value })}
-                      options={availableCustomerTypeOptions}
+                      options={CUSTOMER_TYPE_FORM_OPTIONS}
                       disabled={pageIsBusy}
                       showArrow
                       containerClassName={adminCompactIconFieldSelectWrapperClassName}
@@ -1597,18 +1721,6 @@ export default function AdminOrderDetailClient({
           </div>
 
           <aside className="flex w-full min-w-0 flex-col gap-5">
-            <AdminOrderCustomerCard
-              orderId={orderId}
-              customerType={persistedDetails.customerType}
-              organizationName={persistedDetails.organizationName}
-              contactName={persistedDetails.contactName}
-              email={persistedDetails.email}
-              addressLine1={persistedDetails.deliveryAddress}
-              addressLine2={persistedDetails.addressLine2}
-              postalCode={persistedDetails.postalCode}
-              city={persistedDetails.city}
-              countryCode={persistedDetails.countryCode}
-            />
 
             <AdminNotesCard
               headingId="admin-order-notes-title"
@@ -1621,9 +1733,41 @@ export default function AdminOrderDetailClient({
               onToggle={() => toggleSectionEdit('notes')}
               disabled={pageIsBusy}
               autoFocus={editScopes.notes && !isMasterEditing}
-            />            <AdminOrderPdfManagerClient
+            />
+
+            <AdminOrderShippingOverride
+              orderId={orderId}
+              shipping={order.shipping}
+              automaticShipping={order.automatic_shipping ?? null}
+              shippingCalculation={order.shipping_snapshot_json ?? null}
+              shippingOverride={order.shipping_override_json ?? null}
+              shippingOverrideStale={order.shipping_override_stale === true}
+              parcelCount={order.parcel_count}
+              pricingRevision={order.pricing_revision}
+              orderStatus={persistedDetails.status}
+              paymentStatus={persistedDetails.paymentStatus}
+              deleted={Boolean(order.deleted_at)}
+              hasActiveDocuments={documents.some((document) =>
+                isShippingBearingOrderPdfType(document.type)
+              )}
+              quoteDerived={order.source_quote_offer_version_id !== null}
+              externalEditMode={isShippingEditing}
+              onRequestEdit={() => toggleSectionEdit('shipping')}
+              onDirtyChange={setShippingDirty}
+              onSavingChange={setShippingSaving}
+              onPricingRevisionChange={updateLatestPricingRevision}
+              onRegisterSave={registerShippingSaveHandler}
+              pageBusy={pageIsBusy}
+            />
+
+            <AdminOrderPdfManagerClient
               orderId={orderId}
               documents={documents}
+              unsavedChangesReason={
+                hasUnsavedChanges
+                  ? 'Pred ustvarjanjem ali nalaganjem PDF dokumentov najprej shranite spremembe.'
+                  : undefined
+              }
               generationDisabledReason={
                 order.is_draft
                   ? 'Dokument lahko ustvarite po shranitvi dokončanega osnutka z veljavno poštnino.'
@@ -1636,17 +1780,22 @@ export default function AdminOrderDetailClient({
             {!order.is_draft ? (
               <AdminOrderCustomerAccess
                 orderId={orderId}
-                customerType={order.customer_type}
-                initialCommitmentStatus={
-                  order.commitment_status
-                  ?? (order.customer_type === 'school' ? 'pending_confirmation' : 'binding')
-                }
+                customerType={persistedDetails.customerType}
+                hasActivePurchaseOrderEvidence={hasActivePurchaseOrderEvidence}
+                initialCommitmentStatus={persistedCommitmentStatus}
                 compact
               />
             ) : null}
           </aside>
         </div>
       </div>
+
+      <CustomerEmailConfirmationDialog
+        confirmation={customerEmailConfirmation.confirmation}
+        onCancel={customerEmailConfirmation.cancelConfirmation}
+        onConfirm={customerEmailConfirmation.confirm}
+        confirmDisabled={pageIsBusy}
+      />
 
       <UnsavedChangesDialog
         open={pendingUnsavedAction !== null}

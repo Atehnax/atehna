@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
-import AdminOrderCustomerCard from '@/admin/features/orders/components/AdminOrderCustomerCard';
+import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
+import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
+import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
+import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { useRouter } from 'next/navigation';
-import { Info, RotateCcw } from 'lucide-react';
+import { Calculator, Info } from 'lucide-react';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel } from '@/shared/domain/order/customerType';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
 import { defaultQuoteValidityDateInput } from '@/shared/domain/quote/quoteValidity';
@@ -74,7 +78,7 @@ import AdminQuoteClarificationDialog, {
 } from '@/admin/features/quotes/components/AdminQuoteClarificationDialog';
 import AdminQuoteIssueDialog from '@/admin/features/quotes/components/AdminQuoteIssueDialog';
 import AdminQuoteDocumentsManager from '@/admin/features/quotes/components/AdminQuoteDocumentsManager';
-import AdminQuoteActivityTimeline from '@/admin/features/quotes/components/AdminQuoteActivityTimeline';
+import AdminQuoteActivityTimeline, { QUOTE_EVENT_LABELS } from '@/admin/features/quotes/components/AdminQuoteActivityTimeline';
 import {
   buildQuoteRequestStatusSelectionOptions,
   getManualQuoteRequestStatusTarget
@@ -120,6 +124,11 @@ const EMAIL_JOB_STATUS_LABELS: Record<string, string> = {
   failed: 'Napaka'
 };
 
+type QuoteActionOptions = {
+  reason?: string | null;
+  customerEmailConfirmationToken?: string;
+};
+
 const topActionSaveButtonClassName =
   `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const compactPrimaryButtonClassName = `${adminTablePrimaryButtonClassName} !h-8 !px-3`;
@@ -155,6 +164,7 @@ type QuoteRequestDetailsState = {
   postalCode: string;
   city: string;
   countryCode: string;
+  gursHouseNumberId: string;
   reference: string;
   quoteReason: string;
   customerMessage: string;
@@ -172,6 +182,7 @@ const asQuoteRequestDetails = (detail: AdminQuoteDetail): QuoteRequestDetailsSta
   postalCode: detail.postalCode ?? '',
   city: detail.city ?? '',
   countryCode: detail.countryCode ?? 'SI',
+  gursHouseNumberId: detail.gursHouseNumberId ?? '',
   reference: detail.reference ?? '',
   quoteReason: detail.quoteReason ?? 'formal_offer',
   customerMessage: detail.customerMessage ?? ''
@@ -755,15 +766,23 @@ function QuoteAddressEditor({
         className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
         data-testid="quote-request-address-fields"
       >
-        <input
-          aria-label="Naslov"
-          autoComplete="address-line1"
-          type="text"
+        <AdminAddressAutocompleteInput
           value={details.addressLine1}
+          gursHouseNumberId={details.gursHouseNumberId}
           disabled={disabled}
-          placeholder="Naslov"
-          onChange={(event) => onChange({ addressLine1: event.target.value })}
-          className={`${quoteDetailCompositeInputClassName} !pl-0`}
+          testId="admin-quote-address-autocomplete"
+          onChange={(value) => onChange({
+            addressLine1: value,
+            gursHouseNumberId: ''
+          })}
+          onSelect={(suggestion) => onChange({
+            addressLine1: suggestion.addressLine1,
+            postalCode: suggestion.postalCode,
+            city: suggestion.postalName,
+            countryCode: 'SI',
+            gursHouseNumberId: suggestion.gursHouseNumberId
+          })}
+          className={quoteDetailCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
           aria-label="Dodatni naslov"
@@ -784,7 +803,8 @@ function QuoteAddressEditor({
           disabled={disabled}
           placeholder="P. št."
           onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4)
+            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
           })}
           className={`${quoteDetailCompositeInputClassName} text-center`}
         />
@@ -795,7 +815,10 @@ function QuoteAddressEditor({
           value={details.city}
           disabled={disabled}
           placeholder="Kraj"
-          onChange={(event) => onChange({ city: event.target.value })}
+          onChange={(event) => onChange({
+            city: event.target.value,
+            gursHouseNumberId: ''
+          })}
           className={quoteDetailCompositeInputClassName}
         />
         <input
@@ -810,7 +833,8 @@ function QuoteAddressEditor({
             countryCode: event.target.value
               .toUpperCase()
               .replace(/[^A-Z]/g, '')
-              .slice(0, 2)
+              .slice(0, 2),
+            gursHouseNumberId: ''
           })}
           className={`${quoteDetailCompositeInputClassName} !px-1 text-center`}
         />
@@ -1454,7 +1478,9 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
     [detail.offerVersions]
   );
   const canEditRequestDetails =
-    !currentIssuedVersion && (detail.status === 'received' || detail.status === 'in_preparation');
+    Boolean(draftVersion || currentIssuedVersion) ||
+    detail.status === 'received' ||
+    detail.status === 'in_preparation';
   const currentVersion = draftVersion ?? currentIssuedVersion ?? detail.offerVersions[0] ?? null;
   const editableVersion =
     draftVersion && (detail.status === 'received' || detail.status === 'in_preparation')
@@ -1466,7 +1492,9 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
     !draftVersion && currentVersion && ['issued', 'withdrawn', 'expired'].includes(currentVersion.status)
   );
   const canWithdrawIssuedOffer = Boolean(currentIssuedVersion);
-  const canManuallyEditRequestStatus = canEditRequestDetails;
+  const canManuallyEditRequestStatus =
+    !currentIssuedVersion &&
+    (detail.status === 'received' || detail.status === 'in_preparation');
   const canCloseWithoutIssuing =
     ['received', 'in_preparation'].includes(detail.status) &&
     detail.offerVersions.every((version) => version.status === 'draft');
@@ -1528,6 +1556,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [issueDialogError, setIssueDialogError] = useState<string | null>(null);
   const [issueActionId, setIssueActionId] = useState<string | null>(null);
+  const {
+    confirmation: customerEmailConfirmation,
+    handleConfirmationRequired: handleCustomerEmailConfirmationRequired,
+    cancelConfirmation: cancelCustomerEmailConfirmation,
+    confirm: confirmCustomerEmail
+  } = useCustomerEmailConfirmation();
   const [isShippingExplanationOpen, setIsShippingExplanationOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -1900,7 +1934,11 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
 
   const saveRequestDetails = async (
     expectedRequestStateVersion = requestStateVersion,
-    showSuccess = true
+    showSuccess = true,
+    expectedDraftStateVersion =
+      persistedOfferDraft?.offerVersionId
+        ? persistedOfferDraft.expectedStateVersion
+        : undefined
   ): Promise<number | null> => {
     if (!isEditingRequestDetails || !requestProfileDirty || busyAction) return null;
     const validationMessage = getRequestDetailsValidationMessage();
@@ -1915,6 +1953,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expectedRequestStateVersion,
+          expectedDraftStateVersion,
           ...draftRequestDetails,
           status: persistedRequestDetails.status
         })
@@ -1923,17 +1962,56 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         message?: string;
         stateVersion?: number;
         draftStateVersion?: number | null;
+        quoteOfferVersionId?: number | null;
+        draftVersionNumber?: number | null;
+        revisionCreated?: boolean;
+        correctionScope?: 'request' | 'draft_revision';
+        issuedOfferVersionId?: number | null;
+        status?: string;
       } | null;
       if (!response.ok) {
         throw new Error(payload?.message ?? 'Podatkov povpraševanja ni bilo mogoče shraniti.');
       }
       const nextStateVersion = Number(payload?.stateVersion);
       const nextDraftStateVersion = Number(payload?.draftStateVersion);
+      const nextDraftOfferVersionId = Number(payload?.quoteOfferVersionId);
+      const nextDraftVersionNumber = Number(payload?.draftVersionNumber);
+      const issuedOfferVersionId = Number(payload?.issuedOfferVersionId);
+      const nextStatus =
+        typeof payload?.status === 'string' && payload.status.trim()
+          ? payload.status
+          : persistedRequestDetails.status;
       if (!Number.isSafeInteger(nextStateVersion) || nextStateVersion <= 0) {
         throw new Error('Strežnik ni vrnil veljavne različice povpraševanja.');
       }
       setRequestStateVersion(nextStateVersion);
       const reconcileDraftStateVersion = (current: DraftState | null) => {
+        if (payload?.correctionScope === 'draft_revision') {
+          if (
+            !Number.isSafeInteger(nextDraftOfferVersionId) ||
+            nextDraftOfferVersionId <= 0 ||
+            !Number.isSafeInteger(nextDraftVersionNumber) ||
+            nextDraftVersionNumber <= 0 ||
+            !Number.isSafeInteger(nextDraftStateVersion) ||
+            nextDraftStateVersion <= 0 ||
+            !Number.isSafeInteger(issuedOfferVersionId) ||
+            issuedOfferVersionId <= 0
+          ) {
+            throw new Error(
+              'Strežnik ni vrnil veljavne nove različice ponudbe. Osvežite stran in poskusite znova.'
+            );
+          }
+          const revisionDraft = current ?? (currentIssuedVersion
+            ? toDraftState(currentIssuedVersion)
+            : null);
+          return revisionDraft
+            ? {
+                ...revisionDraft,
+                offerVersionId: nextDraftOfferVersionId,
+                expectedStateVersion: nextDraftStateVersion
+              }
+            : revisionDraft;
+        }
         if (!current) return current;
         if (
           current.offerVersionId > 0 &&
@@ -1948,13 +2026,22 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       };
       setDraft(reconcileDraftStateVersion);
       setPersistedOfferDraft(reconcileDraftStateVersion);
-      setPersistedRequestDetails((current) => ({
+      const reconciledRequestDetails = {
         ...draftRequestDetails,
-        status: current.status
-      }));
+        status: nextStatus
+      };
+      setPersistedRequestDetails(reconciledRequestDetails);
+      setDraftRequestDetails(reconciledRequestDetails);
       setIsEditingRequestDetails(false);
       if (showSuccess) {
-        toast.success(payload?.message ?? 'Podatki povpraševanja so shranjeni.');
+        toast.success(
+          payload?.message ?? (payload?.revisionCreated
+            ? 'Popravek je shranjen v novi različici ponudbe.'
+            : 'Podatki povpraševanja so shranjeni.')
+        );
+      }
+      if (payload?.correctionScope === 'draft_revision' && !isMasterEditing) {
+        router.refresh();
       }
       return nextStateVersion;
     } catch (error) {
@@ -2067,11 +2154,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
     }
     if (
       !draftToValidate.validUntil ||
-      !draftToValidate.termsText.trim() ||
       !draftToValidate.deliveryTerms.trim() ||
       !draftToValidate.paymentTerms.trim()
     ) {
-      toast.error('Pred izdajo izpolnite veljavnost, dobavne in plačilne pogoje ter pogoje sprejema.');
+      toast.error('Pred izdajo izpolnite veljavnost ter dobavne in plačilne pogoje.');
       return false;
     }
     if (draftToValidate.shipping === 0 && !draftToValidate.confirmFreeShipping) {
@@ -2081,7 +2167,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
     return true;
   };
 
-  const callAction = async (action: 'issue' | 'revise' | 'withdraw' | 'close') => {
+  const callAction = async (
+    action: 'issue' | 'revise' | 'withdraw' | 'close',
+    options: QuoteActionOptions = {}
+  ) => {
     if (busyAction) return false;
     if (action === 'issue') {
       if (!isIssueDialogOpen || !issueActionId) return false;
@@ -2095,13 +2184,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           ? currentIssuedVersion ?? currentVersion
           : null;
     if (action !== 'close' && !targetVersion) return false;
-    if (action === 'withdraw' && !window.confirm('Ponudba ne bo več veljavna, povezava stranke bo onemogočena in stranka bo obveščena. Nadaljujem?')) return false;
-    if (action === 'close' && !window.confirm('Povpraševanje bo zaključeno brez izdaje ponudbe, stranki pa bo poslan navedeni razlog. Nadaljujem?')) return false;
-    const reason = action === 'withdraw'
-      ? window.prompt('Razlog umika izdane ponudbe (viden stranki):')
-      : action === 'close'
-        ? window.prompt('Razlog zaključka brez izdaje ponudbe (viden stranki):')
-        : null;
+    const reason = options.reason ?? null;
     if ((action === 'withdraw' || action === 'close') && !reason?.trim()) return false;
     setBusyAction(action);
     try {
@@ -2111,6 +2194,58 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           ? editableExpectedStateVersion
           : targetVersion?.stateVersion ?? detail.stateVersion;
       let actionRequestStateVersion = requestStateVersion;
+
+      if (
+        action === 'issue' &&
+        draft &&
+        draftHasUnsavedChanges
+      ) {
+        const preflightResponse = await fetch(
+          `/api/admin/quote-requests/${detail.id}/issue`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              quoteRequestId: detail.id,
+              offerVersionId: actionOfferVersionId,
+              expectedStateVersion: actionOfferStateVersion,
+              expectedRequestStateVersion: actionRequestStateVersion,
+              actionId: issueActionId,
+              confirmationOnly: true,
+              ...(options.customerEmailConfirmationToken
+                ? {
+                    customerEmailConfirmationToken:
+                      options.customerEmailConfirmationToken
+                  }
+                : {})
+            })
+          }
+        );
+        const preflightPayload = await preflightResponse.json().catch(() => null) as {
+          message?: string;
+          confirmation?: unknown;
+        } | null;
+        if (
+          handleCustomerEmailConfirmationRequired(
+            preflightResponse,
+            preflightPayload,
+            (confirmationToken) =>
+              callAction(action, {
+                ...options,
+                reason,
+                customerEmailConfirmationToken: confirmationToken
+              }).then(() => undefined)
+          )
+        ) {
+          return false;
+        }
+        if (!preflightResponse.ok) {
+          throw new Error(
+            preflightPayload?.message ??
+              'Preverjanje e-poštnega obvestila ni uspelo.'
+          );
+        }
+      }
 
       if (action === 'issue' && draft && draftHasUnsavedChanges) {
         const saved = await persistDraft(draft);
@@ -2128,6 +2263,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           expectedStateVersion: actionOfferStateVersion,
           expectedRequestStateVersion: actionRequestStateVersion,
           reason: reason?.trim() || null,
+          ...(options.customerEmailConfirmationToken
+            ? {
+                customerEmailConfirmationToken:
+                  options.customerEmailConfirmationToken
+              }
+            : {}),
           ...(action === 'issue' && draft ? {
             actionId: issueActionId,
             validUntil: draft.validUntil,
@@ -2141,18 +2282,35 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         })
       });
       const payload = await response.json().catch(() => null) as {
+        code?: string;
         message?: string;
         offerNumber?: string;
         documentStatus?: string;
         emailQueued?: boolean;
+        confirmation?: unknown;
       } | null;
+      if (
+        action !== 'revise' &&
+        handleCustomerEmailConfirmationRequired(
+          response,
+          payload,
+          (confirmationToken) =>
+            callAction(action, {
+              ...options,
+              reason,
+              customerEmailConfirmationToken: confirmationToken
+            }).then(() => undefined)
+        )
+      ) {
+        return false;
+      }
       if (!response.ok) throw new Error(payload?.message ?? 'Dejanja ni bilo mogoče izvesti.');
       if (action === 'issue') {
         const reference = payload?.offerNumber?.trim() || 'Ponudba';
         if (payload?.emailQueued === true) {
           toast.success(payload.message ?? `${reference} je izdana; e-pošta je v čakalni vrsti.`);
         } else {
-          toast.error(payload?.message ?? `${reference} je izdana, vendar e-pošta ni bila uvrščena v čakalno vrsto.`);
+          toast.success(payload?.message ?? `${reference} je izdana. E-pošta stranki ni bila uvrščena; preverite nastavitve E-pošta.`);
         }
       } else {
         toast.success(payload?.message ?? 'Sprememba je shranjena.');
@@ -2168,6 +2326,20 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       setBusyAction(null);
     }
   };
+
+  const requestLifecycleAction = (
+    action: 'withdraw' | 'close'
+  ) => {
+    if (busyAction) return;
+    const reason = window.prompt(
+      action === 'withdraw'
+        ? 'Razlog umika izdane ponudbe (viden stranki):'
+        : 'Razlog zaključka brez izdaje ponudbe (viden stranki):'
+    );
+    if (!reason?.trim()) return;
+
+    void callAction(action, { reason: reason.trim() });
+  };
   const handleRequestStatusSelection = (value: string) => {
     if (!isEditingRequestHeader || busyAction) return;
     const selectedOption = requestStatusSelectionOptions.find(
@@ -2182,6 +2354,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
   const saveQuoteChanges = async () => {
     if (busyAction || isPreparingOfferEdit) return;
     let nextRequestStateVersion = requestStateVersion;
+    let nextDraftStateVersion =
+      persistedOfferDraft?.offerVersionId
+        ? persistedOfferDraft.expectedStateVersion
+        : undefined;
     let savedAnyChanges = false;
     const requestChangesWereDirty =
       (isEditingRequestDetails && requestProfileDirty) ||
@@ -2216,6 +2392,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       try {
         const saved = await persistDraft(draft);
         nextRequestStateVersion = saved.requestStateVersion;
+        nextDraftStateVersion = saved.stateVersion;
         savedAnyChanges = true;
         if (!requestChangesWereDirty) {
           toast.success(saved.message ?? 'Osnutek ponudbe je shranjen.');
@@ -2232,7 +2409,8 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       const savedStateVersion = await saveRequestDetails(
         nextRequestStateVersion,
         !(isEditingRequestHeader && (requestTitleDirty || requestStatusDirty))
-          && !(isEditingAdminNotes && adminNotesDirty)
+          && !(isEditingAdminNotes && adminNotesDirty),
+        nextDraftStateVersion
       );
       if (!savedStateVersion) return;
       nextRequestStateVersion = savedStateVersion;
@@ -2403,7 +2581,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
     setClarificationDialogStep('confirm-email');
   };
 
-  const requestClarification = async (sendEmail: boolean) => {
+  const requestClarification = async (
+    sendEmail: boolean,
+    customerEmailConfirmationToken?: string
+  ) => {
     if (busyAction || !isClarificationDialogOpen) return;
     const clarification = clarificationDraft.trim();
     if (!clarification || !clarificationActionId) {
@@ -2422,7 +2603,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           expectedRequestStateVersion: requestStateVersion,
           clarification,
           sendEmail,
-          actionId: clarificationActionId
+          actionId: clarificationActionId,
+          ...(sendEmail && customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {})
         })
       });
       const payload = await response.json().catch(() => null) as {
@@ -2432,6 +2616,17 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         emailQueued?: boolean;
         emailStatus?: 'not_requested' | 'not_queued' | 'pending' | 'processing' | 'sent' | 'failed';
       } | null;
+      if (
+        sendEmail &&
+        handleCustomerEmailConfirmationRequired(
+          response,
+          payload,
+          (confirmationToken) =>
+            requestClarification(true, confirmationToken)
+        )
+      ) {
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload?.message ?? 'Zahteve za pojasnilo ni bilo mogoče zabeležiti.');
       }
@@ -2443,12 +2638,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           ? 'Zahteva je zabeležena in e-pošta je v čakalni vrsti.'
           : 'Zahteva za pojasnilo je zabeležena v časovnici.');
       resetClarificationDialog();
-      if (
-        sendEmail &&
-        (payload.emailQueued !== true ||
-          payload.emailStatus === 'failed' ||
-          payload.emailStatus === 'not_queued')
-      ) toast.error(message);
+      if (sendEmail && payload.emailStatus === 'failed') toast.error(message);
       else toast.success(message);
       router.refresh();
     } catch (error) {
@@ -2461,12 +2651,34 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       setBusyAction(null);
     }
   };
-  const retryEmail = async (jobId: string) => {
-    if (busyAction) return;
+  const retryEmail = async (
+    jobId: string,
+    customerEmailConfirmationToken?: string
+  ) => {
+    const job = detail.emailJobs.find((candidate) => candidate.id === jobId);
+    if (busyAction || !job?.retryEligible) return;
     setBusyAction(`retry:${jobId}`);
     try {
-      const response = await fetch(`/api/admin/quote-email-jobs/${jobId}/retry`, { method: 'POST' });
+      const response = await fetch(`/api/admin/quote-email-jobs/${jobId}/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {})
+        })
+      });
       const payload = await response.json().catch(() => null) as { message?: string } | null;
+      if (
+        handleCustomerEmailConfirmationRequired(
+          response,
+          payload,
+          (confirmationToken) =>
+            retryEmail(jobId, confirmationToken)
+        )
+      ) {
+        return;
+      }
       if (!response.ok) throw new Error(payload?.message ?? 'E-pošte ni bilo mogoče znova uvrstiti.');
       toast.success(payload?.message ?? 'E-pošta je znova v čakalni vrsti.');
       router.refresh();
@@ -2749,7 +2961,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               </div>
             </div>
 
-            <div className="flex flex-nowrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
               <IconButton
                 type="button"
                 onClick={toggleMasterEdit}
@@ -2777,6 +2989,15 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               >
                 <ActionUndoIcon />
               </IconButton>
+              <AuditHistoryDrawer
+                entityType="system"
+                entityId={'quote:' + detail.id}
+                entityLabel={'Povpraševanje ' + detail.requestNumber}
+                loadAuditEvents={false}
+                workflowEventsUrl={`/api/admin/quote-requests/${detail.id}/events`}
+                workflowEventLabels={QUOTE_EVENT_LABELS}
+                workflowHeading="Celoten potek ponudbe"
+              />
               <Button
                 type="button"
                 variant="primary"
@@ -2823,7 +3044,21 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         <main className="space-y-5">
           <section className={adminWindowCardClassName + ' p-4'} style={adminWindowCardStyle} data-testid="quote-request-details-card">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja</h2>
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja</h2>
+                <AdminOrderCustomerActions
+                  orderId={detail.id}
+                  customerEndpoint={`/api/admin/quote-requests/${detail.id}/customer`}
+                  organizationName={persistedRequestDetails.organizationName}
+                  contactName={persistedRequestDetails.contactName}
+                  email={persistedRequestDetails.email}
+                  addressLine1={persistedRequestDetails.addressLine1}
+                  addressLine2={persistedRequestDetails.addressLine2}
+                  postalCode={persistedRequestDetails.postalCode}
+                  city={persistedRequestDetails.city}
+                  countryCode={persistedRequestDetails.countryCode}
+                />
+              </div>
               <button
                 type="button"
                 className={adminCardSectionEditIconButtonClassName + (isEditingRequestDetails ? ' bg-[color:var(--hover-neutral)]' : '')}
@@ -2846,6 +3081,17 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 <PencilIcon className="h-4 w-4" />
               </button>
             </div>
+
+            {isEditingRequestDetails && currentIssuedVersion ? (
+              <p
+                className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800"
+                data-testid="quote-customer-correction-revision-notice"
+              >
+                {draftVersion
+                  ? 'Urejate podatke nove različice. Trenutno izdana ponudba ostaja nespremenjena.'
+                  : 'Popravki bodo ob shranjevanju ustvarili novo različico. Trenutno izdana ponudba ostaja nespremenjena.'}
+              </p>
+            ) : null}
 
             <dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">
               <QuoteDetailRow label="Tip naročnika" value={getCustomerTypeLabel(activeRequestDetails.customerType)} icon="type" isEditing={isEditingRequestDetails}>
@@ -2986,12 +3232,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                       className={compactPrimaryButtonClassName}
                       data-testid="quote-action-issue-offer"
                     >
-                      Izdaj in pošlji ponudbo
+                      Izdaj ponudbo
                     </Button>
                   </>
                 ) : null}
-                {canWithdrawIssuedOffer ? <Button data-testid="quote-action-withdraw-offer" type="button" variant="default" size="toolbar" onClick={() => void callAction('withdraw')} disabled={Boolean(busyAction)} title="Razveljavi trenutno izdano ponudbo in onemogoči povezavo stranke." className={compactDangerButtonClassName}>Umakni izdano ponudbo</Button> : null}
-                {canCloseWithoutIssuing ? <Button data-testid="quote-action-close-without-offer" type="button" variant="default" size="toolbar" onClick={() => void callAction('close')} disabled={Boolean(busyAction)} title="Zapri povpraševanje, ker ponudba ne bo izdana. Na voljo le pred prvo izdajo." className={compactSecondaryButtonClassName}>Zaključi brez izdaje ponudbe</Button> : null}
+                {canWithdrawIssuedOffer ? <Button data-testid="quote-action-withdraw-offer" type="button" variant="default" size="toolbar" onClick={() => requestLifecycleAction('withdraw')} disabled={Boolean(busyAction)} title="Razveljavi trenutno izdano ponudbo in onemogoči povezavo stranke." className={compactDangerButtonClassName}>Umakni izdano ponudbo</Button> : null}
+                {canCloseWithoutIssuing ? <Button data-testid="quote-action-close-without-offer" type="button" variant="default" size="toolbar" onClick={() => requestLifecycleAction('close')} disabled={Boolean(busyAction)} title="Zapri povpraševanje, ker ponudba ne bo izdana. Na voljo le pred prvo izdajo." className={compactSecondaryButtonClassName}>Zaključi brez izdaje ponudbe</Button> : null}
               </div>
             ) : null}
             {displayedOfferDetails ? (
@@ -3045,7 +3291,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                           disabled={Boolean(busyAction)}
                           onClick={resetQuoteShippingToAutomatic}
                         >
-                          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                          <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
                         </IconButton>
                       ) : null}
                     >
@@ -3126,11 +3372,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                       <textarea
                         aria-label="Pogoji sprejema ponudbe"
                         rows={1}
-                        required
                         value={displayedOfferDetails.termsText}
                         disabled={!draft || Boolean(busyAction)}
                         onChange={(event) => setDraft((current) => current ? { ...current, termsText: event.target.value } : current)}
-                        placeholder="Pogoji, zamrznjeni v izdani ponudbi."
+                        placeholder="Neobvezni pogoji sprejema ponudbe."
                         className={compactOfferTextareaClassName}
                       />
                     </QuoteOfferFieldRow>
@@ -3301,21 +3546,6 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         </main>
 
         <aside className="flex w-full min-w-0 flex-col gap-5">
-          <div data-testid="quote-customer-card">
-            <AdminOrderCustomerCard
-              orderId={detail.id}
-              customerEndpoint={`/api/admin/quote-requests/${detail.id}/customer`}
-              customerType={persistedRequestDetails.customerType}
-              organizationName={persistedRequestDetails.organizationName}
-              contactName={persistedRequestDetails.contactName}
-              email={persistedRequestDetails.email}
-              addressLine1={persistedRequestDetails.addressLine1}
-              addressLine2={persistedRequestDetails.addressLine2}
-              postalCode={persistedRequestDetails.postalCode}
-              city={persistedRequestDetails.city}
-              countryCode={persistedRequestDetails.countryCode}
-            />
-          </div>
           <AdminNotesCard
             headingId="quote-admin-notes-title"
             testId="quote-admin-notes-card"
@@ -3337,7 +3567,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
             data-testid="quote-customer-access-card"
           >
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-slate-900">Stranka in dostop</h2>
+              <h2 className="text-base font-semibold text-slate-900">Stranka in dostop</h2>
             </div>
 
             <dl className="mt-4 divide-y divide-slate-200 text-xs">
@@ -3398,7 +3628,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <StateBadge status={job.status} />
-                            {job.status === 'failed' ? (
+                            {job.status === 'failed' && job.retryEligible ? (
                               <Button
                                 type="button"
                                 variant="default"
@@ -3420,6 +3650,14 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                             data-testid="quote-email-last-error"
                           >
                             {job.lastError}
+                          </p>
+                        ) : null}
+                        {job.status === 'failed' && !job.retryEligible ? (
+                          <p
+                            className="mt-1 text-[10px] leading-4 text-slate-500"
+                            data-testid={`quote-email-retry-ineligible-${job.id}`}
+                          >
+                            {job.retryIneligibleReason ?? 'Tega sporočila ni mogoče ponovno poslati.'}
                           </p>
                         ) : null}
                       </article>
@@ -3476,6 +3714,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
         onAdvance={advanceClarificationDialog}
         onRecordOnly={() => void requestClarification(false)}
         onRecordAndSend={() => void requestClarification(true)}
+      />
+      <CustomerEmailConfirmationDialog
+        confirmation={customerEmailConfirmation}
+        confirmDisabled={Boolean(busyAction)}
+        onCancel={cancelCustomerEmailConfirmation}
+        onConfirm={confirmCustomerEmail}
       />
       <PdfPreviewDialog
         url={previewUrl}

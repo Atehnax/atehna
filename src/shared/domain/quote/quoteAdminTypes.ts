@@ -270,6 +270,8 @@ export type AdminQuoteEmailJob = {
   lastError: string | null;
   sentAt: string | null;
   createdAt: string;
+  retryEligible: boolean;
+  retryIneligibleReason: string | null;
 };
 
 export type AdminQuoteEvent = {
@@ -303,6 +305,7 @@ export type AdminQuoteDetail = {
   postalCode: string | null;
   city: string | null;
   countryCode: string | null;
+  gursHouseNumberId: string | null;
   reference: string | null;
   quoteReason: string | null;
   customerMessage: string | null;

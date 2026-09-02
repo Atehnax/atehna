@@ -18,6 +18,10 @@ import {
   type AdminQuoteCustomerTypeFilter,
   type AdminQuoteStatusFilter
 } from '@/shared/domain/quote/quoteAdminTypes';
+import { normalizeQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
+import { getQuoteEmailRetryEligibility } from '@/shared/domain/quote/quoteEmailRetryEligibility';
+import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
+import { getQuoteFeatureFlags } from '@/shared/server/quoteFeatureFlags';
 
 type RawRow = Record<string, unknown>;
 
@@ -51,6 +55,19 @@ const toRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+
+function mapQuoteEvent(row: RawRow): AdminQuoteEvent {
+  return {
+    id: toNumber(row.id),
+    offerVersionId: toNullableNumber(row.quote_offer_version_id),
+    eventType: toText(row.event_type),
+    actorType: toText(row.actor_type, 'system'),
+    actorId: toNullableText(row.actor_id),
+    occurredAt: toIso(row.occurred_at),
+    reason: toNullableText(row.reason),
+    metadata: toRecord(row.metadata_json)
+  };
+}
 
 function mapQuoteItem(row: RawRow): AdminQuoteItem {
   return {
@@ -428,6 +445,26 @@ export async function fetchNewQuoteRequestCount(): Promise<number> {
   return toNumber(result.rows[0]?.count);
 }
 
+export async function fetchAdminQuoteEvents(
+  quoteRequestId: number
+): Promise<AdminQuoteEvent[] | null> {
+  const pool = await getPool();
+  const requestResult = await pool.query(
+    `select 1 from quote_requests where id = $1 and voided_at is null`,
+    [quoteRequestId]
+  );
+  if (requestResult.rowCount === 0) return null;
+
+  const eventsResult = await pool.query(
+    `select *
+     from quote_events
+     where quote_request_id = $1
+     order by occurred_at desc, id desc`,
+    [quoteRequestId]
+  );
+  return (eventsResult.rows as RawRow[]).map(mapQuoteEvent);
+}
+
 export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<AdminQuoteDetail | null> {
   return instrumentCatalogLoader('fetchAdminQuoteDetail', '/admin/orders/quotes/[quoteRequestId]', async () => {
     const pool = await getPool();
@@ -461,7 +498,7 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         return null;
       }
 
-      const [requestItemsResult, versionsResult, versionItemsResult, documentsResult, emailJobsResult, eventsResult, accessResult] = await Promise.all([
+      const [requestItemsResult, versionsResult, versionItemsResult, documentsResult, emailJobsResult, eventsResult, accessResult, emailSettingsResult, orderEmailSettings] = await Promise.all([
         client.query('select * from quote_request_items where quote_request_id = $1 order by line_number, id', [quoteRequestId]),
         client.query('select * from quote_offer_versions where quote_request_id = $1 order by version_number desc, id desc', [quoteRequestId]),
         client.query(
@@ -507,7 +544,11 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
            from quote_access_tokens
            where quote_request_id = $1`,
           [quoteRequestId]
-        )
+        ),
+        client.query(
+          `select config_json from quote_email_settings where key = 'default'`
+        ),
+        getOrderEmailSettings(client)
       ]);
       await client.query('commit');
 
@@ -519,9 +560,24 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         versionItems.set(versionId, items);
       }
 
-      const versions = (versionsResult.rows as RawRow[]).map((row) =>
+      const rawVersions = versionsResult.rows as RawRow[];
+      const versions = rawVersions.map((row) =>
         mapQuoteOfferVersion(row, versionItems.get(toNumber(row.id)) ?? [])
       );
+      const draftSnapshotRow = rawVersions.find(
+        (row) => row.status === 'draft'
+      );
+      const currentIssuedRow = rawVersions.find(
+        (row) => row.status === 'issued' && row.is_current === true
+      );
+      const draftCustomerOverlay =
+        draftSnapshotRow && currentIssuedRow
+          ? toRecord(draftSnapshotRow.customer_snapshot_json) ?? {}
+          : {};
+      const requestDetail = (snapshotKey: string, requestKey: string) =>
+        Object.prototype.hasOwnProperty.call(draftCustomerOverlay, snapshotKey)
+          ? draftCustomerOverlay[snapshotKey]
+          : request[requestKey];
       const accessRow = (accessResult.rows[0] ?? {}) as RawRow;
       const access: AdminQuoteAccessState = {
         activeCount: Math.max(0, Math.trunc(toNumber(accessRow.active_count))),
@@ -542,46 +598,89 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         byteSize: toNullableNumber(row.byte_size),
         mimeType: toNullableText(row.mime_type)
       }));
-      const emailJobs: AdminQuoteEmailJob[] = (emailJobsResult.rows as RawRow[]).map((row) => ({
-        id: String(row.id),
-        offerVersionId: toNullableNumber(row.quote_offer_version_id),
-        eventType: toText(row.event_type),
-        audience: toText(row.audience),
-        recipientEmail: toText(row.recipient_email),
-        status: toText(row.status),
-        attempts: Math.max(0, Math.trunc(toNumber(row.attempts))),
-        lastError: toNullableText(row.last_error),
-        sentAt: toNullableIso(row.sent_at),
-        createdAt: toIso(row.created_at)
-      }));
-      const events: AdminQuoteEvent[] = (eventsResult.rows as RawRow[]).map((row) => ({
-        id: toNumber(row.id),
-        offerVersionId: toNullableNumber(row.quote_offer_version_id),
-        eventType: toText(row.event_type),
-        actorType: toText(row.actor_type, 'system'),
-        actorId: toNullableText(row.actor_id),
-        occurredAt: toIso(row.occurred_at),
-        reason: toNullableText(row.reason),
-        metadata: toRecord(row.metadata_json)
-      }));
+      const emailSettings = normalizeQuoteEmailSettings(
+        emailSettingsResult.rows[0]?.config_json
+      );
+      const emailDeliveryEnabled = getQuoteFeatureFlags().emailDelivery;
+      const rawVersionById = new Map(
+        rawVersions.map((row) => [toNumber(row.id), row])
+      );
+      const emailJobs: AdminQuoteEmailJob[] = (emailJobsResult.rows as RawRow[]).map((row) => {
+        const offerVersionId = toNullableNumber(row.quote_offer_version_id);
+        const offer = offerVersionId === null
+          ? undefined
+          : rawVersionById.get(offerVersionId);
+        const retry = getQuoteEmailRetryEligibility({
+          settings: emailSettings,
+          emailDeliveryEnabled,
+          job: {
+            eventType: toText(row.event_type),
+            audience: toText(row.audience),
+            recipientEmail: toText(row.recipient_email),
+            requestStatus: toText(request.status),
+            requestVoided: Boolean(request.voided_at),
+            offerVersionId,
+            offerStatus: offer ? toNullableText(offer.status) : null,
+            offerIsCurrent: offer?.is_current === true,
+            hasNewerNonDraftOfferVersion: offer
+              ? rawVersions.some((candidate) =>
+                  toNumber(candidate.version_number) > toNumber(offer.version_number) &&
+                  candidate.status !== 'draft'
+                )
+              : false,
+            validUntil: offer ? toNullableIso(offer.valid_until) : null,
+            currentCustomerEmail: toText(request.email),
+            currentAdminRecipients: orderEmailSettings.adminRecipients
+          }
+        });
+        return {
+          id: String(row.id),
+          offerVersionId,
+          eventType: toText(row.event_type),
+          audience: toText(row.audience),
+          recipientEmail: toText(row.recipient_email),
+          status: toText(row.status),
+          attempts: Math.max(0, Math.trunc(toNumber(row.attempts))),
+          lastError: toNullableText(row.last_error),
+          sentAt: toNullableIso(row.sent_at),
+          createdAt: toIso(row.created_at),
+          ...retry
+        };
+      });
+      const events = (eventsResult.rows as RawRow[]).map(mapQuoteEvent);
 
       return {
         id: toNumber(request.id),
         requestNumber: toText(request.request_number),
         status: toText(request.status, 'received'),
         stateVersion: Math.max(1, Math.trunc(toNumber(request.state_version, 1))),
-        customerType: toText(request.customer_type),
-        organizationName: toNullableText(request.organization_name),
-        contactName: toText(request.contact_name),
-        email: toText(request.email),
-        addressLine1: toNullableText(request.address_line1),
-        addressLine2: toNullableText(request.address_line2),
-        postalCode: toNullableText(request.postal_code),
-        city: toNullableText(request.city),
-        countryCode: toNullableText(request.country_code),
-        reference: toNullableText(request.reference),
-        quoteReason: toNullableText(request.quote_reason),
-        customerMessage: toNullableText(request.customer_message),
+        customerType: toText(requestDetail('customerType', 'customer_type')),
+        organizationName: toNullableText(
+          requestDetail('organizationName', 'organization_name')
+        ),
+        contactName: toText(requestDetail('contactName', 'contact_name')),
+        email: toText(requestDetail('email', 'email')),
+        addressLine1: toNullableText(
+          requestDetail('addressLine1', 'address_line1')
+        ),
+        addressLine2: toNullableText(
+          requestDetail('addressLine2', 'address_line2')
+        ),
+        postalCode: toNullableText(requestDetail('postalCode', 'postal_code')),
+        city: toNullableText(requestDetail('city', 'city')),
+        countryCode: toNullableText(
+          requestDetail('countryCode', 'country_code')
+        ),
+        gursHouseNumberId: toNullableText(
+          requestDetail('gursHouseNumberId', 'gurs_house_number_id')
+        ),
+        reference: toNullableText(requestDetail('reference', 'reference')),
+        quoteReason: toNullableText(
+          requestDetail('quoteReason', 'quote_reason')
+        ),
+        customerMessage: toNullableText(
+          requestDetail('customerMessage', 'customer_message')
+        ),
         adminNotes: toText(request.admin_notes),
         adminTitle: toNullableText(request.admin_title),
         createdAt: toIso(request.created_at),

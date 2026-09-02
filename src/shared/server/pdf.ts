@@ -56,6 +56,7 @@ import {
   cloneDefaultSiteLogoConfig,
   normalizeSiteLogoConfig,
   resolveSiteLogoFittedArtworkRect,
+  resolveSiteLogoFittedCropRect,
   resolveSiteLogoGeometry,
   type SiteLogoConfig
 } from '@/shared/domain/logo/siteLogo';
@@ -1309,13 +1310,23 @@ class OrderPdfRenderer {
       fitMode: placement.fitMode,
       artworkScale: geometry.scale
     });
+    const fittedCrop = resolveSiteLogoFittedCropRect(fitted, geometry.crop);
     const imageX = x + fitted.left;
     const imageTop = top - fitted.top;
-    const bottom = top - height;
+    const cropLeft = Math.max(0, fittedCrop.left);
+    const cropTop = Math.max(0, fittedCrop.top);
+    const cropRight = Math.min(width, fittedCrop.left + fittedCrop.width);
+    const cropBottom = Math.min(height, fittedCrop.top + fittedCrop.height);
+    if (cropRight <= cropLeft || cropBottom <= cropTop) return;
 
     this.page.pushOperators(
       pushGraphicsState(),
-      rectangle(x, bottom, width, height),
+      rectangle(
+        x + cropLeft,
+        top - cropBottom,
+        cropRight - cropLeft,
+        cropBottom - cropTop
+      ),
       clip(),
       endPath()
     );

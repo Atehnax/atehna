@@ -16,6 +16,9 @@ const requestManagementDeployment = source(
 const clarificationEmailDeployment = source(
   'database/migrations/20260830_quote_clarification_email.sql'
 );
+const optionalAcceptanceTermsDeployment = source(
+  'database/migrations/20260901_quote_optional_acceptance_terms.sql'
+);
 
 function TypeScriptFilesUnder(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -49,7 +52,6 @@ test('canonical and original additive quote table definitions stay aligned befor
     'order_stock_holds',
     'quote_number_counters',
     'quote_request_items',
-    'quote_offer_versions',
     'quote_offer_version_items',
     'quote_offer_acceptances',
     'quote_documents',
@@ -67,6 +69,66 @@ test('canonical and original additive quote table definitions stay aligned befor
       tableName + ' differs between the clean schema and additive deployment'
     );
   }
+
+  const originalOfferVersions = tableDefinition(
+    deployment,
+    'quote_offer_versions'
+  );
+  const expectedEvolvedOfferVersions = originalOfferVersions.replace(
+    " and nullif(btrim(terms_text), '') is not null",
+    ''
+  );
+  assert.equal(
+    tableDefinition(canonicalSchema, 'quote_offer_versions'),
+    expectedEvolvedOfferVersions,
+    'quote_offer_versions differs beyond the reviewed optional acceptance-terms evolution'
+  );
+});
+
+test('issued offers may omit free-text acceptance terms without weakening other identity evidence', () => {
+  const offerVersions = tableDefinition(canonicalSchema, 'quote_offer_versions');
+  const replacementStart = optionalAcceptanceTermsDeployment.indexOf(
+    'alter table quote_offer_versions'
+  );
+  const postflightStart = optionalAcceptanceTermsDeployment.indexOf(
+    '\ndo $$',
+    replacementStart
+  );
+  assert.ok(replacementStart >= 0, 'missing quote-offer constraint replacement');
+  assert.ok(postflightStart > replacementStart, 'missing quote-offer migration postflight');
+  const replacement = optionalAcceptanceTermsDeployment.slice(
+    replacementStart,
+    postflightStart
+  );
+
+  for (const requiredIdentityRule of [
+    /valid_until is not null/u,
+    /valid_until > issued_at/u,
+    /nullif\(btrim\(delivery_terms\), ''\) is not null/u,
+    /nullif\(btrim\(payment_terms\), ''\) is not null/u,
+    /nullif\(btrim\(terms_version\), ''\) is not null/u,
+    /terms_hash is not null/u,
+    /content_hash is not null/u
+  ]) {
+    assert.match(offerVersions, requiredIdentityRule);
+    assert.match(replacement, requiredIdentityRule);
+  }
+  assert.doesNotMatch(
+    offerVersions,
+    /nullif\(btrim\(terms_text\), ''\) is not null/u
+  );
+  assert.doesNotMatch(replacement, /\bterms_text\b/u);
+  assert.match(optionalAcceptanceTermsDeployment, /^begin;/mu);
+  assert.match(optionalAcceptanceTermsDeployment, /pg_advisory_xact_lock/u);
+  assert.match(
+    optionalAcceptanceTermsDeployment,
+    /installed_constraint_oid[\s\S]*?installed_constraint_definition/u
+  );
+  assert.match(
+    optionalAcceptanceTermsDeployment,
+    /drop constraint quote_offer_versions_issue_identity_check[\s\S]*?add constraint quote_offer_versions_issue_identity_check/u
+  );
+  assert.match(optionalAcceptanceTermsDeployment, /commit;\s*$/u);
 });
 
 test('clarification email evolves the outbox event constraint through a reviewed migration', () => {
@@ -292,7 +354,7 @@ test('quote event idempotency targets the matching partial unique index', () => 
   ).flatMap((filePath) =>
     [...readFileSync(filePath, 'utf8').matchAll(
       /on conflict \(event_key\)([^\n]*)/gu
-    )].map((match) => match[1].trim())
+    )].map((match) => match[1].trim().replace(/['"`;,]+$/u, ''))
   );
   assert.ok(conflictPredicates.length > 0, 'missing quote event conflict targets');
   for (const predicate of conflictPredicates) {

@@ -6,8 +6,12 @@ import { ShoppingCart } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 import { buildProductCartItem } from '@/commercial/features/products/productCart';
-import type { StorefrontProductSummary } from '@/commercial/features/products/storefrontProduct';
+import {
+  isStorefrontVariantPurchasable,
+  type StorefrontProductSummary
+} from '@/commercial/features/products/storefrontProduct';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import Availability from '@/commercial/components/storefront/Availability';
 import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
@@ -41,6 +45,7 @@ export default function ProductCard({
   canvasWrapper
 }: ProductCardProps) {
   const appearance = useProductAppearance();
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const isRelated = presentation === 'related';
   const isCompactListing =
     !isRelated && appearance.listings.cardDensity === 'compact';
@@ -72,10 +77,19 @@ export default function ProductCard({
   const wrapCanvasElement = canvasWrapper ?? localCanvasWrapper;
   const canvasId = (listingId: string, relatedId: string) =>
     isRelated ? relatedId : listingId;
-  const quickVariant = product.purchasableVariant;
+  const displayVariant = product.displayVariant;
+  const quickVariant = product.purchasableVariant ??
+    (!stockEnforcementEnabled &&
+    !product.hasMultipleVariants &&
+    isStorefrontVariantPurchasable(displayVariant, false)
+      ? displayVariant
+      : null);
+  const productIsAvailable = product.isAvailable ||
+    (!stockEnforcementEnabled &&
+      isStorefrontVariantPurchasable(displayVariant, false));
   const minimumQuantity = Math.max(1, quickVariant?.minOrder ?? 1);
   const maximumQuantity =
-    typeof quickVariant?.inventory === 'number'
+    stockEnforcementEnabled && typeof quickVariant?.inventory === 'number'
       ? Math.max(minimumQuantity, quickVariant.inventory)
       : undefined;
   const [relatedQuantityInput, setRelatedQuantityInput] = useState(
@@ -88,7 +102,6 @@ export default function ProductCard({
       Math.floor(relatedQuantityInput || minimumQuantity)
     )
   );
-  const displayVariant = product.displayVariant;
   const canQuickAdd =
     appearance.listings.allowSimpleQuickAdd &&
     appearance.listings.showPurchaseAction &&
@@ -111,6 +124,7 @@ export default function ProductCard({
   const card = (
     <article
       data-product-card-layout={isRelated ? undefined : layout}
+      data-stock-enforcement={stockEnforcementEnabled ? 'enabled' : 'disabled'}
       className={`site-panel storefront-product-card group h-full min-w-0 overflow-hidden transition-colors duration-200 ${
         isRelated ? '' : 'storefront-product-listing-card'
       } ${
@@ -376,12 +390,12 @@ export default function ProductCard({
                   href={product.href}
                   prefetch={false}
                   className={`site-button inline-flex w-full items-center justify-center ${
-                    isRelated || !product.isAvailable
+                    isRelated || !productIsAvailable
                       ? 'site-button--secondary'
                       : ''
                   }`}
                 >
-                  {product.isAvailable ? 'Izberi različico' : 'Preveri izdelek'}
+                  {productIsAvailable ? 'Izberi različico' : 'Preveri izdelek'}
                 </Link>
               )}
             </div>,

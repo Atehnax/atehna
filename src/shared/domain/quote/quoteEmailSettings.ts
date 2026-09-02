@@ -20,8 +20,13 @@ export type QuoteEmailEventTemplates = {
   admin: QuoteEmailTemplate;
 };
 
+export const QUOTE_STOCK_ACCEPTANCE_MODES = ['manual', 'automatic'] as const;
+export type QuoteStockAcceptanceMode =
+  (typeof QUOTE_STOCK_ACCEPTANCE_MODES)[number];
+
 export type QuoteEmailSettings = {
   enabled: boolean;
+  stockAcceptanceMode: QuoteStockAcceptanceMode;
   events: Record<QuoteEmailEventType, QuoteEmailAudienceSettings>;
   templates: Record<QuoteEmailEventType, QuoteEmailEventTemplates>;
   updatedAt: string;
@@ -33,7 +38,7 @@ export const QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 12_000;
 export function quoteEmailEventSupportsAdminAudience(
   eventType: QuoteEmailEventType
 ): boolean {
-  return eventType !== 'quote_clarification_requested';
+  return eventType !== 'quote_access_otp';
 }
 
 export const QUOTE_EMAIL_EVENT_DEFAULTS: Record<
@@ -113,24 +118,71 @@ export const QUOTE_EMAIL_EVENT_DEFAULTS: Record<
 };
 
 export const QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS = [
-  { value: 'quote_request_submitted', label: 'Povpraševanje prejeto' },
-  { value: 'quote_clarification_requested', label: 'Zahteva za pojasnilo' },
-  { value: 'quote_issued', label: 'Ponudba izdana' },
-  { value: 'quote_accepted', label: 'Ponudba sprejeta' },
-  { value: 'quote_declined', label: 'Ponudba zavrnjena' },
-  { value: 'quote_withdrawn', label: 'Ponudba umaknjena' },
-  { value: 'quote_expired', label: 'Ponudba potekla' },
-  { value: 'quote_request_closed', label: 'Povpraševanje zaključeno' },
-  { value: 'quote_acceptance_blocked_stock', label: 'Sprejem blokiran zaradi zaloge' },
-  { value: 'quote_delivery_failed', label: 'Dostava e-pošte ni uspela' }
+  {
+    value: 'quote_request_submitted',
+    label: 'Povpraševanje prejeto',
+    description: 'Ko stranka uspešno odda novo povpraševanje.'
+  },
+  {
+    value: 'quote_clarification_requested',
+    label: 'Zahteva za pojasnilo',
+    description:
+      'Ko administrator od stranke zahteva dodatne podatke ali pojasnilo.'
+  },
+  {
+    value: 'quote_issued',
+    label: 'Ponudba izdana',
+    description: 'Ko administrator izda ponudbo in jo pošlje stranki.'
+  },
+  {
+    value: 'quote_accepted',
+    label: 'Ponudba sprejeta',
+    description:
+      'Ko stranka sprejme ponudbo in se ustvari povezano naročilo.'
+  },
+  {
+    value: 'quote_declined',
+    label: 'Ponudba zavrnjena',
+    description: 'Ko stranka zavrne izdano ponudbo.'
+  },
+  {
+    value: 'quote_withdrawn',
+    label: 'Ponudba umaknjena',
+    description: 'Ko administrator umakne izdano ponudbo.'
+  },
+  {
+    value: 'quote_expired',
+    label: 'Ponudba potekla',
+    description: 'Ko izdani ponudbi poteče rok veljavnosti.'
+  },
+  {
+    value: 'quote_request_closed',
+    label: 'Povpraševanje zaključeno',
+    description:
+      'Ko administrator zaključi povpraševanje brez izdaje ponudbe.'
+  },
+  {
+    value: 'quote_acceptance_blocked_stock',
+    label: 'Sprejem blokiran zaradi zaloge',
+    description:
+      'Samodejni dogodek v samodejnem načinu, ko sprejema ponudbe ni mogoče dokončati zaradi spremenjene zaloge.'
+  },
+  {
+    value: 'quote_delivery_failed',
+    label: 'Dostava e-pošte ni uspela',
+    description:
+      'Ko dostava poslovne e-pošte po vseh poskusih ni uspela.'
+  }
 ] as const satisfies ReadonlyArray<{
   value: Exclude<QuoteEmailEventType, 'quote_access_otp'>;
   label: string;
+  description: string;
 }>;
 
 export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
   return {
     enabled: true,
+    stockAcceptanceMode: 'manual',
     events: Object.fromEntries(
       QUOTE_EMAIL_EVENT_TYPES.map((eventType) => [
         eventType,
@@ -178,16 +230,15 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
     const adminTemplate = record(templates.admin);
     defaults.events[eventType] = {
       customer:
-        !quoteEmailEventSupportsAdminAudience(eventType)
+        eventType === 'quote_access_otp'
           ? true
           : typeof event.customer === 'boolean'
             ? event.customer
             : defaults.events[eventType].customer,
       admins:
-        quoteEmailEventSupportsAdminAudience(eventType) &&
-        typeof event.admins === 'boolean'
+        eventType !== 'quote_access_otp' && typeof event.admins === 'boolean'
           ? event.admins
-          : quoteEmailEventSupportsAdminAudience(eventType)
+          : eventType !== 'quote_access_otp'
             ? defaults.events[eventType].admins
             : false
     };
@@ -215,6 +266,8 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
     };
   }
   defaults.enabled = typeof source.enabled === 'boolean' ? source.enabled : true;
+  defaults.stockAcceptanceMode =
+    source.stockAcceptanceMode === 'automatic' ? 'automatic' : 'manual';
   defaults.updatedAt =
     typeof source.updatedAt === 'string' ? source.updatedAt : '';
   return defaults;

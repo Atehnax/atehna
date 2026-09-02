@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { adminCardSectionEditIconButtonClassName } from '@/shared/ui/admin-table';
-import { buttonTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+  AdminDetailDocumentOpenLink,
+  AdminDetailDocumentPrimaryAction
+} from '@/shared/ui/admin-detail';
+import {
+  adminCardSectionEditIconButtonClassName,
+  adminCardSectionIconActionButtonClassName,
+  adminCardSectionIconClassName
+} from '@/shared/ui/admin-table';
+import { CopyIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 
 type CommitmentStatus = 'binding' | 'pending_confirmation' | 'rejected';
@@ -48,11 +54,13 @@ const formatDateTime = (value: string | null | undefined) => {
 export default function AdminOrderCustomerAccess({
   orderId,
   customerType,
+  hasActivePurchaseOrderEvidence,
   initialCommitmentStatus,
   compact = false
 }: {
   orderId: number;
   customerType: string;
+  hasActivePurchaseOrderEvidence: boolean;
   initialCommitmentStatus: CommitmentStatus;
   compact?: boolean;
 }) {
@@ -62,12 +70,16 @@ export default function AdminOrderCustomerAccess({
   const [issuedUrl, setIssuedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'revoke' | 'reject' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'revoke' | null>(null);
   const [compactExpanded, setCompactExpanded] = useState(false);
   const latestActive = useMemo(
     () => status?.tokens.find((token) => token.active) ?? null,
     [status]
   );
+
+  useEffect(() => {
+    setCommitmentStatus(initialCommitmentStatus);
+  }, [initialCommitmentStatus]);
 
   async function loadStatus() {
     setIsLoading(true);
@@ -131,33 +143,6 @@ export default function AdminOrderCustomerAccess({
     }
   }
 
-  async function updateCommitment(nextStatus: CommitmentStatus) {
-    setConfirmAction(null);
-    setIsWorking(true);
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/commitment-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commitmentStatus: nextStatus })
-      });
-      const body = await response.json().catch(() => ({})) as {
-        message?: string;
-        commitmentStatus?: CommitmentStatus;
-      };
-      if (!response.ok) throw new Error(body.message ?? 'Statusa ni bilo mogoče spremeniti.');
-      setCommitmentStatus(body.commitmentStatus ?? nextStatus);
-      toast.success(
-        nextStatus === 'binding'
-          ? 'Šolsko naročilo je potrjeno kot zavezujoče.'
-          : 'Šolsko naročilo je zavrnjeno.'
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Statusa ni bilo mogoče spremeniti.');
-    } finally {
-      setIsWorking(false);
-    }
-  }
-
   async function copyIssuedUrl() {
     if (!issuedUrl) return;
     try {
@@ -170,10 +155,17 @@ export default function AdminOrderCustomerAccess({
 
   const commitmentLabel =
     commitmentStatus === 'binding'
-      ? 'Zavezujoče naročilo'
+      ? 'Potrjeno kot zavezujoče'
       : commitmentStatus === 'rejected'
-        ? 'Zavrnjeno šolsko naročilo'
-        : 'Čaka na potrditev';
+        ? 'Zavrnjeno naročilo'
+        : 'Čaka na status »V obdelavi«';
+  const pendingCommitmentHelp =
+    'Status »V obdelavi« sprejme naročilo in ga potrdi kot zavezujoče.';
+  const missingSchoolPurchaseOrderEvidence =
+    customerType === 'school' && !hasActivePurchaseOrderEvidence;
+  const missingSchoolPurchaseOrderMessage = commitmentStatus === 'pending_confirmation'
+    ? 'Manjka veljavna naročilnica. To je ločen pogoj za prehod v status »V obdelavi«.'
+    : 'Manjka veljavna naročilnica. Trenutni status, obdelava in zavezujočnost ostanejo nespremenjeni; dodajte manjkajoče dokazilo.';
 
   if (compact) {
     return (
@@ -183,7 +175,7 @@ export default function AdminOrderCustomerAccess({
           data-testid="admin-order-customer-access-compact"
         >
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-slate-900">Stranka in dostop</h2>
+            <h2 className="text-base font-semibold text-slate-900">Stranka in dostop</h2>
             <button
               type="button"
               className={`${adminCardSectionEditIconButtonClassName} ${compactExpanded ? 'bg-[color:var(--hover-neutral)]' : ''}`}
@@ -219,24 +211,27 @@ export default function AdminOrderCustomerAccess({
             </div>
           </dl>
 
+          {missingSchoolPurchaseOrderEvidence ? (
+            <div
+              className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
+              data-testid="missing-school-purchase-order-evidence-compact"
+            >
+              <p className="font-semibold">Manjka naročilnica</p>
+              <p className="mt-1">{missingSchoolPurchaseOrderMessage}</p>
+            </div>
+          ) : null}
+
           {compactExpanded ? (
             <div
               id={`admin-order-customer-access-management-${orderId}`}
               className="mt-4 border-t border-slate-200 pt-4"
             >
-              {customerType === 'school' && commitmentStatus === 'pending_confirmation' ? (
+              {commitmentStatus === 'pending_confirmation' ? (
                 <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <p className="text-xs leading-5 text-amber-800">
-                    Zaloga še ni rezervirana. Potrditev ponovno preveri trenutno zalogo.
+                    {pendingCommitmentHelp}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void updateCommitment('binding')}>
-                      Potrdi kot zavezujoče
-                    </Button>
-                    <Button type="button" variant="danger" size="sm" disabled={isWorking} onClick={() => setConfirmAction('reject')}>
-                      Zavrni
-                    </Button>
-                  </div>
+
                 </div>
               ) : null}
 
@@ -256,23 +251,35 @@ export default function AdminOrderCustomerAccess({
                   <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
                   <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-9 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <a href={issuedUrl} target="_blank" rel="noreferrer noopener" className={`${buttonTokenClasses.primary} no-underline`}>
+                    <AdminDetailDocumentOpenLink href={issuedUrl} target="_blank" rel="noreferrer noopener" className="no-underline">
                       Odpri povezavo
-                    </a>
-                    <Button type="button" variant="outline" size="sm" onClick={() => void copyIssuedUrl()}>
-                      Kopiraj
-                    </Button>
+                    </AdminDetailDocumentOpenLink>
+                    <button
+                      type="button"
+                      className={adminCardSectionIconActionButtonClassName}
+                      onClick={() => void copyIssuedUrl()}
+                      aria-label="Kopiraj povezavo"
+                      title="Kopiraj povezavo"
+                      data-testid="admin-order-customer-access-copy"
+                    >
+                      <CopyIcon className={adminCardSectionIconClassName} />
+                    </button>
                   </div>
                 </div>
               ) : null}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void regenerate()}>
+                <AdminDetailDocumentPrimaryAction type="button" disabled={isWorking} onClick={() => void regenerate()}>
                   {latestActive ? 'Obnovi povezavo' : 'Ustvari povezavo'}
-                </Button>
-                <Button type="button" variant="outline" size="sm" disabled={isWorking || !latestActive} onClick={() => setConfirmAction('revoke')}>
+                </AdminDetailDocumentPrimaryAction>
+                <AdminDetailDocumentPrimaryAction
+                  type="button"
+                  className="!text-rose-700 hover:!bg-rose-50 active:!bg-rose-100"
+                  disabled={isWorking || !latestActive}
+                  onClick={() => setConfirmAction('revoke')}
+                >
                   Prekliči dostop
-                </Button>
+                </AdminDetailDocumentPrimaryAction>
               </div>
             </div>
           ) : null}
@@ -280,18 +287,13 @@ export default function AdminOrderCustomerAccess({
 
         <ConfirmDialog
           open={confirmAction !== null}
-          title={confirmAction === 'reject' ? 'Zavrnitev šolskega naročila' : 'Preklic dostopa stranke'}
-          description={confirmAction === 'reject'
-            ? 'Šolsko naročilo bo označeno kot zavrnjeno. Zaloga ne bo spremenjena.'
-            : 'Vse aktivne povezave za to naročilo bodo takoj neveljavne.'}
-          confirmLabel={confirmAction === 'reject' ? 'Zavrni' : 'Prekliči dostop'}
+          title="Preklic dostopa stranke"
+          description="Vse aktivne povezave za to naročilo bodo takoj neveljavne."
+          confirmLabel="Prekliči dostop"
           cancelLabel="Nazaj"
           isDanger
           onCancel={() => setConfirmAction(null)}
-          onConfirm={() => {
-            if (confirmAction === 'reject') void updateCommitment('rejected');
-            else void revoke();
-          }}
+          onConfirm={() => void revoke()}
         />
       </>
     );
@@ -305,7 +307,7 @@ export default function AdminOrderCustomerAccess({
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Zavezanost naročila</h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Zavezanost je ločena od izvedbenega statusa in plačila.
+                Status »V obdelavi« naročilo sprejme in potrdi kot zavezujoče.
               </p>
             </div>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
@@ -319,27 +321,28 @@ export default function AdminOrderCustomerAccess({
             </span>
           </div>
 
-          {customerType === 'school' && commitmentStatus === 'pending_confirmation' ? (
-            <>
-              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                Zaloga še ni rezervirana. Potrditev ponovno preveri trenutno zalogo in jo šele nato odšteje.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void updateCommitment('binding')}>
-                  Potrdi kot zavezujoče
-                </Button>
-                <Button type="button" variant="danger" size="sm" disabled={isWorking} onClick={() => setConfirmAction('reject')}>
-                  Zavrni
-                </Button>
-              </div>
-            </>
+          {commitmentStatus === 'pending_confirmation' ? (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+              <p>{pendingCommitmentHelp}</p>
+
+            </div>
           ) : (
             <p className="mt-4 text-xs leading-5 text-slate-600">
               {commitmentStatus === 'binding'
-                ? 'Zaloga je zavezana naročilu. Samodejno vračilo ob preklicu ni omogočeno, dokler ni uvedena evidenca premikov zaloge.'
-                : 'To šolsko naročilo še ni zavezujoče in zaloga zanj ni rezervirana.'}
+                ? 'Naročilo je potrjeno kot zavezujoče.'
+                : 'Naročilo je zavrnjeno.'}
             </p>
           )}
+
+          {missingSchoolPurchaseOrderEvidence ? (
+            <div
+              className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+              data-testid="missing-school-purchase-order-evidence-full"
+            >
+              <p className="font-semibold">Manjka naročilnica</p>
+              <p className="mt-1">{missingSchoolPurchaseOrderMessage}</p>
+            </div>
+          ) : null}
         </div>
 
         <div className="border-t border-slate-200 pt-5 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
@@ -373,28 +376,40 @@ export default function AdminOrderCustomerAccess({
               <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
               <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-9 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
               <div className="mt-3 flex flex-wrap gap-2">
-                <a
+                <AdminDetailDocumentOpenLink
                   href={issuedUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`${buttonTokenClasses.primary} no-underline`}
+                  className="no-underline"
                 >
                   Odpri novo povezavo
-                </a>
-                <Button type="button" variant="outline" size="sm" onClick={() => void copyIssuedUrl()}>
-                  Kopiraj
-                </Button>
+                </AdminDetailDocumentOpenLink>
+                <button
+                  type="button"
+                  className={adminCardSectionIconActionButtonClassName}
+                  onClick={() => void copyIssuedUrl()}
+                  aria-label="Kopiraj povezavo"
+                  title="Kopiraj povezavo"
+                  data-testid="admin-order-customer-access-copy"
+                >
+                  <CopyIcon className={adminCardSectionIconClassName} />
+                </button>
               </div>
             </div>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="button" variant="primary" size="sm" disabled={isWorking} onClick={() => void regenerate()}>
+            <AdminDetailDocumentPrimaryAction type="button" disabled={isWorking} onClick={() => void regenerate()}>
               {latestActive ? 'Obnovi povezavo' : 'Ustvari povezavo'}
-            </Button>
-            <Button type="button" variant="outline" size="sm" disabled={isWorking || !latestActive} onClick={() => setConfirmAction('revoke')}>
+            </AdminDetailDocumentPrimaryAction>
+            <AdminDetailDocumentPrimaryAction
+              type="button"
+              className="!text-rose-700 hover:!bg-rose-50 active:!bg-rose-100"
+              disabled={isWorking || !latestActive}
+              onClick={() => setConfirmAction('revoke')}
+            >
               Prekliči dostop
-            </Button>
+            </AdminDetailDocumentPrimaryAction>
           </div>
 
           <p className="mt-4 border-t border-slate-100 pt-3 text-[11px] leading-4 text-slate-500">
@@ -405,18 +420,13 @@ export default function AdminOrderCustomerAccess({
 
       <ConfirmDialog
         open={confirmAction !== null}
-        title={confirmAction === 'reject' ? 'Zavrnitev šolskega naročila' : 'Preklic dostopa stranke'}
-        description={confirmAction === 'reject'
-          ? 'Šolsko naročilo bo označeno kot zavrnjeno. Zaloga ne bo spremenjena.'
-          : 'Vse aktivne povezave za to naročilo bodo takoj neveljavne.'}
-        confirmLabel={confirmAction === 'reject' ? 'Zavrni' : 'Prekliči dostop'}
+        title="Preklic dostopa stranke"
+        description="Vse aktivne povezave za to naročilo bodo takoj neveljavne."
+        confirmLabel="Prekliči dostop"
         cancelLabel="Nazaj"
         isDanger
         onCancel={() => setConfirmAction(null)}
-        onConfirm={() => {
-          if (confirmAction === 'reject') void updateCommitment('rejected');
-          else void revoke();
-        }}
+        onConfirm={() => void revoke()}
       />
     </>
   );

@@ -179,7 +179,12 @@ test.describe('product appearance toolbar parity contracts', () => {
 
       const listingHeader = page.locator('[data-product-canvas-element="listing-header"]');
       await expect(listingHeader).toBeVisible();
-      await listingHeader.click({ position: { x: 4, y: 4 } });
+      const pageToolbar = page.getByRole('toolbar', { name: 'Glavna orodna vrstica predogleda' });
+      await pageToolbar.getByRole('button', { name: 'Elementi', exact: true }).click();
+      await page
+        .getByRole('dialog', { name: 'Elementi predogleda' })
+        .getByRole('button', { name: 'Izberi ali premakni plast: Glava seznama', exact: true })
+        .click();
       await expect(listingHeader).toHaveAttribute('data-product-canvas-selected', 'true');
 
       const floatingToolbar = productToolbar(page, 'floating');

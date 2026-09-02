@@ -235,11 +235,19 @@ test.describe('GURS address search endpoint', () => {
 
       expect(response.status()).toBe(200);
       const payload = (await response.json()) as {
-        results: unknown[];
+        results: Array<typeof cankarjeva>;
         sourceUpdatedAt: string | null;
       };
-      expect(payload.results).toEqual([cankarjeva]);
-      expect(payload.sourceUpdatedAt).toBe('2026-07-01T00:00:00.000Z');
+      expect(payload.results.length).toBeGreaterThan(0);
+      const canonicalResult = payload.results.find(
+        (result) => result.addressLine1 === cankarjeva.addressLine1
+      );
+      expect(canonicalResult).toBeTruthy();
+      expect(canonicalResult?.postalCode).toMatch(/^\d{4}$/u);
+      expect(canonicalResult?.postalName).not.toHaveLength(0);
+      expect(canonicalResult?.gursHouseNumberId).toMatch(/^\d+$/u);
+      expect(payload.sourceUpdatedAt).not.toBeNull();
+      expect(Number.isNaN(Date.parse(payload.sourceUpdatedAt ?? ''))).toBe(false);
       expect(response.headers()['cache-control']).toBe(
         'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400'
       );

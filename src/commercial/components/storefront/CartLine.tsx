@@ -17,6 +17,7 @@ import {
   resolveProductCanvasElementDeviceSettings,
   type ProductCanvasDevice
 } from '@/shared/domain/style/productAppearance';
+import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElement';
 
 type CartLineProps = {
@@ -53,6 +54,7 @@ export default function CartLine({
   onNavigate,
   canvasDevice
 }: CartLineProps) {
+  const stockEnforcementEnabled = useStockEnforcementEnabled();
   const appearance = useProductAppearance();
   const canvasActive =
     canvasDevice !== undefined && appearance.canvas?.mode === 'free';
@@ -94,9 +96,11 @@ export default function CartLine({
         : null);
   const minimum = estimateItem?.minOrder ?? item.reconciliation.minOrder ?? 1;
   const maximum =
-    estimateItem?.availableStock ??
-    item.reconciliation.availableStock ??
-    undefined;
+    stockEnforcementEnabled
+      ? estimateItem?.availableStock ??
+        item.reconciliation.availableStock ??
+        undefined
+      : undefined;
   const distinctVariantName = getDistinctCartVariantName(item);
 
   const commitQuantity = (value: number) => {
@@ -112,6 +116,7 @@ export default function CartLine({
       data-cart-line-id={item.lineId}
       data-cart-line-density={compact ? 'compact' : 'default'}
       data-cart-line-presentation={presentation}
+      data-stock-enforcement={stockEnforcementEnabled ? 'enabled' : 'disabled'}
       className={`storefront-cart-line site-radius-md border p-3 transition ${
         highlighted && appearance.cartSidebar.highlightAddedLine
           ? 'border-[color:var(--site-color-primary)] bg-[color:var(--blue-50)]'

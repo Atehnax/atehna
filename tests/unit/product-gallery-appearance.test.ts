@@ -149,6 +149,41 @@ describe('product gallery appearance contracts', () => {
     );
   });
 
+  test('vertical thumbnail rails ignore stale canvas dimensions and stretch with the gallery row', () => {
+    const globalStyles = readFileSync(
+      resolve(process.cwd(), 'src/shared/styles/globals.css'),
+      'utf8'
+    );
+    const ruleStart = globalStyles.indexOf(
+      'Side thumbnail rails share the main-image grid row.'
+    );
+    const ruleEnd = globalStyles.indexOf(
+      ".product-canvas-element[data-product-canvas-element='product-gallery']",
+      ruleStart
+    );
+    const sideRailRules = globalStyles.slice(ruleStart, ruleEnd);
+
+    expect(ruleStart).toBeGreaterThanOrEqual(0);
+    expect(ruleEnd).toBeGreaterThan(ruleStart);
+    for (const positionMarker of [
+      "data-thumbnail-position-mobile='left'",
+      "data-thumbnail-position-mobile='right'",
+      "data-thumbnail-position-desktop='left'",
+      "data-thumbnail-position-desktop='right'",
+      "data-thumbnail-position-preview='left'",
+      "data-thumbnail-position-preview='right'"
+    ]) {
+      expect(sideRailRules).toContain(positionMarker);
+    }
+    expect(sideRailRules).toContain('> .storefront-gallery-thumbnails');
+    expect(sideRailRules).toContain('align-self: stretch;');
+    expect(sideRailRules).toContain('inline-size: auto !important;');
+    expect(sideRailRules).toContain('block-size: auto !important;');
+    expect(sideRailRules).not.toContain("data-thumbnail-position-preview='top'");
+    expect(sideRailRules).not.toContain("data-thumbnail-position-preview='bottom'");
+  });
+
+
   test('hover zoom follows the pointer inside the existing gallery surface', () => {
     expect(resolveGalleryZoomOrigin({
       left: 100,
@@ -244,7 +279,7 @@ describe('product gallery appearance contracts', () => {
     );
   });
 
-  test('the shared lightbox is compact and closes from its backdrop or image surface', () => {
+  test('the shared lightbox is compact and dismisses only from its backdrop', () => {
     const gallerySource = readFileSync(
       resolve(
         process.cwd(),
@@ -290,13 +325,15 @@ describe('product gallery appearance contracts', () => {
       closeButtonStart,
       gallerySource.indexOf('</button>', closeButtonStart)
     );
+    expect(lightboxShellSource).toContain('onPointerDown=');
+    expect(lightboxShellSource).toContain('event.stopPropagation();');
     expect(lightboxShellSource).toContain('onClick=');
     expect(lightboxShellSource).toContain('closeZoom');
+    expect(lightboxShellSource).toContain(
+      'event.target === event.currentTarget'
+    );
     expect(closeButtonSource).toContain('onClick=');
     expect(closeButtonSource).toContain('closeZoom');
-    expect(gallerySource).not.toContain(
-      'if (event.target === event.currentTarget) closeZoom();'
-    );
     expect(gallerySource).toContain('max-h-[72dvh]');
     expect(gallerySource).toContain('max-w-[72vw]');
     expect(gallerySource).toContain(

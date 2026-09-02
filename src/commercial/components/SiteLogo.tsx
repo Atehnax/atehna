@@ -15,6 +15,7 @@ import {
   isSiteLogoHeaderPurpose,
   normalizeSiteLogoConfig,
   resolveSiteLogoCanvasLayout,
+  resolveSiteLogoCropClipPath,
   resolveSiteLogoFittedArtworkRect,
   resolveSiteLogoGeometry,
   resolveSiteLogoMaster,
@@ -132,6 +133,8 @@ function fittedImageStyle(
     height: fitted.height,
     maxWidth: 'none',
     objectFit: 'fill',
+    clipPath: resolveSiteLogoCropClipPath(geometry.crop),
+    WebkitClipPath: resolveSiteLogoCropClipPath(geometry.crop),
     pointerEvents: 'none',
     userSelect: 'none'
   };

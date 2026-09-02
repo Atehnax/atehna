@@ -223,6 +223,7 @@ export const SITE_LOGO_CANVAS_EDGE_IDS = ['top', 'right', 'bottom', 'left'] as c
 export const SITE_LOGO_CANVAS_EDGE_MIN = -0.98;
 export const SITE_LOGO_CANVAS_EDGE_MAX = 1;
 export const SITE_LOGO_CANVAS_MIN_SIZE_RATIO = 0.02;
+export const SITE_LOGO_CROP_MIN_SIZE_RATIO = 0.0001;
 export const SITE_LOGO_COLOR_CHANNEL_IDS = [
   'background',
   'taglineBackground',
@@ -484,13 +485,42 @@ function normalizeTextLayer(value: unknown, layerId: SiteLogoTextLayerId): SiteL
   };
 }
 
-function normalizeRect(value: unknown, fallback: SiteLogoNormalizedRect = FULL_RECT): SiteLogoNormalizedRect {
+/**
+ * Normalizes a source-relative crop rectangle for persisted config and direct
+ * UI pointer updates. The returned rectangle always has a positive size and
+ * remains fully inside the normalized unit square.
+ */
+export function normalizeSiteLogoCropRect(
+  value: unknown,
+  fallback: SiteLogoNormalizedRect = FULL_RECT
+): SiteLogoNormalizedRect {
+  const boundedSize = (size: number, available: number) => (
+    available <= SITE_LOGO_CROP_MIN_SIZE_RATIO
+      ? SITE_LOGO_CROP_MIN_SIZE_RATIO
+      : Math.min(size, available)
+  );
   const record = asRecord(value);
-  const x = asNumber(record.x, fallback.x, 0, 1);
-  const y = asNumber(record.y, fallback.y, 0, 1);
-  const width = Math.min(asNumber(record.width, fallback.width, 0.0001, 1), 1 - x);
-  const height = Math.min(asNumber(record.height, fallback.height, 0.0001, 1), 1 - y);
-  return { x, y, width: Math.max(0.0001, width), height: Math.max(0.0001, height) };
+  const fallbackX = asNumber(fallback.x, FULL_RECT.x, 0, 1 - SITE_LOGO_CROP_MIN_SIZE_RATIO);
+  const fallbackY = asNumber(fallback.y, FULL_RECT.y, 0, 1 - SITE_LOGO_CROP_MIN_SIZE_RATIO);
+  const fallbackWidth = boundedSize(
+    asNumber(fallback.width, FULL_RECT.width, SITE_LOGO_CROP_MIN_SIZE_RATIO, 1),
+    1 - fallbackX
+  );
+  const fallbackHeight = boundedSize(
+    asNumber(fallback.height, FULL_RECT.height, SITE_LOGO_CROP_MIN_SIZE_RATIO, 1),
+    1 - fallbackY
+  );
+  const x = asNumber(record.x, fallbackX, 0, 1 - SITE_LOGO_CROP_MIN_SIZE_RATIO);
+  const y = asNumber(record.y, fallbackY, 0, 1 - SITE_LOGO_CROP_MIN_SIZE_RATIO);
+  const width = boundedSize(
+    asNumber(record.width, fallbackWidth, SITE_LOGO_CROP_MIN_SIZE_RATIO, 1),
+    1 - x
+  );
+  const height = boundedSize(
+    asNumber(record.height, fallbackHeight, SITE_LOGO_CROP_MIN_SIZE_RATIO, 1),
+    1 - y
+  );
+  return { x, y, width, height };
 }
 
 function defaultSuggestion(purposeId: SiteLogoPurposeId): SiteLogoFitSuggestion {
@@ -501,6 +531,26 @@ function defaultSuggestion(purposeId: SiteLogoPurposeId): SiteLogoFitSuggestion 
     crop: clone(purposeId === 'pdf-document' ? PDF_DOCUMENT_RECT : FULL_RECT),
     safeAreaInset: SITE_LOGO_PURPOSE_CATALOG[purposeId].defaultSafeAreaInset,
     algorithmVersion: purposeId === 'pdf-document' ? 'atehna-document-crop-v1' : 'optical-fit-v1'
+  };
+}
+
+/**
+ * Creates a fresh automatic fit for a selected master and output purpose.
+ * Uploaded masters use their measured optical bounds. The built-in PDF logo
+ * keeps its intentional document crop instead of its full intrinsic bounds.
+ */
+export function deriveSiteLogoFitSuggestion(
+  purposeId: SiteLogoPurposeId,
+  master?: Pick<SiteLogoMasterVariant, 'id' | 'opticalBounds'> | null
+): SiteLogoFitSuggestion {
+  const suggestion = defaultSuggestion(purposeId);
+  if (!master || (purposeId === 'pdf-document' && isBuiltInAtehnaLogoMaster(master.id))) {
+    return suggestion;
+  }
+  return {
+    ...suggestion,
+    crop: normalizeSiteLogoCropRect(master.opticalBounds, suggestion.crop),
+    algorithmVersion: 'optical-fit-v1'
   };
 }
 
@@ -546,7 +596,7 @@ function normalizeMaster(value: unknown, index: number): SiteLogoMasterVariant |
     size: asInteger(record.size, 0, 0, 10 * 1024 * 1024),
     intrinsicWidth: asInteger(record.intrinsicWidth, 1, 1, 32768),
     intrinsicHeight: asInteger(record.intrinsicHeight, 1, 1, 32768),
-    opticalBounds: normalizeRect(record.opticalBounds)
+    opticalBounds: normalizeSiteLogoCropRect(record.opticalBounds)
   };
 }
 
@@ -556,7 +606,7 @@ function normalizeGeometry(value: unknown, fallback: SiteLogoFitSuggestion): Sit
     scale: asNumber(record.scale, fallback.scale, 0.05, 20),
     translateX: asNumber(record.translateX, fallback.translateX, -2, 2),
     translateY: asNumber(record.translateY, fallback.translateY, -2, 2),
-    crop: normalizeRect(record.crop, fallback.crop),
+    crop: normalizeSiteLogoCropRect(record.crop, fallback.crop),
     safeAreaInset: asNumber(record.safeAreaInset, fallback.safeAreaInset, 0, 0.45),
     algorithmVersion: asString(record.algorithmVersion, fallback.algorithmVersion, 80)
   };
@@ -569,7 +619,7 @@ function normalizeOverride(value: unknown): SiteLogoGeometryOverride | null {
   if (record.scale !== undefined) result.scale = asNumber(record.scale, 1, 0.05, 20);
   if (record.translateX !== undefined) result.translateX = asNumber(record.translateX, 0, -2, 2);
   if (record.translateY !== undefined) result.translateY = asNumber(record.translateY, 0, -2, 2);
-  if (record.crop !== undefined) result.crop = normalizeRect(record.crop);
+  if (record.crop !== undefined) result.crop = normalizeSiteLogoCropRect(record.crop);
   if (record.safeAreaInset !== undefined) result.safeAreaInset = asNumber(record.safeAreaInset, 0, 0, 0.45);
   return Object.keys(result).length > 0 ? result : null;
 }
@@ -675,6 +725,37 @@ export type SiteLogoFittedArtworkRect = {
   height: number;
   scale: number;
 };
+
+export type SiteLogoFittedCropRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+/** CSS inset clip shared by the admin preview and the public storefront. */
+export function resolveSiteLogoCropClipPath(crop: SiteLogoNormalizedRect) {
+  const normalized = normalizeSiteLogoCropRect(crop);
+  const top = normalized.y * 100;
+  const right = Math.max(0, 1 - normalized.x - normalized.width) * 100;
+  const bottom = Math.max(0, 1 - normalized.y - normalized.height) * 100;
+  const left = normalized.x * 100;
+  return `inset(${top}% ${right}% ${bottom}% ${left}%)`;
+}
+
+/** Projects a source-relative crop into the fitted output coordinate space. */
+export function resolveSiteLogoFittedCropRect(
+  fitted: SiteLogoFittedArtworkRect,
+  crop: SiteLogoNormalizedRect
+): SiteLogoFittedCropRect {
+  const normalized = normalizeSiteLogoCropRect(crop);
+  return {
+    left: fitted.left + normalized.x * fitted.width,
+    top: fitted.top + normalized.y * fitted.height,
+    width: normalized.width * fitted.width,
+    height: normalized.height * fitted.height
+  };
+}
 
 /** Shared top-left placement math for browser, generated image, and PDF output. */
 export function resolveSiteLogoFittedArtworkRect({
@@ -995,6 +1076,82 @@ export function getSiteLogoPresentationCapabilities(
   } as const;
 }
 
+function validateSiteLogoGeometryNumber(
+  record: UnknownRecord,
+  field: 'scale' | 'translateX' | 'translateY' | 'safeAreaInset',
+  min: number,
+  max: number,
+  context: string,
+  purposeId: SiteLogoPurposeId,
+  errors: string[]
+) {
+  if (record[field] === undefined) return;
+  const value = record[field];
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+    errors.push(`Nastavitev ${field} ${context} za ${purposeId} ni veljavna.`);
+  }
+}
+
+function validateSiteLogoCropGeometry(
+  value: unknown,
+  context: string,
+  purposeId: SiteLogoPurposeId,
+  errors: string[]
+) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push(`Izrez ${context} za ${purposeId} ni veljaven.`);
+    return;
+  }
+  const crop = value as UnknownRecord;
+  const coordinates = [crop.x, crop.y, crop.width, crop.height];
+  if (coordinates.some((coordinate) => typeof coordinate !== 'number' || !Number.isFinite(coordinate))) {
+    errors.push(`Izrez ${context} za ${purposeId} ni veljaven.`);
+    return;
+  }
+  const [x, y, width, height] = coordinates as number[];
+  if (
+    x < 0
+    || y < 0
+    || width < SITE_LOGO_CROP_MIN_SIZE_RATIO
+    || height < SITE_LOGO_CROP_MIN_SIZE_RATIO
+    || x + width > 1 + Number.EPSILON
+    || y + height > 1 + Number.EPSILON
+  ) {
+    errors.push(`Izrez ${context} za ${purposeId} ni veljaven.`);
+  }
+}
+
+function validateSiteLogoGeometryInput(
+  value: unknown,
+  context: string,
+  purposeId: SiteLogoPurposeId,
+  includeAlgorithmVersion: boolean,
+  errors: string[]
+) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push(`Geometrija ${context} za ${purposeId} ni veljavna.`);
+    return;
+  }
+  const geometry = value as UnknownRecord;
+  validateSiteLogoGeometryNumber(geometry, 'scale', 0.05, 20, context, purposeId, errors);
+  validateSiteLogoGeometryNumber(geometry, 'translateX', -2, 2, context, purposeId, errors);
+  validateSiteLogoGeometryNumber(geometry, 'translateY', -2, 2, context, purposeId, errors);
+  validateSiteLogoGeometryNumber(geometry, 'safeAreaInset', 0, 0.45, context, purposeId, errors);
+  if (geometry.crop !== undefined) {
+    validateSiteLogoCropGeometry(geometry.crop, context, purposeId, errors);
+  }
+  if (includeAlgorithmVersion && geometry.algorithmVersion !== undefined) {
+    const algorithmVersion = geometry.algorithmVersion;
+    if (
+      typeof algorithmVersion !== 'string'
+      || algorithmVersion.trim().length === 0
+      || algorithmVersion.length > 80
+    ) {
+      errors.push(`Različica algoritma ${context} za ${purposeId} ni veljavna.`);
+    }
+  }
+}
+
 export function validateSiteLogoConfigInput(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return ['Nastavitve logotipa niso veljavne.'];
   const record = value as UnknownRecord;
@@ -1074,6 +1231,24 @@ export function validateSiteLogoConfigInput(value: unknown): string[] {
       ) {
         errors.push(`Višina logotipa za ${purposeId} ni veljavna.`);
       }
+    }
+    if (placement.suggestion !== undefined) {
+      validateSiteLogoGeometryInput(
+        placement.suggestion,
+        'predloga prileganja',
+        purposeId,
+        true,
+        errors
+      );
+    }
+    if (placement.override !== undefined && placement.override !== null) {
+      validateSiteLogoGeometryInput(
+        placement.override,
+        'ročne prilagoditve',
+        purposeId,
+        false,
+        errors
+      );
     }
     if (placement.presentation === undefined) continue;
     const presentation = asRecord(placement.presentation);

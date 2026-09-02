@@ -17,6 +17,59 @@ export type LockedCatalogVariant = {
   categoryIsActive: boolean;
 };
 
+export type CatalogOrderabilityFailureReason =
+  | 'catalog_link_missing'
+  | 'variant_missing'
+  | 'variant_product_mismatch'
+  | 'variant_inactive'
+  | 'product_inactive'
+  | 'category_inactive';
+
+export class CatalogOrderabilityError extends Error {
+  readonly code = 'CATALOG_ITEM_NOT_ORDERABLE';
+  readonly variantId: number;
+  readonly reason: CatalogOrderabilityFailureReason;
+
+  constructor(input: {
+    variantId: number;
+    reason: CatalogOrderabilityFailureReason;
+    label?: string;
+  }) {
+    super(
+      input.label
+        ? input.label + ' ni več na voljo za naročilo.'
+        : 'Izbrani artikel ni več na voljo za naročilo.'
+    );
+    this.name = 'CatalogOrderabilityError';
+    this.variantId = input.variantId;
+    this.reason = input.reason;
+  }
+}
+
+export function requireLockedCatalogVariantOrderable(input: {
+  variant: LockedCatalogVariant | undefined;
+  variantId: number;
+  productId: number;
+  label?: string;
+}): LockedCatalogVariant {
+  const { variant, variantId, productId, label } = input;
+  let reason: CatalogOrderabilityFailureReason | null = null;
+  if (!variant) reason = 'variant_missing';
+  else if (variant.itemId !== productId) {
+    reason = 'variant_product_mismatch';
+  } else if (variant.variantStatus !== 'active') {
+    reason = 'variant_inactive';
+  } else if (variant.productStatus !== 'active') {
+    reason = 'product_inactive';
+  } else if (variant.categoryId === null || !variant.categoryIsActive) {
+    reason = 'category_inactive';
+  }
+  if (reason) {
+    throw new CatalogOrderabilityError({ variantId, reason, label });
+  }
+  return variant as LockedCatalogVariant;
+}
+
 export function isCatalogSerializationFailure(error: unknown): boolean {
   const code =
     error && typeof error === 'object' && 'code' in error

@@ -469,14 +469,21 @@ export async function PUT(
       `,
       [quoteRequestId]
     );
-    const existingDraftId = Number(existingResult.rows[0]?.id ?? 0);
+    const existingDraft = existingResult.rows[0] as Record<string, unknown> | undefined;
+    const existingDraftId = Number(existingDraft?.id ?? 0);
+    const savedDraftCustomer = existingDraft
+      ? jsonRecord(existingDraft.customer_snapshot_json)
+      : {};
+    const effectiveCustomer = Object.keys(savedDraftCustomer).length > 0
+      ? savedDraftCustomer
+      : customerSnapshot(quoteRequest);
     const requestedItems = await readRequestItems(client, quoteRequestId);
     const sourceItems = existingDraftId
       ? await readOfferItems(client, existingDraftId)
       : requestedItems;
     const customerLabels = normalizeOrderQuoteCustomerLabels([
-      quoteRequest.organization_name,
-      quoteRequest.contact_name
+      effectiveCustomer.organizationName,
+      effectiveCustomer.contactName
     ]);
     const items = await applyItemEdits(
       client,
@@ -493,11 +500,17 @@ export async function PUT(
       parsed.body.shipping ?? estimateTotals.shipping ?? 0
     );
     const totalCents = subtotalCents + taxCents + shippingCents;
-    const customer = customerSnapshot(quoteRequest);
+    const customer = effectiveCustomer;
+    const savedDraftBilling = existingDraft
+      ? jsonRecord(existingDraft.billing_snapshot_json)
+      : {};
+    const requestBilling = jsonRecord(quoteRequest.billing_snapshot_json);
     const billing =
-      Object.keys(jsonRecord(quoteRequest.billing_snapshot_json)).length > 0
-        ? jsonRecord(quoteRequest.billing_snapshot_json)
-        : customer;
+      Object.keys(savedDraftBilling).length > 0
+        ? savedDraftBilling
+        : Object.keys(requestBilling).length > 0
+          ? requestBilling
+          : customer;
     const sellerMessage = text(parsed.body.sellerMessage, 4_000) || null;
     const customerVisibleNotes =
       text(parsed.body.customerVisibleNotes, 4_000) || null;
@@ -507,8 +520,9 @@ export async function PUT(
     const termsText = text(parsed.body.termsText, 20_000) || null;
     const termsVersion = text(parsed.body.termsVersion, 120) || null;
     const acceptanceMethodValue = text(parsed.body.acceptanceMethod, 64);
+    const effectiveCustomerType = text(customer.customerType, 32);
     const acceptanceMethod =
-      quoteRequest.customer_type === 'school' ? 'purchase_order' : 'online';
+      effectiveCustomerType === 'school' ? 'purchase_order' : 'online';
     if (
       acceptanceMethodValue.length > 0 &&
       acceptanceMethodValue !== acceptanceMethod
@@ -518,7 +532,7 @@ export async function PUT(
         {
           code: 'QUOTE_ACCEPTANCE_METHOD_INVALID',
           message:
-            quoteRequest.customer_type === 'school'
+            effectiveCustomerType === 'school'
               ? 'Šolska ponudba se v tej različici sprejme z uradno naročilnico.'
               : 'Ponudba za posameznika ali podjetje se v tej različici sprejme prek spleta.'
         },
@@ -528,7 +542,7 @@ export async function PUT(
 
     let offerVersionId: number;
     let versionNumber: number;
-    const existing = existingResult.rows[0] as
+    const existing = existingDraft as
       | {
           id: string | number;
           version_number: string | number;

@@ -34,7 +34,7 @@ test('appearance listboxes use the shared portaled-layer dismissal contract', ()
   const compactSelect = sourceBetween(
     primitivesSource,
     'export function AppearanceEditorCompactSelect',
-    'export type AppearanceEditorToolbarTone'
+    'export type AppearanceEditorToolbarPlacement'
   );
 
   assert.match(compactSelect, /useDropdownDismiss\(\{/u);
@@ -58,8 +58,20 @@ test('hidden canvas flags close outside and restore their own trigger', () => {
 test('homepage toolbar, row, and nested add-section menus share outside dismissal', () => {
   assert.match(landingSource, /dismissGroup: 'homepage-toolbar-popover'/u);
   assert.match(landingSource, /refs: toolbarPopoverDismissRefs/u);
-  assert.match(landingSource, /ignoreSelector: '\[data-admin-color-palette-portal\]'/u);
-  assert.match(landingSource, /ignoreEscapeSelector: '\[data-admin-color-palette-portal\]'/u);
+  assert.match(landingSource, /const homepageToolbarNestedPortalSelector =/u);
+  assert.match(landingSource, /\[data-admin-color-palette-portal\], \[data-appearance-editor-compact-select-portal\]/u);
+  assert.match(landingSource, /ignoreSelector: homepageToolbarNestedPortalSelector/u);
+  assert.match(landingSource, /ignoreEscapeSelector: homepageToolbarNestedPortalSelector/u);
+  assert.match(landingSource, /path\.includes\(toolbar\).*path\.includes\(anchor\)/u);
+  assert.match(landingSource, /target\?\.closest\(homepageCanvasSelectionTargetSelector\)/u);
+  assert.match(
+    landingSource,
+    /const homepageSelectionPersistentControlSelector =[\s\S]*?\[data-homepage-preview-controls\], \[data-homepage-page-toolbar\]/u
+  );
+  assert.match(landingSource, /target\?\.closest\(homepageSelectionPersistentControlSelector\)/u);
+  assert.match(landingSource, /window\.addEventListener\('pointerdown', handlePointerDown, true\)/u);
+  assert.match(landingSource, /onDismiss=\{\(\) => onSelectElement\(null\)\}/u);
+  assert.match(landingSource, /onDismissRef\.current\?\.\(\)/u);
   assert.match(landingSource, /dismissGroup: 'homepage-section-menu'/u);
   assert.match(landingSource, /ignoreSelector: '\[data-homepage-section-menu\]'/u);
   assert.match(landingSource, /dismissGroup: 'homepage-add-section-menu'/u);

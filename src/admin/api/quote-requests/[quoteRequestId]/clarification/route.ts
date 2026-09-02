@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 import { scheduleQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
+import { requireQuoteCustomerEmailConfirmation } from '@/shared/server/adminCustomerEmailConfirmation';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
 import {
@@ -54,7 +55,7 @@ function clarificationMessage(input: {
   if (input.emailStatus === 'failed') {
     return `${prefix} E-poštno opravilo ni uspelo; po potrebi ga lahko ponovite.`;
   }
-  return `${prefix} E-pošte ni bilo mogoče uvrstiti v čakalno vrsto.`;
+  return `${prefix} E-pošta ni bila uvrščena v čakalno vrsto. Preverite, ali je pošiljanje stranki za ta dogodek omogočeno v nastavitvah E-pošta.`;
 }
 
 export async function POST(
@@ -192,14 +193,26 @@ export async function POST(
         !quoteRequest.voided_at &&
         OPEN_REQUEST_STATUSES.has(String(quoteRequest.status))
       ) {
+        const confirmationChallenge =
+          await requireQuoteCustomerEmailConfirmation({
+            client,
+            quoteRequestId,
+            eventType: 'quote_clarification_requested',
+            action: 'request_quote_clarification',
+            actionLabel: 'Zahteva za pojasnilo',
+            customerEmailConfirmationToken:
+              parsed.body.customerEmailConfirmationToken
+          });
+        if (confirmationChallenge) {
+          await client.query('rollback');
+          return NextResponse.json(confirmationChallenge, { status: 428 });
+        }
         replayEmailQueued = await enqueueQuoteEmailIsolated(client, {
           quoteRequestId,
           quoteOfferVersionId,
           eventKey: emailEventKey,
           eventType: 'quote_clarification_requested',
           detail: clarification,
-          forceCustomer: true,
-          suppressAdmin: true,
           requestId: evidence.requestId
         });
       }
@@ -280,6 +293,22 @@ export async function POST(
         : String(offerResult.rows[0].offer_number);
     }
     const reference = offerNumber ?? String(quoteRequest.request_number);
+    if (sendEmail) {
+      const confirmationChallenge =
+        await requireQuoteCustomerEmailConfirmation({
+          client,
+          quoteRequestId,
+          eventType: 'quote_clarification_requested',
+          action: 'request_quote_clarification',
+          actionLabel: 'Zahteva za pojasnilo',
+          customerEmailConfirmationToken:
+            parsed.body.customerEmailConfirmationToken
+        });
+      if (confirmationChallenge) {
+        await client.query('rollback');
+        return NextResponse.json(confirmationChallenge, { status: 428 });
+      }
+    }
     await appendQuoteEvent(client, {
       quoteRequestId,
       quoteOfferVersionId,
@@ -306,8 +335,6 @@ export async function POST(
         eventKey: emailEventKey,
         eventType: 'quote_clarification_requested',
         detail: clarification,
-        forceCustomer: true,
-        suppressAdmin: true,
         requestId: evidence.requestId
       });
     }

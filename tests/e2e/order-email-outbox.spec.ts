@@ -437,9 +437,47 @@ test.describe('order email outbox integration', () => {
       );
       expect(bindingResult.rowCount).toBe(1);
 
-      const statusResponse = await request.post(
+      const statusConfirmationResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }
+      );
+      expect(statusConfirmationResponse.status()).toBe(428);
+      const statusConfirmationPayload = await statusConfirmationResponse.json() as {
+        code?: unknown;
+        scope?: unknown;
+        action?: unknown;
+        eventType?: unknown;
+        recipientEmail?: unknown;
+        confirmationToken?: unknown;
+        deliveries?: unknown;
+      };
+      expect(statusConfirmationPayload).toMatchObject({
+        code: 'CUSTOMER_EMAIL_CONFIRMATION_REQUIRED',
+        scope: 'order',
+        action: 'change_order_status',
+        eventType: 'in_progress',
+        recipientEmail: email,
+        deliveries: [{
+          scope: 'order',
+          entityId: orderId,
+          eventType: 'in_progress',
+          recipientEmail: email
+        }]
+      });
+      expect(typeof statusConfirmationPayload.confirmationToken).toBe('string');
+      const customerEmailConfirmationToken = String(
+        statusConfirmationPayload.confirmationToken
+      );
+      expect(await readOutbox(orderId)).toHaveLength(3);
+
+      const statusResponse = await request.post(
+        `/api/admin/orders/${orderId}/status`,
+        {
+          data: {
+            status: 'in_progress',
+            customerEmailConfirmationToken
+          }
+        }
       );
       expect(statusResponse.ok()).toBeTruthy();
 

@@ -1017,6 +1017,7 @@ function SelectControl<Value extends string>({
   return (
     <AppearanceEditorCompactSelect
       value={value}
+      tone="dark"
       options={options}
       onValueChange={onChange}
       ariaLabel={ariaLabel}
@@ -1332,7 +1333,9 @@ function ToolbarPopoverPanel({
 }) {
   const toolbarPlacement = useContext(HomepageToolbarPopoverPlacementContext);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const preferredSide = toolbarPlacement === 'bottom' ? 'above' : 'below';
+  // A floating toolbar already sits beside the selected canvas anchor. Open
+  // away from that anchor so even a constrained panel can never cover it.
+  const preferredSide = toolbarPlacement === 'top' ? 'above' : 'below';
   const [panelLayout, setPanelLayout] = useState<{ side: 'above' | 'below'; maxHeight: number }>({
     side: preferredSide,
     maxHeight: 540
@@ -1343,29 +1346,18 @@ function ToolbarPopoverPanel({
     const toolbar = panel?.parentElement;
     if (!panel || !toolbar || typeof window === 'undefined') return;
 
-    if (window.matchMedia('(max-width: 767px)').matches) {
-      const maxHeight = Math.max(180, window.innerHeight - 96);
-      setPanelLayout((current) => current.side === 'below' && current.maxHeight === maxHeight
-        ? current
-        : { side: 'below', maxHeight });
-      return;
-    }
-
     const toolbarRect = toolbar.getBoundingClientRect();
-    const header = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-header"]');
-    const body = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-body"]');
+    const visualViewport = window.visualViewport;
+    const viewportTop = visualViewport?.offsetTop ?? 0;
+    const viewportHeight = visualViewport?.height ?? window.innerHeight;
+    const viewportBottom = viewportTop + viewportHeight;
     const viewportMargin = 8;
     const anchorGap = 6;
-    const minimumHeight = 180;
-    const desiredHeight = Math.min(540, (header?.offsetHeight ?? 0) + (body?.scrollHeight ?? panel.scrollHeight) + 2);
     const available = {
-      above: Math.max(minimumHeight, toolbarRect.top - viewportMargin - anchorGap),
-      below: Math.max(minimumHeight, window.innerHeight - toolbarRect.bottom - viewportMargin - anchorGap)
+      above: Math.max(1, toolbarRect.top - viewportTop - viewportMargin - anchorGap),
+      below: Math.max(1, viewportBottom - toolbarRect.bottom - viewportMargin - anchorGap)
     };
-    const alternateSide = preferredSide === 'above' ? 'below' : 'above';
-    const side = available[preferredSide] >= desiredHeight || available[preferredSide] >= available[alternateSide]
-      ? preferredSide
-      : alternateSide;
+    const side = preferredSide;
     const maxHeight = Math.min(540, available[side]);
 
     setPanelLayout((current) => current.side === side && Math.abs(current.maxHeight - maxHeight) < 0.5
@@ -1378,13 +1370,21 @@ function ToolbarPopoverPanel({
     const panel = panelRef.current;
     if (!panel || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(updatePanelLayout);
+    const toolbar = panel.parentElement;
+    if (toolbar) observer.observe(toolbar);
     observer.observe(panel);
     const body = panel.querySelector<HTMLElement>('[data-testid="homepage-toolbar-popover-body"]');
     if (body) observer.observe(body);
     window.addEventListener('resize', updatePanelLayout);
+    window.addEventListener('scroll', updatePanelLayout, true);
+    window.visualViewport?.addEventListener('resize', updatePanelLayout);
+    window.visualViewport?.addEventListener('scroll', updatePanelLayout);
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', updatePanelLayout);
+      window.removeEventListener('scroll', updatePanelLayout, true);
+      window.visualViewport?.removeEventListener('resize', updatePanelLayout);
+      window.visualViewport?.removeEventListener('scroll', updatePanelLayout);
     };
   }, [title, updatePanelLayout, wide]);
 
@@ -1396,13 +1396,15 @@ function ToolbarPopoverPanel({
       data-testid="homepage-toolbar-popover"
       data-homepage-toolbar-popover-surface
       data-homepage-toolbar-popover-size={wide ? 'wide' : 'standard'}
+      data-homepage-toolbar-popover-placement={panelLayout.side}
       className={classNames(
         homepageToolbarPopoverSurfaceClassName,
-        'absolute left-0 z-[120] flex flex-col overflow-visible text-left max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:w-auto',
+        'absolute left-0 z-[120] flex flex-col overflow-hidden text-left',
         panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]',
         wide ? 'w-[min(440px,calc(100vw-32px))]' : 'w-[min(360px,calc(100vw-32px))]'
       )}
       style={{
+        maxHeight: panelLayout.maxHeight,
         '--homepage-inspector-strong': 'rgba(255,255,255,0.92)',
         '--homepage-inspector-muted': 'rgba(255,255,255,0.75)',
         '--homepage-inspector-divider': 'rgba(255,255,255,0.15)',
@@ -1433,7 +1435,7 @@ function ToolbarPopoverPanel({
           <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
-      <div data-testid="homepage-toolbar-popover-body" data-appearance-settings-panel="glavna-stran-popover" data-appearance-editor-settings-surface data-settings-scroll="none" className="border-t border-white/15 px-2.5 py-2">
+      <div data-testid="homepage-toolbar-popover-body" data-appearance-settings-panel="glavna-stran-popover" data-appearance-editor-settings-surface data-homepage-toolbar-popover-scroll-region data-settings-scroll="internal" className="min-h-0 overflow-y-auto overscroll-contain border-t border-white/15 px-2.5 py-2">
         {children}
       </div>
     </div>
@@ -1483,6 +1485,12 @@ const homepageContextToolbarBaseClassName =
   'w-max max-w-full rounded-xl border p-1 backdrop-blur-xl';
 const homepageContextToolbarDarkSurfaceClassName =
   `${homepageContextToolbarBaseClassName} bg-black/90 ${homepageDarkGlassFrameClassName}`;
+const homepageToolbarNestedPortalSelector =
+  '[data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal]';
+const homepageCanvasSelectionTargetSelector =
+  '[data-homepage-canvas-element], [data-homepage-section], [data-canvas-action], [data-canvas-hidden-flag], [data-canvas-hidden-popover]';
+const homepageSelectionPersistentControlSelector =
+  '[data-homepage-preview-controls], [data-homepage-page-toolbar], [data-homepage-selection-persistent-control]';
 
 function findHomepageToolbarAnchor(viewport: HTMLElement, selectedElementId: string | null) {
   if (!selectedElementId) return null;
@@ -1503,6 +1511,7 @@ function FloatingHomepageContextToolbar({
   viewportRef,
   scrollRegionRef,
   externalRef,
+  onDismiss,
   children
 }: {
   selectedElementId: string | null;
@@ -1511,10 +1520,12 @@ function FloatingHomepageContextToolbar({
   viewportRef: RefObject<HTMLDivElement | null>;
   scrollRegionRef: RefObject<HTMLDivElement | null>;
   externalRef: RefObject<HTMLDivElement | null>;
+  onDismiss?: () => void;
   children: ReactNode;
 }) {
   const toolbarElementRef = useRef<HTMLDivElement | null>(null);
   const scheduledFrameRef = useRef<number | null>(null);
+  const onDismissRef = useRef(onDismiss);
   const [portalReady, setPortalReady] = useState(false);
   const [toolbarMounted, setToolbarMounted] = useState(false);
   const [position, setPosition] = useState<HomepageToolbarPosition>({
@@ -1626,6 +1637,33 @@ function FloatingHomepageContextToolbar({
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  useEffect(() => {
+    if (!portalReady || !toolbarMounted || !selectedElementId) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const viewport = viewportRef.current;
+      const toolbar = toolbarElementRef.current;
+      if (!viewport || !toolbar) return;
+
+      const path = event.composedPath();
+      const target = event.target instanceof Element ? event.target : null;
+      const anchor = findHomepageToolbarAnchor(viewport, selectedElementId);
+      if (path.includes(toolbar) || Boolean(anchor && path.includes(anchor))) return;
+      if (target?.closest(homepageToolbarNestedPortalSelector)) return;
+      if (target?.closest(homepageCanvasSelectionTargetSelector)) return;
+      if (target?.closest(homepageSelectionPersistentControlSelector)) return;
+
+      onDismissRef.current?.();
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    return () => window.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [portalReady, selectedElementId, toolbarMounted, viewportRef]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -1966,6 +2004,7 @@ function ScaledHomepagePreview({
             viewportRef={viewportRef}
             scrollRegionRef={scrollRegionRef}
             externalRef={contextToolbarRef}
+            onDismiss={() => onSelectElement(null)}
           >
             {contextToolbar}
           </FloatingHomepageContextToolbar>
@@ -2452,8 +2491,8 @@ function AdminLandingPageClient({
   useDropdownDismiss({
     open: Boolean(activeToolbarPopover),
     refs: toolbarPopoverDismissRefs,
-    ignoreSelector: '[data-admin-color-palette-portal]',
-    ignoreEscapeSelector: '[data-admin-color-palette-portal]',
+    ignoreSelector: homepageToolbarNestedPortalSelector,
+    ignoreEscapeSelector: homepageToolbarNestedPortalSelector,
     dismissGroup: 'homepage-toolbar-popover',
     onClose: () => {
       setActiveToolbarPopover(null);
@@ -4691,8 +4730,12 @@ function AdminLandingPageClient({
         title="Glavna stran"
         description="Urejanje javne glavne strani pod zgornjo navigacijo."
         actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className={classNames('inline-flex h-8 items-center rounded-full border px-3 text-[12px] font-semibold', isDirty ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
+          <div
+            className="flex flex-wrap items-center justify-end gap-2"
+            data-homepage-selection-persistent-control
+          >
+            <span className="mr-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500" aria-live="polite">
+              <span className={`h-1.5 w-1.5 rounded-full ${isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`} />
               {isDirty ? 'Neshranjeno' : 'Objavljeno'}
             </span>
             <Button type="button" variant="default" size="toolbar" onClick={restoreDefaults} className="!h-9 !rounded-md !px-3" disabled={isSaving || uploadingSlideId !== null}>

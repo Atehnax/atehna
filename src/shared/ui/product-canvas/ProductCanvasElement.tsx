@@ -32,10 +32,17 @@ type Interaction = {
   startOffsetY: number;
   startWidth: number;
   startHeight: number;
+  startContentScale: number;
   moved: boolean;
 };
 
 export type ProductCanvasResizeAxis = 'width' | 'height' | 'both';
+
+export type ProductCanvasSelectionOptions = {
+  additive?: boolean;
+  preserveExisting?: boolean;
+  label?: string;
+};
 
 export function getProductCanvasElementResizeMinimums(elementId: string) {
   return elementId === 'product-primary-action'
@@ -137,31 +144,85 @@ export const PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS = new Set([
   'cart-primary-action'
 ]);
 
-export function getProductCanvasElementStyle(
-  settings: ProductCanvasElementDeviceSettings,
-  active = true
-): CSSProperties {
-  if (!active) return {};
+export const PRODUCT_CANVAS_PROPORTIONAL_RESIZE_ELEMENT_IDS = new Set([
+  'listing-sort',
+  'card-action',
+  'product-gallery-thumbnails',
+  'product-variant-thickness-options',
+  'product-quantity-decrease',
+  'product-quantity-input',
+  'product-quantity-increase',
+  'product-quantity-label',
+  'product-quantity-controls',
+  'product-secondary-tabs',
+  'product-secondary-tab-description',
+  'product-secondary-tab-specifications',
+  'product-secondary-tab-delivery-and-payment',
+  'product-related-card-quantity',
+  'product-related-card-add'
+]);
+
+export function isProductCanvasProportionalResizeElement(elementId: string) {
+  return PRODUCT_CANVAS_PROPORTIONAL_RESIZE_ELEMENT_IDS.has(elementId)
+    || elementId.startsWith('listing-view-')
+    || elementId.endsWith('-control')
+    || elementId.endsWith('-controls')
+    || elementId.endsWith('-action');
+}
+
+export function resolveProductCanvasProportionalResize({
+  startWidth,
+  startHeight,
+  startContentScale,
+  nextWidth,
+  nextHeight,
+  axis,
+  minimumWidth = 24,
+  minimumHeight = 24
+}: {
+  startWidth: number;
+  startHeight: number;
+  startContentScale: number;
+  nextWidth: number;
+  nextHeight: number;
+  axis: ProductCanvasResizeAxis;
+  minimumWidth?: number;
+  minimumHeight?: number;
+}): Pick<
+  ProductCanvasElementDeviceSettings,
+  'widthPx' | 'heightPx' | 'contentScale'
+> {
+  const dimensions = resolveProductCanvasResize({
+    startWidth,
+    startHeight,
+    nextWidth,
+    nextHeight,
+    axis,
+    aspectRatioLocked: true,
+    minimumWidth,
+    minimumHeight
+  });
+  const widthPx = dimensions.widthPx ?? Math.max(minimumWidth, startWidth);
+  const heightPx = dimensions.heightPx ?? Math.max(minimumHeight, startHeight);
+  const sizeRatio = axis === 'height'
+    ? heightPx / Math.max(1, startHeight)
+    : widthPx / Math.max(1, startWidth);
+
   return {
-    position: settings.zIndex !== 0 ? 'relative' : undefined,
-    boxSizing: 'border-box',
-    minWidth: 0,
-    maxWidth: '100%',
-    transform: settings.offsetXPx !== 0 || settings.offsetYPx !== 0
-      ? `translate3d(${settings.offsetXPx}px, ${settings.offsetYPx}px, 0)`
-      : undefined,
-    width: settings.widthPx > 0 ? `${settings.widthPx}px` : undefined,
-    height: settings.heightPx > 0 ? `${settings.heightPx}px` : undefined,
+    widthPx,
+    heightPx,
+    contentScale: Math.min(4, Math.max(0.1, startContentScale * sizeRatio))
+  };
+}
+
+export function getProductCanvasElementVisualStyle(
+  settings: ProductCanvasElementDeviceSettings
+): CSSProperties {
+  return {
     paddingTop: settings.paddingTopPx,
     paddingRight: settings.paddingRightPx,
     paddingBottom: settings.paddingBottomPx,
     paddingLeft: settings.paddingLeftPx,
-    marginTop: settings.marginTopPx,
-    marginRight: settings.marginRightPx,
-    marginBottom: settings.marginBottomPx,
-    marginLeft: settings.marginLeftPx,
-    zIndex: settings.zIndex !== 0 ? settings.zIndex : undefined,
-    opacity: settings.opacity,
     color: settings.color || undefined,
     backgroundColor: settings.backgroundColor || undefined,
     borderColor: settings.borderColor || undefined,
@@ -175,6 +236,33 @@ export function getProductCanvasElementStyle(
     letterSpacing: settings.letterSpacingPx !== 0 ? `${settings.letterSpacingPx}px` : undefined,
     fontWeight: settings.fontWeight > 0 ? settings.fontWeight : undefined,
     textAlign: settings.textAlign === 'inherit' ? undefined : settings.textAlign
+  };
+}
+
+export function getProductCanvasElementStyle(
+  settings: ProductCanvasElementDeviceSettings,
+  active = true,
+  includeVisualStyle = true
+): CSSProperties {
+  if (!active) return {};
+  return {
+    position: 'relative',
+    isolation: 'isolate',
+    boxSizing: 'border-box',
+    minWidth: 0,
+    maxWidth: '100%',
+    transform: settings.offsetXPx !== 0 || settings.offsetYPx !== 0
+      ? `translate3d(${settings.offsetXPx}px, ${settings.offsetYPx}px, 0)`
+      : undefined,
+    width: settings.widthPx > 0 ? `${settings.widthPx}px` : undefined,
+    height: settings.heightPx > 0 ? `${settings.heightPx}px` : undefined,
+    marginTop: settings.marginTopPx,
+    marginRight: settings.marginRightPx,
+    marginBottom: settings.marginBottomPx,
+    marginLeft: settings.marginLeftPx,
+    zIndex: settings.zIndex,
+    opacity: settings.opacity,
+    ...(includeVisualStyle ? getProductCanvasElementVisualStyle(settings) : {})
   };
 }
 
@@ -205,7 +293,7 @@ export default function ProductCanvasElement({
   snapToGrid?: boolean;
   scale?: number;
   className?: string;
-  onSelect?: (elementId: string) => void;
+  onSelect?: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
   onChange?: (
     elementId: string,
     updates: Partial<ProductCanvasElementDeviceSettings>
@@ -215,6 +303,7 @@ export default function ProductCanvasElement({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const interactionRef = useRef<Interaction | null>(null);
   const suppressClickRef = useRef(false);
+  const selectionHandledOnPointerDownRef = useRef(false);
   if (!active && !interactive) return <Fragment>{children}</Fragment>;
 
   const effectiveSettings = forceVisible && !interactive
@@ -246,6 +335,8 @@ export default function ProductCanvasElement({
       : Math.round(value)
   );
   const resizeMinimums = getProductCanvasElementResizeMinimums(elementId);
+  const proportionalResize = isProductCanvasProportionalResizeElement(elementId);
+  const ratioLocked = effectiveSettings.aspectRatioLocked || proportionalResize;
 
   const beginInteraction = (
     kind: Interaction['kind'],
@@ -274,7 +365,12 @@ export default function ProductCanvasElement({
     }
     event.preventDefault();
     event.stopPropagation();
-    onSelect?.(elementId);
+    selectionHandledOnPointerDownRef.current = true;
+    onSelect?.(elementId, {
+      additive: event.ctrlKey || event.metaKey,
+      preserveExisting: true,
+      label
+    });
     root.setPointerCapture?.(event.pointerId);
     interactionRef.current = {
       kind,
@@ -289,6 +385,7 @@ export default function ProductCanvasElement({
       startHeight: effectiveSettings.heightPx > 0
         ? effectiveSettings.heightPx
         : root.getBoundingClientRect().height / Math.max(scale, 0.01),
+      startContentScale: effectiveSettings.contentScale,
       moved: false
     };
   };
@@ -318,18 +415,26 @@ export default function ProductCanvasElement({
       : interaction.kind === 'resize-height'
         ? 'height'
         : 'both';
-    onChange(
-      elementId,
-      resolveProductCanvasResize({
+    const resizeUpdates = proportionalResize
+      ? resolveProductCanvasProportionalResize({
         startWidth: interaction.startWidth,
         startHeight: interaction.startHeight,
+          startContentScale: interaction.startContentScale,
         nextWidth: snap(interaction.startWidth + deltaX),
         nextHeight: snap(interaction.startHeight + deltaY),
         axis,
+          ...resizeMinimums
+        })
+      : resolveProductCanvasResize({
+          startWidth: interaction.startWidth,
+          startHeight: interaction.startHeight,
+          nextWidth: snap(interaction.startWidth + deltaX),
+          nextHeight: snap(interaction.startHeight + deltaY),
+          axis,
         aspectRatioLocked: effectiveSettings.aspectRatioLocked,
         ...resizeMinimums
-      })
-    );
+        });
+    onChange(elementId, resizeUpdates);
   };
 
   const endInteraction = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -347,6 +452,7 @@ export default function ProductCanvasElement({
     if (!interaction || interaction.pointerId !== event.pointerId) return;
     interactionRef.current = null;
     suppressClickRef.current = false;
+    selectionHandledOnPointerDownRef.current = false;
     if (rootRef.current?.hasPointerCapture?.(event.pointerId)) {
       rootRef.current.releasePointerCapture(event.pointerId);
     }
@@ -383,18 +489,27 @@ export default function ProductCanvasElement({
     const nextHeight = vertical
       ? height + (event.key === 'ArrowDown' ? step : -step)
       : height;
-    onChange(
-      elementId,
-      resolveProductCanvasResize({
+    const resizeAxis = axis === 'both' ? (horizontal ? 'width' : 'height') : axis;
+    const resizeUpdates = proportionalResize
+      ? resolveProductCanvasProportionalResize({
         startWidth: width,
         startHeight: height,
+          startContentScale: effectiveSettings.contentScale,
         nextWidth,
         nextHeight,
-        axis: axis === 'both' ? (horizontal ? 'width' : 'height') : axis,
+          axis: resizeAxis,
+          ...resizeMinimums
+        })
+      : resolveProductCanvasResize({
+          startWidth: width,
+          startHeight: height,
+          nextWidth,
+          nextHeight,
+          axis: resizeAxis,
         aspectRatioLocked: effectiveSettings.aspectRatioLocked,
         ...resizeMinimums
-      })
-    );
+        });
+    onChange(elementId, resizeUpdates);
   };
   const handleMoveKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (!onChange || settings.locked) return;
@@ -403,7 +518,11 @@ export default function ProductCanvasElement({
     if (!horizontal && !vertical) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelect?.(elementId);
+    onSelect?.(elementId, {
+      additive: event.ctrlKey || event.metaKey,
+      preserveExisting: true,
+      label
+    });
     const step = snapToGrid && gridSizePx > 0
       ? gridSizePx * (event.shiftKey ? 5 : 1)
       : event.shiftKey
@@ -418,16 +537,23 @@ export default function ProductCanvasElement({
       )
     });
   };
-  const elementStyle = getProductCanvasElementStyle(effectiveSettings, active);
+  const scalesContent = active
+    && proportionalResize
+    && effectiveSettings.widthPx > 0
+    && effectiveSettings.heightPx > 0
+    && Math.abs(effectiveSettings.contentScale - 1) > 0.001;
+  const elementStyle = getProductCanvasElementStyle(effectiveSettings, active, !scalesContent);
 
   return (
     <div
       ref={rootRef}
       data-product-canvas-element={elementId}
+      data-product-canvas-label={label}
       data-product-canvas-selected={selected || undefined}
       data-product-canvas-hidden={!visible || undefined}
+      data-product-canvas-proportional-resize={proportionalResize || undefined}
       data-product-canvas-aspect-locked={
-        effectiveSettings.aspectRatioLocked || undefined
+        ratioLocked || undefined
       }
       data-product-canvas-fixed-width={
         effectiveSettings.widthPx > 0 || undefined
@@ -463,6 +589,7 @@ export default function ProductCanvasElement({
         if (interactionRef.current?.pointerId === event.pointerId) {
           interactionRef.current = null;
           suppressClickRef.current = false;
+          selectionHandledOnPointerDownRef.current = false;
         }
       }}
       onClickCapture={(event) => {
@@ -480,13 +607,41 @@ export default function ProductCanvasElement({
         event.stopPropagation();
         if (suppressClickRef.current) {
           suppressClickRef.current = false;
+          selectionHandledOnPointerDownRef.current = false;
           return;
         }
-        onSelect?.(elementId);
+        if (selectionHandledOnPointerDownRef.current) {
+          selectionHandledOnPointerDownRef.current = false;
+          return;
+        }
+        onSelect?.(elementId, {
+          additive: event.ctrlKey || event.metaKey,
+          label
+        });
       }}
     >
-      {active && effectiveSettings.heightPx > 0 ? (
-        <div className="product-canvas-element-content h-full overflow-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      {scalesContent ? (
+        <div className="product-canvas-element-content h-full w-full overflow-hidden">
+          <div
+            data-product-canvas-proportional-content
+            className="origin-top-left"
+            style={{
+              ...getProductCanvasElementVisualStyle(effectiveSettings),
+              boxSizing: 'border-box',
+              width: `${100 / effectiveSettings.contentScale}%`,
+              height: `${100 / effectiveSettings.contentScale}%`,
+              transform: `scale(${effectiveSettings.contentScale})`,
+              transformOrigin: 'top left'
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      ) : active && effectiveSettings.heightPx > 0 ? (
+        <div
+          data-product-canvas-content-overflow="visible"
+          className="product-canvas-element-content h-full overflow-visible"
+        >
           {children}
         </div>
       ) : children}
@@ -518,7 +673,7 @@ export default function ProductCanvasElement({
                 role="button"
                 tabIndex={0}
                 aria-label={`Spremeni širino: ${label}`}
-                title={effectiveSettings.aspectRatioLocked
+                title={ratioLocked
                   ? 'Povleci za sorazmerno spremembo velikosti'
                   : 'Povleci za spremembo širine'}
                 className="absolute -right-1.5 top-1/2 z-[81] h-8 w-3 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-white bg-[color:var(--blue-500)] shadow"
@@ -534,7 +689,7 @@ export default function ProductCanvasElement({
                 role="button"
                 tabIndex={0}
                 aria-label={`Spremeni višino: ${label}`}
-                title={effectiveSettings.aspectRatioLocked
+                title={ratioLocked
                   ? 'Povleci za sorazmerno spremembo velikosti'
                   : 'Povleci za spremembo višine'}
                 className="absolute -bottom-1.5 left-1/2 z-[81] h-3 w-8 -translate-x-1/2 cursor-ns-resize rounded-full border-2 border-white bg-[color:var(--blue-500)] shadow"
@@ -550,7 +705,7 @@ export default function ProductCanvasElement({
                 role="button"
                 tabIndex={0}
                 aria-label={`Spremeni širino in višino: ${label}`}
-                title={effectiveSettings.aspectRatioLocked
+                title={ratioLocked
                   ? 'Povleci za sorazmerno spremembo velikosti'
                   : 'Povleci za hkratno spremembo širine in višine'}
                 className="absolute -bottom-1.5 -right-1.5 z-[82] h-3.5 w-3.5 cursor-nwse-resize rounded-[3px] border-2 border-white bg-[color:var(--blue-600)] shadow"

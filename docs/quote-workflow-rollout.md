@@ -50,6 +50,11 @@ order:
 4. `database/migrations/20260830_quote_manual_documents.sql`
 5. `database/migrations/20260830_quote_request_admin_title.sql`
 6. `database/migrations/20260830_quote_clarification_email.sql`
+7. `database/migrations/20260831_order_item_delivery_plan.sql`
+8. `database/migrations/20260901_quote_optional_acceptance_terms.sql`
+9. `database/migrations/20260901_inventory_policy_settings.sql`
+10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
+11. `database/migrations/20260901_quote_outbox_cancellation.sql`
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -82,10 +87,22 @@ nullable internal display title without changing the immutable request number
 or commercial history, and updates the existing request-history guard without
 weakening its admin-details or logical-void protections.
 
-The clarification-email follow-up must be applied last. It adds only the
+The clarification-email follow-up adds only the
 `quote_clarification_requested` email-job event type after checking the exact
 predecessor constraint and existing rows; it does not rewrite quote, offer,
 document, event, order, customer, payment, inventory, or delivery evidence.
+
+The delivery-plan follow-up then adds explicit current/later shipment grouping
+and revision guards for order lines and delivery documents. The optional
+acceptance-terms follow-up relaxes only the non-draft offer identity
+constraint so free-text acceptance terms may be empty, while still requiring
+their version, hash, validity, delivery terms, payment terms, and all other
+issued-offer integrity evidence. The inventory-policy follow-up installs the
+single global stock-enforcement switch with the existing enforced behavior as
+its default. The order-stock marker must follow it and records whether stock
+enforcement governed each order's lifecycle without changing existing holds.
+The quote-outbox cancellation follow-up is last and adds a durable cancelled
+state plus actor/timestamp evidence without rewriting existing email jobs.
 
 None of these files is an application migration runner. Never call any artifact
 from a request, build, or startup hook, and never copy individual statements out
@@ -105,7 +122,9 @@ Before execution:
 5. Record row counts and inventory totals before execution.
 6. Execute each required file once with an approved PostgreSQL deployment
    client: 20260828 first, verify it, then admin details, request management,
-   manual documents, admin title, and clarification email. If an earlier
+   manual documents, admin title, clarification email, order-item delivery
+   planning, optional quote acceptance terms, inventory policy, the per-order
+   stock-enforcement marker, and quote-outbox cancellation. If an earlier
    artifact is already installed, do not rerun it; verify its markers and
    continue in order with only the unapplied follow-ups.
 7. After 20260828, record the post-deploy counts, constraint validation, and all
@@ -129,6 +148,19 @@ Before execution:
     `quote_email_jobs_event_type_check` constraint contains exactly the expected
     event types, including `quote_clarification_requested`, and that no
     unexpected existing email-job event type was accepted.
+13. After delivery planning, confirm existing order lines and documents are at
+    revision 1 and the new grouping/revision constraints and guards are enabled.
+14. After optional acceptance terms, confirm issued offers may store an empty
+    free-text acceptance-terms value while version, hash, validity, delivery,
+    payment, and immutable offer identity evidence remain required.
+15. After inventory policy, confirm the single `default` row exists in
+    `inventory_policy_settings` and `stockEnforcementEnabled` is `true`.
+16. After the order marker, confirm every existing order has
+    `stock_enforcement_applied = true` and the column is non-null with a true
+    default for new orders.
+17. After quote-outbox cancellation, confirm the validated status constraint
+    includes `cancelled`, the cancellation evidence constraint is validated,
+    and every pre-existing job remains unchanged and non-cancelled.
 
 The 20260828 migration never increases or decreases inventory. It classifies an active,
 non-draft, non-cancelled legacy binding-order item quantity as held only when a

@@ -687,27 +687,37 @@ test('quote table mirrors order selection and toolbar controls with guarded dele
   assert.doesNotMatch(table, /\/close|\/withdraw/u);
 });
 
-test('manual quote intake creates a usable catalog-backed requested line', () => {
+test('new quote action mirrors order draft creation and opens the detail page directly', () => {
   const createButton = source(
     'src/admin/features/quotes/components/AdminCreateManualQuoteRequestButton.tsx'
   );
+  const orderDraftButton = source(
+    'src/admin/features/orders/components/AdminCreateDraftOrderButton.tsx'
+  );
 
   assert.match(createButton, /Novo povpraševanje/u);
-  assert.match(createButton, /\/api\/admin\/catalog-items/u);
-  assert.match(createButton, /Poiščite po nazivu ali SKU/u);
-  assert.match(createButton, /selectedCatalogChoice/u);
-  assert.match(createButton, /requestedItems: \[/u);
-  assert.match(createButton, /catalogItemId: selectedCatalogChoice\?\.catalogItemId/u);
-  assert.match(createButton, /catalogVariantId: selectedCatalogChoice\?\.catalogVariantId/u);
-  assert.match(createButton, /sku: selectedCatalogChoice\?\.sku/u);
-  assert.match(createButton, /productName: selectedCatalogChoice\?\.name/u);
-  assert.match(createButton, /quantity: requestedQuantity/u);
-  assert.match(createButton, /unit: selectedCatalogChoice\?\.unit \?\? 'kos'/u);
   assert.match(createButton, /fetch\('\/api\/admin\/quote-requests'/u);
   assert.match(createButton, /method: 'POST'/u);
-  assert.match(createButton, /intakeSource: draft\.intakeSource/u);
+  assert.match(
+    createButton,
+    /body:\s*JSON\.stringify\(\s*\{\s*mode:\s*['"]draft['"]\s*\}\s*\)/u
+  );
+  assert.match(
+    createButton,
+    /sessionStorage\.setItem\(\s*['"]admin-orders-needs-refresh['"]\s*,\s*['"]1['"]\s*\)/u
+  );
   assert.match(createButton, /router\.push\(`\/admin\/orders\/quotes\/\$\{quoteRequestId\}`\)/u);
-  assert.match(createButton, /Prosti vnos/u);
+  assert.match(createButton, /disabled=\{isCreating\}/u);
+  assert.doesNotMatch(
+    createButton,
+    /<Dialog\b|\/api\/admin\/catalog-items|selectedCatalogChoice|requestedItems:/u
+  );
+
+  // Both toolbar actions create first and navigate to the new detail record.
+  assert.match(orderDraftButton, /fetch\('\/api\/admin\/orders'/u);
+  assert.match(orderDraftButton, /method: 'POST'/u);
+  assert.match(orderDraftButton, /router\.push\(`\/admin\/orders\/\$\{payload\.orderId\}`\)/u);
+  assert.match(orderDraftButton, /disabled=\{isCreating\}/u);
 });
 
 test('quote list exposes only request-scoped immutable document summaries for toolbar downloads', () => {

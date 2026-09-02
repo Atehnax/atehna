@@ -64,6 +64,9 @@ import {
 } from '@/shared/ui/admin-table';
 import AdminRangeFilterPanel, { type RangePreset } from '@/shared/ui/admin-range-filter-panel';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
+import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
+import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
+import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
 import {
   HeaderFilterPortal,
   HEADER_FILTER_BUTTON_CLASS,
@@ -84,8 +87,12 @@ import {
 import { CustomSelect } from '@/shared/ui/select';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
-import { orderCustomerTypeFinalContractBlock } from '@/shared/domain/order/schoolOrderWorkflow';
-import { ORDER_STATUS_OPTIONS, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
+
+import {
+  ORDER_STATUS_ACTION_OPTIONS,
+  ORDER_STATUS_OPTIONS,
+  getStatusMenuItemClassName
+} from '@/shared/domain/order/orderStatus';
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { isAllPageSize, resolvePageSize, type PageSizeValue } from '@/shared/domain/pagination';
@@ -116,7 +123,6 @@ import {
 type OrderQuickEditState = {
   orderId: number;
   isDraft: boolean;
-  contractStatus: string | null;
   draftOrderNumber: string;
   initialOrderNumber: string;
   draftOrderDate: string;
@@ -215,17 +221,6 @@ const ORDER_CUSTOMER_TYPE_ROW_OPTIONS = CUSTOMER_TYPE_FORM_OPTIONS.map((option) 
   value: option.value,
   label: getCustomerTypeLabel(option.value)
 }));
-const getOrderCustomerTypeRowOptions = (currentCustomerType: string, contractStatus: string | null) =>
-  ORDER_CUSTOMER_TYPE_ROW_OPTIONS.map((option) => {
-    const changeBlock = orderCustomerTypeFinalContractBlock(
-      currentCustomerType,
-      option.value,
-      contractStatus
-    );
-    return changeBlock
-      ? { ...option, disabled: true, description: changeBlock.message }
-      : option;
-  });
 const ORDERS_HEADER_CELL_BASE_CLASS = 'h-11 border-b border-slate-200 px-3 py-0 align-middle text-[12px] font-semibold text-slate-700';
 const ORDERS_HEADER_CELL_CENTER_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-center`;
 const ORDERS_HEADER_CELL_LEFT_CLASS = `${ORDERS_HEADER_CELL_BASE_CLASS} text-left`;
@@ -254,6 +249,7 @@ const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 type InlineChipSelectOption<Value extends string> = {
   value: Value;
   label: string;
+  description?: string;
 };
 
 function OrdersInlineChipSelect<Value extends string>({
@@ -282,12 +278,18 @@ function OrdersInlineChipSelect<Value extends string>({
   const menuRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setIsOpen(false), []);
   const dismissRefs = useMemo(() => [rootRef, menuRef], []);
+  const hasDescriptions = options.some((option) => Boolean(option.description));
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current || typeof window === 'undefined') return;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
-    const resolvedWidth = Math.max(menuWidth, triggerRect.width, menuRef.current?.offsetWidth ?? 0);
+    const resolvedWidth = Math.max(
+      menuWidth,
+      hasDescriptions ? 300 : 0,
+      triggerRect.width,
+      menuRef.current?.offsetWidth ?? 0
+    );
     const resolvedHeight = menuRef.current?.offsetHeight ?? 0;
     const left = Math.min(
       Math.max(8, triggerRect.left + triggerRect.width / 2 - resolvedWidth / 2),
@@ -301,7 +303,7 @@ function OrdersInlineChipSelect<Value extends string>({
         : belowTop;
 
     setMenuPosition({ top, left, width: resolvedWidth });
-  }, [menuWidth]);
+  }, [hasDescriptions, menuWidth]);
 
   useDropdownDismiss({
     open: isOpen,
@@ -360,19 +362,35 @@ function OrdersInlineChipSelect<Value extends string>({
               style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width }}
             >
               <MenuPanel className="w-full">
-                {options.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    isActive={option.value === value}
-                    className={optionClassName?.(option.value)}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))}
+                {options.map((option, index) => {
+                  const descriptionId = option.description
+                    ? `${ariaLabel}-option-${index}-description`
+                    : undefined;
+                  return (
+                    <MenuItem
+                      key={option.value}
+                      isActive={option.value === value}
+                      className={optionClassName?.(option.value)}
+                      ariaDescribedBy={descriptionId}
+                      onClick={() => {
+                        onChange(option.value);
+                        setIsOpen(false);
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-col text-left">
+                        <span>{option.label}</span>
+                        {option.description ? (
+                          <span
+                            id={descriptionId}
+                            className="mt-0.5 text-[10px] font-normal leading-4 text-slate-500"
+                          >
+                            {option.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </MenuItem>
+                  );
+                })}
               </MenuPanel>
             </div>,
             document.body
@@ -583,6 +601,7 @@ export default function AdminOrdersTable({
   const [draftToDate, setDraftToDate] = useState(initialTo);
   const [openHeaderFilter, setOpenHeaderFilter] = useState<null | 'order' | 'date' | 'type' | 'status' | 'payment' | 'total' | 'documents'>(null);
   const { toast } = useToast();
+  const customerEmailConfirmation = useCustomerEmailConfirmation();
   const [isDownloading, setIsDownloading] = useState(false);
   const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: OrdersColumnKey; value: string } | null>(null);
 
@@ -1243,7 +1262,6 @@ export default function AdminOrdersTable({
       setQuickEdit({
         orderId: order.id,
         isDraft: nextIsDraft,
-        contractStatus: order.contract_status ?? null,
         draftOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         initialOrderNumber: toEditableOrderNumber(String(detailOverrides.order_number ?? order.order_number ?? '')),
         draftOrderDate: toDateInputValue(new Date(nextCreatedAt)),
@@ -1277,7 +1295,9 @@ export default function AdminOrdersTable({
     setQuickEdit(null);
   }, []);
 
-  const saveQuickEdit = useCallback(async () => {
+  const saveQuickEdit: (
+    customerEmailConfirmationToken?: string | null
+  ) => Promise<void> = useCallback(async (customerEmailConfirmationToken = null) => {
     if (!quickEdit) return;
     const orderNumberDirty =
       quickEdit.draftOrderNumber.trim() !== quickEdit.initialOrderNumber.trim();
@@ -1297,6 +1317,59 @@ export default function AdminOrdersTable({
 
     setQuickEdit((current) => (current ? { ...current, isSaving: true } : current));
 
+    if (statusDirty && !customerEmailConfirmationToken) {
+      try {
+        const preflightResponse = await fetch(
+          `/api/admin/orders/${quickEdit.orderId}/status`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: quickEdit.draftStatus,
+              confirmationOnly: true,
+              prospectiveCustomerEmail: quickEdit.email
+            })
+          }
+        );
+        const preflightPayload = await preflightResponse.json().catch(() => ({})) as {
+          message?: unknown;
+        };
+        if (!preflightResponse.ok) {
+          const confirmation =
+            parseCustomerEmailConfirmationRequired(preflightPayload);
+          if (
+            preflightResponse.status === 428 &&
+            confirmation?.confirmationToken
+          ) {
+            customerEmailConfirmation.requestConfirmation(
+              confirmation,
+              () => void saveQuickEdit(confirmation.confirmationToken)
+            );
+          } else {
+            toast.error(
+              typeof preflightPayload.message === 'string'
+                ? preflightPayload.message
+                : 'Preverjanje e-poštnega obvestila ni uspelo.'
+            );
+          }
+          setQuickEdit((current) =>
+            current && current.orderId === quickEdit.orderId
+              ? { ...current, isSaving: false }
+              : current
+          );
+          return;
+        }
+      } catch {
+        toast.error('Preverjanje e-poštnega obvestila ni uspelo.');
+        setQuickEdit((current) =>
+          current && current.orderId === quickEdit.orderId
+            ? { ...current, isSaving: false }
+            : current
+        );
+        return;
+      }
+    }
+
     let nextInitialOrderNumber = quickEdit.initialOrderNumber;
     let nextInitialOrderDate = quickEdit.initialOrderDate;
     let nextInitialCustomerName = quickEdit.initialCustomerName;
@@ -1307,6 +1380,7 @@ export default function AdminOrdersTable({
     let nextInitialPaymentStatus = quickEdit.initialPaymentStatus;
     let hasError = false;
     let finalizationMessage: string | null = null;
+    let statusErrorMessage: string | null = null;
 
     if (detailsDirty || quickEdit.isDraft) {
       const normalizedCustomerName = quickEdit.draftCustomerName.trim();
@@ -1390,10 +1464,35 @@ export default function AdminOrdersTable({
         const response = await fetch(`/api/admin/orders/${quickEdit.orderId}/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: quickEdit.draftStatus })
+          body: JSON.stringify({
+            status: quickEdit.draftStatus,
+            ...(customerEmailConfirmationToken
+              ? { customerEmailConfirmationToken }
+              : {})
+          })
         });
+        const statusPayload = await response.json().catch(() => ({})) as {
+          message?: unknown;
+        };
 
         if (!response.ok) {
+          const confirmation =
+            parseCustomerEmailConfirmationRequired(statusPayload);
+          if (response.status === 428 && confirmation?.confirmationToken) {
+            customerEmailConfirmation.requestConfirmation(
+              confirmation,
+              () => void saveQuickEdit(confirmation.confirmationToken)
+            );
+            setQuickEdit((current) =>
+              current && current.orderId === quickEdit.orderId
+                ? { ...current, isSaving: false }
+                : current
+            );
+            return;
+          }
+          statusErrorMessage = typeof statusPayload.message === 'string'
+            ? statusPayload.message
+            : 'Statusa ni bilo mogoče spremeniti.';
           hasError = true;
         } else {
           nextInitialStatus = quickEdit.draftStatus;
@@ -1403,6 +1502,7 @@ export default function AdminOrdersTable({
           }));
         }
       } catch {
+        statusErrorMessage = 'Statusa ni bilo mogoče spremeniti.';
         hasError = true;
       }
     }
@@ -1430,7 +1530,7 @@ export default function AdminOrdersTable({
     }
 
     if (hasError) {
-      toast.error('Nekaterih sprememb ni bilo mogoče shraniti.');
+      toast.error(statusErrorMessage ?? 'Nekaterih sprememb ni bilo mogoče shraniti.');
       setQuickEdit((current) =>
         current && current.orderId === quickEdit.orderId
           ? {
@@ -1452,7 +1552,7 @@ export default function AdminOrdersTable({
 
     toast.success('Shranjeno');
     setQuickEdit(null);
-  }, [quickEdit, quickEditOrderNumberIsAllowed, quickEditOrderNumberValidationMessage, toast]);
+  }, [customerEmailConfirmation, quickEdit, quickEditOrderNumberIsAllowed, quickEditOrderNumberValidationMessage, toast]);
 
   useEffect(() => {
     if (!hasBulkSelectedRows) {
@@ -1590,38 +1690,179 @@ export default function AdminOrdersTable({
     }
   };
 
-  const handleBulkStatusUpdate = async (nextStatus: string) => {
-    if (selected.length <= 1) return;
+  const handleBulkStatusUpdate: (
+    nextStatus: string,
+    confirmationTokens?: Readonly<Record<number, string | null>> | null,
+    targetOrderIds?: readonly number[]
+  ) => Promise<void> = async (
+    nextStatus,
+    confirmationTokens = null,
+    targetOrderIds = selected
+  ) => {
+    if (targetOrderIds.length <= 1) return;
 
     setIsBulkUpdatingStatus(true);
     try {
-      await Promise.all(
-        selected.map((orderId) =>
-          fetch(`/api/admin/orders/${orderId}/status`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: nextStatus })
+      if (!confirmationTokens) {
+        const preflightResults = await Promise.all(
+          targetOrderIds.map(async (orderId) => {
+            try {
+              const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  status: nextStatus,
+                  confirmationOnly: true
+                })
+              });
+              const payload = await response.json().catch(() => ({})) as {
+                message?: unknown;
+              };
+              return { orderId, response, payload };
+            } catch {
+              return { orderId, response: null, payload: null };
+            }
           })
-        )
+        );
+        const preflightFailures = preflightResults.filter((result) =>
+          !result.response ||
+          (!result.response.ok && result.response.status !== 428)
+        );
+        if (preflightFailures.length > 0) {
+          const firstMessage = preflightFailures.find(
+            (failure) => typeof failure.payload?.message === 'string'
+          )?.payload?.message;
+          toast.error(
+            typeof firstMessage === 'string'
+              ? firstMessage
+              : 'Preverjanje e-poštnih obvestil ni uspelo.'
+          );
+          return;
+        }
+
+        const confirmations = preflightResults.flatMap((result) => {
+          if (result.response?.status !== 428) return [];
+          const confirmation =
+            parseCustomerEmailConfirmationRequired(result.payload);
+          const confirmationToken = confirmation?.confirmationToken;
+          return confirmation && confirmationToken
+            ? [{ orderId: result.orderId, confirmation, confirmationToken }]
+            : [];
+        });
+        const invalidChallengeCount = preflightResults.filter(
+          (result) => result.response?.status === 428
+        ).length - confirmations.length;
+        if (invalidChallengeCount > 0) {
+          toast.error('Potrditve e-poštnih obvestil ni bilo mogoče pripraviti.');
+          return;
+        }
+        if (confirmations.length > 0) {
+          const nextTokens: Record<number, string | null> = Object.fromEntries(
+            targetOrderIds.map((orderId) => [orderId, null])
+          );
+          for (const { orderId, confirmationToken } of confirmations) {
+            nextTokens[orderId] = confirmationToken;
+          }
+          const deliveries = confirmations.flatMap(
+            ({ confirmation }) => confirmation.deliveries ?? []
+          );
+          const recipientEmails = Array.from(new Set(
+            (deliveries.length > 0
+              ? deliveries.map((delivery) => delivery.recipientEmail)
+              : confirmations.map(({ confirmation }) => confirmation.recipientEmail)
+            ).filter(Boolean)
+          ));
+          const eventLabels = Array.from(new Set(
+            (deliveries.length > 0
+              ? deliveries.map((delivery) => delivery.eventLabel)
+              : confirmations.map(({ confirmation }) => confirmation.eventLabel)
+            ).filter(Boolean)
+          ));
+          const firstConfirmation = confirmations[0].confirmation;
+          customerEmailConfirmation.requestConfirmation(
+            {
+              ...firstConfirmation,
+              scope: deliveries.length > 1 ? 'multiple' : firstConfirmation.scope,
+              eventType:
+                deliveries.map((delivery) => delivery.eventType).join(', ') ||
+                firstConfirmation.eventType,
+              eventLabel: eventLabels.join(', ') || firstConfirmation.eventLabel,
+              recipientEmail:
+                recipientEmails.join(', ') || firstConfirmation.recipientEmail,
+              deliveries
+            },
+            () => void handleBulkStatusUpdate(
+              nextStatus,
+              nextTokens,
+              targetOrderIds
+            )
+          );
+          return;
+        }
+      }
+
+      const results = await Promise.all(
+        targetOrderIds.map(async (orderId) => {
+          try {
+            const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: nextStatus,
+                ...(confirmationTokens?.[orderId]
+                  ? {
+                      customerEmailConfirmationToken:
+                        confirmationTokens[orderId]
+                    }
+                  : {})
+              })
+            });
+            const payload = await response.json().catch(() => ({})) as {
+              message?: unknown;
+            };
+            return {
+              orderId,
+              response,
+              payload,
+              ok: response.ok,
+              message: typeof payload.message === 'string' ? payload.message : null
+            };
+          } catch {
+            return { orderId, response: null, payload: null, ok: false, message: null };
+          }
+        })
       );
 
-      setRowStatusOverrides((previousOverrides) => {
-        const nextOverrides = { ...previousOverrides };
-        selected.forEach((orderId) => {
-          nextOverrides[orderId] = nextStatus;
+      const successfulOrderIds = results
+        .filter((result) => result.ok)
+        .map((result) => result.orderId);
+      const failures = results.filter((result) => !result.ok);
+
+      if (successfulOrderIds.length > 0) {
+        setRowStatusOverrides((previousOverrides) => {
+          const nextOverrides = { ...previousOverrides };
+          successfulOrderIds.forEach((orderId) => {
+            nextOverrides[orderId] = nextStatus;
+          });
+          return nextOverrides;
         });
-        return nextOverrides;
-      });
+      }
       setIsStatusHeaderMenuOpen(false);
-      toast.success('Shranjeno');
-    } catch (error) {
-      console.error(error);
-      toast.error('Napaka pri shranjevanju');
+
+      if (failures.length > 0) {
+        const firstMessage = failures.find((failure) => failure.message)?.message;
+        toast.error(
+          failures.length === 1 && firstMessage
+            ? firstMessage
+            : `${failures.length} naročil ni bilo mogoče spremeniti.${firstMessage ? ` ${firstMessage}` : ''}`
+        );
+      } else {
+        toast.success('Shranjeno');
+      }
     } finally {
       setIsBulkUpdatingStatus(false);
     }
   };
-
   const handleBulkPaymentUpdate = async (nextPaymentStatus: string) => {
     if (selected.length <= 1 || !isPaymentStatus(nextPaymentStatus)) return;
 
@@ -1654,16 +1895,50 @@ export default function AdminOrdersTable({
     }
   };
 
-  const handleSingleRowStatusUpdate = async (orderId: number, nextStatus: string) => {
+  const handleSingleRowStatusUpdate: (
+    orderId: number,
+    nextStatus: string,
+    customerEmailConfirmationToken?: string | null
+  ) => Promise<void> = async (
+    orderId,
+    nextStatus,
+    customerEmailConfirmationToken = null
+  ) => {
     setIsBulkUpdatingStatus(true);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus })
+        body: JSON.stringify({
+          status: nextStatus,
+          ...(customerEmailConfirmationToken
+            ? { customerEmailConfirmationToken }
+            : {})
+        })
       });
+      const payload = await response.json().catch(() => ({})) as {
+        message?: unknown;
+      };
 
-      if (!response.ok) throw new Error('Status update failed');
+      if (!response.ok) {
+        const confirmation = parseCustomerEmailConfirmationRequired(payload);
+        if (response.status === 428 && confirmation?.confirmationToken) {
+          customerEmailConfirmation.requestConfirmation(
+            confirmation,
+            () => void handleSingleRowStatusUpdate(
+              orderId,
+              nextStatus,
+              confirmation.confirmationToken
+            )
+          );
+          return;
+        }
+        throw new Error(
+          typeof payload.message === 'string'
+            ? payload.message
+            : 'Statusa ni bilo mogoče spremeniti.'
+        );
+      }
 
       setRowStatusOverrides((previousOverrides) => ({
         ...previousOverrides,
@@ -1671,13 +1946,15 @@ export default function AdminOrdersTable({
       }));
       toast.success('Shranjeno');
     } catch (error) {
-      console.error(error);
-      toast.error('Napaka pri shranjevanju');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Statusa ni bilo mogoče spremeniti.'
+      );
     } finally {
       setIsBulkUpdatingStatus(false);
     }
   };
-
   const handleSingleRowPaymentUpdate = async (orderId: number, nextPaymentStatus: string) => {
     if (!isPaymentStatus(nextPaymentStatus)) return;
 
@@ -1946,6 +2223,13 @@ export default function AdminOrdersTable({
           <div aria-hidden="true" className="mb-3 h-[120px] rounded-[11px] border border-slate-200/80 bg-white/60" />
         )}
 
+        <CustomerEmailConfirmationDialog
+          confirmation={customerEmailConfirmation.confirmation}
+          onCancel={customerEmailConfirmation.cancelConfirmation}
+          onConfirm={customerEmailConfirmation.confirm}
+          confirmDisabled={isBulkUpdatingStatus}
+        />
+
         {isBulkDeleteDialogOpen ? (
           <LazyConfirmDialog
             open={isBulkDeleteDialogOpen}
@@ -2163,15 +2447,22 @@ export default function AdminOrdersTable({
 
                         {isStatusHeaderMenuOpen && (
                           <div role="menu">
-                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-44 -translate-x-1/2">
-                              {ORDER_STATUS_OPTIONS.map((option) => (
+                            <MenuPanel className="absolute left-1/2 top-8 z-20 w-80 -translate-x-1/2">
+                              {ORDER_STATUS_ACTION_OPTIONS.map((option) => (
                                 <MenuItem
                                   key={option.value}
                                   className={getStatusMenuItemClassName(option.value)}
                                   onClick={() => handleBulkStatusUpdate(option.value)}
                                   disabled={isBulkUpdatingStatus}
                                 >
-                                  {option.label}
+                                  <span className="flex min-w-0 flex-col text-left">
+                                    <span>{option.label}</span>
+                                    {option.description ? (
+                                      <span className="mt-0.5 text-[10px] font-normal leading-4 text-slate-500">
+                                        {option.description}
+                                      </span>
+                                    ) : null}
+                                  </span>
                                 </MenuItem>
                               ))}
                             </MenuPanel>
@@ -2499,10 +2790,7 @@ export default function AdminOrdersTable({
                                     : current
                                 )
                               }
-                              options={getOrderCustomerTypeRowOptions(
-                                activeQuickEdit.initialCustomerType,
-                                activeQuickEdit.contractStatus
-                              )}
+                              options={ORDER_CUSTOMER_TYPE_ROW_OPTIONS}
                               disabled={activeQuickEdit.isSaving}
                               className="w-full"
                               triggerClassName={ORDERS_TYPE_SELECT_TRIGGER_CLASS}
@@ -2533,7 +2821,7 @@ export default function AdminOrdersTable({
                                     : current
                                 )
                               }
-                              options={ORDER_STATUS_OPTIONS}
+                              options={ORDER_STATUS_ACTION_OPTIONS}
                               disabled={activeQuickEdit.isSaving}
                               ariaLabel={`Status naročila ${order.id}`}
                               menuWidth={152}
@@ -2545,7 +2833,7 @@ export default function AdminOrdersTable({
                             <OrdersInlineChipSelect
                               value={rowStatus}
                               onChange={(value) => void handleSingleRowStatusUpdate(order.id, value)}
-                              options={ORDER_STATUS_OPTIONS}
+                              options={ORDER_STATUS_ACTION_OPTIONS}
                               disabled={isBulkUpdatingStatus}
                               ariaLabel={`Status naročila ${order.id}`}
                               menuWidth={152}
@@ -2608,16 +2896,11 @@ export default function AdminOrdersTable({
                               className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? 'N/A')}`}
                             />
                           ) : (
-                            <>
-                              <span
-                                className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? formatCurrency(order.total))}`}
-                              >
-                                {rowDisplay?.totalLabel ?? formatCurrency(order.total)}
-                              </span>
-                              <span className="text-[10px] font-medium text-admin-text-muted">
-                                {`${effectiveOrder.shipping_override_json ? 'Ročna' : 'Samodejna'} poštnina ${formatCurrency(effectiveOrder.shipping)}${effectiveOrder.shipping_override_stale ? ' · zastarelo' : ''}`}
-                              </span>
-                            </>
+                            <span
+                              className={`${adminTableMatchingValueBaseClassName} ${ORDERS_EMPHASIZED_VALUE_CLASS} ${getMatchingValueClassName('total', rowDisplay?.totalLabel ?? formatCurrency(order.total))}`}
+                            >
+                              {rowDisplay?.totalLabel ?? formatCurrency(order.total)}
+                            </span>
                           )}
                         </div>
                       </TD> : null}

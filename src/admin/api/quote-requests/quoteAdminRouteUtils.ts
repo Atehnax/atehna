@@ -212,8 +212,6 @@ export async function enqueueQuoteEmailIsolated(
     eventKey: string;
     eventType: QuoteEmailEventType;
     detail?: string | null;
-    forceCustomer?: boolean;
-    suppressAdmin?: boolean;
     requestId?: string | null;
   }
 ): Promise<boolean> {
@@ -224,9 +222,7 @@ export async function enqueueQuoteEmailIsolated(
       quoteOfferVersionId: input.quoteOfferVersionId ?? null,
       eventKey: input.eventKey,
       eventType: input.eventType,
-      detail: input.detail ?? null,
-      forceCustomer: input.forceCustomer,
-      suppressAdmin: input.suppressAdmin
+      detail: input.detail ?? null
     });
     if (jobs.length > 0) {
       await appendQuoteEvent(client, {

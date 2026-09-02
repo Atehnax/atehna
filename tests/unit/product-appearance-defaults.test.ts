@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 
 import {
   DEFAULT_PRODUCT_APPEARANCE_CONFIG,
+  DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS,
   normalizeProductAppearanceConfig,
   toProductAppearanceCssVariables
 } from '@/shared/domain/style/productAppearance';
@@ -27,7 +28,8 @@ test('reference product appearance defaults stay compact and inherit global widt
   expect(appearance.information.showSku).toBe(false);
   expect(appearance.information.showKeyAttributes).toBe(false);
   expect(appearance.variants.showSelectedSummary).toBe(false);
-  expect(appearance.schemaVersion).toBe(8);
+  expect(appearance.schemaVersion).toBe(10);
+  expect(DEFAULT_PRODUCT_CANVAS_ELEMENT_DEVICE_SETTINGS.contentScale).toBe(1);
   expect(appearance.listings).toMatchObject({
     tabletColumns: 3,
     cardDensity: 'compact',

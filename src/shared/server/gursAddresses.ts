@@ -40,6 +40,12 @@ type GursAddressSearchRow = Pick<
   | 'municipality_name'
 >;
 
+type GursAddressSearchQueryRow = {
+  [Key in keyof GursAddressSearchRow]: GursAddressSearchRow[Key] | null;
+} & {
+  active_source_updated_at: Date | string | null;
+};
+
 type GursAddressSourceMetadataRow = {
   active_source_updated_at: Date | string | null;
   active_imported_at: Date | string | null;
@@ -219,37 +225,64 @@ export async function searchGursAddresses(
   const tokenMatch = tokenPredicates.length > 0
     ? `(${tokenPredicates.join(' and ')})`
     : 'false';
-  const result = await database.query<GursAddressSearchRow>(
-    `select gurs_house_number_id,
-            address_line_1,
-            postal_code,
-            postal_name,
-            settlement_name,
-            municipality_name
-     from gurs_addresses
-     where search_text like '%' || $1 || '%'
-        or ${tokenMatch}
-        or $1 <% search_text
+  const result = await database.query<GursAddressSearchQueryRow>(
+    `select matched.gurs_house_number_id,
+            matched.address_line_1,
+            matched.postal_code,
+            matched.postal_name,
+            matched.settlement_name,
+            matched.municipality_name,
+            sync.active_source_updated_at
+     from (values (true)) as anchor(dummy)
+     left join gurs_address_sync_state as sync
+       on sync.key = 'active'
+     left join lateral (
+       select gurs_house_number_id,
+              address_line_1,
+              postal_code,
+              postal_name,
+              settlement_name,
+              municipality_name,
+              case
+                when search_text = $1 then 0
+                when search_text like $1 || '%' then 1
+                when search_text like '%' || $1 || '%' then 2
+                when ${tokenMatch} then 3
+                else 4
+              end as match_rank,
+              word_similarity($1, search_text) as match_similarity
+       from gurs_addresses
+       where search_text like '%' || $1 || '%'
+          or ${tokenMatch}
+          or $1 <% search_text
+       order by
+         match_rank asc,
+         match_similarity desc,
+         address_line_1 asc,
+         postal_code asc,
+         gurs_house_number_id asc
+       limit ${GURS_ADDRESS_SEARCH_LIMIT}
+     ) as matched on true
      order by
-       case
-         when search_text = $1 then 0
-         when search_text like $1 || '%' then 1
-         when search_text like '%' || $1 || '%' then 2
-         when ${tokenMatch} then 3
-         else 4
-       end,
-       word_similarity($1, search_text) desc,
-       address_line_1 asc,
-       postal_code asc,
-       gurs_house_number_id asc
-     limit ${GURS_ADDRESS_SEARCH_LIMIT}`,
+       matched.match_rank asc nulls last,
+       matched.match_similarity desc nulls last,
+       matched.address_line_1 asc nulls last,
+       matched.postal_code asc nulls last,
+       matched.gurs_house_number_id asc nulls last`,
     [parsed.query, ...tokenPatterns]
   );
-  const metadata = await getGursAddressSourceMetadata(database);
+  const searchRows = result.rows.filter(
+    (
+      row
+    ): row is GursAddressSearchQueryRow & GursAddressSearchRow =>
+      row.gurs_house_number_id !== null
+  );
 
   return {
-    results: result.rows.map(toSearchResult),
-    sourceUpdatedAt: metadata.sourceUpdatedAt
+    results: searchRows.map(toSearchResult),
+    sourceUpdatedAt: toIsoString(
+      result.rows[0]?.active_source_updated_at ?? null
+    )
   };
 }
 

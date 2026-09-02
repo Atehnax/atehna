@@ -896,7 +896,12 @@ export default function AdminOrderItemsEditor({
             <span className="text-[12px] text-slate-700">%</span>
           </span>
         </td>
-        <td className="py-3 pl-1.5 pr-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
+        <td
+          className="py-3 pl-1.5 pr-4 text-right font-semibold text-slate-900"
+          data-admin-order-item-total
+        >
+          <span data-admin-order-item-total-value>{formatCurrency(lineTotal)}</span>
+        </td>
       </tr>
     );
   };
@@ -908,7 +913,7 @@ export default function AdminOrderItemsEditor({
           className="flex h-11 items-center gap-3 px-4"
           data-testid="admin-order-items-toolbar"
         >
-          <h2 className="text-lg font-semibold text-slate-900">Postavke</h2>
+          <h2 className="text-base font-semibold text-slate-900">Postavke</h2>
           <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-1.5">
             <h3 className="sr-only">Upravljanje postavk</h3>
             {!hideSectionEditControls ? (
@@ -1027,7 +1032,7 @@ export default function AdminOrderItemsEditor({
               <col style={{ width: '11%' }} />
               <col style={{ width: '17%' }} />
               <col style={{ width: '14%' }} />
-              <col style={{ width: '15%' }} />
+              <col style={{ width: '19%' }} />
             </colgroup>
             <thead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)] text-slate-600">
               <tr>
@@ -1036,7 +1041,9 @@ export default function AdminOrderItemsEditor({
                 <th className="border-b border-slate-200 px-1 py-4 text-center text-[12px] font-semibold align-middle">Količina</th>
                 <th className="border-b border-slate-200 px-1.5 py-4 text-center text-[12px] font-semibold align-middle">Cena brez DDV</th>
                 <th className="border-b border-slate-200 px-1.5 py-4 text-center text-[12px] font-semibold align-middle">Popust %</th>
-                <th className="border-b border-slate-200 py-4 pl-1.5 pr-2 text-right text-[12px] font-semibold align-middle">Skupaj brez DDV</th>
+                <th className="border-b border-slate-200 py-4 pl-1.5 pr-4 text-right text-[12px] font-semibold align-middle">
+                  <span data-testid="admin-order-items-total-header">Skupaj brez DDV</span>
+                </th>
               </tr>
             </thead>
             <tbody data-testid="admin-order-items-current-group">
@@ -1127,7 +1134,7 @@ export default function AdminOrderItemsEditor({
                     {shippingContextLabel}
                   </span>
                 ) : null}
-                <span>{shippingManualQuote ? 'Potreben je ročni znesek' : formatCurrency(totals.shipping)}</span>
+                <span>{shippingManualQuote ? '—' : formatCurrency(totals.shipping)}</span>
               </span>
             </div>
             {shippingManualQuote ? (

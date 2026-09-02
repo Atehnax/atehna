@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { validateOrderDeliveryPlanForStatus } from '@/shared/domain/order/orderDeliveryPlan';
-import { isDirectOrderSellerAcceptanceTransition } from '@/shared/domain/order/contractStatus';
+import {
+  isDirectOrderSellerAcceptanceTransition,
+  isSchoolOrderSellerAcceptanceTransition
+} from '@/shared/domain/order/contractStatus';
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
@@ -25,12 +28,25 @@ import {
   enqueueOrderEmailEvent,
   scheduleOrderEmailJobs
 } from '@/shared/server/orderEmailJobs';
+import {
+  requireOrderCustomerEmailConfirmation
+} from '@/shared/server/adminCustomerEmailConfirmation';
 import { validateLockedOrderShippingReadiness } from '@/shared/server/orderShippingReadiness';
+import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
+import { scheduleQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
+import {
+  acceptSchoolOrderForProcessing,
+  isCatalogSerializationFailure,
+  type LockedSchoolOrderForAcceptance
+} from '@/shared/server/schoolOrderSellerAcceptance';
 import {
   acceptedContractRequiredMessage,
+  commitOrderStockHolds,
+  OrderStockConflictError,
   OrderStockReconciliationRequiredError,
   releaseOrderStockHolds
 } from '@/shared/server/orderStockHolds';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
 
 export async function POST(
   request: Request,
@@ -57,6 +73,9 @@ export async function POST(
         { status: 400 }
       );
     }
+    const confirmationOnly = bodyResult.body.confirmationOnly === true;
+    const prospectiveCustomerEmail =
+      bodyResult.body.prospectiveCustomerEmail;
 
     const hasDeliveryPlan = Object.prototype.hasOwnProperty.call(
       bodyResult.body,
@@ -94,7 +113,31 @@ export async function POST(
 
     const pool = await getPool();
     client = await pool.connect();
-    await client.query('begin');
+    await client.query('begin isolation level serializable');
+    let sourceQuoteRequestIdForAcceptance: number | null = null;
+    if (status === 'in_progress') {
+      const quoteWorkflowResult = await client.query(
+        [
+          'select offer.quote_request_id',
+          'from orders order_record',
+          'join quote_offer_versions offer',
+          '  on offer.id = order_record.source_quote_offer_version_id',
+          'where order_record.id = $1',
+          "  and order_record.status = 'received'",
+          "  and order_record.customer_type = 'school'",
+          "  and order_record.commitment_status in ('pending_confirmation', 'binding')",
+          "  and order_record.contract_status = 'pending_seller_acceptance'"
+        ].join('\n'),
+        [orderId]
+      );
+      const quoteRequestId = Number(
+        quoteWorkflowResult.rows[0]?.quote_request_id ?? 0
+      );
+      if (quoteRequestId > 0) {
+        sourceQuoteRequestIdForAcceptance = quoteRequestId;
+        await lockQuoteWorkflow(client, quoteRequestId);
+      }
+    }
     const current = await client.query(
       `
         select
@@ -104,6 +147,7 @@ export async function POST(
           customer_type,
           commitment_status,
           contract_status,
+          stock_enforcement_applied,
           source_quote_offer_version_id,
           deleted_at,
           is_draft,
@@ -139,6 +183,7 @@ export async function POST(
         : String(current.rows[0].status);
     const orderNumber = String(current.rows[0]?.order_number ?? `#${orderId}`);
     const workflow = current.rows[0];
+    const stockEnforcementEnabled = await isStockEnforcementEnabled(client);
     const deliveryPlanRevision = normalizeOrderDeliveryPlanRevision(
       workflow?.delivery_plan_revision
     );
@@ -187,10 +232,6 @@ export async function POST(
         sourceQuoteOfferVersionId:
           workflow?.source_quote_offer_version_id
       });
-    const effectiveContractStatus = automaticallyAcceptsDirectOrder
-      ? 'accepted'
-      : String(workflow?.contract_status ?? '');
-    const effectiveContractAccepted = effectiveContractStatus === 'accepted';
     if (
       previousStatus !== status &&
       status === 'cancelled' &&
@@ -212,7 +253,7 @@ export async function POST(
     }
     const purchaseOrderResult = await client.query(
       `
-        select id
+        select id, content_sha256, issued_at
         from order_documents
         where order_id = $1
           and type = 'purchase_order'
@@ -227,14 +268,54 @@ export async function POST(
       `,
       [orderId, [...SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS]]
     );
+    const purchaseOrderDocument = purchaseOrderResult.rows[0] as
+      | {
+          id: string | number;
+          content_sha256: string | null;
+          issued_at: string | Date | null;
+        }
+      | undefined;
+    const automaticallyAcceptsSchoolOrder =
+      isSchoolOrderSellerAcceptanceTransition({
+        previousStatus,
+        nextStatus: status,
+        customerType: String(workflow?.customer_type ?? ''),
+        commitmentStatus:
+          workflow?.commitment_status === null ||
+          workflow?.commitment_status === undefined
+            ? null
+            : String(workflow.commitment_status),
+        contractStatus:
+          workflow?.contract_status === null ||
+          workflow?.contract_status === undefined
+            ? null
+            : String(workflow.contract_status),
+        sourceQuoteOfferVersionId:
+          workflow?.source_quote_offer_version_id,
+        hasPurchaseOrderEvidence: purchaseOrderDocument !== undefined
+      });
+    const automaticallyAcceptsPendingOrder =
+      automaticallyAcceptsDirectOrder ||
+      automaticallyAcceptsSchoolOrder;
+    const automaticallyBindsPendingOrder =
+      automaticallyAcceptsPendingOrder &&
+      String(workflow?.commitment_status ?? '') !== 'binding';
+    const effectiveCommitmentStatus = automaticallyAcceptsPendingOrder
+      ? 'binding'
+      : workflow?.commitment_status === null ||
+          workflow?.commitment_status === undefined
+        ? null
+        : String(workflow.commitment_status);
+    const effectiveContractStatus = automaticallyAcceptsPendingOrder
+      ? 'accepted'
+      : String(workflow?.contract_status ?? '');
+    const effectiveContractAccepted = effectiveContractStatus === 'accepted';
     const executionBlock = schoolExecutionBlock(
       String(workflow?.customer_type ?? ''),
-      workflow?.commitment_status === null ||
-        workflow?.commitment_status === undefined
-        ? null
-        : String(workflow.commitment_status),
+      effectiveCommitmentStatus,
       status,
-      purchaseOrderResult.rowCount === 1
+      purchaseOrderDocument !== undefined,
+      effectiveContractStatus
     );
     if (executionBlock) {
       await client.query('rollback');
@@ -290,6 +371,238 @@ export async function POST(
         },
         { status: 409 }
       );
+    }
+    const changed = previousStatus !== status;
+    const isAdministrativeDraft = workflow?.is_draft === true;
+
+    let shouldEnqueueStatusEmail = changed && !isAdministrativeDraft;
+    if (changed && !isAdministrativeDraft) {
+      const readiness = await validateLockedOrderShippingReadiness(
+        client,
+        orderId,
+        workflow as Record<string, unknown>
+      );
+      if (!readiness.ok) {
+        // Cancellation remains available as a recovery path, but an invalid
+        // monetary snapshot must never be rendered into its notification.
+        if (status === 'cancelled') {
+          shouldEnqueueStatusEmail = false;
+        } else if (automaticallyAcceptsDirectOrder) {
+          shouldEnqueueStatusEmail = false;
+        } else {
+          await client.query('rollback');
+          client.release();
+          client = null;
+          return NextResponse.json(
+            {
+              code: 'ORDER_STATUS_SHIPPING_NOT_READY',
+              message: readiness.message
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    const schoolQuoteAcceptanceNeedsOutcomeGate =
+      automaticallyAcceptsSchoolOrder &&
+      sourceQuoteRequestIdForAcceptance !== null;
+    if (shouldEnqueueStatusEmail && !schoolQuoteAcceptanceNeedsOutcomeGate) {
+      const confirmationChallenge =
+        await requireOrderCustomerEmailConfirmation({
+          client,
+          orderId,
+          eventType: status,
+          action: 'change_order_status',
+          actionLabel: 'Sprememba statusa naročila',
+          customerEmailConfirmationToken:
+            bodyResult.body.customerEmailConfirmationToken,
+          recipientEmail: confirmationOnly
+            ? prospectiveCustomerEmail
+            : undefined
+        });
+      if (confirmationChallenge) {
+        await client.query('rollback');
+        client.release();
+        client = null;
+        return NextResponse.json(confirmationChallenge, { status: 428 });
+      }
+    }
+
+    if (confirmationOnly && !schoolQuoteAcceptanceNeedsOutcomeGate) {
+      await client.query('rollback');
+      client.release();
+      client = null;
+      return NextResponse.json({ confirmationRequired: false });
+    }
+
+    let resultingContractStatus = effectiveContractStatus;
+    let resultingCommitmentStatus = effectiveCommitmentStatus;
+    let directStockFinalizationOutcome = 'not_applicable';
+    let directStockEnforcementApplied =
+      workflow?.stock_enforcement_applied !== false;
+    let schoolStockFinalizationOutcome = 'not_applicable';
+    let schoolQuoteEmailQueued = false;
+    let schoolQuoteOfferVersionId: number | null = null;
+    let schoolQuoteRequestId: number | null = null;
+    let schoolRevokedQuoteAccessTokenCount = 0;
+    if (automaticallyAcceptsDirectOrder) {
+      const shouldCommitDirectStock =
+        stockEnforcementEnabled &&
+        (automaticallyBindsPendingOrder || !directStockEnforcementApplied);
+      if (shouldCommitDirectStock) {
+        const allocationsResult = await client.query(
+          `
+            select
+              catalog_variant_id,
+              sum(quantity)::integer as quantity,
+              min(name) as label
+            from order_items
+            where order_id = $1
+            group by catalog_variant_id
+            order by catalog_variant_id
+          `,
+          [orderId]
+        );
+        const allocations = allocationsResult.rows as Array<{
+          catalog_variant_id: string | number | null;
+          quantity: string | number;
+          label: string | null;
+        }>;
+        if (
+          allocations.length === 0 ||
+          allocations.some((allocation) => allocation.catalog_variant_id === null)
+        ) {
+          await client.query('rollback');
+          client.release();
+          client = null;
+          return NextResponse.json(
+            {
+              code: 'ORDER_STOCK_LINKS_INCOMPLETE',
+              message:
+                'Naročilo nima popolnih povezav na kataloške različice. Pred sprejemom povežite vse postavke.'
+            },
+            { status: 409 }
+          );
+        }
+        await commitOrderStockHolds(
+          client,
+          orderId,
+          allocations.map((allocation) => ({
+            variantId: Number(allocation.catalog_variant_id),
+            quantity: Number(allocation.quantity),
+            label: allocation.label ?? undefined
+          })),
+          { type: 'admin' }
+        );
+        directStockEnforcementApplied = true;
+        directStockFinalizationOutcome = automaticallyBindsPendingOrder
+          ? 'committed_after_pending_correction'
+          : 'committed_after_policy_reenabled';
+      } else if (
+        !stockEnforcementEnabled &&
+        (automaticallyBindsPendingOrder || !directStockEnforcementApplied)
+      ) {
+        directStockEnforcementApplied = false;
+        directStockFinalizationOutcome =
+          'not_required_stock_enforcement_disabled';
+      } else {
+        directStockFinalizationOutcome = 'existing_hold_preserved';
+      }
+      const acceptedAt = new Date().toISOString();
+      const acceptanceResult = await client.query(
+        `
+          update orders
+          set commitment_status = 'binding',
+              contract_status = 'accepted',
+              contract_accepted_at = $2,
+              contract_accepted_actor_type = 'admin',
+              contract_accepted_actor_id = null,
+              contract_acceptance_evidence_json = $3::jsonb,
+              contract_state_version = contract_state_version + 1,
+              committed_at = $2,
+              stock_enforcement_applied = $4
+          where id = $1
+            and status = 'received'
+            and customer_type in ('individual', 'company')
+            and commitment_status in ('pending_confirmation', 'binding')
+            and contract_status = 'pending_seller_acceptance'
+            and source_quote_offer_version_id is null
+            and deleted_at is null
+          returning commitment_status, contract_status
+        `,
+        [
+          orderId,
+          acceptedAt,
+          JSON.stringify({
+            channel: 'admin',
+            action: 'accept_direct_order',
+            trigger: 'status_transition',
+            buttonWording: 'V obdelavi',
+            previousStatus,
+            nextStatus: status,
+            draftAtAcceptance: workflow?.is_draft === true,
+            stockFinalization: directStockFinalizationOutcome,
+            stockEnforcementApplied: directStockEnforcementApplied,
+            stockEnforcementEnabledAtAcceptance: stockEnforcementEnabled
+          }),
+          directStockEnforcementApplied
+        ]
+      );
+      if (acceptanceResult.rowCount !== 1) {
+        throw new Error('Pogodbenega sprejema naročila ni bilo mogoče shraniti.');
+      }
+      resultingCommitmentStatus = 'binding';
+      resultingContractStatus = 'accepted';
+    } else if (automaticallyAcceptsSchoolOrder) {
+      if (!purchaseOrderDocument) {
+        throw new Error(
+          'Dokaza naročilnice ni bilo mogoče varno povezati s sprejemom.'
+        );
+      }
+      const schoolAcceptance = await acceptSchoolOrderForProcessing({
+        request,
+        client,
+        orderId,
+        order: workflow as LockedSchoolOrderForAcceptance,
+        purchaseOrderDocument,
+        customerEmailConfirmationToken:
+          bodyResult.body.customerEmailConfirmationToken,
+        orderRecipientEmail: confirmationOnly
+          ? prospectiveCustomerEmail
+          : undefined,
+        confirmationOnly
+      });
+      if (!schoolAcceptance.ok) {
+        if (schoolAcceptance.persistConflictOutcome) {
+          await client.query('commit');
+        } else {
+          await client.query('rollback');
+        }
+        client.release();
+        client = null;
+        if (schoolAcceptance.quoteEmailQueued) {
+          scheduleQuoteEmailJobs(pool);
+        }
+        return NextResponse.json(schoolAcceptance.body, {
+          status: schoolAcceptance.status
+        });
+      }
+      if (schoolAcceptance.preflightOnly) {
+        await client.query('rollback');
+        client.release();
+        client = null;
+        return NextResponse.json({ confirmationRequired: false });
+      }
+      schoolStockFinalizationOutcome =
+        schoolAcceptance.stockFinalizationOutcome;
+      schoolQuoteEmailQueued = schoolAcceptance.quoteEmailQueued;
+      schoolQuoteOfferVersionId = schoolAcceptance.quoteOfferVersionId;
+      schoolQuoteRequestId = schoolAcceptance.quoteRequestId;
+      schoolRevokedQuoteAccessTokenCount =
+        schoolAcceptance.revokedQuoteAccessTokenCount;
+      resultingCommitmentStatus = 'binding';
+      resultingContractStatus = 'accepted';
     }
     const lockedDeliveryItems = await lockOrderDeliveryItems(client, orderId);
     const deliveryPlan = parsedDeliveryPlan?.ok
@@ -348,80 +661,6 @@ export async function POST(
         { status: 409 }
       );
     }
-    const changed = previousStatus !== status;
-    const isAdministrativeDraft = workflow?.is_draft === true;
-
-    let shouldEnqueueStatusEmail = changed && !isAdministrativeDraft;
-    if (changed && !isAdministrativeDraft) {
-      const readiness = await validateLockedOrderShippingReadiness(
-        client,
-        orderId,
-        workflow as Record<string, unknown>
-      );
-      if (!readiness.ok) {
-        // Cancellation remains available as a recovery path, but an invalid
-        // monetary snapshot must never be rendered into its notification.
-        if (status === 'cancelled') {
-          shouldEnqueueStatusEmail = false;
-        } else if (automaticallyAcceptsDirectOrder) {
-          shouldEnqueueStatusEmail = false;
-        } else {
-          await client.query('rollback');
-          client.release();
-          client = null;
-          return NextResponse.json(
-            {
-              code: 'ORDER_STATUS_SHIPPING_NOT_READY',
-              message: readiness.message
-            },
-            { status: 409 }
-          );
-        }
-      }
-    }
-
-    let resultingContractStatus = effectiveContractStatus;
-    if (automaticallyAcceptsDirectOrder) {
-      const acceptedAt = new Date().toISOString();
-      const acceptanceResult = await client.query(
-        `
-          update orders
-          set contract_status = 'accepted',
-              contract_accepted_at = $2,
-              contract_accepted_actor_type = 'admin',
-              contract_accepted_actor_id = null,
-              contract_acceptance_evidence_json = $3::jsonb,
-              contract_state_version = contract_state_version + 1,
-              committed_at = $2
-          where id = $1
-            and status = 'received'
-            and customer_type in ('individual', 'company')
-            and commitment_status = 'binding'
-            and contract_status = 'pending_seller_acceptance'
-            and source_quote_offer_version_id is null
-            and deleted_at is null
-          returning contract_status
-        `,
-        [
-          orderId,
-          acceptedAt,
-          JSON.stringify({
-            channel: 'admin',
-            action: 'accept_direct_order',
-            trigger: 'status_transition',
-            buttonWording: 'V obdelavi',
-            previousStatus,
-            nextStatus: status,
-            draftAtAcceptance: workflow?.is_draft === true
-          })
-        ]
-      );
-      if (acceptanceResult.rowCount !== 1) {
-        throw new Error('Pogodbenega sprejema naročila ni bilo mogoče shraniti.');
-      }
-      resultingContractStatus = 'accepted';
-    }
-
     if (changed) {
       let releasedStockUnits = 0;
       if (status === 'cancelled') {
@@ -499,27 +738,60 @@ export async function POST(
               before: previousStatus,
               after: status
             },
-            ...(automaticallyAcceptsDirectOrder
+            ...(automaticallyAcceptsPendingOrder
               ? {
                   contract_status: {
                     label: 'Pogodbeni status',
                     before: 'pending_seller_acceptance',
                     after: 'accepted'
-                  }
+                  },
+                  ...(automaticallyBindsPendingOrder
+                    ? {
+                        commitment_status: {
+                          label: 'Status zavezujočnosti',
+                          before: 'pending_confirmation',
+                          after: 'binding'
+                        }
+                      }
+                    : {})
                 }
               : {})
           },
           metadata: {
             order_number: orderNumber,
-            changed_field_count: automaticallyAcceptsDirectOrder ? 2 : 1,
+            changed_field_count: automaticallyBindsPendingOrder
+              ? 3
+              : automaticallyAcceptsPendingOrder
+                ? 2
+                : 1,
             customer_notification_suppressed: !shouldEnqueueStatusEmail,
             stock_released_units: releasedStockUnits,
-            contract_accepted_automatically: automaticallyAcceptsDirectOrder,
+            contract_accepted_automatically:
+              automaticallyAcceptsPendingOrder,
             contract_accepted_while_draft:
-              automaticallyAcceptsDirectOrder && workflow?.is_draft === true,
-            contract_acceptance_trigger: automaticallyAcceptsDirectOrder
-              ? 'received_to_in_progress'
-              : null
+              automaticallyAcceptsPendingOrder &&
+              workflow?.is_draft === true,
+            contract_acceptance_trigger: automaticallyAcceptsSchoolOrder
+              ? 'received_to_in_progress_with_purchase_order'
+              : automaticallyAcceptsDirectOrder
+                ? 'received_to_in_progress'
+                : null,
+            purchase_order_document_id: automaticallyAcceptsSchoolOrder
+              ? Number(purchaseOrderDocument?.id)
+              : null,
+            direct_stock_finalization_outcome:
+              automaticallyAcceptsDirectOrder
+                ? directStockFinalizationOutcome
+                : null,
+            stock_enforcement_enabled: stockEnforcementEnabled,
+            school_stock_finalization_outcome:
+              automaticallyAcceptsSchoolOrder
+                ? schoolStockFinalizationOutcome
+                : null,
+            source_quote_offer_version_id: schoolQuoteOfferVersionId,
+            source_quote_request_id: schoolQuoteRequestId,
+            quote_access_tokens_revoked:
+              schoolRevokedQuoteAccessTokenCount
           }
         },
         client
@@ -557,9 +829,11 @@ export async function POST(
     client = null;
 
     if (shouldEnqueueStatusEmail) scheduleOrderEmailJobs(pool, orderId);
+    if (schoolQuoteEmailQueued) scheduleQuoteEmailJobs(pool);
     revalidateAdminOrderPaths(orderId);
     return NextResponse.json({
       status,
+      commitmentStatus: resultingCommitmentStatus,
       contractStatus: resultingContractStatus,
       notificationSuppressed: changed && !shouldEnqueueStatusEmail,
       shipLaterItemIds: deliveryPlan.shipLaterItemIds,
@@ -571,6 +845,28 @@ export async function POST(
     if (client) {
       await client.query('rollback').catch(() => undefined);
       client.release();
+    }
+    if (isCatalogSerializationFailure(error)) {
+      return NextResponse.json(
+        {
+          code: 'QUOTE_CONCURRENT_CATALOG_CHANGE',
+          message: 'Katalog se je med potrjevanjem spremenil. Poskusite znova.'
+        },
+        { status: 409 }
+      );
+    }
+
+    if (error instanceof OrderStockConflictError) {
+      return NextResponse.json(
+        {
+          code: error.code,
+          message: error.message,
+          variantId: error.variantId,
+          requestedQuantity: error.requestedQuantity,
+          availableStock: error.availableStock
+        },
+        { status: 409 }
+      );
     }
     if (error instanceof OrderStockReconciliationRequiredError) {
       return NextResponse.json(

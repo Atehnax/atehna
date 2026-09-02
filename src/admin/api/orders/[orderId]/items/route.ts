@@ -429,6 +429,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             currency,
             customer_type,
             commitment_status,
+            stock_enforcement_applied,
             source_quote_offer_version_id,
             is_draft,
             status,
@@ -619,7 +620,11 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         quantityDelta: number;
       }> = [];
 
-      if (order.is_draft !== true && order.commitment_status === 'binding') {
+      if (
+        order.stock_enforcement_applied !== false &&
+        order.is_draft !== true &&
+        order.commitment_status === 'binding'
+      ) {
         const oldVariantQuantities = new Map<number, number>();
         const nextVariantQuantities = new Map<number, number>();
         const addQuantity = (
@@ -1255,6 +1260,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
               shipping_source: shippingSource,
               shipping_override_stale: shippingOverrideStale,
               inventory_adjustments: inventoryAdjustments,
+              stock_enforcement_applied:
+                order.stock_enforcement_applied !== false,
               confirmation_snapshots_refreshed: Boolean(itemDiff)
             }
           },

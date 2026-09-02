@@ -464,22 +464,13 @@ test.describe('school purchase-order workflow', () => {
       orderId = createdOrderId;
       await waitForInitialSummaryWorker(orderId);
 
-      const bindingBlocked = await request.post(
-        `/api/admin/orders/${orderId}/commitment-status`,
-        { data: { commitmentStatus: 'binding' } }
-      );
-      expect(bindingBlocked.status()).toBe(409);
-      await expect(bindingBlocked.json()).resolves.toMatchObject({
-        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
-      });
-
       const processingBlocked = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }
       );
       expect(processingBlocked.status()).toBe(409);
       await expect(processingBlocked.json()).resolves.toMatchObject({
-        code: 'ORDER_CONTRACT_NOT_ACCEPTED'
+        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
       });
       const blockedState = await database.query<{
         commitment_status: string;
@@ -533,22 +524,13 @@ test.describe('school purchase-order workflow', () => {
       );
       expect(generatedProofResult.rowCount).toBe(1);
 
-      const generatedBindingBlocked = await request.post(
-        `/api/admin/orders/${orderId}/commitment-status`,
-        { data: { commitmentStatus: 'binding' } }
-      );
-      expect(generatedBindingBlocked.status()).toBe(409);
-      await expect(generatedBindingBlocked.json()).resolves.toMatchObject({
-        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
-      });
-
       const generatedProcessingBlocked = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }
       );
       expect(generatedProcessingBlocked.status()).toBe(409);
       await expect(generatedProcessingBlocked.json()).resolves.toMatchObject({
-        code: 'ORDER_CONTRACT_NOT_ACCEPTED'
+        code: 'SCHOOL_PURCHASE_ORDER_REQUIRED'
       });
       const inventoryAfterGeneratedDocument = await database.query<{
         inventory: string;
@@ -752,32 +734,25 @@ test.describe('school purchase-order workflow', () => {
       const storedDocumentBytes = await storedDocumentResponse.body();
       expect(storedDocumentBytes).toEqual(VALID_PDF);
 
-      const bindingResponse = await request.post(
-        `/api/admin/orders/${orderId}/commitment-status`,
-        { data: { commitmentStatus: 'binding' } }
-      );
-      expect(bindingResponse.ok()).toBeTruthy();
-      await expect(bindingResponse.json()).resolves.toMatchObject({
-        commitmentStatus: 'binding',
-        stockNotCommitted: false
-      });
-      const inventoryAfterBinding = await database.query<{ inventory: string }>(
-        'select inventory from catalog_item_variants where id = $1',
-        [SCHOOL_VARIANT_ID]
-      );
-      expect(Number(inventoryAfterBinding.rows[0]?.inventory)).toBe(
-        originalInventory - 1
-      );
-
       const processingResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
         { data: { status: 'in_progress' } }
       );
       expect(processingResponse.ok()).toBeTruthy();
       await expect(processingResponse.json()).resolves.toMatchObject({
-        status: 'in_progress'
+        status: 'in_progress',
+        commitmentStatus: 'binding',
+        contractStatus: 'accepted'
       });
-
+      const inventoryAfterProcessing = await database.query<{
+        inventory: string;
+      }>(
+        'select inventory from catalog_item_variants where id = $1',
+        [SCHOOL_VARIANT_ID]
+      );
+      expect(Number(inventoryAfterProcessing.rows[0]?.inventory)).toBe(
+        originalInventory - 1
+      );
       const documentCountBeforeClosedUpload = await database.query<{
         count: string;
       }>(
@@ -902,6 +877,459 @@ test.describe('school purchase-order workflow', () => {
         [originalInventory, SCHOOL_VARIANT_ID]
       );
       await restoreSettings(originalSettings);
+      await database.query(
+        `delete from orders order_record
+         where order_record.email = $1
+           and not exists (
+             select 1
+             from order_stock_holds stock_hold
+             where stock_hold.order_id = order_record.id
+           )`,
+        [email]
+      );
+    }
+  });
+
+  test('accepts a received direct school order after an admin purchase-order upload', async ({
+    page,
+    request
+  }) => {
+    test.setTimeout(45_000);
+    const inventoryResult = await database.query<{ inventory: string }>(
+      'select inventory from catalog_item_variants where id = $1',
+      [SCHOOL_VARIANT_ID]
+    );
+    const originalInventory = Number(inventoryResult.rows[0]?.inventory);
+    expect(Number.isFinite(originalInventory)).toBe(true);
+    expect(originalInventory).toBeGreaterThan(0);
+
+    const email = `school-admin-purchase-order-${crypto.randomUUID()}@example.com`;
+    let orderId: number | null = null;
+    let cleanupCompleted = false;
+
+    try {
+      const estimateResponse = await request.post('/api/orders/estimate', {
+        data: {
+          customerName: 'E2E javni zavod admin upload',
+          customerLabels: ['E2E javni zavod admin upload', 'Ana Novak'],
+          items: [{ variantId: SCHOOL_VARIANT_ID, quantity: 1 }]
+        }
+      });
+      expect(estimateResponse.ok()).toBeTruthy();
+      const estimate = await estimateResponse.json() as {
+        shippingConfigurationVersion: number;
+        quoteFingerprint: string;
+      };
+      const createResponse = await request.post('/api/orders', {
+        headers: {
+          'Idempotency-Key': `school-admin-purchase-order-${crypto.randomUUID()}`
+        },
+        data: {
+          customerType: 'school',
+          customerName: 'E2E javni zavod admin upload',
+          organizationName: 'E2E javni zavod admin upload',
+          contactName: 'Ana Novak',
+          email,
+          addressLine1: 'Testna ulica 1',
+          city: 'Ljubljana',
+          postalCode: '1000',
+          countryCode: 'SI',
+          reference: 'E2E-ADMIN-NAROCILNICA-2026',
+          notes: '',
+          items: [{ variantId: SCHOOL_VARIANT_ID, quantity: 1 }],
+          shippingConfigurationVersion: estimate.shippingConfigurationVersion,
+          quoteFingerprint: estimate.quoteFingerprint
+        }
+      });
+      expect(createResponse.status()).toBe(201);
+
+      const orderResult = await database.query<{ id: string }>(
+        `select id
+         from orders
+         where email = $1
+         order by id desc
+         limit 1`,
+        [email]
+      );
+      const createdOrderId = Number(orderResult.rows[0]?.id);
+      expect(Number.isSafeInteger(createdOrderId)).toBe(true);
+      if (!Number.isSafeInteger(createdOrderId)) {
+        throw new Error(
+          'The admin-upload school E2E order did not receive a safe integer ID.'
+        );
+      }
+      orderId = createdOrderId;
+      await waitForInitialSummaryWorker(orderId);
+
+      const uploadResponse = await request.post(
+        `/api/admin/orders/${orderId}/documents`,
+        {
+          multipart: {
+            type: 'purchase_order',
+            file: {
+              name: 'e2e-admin-narocilnica.pdf',
+              mimeType: 'application/pdf',
+              buffer: VALID_PDF
+            }
+          }
+        }
+      );
+      expect(uploadResponse.status()).toBe(201);
+      const uploadedDocument = await uploadResponse.json() as {
+        id: number;
+        url: string;
+        filename: string;
+        createdAt: string;
+        issuedAt: string;
+        type: string;
+        versionNumber: number;
+        documentNumber: string;
+        legalStatus: string;
+        formatMarker: string;
+      };
+      expect(Number.isSafeInteger(uploadedDocument.id)).toBe(true);
+      expect(uploadedDocument.id).toBeGreaterThan(0);
+      expect(uploadedDocument).toMatchObject({
+        url: `/api/admin/orders/${orderId}/documents/${uploadedDocument.id}`,
+        type: 'purchase_order',
+        versionNumber: 1,
+        legalStatus: 'operational',
+        formatMarker: 'admin-upload-pdf-v1'
+      });
+      expect(uploadedDocument.filename).toMatch(/\.pdf$/u);
+      expect(uploadedDocument.documentNumber).not.toHaveLength(0);
+      expect(Number.isNaN(Date.parse(uploadedDocument.createdAt))).toBe(false);
+      expect(Number.isNaN(Date.parse(uploadedDocument.issuedAt))).toBe(false);
+
+      const storedDocumentResult = await database.query<{
+        id: string;
+        filename: string;
+        version_number: number;
+        order_pricing_revision: number;
+        current_pricing_revision: number;
+        document_number: string;
+        content_sha256: string;
+        legal_status: string;
+        format_marker: string;
+        deleted_at: Date | null;
+      }>(
+        `select document.id,
+                document.filename,
+                document.version_number,
+                document.order_pricing_revision,
+                orders.pricing_revision as current_pricing_revision,
+                document.document_number,
+                document.content_sha256,
+                document.legal_status,
+                document.format_marker,
+                document.deleted_at
+         from order_documents document
+         join orders on orders.id = document.order_id
+         where document.id = $1
+           and document.order_id = $2`,
+        [uploadedDocument.id, orderId]
+      );
+      expect(storedDocumentResult.rows[0]).toMatchObject({
+        id: String(uploadedDocument.id),
+        filename: uploadedDocument.filename,
+        version_number: 1,
+        document_number: uploadedDocument.documentNumber,
+        content_sha256: VALID_PDF_SHA256,
+        legal_status: 'operational',
+        format_marker: 'admin-upload-pdf-v1',
+        deleted_at: null
+      });
+      expect(storedDocumentResult.rows[0]?.order_pricing_revision).toBe(
+        storedDocumentResult.rows[0]?.current_pricing_revision
+      );
+
+      const uploadAuditResult = await database.query<{
+        document_id: string;
+        document_type: string;
+        version_number: string;
+        document_number: string;
+        content_sha256: string;
+      }>(
+        `select metadata_json->>'document_id' as document_id,
+                metadata_json->>'document_type' as document_type,
+                metadata_json->>'version_number' as version_number,
+                metadata_json->>'document_number' as document_number,
+                metadata_json->>'content_sha256' as content_sha256
+         from audit_events
+         where entity_type = 'order'
+           and entity_id = $1
+           and action = 'uploaded'
+           and metadata_json->>'document_id' = $2
+         order by occurred_at desc, created_at desc
+         limit 1`,
+        [String(orderId), String(uploadedDocument.id)]
+      );
+      expect(uploadAuditResult.rows[0]).toEqual({
+        document_id: String(uploadedDocument.id),
+        document_type: 'purchase_order',
+        version_number: '1',
+        document_number: uploadedDocument.documentNumber,
+        content_sha256: VALID_PDF_SHA256
+      });
+
+      const afterUploadResult = await database.query<{
+        status: string;
+        commitment_status: string;
+        contract_status: string;
+        contract_accepted_at: Date | null;
+        contract_accepted_actor_type: string | null;
+        contract_accepted_actor_id: string | null;
+        contract_acceptance_evidence_json: Record<string, unknown> | null;
+        committed_at: Date | null;
+      }>(
+        `select status,
+                commitment_status,
+                contract_status,
+                contract_accepted_at,
+                contract_accepted_actor_type,
+                contract_accepted_actor_id,
+                contract_acceptance_evidence_json,
+                committed_at
+         from orders
+         where id = $1`,
+        [orderId]
+      );
+      expect(afterUploadResult.rows[0]).toEqual({
+        status: 'received',
+        commitment_status: 'pending_confirmation',
+        contract_status: 'pending_seller_acceptance',
+        contract_accepted_at: null,
+        contract_accepted_actor_type: null,
+        contract_accepted_actor_id: null,
+        contract_acceptance_evidence_json: null,
+        committed_at: null
+      });
+      const inventoryAfterUpload = await database.query<{ inventory: string }>(
+        'select inventory from catalog_item_variants where id = $1',
+        [SCHOOL_VARIANT_ID]
+      );
+      expect(Number(inventoryAfterUpload.rows[0]?.inventory)).toBe(
+        originalInventory
+      );
+      const holdsAfterUpload = await database.query<{ count: number }>(
+        'select count(*)::int as count from order_stock_holds where order_id = $1',
+        [orderId]
+      );
+      expect(holdsAfterUpload.rows[0]?.count).toBe(0);
+
+      await page.goto(`/admin/orders/${orderId}`);
+      const accessCard = page.getByTestId('admin-order-customer-access-compact');
+      await expect(accessCard).toContainText('Čaka na status »V obdelavi«');
+      await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
+      await page
+        .getByTestId('admin-order-header-statuses')
+        .getByRole('button')
+        .first()
+        .click();
+      const inProgressOption = page.getByRole('menuitem', { name: /^V obdelavi/u });
+      await expect(inProgressOption).toContainText(
+        'Sprejme naročilo in ga potrdi kot zavezujoče.'
+      );
+      await inProgressOption.click();
+
+      const processingResponsePromise = page.waitForResponse((response) =>
+        response.request().method() === 'POST'
+        && new URL(response.url()).pathname === `/api/admin/orders/${orderId}/status`
+        && (response.request().postDataJSON() as {
+          confirmationOnly?: unknown;
+        }).confirmationOnly !== true
+      );
+      await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+      const processingResponse = await processingResponsePromise;
+      expect(processingResponse.status()).toBe(200);
+      expect(await processingResponse.json()).toMatchObject({
+        status: 'in_progress',
+        commitmentStatus: 'binding',
+        contractStatus: 'accepted'
+      });
+      await expect(accessCard).toContainText('Potrjeno kot zavezujoče');
+      await expect(accessCard).not.toContainText('Čaka na status »V obdelavi«');
+
+      const acceptedOrderResult = await database.query<{
+        status: string;
+        commitment_status: string;
+        contract_status: string;
+        contract_accepted_at: Date | null;
+        contract_accepted_actor_type: string | null;
+        contract_accepted_actor_id: string | null;
+        contract_acceptance_evidence_json: Record<string, unknown> | null;
+        committed_at: Date | null;
+      }>(
+        `select status,
+                commitment_status,
+                contract_status,
+                contract_accepted_at,
+                contract_accepted_actor_type,
+                contract_accepted_actor_id,
+                contract_acceptance_evidence_json,
+                committed_at
+         from orders
+         where id = $1`,
+        [orderId]
+      );
+      const acceptedOrder = acceptedOrderResult.rows[0];
+      expect(acceptedOrder).toMatchObject({
+        status: 'in_progress',
+        commitment_status: 'binding',
+        contract_status: 'accepted',
+        contract_accepted_actor_type: 'school_purchase_order',
+        contract_accepted_actor_id: String(uploadedDocument.id)
+      });
+      expect(acceptedOrder.contract_accepted_at).not.toBeNull();
+      expect(acceptedOrder.committed_at).not.toBeNull();
+      expect(acceptedOrder.contract_acceptance_evidence_json).toMatchObject({
+        channel: 'admin_status_transition',
+        action: 'accept_school_order_for_processing',
+        trigger: 'received_to_in_progress',
+        buttonWording: 'V obdelavi',
+        purchaseOrderDocumentId: uploadedDocument.id,
+        draftAtAcceptance: false,
+        stockFinalization: 'committed_or_verified'
+      });
+
+      const inventoryAfterAcceptance = await database.query<{
+        inventory: string;
+      }>(
+        'select inventory from catalog_item_variants where id = $1',
+        [SCHOOL_VARIANT_ID]
+      );
+      expect(Number(inventoryAfterAcceptance.rows[0]?.inventory)).toBe(
+        originalInventory - 1
+      );
+      const stockHoldResult = await database.query<{
+        catalog_variant_id: string;
+        quantity: number;
+        state: string;
+        committed_at: Date | null;
+        committed_by_actor_type: string | null;
+        committed_by_actor_id: string | null;
+        released_at: Date | null;
+      }>(
+        `select catalog_variant_id,
+                quantity,
+                state,
+                committed_at,
+                committed_by_actor_type,
+                committed_by_actor_id,
+                released_at
+         from order_stock_holds
+         where order_id = $1
+         order by id`,
+        [orderId]
+      );
+      expect(stockHoldResult.rows).toHaveLength(1);
+      expect(stockHoldResult.rows[0]).toMatchObject({
+        catalog_variant_id: String(SCHOOL_VARIANT_ID),
+        quantity: 1,
+        state: 'held',
+        committed_by_actor_type: 'school_purchase_order',
+        committed_by_actor_id: String(uploadedDocument.id),
+        released_at: null
+      });
+      expect(stockHoldResult.rows[0]?.committed_at).not.toBeNull();
+
+      const statusLogResult = await database.query<{
+        previous_status: string;
+        new_status: string;
+      }>(
+        `select previous_status, new_status
+         from order_status_logs
+         where order_id = $1
+         order by id desc
+         limit 1`,
+        [orderId]
+      );
+      expect(statusLogResult.rows[0]).toEqual({
+        previous_status: 'received',
+        new_status: 'in_progress'
+      });
+
+      const statusAuditResult = await database.query<{
+        status_before: string;
+        status_after: string;
+        commitment_before: string;
+        commitment_after: string;
+        contract_before: string;
+        contract_after: string;
+        changed_field_count: string;
+        contract_accepted_automatically: string;
+        contract_acceptance_trigger: string;
+        purchase_order_document_id: string;
+        school_stock_finalization_outcome: string;
+      }>(
+        `select diff_json->'status'->>'before' as status_before,
+                diff_json->'status'->>'after' as status_after,
+                diff_json->'commitment_status'->>'before' as commitment_before,
+                diff_json->'commitment_status'->>'after' as commitment_after,
+                diff_json->'contract_status'->>'before' as contract_before,
+                diff_json->'contract_status'->>'after' as contract_after,
+                metadata_json->>'changed_field_count' as changed_field_count,
+                metadata_json->>'contract_accepted_automatically' as contract_accepted_automatically,
+                metadata_json->>'contract_acceptance_trigger' as contract_acceptance_trigger,
+                metadata_json->>'purchase_order_document_id' as purchase_order_document_id,
+                metadata_json->>'school_stock_finalization_outcome' as school_stock_finalization_outcome
+         from audit_events
+         where entity_type = 'order'
+           and entity_id = $1
+           and action = 'status_changed'
+         order by occurred_at desc, created_at desc
+         limit 1`,
+        [String(orderId)]
+      );
+      expect(statusAuditResult.rows[0]).toEqual({
+        status_before: 'received',
+        status_after: 'in_progress',
+        commitment_before: 'pending_confirmation',
+        commitment_after: 'binding',
+        contract_before: 'pending_seller_acceptance',
+        contract_after: 'accepted',
+        changed_field_count: '3',
+        contract_accepted_automatically: 'true',
+        contract_acceptance_trigger: 'received_to_in_progress_with_purchase_order',
+        purchase_order_document_id: String(uploadedDocument.id),
+        school_stock_finalization_outcome: 'committed_or_verified'
+      });
+
+      await cleanupOrderThroughArchive(request, orderId);
+      cleanupCompleted = true;
+    } finally {
+      if (orderId !== null && !cleanupCompleted) {
+        const cleanupOrderId = orderId;
+        await cleanupOrderThroughArchive(request, cleanupOrderId).catch(async () => {
+          await database.query(
+            `delete from orders order_record
+             where order_record.id = $1
+               and not exists (
+                 select 1
+                 from order_stock_holds stock_hold
+                 where stock_hold.order_id = order_record.id
+               )`,
+            [cleanupOrderId]
+          );
+        });
+      }
+      if (orderId !== null) {
+        await database.query(
+          `delete from audit_events
+           where (entity_type = 'order' and entity_id = $1)
+              or (
+                entity_type = 'media'
+                and action = 'deleted'
+                and metadata_json->>'item_type' = 'pdf'
+                and metadata_json->>'order_id' = $1
+              )`,
+          [String(orderId)]
+        );
+      }
+      await database.query(
+        'update catalog_item_variants set inventory = $1 where id = $2',
+        [originalInventory, SCHOOL_VARIANT_ID]
+      );
       await database.query(
         `delete from orders order_record
          where order_record.email = $1

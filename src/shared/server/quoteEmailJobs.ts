@@ -5,8 +5,13 @@ import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import {
   QUOTE_EMAIL_EVENT_DEFAULTS,
+  normalizeQuoteEmailSettings,
   type QuoteEmailEventType
 } from '@/shared/domain/quote/quoteEmailSettings';
+import {
+  normalizeEmailMessageAttachment,
+  type EmailMessageAttachment
+} from '@/shared/domain/order/orderEmailTemplates';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
 import { isQuoteEmailDeliveryEnabled } from '@/shared/server/quoteFeatureFlags';
 import {
@@ -26,6 +31,7 @@ type QuoteEmailMessage = {
   subject: string;
   html: string;
   text: string;
+  attachments?: readonly EmailMessageAttachment[];
 };
 
 type QuoteEmailEnvelope = {
@@ -45,13 +51,18 @@ type EnqueueQuoteEmailInput = {
   offerUrl?: string | null;
   otpCode?: string | null;
   detail?: string | null;
-  forceCustomer?: boolean;
-  suppressAdmin?: boolean;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const MAX_ATTEMPTS = 8;
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+
+function normalizedRecipientEmail(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return normalized.length <= 320 && EMAIL_PATTERN.test(normalized)
+    ? normalized
+    : null;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -77,10 +88,7 @@ async function quoteSettings(client: PoolClient) {
   const result = await client.query(
     `select config_json from quote_email_settings where key = 'default'`
   );
-  const value = result.rows[0]?.config_json;
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return normalizeQuoteEmailSettings(result.rows[0]?.config_json);
 }
 
 async function quoteIdentity(client: PoolClient, input: EnqueueQuoteEmailInput) {
@@ -119,67 +127,53 @@ export async function enqueueQuoteEmailEvent(
     quoteSettings(client),
     quoteIdentity(client, input)
   ]);
+  if (!settings.enabled && input.eventType !== 'quote_access_otp') {
+    return [];
+  }
   if (!identity) {
     throw new Error('Quote email identity does not exist.');
-  }
-  if (!EMAIL_PATTERN.test(identity.email)) {
-    throw new Error('Quote customer email is not deliverable.');
   }
   const envelopeSenderEmail = EMAIL_PATTERN.test(shared.fromEmail)
     ? shared.fromEmail
     : 'delivery-profile-pending@invalid.local';
   const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[input.eventType];
-  const configuredEvents =
-    settings.events && typeof settings.events === 'object'
-      ? (settings.events as Record<string, unknown>)
-      : {};
-  const configuredEvent =
-    configuredEvents[input.eventType] &&
-    typeof configuredEvents[input.eventType] === 'object'
-      ? (configuredEvents[input.eventType] as Record<string, unknown>)
-      : {};
-  const customerEnabled = input.forceCustomer === true || (
-    typeof configuredEvent.customer === 'boolean'
-      ? configuredEvent.customer
-      : defaults.customer
-  );
-  const adminEnabled =
-    typeof configuredEvent.admins === 'boolean'
-      ? configuredEvent.admins
-      : defaults.admin;
+  const configuredEvent = settings.events[input.eventType];
+  const customerEnabled =
+    input.eventType === 'quote_access_otp' || configuredEvent.customer;
+  const adminEnabled = configuredEvent.admins;
   const recipients: Array<{
     audience: QuoteEmailAudience;
     email: string;
     name: string | null;
   }> = [];
-  if (customerEnabled) {
+  if (customerEnabled && EMAIL_PATTERN.test(identity.email)) {
     recipients.push({
       audience: 'customer',
       email: identity.email.toLowerCase(),
       name: identity.contact_name || null
     });
   }
-  if (adminEnabled && !input.suppressAdmin) {
+  if (adminEnabled) {
     for (const email of shared.adminRecipients) {
       if (EMAIL_PATTERN.test(email)) {
         recipients.push({ audience: 'admin', email: email.toLowerCase(), name: null });
       }
     }
   }
+  if (recipients.length === 0) {
+    return [];
+  }
   const variables = {
     request_number: identity.request_number,
     offer_number: identity.offer_number ?? identity.request_number,
     otp_code: input.otpCode ?? ''
   };
-  const configuredTemplates =
-    settings.templates && typeof settings.templates === 'object'
-      ? (settings.templates as Record<string, unknown>)
-      : {};
-  const configuredTemplate =
-    configuredTemplates[input.eventType] &&
-    typeof configuredTemplates[input.eventType] === 'object'
-      ? (configuredTemplates[input.eventType] as Record<string, unknown>)
-      : {};
+  const headerText = shared.headerText.trim();
+  const footerText = shared.footerText.trim();
+  const attachment = normalizeEmailMessageAttachment(shared.imageAttachment);
+  const configuredTemplate = settings.templates[
+    input.eventType
+  ] as unknown as Record<string, unknown>;
   const inserted: string[] = [];
   for (const recipient of recipients) {
     const audienceTemplate =
@@ -202,21 +196,25 @@ export async function enqueueQuoteEmailEvent(
     const detail = input.detail?.trim() || '';
     const action =
       input.offerUrl && recipient.audience === 'customer'
-        ? `\n\nPreglej ponudbo: ${input.offerUrl}`
+        ? `Preglej ponudbo: ${input.offerUrl}`
         : '';
-    const body = `${baseBody}${detail ? `\n\n${detail}` : ''}${action}`;
+    const eventBody = `${baseBody}${detail ? `\n\n${detail}` : ''}`;
+    const body = [headerText, eventBody, action, footerText]
+      .filter(Boolean)
+      .join('\n\n');
     const actionHtml =
       input.offerUrl && recipient.audience === 'customer'
         ? `<p><a href="${escapeHtml(input.offerUrl)}">Preglej ponudbo</a></p>`
         : '';
-    const htmlBody = `${baseBody}${detail ? `\n\n${detail}` : ''}`;
+    const htmlBody = eventBody;
     const message: QuoteEmailMessage = {
       from: fromHeader(shared.senderName, envelopeSenderEmail),
       to: recipient.email,
       ...(shared.replyToEmail ? { replyTo: shared.replyToEmail } : {}),
       subject: `[${shared.subjectPrefix || 'Atehna'}] ${subject}`,
       text: body,
-      html: `<!doctype html><html lang="sl"><body><div style="max-width:680px;margin:auto;font-family:Arial,sans-serif"><h1>${escapeHtml(subject)}</h1><p style="white-space:pre-line">${escapeHtml(htmlBody)}</p>${actionHtml}</div></body></html>`
+      html: `<!doctype html><html lang="sl"><body><div style="max-width:680px;margin:auto;font-family:Arial,sans-serif">${headerText ? `<p style="white-space:pre-line">${escapeHtml(headerText)}</p>` : ''}<h1>${escapeHtml(subject)}</h1><p style="white-space:pre-line">${escapeHtml(htmlBody)}</p>${actionHtml}${footerText ? `<p style="white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b">${escapeHtml(footerText)}</p>` : ''}</div></body></html>`,
+      ...(attachment ? { attachments: [attachment] } : {})
     };
     const envelope: QuoteEmailEnvelope = {
       version: 1,
@@ -273,29 +271,41 @@ type ClaimedJob = {
   offerVersionId: number | null;
   eventKey: string;
   eventType: QuoteEmailEventType;
+  audience: QuoteEmailAudience;
+  recipientEmail: string;
   attempts: number;
   payload: unknown;
 };
 
-async function claim(pool: Pool, limit: number): Promise<ClaimedJob[]> {
+async function claim(
+  pool: Pool,
+  limit: number,
+  options: { otpOnly?: boolean } = {}
+): Promise<ClaimedJob[]> {
   const client = await pool.connect();
   try {
     await client.query('begin');
     const result = await client.query(
       `
         select id, quote_request_id, quote_offer_version_id, event_key, event_type,
-               attempts, payload_json
+               audience, recipient_email, attempts, payload_json
         from quote_email_jobs
         where (
-          status = 'pending' and next_attempt_at <= now()
-        ) or (
-          status = 'processing' and locked_at < now() - interval '5 minutes'
+          (
+            status = 'pending' and next_attempt_at <= now()
+          ) or (
+            status = 'processing' and locked_at < now() - interval '5 minutes'
+          )
         )
+          and ($2::boolean = false or event_type = 'quote_access_otp')
         order by next_attempt_at, created_at
         for update skip locked
         limit $1
       `,
-      [Math.max(1, Math.min(25, Math.floor(limit)))]
+      [
+        Math.max(1, Math.min(25, Math.floor(limit))),
+        options.otpOnly === true
+      ]
     );
     const jobs: ClaimedJob[] = [];
     for (const row of result.rows) {
@@ -322,6 +332,8 @@ async function claim(pool: Pool, limit: number): Promise<ClaimedJob[]> {
             : Number(row.quote_offer_version_id),
         eventKey: String(row.event_key),
         eventType: String(row.event_type) as QuoteEmailEventType,
+        audience: String(row.audience) as QuoteEmailAudience,
+        recipientEmail: String(row.recipient_email),
         attempts: Number(row.attempts) + 1,
         payload: row.payload_json
       });
@@ -385,7 +397,41 @@ async function offerLinkIsCurrent(database: Queryable, job: ClaimedJob): Promise
     );
     return request.rowCount === 1;
   }
-  if (job.eventType !== 'quote_issued' || !job.offerVersionId) return true;
+  if (job.eventType === 'quote_withdrawn' || job.eventType === 'quote_expired') {
+    if (!job.offerVersionId) return false;
+    const terminalStatus = job.eventType === 'quote_withdrawn'
+      ? 'withdrawn'
+      : 'expired';
+    const terminalState = await database.query(
+      `
+        select 1
+        from quote_requests request
+        join quote_offer_versions offer
+          on offer.id = $2
+         and offer.quote_request_id = request.id
+        where request.id = $1
+          and request.voided_at is null
+          and request.status in ($3, 'in_preparation')
+          and offer.status = $3
+          and not exists (
+            select 1
+            from quote_offer_versions newer_offer
+            where newer_offer.quote_request_id = request.id
+              and newer_offer.version_number > offer.version_number
+              and newer_offer.status <> 'draft'
+          )
+      `,
+      [job.requestId, job.offerVersionId, terminalStatus]
+    );
+    return terminalState.rowCount === 1;
+  }
+  if (
+    (job.eventType !== 'quote_issued' &&
+      job.eventType !== 'quote_acceptance_blocked_stock') ||
+    !job.offerVersionId
+  ) {
+    return true;
+  }
   const result = await database.query(
     `
       select 1
@@ -409,7 +455,8 @@ type QuoteEmailDeliveryAttempt =
         | 'voided_request'
         | 'expired_otp'
         | 'obsolete_offer'
-        | 'obsolete_clarification';
+        | 'obsolete_clarification'
+        | 'stale_recipient';
     };
 
 async function deliverQuoteEmailWhileActive(
@@ -422,7 +469,7 @@ async function deliverQuoteEmailWhileActive(
     await client.query('begin');
     await lockQuoteWorkflow(client, job.requestId);
     const requestResult = await client.query(
-      'select voided_at from quote_requests where id = $1',
+      'select voided_at, email from quote_requests where id = $1 for share',
       [job.requestId]
     );
     if (!requestResult.rows[0] || requestResult.rows[0].voided_at) {
@@ -442,7 +489,39 @@ async function deliverQuoteEmailWhileActive(
       };
     }
 
+    await client.query(
+      `select key
+       from order_email_settings
+       where key = 'order-email-notifications'
+       for share`
+    );
     const deliveryProfile = await getOrderEmailSettings(client);
+    const immutableRecipient = normalizedRecipientEmail(envelope?.message?.to);
+    const jobRecipient = normalizedRecipientEmail(job.recipientEmail);
+    const currentRecipient = job.audience === 'customer'
+      ? normalizedRecipientEmail(requestResult.rows[0]?.email)
+      : jobRecipient;
+    const currentAdminRecipients = new Set(
+      deliveryProfile.adminRecipients
+        .map(normalizedRecipientEmail)
+        .filter((recipient): recipient is string => recipient !== null)
+    );
+    const envelopeMatchesClaim =
+      envelope?.version === 1 &&
+      envelope.eventType === job.eventType &&
+      envelope.audience === job.audience &&
+      envelope.quoteRequestId === job.requestId &&
+      envelope.quoteOfferVersionId === job.offerVersionId &&
+      immutableRecipient !== null &&
+      immutableRecipient === jobRecipient;
+    const recipientIsCurrent =
+      jobRecipient !== null &&
+      currentRecipient === jobRecipient &&
+      (job.audience === 'customer' || currentAdminRecipients.has(jobRecipient));
+    if (!envelopeMatchesClaim || !recipientIsCurrent) {
+      await client.query('commit');
+      return { status: 'suppressed', failureKind: 'stale_recipient' };
+    }
     if (!EMAIL_PATTERN.test(deliveryProfile.fromEmail)) {
       throw new Error('Quote sender email is not configured.');
     }
@@ -470,7 +549,10 @@ async function deliverQuoteEmailWhileActive(
             : {}),
           subject: envelope.message.subject,
           html: envelope.message.html,
-          text: envelope.message.text
+          text: envelope.message.text,
+          ...(envelope.message.attachments?.length
+            ? { attachments: envelope.message.attachments }
+            : {})
         }),
         cache: 'no-store',
         signal: controller.signal
@@ -613,7 +695,8 @@ async function persistTerminalQuoteEmailOutcome(
         job.eventType !== 'quote_delivery_failed' &&
         input.failureKind !== 'obsolete_offer' &&
         input.failureKind !== 'expired_otp' &&
-        input.failureKind !== 'obsolete_clarification'
+        input.failureKind !== 'obsolete_clarification' &&
+        input.failureKind !== 'stale_recipient'
       ) {
         await client.query('savepoint quote_delivery_failure_alert');
         try {
@@ -655,16 +738,12 @@ export async function processQuoteEmailJobs(
   const settingsResult = await pool.query(
     `select config_json from quote_email_settings where key = 'default'`
   );
-  const currentSettings = settingsResult.rows[0]?.config_json;
-  if (
-    currentSettings &&
-    typeof currentSettings === 'object' &&
-    !Array.isArray(currentSettings) &&
-    (currentSettings as Record<string, unknown>).enabled === false
-  ) {
-    return { claimed: 0, sent: 0, retried: 0, failed: 0 };
-  }
-  const jobs = await claim(pool, options.limit ?? 10);
+  const businessEmailEnabled = normalizeQuoteEmailSettings(
+    settingsResult.rows[0]?.config_json
+  ).enabled;
+  const jobs = await claim(pool, options.limit ?? 10, {
+    otpOnly: !businessEmailEnabled
+  });
   const result = { claimed: jobs.length, sent: 0, retried: 0, failed: 0 };
   for (const job of jobs) {
     try {
@@ -684,6 +763,8 @@ export async function processQuoteEmailJobs(
               ? '[expired_otp] Varnostna koda ni več veljavna.'
               : delivery.failureKind === 'obsolete_clarification'
                 ? '[obsolete_clarification] Povpraševanje ni več odprto za pojasnilo.'
+                : delivery.failureKind === 'stale_recipient'
+                  ? '[stale_recipient] Prejemnik ni več aktualen.'
                 : '[obsolete_offer] Povezava ni več veljavna.';
         await persistTerminalQuoteEmailOutcome(pool, job, {
           status: 'failed',
@@ -767,6 +848,9 @@ export async function processQuoteEmailJobs(
           `,
           [job.id, job.claimId, delayMs, safeError]
         );
+        if (retryUpdate.rowCount !== 1) {
+          throw new Error(`Quote email claim was lost for job ${job.id}.`);
+        }
         if (retryUpdate.rows[0]?.status === 'failed') result.failed += 1;
         else result.retried += 1;
       }

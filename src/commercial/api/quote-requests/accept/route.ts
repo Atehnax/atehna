@@ -47,9 +47,13 @@ import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { requestOriginMatchesHost } from '@/shared/server/requestSecurity';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import {
+  CatalogOrderabilityError,
   isCatalogSerializationFailure,
-  lockCatalogOrderability
+  lockCatalogOrderability,
+  requireLockedCatalogVariantOrderable
 } from '@/shared/server/catalogOrderabilityLocks';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
+import { getQuoteStockAcceptanceMode } from '@/shared/server/quoteEmailSettings';
 
 export const runtime = 'nodejs';
 
@@ -100,11 +104,10 @@ async function lockedOfferItems(
   );
   return result.rows.map((row) => {
     if (row.catalog_item_id === null || row.catalog_variant_id === null) {
-      throw new OrderStockConflictError({
+      throw new CatalogOrderabilityError({
         variantId: Number(row.catalog_variant_id ?? 0),
-        requestedQuantity: Number(row.quantity),
-        availableStock: 0,
-        label: `${row.product_name} – ${row.variant_name}`
+        reason: 'catalog_link_missing',
+        label: String(row.product_name) + ' – ' + String(row.variant_name)
       });
     }
     return {
@@ -136,23 +139,21 @@ async function lockedOfferItems(
 
 async function lockAndValidateCatalog(
   client: PoolClient,
-  items: FrozenOrderLine[]
+  items: FrozenOrderLine[],
+  stockEnforcementEnabled: boolean
 ): Promise<void> {
   const variantIds = Array.from(new Set(items.map((item) => item.variantId))).sort(
     (left, right) => left - right
   );
   const byId = await lockCatalogOrderability(client, variantIds);
   for (const item of items) {
-    const variant = byId.get(item.variantId);
-    if (
-      !variant ||
-      variant.itemId !== item.productId ||
-      variant.variantStatus !== 'active' ||
-      variant.productStatus !== 'active' ||
-      variant.categoryId === null ||
-      variant.categoryIsActive !== true ||
-      variant.inventory < item.quantity
-    ) {
+    const variant = requireLockedCatalogVariantOrderable({
+      variant: byId.get(item.variantId),
+      variantId: item.variantId,
+      productId: item.productId,
+      label: item.productName + ' – ' + item.variantName
+    });
+    if (stockEnforcementEnabled && variant.inventory < item.quantity) {
       throw new OrderStockConflictError({
         variantId: item.variantId,
         requestedQuantity: item.quantity,
@@ -391,18 +392,23 @@ export async function POST(request: NextRequest) {
     // acquired. Under READ COMMITTED, a waiter otherwise keeps the pre-lock
     // statement snapshot and can miss a stock-block event committed by the
     // transaction that released the lock.
-    const stockBlockResult = await client.query(
-      `
-        select exists (
-          select 1
-          from quote_events blocked_event
-          where blocked_event.quote_offer_version_id = $1
-            and blocked_event.event_type = 'acceptance_blocked_stock'
-        ) as acceptance_blocked_by_stock
-      `,
-      [access.quoteOfferVersionId]
-    );
-    if (stockBlockResult.rows[0]?.acceptance_blocked_by_stock === true) {
+    const stockEnforcementEnabled = await isStockEnforcementEnabled(client);
+    const stockAcceptanceMode = await getQuoteStockAcceptanceMode(client);
+    const stockBlockResult =
+      stockEnforcementEnabled && stockAcceptanceMode === 'automatic'
+        ? await client.query(
+            `
+              select exists (
+                select 1
+                from quote_events blocked_event
+                where blocked_event.quote_offer_version_id = $1
+                  and blocked_event.event_type = 'acceptance_blocked_stock'
+              ) as acceptance_blocked_by_stock
+            `,
+            [access.quoteOfferVersionId]
+          )
+        : null;
+    if (stockBlockResult?.rows[0]?.acceptance_blocked_by_stock === true) {
       const stored: StoredQuoteResponse = {
         httpStatus: 409,
         code: 'STOCK_REVIEW_REQUIRED',
@@ -467,7 +473,7 @@ export async function POST(request: NextRequest) {
     let conversionSavepointActive = true;
     try {
       const items = await lockedOfferItems(client, access.quoteOfferVersionId);
-      await lockAndValidateCatalog(client, items);
+      await lockAndValidateCatalog(client, items, stockEnforcementEnabled);
       const acceptedAt = new Date().toISOString();
       const acceptanceId = randomUUID();
       const consumedOtp = await consumeVerifiedQuoteOtp(client, {
@@ -562,6 +568,7 @@ export async function POST(request: NextRequest) {
         },
         sourceQuoteOfferVersionId: access.quoteOfferVersionId,
         commitStock: true,
+        stockEnforcementEnabled,
         stockActor: { type: 'customer', id: verificationId }
       });
       orderIdForRevalidation = placed.orderId;
@@ -800,13 +807,43 @@ export async function POST(request: NextRequest) {
           throw savepointError;
         }
       }
+      if (error instanceof CatalogOrderabilityError) {
+        const stored: StoredQuoteResponse = {
+          httpStatus: 409,
+          code: error.code,
+          message:
+            'Eden od artiklov v ponudbi ni več na voljo za naročilo. Obrnite se na Atehno za novo različico ponudbe.'
+        };
+        await completeQuoteResponseIdempotency(client, {
+          keyHash,
+          response: stored
+        });
+        await client.query('commit');
+        return NextResponse.json(stored, {
+          status: 409,
+          headers: privateHeaders
+        });
+      }
       if (error instanceof OrderStockConflictError) {
         const stored: StoredQuoteResponse = {
           httpStatus: 409,
           code: 'STOCK_CHANGED',
           message:
-            'Zaloga se je spremenila. Povpraševanje ostaja odprto za novo različico ponudbe.'
+            stockAcceptanceMode === 'automatic'
+              ? 'Zaloga se je spremenila. Povpraševanje ostaja odprto za novo različico ponudbe.'
+              : 'Zaloga se je spremenila. Sprejem ni bil izveden; ponudba ostaja odprta za ročni pregled in ponovni poskus.'
         };
+        if (stockAcceptanceMode === 'manual') {
+          await completeQuoteResponseIdempotency(client, {
+            keyHash,
+            response: stored
+          });
+          await client.query('commit');
+          return NextResponse.json(stored, {
+            status: 409,
+            headers: privateHeaders
+          });
+        }
         await client.query(
           `
             insert into quote_events (
@@ -895,6 +932,16 @@ export async function POST(request: NextRequest) {
         {
           code: 'QUOTE_CONCURRENT_CATALOG_CHANGE',
           message: 'Katalog se je med potrjevanjem spremenil. Poskusite znova.'
+        },
+        { status: 409, headers: privateHeaders }
+      );
+    }
+    if (error instanceof CatalogOrderabilityError) {
+      return NextResponse.json(
+        {
+          code: error.code,
+          message:
+            'Eden od artiklov v ponudbi ni več na voljo za naročilo. Obrnite se na Atehno za novo različico ponudbe.'
         },
         { status: 409, headers: privateHeaders }
       );

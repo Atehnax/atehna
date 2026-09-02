@@ -34,6 +34,11 @@ test('standardized tabs render one compact, subdued, accessible notification bad
   assert.match(tabs, /notification\?: \{/u);
   assert.match(tabs, /<AdminNotificationCountBadge/u);
   assert.match(tabs, /gap-1\.5/u);
+  assert.match(
+    tabs,
+    /role="tablist"[\s\S]*?className=\{`[^`]*border-b border-slate-200/u
+  );
+  assert.match(tabs, /data-eui-tab-divider-mask="true"/u);
   assert.match(badge, /h-\[15px\] min-w-\[15px\]/u);
   assert.match(badge, /border-rose-200\/80 bg-rose-50\/80/u);
   assert.match(badge, /text-rose-600\/90/u);

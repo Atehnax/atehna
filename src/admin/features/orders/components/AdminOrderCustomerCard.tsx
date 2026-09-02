@@ -4,20 +4,18 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { CustomerDirectoryRow } from '@/shared/domain/customerDirectory';
 import { formatEuro, formatSlInteger } from '@/shared/domain/formatting';
-import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
 import { formatSlDate } from '@/shared/domain/order/dateTime';
 import {
-  adminWindowCardClassName,
-  adminWindowCardStyle
+  adminCardSectionIconActionButtonClassName,
+  adminCardSectionIconClassName
 } from '@/shared/ui/admin-table';
 import { CopyIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { Spinner } from '@/shared/ui/loading';
 import { useToast } from '@/shared/ui/toast';
 
-export type AdminOrderCustomerCardProps = {
+export type AdminOrderCustomerActionsProps = {
   orderId: number;
   customerEndpoint?: string;
-  customerType: string;
   organizationName?: string | null;
   contactName?: string | null;
   email?: string | null;
@@ -26,7 +24,6 @@ export type AdminOrderCustomerCardProps = {
   postalCode?: string | null;
   city?: string | null;
   countryCode?: string | null;
-  className?: string;
 };
 
 type CustomerResponse = {
@@ -35,19 +32,11 @@ type CustomerResponse = {
 };
 
 const clean = (value: string | null | undefined) => value?.trim() ?? '';
-const customerHeaderActionButtonClassName =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[color:var(--blue-500)] transition-colors hover:bg-[color:var(--hover-neutral)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30';
-const customerHeaderActionIconClassName = '!h-3.5 !w-3.5';
 
 const displayOrDash = (value: string | null | undefined) => clean(value) || '—';
 
 const formatOptionalDate = (value: string) => value ? formatSlDate(value) : '—';
 
-const initialsFor = (value: string) => {
-  const parts = value.split(/\s+/u).filter(Boolean);
-  if (parts.length === 0) return '—';
-  return parts.slice(0, 2).map((part) => part[0]?.toLocaleUpperCase('sl') ?? '').join('');
-};
 
 function OpenCustomerIcon({ className = '' }: { className?: string }) {
   return (
@@ -135,10 +124,9 @@ function CustomerDrawerContent({ customer }: { customer: CustomerDirectoryRow })
   );
 }
 
-export default function AdminOrderCustomerCard({
+export default function AdminOrderCustomerActions({
   orderId,
   customerEndpoint,
-  customerType,
   organizationName,
   contactName,
   email,
@@ -146,9 +134,8 @@ export default function AdminOrderCustomerCard({
   addressLine2,
   postalCode,
   city,
-  countryCode,
-  className
-}: AdminOrderCustomerCardProps) {
+  countryCode
+}: AdminOrderCustomerActionsProps) {
   const { toast } = useToast();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerDirectoryRow | null>(null);
@@ -288,67 +275,28 @@ export default function AdminOrderCustomerCard({
 
   return (
     <>
-      <section
-        className={`${adminWindowCardClassName} p-5 ${className ?? ''}`.trim()}
-        style={adminWindowCardStyle}
-        data-testid="admin-order-customer-card"
-      >
-        <h2 className="text-lg font-semibold text-slate-900">Naročnik in dostava</h2>
-        <div className="mt-4 flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[15px] font-semibold text-sky-700">
-            {initialsFor(displayName)}
-          </span>
-          <div className="min-w-0 flex-1 text-[13px] leading-5">
-            <div
-              className="flex min-w-0 items-center gap-2"
-              data-testid="admin-order-customer-name-row"
-            >
-              <p className="min-w-0 truncate font-semibold text-slate-900">{displayName}</p>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  className={customerHeaderActionButtonClassName}
-                  onClick={() => setDrawerOpen(true)}
-                  aria-label="Odpri stranko"
-                  title="Odpri stranko"
-                  data-testid="admin-order-customer-open"
-                >
-                  <OpenCustomerIcon className={customerHeaderActionIconClassName} />
-                </button>
-                <button
-                  type="button"
-                  className={customerHeaderActionButtonClassName}
-                  onClick={() => void copyCustomerData()}
-                  aria-label="Kopiraj podatke"
-                  title="Kopiraj podatke"
-                  data-testid="admin-order-customer-copy"
-                >
-                  <CopyIcon className={customerHeaderActionIconClassName} />
-                </button>
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-500">{getCustomerTypeLabel(customerType)}</p>
-            {(distinctContactName || clean(email) || fullAddress) ? (
-              <div
-                className="mt-1 space-y-0.5 text-[11px] leading-4 text-slate-600"
-                data-testid="admin-order-customer-contact-details"
-              >
-                {distinctContactName ? <p>{distinctContactName}</p> : null}
-                {clean(email) ? (
-                  <p className="whitespace-nowrap" title={clean(email)} data-testid="admin-order-customer-email">
-                    {clean(email)}
-                  </p>
-                ) : null}
-                {fullAddress ? (
-                  <p className="truncate" title={fullAddress} data-testid="admin-order-customer-address">
-                    {fullAddress}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
+      <div className="flex shrink-0 items-center gap-1" data-testid="admin-order-customer-actions">
+        <button
+          type="button"
+          className={adminCardSectionIconActionButtonClassName}
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Odpri stranko"
+          title="Odpri stranko"
+          data-testid="admin-order-customer-open"
+        >
+          <OpenCustomerIcon className={adminCardSectionIconClassName} />
+        </button>
+        <button
+          type="button"
+          className={adminCardSectionIconActionButtonClassName}
+          onClick={() => void copyCustomerData()}
+          aria-label="Kopiraj podatke"
+          title="Kopiraj podatke"
+          data-testid="admin-order-customer-copy"
+        >
+          <CopyIcon className={adminCardSectionIconClassName} />
+        </button>
+      </div>
       {drawer}
     </>
   );

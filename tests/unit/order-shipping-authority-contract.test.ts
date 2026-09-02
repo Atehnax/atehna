@@ -267,7 +267,8 @@ test('manual-quote drafts persist safely before a reasoned override', () => {
     itemsEditorSource,
     /const shippingContextLabel = shippingManualQuote[\s\S]*?`Po dogovoru\$\{shippingIsStale/u
   );
-  assert.match(itemsEditorSource, /Potreben je ročni znesek/u);
+  assert.match(itemsEditorSource, /shippingManualQuote \? '—' : formatCurrency\(totals\.shipping\)/u);
+  assert.doesNotMatch(itemsEditorSource, /Potreben je ročni znesek/u);
 });
 
 test('operational state is readiness-gated and opaque financial PDFs cannot be uploaded', () => {

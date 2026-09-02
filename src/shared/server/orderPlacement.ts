@@ -4,6 +4,7 @@ import type { PoolClient } from 'pg';
 import type { CustomerType } from '@/shared/domain/order/customerType';
 import type { OrderContractStatus } from '@/shared/domain/order/contractStatus';
 import { moneyToDatabaseValue } from '@/shared/server/orderCommerce';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
 import { commitOrderStockHolds } from '@/shared/server/orderStockHolds';
 
 export type OrderPlacementCustomer = {
@@ -80,6 +81,7 @@ export type PlaceOrderInput = {
   contractEvidence?: Record<string, unknown> | null;
   sourceQuoteOfferVersionId?: number | null;
   commitStock: boolean;
+  stockEnforcementEnabled?: boolean;
   stockActor: ContractActor;
 };
 
@@ -114,6 +116,18 @@ export async function placeOrderFromFrozenSnapshot(
   if (acceptedAt && Number.isNaN(acceptedAt.getTime())) {
     throw new Error('Čas sprejema pogodbe ni veljaven.');
   }
+  const stockEnforcementEnabled =
+    input.stockEnforcementEnabled ??
+    (await isStockEnforcementEnabled(client));
+  const shouldCommitStock = input.commitStock && stockEnforcementEnabled;
+  const contractEvidence =
+    input.contractStatus === 'accepted'
+      ? {
+          ...(input.contractEvidence ?? {}),
+          stockEnforcementApplied: shouldCommitStock,
+          stockEnforcementEnabledAtAcceptance: stockEnforcementEnabled
+        }
+      : null;
 
   const orderResult = await client.query(
     `
@@ -157,6 +171,7 @@ export async function placeOrderFromFrozenSnapshot(
         contract_acceptance_evidence_json,
         contract_state_version,
         committed_at,
+        stock_enforcement_applied,
         source_quote_offer_version_id,
         is_draft
       )
@@ -198,6 +213,7 @@ export async function placeOrderFromFrozenSnapshot(
         1,
         $25,
         $29,
+        $30,
         false
       from next_id
       returning id, order_number, created_at
@@ -232,9 +248,8 @@ export async function placeOrderFromFrozenSnapshot(
       acceptedAt?.toISOString() ?? null,
       input.contractActor?.type ?? null,
       input.contractActor?.id ?? null,
-      input.contractStatus === 'accepted'
-        ? JSON.stringify(input.contractEvidence ?? {})
-        : null,
+      contractEvidence ? JSON.stringify(contractEvidence) : null,
+      stockEnforcementEnabled,
       input.sourceQuoteOfferVersionId ?? null
     ]
   );
@@ -343,7 +358,7 @@ export async function placeOrderFromFrozenSnapshot(
     [orderId]
   );
 
-  if (input.commitStock) {
+  if (shouldCommitStock) {
     await commitOrderStockHolds(
       client,
       orderId,
@@ -365,6 +380,6 @@ export async function placeOrderFromFrozenSnapshot(
         : String(order.created_at),
     commitmentStatus: input.commitmentStatus,
     contractStatus: input.contractStatus,
-    stockNotCommitted: !input.commitStock
+    stockNotCommitted: !shouldCommitStock
   };
 }

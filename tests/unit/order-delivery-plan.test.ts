@@ -108,7 +108,10 @@ test('status transition applies an optional complete plan before validation and 
   const applyIndex = route.indexOf('applyCompleteOrderDeliveryPlan');
   const validateIndex = route.indexOf('validateOrderDeliveryPlanForStatus(\n      status');
   const statusUpdateIndex = route.indexOf('update orders set status = $1');
-  const commitIndex = route.indexOf("await client.query('commit')");
+  const commitIndex = route.indexOf(
+    "await client.query('commit')",
+    statusUpdateIndex
+  );
 
   assert.ok(applyIndex >= 0);
   assert.ok(validateIndex > applyIndex);

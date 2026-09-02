@@ -2,8 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { conciseActivitySummary } from '../../src/admin/features/orders/components/AdminOrderActivityCard';
-import { ORDER_PDF_TYPE_CONFIGS } from '../../src/shared/domain/order/orderTypes';
 
 const detail = readFileSync(
   resolve(
@@ -29,6 +27,14 @@ const sharedActivityTimeline = readFileSync(
 
 const orderDetailsRoute = readFileSync(
   resolve(process.cwd(), 'src/admin/api/orders/[orderId]/details/route.ts'),
+  'utf8'
+);
+
+const adminAddressAutocomplete = readFileSync(
+  resolve(
+    process.cwd(),
+    'src/admin/components/AdminAddressAutocompleteInput.tsx'
+  ),
   'utf8'
 );
 
@@ -105,8 +111,12 @@ test('order detail header preserves standard controls and moves rejection into o
   assert.match(detail, /<span>Shrani<\/span>/u);
   assert.match(detail, /<RowActionsDropdown/u);
   assert.match(detail, /label: 'Zavrni naročilo'/u);
-  assert.match(detail, /body: JSON\.stringify\(\{ status: 'cancelled' \}\)/u);
-  assert.match(detail, /label: 'Zgodovina sprememb'/u);
+  assert.match(
+    detail,
+    /status: 'cancelled'[\s\S]*?customerEmailConfirmationToken/u
+  );
+  assert.match(detail, /<AuditHistoryDrawer[\s\S]*?entityType="order"[\s\S]*?entityLabel=\{displayOrderNumber\}/u);
+  assert.doesNotMatch(detail, /triggerLabel=/u);
   assert.doesNotMatch(detail, />\s*Deli\s*</u);
   assert.doesNotMatch(detail, /AdminOrderContractCard/u);
   assert.doesNotMatch(detail, /contractAccepted/u);
@@ -116,12 +126,16 @@ test('order detail header preserves standard controls and moves rejection into o
 
 test('order detail follows the requested two-column information hierarchy', () => {
   const header = detail.indexOf('data-testid="admin-order-detail-header"');
-  const headerDrawer = detail.indexOf('<AuditHistoryDrawer');
+  const headerAudit = detail.indexOf('<AuditHistoryDrawer');
   const activityTimeline = detail.indexOf('<AdminOrderActivityCard');
   const items = detail.indexOf('<AdminOrderItemsEditorClient');
   const shipping = detail.indexOf('<AdminOrderShippingOverride');
   const orderData = detail.indexOf('data-testid="admin-order-data-card"');
-  const customer = detail.indexOf('<AdminOrderCustomerCard');
+  const customerActions = detail.indexOf('<AdminOrderCustomerActions', orderData);
+  const orderDataRows = detail.indexOf(
+    '<dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">',
+    orderData
+  );
   const adminNotes = detail.indexOf('<AdminNotesCard');
   const documents = detail.indexOf('<AdminOrderPdfManagerClient');
   const access = detail.indexOf('<AdminOrderCustomerAccess');
@@ -130,11 +144,23 @@ test('order detail follows the requested two-column information hierarchy', () =
     detail,
     /lg:grid-cols-\[minmax\(0,1\.23fr\)_minmax\(340px,0\.77fr\)\]/u
   );
-  assert.ok(header >= 0 && activityTimeline > header && activityTimeline < headerDrawer);
+  assert.ok(header >= 0 && headerAudit > header && activityTimeline > headerAudit);
   assert.equal(detail.match(/<AdminOrderActivityCard/g)?.length, 1);
-  assert.ok(items >= 0 && shipping > items && orderData > shipping);
+  assert.ok(items >= 0 && orderData > items);
   assert.match(detail, /className=\{`\$\{adminWindowCardClassName\} order-first p-4`\}/u);
-  assert.ok(customer >= 0 && adminNotes > customer && documents > adminNotes && access > documents);
+  assert.ok(customerActions > orderData && orderDataRows > customerActions);
+  assert.equal(detail.match(/<AdminOrderCustomerActions/g)?.length, 1);
+  assert.match(
+    detail,
+    /<div className="flex min-w-0 items-center gap-2">\s*<h2 className="text-base font-semibold text-slate-900">Podatki naročila<\/h2>\s*<AdminOrderCustomerActions/u
+  );
+  assert.doesNotMatch(detail, /<AdminOrderCustomerCard|Naročnik in dostava/u);
+  assert.ok(
+    adminNotes >= 0
+      && shipping > adminNotes
+      && documents > shipping
+      && access > documents
+  );
 });
 
 test('activity is an embedded chronological horizontal timeline in the order header', () => {
@@ -145,33 +171,32 @@ test('activity is an embedded chronological horizontal timeline in the order hea
   assert.match(detail, /refreshToken=\{activityRefreshToken\}/u);
   assert.match(detail, /setActivityRefreshToken\(\(current\) => current \+ 1\)/u);
 
-  assert.match(activity, /groupAuditEvents\(events\)\.slice\(0, 5\)\.reverse\(\)/u);
+  assert.match(activity, /milestones\.slice\(-5\)\.map/u);
   assert.match(activity, /<AdminActivityTimeline/u);
   assert.match(activity, /testId="admin-order-activity-timeline"/u);
-  assert.match(activity, /ariaLabel="Časovnica dejavnosti naročila"/u);
+  assert.match(activity, /ariaLabel="Časovnica napredovanja naročila"/u);
   assert.match(activity, /progressAriaLabel="Napredovanje naročila"/u);
   assert.match(activity, /items=\{timelineItems\}/u);
   assert.match(activity, /loading=\{loading\}/u);
   assert.match(activity, /error=\{error\}/u);
-  assert.match(activity, /const conciseActivitySummary/u);
-  assert.match(activity, /return 'Status'/u);
-  assert.match(activity, /ORDER_PDF_TYPE_CONFIGS\.map/u);
-  assert.match(activity, /config\.shortLabel \+ ' PDF'/u);
-  assert.match(activity, /group\.events/u);
-  assert.match(activity, /normalized\.includes\('dokument'\)\) return 'PDF'/u);
-  assert.doesNotMatch(activity, /return 'Dok\.'/u);
+  assert.match(activity, /fetch\(`\/api\/admin\/orders\/\$\{orderId\}\/progress`/u);
+  assert.match(activity, /getStatusLabel\(milestone\.status\)/u);
+  assert.doesNotMatch(activity, /audit-events|groupAuditEvents|ORDER_PDF_TYPE_CONFIGS/u);
   assert.match(activity, /const formatCompactTimestamp/u);
   assert.match(
     activity,
     /\? `\$\{day\}\.\$\{month\}\. \$\{hour\}:\$\{minute\}`/u
   );
-  assert.match(activity, /timestampLabel: formatCompactTimestamp\(group\.occurredAt\)/u);
-  assert.match(activity, /compactLabel,/u);
   assert.match(
     activity,
-    /fullLabel: `\$\{compactSummary\(group\.summary, group\.entityLabel\)\} · \$\{actor\} · \$\{group\.actionLabel\} · \$\{fullTimestamp\}`/u
+    /timestampLabel: milestone\.timestampKnown[\s\S]*?formatCompactTimestamp\(milestone\.occurredAt\)[\s\S]*?'čas ni znan'/u
   );
-  assert.doesNotMatch(activity, /\{' · '\}\{actor\}\{' · '\}/u);
+  assert.match(activity, /timestampKnown: milestone\.timestampKnown/u);
+  assert.match(activity, /compactLabel: statusLabel,/u);
+  assert.match(
+    activity,
+    /fullLabel: `\$\{statusLabel\} · \$\{fullTimestamp\}`/u
+  );
 
   assert.match(sharedActivityTimeline, /data-testid=\{testId\}/u);
   assert.match(sharedActivityTimeline, /aria-label=\{ariaLabel\}/u);
@@ -185,7 +210,10 @@ test('activity is an embedded chronological horizontal timeline in the order hea
     /className="truncate whitespace-nowrap text-\[9px\] leading-3 text-slate-500"/u
   );
   assert.match(sharedActivityTimeline, /data-activity-compact-label/u);
-  assert.match(sharedActivityTimeline, /<time dateTime=\{item\.occurredAt\}>\{item\.timestampLabel\}<\/time>/u);
+  assert.match(
+    sharedActivityTimeline,
+    /item\.timestampKnown \? \([\s\S]*?<time dateTime=\{item\.occurredAt\}>\{item\.timestampLabel\}<\/time>[\s\S]*?: \([\s\S]*?<span data-activity-timestamp-unknown>\{item\.timestampLabel\}<\/span>/u
+  );
   assert.match(sharedActivityTimeline, /index > 0[\s\S]*?left-0 right-1\/2[\s\S]*?index < items\.length - 1[\s\S]*?left-1\/2 right-0/u);
   assert.match(sharedActivityTimeline, /h-px -translate-y-1\/2 bg-emerald-300/u);
   assert.match(sharedActivityTimeline, /aria-current=\{index === items\.length - 1 \? 'step' : undefined\}/u);
@@ -194,29 +222,6 @@ test('activity is an embedded chronological horizontal timeline in the order hea
   assert.doesNotMatch(sharedActivityTimeline, /line-clamp-2/u);
   assert.doesNotMatch(activity, /dateStyle: 'medium'/u);
   assert.doesNotMatch(sharedActivityTimeline, /\bw-px\b/u);
-});
-test('document activity labels identify every canonical order PDF type', () => {
-  for (const config of ORDER_PDF_TYPE_CONFIGS) {
-    assert.equal(
-      conciseActivitySummary(
-        'Naročilo #4: dokument dodan',
-        'Naročilo #4',
-        'Dodano',
-        [{ metadata: { document_type: config.key } }]
-      ),
-      config.shortLabel + ' PDF'
-    );
-  }
-
-  assert.equal(
-    conciseActivitySummary(
-      'Naročilo #4: dokument dodan',
-      'Naročilo #4',
-      'Dodano',
-      [{ metadata: { document_type: 'legacy_document' } }]
-    ),
-    'PDF'
-  );
 });
 
 test('order data keeps one compact row geometry across read and edit modes', () => {
@@ -336,8 +341,11 @@ test('order address remains structured inside one full-width field and persists 
     detail,
     /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u
   );
+  assert.match(
+    adminAddressAutocomplete,
+    /aria-label="Naslov"[\s\S]*?role="combobox"[\s\S]*?aria-autocomplete="list"/u
+  );
   for (const label of [
-    'Naslov',
     'Dodatni naslov',
     'Poštna številka',
     'Kraj',
@@ -345,6 +353,8 @@ test('order address remains structured inside one full-width field and persists 
   ]) {
     assert.match(detail, new RegExp('aria-label="' + label + '"', 'u'));
   }
+  assert.match(detail, /<AdminAddressAutocompleteInput[\s\S]*?testId="admin-order-address-autocomplete"/u);
+  assert.match(detail, /gursHouseNumberId: suggestion\.gursHouseNumberId/u);
   assert.match(
     detail,
     /addressLine2: draftDetails\.addressLine2,[\s\S]*?countryCode: draftDetails\.countryCode,/u
@@ -375,6 +385,9 @@ test('order address remains structured inside one full-width field and persists 
   const addressEditBlock = orderDetailsRoute.slice(addressEditStart, addressEditEnd);
   assert.match(addressEditBlock, /countryCodeProvided/u);
   assert.doesNotMatch(addressEditBlock, /addressLine2Provided/u);
+  assert.match(orderDetailsRoute, /getGursAddressById\([\s\S]*?requestedGursHouseNumberId,[\s\S]*?client/u);
+  assert.match(orderDetailsRoute, /gurs_house_number_id = \$12/u);
+  assert.match(detail, /gursHouseNumberId: draftDetails\.gursHouseNumberId \|\| null/u);
 });
 
 test('section actions toggle independent drafts while the top pencil activates every scope', () => {
@@ -398,7 +411,7 @@ test('section actions toggle independent drafts while the top pencil activates e
   assert.match(detail, /Osnutek lahko urejate in shranjujete sproti\./u);
   assert.match(
     detail,
-    /await itemsSaveHandlerRef\.current\(\{[\s\S]*?deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'[\s\S]*?\}\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\(\)[\s\S]*?await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)[\s\S]*?commitDeferredDeliveryPlan/u
+    /if \(statusDirty\) \{[\s\S]*?confirmationOnly: true[\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveHandlerRef\.current\(\{[\s\S]*?deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'[\s\S]*?\}\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\([\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)[\s\S]*?commitDeferredDeliveryPlan/u
   );
 });
 
@@ -438,6 +451,17 @@ test('administrator notes use the compact reference-style add action and top-sav
   assert.doesNotMatch(sharedNotesCard, /aria-label=\{`Uredi interno opombo: \$\{persistedValue\}`\}/u);
   assert.doesNotMatch(detail, /readOnly=\{!isMasterEditing\}/u);
   assert.doesNotMatch(detail, /aria-label="Dodaj interno opombo"/u);
+});
+
+test('order detail section titles share the order-data reference size', () => {
+  const headingClass = 'text-base font-semibold text-slate-900';
+
+  assert.match(detail, new RegExp('<h2 className="' + headingClass + '">Podatki naročila<\\/h2>', 'u'));
+  assert.match(itemsEditor, new RegExp('<h2 className="' + headingClass + '">Postavke<\\/h2>', 'u'));
+  assert.match(shippingOverride, new RegExp('className="' + headingClass + '"[\\s\\S]*?>\\s*Poštnina', 'u'));
+  assert.match(customerAccess, new RegExp('<h2 className="' + headingClass + '">Stranka in dostop<\\/h2>', 'u'));
+  assert.match(sharedNotesCard, new RegExp('className="' + headingClass + '"[\\s\\S]*?Opombe administratorja', 'u'));
+  assert.match(sharedDocumentsPresentation, new RegExp('<h2 className="' + headingClass + '">PDF dokumenti<\\/h2>', 'u'));
 });
 test('Postavke exposes a persistent reference-style section edit action', () => {
   assert.match(itemsEditor, /adminCardSectionEditIconButtonClassName/u);
@@ -602,21 +626,14 @@ test('master edit keeps the reference-style shipping card in normal document flo
   assert.doesNotMatch(shippingOverride, /detailsOpen|setDetailsOpen/u);
   assert.match(
     shippingOverride,
-    /const \[breakdownOpen, setBreakdownOpen\] = useState\(false\)/u
-  );
-  assert.match(
-    shippingOverride,
     /\{externalEditMode \? \([\s\S]*?data-shipping-editor-row[\s\S]*?\) : \([\s\S]*?data-shipping-read-reason/u
   );
   assert.match(shippingOverride, /aria-pressed=\{externalEditMode\}/u);
   assert.match(shippingOverride, /onClick=\{onRequestEdit\}/u);
-  assert.match(shippingOverride, /data-shipping-details-toggle/u);
-  assert.match(shippingOverride, /aria-expanded=\{breakdownOpen\}/u);
-  assert.match(
+  assert.doesNotMatch(
     shippingOverride,
-    /onClick=\{\(\) => setBreakdownOpen\(\(current\) => !current\)\}/u
+    /data-shipping-info-row|data-shipping-details-toggle|data-shipping-breakdown-panel|Spremembe poštnine veljajo le za to naročilo/u
   );
-  assert.match(shippingOverride, /\{breakdownOpen \? \([\s\S]*?data-shipping-breakdown-panel/u);
   assert.match(sharedNotesCard, /block h-10 min-h-10 w-full resize-none/u);
 });
 
@@ -645,6 +662,7 @@ test('order item columns stay on one line while the article keeps separate name 
     itemsEditor,
     /className="min-w-\[620px\] w-full table-fixed whitespace-nowrap text-\[12px\] leading-5"/u
   );
+  assert.match(itemsEditor, /<col style=\{\{ width: '19%' \}\} \/>/u);
   assert.doesNotMatch(itemsEditor, /itemsEditable \? 'min-w-\[800px\]'/u);
   assert.match(itemsEditor, /const orderItemsValueInputClassName =/u);
   assert.match(itemsEditor, /const orderItemsReadValueClassName =[\s\S]*?inline-flex h-full w-full min-w-0/u);
@@ -674,6 +692,22 @@ test('order item columns stay on one line while the article keeps separate name 
   assert.match(
     itemsEditor,
     /<thead className="border-t border-slate-200 bg-\[color:var\(--admin-table-header-bg\)\] text-slate-600">/u
+  );
+  assert.match(
+    itemsEditor,
+    /<th className="border-b border-slate-200 py-4 pl-1\.5 pr-4 text-right text-\[12px\] font-semibold align-middle">\s*<span data-testid="admin-order-items-total-header">Skupaj brez DDV<\/span>/u
+  );
+  assert.match(
+    itemsEditor,
+    /className="py-3 pl-1\.5 pr-4 text-right font-semibold text-slate-900"\s*data-admin-order-item-total[\s\S]*?<span data-admin-order-item-total-value>/u
+  );
+  assert.doesNotMatch(
+    itemsEditor,
+    /py-4 pl-1\.5 pr-2 text-right text-\[12px\] font-semibold align-middle">Skupaj brez DDV/u
+  );
+  assert.doesNotMatch(
+    itemsEditor,
+    /py-3 pl-1\.5 pr-2 text-right font-semibold text-slate-900">\{formatCurrency\(lineTotal\)\}/u
   );
 });
 
@@ -745,4 +779,31 @@ test('PDF documents use shared compact chrome with feature-owned actions', () =>
     /expandedByType|Pokaži različice|Skrij različice|key: 'versions'/u
   );
   assert.doesNotMatch(sharedDocuments, /fetch\(|orderId|quoteRequestId/u);
+});
+test('unsaved order changes disable PDF creation and upload until saved', () => {
+  assert.match(
+    detail,
+    /unsavedChangesReason=\{[\s\S]*?hasUnsavedChanges[\s\S]*?Pred ustvarjanjem ali nalaganjem PDF dokumentov najprej shranite spremembe\.[\s\S]*?: undefined[\s\S]*?generationDisabledReason=\{[\s\S]*?order\.is_draft/u
+  );
+  assert.match(
+    pdfManager,
+    /effectiveGenerationDisabledReason\s*=\s*unsavedChangesReason \?\? generationDisabledReason/u
+  );
+  assert.match(
+    pdfManager,
+    /const handleGenerate[\s\S]*?if \(effectiveGenerationDisabledReason\)[\s\S]*?toast\.info\(effectiveGenerationDisabledReason\)[\s\S]*?return;/u
+  );
+  assert.match(
+    pdfManager,
+    /const handleUpload[\s\S]*?if \(unsavedChangesReason\)[\s\S]*?toast\.info\(unsavedChangesReason\)[\s\S]*?return;/u
+  );
+  assert.ok(
+    (pdfManager.match(/Boolean\(effectiveGenerationDisabledReason\) \|\|/gu)?.length ?? 0) >= 2,
+    'direct and overflow generation actions must share the effective disabled reason'
+  );
+  assert.ok(
+    (pdfManager.match(/Boolean\(unsavedChangesReason\) \|\|/gu)?.length ?? 0) >= 3,
+    'direct and overflow upload actions must share the unsaved-change reason'
+  );
+  assert.match(pdfManager, /notice=\{effectiveGenerationDisabledReason\}/u);
 });

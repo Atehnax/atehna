@@ -11,6 +11,7 @@ import {
   Palette,
   RotateCcw,
   SlidersHorizontal,
+  Trash2,
   Unlink2,
   Unlock,
   X
@@ -45,6 +46,7 @@ import type {
   ProductCanvasElementDeviceSettings,
   ProductSecondaryBlock
 } from '@/shared/domain/style/productAppearance';
+import type { GlobalStyleConfig } from '@/shared/domain/style/globalStyle';
 import {
   adminControlFocusTokenClasses,
   adminInputFocusTokenClasses
@@ -58,6 +60,8 @@ import {
 } from '@/shared/domain/catalog/catalogSpecification';
 import {
   getProductCanvasElementResizeMinimums,
+  isProductCanvasProportionalResizeElement,
+  resolveProductCanvasProportionalResize,
   resolveProductCanvasResize,
   type ProductCanvasResizeAxis
 } from '@/shared/ui/product-canvas/ProductCanvasElement';
@@ -77,15 +81,7 @@ import SpecificationDisplayLabelsEditor, {
   type SpecificationDisplayLabelRow
 } from '@/admin/features/artikli/components/SpecificationDisplayLabelsEditor';
 
-export type ProductAppearanceElementOption = {
-  id: string;
-  label: string;
-  group: string;
-  settings: ProductCanvasElementDeviceSettings;
-  protectedElement: boolean;
-};
-
-type Panel = 'content' | 'style' | 'layers' | null;
+type Panel = 'content' | 'style' | null;
 
 const fieldClassName =
   `h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] text-slate-800 ${adminInputFocusTokenClasses}`;
@@ -108,6 +104,7 @@ function CompactContextSelect<Value extends string>({
   return (
     <AppearanceEditorCompactSelect
       value={value}
+      tone="dark"
       options={options}
       ariaLabel={label}
       marker={marker}
@@ -215,9 +212,32 @@ function measureSelectedCanvasElement(elementId: string | null) {
     && candidate.dataset.productCanvasSelected === 'true'
   ));
   if (!element) return null;
+  const contentElement = Array.from(element.querySelectorAll<HTMLElement>('*')).find(
+    (candidate) => (
+      candidate.closest<HTMLElement>('[data-product-canvas-element]') === element
+      && !candidate.closest('[data-product-canvas-editor-chrome]')
+      && (
+        candidate.matches('button, input, select, textarea')
+        || Boolean(candidate.textContent?.trim())
+      )
+    )
+  ) ?? element;
+  const computed = window.getComputedStyle(contentElement);
+  const fontSize = Number.parseFloat(computed.fontSize);
+  const lineHeightPx = Number.parseFloat(computed.lineHeight);
+  const fontWeight = Number.parseInt(computed.fontWeight, 10);
+  const letterSpacing = Number.parseFloat(computed.letterSpacing);
   return {
     width: Math.max(24, element.offsetWidth),
-    height: Math.max(24, element.offsetHeight)
+    height: Math.max(24, element.offsetHeight),
+    fontFamily: computed.fontFamily,
+    fontSize: Number.isFinite(fontSize) ? fontSize : null,
+    fontWeight: Number.isFinite(fontWeight) ? fontWeight : null,
+    lineHeight: Number.isFinite(lineHeightPx) && Number.isFinite(fontSize) && fontSize > 0
+      ? lineHeightPx / fontSize
+      : null,
+    letterSpacing: Number.isFinite(letterSpacing) ? letterSpacing : 0,
+    color: computed.color
   };
 }
 
@@ -243,12 +263,12 @@ function dimensionUpdates({
           : resizeMinimums.minimumHeight,
         value
       );
-  if (!settings.aspectRatioLocked) {
+  if (!settings.aspectRatioLocked && !isProductCanvasProportionalResizeElement(selectedElementId ?? '')) {
     return axis === 'width'
       ? { widthPx: constrainedValue }
       : { heightPx: constrainedValue };
   }
-  if (constrainedValue <= 0) return { widthPx: 0, heightPx: 0 };
+  if (constrainedValue <= 0) return { widthPx: 0, heightPx: 0, contentScale: 1 };
   const measured = measureSelectedCanvasElement(selectedElementId);
   const startWidth = settings.widthPx > 0
     ? settings.widthPx
@@ -256,6 +276,17 @@ function dimensionUpdates({
   const startHeight = settings.heightPx > 0
     ? settings.heightPx
     : measured?.height ?? 24;
+  if (isProductCanvasProportionalResizeElement(selectedElementId ?? '')) {
+    return resolveProductCanvasProportionalResize({
+      startWidth,
+      startHeight,
+      startContentScale: settings.contentScale,
+      nextWidth: axis === 'width' ? constrainedValue : startWidth,
+      nextHeight: axis === 'height' ? constrainedValue : startHeight,
+      axis,
+      ...resizeMinimums
+    });
+  }
   return resolveProductCanvasResize({
     startWidth,
     startHeight,
@@ -274,6 +305,7 @@ const contentElementIds = new Set([
   'cart-line-image',
   'cart-line-info',
   'product-gallery',
+  'product-gallery-thumbnails',
   'product-category',
   'product-title',
   'product-badge',
@@ -290,9 +322,11 @@ const contentElementIds = new Set([
   'product-price',
   'product-availability',
   'product-summary',
+  'product-minimum-order',
   'product-quantity',
   'product-primary-action',
   'product-delivery',
+  'product-delivery-and-payment',
   'product-secondary-action'
 ]);
 
@@ -363,8 +397,14 @@ const purchaseCopyGroups: Array<{
     title: 'Povzetek različice',
     fields: [
       { key: 'variantLabel', label: 'Različica' },
-      { key: 'skuLabel', label: 'SKU' },
-      { key: 'minimumOrderLabel', label: 'Najmanjše naročilo' }
+      { key: 'skuLabel', label: 'SKU' }
+    ]
+  },
+  {
+    id: 'product-minimum-order',
+    title: 'Minimalno naročilo',
+    fields: [
+      { key: 'minimumOrderLabel', label: 'Besedilo pred številom' }
     ]
   },
   {
@@ -569,6 +609,7 @@ function ContentPanel({
   uploading,
   onProductChange,
   onGalleryChange,
+  onElementCanvasChange,
   onVariantsChange,
   onPurchaseAreaChange,
   onRelatedProductsChange,
@@ -591,6 +632,10 @@ function ContentPanel({
   uploading: boolean;
   onProductChange: (updates: Partial<CatalogItemEditorHydration>) => void;
   onGalleryChange: (updates: Partial<ProductAppearanceConfig['gallery']>) => void;
+  onElementCanvasChange: (
+    elementId: string,
+    updates: Partial<ProductCanvasElementDeviceSettings>
+  ) => void;
   onVariantsChange: (
     updates: Partial<ProductAppearanceConfig['variants']>
   ) => void;
@@ -1286,14 +1331,16 @@ function ContentPanel({
       </div>
     );
   }
+  const purchaseCopyElementId = selectedElementId === 'product-delivery-and-payment'
+    ? 'product-delivery' : selectedElementId;
 
   if (
     selectedElementId === 'product-purchase'
-    || purchaseCopyGroups.some((group) => group.id === selectedElementId)
+    || purchaseCopyGroups.some((group) => group.id === purchaseCopyElementId)
   ) {
     const groups = selectedElementId === 'product-purchase'
       ? purchaseCopyGroups
-      : purchaseCopyGroups.filter((group) => group.id === selectedElementId);
+      : purchaseCopyGroups.filter((group) => group.id === purchaseCopyElementId);
     const updateCopy = (key: PurchaseCopyKey, value: string) => {
       onPurchaseAreaChange({
         copy: {
@@ -1368,6 +1415,7 @@ function ContentPanel({
 
   if (
     selectedElementId === 'product-gallery'
+    || selectedElementId === 'product-gallery-thumbnails'
     || selectedElementId === 'card-image'
     || selectedElementId === 'cart-line-image'
   ) {
@@ -1379,7 +1427,8 @@ function ContentPanel({
       : gallery.thumbnailPositionMobile;
     return (
       <div className="grid gap-3">
-        {selectedElementId === 'product-gallery' ? (
+        {selectedElementId === 'product-gallery'
+          || selectedElementId === 'product-gallery-thumbnails' ? (
           <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
             <div>
               <p className="text-xs font-semibold text-slate-900">Postavitev sličic</p>
@@ -1412,6 +1461,11 @@ function ContentPanel({
                         ? { thumbnailPositionDesktop: position }
                         : { thumbnailPositionMobile: position }
                     );
+                    onElementCanvasChange('product-gallery-thumbnails', {
+                      widthPx: 0,
+                      heightPx: 0,
+                      contentScale: 1
+                    });
                   }}
                 />
               </div>
@@ -1918,9 +1972,10 @@ function ContentPanel({
 
 export default function ProductAppearanceContextToolbar({
   selectedElementId,
+  selectedElementIds,
   selectedElementLabel,
   settings,
-  elements,
+  canRemoveSelected,
   product,
   previewProduct,
   productOptions,
@@ -1929,13 +1984,14 @@ export default function ProductAppearanceContextToolbar({
   purchaseArea,
   relatedProducts,
   secondaryContent,
+  globalStyle,
   previewDevice,
   selectedVariantId,
   uploading,
-  onSelectElement,
   onCanvasChange,
   onElementCanvasChange,
   onReset,
+  onRemove,
   onProductChange,
   onGalleryChange,
   onVariantsChange,
@@ -1946,9 +2002,10 @@ export default function ProductAppearanceContextToolbar({
   onUploadImages
 }: {
   selectedElementId: string | null;
+  selectedElementIds: readonly string[];
   selectedElementLabel: string;
   settings: ProductCanvasElementDeviceSettings | null;
-  elements: ProductAppearanceElementOption[];
+  canRemoveSelected: boolean;
   product: CatalogItemEditorHydration | null;
   previewProduct: StorefrontProduct | null;
   productOptions: AdminCatalogListItem[];
@@ -1957,10 +2014,10 @@ export default function ProductAppearanceContextToolbar({
   purchaseArea: ProductAppearanceConfig['purchaseArea'];
   relatedProducts: ProductAppearanceConfig['relatedProducts'];
   secondaryContent: ProductAppearanceConfig['secondaryContent'];
+  globalStyle: GlobalStyleConfig;
   previewDevice: ProductCanvasDevice;
   selectedVariantId: number | null;
   uploading: boolean;
-  onSelectElement: (elementId: string) => void;
   onCanvasChange: (updates: Partial<ProductCanvasElementDeviceSettings>) => void;
   onElementCanvasChange: (
     elementId: string,
@@ -1968,6 +2025,7 @@ export default function ProductAppearanceContextToolbar({
   ) => void;
   onReset: () => void;
   onProductChange: (updates: Partial<CatalogItemEditorHydration>) => void;
+  onRemove: () => void;
   onGalleryChange: (updates: Partial<ProductAppearanceConfig['gallery']>) => void;
   onVariantsChange: (
     updates: Partial<ProductAppearanceConfig['variants']>
@@ -1985,6 +2043,7 @@ export default function ProductAppearanceContextToolbar({
   onUploadImages: (files: File[]) => Promise<void>;
 }) {
   const [panel, setPanel] = useState<Panel>(null);
+  const stylePanelOpen = panel === 'style';
   const toolbarContentRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelAlignment, setPanelAlignment] = useState<'left' | 'right'>('left');
@@ -1996,13 +2055,29 @@ export default function ProductAppearanceContextToolbar({
   const canEditContent = Boolean(
     product
     && selectedElementId
+    && selectedElementIds.length === 1
     && (
       contentElementIds.has(selectedElementId)
       || isVariantContentElementId(selectedElementId)
     )
   );
+  const proportionalSelected = Boolean(
+    selectedElementId && isProductCanvasProportionalResizeElement(selectedElementId)
+  );
+  const measuredSettings = panel === 'style'
+    ? measureSelectedCanvasElement(selectedElementId)
+    : null;
+  const usesHeadingFont = Boolean(selectedElementId && [
+    'card-title',
+    'product-title',
+    'product-secondary',
+    'product-related-products'
+  ].includes(selectedElementId));
+  const inheritedFontFamily = usesHeadingFont
+    ? globalStyle.typography.headingFontFamily
+    : globalStyle.typography.bodyFontFamily;
   const toggleAspectRatioLock = () => {
-    if (!settings) return;
+    if (!settings || proportionalSelected) return;
     const aspectRatioLocked = !settings.aspectRatioLocked;
     if (!aspectRatioLocked) {
       onCanvasChange({ aspectRatioLocked: false });
@@ -2031,29 +2106,19 @@ export default function ProductAppearanceContextToolbar({
       const alignment = toolbarRect.left + panelWidth > window.innerWidth - 8 ? 'right' : 'left';
       setPanelAlignment((current) => current === alignment ? current : alignment);
 
-      if (window.matchMedia('(max-width: 767px)').matches) {
-        const maxHeight = Math.max(180, window.innerHeight - 96);
-        setPanelLayout((current) => (
-          current.side === 'below' && current.maxHeight === maxHeight
-            ? current
-            : { side: 'below', maxHeight }
-        ));
-        return;
-      }
-
       const gap = 6;
       const margin = 8;
+      const visualViewport = window.visualViewport;
+      const viewportTop = visualViewport?.offsetTop ?? 0;
+      const viewportBottom = viewportTop
+        + (visualViewport?.height ?? window.innerHeight);
       const desiredHeight = Math.min(540, panelElement.scrollHeight);
-      const availableAbove = Math.max(0, toolbarRect.top - margin - gap);
-      const availableBelow = Math.max(0, window.innerHeight - toolbarRect.bottom - margin - gap);
+      const availableAbove = Math.max(0, toolbarRect.top - viewportTop - margin - gap);
+      const availableBelow = Math.max(0, viewportBottom - toolbarRect.bottom - margin - gap);
       const preferredSide = toolbarPlacement === 'top' ? 'above' : 'below';
-      const alternateSide = preferredSide === 'above' ? 'below' : 'above';
       const available = { above: availableAbove, below: availableBelow };
-      const minimumUsableHeight = Math.min(desiredHeight, 180);
-      const side = available[preferredSide] >= minimumUsableHeight
-        ? preferredSide
-        : alternateSide;
-      const maxHeight = Math.max(120, Math.min(540, available[side]));
+      const side = preferredSide;
+      const maxHeight = Math.max(1, Math.min(desiredHeight, available[side]));
       setPanelLayout((current) => (
         current.side === side && Math.abs(current.maxHeight - maxHeight) < 0.5
           ? current
@@ -2068,9 +2133,15 @@ export default function ProductAppearanceContextToolbar({
     observer?.observe(toolbar);
     observer?.observe(panelElement);
     window.addEventListener('resize', updatePanelLayout);
+    window.addEventListener('scroll', updatePanelLayout, true);
+    window.visualViewport?.addEventListener('resize', updatePanelLayout);
+    window.visualViewport?.addEventListener('scroll', updatePanelLayout);
     return () => {
       observer?.disconnect();
       window.removeEventListener('resize', updatePanelLayout);
+      window.removeEventListener('scroll', updatePanelLayout, true);
+      window.visualViewport?.removeEventListener('resize', updatePanelLayout);
+      window.visualViewport?.removeEventListener('scroll', updatePanelLayout);
     };
   }, [panel, selectedElementId, toolbarPlacement]);
   useEffect(() => {
@@ -2144,18 +2215,24 @@ export default function ProductAppearanceContextToolbar({
                 {settings.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
               </AppearanceEditorToolbarButton>
               <AppearanceEditorToolbarButton
-                label={settings.aspectRatioLocked
+                label={proportionalSelected
+                  ? 'Pod-element se spreminja sorazmerno'
+                  : settings.aspectRatioLocked
                   ? 'Odkleni razmerje stranic'
                   : 'Zakleni razmerje stranic'}
-                pressed={settings.aspectRatioLocked}
+                pressed={settings.aspectRatioLocked || proportionalSelected}
+                disabled={proportionalSelected}
                 onClick={toggleAspectRatioLock}
               >
-                {settings.aspectRatioLocked
+                {settings.aspectRatioLocked || proportionalSelected
                   ? <Link2 className="h-3.5 w-3.5" />
                   : <Unlink2 className="h-3.5 w-3.5" />}
               </AppearanceEditorToolbarButton>
               <AppearanceEditorToolbarButton label="Ponastavi element" onClick={onReset}>
                 <RotateCcw className="h-3.5 w-3.5" />
+              </AppearanceEditorToolbarButton>
+              <AppearanceEditorToolbarButton label="Odstrani element" disabled={!canRemoveSelected} onClick={onRemove}>
+                <Trash2 className="h-3.5 w-3.5" />
               </AppearanceEditorToolbarButton>
             </>
           ) : null}
@@ -2166,15 +2243,23 @@ export default function ProductAppearanceContextToolbar({
         <div
           ref={panelRef}
           role="dialog"
-          aria-label={panel === 'layers' ? 'Elementi predogleda' : panel === 'content' ? 'Vsebina artikla' : 'Slog elementa'}
+          aria-label={panel === 'content' ? 'Vsebina artikla' : 'Slog elementa'}
           data-product-toolbar-popover
           data-product-toolbar-popover-side={panelLayout.side}
-          className={`absolute z-[130] flex w-[min(440px,calc(100vw-32px))] flex-col overflow-visible max-md:fixed max-md:inset-x-3 max-md:bottom-auto max-md:top-20 max-md:w-auto ${appearanceEditorToolbarPopoverSurfaceClassName} ${panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} ${panelAlignment === 'right' ? 'right-0' : 'left-0'}`}
+          data-product-toolbar-popover-width={stylePanelOpen ? 'wide' : 'compact'}
+          data-appearance-editor-toolbar-popover
+          data-settings-scroll={stylePanelOpen ? 'none' : 'internal'}
+          className={`absolute z-[130] flex flex-col ${
+            stylePanelOpen
+              ? 'w-[min(760px,calc(100dvw-16px))] overflow-hidden'
+              : 'w-[min(400px,calc(100vw-32px))] overflow-x-hidden overflow-y-auto overscroll-contain'
+          } ${appearanceEditorToolbarPopoverSurfaceClassName} ${panelLayout.side === 'above' ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'} ${panelAlignment === 'right' ? 'right-0' : 'left-0'}`}
+          style={stylePanelOpen ? undefined : { maxHeight: panelLayout.maxHeight }}
           onPointerDown={(event) => event.stopPropagation()}
         >
           <div className="flex shrink-0 items-center justify-between gap-3 px-3 pb-1.5 pt-2">
             <p className="text-[11px] font-semibold text-white">
-              {panel === 'layers' ? 'Elementi predogleda' : panel === 'content' ? 'Vsebina artikla' : 'Slog elementa'}
+              {panel === 'content' ? 'Vsebina artikla' : 'Slog elementa'}
             </p>
             <button
               type="button"
@@ -2192,44 +2277,6 @@ export default function ProductAppearanceContextToolbar({
             data-settings-scroll="none"
             className="border-t border-white/15 bg-[rgba(30,41,53,0.98)] p-2.5 [&_.bg-slate-100]:!bg-white/10 [&_.bg-slate-50]:!bg-white/5 [&_.bg-white]:!bg-white/10 [&_.border-slate-200]:!border-white/15 [&_.border-slate-300]:!border-white/20 [&_.text-slate-400]:!text-white/55 [&_.text-slate-500]:!text-white/65 [&_.text-slate-600]:!text-white/75 [&_.text-slate-700]:!text-white/85 [&_.text-slate-800]:!text-white/90 [&_.text-slate-900]:!text-white"
           >
-          {panel === 'layers' ? (
-            <div className="grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2" data-appearance-editor-scroll-purpose="navigation">
-              {elements.map((element) => (
-                <div
-                  key={element.id}
-                  className={`flex items-center gap-1 rounded-lg border px-1.5 py-1 ${
-                    selectedElementId === element.id
-                      ? 'border-[color:var(--blue-200)] bg-[color:var(--blue-50)]'
-                      : 'border-transparent hover:bg-slate-50'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectElement(element.id);
-                      setPanel(null);
-                    }}
-                    className={`min-w-0 flex-1 truncate px-1.5 py-1 text-left text-[10px] font-medium text-slate-700 ${adminControlFocusTokenClasses}`}
-                  >
-                    {element.label}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={element.protectedElement}
-                    onClick={() => {
-                      onSelectElement(element.id);
-                      onElementCanvasChange(element.id, { visible: !element.settings.visible });
-                    }}
-                    className={`grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-white disabled:opacity-30 ${adminControlFocusTokenClasses}`}
-                    aria-label={element.settings.visible ? 'Skrij' : 'Prikaži'}
-                  >
-                    {element.settings.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
           {panel === 'content' && selectedElementId && product ? (
             <ContentPanel
                   selectedElementId={selectedElementId}
@@ -2241,12 +2288,15 @@ export default function ProductAppearanceContextToolbar({
                   purchaseArea={purchaseArea}
                   relatedProducts={relatedProducts}
                   secondaryContent={secondaryContent}
-              defaultFontSizePx={settings?.fontSizePx ?? 0}
+              defaultFontSizePx={settings && settings.fontSizePx > 0
+                ? settings.fontSizePx
+                : globalStyle.typography.paragraphSizePx}
               previewDevice={previewDevice}
               selectedVariantId={selectedVariantId}
               uploading={uploading}
               onProductChange={onProductChange}
                   onGalleryChange={onGalleryChange}
+                  onElementCanvasChange={onElementCanvasChange}
                   onVariantsChange={onVariantsChange}
                   onPurchaseAreaChange={onPurchaseAreaChange}
                   onRelatedProductsChange={onRelatedProductsChange}
@@ -2257,7 +2307,10 @@ export default function ProductAppearanceContextToolbar({
           ) : null}
 
           {panel === 'style' && settings ? (
-            <div className="grid gap-3">
+            <div
+              data-product-toolbar-style-layout="horizontal"
+              className="grid min-w-0 items-start gap-3 md:grid-cols-[minmax(320px,0.92fr)_minmax(360px,1.08fr)]"
+            >
               <div
                 data-testid="product-canvas-dimensions"
                 className="grid gap-2 rounded-lg border border-slate-200 bg-white p-2.5"
@@ -2278,24 +2331,29 @@ export default function ProductAppearanceContextToolbar({
                   <button
                     type="button"
                     data-testid="product-canvas-aspect-ratio-lock"
-                    aria-pressed={settings.aspectRatioLocked}
-                    aria-label={settings.aspectRatioLocked
+                    aria-pressed={settings.aspectRatioLocked || proportionalSelected}
+                    aria-label={proportionalSelected
+                      ? 'Pod-element se spreminja sorazmerno'
+                      : settings.aspectRatioLocked
                       ? 'Odkleni razmerje stranic'
                       : 'Zakleni razmerje stranic'}
-                    title={settings.aspectRatioLocked
+                    title={proportionalSelected
+                      ? 'Pisava, robovi in notranji razmiki se merijo skupaj s pod-elementom'
+                      : settings.aspectRatioLocked
                       ? 'Širina in višina se spreminjata sorazmerno'
                       : 'Širina in višina se spreminjata neodvisno'}
+                    disabled={proportionalSelected}
                     onClick={toggleAspectRatioLock}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 text-[9px] font-semibold transition ${adminControlFocusTokenClasses} ${
-                      settings.aspectRatioLocked
+                      settings.aspectRatioLocked || proportionalSelected
                         ? 'border-[color:var(--blue-300)] bg-[color:var(--blue-50)] text-[color:var(--blue-700)]'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    {settings.aspectRatioLocked
+                    {settings.aspectRatioLocked || proportionalSelected
                       ? <Link2 className="h-3.5 w-3.5" />
                       : <Unlink2 className="h-3.5 w-3.5" />}
-                    {settings.aspectRatioLocked ? 'Zaklenjeno' : 'Neodvisno'}
+                    {proportionalSelected ? 'Sorazmerno' : settings.aspectRatioLocked ? 'Zaklenjeno' : 'Neodvisno'}
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -2359,7 +2417,9 @@ export default function ProductAppearanceContextToolbar({
                         max={5000}
                         data-testid="product-canvas-width"
                         aria-label="Širina elementa"
-                        value={settings.widthPx}
+                        value={settings.widthPx > 0
+                          ? settings.widthPx
+                          : Math.round(measuredSettings?.width ?? 0)}
                         disabled={settings.locked}
                         onValueChange={(value) => onCanvasChange(dimensionUpdates({
                           selectedElementId,
@@ -2375,7 +2435,7 @@ export default function ProductAppearanceContextToolbar({
                     </div>
                   </label>
                   <span className="pb-2 text-slate-400">
-                    {settings.aspectRatioLocked
+                    {settings.aspectRatioLocked || proportionalSelected
                       ? <Link2 className="h-3.5 w-3.5" />
                       : <Unlink2 className="h-3.5 w-3.5" />}
                   </span>
@@ -2393,7 +2453,9 @@ export default function ProductAppearanceContextToolbar({
                         max={5000}
                         data-testid="product-canvas-height"
                         aria-label="Višina elementa"
-                        value={settings.heightPx}
+                        value={settings.heightPx > 0
+                          ? settings.heightPx
+                          : Math.round(measuredSettings?.height ?? 0)}
                         disabled={settings.locked}
                         onValueChange={(value) => onCanvasChange(dimensionUpdates({
                           selectedElementId,
@@ -2420,7 +2482,8 @@ export default function ProductAppearanceContextToolbar({
                     disabled={settings.locked}
                     onClick={() => onCanvasChange({
                       widthPx: 0,
-                      heightPx: 0
+                      heightPx: 0,
+                      contentScale: 1
                     })}
                     className={`text-[9px] font-semibold text-[color:var(--blue-600)] disabled:opacity-40 ${adminControlFocusTokenClasses}`}
                   >
@@ -2428,7 +2491,11 @@ export default function ProductAppearanceContextToolbar({
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div
+                data-product-toolbar-style-controls
+                className="grid min-w-0 content-start gap-2"
+              >
+                <div data-product-toolbar-style-color-grid className="grid min-w-0 grid-cols-2 gap-2">
                 <CompactHexColorField
                   label="Besedilo"
                   value={settings.color}
@@ -2436,7 +2503,7 @@ export default function ProductAppearanceContextToolbar({
                   tone="light"
                   allowClear
                   clearLabel="Podeduj"
-                  inheritedColor="#0F172A"
+                  inheritedColor={globalStyle.colors.text}
                   onChange={(color) => onCanvasChange({ color })}
                   inputAttributes={{ 'aria-label': 'Barva besedila' }}
                   className="min-w-0"
@@ -2448,7 +2515,7 @@ export default function ProductAppearanceContextToolbar({
                   tone="light"
                   allowClear
                   clearLabel="Brez"
-                  inheritedColor="#FFFFFF"
+                  inheritedColor={globalStyle.colors.surface}
                   onChange={(backgroundColor) => onCanvasChange({ backgroundColor })}
                   inputAttributes={{ 'aria-label': 'Barva ozadja' }}
                   className="min-w-0"
@@ -2458,7 +2525,9 @@ export default function ProductAppearanceContextToolbar({
                   <AppearanceEditorNumberInput
                     min={0}
                     max={96}
-                    value={settings.fontSizePx}
+                    value={settings.fontSizePx > 0
+                      ? settings.fontSizePx
+                      : Math.round(measuredSettings?.fontSize ?? globalStyle.typography.bodySizePx)}
                     onValueChange={(value) => onCanvasChange({ fontSizePx: value })}
                     className={fieldClassName}
                   />
@@ -2466,9 +2535,9 @@ export default function ProductAppearanceContextToolbar({
                 <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Debelina</span>
                   <CompactContextSelect
-                    value={String(settings.fontWeight)}
+                    value={String(settings.fontWeight > 0 ? settings.fontWeight : Math.round(measuredSettings?.fontWeight ?? globalStyle.typography.bodyWeight))}
                     options={[
-                      { value: '0', label: 'Deduj' },
+                      { value: '0', label: `${globalStyle.typography.bodyWeight} (globalno)` },
                       { value: '400', label: 'Navadno' },
                       { value: '500', label: 'Srednje' },
                       { value: '600', label: 'Polkrepko' },
@@ -2480,7 +2549,7 @@ export default function ProductAppearanceContextToolbar({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Poravnava</span>
                   <AppearanceEditorAlignmentControl
@@ -2515,13 +2584,13 @@ export default function ProductAppearanceContextToolbar({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <span className="text-[9px] font-medium text-slate-500">Pisava elementa</span>
                   <CompactContextSelect
                     value={settings.fontFamily}
                     options={[
-                      { value: '', label: 'Deduj globalno pisavo' },
+                      { value: '', label: `${inheritedFontFamily} (globalno)` },
                       { value: 'Inter, system-ui, sans-serif', label: 'Inter' },
                       { value: 'Arial, sans-serif', label: 'Arial' },
                       { value: 'Georgia, serif', label: 'Georgia' },
@@ -2540,7 +2609,9 @@ export default function ProductAppearanceContextToolbar({
                     min={0}
                     max={3}
                     step={0.05}
-                    value={settings.lineHeight}
+                    value={settings.lineHeight > 0
+                      ? settings.lineHeight
+                      : Math.round((measuredSettings?.lineHeight ?? globalStyle.typography.bodyLineHeight) * 100) / 100}
                     onValueChange={(value) => onCanvasChange({ lineHeight: value })}
                     className={fieldClassName}
                   />
@@ -2564,6 +2635,7 @@ export default function ProductAppearanceContextToolbar({
                 Položaj spremenite z vlečenjem elementa. Desna ročica spreminja
                 širino, spodnja višino, kotna pa obe meri.
               </p>
+              </div>
             </div>
           ) : null}
           </div>

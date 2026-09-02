@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import { isCustomerType } from '@/shared/domain/order/customerType';
@@ -28,6 +28,7 @@ import {
   type ResendFailureClassification
 } from '@/shared/domain/order/orderEmailDelivery';
 import {
+  ORDER_EMAIL_EVENT_DEFINITIONS,
   isOrderEmailEventType,
   normalizeOrderEmailSettings,
   toStoredOrderEmailSettings,
@@ -35,6 +36,10 @@ import {
   type OrderEmailEventType,
   type OrderEmailSettings
 } from '@/shared/domain/order/orderEmailSettings';
+import {
+  isOrderEmailRetryEventCurrent,
+  isRetryableOrderEmailFailure
+} from '@/shared/domain/order/orderEmailRetryPolicy';
 import {
   getOrderEmailSettings,
   isOrderEmailTransportDisabledForE2e,
@@ -74,6 +79,7 @@ type ClaimedOrderEmailJob = {
   payloadJson: unknown;
   eventType: OrderEmailEventType;
   audience: 'customer' | 'admin';
+  recipientEmail: string;
   envelope?: OrderEmailDeliveryEnvelope;
   payloadEncrypted: boolean;
 };
@@ -419,7 +425,8 @@ async function claimDueOrderEmailJobs(
     await client.query('begin');
     const result = await client.query(
       `
-        select id, order_id, event_type, audience, attempts, payload_json
+        select id, order_id, event_type, audience, recipient_email,
+               attempts, payload_json
         from order_email_jobs
         where (
           (status = 'pending' and next_attempt_at <= now())
@@ -463,6 +470,7 @@ async function claimDueOrderEmailJobs(
         payloadJson: row.payload_json,
         eventType: String(row.event_type) as OrderEmailEventType,
         audience: row.audience === 'admin' ? 'admin' : 'customer',
+        recipientEmail: String(row.recipient_email),
         payloadEncrypted: isEncryptedDeliveryPayload(row.payload_json)
       });
     }
@@ -516,7 +524,7 @@ async function persistEncryptedClaimedEnvelope(
 }
 
 async function validatePurchaseOrderTokenBeforeDelivery(
-  pool: Pool,
+  pool: Pool | PoolClient,
   job: ClaimedOrderEmailJob,
   envelope: OrderEmailDeliveryEnvelope
 ): Promise<void> {
@@ -696,7 +704,10 @@ async function sendOrderEmailMessage(
         ...(message.replyTo ? { reply_to: message.replyTo } : {}),
         subject: message.subject,
         html: message.html,
-        text: message.text
+        text: message.text,
+        ...(message.attachments?.length
+          ? { attachments: message.attachments }
+          : {})
       }),
       cache: 'no-store',
       signal: controller.signal
@@ -731,6 +742,92 @@ async function sendOrderEmailMessage(
     throw new OrderEmailDeliveryError('Ponudnik e-pošte ni vrnil ID-ja sporočila.');
   }
   return providerMessageId;
+}
+
+async function deliverOrderEmailWhileRecipientCurrent(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  envelope: OrderEmailDeliveryEnvelope
+): Promise<string> {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const orderResult = await client.query(
+      `select email, status, contract_status, is_draft, deleted_at
+       from orders
+       where id = $1
+       for share`,
+      [job.orderId]
+    );
+    await client.query(
+      `select key
+       from order_email_settings
+       where key = 'order-email-notifications'
+       for share`
+    );
+    const settings = await getOrderEmailSettings(client);
+    const currentOrder = orderResult.rows[0];
+    const orderLifecycleIsCurrent =
+      currentOrder &&
+      currentOrder.is_draft === false &&
+      currentOrder.deleted_at === null &&
+      typeof currentOrder.status === 'string' &&
+      isOrderEmailRetryEventCurrent({
+        eventType: job.eventType,
+        orderStatus: currentOrder.status,
+        contractStatus:
+          currentOrder.contract_status === null
+            ? null
+            : String(currentOrder.contract_status)
+      });
+    if (!orderLifecycleIsCurrent) {
+      throw new OrderEmailDeliveryEnvelopeValidationError(
+        '$.eventType',
+        '[obsolete_order] no longer matches the current order lifecycle'
+      );
+    }
+
+    const jobRecipient = normalizedRetryRecipient(job.recipientEmail);
+    const envelopeRecipient = normalizedRetryRecipient(envelope.recipient.email);
+    const messageRecipient = normalizedRetryRecipient(envelope.message.to);
+    const currentRecipient = job.audience === 'customer'
+      ? normalizedRetryRecipient(currentOrder.email)
+      : jobRecipient;
+    const currentAdminRecipients = new Set(
+      settings.adminRecipients
+        .map(normalizedRetryRecipient)
+        .filter((recipient): recipient is string => recipient !== null)
+    );
+    const envelopeMatchesClaim =
+      envelope.eventType === job.eventType &&
+      envelope.audience === job.audience &&
+      envelopeRecipient !== null &&
+      envelopeRecipient === jobRecipient &&
+      messageRecipient === jobRecipient;
+    const recipientIsCurrent =
+      jobRecipient !== null &&
+      currentRecipient === jobRecipient &&
+      (job.audience === 'customer' || currentAdminRecipients.has(jobRecipient));
+    if (!envelopeMatchesClaim || !recipientIsCurrent) {
+      throw new OrderEmailDeliveryEnvelopeValidationError(
+        '$.recipient.email',
+        '[stale_recipient] is no longer an authorized recipient'
+      );
+    }
+
+    await validatePurchaseOrderTokenBeforeDelivery(client, job, envelope);
+    const providerMessageId = await sendOrderEmailMessage(
+      envelope.message,
+      `atehna-order-email/${job.id}`
+    );
+    await client.query('commit');
+    return providerMessageId;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function classifyOrderEmailJobFailure(
@@ -780,10 +877,10 @@ export async function processDueOrderEmailJobs(
         if (!job.payloadEncrypted) {
           await persistEncryptedClaimedEnvelope(pool, job, envelope);
         }
-        await validatePurchaseOrderTokenBeforeDelivery(pool, job, envelope);
-        const providerMessageId = await sendOrderEmailMessage(
-          envelope.message,
-          `atehna-order-email/${job.id}`
+        const providerMessageId = await deliverOrderEmailWhileRecipientCurrent(
+          pool,
+          job,
+          envelope
         );
         try {
           await markOrderEmailJobSent(pool, job, providerMessageId, envelope);
@@ -876,8 +973,212 @@ export async function pruneSentOrderEmailJobs(
   return result.rowCount ?? 0;
 }
 
-export async function resetFailedOrderEmailJobs(pool: Pool): Promise<number> {
-  const result = await pool.query(
+export type FailedOrderEmailRetryDelivery = Readonly<{
+  jobId: string;
+  jobUpdatedAt: string;
+  orderId: number;
+  eventType: OrderEmailEventType;
+  eventLabel: string;
+  recipientEmail: string;
+}>;
+
+export type FailedOrderEmailRetryPlan = Readonly<{
+  totalFailedCount: number;
+  eligibleJobIds: readonly string[];
+  customerDeliveries: readonly FailedOrderEmailRetryDelivery[];
+  customerBatchAction: string;
+  skippedCount: number;
+}>;
+
+type FailedOrderEmailRetryRow = {
+  id: string;
+  order_id: string | number;
+  event_type: string;
+  audience: string;
+  recipient_email: string;
+  payload_json: unknown;
+  attempts: string | number;
+  last_error: string | null;
+  provider_message_id: string | null;
+  sent_at: string | Date | null;
+  updated_at: string | Date;
+  order_email: string | null;
+  order_status: string | null;
+  contract_status: string | null;
+  is_draft: boolean | null;
+  deleted_at: string | Date | null;
+};
+
+const orderEmailEventLabels = new Map<OrderEmailEventType, string>(
+  ORDER_EMAIL_EVENT_DEFINITIONS.map((definition) => [
+    definition.value,
+    definition.label
+  ])
+);
+
+function normalizedRetryRecipient(value: unknown): string | null {
+  const recipient = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return recipient.length <= 320 && EMAIL_PATTERN.test(recipient)
+    ? recipient
+    : null;
+}
+
+export async function planFailedOrderEmailJobRetries(
+  client: PoolClient,
+  settings: OrderEmailSettings
+): Promise<FailedOrderEmailRetryPlan> {
+  const result = await client.query<FailedOrderEmailRetryRow>(
+    `
+      select
+        job.id,
+        job.order_id,
+        job.event_type,
+        job.audience,
+        job.recipient_email,
+        job.payload_json,
+        job.attempts,
+        job.last_error,
+        job.provider_message_id,
+        job.sent_at,
+        job.updated_at,
+        orders.email as order_email,
+        orders.status as order_status,
+        orders.contract_status,
+        orders.is_draft,
+        orders.deleted_at
+      from order_email_jobs job
+      join orders on orders.id = job.order_id
+      where job.status = 'failed'
+      order by job.updated_at desc, job.created_at desc, job.id desc
+      for update of job
+      for share of orders
+    `
+  );
+
+  const eligibleJobIds: string[] = [];
+  const customerDeliveries: FailedOrderEmailRetryDelivery[] = [];
+  const currentAdminRecipients = new Set(
+    settings.adminRecipients.map((recipient) => recipient.trim().toLowerCase())
+  );
+  const seenDeliveryKeys = new Set<string>();
+
+  for (const row of result.rows) {
+    const eventType = String(row.event_type ?? '');
+    const audience = row.audience === 'admin'
+      ? 'admin'
+      : row.audience === 'customer'
+        ? 'customer'
+        : null;
+    const recipientEmail = normalizedRetryRecipient(row.recipient_email);
+    const orderId = Number(row.order_id);
+    if (
+      !isOrderEmailEventType(eventType) ||
+      audience === null ||
+      recipientEmail === null ||
+      !Number.isSafeInteger(orderId) ||
+      orderId <= 0
+    ) {
+      continue;
+    }
+
+    const deliveryKey = `${orderId}:${eventType}:${audience}:${recipientEmail}`;
+    if (seenDeliveryKeys.has(deliveryKey)) continue;
+    seenDeliveryKeys.add(deliveryKey);
+
+    const eventSettings = settings.events[eventType];
+    const audienceEnabled = audience === 'customer'
+      ? eventSettings.customer
+      : eventSettings.admins;
+    if (
+      !settings.enabled ||
+      !audienceEnabled ||
+      !isRetryableOrderEmailFailure(row.last_error) ||
+      row.provider_message_id !== null ||
+      row.sent_at !== null ||
+      row.is_draft !== false ||
+      row.deleted_at !== null ||
+      typeof row.order_status !== 'string' ||
+      !isOrderEmailRetryEventCurrent({
+        eventType,
+        orderStatus: row.order_status,
+        contractStatus: row.contract_status
+      })
+    ) {
+      continue;
+    }
+
+    const currentRecipient = audience === 'customer'
+      ? normalizedRetryRecipient(row.order_email)
+      : recipientEmail;
+    if (
+      currentRecipient !== recipientEmail ||
+      (audience === 'admin' && !currentAdminRecipients.has(recipientEmail))
+    ) {
+      continue;
+    }
+
+    const job: ClaimedOrderEmailJob = {
+      id: String(row.id),
+      claimId: '',
+      orderId,
+      attempts: Math.max(0, Math.trunc(numberValue(row.attempts))),
+      payloadJson: row.payload_json,
+      eventType,
+      audience,
+      recipientEmail,
+      payloadEncrypted: isEncryptedDeliveryPayload(row.payload_json)
+    };
+    try {
+      const envelope = parseClaimedOrderEmailEnvelope(job);
+      if (
+        envelope.eventType !== eventType ||
+        envelope.audience !== audience ||
+        normalizedRetryRecipient(envelope.recipient.email) !== recipientEmail
+      ) {
+        continue;
+      }
+      await validatePurchaseOrderTokenBeforeDelivery(client, job, envelope);
+    } catch {
+      continue;
+    }
+
+    eligibleJobIds.push(job.id);
+    if (audience === 'customer') {
+      customerDeliveries.push({
+        jobId: job.id,
+        jobUpdatedAt: isoValue(row.updated_at),
+        orderId,
+        eventType,
+        eventLabel: orderEmailEventLabels.get(eventType) ?? eventType,
+        recipientEmail
+      });
+    }
+  }
+
+  const customerBatchDigest = createHash('sha256')
+    .update(
+      customerDeliveries
+        .map((delivery) => `${delivery.jobId}:${delivery.jobUpdatedAt}`)
+        .sort()
+        .join('\n'),
+      'utf8'
+    )
+    .digest('hex');
+  return {
+    totalFailedCount: result.rows.length,
+    eligibleJobIds,
+    customerDeliveries,
+    customerBatchAction: `retry_failed_order_emails:${customerBatchDigest}`,
+    skippedCount: result.rows.length - eligibleJobIds.length
+  };
+}
+
+export async function resetFailedOrderEmailJobs(
+  client: PoolClient,
+  eligibleJobIds: readonly string[]
+): Promise<number> {
+  if (eligibleJobIds.length === 0) return 0;
+  const result = await client.query(
     `
       update order_email_jobs
       set status = 'pending',
@@ -888,7 +1189,9 @@ export async function resetFailedOrderEmailJobs(pool: Pool): Promise<number> {
           last_error = null,
           updated_at = now()
       where status = 'failed'
-    `
+        and id = any($1::uuid[])
+    `,
+    [eligibleJobIds]
   );
   return result.rowCount ?? 0;
 }

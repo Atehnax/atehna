@@ -8,7 +8,8 @@ export const PUBLIC_MEDIA_UPLOAD_LIMITS = {
   categoryImage: 5 * 1024 * 1024,
   landingImage: 5 * 1024 * 1024,
   landingVideo: 40 * 1024 * 1024,
-  siteLogo: 10 * 1024 * 1024
+  siteLogo: 10 * 1024 * 1024,
+  emailSharedImage: 5 * 1024 * 1024
 } as const;
 
 export const PUBLIC_MEDIA_CONTENT_TYPES = {
@@ -45,7 +46,8 @@ export const PUBLIC_MEDIA_CONTENT_TYPES = {
     'image/vnd.dwg',
     'application/octet-stream'
   ],
-  siteLogo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+  siteLogo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'],
+  emailSharedImage: ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 } as const;
 
 export type CatalogPublicMediaKind = 'image' | 'video' | 'document';
@@ -54,7 +56,8 @@ export type PublicMediaUploadContext =
   | { scope: 'catalog-item'; itemSlug: string; mediaKind: CatalogPublicMediaKind }
   | { scope: 'category-image'; categorySlug: string; subcategoryPath?: string[] }
   | { scope: 'landing-media'; elementId: string; mediaKind: 'image' | 'video' }
-  | { scope: 'site-logo'; masterId: string };
+  | { scope: 'site-logo'; masterId: string }
+  | { scope: 'email-shared-image' };
 
 export type PublicMediaUploadPayload = PublicMediaUploadContext & {
   contentType: string;
@@ -236,6 +239,15 @@ function mediaPolicyForPayload(payload: PublicMediaUploadPayload) {
     };
   }
 
+  if (payload.scope === 'email-shared-image') {
+    return {
+      allowedContentTypes: [...PUBLIC_MEDIA_CONTENT_TYPES.emailSharedImage],
+      maximumSizeInBytes: PUBLIC_MEDIA_UPLOAD_LIMITS.emailSharedImage,
+      mediaFolder: 'images' as const,
+      mediaKind: 'image' as const
+    };
+  }
+
   throw new Error('Vrsta nalaganja medija ni veljavna.');
 }
 
@@ -334,6 +346,15 @@ export function parsePublicMediaUploadPayload(
     };
   }
 
+  if (scope === 'email-shared-image') {
+    return {
+      scope,
+      uploadId,
+      originalFileName,
+      contentType
+    };
+  }
+
   throw new Error('Namen nalaganja medija ni veljaven.');
 }
 
@@ -404,13 +425,15 @@ export function getPublicMediaUploadPolicy(payload: PublicMediaUploadPayload): P
       sanitizeSlug(normalizedPayload.elementId, 'element'),
       storedFileName
     ].join('/');
-  } else {
+  } else if (normalizedPayload.scope === 'site-logo') {
     pathname = [
       'site-logo',
       'masters',
       sanitizeSlug(normalizedPayload.masterId, 'master'),
       storedFileName
     ].join('/');
+  } else {
+    pathname = ['email', 'shared', storedFileName].join('/');
   }
 
   return {

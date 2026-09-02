@@ -9,13 +9,15 @@ export const ORDER_EMAIL_EVENT_DEFINITIONS = [
   },
   {
     value: 'order_accepted',
-    label: 'Naročilo sprejeto',
-    description: 'Ko Atehna izrecno sprejme neposredno naročilo.'
+    label: 'Neposredno naročilo samodejno sprejeto',
+    description:
+      'Ko sistem ob oddaji samodejno sprejme neposredno naročilo. Spremembo statusa na »V obdelavi« upravlja ločeni dogodek.'
   },
   {
     value: 'order_rejected',
-    label: 'Naročilo zavrnjeno',
-    description: 'Ko Atehna izrecno zavrne neposredno naročilo.'
+    label: 'Naročilo pogodbeno zavrnjeno',
+    description:
+      'Ko administrator izrecno zavrne pogodbeni sprejem. Spremembo statusa na »Preklicano« upravlja ločeni dogodek.'
   },
   ...ORDER_STATUS_OPTIONS.map((status) => ({
     value: status.value,
@@ -79,17 +81,36 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
 
 export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
 export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
+export const ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH = 1_000;
+export const ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+export const ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif'
+] as const;
+
+export type OrderEmailImageAttachment = {
+  url: string;
+  pathname: string;
+  filename: string;
+  contentType: (typeof ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES)[number];
+  size: number;
+};
 
 export type OrderEmailSettings = {
-  version: 3;
+  version: 5;
   enabled: boolean;
+  confirmCustomerEmails: boolean;
   senderName: string;
   fromEmail: string;
   replyToEmail: string;
   adminRecipients: string[];
   subjectPrefix: string;
   siteUrl: string;
+  headerText: string;
   footerText: string;
+  imageAttachment: OrderEmailImageAttachment | null;
   events: Record<OrderEmailEventType, OrderEmailAudienceSettings>;
   templates: OrderEmailTemplates;
   updatedAt?: string | null;
@@ -105,6 +126,26 @@ const BODY_CONTROLS_GLOBAL_PATTERN =
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/gu;
 const TEMPLATE_VARIABLE_PATTERN = /\{\{\s*([^{}]+?)\s*\}\}/gu;
 const MAX_ADMIN_RECIPIENTS = 20;
+const VERCEL_PUBLIC_BLOB_HOST_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.public\.blob\.vercel-storage\.com$/u;
+const EMAIL_IMAGE_ATTACHMENT_PATH_PATTERN =
+  /^email\/shared\/[A-Za-z0-9][A-Za-z0-9._-]{0,254}\.(?:png|jpg|webp|gif)$/u;
+const EMAIL_IMAGE_ATTACHMENT_EXTENSIONS: Record<
+  OrderEmailImageAttachment['contentType'],
+  ReadonlySet<string>
+> = {
+  'image/png': new Set(['png']),
+  'image/jpeg': new Set(['jpg', 'jpeg']),
+  'image/webp': new Set(['webp']),
+  'image/gif': new Set(['gif'])
+};
+const EMAIL_IMAGE_ATTACHMENT_FIELDS = new Set([
+  'url',
+  'pathname',
+  'filename',
+  'contentType',
+  'size'
+]);
 
 const requestedByDefault = new Set<OrderEmailEventType>([
   'order_submitted',
@@ -196,15 +237,18 @@ const defaultTemplates = Object.fromEntries(
 ) as OrderEmailTemplates;
 
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 3,
+  version: 5,
   enabled: false,
+  confirmCustomerEmails: true,
   senderName: 'Atehna',
   fromEmail: '',
   replyToEmail: COMPANY_INFO.orderEmail,
   adminRecipients: [],
   subjectPrefix: 'Atehna',
   siteUrl: 'https://www.atehna-test.site',
+  headerText: '',
   footerText: `Lep pozdrav,\n${COMPANY_INFO.name}`,
+  imageAttachment: null,
   events: defaultEvents,
   templates: defaultTemplates,
   updatedAt: null
@@ -216,10 +260,6 @@ function asRecord(value: unknown): UnknownRecord {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as UnknownRecord)
     : {};
-}
-
-function asTrimmedText(value: unknown, fallback: string): string {
-  return typeof value === 'string' ? value.trim() : fallback;
 }
 
 function sanitizeBodyText(value: unknown, fallback: string): string {
@@ -261,6 +301,137 @@ function normalizeSiteUrl(value: unknown): string {
   }
 }
 
+function imageAttachmentExtension(value: string): string {
+  return value.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function isSafeImageAttachmentFilename(
+  value: string,
+  contentType: OrderEmailImageAttachment['contentType']
+): boolean {
+  return (
+    value === value.trim() &&
+    value.length > 0 &&
+    value.length <= 255 &&
+    value !== '.' &&
+    value !== '..' &&
+    !/[\\/]/u.test(value) &&
+    !HEADER_CONTROL_PATTERN.test(value) &&
+    EMAIL_IMAGE_ATTACHMENT_EXTENSIONS[contentType].has(
+      imageAttachmentExtension(value)
+    )
+  );
+}
+
+function isTrustedImageAttachmentUrl(url: string, pathname: string): boolean {
+  if (url !== url.trim() || !EMAIL_IMAGE_ATTACHMENT_PATH_PATTERN.test(pathname)) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.port &&
+      !parsed.search &&
+      !parsed.hash &&
+      VERCEL_PUBLIC_BLOB_HOST_PATTERN.test(parsed.hostname.toLowerCase()) &&
+      parsed.pathname === `/${pathname}`
+    );
+  } catch {
+    return false;
+  }
+}
+
+function normalizeOrderEmailImageAttachment(
+  value: unknown
+): OrderEmailImageAttachment | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as UnknownRecord;
+  if (Object.keys(record).some((key) => !EMAIL_IMAGE_ATTACHMENT_FIELDS.has(key))) {
+    return null;
+  }
+  const url = typeof record.url === 'string' ? record.url.trim() : '';
+  const pathname =
+    typeof record.pathname === 'string' ? record.pathname.trim() : '';
+  const filename =
+    typeof record.filename === 'string' ? record.filename.trim() : '';
+  const contentType =
+    typeof record.contentType === 'string' ? record.contentType : '';
+  const size = record.size;
+  if (
+    !ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES.includes(
+      contentType as OrderEmailImageAttachment['contentType']
+    ) ||
+    typeof size !== 'number' ||
+    !Number.isSafeInteger(size) ||
+    size <= 0 ||
+    size > ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES
+  ) {
+    return null;
+  }
+  const safeContentType = contentType as OrderEmailImageAttachment['contentType'];
+  if (
+    !isSafeImageAttachmentFilename(filename, safeContentType) ||
+    !EMAIL_IMAGE_ATTACHMENT_EXTENSIONS[safeContentType].has(
+      imageAttachmentExtension(pathname)
+    ) ||
+    !isTrustedImageAttachmentUrl(url, pathname)
+  ) {
+    return null;
+  }
+  return { url, pathname, filename, contentType: safeContentType, size };
+}
+
+function validateOrderEmailImageAttachment(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return ['Slikovna priponka skupne e-pošte ni veljavna.'];
+  }
+  const record = value as UnknownRecord;
+  const errors: string[] = [];
+  if (Object.keys(record).some((key) => !EMAIL_IMAGE_ATTACHMENT_FIELDS.has(key))) {
+    errors.push('Slikovna priponka vsebuje nedovoljena polja.');
+  }
+  const contentType =
+    typeof record.contentType === 'string' ? record.contentType : '';
+  if (
+    !ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES.includes(
+      contentType as OrderEmailImageAttachment['contentType']
+    )
+  ) {
+    errors.push('Slikovna priponka mora biti datoteka PNG, JPEG, WebP ali GIF.');
+    return errors;
+  }
+  const safeContentType = contentType as OrderEmailImageAttachment['contentType'];
+  const filename = typeof record.filename === 'string' ? record.filename : '';
+  const pathname = typeof record.pathname === 'string' ? record.pathname : '';
+  const url = typeof record.url === 'string' ? record.url : '';
+  if (!isSafeImageAttachmentFilename(filename, safeContentType)) {
+    errors.push('Ime slikovne priponke ni veljavno ali se ne ujema z vrsto datoteke.');
+  }
+  if (
+    !EMAIL_IMAGE_ATTACHMENT_EXTENSIONS[safeContentType].has(
+      imageAttachmentExtension(pathname)
+    ) ||
+    !isTrustedImageAttachmentUrl(url, pathname)
+  ) {
+    errors.push(
+      'Slikovna priponka mora uporabljati zaupanja vreden javni naslov Vercel Blob in pot email/shared.'
+    );
+  }
+  if (
+    typeof record.size !== 'number' ||
+    !Number.isSafeInteger(record.size) ||
+    record.size <= 0 ||
+    record.size > ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES
+  ) {
+    errors.push('Slikovna priponka je prazna ali večja od 5 MB.');
+  }
+  return errors;
+}
+
 function normalizeAdminRecipients(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
 
@@ -286,6 +457,9 @@ export function cloneOrderEmailSettings(
   return {
     ...value,
     adminRecipients: [...value.adminRecipients],
+    imageAttachment: value.imageAttachment
+      ? { ...value.imageAttachment }
+      : null,
     events: Object.fromEntries(
       ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => [
         eventType,
@@ -384,11 +558,15 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 3,
+    version: 5,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
         : DEFAULT_ORDER_EMAIL_SETTINGS.enabled,
+    confirmCustomerEmails:
+      typeof record.confirmCustomerEmails === 'boolean'
+        ? record.confirmCustomerEmails
+        : DEFAULT_ORDER_EMAIL_SETTINGS.confirmCustomerEmails,
     senderName: sanitizeHeaderText(
       record.senderName,
       DEFAULT_ORDER_EMAIL_SETTINGS.senderName
@@ -404,10 +582,15 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       DEFAULT_ORDER_EMAIL_SETTINGS.subjectPrefix
     ),
     siteUrl: normalizeSiteUrl(record.siteUrl),
-    footerText: asTrimmedText(
+    headerText: sanitizeBodyText(
+      record.headerText,
+      DEFAULT_ORDER_EMAIL_SETTINGS.headerText
+    ).slice(0, ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH),
+    footerText: sanitizeBodyText(
       record.footerText,
       DEFAULT_ORDER_EMAIL_SETTINGS.footerText
-    ),
+    ).slice(0, ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH),
+    imageAttachment: normalizeOrderEmailImageAttachment(record.imageAttachment),
     events,
     templates,
     updatedAt
@@ -534,6 +717,27 @@ export function validateOrderEmailSettingsInput(value: unknown): string[] {
       errors.push(`${fieldLabel} ne sme vsebovati kontrolnih znakov ali novih vrstic.`);
     }
   }
+
+  const rawSharedTextFields: Array<[unknown, string]> = [
+    [record.headerText, 'Besedilo glave'],
+    [record.footerText, 'Besedilo noge']
+  ];
+  for (const [fieldValue, fieldLabel] of rawSharedTextFields) {
+    if (fieldValue === undefined) continue;
+    if (typeof fieldValue !== 'string') {
+      errors.push(`${fieldLabel} ni veljavno.`);
+      continue;
+    }
+    if (BODY_CONTROL_PATTERN.test(fieldValue)) {
+      errors.push(`${fieldLabel} vsebuje nedovoljene kontrolne znake.`);
+    }
+    if (fieldValue.length > ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH) {
+      errors.push(
+        `${fieldLabel} je lahko dolgo največ ${ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH} znakov.`
+      );
+    }
+  }
+  errors.push(...validateOrderEmailImageAttachment(record.imageAttachment));
 
   const rawRecipients = Array.isArray(record.adminRecipients)
     ? record.adminRecipients

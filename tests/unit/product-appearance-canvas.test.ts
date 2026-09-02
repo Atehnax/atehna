@@ -432,9 +432,8 @@ describe('product appearance hybrid canvas contracts', () => {
     expect(canvasElementSource).toContain('data-product-canvas-resize');
     expect(canvasElementSource).toContain('data-product-canvas-move-handle');
     expect(canvasElementSource).toContain('handleMoveKeyDown');
-    expect(canvasElementSource).toContain(
-      'h-full overflow-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
-    );
+    expect(canvasElementSource).toContain('data-product-canvas-content-overflow');
+    expect(canvasElementSource).toContain('h-full overflow-visible');
     expect(guideOverlaySource).toContain('data-product-editor-aid="guides"');
     expect(guideOverlaySource).toContain('data-product-editor-aid="measurements"');
     expect(guideOverlaySource).toContain('Najbližje:');

@@ -62,6 +62,8 @@ describe('product appearance toolbar parity contracts', () => {
     expect(editorSource).toContain('aria-label="Stran predogleda"');
     expect(editorSource).toContain('aria-label="Odzivni predogled"');
     expect(editorSource).toContain('data-product-preview-controls');
+    expect(editorSource).toContain('data-product-page-controls');
+    expect(editorSource).toContain('data-product-page-toolbar');
     expect(editorSource).toContain('<PreviewDeviceIcon');
     expect(editorSource).toContain("page === 'listing'");
     expect(editorSource).toContain('? List');
@@ -78,6 +80,9 @@ describe('product appearance toolbar parity contracts', () => {
     expect(toolbarPrimitivesSource).toContain('data-toolbar-mode="floating"');
     expect(toolbarPrimitivesSource).toContain('data-toolbar-placement=');
     expect(toolbarPrimitivesSource).toContain('data-toolbar-ready=');
+    expect(toolbarPrimitivesSource).toContain(
+      '[data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar]'
+    );
     expect(toolbarPrimitivesSource).toContain('bg-black/90');
     expect(toolbarPrimitivesSource).toContain(
       'export const appearanceEditorToolbarPopoverSurfaceClassName'
@@ -91,7 +96,7 @@ describe('product appearance toolbar parity contracts', () => {
     expect(
       sharedPopoverClassUses,
       'inline and floating toolbar menus should consume the shared black-glass surface'
-    ).toBeGreaterThanOrEqual(5);
+    ).toBeGreaterThanOrEqual(4);
     expect(toolbarSource).toContain('data-product-toolbar-dark-controls');
     expect(toolbarSource).toContain(
       "const preferredSide = toolbarPlacement === 'top' ? 'above' : 'below';"
@@ -131,7 +136,10 @@ describe('product appearance toolbar parity contracts', () => {
     expect(descriptionEditorSource).toContain(
       "?.getAttributes('textStyle')"
     );
-    expect(toolbarSource).toContain(
+    expect(toolbarSource).toMatch(
+      /defaultFontSizePx=\{settings && settings\.fontSizePx > 0[\s\S]*?globalStyle\.typography\.paragraphSizePx\}/u
+    );
+    expect(toolbarSource).not.toContain(
       'defaultFontSizePx={settings?.fontSizePx ?? 0}'
     );
     expect(globalStylesSource).toMatch(

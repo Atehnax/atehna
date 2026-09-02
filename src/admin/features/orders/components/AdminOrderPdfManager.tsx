@@ -50,11 +50,13 @@ export default function AdminOrderPdfManager({
   orderId,
   documents,
   adminNotesSlot,
+  unsavedChangesReason,
   generationDisabledReason
 }: {
   orderId: number;
   documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
+  unsavedChangesReason?: string;
   generationDisabledReason?: string;
 }) {
   const [docList, setDocList] = useState(documents);
@@ -72,10 +74,12 @@ export default function AdminOrderPdfManager({
   const grouped = useMemo<Record<PdfTypeKey, PersistedOrderPdfDocument[]>>(() => {
     return groupDocumentsByType(docList) as Record<PdfTypeKey, PersistedOrderPdfDocument[]>;
   }, [docList]);
+  const effectiveGenerationDisabledReason =
+    unsavedChangesReason ?? generationDisabledReason;
 
   const handleGenerate = async (type: GeneratePdfType) => {
-    if (generationDisabledReason) {
-      toast.info(generationDisabledReason);
+    if (effectiveGenerationDisabledReason) {
+      toast.info(effectiveGenerationDisabledReason);
       return;
     }
     setLoadingType(type);
@@ -112,6 +116,10 @@ export default function AdminOrderPdfManager({
   };
 
   const handleUpload = async (type: PdfTypeKey, file: File) => {
+    if (unsavedChangesReason) {
+      toast.info(unsavedChangesReason);
+      return;
+    }
     setUploadingType(type);
     try {
       const formData = new FormData();
@@ -184,7 +192,7 @@ export default function AdminOrderPdfManager({
     <>
       <AdminDetailDocumentsCard
         beforeTitle={adminNotesSlot}
-        notice={generationDisabledReason}
+        notice={effectiveGenerationDisabledReason}
       >
         {PDF_TYPES.map((pdfType) => {
           const docs = grouped[pdfType.key];
@@ -218,7 +226,10 @@ export default function AdminOrderPdfManager({
                       type="file"
                       accept="application/pdf"
                       className="hidden"
-                      disabled={uploadingType === pdfType.key}
+                      disabled={
+                        Boolean(unsavedChangesReason) ||
+                        uploadingType === pdfType.key
+                      }
                       onChange={(event) => {
                         const file = event.target.files?.[0];
                         if (!file) return;
@@ -241,10 +252,10 @@ export default function AdminOrderPdfManager({
                       type="button"
                       onClick={() => void handleGenerate(generateType)}
                       disabled={
-                        Boolean(generationDisabledReason) ||
+                        Boolean(effectiveGenerationDisabledReason) ||
                         loadingType === generateType
                       }
-                      title={generationDisabledReason ?? 'Ustvari'}
+                      title={effectiveGenerationDisabledReason ?? 'Ustvari'}
                     >
                       {loadingType === generateType ? (
                         <Spinner size="sm" className="text-slate-500" />
@@ -258,7 +269,11 @@ export default function AdminOrderPdfManager({
                       onClick={() =>
                         uploadInputRefs.current[pdfType.key]?.click()
                       }
-                      disabled={uploadingType === pdfType.key}
+                      disabled={
+                        Boolean(unsavedChangesReason) ||
+                        uploadingType === pdfType.key
+                      }
+                      title={unsavedChangesReason ?? 'Naloži'}
                     >
                       {uploadingType === pdfType.key ? (
                         <Spinner size="sm" className="text-slate-500" />
@@ -284,7 +299,7 @@ export default function AdminOrderPdfManager({
                               icon: <PdfFileIcon />,
                               onSelect: () => void handleGenerate(generateType),
                               disabled:
-                                Boolean(generationDisabledReason) ||
+                                Boolean(effectiveGenerationDisabledReason) ||
                                 loadingType === generateType
                             }
                           ]
@@ -299,7 +314,9 @@ export default function AdminOrderPdfManager({
                               icon: <UploadIcon />,
                               onSelect: () =>
                                 uploadInputRefs.current[pdfType.key]?.click(),
-                              disabled: uploadingType === pdfType.key
+                              disabled:
+                                Boolean(unsavedChangesReason) ||
+                                uploadingType === pdfType.key
                             }
                           ]
                         : []),

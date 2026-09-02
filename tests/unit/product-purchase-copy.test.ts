@@ -55,7 +55,8 @@ describe('product purchase copy contracts', () => {
       inStockDetail: 'Na voljo: {stock} {unit}',
       insufficientStockDetail: expect.stringContaining('{minimum}'),
       quantityLabel: 'Količina',
-      addToCartActionLabel: 'Dodaj v košarico',
+      minimumOrderLabel: 'Minimalno naročilo',
+      addToCartActionLabel: 'Dodaj v košarico'
     });
     expect(defaults.deliveryFallbackMessage).toBe(
       'Predvideni rok sporočimo ob potrditvi naročila.'
@@ -71,6 +72,16 @@ describe('product purchase copy contracts', () => {
         }
       }).purchaseArea.copy.deliveryFallbackMessage
     ).toBe('Predvideni rok pošljemo po e-pošti.');
+    expect(
+      normalizeProductAppearanceConfig({
+        purchaseArea: {
+          copy: {
+            minimumOrderLabel: 'Najmanjše naročilo'
+          }
+        }
+      }).purchaseArea.copy.minimumOrderLabel
+    ).toBe('Minimalno naročilo');
+
 
     const normalized = normalizeProductAppearanceConfig({
       purchaseArea: {
@@ -121,6 +132,7 @@ describe('product purchase copy contracts', () => {
       'product-availability',
       'product-summary',
       'product-quantity',
+      'product-minimum-order',
       'product-primary-action',
       'product-delivery',
       'product-secondary-action'
@@ -134,7 +146,10 @@ describe('product purchase copy contracts', () => {
     );
     for (const elementId of [
       'product-quantity-label',
-      'product-quantity-controls'
+      'product-quantity-controls',
+      'product-quantity-decrease',
+      'product-quantity-input',
+      'product-quantity-increase'
     ]) {
       expect(purchasePanelSource).toContain(`'${elementId}'`);
       expect(adminPageSource).toContain(`id: '${elementId}'`);
@@ -142,9 +157,7 @@ describe('product purchase copy contracts', () => {
 
     for (const nestedElementId of [
       'product-quantity-stepper',
-      'product-quantity-decrease',
       'product-quantity-value',
-      'product-quantity-increase',
       'product-quantity-unit'
     ]) {
       expect(purchasePanelSource).not.toContain(`'${nestedElementId}'`);
@@ -153,7 +166,7 @@ describe('product purchase copy contracts', () => {
 
     const globalStylesSource = source('src/shared/styles/globals.css');
     expect(purchasePanelSource).toContain(
-      'className="storefront-product-quantity-stepper'
+      'storefront-product-quantity-stepper'
     );
     expect(purchasePanelSource).not.toContain(
       'storefront-product-quantity-stepper-canvas'
@@ -166,7 +179,7 @@ describe('product purchase copy contracts', () => {
       "selectedElementId === 'product-purchase'"
     );
     expect(toolbarSource).toContain(
-      'purchaseCopyGroups.some((group) => group.id === selectedElementId)'
+      'purchaseCopyGroups.some((group) => group.id === purchaseCopyElementId)'
     );
     expect(toolbarSource).toContain(
       'data-testid={`product-purchase-copy-${field.key}`}'
@@ -176,6 +189,16 @@ describe('product purchase copy contracts', () => {
     expect(adminPageSource).toContain('purchaseArea={config.purchaseArea}');
     expect(adminPageSource).toContain(
       "onPurchaseAreaChange={(updates) => updateSection('purchaseArea', updates)}"
+    );
+    expect(purchasePanelSource).toContain(
+      "appearance.purchaseArea.showMinimumOrder && variant && variant.minOrder > 1"
+    );
+    expect(purchasePanelSource).toContain("'product-minimum-order'");
+    expect(purchasePanelSource).toContain(
+      '<span>{copy.minimumOrderLabel}</span>: {variant.minOrder}'
+    );
+    expect(adminPageSource).toContain(
+      "id: 'product-minimum-order'"
     );
   });
 

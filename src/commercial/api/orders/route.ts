@@ -16,6 +16,8 @@ import {
   type OrderSelection
 } from '@/shared/server/orderCommerce';
 import { placeOrderFromFrozenSnapshot } from '@/shared/server/orderPlacement';
+import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
+import { OrderStockConflictError } from '@/shared/server/orderStockHolds';
 import {
   issueOrderAccessToken,
   setOrderAccessSessionCookie,
@@ -413,7 +415,8 @@ async function reserveIdempotencyKey(
 async function insertOrder(
   client: PoolClient,
   customer: NormalizedCustomer,
-  quote: AuthoritativeOrderQuote
+  quote: AuthoritativeOrderQuote,
+  stockEnforcementEnabled: boolean
 ) {
   if (
     quote.shipping.status !== 'calculated' ||
@@ -452,7 +455,9 @@ async function insertOrder(
     },
     pricingVersion: stockNotCommitted
       ? `${quote.pricingVersion}-school-uncommitted`
-      : `${quote.pricingVersion}-stock-committed`,
+      : stockEnforcementEnabled
+        ? `${quote.pricingVersion}-stock-committed`
+        : `${quote.pricingVersion}-stock-enforcement-disabled`,
     commitmentStatus,
     contractStatus,
     contractActor:
@@ -469,6 +474,7 @@ async function insertOrder(
           : 'Naročilo z obveznostjo plačila'
     },
     commitStock: !stockNotCommitted,
+    stockEnforcementEnabled,
     stockActor: {
       type: customer.customerType === 'school' ? 'school_purchase_order' : 'customer'
     }
@@ -495,6 +501,26 @@ function errorResponse(error: unknown) {
       },
       {
         status: error.status,
+        headers: { 'Cache-Control': 'no-store' }
+      }
+    );
+  }
+  if (error instanceof OrderStockConflictError) {
+    return NextResponse.json(
+      {
+        code: error.code,
+        message: error.message,
+        issues: [
+          {
+            code: error.code,
+            message: error.message,
+            variantId: error.variantId,
+            availableStock: error.availableStock
+          }
+        ]
+      },
+      {
+        status: 409,
         headers: { 'Cache-Control': 'no-store' }
       }
     );
@@ -588,6 +614,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const stockEnforcementEnabled =
+      await isStockEnforcementEnabled(client);
     const quoteCustomerLabels = normalizeOrderQuoteCustomerLabels([
       customer.organizationName,
       customer.contactName,
@@ -595,7 +623,8 @@ export async function POST(request: Request) {
     ]);
     const quote = await buildAuthoritativeOrderQuote(client, selections, {
       lockVariants: true,
-      customerLabels: quoteCustomerLabels
+      customerLabels: quoteCustomerLabels,
+      stockEnforcementEnabled
     });
     if (
       quote.shippingConfigurationVersion !== shippingConfigurationVersion ||
@@ -637,7 +666,12 @@ export async function POST(request: Request) {
       gross: quote.totals.gross,
       currency: quote.totals.currency
     };
-    const inserted = await insertOrder(client, customer, quote);
+    const inserted = await insertOrder(
+      client,
+      customer,
+      quote,
+      stockEnforcementEnabled
+    );
     const accessToken = await issueOrderAccessToken(client, inserted.orderId, {
       scopes:
         customer.customerType === 'school'

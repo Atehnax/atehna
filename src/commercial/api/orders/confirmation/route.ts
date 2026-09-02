@@ -168,6 +168,7 @@ export async function GET(request: NextRequest) {
             status,
             payment_status,
             commitment_status,
+            stock_enforcement_applied,
             contract_status,
             subtotal,
             tax,
@@ -411,7 +412,9 @@ export async function GET(request: NextRequest) {
         contractStatus: String(
           order.contract_status ?? 'pending_seller_acceptance'
         ),
-        stockNotCommitted: order.commitment_status === 'pending_confirmation',
+        stockNotCommitted:
+          order.commitment_status === 'pending_confirmation' ||
+          order.stock_enforcement_applied === false,
         createdAt: String(order.created_at ?? ''),
         pricingVersion: String(order.pricing_version),
         parcelCount: Math.max(1, Math.trunc(numberValue(order.parcel_count) || 1)),

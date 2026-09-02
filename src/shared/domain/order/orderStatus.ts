@@ -12,6 +12,19 @@ export const ORDER_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Preklicano' }
 ] as const;
 
+export const ORDER_STATUS_ACTION_OPTIONS: ReadonlyArray<{
+  value: (typeof ORDER_STATUS_OPTIONS)[number]['value'];
+  label: string;
+  description?: string;
+}> = ORDER_STATUS_OPTIONS.map((option) =>
+  option.value === 'in_progress'
+    ? {
+        ...option,
+        description: 'Sprejme naročilo in ga potrdi kot zavezujoče.'
+      }
+    : option
+);
+
 type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
 
 export const ORDER_ATTENTION_STATUSES = [

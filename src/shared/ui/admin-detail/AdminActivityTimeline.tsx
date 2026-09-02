@@ -1,6 +1,7 @@
 export type AdminActivityTimelineItem = {
   id: string | number;
   occurredAt: string;
+  timestampKnown: boolean;
   timestampLabel: string;
   compactLabel: string;
   fullLabel: string;
@@ -64,7 +65,11 @@ export function AdminActivityTimeline({
                   >
                     <span className="font-semibold text-slate-700">{item.compactLabel}</span>
                     {' · '}
-                    <time dateTime={item.occurredAt}>{item.timestampLabel}</time>
+                    {item.timestampKnown ? (
+                      <time dateTime={item.occurredAt}>{item.timestampLabel}</time>
+                    ) : (
+                      <span data-activity-timestamp-unknown>{item.timestampLabel}</span>
+                    )}
                   </p>
                 </div>
                 <div className="relative mt-1 flex h-3 items-center justify-center" aria-hidden>

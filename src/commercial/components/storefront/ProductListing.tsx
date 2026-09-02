@@ -164,14 +164,24 @@ export function ProductListingToolbar({
   mode,
   sort,
   onModeChange,
-  onSortChange
+  onSortChange,
+  canvasWrapper
 }: {
   appearance: ProductAppearanceConfig;
   mode: 'grid' | 'list';
   sort: SortMode;
   onModeChange: (mode: 'grid' | 'list') => void;
   onSortChange: (sort: SortMode) => void;
+  canvasWrapper?: (
+    elementId: string,
+    label: string,
+    children: ReactNode,
+    className?: string
+  ) => ReactNode;
 }) {
+  const wrapCanvasElement = canvasWrapper
+    ?? ((_elementId: string, _label: string, children: ReactNode) => children);
+
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-3">
       {appearance.listings.availableModes === 'both' ? (
@@ -180,33 +190,44 @@ export function ProductListingToolbar({
           aria-label="Pogled izdelkov"
         >
           {(['grid', 'list'] as const).map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              onClick={() => onModeChange(candidate)}
-              aria-pressed={mode === candidate}
-              className={`min-h-10 px-3 text-sm font-semibold ${
-                mode === candidate
-                  ? 'bg-[color:var(--site-color-primary)] text-[color:var(--site-color-primary-foreground)]'
-                  : 'bg-[color:var(--site-color-surface)] text-[color:var(--site-color-text)]'
-              }`}
-            >
-              {candidate === 'grid' ? 'Mreža' : 'Seznam'}
-            </button>
+            <span key={candidate} className="contents">
+              {wrapCanvasElement(
+                `listing-view-${candidate}`,
+                candidate === 'grid' ? 'Gumb Mreža' : 'Gumb Seznam',
+                <button
+                  type="button"
+                  onClick={() => onModeChange(candidate)}
+                  aria-pressed={mode === candidate}
+                  className={`min-h-10 px-3 text-sm font-semibold ${
+                    mode === candidate
+                      ? 'bg-[color:var(--site-color-primary)] text-[color:var(--site-color-primary-foreground)]'
+                      : 'bg-[color:var(--site-color-surface)] text-[color:var(--site-color-text)]'
+                  }`}
+                >
+                  {candidate === 'grid' ? 'Mreža' : 'Seznam'}
+                </button>,
+                'inline-flex'
+              )}
+            </span>
           ))}
         </div>
       ) : null}
-      <select
-        aria-label="Razvrsti"
-        className="site-field storefront-product-listing-sort-select"
-        value={sort}
-        onChange={(event) => onSortChange(event.target.value as SortMode)}
-      >
-        <option value="recommended">Razvrsti po: Priporočeno</option>
-        <option value="name">Razvrsti po: Imenu</option>
-        <option value="price-asc">Razvrsti po: Najnižji ceni</option>
-        <option value="price-desc">Razvrsti po: Najvišji ceni</option>
-      </select>
+      {wrapCanvasElement(
+        'listing-sort',
+        'Polje razvrščanja',
+        <select
+          aria-label="Razvrsti"
+          className="site-field storefront-product-listing-sort-select"
+          value={sort}
+          onChange={(event) => onSortChange(event.target.value as SortMode)}
+        >
+          <option value="recommended">Razvrsti po: Priporočeno</option>
+          <option value="name">Razvrsti po: Imenu</option>
+          <option value="price-asc">Razvrsti po: Najnižji ceni</option>
+          <option value="price-desc">Razvrsti po: Najvišji ceni</option>
+        </select>,
+        'inline-flex min-w-0'
+      )}
     </div>
   );
 }

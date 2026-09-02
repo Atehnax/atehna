@@ -152,14 +152,16 @@ test('manual quote requires null shipping and gross totals', () => {
   );
 });
 
-test('cart surfaces keep the shipping breakdown while checkout and confirmation use one final customer row', () => {
+test('cart page keeps the shipping breakdown while drawer, checkout and confirmation use one final customer row', () => {
   const presentationSource = source(
     'src/commercial/order/components/ShippingCalculationRows.tsx'
   );
-  const detailedPageSources = [
-    'src/commercial/features/cart/CartPageClient.tsx',
+  const cartPageSource = source(
+    'src/commercial/features/cart/CartPageClient.tsx'
+  );
+  const cartDrawerSource = source(
     'src/commercial/features/cart/CartDrawer.tsx'
-  ].map(source);
+  );
   const orderPageSource = source(
     'src/commercial/order/components/OrderPageClient.tsx'
   );
@@ -180,11 +182,34 @@ test('cart surfaces keep the shipping breakdown while checkout and confirmation 
   assert.match(presentationSource, /frozenOverride\.amount === 0/u);
   assert.match(presentationSource, /Po dogovoru/u);
   assert.match(presentationSource, /finalAmountCents/u);
-  for (const pageSource of detailedPageSources) {
-    assert.match(pageSource, /ShippingCalculationRows/u);
-    assert.doesNotMatch(pageSource, /free.?Shipping|Brezplačn[a]? dostav/u);
-  }
+  assert.match(cartPageSource, /ShippingCalculationRows/u);
+  assert.doesNotMatch(cartPageSource, /free.?Shipping|Brezplačn[a]? dostav/u);
+  assert.doesNotMatch(
+    cartDrawerSource,
+    /ShippingCalculationRows|ShippingManualQuoteNotice/u
+  );
+  assert.equal((cartDrawerSource.match(/Poštnina/gu) ?? []).length, 1);
+  assert.match(
+    cartDrawerSource,
+    /data-testid="cart-drawer-shipping"[\s\S]*?data-summary-row="shipping"[\s\S]*?<dt>Poštnina<\/dt>[\s\S]*?totals\?\.shipping !== null[\s\S]*?formatEuro\(totals\.shipping\)[\s\S]*?shipping\.status === 'manual_quote'[\s\S]*?'Po dogovoru'/u
+  );
+  assert.doesNotMatch(
+    cartDrawerSource,
+    /Osnovna poštnina|Referenčna cena posameznega paketa|\d+ × S|Po popustu za več kosov|Samodejno izračunana poštnina/u
+  );
   assert.doesNotMatch(orderPageSource, /<ShippingCalculationRows/u);
+  assert.match(
+    orderPageSource,
+    /const ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME =\s*\n\s*'flex justify-between gap-4 text-sm font-normal not-italic text-\[color:var\(--site-color-text\)\]';/u
+  );
+  assert.equal(
+    (
+      orderPageSource.match(
+        /className=\{ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME\}/gu
+      ) ?? []
+    ).length,
+    3
+  );
   assert.match(
     orderPageSource,
     /data-summary-row="shipping"[\s\S]*?<dt>Poštnina<\/dt>[\s\S]*?totals\?\.shipping !== null[\s\S]*?formatEuro\(totals\.shipping\)[\s\S]*?shipping\.status === 'manual_quote'[\s\S]*?'Po dogovoru'/u

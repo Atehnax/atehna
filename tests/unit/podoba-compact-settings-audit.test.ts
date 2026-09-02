@@ -23,11 +23,28 @@ const navigationSource = sourceFor('AdminNavigationPageClient.tsx');
 const globalSource = sourceFor('AdminGlobalStylePageClient.tsx');
 const productPageSource = sourceFor('AdminProductAppearancePageClient.tsx');
 const productToolbarSource = sourceFor('ProductAppearanceContextToolbar.tsx');
+const productDescriptionSource = sourceFor('ProductDescriptionRichTextEditor.tsx');
 
 function openingTagAround(source: string, index: number) {
   const start = source.lastIndexOf('<', index);
   const end = source.indexOf('>', index);
   return start >= 0 && end >= 0 ? source.slice(start, end + 1) : '';
+}
+
+function compactSelectOpeningTags(source: string) {
+  const tags: string[] = [];
+  let index = source.indexOf('<AppearanceEditorCompactSelect');
+  while (index >= 0) {
+    tags.push(openingTagAround(source, index));
+    index = source.indexOf('<AppearanceEditorCompactSelect', index + 1);
+  }
+  return tags;
+}
+
+function compactSelectOpeningTagForMarker(source: string, marker: string) {
+  const markerIndex = source.indexOf(marker);
+  assert.notEqual(markerIndex, -1, `Missing compact select marker: ${marker}`);
+  return openingTagAround(source, markerIndex);
 }
 
 test('every Podoba selector uses the compact themed listbox instead of a native select', () => {
@@ -39,6 +56,22 @@ test('every Podoba selector uses the compact themed listbox instead of a native 
   for (const source of [landingSource, logoSource, navigationSource, globalSource, productPageSource, productToolbarSource]) {
     assert.match(source, /AppearanceEditorCompactSelect/u);
   }
+});
+
+test('the landing-page header uses the standard compact Podoba publication status', () => {
+  assert.match(
+    landingSource,
+    /mr-1 inline-flex items-center gap-1\.5 text-\[11px\] font-medium text-slate-500/u
+  );
+  assert.match(
+    landingSource,
+    /h-1\.5 w-1\.5 rounded-full.*bg-amber-500.*bg-emerald-500/u
+  );
+  assert.match(landingSource, /aria-live="polite"/u);
+  assert.doesNotMatch(
+    landingSource,
+    /inline-flex h-8 items-center rounded-full border px-3 text-\[12px\] font-semibold/u
+  );
 });
 
 test('compact selects are portal-layered, dismiss externally, and preserve keyboard/focus semantics', () => {
@@ -56,6 +89,9 @@ test('compact selects are portal-layered, dismiss externally, and preserve keybo
   assert.match(primitivesSource, /role="listbox"/u);
   assert.match(primitivesSource, /role="option"/u);
   assert.match(primitivesSource, /aria-selected=/u);
+  assert.match(primitivesSource, /data-appearance-editor-compact-select-tone=\{resolvedTone\}/u);
+  assert.match(primitivesSource, /border-slate-300 bg-white font-normal text-slate-700/u);
+  assert.match(primitivesSource, /rounded-md border-slate-200 bg-white text-slate-700/u);
   assert.match(primitivesSource, /bg-slate-800/u);
   assert.match(primitivesSource, /bg-slate-950\/95/u);
   assert.match(primitivesSource, /z-\[2147483647\]/u);
@@ -74,6 +110,55 @@ test('compact selects are portal-layered, dismiss externally, and preserve keybo
   const portalIndex = primitivesSource.indexOf('data-appearance-editor-compact-select-portal');
   const portalTag = openingTagAround(primitivesSource, portalIndex);
   assert.doesNotMatch(portalTag, /overflow(?:-[xy])?-(?:auto|scroll)/u);
+});
+
+test('light settings inherit the admin palette while dark editor surfaces opt in', () => {
+  assert.match(primitivesSource, /createContext<AppearanceEditorToolbarTone>\('light'\)/u);
+  assert.match(primitivesSource, /const resolvedTone = tone \?\? inheritedTone/u);
+
+  for (const source of [navigationSource, productPageSource]) {
+    const tags = compactSelectOpeningTags(source);
+    assert.ok(tags.length > 0);
+    for (const tag of tags) assert.doesNotMatch(tag, /tone="dark"/u);
+  }
+
+  for (const source of [landingSource, productToolbarSource, productDescriptionSource, logoTextSource]) {
+    const tags = compactSelectOpeningTags(source);
+    assert.ok(tags.length > 0);
+    for (const tag of tags) assert.match(tag, /tone="dark"/u);
+  }
+  const logoSelectTags = compactSelectOpeningTags(logoSource);
+  assert.equal(logoSelectTags.length, 1);
+  assert.equal(logoSelectTags.filter((tag) => /tone="dark"/u.test(tag)).length, 1);
+});
+
+test('page-level product and top-bar typography selectors pin the light admin tone and aligned sizing', () => {
+  const productPreviewSelect = compactSelectOpeningTagForMarker(
+    productPageSource,
+    'marker="product-preview-product"'
+  );
+  assert.match(productPreviewSelect, /tone="light"/u);
+  assert.match(productPreviewSelect, /triggerClassName="[^"]*!h-8[^"]*!rounded-md[^"]*!bg-white/u);
+  assert.match(productPageSource, /className="grid max-w-xl gap-1\.5"/u);
+
+  for (const marker of [
+    'marker={`topbar-${device}-font-family`}',
+    'marker={`topbar-${device}-font-weight`}',
+    'marker={`topbar-${device}-font-style`}'
+  ]) {
+    const select = compactSelectOpeningTagForMarker(navigationSource, marker);
+    assert.match(select, /tone="light"/u);
+    assert.match(select, /triggerClassName="[^"]*!h-7[^"]*!rounded-md[^"]*!bg-white/u);
+  }
+
+  assert.match(
+    navigationSource,
+    /grid-cols-\[minmax\(0,1\.12fr\)_minmax\(0,0\.88fr\)\] gap-2\.5/u
+  );
+  assert.match(
+    navigationSource,
+    /grid-cols-\[66px_minmax\(72px,1\.05fr\)_minmax\(58px,0\.95fr\)\] gap-2/u
+  );
 });
 
 test('the shared alignment control is a roving keyboard radiogroup including justified text', () => {
@@ -95,7 +180,7 @@ test('the shared alignment control is a roving keyboard radiogroup including jus
   assert.match(logoTextSource, /options=\{\['left', 'center', 'right'\] as const\}/u);
 });
 
-test('settings surfaces never scroll internally and every legitimate scroller states its purpose', () => {
+test('settings surfaces avoid internal scrolling except for the shared short-viewport fallback', () => {
   const settingsSurfaceOffenders: string[] = [];
   const unclassifiedScrollers: string[] = [];
   const allowedPurposes = /data-appearance-editor-scroll-purpose="(?:preview|navigation|content|data)"/u;
@@ -104,9 +189,17 @@ test('settings surfaces never scroll internally and every legitimate scroller st
     let settingsIndex = source.indexOf('data-appearance-editor-settings-surface');
     while (settingsIndex >= 0) {
       const tag = openingTagAround(source, settingsIndex);
+      const viewportFallback = (
+        /(?:data-appearance-editor-toolbar-popover|data-homepage-toolbar-popover-scroll-region)/u.test(tag)
+        && /data-settings-scroll="internal"/u.test(tag)
+        && /overflow-y-auto/u.test(tag)
+      );
       if (
-        !/data-settings-scroll="none"/u.test(tag)
-        || /\b(?:overflow(?:-[xy])?-(?:auto|scroll)|max-h-)\b/u.test(tag)
+        !viewportFallback
+        && (
+          !/data-settings-scroll="none"/u.test(tag)
+          || /\b(?:overflow(?:-[xy])?-(?:auto|scroll)|max-h-)\b/u.test(tag)
+        )
       ) settingsSurfaceOffenders.push(`${name}: ${tag.slice(0, 180)}`);
       settingsIndex = source.indexOf('data-appearance-editor-settings-surface', settingsIndex + 1);
     }
@@ -114,7 +207,7 @@ test('settings surfaces never scroll internally and every legitimate scroller st
     const scrollPattern = /\b(?:overflow-y-auto|overflow-y-scroll|overflow-auto)\b/gu;
     for (const match of source.matchAll(scrollPattern)) {
       const tag = openingTagAround(source, match.index ?? 0);
-      if (!allowedPurposes.test(tag)) {
+      if (!allowedPurposes.test(tag) && !/(?:data-appearance-editor-toolbar-popover|data-homepage-toolbar-popover-scroll-region)/u.test(tag)) {
         unclassifiedScrollers.push(`${name}: ${tag.slice(0, 180)}`);
       }
     }
@@ -124,17 +217,26 @@ test('settings surfaces never scroll internally and every legitimate scroller st
   assert.deepEqual(unclassifiedScrollers, []);
 });
 
-test('each Podoba route declares at least one compact non-scrolling settings surface', () => {
+test('each Podoba route declares at least one compact, bounded settings surface', () => {
   const routeSources = [
     ['landing', landingSource],
-    ['logo', logoSource],
+    ['logo', `${logoSource}\n${primitivesSource}`],
     ['navigation', navigationSource],
     ['global', globalSource],
     ['product', `${productPageSource}\n${productToolbarSource}`]
   ] as const;
+  assert.match(logoSource, /<AppearanceEditorToolbarPopover/u);
   for (const [route, source] of routeSources) {
     assert.match(source, /data-appearance-editor-settings-surface/u, `${route} has no declared settings surface`);
-    assert.match(source, /data-settings-scroll="none"/u, `${route} does not promise an immediately visible settings surface`);
+    assert.match(
+      source,
+      route === 'logo'
+        ? /data-appearance-editor-toolbar-popover[\s\S]*?data-settings-scroll="internal"/u
+        : route === 'landing'
+          ? /data-homepage-toolbar-popover-scroll-region[\s\S]*?data-settings-scroll="internal"/u
+          : /data-settings-scroll="none"/u,
+      `${route} does not promise an immediately visible or viewport-bounded settings surface`
+    );
   }
 });
 

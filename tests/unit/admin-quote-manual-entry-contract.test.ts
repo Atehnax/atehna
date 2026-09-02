@@ -24,8 +24,8 @@ test('manual admin intake is authenticated, attributed, non-binding, and has no 
   assert.match(route, /catalogItemId: number \| null/u);
   assert.match(route, /catalogVariantId: number \| null/u);
   assert.match(route, /loadAuthoritativeManualQuoteCatalogSnapshot/u);
-  assert.match(route, /catalogItemId: input\.requestedItem\.catalogItemId/u);
-  assert.match(route, /sku: input\.requestedItem\.sku/u);
+  assert.match(route, /catalogItemId: requestedItem\.catalogItemId/u);
+  assert.match(route, /sku: requestedItem\.sku/u);
   assert.match(
     commerce,
     /loadAuthoritativeManualQuoteCatalogSnapshot[\s\S]*?lockVariants: true[\s\S]*?false/u
@@ -60,11 +60,31 @@ test('manual admin intake is authenticated, attributed, non-binding, and has no 
   assert.match(wrapper, /export \{ POST \} from '@\/admin\/api\/quote-requests\/route'/u);
 });
 
-test('manual intake accepts incomplete addresses but issuance requires a complete customer snapshot', () => {
+test('admin quote creation supports a direct draft while preserving full manual intake', () => {
   const route = source('src/admin/api/quote-requests/route.ts');
-  const create = source(
-    'src/admin/features/quotes/components/AdminCreateManualQuoteRequestButton.tsx'
+  const issue = source(
+    'src/admin/api/quote-requests/[quoteRequestId]/issue/route.ts'
   );
+
+  assert.match(route, /\bmode\b[\s\S]{0,120}?['"]draft['"]/u);
+  assert.match(route, /['"]Osnutek['"]/u);
+  assert.match(route, /['"]draft@atehna\.si['"]/u);
+  assert.match(route, /requestedItem[\s\S]{0,120}?\bnull\b/u);
+  assert.match(route, /items:\s*requestedItem \? \[requestedItem\] : \[\]/u);
+
+  // The populated branch remains available for callers that submit a complete intake.
+  assert.match(route, /loadAuthoritativeManualQuoteCatalogSnapshot/u);
+  assert.match(route, /await insertCatalogRequestItem/u);
+  assert.match(route, /await insertManualRequestItem/u);
+
+  // Draft sentinels satisfy storage constraints, but must never pass issuance validation.
+  assert.match(issue, /QUOTE_CUSTOMER_DETAILS_INCOMPLETE/u);
+  assert.match(issue, /['"]Osnutek['"]/u);
+  assert.match(issue, /['"]draft@atehna\.si['"]/u);
+});
+
+test('legacy manual intake accepts incomplete addresses but issuance requires a complete customer snapshot', () => {
+  const route = source('src/admin/api/quote-requests/route.ts');
   const detailsRoute = source(
     'src/admin/api/quote-requests/[quoteRequestId]/details/route.ts'
   );
@@ -82,12 +102,6 @@ test('manual intake accepts incomplete addresses but issuance requires a complet
   assert.match(route, /postalCode !== null && !POSTAL_CODE_PATTERN\.test\(postalCode\)/u);
   assert.doesNotMatch(route, /\|\| !addressLine1/u);
   assert.doesNotMatch(route, /\|\| !city/u);
-
-  assert.match(create, /Neobvezni ob vnosu · obvezni pred izdajo ponudbe/u);
-  assert.match(create, /addressLine1: addressLine1 \|\| null/u);
-  assert.match(create, /postalCode: postalCode \|\| null/u);
-  assert.match(create, /city: city \|\| null/u);
-  assert.match(create, /if \(postalCode && !isValidPostalCode\(postalCode\)\)/u);
 
   assert.match(
     detailsRoute,
@@ -202,7 +216,10 @@ test('archived quote requests cannot race external email or document delivery', 
 
   assert.match(emailJobs, /deliverQuoteEmailWhileActive/u);
   assert.match(emailJobs, /lockQuoteWorkflow\(client, job\.requestId\)/u);
-  assert.match(emailJobs, /select voided_at from quote_requests/u);
+  assert.match(
+    emailJobs,
+    /select voided_at, email from quote_requests[\s\S]*?for share/u
+  );
   assert.match(emailJobs, /failureKind: 'voided_request'/u);
   assert.match(documentJobs, /lockQuoteWorkflow\(client, quoteRequestId\)/u);
   assert.match(documentJobs, /request\.voided_at/u);
@@ -230,7 +247,7 @@ test('stale admin lifecycle mutations return a conflict for archived requests', 
   }
 });
 
-test('quote table exposes manual create and confirmed row or bulk removal controls', () => {
+test('quote table exposes direct draft creation and confirmed row or bulk removal controls', () => {
   const create = source(
     'src/admin/features/quotes/components/AdminCreateManualQuoteRequestButton.tsx'
   );
@@ -242,11 +259,20 @@ test('quote table exposes manual create and confirmed row or bulk removal contro
   assert.match(create, /Novo povpraševanje/u);
   assert.match(create, /fetch\('\/api\/admin\/quote-requests', \{/u);
   assert.match(create, /method: 'POST'/u);
-  assert.match(create, /intakeSource:/u);
-  assert.match(create, /requestedItems:/u);
-  assert.match(create, /productName:/u);
-  assert.match(create, /quantity:/u);
+  assert.match(
+    create,
+    /body:\s*JSON\.stringify\(\s*\{\s*mode:\s*['"]draft['"]\s*\}\s*\)/u
+  );
+  assert.match(
+    create,
+    /sessionStorage\.setItem\(\s*['"]admin-orders-needs-refresh['"]\s*,\s*['"]1['"]\s*\)/u
+  );
   assert.match(create, /router\.push\(`\/admin\/orders\/quotes\/\$\{quoteRequestId\}`\)/u);
+  assert.match(create, /disabled=\{isCreating\}/u);
+  assert.doesNotMatch(
+    create,
+    /<Dialog\b|quote-create-submit|\/api\/admin\/catalog-items|requestedItems:/u
+  );
 
   assert.match(table, /<AdminCreateManualQuoteRequestButton \/>/u);
   assert.match(table, /data-testid="quote-table-delete-selected"/u);

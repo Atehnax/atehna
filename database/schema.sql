@@ -56,6 +56,7 @@ create table orders (
   contract_rejection_evidence_json jsonb,
   contract_state_version integer not null default 1,
   committed_at timestamptz,
+  stock_enforcement_applied boolean not null default true,
   source_quote_offer_version_id bigint,
   is_draft boolean not null default false,
   deleted_at timestamptz,
@@ -313,6 +314,20 @@ create table product_appearance_settings (
   config_json jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+create table inventory_policy_settings (
+  key text primary key,
+  config_json jsonb not null default '{"stockEnforcementEnabled": true}'::jsonb,
+  updated_at timestamptz not null default now(),
+  constraint inventory_policy_settings_config_json_check check (
+    jsonb_typeof(config_json) = 'object'
+    and config_json ? 'stockEnforcementEnabled'
+    and jsonb_typeof(config_json -> 'stockEnforcementEnabled') = 'boolean'
+  )
+);
+
+insert into inventory_policy_settings (key, config_json)
+values ('default', '{"stockEnforcementEnabled": true}'::jsonb);
 
 create table site_logo_settings (
   key text primary key,
@@ -1520,7 +1535,6 @@ create table quote_offer_versions (
       and content_snapshot_json <> '{}'::jsonb
       and nullif(btrim(delivery_terms), '') is not null
       and nullif(btrim(payment_terms), '') is not null
-      and nullif(btrim(terms_text), '') is not null
       and nullif(btrim(terms_version), '') is not null
       and terms_hash is not null
       and content_hash is not null
@@ -2543,7 +2557,7 @@ create table quote_email_jobs (
   recipient_name text,
   payload_json jsonb not null,
   status text not null default 'pending' check (
-    status in ('pending', 'processing', 'sent', 'failed')
+    status in ('pending', 'processing', 'sent', 'failed', 'cancelled')
   ),
   attempts integer not null default 0 check (attempts >= 0),
   next_attempt_at timestamptz not null default now(),
@@ -2552,6 +2566,8 @@ create table quote_email_jobs (
   provider_message_id text,
   last_error text,
   sent_at timestamptz,
+  cancelled_at timestamptz,
+  cancelled_by_actor_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint quote_email_jobs_offer_request_fkey
@@ -2564,6 +2580,19 @@ create table quote_email_jobs (
   constraint quote_email_jobs_claim_check check (
     (status = 'processing' and claim_id is not null and locked_at is not null)
     or (status <> 'processing' and claim_id is null and locked_at is null)
+  ),
+  constraint quote_email_jobs_cancellation_check check (
+    (
+      status = 'cancelled'
+      and cancelled_at is not null
+      and cancelled_by_actor_id is not null
+      and btrim(cancelled_by_actor_id) <> ''
+    )
+    or (
+      status <> 'cancelled'
+      and cancelled_at is null
+      and cancelled_by_actor_id is null
+    )
   )
 );
 

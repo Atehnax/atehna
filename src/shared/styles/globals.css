@@ -1922,6 +1922,57 @@ textarea[readonly] {
   padding-right: 0 !important;
 }
 
+/*
+ * Side thumbnail rails share the main-image grid row. Older canvas settings
+ * can carry a fixed horizontal-strip width and height into a vertical layout;
+ * restore auto sizing so grid stretch exposes every thumbnail that fits.
+ */
+@media (max-width: 1023px) {
+  [data-storefront-theme]
+    .storefront-product-gallery:not([data-thumbnail-position-preview]):where(
+      [data-thumbnail-position-mobile='left'],
+      [data-thumbnail-position-mobile='right']
+    )
+    > .storefront-gallery-thumbnails {
+    align-self: stretch;
+    justify-self: stretch;
+    inline-size: auto !important;
+    block-size: auto !important;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-storefront-theme]
+    .storefront-product-gallery:not([data-thumbnail-position-preview]):where(
+      [data-thumbnail-position-desktop='left'],
+      [data-thumbnail-position-desktop='right']
+    )
+    > .storefront-gallery-thumbnails {
+    align-self: stretch;
+    justify-self: stretch;
+    inline-size: auto !important;
+    block-size: auto !important;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+}
+
+[data-storefront-theme]
+  .storefront-product-gallery:where(
+    [data-thumbnail-position-preview='left'],
+    [data-thumbnail-position-preview='right']
+  )
+  > .storefront-gallery-thumbnails {
+  align-self: stretch;
+  justify-self: stretch;
+  inline-size: auto !important;
+  block-size: auto !important;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
 .product-canvas-element[data-product-canvas-element='product-gallery'][data-product-canvas-fixed-width='true']
   :where(.storefront-product-gallery),
 .product-canvas-element[data-product-canvas-element='product-related-products'][data-product-canvas-fixed-width='true']

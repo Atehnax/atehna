@@ -64,6 +64,11 @@ reviewed quote/contract artifacts below, applied in this exact order:
 4. `database/migrations/20260830_quote_manual_documents.sql`
 5. `database/migrations/20260830_quote_request_admin_title.sql`
 6. `database/migrations/20260830_quote_clarification_email.sql`
+7. `database/migrations/20260831_order_item_delivery_plan.sql`
+8. `database/migrations/20260901_quote_optional_acceptance_terms.sql`
+9. `database/migrations/20260901_inventory_policy_settings.sql`
+10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
+11. `database/migrations/20260901_quote_outbox_cancellation.sql`
 
 The admin-details follow-up is only for a database on the verified 20260828
 schema. The management follow-up requires that verified admin-details guard and
@@ -73,9 +78,16 @@ the immutable evidence used to issue or accept an offer. The admin-title follow-
 adds a separate internal display title while preserving the immutable POV number
 and commercial history. The clarification-email follow-up adds a dedicated customer
 outbox event while preserving the append-only clarification log even when delivery is
-declined or fails. No artifact is run by application startup. Do not apply one without
-production database authority, a verified backup, and the rollout review in
-`docs/quote-workflow-rollout.md`.
+declined or fails. The delivery-plan follow-up adds explicit current/later shipment
+grouping to order lines and generated delivery documents. The optional-acceptance-terms
+follow-up allows an issued quote to omit only its free-text acceptance terms while
+retaining the versioned terms identity and integrity hashes. The inventory-policy
+follow-up adds the global stock-enforcement switch with enforcement enabled by default,
+and the order marker records which policy governed each order's inventory lifecycle.
+The quote-outbox follow-up adds durable administrator cancellation evidence so cancelled
+messages leave the delivery queue without being deleted. No artifact is run by application
+startup. Do not apply one without production database authority, a verified backup, and
+the rollout review in `docs/quote-workflow-rollout.md`.
 
 ## Runtime configuration
 
@@ -102,8 +114,9 @@ corresponding environment variables in production.
   in production. Missing production admin credentials fail closed.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
   `vercel.json`.
-- `RESEND_API_KEY` is required only when automatic order email is enabled. Keep
-  it as a Sensitive Vercel environment variable; it is never persisted in the
+- `RESEND_API_KEY` is required whenever Resend-backed order or quote email
+  delivery is enabled, including quote access-code delivery. Keep it as a
+  Sensitive Vercel environment variable; it is never persisted in the
   application database or returned to the browser.
 - `PUBLIC_MEDIA_BLOB_STORE_ID` selects the public Vercel Blob store used for
   catalogue and site media. Connect it through Vercel OIDC. Admin file uploads

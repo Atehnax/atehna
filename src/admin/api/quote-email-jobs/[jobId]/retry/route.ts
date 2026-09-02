@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
+import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
 import { decryptQuoteEmailEnvelope } from '@/shared/server/quoteEmailDeliveryCipher';
 import { scheduleQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
+import {
+  normalizeQuoteEmailSettings,
+  QUOTE_EMAIL_EVENT_TYPES,
+  type QuoteEmailEventType
+} from '@/shared/domain/quote/quoteEmailSettings';
+import {
+  requireQuoteCustomerEmailConfirmation
+} from '@/shared/server/adminCustomerEmailConfirmation';
+import { readRequiredJsonRecord } from '@/shared/server/requestJson';
+import { quoteEmailRetryStateIsCurrent } from '@/shared/domain/quote/quoteEmailRetryEligibility';
 import {
   isQuoteAdminEnabled,
   isQuoteEmailDeliveryEnabled
@@ -15,40 +26,24 @@ import {
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 function retryStateIsCurrent(job: Record<string, unknown>): boolean {
-  const eventType = String(job.event_type);
-  const offerStatus = job.offer_status === null ? null : String(job.offer_status);
-  if (eventType === 'quote_access_otp') return false;
-  if (eventType === 'quote_issued' || eventType === 'quote_acceptance_blocked_stock') {
-    return (
-      offerStatus === 'issued' &&
-      job.offer_is_current === true &&
-      new Date(String(job.valid_until)).getTime() > Date.now()
-    );
-  }
-  if (eventType === 'quote_accepted') return offerStatus === 'accepted';
-  if (eventType === 'quote_declined') return offerStatus === 'declined';
-  if (eventType === 'quote_withdrawn') return offerStatus === 'withdrawn';
-  if (eventType === 'quote_expired') return offerStatus === 'expired';
-  if (eventType === 'quote_request_closed') {
-    return String(job.request_status) === 'closed_without_offer';
-  }
-  if (eventType === 'quote_clarification_requested') {
-    const requestIsOpen = [
-      'received',
-      'in_preparation',
-      'offer_issued',
-      'awaiting_purchase_order_review'
-    ].includes(String(job.request_status));
-    if (!requestIsOpen) return false;
-    if (job.quote_offer_version_id === null) return true;
-    return offerStatus === 'draft' || (
-      offerStatus === 'issued' && job.offer_is_current === true
-    );
-  }
-  return eventType === 'quote_request_submitted' &&
-    ['received', 'in_preparation', 'offer_issued'].includes(String(job.request_status));
+  return quoteEmailRetryStateIsCurrent({
+    eventType: String(job.event_type),
+    audience: String(job.audience),
+    recipientEmail: String(job.recipient_email),
+    requestStatus: String(job.request_status),
+    requestVoided: Boolean(job.request_voided_at),
+    offerVersionId: job.quote_offer_version_id === null
+      ? null
+      : Number(job.quote_offer_version_id),
+    offerStatus: job.offer_status === null ? null : String(job.offer_status),
+    offerIsCurrent: job.offer_is_current === true,
+    hasNewerNonDraftOfferVersion:
+      job.has_newer_non_draft_offer_version === true,
+    validUntil: job.valid_until === null ? null : String(job.valid_until)
+  });
 }
 
 export async function POST(
@@ -72,6 +67,8 @@ export async function POST(
   if (!UUID_PATTERN.test(jobId)) {
     return NextResponse.json({ message: 'E-poštno opravilo ne obstaja.' }, { status: 404 });
   }
+  const parsed = await readRequiredJsonRecord(request);
+  if (!parsed.ok) return parsed.response;
 
   const evidence = await quoteAdminEvidence(request);
   const pool = await getPool();
@@ -83,12 +80,20 @@ export async function POST(
         select
           job.*,
           request.request_number,
+          request.email as request_email,
           request.status as request_status,
           request.voided_at as request_voided_at,
           offer.offer_number,
           offer.status as offer_status,
           offer.is_current as offer_is_current,
-          offer.valid_until
+          offer.valid_until,
+          exists (
+            select 1
+            from quote_offer_versions newer_offer
+            where newer_offer.quote_request_id = job.quote_request_id
+              and newer_offer.version_number > offer.version_number
+              and newer_offer.status <> 'draft'
+          ) as has_newer_non_draft_offer_version
         from quote_email_jobs job
         join quote_requests request on request.id = job.quote_request_id
         left join quote_offer_versions offer
@@ -131,15 +136,27 @@ export async function POST(
         { status: 409 }
       );
     }
+    let immutableRecipientEmail = '';
     try {
-      decryptQuoteEmailEnvelope(job.payload_json, {
+      const envelope = JSON.parse(decryptQuoteEmailEnvelope(job.payload_json, {
         jobId,
         requestId: Number(job.quote_request_id),
         offerVersionId:
           job.quote_offer_version_id === null
             ? null
             : Number(job.quote_offer_version_id)
-      });
+      })) as { message?: { to?: unknown } };
+      immutableRecipientEmail =
+        typeof envelope.message?.to === 'string'
+          ? envelope.message.to.trim().toLowerCase()
+          : '';
+      if (
+        !EMAIL_PATTERN.test(immutableRecipientEmail) ||
+        immutableRecipientEmail !==
+          String(job.recipient_email ?? '').trim().toLowerCase()
+      ) {
+        throw new Error('Quote email recipient integrity mismatch.');
+      }
     } catch {
       await client.query('rollback');
       return NextResponse.json(
@@ -149,6 +166,88 @@ export async function POST(
         },
         { status: 409 }
       );
+    }
+
+    const eventType = String(job.event_type) as QuoteEmailEventType;
+    const audience = String(job.audience);
+    if (!QUOTE_EMAIL_EVENT_TYPES.includes(eventType)) {
+      await client.query('rollback');
+      return NextResponse.json(
+        { code: 'QUOTE_EMAIL_POLICY_INVALID', message: 'Vrsta e-poštnega opravila ni več podprta.' },
+        { status: 409 }
+      );
+    }
+    if (
+      audience === 'customer' &&
+      immutableRecipientEmail !==
+        String(job.request_email ?? '').trim().toLowerCase()
+    ) {
+      await client.query('rollback');
+      return NextResponse.json(
+        {
+          code: 'QUOTE_EMAIL_RECIPIENT_STALE',
+          message:
+            'Prejemnik neuspelega sporočila se ne ujema več s trenutnim e-poštnim naslovom stranke. Ustvarite novo poslovno obvestilo.'
+        },
+        { status: 409 }
+      );
+    }
+    if (audience === 'admin') {
+      const orderEmailSettings = await getOrderEmailSettings(client);
+      const currentAdminRecipients = new Set(
+        orderEmailSettings.adminRecipients.map((recipient) =>
+          recipient.trim().toLowerCase()
+        )
+      );
+      if (!currentAdminRecipients.has(immutableRecipientEmail)) {
+        await client.query('rollback');
+        return NextResponse.json(
+          {
+            code: 'QUOTE_EMAIL_RECIPIENT_STALE',
+            message:
+              'Prejemnik neuspelega sporočila ni več med trenutnimi administratorskimi prejemniki. Ustvarite novo poslovno obvestilo.'
+          },
+          { status: 409 }
+        );
+      }
+    }
+    const settingsResult = await client.query(
+      `select config_json from quote_email_settings where key = 'default'`
+    );
+    const settings = normalizeQuoteEmailSettings(
+      settingsResult.rows[0]?.config_json
+    );
+    const audienceEnabled = audience === 'customer'
+      ? settings.events[eventType].customer
+      : audience === 'admin'
+        ? settings.events[eventType].admins
+        : false;
+    if (!settings.enabled || !audienceEnabled) {
+      await client.query('rollback');
+      return NextResponse.json(
+        {
+          code: 'QUOTE_EMAIL_POLICY_DISABLED',
+          message: 'To obvestilo je v trenutnih nastavitvah e-pošte izključeno.'
+        },
+        { status: 409 }
+      );
+    }
+    if (audience === 'customer') {
+      const confirmationChallenge =
+        await requireQuoteCustomerEmailConfirmation({
+          client,
+          quoteRequestId: Number(job.quote_request_id),
+          eventType,
+          action: `retry_quote_email:${jobId}`,
+          actionLabel: 'Ponovno pošiljanje e-pošte ponudbe',
+          customerEmailConfirmationToken:
+            parsed.body.customerEmailConfirmationToken,
+          recipientEmail: immutableRecipientEmail
+        });
+      if (confirmationChallenge) {
+        await client.query('rollback');
+        return NextResponse.json(confirmationChallenge, { status: 428 });
+      }
     }
 
     await client.query(

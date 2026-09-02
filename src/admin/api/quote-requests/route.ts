@@ -222,66 +222,98 @@ export async function POST(request: Request) {
     quoteReason: string;
     customerMessage: string | null;
     intakeSource: 'admin_email' | 'admin_testing';
-    requestedItem: ManualRequestedItem;
+    isDraft: boolean;
+    requestedItem: ManualRequestedItem | null;
   };
   try {
-    const customerType = boundedText(parsed.body.customerType, 32);
-    const submittedOrganizationName = nullableText(
-      parsed.body.organizationName,
-      240
-    );
-    const organizationName = customerType === 'individual'
-      ? null
-      : submittedOrganizationName;
-    const contactName = boundedText(parsed.body.contactName, 240);
-    const email = boundedText(parsed.body.email, 320).toLowerCase();
-    const addressLine1 = nullableText(parsed.body.addressLine1, 300);
-    const addressLine2 = nullableText(parsed.body.addressLine2, 500);
-    const postalCode = nullableText(parsed.body.postalCode, 16);
-    const city = nullableText(parsed.body.city, 160);
-    const countryCode = boundedText(parsed.body.countryCode ?? 'SI', 2).toUpperCase();
-    const reference = nullableText(parsed.body.reference, 240);
-    const quoteReason = boundedText(parsed.body.quoteReason ?? 'formal_offer', 80);
-    const customerMessage = nullableText(parsed.body.customerMessage, 8_000);
-    const intakeSource = boundedText(
-      parsed.body.intakeSource ?? 'admin_email',
-      32
-    );
-    const requestedItem = parseManualRequestedItem(parsed.body.requestedItems);
-
-    if (
-      !CUSTOMER_TYPES.has(customerType)
-      || !QUOTE_REASONS.has(quoteReason)
-      || !INTAKE_SOURCES.has(intakeSource)
-      || !contactName
-      || !EMAIL_PATTERN.test(email)
-      || (postalCode !== null && !POSTAL_CODE_PATTERN.test(postalCode))
-      || countryCode !== 'SI'
-    ) {
-      return NextResponse.json(
-        { message: 'Preverite obvezne podatke o naročniku in povpraševanju.' },
-        { status: 400 }
+    const isDraft = parsed.body.mode === 'draft';
+    if (isDraft) {
+      input = {
+        isDraft: true,
+        customerType: 'company',
+        organizationName: 'Osnutek',
+        contactName: 'Osnutek',
+        email: 'draft@atehna.si',
+        addressLine1: null,
+        addressLine2: null,
+        postalCode: null,
+        city: null,
+        countryCode: 'SI',
+        reference: null,
+        quoteReason: 'formal_offer',
+        customerMessage: null,
+        intakeSource: 'admin_email',
+        requestedItem: null
+      };
+    } else {
+      const customerType = boundedText(parsed.body.customerType, 32);
+      const submittedOrganizationName = nullableText(
+        parsed.body.organizationName,
+        240
       );
+      const organizationName = customerType === 'individual'
+        ? null
+        : submittedOrganizationName;
+      const contactName = boundedText(parsed.body.contactName, 240);
+      const email = boundedText(parsed.body.email, 320).toLowerCase();
+      const addressLine1 = nullableText(parsed.body.addressLine1, 300);
+      const addressLine2 = nullableText(parsed.body.addressLine2, 500);
+      const postalCode = nullableText(parsed.body.postalCode, 16);
+      const city = nullableText(parsed.body.city, 160);
+      const countryCode = boundedText(
+        parsed.body.countryCode ?? 'SI',
+        2
+      ).toUpperCase();
+      const reference = nullableText(parsed.body.reference, 240);
+      const quoteReason = boundedText(
+        parsed.body.quoteReason ?? 'formal_offer',
+        80
+      );
+      const customerMessage = nullableText(parsed.body.customerMessage, 8_000);
+      const intakeSource = boundedText(
+        parsed.body.intakeSource ?? 'admin_email',
+        32
+      );
+      const requestedItem = parseManualRequestedItem(parsed.body.requestedItems);
+
+      if (
+        !CUSTOMER_TYPES.has(customerType)
+        || !QUOTE_REASONS.has(quoteReason)
+        || !INTAKE_SOURCES.has(intakeSource)
+        || !contactName
+        || !EMAIL_PATTERN.test(email)
+        || (postalCode !== null && !POSTAL_CODE_PATTERN.test(postalCode))
+        || countryCode !== 'SI'
+      ) {
+        return NextResponse.json(
+          { message: 'Preverite obvezne podatke o naročniku in povpraševanju.' },
+          { status: 400 }
+        );
+      }
+      if (customerType !== 'individual' && !organizationName) {
+        return NextResponse.json(
+          { message: 'Vnesite naziv organizacije.' },
+          { status: 400 }
+        );
+      }
+      input = {
+        isDraft: false,
+        customerType,
+        organizationName,
+        contactName,
+        email,
+        addressLine1,
+        addressLine2,
+        postalCode,
+        city,
+        countryCode: 'SI',
+        reference,
+        quoteReason,
+        customerMessage,
+        intakeSource: intakeSource as 'admin_email' | 'admin_testing',
+        requestedItem
+      };
     }
-    if (customerType !== 'individual' && !organizationName) {
-      return NextResponse.json({ message: 'Vnesite naziv organizacije.' }, { status: 400 });
-    }
-    input = {
-      customerType,
-      organizationName,
-      contactName,
-      email,
-      addressLine1,
-      addressLine2,
-      postalCode,
-      city,
-      countryCode: 'SI',
-      reference,
-      quoteReason,
-      customerMessage,
-      intakeSource: intakeSource as 'admin_email' | 'admin_testing',
-      requestedItem
-    };
   } catch (error) {
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Podatki niso veljavni.' },
@@ -298,15 +330,16 @@ export async function POST(request: Request) {
       input.organizationName,
       input.contactName
     ]);
-    const catalogEstimate = input.requestedItem.catalogVariantId === null
+    const requestedItem = input.requestedItem;
+    const catalogEstimate = requestedItem?.catalogVariantId == null
       ? null
       : await loadAuthoritativeManualQuoteCatalogSnapshot(
           client,
           {
-            variantId: input.requestedItem.catalogVariantId,
-            quantity: input.requestedItem.quantity,
-            catalogItemId: input.requestedItem.catalogItemId,
-            sku: input.requestedItem.sku
+            variantId: requestedItem.catalogVariantId,
+            quantity: requestedItem.quantity,
+            catalogItemId: requestedItem.catalogItemId,
+            sku: requestedItem.sku
           },
           { customerLabels }
         );
@@ -369,7 +402,7 @@ export async function POST(request: Request) {
       : {
           version: 'manual-intake-v1',
           pricingVersion: 'manual-intake-pending-v1',
-          items: [input.requestedItem],
+          items: requestedItem ? [requestedItem] : [],
           totals: { net: 0, tax: 0, shipping: null, gross: null, currency: 'EUR' },
           shipping: shippingSnapshot,
           intake: {
@@ -433,20 +466,20 @@ export async function POST(request: Request) {
     if (!row || !Number.isSafeInteger(quoteRequestId)) {
       throw new Error('Povpraševanja ni bilo mogoče ustvariti.');
     }
-    if (catalogEstimate) {
+    if (catalogEstimate && requestedItem) {
       await insertCatalogRequestItem(
         client,
         quoteRequestId,
         catalogEstimate,
-        input.requestedItem,
+        requestedItem,
         input.intakeSource
       );
-    } else {
+    } else if (requestedItem) {
       await insertManualRequestItem(
         client,
         quoteRequestId,
         requestNumber,
-        input.requestedItem
+        requestedItem
       );
     }
     await appendQuoteEvent(client, {
@@ -462,9 +495,9 @@ export async function POST(request: Request) {
         catalogBacked: catalogEstimate !== null,
         catalogItemId: authoritativeItem?.productId ?? null,
         catalogVariantId: authoritativeItem?.variantId ?? null,
-        sku: authoritativeItem?.sku ?? input.requestedItem.sku,
+        sku: authoritativeItem?.sku ?? requestedItem?.sku ?? null,
         nonBinding: true,
-        itemCount: 1,
+        itemCount: requestedItem ? 1 : 0,
         customerAccessIssued: false,
         customerEmailQueued: false
       }
@@ -474,7 +507,9 @@ export async function POST(request: Request) {
       entityId: `quote:${quoteRequestId}`,
       entityLabel: `Povpraševanje ${requestNumber}`,
       action: 'created',
-      summary: `Povpraševanje ${requestNumber}: ročno dodano`,
+      summary: input.isDraft
+        ? `Povpraševanje ${requestNumber}: osnutek dodan`
+        : `Povpraševanje ${requestNumber}: ročno dodano`,
       diff: {
         quote_status: {
           label: 'Status povpraševanja',
@@ -486,7 +521,8 @@ export async function POST(request: Request) {
         quote_request_id: quoteRequestId,
         request_number: requestNumber,
         intake_source: input.intakeSource,
-        non_binding: true
+        non_binding: true,
+        draft: input.isDraft
       }
     }, client);
     await client.query('commit');
@@ -496,6 +532,10 @@ export async function POST(request: Request) {
       requestNumber,
       status: 'received',
       stateVersion: 1,
+      isDraft: input.isDraft,
+      message: input.isDraft
+        ? 'Osnutek povpraševanja je ustvarjen.'
+        : 'Povpraševanje je ustvarjeno.',
       createdAt: row.created_at instanceof Date
         ? row.created_at.toISOString()
         : String(row.created_at)

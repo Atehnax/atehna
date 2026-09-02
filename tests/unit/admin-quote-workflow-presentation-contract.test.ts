@@ -79,14 +79,14 @@ test('quote detail exposes lifecycle controls without order payment or fulfilmen
   assert.match(detail, />\s*\{busyAction === 'preview' \? 'Pripravljam …' : 'Predogled'\}\s*<\/Button>/u);
   assert.doesNotMatch(detail, /Ustvari predogled|window\.open/u);
   assert.match(detail, /<PdfPreviewDialog/u);
-  assert.match(detail, /Izdaj in pošlji ponudbo/u);
+  assert.match(detail, /Izdaj ponudbo/u);
   assert.match(detail, /confirmFreeShipping/u);
   assert.match(detail, /catalogVariantId/u);
   assert.match(detail, /toNewDraftState/u);
   assert.match(detail, /import AdminQuoteActivityTimeline/u);
   assert.match(detail, /<AdminQuoteActivityTimeline events=\{detail\.events\} \/>/u);
   assert.match(activityAdapter, /import \{ AdminActivityTimeline \}/u);
-  assert.match(activityAdapter, /const items = \[\.\.\.events\]\.slice\(0, 5\)\.reverse\(\)\.map/u);
+  assert.match(activityAdapter, /const items = selectQuoteProgressEvents\(events\)\.reverse\(\)\.map/u);
   assert.match(activityAdapter, /testId="quote-activity-timeline"/u);
   assert.match(activityAdapter, /<AdminActivityTimeline/u);
   assert.match(activityPresenter, /data-testid=\{testId\}/u);
@@ -96,23 +96,26 @@ test('quote detail exposes lifecycle controls without order payment or fulfilmen
   assert.match(detail, /quote-requests\/\$\{detail\.id\}\/status/u);
 });
 
-test('quote customer summary opens the matching Stranke profile like order detail', () => {
+test('quote customer actions open the matching Stranke profile beside request details', () => {
   const detail = source('src/admin/features/quotes/components/AdminQuoteDetailClient.tsx');
 
-  assert.match(detail, /import AdminOrderCustomerCard/u);
-  assert.match(detail, /data-testid="quote-customer-card"/u);
-  const customerCardStart = detail.indexOf('<AdminOrderCustomerCard');
-  const customerCard = detail.slice(
-    customerCardStart,
-    detail.indexOf('/>', customerCardStart)
-  );
-  assert.match(customerCard, /orderId=\{detail\.id\}/u);
+  assert.match(detail, /import AdminOrderCustomerActions from '@\/admin\/features\/orders\/components\/AdminOrderCustomerCard';/u);
+  assert.doesNotMatch(detail, /data-testid="quote-customer-card"|Naročnik in dostava/u);
   assert.match(
-    customerCard,
+    detail,
+    /<div className="flex min-w-0 items-center gap-2">\s*<h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja<\/h2>\s*<AdminOrderCustomerActions/u
+  );
+  const customerActionsStart = detail.indexOf('<AdminOrderCustomerActions');
+  const customerActions = detail.slice(
+    customerActionsStart,
+    detail.indexOf('/>', customerActionsStart)
+  );
+  assert.match(customerActions, /orderId=\{detail\.id\}/u);
+  assert.match(
+    customerActions,
     /customerEndpoint=\{`\/api\/admin\/quote-requests\/\$\{detail\.id\}\/customer`\}/u
   );
   for (const prop of [
-    'customerType',
     'organizationName',
     'contactName',
     'email',
@@ -123,10 +126,11 @@ test('quote customer summary opens the matching Stranke profile like order detai
     'countryCode'
   ]) {
     assert.match(
-      customerCard,
-      new RegExp(`${prop}=\\{persistedRequestDetails\\.${prop}\\}`, 'u')
+      customerActions,
+      new RegExp(prop + '=\\{persistedRequestDetails\\.' + prop + '\\}', 'u')
     );
   }
+  assert.doesNotMatch(customerActions, /customerType/u);
   assert.doesNotMatch(detail, /function QuoteCustomerSummaryCard/u);
 });
 
@@ -143,12 +147,19 @@ test('clarification uses a standardized two-step dialog and one retry-stable act
   assert.match(dialog, /data-testid="quote-clarification-dialog"/u);
   assert.match(dialog, /data-testid="quote-clarification-textarea"/u);
   assert.match(dialog, /MAX_CLARIFICATION_LENGTH = 2_000/u);
+  assert.match(dialog, /adminPlaceholderTokenClasses/u);
+  assert.equal(dialog.match(/adminPlaceholderTokenClasses/gu)?.length, 2);
+  assert.match(
+    dialog,
+    /placeholder="Prosimo, potrdite želene dimenzije in količino artikla[.]"/u
+  );
+  assert.doesNotMatch(dialog, /Na primer:|placeholder:text-slate-400/u);
   assert.match(dialog, /maxLength=\{MAX_CLARIFICATION_LENGTH\}/u);
   assert.match(dialog, /data-testid="quote-clarification-cancel"[\s\S]*?Prekliči/u);
   assert.match(dialog, /data-testid="quote-clarification-advance"[\s\S]*?Nadaljuj/u);
   assert.match(dialog, /data-testid="quote-clarification-back"[\s\S]*?Nazaj/u);
   assert.match(dialog, /data-testid="quote-clarification-record-only"[\s\S]*?Samo zabeleži/u);
-  assert.match(dialog, /data-testid="quote-clarification-record-and-send"[\s\S]*?Zabeleži in pošlji/u);
+  assert.match(dialog, /data-testid="quote-clarification-record-and-send"[\s\S]*?Zabeleži z e-pošto/u);
   const clarificationFlow = detail.slice(
     detail.indexOf('const openClarificationDialog'),
     detail.indexOf('const retryEmail')
@@ -160,15 +171,23 @@ test('clarification uses a standardized two-step dialog and one retry-stable act
     /body: JSON\.stringify\(\{[\s\S]*?clarification,[\s\S]*?sendEmail,[\s\S]*?actionId: clarificationActionId[\s\S]*?\}\)/u
   );
   assert.match(detail, /onRecordOnly=\{\(\) => void requestClarification\(false\)\}/u);
-  assert.match(detail, /onRecordAndSend=\{\(\) => void requestClarification\(true\)\}/u);
+  assert.match(
+    detail,
+    /onRecordAndSend=\{\(\) => void requestClarification\(true\)\}/u
+  );
   assert.match(
     clarificationFlow,
     /emailStatus\?:[\s\S]*?'not_queued'[\s\S]*?'failed'/u
   );
   assert.match(
     clarificationFlow,
-    /payload\.emailStatus === 'failed'[\s\S]*?payload\.emailStatus === 'not_queued'[\s\S]*?toast\.error\(message\)/u
+    /payload\.emailStatus === 'failed'\) toast\.error\(message\);[\s\S]*?else toast\.success\(message\)/u
   );
+  assert.doesNotMatch(
+    clarificationFlow,
+    /payload\.emailStatus === 'not_queued'[\s\S]*?toast\.error\(message\)/u
+  );
+  assert.match(dialog, /href="\/admin\/email"/u);
   assert.doesNotMatch(
     clarificationFlow,
     /window\.prompt|window\.confirm|mailto:|window\.location\.assign/u
@@ -220,12 +239,15 @@ test('issuing an offer requires one explicit standardized confirmation without a
   assert.ok(confirmIssueStart > closeIssueStart && confirmIssueEnd > confirmIssueStart);
   assert.ok(callActionStart >= 0 && callActionEnd > callActionStart);
   assert.ok(issueDialogStart >= 0 && issueDialogEnd > issueDialogStart);
-  assert.match(detail, /onClick=\{openIssueDialog\}[\s\S]*?Izdaj in pošlji ponudbo/u);
-  assert.doesNotMatch(openIssueFlow, /callAction\('issue'\)|fetch\(/u);
-  assert.doesNotMatch(closeIssueFlow, /callAction\('issue'\)|fetch\(/u);
+  assert.match(detail, /onClick=\{openIssueDialog\}[\s\S]*?Izdaj ponudbo/u);
+  assert.doesNotMatch(openIssueFlow, /callAction\('issue'|fetch\(/u);
+  assert.doesNotMatch(closeIssueFlow, /callAction\('issue'|fetch\(/u);
   assert.match(confirmIssueFlow, /if \(busyAction \|\| !isIssueDialogOpen\) return/u);
-  assert.match(confirmIssueFlow, /await callAction\('issue'\)/u);
-  assert.equal(detail.match(/callAction\('issue'\)/gu)?.length, 1);
+  assert.match(
+    confirmIssueFlow,
+    /await callAction\('issue'\)/u
+  );
+  assert.equal(detail.match(/callAction\('issue'/gu)?.length, 1);
   assert.match(
     openIssueFlow,
     /setIssueActionId\(window\.crypto\.randomUUID\(\)\)/u
@@ -253,7 +275,7 @@ test('issuing an offer requires one explicit standardized confirmation without a
   assert.ok(issueDispatch < inFlightUnlock);
   assert.match(
     callActionFlow,
-    /payload\?\.emailQueued === true[\s\S]*?toast\.success[\s\S]*?else \{[\s\S]*?toast\.error/u
+    /payload\?\.emailQueued === true[\s\S]*?toast\.success[\s\S]*?else \{[\s\S]*?toast\.success/u
   );
 
   assert.match(issueDialogIntegration, /open=\{isIssueDialogOpen\}/u);
@@ -280,8 +302,9 @@ test('issuing an offer requires one explicit standardized confirmation without a
   assert.match(issueDialog, /novo različico/u);
   assert.match(
     issueDialog,
-    /e-pošta stranki[\s\S]*?uvrščena v čakalno vrsto/u
+    /E-pošta stranki[\s\S]*?uvrščena v čakalno vrsto/u
   );
+  assert.match(issueDialog, /href="\/admin\/email"/u);
   assert.match(
     issueDialog,
     /onOpenChange=\{\(nextOpen\) => \{[\s\S]*?!nextOpen && !busy[\s\S]*?onCancel\(\)/u
@@ -456,12 +479,12 @@ test('quote and order documents share presentation chrome while retaining featur
 test('quote administrator notes use the shared compact card and precede PDF documents', () => {
   const detail = source('src/admin/features/quotes/components/AdminQuoteDetailClient.tsx');
   const notesPresenter = source('src/shared/ui/admin-detail/AdminNotesCard.tsx');
-  const customer = detail.indexOf('<AdminOrderCustomerCard');
   const notes = detail.indexOf('<AdminNotesCard');
   const documents = detail.indexOf('<AdminQuoteDocumentsManager');
   const notesIntegration = detail.slice(notes, documents);
 
-  assert.ok(customer >= 0 && notes > customer && documents > notes);
+  assert.ok(notes >= 0 && documents > notes);
+  assert.doesNotMatch(detail, /data-testid="quote-customer-card"/u);
   assert.match(detail, /import \{ AdminNotesCard \}/u);
   assert.match(notesIntegration, /headingId="quote-admin-notes-title"/u);
   assert.match(notesIntegration, /testId="quote-admin-notes-card"/u);
@@ -521,7 +544,7 @@ test('quote access and email evidence share one compact order-style customer car
 
   const sharedCompactCardPatterns = [
     /rounded-xl border border-slate-200 bg-white p-5 shadow-\[0_14px_34px_rgba\(15,23,42,0\.06\),0_2px_6px_rgba\(15,23,42,0\.04\)\]/u,
-    /<h2 className="text-lg font-semibold text-slate-900">Stranka in dostop<\/h2>/u,
+    /<h2 className="text-base font-semibold text-slate-900">Stranka in dostop<\/h2>/u,
     /<dl className="mt-4 divide-y divide-slate-200 text-xs">/u,
     /className="flex items-center justify-between gap-4 py-2 first:pt-0"/u,
     /className="flex items-center justify-between gap-4 py-2"/u
@@ -578,6 +601,24 @@ test('quote access and email evidence share one compact order-style customer car
     /EMAIL_JOB_STATUS_LABELS\[status\] \?\? status/u
   );
   assert.doesNotMatch(stateBadge, /AdminInfoChip/u);
+});
+
+test('quote detail section titles share the order-detail reference class', () => {
+  const detail = source('src/admin/features/quotes/components/AdminQuoteDetailClient.tsx');
+  const notesCard = source('src/shared/ui/admin-detail/AdminNotesCard.tsx');
+  const documentsCard = source('src/shared/ui/admin-detail/AdminDetailDocuments.tsx');
+  const headingClass = 'text-base font-semibold text-slate-900';
+  const headingPattern = (title: string) =>
+    new RegExp(`<h2 className="${headingClass}">${title}<\\/h2>`, 'u');
+
+  assert.match(detail, headingPattern('Podatki povpraševanja'));
+  assert.match(detail, headingPattern('Ponudba'));
+  assert.match(detail, headingPattern('Stranka in dostop'));
+  assert.match(
+    notesCard,
+    new RegExp(`className="${headingClass}"[\\s\\S]*?Opombe administratorja`, 'u')
+  );
+  assert.match(documentsCard, headingPattern('PDF dokumenti'));
 });
 
 test('order detail omits redundant seller acceptance while preserving school commitment and quote origin', () => {

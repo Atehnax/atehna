@@ -145,7 +145,6 @@ test('order detail stages lock-aware shipping changes behind the page-level save
 
   assert.match(editorSource, /data-shipping-final-amount/u);
   assert.match(editorSource, /data-shipping-mode/u);
-  assert.match(editorSource, /data-shipping-breakdown/u);
   assert.match(editorSource, /currentOverride !== null/u);
   assert.match(editorSource, /automaticAmountCents !== null/u);
   assert.doesNotMatch(editorSource, /automaticCalculationAvailable/u);
@@ -155,10 +154,9 @@ test('order detail stages lock-aware shipping changes behind the page-level save
   assert.match(editorSource, /action: 'reset'/u);
   assert.doesNotMatch(editorSource, /router\.refresh\(\)/u);
   assert.match(editorSource, /data-shipping-lock-message/u);
-  assert.match(editorSource, /data-shipping-warning/u);
   const lockMessageSource = editorSource.slice(
     editorSource.indexOf('function getLockMessage'),
-    editorSource.indexOf('function getWarningMessage')
+    editorSource.indexOf('function isShippingMutationResponse')
   );
   assert.doesNotMatch(lockMessageSource, /hasActiveDocuments/u);
   assert.match(editorSource, /data-parcel-count-control/u);
@@ -186,7 +184,7 @@ test('shipping card keeps one shared blue icon-only edit action and no independe
   assert.doesNotMatch(editorSource, />\s*Uredi\s*<|Shrani ročni znesek|Shrani število paketov/u);
 });
 
-test('shipping card mirrors the persistent reference hierarchy with independent details', () => {
+test('shipping card mirrors the persistent reference hierarchy without a redundant footer', () => {
   const renderStart = editorSource.indexOf('data-testid="admin-order-shipping-card"');
   const renderEnd = editorSource.indexOf('<ConfirmDialog', renderStart);
   const renderSource = editorSource.slice(renderStart, renderEnd);
@@ -197,22 +195,18 @@ test('shipping card mirrors the persistent reference hierarchy with independent 
   const summaryStart = renderSource.indexOf('data-shipping-summary-row');
   const readReasonStart = renderSource.indexOf('data-shipping-read-reason');
   const automaticStart = renderSource.indexOf('data-shipping-automatic-summary');
-  const infoStart = renderSource.indexOf('data-shipping-info-row');
-  const breakdownPanelStart = renderSource.indexOf('data-shipping-breakdown-panel');
-  const breakdownStart = renderSource.indexOf('<ShippingBreakdown', breakdownPanelStart);
 
   assert.ok(summaryStart >= 0);
   assert.ok(readReasonStart > summaryStart);
   assert.ok(automaticStart > readReasonStart);
-  assert.ok(infoStart > automaticStart);
-  assert.ok(breakdownPanelStart > infoStart);
-  assert.ok(breakdownStart > breakdownPanelStart);
 
   assert.match(renderSource, /\{externalEditMode \? \([\s\S]*?data-shipping-editor-row[\s\S]*?\) : \([\s\S]*?data-shipping-read-reason/u);
+  assert.match(renderSource, /sm:grid-cols-\[72px_96px_minmax\(120px,1fr\)\]/u);
   assert.match(
     renderSource,
-    /md:grid-cols-\[96px_116px_minmax\(180px,1fr\)\]/u
+    /<label className="block min-w-0">\s*<span[^>]*>\s*Razlog spremembe/u
   );
+  assert.doesNotMatch(renderSource, /sm:col-span-2/u);
   assert.match(
     renderSource,
     /data-parcel-count-control[\s\S]*?disabled=\{parcelCountControlsDisabled\}/u
@@ -228,50 +222,41 @@ test('shipping card mirrors the persistent reference hierarchy with independent 
 
   assert.match(renderSource, /Samodejni izračun/u);
   assert.match(renderSource, /automaticSummaryLabel/u);
+  assert.match(
+    renderSource,
+    /className="flex min-h-11 items-center gap-2 px-4 py-2"\s*data-shipping-summary-row/u
+  );
+  assert.match(
+    renderSource,
+    /className="grid min-h-10 grid-cols-\[112px_minmax\(0,1fr\)\] items-center gap-3 px-4 py-1\.5"\s*data-shipping-read-reason/u
+  );
+  assert.match(
+    renderSource,
+    /className="grid min-h-12 gap-2 border-t border-slate-200 px-4 py-1\.5 sm:grid-cols-\[minmax\(0,1fr\)_auto\] sm:items-center"\s*data-shipping-automatic-summary/u
+  );
+  assert.match(renderSource, /!h-7 !px-2 !text-\[11px\] !leading-4/u);
+  assert.doesNotMatch(renderSource, /min-h-\[(?:56|72|84)px\]|text-lg/u);
   assert.match(renderSource, /disabled=\{!canRequestReset\}/u);
   assert.match(
     renderSource,
     /if \(!externalEditMode\) onRequestEdit\(\);\s*setResetDialogOpen\(true\);/u
   );
-  assert.match(renderSource, /<RotateCcw[\s\S]*?Uporabi samodejno/u);
+  assert.match(
+    renderSource,
+    /<IconButton[\s\S]*?aria-label="Uporabi samodejno poštnino"[\s\S]*?data-testid="admin-order-shipping-reset-button"[\s\S]*?<Calculator/u
+  );
+  assert.doesNotMatch(renderSource, />\s*Uporabi samodejno\s*</u);
 
-  assert.match(renderSource, /<Info[\s\S]*?\{impactMessage\}/u);
-  assert.match(renderSource, /data-shipping-details-toggle/u);
-  assert.match(renderSource, /aria-expanded=\{breakdownOpen\}/u);
-  assert.match(
+  assert.doesNotMatch(
     renderSource,
-    /onClick=\{\(\) => setBreakdownOpen\(\(current\) => !current\)\}/u
-  );
-  assert.match(
-    renderSource,
-    /\{breakdownOpen \? \([\s\S]*?data-shipping-breakdown-panel/u
-  );
-  assert.match(
-    editorSource,
-    /Spremembe veljajo le za naročilo\. Ponudba in izdani dokumenti ostanejo nespremenjeni\./u
+    /data-shipping-info-row|data-shipping-details-toggle|data-shipping-breakdown-panel|Spremembe poštnine veljajo le za to naročilo/u
   );
 
   const lockWarning = renderSource.indexOf('data-shipping-lock-message');
-  const staleWarning = renderSource.indexOf('data-shipping-override-stale');
-  const documentWarning = renderSource.indexOf('data-shipping-warning');
   assert.ok(lockWarning >= 0 && lockWarning < automaticStart);
-  assert.ok(staleWarning > breakdownPanelStart);
-  assert.ok(documentWarning > breakdownPanelStart);
+  assert.doesNotMatch(renderSource, /data-shipping-override-stale|data-shipping-warning/u);
   assert.doesNotMatch(renderSource, /<(?:details|summary)\b|⌄/u);
   assert.doesNotMatch(editorSource, /compactTextareaClassName/u);
-});
-
-test('order shipping breakdown omits shorthand and rows that do not change price', () => {
-  assert.doesNotMatch(editorSource, /Referenčna cena posameznega paketa|× S|Po popustu za več kosov/u);
-  assert.match(
-    editorSource,
-    /matchedDimensionalRule && calculation\.surchargeAmountCents > 0/u
-  );
-  assert.match(editorSource, /calculation\.parcelCount > 1/u);
-  assert.match(editorSource, /\} paketov po \{formatCents\(calculation\.singleParcelAmountCents\)\}/u);
-  assert.match(editorSource, /multiPieceDiscountAmountCents > 0/u);
-  assert.match(editorSource, /orderValueDiscountAmountCents > 0/u);
-  assert.doesNotMatch(editorSource, /data-shipping-formula|Masa:|Največja dimenzija:|Paketi:/u);
 });
 
 test('parcel-count repricing is frozen, revision-checked, explicitly confirmed when locked, and audited atomically', () => {
@@ -308,7 +293,8 @@ test('pending manual-quote drafts never present the stored zero placeholder as f
     /const shippingPending =\s*currentOverride === null[\s\S]*?currentCalculation\?\.status === 'manual_quote'[\s\S]*?automaticAmountCents === null/u
   );
   assert.match(editorSource, /shippingPending\s*\? 'pending'/u);
-  assert.match(editorSource, /shippingPending[\s\S]*?'Potreben je ročni znesek'[\s\S]*?: formatCents\(finalAmountCents\)/u);
+  assert.match(editorSource, /shippingPending[\s\S]*?'—'[\s\S]*?: formatCents\(finalAmountCents\)/u);
+  assert.doesNotMatch(editorSource, /Potreben je ročni znesek/u);
   assert.match(
     editorSource,
     /shippingOverride[\s\S]*?formatCentsInput\(shippingOverride\.overrideAmountCents\)[\s\S]*?automaticShipping === null[\s\S]*?\? ''/u
@@ -322,6 +308,10 @@ test('pending manual-quote drafts never present the stored zero placeholder as f
   assert.match(
     ordersTableSource,
     /shippingPending \? \([\s\S]*?<AdminManualShippingPendingValue/u
+  );
+  assert.doesNotMatch(
+    ordersTableSource,
+    /poštnina \$\{formatCurrency\(effectiveOrder\.shipping\)\}/u
   );
   assert.doesNotMatch(
     ordersTableSource,

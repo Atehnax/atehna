@@ -3,41 +3,27 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
-  ORDER_CUSTOMER_TYPE_IMMUTABLE,
   SCHOOL_PURCHASE_ORDER_DELETE_BLOCKED,
-  orderCustomerTypeChangeBlock,
   schoolPurchaseOrderDeletionBlock
 } from '../../src/shared/domain/order/schoolOrderWorkflow';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
-test('school-boundary customer type changes are immutable outside drafts', () => {
-  assert.equal(
-    orderCustomerTypeChangeBlock('company', 'school', false),
-    ORDER_CUSTOMER_TYPE_IMMUTABLE
-  );
-  assert.equal(
-    orderCustomerTypeChangeBlock('school', 'company', false),
-    ORDER_CUSTOMER_TYPE_IMMUTABLE
-  );
-  assert.equal(orderCustomerTypeChangeBlock('company', 'company', false), null);
-  assert.equal(orderCustomerTypeChangeBlock('individual', 'company', false), null);
-  assert.equal(orderCustomerTypeChangeBlock('company', 'individual', false), null);
-  for (const currentCustomerType of ['individual', 'company', 'school']) {
-    for (const nextCustomerType of ['individual', 'company', 'school']) {
-      assert.equal(
-        orderCustomerTypeChangeBlock(currentCustomerType, nextCustomerType, true),
-        null
-      );
-    }
+test('customer-type immutability policy is removed from the order workflow', () => {
+  const workflow = source('src/shared/domain/order/schoolOrderWorkflow.ts');
+  const details = source('src/admin/api/orders/[orderId]/details/route.ts');
+  for (const obsoletePolicy of [
+    'ORDER_CUSTOMER_TYPE_IMMUTABLE',
+    'ORDER_CUSTOMER_TYPE_CONTRACT_FINAL',
+    'orderCustomerTypeChangeBlock',
+    'orderCustomerTypeFinalContractBlock',
+    'draftCommitmentStatusAfterCustomerTypeChange'
+  ]) {
+    assert.equal(workflow.includes(obsoletePolicy), false, obsoletePolicy);
+    assert.equal(details.includes(obsoletePolicy), false, obsoletePolicy);
   }
-  assert.equal(
-    ORDER_CUSTOMER_TYPE_IMMUTABLE.code,
-    'ORDER_CUSTOMER_TYPE_IMMUTABLE'
-  );
 });
-
 test('only the last active purchase order is protected for school workflows', () => {
   assert.equal(
     schoolPurchaseOrderDeletionBlock(
@@ -126,36 +112,38 @@ test('only the last active purchase order is protected for school workflows', ()
   );
 });
 
-test('admin detail save locks the order and gates draft school finalization', () => {
+test('admin detail save audits type corrections without mutating workflow state', () => {
   const details = source('src/admin/api/orders/[orderId]/details/route.ts');
   const orderLock = details.indexOf('const beforeResult = await client.query');
-  const immutableGate = details.indexOf('orderCustomerTypeChangeBlock(');
-  const purchaseOrderGate = details.indexOf(
-    "if (isDraft && normalizedCustomerType === 'school')"
-  );
   const orderUpdate = details.indexOf('UPDATE orders');
-
-  assert.ok(
-    orderLock < immutableGate &&
-      immutableGate < purchaseOrderGate &&
-      purchaseOrderGate < orderUpdate
+  const auditWrite = details.indexOf('insertAuditEventForRequest', orderUpdate);
+  const transactionCommit = details.indexOf("client.query('commit')", auditWrite);
+  const updateSql = details.slice(
+    orderUpdate,
+    details.indexOf('WHERE id = $16', orderUpdate)
   );
+
+  assert.ok(orderLock >= 0 && orderUpdate > orderLock);
+  assert.ok(auditWrite > orderUpdate && transactionCommit > auditWrite);
   assert.match(details, /from orders[\s\S]*?where id = \$1[\s\S]*?for update/u);
-  assert.match(
-    details,
-    /type = 'purchase_order'[\s\S]*?deleted_at is null[\s\S]*?format_marker = any\(\$2::text\[\]\)[\s\S]*?for share/u
+  assert.match(updateSql, /SET customer_type = \$1/u);
+  assert.doesNotMatch(
+    updateSql,
+    /commitment_status|contract_status|contract_accepted|committed_at|status\s*=/u
   );
-  assert.match(
+  assert.doesNotMatch(
     details,
-    /\[orderId, \[\.\.\.SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS\]\]/u
+    /orderCustomerTypeChangeBlock|orderCustomerTypeFinalContractBlock|draftSchoolBlock/u
   );
-  assert.match(details, /schoolBindingBlock\([\s\S]*?'binding'/u);
-  assert.match(
-    details,
-    /insertAuditEventForRequest\([\s\S]*?\}, client\);[\s\S]*?client\.query\('commit'\)/u
-  );
+  assert.doesNotMatch(details, /from order_documents/u);
+  for (const auditKey of [
+    'customer_type_corrected',
+    'customer_type_before',
+    'customer_type_after'
+  ]) {
+    assert.ok(details.includes(auditKey), auditKey);
+  }
 });
-
 test('document deletion protects only the last active accepted purchase-order proof', () => {
   const deletion = source(
     'src/admin/api/orders/[orderId]/documents/[documentId]/route.ts'
@@ -197,14 +185,8 @@ test('document deletion protects only the last active accepted purchase-order pr
   const detailClient = source(
     'src/admin/features/orders/components/AdminOrderDetailClient.tsx'
   );
-  assert.match(
-    detailClient,
-    /availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS\.map\([\s\S]*?const changeBlock = orderCustomerTypeFinalContractBlock\([\s\S]*?order\.contract_status[\s\S]*?disabled: true, description: changeBlock\.message/u
-  );
-  assert.doesNotMatch(
-    detailClient,
-    /availableCustomerTypeOptions = CUSTOMER_TYPE_FORM_OPTIONS\.filter/u
-  );
+  assert.doesNotMatch(detailClient, /orderCustomerTypeFinalContractBlock/u);
+  assert.doesNotMatch(detailClient, /availableCustomerTypeOptions/u);
   assert.doesNotMatch(detailClient, /customerTypeIsLocked/u);
   assert.match(
     detailClient,
@@ -212,21 +194,15 @@ test('document deletion protects only the last active accepted purchase-order pr
   );
   assert.match(
     detailClient,
-    /options=\{availableCustomerTypeOptions\}[\s\S]*?disabled=\{pageIsBusy\}[\s\S]*?showArrow/u
+    /options=\{CUSTOMER_TYPE_FORM_OPTIONS\}[\s\S]*?disabled=\{pageIsBusy\}[\s\S]*?showArrow/u
   );
   const ordersTable = source(
     'src/admin/features/orders/components/AdminOrdersTable.tsx'
   );
+  assert.doesNotMatch(ordersTable, /orderCustomerTypeFinalContractBlock/u);
+  assert.doesNotMatch(ordersTable, /getOrderCustomerTypeRowOptions/u);
   assert.match(
     ordersTable,
-    /getOrderCustomerTypeRowOptions[\s\S]*?ORDER_CUSTOMER_TYPE_ROW_OPTIONS\.map\([\s\S]*?orderCustomerTypeFinalContractBlock\([\s\S]*?contractStatus[\s\S]*?disabled: true, description: changeBlock\.message/u
-  );
-  assert.doesNotMatch(
-    ordersTable,
-    /getOrderCustomerTypeRowOptions[\s\S]*?ORDER_CUSTOMER_TYPE_ROW_OPTIONS\.filter/u
-  );
-  assert.match(
-    ordersTable,
-    /options=\{getOrderCustomerTypeRowOptions\([\s\S]*?activeQuickEdit\.contractStatus[\s\S]*?disabled=\{activeQuickEdit\.isSaving\}/u
+    /options=\{ORDER_CUSTOMER_TYPE_ROW_OPTIONS\}[\s\S]*?disabled=\{activeQuickEdit\.isSaving\}/u
   );
 });

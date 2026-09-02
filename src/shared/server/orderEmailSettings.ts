@@ -239,9 +239,13 @@ export async function getOrderEmailAdminState(): Promise<OrderEmailAdminState> {
 function summarizeConfig(config: OrderEmailSettings) {
   return {
     enabled: config.enabled,
+    confirmCustomerEmails: config.confirmCustomerEmails,
     senderConfigured: Boolean(config.fromEmail),
     replyToConfigured: Boolean(config.replyToEmail),
     adminRecipientCount: config.adminRecipients.length,
+    sharedHeaderConfigured: Boolean(config.headerText),
+    sharedFooterConfigured: Boolean(config.footerText),
+    sharedImageAttachmentConfigured: config.imageAttachment !== null,
     enabledEvents: ORDER_EMAIL_EVENT_DEFINITIONS.flatMap((event) => {
       const audiences = config.events[event.value];
       return [

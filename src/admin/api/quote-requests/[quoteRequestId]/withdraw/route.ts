@@ -6,6 +6,7 @@ import {
 } from '@/shared/server/quoteAccess';
 import { scheduleQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
+import { requireQuoteCustomerEmailConfirmation } from '@/shared/server/adminCustomerEmailConfirmation';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import {
   appendQuoteEvent,
@@ -149,6 +150,21 @@ export async function POST(
     );
     const nextRequestStatus = draftResult.rowCount ? 'in_preparation' : 'withdrawn';
 
+    const confirmationChallenge =
+      await requireQuoteCustomerEmailConfirmation({
+        client,
+        quoteRequestId,
+        eventType: 'quote_withdrawn',
+        action: 'withdraw_quote',
+        actionLabel: 'Umik ponudbe',
+        customerEmailConfirmationToken:
+          parsed.body.customerEmailConfirmationToken
+      });
+    if (confirmationChallenge) {
+      await client.query('rollback');
+      return NextResponse.json(confirmationChallenge, { status: 428 });
+    }
+
     await client.query(
       `
         update quote_offer_versions
@@ -199,7 +215,6 @@ export async function POST(
       eventKey: `quote-withdrawn:${quoteOfferVersionId}`,
       eventType: 'quote_withdrawn',
       detail: reason,
-      suppressAdmin: true,
       requestId: evidence.requestId
     });
     await mirrorQuoteAdminAudit(request, client, {

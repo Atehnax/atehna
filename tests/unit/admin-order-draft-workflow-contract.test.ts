@@ -2,11 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import {
-  ORDER_CUSTOMER_TYPE_CONTRACT_FINAL,
-  draftCommitmentStatusAfterCustomerTypeChange,
-  orderCustomerTypeFinalContractBlock
-} from '../../src/shared/domain/order/schoolOrderWorkflow';
+
 
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
@@ -36,10 +32,7 @@ test('manual draft details persist independently and finalize only when ready', 
     detailsRoute,
     /draftFinalizationBlock \?\?= \{\s+code: 'ORDER_DRAFT_SHIPPING_INCOMPLETE'/u
   );
-  assert.equal(
-    detailsRoute.includes('draftFinalizationBlock ??= draftSchoolBlock'),
-    true
-  );
+  assert.doesNotMatch(detailsRoute, /draftSchoolBlock|order_documents/u);
   assert.equal(
     detailsRoute.includes('savepoint order_draft_stock_finalization'),
     true
@@ -63,6 +56,8 @@ test('manual draft details persist independently and finalize only when ready', 
     detailsRoute.includes('finalizationBlock: draftFinalizationBlock'),
     true
   );
+  assert.doesNotMatch(detailsRoute, /admin_draft_purchase_order/u);
+  assert.doesNotMatch(detailsRoute, /set contract_status = 'accepted'/u);
 
   const readinessStart = detailsRoute.indexOf(
     'const shippingReadiness = validatePersistedOrderShippingReadiness'
@@ -125,51 +120,17 @@ test('draft status changes stay local and school prerequisites remain actionable
   );
 });
 
-test('pending draft legal-type boundaries normalize commitment without rewriting final contracts', () => {
-  assert.equal(
-    draftCommitmentStatusAfterCustomerTypeChange({
-      currentCustomerType: 'company',
-      nextCustomerType: 'school',
-      currentCommitmentStatus: 'binding',
-      contractStatus: 'pending_seller_acceptance',
-      isDraft: true
-    }),
-    'pending_confirmation'
+test('customer-type corrections have no legal-state coupling', () => {
+  const workflow = source('src/shared/domain/order/schoolOrderWorkflow.ts');
+  assert.doesNotMatch(
+    workflow,
+    /orderCustomerTypeChangeBlock|orderCustomerTypeFinalContractBlock|draftCommitmentStatusAfterCustomerTypeChange/u
   );
-  assert.equal(
-    draftCommitmentStatusAfterCustomerTypeChange({
-      currentCustomerType: 'school',
-      nextCustomerType: 'individual',
-      currentCommitmentStatus: 'pending_confirmation',
-      contractStatus: 'pending_seller_acceptance',
-      isDraft: true
-    }),
-    'binding'
-  );
-  assert.equal(
-    draftCommitmentStatusAfterCustomerTypeChange({
-      currentCustomerType: 'individual',
-      nextCustomerType: 'company',
-      currentCommitmentStatus: 'binding',
-      contractStatus: 'pending_seller_acceptance',
-      isDraft: true
-    }),
-    'binding'
-  );
-  assert.equal(
-    orderCustomerTypeFinalContractBlock('company', 'school', 'accepted'),
-    ORDER_CUSTOMER_TYPE_CONTRACT_FINAL
-  );
-  assert.equal(
-    orderCustomerTypeFinalContractBlock('school', 'individual', 'rejected'),
-    ORDER_CUSTOMER_TYPE_CONTRACT_FINAL
-  );
-  assert.equal(
-    orderCustomerTypeFinalContractBlock('individual', 'company', 'accepted'),
-    null
+  assert.doesNotMatch(
+    detailsRoute,
+    /ORDER_CUSTOMER_TYPE_IMMUTABLE|ORDER_CUSTOMER_TYPE_CONTRACT_FINAL/u
   );
 });
-
 test('draft finalization requires a usable recipient address and audits every outcome', () => {
   assert.match(
     detailsRoute,
@@ -179,13 +140,14 @@ test('draft finalization requires a usable recipient address and audits every ou
     detailsRoute,
     /!isDraft &&[\s\S]*?Manjkajo obvezni podatki/u
   );
-  assert.match(
-    detailsRoute,
-    /commitment_status = \$22[\s\S]*?nextCommitmentStatus/u
+  const detailsUpdate = detailsRoute.slice(
+    detailsRoute.indexOf('UPDATE orders'),
+    detailsRoute.indexOf('WHERE id = $16')
   );
-  assert.match(
+  assert.doesNotMatch(detailsUpdate, /commitment_status|contract_status|status\s*=/u);
+  assert.doesNotMatch(
     detailsRoute,
-    /orderCustomerTypeFinalContractBlock\([\s\S]*?currentContractStatus[\s\S]*?status: 409/u
+    /orderCustomerTypeChangeBlock|orderCustomerTypeFinalContractBlock/u
   );
   for (const auditedStateField of [
     "'is_draft'",
@@ -196,6 +158,9 @@ test('draft finalization requires a usable recipient address and audits every ou
   }
   assert.match(detailsRoute, /fields: detailFields,[\s\S]*?labels:/u);
   for (const metadataKey of [
+    'customer_type_corrected',
+    'customer_type_before',
+    'customer_type_after',
     'draft_finalization_attempted',
     'draft_finalized',
     'draft_finalization_block_code',

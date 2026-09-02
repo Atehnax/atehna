@@ -49,6 +49,31 @@ test('navigation overlay resolves the active header logo size from the shared lo
     /calculateTopBarGeometry\(\{[\s\S]*?device,\s*logoDisplaySize,\s*labelScale:/u
   );
 });
+
+test('logo dragging reuses the configured logo without leaving the source artwork behind', () => {
+  const brandPreviewSource = sourceBetween(
+    'function AdminTopBarBrandPreview(',
+    'function AdminTopBarSearchPreview('
+  );
+  assert.match(brandPreviewSource, /<SiteLogo/u);
+  assert.match(brandPreviewSource, /purposeId=\{purposeId\}/u);
+  assert.match(brandPreviewSource, /fallback=\{<AdminTopBarDefaultBrandPreview \/>\}/u);
+
+  const responsivePreviewSource = sourceBetween(
+    'function TopBarResponsivePreview(',
+    'function TopBarElementRow('
+  );
+  assert.match(
+    responsivePreviewSource,
+    /const isDraggingLogo = dragState\?\.type === 'element' && dragState\.elementId === 'logo';/u
+  );
+  assert.match(responsivePreviewSource, /\[&_a\[data-navbar-left\]\]:invisible/u);
+  assert.match(
+    responsivePreviewSource,
+    /<AdminTopBarElementPreview[\s\S]*?logoDisplaySize=\{logoDisplaySize\}/u
+  );
+  assert.doesNotMatch(responsivePreviewSource, /bg-white\/75/u);
+});
 test('explicit logo overlay dimensions include the same 7.5 physical pixels of link padding as the storefront', () => {
   assert.equal(COMMERCIAL_STOREFRONT_SCALE, 0.75);
   assert.equal(10 * COMMERCIAL_STOREFRONT_SCALE, 7.5);

@@ -1,5 +1,7 @@
 import {
   buildOrderEmailMessage,
+  normalizeEmailMessageAttachment,
+  type EmailMessageAttachment,
   type OrderEmailAudience,
   type OrderEmailJobPayload
 } from './orderEmailTemplates';
@@ -22,6 +24,7 @@ export type PersistedOrderEmailMessage = Readonly<{
   subject: string;
   html: string;
   text: string;
+  attachments?: readonly EmailMessageAttachment[];
 }>;
 
 export type OrderEmailDeliveryRecipient = Readonly<{
@@ -217,12 +220,50 @@ function parseRecipient(value: unknown): OrderEmailDeliveryRecipient {
   return Object.freeze({ email, name });
 }
 
+function parseAttachments(value: unknown): readonly EmailMessageAttachment[] {
+  if (!Array.isArray(value)) {
+    fail('$.message.attachments', 'must be an array');
+  }
+  if (value.length !== 1) {
+    fail('$.message.attachments', 'must contain exactly one attachment');
+  }
+
+  const rawAttachment = requireRecord(
+    value[0],
+    '$.message.attachments[0]'
+  );
+  requireExactKeys(
+    rawAttachment,
+    ['path', 'filename'],
+    [],
+    '$.message.attachments[0]'
+  );
+  const path = requireString(
+    rawAttachment.path,
+    '$.message.attachments[0].path',
+    { minLength: 1, maxLength: 4_096, headerSafe: true }
+  );
+  const filename = requireString(
+    rawAttachment.filename,
+    '$.message.attachments[0].filename',
+    { minLength: 1, maxLength: 255, headerSafe: true }
+  );
+  const attachment = normalizeEmailMessageAttachment({ path, filename });
+  if (!attachment) {
+    fail(
+      '$.message.attachments[0]',
+      'must reference one trusted shared image attachment'
+    );
+  }
+  return Object.freeze([attachment]);
+}
+
 function parseMessage(value: unknown): PersistedOrderEmailMessage {
   const message = requireRecord(value, '$.message');
   requireExactKeys(
     message,
     ['from', 'to', 'subject', 'html', 'text'],
-    ['replyTo'],
+    ['replyTo', 'attachments'],
     '$.message'
   );
 
@@ -250,6 +291,9 @@ function parseMessage(value: unknown): PersistedOrderEmailMessage {
     maxLength: MAX_ORDER_EMAIL_TEXT_LENGTH,
     bodySafe: true
   });
+  const attachments = hasOwn(message, 'attachments')
+    ? parseAttachments(message.attachments)
+    : undefined;
 
   return Object.freeze({
     from,
@@ -257,7 +301,8 @@ function parseMessage(value: unknown): PersistedOrderEmailMessage {
     ...(replyTo ? { replyTo } : {}),
     subject,
     html,
-    text
+    text,
+    ...(attachments ? { attachments } : {})
   });
 }
 

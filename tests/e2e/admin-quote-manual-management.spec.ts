@@ -6,7 +6,7 @@ test.beforeEach(async ({ request }) => {
   await assertAuthenticatedAdmin(request);
 });
 
-test('admin can create and remove a test quote request from the quotes table', async ({
+test('admin can create a draft quote directly and remove it from the quotes table', async ({
   page,
   request
 }) => {
@@ -37,60 +37,16 @@ test('admin can create and remove a test quote request from the quotes table', a
     await page.waitForLoadState('networkidle');
     const createButton = page.getByTestId('quote-table-create-request');
     await expect(createButton).toBeEnabled();
-    await createButton.click();
-
-    const createDialog = page.getByRole('dialog');
-    await expect(createDialog).toContainText('Novo povpraševanje');
-    await createDialog.getByLabel('Naziv organizacije', { exact: true }).fill(organizationName);
-    await createDialog.getByLabel('Kontaktna oseba', { exact: true }).fill(contactName);
-    await createDialog.getByLabel('E-pošta', { exact: true }).fill(email);
-    await createDialog.getByLabel('Naslov', { exact: true }).fill('Testna ulica 1');
-    await createDialog.getByLabel('Poštna številka', { exact: true }).fill('1000');
-    await createDialog.getByLabel('Kraj', { exact: true }).fill('Ljubljana');
-    await createDialog.getByLabel('Referenca', { exact: true }).fill(reference);
-    await createDialog
-      .getByLabel('Opis povpraševanja')
-      .fill(`Samodejni E2E preizkus ${token}; zapis se po preverjanju odstrani.`);
-
-    const intakeSource = createDialog.getByRole('button', {
-      name: 'Vir vnosa'
-    });
-    await intakeSource.click();
-    await page.getByRole('option', { name: 'Testni vnos', exact: true }).click();
-    await expect(intakeSource).toContainText('Testni vnos');
-
-    const requestedItem = createDialog.getByLabel('Zahtevani artikel');
-    await requestedItem.click();
-    const catalogList = page.getByRole('listbox', {
-      name: 'Kataloški artikli'
-    });
-    await expect(catalogList).toBeVisible({ timeout: 10_000 });
-    await catalogList.getByRole('option').first().click();
-    await expect(createDialog).toContainText('Kataloški artikel');
-    await createDialog.getByLabel('Količina zahtevanega artikla').fill('2');
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.request().method() === 'POST'
         && response.url().endsWith('/api/admin/quote-requests')
     );
-    await createDialog.getByTestId('quote-create-submit').click();
+    await createButton.click();
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBe(201);
-
-    const submitted = createResponse.request().postDataJSON() as {
-      intakeSource?: unknown;
-      requestedItems?: Array<{
-        catalogItemId?: unknown;
-        catalogVariantId?: unknown;
-        sku?: unknown;
-      }>;
-    };
-    expect(submitted.intakeSource).toBe('admin_testing');
-    expect(submitted.requestedItems).toHaveLength(1);
-    expect(Number.isSafeInteger(submitted.requestedItems?.[0]?.catalogItemId)).toBe(true);
-    expect(Number.isSafeInteger(submitted.requestedItems?.[0]?.catalogVariantId)).toBe(true);
-    expect(submitted.requestedItems?.[0]?.sku).toEqual(expect.any(String));
+    expect(createResponse.request().postDataJSON()).toEqual({ mode: 'draft' });
 
     const created = await createResponse.json() as {
       quoteRequestId?: unknown;
@@ -111,11 +67,35 @@ test('admin can create and remove a test quote request from the quotes table', a
     await expect(page).toHaveURL(
       new RegExp(`/admin/orders/quotes/${quoteRequestId}$`, 'u')
     );
-    await page.getByTestId('quote-header-status-edit').click();
-    await expect(page.getByRole('textbox', {
-      name: 'Naziv organizacije',
-      exact: true
-    })).toHaveValue(organizationName);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    const requestCard = page.getByTestId('quote-request-details-card');
+    await requestCard
+      .getByRole('button', { name: 'Uredi podatke povpraševanja' })
+      .click();
+    await requestCard.getByRole('button', { name: 'Tip naročnika' }).click();
+    await page.getByRole('option', { name: 'Podjetje', exact: true }).click();
+    await requestCard.getByLabel('Naziv organizacije', { exact: true }).fill(organizationName);
+    await requestCard.getByLabel('Kontaktna oseba', { exact: true }).fill(contactName);
+    await requestCard.getByLabel('Email', { exact: true }).fill(email);
+    await requestCard.getByLabel('Naslov', { exact: true }).fill('Testna ulica 1');
+    await requestCard.getByLabel('Poštna številka', { exact: true }).fill('1000');
+    await requestCard.getByLabel('Kraj', { exact: true }).fill('Ljubljana');
+    await requestCard.getByLabel('Referenca', { exact: true }).fill(reference);
+    await requestCard
+      .getByLabel('Sporočilo stranke', { exact: true })
+      .fill(`Samodejni E2E preizkus ${token}; zapis se po preverjanju odstrani.`);
+
+    const detailsResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PUT'
+        && response.url().endsWith(`/api/admin/quote-requests/${quoteRequestId}/details`)
+    );
+    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+    const detailsResponse = await detailsResponsePromise;
+    expect(detailsResponse.ok()).toBe(true);
+    await expect(requestCard.getByLabel('Naziv organizacije', { exact: true })).toHaveCount(0);
+    await expect(requestCard).toContainText(organizationName);
 
     const filteredListUrl = `/admin/orders?view=quotes&q=${encodeURIComponent(organizationName)}`;
     await page.goto(filteredListUrl);
@@ -248,11 +228,9 @@ test('admin can create and remove a test quote request from the quotes table', a
     await expect(page).toHaveURL(
       new RegExp(`/admin/orders/quotes/${quoteRequestId}$`, 'u')
     );
-    await page.getByTestId('quote-header-status-edit').click();
-    await expect(page.getByRole('textbox', {
-      name: 'Naziv organizacije',
-      exact: true
-    })).toHaveValue(organizationName);
+    await expect(page.getByTestId('quote-request-details-card')).toContainText(
+      organizationName
+    );
 
     await page.goto(filteredListUrl);
     await page.waitForLoadState('networkidle');

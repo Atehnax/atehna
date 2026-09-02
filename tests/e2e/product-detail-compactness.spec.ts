@@ -155,7 +155,7 @@ async function applyCompactVariantSettings(page: Page, preview: Locator) {
 }
 
 test.describe('compact product-detail appearance', () => {
-  test('renders compact controls and lets a fixed CTA fill its canvas size without collateral resizing', async ({
+  test('renders compact controls and lets a proportional CTA fill its canvas size without collateral resizing', async ({
     page,
     request
   }) => {
@@ -317,11 +317,22 @@ test.describe('compact product-detail appearance', () => {
     const heightInput = stylePanel.getByTestId('product-canvas-height');
     await expect(widthInput).toHaveAttribute('min', '160');
     await expect(heightInput).toHaveAttribute('min', '40');
+    await expect(primaryActionCanvas).toHaveAttribute(
+      'data-product-canvas-proportional-resize',
+      'true'
+    );
     await widthInput.fill('320');
+    await widthInput.press('Enter');
+    await expect(widthInput).toHaveValue('320');
+    const heightAfterWidth = Number(await heightInput.inputValue());
+    expect(heightAfterWidth, 'CTA width resize should preserve a usable height')
+      .toBeGreaterThanOrEqual(40);
     await heightInput.fill('72');
     await heightInput.press('Enter');
-    await expect(widthInput).toHaveValue('320');
     await expect(heightInput).toHaveValue('72');
+    await expect(widthInput).toHaveValue(String(Math.round(
+      320 * (72 / heightAfterWidth)
+    )));
     await expect(primaryActionCanvas).toHaveAttribute(
       'data-product-canvas-fixed-width',
       'true'

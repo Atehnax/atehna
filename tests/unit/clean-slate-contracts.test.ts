@@ -53,6 +53,18 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const orderItemDeliveryPlanDeployment = source(
     'database/migrations/20260831_order_item_delivery_plan.sql'
   );
+  const inventoryPolicyDeployment = source(
+    'database/migrations/20260901_inventory_policy_settings.sql'
+  );
+  const orderStockEnforcementMarkerDeployment = source(
+    'database/migrations/20260901_order_stock_enforcement_marker.sql'
+  );
+  const quoteOptionalAcceptanceTermsDeployment = source(
+    'database/migrations/20260901_quote_optional_acceptance_terms.sql'
+  );
+  const quoteOutboxCancellationDeployment = source(
+    'database/migrations/20260901_quote_outbox_cancellation.sql'
+  );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
@@ -63,10 +75,14 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260830_quote_clarification_email.sql',
     '20260830_quote_manual_documents.sql',
     '20260830_quote_request_admin_title.sql',
-    '20260831_order_item_delivery_plan.sql'
+    '20260831_order_item_delivery_plan.sql',
+    '20260901_inventory_policy_settings.sql',
+    '20260901_order_stock_enforcement_marker.sql',
+    '20260901_quote_optional_acceptance_terms.sql',
+    '20260901_quote_outbox_cancellation.sql'
   ]);
-  assert.equal(tableNames.length, 60);
-  assert.equal(new Set(tableNames).size, 60);
+  assert.equal(tableNames.length, 61);
+  assert.equal(new Set(tableNames).size, 61);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
   assert.match(
     schema,
@@ -87,7 +103,11 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     quoteClarificationEmailDeployment,
     quoteManualDocumentsDeployment,
     quoteAdminTitleDeployment,
-    orderItemDeliveryPlanDeployment
+    orderItemDeliveryPlanDeployment,
+    inventoryPolicyDeployment,
+    orderStockEnforcementMarkerDeployment,
+    quoteOptionalAcceptanceTermsDeployment,
+    quoteOutboxCancellationDeployment
   ]) {
     assert.match(deployment, /begin;/u);
     assert.match(deployment, /set local search_path = public, pg_temp/u);
@@ -123,6 +143,19 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(orderItemDeliveryPlanDeployment, /delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /order_delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /idx_order_items_order_id_ship_later/u);
+  assert.match(inventoryPolicyDeployment, /create table inventory_policy_settings/u);
+  assert.match(
+    orderStockEnforcementMarkerDeployment,
+    /add column if not exists stock_enforcement_applied boolean/u
+  );
+  assert.match(
+    quoteOptionalAcceptanceTermsDeployment,
+    /drop constraint quote_offer_versions_issue_identity_check/u
+  );
+  assert.match(
+    quoteOptionalAcceptanceTermsDeployment,
+    /btrim\(delivery_terms\)[\s\S]*?btrim\(payment_terms\)[\s\S]*?btrim\(terms_version\)[\s\S]*?terms_hash[\s\S]*?content_hash/u
+  );
 
   const setup = source('scripts/e2e-database.mjs');
   assert.match(setup, /resolve\(projectRoot, 'database', 'schema\.sql'\)/u);

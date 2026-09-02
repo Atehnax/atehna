@@ -8,6 +8,7 @@ import {
   adminCompactTableAlignedInputClassName as compactTableAlignedInputClassName,
   adminCompactTableValueUnitShellClassName as compactTableValueUnitShellClassName
 } from '@/shared/ui/admin-controls/adminCompactFieldStyles';
+import { adminPlaceholderTokenClasses } from '@/shared/ui/theme/tokens';
 
 export const sectionTitleClassName = 'text-[20px] font-semibold tracking-tight text-slate-900';
 export const fieldFrameClassName = 'h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 text-[13px] text-slate-900 outline-none transition focus:border-[#3e67d6] focus:ring-0 disabled:cursor-not-allowed disabled:bg-[color:var(--field-locked-bg)] disabled:text-slate-500';
@@ -157,6 +158,7 @@ export function CompactSegmentedField({
           maxLength={maxLength}
           className={classNames(
             "h-full min-w-0 flex-1 border-0 bg-transparent px-1 font-['Inter',system-ui,sans-serif] text-[10px] font-normal leading-[30px] text-slate-900 outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-slate-500",
+            adminPlaceholderTokenClasses,
             alignmentClassName,
             inputClassName
           )}

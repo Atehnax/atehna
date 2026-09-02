@@ -4,6 +4,10 @@ import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
 import {
+  createQuoteOfferDraftRevision,
+  type QuoteOfferRevisionSource
+} from '@/shared/server/quoteOfferRevision';
+import {
   appendQuoteEvent,
   expectedVersion,
   hasValidQuoteAdminSession,
@@ -155,136 +159,13 @@ export async function POST(
       );
     }
 
-    const versionResult = await client.query(
-      `select coalesce(max(version_number), 0)::int + 1 as next_version from quote_offer_versions where quote_request_id = $1`,
-      [quoteRequestId]
-    );
-    const nextVersion = Number(versionResult.rows[0]?.next_version);
-    const createdResult = await client.query(
-      `
-        insert into quote_offer_versions (
-          quote_request_id,
-          version_number,
-          status,
-          is_current,
-          customer_snapshot_json,
-          billing_snapshot_json,
-          seller_message,
-          customer_visible_notes,
-          admin_notes,
-          delivery_terms,
-          payment_terms,
-          acceptance_method,
-          subtotal,
-          tax,
-          shipping,
-          total,
-          currency,
-          tax_rate,
-          shipping_snapshot_json,
-          terms_text,
-          terms_version,
-          valid_until,
-          created_by_actor_type,
-          created_by_actor_id
-        )
-        values (
-          $1, $2, 'draft', false, $3::jsonb, $4::jsonb, $5, $6, $7,
-          $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb,
-          $18, $19, now() + interval '1 month', 'admin', $20
-        )
-        returning id, state_version, created_at, valid_until
-      `,
-      [
-        quoteRequestId,
-        nextVersion,
-        JSON.stringify(source.customer_snapshot_json),
-        JSON.stringify(source.billing_snapshot_json),
-        source.seller_message,
-        source.customer_visible_notes,
-        source.admin_notes,
-        source.delivery_terms,
-        source.payment_terms,
-        source.acceptance_method,
-        source.subtotal,
-        source.tax,
-        source.shipping,
-        source.total,
-        source.currency,
-        source.tax_rate,
-        JSON.stringify(source.shipping_snapshot_json),
-        source.terms_text,
-        source.terms_version,
-        evidence.actorId
-      ]
-    );
-    const created = createdResult.rows[0];
-    const newOfferVersionId = Number(created.id);
-    await client.query(
-      `
-        insert into quote_offer_version_items (
-          quote_offer_version_id,
-          line_number,
-          catalog_item_id,
-          catalog_variant_id,
-          product_slug,
-          product_name,
-          variant_name,
-          sku,
-          unit,
-          quantity,
-          min_order,
-          available_stock_at_request,
-          category_id,
-          category_path,
-          selected_attributes,
-          image_url,
-          base_unit_net,
-          discount_pct,
-          unit_net,
-          unit_tax,
-          unit_gross,
-          line_net,
-          line_tax,
-          line_gross,
-          tax_rate,
-          currency,
-          snapshot_json
-        )
-        select
-          $2,
-          line_number,
-          catalog_item_id,
-          catalog_variant_id,
-          product_slug,
-          product_name,
-          variant_name,
-          sku,
-          unit,
-          quantity,
-          min_order,
-          available_stock_at_request,
-          category_id,
-          category_path,
-          selected_attributes,
-          image_url,
-          base_unit_net,
-          discount_pct,
-          unit_net,
-          unit_tax,
-          unit_gross,
-          line_net,
-          line_tax,
-          line_gross,
-          tax_rate,
-          currency,
-          snapshot_json
-        from quote_offer_version_items
-        where quote_offer_version_id = $1
-        order by line_number
-      `,
-      [sourceOfferVersionId, newOfferVersionId]
-    );
+    const created = await createQuoteOfferDraftRevision(client, {
+      quoteRequestId,
+      source: source as QuoteOfferRevisionSource,
+      actorId: evidence.actorId
+    });
+    const nextVersion = created.versionNumber;
+    const newOfferVersionId = created.id;
     const previousRequestStatus = String(quoteRequest.status);
     await client.query(
       `
@@ -334,8 +215,8 @@ export async function POST(
       {
         quoteOfferVersionId: newOfferVersionId,
         versionNumber: nextVersion,
-        stateVersion: Number(created.state_version),
-        validUntil: new Date(String(created.valid_until)).toISOString(),
+        stateVersion: created.stateVersion,
+        validUntil: new Date(String(created.validUntil)).toISOString(),
         status: 'draft',
         sourceOfferVersionId,
         sourceStatus: source.status

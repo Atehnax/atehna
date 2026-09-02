@@ -83,3 +83,51 @@ test('the lower contact adapter receives every canonical editable contact field'
     { field: 'workingHours', value: 'Pon–Pet 8.00–16.00' }
   ]);
 });
+
+test('the admin lower footer keeps legal editors and copyright in the shared lower row', () => {
+  const settings = normalizeHomepageFooterSettings({
+    ...structuredClone(DEFAULT_HOMEPAGE_SETTINGS.footer),
+    upperSectionVisible: false,
+    lowerSectionVisible: true,
+    lowerContactVisible: true,
+    contact: {
+      email: 'info@atehna.si',
+      phone: '+386 1 234 56 78',
+      address: 'Ajdovska 1, 4264 Bohinjska Bistrica',
+      workingHours: 'Pon-Pet 8.00-16.00'
+    }
+  });
+  const markup = renderToStaticMarkup(
+    createElement(SiteFooter, {
+      settings,
+      editorAdapter: { editorMode: true } satisfies SiteFooterEditorAdapter
+    })
+  );
+
+  assert.match(
+    markup,
+    /class="[^"]*flex-wrap[^"]*" data-testid="site-footer-lower-section"/u
+  );
+  assert.match(
+    markup,
+    /class="[^"]*flex[^"]*lg:flex-1[^"]*" data-footer-lower-leading="true"/u
+  );
+  assert.match(
+    markup,
+    /class="[^"]*flex-nowrap[^"]*" data-testid="site-footer-lower-contact"/u
+  );
+  assert.doesNotMatch(navigationEditorSource, /data-admin-footer-layout="contact-copyright-row"/u);
+  assert.match(
+    navigationEditorSource,
+    /data-admin-footer-lower-contact-preview="true"[\s\S]{0,180}?relative flex w-full min-w-0 basis-full items-center/u
+  );
+  assert.match(
+    navigationEditorSource,
+    /data-admin-footer-lower-contact-preview="true"[\s\S]{0,260}?className="min-w-0 flex-1"/u
+  );
+  assert.match(
+    navigationEditorSource,
+    /className="flex min-h-7 items-center justify-end gap-1 pr-1"[\s\S]{0,220}?aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2"/u
+  );
+  assert.doesNotMatch(navigationEditorSource, /order-last flex min-h-7 basis-full/u);
+});

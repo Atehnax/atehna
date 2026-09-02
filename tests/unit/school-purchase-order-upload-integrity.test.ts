@@ -3,37 +3,36 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
-  ORDER_CUSTOMER_TYPE_IMMUTABLE,
   SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED,
-  orderCustomerTypeChangeBlock,
   schoolPurchaseOrderUploadBlock
 } from '../../src/shared/domain/order/schoolOrderWorkflow';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
-test('purchase-order uploads are open only for undeleted pending school orders in received state', () => {
+test('purchase-order uploads are open only for undeleted received school orders awaiting seller acceptance', () => {
   assert.equal(
     schoolPurchaseOrderUploadBlock(
       'school',
-      'pending_confirmation',
       'received',
+      'pending_seller_acceptance',
       false
     ),
     null
   );
 
-  for (const [customerType, commitmentStatus, orderStatus, isDeleted] of [
-    ['company', 'pending_confirmation', 'received', false],
-    ['school', 'binding', 'received', false],
-    ['school', 'pending_confirmation', 'in_progress', false],
-    ['school', 'pending_confirmation', 'received', true]
+  for (const [customerType, orderStatus, contractStatus, isDeleted] of [
+    ['company', 'received', 'pending_seller_acceptance', false],
+    ['school', 'in_progress', 'pending_seller_acceptance', false],
+    ['school', 'received', 'accepted', false],
+    ['school', 'received', 'rejected', false],
+    ['school', 'received', 'pending_seller_acceptance', true]
   ] as const) {
     assert.equal(
       schoolPurchaseOrderUploadBlock(
         customerType,
-        commitmentStatus,
         orderStatus,
+        contractStatus,
         isDeleted
       ),
       SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED
@@ -45,28 +44,13 @@ test('purchase-order uploads are open only for undeleted pending school orders i
     'SCHOOL_PURCHASE_ORDER_UPLOAD_CLOSED'
   );
 });
-
-test('non-draft customer-type policy blocks only transitions to or from school', () => {
-  assert.equal(
-    orderCustomerTypeChangeBlock('company', 'school', false),
-    ORDER_CUSTOMER_TYPE_IMMUTABLE
+test('purchase-order evidence policy is independent from customer-type editing', () => {
+  const workflow = source('src/shared/domain/order/schoolOrderWorkflow.ts');
+  assert.doesNotMatch(
+    workflow,
+    /ORDER_CUSTOMER_TYPE_IMMUTABLE|orderCustomerTypeChangeBlock/u
   );
-  assert.equal(
-    orderCustomerTypeChangeBlock('school', 'company', false),
-    ORDER_CUSTOMER_TYPE_IMMUTABLE
-  );
-  assert.equal(
-    orderCustomerTypeChangeBlock('company', 'individual', false),
-    null
-  );
-  assert.equal(
-    orderCustomerTypeChangeBlock('individual', 'company', false),
-    null
-  );
-  assert.equal(orderCustomerTypeChangeBlock('school', 'school', false), null);
-  assert.equal(orderCustomerTypeChangeBlock('company', 'school', true), null);
 });
-
 test('upload route rechecks locked state and cleans the blob before returning a workflow 409', () => {
   const route = source('src/commercial/api/orders/purchase-order/route.ts');
   const preflightGate = route.indexOf('const initialUploadBlock = schoolPurchaseOrderUploadBlock(');
@@ -83,7 +67,7 @@ test('upload route rechecks locked state and cleans the blob before returning a 
   assert.ok(lockedGate < versionRead && versionRead < insert);
   assert.match(
     route.slice(lockedRead, lockedGate),
-    /select[\s\S]*?id,[\s\S]*?customer_type,[\s\S]*?status,[\s\S]*?commitment_status,[\s\S]*?deleted_at,[\s\S]*?shipping_override_stale,[\s\S]*?from orders[\s\S]*?where id = \$1[\s\S]*?for update/u
+    /select[\s\S]*?id,[\s\S]*?customer_type,[\s\S]*?status,[\s\S]*?commitment_status,[\s\S]*?contract_status,[\s\S]*?deleted_at,[\s\S]*?shipping_override_stale,[\s\S]*?from orders[\s\S]*?where id = \$1[\s\S]*?for update/u
   );
 
   const lockedRejection = route.slice(lockedGate, versionRead);

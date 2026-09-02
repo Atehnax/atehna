@@ -51,19 +51,16 @@ describe('product canvas dimension resizing', () => {
       'cart-summary'
     ]));
 
-    // Every page-specific inventory entry is mapped to the same responsive
-    // device settings object and passed to the contextual toolbar. Dimension
-    // controls therefore cannot silently exist for only a hand-picked section.
+    // Every runtime layer resolves the same responsive device settings object
+    // used by the contextual toolbar and the docked layers panel.
     expect(editorSource).toContain(
-      'const visibleCanvasElements = productCanvasElements.filter'
+      'const productAppearanceLayerItems = useMemo<ProductAppearanceLayerItem[]>'
     );
     expect(editorSource).toContain(
-      'const contextToolbarElements = visibleCanvasElements.map'
+      'settings: resolveProductCanvasElementDeviceSettings(config, layer.id, previewDevice)'
     );
-    expect(editorSource).toContain(
-      'settings: resolveProductCanvasElementDeviceSettings(config, element.id, previewDevice)'
-    );
-    expect(editorSource).toContain('elements={contextToolbarElements}');
+    expect(editorSource).toContain('<ProductAppearanceLayersPanel');
+    expect(editorSource).toContain('items={productAppearanceLayerItems}');
     expect(editorSource).toContain('settings={selectedCanvasSettings}');
 
     expect(toolbarSource).toContain('settings.widthPx');

@@ -47,6 +47,23 @@ test('the shared field exposes reusable tone, layout, alpha, clear and input hoo
   assert.match(fieldSource, /data-logo-hex-color-control=\{marker\}/u);
 });
 
+test('the compact field shrinks inside narrow settings grids without clipping the HEX input', () => {
+  assert.match(
+    fieldSource,
+    /inline-flex min-w-0 items-center gap-2/u
+  );
+  assert.match(
+    fieldSource,
+    /flex min-w-0 items-center gap-2 rounded-lg border/u
+  );
+  assert.match(
+    fieldSource,
+    /ml-auto grid min-w-\[6\.25rem\] max-w-\[8\.25rem\] flex-1 grid-cols-\[1\.5rem_minmax\(0,1fr\)\]/u
+  );
+  assert.match(fieldSource, /h-7 min-w-0 w-full rounded-md border/u);
+  assert.doesNotMatch(fieldSource, /w-\[6\.6rem\]/u);
+});
+
 test('clicking the square opens an accessible arbitrary picker with selected HEX below', () => {
   assert.match(fieldSource, /HexColorPicker/u);
   assert.match(fieldSource, /HexAlphaColorPicker/u);

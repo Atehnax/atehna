@@ -248,12 +248,22 @@ export function AppearanceEditorCompactSelect<Value extends string>({
 
   useEffect(() => {
     if (!open) return undefined;
-    const closeForViewportChange = () => setOpen(false);
-    window.addEventListener('resize', closeForViewportChange);
-    window.addEventListener('scroll', closeForViewportChange, true);
+    const closeForViewportResize = () => setOpen(false);
+    const closeForAncestorScroll = (event: Event) => {
+      const trigger = triggerRef.current;
+      const target = event.target;
+
+      // Capture-phase scroll also sees internal control scrolling, such as a
+      // text input resetting its horizontal caret position on blur. Dismiss
+      // only when the scroll source can move the trigger in the viewport.
+      if (trigger && target instanceof Node && !target.contains(trigger)) return;
+      setOpen(false);
+    };
+    window.addEventListener('resize', closeForViewportResize);
+    window.addEventListener('scroll', closeForAncestorScroll, true);
     return () => {
-      window.removeEventListener('resize', closeForViewportChange);
-      window.removeEventListener('scroll', closeForViewportChange, true);
+      window.removeEventListener('resize', closeForViewportResize);
+      window.removeEventListener('scroll', closeForAncestorScroll, true);
     };
   }, [open]);
 

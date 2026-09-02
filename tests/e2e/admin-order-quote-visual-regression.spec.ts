@@ -496,11 +496,11 @@ async function assertOrderItemsTerminalGutter(page: Page) {
       const cell = label.closest('th');
       if (!cell) throw new Error('Order total header is missing its table cell.');
       const cellBounds = cell.getBoundingClientRect();
-      const labelBounds = label.getBoundingClientRect();
+      const styles = getComputedStyle(cell);
       return {
-        paddingRight: Number.parseFloat(getComputedStyle(cell).paddingRight),
-        rightEdge: labelBounds.right,
-        gap: cellBounds.right - labelBounds.right
+        paddingRight: Number.parseFloat(styles.paddingRight),
+        textAlign: styles.textAlign,
+        cellRight: cellBounds.right,
       };
     });
     const valueGeometry = await valueCell.evaluate((cell) => {
@@ -508,18 +508,21 @@ async function assertOrderItemsTerminalGutter(page: Page) {
       if (!value) throw new Error('Order total value is missing its label.');
       const cellBounds = cell.getBoundingClientRect();
       const valueBounds = value.getBoundingClientRect();
+      const styles = getComputedStyle(cell);
       return {
-        paddingRight: Number.parseFloat(getComputedStyle(cell).paddingRight),
-        rightEdge: valueBounds.right,
+        paddingRight: Number.parseFloat(styles.paddingRight),
+        textAlign: styles.textAlign,
+        cellRight: cellBounds.right,
         gap: cellBounds.right - valueBounds.right
       };
     });
 
     expect(headerGeometry.paddingRight).toBe(16);
     expect(valueGeometry.paddingRight).toBe(16);
-    expect(headerGeometry.gap).toBeGreaterThanOrEqual(15);
+    expect(headerGeometry.textAlign).toBe('right');
+    expect(valueGeometry.textAlign).toBe('right');
     expect(valueGeometry.gap).toBeGreaterThanOrEqual(15);
-    expect(Math.abs(headerGeometry.rightEdge - valueGeometry.rightEdge)).toBeLessThanOrEqual(1);
+    expect(Math.abs(headerGeometry.cellRight - valueGeometry.cellRight)).toBeLessThanOrEqual(1);
   } finally {
     await scroller.evaluate((element, left) => {
       element.scrollLeft = left;

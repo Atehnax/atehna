@@ -38,6 +38,7 @@ import {
   type SubmitQuoteRequestResponse
 } from '@/commercial/quote/contracts';
 import { storeQuoteAccessSession } from '@/commercial/quote/quoteAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 import {
   isAddressSearchQueryEligible,
   type GursAddressSearchResponse,
@@ -733,7 +734,7 @@ export default function OrderPageClient({
           body: JSON.stringify(payload)
         }
       );
-      const responsePayload: unknown = await response.json().catch(() => ({}));
+      const responsePayload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         const error = parseOrderApiError(
           responsePayload,

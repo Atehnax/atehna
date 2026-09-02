@@ -16,6 +16,7 @@ import {
   readStoredQuoteAccessSession,
   type QuoteAccessSession
 } from '@/commercial/quote/quoteAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 import { formatEuro } from '@/shared/domain/formatting';
 
 type ConfirmationState =
@@ -82,7 +83,7 @@ export default function QuoteRequestConfirmationPageClient() {
         credentials: 'same-origin',
         headers: buildQuoteAccessHeaders(session)
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseQuotePublicApiError(

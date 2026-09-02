@@ -110,6 +110,16 @@ corresponding environment variables in production.
 
 - A PostgreSQL URL is required through `DATABASE_URL`, `POSTGRES_URL`,
   `POSTGRES_PRISMA_URL`, or `SUPABASE_DB_URL`.
+- PostgreSQL runtime limits can be set with `ATEHNA_DB_POOL_MAX`,
+  `ATEHNA_DB_CONNECTION_TIMEOUT_MS`, `ATEHNA_DB_IDLE_TIMEOUT_MS`,
+  `ATEHNA_DB_STATEMENT_TIMEOUT_MS`, and `ATEHNA_DB_LOCK_TIMEOUT_MS`. Unset
+  values retain the previous node-postgres defaults in every environment:
+  a pool of 10 connections, a 10-second idle timeout, and no pool-acquisition,
+  statement, or lock timeout. Enable tighter limits only after measuring
+  production-like workloads such as the monthly address index rebuild. Use
+  `0` to disable an individual timeout; invalid values fail before a connection
+  pool is created. Timeout parameters embedded in the database URL take
+  precedence over these separate settings.
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` are required
   in production. Missing production admin credentials fail closed.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
@@ -353,6 +363,43 @@ Default target routes:
 
 If `--category` or `--order-id` are not supplied, the script will try to auto-resolve them from the deployed site by finding the first matching category/order link. In a reset state with no categories or orders, matching dynamic route templates are skipped and listed in the report instead of failing the whole run.
 
+
+## Post-build asset report and budget guard
+
+After a production build, inspect deterministic aggregate sizes for emitted
+client JavaScript, font files, and static media:
+
+    npm run build
+    npm run check:build-assets
+
+The default command is report-only. It does not fail because no project budget
+has been chosen yet. To capture a trusted main-branch report:
+
+    npm run check:build-assets -- --output artifacts/build-assets-main.json
+
+A later build can be compared explicitly against that report:
+
+    npm run check:build-assets -- --baseline artifacts/build-assets-main.json
+
+Optional byte or percentage tolerances are additive:
+
+    npm run check:build-assets -- --baseline artifacts/build-assets-main.json --baseline-allow-bytes 1024 --baseline-allow-percent 0.25
+
+Independent absolute ceilings are also supported. The values below illustrate
+the command syntax only; replace them with reviewed project limits:
+
+    npm run check:build-assets -- --max-client-js-gzip-bytes 5000000 --max-font-bytes 20000000 --max-static-media-bytes 50000000
+
+Run `npm run check:build-assets -- --help` for all options. The JSON report is
+stable: it contains no timestamp, machine-specific absolute path, or build ID.
+Client-JS gzip sizes are calculated per emitted chunk using level-9 gzip as a
+local comparison proxy. The report records the zlib version and rejects a
+baseline created with different input directories, compression settings, or
+zlib version.
+
+No asset budget runs in CI until a reviewed baseline or explicit ceilings have
+been committed. The deployed Chromium network harness remains the source of
+truth for actual route-level transfer and cache behavior.
 
 # License
 Internal / project-specific.

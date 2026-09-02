@@ -16,6 +16,7 @@ import {
   exchangeOrderAccessToken,
   readStoredOrderAccessId
 } from '@/commercial/order/orderAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 
 type ConfirmationState =
   | { status: 'loading' }
@@ -112,7 +113,7 @@ export default function OrderConfirmationPageClient() {
         },
         signal
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseOrderApiError(

@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
+import { StorefrontInventoryPolicyProvider } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
 import {
   ProductListingHeader,
@@ -1358,12 +1359,14 @@ export default function AdminProductAppearancePageClient({
   initialConfig,
   initialGlobalStyle,
   initialSiteLayout,
+  initialStockEnforcementEnabled,
   initialProducts,
   initialProduct
 }: {
   initialConfig: ProductAppearanceConfig;
   initialGlobalStyle: GlobalStyleConfig;
   initialSiteLayout: SiteNavigationSiteLayoutSettings;
+  initialStockEnforcementEnabled: boolean;
   initialProducts: AdminCatalogListItem[];
   initialProduct: CatalogItemEditorHydration | null;
 }) {
@@ -2340,7 +2343,10 @@ export default function AdminProductAppearancePageClient({
   const previewWidth = previewDevice === 'desktop' ? 'w-full' : previewDevice === 'tablet' ? 'w-[76%]' : 'w-[390px] max-w-full';
 
   return (
-    <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="artikli">
+    <StorefrontInventoryPolicyProvider
+      stockEnforcementEnabled={initialStockEnforcementEnabled}
+    >
+      <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="artikli">
       <AdminPageHeader
         title="Artikli"
         description="Urejajte resničen artikel neposredno v predogledu. Vsebina ostane skupna z Artikli, vizualni jezik pa se deduje iz Globalnih parametrov."
@@ -2828,6 +2834,7 @@ export default function AdminProductAppearancePageClient({
           </div>
         </section>
       )}
-    </div>
+      </div>
+    </StorefrontInventoryPolicyProvider>
   );
 }

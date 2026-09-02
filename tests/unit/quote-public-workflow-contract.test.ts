@@ -6,10 +6,9 @@ import test from 'node:test';
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
-test('live pricing uses canonical estimate names while preserving quote compatibility', () => {
+test('live pricing uses canonical estimate names while preserving the historical API route', () => {
   const contracts = source('src/commercial/order/contracts.ts');
   const estimateHook = source('src/commercial/order/useOrderEstimate.ts');
-  const quoteHook = source('src/commercial/order/useOrderQuote.ts');
   const estimateRoute = source('src/commercial/api/orders/estimate/route.ts');
   const quoteRoute = source('src/commercial/api/orders/quote/route.ts');
   const appEstimateRoute = source('src/app/api/orders/estimate/route.ts');
@@ -20,7 +19,6 @@ test('live pricing uses canonical estimate names while preserving quote compatib
   assert.match(contracts, /export const isOrderQuote = isOrderEstimate/u);
   assert.match(estimateHook, /export function useOrderEstimate/u);
   assert.match(estimateHook, /fetch\('\/api\/orders\/estimate'/u);
-  assert.match(quoteHook, /return useOrderEstimate/u);
   assert.match(estimateRoute, /buildAuthoritativeOrderEstimate/u);
   assert.match(quoteRoute, /orders\/estimate\/route/u);
   assert.match(appEstimateRoute, /commercial\/api\/orders\/estimate\/route/u);
@@ -151,7 +149,7 @@ test('offer review uses fragment access and canonical OTP-gated explicit respons
     'src/commercial/quote/components/QuoteOfferReviewPageClient.tsx'
   );
   const serverAccess = source('src/shared/server/quoteAccess.ts');
-  const canonicalPage = source('src/app/quote/offer/page.tsx');
+  const canonicalPage = source('src/app/(commercial)/quote/offer/page.tsx');
 
   assert.match(accessClient, /fragmentParams\.get\('token'\)/u);
   assert.doesNotMatch(

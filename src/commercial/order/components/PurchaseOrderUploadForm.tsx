@@ -6,6 +6,7 @@ import {
   exchangeOrderAccessToken,
   readStoredOrderAccessId
 } from '@/commercial/order/orderAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg'];
@@ -117,7 +118,7 @@ export default function PurchaseOrderUploadForm() {
         },
         body: formData
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         const record =
           typeof payload === 'object' && payload !== null

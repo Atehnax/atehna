@@ -1,5 +1,7 @@
 'use client';
 
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
+
 const ORDER_ACCESS_ID_STORAGE_KEY = 'atehna-order-access-id-v1';
 const ORDER_ACCESS_SESSION_ENDPOINT = '/api/orders/access-session';
 
@@ -86,7 +88,7 @@ export async function exchangeOrderAccessToken(
     },
     body: JSON.stringify({ token: normalizedToken })
   });
-  const payload: unknown = await response.json().catch(() => ({}));
+  const payload: unknown = await readJsonResponse(response, {});
   const record =
     payload && typeof payload === 'object'
       ? (payload as Record<string, unknown>)

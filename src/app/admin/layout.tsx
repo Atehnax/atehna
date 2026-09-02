@@ -1,2 +1,2 @@
-export * from '@/admin/pages/layout';
-export { default } from '@/admin/pages/layout';
+export * from '@/admin/shell/rootLayout';
+export { default } from '@/admin/shell/rootLayout';

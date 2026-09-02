@@ -6,6 +6,7 @@ import {
 } from '@/shared/server/catalogItems';
 import { hasDatabaseConnectionString } from '@/shared/server/db';
 import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
+import { getInventoryPolicySettings } from '@/shared/server/inventoryPolicy';
 import { getProductAppearanceConfig } from '@/shared/server/productAppearance';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
@@ -33,10 +34,18 @@ export default async function AdminPodobaArtikliPage({
 }: {
   searchParams?: Promise<{ product?: string | string[] }>;
 }) {
-  const [config, globalStyle, navigation, productResult, resolvedSearchParams] = await Promise.all([
+  const [
+    config,
+    globalStyle,
+    navigation,
+    inventoryPolicy,
+    productResult,
+    resolvedSearchParams
+  ] = await Promise.all([
     getProductAppearanceConfig(),
     getGlobalStyleConfig(),
     getSiteNavigationConfig(),
+    getInventoryPolicySettings(),
     loadProductsForAppearanceEditor(),
     searchParams ?? Promise.resolve<{ product?: string | string[] }>({})
   ]);
@@ -61,6 +70,7 @@ export default async function AdminPodobaArtikliPage({
       initialConfig={config}
       initialGlobalStyle={globalStyle}
       initialSiteLayout={navigation.siteLayout}
+      initialStockEnforcementEnabled={inventoryPolicy.stockEnforcementEnabled}
       initialProducts={productResult}
       initialProduct={initialProduct}
     />

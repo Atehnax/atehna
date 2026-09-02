@@ -20,6 +20,7 @@ import {
   readStoredQuoteAccessSession,
   type QuoteAccessSession
 } from '@/commercial/quote/quoteAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 import { formatEuro } from '@/shared/domain/formatting';
 import { COMPANY_INFO } from '@/shared/domain/order/constants';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
@@ -102,7 +103,7 @@ export default function QuoteOfferReviewPageClient() {
         credentials: 'same-origin',
         headers: buildQuoteAccessHeaders(session, true)
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseQuotePublicApiError(
@@ -196,7 +197,7 @@ export default function QuoteOfferReviewPageClient() {
         headers: buildQuoteAccessHeaders(accessSessionRef.current)
       });
       if (!response.ok) {
-        const payload: unknown = await response.json().catch(() => ({}));
+        const payload: unknown = await readJsonResponse(response, {});
         throw new Error(
           parseQuotePublicApiError(
             payload,
@@ -248,7 +249,7 @@ export default function QuoteOfferReviewPageClient() {
         },
         body: JSON.stringify({})
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseQuotePublicApiError(
@@ -310,7 +311,7 @@ export default function QuoteOfferReviewPageClient() {
           })
         }
       );
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         const error = parseQuotePublicApiError(
           payload,
@@ -396,7 +397,7 @@ export default function QuoteOfferReviewPageClient() {
         },
         body
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseQuotePublicApiError(
@@ -475,7 +476,7 @@ export default function QuoteOfferReviewPageClient() {
           code: normalizedCode
         })
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseQuotePublicApiError(payload, 'Koda ni veljavna.').message

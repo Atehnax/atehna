@@ -7,7 +7,7 @@ test('product detail App Router entrypoint opts out of full-route 404 caching', 
   const entrypointSource = readFileSync(
     resolve(
       process.cwd(),
-      'src/app/products/[category]/items/[item]/page.tsx'
+      'src/app/(commercial)/products/[category]/items/[item]/page.tsx'
     ),
     'utf8'
   );

@@ -42,6 +42,12 @@ export function isOrderEmailRetryEventCurrent(input: {
   if (input.eventType === 'order_accepted') {
     return input.contractStatus === 'accepted';
   }
+  if (
+    input.eventType === 'predracun_issued' ||
+    input.eventType === 'invoice_issued'
+  ) {
+    return input.contractStatus === 'accepted';
+  }
   return input.eventType === 'order_rejected' &&
     input.contractStatus === 'rejected';
 }

@@ -1,4 +1,14 @@
 import { formatEuro } from '../formatting';
+import {
+  TRANSACTIONAL_EMAIL_BODY_STYLE,
+  TRANSACTIONAL_EMAIL_BUTTON_STYLE,
+  TRANSACTIONAL_EMAIL_CARD_STYLE,
+  TRANSACTIONAL_EMAIL_COPY_STYLE,
+  TRANSACTIONAL_EMAIL_HEADING_STYLE,
+  TRANSACTIONAL_EMAIL_META_STYLE,
+  TRANSACTIONAL_EMAIL_SMALL_STYLE,
+  TRANSACTIONAL_EMAIL_TABLE_STYLE
+} from '../transactionalEmailHtml';
 import type { CustomerType } from './customerType';
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
@@ -162,6 +172,8 @@ function orderStatusLabel(eventType: OrderEmailEventType): string {
   if (eventType === 'order_submitted') return 'Prejeto – čaka na sprejem';
   if (eventType === 'order_accepted') return 'Pogodbeno sprejeto';
   if (eventType === 'order_rejected') return 'Pogodbeno zavrnjeno';
+  if (eventType === 'predracun_issued') return 'Predračun izdan';
+  if (eventType === 'invoice_issued') return 'Račun izdan';
   return getStatusLabel(eventType);
 }
 
@@ -397,16 +409,16 @@ function buildHtmlItems(
   siteUrl: string
 ): string {
   if (items.length === 0) {
-    return '<p style="margin:0;color:#64748b;">Naročilo nima postavk.</p>';
+    return `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0;color:#64748b;">Naročilo nima postavk.</p>`;
   }
 
   return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-collapse:collapse;">
       <thead>
         <tr>
-          <th align="left" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Artikel</th>
-          <th align="right" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Količina</th>
-          <th align="right" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Znesek</th>
+          <th align="left" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Artikel</th>
+          <th align="right" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Količina</th>
+          <th align="right" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Znesek</th>
         </tr>
       </thead>
       <tbody>
@@ -414,19 +426,19 @@ function buildHtmlItems(
           const imageUrl = safeItemImageUrl(item.imageUrl, siteUrl);
           return `
           <tr>
-            <td style="border-bottom:1px solid #edf2f7;padding:10px 8px 10px 0;vertical-align:top;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 8px 10px 0;vertical-align:top;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-collapse:collapse;">
                 <tr>
-                  ${imageUrl ? `<td width="72" style="width:72px;padding:0 12px 0 0;vertical-align:top;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(lineDisplayName(item))}" width="72" height="72" style="display:block;width:72px;height:72px;border:0;border-radius:8px;object-fit:cover;"></td>` : ''}
-                  <td style="vertical-align:top;">
-                    <div style="font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
-                    ${safeBodyText(item.sku) ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
+                  ${imageUrl ? `<td width="72" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}width:72px;padding:0 12px 0 0;vertical-align:top;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(lineDisplayName(item))}" width="72" height="72" style="display:block;width:72px;height:72px;border:0;border-radius:8px;object-fit:cover;"></td>` : ''}
+                  <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}vertical-align:top;">
+                    <div style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
+                    ${safeBodyText(item.sku) ? `<div style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}margin-top:2px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
                   </td>
                 </tr>
               </table>
             </td>
-            <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 8px;vertical-align:top;color:#334155;">${escapeHtml(quantityLabel(item))}</td>
-            <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 0 10px 8px;vertical-align:top;white-space:nowrap;color:#0f172a;">${escapeHtml(formatMoney(item.lineGross))}</td>
+            <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 8px;vertical-align:top;color:#334155;">${escapeHtml(quantityLabel(item))}</td>
+            <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 0 10px 8px;vertical-align:top;white-space:nowrap;color:#0f172a;">${escapeHtml(formatMoney(item.lineGross))}</td>
           </tr>
         `}).join('')}
       </tbody>
@@ -451,8 +463,8 @@ function buildHtmlTotals(order: OrderEmailCustomerOrderSnapshot): string {
   ];
   return rows.map(([label, amount, emphasized]) => `
     <tr>
-      <td style="padding:4px 12px 4px 0;color:${emphasized ? '#0f172a' : '#64748b'};font-weight:${emphasized ? '700' : '400'};">${escapeHtml(label)}</td>
-      <td align="right" style="padding:4px 0;color:#0f172a;font-weight:${emphasized ? '700' : '500'};white-space:nowrap;">${escapeHtml(formatMoney(amount))}</td>
+      <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}padding:4px 12px 4px 0;color:${emphasized ? '#0f172a' : '#64748b'};font-weight:${emphasized ? '700' : '400'};">${escapeHtml(label)}</td>
+      <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}padding:4px 0;color:#0f172a;font-weight:${emphasized ? '700' : '500'};white-space:nowrap;">${escapeHtml(formatMoney(amount))}</td>
     </tr>
   `).join('');
 }
@@ -477,14 +489,14 @@ function buildSchoolOrderHtmlDetails(
   const reference = safeBodyText(order.customer.reference);
 
   return `
-    <div style="margin:20px 0;padding:16px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc;color:#334155;">
-      <strong style="display:block;margin-bottom:10px;color:#0f172a;">Podatki za naro\u010dilnico</strong>
-      ${organization ? `<div><strong style="color:#0f172a;">Naro\u010dnik:</strong> ${escapeHtml(organization)}</div>` : ''}
-      ${contact ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Kontaktna oseba:</strong> ${escapeHtml(contact)}</div>` : ''}
-      ${reference ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Va\u0161a referenca:</strong> ${escapeHtml(reference)}</div>` : ''}
+    <div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:20px 0;padding:16px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc;color:#334155;">
+      <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}display:block;margin-bottom:10px;color:#0f172a;font-weight:700;">Podatki za naro\u010dilnico</strong>
+      ${organization ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Naro\u010dnik:</strong> ${escapeHtml(organization)}</div>` : ''}
+      ${contact ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin-top:4px;"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Kontaktna oseba:</strong> ${escapeHtml(contact)}</div>` : ''}
+      ${reference ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin-top:4px;"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Va\u0161a referenca:</strong> ${escapeHtml(reference)}</div>` : ''}
       ${uploadUrl ? `
-        <p style="margin:16px 0 0;">
-          <a href="${escapeHtml(uploadUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Nalo\u017ei naro\u010dilnico</a>
+        <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:16px 0 0;">
+          <a href="${escapeHtml(uploadUrl)}" style="${TRANSACTIONAL_EMAIL_BUTTON_STYLE}display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;">Nalo\u017ei naro\u010dilnico</a>
         </p>
       ` : ''}
     </div>
@@ -545,20 +557,20 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   );
   const adminCustomerDetails = payload.audience === 'admin'
     ? `
-      <div style="margin:20px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
-        <strong style="color:#0f172a;">Naročnik:</strong> ${escapeHtml(customerName || order.customer.contactName)}<br>
-        <strong style="color:#0f172a;">E-pošta:</strong> ${escapeHtml(order.customer.email)}
-        ${order.customer.reference ? `<br><strong style="color:#0f172a;">Referenca:</strong> ${escapeHtml(order.customer.reference)}` : ''}
+      <div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:20px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
+        <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Naročnik:</strong> ${escapeHtml(customerName || order.customer.contactName)}<br>
+        <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">E-pošta:</strong> ${escapeHtml(order.customer.email)}
+        ${order.customer.reference ? `<br><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Referenca:</strong> ${escapeHtml(order.customer.reference)}` : ''}
       </div>
     `
     : '';
   const adminOrderNumber = payload.audience === 'admin'
-    ? `<strong style="color:#0f172a;">Naročilo:</strong> ${escapeHtml(payload.order.orderNumber)}<br>`
+    ? `<strong style="${TRANSACTIONAL_EMAIL_META_STYLE}color:#0f172a;font-weight:700;">Naročilo:</strong> ${escapeHtml(payload.order.orderNumber)}<br>`
     : '';
   const adminAction = payload.audience === 'admin' && adminOrderUrl
     ? `
-      <p style="margin:24px 0;">
-        <a href="${escapeHtml(adminOrderUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Odpri naročilo v administraciji</a>
+      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:24px 0;">
+        <a href="${escapeHtml(adminOrderUrl)}" style="${TRANSACTIONAL_EMAIL_BUTTON_STYLE}display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;">Odpri naročilo v administraciji</a>
       </p>
     `
     : '';
@@ -568,25 +580,25 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
 
   const html = `<!doctype html>
 <html lang="sl">
-  <body style="margin:0;background:#f1f5f9;padding:24px;font-family:Arial,sans-serif;color:#0f172a;">
-    <div style="max-width:680px;margin:0 auto;border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:28px;">
-      ${header ? `<p style="margin:0 0 18px;line-height:1.6;color:#334155;">${multilineHtml(header)}</p>` : ''}
-      <p style="margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
-      <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(content.heading)}</h1>
-      <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${multilineHtml(content.body)}</p>
+  <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
+    <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
+      ${header ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 18px;color:#334155;">${multilineHtml(header)}</p>` : ''}
+      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
+      <h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}margin:0 0 10px;">${escapeHtml(content.heading)}</h1>
+      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 20px;color:#334155;">${multilineHtml(content.body)}</p>
       ${schoolDetailsHtml}
       ${adminCustomerDetails}
-      <div style="margin:20px 0 12px;font-size:14px;color:#64748b;">
+      <div style="${TRANSACTIONAL_EMAIL_META_STYLE}margin:20px 0 12px;color:#64748b;">
         ${adminOrderNumber}
-        <strong style="color:#0f172a;">Datum:</strong> ${escapeHtml(formatDate(order.createdAt))}<br>
-        <strong style="color:#0f172a;">Status:</strong> ${escapeHtml(orderStatusLabel(payload.eventType))}
+        <strong style="${TRANSACTIONAL_EMAIL_META_STYLE}color:#0f172a;font-weight:700;">Datum:</strong> ${escapeHtml(formatDate(order.createdAt))}<br>
+        <strong style="${TRANSACTIONAL_EMAIL_META_STYLE}color:#0f172a;font-weight:700;">Status:</strong> ${escapeHtml(orderStatusLabel(payload.eventType))}
       </div>
       ${buildHtmlItems(order.items, payload.settingsSnapshot.siteUrl)}
-      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px 0 0 auto;border-collapse:collapse;">
+      <table role="presentation" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}margin:18px 0 0 auto;border-collapse:collapse;">
         ${buildHtmlTotals(order)}
       </table>
       ${adminAction}
-      ${footer ? `<p style="margin:28px 0 0;border-top:1px solid #e2e8f0;padding-top:18px;line-height:1.6;color:#64748b;">${multilineHtml(footer)}</p>` : ''}
+      ${footer ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:28px 0 0;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${multilineHtml(footer)}</p>` : ''}
     </div>
   </body>
 </html>`;

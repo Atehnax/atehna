@@ -151,6 +151,12 @@ test('admin quote document generation is authenticated, request-scoped, targeted
   assert.match(worker, /request\.voided_at/u);
   assert.match(worker, /frozenIssuedPdf\(job\.payload, current\)/u);
   assert.match(worker, /on conflict \(quote_offer_version_id, document_type, version_number\)/u);
+  assert.match(worker, /processQuoteEmailJobs/u);
+  assert.match(worker, /last_error like '\[document_pending\]%'/u);
+  assert.match(
+    worker,
+    /result\.completed === 0[\s\S]*?processQuoteEmailJobs\(pool, \{ limit: 10 \}\)/u
+  );
 });
 
 test('clarification is idempotently recorded before an optional isolated customer email', () => {
@@ -280,6 +286,9 @@ test('clarification is idempotently recorded before an optional isolated custome
     'src/admin/features/email/components/AdminQuoteEmailSettingsSection.tsx'
   );
   const worker = source('src/shared/server/quoteEmailJobs.ts');
+  const templates = source(
+    'src/shared/domain/quote/quoteEmailTemplates.ts'
+  );
   assert.match(api, /hasValidQuoteAdminSession/u);
   assert.match(api, /updateQuoteEmailSettings/u);
   assert.match(page, /getQuoteEmailAdminState/u);
@@ -292,7 +301,17 @@ test('clarification is idempotently recorded before an optional isolated custome
   );
   assert.match(orderUi, /isti profil pošiljatelja/u);
   assert.doesNotMatch(quoteUi, /Pošiljanje ponudb/u);
-  assert.doesNotMatch(quoteUi, /fromEmail|replyToEmail|senderName/u);
+  assert.match(quoteUi, /sharedSettings: OrderEmailSettings/u);
+  assert.match(orderUi, /sharedSettings=\{draft\}/u);
+  assert.match(
+    quoteUi,
+    /sharedSettings:\s*\{[\s\S]*?\.\.\.sharedSettings/u
+  );
+  assert.match(quoteUi, /JSON\.stringify\(\{ config: submittedConfig \}\)/u);
+  assert.doesNotMatch(
+    quoteUi,
+    /id=['"]quote-email-(?:sender|from|reply)/u
+  );
   assert.doesNotMatch(quoteUi, /quoteEmailEventSupportsAdminAudience/u);
   assert.match(
     quoteUi,
@@ -315,11 +334,11 @@ test('clarification is idempotently recorded before an optional isolated custome
     quoteUi,
     /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)/u
   );
-  assert.match(worker, /QUOTE_EMAIL_EVENT_DEFAULTS/u);
+  assert.match(templates, /QUOTE_EMAIL_EVENT_DEFAULTS/u);
   assert.doesNotMatch(worker, /forceCustomer|suppressAdmin/u);
   assert.match(worker, /!settings\.enabled && input\.eventType !== 'quote_access_otp'/u);
   assert.match(worker, /customerEnabled && EMAIL_PATTERN\.test\(identity\.email\)/u);
   assert.match(worker, /if \(adminEnabled\)/u);
   assert.match(worker, /if \(recipients\.length === 0\)/u);
-  assert.match(worker, /Preglej ponudbo/u);
+  assert.match(templates, /Preglej ponudbo/u);
 });

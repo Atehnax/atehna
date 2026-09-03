@@ -4,14 +4,25 @@ import { randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import {
-  QUOTE_EMAIL_EVENT_DEFAULTS,
   normalizeQuoteEmailSettings,
   type QuoteEmailEventType
 } from '@/shared/domain/quote/quoteEmailSettings';
 import {
-  normalizeEmailMessageAttachment,
-  type EmailMessageAttachment
-} from '@/shared/domain/order/orderEmailTemplates';
+  buildQuoteEmailMessage,
+  type QuoteEmailAudience,
+  type QuoteEmailMessage
+} from '@/shared/domain/quote/quoteEmailTemplates';
+import {
+  createPendingQuoteEmailPdfDocumentReference,
+  normalizeQuoteEmailPdfDocumentReference,
+  quoteEmailPdfReferenceMatchesEvent,
+  type EmailProviderPdfAttachment,
+  type QuoteEmailPdfDocumentReference
+} from '@/shared/domain/emailPdfAttachment';
+import {
+  classifyResendFailure,
+  type ResendFailure
+} from '@/shared/domain/order/orderEmailDelivery';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
 import { isQuoteEmailDeliveryEnabled } from '@/shared/server/quoteFeatureFlags';
 import {
@@ -19,20 +30,14 @@ import {
   encryptQuoteEmailEnvelope
 } from '@/shared/server/quoteEmailDeliveryCipher';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
+import {
+  EmailPdfDocumentPendingError,
+  EmailPdfDocumentValidationError,
+  hydrateEmailPdfDocument,
+  pinEmailPdfDocument
+} from '@/shared/server/emailPdfAttachment';
 
 export type { QuoteEmailEventType } from '@/shared/domain/quote/quoteEmailSettings';
-
-type QuoteEmailAudience = 'customer' | 'admin';
-
-type QuoteEmailMessage = {
-  from: string;
-  to: string;
-  replyTo?: string;
-  subject: string;
-  html: string;
-  text: string;
-  attachments?: readonly EmailMessageAttachment[];
-};
 
 type QuoteEmailEnvelope = {
   version: 1;
@@ -41,7 +46,12 @@ type QuoteEmailEnvelope = {
   quoteRequestId: number;
   quoteOfferVersionId: number | null;
   message: QuoteEmailMessage;
+  pdfDocument?: QuoteEmailPdfDocumentReference;
 };
+
+type QuoteEmailProviderAttachment =
+  | NonNullable<QuoteEmailMessage['attachments']>[number]
+  | EmailProviderPdfAttachment;
 
 type EnqueueQuoteEmailInput = {
   quoteRequestId: number;
@@ -51,11 +61,23 @@ type EnqueueQuoteEmailInput = {
   offerUrl?: string | null;
   otpCode?: string | null;
   detail?: string | null;
+  pdfDocument?: QuoteEmailPdfDocumentReference | null;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const MAX_ATTEMPTS = 8;
+const PDF_DOCUMENT_DEFER_MS = 5_000;
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+
+class QuoteEmailDeliveryError extends Error {
+  readonly resendFailure: ResendFailure;
+
+  constructor(message: string, resendFailure: ResendFailure) {
+    super(message);
+    this.name = 'QuoteEmailDeliveryError';
+    this.resendFailure = resendFailure;
+  }
+}
 
 function normalizedRecipientEmail(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -64,24 +86,9 @@ function normalizedRecipientEmail(value: unknown): string | null {
     : null;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/gu, '&amp;')
-    .replace(/</gu, '&lt;')
-    .replace(/>/gu, '&gt;')
-    .replace(/"/gu, '&quot;')
-    .replace(/'/gu, '&#39;');
-}
-
 function fromHeader(name: string, email: string): string {
   const safeName = name.replace(/[\r\n<>]/gu, ' ').trim();
   return safeName ? `"${safeName}" <${email}>` : email;
-}
-
-function render(value: string, variables: Record<string, string>): string {
-  return value.replace(/\{\{\s*([a-z_]+)\s*\}\}/gu, (_match, key: string) =>
-    variables[key] ?? ''
-  );
 }
 
 async function quoteSettings(client: PoolClient) {
@@ -122,6 +129,35 @@ export async function enqueueQuoteEmailEvent(
   client: PoolClient,
   input: EnqueueQuoteEmailInput
 ): Promise<string[]> {
+  const explicitPdfDocument = input.pdfDocument == null
+    ? null
+    : normalizeQuoteEmailPdfDocumentReference(input.pdfDocument);
+  if (input.pdfDocument != null && !explicitPdfDocument) {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email PDF reference is malformed.'
+    );
+  }
+  if (
+    explicitPdfDocument &&
+    (
+      !quoteEmailPdfReferenceMatchesEvent(input.eventType, explicitPdfDocument) ||
+      explicitPdfDocument.quoteRequestId !== input.quoteRequestId ||
+      explicitPdfDocument.quoteOfferVersionId !== input.quoteOfferVersionId
+    )
+  ) {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email PDF document does not match its event.'
+    );
+  }
+  if (
+    input.eventType === 'quote_issued' &&
+    (!Number.isSafeInteger(input.quoteOfferVersionId) ||
+      Number(input.quoteOfferVersionId) <= 0)
+  ) {
+    throw new EmailPdfDocumentValidationError(
+      'An issued quote email requires an exact offer version.'
+    );
+  }
   const [shared, settings, identity] = await Promise.all([
     getOrderEmailSettings(client),
     quoteSettings(client),
@@ -133,10 +169,6 @@ export async function enqueueQuoteEmailEvent(
   if (!identity) {
     throw new Error('Quote email identity does not exist.');
   }
-  const envelopeSenderEmail = EMAIL_PATTERN.test(shared.fromEmail)
-    ? shared.fromEmail
-    : 'delivery-profile-pending@invalid.local';
-  const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[input.eventType];
   const configuredEvent = settings.events[input.eventType];
   const customerEnabled =
     input.eventType === 'quote_access_otp' || configuredEvent.customer;
@@ -163,66 +195,38 @@ export async function enqueueQuoteEmailEvent(
   if (recipients.length === 0) {
     return [];
   }
-  const variables = {
-    request_number: identity.request_number,
-    offer_number: identity.offer_number ?? identity.request_number,
-    otp_code: input.otpCode ?? ''
-  };
-  const headerText = shared.headerText.trim();
-  const footerText = shared.footerText.trim();
-  const attachment = normalizeEmailMessageAttachment(shared.imageAttachment);
-  const configuredTemplate = settings.templates[
-    input.eventType
-  ] as unknown as Record<string, unknown>;
   const inserted: string[] = [];
   for (const recipient of recipients) {
-    const audienceTemplate =
-      configuredTemplate[recipient.audience] &&
-      typeof configuredTemplate[recipient.audience] === 'object'
-        ? (configuredTemplate[recipient.audience] as Record<string, unknown>)
-        : {};
-    const subject = render(
-      typeof audienceTemplate.subject === 'string'
-        ? audienceTemplate.subject
-        : defaults.subject,
-      variables
-    );
-    const baseBody = render(
-      typeof audienceTemplate.body === 'string'
-        ? audienceTemplate.body
-        : defaults.body,
-      variables
-    );
-    const detail = input.detail?.trim() || '';
-    const action =
-      input.offerUrl && recipient.audience === 'customer'
-        ? `Preglej ponudbo: ${input.offerUrl}`
-        : '';
-    const eventBody = `${baseBody}${detail ? `\n\n${detail}` : ''}`;
-    const body = [headerText, eventBody, action, footerText]
-      .filter(Boolean)
-      .join('\n\n');
-    const actionHtml =
-      input.offerUrl && recipient.audience === 'customer'
-        ? `<p><a href="${escapeHtml(input.offerUrl)}">Preglej ponudbo</a></p>`
-        : '';
-    const htmlBody = eventBody;
-    const message: QuoteEmailMessage = {
-      from: fromHeader(shared.senderName, envelopeSenderEmail),
-      to: recipient.email,
-      ...(shared.replyToEmail ? { replyTo: shared.replyToEmail } : {}),
-      subject: `[${shared.subjectPrefix || 'Atehna'}] ${subject}`,
-      text: body,
-      html: `<!doctype html><html lang="sl"><body><div style="max-width:680px;margin:auto;font-family:Arial,sans-serif">${headerText ? `<p style="white-space:pre-line">${escapeHtml(headerText)}</p>` : ''}<h1>${escapeHtml(subject)}</h1><p style="white-space:pre-line">${escapeHtml(htmlBody)}</p>${actionHtml}${footerText ? `<p style="white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b">${escapeHtml(footerText)}</p>` : ''}</div></body></html>`,
-      ...(attachment ? { attachments: [attachment] } : {})
-    };
+    const message = buildQuoteEmailMessage({
+      eventType: input.eventType,
+      audience: recipient.audience,
+      recipientEmail: recipient.email,
+      requestNumber: identity.request_number,
+      offerNumber: identity.offer_number,
+      offerUrl: input.offerUrl,
+      otpCode: input.otpCode,
+      detail: input.detail,
+      sharedSettings: shared,
+      quoteSettings: settings
+    });
+    const pdfDocument =
+      recipient.audience === 'customer' &&
+      input.eventType === 'quote_issued' &&
+      input.quoteOfferVersionId
+        ? explicitPdfDocument ??
+          createPendingQuoteEmailPdfDocumentReference({
+            quoteRequestId: input.quoteRequestId,
+            quoteOfferVersionId: input.quoteOfferVersionId
+          })
+        : null;
     const envelope: QuoteEmailEnvelope = {
       version: 1,
       eventType: input.eventType,
       audience: recipient.audience,
       quoteRequestId: input.quoteRequestId,
       quoteOfferVersionId: input.quoteOfferVersionId ?? null,
-      message
+      message,
+      ...(pdfDocument ? { pdfDocument } : {})
     };
     const jobId = randomUUID();
     const encrypted = encryptQuoteEmailEnvelope(JSON.stringify(envelope), {
@@ -276,6 +280,125 @@ type ClaimedJob = {
   attempts: number;
   payload: unknown;
 };
+
+function parseClaimedQuoteEmailEnvelope(
+  job: ClaimedJob
+): QuoteEmailEnvelope {
+  const decoded = JSON.parse(
+    decryptQuoteEmailEnvelope(job.payload, {
+      jobId: job.id,
+      requestId: job.requestId,
+      offerVersionId: job.offerVersionId
+    })
+  ) as unknown;
+  if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email delivery envelope is malformed.'
+    );
+  }
+  const envelope = decoded as QuoteEmailEnvelope;
+  if (!Object.prototype.hasOwnProperty.call(decoded, 'pdfDocument')) {
+    return envelope;
+  }
+  const pdfDocument = normalizeQuoteEmailPdfDocumentReference(
+    (decoded as Record<string, unknown>).pdfDocument
+  );
+  if (
+    !pdfDocument ||
+    envelope.version !== 1 ||
+    envelope.audience !== 'customer' ||
+    job.audience !== 'customer' ||
+    envelope.eventType !== job.eventType ||
+    !quoteEmailPdfReferenceMatchesEvent(envelope.eventType, pdfDocument) ||
+    pdfDocument.quoteRequestId !== job.requestId ||
+    pdfDocument.quoteOfferVersionId !== job.offerVersionId
+  ) {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email PDF reference does not match its claimed customer event.'
+    );
+  }
+  return {
+    ...envelope,
+    pdfDocument
+  };
+}
+
+async function pinClaimedQuoteEmailPdfDocument(
+  pool: Pool,
+  job: ClaimedJob,
+  envelope: QuoteEmailEnvelope
+): Promise<QuoteEmailEnvelope> {
+  const reference =
+    envelope.pdfDocument ??
+    (job.audience === 'customer' &&
+    job.eventType === 'quote_issued' &&
+    job.offerVersionId
+      ? createPendingQuoteEmailPdfDocumentReference({
+          quoteRequestId: job.requestId,
+          quoteOfferVersionId: job.offerVersionId
+        })
+      : undefined);
+  if (!reference) return envelope;
+  if (
+    envelope.version !== 1 ||
+    envelope.audience !== 'customer' ||
+    job.audience !== 'customer' ||
+    envelope.eventType !== job.eventType ||
+    envelope.quoteRequestId !== job.requestId ||
+    envelope.quoteOfferVersionId !== job.offerVersionId ||
+    !quoteEmailPdfReferenceMatchesEvent(job.eventType, reference) ||
+    reference.quoteRequestId !== job.requestId ||
+    reference.quoteOfferVersionId !== job.offerVersionId
+  ) {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email PDF reference does not match its claimed customer event.'
+    );
+  }
+  const pinned = await pinEmailPdfDocument(pool, reference);
+  if (pinned.source !== 'quote_document') {
+    throw new EmailPdfDocumentValidationError(
+      'The quote email PDF reference has the wrong source.'
+    );
+  }
+  return { ...envelope, pdfDocument: pinned };
+}
+
+function quotePdfDocumentPinChanged(
+  before: QuoteEmailEnvelope,
+  after: QuoteEmailEnvelope
+): boolean {
+  return (
+    before.pdfDocument?.documentId !== after.pdfDocument?.documentId ||
+    before.pdfDocument?.contentSha256 !== after.pdfDocument?.contentSha256 ||
+    before.pdfDocument?.filename !== after.pdfDocument?.filename
+  );
+}
+
+async function persistPinnedQuoteEmailEnvelope(
+  pool: Pool,
+  job: ClaimedJob,
+  envelope: QuoteEmailEnvelope
+): Promise<void> {
+  const encrypted = encryptQuoteEmailEnvelope(JSON.stringify(envelope), {
+    jobId: job.id,
+    requestId: job.requestId,
+    offerVersionId: job.offerVersionId
+  });
+  const result = await pool.query(
+    `
+      update quote_email_jobs
+      set payload_json = $3::jsonb,
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [job.id, job.claimId, JSON.stringify(encrypted)]
+  );
+  if (result.rowCount !== 1) {
+    throw new Error(`Quote email claim was lost for job ${job.id}.`);
+  }
+  job.payload = encrypted;
+}
 
 async function claim(
   pool: Pool,
@@ -522,13 +645,41 @@ async function deliverQuoteEmailWhileActive(
       await client.query('commit');
       return { status: 'suppressed', failureKind: 'stale_recipient' };
     }
+    let pdfAttachment: EmailProviderPdfAttachment | null = null;
+    if (envelope.pdfDocument) {
+      if (
+        job.audience !== 'customer' ||
+        !quoteEmailPdfReferenceMatchesEvent(job.eventType, envelope.pdfDocument) ||
+        envelope.pdfDocument.quoteRequestId !== job.requestId ||
+        envelope.pdfDocument.quoteOfferVersionId !== job.offerVersionId
+      ) {
+        throw new EmailPdfDocumentValidationError(
+          'The email PDF reference is not scoped to this customer quote.'
+        );
+      }
+      pdfAttachment = (
+        await hydrateEmailPdfDocument(client, envelope.pdfDocument)
+      ).attachment;
+    }
     if (!EMAIL_PATTERN.test(deliveryProfile.fromEmail)) {
-      throw new Error('Quote sender email is not configured.');
+      throw new QuoteEmailDeliveryError(
+        'Quote sender email is not configured.',
+        { kind: 'http', status: 400 }
+      );
     }
     const apiKey = process.env.RESEND_API_KEY?.trim();
-    if (!apiKey) throw new Error('RESEND_API_KEY ni nastavljen.');
+    if (!apiKey) {
+      throw new QuoteEmailDeliveryError(
+        'RESEND_API_KEY ni nastavljen.',
+        { kind: 'http', status: 400 }
+      );
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
+    const attachments: readonly QuoteEmailProviderAttachment[] = [
+      ...(envelope.message.attachments ?? []),
+      ...(pdfAttachment ? [pdfAttachment] : [])
+    ];
     let response: Response;
     try {
       response = await fetch(RESEND_ENDPOINT, {
@@ -550,17 +701,33 @@ async function deliverQuoteEmailWhileActive(
           subject: envelope.message.subject,
           html: envelope.message.html,
           text: envelope.message.text,
-          ...(envelope.message.attachments?.length
-            ? { attachments: envelope.message.attachments }
+          ...(attachments.length
+            ? { attachments }
             : {})
         }),
         cache: 'no-store',
         signal: controller.signal
       });
+    } catch {
+      throw new QuoteEmailDeliveryError(
+        controller.signal.aborted
+          ? 'Čas za povezavo s ponudnikom e-pošte je potekel.'
+          : 'Povezava s ponudnikom e-pošte ni uspela.',
+        { kind: 'network' }
+      );
     } finally {
       clearTimeout(timeout);
     }
-    if (!response.ok) throw new Error(`Resend HTTP ${response.status}`);
+    if (!response.ok) {
+      throw new QuoteEmailDeliveryError(
+        `Resend HTTP ${response.status}`,
+        {
+          kind: 'http',
+          status: response.status,
+          retryAfter: response.headers.get('retry-after')
+        }
+      );
+    }
     const provider = (await response.json().catch(() => ({}))) as {
       id?: unknown;
     };
@@ -728,6 +895,55 @@ async function persistTerminalQuoteEmailOutcome(
   }
 }
 
+async function deferQuoteEmailJobForPdf(
+  pool: Pool,
+  job: ClaimedJob,
+  error: EmailPdfDocumentPendingError
+): Promise<'retried' | 'failed'> {
+  const safeError = String(error.message)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, '[email]')
+    .replace(/ath_quote_[A-Za-z0-9_-]{43}/gu, '[quote-token]')
+    .slice(0, 2_000);
+  if (job.attempts >= MAX_ATTEMPTS) {
+    await persistTerminalQuoteEmailOutcome(pool, job, {
+      status: 'failed',
+      lastError: `[document_unavailable] ${safeError}`,
+      redactedPayload: {
+        version: 1,
+        redacted: true,
+        eventType: job.eventType,
+        audience: job.audience,
+        failureKind: 'document_unavailable'
+      },
+      failureKind: 'document_unavailable'
+    });
+    return 'failed';
+  }
+  const update = await pool.query(
+    `
+      update quote_email_jobs
+      set status = 'pending',
+          claim_id = null,
+          locked_at = null,
+          next_attempt_at = now() + ($3::bigint * interval '1 millisecond'),
+          last_error = $4,
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [
+      job.id,
+      job.claimId,
+      PDF_DOCUMENT_DEFER_MS,
+      `[document_pending] ${safeError}`
+    ]
+  );
+  if (update.rowCount !== 1) {
+    throw new Error(`Quote email claim was lost for job ${job.id}.`);
+  }
+  return 'retried';
+}
+
 export async function processQuoteEmailJobs(
   pool: Pool,
   options: { limit?: number } = {}
@@ -747,13 +963,15 @@ export async function processQuoteEmailJobs(
   const result = { claimed: jobs.length, sent: 0, retried: 0, failed: 0 };
   for (const job of jobs) {
     try {
-      const envelope = JSON.parse(
-        decryptQuoteEmailEnvelope(job.payload, {
-          jobId: job.id,
-          requestId: job.requestId,
-          offerVersionId: job.offerVersionId
-        })
-      ) as QuoteEmailEnvelope;
+      const originalEnvelope = parseClaimedQuoteEmailEnvelope(job);
+      const envelope = await pinClaimedQuoteEmailPdfDocument(
+        pool,
+        job,
+        originalEnvelope
+      );
+      if (quotePdfDocumentPinChanged(originalEnvelope, envelope)) {
+        await persistPinnedQuoteEmailEnvelope(pool, job, envelope);
+      }
       const delivery = await deliverQuoteEmailWhileActive(pool, job, envelope);
       if (delivery.status === 'suppressed') {
         const lastError =
@@ -792,17 +1010,47 @@ export async function processQuoteEmailJobs(
       });
       result.sent += 1;
     } catch (error) {
-      const terminal = job.attempts >= MAX_ATTEMPTS;
-      const delayMs = Math.min(
-        6 * 60 * 60 * 1_000,
-        30_000 * 2 ** Math.max(0, job.attempts - 1)
-      );
       const safeError = String(
         error instanceof Error ? error.message : 'Delivery failed'
       )
         .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, '[email]')
         .replace(/ath_quote_[A-Za-z0-9_-]{43}/gu, '[quote-token]')
         .slice(0, 2_000);
+      if (error instanceof EmailPdfDocumentPendingError) {
+        const outcome = await deferQuoteEmailJobForPdf(pool, job, error);
+        if (outcome === 'failed') result.failed += 1;
+        else result.retried += 1;
+        continue;
+      }
+      if (error instanceof EmailPdfDocumentValidationError) {
+        await persistTerminalQuoteEmailOutcome(pool, job, {
+          status: 'failed',
+          lastError: `[invalid_pdf_document] ${safeError}`,
+          redactedPayload: {
+            version: 1,
+            redacted: true,
+            eventType: job.eventType,
+            audience: job.audience,
+            failureKind: 'invalid_pdf_document'
+          },
+          failureKind: 'invalid_pdf_document'
+        });
+        result.failed += 1;
+        continue;
+      }
+      const providerFailure =
+        error instanceof QuoteEmailDeliveryError
+          ? classifyResendFailure(error.resendFailure, Date.now())
+          : null;
+      const terminal =
+        providerFailure?.disposition === 'terminal' ||
+        job.attempts >= MAX_ATTEMPTS;
+      const delayMs =
+        providerFailure?.retryAfterMs ??
+        Math.min(
+          6 * 60 * 60 * 1_000,
+          30_000 * 2 ** Math.max(0, job.attempts - 1)
+        );
       if (terminal) {
         await persistTerminalQuoteEmailOutcome(pool, job, {
           status: 'failed',

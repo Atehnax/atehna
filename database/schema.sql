@@ -2673,6 +2673,8 @@ create table order_email_jobs (
       'order_submitted',
       'order_accepted',
       'order_rejected',
+      'predracun_issued',
+      'invoice_issued',
       'received',
       'in_progress',
       'partially_sent',

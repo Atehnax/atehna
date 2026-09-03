@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { isolateEmailPreviewHtml } from "../../src/admin/features/email/components/EmailMessagePreview";
 
 const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), "utf8");
@@ -352,5 +353,71 @@ test("shared email image attachment stages locally, uploads on save, and blocks 
   assert.match(
     ui,
     /testing \|\|\s+saving \|\|\s+uploadingImageAttachment \|\|\s+stagedImageAttachment !== null/u,
+  );
+});
+
+test("email message previews isolate rendered HTML without script, network, navigation, or same-origin privileges", () => {
+  const preview = source(
+    "src/admin/features/email/components/EmailMessagePreview.tsx",
+  );
+
+  assert.match(preview, /<iframe/u);
+  assert.match(preview, /sandbox=""/u);
+  assert.match(preview, /referrerPolicy="no-referrer"/u);
+  assert.match(preview, /srcDoc=\{isolatedHtml\}/u);
+  assert.match(preview, /Content-Security-Policy/u);
+  assert.match(preview, /default-src 'none'/u);
+  assert.match(preview, /connect-src 'none'/u);
+  assert.match(preview, /form-action 'none'/u);
+  assert.match(preview, /base-uri 'none'/u);
+  assert.match(preview, /aria-disabled="true"/u);
+  assert.match(preview, /data-testid=\{`\$\{testId\}-subject`\}/u);
+  assert.match(preview, /data-testid=\{`\$\{testId\}-variables`\}/u);
+  assert.doesNotMatch(preview, /allow-scripts|allow-same-origin/u);
+  assert.doesNotMatch(preview, /dangerouslySetInnerHTML/u);
+});
+
+test("email preview isolation removes navigation and installs its CSP at runtime", () => {
+  const isolated = isolateEmailPreviewHtml(
+    '<!doctype html><html lang="sl"><body><a href="https://example.invalid/private">Odpri</a></body></html>',
+  );
+
+  assert.match(isolated, /<head><meta http-equiv="Content-Security-Policy"/u);
+  assert.match(isolated, /default-src 'none'/u);
+  assert.match(isolated, /connect-src 'none'/u);
+  assert.match(isolated, /<a aria-disabled="true">Odpri<\/a>/u);
+  assert.doesNotMatch(isolated, /\shref\s*=/iu);
+  assert.doesNotMatch(isolated, /example\.invalid\/private/u);
+});
+
+test("order and quote templates expose live audience previews from their unsaved drafts", () => {
+  const orderUi = source(
+    "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
+  );
+  const quoteUi = source(
+    "src/admin/features/email/components/AdminQuoteEmailSettingsSection.tsx",
+  );
+
+  assert.match(orderUi, /buildOrderEmailMessage/u);
+  assert.match(orderUi, /toStoredOrderEmailSettings/u);
+  assert.match(orderUi, /buildOrderEmailPreviewMessage\(\s*draft,/u);
+  assert.match(orderUi, /imageUrl: null/u);
+  assert.match(orderUi, /testId="order-email-preview"/u);
+  assert.match(orderUi, /testId="order-email-preview-audience"/u);
+  assert.match(orderUi, /Šola \/ javni zavod/u);
+  assert.match(orderUi, /sharedSettings=\{draft\}/u);
+
+  assert.match(quoteUi, /buildQuoteEmailMessage/u);
+  assert.match(quoteUi, /quoteSettings: draft/u);
+  assert.match(quoteUi, /\.\.\.sharedSettings/u);
+  assert.match(quoteUi, /testId="quote-email-preview"/u);
+  assert.match(quoteUi, /testId="quote-email-preview-audience"/u);
+  assert.doesNotMatch(
+    orderUi,
+    /fetch\(["']\/api\/admin\/order-email-settings\/preview/u,
+  );
+  assert.doesNotMatch(
+    quoteUi,
+    /fetch\(["']\/api\/admin\/quote-email-settings\/preview/u,
   );
 });

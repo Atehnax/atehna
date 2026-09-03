@@ -62,15 +62,23 @@ test('quote settings persistence stores both audience templates in the normalize
 
 test('quote enqueue resolves and snapshots the configured template for each recipient audience', () => {
   const jobs = source('src/shared/server/quoteEmailJobs.ts');
+  const templates = source(
+    'src/shared/domain/quote/quoteEmailTemplates.ts'
+  );
 
-  assert.match(jobs, /const configuredTemplate = settings\.templates\[[\s\S]*?input\.eventType[\s\S]*?\]/u);
-  assert.match(jobs, /configuredTemplate\[recipient\.audience\]/u);
+  assert.match(jobs, /buildQuoteEmailMessage\(\{/u);
   assert.match(
     jobs,
+    /audience: recipient\.audience[\s\S]*?recipientEmail: recipient\.email[\s\S]*?sharedSettings: shared[\s\S]*?quoteSettings: settings/u
+  );
+  assert.match(templates, /const configuredTemplate = input\.quoteSettings\.templates\[/u);
+  assert.match(templates, /configuredTemplate\[input\.audience\]/u);
+  assert.match(
+    templates,
     /const subject = render\([\s\S]*?audienceTemplate\.subject[\s\S]*?defaults\.subject[\s\S]*?variables/u
   );
   assert.match(
-    jobs,
+    templates,
     /const baseBody = render\([\s\S]*?audienceTemplate\.body[\s\S]*?defaults\.body[\s\S]*?variables/u
   );
   assert.match(

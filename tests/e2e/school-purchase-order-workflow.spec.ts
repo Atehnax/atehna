@@ -122,6 +122,8 @@ function schoolWorkflowSettings(
       order_submitted: { customer: true, admins: false },
       order_accepted: { ...disabledEvent },
       order_rejected: { ...disabledEvent },
+      predracun_issued: { ...disabledEvent },
+      invoice_issued: { ...disabledEvent },
       received: { ...disabledEvent },
       in_progress: { ...disabledEvent },
       partially_sent: { ...disabledEvent },

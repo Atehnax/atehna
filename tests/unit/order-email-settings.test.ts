@@ -19,11 +19,17 @@ import {
   buildOrderEmailMessage,
   type OrderEmailJobPayload
 } from '@/shared/domain/order/orderEmailTemplates';
+import {
+  TRANSACTIONAL_EMAIL_FONT_FAMILY,
+  TRANSACTIONAL_EMAIL_HEADING_STYLE
+} from '@/shared/domain/transactionalEmailHtml';
 
 const requestedEvents = new Set<OrderEmailEventType>([
   'order_submitted',
   'order_accepted',
   'order_rejected',
+  'predracun_issued',
+  'invoice_issued',
   'in_progress',
   'partially_sent',
   'sent'
@@ -115,6 +121,8 @@ describe('order email settings', () => {
         'order_submitted',
         'order_accepted',
         'order_rejected',
+        'predracun_issued',
+        'invoice_issued',
         ...ORDER_STATUS_OPTIONS.map((status) => status.value)
       ]
     );
@@ -184,9 +192,20 @@ describe('order email settings', () => {
       const expected = requestedEvents.has(event.value);
       assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.events[event.value], {
         customer: expected,
-        admins: expected
+        admins:
+          expected &&
+          event.value !== 'predracun_issued' &&
+          event.value !== 'invoice_issued'
       });
     }
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.predracun_issued.customer.subject,
+      'Vaš predračun je pripravljen'
+    );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.invoice_issued.customer.subject,
+      'Vaš račun je pripravljen'
+    );
   });
 
   test('clones nested settings and normalizes header fields and recipient addresses', () => {
@@ -561,6 +580,45 @@ describe('order email templates', () => {
       `${message.subject}\n${message.html}\n${message.text}`,
       /#PRIVATE-42|\/admin\/orders\/42|order\/confirmation|access[_-]?token|blob_pathname|private.*document/iu
     );
+  });
+
+  test('pins the shared typography on the shell and every text-bearing HTML element', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+    payload.settingsSnapshot.headerText = 'Skupna glava';
+    const message = buildOrderEmailMessage(payload);
+    const styledTags = message.html.match(
+      /<(?:body|div|p|h1|table|td|th|a)\b[^>]*>/gu
+    ) ?? [];
+
+    assert.ok(styledTags.length > 0);
+    for (const tag of styledTags) {
+      assert.match(
+        tag,
+        new RegExp(`font-family:${TRANSACTIONAL_EMAIL_FONT_FAMILY}`, 'u'),
+        `missing canonical font stack on ${tag}`
+      );
+    }
+    assert.match(
+      message.html,
+      new RegExp(`<h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}`, 'u')
+    );
+    assert.doesNotMatch(message.html, /font-family:Arial,sans-serif/u);
+  });
+
+  test('renders explicit human status labels for document email events', () => {
+    const labels: Array<[OrderEmailEventType, string]> = [
+      ['predracun_issued', 'Predračun izdan'],
+      ['invoice_issued', 'Račun izdan']
+    ];
+
+    for (const [eventType, label] of labels) {
+      const message = buildOrderEmailMessage(jobPayload('customer', eventType));
+      assert.match(message.html, new RegExp(`Status:</strong> ${label}`, 'u'));
+      assert.match(message.text, new RegExp(`Status: ${label}`, 'u'));
+    }
   });
 
   test('renders the customized school template, fixed details, and one fragment credential', () => {

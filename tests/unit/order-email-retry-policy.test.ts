@@ -55,6 +55,16 @@ test('failed email retry rejects lifecycle-stale events', () => {
     contractStatus: 'accepted'
   }), true);
   assert.equal(isOrderEmailRetryEventCurrent({
+    eventType: 'predracun_issued',
+    orderStatus: 'in_progress',
+    contractStatus: 'accepted'
+  }), true);
+  assert.equal(isOrderEmailRetryEventCurrent({
+    eventType: 'invoice_issued',
+    orderStatus: 'finished',
+    contractStatus: 'rejected'
+  }), false);
+  assert.equal(isOrderEmailRetryEventCurrent({
     eventType: 'order_rejected',
     orderStatus: 'received',
     contractStatus: 'rejected'

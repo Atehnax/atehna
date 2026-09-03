@@ -9,6 +9,11 @@ import {
   isOrderEmailEventType,
   type OrderEmailEventType
 } from './orderEmailSettings';
+import {
+  normalizeOrderEmailPdfDocumentReference,
+  orderEmailPdfReferenceMatchesEvent,
+  type OrderEmailPdfDocumentReference
+} from '../emailPdfAttachment';
 
 export const ORDER_EMAIL_DELIVERY_ENVELOPE_VERSION = 2 as const;
 export const MAX_ORDER_EMAIL_DELIVERY_JSON_LENGTH = 4_000_000;
@@ -38,6 +43,7 @@ export type OrderEmailDeliveryEnvelope = Readonly<{
   audience: OrderEmailAudience;
   recipient: OrderEmailDeliveryRecipient;
   message: PersistedOrderEmailMessage;
+  pdfDocument?: OrderEmailPdfDocumentReference;
 }>;
 
 export type RedactedOrderEmailDeliveryEnvelope = Readonly<{
@@ -220,6 +226,17 @@ function parseRecipient(value: unknown): OrderEmailDeliveryRecipient {
   return Object.freeze({ email, name });
 }
 
+function parsePdfDocument(value: unknown): OrderEmailPdfDocumentReference {
+  const reference = normalizeOrderEmailPdfDocumentReference(value);
+  if (!reference) {
+    fail(
+      '$.pdfDocument',
+      'must be a strictly scoped immutable order PDF reference'
+    );
+  }
+  return reference;
+}
+
 function parseAttachments(value: unknown): readonly EmailMessageAttachment[] {
   if (!Array.isArray(value)) {
     fail('$.message.attachments', 'must be an array');
@@ -334,7 +351,10 @@ function snapshotRecipientName(value: string | null): string | null {
  * contract. Workers must send `envelope.message` instead of rendering again.
  */
 export function createOrderEmailDeliveryEnvelope(
-  payload: OrderEmailJobPayload
+  payload: OrderEmailJobPayload,
+  options: Readonly<{
+    pdfDocument?: OrderEmailPdfDocumentReference | null;
+  }> = {}
 ): OrderEmailDeliveryEnvelope {
   const message = buildOrderEmailMessage(payload);
   return parseOrderEmailDeliveryEnvelope({
@@ -345,7 +365,8 @@ export function createOrderEmailDeliveryEnvelope(
       email: message.to,
       name: snapshotRecipientName(payload.recipientName)
     },
-    message
+    message,
+    ...(options.pdfDocument ? { pdfDocument: options.pdfDocument } : {})
   });
 }
 
@@ -357,7 +378,7 @@ export function parseOrderEmailDeliveryEnvelope(
   requireExactKeys(
     envelope,
     ['version', 'eventType', 'audience', 'recipient', 'message'],
-    [],
+    ['pdfDocument'],
     '$'
   );
 
@@ -371,6 +392,15 @@ export function parseOrderEmailDeliveryEnvelope(
   const audience = requireAudience(envelope.audience, '$.audience');
   const recipient = parseRecipient(envelope.recipient);
   const message = parseMessage(envelope.message);
+  const pdfDocument = hasOwn(envelope, 'pdfDocument')
+    ? parsePdfDocument(envelope.pdfDocument)
+    : undefined;
+  if (pdfDocument && audience !== 'customer') {
+    fail('$.pdfDocument', 'is allowed only for a customer delivery');
+  }
+  if (pdfDocument && !orderEmailPdfReferenceMatchesEvent(eventType, pdfDocument)) {
+    fail('$.pdfDocument', 'does not match the email event');
+  }
   if (message.to !== recipient.email) {
     fail('$.message.to', 'must exactly match $.recipient.email');
   }
@@ -380,7 +410,8 @@ export function parseOrderEmailDeliveryEnvelope(
     eventType,
     audience,
     recipient,
-    message
+    message,
+    ...(pdfDocument ? { pdfDocument } : {})
   });
 }
 

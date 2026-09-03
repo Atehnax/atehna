@@ -138,6 +138,12 @@ test('events use the canonical admin table while templates and queue retain resp
     /aria-label=\{`Dovoljene spremenljivke za \$\{audienceLabel\}`\}/u
   );
   assert.match(section, /QUOTE_EMAIL_TEMPLATE_VARIABLES\.map/u);
+  assert.match(section, /buildQuoteEmailMessage/u);
+  assert.match(section, /sharedSettings: OrderEmailSettings/u);
+  assert.match(section, /quoteSettings: draft/u);
+  assert.match(section, /testId="quote-email-preview"/u);
+  assert.match(section, /testId="quote-email-preview-audience"/u);
+  assert.match(section, /<CustomSelect<QuoteEmailAudience>/u);
   assert.match(
     section,
     /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)[\s\S]*?updateTemplate\(audience, 'subject', value\)[\s\S]*?updateTemplate\(audience, 'body', value\)[\s\S]*?resetTemplate\(audience\)/u

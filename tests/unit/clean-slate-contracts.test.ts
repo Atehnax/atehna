@@ -68,6 +68,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const gursAddressPrefixDeployment = source(
     'database/migrations/20260903_gurs_address_prefix_search.sql'
   );
+  const orderDocumentEmailEventsDeployment = source(
+    'database/migrations/20260903_order_document_email_events.sql'
+  );
   const schemaContractDeployment = source(
     'database/migrations/20260903_schema_contract_v1.sql'
   );
@@ -87,6 +90,7 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260901_quote_optional_acceptance_terms.sql',
     '20260901_quote_outbox_cancellation.sql',
     '20260903_gurs_address_prefix_search.sql',
+    '20260903_order_document_email_events.sql',
     '20260903_schema_contract_v1.sql'
   ]);
   assert.equal(tableNames.length, 62);
@@ -117,6 +121,7 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     quoteOptionalAcceptanceTermsDeployment,
     quoteOutboxCancellationDeployment,
     gursAddressPrefixDeployment,
+    orderDocumentEmailEventsDeployment,
     schemaContractDeployment
   ]) {
     assert.match(deployment, /begin;/u);
@@ -173,6 +178,10 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(
     gursAddressPrefixDeployment,
     /installed\.indrelid = active_table[\s\S]+?installed\.indcollation\[0\][\s\S]+?to_regcollation\('pg_catalog\."C"'\)[\s\S]+?installed\.indcollation\[1\][\s\S]+?create index %I on public\.gurs_addresses/u
+  );
+  assert.match(
+    orderDocumentEmailEventsDeployment,
+    /order_email_jobs_event_type_check[\s\S]*?predracun_issued[\s\S]*?invoice_issued/u
   );
   assert.match(
     quoteOptionalAcceptanceTermsDeployment,

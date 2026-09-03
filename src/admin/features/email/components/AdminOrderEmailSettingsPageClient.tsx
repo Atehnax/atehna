@@ -10,10 +10,18 @@ import {
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   ORDER_EMAIL_EVENT_DEFINITIONS,
   normalizeOrderEmailSettings,
+  toStoredOrderEmailSettings,
+  type OrderEmailEventType,
   type OrderEmailSettings,
 } from "@/shared/domain/order/orderEmailSettings";
+import {
+  buildOrderEmailMessage,
+  type OrderEmailJobPayload,
+} from "@/shared/domain/order/orderEmailTemplates";
+import { getStatusLabel } from "@/shared/domain/order/orderStatus";
 import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
 import type { QuoteEmailAdminState } from "@/shared/server/quoteEmailSettings";
+import EmailMessagePreview from "@/admin/features/email/components/EmailMessagePreview";
 import AdminQuoteEmailSettingsSection, {
   type AdminQuoteEmailSaveState,
   type AdminQuoteEmailSettingsHandle,
@@ -79,6 +87,133 @@ const acceptedEmailImageContentTypes = new Set([
   "image/webp",
   "image/gif",
 ]);
+const orderEmailPreviewAudienceOptions = [
+  { value: "customer", label: "Stranka" },
+  { value: "admin", label: "Administrator" },
+] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
+const orderEmailSubmissionPreviewAudienceOptions = [
+  { value: "customer", label: "Stranka" },
+  { value: "schoolCustomer", label: "Šola / javni zavod" },
+  { value: "admin", label: "Administrator" },
+] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
+const ORDER_EMAIL_PREVIEW_CREATED_AT = "2026-09-03T12:37:00.000Z";
+const ORDER_EMAIL_PREVIEW_CUSTOMER_NAME = "Primer naročnika";
+const ORDER_EMAIL_PREVIEW_CONTACT_NAME = "Ana Novak";
+const ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL = "ana.novak@example.com";
+const ORDER_EMAIL_PREVIEW_REFERENCE = "TEST-2026";
+const ORDER_EMAIL_PREVIEW_ORDER_NUMBER = "#PREIZKUS";
+const ORDER_EMAIL_PREVIEW_ACCESS_TOKEN =
+  ["ath", "order"].join("_") + "_" + "P".repeat(43);
+
+function orderEmailPreviewPurchaseOrderUrl(siteUrl: string): string {
+  const url = new URL("/order/narocilnica", siteUrl);
+  url.hash = new URLSearchParams({
+    token: ORDER_EMAIL_PREVIEW_ACCESS_TOKEN,
+  }).toString();
+  return url.toString();
+}
+
+function orderEmailPreviewStatus(eventType: OrderEmailEventType): string {
+  if (eventType === "order_submitted") return "Prejeto – čaka na sprejem";
+  if (eventType === "order_accepted") return "Pogodbeno sprejeto";
+  if (eventType === "order_rejected") return "Pogodbeno zavrnjeno";
+  if (eventType === "predracun_issued") return "Predračun izdan";
+  if (eventType === "invoice_issued") return "Račun izdan";
+  return getStatusLabel(eventType);
+}
+
+function buildOrderEmailPreviewMessage(
+  config: OrderEmailSettings,
+  eventType: OrderEmailEventType,
+  audience: TemplateAudience,
+) {
+  const settingsSnapshot = toStoredOrderEmailSettings({
+    ...config,
+    senderName: config.senderName.trim() || "Atehna",
+    fromEmail: "preview@example.invalid",
+    replyToEmail: "",
+  });
+  const customerType: "school" | "company" =
+    audience === "schoolCustomer" ? "school" : "company";
+  const order = {
+    createdAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
+    customer: {
+      customerType,
+      organizationName: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+      contactName: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+      email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+      reference: ORDER_EMAIL_PREVIEW_REFERENCE,
+    },
+    items: [
+      {
+        sku: "TEST-001",
+        name: "Testni izdelek",
+        unit: "kos",
+        quantity: 1,
+        lineGross: 12.2,
+        imageUrl: null,
+      },
+    ],
+    totals: {
+      net: 10,
+      tax: 2.2,
+      shipping: 0,
+      gross: 12.2,
+    },
+  };
+  const payloadBase = {
+    eventType,
+    occurredAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
+    previousStatus: eventType === "order_submitted" ? null : "received",
+    settingsSnapshot,
+  };
+  const payload: OrderEmailJobPayload =
+    audience === "admin"
+      ? {
+          ...payloadBase,
+          audience: "admin",
+          recipientEmail: "admin@example.invalid",
+          recipientName: null,
+          order: {
+            ...order,
+            orderId: 999_999_999,
+            orderNumber: ORDER_EMAIL_PREVIEW_ORDER_NUMBER,
+          },
+        }
+      : {
+          ...payloadBase,
+          audience: "customer",
+          recipientEmail: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+          recipientName: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+          order,
+          purchaseOrderUploadUrl:
+            audience === "schoolCustomer" && eventType === "order_submitted"
+              ? orderEmailPreviewPurchaseOrderUrl(settingsSnapshot.siteUrl)
+              : null,
+        };
+  return buildOrderEmailMessage(payload);
+}
+
+function orderEmailPreviewVariables(
+  eventType: OrderEmailEventType,
+  audience: TemplateAudience,
+) {
+  const values: Record<string, string> = {
+    customer_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+    organization_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+    contact_name: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+    reference: ORDER_EMAIL_PREVIEW_REFERENCE,
+    status: orderEmailPreviewStatus(eventType),
+    previous_status:
+      eventType === "order_submitted" ? "" : getStatusLabel("received"),
+    order_number: ORDER_EMAIL_PREVIEW_ORDER_NUMBER,
+    customer_email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+  };
+  return ORDER_EMAIL_TEMPLATE_VARIABLES[audience].map((name) => ({
+    name,
+    value: values[name] ?? "",
+  }));
+}
 
 function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
@@ -443,6 +578,8 @@ export default function AdminOrderEmailSettingsPageClient({
     });
   const [selectedTemplateEvent, setSelectedTemplateEvent] =
     useState<EventKey>("order_submitted");
+  const [orderPreviewAudience, setOrderPreviewAudience] =
+    useState<TemplateAudience>("customer");
   const [testRecipient, setTestRecipient] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -498,6 +635,30 @@ export default function AdminOrderEmailSettingsPageClient({
         size: stagedImageAttachment.file.size,
       }
     : draft.imageAttachment;
+  const orderPreview = useMemo(() => {
+    try {
+      const message = buildOrderEmailPreviewMessage(
+        draft,
+        selectedTemplateEvent,
+        orderPreviewAudience,
+      );
+      return { subject: message.subject, html: message.html, error: null };
+    } catch {
+      return {
+        subject: "",
+        html: "",
+        error: "Predogleda s trenutnimi nastavitvami ni mogoče prikazati.",
+      };
+    }
+  }, [draft, orderPreviewAudience, selectedTemplateEvent]);
+  const orderPreviewVariables = useMemo(
+    () =>
+      orderEmailPreviewVariables(
+        selectedTemplateEvent,
+        orderPreviewAudience,
+      ),
+    [orderPreviewAudience, selectedTemplateEvent],
+  );
 
   const draftBasicReady =
     adminState.delivery.schemaReady &&
@@ -1836,6 +1997,12 @@ export default function AdminOrderEmailSettingsPageClient({
               value={selectedTemplateEvent}
               onChange={(value) => {
                 setSelectedTemplateEvent(value);
+                if (
+                  value !== "order_submitted" &&
+                  orderPreviewAudience === "schoolCustomer"
+                ) {
+                  setOrderPreviewAudience("customer");
+                }
                 setActionErrors([]);
               }}
               options={templateEventOptions}
@@ -1904,6 +2071,36 @@ export default function AdminOrderEmailSettingsPageClient({
               }
             />
           </div>
+
+          <EmailMessagePreview
+            subject={orderPreview.subject}
+            html={orderPreview.html}
+            variables={orderPreviewVariables}
+            error={orderPreview.error}
+            testId="order-email-preview"
+            controls={
+              <>
+                <FieldLabel
+                  htmlFor="order-email-preview-audience"
+                  label="Prejemnik predogleda"
+                />
+                <CustomSelect<TemplateAudience>
+                  id="order-email-preview-audience"
+                  testId="order-email-preview-audience"
+                  value={orderPreviewAudience}
+                  onChange={setOrderPreviewAudience}
+                  options={
+                    selectedTemplateEvent === "order_submitted"
+                      ? orderEmailSubmissionPreviewAudienceOptions
+                      : orderEmailPreviewAudienceOptions
+                  }
+                  ariaLabel="Prejemnik predogleda naročila"
+                  containerClassName="mt-1.5"
+                  triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
+                />
+              </>
+            }
+          />
         </SurfaceCard>
 
         <SurfaceCard
@@ -2050,6 +2247,7 @@ export default function AdminOrderEmailSettingsPageClient({
         <AdminQuoteEmailSettingsSection
           ref={quoteEmailSettingsRef}
           initialState={initialQuoteState}
+          sharedSettings={draft}
           onSaveStateChange={setQuoteEmailSaveState}
         />
       </div>

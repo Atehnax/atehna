@@ -19,6 +19,18 @@ export const ORDER_EMAIL_EVENT_DEFINITIONS = [
     description:
       'Ko administrator izrecno zavrne pogodbeni sprejem. Spremembo statusa na »Preklicano« upravlja ločeni dogodek.'
   },
+  {
+    value: 'predracun_issued',
+    label: 'Predračun poslan',
+    description:
+      'Ko administrator izrecno pošlje izbrano različico predračuna stranki.'
+  },
+  {
+    value: 'invoice_issued',
+    label: 'Račun poslan',
+    description:
+      'Ko administrator izrecno pošlje izbrano različico računa stranki.'
+  },
   ...ORDER_STATUS_OPTIONS.map((status) => ({
     value: status.value,
     label: status.label,
@@ -151,9 +163,16 @@ const requestedByDefault = new Set<OrderEmailEventType>([
   'order_submitted',
   'order_accepted',
   'order_rejected',
+  'predracun_issued',
+  'invoice_issued',
   'in_progress',
   'partially_sent',
   'sent'
+]);
+
+const customerOnlyByDefault = new Set<OrderEmailEventType>([
+  'predracun_issued',
+  'invoice_issued'
 ]);
 
 const defaultEvents = Object.fromEntries(
@@ -161,7 +180,8 @@ const defaultEvents = Object.fromEntries(
     value,
     {
       customer: requestedByDefault.has(value),
-      admins: requestedByDefault.has(value)
+      admins:
+        requestedByDefault.has(value) && !customerOnlyByDefault.has(value)
     }
   ])
 ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>;
@@ -215,6 +235,38 @@ const defaultTemplates = Object.fromEntries(
           admin: {
             subject: 'Naro\u010dilo {{order_number}} je zavrnjeno',
             body: 'Naro\u010dilo {{order_number}} je bilo pogodbeno zavrnjeno.'
+          }
+        }
+      ];
+    }
+
+    if (value === 'predracun_issued') {
+      return [
+        value,
+        {
+          customer: {
+            subject: 'Vaš predračun je pripravljen',
+            body: 'V priponki vam pošiljamo predračun za vaše naročilo.'
+          },
+          admin: {
+            subject: 'Predračun za naročilo {{order_number}} je poslan',
+            body: 'Predračun za naročilo {{order_number}} je bil poslan stranki.'
+          }
+        }
+      ];
+    }
+
+    if (value === 'invoice_issued') {
+      return [
+        value,
+        {
+          customer: {
+            subject: 'Vaš račun je pripravljen',
+            body: 'V priponki vam pošiljamo račun za vaše naročilo.'
+          },
+          admin: {
+            subject: 'Račun za naročilo {{order_number}} je poslan',
+            body: 'Račun za naročilo {{order_number}} je bil poslan stranki.'
           }
         }
       ];

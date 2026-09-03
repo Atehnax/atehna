@@ -50,6 +50,25 @@ export function UploadIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function MailIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="2.5" y="4" width="15" height="12" rx="2" />
+      <path d="m3.5 5 6.5 5 6.5-5" />
+    </svg>
+  );
+}
+
 export function SaveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

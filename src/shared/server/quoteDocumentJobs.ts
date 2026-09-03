@@ -14,6 +14,7 @@ import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
+import { processQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
 
 type ClaimedJob = {
   id: number;
@@ -541,8 +542,33 @@ export async function processQuoteDocumentJobs(
 
 export function scheduleQuoteDocumentJobs(pool: Pool): void {
   after(async () => {
-    await processQuoteDocumentJobs(pool, { maximumJobs: 2 }).catch((error) => {
+    const result = await processQuoteDocumentJobs(pool, { maximumJobs: 2 }).catch((error) => {
       console.error('[quote-document] background processing failed', {
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    });
+    if (!result || result.completed === 0) return;
+    await pool.query(
+      `
+        update quote_email_jobs email_job
+        set next_attempt_at = now(),
+            updated_at = now()
+        where email_job.audience = 'customer'
+          and email_job.event_type = 'quote_issued'
+          and email_job.status = 'pending'
+          and email_job.last_error like '[document_pending]%'
+          and exists (
+            select 1
+            from quote_documents document
+            where document.quote_offer_version_id = email_job.quote_offer_version_id
+              and document.document_type = 'offer'
+              and document.version_number = 1
+          )
+      `
+    );
+    await processQuoteEmailJobs(pool, { limit: 10 }).catch((error) => {
+      console.error('[quote-document] email wake-up failed', {
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     });

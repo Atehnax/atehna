@@ -10,10 +10,19 @@ import {
   hashOrderAccessToken
 } from '@/shared/server/orderAccess';
 import {
+  type EmailMessageAttachment,
   type OrderEmailCustomerOrderSnapshot,
   type OrderEmailJobPayload,
   type OrderEmailOrderSnapshot
 } from '@/shared/domain/order/orderEmailTemplates';
+import {
+  createPendingOrderEmailPdfDocumentReference,
+  normalizeOrderEmailPdfDocumentReference,
+  orderEmailPdfDocumentTypeForEvent,
+  orderEmailPdfReferenceMatchesEvent,
+  type EmailProviderPdfAttachment,
+  type OrderEmailPdfDocumentReference
+} from '@/shared/domain/emailPdfAttachment';
 import {
   classifyOrderEmailDeliveryValidationFailure,
   classifyResendFailure,
@@ -50,6 +59,12 @@ import {
   decryptOrderEmailDeliveryEnvelope,
   encryptOrderEmailDeliveryEnvelope
 } from '@/shared/server/orderEmailDeliveryCipher';
+import {
+  EmailPdfDocumentPendingError,
+  EmailPdfDocumentValidationError,
+  hydrateEmailPdfDocument,
+  pinEmailPdfDocument
+} from '@/shared/server/emailPdfAttachment';
 
 const RESEND_EMAILS_ENDPOINT = 'https://api.resend.com/emails';
 const STALE_CLAIM_INTERVAL = '5 minutes';
@@ -57,18 +72,32 @@ const MAX_ATTEMPTS = 8;
 const MAX_CLAIM_SIZE = 2;
 const IMMEDIATE_MAX_JOBS = 21;
 const WORKER_DEADLINE_MS = 45_000;
+const PDF_DOCUMENT_DEFER_MS = 5_000;
 const DEFAULT_SENT_RETENTION_DAYS = 30;
 const DEFAULT_PRUNE_LIMIT = 1_000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 const ORDER_ACCESS_TOKEN_PATTERN = /ath_order_[A-Za-z0-9_-]{43}/gu;
-type EnqueueOrderEmailEventInput = {
+
+type OrderEmailProviderAttachment =
+  | EmailMessageAttachment
+  | EmailProviderPdfAttachment;
+
+type OrderEmailProviderMessage = Omit<
+  PersistedOrderEmailMessage,
+  'attachments'
+> & {
+  attachments?: readonly OrderEmailProviderAttachment[];
+};
+
+export type EnqueueOrderEmailEventInput = {
   orderId: number;
   eventKey: string;
   eventType: OrderEmailEventType;
   occurredAt?: string;
   previousStatus?: string | null;
   customerOrderAccessToken?: string | null;
+  pdfDocument?: OrderEmailPdfDocumentReference | null;
 };
 
 type ClaimedOrderEmailJob = {
@@ -318,6 +347,19 @@ export async function enqueueOrderEmailEvent(
   if (!Number.isFinite(input.orderId) || !isOrderEmailEventType(input.eventType)) {
     return [];
   }
+  const explicitPdfDocument = input.pdfDocument == null
+    ? null
+    : normalizeOrderEmailPdfDocumentReference(input.pdfDocument);
+  if (
+    input.pdfDocument != null &&
+    (
+      !explicitPdfDocument ||
+      explicitPdfDocument.orderId !== input.orderId ||
+      !orderEmailPdfReferenceMatchesEvent(input.eventType, explicitPdfDocument)
+    )
+  ) {
+    throw new Error('Order email PDF document does not match its event.');
+  }
   const settings = await getOrderEmailSettings(client);
   if (!settings.enabled) return [];
   const eventSettings = settings.events[input.eventType];
@@ -376,7 +418,23 @@ export async function enqueueOrderEmailEvent(
             order: toCustomerOrderSnapshot(order),
             purchaseOrderUploadUrl
           };
-    const envelope = createOrderEmailDeliveryEnvelope(payload);
+    const automaticDocumentType = orderEmailPdfDocumentTypeForEvent(
+      input.eventType
+    );
+    const pdfDocument =
+      recipient.audience === 'customer'
+        ? explicitPdfDocument ??
+          (automaticDocumentType === 'order_summary'
+            ? createPendingOrderEmailPdfDocumentReference(
+                input.orderId,
+                'order_summary',
+                1
+              )
+            : null)
+        : null;
+    const envelope = createOrderEmailDeliveryEnvelope(payload, {
+      pdfDocument
+    });
     const serializedEnvelope = serializeOrderEmailDeliveryEnvelope(envelope);
     const jobId = randomUUID();
     const encryptedEnvelope = encryptOrderEmailDeliveryEnvelope(
@@ -523,6 +581,50 @@ async function persistEncryptedClaimedEnvelope(
   job.payloadJson = JSON.parse(encryptedPayload) as unknown;
 }
 
+async function pinClaimedOrderEmailPdfDocument(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  envelope: OrderEmailDeliveryEnvelope
+): Promise<OrderEmailDeliveryEnvelope> {
+  const reference =
+    envelope.pdfDocument ??
+    (job.audience === 'customer' &&
+    (job.eventType === 'order_submitted' || job.eventType === 'order_accepted')
+      ? createPendingOrderEmailPdfDocumentReference(
+          job.orderId,
+          'order_summary',
+          1
+        )
+      : undefined);
+  if (!reference) return envelope;
+  if (reference.orderId !== job.orderId) {
+    throw new EmailPdfDocumentValidationError(
+      'The order email PDF reference belongs to another order.'
+    );
+  }
+  const pinned = await pinEmailPdfDocument(pool, reference);
+  if (pinned.source !== 'order_document') {
+    throw new EmailPdfDocumentValidationError(
+      'The order email PDF reference has the wrong source.'
+    );
+  }
+  return parseOrderEmailDeliveryEnvelope({
+    ...envelope,
+    pdfDocument: pinned
+  });
+}
+
+function pdfDocumentPinChanged(
+  before: OrderEmailDeliveryEnvelope,
+  after: OrderEmailDeliveryEnvelope
+): boolean {
+  return (
+    before.pdfDocument?.documentId !== after.pdfDocument?.documentId ||
+    before.pdfDocument?.contentSha256 !== after.pdfDocument?.contentSha256 ||
+    before.pdfDocument?.filename !== after.pdfDocument?.filename
+  );
+}
+
 async function validatePurchaseOrderTokenBeforeDelivery(
   pool: Pool | PoolClient,
   job: ClaimedOrderEmailJob,
@@ -663,6 +765,38 @@ async function markOrderEmailJobFailed(
   return outcome;
 }
 
+async function deferOrderEmailJobForPdf(
+  pool: Pool,
+  job: ClaimedOrderEmailJob,
+  error: EmailPdfDocumentPendingError
+): Promise<'retried'> {
+  const result = await pool.query(
+    `
+      update order_email_jobs
+      set status = 'pending',
+          claim_id = null,
+          locked_at = null,
+          next_attempt_at = now() + ($3::bigint * interval '1 millisecond'),
+          last_error = $4,
+          updated_at = now()
+      where id = $1
+        and claim_id = $2
+    `,
+    [
+      job.id,
+      job.claimId,
+      PDF_DOCUMENT_DEFER_MS,
+      `[document_pending] ${redactDeliveryError(error)}`
+    ]
+  );
+  if ((result.rowCount ?? 0) !== 1) {
+    throw new OrderEmailClaimPersistenceError(
+      `PDF deferral lost its email job claim (${job.id}).`
+    );
+  }
+  return 'retried';
+}
+
 async function readProviderError(response: Response): Promise<string> {
   const text = (await response.text().catch(() => '')).slice(0, 1500);
   if (!text) return `Resend je vrnil HTTP ${response.status}.`;
@@ -678,6 +812,7 @@ async function readProviderError(response: Response): Promise<string> {
 
 async function sendOrderEmailMessage(
   message: PersistedOrderEmailMessage,
+  pdfAttachment: EmailProviderPdfAttachment | null,
   idempotencyKey: string
 ): Promise<string> {
   if (isOrderEmailTransportDisabledForE2e()) {
@@ -690,6 +825,14 @@ async function sendOrderEmailMessage(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let response: Response;
+  const attachments: readonly OrderEmailProviderAttachment[] = [
+    ...(message.attachments ?? []),
+    ...(pdfAttachment ? [pdfAttachment] : [])
+  ];
+  const providerMessage: OrderEmailProviderMessage = {
+    ...message,
+    ...(attachments.length > 0 ? { attachments } : {})
+  };
   try {
     response = await fetch(RESEND_EMAILS_ENDPOINT, {
       method: 'POST',
@@ -705,8 +848,8 @@ async function sendOrderEmailMessage(
         subject: message.subject,
         html: message.html,
         text: message.text,
-        ...(message.attachments?.length
-          ? { attachments: message.attachments }
+        ...(providerMessage.attachments?.length
+          ? { attachments: providerMessage.attachments }
           : {})
       }),
       cache: 'no-store',
@@ -816,8 +959,23 @@ async function deliverOrderEmailWhileRecipientCurrent(
     }
 
     await validatePurchaseOrderTokenBeforeDelivery(client, job, envelope);
+    let pdfAttachment: EmailProviderPdfAttachment | null = null;
+    if (envelope.pdfDocument) {
+      if (
+        job.audience !== 'customer' ||
+        envelope.pdfDocument.orderId !== job.orderId
+      ) {
+        throw new EmailPdfDocumentValidationError(
+          'The email PDF reference is not scoped to this customer order.'
+        );
+      }
+      pdfAttachment = (
+        await hydrateEmailPdfDocument(client, envelope.pdfDocument)
+      ).attachment;
+    }
     const providerMessageId = await sendOrderEmailMessage(
       envelope.message,
+      pdfAttachment,
       `atehna-order-email/${job.id}`
     );
     await client.query('commit');
@@ -837,6 +995,14 @@ function classifyOrderEmailJobFailure(
   const validationFailure =
     classifyOrderEmailDeliveryValidationFailure(error);
   if (validationFailure) return validationFailure;
+  if (error instanceof EmailPdfDocumentValidationError) {
+    return {
+      disposition: 'terminal',
+      category: 'invalid_payload',
+      status: null,
+      retryAfterMs: null
+    };
+  }
 
   if (error instanceof OrderEmailDeliveryError) {
     if (error.resendFailure) {
@@ -873,8 +1039,17 @@ export async function processDueOrderEmailJobs(
       claimJobs: (limit) =>
         claimDueOrderEmailJobs(pool, { orderId: options.orderId, limit }),
       processJob: async (job) => {
-        const envelope = parseClaimedOrderEmailEnvelope(job);
-        if (!job.payloadEncrypted) {
+        const originalEnvelope = parseClaimedOrderEmailEnvelope(job);
+        const envelope = await pinClaimedOrderEmailPdfDocument(
+          pool,
+          job,
+          originalEnvelope
+        );
+        job.envelope = envelope;
+        if (
+          !job.payloadEncrypted ||
+          pdfDocumentPinChanged(originalEnvelope, envelope)
+        ) {
           await persistEncryptedClaimedEnvelope(pool, job, envelope);
         }
         const providerMessageId = await deliverOrderEmailWhileRecipientCurrent(
@@ -893,6 +1068,20 @@ export async function processDueOrderEmailJobs(
       },
       handleJobError: async (job, error) => {
         if (error instanceof OrderEmailClaimPersistenceError) throw error;
+        if (error instanceof EmailPdfDocumentPendingError) {
+          if (job.attempts >= MAX_ATTEMPTS) {
+            const exhaustedError = new EmailPdfDocumentValidationError(
+              `The email PDF did not become available after ${MAX_ATTEMPTS} attempts: ${redactDeliveryError(error)}`
+            );
+            return markOrderEmailJobFailed(
+              pool,
+              job,
+              exhaustedError,
+              classifyOrderEmailJobFailure(exhaustedError, Date.now())
+            );
+          }
+          return deferOrderEmailJobForPdf(pool, job, error);
+        }
         const classification = classifyOrderEmailJobFailure(error, Date.now());
         const outcome = await markOrderEmailJobFailed(
           pool,
@@ -1279,6 +1468,7 @@ export async function sendOrderEmailTest(
   const envelope = createOrderEmailDeliveryEnvelope(payload);
   const providerMessageId = await sendOrderEmailMessage(
     envelope.message,
+    null,
     `atehna-order-email-test/${randomUUID()}`
   );
   return { providerMessageId };

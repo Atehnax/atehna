@@ -147,6 +147,7 @@ describe('order email settings', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.headerText, '');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.imageAttachment, null);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
+      'recipient_name',
       'customer_name',
       'organization_name',
       'contact_name',
@@ -155,6 +156,7 @@ describe('order email settings', () => {
       'previous_status'
     ]);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer, [
+      'recipient_name',
       'customer_name',
       'organization_name',
       'contact_name',
@@ -284,6 +286,8 @@ describe('order email settings', () => {
     );
     assert.deepEqual(normalized.templates.order_submitted.customer, {
       subject: 'Prejeto {{customer_name}}',
+      greeting: 'Pozdravljeni, {{recipient_name}},',
+      heading: 'Prejeto {{customer_name}}',
       body: 'Prva vrstica.\nDruga vrstica.'
     });
     assert.deepEqual(
@@ -315,6 +319,11 @@ describe('order email settings', () => {
     assert.equal(legacy.headerText, '');
     assert.equal(legacy.imageAttachment, null);
     assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
+    assert.equal(legacy.templates.order_submitted.customer.heading, 'Legacy customer');
+    assert.equal(
+      legacy.templates.order_submitted.customer.greeting,
+      'Pozdravljeni, {{recipient_name}},'
+    );
     assert.deepEqual(
       legacy.templates.order_submitted.schoolCustomer,
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer
@@ -464,6 +473,8 @@ describe('order email settings', () => {
 
     settings.templates.order_submitted.customer = {
       subject: 'Prejeto za {{customer_name}}',
+      greeting: 'Pozdravljeni, {{recipient_name}},',
+      heading: 'Naročilo za {{organization_name}}',
       body: 'Status: {{status}}; prej: {{previous_status}}'
     };
     assert.deepEqual(validateOrderEmailSettingsInput(settings), []);
@@ -742,6 +753,8 @@ describe('order email templates', () => {
     ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
     payload.settingsSnapshot.templates.partially_sent.admin = {
       subject: 'Uredi {{order_number}}: {{status}}',
+      greeting: 'Dober dan, {{recipient_name}}.',
+      heading: 'Pregled naročila {{order_number}}',
       body:
         'Status {{order_number}} iz {{previous_status}} v {{status}} za {{customer_email}}.'
     };
@@ -753,8 +766,9 @@ describe('order email templates', () => {
     );
     assert.match(
       message.html,
-      /<h1[^>]*>Uredi #42 &lt;script&gt;alert\(1\)&lt;\/script&gt;: Delno poslano<\/h1>/u
+      /<h1[^>]*>Pregled naročila #42 &lt;script&gt;alert\(1\)&lt;\/script&gt;<\/h1>/u
     );
+    assert.match(message.html, /Dober dan, Skrbnik\./u);
     assert.match(
       message.text,
       /Status #42 <script>alert\(1\)<\/script> iz V obdelavi v Delno poslano za kupec@example\.com\./u

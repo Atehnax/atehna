@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Send, Shield } from 'lucide-react';
 import EmailMessagePreview, {
   type EmailMessagePreviewProps
@@ -17,7 +17,7 @@ import {
 
 const inputClassName = 'h-9 px-3 text-[13px] leading-5';
 const textareaClassName =
-  `min-h-40 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
+  `min-h-40 w-full resize-none overflow-hidden rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 
 export type EmailTemplateWorkspaceAudience<Audience extends string = string> = {
   value: Audience;
@@ -46,6 +46,8 @@ export type EmailTemplateWorkspaceEditor = {
   description?: string;
   disabled?: boolean;
   subject: EmailTemplateWorkspaceField;
+  greeting: EmailTemplateWorkspaceField;
+  heading: EmailTemplateWorkspaceField;
   body: EmailTemplateWorkspaceField;
   variables: readonly string[];
   variablesLabel?: string;
@@ -179,6 +181,57 @@ function FieldLabel({
   );
 }
 
+function AutoGrowingTextarea({
+  field,
+  disabled
+}: {
+  field: EmailTemplateWorkspaceField;
+  disabled?: boolean;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    const borderHeight = textarea.offsetHeight - textarea.clientHeight;
+    textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
+  }, [field.value]);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea || typeof ResizeObserver === 'undefined') return;
+
+    let observedWidth = textarea.getBoundingClientRect().width;
+    const observer = new ResizeObserver((entries) => {
+      const nextWidth = entries[0]?.contentRect.width ?? observedWidth;
+      if (Math.abs(nextWidth - observedWidth) < 0.5) return;
+      observedWidth = nextWidth;
+      textarea.style.height = 'auto';
+      const borderHeight = textarea.offsetHeight - textarea.clientHeight;
+      textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
+    });
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      id={field.id}
+      aria-label={field.label}
+      className={`${textareaClassName} mt-1.5`}
+      disabled={disabled}
+      maxLength={field.maxLength}
+      rows={6}
+      value={field.value}
+      onChange={(event) => field.onChange(event.target.value)}
+      data-testid={field.testId}
+    />
+  );
+}
+
 export default function EmailTemplateWorkspace<Audience extends string>({
   idPrefix,
   headingId: providedHeadingId,
@@ -206,6 +259,9 @@ export default function EmailTemplateWorkspace<Audience extends string>({
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
   const audiencePanelId = `${idPrefix}-audience-panel`;
   const activeAudienceTabId = `${idPrefix}-audience-tab-${activeAudience}`;
+  const previewVariableValues = new Map(
+    preview.variables.map((variable) => [variable.name, variable.value])
+  );
 
   return (
     <section
@@ -230,7 +286,7 @@ export default function EmailTemplateWorkspace<Audience extends string>({
           <Badge
             variant={activity.tone}
             size="sm"
-            className="!min-w-0 shrink-0 px-2.5"
+            className="!h-9 !min-w-0 shrink-0 self-end rounded-md px-3"
             title={activity.title}
             data-testid={`${testId}-activity`}
           >
@@ -245,7 +301,7 @@ export default function EmailTemplateWorkspace<Audience extends string>({
       </div>
 
       <div
-        className="grid min-w-0 gap-4 xl:grid-cols-2 xl:items-start"
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
         data-testid={workspaceTestId}
       >
         <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -264,8 +320,9 @@ export default function EmailTemplateWorkspace<Audience extends string>({
                 ariaLabel="Prejemniki predloge sporočila"
                 idPrefix={`${idPrefix}-audience`}
                 surface="panel"
+                variant="secondary"
                 className="!border-b-0"
-                tabClassName="!min-w-max !px-4"
+                tabClassName="!min-w-max !px-5"
               />
             </div>
             <div className="flex min-h-[42px] shrink-0 items-center justify-end px-3 py-2 sm:py-0">
@@ -326,19 +383,53 @@ export default function EmailTemplateWorkspace<Audience extends string>({
 
               <div>
                 <FieldLabel
+                  htmlFor={editor.greeting.id}
+                  label={editor.greeting.label}
+                  description={editor.greeting.description}
+                />
+                <Input
+                  id={editor.greeting.id}
+                  aria-label={editor.greeting.label}
+                  className={`${inputClassName} mt-1.5`}
+                  disabled={editor.disabled}
+                  maxLength={editor.greeting.maxLength}
+                  value={editor.greeting.value}
+                  onChange={(event) =>
+                    editor.greeting.onChange(event.target.value)
+                  }
+                  data-testid={editor.greeting.testId}
+                />
+              </div>
+
+              <div>
+                <FieldLabel
+                  htmlFor={editor.heading.id}
+                  label={editor.heading.label}
+                  description={editor.heading.description}
+                />
+                <Input
+                  id={editor.heading.id}
+                  aria-label={editor.heading.label}
+                  className={`${inputClassName} mt-1.5`}
+                  disabled={editor.disabled}
+                  maxLength={editor.heading.maxLength}
+                  value={editor.heading.value}
+                  onChange={(event) =>
+                    editor.heading.onChange(event.target.value)
+                  }
+                  data-testid={editor.heading.testId}
+                />
+              </div>
+
+              <div>
+                <FieldLabel
                   htmlFor={editor.body.id}
                   label={editor.body.label}
                   description={editor.body.description}
                 />
-                <textarea
-                  id={editor.body.id}
-                  aria-label={editor.body.label}
-                  className={`${textareaClassName} mt-1.5`}
+                <AutoGrowingTextarea
+                  field={editor.body}
                   disabled={editor.disabled}
-                  maxLength={editor.body.maxLength}
-                  value={editor.body.value}
-                  onChange={(event) => editor.body.onChange(event.target.value)}
-                  data-testid={editor.body.testId}
                 />
               </div>
             </div>
@@ -352,19 +443,30 @@ export default function EmailTemplateWorkspace<Audience extends string>({
                 aria-label={editor.variablesAriaLabel}
               >
                 {editor.variables.map((variable) => (
-                  <code
+                  <Badge
                     key={variable}
-                    className="max-w-full break-all rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                    variant="neutral"
+                    size="sm"
+                    className="!h-auto !min-w-0 max-w-full gap-1 rounded-md !border-slate-200 !bg-slate-50 px-1.5 py-0.5 text-[11px] font-normal leading-4 !text-slate-700"
+                    title={
+                      previewVariableValues.get(variable) || undefined
+                    }
                   >
-                    {`{{${variable}}}`}
-                  </code>
+                    <code className="break-all font-semibold text-slate-700">
+                      {`{{${variable}}}`}
+                    </code>
+                    <span aria-hidden="true" className="text-slate-400">·</span>
+                    <span className="max-w-40 truncate text-slate-500">
+                      {previewVariableValues.get(variable) || '—'}
+                    </span>
+                  </Badge>
                 ))}
               </div>
             </div>
           </div>
         </section>
 
-        <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/40 p-4">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/40 p-4 lg:h-full">
           <EmailMessagePreview {...preview} variant="workspace" />
         </div>
       </div>

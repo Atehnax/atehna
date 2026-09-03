@@ -40,7 +40,7 @@ test('quote outbox snapshots shared header, footer, and image before encryption'
   );
   assert.match(
     quoteTemplates,
-    /\[headerText, eventBody, action, footerText\][\s\S]*?\.join\('\\n\\n'\)/u
+    /\[headerText, greeting, heading, eventBody, action, footerText\][\s\S]*?\.join\('\\n\\n'\)/u
   );
   assert.match(
     quoteTemplates,

@@ -10,6 +10,8 @@ import {
   TRANSACTIONAL_EMAIL_HEADING_STYLE
 } from '../transactionalEmailHtml';
 import {
+  QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
+  QUOTE_EMAIL_DEFAULT_GREETING,
   QUOTE_EMAIL_EVENT_DEFAULTS,
   type QuoteEmailEventType,
   type QuoteEmailSettings
@@ -41,6 +43,7 @@ export type BuildQuoteEmailMessageInput = Readonly<{
   eventType: QuoteEmailEventType;
   audience: QuoteEmailAudience;
   recipientEmail: string;
+  recipientName?: string | null;
   requestNumber: string;
   offerNumber?: string | null;
   offerUrl?: string | null;
@@ -52,6 +55,13 @@ export type BuildQuoteEmailMessageInput = Readonly<{
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const FALLBACK_SENDER_EMAIL = 'delivery-profile-pending@invalid.local';
+
+function safeHeaderText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f]+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -87,16 +97,41 @@ export function buildQuoteEmailMessage(
       ? (configuredTemplate[input.audience] as Record<string, unknown>)
       : {};
   const variables = {
+    recipient_name: (input.recipientName ?? '').replace(/\s+/gu, ' ').trim(),
     request_number: input.requestNumber,
     offer_number: input.offerNumber ?? input.requestNumber,
     otp_code: input.otpCode ?? ''
   };
-  const subject = render(
+  const templateSubject =
     typeof audienceTemplate.subject === 'string'
       ? audienceTemplate.subject
-      : defaults.subject,
-    variables
-  );
+      : defaults.subject;
+  const subject =
+    safeHeaderText(render(templateSubject, variables)) ||
+    safeHeaderText(render(defaults.subject, variables));
+  const defaultGreeting =
+    input.audience === 'admin'
+      ? QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
+      : QUOTE_EMAIL_DEFAULT_GREETING;
+  const greeting = (
+    safeHeaderText(
+      render(
+        typeof audienceTemplate.greeting === 'string'
+          ? audienceTemplate.greeting
+          : defaultGreeting,
+        variables
+      )
+    ) || safeHeaderText(render(defaultGreeting, variables))
+  ).replace(/,\s*,/gu, ',');
+  const heading =
+    safeHeaderText(
+      render(
+        typeof audienceTemplate.heading === 'string'
+          ? audienceTemplate.heading
+          : templateSubject,
+        variables
+      )
+    ) || subject;
   const baseBody = render(
     typeof audienceTemplate.body === 'string'
       ? audienceTemplate.body
@@ -111,7 +146,7 @@ export function buildQuoteEmailMessage(
     input.offerUrl && input.audience === 'customer'
       ? `Preglej ponudbo: ${input.offerUrl}`
       : '';
-  const text = [headerText, eventBody, action, footerText]
+  const text = [headerText, greeting, heading, eventBody, action, footerText]
     .filter(Boolean)
     .join('\n\n');
   const actionHtml =
@@ -127,7 +162,8 @@ export function buildQuoteEmailMessage(
   <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
     <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
       ${headerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 18px;white-space:pre-line;color:#334155;">${escapeHtml(headerText)}</p>` : ''}
-      <h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}margin:0 0 10px;">${escapeHtml(subject)}</h1>
+      ${greeting ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 16px;color:#334155;">${escapeHtml(greeting)}</p>` : ''}
+      <h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}margin:0 0 10px;">${escapeHtml(heading)}</h1>
       <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 20px;white-space:pre-line;color:#334155;">${escapeHtml(eventBody)}</p>
       ${actionHtml}
       ${footerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:28px 0 0;white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${escapeHtml(footerText)}</p>` : ''}
@@ -139,7 +175,7 @@ export function buildQuoteEmailMessage(
     from: fromHeader(shared.senderName, senderEmail),
     to: input.recipientEmail,
     ...(shared.replyToEmail ? { replyTo: shared.replyToEmail } : {}),
-    subject: `[${shared.subjectPrefix || 'Atehna'}] ${subject}`,
+    subject: `[${safeHeaderText(shared.subjectPrefix) || 'Atehna'}] ${subject}`,
     html,
     text,
     ...(attachment ? { attachments: [attachment] } : {})

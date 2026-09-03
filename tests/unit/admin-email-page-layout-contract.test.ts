@@ -144,7 +144,7 @@ test("email sections are assigned to compact persistent tab panels without losin
   assert.match(quoteTemplateSource, /onAudienceChange=\{setQuotePreviewAudience\}/u);
   assert.match(
     quoteTemplateSource,
-    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
+    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'greeting', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'heading', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
   );
   assert.doesNotMatch(
     quoteTemplateSource,
@@ -235,9 +235,56 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   assert.match(ui, /adminTableRowHeightClassName/u);
   assert.match(ui, /table-fixed text-\[12px\]/u);
   assert.match(ui, /<EmailTemplateWorkspace<TemplateAudience>/u);
-  assert.match(templateWorkspace, /xl:grid-cols-2 xl:items-start/u);
+  assert.ok(
+    templateWorkspace.includes(
+      "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start",
+    ),
+  );
   assert.match(templateWorkspace, /<EuiTabs/u);
   assert.match(templateWorkspace, /surface="panel"/u);
+  assert.match(templateWorkspace, /variant="secondary"/u);
+  assert.match(
+    templateWorkspace,
+    /className="!h-9 !min-w-0 shrink-0 self-end rounded-md px-3"/u,
+  );
+  assert.match(templateWorkspace, /greeting: EmailTemplateWorkspaceField;/u);
+  assert.match(templateWorkspace, /heading: EmailTemplateWorkspaceField;/u);
+  assert.match(templateWorkspace, /body: EmailTemplateWorkspaceField;/u);
+  assert.match(templateWorkspace, /function AutoGrowingTextarea/u);
+  assert.match(templateWorkspace, /resize-none overflow-hidden rounded-md/u);
+  assert.match(templateWorkspace, /textarea\.style\.height = 'auto'/u);
+  assert.match(
+    templateWorkspace,
+    /const borderHeight = textarea\.offsetHeight - textarea\.clientHeight/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /textarea\.scrollHeight \+ borderHeight/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /let observedWidth = textarea\.getBoundingClientRect\(\)\.width/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /typeof ResizeObserver === 'undefined'/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /new ResizeObserver\(\(entries\) =>[\s\S]*?Math\.abs\(nextWidth - observedWidth\) < 0\.5[\s\S]*?textarea\.style\.height = 'auto'[\s\S]*?textarea\.scrollHeight \+ borderHeight/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /observer\.observe\(textarea\)[\s\S]*?return \(\) => observer\.disconnect\(\)/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /const previewVariableValues = new Map\([\s\S]*?preview\.variables\.map/u,
+  );
+  assert.match(
+    templateWorkspace,
+    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 rounded-md[\s\S]*?previewVariableValues\.get\(variable\)/u,
+  );
   assert.match(templateWorkspace, /<EmailMessagePreview \{\.\.\.preview\} variant="workspace"/u);
   assert.match(templateWorkspace, /export function EmailTemplateRecipientToggle/u);
   assert.match(templateWorkspace, /role="switch"/u);
@@ -339,10 +386,15 @@ test("converted order email Inputs keep accessible names aligned with their visi
     assert.match(ui, new RegExp(`id="${id}"\\s+aria-label="${label}"`, "u"));
   }
 
-  assert.match(ui, /label: `Zadeva za \$\{selectedTemplateAudienceMeta\.label\}`/u);
-  assert.match(ui, /label: `Vsebina za \$\{selectedTemplateAudienceMeta\.label\}`/u);
+  assert.match(ui, /subject: \{[\s\S]*?label: "Zadeva"/u);
+  assert.match(ui, /greeting: \{[\s\S]*?label: "Pozdrav"/u);
+  assert.match(ui, /heading: \{[\s\S]*?label: "Naslov"/u);
+  assert.match(ui, /body: \{[\s\S]*?label: "Vsebina"/u);
   assert.match(templateWorkspace, /aria-label=\{editor\.subject\.label\}/u);
-  assert.match(templateWorkspace, /aria-label=\{editor\.body\.label\}/u);
+  assert.match(templateWorkspace, /aria-label=\{editor\.greeting\.label\}/u);
+  assert.match(templateWorkspace, /aria-label=\{editor\.heading\.label\}/u);
+  assert.match(templateWorkspace, /field=\{editor\.body\}/u);
+  assert.match(templateWorkspace, /aria-label=\{field\.label\}/u);
   assert.match(
     ui,
     /id=\{`order-email-admin-\$\{index\}`\}\s+aria-label=\{`E-poštni naslov administratorja \$\{index \+ 1\}`\}/u,
@@ -380,13 +432,14 @@ test("shared email image attachment stages locally, uploads on save, and blocks 
   );
 });
 
-test("email message previews isolate rendered HTML without script, network, navigation, or same-origin privileges", () => {
+test("email message previews isolate rendered HTML while sizing workspace frames to their content", () => {
   const preview = source(
     "src/admin/features/email/components/EmailMessagePreview.tsx",
   );
 
   assert.match(preview, /<iframe/u);
-  assert.match(preview, /sandbox=""/u);
+  assert.match(preview, /sandbox="allow-same-origin"/u);
+  assert.equal(preview.match(/allow-same-origin/gu)?.length, 1);
   assert.match(preview, /referrerPolicy="no-referrer"/u);
   assert.match(preview, /srcDoc=\{isolatedHtml\}/u);
   assert.match(preview, /Content-Security-Policy/u);
@@ -397,7 +450,30 @@ test("email message previews isolate rendered HTML without script, network, navi
   assert.match(preview, /aria-disabled="true"/u);
   assert.match(preview, /data-testid=\{`\$\{testId\}-subject`\}/u);
   assert.match(preview, /data-testid=\{`\$\{testId\}-variables`\}/u);
-  assert.doesNotMatch(preview, /allow-scripts|allow-same-origin/u);
+  assert.doesNotMatch(preview, /allow-scripts/u);
+  assert.match(preview, /frameRef\.current\?\.contentDocument/u);
+  assert.match(preview, /frameDocument\.documentElement\.style\.overflow = "hidden"/u);
+  assert.match(preview, /frameBody\.style\.overflow = "hidden"/u);
+  assert.match(
+    preview,
+    /setWorkspaceFrameHeight\(Math\.max\(320, Math\.ceil\(frameBody\.scrollHeight\) \+ 2\)\)/u,
+  );
+  assert.match(preview, /const observer = new ResizeObserver\(updateHeight\)/u);
+  assert.match(preview, /observer\.observe\(frameBody\)/u);
+  assert.match(preview, /scrolling=\{workspace \? "no" : "auto"\}/u);
+  assert.match(
+    preview,
+    /style=\{workspace \? \{ height: workspaceFrameHeight \} : undefined\}/u,
+  );
+  assert.match(
+    preview,
+    /workspace[\s\S]*?"min-h-80 w-full overflow-hidden border-0 bg-white"/u,
+  );
+  assert.match(preview, /onLoad=\{sizeWorkspaceFrame\}/u);
+  assert.match(
+    preview,
+    /\{!workspace \? <aside[\s\S]*?data-testid=\{`\$\{testId\}-variables`\}[\s\S]*?<\/aside> : null\}/u,
+  );
   assert.doesNotMatch(preview, /dangerouslySetInnerHTML/u);
 });
 

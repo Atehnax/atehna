@@ -6,6 +6,8 @@ import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
   ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES,
   ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
+  ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH,
+  ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   ORDER_EMAIL_EVENT_DEFINITIONS,
@@ -202,6 +204,8 @@ function orderEmailPreviewVariables(
   audience: TemplateAudience,
 ) {
   const values: Record<string, string> = {
+    recipient_name:
+      audience === "admin" ? "" : ORDER_EMAIL_PREVIEW_CONTACT_NAME,
     customer_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
     organization_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
     contact_name: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
@@ -673,7 +677,7 @@ export default function AdminOrderEmailSettingsPageClient({
 
   const updateTemplate = (
     audience: TemplateAudience,
-    field: "subject" | "body",
+    field: "subject" | "greeting" | "heading" | "body",
     value: string,
   ) => {
     setDraft((current) => {
@@ -1925,7 +1929,7 @@ export default function AdminOrderEmailSettingsPageClient({
           idPrefix="order-email-template"
           testId="order-email-message-templates"
           title="Predloge sporočil"
-          description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+          description="Za vsak dogodek posebej nastavite zadevo, pozdrav, naslov in vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
           eventSelector={
             <>
               <FieldLabel
@@ -2000,7 +2004,7 @@ export default function AdminOrderEmailSettingsPageClient({
             description: selectedTemplateAudienceMeta.description,
             subject: {
               id: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
-              label: `Zadeva za ${selectedTemplateAudienceMeta.label}`,
+              label: "Zadeva",
               description: "Predpona zadeve se doda samodejno.",
               value: selectedTemplate.subject,
               maxLength: ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
@@ -2008,9 +2012,31 @@ export default function AdminOrderEmailSettingsPageClient({
               onChange: (value) =>
                 updateTemplate(orderPreviewAudience, "subject", value),
             },
+            greeting: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-greeting`,
+              label: "Pozdrav",
+              description: "Uvodna vrstica sporočila.",
+              value:
+                selectedTemplate.greeting ??
+                "Pozdravljeni, {{recipient_name}},",
+              maxLength: ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-greeting`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "greeting", value),
+            },
+            heading: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-heading`,
+              label: "Naslov",
+              description: "Glavni naslov v vsebini sporočila.",
+              value: selectedTemplate.heading ?? selectedTemplate.subject,
+              maxLength: ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-heading`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "heading", value),
+            },
             body: {
               id: `order-email-template-${selectedTemplateAudienceMeta.testId}-body`,
-              label: `Vsebina za ${selectedTemplateAudienceMeta.label}`,
+              label: "Vsebina",
               description:
                 "Vnesite navadno besedilo. Povzetek naročila in artikli se dodajo samodejno.",
               value: selectedTemplate.body,

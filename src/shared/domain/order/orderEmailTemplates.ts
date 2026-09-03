@@ -337,6 +337,7 @@ type TemplateValues = Record<string, string>;
 
 function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
   const values: TemplateValues = {
+    recipient_name: safeBodyText(payload.recipientName),
     customer_name: customerDisplayName(payload.order.customer),
     organization_name: safeBodyText(
       payload.order.customer.organizationName
@@ -386,18 +387,32 @@ function buildTemplateContent(payload: OrderEmailJobPayload): {
       defaults
     : configuredEventTemplates?.[audience] ?? defaults;
   const variables = buildTemplateValues(payload);
-  const heading =
+  const subject =
     safeHeaderText(renderTemplate(configured.subject, variables)) ||
     safeHeaderText(renderTemplate(defaults.subject, variables));
+  const heading =
+    safeHeaderText(
+      renderTemplate(configured.heading ?? configured.subject, variables)
+    ) ||
+    safeHeaderText(
+      renderTemplate(defaults.heading ?? defaults.subject, variables)
+    );
   const body =
     safeBodyText(renderTemplate(configured.body, variables)) ||
     safeBodyText(renderTemplate(defaults.body, variables));
   const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
   const prefixText = prefix ? `[${prefix}] ` : '';
   const recipientName = safeBodyText(payload.recipientName);
-  const greeting = recipientName ? `Pozdravljeni, ${recipientName},` : 'Pozdravljeni,';
+  const legacyGreeting = recipientName
+    ? `Pozdravljeni, ${recipientName},`
+    : 'Pozdravljeni,';
+  const greeting = (
+    safeHeaderText(
+      renderTemplate(configured.greeting ?? defaults.greeting, variables)
+    ) || legacyGreeting
+  ).replace(/,\s*,/gu, ',');
   return {
-    subject: `${prefixText}${heading}`,
+    subject: `${prefixText}${subject}`,
     heading,
     body,
     greeting,

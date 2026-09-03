@@ -48,6 +48,8 @@ export type OrderEmailAudienceSettings = {
 
 export type OrderEmailTemplate = {
   subject: string;
+  greeting?: string;
+  heading?: string;
   body: string;
 };
 
@@ -68,6 +70,7 @@ export type OrderEmailTemplates = Record<
 
 export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
   customer: [
+    'recipient_name',
     'customer_name',
     'organization_name',
     'contact_name',
@@ -76,6 +79,7 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
     'previous_status'
   ],
   schoolCustomer: [
+    'recipient_name',
     'customer_name',
     'organization_name',
     'contact_name',
@@ -83,6 +87,7 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
     'status'
   ],
   admin: [
+    'recipient_name',
     'customer_name',
     'status',
     'previous_status',
@@ -92,6 +97,8 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
 } as const;
 
 export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
+export const ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
+export const ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
 export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
 export const ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH = 1_000;
 export const ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
@@ -186,7 +193,10 @@ const defaultEvents = Object.fromEntries(
   ])
 ) as Record<OrderEmailEventType, OrderEmailAudienceSettings>;
 
-const defaultTemplates = Object.fromEntries(
+const DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING =
+  'Pozdravljeni, {{recipient_name}},';
+
+const legacyDefaultTemplates = Object.fromEntries(
   ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value, label }) => {
     if (value === 'order_submitted') {
       return [
@@ -283,6 +293,27 @@ const defaultTemplates = Object.fromEntries(
           subject: 'Naro\u010dilo {{order_number}}: {{status}}',
           body: 'Status naro\u010dila {{order_number}} je zdaj \u00bb{{status}}\u00ab.'
         }
+      }
+    ];
+  })
+) as OrderEmailTemplates;
+
+const defaultTemplates = Object.fromEntries(
+  ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => {
+    const eventTemplates = legacyDefaultTemplates[eventType];
+    const completeTemplate = (template: OrderEmailTemplate): OrderEmailTemplate => ({
+      ...template,
+      greeting: DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING,
+      heading: template.subject
+    });
+    return [
+      eventType,
+      {
+        customer: completeTemplate(eventTemplates.customer),
+        admin: completeTemplate(eventTemplates.admin),
+        ...(eventTemplates.schoolCustomer
+          ? { schoolCustomer: completeTemplate(eventTemplates.schoolCustomer) }
+          : {})
       }
     ];
   })
@@ -539,6 +570,28 @@ export function cloneOrderEmailSettings(
 
 export const cloneDefaultOrderEmailSettings = cloneOrderEmailSettings;
 
+function normalizeTemplate(
+  rawTemplate: UnknownRecord,
+  defaults: OrderEmailTemplate
+): OrderEmailTemplate {
+  const subject = sanitizeHeaderText(rawTemplate.subject, defaults.subject);
+  return {
+    subject,
+    greeting: sanitizeHeaderText(
+      rawTemplate.greeting,
+      defaults.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING
+    ),
+    heading:
+      rawTemplate.heading === undefined
+        ? subject
+        : sanitizeHeaderText(
+            rawTemplate.heading,
+            defaults.heading ?? subject
+          ),
+    body: sanitizeBodyText(rawTemplate.body, defaults.body)
+  };
+}
+
 export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings {
   const record = asRecord(value);
   const rawEvents = asRecord(record.events);
@@ -572,29 +625,14 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       return [
         eventType,
         {
-          customer: {
-            subject: sanitizeHeaderText(
-              rawCustomer.subject,
-              defaults.customer.subject
-            ),
-            body: sanitizeBodyText(rawCustomer.body, defaults.customer.body)
-          },
-          admin: {
-            subject: sanitizeHeaderText(rawAdmin.subject, defaults.admin.subject),
-            body: sanitizeBodyText(rawAdmin.body, defaults.admin.body)
-          },
+          customer: normalizeTemplate(rawCustomer, defaults.customer),
+          admin: normalizeTemplate(rawAdmin, defaults.admin),
           ...(defaults.schoolCustomer
             ? {
-                schoolCustomer: {
-                  subject: sanitizeHeaderText(
-                    rawSchoolCustomer.subject,
-                    defaults.schoolCustomer.subject
-                  ),
-                  body: sanitizeBodyText(
-                    rawSchoolCustomer.body,
-                    defaults.schoolCustomer.body
-                  )
-                }
+                schoolCustomer: normalizeTemplate(
+                  rawSchoolCustomer,
+                  defaults.schoolCustomer
+                )
               }
             : {})
         }
@@ -708,9 +746,21 @@ function validateTemplate(
   if (record.body !== undefined && typeof record.body !== 'string') {
     errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) ni veljavno.`);
   }
+  if (record.greeting !== undefined && typeof record.greeting !== 'string') {
+    errors.push(`Pozdrav predloge za ${audienceLabel} (${eventLabel}) ni veljaven.`);
+  }
+  if (record.heading !== undefined && typeof record.heading !== 'string') {
+    errors.push(`Naslov predloge za ${audienceLabel} (${eventLabel}) ni veljaven.`);
+  }
 
   const subject =
     typeof record.subject === 'string' ? record.subject : fallback.subject;
+  const greeting =
+    typeof record.greeting === 'string'
+      ? record.greeting
+      : fallback.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING;
+  const heading =
+    typeof record.heading === 'string' ? record.heading : subject;
   const body = typeof record.body === 'string' ? record.body : fallback.body;
   if (hasHeaderControls(subject)) {
     errors.push(
@@ -722,11 +772,27 @@ function validateTemplate(
       `Besedilo predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
     );
   }
+  if (hasHeaderControls(greeting)) {
+    errors.push(
+      `Pozdrav predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
+    );
+  }
+  if (hasHeaderControls(heading)) {
+    errors.push(
+      `Naslov predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
+    );
+  }
   if (!sanitizeHeaderText(subject, '')) {
     errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) je obvezna.`);
   }
   if (!sanitizeBodyText(body, '')) {
     errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) je obvezno.`);
+  }
+  if (!sanitizeHeaderText(greeting, '')) {
+    errors.push(`Pozdrav predloge za ${audienceLabel} (${eventLabel}) je obvezen.`);
+  }
+  if (!sanitizeHeaderText(heading, '')) {
+    errors.push(`Naslov predloge za ${audienceLabel} (${eventLabel}) je obvezen.`);
   }
   if (subject.length > ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH) {
     errors.push(
@@ -738,9 +804,24 @@ function validateTemplate(
       `Besedilo predloge za ${audienceLabel} (${eventLabel}) je lahko dolgo najve\u010d ${ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH} znakov.`
     );
   }
+  if (greeting.length > ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH) {
+    errors.push(
+      `Pozdrav predloge za ${audienceLabel} (${eventLabel}) je lahko dolg največ ${ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH} znakov.`
+    );
+  }
+  if (heading.length > ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH) {
+    errors.push(
+      `Naslov predloge za ${audienceLabel} (${eventLabel}) je lahko dolg največ ${ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH} znakov.`
+    );
+  }
 
   const allowedVariables = new Set<string>(ORDER_EMAIL_TEMPLATE_VARIABLES[audience]);
-  for (const variable of [...templateVariables(subject), ...templateVariables(body)]) {
+  for (const variable of [
+    ...templateVariables(subject),
+    ...templateVariables(greeting),
+    ...templateVariables(heading),
+    ...templateVariables(body)
+  ]) {
     if (!allowedVariables.has(variable)) {
       errors.push(
         `Spremenljivka {{${variable}}} ni dovoljena v predlogi za ${audienceLabel} (${eventLabel}).`

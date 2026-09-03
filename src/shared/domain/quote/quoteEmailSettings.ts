@@ -14,7 +14,12 @@ export const QUOTE_EMAIL_EVENT_TYPES = [
 
 export type QuoteEmailEventType = (typeof QUOTE_EMAIL_EVENT_TYPES)[number];
 export type QuoteEmailAudienceSettings = { customer: boolean; admins: boolean };
-export type QuoteEmailTemplate = { subject: string; body: string };
+export type QuoteEmailTemplate = {
+  subject: string;
+  greeting?: string;
+  heading?: string;
+  body: string;
+};
 export type QuoteEmailEventTemplates = {
   customer: QuoteEmailTemplate;
   admin: QuoteEmailTemplate;
@@ -33,7 +38,12 @@ export type QuoteEmailSettings = {
 };
 
 export const QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 240;
+export const QUOTE_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
+export const QUOTE_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
 export const QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 12_000;
+export const QUOTE_EMAIL_DEFAULT_GREETING =
+  'Pozdravljeni, {{recipient_name}},';
+export const QUOTE_EMAIL_DEFAULT_ADMIN_GREETING = 'Pozdravljeni,';
 
 export function quoteEmailEventSupportsAdminAudience(
   eventType: QuoteEmailEventType
@@ -198,8 +208,18 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
         return [
           eventType,
           {
-            customer: { subject: defaults.subject, body: defaults.body },
-            admin: { subject: defaults.subject, body: defaults.body }
+            customer: {
+              subject: defaults.subject,
+              greeting: QUOTE_EMAIL_DEFAULT_GREETING,
+              heading: defaults.subject,
+              body: defaults.body
+            },
+            admin: {
+              subject: defaults.subject,
+              greeting: QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
+              heading: defaults.subject,
+              body: defaults.body
+            }
           }
         ];
       })
@@ -216,6 +236,16 @@ function record(value: unknown): Record<string, unknown> {
 
 function templateText(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+const HEADER_CONTROL_PATTERN = /[\u0000-\u001f\u007f]/u;
+const HEADER_CONTROLS_GLOBAL_PATTERN = /[\u0000-\u001f\u007f]+/gu;
+
+function headerTemplateText(value: unknown, fallback: string): string {
+  return templateText(value, fallback)
+    .replace(HEADER_CONTROLS_GLOBAL_PATTERN, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
 }
 
 export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings {
@@ -244,20 +274,52 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
     };
     defaults.templates[eventType] = {
       customer: {
-        subject: templateText(
+        subject: headerTemplateText(
           customerTemplate.subject,
           defaults.templates[eventType].customer.subject
         ),
+        greeting: headerTemplateText(
+          customerTemplate.greeting,
+          defaults.templates[eventType].customer.greeting ??
+            QUOTE_EMAIL_DEFAULT_GREETING
+        ),
+        heading:
+          customerTemplate.heading === undefined
+            ? headerTemplateText(
+                customerTemplate.subject,
+                defaults.templates[eventType].customer.subject
+              )
+            : headerTemplateText(
+                customerTemplate.heading,
+                defaults.templates[eventType].customer.heading ??
+                  defaults.templates[eventType].customer.subject
+              ),
         body: templateText(
           customerTemplate.body,
           defaults.templates[eventType].customer.body
         )
       },
       admin: {
-        subject: templateText(
+        subject: headerTemplateText(
           adminTemplate.subject,
           defaults.templates[eventType].admin.subject
         ),
+        greeting: headerTemplateText(
+          adminTemplate.greeting,
+          defaults.templates[eventType].admin.greeting ??
+            QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
+        ),
+        heading:
+          adminTemplate.heading === undefined
+            ? headerTemplateText(
+                adminTemplate.subject,
+                defaults.templates[eventType].admin.subject
+              )
+            : headerTemplateText(
+                adminTemplate.heading,
+                defaults.templates[eventType].admin.heading ??
+                  defaults.templates[eventType].admin.subject
+              ),
         body: templateText(
           adminTemplate.body,
           defaults.templates[eventType].admin.body
@@ -275,6 +337,8 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
 }
 
 export function validateQuoteEmailSettings(value: unknown): string[] {
+  const source = record(value);
+  const sourceTemplates = record(source.templates);
   const normalized = normalizeQuoteEmailSettings(value);
   const errors: string[] = [];
   for (const eventType of QUOTE_EMAIL_EVENT_TYPES) {
@@ -285,7 +349,31 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
       ) {
         continue;
       }
+      const rawTemplate = record(record(sourceTemplates[eventType])[audience]);
+      for (const [field, label] of [
+        ['subject', 'zadeva'],
+        ['greeting', 'pozdrav'],
+        ['heading', 'naslov']
+      ] as const) {
+        const rawValue = rawTemplate[field];
+        if (rawValue === undefined) continue;
+        if (typeof rawValue !== 'string') {
+          errors.push(`${eventType}/${audience}: ${label} ni veljaven.`);
+        } else if (HEADER_CONTROL_PATTERN.test(rawValue)) {
+          errors.push(
+            `${eventType}/${audience}: ${label} ne sme vsebovati kontrolnih znakov ali novih vrstic.`
+          );
+        }
+      }
+      if (
+        rawTemplate.body !== undefined &&
+        typeof rawTemplate.body !== 'string'
+      ) {
+        errors.push(`${eventType}/${audience}: vsebina ni veljavna.`);
+      }
       const template = normalized.templates[eventType][audience];
+      const greeting = template.greeting ?? '';
+      const heading = template.heading ?? template.subject;
       if (!template.subject.trim()) {
         errors.push(`${eventType}/${audience}: zadeva ne sme biti prazna.`);
       } else if (template.subject.length > QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH) {
@@ -295,6 +383,16 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
         errors.push(`${eventType}/${audience}: vsebina ne sme biti prazna.`);
       } else if (template.body.length > QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH) {
         errors.push(`${eventType}/${audience}: vsebina je predolga.`);
+      }
+      if (!greeting.trim()) {
+        errors.push(`${eventType}/${audience}: pozdrav ne sme biti prazen.`);
+      } else if (greeting.length > QUOTE_EMAIL_TEMPLATE_GREETING_MAX_LENGTH) {
+        errors.push(`${eventType}/${audience}: pozdrav je predolg.`);
+      }
+      if (!heading.trim()) {
+        errors.push(`${eventType}/${audience}: naslov ne sme biti prazen.`);
+      } else if (heading.length > QUOTE_EMAIL_TEMPLATE_HEADING_MAX_LENGTH) {
+        errors.push(`${eventType}/${audience}: naslov je predolg.`);
       }
     }
   }

@@ -1,4 +1,12 @@
-import type { ReactNode } from "react";
+'use client';
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 const EMAIL_PREVIEW_CSP =
   "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'";
@@ -47,6 +55,32 @@ export default function EmailMessagePreview({
 }: EmailMessagePreviewProps) {
   const isolatedHtml = isolateEmailPreviewHtml(html);
   const workspace = variant === "workspace";
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [workspaceFrameHeight, setWorkspaceFrameHeight] = useState(608);
+
+  useEffect(
+    () => () => resizeObserverRef.current?.disconnect(),
+    [],
+  );
+
+  const sizeWorkspaceFrame = useCallback(() => {
+    if (!workspace) return;
+    resizeObserverRef.current?.disconnect();
+    const frameDocument = frameRef.current?.contentDocument;
+    const frameBody = frameDocument?.body;
+    if (!frameDocument || !frameBody) return;
+
+    frameDocument.documentElement.style.overflow = "hidden";
+    frameBody.style.overflow = "hidden";
+    const updateHeight = () => {
+      setWorkspaceFrameHeight(Math.max(320, Math.ceil(frameBody.scrollHeight) + 2));
+    };
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(frameBody);
+    resizeObserverRef.current = observer;
+  }, [workspace]);
 
   return (
     <section
@@ -103,16 +137,24 @@ export default function EmailMessagePreview({
               </p>
             </div>
             <iframe
+              ref={frameRef}
               title="Predogled e-poštnega sporočila"
-              sandbox=""
+              sandbox="allow-same-origin"
               referrerPolicy="no-referrer"
               srcDoc={isolatedHtml}
-              className="h-[38rem] w-full border-0 bg-white"
+              scrolling={workspace ? "no" : "auto"}
+              style={workspace ? { height: workspaceFrameHeight } : undefined}
+              className={
+                workspace
+                  ? "min-h-80 w-full overflow-hidden border-0 bg-white"
+                  : "h-[38rem] w-full border-0 bg-white"
+              }
+              onLoad={sizeWorkspaceFrame}
               data-testid={`${testId}-frame`}
             />
           </div>
 
-          <aside className="self-start rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+          {!workspace ? <aside className="self-start rounded-lg border border-slate-200 bg-slate-50/60 p-3">
             <h4 className="text-xs font-semibold text-slate-800">
               Testne spremenljivke
             </h4>
@@ -130,7 +172,7 @@ export default function EmailMessagePreview({
                 </div>
               ))}
             </dl>
-          </aside>
+          </aside> : null}
         </div>
       )}
     </section>

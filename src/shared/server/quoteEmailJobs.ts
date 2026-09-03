@@ -199,6 +199,7 @@ export async function enqueueQuoteEmailEvent(
       eventType: input.eventType,
       audience: recipient.audience,
       recipientEmail: recipient.email,
+      recipientName: recipient.name,
       requestNumber: identity.request_number,
       offerNumber: identity.offer_number,
       offerUrl: input.offerUrl,

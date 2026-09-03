@@ -19,6 +19,7 @@ function input(
     eventType: 'quote_issued',
     audience: 'customer',
     recipientEmail: 'kupec@example.com',
+    recipientName: 'Ana Novak',
     requestNumber: 'P-2026-001',
     offerNumber: 'PO-2026-001',
     offerUrl: 'https://www.atehna-test.site/offer/review#token=ath_quote_test',
@@ -43,6 +44,8 @@ describe('quote email templates', () => {
     const value = input();
     value.quoteSettings.templates.quote_issued.customer = {
       subject: 'Ponudba {{offer_number}} za {{request_number}}',
+      greeting: 'Pozdravljeni, {{recipient_name}}.',
+      heading: 'Vaša ponudba {{offer_number}}',
       body: 'Odprite ponudbo {{offer_number}}.'
     };
 
@@ -60,6 +63,8 @@ describe('quote email templates', () => {
       /Skupna glava[\s\S]*Odprite ponudbo PO-2026-001\.[\s\S]*Dodatna podrobnost <interno>\.[\s\S]*Preglej ponudbo: https:\/\/www\.atehna-test\.site/u
     );
     assert.match(message.html, /Dodatna podrobnost &lt;interno&gt;\./u);
+    assert.match(message.html, /Pozdravljeni, Ana Novak\./u);
+    assert.match(message.html, /<h1[^>]*>Vaša ponudba PO-2026-001<\/h1>/u);
     assert.match(message.html, />Preglej ponudbo<\/a>/u);
     assert.match(message.html, new RegExp(`<body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}`, 'u'));
     assert.match(message.html, new RegExp(`<div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}`, 'u'));
@@ -86,12 +91,15 @@ describe('quote email templates', () => {
     });
     value.quoteSettings.templates.quote_issued.admin = {
       subject: 'Interna ponudba {{offer_number}}',
+      greeting: 'Pozdravljeni,',
+      heading: 'Ponudba za pregled',
       body: 'Administratorsko obvestilo za {{request_number}}.'
     };
 
     const message = buildQuoteEmailMessage(value);
 
     assert.equal(message.subject, '[Atehna] Interna ponudba PO-2026-001');
+    assert.match(message.html, /<h1[^>]*>Ponudba za pregled<\/h1>/u);
     assert.match(message.html, /Administratorsko obvestilo za P-2026-001\./u);
     assert.doesNotMatch(message.html, />Preglej ponudbo<\/a>/u);
     assert.doesNotMatch(message.text, /Preglej ponudbo:/u);
@@ -124,5 +132,21 @@ describe('quote email templates', () => {
         filename: 'quote-header.png'
       }
     ]);
+  });
+
+  test('removes header control characters at the final delivery boundary', () => {
+    const value = input({
+      sharedSettings: {
+        ...input().sharedSettings,
+        subjectPrefix: 'Atehna\r\nBcc: prefix@example.com'
+      }
+    });
+    value.quoteSettings.templates.quote_issued.customer.subject =
+      'Ponudba {{offer_number}}\r\nBcc: victim@example.com';
+
+    const message = buildQuoteEmailMessage(value);
+
+    assert.doesNotMatch(message.subject, /[\r\n]/u);
+    assert.match(message.subject, /Ponudba PO-2026-001 Bcc:/u);
   });
 });

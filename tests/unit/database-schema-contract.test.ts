@@ -67,6 +67,33 @@ test('repository bindings pass the schema contract checker', () => {
   assert.match(output, new RegExp(`Verified ${contractId} repository bindings`, 'u'));
 });
 
+test('Vercel packages the runtime manifest without database SQL artifacts', () => {
+  const ignoredDatabaseFiles = execFileSync(
+    'git',
+    [
+      'ls-files',
+      '-ci',
+      '--exclude-from=.vercelignore',
+      '--',
+      'database'
+    ],
+    {
+      cwd: projectRoot,
+      encoding: 'utf8'
+    }
+  );
+
+  assert.doesNotMatch(
+    ignoredDatabaseFiles,
+    /^database\/schema-contract\.json$/mu
+  );
+  assert.match(ignoredDatabaseFiles, /^database\/schema\.sql$/mu);
+  assert.match(
+    ignoredDatabaseFiles,
+    /^database\/migrations\/20260903_schema_contract_v1\.sql$/mu
+  );
+});
+
 test('every named manifest requirement is bound to both deployment paths', () => {
   const manifest = JSON.parse(source('database/schema-contract.json')) as {
     requirements: {

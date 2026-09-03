@@ -3,7 +3,8 @@
 /.next/
 /.playwright/
 /.vercel/
-/database/
+/database/*
+!/database/schema-contract.json
 /docs/
 /node_modules/
 /playwright-report/

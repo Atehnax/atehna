@@ -525,17 +525,35 @@ test.describe('order checkout layout', () => {
       'Oddaja povpraševanja'
     );
     await customerTypeGroup
-      .getByRole('radio', { name: 'Fizična oseba' })
+      .getByRole('radio', { name: 'Šola / javni zavod' })
       .click();
     const quoteDetails = page.getByTestId('quote-request-details-section');
     await expect(quoteDetails).toBeVisible();
-    await expect(quoteDetails.getByTestId('quote-request-fixed-type')).toContainText(
-      'Vrsta povpraševanja'
-    );
-    await expect(quoteDetails.getByTestId('quote-request-fixed-type')).toContainText(
-      'Formalno ponudbo za izbrane artikle'
+    await expect(quoteDetails.getByLabel('Opombe', { exact: true })).toBeVisible();
+    await expect(quoteDetails.getByRole('textbox')).toHaveCount(1);
+    await expect(quoteDetails.getByTestId('quote-request-fixed-type')).toHaveCount(
+      0
     );
     await expect(quoteDetails.locator('#quoteReason')).toHaveCount(0);
+    await expect(
+      formColumn.getByLabel('Vaša referenca ali št. naročilnice', {
+        exact: true
+      })
+    ).toHaveCount(0);
+    await expect(
+      formColumn.getByText('Neobvezujoče povpraševanje', { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      formColumn.getByText('Kaj potrebujete?', { exact: true })
+    ).toHaveCount(0);
+    await expect(
+      formColumn.getByText('Formalno ponudbo za izbrane artikle', {
+        exact: true
+      })
+    ).toHaveCount(0);
+    await expect(
+      formColumn.getByText('Dodatne želje ali vprašanja', { exact: true })
+    ).toHaveCount(0);
     await expect(
       desktopActions.getByRole('button', {
         name: 'Zahtevaj ponudbo',
@@ -551,6 +569,12 @@ test.describe('order checkout layout', () => {
     await expect(page.getByTestId('quote-request-details-section')).toHaveCount(
       0
     );
+    await expect(page.getByTestId('order-payment-section')).toBeVisible();
+    await expect(
+      formColumn.getByLabel('Vaša referenca ali št. naročilnice', {
+        exact: true
+      })
+    ).toBeVisible();
     await expect(
       page.getByText('Vrsta povpraševanja', { exact: true })
     ).toHaveCount(0);
@@ -570,6 +594,86 @@ test.describe('order checkout layout', () => {
         exact: true
       })
     ).toBeVisible();
+  });
+
+  test('submits the single quote notes field without hidden order-only values', async ({
+    page
+  }) => {
+    let submittedPayload: Record<string, unknown> | null = null;
+    await page.route('**/api/addresses/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ results: [] })
+      });
+    });
+    await page.route('**/api/quote-requests', async (route) => {
+      submittedPayload = route.request().postDataJSON() as Record<
+        string,
+        unknown
+      >;
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'E2E_CAPTURED_QUOTE_REQUEST',
+          message: 'Testna zahteva je bila zajeta.'
+        })
+      });
+    });
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/order');
+
+    const formColumn = page.getByTestId('order-form-column');
+    await formColumn
+      .getByRole('radio', { name: 'Šola / javni zavod' })
+      .click();
+    await formColumn
+      .getByLabel('E-poštni naslov *', { exact: true })
+      .fill('nabava@example.com');
+    await formColumn
+      .getByLabel('Naziv naročnika *', { exact: true })
+      .fill('Testna šola');
+    await formColumn
+      .getByLabel('Kontaktna oseba *', { exact: true })
+      .fill('Maja Novak');
+    await formColumn
+      .getByLabel('Ulica ali naselje in hišna številka', { exact: true })
+      .fill('Testna ulica 1');
+    await formColumn
+      .getByLabel('Poštna številka *', { exact: true })
+      .fill('1000');
+    await formColumn
+      .getByLabel('Poštni kraj *', { exact: true })
+      .fill('Ljubljana');
+    await formColumn
+      .getByLabel('Vaša referenca ali št. naročilnice', { exact: true })
+      .fill('SKRITA-REFERENCA');
+    await formColumn
+      .getByLabel('Opombe', { exact: true })
+      .fill('Skrite opombe naročila');
+
+    await formColumn
+      .getByRole('radio', { name: 'Zahtevaj ponudbo', exact: true })
+      .click();
+    const quoteNotes = formColumn.getByLabel('Opombe', { exact: true });
+    await expect(quoteNotes).toHaveCount(1);
+    await quoteNotes.fill('Prosimo za dobavni rok.');
+
+    const submit = page
+      .getByTestId('order-summary-column')
+      .locator('button[type="submit"]');
+    await expect(submit).toBeEnabled();
+    await submit.click();
+    await expect.poll(() => submittedPayload).not.toBeNull();
+
+    expect(submittedPayload).toMatchObject({
+      quoteReason: 'formal_offer',
+      quoteMessage: 'Prosimo za dobavni rok.'
+    });
+    expect(submittedPayload).not.toHaveProperty('notes');
+    expect(submittedPayload).not.toHaveProperty('reference');
   });
 
 

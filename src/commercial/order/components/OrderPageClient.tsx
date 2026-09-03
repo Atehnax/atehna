@@ -721,9 +721,6 @@ export default function OrderPageClient({
       postalCode: formData.postalCode.trim(),
       gursHouseNumberId: formData.gursHouseNumberId,
       countryCode: formData.countryCode,
-      reference:
-        customerType === 'school' ? formData.reference.trim() : '',
-      notes: formData.notes.trim(),
       shippingConfigurationVersion: currentShipping.configurationVersion,
       quoteFingerprint: estimateState.estimate.quoteFingerprint,
       items: items.map((item) => ({
@@ -738,7 +735,12 @@ export default function OrderPageClient({
             quoteReason: STOREFRONT_QUOTE_REASON,
             quoteMessage: formData.quoteMessage.trim()
           }
-        : commonPayload;
+        : {
+            ...commonPayload,
+            reference:
+              customerType === 'school' ? formData.reference.trim() : '',
+            notes: formData.notes.trim()
+          };
 
     idempotencyKeyRefs.current[intent] ??= createIdempotencyKey();
     const idempotencyKey = idempotencyKeyRefs.current[intent] as string;
@@ -1368,89 +1370,59 @@ export default function OrderPageClient({
               </div>
               </section>
 
-              <section
-                className="border-t border-[color:var(--site-divider-color)] pt-6"
-                data-testid="order-payment-section"
-              >
-              <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
-                <p className="font-semibold">
-                  {isQuoteRequest
-                    ? 'Neobvezujoče povpraševanje'
-                    : 'Obdelava plačila'}
-                </p>
-                <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
-                  {isQuoteRequest
-                    ? 'Povpraševanje ni naročilo in ne povzroči obveznosti plačila. Ponudbo boste lahko sprejeli ali zavrnili.'
-                    : 'Plačilne kartice ne potrebujete. Neposredno naročilo bomo po oddaji pregledali in ga posebej potrdili ali zavrnili.'}
-                </p>
-              </div>
-              <div className="mt-5 grid gap-4">
-                {isSchool ? (
-                  <CheckoutInput
-                    id="reference"
-                    label="Vaša referenca ali št. naročilnice"
-                    value={formData.reference}
+              {isQuoteRequest ? (
+                <section
+                  className="border-t border-[color:var(--site-divider-color)] pt-6"
+                  data-testid="quote-request-details-section"
+                >
+                  <CheckoutTextarea
+                    id="quoteMessage"
+                    label="Opombe"
+                    value={formData.quoteMessage}
                     onChange={(event) =>
-                      updateField('reference', event.target.value)
+                      updateField('quoteMessage', event.target.value)
                     }
+                    maxLength={2000}
+                    rows={4}
                     disabled={!canContinue}
                   />
-                ) : null}
-                <CheckoutTextarea
-                  id="notes"
-                  label="Opombe"
-                  value={formData.notes}
-                  onChange={(event) => updateField('notes', event.target.value)}
-                  disabled={!canContinue}
-                />
-              </div>
-              </section>
-
-              {isQuoteRequest ? (
-              <section
-                className="border-t border-[color:var(--site-divider-color)] pt-6"
-                data-testid="quote-request-details-section"
-              >
-                <h2 className="text-lg font-semibold">Kaj potrebujete?</h2>
-                <p className="mt-2 text-sm leading-6 text-[color:var(--site-color-text-muted)]">
-                  Povpraševanje ni naročilo in ne povzroči obveznosti plačila.
-                  Ponudbo boste lahko sprejeli ali zavrnili.
-                </p>
-                <div className="mt-5 grid gap-4">
-                  <div
-                    className="site-radius-sm border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] px-4 py-3"
-                    data-testid="quote-request-fixed-type"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--site-color-text-muted)]">
-                      Vrsta povpraševanja
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">
-                      Formalno ponudbo za izbrane artikle
+                </section>
+              ) : (
+                <section
+                  className="border-t border-[color:var(--site-divider-color)] pt-6"
+                  data-testid="order-payment-section"
+                >
+                  <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
+                    <p className="font-semibold">Obdelava plačila</p>
+                    <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
+                      Plačilne kartice ne potrebujete. Neposredno naročilo bomo po
+                      oddaji pregledali in ga posebej potrdili ali zavrnili.
                     </p>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="quoteMessage"
-                      className="mb-2 block text-sm font-semibold"
-                    >
-                      Dodatne želje ali vprašanja
-                    </label>
-                    <textarea
-                      id="quoteMessage"
-                      value={formData.quoteMessage}
+                  <div className="mt-5 grid gap-4">
+                    {isSchool ? (
+                      <CheckoutInput
+                        id="reference"
+                        label="Vaša referenca ali št. naročilnice"
+                        value={formData.reference}
+                        onChange={(event) =>
+                          updateField('reference', event.target.value)
+                        }
+                        disabled={!canContinue}
+                      />
+                    ) : null}
+                    <CheckoutTextarea
+                      id="notes"
+                      label="Opombe"
+                      value={formData.notes}
                       onChange={(event) =>
-                        updateField('quoteMessage', event.target.value)
+                        updateField('notes', event.target.value)
                       }
-                      maxLength={2000}
-                      rows={4}
                       disabled={!canContinue}
-                      placeholder="Na primer želeni dobavni rok, druga količina, posebna dostava, alternativni artikel ali interna referenca."
-                      className="site-radius-sm w-full resize-y border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)] px-4 py-3 text-sm text-[color:var(--site-color-text)] placeholder:text-[color:var(--site-color-text-muted)]"
                     />
                   </div>
-                </div>
-              </section>
-              ) : null}
+                </section>
+              )}
             </div>
             </div>
           ) : null}

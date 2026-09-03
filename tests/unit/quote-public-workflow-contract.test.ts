@@ -58,9 +58,19 @@ test('checkout keeps binding order and non-binding quote-request intents separat
   );
   assert.doesNotMatch(checkout, /QUOTE_REQUEST_REASON_OPTIONS/u);
   assert.doesNotMatch(checkout, /id="quoteReason"/u);
-  assert.match(checkout, /Vrsta povpraševanja/u);
-  assert.match(checkout, /Formalno ponudbo za izbrane artikle/u);
-  assert.match(checkout, /Dodatne želje ali vprašanja/u);
+  assert.match(
+    checkout,
+    /data-testid="quote-request-details-section"[\s\S]*?id="quoteMessage"[\s\S]*?label="Opombe"[\s\S]*?value=\{formData\.quoteMessage\}[\s\S]*?updateField\('quoteMessage', event\.target\.value\)/u
+  );
+  const commonPayload = checkout.slice(
+    checkout.indexOf('const commonPayload ='),
+    checkout.indexOf('const payload:')
+  );
+  assert.doesNotMatch(commonPayload, /\breference:/u);
+  assert.doesNotMatch(commonPayload, /\bnotes:/u);
+  assert.doesNotMatch(checkout, /Vrsta povpraševanja/u);
+  assert.doesNotMatch(checkout, /Formalno ponudbo za izbrane artikle/u);
+  assert.doesNotMatch(checkout, /Dodatne želje ali vprašanja/u);
   assert.match(
     checkout,
     /intent === 'order' && currentShipping\.status === 'manual_quote'/u

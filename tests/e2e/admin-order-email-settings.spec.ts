@@ -696,11 +696,7 @@ test("admin can configure order email settings and templates without sending mai
       "Vsebina za administratorja",
     );
     await quoteAdminSubject.fill("Začasna administratorska zadeva ponudbe");
-    await quoteAdminTemplate
-      .getByRole("button", {
-        name: "Ponastavi privzeto predlogo za administratorja",
-      })
-      .click();
+    await page.getByTestId("quote-email-template-admin-reset").click();
     await expect(quoteAdminSubject).not.toHaveValue(
       "Začasna administratorska zadeva ponudbe",
     );
@@ -1189,9 +1185,7 @@ test("admin can configure order email settings and templates without sending mai
     await customerSubject.fill(customerSubjectValue);
     await customerBody.fill(customerBodyValue);
     await expect(
-      orderCustomerTemplate.getByRole("button", {
-        name: "Ponastavi privzeto predlogo za stranko",
-      }),
+      page.getByTestId("order-email-template-customer-reset"),
     ).toBeVisible();
     await orderAdminTab.click();
     const orderAdminTemplate = page.getByTestId("order-email-template-admin");
@@ -1207,9 +1201,7 @@ test("admin can configure order email settings and templates without sending mai
       "E2E",
     );
     await expect(
-      orderAdminTemplate.getByRole("button", {
-        name: "Ponastavi privzeto predlogo za administratorja",
-      }),
+      page.getByTestId("order-email-template-admin-reset"),
     ).toBeVisible();
     await orderCustomerTab.click();
 

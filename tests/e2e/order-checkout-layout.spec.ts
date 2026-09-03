@@ -777,7 +777,13 @@ test.describe('order checkout layout', () => {
     const drawerShippingRow = cartDrawer.getByTestId('cart-drawer-shipping');
     await expect(drawerShippingRow).toHaveCount(1);
     await expect(drawerShippingRow).toHaveAttribute('data-summary-row', 'shipping');
-    await expect(drawerShippingRow).toContainText('3,00 €');
+    await expect(drawerShippingRow).toContainText(
+      'Izračun na strani za naročilo'
+    );
+    const drawerSubtotal = cartDrawer
+      .getByText('Vmesni seštevek z DDV', { exact: true })
+      .locator('..');
+    await expect(drawerSubtotal).toContainText('12,20 €');
     await expect(cartDrawer.locator('[data-shipping-row]')).toHaveCount(0);
     await expect.poll(async () => (
       (await cartDrawer.innerText()).match(/poštnina/giu) ?? []

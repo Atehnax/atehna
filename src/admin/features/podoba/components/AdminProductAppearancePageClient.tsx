@@ -52,6 +52,10 @@ import {
 } from '@/shared/domain/style/globalStyle';
 import type { SiteNavigationSiteLayoutSettings } from '@/shared/domain/navigation/siteNavigation';
 import {
+  STOREFRONT_CART_PENDING_SHIPPING_LABEL,
+  STOREFRONT_CHECKOUT_SHIPPING_MESSAGE
+} from '@/shared/domain/shipping/storefrontShippingCopy';
+import {
   PRODUCT_INFORMATION_BLOCKS,
   PRODUCT_SECONDARY_BLOCKS,
   cloneDefaultProductAppearanceConfig,
@@ -1002,8 +1006,8 @@ function ProductPreview({
           </div>
           {wrapElement('cart-summary', <div className="border-t border-slate-200 bg-white p-4">
             {config.cartSidebar.showNetTaxBreakdown ? <><div className="flex justify-between text-[10px] text-slate-500"><span>Neto</span><span>{priceFormatter.format(unitNet)}</span></div><div className="mt-1 flex justify-between text-[10px] text-slate-500"><span>DDV {Math.round(taxRate * 100)} %</span><span>{priceFormatter.format(taxAmount)}</span></div></> : null}
-            <div className="mt-1 flex justify-between gap-3 text-[10px] text-slate-500"><span>Poštnina</span><span className="text-right">Izračun v košarici</span></div>
-            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Skupaj s poštnino</span><span>—</span></div>
+            <div className="mt-1 flex justify-between gap-3 text-[10px] text-slate-500"><span>Poštnina</span><span className="text-right">{STOREFRONT_CART_PENDING_SHIPPING_LABEL}</span></div>
+            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Vmesni seštevek z DDV</span><span>{priceFormatter.format(unitGross)}</span></div>
             {wrapElement('cart-primary-action', <div className="rounded-lg bg-[color:var(--blue-600)] py-2.5 text-center text-[10px] font-semibold text-white">Nadaljuj na naročilo</div>, 'mt-3', true)}
           </div>, 'absolute inset-x-0 bottom-0', true)}
           </div>, 'h-full', true)}
@@ -1274,7 +1278,7 @@ function ProductPreview({
             {wrapElement('product-primary-action', <div className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-2.5 text-center text-[9px] font-semibold text-slate-400">{config.purchaseArea.copy.unavailableActionLabel}</div>, 'mt-3', true)}
             {config.purchaseArea.showDeliveryEstimate ? (
               wrapElement('product-delivery', <div className="border-t border-slate-100 pt-3 text-[8px] leading-3.5 text-slate-500">
-                <p className="font-semibold text-slate-700">Poštnina se izračuna v košarici glede na skupno težo in mere.</p>
+                <p className="font-semibold text-slate-700">{STOREFRONT_CHECKOUT_SHIPPING_MESSAGE}</p>
                 {config.purchaseArea.copy.deliveryFallbackMessage ? (
                   <p>{config.purchaseArea.copy.deliveryFallbackMessage}</p>
                 ) : null}

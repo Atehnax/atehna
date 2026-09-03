@@ -94,7 +94,7 @@ test('the public provider reaches every stock-sensitive client surface', () => {
   }
 });
 
-test('manual-stock mode removes inventory caps while preserving minimum quantities', () => {
+test('manual-stock mode removes inventory caps while validating minimum quantities on commit', () => {
   const purchasePanel = source(
     'src/commercial/components/storefront/PurchasePanel.tsx'
   );
@@ -117,7 +117,26 @@ test('manual-stock mode removes inventory caps while preserving minimum quantiti
   assert.match(cartLine, /const maximum =\s*stockEnforcementEnabled/u);
   assert.match(
     cartLine,
-    /const normalized = Math\.max\(minimum, Math\.floor/u
+    /validateStorefrontQuantityDraft\(quantityDraft, \{\s*minimum,\s*maximum/u
+  );
+  assert.match(cartLine, /const nextDraft = event\.target\.value/u);
+  assert.match(cartLine, /setQuantityDraft\(nextDraft\)/u);
+  assert.match(
+    cartLine,
+    /validateStorefrontQuantityDraft\(nextDraft, \{\s*minimum,\s*maximum/u
+  );
+  assert.match(cartLine, /quantityControlId,\s*validation\.valid/u);
+  assert.match(
+    cartLine,
+    /validation\.quantity !== item\.quantity/u
+  );
+  assert.doesNotMatch(
+    cartLine,
+    /onChange=\{\(event\) => commitQuantity\(Number\(event\.target\.value\)\)\}/u
+  );
+  assert.match(
+    purchasePanel,
+    /onChange=\{\(event\) => onQuantityChange\(event\.target\.value\)\}/u
   );
 });
 

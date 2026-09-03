@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import AddToCartButton from '@/commercial/features/products/AddToCartButton';
 import { buildProductCartItem } from '@/commercial/features/products/productCart';
 import {
@@ -15,6 +15,7 @@ import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontIn
 import Availability from '@/commercial/components/storefront/Availability';
 import PriceBreakdown from '@/commercial/components/storefront/PriceBreakdown';
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
+import { validateStorefrontQuantityDraft } from '@/commercial/quantity/quantityDraft';
 import { resolveProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
 import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElement';
 
@@ -93,15 +94,16 @@ export default function ProductCard({
       ? Math.max(minimumQuantity, quickVariant.inventory)
       : undefined;
   const [relatedQuantityInput, setRelatedQuantityInput] = useState(
-    minimumQuantity
+    String(minimumQuantity)
   );
-  const relatedQuantity = Math.min(
-    maximumQuantity ?? Number.POSITIVE_INFINITY,
-    Math.max(
-      minimumQuantity,
-      Math.floor(relatedQuantityInput || minimumQuantity)
-    )
-  );
+  const [relatedQuantityError, setRelatedQuantityError] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    setRelatedQuantityInput(String(minimumQuantity));
+    setRelatedQuantityError(null);
+  }, [maximumQuantity, minimumQuantity, product.id, quickVariant?.id]);
   const canQuickAdd =
     appearance.listings.allowSimpleQuickAdd &&
     appearance.listings.showPurchaseAction &&
@@ -120,6 +122,24 @@ export default function ProductCard({
     : null;
   const inlineRelatedPurchase =
     isRelated && canQuickAdd && cartItem !== null;
+  const relatedQuantityErrorId = `related-product-quantity-error-${product.id}`;
+
+  const resolveRelatedQuantity = () => {
+    const validation = validateStorefrontQuantityDraft(
+      relatedQuantityInput,
+      {
+        minimum: minimumQuantity,
+        maximum: maximumQuantity
+      }
+    );
+    if (!validation.valid) {
+      setRelatedQuantityError(validation.message);
+      return null;
+    }
+
+    setRelatedQuantityError(null);
+    return validation.quantity;
+  };
 
   const card = (
     <article
@@ -336,6 +356,7 @@ export default function ProductCard({
             >
               {canQuickAdd && cartItem ? (
                 isRelated ? (
+                  <>
                   <div className="storefront-related-product-quick-add flex min-w-0 items-center gap-2">
                     <label
                       htmlFor={`related-product-quantity-${product.id}`}
@@ -353,9 +374,18 @@ export default function ProductCard({
                         min={minimumQuantity}
                         max={maximumQuantity}
                         step={1}
-                        value={relatedQuantity}
-                        onChange={(event) =>
-                          setRelatedQuantityInput(Number(event.target.value))
+                        value={relatedQuantityInput}
+                        onChange={(event) => {
+                          setRelatedQuantityInput(event.target.value);
+                          setRelatedQuantityError(null);
+                        }}
+                        aria-invalid={
+                          relatedQuantityError ? 'true' : undefined
+                        }
+                        aria-describedby={
+                          relatedQuantityError
+                            ? relatedQuantityErrorId
+                            : undefined
                         }
                         className="site-field storefront-related-product-quantity h-full w-full text-center font-semibold tabular-nums"
                       />,
@@ -366,7 +396,7 @@ export default function ProductCard({
                       'Dodaj sorodni artikel',
                       <AddToCartButton
                         item={cartItem}
-                        quantity={relatedQuantity}
+                        resolveQuantity={resolveRelatedQuantity}
                         className="storefront-related-product-cart-button h-full w-full justify-center"
                       >
                         <ShoppingCart aria-hidden="true" className="h-5 w-5" />
@@ -377,6 +407,16 @@ export default function ProductCard({
                       'shrink-0'
                     )}
                   </div>
+                  {relatedQuantityError ? (
+                    <p
+                      id={relatedQuantityErrorId}
+                      role="alert"
+                      className="mt-1 text-xs font-medium text-[color:var(--site-color-danger)]"
+                    >
+                      {relatedQuantityError}
+                    </p>
+                  ) : null}
+                  </>
                 ) : (
                   <AddToCartButton
                     item={cartItem}

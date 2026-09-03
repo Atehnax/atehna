@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
+import { useCartQuantityValidity } from '@/commercial/cart/useCartQuantityValidity';
 import {
   cartHasBlockingIssue,
   getCartSubtotal
@@ -21,6 +22,9 @@ export default function CartPageClient() {
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const { hasInvalidQuantity, onQuantityValidityChange } =
+    useCartQuantityValidity();
+  const allowCheckoutAfterQuantityCommitRef = useRef(false);
   const estimateState = useOrderEstimate(items, items.length > 0);
   const estimateByVariant = useMemo(
     () =>
@@ -46,7 +50,22 @@ export default function CartPageClient() {
     !estimateState.estimate ||
     estimateState.isLoading ||
     Boolean(estimateState.error) ||
+    hasInvalidQuantity ||
     cartHasBlockingIssue(items);
+
+  useEffect(() => {
+    if (
+      !estimateState.isLoading &&
+      estimateState.estimate &&
+      !estimateState.error
+    ) {
+      allowCheckoutAfterQuantityCommitRef.current = false;
+    }
+  }, [
+    estimateState.error,
+    estimateState.estimate,
+    estimateState.isLoading
+  ]);
 
   if (items.length === 0) {
     return (
@@ -107,6 +126,13 @@ export default function CartPageClient() {
                 onQuantityChange={(quantity) =>
                   setQuantity(item.lineId, quantity)
                 }
+                onQuantityValidityChange={onQuantityValidityChange}
+                onQuantityCommit={(_lineId, quantityChanged) => {
+                  if (quantityChanged) {
+                    allowCheckoutAfterQuantityCommitRef.current =
+                      !checkoutBlocked;
+                  }
+                }}
                 onRemove={() => removeItem(item.lineId)}
               />
             ))}
@@ -178,10 +204,18 @@ export default function CartPageClient() {
               href="/order"
               aria-disabled={checkoutBlocked}
               onClick={(event) => {
-                if (checkoutBlocked) event.preventDefault();
+                const allowCommittedQuantity =
+                  allowCheckoutAfterQuantityCommitRef.current &&
+                  !hasInvalidQuantity &&
+                  !estimateState.error &&
+                  !cartHasBlockingIssue(items);
+                allowCheckoutAfterQuantityCommitRef.current = false;
+                if (checkoutBlocked && !allowCommittedQuantity) {
+                  event.preventDefault();
+                }
               }}
               className={`site-button site-button--primary mt-5 inline-flex w-full items-center justify-center ${
-                checkoutBlocked ? 'pointer-events-none opacity-50' : ''
+                checkoutBlocked ? 'opacity-50' : ''
               }`}
             >
               Nadaljuj na naročilo

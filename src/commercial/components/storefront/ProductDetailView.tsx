@@ -35,6 +35,8 @@ import {
   type StorefrontVariant
 } from '@/commercial/features/products/storefrontProduct';
 import { mergeStorefrontSpecifications } from '@/commercial/features/products/storefrontSpecifications';
+import { validateStorefrontQuantityDraft } from '@/commercial/quantity/quantityDraft';
+import { STOREFRONT_CHECKOUT_SHIPPING_MESSAGE } from '@/shared/domain/shipping/storefrontShippingCopy';
 import {
   resolveProductAppearanceConfig,
   resolveProductCanvasElementDeviceSettings,
@@ -556,7 +558,10 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
   const [selection, setSelection] = useState<VariantSelection>(() =>
     selectionForVariant(product, defaultVariant)
   );
-  const [quantity, setQuantity] = useState(defaultVariant?.minOrder ?? 1);
+  const [quantity, setQuantity] = useState(
+    String(defaultVariant?.minOrder ?? 1)
+  );
+  const [quantityError, setQuantityError] = useState<string | null>(null);
   const addItem = useCartStore((state) => state.addItem);
   const openDrawer = useCartStore((state) => state.openDrawer);
 
@@ -664,7 +669,8 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
       : undefined;
 
     setSelection(nextSelection);
-    setQuantity(nextVariant?.minOrder ?? 1);
+    setQuantity(String(nextVariant?.minOrder ?? 1));
+    setQuantityError(null);
   };
 
   const renderInformationBlock = (
@@ -756,6 +762,24 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         stockEnforcementEnabled
       )
     ) return;
+    const maximum =
+      stockEnforcementEnabled &&
+      typeof selectedVariant.inventory === 'number'
+        ? selectedVariant.inventory
+        : undefined;
+    const quantityValidation = validateStorefrontQuantityDraft(quantity, {
+      minimum: selectedVariant.minOrder,
+      maximum
+    });
+    if (!quantityValidation.valid) {
+      setQuantityError(quantityValidation.message);
+      window.requestAnimationFrame(() => {
+        document.getElementById('product-quantity')?.focus();
+      });
+      return;
+    }
+
+    setQuantityError(null);
     const image = visibleMedia.find((entry) => entry.kind === 'image');
     addItem({
       ...buildProductCartItem({
@@ -768,7 +792,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
         variant: selectedVariant,
         options: buildCartOptionSelections(product.optionAxes, selection)
       }),
-      quantity
+      quantity: quantityValidation.quantity
     });
     openDrawer();
   };
@@ -926,7 +950,7 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
             </dt>
             <dd className="mt-1 text-[color:var(--site-color-text-muted)]">
               <span className="block font-semibold text-[color:var(--site-color-text)]">
-                Poštnina se izračuna v košarici glede na skupno težo in mere.
+                {STOREFRONT_CHECKOUT_SHIPPING_MESSAGE}
               </span>
               {selectedVariant?.deliveryEstimate ??
                 product.deliveryEstimate ??
@@ -1075,7 +1099,11 @@ function ProductDetailContent({ product, canvasEditor }: ProductDetailViewProps)
             variant={selectedVariant}
             selectionComplete={selectionComplete}
             quantity={quantity}
-            onQuantityChange={setQuantity}
+            quantityError={quantityError}
+            onQuantityChange={(nextQuantity) => {
+              setQuantity(nextQuantity);
+              setQuantityError(null);
+            }}
             onAdd={addSelectedVariant}
             deliveryEstimate={product.deliveryEstimate}
             canvasDevice={canvasDevice}

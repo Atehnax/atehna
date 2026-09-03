@@ -12,6 +12,11 @@ import {
   type StorefrontVariant
 } from '@/commercial/features/products/storefrontProduct';
 import {
+  MAX_STOREFRONT_QUANTITY,
+  parseStorefrontQuantityDraft
+} from '@/commercial/quantity/quantityDraft';
+import { STOREFRONT_CHECKOUT_SHIPPING_MESSAGE } from '@/shared/domain/shipping/storefrontShippingCopy';
+import {
   resolveProductCanvasElementDeviceSettings,
   type ProductCanvasDevice
 } from '@/shared/domain/style/productAppearance';
@@ -23,8 +28,9 @@ import ProductCanvasElement, {
 type PurchasePanelProps = {
   variant: StorefrontVariant | null;
   selectionComplete: boolean;
-  quantity: number;
-  onQuantityChange: (quantity: number) => void;
+  quantity: string;
+  quantityError?: string | null;
+  onQuantityChange: (quantity: string) => void;
   onAdd: () => void;
   deliveryEstimate?: string;
   canvasDevice?: ProductCanvasDevice;
@@ -41,6 +47,7 @@ export default function PurchasePanel({
   variant,
   selectionComplete,
   quantity,
+  quantityError,
   onQuantityChange,
   onAdd,
   deliveryEstimate,
@@ -99,12 +106,20 @@ export default function PurchasePanel({
     variant?.deliveryEstimate ??
     deliveryEstimate ??
     copy.deliveryFallbackMessage;
+  const parsedQuantity = parseStorefrontQuantityDraft(quantity);
+  const effectiveMaximum =
+    typeof maximum === 'number'
+      ? Math.min(maximum, MAX_STOREFRONT_QUANTITY)
+      : MAX_STOREFRONT_QUANTITY;
 
-  const commitQuantity = (value: number) => {
-    const normalized = Math.max(minimum, Math.floor(value || minimum));
-    onQuantityChange(
-      typeof maximum === 'number' ? Math.min(maximum, normalized) : normalized
+  const stepQuantity = (step: -1 | 1) => {
+    const nextQuantity =
+      parsedQuantity === null ? minimum : parsedQuantity + step;
+    const boundedQuantity = Math.max(
+      minimum,
+      Math.min(effectiveMaximum, nextQuantity)
     );
+    onQuantityChange(String(boundedQuantity));
   };
 
   return (
@@ -206,8 +221,10 @@ export default function PurchasePanel({
                     'Zmanjšaj količino',
                     <button
                       type="button"
-                      onClick={() => commitQuantity(quantity - 1)}
-                      disabled={quantity <= minimum}
+                      onClick={() => stepQuantity(-1)}
+                      disabled={
+                        parsedQuantity !== null && parsedQuantity <= minimum
+                      }
                       className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={copy.decreaseQuantityLabel}
                     >
@@ -223,10 +240,14 @@ export default function PurchasePanel({
                       type="number"
                       inputMode="numeric"
                       min={minimum}
-                      max={maximum}
+                      max={effectiveMaximum}
                       step={1}
                       value={quantity}
-                      onChange={(event) => commitQuantity(Number(event.target.value))}
+                      onChange={(event) => onQuantityChange(event.target.value)}
+                      aria-invalid={quantityError ? 'true' : undefined}
+                      aria-describedby={
+                        quantityError ? 'product-quantity-error' : undefined
+                      }
                       className="storefront-product-quantity-input shrink-0 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center font-semibold text-[color:var(--site-color-text)] outline-none"
                     />,
                     'inline-flex shrink-0'
@@ -236,8 +257,11 @@ export default function PurchasePanel({
                     'Povečaj količino',
                     <button
                       type="button"
-                      onClick={() => commitQuantity(quantity + 1)}
-                      disabled={typeof maximum === 'number' && quantity >= maximum}
+                      onClick={() => stepQuantity(1)}
+                      disabled={
+                        parsedQuantity !== null &&
+                        parsedQuantity >= effectiveMaximum
+                      }
                       className="storefront-product-quantity-button inline-flex shrink-0 items-center justify-center text-lg text-[color:var(--site-color-text)] transition hover:bg-[color:var(--site-color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={copy.increaseQuantityLabel}
                     >
@@ -254,6 +278,15 @@ export default function PurchasePanel({
               </div>,
               'inline-flex max-w-full items-center align-middle'
             )}
+            {quantityError ? (
+              <p
+                id="product-quantity-error"
+                role="alert"
+                className="mt-2 text-xs font-medium text-[color:var(--site-color-danger)]"
+              >
+                {quantityError}
+              </p>
+            ) : null}
           </div>
         )
       ) : null}
@@ -290,7 +323,7 @@ export default function PurchasePanel({
           />
           <div className="min-w-0">
             <p className="font-semibold text-[color:var(--site-color-text)]">
-              Poštnina se izračuna v košarici glede na skupno težo in mere.
+              {STOREFRONT_CHECKOUT_SHIPPING_MESSAGE}
             </p>
             {appearance.purchaseArea.showDeliveryEstimate ? (
               resolvedDeliveryEstimate ? (

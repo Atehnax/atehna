@@ -16,7 +16,11 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { useCartStore } from '@/commercial/cart/store';
-import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
+import {
+  cartHasBlockingIssue,
+  cartNeedsEstimate
+} from '@/commercial/cart/cartTypes';
+import { useCartQuantityValidity } from '@/commercial/cart/useCartQuantityValidity';
 import CartLine from '@/commercial/components/storefront/CartLine';
 import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import {
@@ -236,6 +240,8 @@ export default function OrderPageClient({
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const { hasInvalidQuantity, onQuantityValidityChange } =
+    useCartQuantityValidity();
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -650,9 +656,14 @@ export default function OrderPageClient({
       setIntentError('Preverite označena obvezna polja.');
       return;
     }
+    if (hasInvalidQuantity) {
+      setIntentError('Preverite označene količine artiklov.');
+      return;
+    }
     if (
       !estimateState.estimate ||
       estimateState.error ||
+      cartNeedsEstimate(items) ||
       cartHasBlockingIssue(items)
     ) {
       setIntentError(
@@ -889,6 +900,8 @@ export default function OrderPageClient({
     isSubmitting ||
     estimateState.isLoading ||
     !estimateState.estimate ||
+    hasInvalidQuantity ||
+    cartNeedsEstimate(items) ||
     (!isQuoteRequest && shippingRequiresManualQuote) ||
     cartHasBlockingIssue(items);
   const addressSearchStatusMessage =
@@ -933,6 +946,7 @@ export default function OrderPageClient({
             compact
             presentation="order-summary"
             onQuantityChange={(quantity) => setQuantity(item.lineId, quantity)}
+            onQuantityValidityChange={onQuantityValidityChange}
             onRemove={() => removeItem(item.lineId)}
           />
         ))}

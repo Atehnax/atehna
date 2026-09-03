@@ -8,6 +8,7 @@ import {
   type ReactNode
 } from 'react';
 import { useCartStore } from '@/commercial/cart/store';
+import { useCartQuantityValidity } from '@/commercial/cart/useCartQuantityValidity';
 import {
   cartHasBlockingIssue,
   getCartSubtotal
@@ -18,6 +19,7 @@ import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontIn
 import useProductCanvasDevice from '@/commercial/components/storefront/useProductCanvasDevice';
 import { useOrderEstimate } from '@/commercial/order/useOrderEstimate';
 import { formatEuro } from '@/shared/domain/formatting';
+import { STOREFRONT_CART_PENDING_SHIPPING_LABEL } from '@/shared/domain/shipping/storefrontShippingCopy';
 import { resolveProductCanvasElementDeviceSettings } from '@/shared/domain/style/productAppearance';
 import ProductCanvasElement, {
   PRODUCT_CANVAS_PROTECTED_ELEMENT_IDS
@@ -71,6 +73,9 @@ export default function CartDrawer() {
   const closeDrawer = useCartStore((state) => state.closeDrawer);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const { hasInvalidQuantity, onQuantityValidityChange } =
+    useCartQuantityValidity();
+  const allowCheckoutAfterQuantityCommitRef = useRef(false);
   const estimateState = useOrderEstimate(items, isOpen && items.length > 0);
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -101,7 +106,22 @@ export default function CartDrawer() {
     !estimateState.estimate ||
     estimateState.isLoading ||
     Boolean(estimateState.error) ||
+    hasInvalidQuantity ||
     cartHasBlockingIssue(items);
+
+  useEffect(() => {
+    if (
+      !estimateState.isLoading &&
+      estimateState.estimate &&
+      !estimateState.error
+    ) {
+      allowCheckoutAfterQuantityCommitRef.current = false;
+    }
+  }, [
+    estimateState.error,
+    estimateState.estimate,
+    estimateState.isLoading
+  ]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -287,6 +307,13 @@ export default function CartDrawer() {
                     onQuantityChange={(quantity) =>
                       setQuantity(item.lineId, quantity)
                     }
+                    onQuantityValidityChange={onQuantityValidityChange}
+                    onQuantityCommit={(_lineId, quantityChanged) => {
+                      if (quantityChanged) {
+                        allowCheckoutAfterQuantityCommitRef.current =
+                          !checkoutBlocked;
+                      }
+                    }}
                     onRemove={() => removeItem(item.lineId)}
                     onNavigate={closeDrawer}
                     canvasDevice={canvasDevice}
@@ -331,19 +358,17 @@ export default function CartDrawer() {
               >
                 <dt>Poštnina</dt>
                 <dd className="font-semibold tabular-nums text-[color:var(--site-color-text)]">
-                  {totals?.shipping !== null && totals?.shipping !== undefined
-                    ? formatEuro(totals.shipping)
-                    : estimateState.estimate?.shipping.status === 'manual_quote'
-                      ? 'Po dogovoru'
-                      : '—'}
+                  {STOREFRONT_CART_PENDING_SHIPPING_LABEL}
                 </dd>
               </div>
               <div className="mt-2 flex justify-between gap-4 border-t border-[color:var(--site-divider-color)] pt-2 text-base font-semibold">
-                <dt>Skupaj z DDV</dt>
+                <dt>Vmesni seštevek z DDV</dt>
                 <dd className="tabular-nums text-[color:var(--site-color-primary)]">
-                  {totals?.gross !== null && totals?.gross !== undefined
-                    ? formatEuro(totals.gross)
-                    : '—'}
+                  {totals
+                    ? formatEuro(totals.net + totals.tax)
+                    : totalsKnown
+                      ? formatEuro(fallbackGross)
+                      : '—'}
                 </dd>
               </div>
             </dl>
@@ -372,7 +397,13 @@ export default function CartDrawer() {
                   href="/order"
                   prefetch={false}
                   onClick={(event) => {
-                    if (checkoutBlocked) {
+                    const allowCommittedQuantity =
+                      allowCheckoutAfterQuantityCommitRef.current &&
+                      !hasInvalidQuantity &&
+                      !estimateState.error &&
+                      !cartHasBlockingIssue(items);
+                    allowCheckoutAfterQuantityCommitRef.current = false;
+                    if (checkoutBlocked && !allowCommittedQuantity) {
                       event.preventDefault();
                       return;
                     }
@@ -380,7 +411,7 @@ export default function CartDrawer() {
                   }}
                   aria-disabled={checkoutBlocked}
                   className={`site-button site-button--primary inline-flex w-full items-center justify-center ${
-                    checkoutBlocked ? 'pointer-events-none opacity-50' : ''
+                    checkoutBlocked ? 'opacity-50' : ''
                   }`}
                 >
                   Nadaljuj na naročilo

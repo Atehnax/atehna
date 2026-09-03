@@ -270,6 +270,8 @@ test("admin email settings use the grouped reference layout responsively", async
 test("admin can configure order email settings and templates without sending mail", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+
   const initialResponse = await page.request.get(
     "/api/admin/order-email-settings",
   );

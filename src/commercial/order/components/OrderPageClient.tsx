@@ -45,6 +45,7 @@ import { storeQuoteAccessSession } from '@/commercial/quote/quoteAccessClient';
 import { readJsonResponse } from '@/shared/client/readJsonResponse';
 import {
   isAddressSearchQueryEligible,
+  normalizeAddressSearchText,
   type GursAddressSearchResponse,
   type GursAddressSearchResult,
   type GursPostalLocation
@@ -61,7 +62,7 @@ import {
 } from '@/shared/ui/floating-field';
 
 const FORM_STORAGE_KEY = 'atehna-order-form-v4';
-const ADDRESS_SEARCH_DEBOUNCE_MS = 50;
+const ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS = 50;
 const ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME =
   'flex justify-between gap-4 text-sm font-normal not-italic text-[color:var(--site-color-text)]';
 
@@ -406,11 +407,14 @@ export default function OrderPageClient({
       return;
     }
 
-    const query = formData.addressLine1.trim();
-    const timeoutId = window.setTimeout(async () => {
+    const query = normalizeAddressSearchText(formData.addressLine1);
+    setAddressSearchStatus('loading');
+    setAddressSuggestions([]);
+    setIsAddressListOpen(false);
+    setActiveAddressIndex(-1);
+    const search = async () => {
       const controller = new AbortController();
       addressRequestRef.current = controller;
-      setAddressSearchStatus('loading');
 
       try {
         const response = await fetch(
@@ -453,10 +457,18 @@ export default function OrderPageClient({
           addressRequestRef.current = null;
         }
       }
-    }, ADDRESS_SEARCH_DEBOUNCE_MS);
+    };
+    const startsImmediately = query.length === 1;
+    const timeoutId = startsImmediately
+      ? null
+      : window.setTimeout(() => {
+          void search();
+        }, ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS);
+
+    if (startsImmediately) void search();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       addressRequestRef.current?.abort();
     };
   }, [
@@ -1293,7 +1305,6 @@ export default function OrderPageClient({
                             role="option"
                             aria-selected={activeAddressIndex === index}
                             tabIndex={-1}
-                            onMouseEnter={() => setActiveAddressIndex(index)}
                             onPointerDown={(event) => {
                               if (event.pointerType === 'mouse') {
                                 event.preventDefault();

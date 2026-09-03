@@ -439,6 +439,7 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
   async indexStage(stageName: string) {
     const idIndex = `${stageName}_id_uidx`;
     const searchIndex = `${stageName}_search_trgm_idx`;
+    const prefixIndex = `${stageName}_search_prefix_idx`;
     await this.pool.query(
       `create unique index ${identifier(idIndex)}
        on ${identifier(stageName)} (gurs_house_number_id)`
@@ -446,6 +447,15 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
     await this.pool.query(
       `create index ${identifier(searchIndex)}
        on ${identifier(stageName)} using gin (search_text gin_trgm_ops)`
+    );
+    await this.pool.query(
+      `create index ${identifier(prefixIndex)}
+       on ${identifier(stageName)} (
+         search_text collate "C",
+         address_line_1 collate "C",
+         postal_code,
+         gurs_house_number_id
+       )`
     );
     await this.pool.query(`analyze ${identifier(stageName)}`);
   }

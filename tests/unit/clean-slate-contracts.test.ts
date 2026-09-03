@@ -65,6 +65,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const quoteOutboxCancellationDeployment = source(
     'database/migrations/20260901_quote_outbox_cancellation.sql'
   );
+  const gursAddressPrefixDeployment = source(
+    'database/migrations/20260903_gurs_address_prefix_search.sql'
+  );
   const schemaContractDeployment = source(
     'database/migrations/20260903_schema_contract_v1.sql'
   );
@@ -83,6 +86,7 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260901_order_stock_enforcement_marker.sql',
     '20260901_quote_optional_acceptance_terms.sql',
     '20260901_quote_outbox_cancellation.sql',
+    '20260903_gurs_address_prefix_search.sql',
     '20260903_schema_contract_v1.sql'
   ]);
   assert.equal(tableNames.length, 62);
@@ -112,6 +116,7 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     orderStockEnforcementMarkerDeployment,
     quoteOptionalAcceptanceTermsDeployment,
     quoteOutboxCancellationDeployment,
+    gursAddressPrefixDeployment,
     schemaContractDeployment
   ]) {
     assert.match(deployment, /begin;/u);
@@ -156,6 +161,18 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(
     quoteOptionalAcceptanceTermsDeployment,
     /drop constraint quote_offer_versions_issue_identity_check/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /pg_advisory_xact_lock\(hashtext\('gurs-address-sync-publish'\)\)[\s\S]+?lock table public\.gurs_address_sync_state[\s\S]+?lock table public\.gurs_addresses in share mode/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /lock_token is not null\s+and \(lock_expires_at is null or lock_expires_at <= now\(\)\)[\s\S]+?set lock_token = null,[\s\S]+?update public\.gurs_address_sync_runs[\s\S]+?where status = 'running'[\s\S]+?where key = 'active'\s+and lock_token is not null/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /installed\.indrelid = active_table[\s\S]+?installed\.indcollation\[0\][\s\S]+?to_regcollation\('pg_catalog\."C"'\)[\s\S]+?installed\.indcollation\[1\][\s\S]+?create index %I on public\.gurs_addresses/u
   );
   assert.match(
     quoteOptionalAcceptanceTermsDeployment,

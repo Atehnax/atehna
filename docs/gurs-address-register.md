@@ -25,7 +25,8 @@ and unrelated register attributes are not stored.
 Fresh database setup includes the GURS section in the canonical
 `database/schema.sql`. It adds:
 
-- the active `gurs_addresses` search table and PostgreSQL `pg_trgm` index;
+- the active `gurs_addresses` search table, a prefix index for immediate
+  first-character results, and a PostgreSQL `pg_trgm` index for broader matching;
 - synchronisation state and run-history tables;
 - address provenance and optional delivery-detail fields on `orders`.
 
@@ -33,6 +34,15 @@ The schema does not embed a stale copy of the national register. After creating
 a fresh database, run `npm run addresses:sync` and wait for the validated staging
 dataset to publish before exposing checkout. The monthly protected job then keeps
 that active dataset current.
+
+For an existing database, coordinate
+`database/migrations/20260903_gurs_address_prefix_search.sql` with the code
+deployment. Stop scheduled and manual synchronization, confirm no import is
+active, apply the migration to the current table, and deploy the synchronizer
+that creates the prefix index on staging tables before allowing another sync.
+Then verify a one-character lookup and an index-backed query plan. An expired
+lease is invalidated atomically by the migration and lingering `running`
+sync-history rows are marked failed; an unexpired lease blocks the migration.
 
 GURS identifiers are stored as PostgreSQL `text` and remain JavaScript strings.
 They must never be converted to numbers.
@@ -88,10 +98,12 @@ staging tables are cleaned by the next run.
 
 ## Search and checkout behaviour
 
-`GET /api/addresses/search?query=<text>` requires at least three normalised
-characters and returns at most eight compact results. Successful responses are
-cached at the CDN. The search is diacritic-insensitive and ranks exact and
-prefix matches ahead of fuzzy matches.
+`GET /api/addresses/search?query=<text>` starts with one normalised character
+and returns at most eight compact results. One- and two-character searches, plus
+longer phrases made only of short tokens, use the ordered prefix index. Queries
+with eligible longer tokens add broader token and fuzzy matching.
+Successful responses are cached at the CDN. The search is diacritic-insensitive
+and ranks exact and prefix matches ahead of fuzzy matches.
 
 Checkout remains usable with manual address entry when the search endpoint or
 the local reference table is unavailable. An official match records provenance

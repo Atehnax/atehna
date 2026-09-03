@@ -24,6 +24,16 @@ const gursAddressesServerSource = readFileSync(
   'utf8'
 );
 
+const gursAddressSyncSource = readFileSync(
+  resolve(process.cwd(), 'src/shared/server/gursAddressSync.ts'),
+  'utf8'
+);
+
+const databaseSchemaSource = readFileSync(
+  resolve(process.cwd(), 'database/schema.sql'),
+  'utf8'
+);
+
 const adminAddressAutocompleteSource = readFileSync(
   resolve(
     process.cwd(),
@@ -47,12 +57,23 @@ test('address autocomplete ignores stale successful responses', () => {
   );
 });
 
-test('address autocomplete starts after the fast 50 ms debounce', () => {
-  assert.match(checkoutSource, /const ADDRESS_SEARCH_DEBOUNCE_MS = 50;/u);
+test('address autocomplete starts on the first character and only debounces follow-up edits', () => {
   assert.match(
     checkoutSource,
-    /window\.setTimeout\(async \(\) => \{[\s\S]+?\}, ADDRESS_SEARCH_DEBOUNCE_MS\)/u
+    /const query = normalizeAddressSearchText\(formData\.addressLine1\)/u
   );
+  assert.match(checkoutSource, /const startsImmediately = query\.length === 1/u);
+  assert.match(checkoutSource, /if \(startsImmediately\) void search\(\);/u);
+  assert.match(
+    checkoutSource,
+    /window\.setTimeout\(\(\) => \{[\s\S]+?void search\(\);[\s\S]+?ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS/u
+  );
+  assert.match(
+    checkoutSource,
+    /const query = normalizeAddressSearchText\(formData\.addressLine1\);\s*setAddressSearchStatus\('loading'\);\s*setAddressSuggestions\(\[\]\)/u
+  );
+  assert.doesNotMatch(checkoutSource, /onMouseEnter=/u);
+  assert.doesNotMatch(checkoutSource, /onPointerMove=/u);
 });
 
 test('address results and source metadata use one database round trip', () => {
@@ -71,6 +92,35 @@ test('address results and source metadata use one database round trip', () => {
   assert.doesNotMatch(
     searchFunction,
     /getGursAddressSourceMetadata\(database\)/u
+  );
+});
+
+test('short address queries use the durable ordered prefix index', () => {
+  const shortQueryBranch = gursAddressesServerSource.slice(
+    gursAddressesServerSource.indexOf('if (usesOrderedPrefixSearch)'),
+    gursAddressesServerSource.indexOf('const tokenPredicates')
+  );
+  assert.match(
+    gursAddressesServerSource,
+    /const usesOrderedPrefixSearch =\s*parsed\.query\.length < 3 \|\| tokenPatterns\.length === 0/u
+  );
+  assert.match(shortQueryBranch, /search_text collate "C" like \$1/u);
+  assert.match(
+    shortQueryBranch,
+    /order by[\s\S]+?search_text collate "C" asc[\s\S]+?limit \$\{GURS_ADDRESS_SEARCH_LIMIT\}/u
+  );
+  assert.doesNotMatch(shortQueryBranch, /word_similarity|<%|like '%' \|\| \$1/u);
+  assert.doesNotMatch(
+    gursAddressesServerSource,
+    /if \(tokenPatterns\.length === 0\) \{\s*return \{ results: \[\]/u
+  );
+  assert.match(
+    databaseSchemaSource,
+    /create index gurs_addresses_search_text_prefix_idx[\s\S]+?search_text collate "C"[\s\S]+?address_line_1 collate "C"/u
+  );
+  assert.match(
+    gursAddressSyncSource,
+    /const prefixIndex = [^;]+_search_prefix_idx[^;]+;[\s\S]+?create index \$\{identifier\(prefixIndex\)\}[\s\S]+?search_text collate "C"/u
   );
 });
 
@@ -125,15 +175,30 @@ test('postal autocomplete suppresses a reverse lookup after resolution', () => {
   );
 });
 
-test('admin address autocomplete mirrors the fast stale-safe storefront search', () => {
-  assert.match(adminAddressAutocompleteSource, /const ADDRESS_SEARCH_DEBOUNCE_MS = 50;/u);
+test('admin address autocomplete mirrors the immediate stale-safe storefront search', () => {
+  assert.match(
+    adminAddressAutocompleteSource,
+    /const query = normalizeAddressSearchText\(value\)/u
+  );
+  assert.match(
+    adminAddressAutocompleteSource,
+    /const startsImmediately = query\.length === 1/u
+  );
+  assert.match(
+    adminAddressAutocompleteSource,
+    /if \(startsImmediately\) void search\(\);/u
+  );
   assert.match(
     adminAddressAutocompleteSource,
     /requestRef\.current\?\.abort\(\)[\s\S]+?controller\.signal\.aborted \|\| requestRef\.current !== controller/u
   );
   assert.match(
     adminAddressAutocompleteSource,
-    /window\.setTimeout\(async \(\) => \{[\s\S]+?\}, ADDRESS_SEARCH_DEBOUNCE_MS\)/u
+    /window\.setTimeout\(\(\) => \{[\s\S]+?void search\(\);[\s\S]+?ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS/u
+  );
+  assert.match(
+    adminAddressAutocompleteSource,
+    /const query = normalizeAddressSearchText\(value\);\s*setStatus\('loading'\);\s*setSuggestions\(\[\]\)/u
   );
   assert.match(adminAddressAutocompleteSource, /\.slice\(0, 8\)/u);
 });
@@ -161,6 +226,8 @@ test('admin address autocomplete is accessible, portal-safe, and pointer-aware',
       "testId + (showErrorFeedback ? '-error' : '-empty')"
     )
   );
+  assert.doesNotMatch(adminAddressAutocompleteSource, /onMouseEnter=/u);
+  assert.doesNotMatch(adminAddressAutocompleteSource, /onPointerMove=/u);
 });
 
 test('localhost bootstrap hydrates the official register without weakening database isolation', () => {

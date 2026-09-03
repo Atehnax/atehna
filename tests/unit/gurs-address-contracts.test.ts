@@ -96,8 +96,9 @@ describe('GURS address normalization', () => {
         '  Žužemberk,  Šolska cesta 11C / 8360 Žužemberk  '
       )
     ).toBe('zuzemberk solska cesta 11c 8360 zuzemberk');
-    expect(isAddressSearchQueryEligible(' ž! ')).toBe(false);
-    expect(isAddressSearchQueryEligible(' Žu! ')).toBe(false);
+    expect(isAddressSearchQueryEligible('!')).toBe(false);
+    expect(isAddressSearchQueryEligible(' ž! ')).toBe(true);
+    expect(isAddressSearchQueryEligible(' Žu! ')).toBe(true);
     expect(isAddressSearchQueryEligible(' Žuž! ')).toBe(true);
   });
 

@@ -2828,6 +2828,14 @@ create unique index gurs_addresses_house_number_id_uidx
 create index gurs_addresses_search_text_trgm_idx
   on gurs_addresses using gin (search_text gin_trgm_ops);
 
+create index gurs_addresses_search_text_prefix_idx
+  on gurs_addresses (
+    search_text collate "C",
+    address_line_1 collate "C",
+    postal_code,
+    gurs_house_number_id
+  );
+
 create table gurs_address_sync_state (
   key text primary key,
   active_source_updated_at timestamptz,

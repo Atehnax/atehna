@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import pg, { type Pool as PgPool } from 'pg';
 
 const { Pool } = pg;
 
 let database: PgPool;
+const prefixMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'database/migrations/20260903_gurs_address_prefix_search.sql'
+  ),
+  'utf8'
+);
 
 test.describe('GURS order address canonicalization', () => {
   test.beforeAll(() => {
@@ -19,6 +28,190 @@ test.describe('GURS order address canonicalization', () => {
     await (
       database as PgPool & { end: () => Promise<void> }
     ).end();
+  });
+
+  test('prefix migration is idempotent, lease-safe, and planner-usable', async () => {
+    const client = await database.connect();
+    const state = await client.query<{
+      lock_token: string | null;
+      lock_expires_at: Date | null;
+      last_failure_at: Date | null;
+      last_error: string | null;
+    }>(
+      `select lock_token, lock_expires_at, last_failure_at, last_error
+       from gurs_address_sync_state
+       where key = 'active'`
+    );
+    let runId: string | null = null;
+
+    try {
+      await client.query(
+        'drop index if exists public.gurs_addresses_search_text_prefix_idx'
+      );
+      const run = await client.query<{ id: string }>(
+        `insert into gurs_address_sync_runs (status)
+         values ('running')
+         returning id::text as id`
+      );
+      runId = run.rows[0]?.id ?? null;
+      await client.query(
+        `update gurs_address_sync_state
+         set lock_token = 'expired-prefix-migration-test',
+             lock_expires_at = now() - interval '1 minute'
+         where key = 'active'`
+      );
+
+      await client.query(prefixMigration);
+      await client.query(prefixMigration);
+
+      const clearedLease = await client.query<{
+        lock_token: string | null;
+        lock_expires_at: Date | null;
+      }>(
+        `select lock_token, lock_expires_at
+         from gurs_address_sync_state
+         where key = 'active'`
+      );
+      expect(clearedLease.rows[0]).toEqual({
+        lock_token: null,
+        lock_expires_at: null
+      });
+      const failedRun = await client.query<{ status: string }>(
+        'select status from gurs_address_sync_runs where id = $1',
+        [runId]
+      );
+      expect(failedRun.rows[0]?.status).toBe('failed');
+
+      const equivalentIndexes = await client.query<{ index_name: string }>(
+        `select installed_index.relname as index_name
+         from pg_index installed
+         join pg_class installed_index
+           on installed_index.oid = installed.indexrelid
+         join pg_am access_method
+           on access_method.oid = installed_index.relam
+         where installed.indrelid = 'public.gurs_addresses'::regclass
+           and installed.indisvalid
+           and installed.indisready
+           and not installed.indisunique
+           and access_method.amname = 'btree'
+           and installed.indnkeyatts = 4
+           and installed.indnatts = 4
+           and installed.indpred is null
+           and installed.indexprs is null
+           and pg_get_indexdef(installed.indexrelid, 1, true) = 'search_text'
+           and pg_get_indexdef(installed.indexrelid, 2, true) = 'address_line_1'
+           and installed.indcollation[0] = to_regcollation('pg_catalog."C"')
+           and installed.indcollation[1] = to_regcollation('pg_catalog."C"')
+           and pg_get_indexdef(installed.indexrelid, 3, true) = 'postal_code'
+           and pg_get_indexdef(installed.indexrelid, 4, true)
+             = 'gurs_house_number_id'`
+      );
+      expect(equivalentIndexes.rows).toHaveLength(1);
+      expect(equivalentIndexes.rows[0]?.index_name).toMatch(
+        /^gurs_addresses_search_prefix_\d+_idx$/u
+      );
+
+      await client.query('set enable_seqscan = off');
+      const explained = await client.query<{ 'QUERY PLAN': unknown }>(
+        `explain (analyze, buffers, format json)
+         select gurs_house_number_id,
+                address_line_1,
+                postal_code,
+                postal_name,
+                settlement_name,
+                municipality_name
+         from gurs_addresses
+         where search_text collate "C" like $1
+         order by search_text collate "C",
+                  address_line_1 collate "C",
+                  postal_code,
+                  gurs_house_number_id
+         limit 8`,
+        ['c%']
+      );
+      const plan = JSON.stringify(explained.rows[0]?.['QUERY PLAN']);
+      expect(plan).toContain('Index Scan');
+      expect(plan).toContain(equivalentIndexes.rows[0]!.index_name);
+
+      await client.query(
+        `update gurs_address_sync_state
+         set lock_token = 'live-prefix-migration-test',
+             lock_expires_at = now() + interval '5 minutes'
+         where key = 'active'`
+      );
+      await expect(client.query(prefixMigration)).rejects.toThrow(
+        'A GURS synchronization is active'
+      );
+      await client.query('rollback');
+    } finally {
+      await client.query('rollback').catch(() => undefined);
+      await client.query('reset enable_seqscan').catch(() => undefined);
+      const original = state.rows[0];
+      await client.query(
+        `update gurs_address_sync_state
+         set lock_token = $1,
+             lock_expires_at = $2,
+             last_failure_at = $3,
+             last_error = $4
+         where key = 'active'`,
+        [
+          original?.lock_token ?? null,
+          original?.lock_expires_at ?? null,
+          original?.last_failure_at ?? null,
+          original?.last_error ?? null
+        ]
+      );
+      if (runId) {
+        await client.query('delete from gurs_address_sync_runs where id = $1', [
+          runId
+        ]);
+      }
+      client.release();
+    }
+  });
+
+  test('short-word refinements retain indexed prefix results', async ({
+    request
+  }) => {
+    const gursHouseNumberId = 'e2e-short-token-' + crypto.randomUUID();
+    await database.query(
+      `insert into gurs_addresses (
+         gurs_house_number_id, street_name, settlement_name, house_number,
+         postal_code, postal_name, municipality_name, address_line_1,
+         search_text, source_updated_at
+       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())`,
+      [
+        gursHouseNumberId,
+        'Na vasi',
+        'Preskusna vas',
+        '1',
+        '1000',
+        'Ljubljana',
+        'Ljubljana',
+        'Na vasi 1',
+        'na vasi 1 preskusna vas 1000 ljubljana'
+      ]
+    );
+
+    try {
+      for (const query of ['na', 'na v', 'na vas']) {
+        const response = await request.get(
+          '/api/addresses/search?query=' + encodeURIComponent(query)
+        );
+        expect(response.ok()).toBeTruthy();
+        const payload = (await response.json()) as {
+          results: Array<{ gursHouseNumberId: string }>;
+        };
+        expect(payload.results).toContainEqual(
+          expect.objectContaining({ gursHouseNumberId })
+        );
+      }
+    } finally {
+      await database.query(
+        'delete from gurs_addresses where gurs_house_number_id = $1',
+        [gursHouseNumberId]
+      );
+    }
   });
 
   test('order creation replaces tampered text with the address selected by GURS ID', async ({

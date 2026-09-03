@@ -201,14 +201,14 @@ async function fulfillAddressSearch(
 }
 
 test.describe('GURS address search endpoint', () => {
-  test('returns no matches for fewer than three normalized characters', async () => {
+  test('does not search empty or punctuation-only input', async () => {
     const anonymousRequest = await playwrightRequest.newContext({
       baseURL: E2E_BASE_URL,
       storageState: { cookies: [], origins: [] }
     });
     try {
       const response = await anonymousRequest.get('/api/addresses/search', {
-        params: { query: ' ž! ' }
+        params: { query: ' !!! ' }
       });
 
       expect(response.status()).toBe(200);
@@ -223,29 +223,33 @@ test.describe('GURS address search endpoint', () => {
     }
   });
 
-  test('returns canonical matches for an eligible query from the local index', async () => {
+  test('returns bounded canonical matches after one character', async () => {
     const anonymousRequest = await playwrightRequest.newContext({
       baseURL: E2E_BASE_URL,
       storageState: { cookies: [], origins: [] }
     });
     try {
       const response = await anonymousRequest.get('/api/addresses/search', {
-        params: { query: 'Cankarjeva ulica 27a' }
+        params: { query: 'C' }
       });
 
       expect(response.status()).toBe(200);
       const payload = (await response.json()) as {
-        results: Array<typeof cankarjeva>;
+        results: Array<{
+          gursHouseNumberId: string;
+          addressLine1: string;
+          postalCode: string;
+          postalName: string;
+        }>;
         sourceUpdatedAt: string | null;
       };
       expect(payload.results.length).toBeGreaterThan(0);
-      const canonicalResult = payload.results.find(
-        (result) => result.addressLine1 === cankarjeva.addressLine1
-      );
-      expect(canonicalResult).toBeTruthy();
-      expect(canonicalResult?.postalCode).toMatch(/^\d{4}$/u);
-      expect(canonicalResult?.postalName).not.toHaveLength(0);
-      expect(canonicalResult?.gursHouseNumberId).toMatch(/^\d+$/u);
+      expect(payload.results.length).toBeLessThanOrEqual(8);
+      const canonicalResult = payload.results[0]!;
+      expect(canonicalResult.addressLine1).not.toHaveLength(0);
+      expect(canonicalResult.postalCode).toMatch(/^\d{4}$/u);
+      expect(canonicalResult.postalName).not.toHaveLength(0);
+      expect(canonicalResult.gursHouseNumberId).toMatch(/^\d+$/u);
       expect(payload.sourceUpdatedAt).not.toBeNull();
       expect(Number.isNaN(Date.parse(payload.sourceUpdatedAt ?? ''))).toBe(false);
       expect(response.headers()['cache-control']).toBe(
@@ -262,7 +266,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await seedCheckout(page);
   });
 
-  test('starts promptly after three characters and supports accessible keyboard selection', async ({
+  test('starts immediately after one character and supports accessible keyboard selection', async ({
     page
   }) => {
     const requestedQueries: string[] = [];
@@ -300,17 +304,17 @@ test.describe('checkout GURS address autocomplete', () => {
     await expect(address).toHaveAttribute('aria-expanded', 'false');
     await expect(gursId).toHaveValue('');
 
-    await address.fill('ca');
-    await page.waitForTimeout(350);
+    await address.focus();
+    await page.waitForTimeout(100);
     expect(requestedQueries).toEqual([]);
 
-    await address.fill('can');
+    await address.fill('c');
     await expect
       .poll(() => requestedQueries, {
         timeout: 500,
         intervals: [10, 20, 50]
       })
-      .toEqual(['can']);
+      .toEqual(['c']);
 
     const listbox = page.getByRole('listbox');
     await expect(listbox).toBeVisible({ timeout: 500 });
@@ -373,6 +377,111 @@ test.describe('checkout GURS address autocomplete', () => {
     await expect(
       page.getByTestId('order-summary-column')
     ).toContainText('Preizkusni artikel');
+  });
+
+  test('keeps newer suggestions when the first-character request finishes later', async ({
+    page
+  }) => {
+    const firstRequestGate = createGate();
+    let firstRequestStarted = false;
+    let firstRequestSettled = false;
+    const requestedQueries: string[] = [];
+
+    await page.route(/\/api\/addresses\/search(?:\?.*)?$/, async (route) => {
+      const query =
+        new URL(route.request().url()).searchParams.get('query') ?? '';
+      requestedQueries.push(query);
+
+      if (query === 'c') {
+        firstRequestStarted = true;
+        await firstRequestGate.promise;
+        try {
+          await fulfillAddressSearch(route, [cankarjevaAlternate]);
+        } catch {
+          // The newer query may abort the delayed mocked request before fulfillment.
+        } finally {
+          firstRequestSettled = true;
+        }
+        return;
+      }
+
+      await fulfillAddressSearch(
+        route,
+        query === 'ca' ? [cankarjeva] : []
+      );
+    });
+
+    await enableCheckout(page);
+    const address = page.getByRole('combobox', {
+      name: 'Ulica ali naselje in hišna številka',
+      exact: true
+    });
+    const listbox = page.getByRole('listbox', { name: 'Predlogi naslovov' });
+
+    await address.fill('c');
+    await expect.poll(() => firstRequestStarted).toBe(true);
+
+    try {
+      await address.fill('ca');
+      await expect.poll(() => requestedQueries).toEqual(['c', 'ca']);
+      await expect(listbox).toBeVisible();
+      await expect(listbox.getByRole('option')).toHaveCount(1);
+      await expect(listbox.getByRole('option')).toContainText(
+        cankarjeva.addressLine1
+      );
+    } finally {
+      firstRequestGate.release();
+    }
+
+    await expect.poll(() => firstRequestSettled).toBe(true);
+    await expect(listbox.getByRole('option')).toHaveCount(1);
+    await expect(listbox.getByRole('option')).toContainText(
+      cankarjeva.addressLine1
+    );
+    await expect(listbox).not.toContainText(cankarjevaAlternate.addressLine1);
+  });
+
+  test('keeps the loading state while a successful query is refined', async ({
+    page
+  }) => {
+    const refinedRequestGate = createGate();
+    const requestedQueries: string[] = [];
+
+    await page.route(/\/api\/addresses\/search(?:\?.*)?$/, async (route) => {
+      const query =
+        new URL(route.request().url()).searchParams.get('query') ?? '';
+      requestedQueries.push(query);
+      if (query === 'ca') await refinedRequestGate.promise;
+      await fulfillAddressSearch(route, [cankarjeva]);
+    });
+
+    await enableCheckout(page);
+    const address = page.getByRole('combobox', {
+      name: 'Ulica ali naselje in hišna številka',
+      exact: true
+    });
+    const listbox = page.getByRole('listbox', { name: 'Predlogi naslovov' });
+
+    await address.fill('c');
+    await expect(listbox).toBeVisible();
+    const statusId = await address.getAttribute('aria-describedby');
+    expect(statusId).toBeTruthy();
+    const status = page.locator('[id="' + statusId + '"]');
+    await expect(status).toContainText('Na voljo je 1 predlogov.');
+
+    try {
+      await address.fill('ca');
+      await expect.poll(() => requestedQueries).toEqual(['c', 'ca']);
+      await expect(status).toHaveText('Iščemo uradne naslove …');
+      await expect(status).not.toContainText('ni bilo najdenih predlogov');
+    } finally {
+      refinedRequestGate.release();
+    }
+
+    await expect(listbox).toBeVisible();
+    await expect(listbox.getByRole('option')).toContainText(
+      cankarjeva.addressLine1
+    );
   });
 
   test('does not select on blur and clears the official ID after edits', async ({

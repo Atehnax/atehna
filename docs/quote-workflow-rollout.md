@@ -54,7 +54,8 @@ order:
 9. `database/migrations/20260901_inventory_policy_settings.sql`
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
-12. `database/migrations/20260903_schema_contract_v1.sql`
+12. `database/migrations/20260903_gurs_address_prefix_search.sql`
+13. `database/migrations/20260903_schema_contract_v1.sql`
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -104,6 +105,16 @@ enforcement governed each order's lifecycle without changing existing holds.
 The quote-outbox cancellation artifact is the final application-data follow-up.
 It adds a durable cancelled state plus actor/timestamp evidence without rewriting
 existing email jobs.
+
+The GURS prefix-index artifact requires a coordinated application rollout.
+Stop scheduled and manual GURS synchronization and confirm no import is active,
+apply the artifact to the current address table, then deploy the synchronizer
+version that builds the identical ordered prefix index on every staging table.
+Before re-enabling synchronization, verify that a one-character lookup returns
+at most eight results and that PostgreSQL uses the prefix index. This prevents
+an older synchronizer from replacing the indexed table after the migration.
+The artifact invalidates an expired stored lease and marks lingering `running`
+sync-history rows failed; it aborts without changing a live lease.
 
 The terminal schema-contract artifact follows all application migrations. It
 first verifies the required end state, including current columns, validated

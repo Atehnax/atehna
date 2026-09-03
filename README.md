@@ -69,7 +69,18 @@ reviewed quote/contract artifacts below, applied in this exact order:
 9. `database/migrations/20260901_inventory_policy_settings.sql`
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
-12. `database/migrations/20260903_schema_contract_v1.sql`
+12. `database/migrations/20260903_gurs_address_prefix_search.sql`
+13. `database/migrations/20260903_schema_contract_v1.sql`
+
+For step 12, first stop scheduled and manual GURS synchronization and confirm
+that no import is running. Apply the prefix-index artifact to the active table,
+then deploy the application version whose GURS synchronizer creates the same
+index on every staging table before re-enabling synchronization. Verify both a
+one-character address lookup and an index-backed query plan. This ordering
+prevents an older synchronizer from later swapping an unindexed table into
+service. If the stored lease has expired, the migration invalidates it and
+marks lingering `running` sync-history rows as failed; a live lease aborts the
+migration instead.
 
 The admin-details follow-up is only for a database on the verified 20260828
 schema. The management follow-up requires that verified admin-details guard and

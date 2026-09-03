@@ -128,6 +128,23 @@ function toAddress(row: GursAddressRow): GursAddress {
   };
 }
 
+function toAddressSearchResponse(
+  rows: GursAddressSearchQueryRow[]
+): GursAddressSearchResponse {
+  const searchRows = rows.filter(
+    (
+      row
+    ): row is GursAddressSearchQueryRow & GursAddressSearchRow =>
+      row.gurs_house_number_id !== null
+  );
+  return {
+    results: searchRows.map(toSearchResult),
+    sourceUpdatedAt: toIsoString(
+      rows[0]?.active_source_updated_at ?? null
+    )
+  };
+}
+
 function toPostalLocation(row: GursPostalLocationRow): GursPostalLocation {
   return {
     postalCode: row.postal_code,
@@ -201,8 +218,7 @@ export async function searchGursAddresses(
     if (parsed.code === 'QUERY_TOO_LONG') {
       throw new GursAddressSearchQueryError();
     }
-    // This intentionally avoids opening a database connection while the user
-    // has not yet typed enough characters for a useful search.
+    // Avoid opening a database connection for empty or punctuation-only input.
     return { results: [], sourceUpdatedAt: null };
   }
 
@@ -216,9 +232,45 @@ export async function searchGursAddresses(
       if (/^\d{2}$/.test(token)) return [` ${token}`];
       return [];
     });
-  if (tokenPatterns.length === 0) {
-    return { results: [], sourceUpdatedAt: null };
+  const usesOrderedPrefixSearch =
+    parsed.query.length < 3 || tokenPatterns.length === 0;
+  if (usesOrderedPrefixSearch) {
+    const prefixResult = await database.query<GursAddressSearchQueryRow>(
+      `select matched.gurs_house_number_id,
+              matched.address_line_1,
+              matched.postal_code,
+              matched.postal_name,
+              matched.settlement_name,
+              matched.municipality_name,
+              sync.active_source_updated_at
+       from (values (true)) as anchor(dummy)
+       left join gurs_address_sync_state as sync
+         on sync.key = 'active'
+       left join lateral (
+         select gurs_house_number_id,
+                address_line_1,
+                postal_code,
+                postal_name,
+                settlement_name,
+                municipality_name
+         from gurs_addresses
+         where search_text collate "C" like $1
+         order by
+           search_text collate "C" asc,
+           address_line_1 collate "C" asc,
+           postal_code asc,
+           gurs_house_number_id asc
+         limit ${GURS_ADDRESS_SEARCH_LIMIT}
+       ) as matched on true
+       order by
+         matched.address_line_1 asc nulls last,
+         matched.postal_code asc nulls last,
+         matched.gurs_house_number_id asc nulls last`,
+      [`${parsed.query}%`]
+    );
+    return toAddressSearchResponse(prefixResult.rows);
   }
+
   const tokenPredicates = tokenPatterns.map(
     (_, index) => `search_text like '%' || $${index + 2} || '%'`
   );
@@ -271,19 +323,7 @@ export async function searchGursAddresses(
        matched.gurs_house_number_id asc nulls last`,
     [parsed.query, ...tokenPatterns]
   );
-  const searchRows = result.rows.filter(
-    (
-      row
-    ): row is GursAddressSearchQueryRow & GursAddressSearchRow =>
-      row.gurs_house_number_id !== null
-  );
-
-  return {
-    results: searchRows.map(toSearchResult),
-    sourceUpdatedAt: toIsoString(
-      result.rows[0]?.active_source_updated_at ?? null
-    )
-  };
+  return toAddressSearchResponse(result.rows);
 }
 
 export async function lookupGursPostalLocations(

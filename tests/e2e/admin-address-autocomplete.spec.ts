@@ -15,6 +15,7 @@ type CanonicalAddress = {
 };
 
 const ADDRESS_QUERY = 'Cankarjeva ulica 27';
+const FIRST_CHARACTER_QUERY = ADDRESS_QUERY.slice(0, 1);
 const INITIAL_ADDRESS = {
   addressLine1: 'Testna ulica 1',
   postalCode: '1000',
@@ -50,7 +51,7 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
   let quoteRequestId: number | null = null;
 
   const addressSearchResponse = await request.get('/api/addresses/search', {
-    params: { query: ADDRESS_QUERY }
+    params: { query: FIRST_CHARACTER_QUERY }
   });
   expect(addressSearchResponse.ok()).toBe(true);
   const addressSearchPayload = await addressSearchResponse.json() as {
@@ -97,7 +98,7 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     await expect(orderAddress).toHaveAttribute('autocomplete', 'off');
     await expect(orderAddress).toHaveValue(INITIAL_ADDRESS.addressLine1);
     await orderAddress.fill('');
-    await orderAddress.fill(ADDRESS_QUERY);
+    await orderAddress.fill(FIRST_CHARACTER_QUERY);
 
     const orderSuggestions = page.getByRole('listbox', {
       name: 'Predlogi naslovov'
@@ -207,7 +208,7 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     await expect(quoteAddress).toHaveAttribute('aria-autocomplete', 'list');
     await expect(quoteAddress).toHaveValue(INITIAL_ADDRESS.addressLine1);
     await quoteAddress.fill('');
-    await quoteAddress.fill(ADDRESS_QUERY);
+    await quoteAddress.fill(FIRST_CHARACTER_QUERY);
     const quoteSuggestions = page.getByRole('listbox', {
       name: 'Predlogi naslovov'
     });

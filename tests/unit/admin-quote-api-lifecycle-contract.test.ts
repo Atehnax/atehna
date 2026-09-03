@@ -335,10 +335,10 @@ test('clarification is idempotently recorded before an optional isolated custome
   assert.match(orderUi, /ref=\{quoteEmailSettingsRef\}/u);
   assert.match(orderUi, /onSaveStateChange=\{setQuoteEmailSaveState\}/u);
   assert.match(orderUi, /quoteEmailSettingsRef\.current\?\.setEnabled\(enabled\)/u);
-  assert.match(
-    quoteUi,
-    /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)/u
-  );
+  assert.match(quoteUi, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(quoteUi, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
+  assert.match(quoteUi, /activeAudience=\{quotePreviewAudience\}/u);
+  assert.match(quoteUi, /onAudienceChange=\{setQuotePreviewAudience\}/u);
   assert.match(templates, /QUOTE_EMAIL_EVENT_DEFAULTS/u);
   assert.doesNotMatch(worker, /forceCustomer|suppressAdmin/u);
   assert.match(worker, /if \(!settings\.enabled\) \{[\s\S]*?return \[\];/u);

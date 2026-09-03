@@ -21,7 +21,10 @@ import {
 import { getStatusLabel } from "@/shared/domain/order/orderStatus";
 import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
 import type { QuoteEmailAdminState } from "@/shared/server/quoteEmailSettings";
-import EmailMessagePreview from "@/admin/features/email/components/EmailMessagePreview";
+import EmailTemplateWorkspace, {
+  EmailTemplateRecipientToggle,
+  getEmailTemplateActivity,
+} from "@/admin/features/email/components/EmailTemplateWorkspace";
 import AdminQuoteEmailSettingsSection, {
   type AdminQuoteEmailSaveState,
   type AdminQuoteEmailSettingsHandle,
@@ -87,11 +90,11 @@ const acceptedEmailImageContentTypes = new Set([
   "image/webp",
   "image/gif",
 ]);
-const orderEmailPreviewAudienceOptions = [
+const orderEmailTemplateAudienceOptions = [
   { value: "customer", label: "Stranka" },
   { value: "admin", label: "Administrator" },
 ] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
-const orderEmailSubmissionPreviewAudienceOptions = [
+const orderEmailSubmissionTemplateAudienceOptions = [
   { value: "customer", label: "Stranka" },
   { value: "schoolCustomer", label: "Šola / javni zavod" },
   { value: "admin", label: "Administrator" },
@@ -431,119 +434,38 @@ function FieldLabel({
   );
 }
 
-function TemplateEditorCard({
-  audience,
-  title,
-  description,
-  subject,
-  body,
-  variables,
-  onSubjectChange,
-  onBodyChange,
-  onReset,
-  className = "",
-}: {
-  audience: TemplateAudience;
-  title: string;
-  description: string;
-  subject: string;
-  body: string;
-  variables: readonly string[];
-  onSubjectChange: (value: string) => void;
-  onBodyChange: (value: string) => void;
-  onReset: () => void;
-  className?: string;
-}) {
-  const audienceLabel =
-    audience === "customer"
-      ? "stranko"
-      : audience === "schoolCustomer"
-        ? "\u0161olo ali javni zavod"
-        : "administratorja";
-  const audienceTestId =
-    audience === "schoolCustomer" ? "school-customer" : audience;
-  const subjectId = `order-email-template-${audienceTestId}-subject`;
-  const bodyId = `order-email-template-${audienceTestId}-body`;
-
-  return (
-    <section
-      className={`min-w-0 rounded-lg border border-slate-200 bg-slate-50/60 p-4 ${className}`}
-      data-testid={`order-email-template-${audienceTestId}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600">
-            {description}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="default"
-          size="toolbar"
-          className={adminTableBulkHeaderButtonClassName}
-          onClick={onReset}
-          aria-label={`Ponastavi privzeto predlogo za ${audienceLabel}`}
-          data-testid={`order-email-template-${audienceTestId}-reset`}
-        >
-          Ponastavi privzeto
-        </Button>
-      </div>
-
-      <div className="mt-3 space-y-3">
-        <div>
-          <FieldLabel
-            htmlFor={subjectId}
-            label={`Zadeva za ${audienceLabel}`}
-            hint="Predpona zadeve se doda samodejno."
-          />
-          <Input
-            id={subjectId}
-            aria-label={`Zadeva za ${audienceLabel}`}
-            className={`${fieldClassName} mt-1.5`}
-            value={subject}
-            maxLength={ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
-            onChange={(event) => onSubjectChange(event.target.value)}
-            data-testid={`order-email-template-${audienceTestId}-subject`}
-          />
-        </div>
-        <div>
-          <FieldLabel
-            htmlFor={bodyId}
-            label={`Vsebina za ${audienceLabel}`}
-            hint="Vnesite navadno besedilo. Povzetek naročila in artikli se dodajo samodejno."
-          />
-          <textarea
-            id={bodyId}
-            className={`${textareaClassName} mt-1.5 min-h-40`}
-            value={body}
-            maxLength={ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH}
-            onChange={(event) => onBodyChange(event.target.value)}
-            data-testid={`order-email-template-${audienceTestId}-body`}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 border-t border-slate-200 pt-3">
-        <p className="text-xs font-medium text-slate-700">
-          Dovoljene spremenljivke
-        </p>
-        <div
-          className="mt-1.5 flex flex-wrap gap-1.5"
-          aria-label={`Dovoljene spremenljivke za ${audienceLabel}`}
-        >
-          {variables.map((variable) => (
-            <code
-              key={variable}
-              className="max-w-full break-all rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
-            >
-              {`{{${variable}}}`}
-            </code>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+function orderTemplateAudienceMeta(
+  audience: TemplateAudience,
+  eventType: EventKey,
+) {
+  if (audience === "schoolCustomer") {
+    return {
+      label: "\u0161olo ali javni zavod",
+      testId: "school-customer",
+      title: "\u0160ola / javni zavod",
+      description:
+        "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno.",
+    };
+  }
+  if (audience === "admin") {
+    return {
+      label: "administratorja",
+      testId: "admin",
+      title: "Administrator",
+      description:
+        "Interno \u0161tevilko lahko vklju\u010dite s {{order_number}}, povezava do naro\u010dila pa se doda samodejno.",
+    };
+  }
+  return {
+    label: "stranko",
+    testId: "customer",
+    title:
+      eventType === "order_submitted"
+        ? "Stranka (fizi\u010dna oseba ali podjetje)"
+        : "Stranka",
+    description:
+      "V predlogi za stranko interna zaporedna \u0161tevilka naro\u010dila ni na voljo in se kupcu ne razkrije.",
+  };
 }
 
 export default function AdminOrderEmailSettingsPageClient({
@@ -626,8 +548,27 @@ export default function AdminOrderEmailSettingsPageClient({
   const schoolCustomerTemplate =
     draft.templates.order_submitted.schoolCustomer ??
     DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-  const selectedTemplateStatusPresentation =
-    getOrderEmailEventStatusPresentation(selectedTemplateEvent);
+  const selectedTemplateAudienceMeta = orderTemplateAudienceMeta(
+    orderPreviewAudience,
+    selectedTemplateEvent,
+  );
+  const selectedTemplate =
+    orderPreviewAudience === "schoolCustomer"
+      ? schoolCustomerTemplate
+      : draft.templates[selectedTemplateEvent][orderPreviewAudience];
+  const selectedTemplateAudienceOptions =
+    selectedTemplateEvent === "order_submitted"
+      ? orderEmailSubmissionTemplateAudienceOptions
+      : orderEmailTemplateAudienceOptions;
+  const selectedTemplateEventSetting = draft.events[selectedTemplateEvent] ?? {
+    customer: false,
+    admins: false,
+  };
+  const selectedTemplateActivity = getEmailTemplateActivity(
+    draft.enabled,
+    selectedTemplateEventSetting.customer,
+    selectedTemplateEventSetting.admins,
+  );
   const displayedImageAttachment = stagedImageAttachment
     ? {
         url: stagedImageAttachment.previewUrl,
@@ -1980,130 +1921,118 @@ export default function AdminOrderEmailSettingsPageClient({
             </Table>
           </div>
         </SurfaceCard>
-        <SurfaceCard
+        <EmailTemplateWorkspace<TemplateAudience>
+          idPrefix="order-email-template"
+          testId="order-email-message-templates"
           title="Predloge sporočil"
           description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
-          testId="order-email-message-templates"
-          className={selectedTemplateStatusPresentation.sectionClassName}
-          statusTone={selectedTemplateStatusPresentation.tone}
-        >
-          <div className="max-w-sm">
-            <FieldLabel
-              htmlFor="order-email-template-event"
-              label="Dogodek naročila"
-              hint="Izberite dogodek, katerega predloge so prikazane spodaj."
-            />
-            <CustomSelect<EventKey>
-              id="order-email-template-event"
-              testId="order-email-template-event"
-              value={selectedTemplateEvent}
-              onChange={(value) => {
-                setSelectedTemplateEvent(value);
-                if (
-                  value !== "order_submitted" &&
-                  orderPreviewAudience === "schoolCustomer"
-                ) {
-                  setOrderPreviewAudience("customer");
-                }
-                setActionErrors([]);
-              }}
-              options={templateEventOptions}
-              ariaLabel="Dogodek naročila"
-              containerClassName="mt-1.5"
-              triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
-            />
-          </div>
-
-          <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
-            <TemplateEditorCard
-              audience="customer"
-              title={
-                selectedTemplateEvent === "order_submitted"
-                  ? "Stranka (fizi\u010dna oseba ali podjetje)"
-                  : "Stranka"
-              }
-              description="V predlogi za stranko interna zaporedna številka naročila ni na voljo in se kupcu ne razkrije."
-              subject={draft.templates[selectedTemplateEvent].customer.subject}
-              body={draft.templates[selectedTemplateEvent].customer.body}
-              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.customer}
-              onSubjectChange={(value) =>
-                updateTemplate("customer", "subject", value)
-              }
-              onBodyChange={(value) =>
-                updateTemplate("customer", "body", value)
-              }
-              onReset={() => resetTemplate("customer")}
-            />
-            {selectedTemplateEvent === "order_submitted" &&
-            schoolCustomerTemplate ? (
-              <TemplateEditorCard
-                audience="schoolCustomer"
-                title={"\u0160ola / javni zavod"}
-                description={
-                  "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno."
-                }
-                subject={schoolCustomerTemplate.subject}
-                body={schoolCustomerTemplate.body}
-                variables={ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer}
-                onSubjectChange={(value) =>
-                  updateTemplate("schoolCustomer", "subject", value)
-                }
-                onBodyChange={(value) =>
-                  updateTemplate("schoolCustomer", "body", value)
-                }
-                onReset={() => resetTemplate("schoolCustomer")}
+          eventSelector={
+            <>
+              <FieldLabel
+                htmlFor="order-email-template-event"
+                label="Dogodek naročila"
+                hint="Izberite dogodek, katerega predloge so prikazane spodaj."
               />
-            ) : null}
-            <TemplateEditorCard
-              audience="admin"
-              title="Administrator"
-              description="Interno številko lahko vključite s {{order_number}}, povezava do naročila pa se doda samodejno."
-              subject={draft.templates[selectedTemplateEvent].admin.subject}
-              body={draft.templates[selectedTemplateEvent].admin.body}
-              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.admin}
-              onSubjectChange={(value) =>
-                updateTemplate("admin", "subject", value)
-              }
-              onBodyChange={(value) => updateTemplate("admin", "body", value)}
-              onReset={() => resetTemplate("admin")}
-              className={
-                selectedTemplateEvent === "order_submitted"
-                  ? "lg:col-span-2"
-                  : ""
-              }
-            />
-          </div>
-
-          <EmailMessagePreview
-            subject={orderPreview.subject}
-            html={orderPreview.html}
-            variables={orderPreviewVariables}
-            error={orderPreview.error}
-            testId="order-email-preview"
-            controls={
-              <>
-                <FieldLabel
-                  htmlFor="order-email-preview-audience"
-                  label="Prejemnik predogleda"
-                />
-                <CustomSelect<TemplateAudience>
-                  id="order-email-preview-audience"
-                  testId="order-email-preview-audience"
-                  value={orderPreviewAudience}
-                  onChange={setOrderPreviewAudience}
-                  options={
-                    selectedTemplateEvent === "order_submitted"
-                      ? orderEmailSubmissionPreviewAudienceOptions
-                      : orderEmailPreviewAudienceOptions
+              <CustomSelect<EventKey>
+                id="order-email-template-event"
+                testId="order-email-template-event"
+                value={selectedTemplateEvent}
+                onChange={(value) => {
+                  setSelectedTemplateEvent(value);
+                  if (
+                    value !== "order_submitted" &&
+                    orderPreviewAudience === "schoolCustomer"
+                  ) {
+                    setOrderPreviewAudience("customer");
                   }
-                  ariaLabel="Prejemnik predogleda naročila"
-                  containerClassName="mt-1.5"
-                  triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
-                />
-              </>
-            }
-          />
-        </SurfaceCard>
+                  setActionErrors([]);
+                }}
+                options={templateEventOptions}
+                ariaLabel="Dogodek naročila"
+                containerClassName="mt-1.5"
+                triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
+              />
+            </>
+          }
+          activity={selectedTemplateActivity}
+          recipientControls={
+            <>
+              <EmailTemplateRecipientToggle
+                kind="customer"
+                label="Pošiljanje stranki"
+                checked={selectedTemplateEventSetting.customer}
+                title="Vklopi ali izklopi pošiljanje stranki za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(
+                    selectedTemplateEvent,
+                    "customer",
+                    checked,
+                  )
+                }
+                testId="order-email-template-recipient-customer"
+              />
+              <EmailTemplateRecipientToggle
+                kind="admin"
+                label="Pošiljanje administratorjem"
+                checked={selectedTemplateEventSetting.admins}
+                title="Vklopi ali izklopi pošiljanje administratorjem za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(
+                    selectedTemplateEvent,
+                    "admins",
+                    checked,
+                  )
+                }
+                testId="order-email-template-recipient-admin"
+              />
+            </>
+          }
+          audiences={selectedTemplateAudienceOptions}
+          activeAudience={orderPreviewAudience}
+          onAudienceChange={(audience) => {
+            setOrderPreviewAudience(audience);
+            setActionErrors([]);
+          }}
+          workspaceTestId="order-email-template-grid"
+          editor={{
+            testId: `order-email-template-${selectedTemplateAudienceMeta.testId}`,
+            title: selectedTemplateAudienceMeta.title,
+            description: selectedTemplateAudienceMeta.description,
+            subject: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
+              label: `Zadeva za ${selectedTemplateAudienceMeta.label}`,
+              description: "Predpona zadeve se doda samodejno.",
+              value: selectedTemplate.subject,
+              maxLength: ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "subject", value),
+            },
+            body: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-body`,
+              label: `Vsebina za ${selectedTemplateAudienceMeta.label}`,
+              description:
+                "Vnesite navadno besedilo. Povzetek naročila in artikli se dodajo samodejno.",
+              value: selectedTemplate.body,
+              maxLength: ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-body`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "body", value),
+            },
+            variables: ORDER_EMAIL_TEMPLATE_VARIABLES[orderPreviewAudience],
+            variablesAriaLabel: `Dovoljene spremenljivke za ${selectedTemplateAudienceMeta.label}`,
+          }}
+          onReset={() => resetTemplate(orderPreviewAudience)}
+          resetAriaLabel={`Ponastavi privzeto predlogo za ${selectedTemplateAudienceMeta.label}`}
+          resetTestId={`order-email-template-${selectedTemplateAudienceMeta.testId}-reset`}
+          preview={{
+            subject: orderPreview.subject,
+            html: orderPreview.html,
+            variables: orderPreviewVariables,
+            error: orderPreview.error,
+            testId: "order-email-preview",
+          }}
+        />
 
         <SurfaceCard
           title="Čakalna vrsta naročil"

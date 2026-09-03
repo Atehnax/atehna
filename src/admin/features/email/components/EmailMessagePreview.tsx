@@ -3,9 +3,19 @@ import type { ReactNode } from "react";
 const EMAIL_PREVIEW_CSP =
   "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'";
 
-type EmailMessagePreviewVariable = {
+export type EmailMessagePreviewVariable = {
   name: string;
   value: string;
+};
+
+export type EmailMessagePreviewProps = {
+  subject: string;
+  html: string;
+  variables: readonly EmailMessagePreviewVariable[];
+  testId: string;
+  error?: string | null;
+  controls?: ReactNode;
+  variant?: "default" | "workspace";
 };
 
 export function isolateEmailPreviewHtml(html: string): string {
@@ -33,19 +43,18 @@ export default function EmailMessagePreview({
   testId,
   error = null,
   controls,
-}: {
-  subject: string;
-  html: string;
-  variables: readonly EmailMessagePreviewVariable[];
-  testId: string;
-  error?: string | null;
-  controls?: ReactNode;
-}) {
+  variant = "default",
+}: EmailMessagePreviewProps) {
   const isolatedHtml = isolateEmailPreviewHtml(html);
+  const workspace = variant === "workspace";
 
   return (
     <section
-      className="mt-4 min-w-0 border-t border-slate-200 pt-4"
+      className={
+        workspace
+          ? "min-w-0"
+          : "mt-4 min-w-0 border-t border-slate-200 pt-4"
+      }
       aria-labelledby={`${testId}-heading`}
       data-testid={testId}
     >
@@ -74,7 +83,13 @@ export default function EmailMessagePreview({
           {error}
         </div>
       ) : (
-        <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_16rem]">
+        <div
+          className={
+            workspace
+              ? "grid min-w-0 gap-3"
+              : "grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_16rem]"
+          }
+        >
           <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
             <div className="border-b border-slate-200 bg-slate-50 px-3 py-2.5">
               <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">

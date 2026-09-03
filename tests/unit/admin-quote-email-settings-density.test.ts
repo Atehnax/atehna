@@ -17,6 +17,13 @@ const queueMetricCard = readFileSync(
   ),
   'utf8'
 );
+const templateWorkspace = readFileSync(
+  resolve(
+    process.cwd(),
+    'src/admin/features/email/components/EmailTemplateWorkspace.tsx'
+  ),
+  'utf8'
+);
 
 test('Ponudbe email settings use the shared neutral admin workspace', () => {
   assert.match(section, /data-testid="quote-email-settings-section"/u);
@@ -42,7 +49,7 @@ test('Ponudbe email settings use the shared neutral admin workspace', () => {
 test('events use the canonical admin table while templates and queue retain responsive shared controls', () => {
   const eventsIndex = section.indexOf('id="quote-email-events-heading"');
   const templatesIndex = section.indexOf(
-    'data-testid="quote-email-message-templates"'
+    'testId="quote-email-message-templates"'
   );
   const queueIndex = section.indexOf('data-testid="quote-email-queue-card"');
   assert.ok(
@@ -74,13 +81,15 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(section, /testId="quote-email-template-event"/u);
   assert.match(section, /ariaLabel="Dogodek ponudbe"/u);
   assert.match(section, /onChange=\{setSelectedEvent\}/u);
-  assert.match(section, /data-testid="quote-email-message-templates"/u);
+  assert.match(section, /testId="quote-email-message-templates"/u);
   assert.doesNotMatch(
     section.slice(templatesIndex, queueIndex),
     /Pošiljanje ponudb/u
   );
-  assert.match(section, /data-testid="quote-email-template-grid"/u);
-  assert.match(section, /mt-3 grid min-w-0 gap-3 lg:grid-cols-2/u);
+  assert.match(section, /workspaceTestId="quote-email-template-grid"/u);
+  assert.match(section, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(section, /headingLevel=\{3\}/u);
+  assert.match(templateWorkspace, /grid min-w-0 gap-4 xl:grid-cols-2 xl:items-start/u);
   assert.match(section, /data-testid="quote-email-queue-grid"/u);
   assert.match(section, />Čakalna vrsta ponudb<\/h3>/u);
   assert.match(section, /grid grid-cols-2 gap-3 sm:grid-cols-4/u);
@@ -111,43 +120,41 @@ test('events use the canonical admin table while templates and queue retain resp
     /text-base font-semibold tabular-nums text-slate-900/u
   );
   assert.match(queueMetricCard, /text-xs text-slate-500/u);
-  assert.match(section, /inputClassName[^\n]*mt-1\.5/u);
-  assert.match(section, /min-h-24 w-full resize-y rounded-md/u);
+  assert.match(templateWorkspace, /inputClassName[^\n]*mt-1\.5/u);
+  assert.match(templateWorkspace, /min-h-40 w-full resize-y rounded-md/u);
   assert.match(section, /<AdminCheckbox/u);
-  assert.match(section, /<Button/u);
+  assert.match(templateWorkspace, /<Button/u);
   assert.match(section, /<IconButton/u);
   assert.match(section, /<TrashCanIcon/u);
   assert.match(section, /<RefreshCw/u);
   assert.match(section, /<ConfirmDialog/u);
   assert.doesNotMatch(section, /<AdminTablePrimaryActionButton/u);
-  assert.match(section, /variant="default"[^>]*size="toolbar"[^>]*className=\{adminTableBulkHeaderButtonClassName\}/u);
-  assert.match(section, /<QuoteTemplateEditorCard/u);
-  assert.match(section, /Ponastavi privzeto/u);
-  assert.match(section, /Dovoljene spremenljivke/u);
-  assert.match(section, /data-testid=\{`quote-email-template-\$\{audience\}`\}/u);
-  assert.match(section, /audience: 'customer' \| 'admin'/u);
-  assert.match(section, /title=\{audience === 'customer' \? 'Stranka' : 'Administrator'\}/u);
-  assert.match(section, /aria-label=\{`Zadeva za \$\{audienceLabel\}`\}/u);
-  assert.match(section, /aria-label=\{`Vsebina za \$\{audienceLabel\}`\}/u);
-  assert.match(
-    section,
-    /aria-label=\{`Ponastavi privzeto predlogo za \$\{audienceLabel\}`\}/u
-  );
-  assert.match(
-    section,
-    /aria-label=\{`Dovoljene spremenljivke za \$\{audienceLabel\}`\}/u
-  );
-  assert.match(section, /QUOTE_EMAIL_TEMPLATE_VARIABLES\.map/u);
+  assert.match(templateWorkspace, /variant="default"/u);
+  assert.match(templateWorkspace, /adminTableBulkHeaderButtonClassName/u);
+  assert.doesNotMatch(section, /QuoteTemplateEditorCard/u);
+  assert.match(templateWorkspace, /resetLabel = 'Ponastavi privzeto'/u);
+  assert.match(templateWorkspace, /editor\.variablesLabel \?\? 'Dovoljene spremenljivke'/u);
+  assert.match(section, /testId: `quote-email-template-\$\{quotePreviewAudience\}`/u);
+  assert.match(section, /selectedAudienceTitle/u);
+  assert.match(section, /label: `Zadeva za \$\{selectedAudienceLabel\}`/u);
+  assert.match(section, /label: `Vsebina za \$\{selectedAudienceLabel\}`/u);
+  assert.match(section, /resetAriaLabel=\{`Ponastavi privzeto predlogo za \$\{selectedAudienceLabel\}`\}/u);
+  assert.match(section, /variablesAriaLabel: `Dovoljene spremenljivke za \$\{selectedAudienceLabel\}`/u);
+  assert.match(templateWorkspace, /editor\.variables\.map/u);
   assert.match(section, /buildQuoteEmailMessage/u);
   assert.match(section, /sharedSettings: OrderEmailSettings/u);
   assert.match(section, /quoteSettings: draft/u);
-  assert.match(section, /testId="quote-email-preview"/u);
-  assert.match(section, /testId="quote-email-preview-audience"/u);
-  assert.match(section, /<CustomSelect<QuoteEmailAudience>/u);
+  assert.match(section, /testId: 'quote-email-preview'/u);
+  assert.match(section, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
+  assert.match(section, /activeAudience=\{quotePreviewAudience\}/u);
+  assert.match(section, /onAudienceChange=\{setQuotePreviewAudience\}/u);
   assert.match(
     section,
-    /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)[\s\S]*?updateTemplate\(audience, 'subject', value\)[\s\S]*?updateTemplate\(audience, 'body', value\)[\s\S]*?resetTemplate\(audience\)/u
+    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u
   );
+  assert.equal(section.match(/<EmailTemplateRecipientToggle/gu)?.length, 2);
+  assert.match(section, /getEmailTemplateActivity\(/u);
+  assert.doesNotMatch(section, /quote-email-preview-audience|Namizje|Mobilno/u);
   assert.doesNotMatch(
     section.slice(templatesIndex, queueIndex),
     /order-email-(?:shared-content|subject-prefix|header|footer|image-attachment)/u
@@ -159,14 +166,18 @@ test('density refactor preserves quote email behavior and accessible controls', 
   assert.match(section, /QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS\.map/u);
   assert.match(section, /aria-label=\{`\$\{definition\.label\}: stranka`\}/u);
   assert.match(section, /aria-label=\{`\$\{definition\.label\}: admin`\}/u);
-  assert.doesNotMatch(section, /Uredi predlogo|aria-pressed|aria-selected/u);
+  assert.doesNotMatch(section, /Uredi predlogo|aria-pressed/u);
+  assert.match(templateWorkspace, /role="switch"/u);
+  assert.match(templateWorkspace, /aria-checked=\{checked\}/u);
+  assert.match(templateWorkspace, /<EuiTabs/u);
+  assert.match(templateWorkspace, /surface="panel"/u);
   assert.match(section, /data-testid=\{`quote-email-event-\$\{definition\.value\}-customer`\}/u);
   assert.match(section, /data-testid=\{`quote-email-event-\$\{definition\.value\}-admins`\}/u);
   assert.match(section, /updateEvent\(definition\.value/u);
   assert.match(section, /const updateTemplate = \([\s\S]*?audience: 'customer' \| 'admin'/u);
-  assert.match(section, /updateTemplate\(audience, 'subject', value\)/u);
-  assert.match(section, /updateTemplate\(audience, 'body', value\)/u);
-  assert.match(section, /Zadeva za \$\{audienceLabel\}/u);
+  assert.match(section, /updateTemplate\(quotePreviewAudience, 'subject', value\)/u);
+  assert.match(section, /updateTemplate\(quotePreviewAudience, 'body', value\)/u);
+  assert.match(section, /Zadeva za \$\{selectedAudienceLabel\}/u);
   assert.match(section, /fetch\('\/api\/admin\/quote-email-settings'/u);
   assert.match(section, /fetch\(`\/api\/admin\/quote-email-jobs\/\$\{jobId\}\/retry`/u);
   assert.match(section, /fetch\(`\/api\/admin\/quote-email-jobs\/\$\{candidate\.id\}`[\s\S]*?method: 'DELETE'/u);

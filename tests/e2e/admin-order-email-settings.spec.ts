@@ -595,10 +595,6 @@ test("admin can configure order email settings and templates without sending mai
       (element) => getComputedStyle(element).backgroundColor,
     );
     await selectCustomOption(page, quoteTemplateEvent, "Ponudba izdana");
-    await expect(quoteTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "info",
-    );
     await expect(
       page.getByRole("heading", { name: "Predloge sporočil", exact: true }),
     ).toBeVisible();
@@ -610,37 +606,80 @@ test("admin can configure order email settings and templates without sending mai
     const issuedQuoteTemplateBackground = await quoteTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
-    expect(issuedQuoteTemplateBackground).not.toBe(
-      initialQuoteTemplateBackground,
-    );
+    expect(issuedQuoteTemplateBackground).toBe(initialQuoteTemplateBackground);
     await selectCustomOption(page, quoteTemplateEvent, "Ponudba sprejeta");
-    await expect(quoteTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "success",
-    );
     const acceptedQuoteTemplateBackground = await quoteTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
     await selectCustomOption(page, quoteTemplateEvent, "Ponudba zavrnjena");
-    await expect(quoteTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "danger",
-    );
     const declinedQuoteTemplateBackground = await quoteTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
-    expect(
-      new Set([
-        initialQuoteTemplateBackground,
-        issuedQuoteTemplateBackground,
-        acceptedQuoteTemplateBackground,
-        declinedQuoteTemplateBackground,
-      ]).size,
-    ).toBe(4);
+    expect(acceptedQuoteTemplateBackground).toBe(initialQuoteTemplateBackground);
+    expect(declinedQuoteTemplateBackground).toBe(initialQuoteTemplateBackground);
+    await expect(quoteTemplateSection).not.toHaveAttribute("data-status-tone");
     await selectCustomOption(page, quoteTemplateEvent, "Povpraševanje prejeto");
+    const quoteCustomerTab = quoteTemplateSection.getByRole("tab", {
+      name: "Stranka",
+      exact: true,
+    });
+    const quoteAdminTab = quoteTemplateSection.getByRole("tab", {
+      name: "Administrator",
+      exact: true,
+    });
+    await expect(quoteCustomerTab).toHaveAttribute("aria-selected", "true");
+    await expect(quoteAdminTab).toHaveAttribute("aria-selected", "false");
+    const quoteCustomerEvent = page.getByTestId(
+      "quote-email-event-quote_request_submitted-customer",
+    );
+    const quoteAdminEvent = page.getByTestId(
+      "quote-email-event-quote_request_submitted-admins",
+    );
+    const quoteCustomerDelivery = page.getByTestId(
+      "quote-email-template-recipient-customer",
+    );
+    const quoteAdminDelivery = page.getByTestId(
+      "quote-email-template-recipient-admin",
+    );
+    const originalQuoteCustomerDelivery = await quoteCustomerEvent.isChecked();
+    const originalQuoteAdminDelivery = await quoteAdminEvent.isChecked();
+    await expect(quoteCustomerDelivery).toHaveAttribute(
+      "aria-checked",
+      String(originalQuoteCustomerDelivery),
+    );
+    await expect(quoteAdminDelivery).toHaveAttribute(
+      "aria-checked",
+      String(originalQuoteAdminDelivery),
+    );
+    await expect(
+      page.getByTestId("quote-email-message-templates-activity"),
+    ).toHaveText(
+      /^(Aktivno|Delno aktivno|Neaktivno|Začasno izklopljeno)$/u,
+    );
+    await quoteCustomerDelivery.click();
+    await expect(quoteCustomerEvent).toBeChecked({
+      checked: !originalQuoteCustomerDelivery,
+    });
+    await expect(quoteCustomerDelivery).toHaveAttribute(
+      "aria-checked",
+      String(!originalQuoteCustomerDelivery),
+    );
+    await quoteCustomerDelivery.click();
+    await expect(quoteCustomerEvent).toBeChecked({
+      checked: originalQuoteCustomerDelivery,
+    });
     const quoteCustomerTemplate = page.getByTestId(
       "quote-email-template-customer",
     );
+    const quoteCustomerSubject =
+      quoteCustomerTemplate.getByLabel("Zadeva za stranko");
+    const quoteCustomerBody =
+      quoteCustomerTemplate.getByLabel("Vsebina za stranko");
+    const quoteCustomerSubjectValue = await quoteCustomerSubject.inputValue();
+    const quoteCustomerBodyValue = await quoteCustomerBody.inputValue();
+    await quoteAdminTab.click();
+    await expect(quoteAdminTab).toHaveAttribute("aria-selected", "true");
+    await expect(quoteCustomerTemplate).toHaveCount(0);
     const quoteAdminTemplate = page.getByTestId("quote-email-template-admin");
     await expect(
       quoteAdminTemplate.getByRole("heading", {
@@ -648,12 +687,6 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    const quoteCustomerSubject =
-      quoteCustomerTemplate.getByLabel("Zadeva za stranko");
-    const quoteCustomerBody =
-      quoteCustomerTemplate.getByLabel("Vsebina za stranko");
-    const quoteCustomerSubjectValue = await quoteCustomerSubject.inputValue();
-    const quoteCustomerBodyValue = await quoteCustomerBody.inputValue();
     const quoteAdminSubject = quoteAdminTemplate.getByLabel(
       "Zadeva za administratorja",
     );
@@ -675,8 +708,13 @@ test("admin can configure order email settings and templates without sending mai
       "E2E administratorska vsebina za ponudbo {{offer_number}}.";
     await quoteAdminSubject.fill(quoteAdminSubjectValue);
     await quoteAdminBody.fill(quoteAdminBodyValue);
+    await expect(page.getByTestId("quote-email-preview-subject")).toContainText(
+      "E2E",
+    );
+    await quoteCustomerTab.click();
     await expect(quoteCustomerSubject).toHaveValue(quoteCustomerSubjectValue);
     await expect(quoteCustomerBody).toHaveValue(quoteCustomerBodyValue);
+    await quoteAdminTab.click();
     const quoteAdminVariables = quoteAdminTemplate.getByLabel(
       "Dovoljene spremenljivke za administratorja",
     );
@@ -721,6 +759,10 @@ test("admin can configure order email settings and templates without sending mai
       page.getByLabel("Dogodek ponudbe"),
       "Povpraševanje prejeto",
     );
+    await page
+      .getByTestId("quote-email-message-templates")
+      .getByRole("tab", { name: "Administrator", exact: true })
+      .click();
     const persistedQuoteAdminTemplate = page.getByTestId(
       "quote-email-template-admin",
     );
@@ -730,6 +772,10 @@ test("admin can configure order email settings and templates without sending mai
     await expect(
       persistedQuoteAdminTemplate.getByLabel("Vsebina za administratorja"),
     ).toHaveValue(quoteAdminBodyValue);
+    await page
+      .getByTestId("quote-email-message-templates")
+      .getByRole("tab", { name: "Stranka", exact: true })
+      .click();
     await expect(
       page
         .getByTestId("quote-email-template-customer")
@@ -740,14 +786,15 @@ test("admin can configure order email settings and templates without sending mai
         .getByTestId("quote-email-template-customer")
         .getByLabel("Vsebina za stranko"),
     ).toHaveValue(quoteCustomerBodyValue);
-    const quoteCustomerEvent = page.getByTestId(
+    const persistedQuoteCustomerEvent = page.getByTestId(
       "quote-email-event-quote_request_submitted-customer",
     );
-    const originalQuoteCustomerEvent = await quoteCustomerEvent.isChecked();
-    await quoteCustomerEvent.setChecked(!originalQuoteCustomerEvent);
+    const originalQuoteCustomerEvent =
+      await persistedQuoteCustomerEvent.isChecked();
+    await persistedQuoteCustomerEvent.setChecked(!originalQuoteCustomerEvent);
     await expect(quoteSaveStatus).toHaveText("Neshranjeno");
     await expect(quoteSaveButton).toBeEnabled();
-    await quoteCustomerEvent.setChecked(originalQuoteCustomerEvent);
+    await persistedQuoteCustomerEvent.setChecked(originalQuoteCustomerEvent);
     await expect(quoteSaveStatus).toHaveText("Shranjeno");
     await expect(quoteSaveButton).toBeDisabled();
     await expect(page.getByTestId("order-email-settings-save")).toHaveCount(0);
@@ -977,38 +1024,62 @@ test("admin can configure order email settings and templates without sending mai
       (element) => getComputedStyle(element).backgroundColor,
     );
     await selectCustomOption(page, templateEvent, "V obdelavi");
-    await expect(orderTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "warning",
-    );
     const inProgressTemplateBackground = await orderTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
     await selectCustomOption(page, templateEvent, "Zaključeno");
-    await expect(orderTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "success",
-    );
     const finishedTemplateBackground = await orderTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
     await selectCustomOption(page, templateEvent, "Preklicano");
-    await expect(orderTemplateSection).toHaveAttribute(
-      "data-status-tone",
-      "danger",
-    );
     const cancelledTemplateBackground = await orderTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
     );
-    expect(
-      new Set([
-        initialOrderTemplateBackground,
-        inProgressTemplateBackground,
-        finishedTemplateBackground,
-        cancelledTemplateBackground,
-      ]).size,
-    ).toBe(4);
+    expect(inProgressTemplateBackground).toBe(initialOrderTemplateBackground);
+    expect(finishedTemplateBackground).toBe(initialOrderTemplateBackground);
+    expect(cancelledTemplateBackground).toBe(initialOrderTemplateBackground);
+    await expect(orderTemplateSection).not.toHaveAttribute("data-status-tone");
     await selectCustomOption(page, templateEvent, "Naročilo prejeto");
+
+    const submittedCustomerEvent = page.getByTestId(
+      "order-email-event-order_submitted-customer",
+    );
+    const submittedAdminEvent = page.getByTestId(
+      "order-email-event-order_submitted-admins",
+    );
+    const orderCustomerDelivery = page.getByTestId(
+      "order-email-template-recipient-customer",
+    );
+    const orderAdminDelivery = page.getByTestId(
+      "order-email-template-recipient-admin",
+    );
+    const originalSubmittedCustomer = await submittedCustomerEvent.isChecked();
+    const originalSubmittedAdmin = await submittedAdminEvent.isChecked();
+    await expect(orderCustomerDelivery).toHaveAttribute(
+      "aria-checked",
+      String(originalSubmittedCustomer),
+    );
+    await expect(orderAdminDelivery).toHaveAttribute(
+      "aria-checked",
+      String(originalSubmittedAdmin),
+    );
+    await expect(
+      page.getByTestId("order-email-message-templates-activity"),
+    ).toHaveText(
+      /^(Aktivno|Delno aktivno|Neaktivno|Začasno izklopljeno)$/u,
+    );
+    await orderAdminDelivery.click();
+    await expect(submittedAdminEvent).toBeChecked({
+      checked: !originalSubmittedAdmin,
+    });
+    await expect(orderAdminDelivery).toHaveAttribute(
+      "aria-checked",
+      String(!originalSubmittedAdmin),
+    );
+    await orderAdminDelivery.click();
+    await expect(submittedAdminEvent).toBeChecked({
+      checked: originalSubmittedAdmin,
+    });
 
     const finishedCustomer = page.getByTestId(
       "order-email-event-finished-customer",
@@ -1019,6 +1090,22 @@ test("admin can configure order email settings and templates without sending mai
     await expect(ordersTab).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("order-email-orders-panel")).toBeVisible();
     await selectCustomOption(page, templateEvent, "Naročilo prejeto");
+    const orderCustomerTab = orderTemplateSection.getByRole("tab", {
+      name: "Stranka",
+      exact: true,
+    });
+    const orderSchoolTab = orderTemplateSection.getByRole("tab", {
+      name: "Šola / javni zavod",
+      exact: true,
+    });
+    const orderAdminTab = orderTemplateSection.getByRole("tab", {
+      name: "Administrator",
+      exact: true,
+    });
+    await expect(orderCustomerTab).toHaveAttribute("aria-selected", "true");
+    await expect(orderSchoolTab).toBeVisible();
+    await expect(orderAdminTab).toBeVisible();
+    await orderSchoolTab.click();
     const schoolCustomerCard = page.getByTestId(
       "order-email-template-school-customer",
     );
@@ -1028,12 +1115,9 @@ test("admin can configure order email settings and templates without sending mai
         name: "\u0160ola / javni zavod",
       }),
     ).toBeVisible();
-    await expect(
-      page.getByTestId("order-email-template-customer").getByRole("heading", {
-        name: "Stranka (fizi\u010dna oseba ali podjetje)",
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(page.getByTestId("order-email-template-customer")).toHaveCount(
+      0,
+    );
 
     const schoolCustomerSubjectValue =
       "E2E \u2013 Va\u0161e \u0161olsko naro\u010dilo je bilo prejeto";
@@ -1076,12 +1160,14 @@ test("admin can configure order email settings and templates without sending mai
     ).toHaveCount(0);
     await selectCustomOption(page, templateEvent, "V obdelavi");
     await expect(schoolCustomerCard).toHaveCount(0);
+    await expect(orderSchoolTab).toHaveCount(0);
     await expect(
       page
         .getByTestId("order-email-template-customer")
         .getByRole("heading", { name: "Stranka", exact: true }),
     ).toBeVisible();
     await selectCustomOption(page, templateEvent, "Naročilo prejeto");
+    await orderSchoolTab.click();
     await expect(schoolCustomerSubject).toHaveValue(schoolCustomerSubjectValue);
     await expect(schoolCustomerBody).toHaveValue(schoolCustomerBodyValue);
 
@@ -1089,12 +1175,23 @@ test("admin can configure order email settings and templates without sending mai
     const customerBodyValue = "E2E vsebina za stranko brez interne številke.";
     const adminSubjectValue = "E2E – Novo naročilo";
     const adminBodyValue = "E2E vsebina za administratorja.";
+    await orderCustomerTab.click();
     const orderCustomerTemplate = page.getByTestId(
       "order-email-template-customer",
     );
     const customerSubject =
       orderCustomerTemplate.getByLabel("Zadeva za stranko");
     const customerBody = orderCustomerTemplate.getByLabel("Vsebina za stranko");
+    await expectSharpAdminFocus(customerBody);
+
+    await customerSubject.fill(customerSubjectValue);
+    await customerBody.fill(customerBodyValue);
+    await expect(
+      orderCustomerTemplate.getByRole("button", {
+        name: "Ponastavi privzeto predlogo za stranko",
+      }),
+    ).toBeVisible();
+    await orderAdminTab.click();
     const orderAdminTemplate = page.getByTestId("order-email-template-admin");
     const adminSubject = orderAdminTemplate.getByLabel(
       "Zadeva za administratorja",
@@ -1102,31 +1199,27 @@ test("admin can configure order email settings and templates without sending mai
     const adminBody = orderAdminTemplate.getByLabel(
       "Vsebina za administratorja",
     );
-
-    await expectSharpAdminFocus(customerBody);
-
-    await customerSubject.fill(customerSubjectValue);
-    await customerBody.fill(customerBodyValue);
     await adminSubject.fill(adminSubjectValue);
     await adminBody.fill(adminBodyValue);
-    await expect(
-      orderCustomerTemplate.getByRole("button", {
-        name: "Ponastavi privzeto predlogo za stranko",
-      }),
-    ).toBeVisible();
+    await expect(page.getByTestId("order-email-preview-subject")).toContainText(
+      "E2E",
+    );
     await expect(
       orderAdminTemplate.getByRole("button", {
         name: "Ponastavi privzeto predlogo za administratorja",
       }),
     ).toBeVisible();
+    await orderCustomerTab.click();
 
     await settingsTab.click();
     await expect(page.getByTestId("order-email-settings-panel")).toBeVisible();
     await ordersTab.click();
     await expect(customerSubject).toHaveValue(customerSubjectValue);
     await expect(customerBody).toHaveValue(customerBodyValue);
+    await orderAdminTab.click();
     await expect(adminSubject).toHaveValue(adminSubjectValue);
     await expect(adminBody).toHaveValue(adminBodyValue);
+    await orderCustomerTab.click();
 
     let releaseDelayedSave!: () => void;
     const delayedSaveGate = new Promise<void>((resolve) => {
@@ -1195,12 +1288,20 @@ test("admin can configure order email settings and templates without sending mai
     );
     await expect(customerSubject).toHaveValue(customerSubjectValue);
     await expect(customerBody).toHaveValue(customerBodyAfterSaveStarted);
+    await page
+      .getByTestId("order-email-message-templates")
+      .getByRole("tab", { name: "Šola / javni zavod", exact: true })
+      .click();
     await expect(
       page.getByLabel("Zadeva za \u0161olo ali javni zavod"),
     ).toHaveValue(schoolCustomerSubjectValue);
     await expect(
       page.getByLabel("Vsebina za \u0161olo ali javni zavod"),
     ).toHaveValue(schoolCustomerBodyValue);
+    await page
+      .getByTestId("order-email-message-templates")
+      .getByRole("tab", { name: "Administrator", exact: true })
+      .click();
     await expect(
       page
         .getByTestId("order-email-template-admin")
@@ -1211,6 +1312,10 @@ test("admin can configure order email settings and templates without sending mai
         .getByTestId("order-email-template-admin")
         .getByLabel("Vsebina za administratorja"),
     ).toHaveValue(adminBodyValue);
+    await page
+      .getByTestId("order-email-message-templates")
+      .getByRole("tab", { name: "Stranka", exact: true })
+      .click();
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(settingsTab).toBeVisible();
@@ -1230,36 +1335,39 @@ test("admin can configure order email settings and templates without sending mai
     const customerTemplateCard = page.getByTestId(
       "order-email-template-customer",
     );
-    const adminTemplateCard = page.getByTestId("order-email-template-admin");
-    const [customerCardBox, adminCardBox] = await Promise.all([
+    await expect(customerTemplateCard).toBeVisible();
+    await expect(page.getByTestId("order-email-template-admin")).toHaveCount(0);
+    await expect(
+      page.getByTestId("order-email-template-school-customer"),
+    ).toHaveCount(0);
+    const orderPreviewPanel = page.getByTestId("order-email-preview");
+    const [customerCardBox, previewBox] = await Promise.all([
       customerTemplateCard.boundingBox(),
-      adminTemplateCard.boundingBox(),
+      orderPreviewPanel.boundingBox(),
     ]);
-    if (!customerCardBox || !adminCardBox) {
+    if (!customerCardBox || !previewBox) {
       throw new Error(
-        "Email template cards must be rendered on the mobile viewport.",
+        "The email editor and preview must render on the mobile viewport.",
       );
     }
-    expect(Math.abs(customerCardBox.x - adminCardBox.x)).toBeLessThanOrEqual(1);
-    expect(adminCardBox.y).toBeGreaterThanOrEqual(
+    expect(Math.abs(customerCardBox.x - previewBox.x)).toBeLessThanOrEqual(20);
+    expect(previewBox.y).toBeGreaterThanOrEqual(
       customerCardBox.y + customerCardBox.height,
     );
-    const schoolTemplateCard = page.getByTestId(
-      "order-email-template-school-customer",
-    );
-    const schoolCardBox = await schoolTemplateCard.boundingBox();
-    if (!schoolCardBox) {
-      throw new Error("The school email template card must render on mobile.");
-    }
-    expect(Math.abs(customerCardBox.x - schoolCardBox.x)).toBeLessThanOrEqual(
-      1,
-    );
-    expect(schoolCardBox.y).toBeGreaterThanOrEqual(
-      customerCardBox.y + customerCardBox.height,
-    );
-    expect(adminCardBox.y).toBeGreaterThanOrEqual(
-      schoolCardBox.y + schoolCardBox.height,
-    );
+    await orderTemplateSection
+      .getByRole("tab", { name: "Šola / javni zavod", exact: true })
+      .click();
+    await expect(
+      page.getByTestId("order-email-template-school-customer"),
+    ).toBeVisible();
+    await expect(customerTemplateCard).toHaveCount(0);
+    await orderTemplateSection
+      .getByRole("tab", { name: "Administrator", exact: true })
+      .click();
+    await expect(page.getByTestId("order-email-template-admin")).toBeVisible();
+    await expect(
+      page.getByTestId("order-email-template-school-customer"),
+    ).toHaveCount(0);
   } finally {
     const [restoreResponse, restoreQuoteResponse] = await Promise.all([
       page.request.put("/api/admin/order-email-settings", {

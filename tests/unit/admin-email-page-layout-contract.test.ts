@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import { isolateEmailPreviewHtml } from "../../src/admin/features/email/components/EmailMessagePreview";
+import { getEmailTemplateActivity } from "../../src/admin/features/email/components/EmailTemplateWorkspace";
 
 const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), "utf8");
@@ -127,7 +128,7 @@ test("email sections are assigned to compact persistent tab panels without losin
   assert.match(quotesSource, /AdminQuoteEmailSettingsSection/u);
   const quoteEvents = quoteUi.indexOf('id="quote-email-events-heading"');
   const quoteTemplates = quoteUi.indexOf(
-    'data-testid="quote-email-message-templates"',
+    'testId="quote-email-message-templates"',
   );
   const quoteQueue = quoteUi.indexOf('data-testid="quote-email-queue-card"');
   assert.ok(
@@ -137,17 +138,13 @@ test("email sections are assigned to compact persistent tab panels without losin
   );
   assert.doesNotMatch(quoteUi, /Pošiljanje ponudb/u);
   const quoteTemplateSource = quoteUi.slice(quoteTemplates, quoteQueue);
+  assert.match(quoteUi, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(quoteTemplateSource, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
+  assert.match(quoteTemplateSource, /activeAudience=\{quotePreviewAudience\}/u);
+  assert.match(quoteTemplateSource, /onAudienceChange=\{setQuotePreviewAudience\}/u);
   assert.match(
     quoteTemplateSource,
-    /\(\['customer', 'admin'\] as const\)\.map\(\(audience\)/u,
-  );
-  assert.match(
-    quoteTemplateSource,
-    /audience=\{audience\}[\s\S]*?title=\{audience === 'customer' \? 'Stranka' : 'Administrator'\}/u,
-  );
-  assert.match(
-    quoteTemplateSource,
-    /updateTemplate\(audience, 'subject', value\)[\s\S]*?updateTemplate\(audience, 'body', value\)[\s\S]*?resetTemplate\(audience\)/u,
+    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
   );
   assert.doesNotMatch(
     quoteTemplateSource,
@@ -214,6 +211,9 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   const ui = source(
     "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
   );
+  const templateWorkspace = source(
+    "src/admin/features/email/components/EmailTemplateWorkspace.tsx",
+  );
 
   assert.ok(ui.includes("font-['Inter',system-ui,sans-serif]"));
   assert.match(ui, /AdminTablePrimaryActionButton/u);
@@ -234,7 +234,16 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   assert.match(ui, /adminTableBodyCellLeftClassName/u);
   assert.match(ui, /adminTableRowHeightClassName/u);
   assert.match(ui, /table-fixed text-\[12px\]/u);
-  assert.match(ui, /rounded-lg border border-slate-200 bg-slate-50\/60 p-4/u);
+  assert.match(ui, /<EmailTemplateWorkspace<TemplateAudience>/u);
+  assert.match(templateWorkspace, /xl:grid-cols-2 xl:items-start/u);
+  assert.match(templateWorkspace, /<EuiTabs/u);
+  assert.match(templateWorkspace, /surface="panel"/u);
+  assert.match(templateWorkspace, /<EmailMessagePreview \{\.\.\.preview\} variant="workspace"/u);
+  assert.match(templateWorkspace, /export function EmailTemplateRecipientToggle/u);
+  assert.match(templateWorkspace, /role="switch"/u);
+  assert.match(templateWorkspace, /aria-checked=\{checked\}/u);
+  assert.doesNotMatch(templateWorkspace, /Namizje|Mobilno/u);
+  assert.match(templateWorkspace, /headingLevel\?: 2 \| 3/u);
   assert.match(ui, /<EmailQueueMetricCard/u);
   assert.match(ui, /data-testid="order-email-save-status"/u);
   assert.match(ui, /data-testid="quote-email-save-status"/u);
@@ -263,6 +272,19 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   );
 });
 
+test("template activity reflects both the master switch and selected recipients", () => {
+  assert.equal(getEmailTemplateActivity(true, true, true).label, "Aktivno");
+  assert.equal(
+    getEmailTemplateActivity(true, true, false).label,
+    "Delno aktivno",
+  );
+  assert.equal(getEmailTemplateActivity(true, false, false).label, "Neaktivno");
+  assert.equal(
+    getEmailTemplateActivity(false, true, true).label,
+    "Začasno izklopljeno",
+  );
+});
+
 test("template event CustomSelect keeps the visible label target and stable test hook", () => {
   const ui = source(
     "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
@@ -283,7 +305,7 @@ test("template event CustomSelect keeps the visible label target and stable test
   assert.match(customSelect, /data-testid=\{testId\}/u);
 });
 
-test("order email events and selected template section use shared lifecycle tones", () => {
+test("order events keep lifecycle tones while templates expose delivery activity", () => {
   const ui = source(
     "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
   );
@@ -292,16 +314,18 @@ test("order email events and selected template section use shared lifecycle tone
   assert.match(ui, /getOrderEmailEventStatusPresentation\(eventKey\)/u);
   assert.match(ui, /order-email-event-row-/u);
   assert.match(ui, /data-status-tone=\{statusPresentation\.tone\}/u);
-  assert.match(
-    ui,
-    /className=\{selectedTemplateStatusPresentation\.sectionClassName\}/u,
-  );
-  assert.match(ui, /statusTone=\{selectedTemplateStatusPresentation\.tone\}/u);
+  assert.match(ui, /getEmailTemplateActivity\(/u);
+  assert.match(ui, /activity=\{selectedTemplateActivity\}/u);
+  assert.match(ui, /<EmailTemplateRecipientToggle/u);
+  assert.doesNotMatch(ui, /selectedTemplateStatusPresentation/u);
 });
 
 test("converted order email Inputs keep accessible names aligned with their visible labels", () => {
   const ui = source(
     "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
+  );
+  const templateWorkspace = source(
+    "src/admin/features/email/components/EmailTemplateWorkspace.tsx",
   );
 
   for (const [id, label] of [
@@ -315,10 +339,10 @@ test("converted order email Inputs keep accessible names aligned with their visi
     assert.match(ui, new RegExp(`id="${id}"\\s+aria-label="${label}"`, "u"));
   }
 
-  assert.match(
-    ui,
-    /id=\{subjectId\}\s+aria-label=\{`Zadeva za \$\{audienceLabel\}`\}/u,
-  );
+  assert.match(ui, /label: `Zadeva za \$\{selectedTemplateAudienceMeta\.label\}`/u);
+  assert.match(ui, /label: `Vsebina za \$\{selectedTemplateAudienceMeta\.label\}`/u);
+  assert.match(templateWorkspace, /aria-label=\{editor\.subject\.label\}/u);
+  assert.match(templateWorkspace, /aria-label=\{editor\.body\.label\}/u);
   assert.match(
     ui,
     /id=\{`order-email-admin-\$\{index\}`\}\s+aria-label=\{`E-poštni naslov administratorja \$\{index \+ 1\}`\}/u,
@@ -402,16 +426,20 @@ test("order and quote templates expose live audience previews from their unsaved
   assert.match(orderUi, /toStoredOrderEmailSettings/u);
   assert.match(orderUi, /buildOrderEmailPreviewMessage\(\s*draft,/u);
   assert.match(orderUi, /imageUrl: null/u);
-  assert.match(orderUi, /testId="order-email-preview"/u);
-  assert.match(orderUi, /testId="order-email-preview-audience"/u);
+  assert.match(orderUi, /testId: "order-email-preview"/u);
+  assert.match(orderUi, /activeAudience=\{orderPreviewAudience\}/u);
+  assert.match(orderUi, /onAudienceChange=\{\(audience\) => \{/u);
   assert.match(orderUi, /Šola \/ javni zavod/u);
   assert.match(orderUi, /sharedSettings=\{draft\}/u);
 
   assert.match(quoteUi, /buildQuoteEmailMessage/u);
   assert.match(quoteUi, /quoteSettings: draft/u);
   assert.match(quoteUi, /\.\.\.sharedSettings/u);
-  assert.match(quoteUi, /testId="quote-email-preview"/u);
-  assert.match(quoteUi, /testId="quote-email-preview-audience"/u);
+  assert.match(quoteUi, /testId: 'quote-email-preview'/u);
+  assert.match(quoteUi, /activeAudience=\{quotePreviewAudience\}/u);
+  assert.match(quoteUi, /onAudienceChange=\{setQuotePreviewAudience\}/u);
+  assert.doesNotMatch(orderUi, /order-email-preview-audience/u);
+  assert.doesNotMatch(quoteUi, /quote-email-preview-audience/u);
   assert.doesNotMatch(
     orderUi,
     /fetch\(["']\/api\/admin\/order-email-settings\/preview/u,

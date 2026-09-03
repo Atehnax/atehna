@@ -396,7 +396,7 @@ test("admin can configure order email settings and templates without sending mai
         .getByText("Pošiljanje ponudb", { exact: true }),
     ).toHaveCount(0);
     const quoteDeliverySwitch = quoteDeliverySettings.getByRole("switch", {
-      name: /poslovno e-pošto za ponudbe/u,
+      name: /e-pošto za ponudbe/u,
     });
     await expect(quoteDeliverySwitch).toHaveCount(1);
     await expect(quoteDeliverySwitch).toHaveAttribute(

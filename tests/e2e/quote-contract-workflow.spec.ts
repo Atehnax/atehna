@@ -2775,12 +2775,20 @@ test.describe('quote and seller-contract workflow', () => {
         status: 'pending'
       });
       await expect.poll(async () => {
-        const retry = await database.query<{ status: string }>(
-          'select status from quote_email_jobs where id = $1',
+        const retry = await database.query<{
+          status: string;
+          attempts: number;
+          last_error: string | null;
+        }>(
+          'select status, attempts, last_error from quote_email_jobs where id = $1',
           [jobId]
         );
-        return retry.rows[0]?.status;
-      }).toBe('pending');
+        return retry.rows[0];
+      }).toMatchObject({
+        status: 'failed',
+        attempts: 1,
+        last_error: expect.stringContaining('RESEND_API_KEY')
+      });
 
       const verificationId = await verifyOfferEmail(offer, session);
       const idempotencyKey = `quote-accept-${randomUUID()}`;

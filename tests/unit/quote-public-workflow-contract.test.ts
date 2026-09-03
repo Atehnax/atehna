@@ -115,6 +115,11 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /Povpraševanje je poslano/u);
   assert.match(confirmation, /Okvirni izračun/u);
   assert.match(confirmation, /Zaloga ni rezervirana/u);
+  assert.match(confirmation, /Podatki o povpraševanju/u);
+  assert.match(
+    confirmation,
+    /Vrsta naročnika[\s\S]*?Kontakt[\s\S]*?Naročnik[\s\S]*?Naslov/u
+  );
   assert.match(confirmation, /<SubmissionStatusPanel/u);
   assert.match(orderStatus, /<SubmissionStatusPanel/u);
   assert.match(sharedStatus, /data-confirmation-status/u);
@@ -139,6 +144,18 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /Brez slike/u);
   assert.match(confirmationApi, /'imageUrl', item\.image_url/u);
   assert.match(confirmationContract, /imageUrl: string \| null/u);
+  assert.match(
+    confirmationApi,
+    /request\.address_line1,[\s\S]*?request\.address_line2,[\s\S]*?request\.city,[\s\S]*?request\.postal_code/u
+  );
+  assert.match(
+    confirmationApi,
+    /addressLine1: row\.address_line1,[\s\S]*?addressLine2: row\.address_line2,[\s\S]*?city: row\.city,[\s\S]*?postalCode: row\.postal_code/u
+  );
+  assert.match(
+    confirmationContract,
+    /addressLine1: string \| null;[\s\S]*?addressLine2: string \| null;[\s\S]*?city: string \| null;[\s\S]*?postalCode: string \| null;/u
+  );
   assert.doesNotMatch(confirmation, /ShippingCalculationRows/u);
   assert.match(
     confirmation,

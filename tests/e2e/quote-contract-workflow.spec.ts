@@ -831,9 +831,29 @@ test.describe('quote and seller-contract workflow', () => {
       await requireOk(confirmationResponse, 'quote confirmation');
       const confirmationSnapshot = (await confirmationResponse.json()) as {
         requestNumber?: unknown;
+        customer?: {
+          customerType?: unknown;
+          organizationName?: unknown;
+          contactName?: unknown;
+          email?: unknown;
+          addressLine1?: unknown;
+          addressLine2?: unknown;
+          city?: unknown;
+          postalCode?: unknown;
+        };
         items?: Array<{ imageUrl?: string | null }>;
       };
       expect(confirmationSnapshot).not.toHaveProperty('requestNumber');
+      expect(confirmationSnapshot.customer).toEqual({
+        customerType: 'individual',
+        organizationName: null,
+        contactName: 'E2E kupec',
+        email: fixture.email,
+        addressLine1: 'Testna ulica 1',
+        addressLine2: null,
+        city: 'Ljubljana',
+        postalCode: '1000'
+      });
       expect(confirmationSnapshot.items?.[0]?.imageUrl).toBe(
         '/images/categories/materiali.png'
       );
@@ -845,6 +865,18 @@ test.describe('quote and seller-contract workflow', () => {
         'src',
         /materiali/u
       );
+      const customerSection = confirmationPage.getByTestId(
+        'quote-request-confirmation-customer-section'
+      );
+      await expect(
+        customerSection.getByRole('heading', {
+          name: 'Podatki o povpraševanju',
+          exact: true
+        })
+      ).toBeVisible();
+      await expect(customerSection).toContainText(fixture.email);
+      await expect(customerSection).toContainText('Testna ulica 1');
+      await expect(customerSection).toContainText('1000 Ljubljana');
       const confirmationShippingRows = confirmationPage.locator(
         '[data-summary-row="shipping"]'
       );

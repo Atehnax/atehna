@@ -13,7 +13,11 @@ const confirmationSnapshot = {
     customerType: 'company',
     organizationName: 'Primer, d. o. o.',
     contactName: 'Maja Primer',
-    email: 'maja@example.com'
+    email: 'maja@example.com',
+    addressLine1: 'Slovenska cesta 1',
+    addressLine2: '2. nadstropje',
+    city: 'Ljubljana',
+    postalCode: '1000'
   },
   items: [
     {
@@ -90,6 +94,9 @@ test.describe('quote request confirmation layout', () => {
     const card = page.getByTestId('quote-request-confirmation-content-card');
     const primary = page.getByTestId('quote-request-confirmation-items-section');
     const secondary = page.getByTestId('quote-request-confirmation-summary');
+    const customer = page.getByTestId(
+      'quote-request-confirmation-customer-section'
+    );
 
     await expect(status).toHaveAttribute('role', 'status');
     await expect(status).toHaveAttribute('data-confirmation-tone', 'success');
@@ -122,23 +129,49 @@ test.describe('quote request confirmation layout', () => {
       secondary.locator('[data-summary-row="shipping"]')
     ).toContainText('Po dogovoru');
     await expect(root).not.toContainText('Skupaj za plačilo');
+    await expect(
+      customer.getByRole('heading', {
+        name: 'Podatki o povpraševanju',
+        exact: true
+      })
+    ).toBeVisible();
+    await expect(customer.locator('dt')).toHaveText([
+      'Vrsta naročnika',
+      'Kontakt',
+      'Naročnik',
+      'Naslov'
+    ]);
+    await expect(customer.getByText('Podjetje', { exact: true })).toBeVisible();
+    await expect(customer.getByText('Maja Primer', { exact: true })).toBeVisible();
+    await expect(customer.getByText('maja@example.com', { exact: true })).toBeVisible();
+    await expect(customer.getByText('Primer, d. o. o.', { exact: true })).toBeVisible();
+    await expect(customer.getByText('Slovenska cesta 1', { exact: true })).toBeVisible();
+    await expect(customer.getByText('2. nadstropje', { exact: true })).toBeVisible();
+    await expect(customer.getByText('1000 Ljubljana', { exact: true })).toBeVisible();
 
-    const [statusBox, cardBox, primaryBox, secondaryBox] = await Promise.all([
+    const [statusBox, cardBox, primaryBox, secondaryBox, customerBox] = await Promise.all([
       status.boundingBox(),
       card.boundingBox(),
       primary.boundingBox(),
-      secondary.boundingBox()
+      secondary.boundingBox(),
+      customer.boundingBox()
     ]);
     expect(statusBox).not.toBeNull();
     expect(cardBox).not.toBeNull();
     expect(primaryBox).not.toBeNull();
     expect(secondaryBox).not.toBeNull();
+    expect(customerBox).not.toBeNull();
     expect(Math.abs(statusBox!.x - cardBox!.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(statusBox!.width - cardBox!.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(primaryBox!.y - secondaryBox!.y)).toBeLessThanOrEqual(1);
     expect(
       Math.abs(primaryBox!.x + primaryBox!.width - secondaryBox!.x)
     ).toBeLessThanOrEqual(1);
+    expect(Math.abs(primaryBox!.x - customerBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(primaryBox!.width - customerBox!.width)).toBeLessThanOrEqual(1);
+    expect(customerBox!.y).toBeGreaterThanOrEqual(
+      primaryBox!.y + primaryBox!.height - 1
+    );
 
     const desktopStyle = await card.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -168,16 +201,24 @@ test.describe('quote request confirmation layout', () => {
     const card = page.getByTestId('quote-request-confirmation-content-card');
     const primary = page.getByTestId('quote-request-confirmation-items-section');
     const secondary = page.getByTestId('quote-request-confirmation-summary');
+    const customer = page.getByTestId(
+      'quote-request-confirmation-customer-section'
+    );
 
     await expect(heading).toHaveCSS('font-size', '24px');
-    const [primaryBox, secondaryBox] = await Promise.all([
+    const [primaryBox, secondaryBox, customerBox] = await Promise.all([
       primary.boundingBox(),
-      secondary.boundingBox()
+      secondary.boundingBox(),
+      customer.boundingBox()
     ]);
     expect(primaryBox).not.toBeNull();
     expect(secondaryBox).not.toBeNull();
+    expect(customerBox).not.toBeNull();
     expect(secondaryBox!.y).toBeGreaterThanOrEqual(
       primaryBox!.y + primaryBox!.height - 1
+    );
+    expect(customerBox!.y).toBeGreaterThanOrEqual(
+      secondaryBox!.y + secondaryBox!.height - 1
     );
 
     const mobileLayout = await card.evaluate((element) => {

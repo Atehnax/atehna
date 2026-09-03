@@ -33,6 +33,10 @@ export async function GET(request: NextRequest) {
           request.organization_name,
           request.contact_name,
           request.email,
+          request.address_line1,
+          request.address_line2,
+          request.city,
+          request.postal_code,
           request.created_at,
           request.estimate_json,
           coalesce(
@@ -74,7 +78,11 @@ export async function GET(request: NextRequest) {
           customerType: row.customer_type,
           organizationName: row.organization_name,
           contactName: row.contact_name,
-          email: row.email
+          email: row.email,
+          addressLine1: row.address_line1,
+          addressLine2: row.address_line2,
+          city: row.city,
+          postalCode: row.postal_code
         },
         requestedAt:
           row.created_at instanceof Date

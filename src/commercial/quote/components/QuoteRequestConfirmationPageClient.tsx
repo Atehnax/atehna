@@ -34,6 +34,12 @@ const formatDate = (value: string) => {
       }).format(parsed);
 };
 
+const customerTypeLabel = (value?: string) => {
+  if (value === 'company') return 'Podjetje';
+  if (value === 'school') return 'Šola ali javni zavod';
+  return 'Zasebni naročnik';
+};
+
 const buildConfirmationItemTitle = (
   productName: string,
   variantName?: string
@@ -151,6 +157,16 @@ export default function QuoteRequestConfirmationPageClient() {
 
   const { snapshot } = state;
   const submittedAt = formatDate(snapshot.requestedAt);
+  const customer = snapshot.customer;
+  const postalAddressLine = [customer.postalCode, customer.city]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(' ');
+  const addressLines = [
+    customer.addressLine1?.trim(),
+    customer.addressLine2?.trim(),
+    postalAddressLine
+  ].filter((value): value is string => Boolean(value));
   return (
     <div data-confirmation-shell>
       <SubmissionStatusPanel
@@ -230,7 +246,7 @@ export default function QuoteRequestConfirmationPageClient() {
         </section>
 
         <aside
-          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-start-1 lg:border-l lg:border-t-0"
+          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-t-0"
           data-testid="quote-request-confirmation-summary"
           data-confirmation-region="secondary"
           aria-labelledby="quote-confirmation-summary-heading"
@@ -299,6 +315,65 @@ export default function QuoteRequestConfirmationPageClient() {
             Nazaj v katalog
           </Link>
         </aside>
+
+        <section
+          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-1 lg:row-start-2"
+          data-testid="quote-request-confirmation-customer-section"
+          data-confirmation-region="customer"
+          aria-labelledby="quote-confirmation-customer-heading"
+        >
+          <h2
+            id="quote-confirmation-customer-heading"
+            className="text-xl font-semibold"
+          >
+            Podatki o povpraševanju
+          </h2>
+          <dl className="mt-4 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[color:var(--site-color-text-muted)]">
+                Vrsta naročnika
+              </dt>
+              <dd className="mt-1 font-semibold">
+                {customerTypeLabel(customer.customerType)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[color:var(--site-color-text-muted)]">
+                Kontakt
+              </dt>
+              <dd className="mt-1 break-words">
+                {customer.contactName ? (
+                  <span className="block font-semibold">
+                    {customer.contactName}
+                  </span>
+                ) : null}
+                <span>{customer.email || '—'}</span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[color:var(--site-color-text-muted)]">
+                Naročnik
+              </dt>
+              <dd className="mt-1 font-semibold">
+                {customer.organizationName || customer.contactName || '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[color:var(--site-color-text-muted)]">
+                Naslov
+              </dt>
+              <dd className="mt-1 font-semibold">
+                {addressLines.length > 0
+                  ? addressLines.map((line, index) => (
+                      <span key={`${index}-${line}`} className="block">
+                        {line}
+                      </span>
+                    ))
+                  : '—'}
+              </dd>
+            </div>
+          </dl>
+        </section>
       </article>
     </div>
   );

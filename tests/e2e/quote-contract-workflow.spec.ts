@@ -524,7 +524,9 @@ async function verifyOfferEmail(offer: IssuedOffer, session: OfferSession) {
       offerVersionId: offer.quoteOfferVersionId
     })
   ) as EmailEnvelope;
-  const code = otpEnvelope.message?.text?.match(/\b(\d{6})\b/u)?.[1];
+  const code = otpEnvelope.message?.text?.match(
+    /enkratna varnostna koda je\s+(\d{6})\b/iu
+  )?.[1];
   expect(code).toMatch(/^\d{6}$/u);
   const verifyResponse = await offer.context.request.post(
     '/api/quote-requests/offer/otp/verify',

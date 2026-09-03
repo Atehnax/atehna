@@ -31,7 +31,6 @@ async function main() {
         QUOTE_ADMIN_ENABLED: '1',
         QUOTE_PUBLIC_REQUESTS_ENABLED: '1',
         QUOTE_ONLINE_ACCEPTANCE_ENABLED: '1',
-        QUOTE_EMAIL_DELIVERY_ENABLED: '1',
         CRON_SECRET: 'e2e-only-quote-cron-secret-with-at-least-32-characters',
         RESEND_API_KEY: '',
         E2E_MODE: '1',

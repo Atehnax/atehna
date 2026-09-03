@@ -22,7 +22,3 @@ export function arePublicQuoteRequestsEnabled(): boolean {
 export function isQuoteOnlineAcceptanceEnabled(): boolean {
   return getQuoteFeatureFlags().onlineAcceptance;
 }
-
-export function isQuoteEmailDeliveryEnabled(): boolean {
-  return getQuoteFeatureFlags().emailDelivery;
-}

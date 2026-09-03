@@ -55,7 +55,8 @@ order:
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
 12. `database/migrations/20260903_gurs_address_prefix_search.sql`
-13. `database/migrations/20260903_schema_contract_v1.sql`
+13. `database/migrations/20260903_order_document_email_events.sql`
+14. `database/migrations/20260903_schema_contract_v1.sql`
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -116,6 +117,12 @@ an older synchronizer from replacing the indexed table after the migration.
 The artifact invalidates an expired stored lease and marks lingering `running`
 sync-history rows failed; it aborts without changing a live lease.
 
+The order-document email-event artifact follows the GURS index. It adds only
+the explicit `predracun_issued` and `invoice_issued` event types to the order
+email outbox constraint after verifying the exact predecessor state and all
+existing rows; it does not rewrite orders, documents, jobs, or delivery
+evidence.
+
 The terminal schema-contract artifact follows all application migrations. It
 first verifies the required end state, including current columns, validated
 constraints, guard functions, enabled triggers, indexes, and the typed
@@ -149,10 +156,10 @@ Before execution:
    client: 20260828 first, verify it, then admin details, request management,
    manual documents, admin title, clarification email, order-item delivery
    planning, optional quote acceptance terms, inventory policy, the per-order
-   stock-enforcement marker, quote-outbox cancellation, and finally the terminal
-   schema contract. If an earlier artifact is already installed, do not rerun
-   it; verify its markers and continue in order with only the unapplied
-   follow-ups.
+   stock-enforcement marker, quote-outbox cancellation, the GURS prefix index,
+   the order-document email events, and finally the terminal schema contract.
+   If an earlier artifact is already installed, do not rerun it; verify its
+   markers and continue in order with only the unapplied follow-ups.
 7. After 20260828, record the post-deploy counts, constraint validation, and all
    `order_stock_holds` rows whose state is `legacy_unknown`.
 8. After the admin-details artifact, confirm row counts and inventory totals are
@@ -187,7 +194,12 @@ Before execution:
 17. After quote-outbox cancellation, confirm the validated status constraint
     includes `cancelled`, the cancellation evidence constraint is validated,
     and every pre-existing job remains unchanged and non-cancelled.
-18. Apply the terminal schema-contract artifact only after all prior postconditions
+18. After the GURS prefix index, verify that no sync lease is active and that a
+    one-character lookup uses the ordered active-table index.
+19. After the order-document email events, confirm the validated order-email
+    event constraint includes `predracun_issued` and `invoice_issued` and no
+    unexpected event type was accepted.
+20. Apply the terminal schema-contract artifact only after all prior postconditions
     pass, then run `npm run check:database-schema` against that exact target. The
     checker uses a read-only transaction and must report contract
     `20260903.prelaunch-v1`.
@@ -260,12 +272,16 @@ provenance, not fabricated customer acceptance records.
 
 ## Feature gates
 
-All gates default to false:
+All deployment gates default to false:
 
     QUOTE_ADMIN_ENABLED=false
     QUOTE_PUBLIC_REQUESTS_ENABLED=false
     QUOTE_ONLINE_ACCEPTANCE_ENABLED=false
-    QUOTE_EMAIL_DELIVERY_ENABLED=false
+
+Business email delivery is not an environment gate. It is controlled by the
+persisted **Pošiljanje ponudb** toggle under Admin > Email, which defaults to
+off. This master toggle also controls OTP security messages and must be enabled
+before `QUOTE_ONLINE_ACCEPTANCE_ENABLED=true` can provide online acceptance.
 
 Roll out in this order:
 
@@ -274,14 +290,15 @@ Roll out in this order:
 2. QUOTE_PUBLIC_REQUESTS_ENABLED=true: accept non-binding quote requests only
    after confirmation copy, rate limiting, secure fragment exchange, and
    acknowledgement delivery have been tested.
-3. Leave QUOTE_EMAIL_DELIVERY_ENABLED=false while testing durable jobs and
-   previews. Enable it only after Resend sender/profile verification and
+3. Leave **Pošiljanje ponudb** off while testing durable jobs and previews.
+   Enable it in Admin > Email only after Resend sender/profile verification and
    recipient/template review.
 4. QUOTE_ONLINE_ACCEPTANCE_ENABLED=true: enable last, after OTP, CSRF,
    idempotency, deterministic stock locking, exact snapshot conversion, and
    duplicate-email suppression have passed concurrency and browser tests.
 
-Rollback is flag-only: turn off online acceptance, public requests, quote email
-delivery, and finally admin mutations as needed. Do not run a destructive down
-migration and do not delete quote, acceptance, event, document, email-job, or
-linked-order records.
+Rollback uses the matching control: turn off online acceptance and public
+requests with their deployment flags, turn off **Pošiljanje ponudb** in Admin >
+Email, and finally disable admin mutations if needed. Do not run a destructive
+down migration and do not delete quote, acceptance, event, document, email-job,
+or linked-order records.

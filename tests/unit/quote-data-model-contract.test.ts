@@ -397,11 +397,11 @@ test('quote feature flags are independent and default closed', () => {
   for (const environmentName of [
     'QUOTE_ADMIN_ENABLED',
     'QUOTE_PUBLIC_REQUESTS_ENABLED',
-    'QUOTE_ONLINE_ACCEPTANCE_ENABLED',
-    'QUOTE_EMAIL_DELIVERY_ENABLED'
+    'QUOTE_ONLINE_ACCEPTANCE_ENABLED'
   ]) {
     assert.match(flags, new RegExp('environment\\.' + environmentName, 'u'));
   }
+  assert.doesNotMatch(flags, /QUOTE_EMAIL_DELIVERY_ENABLED/u);
   assert.match(flags, /value\?\.trim\(\)\.toLowerCase\(\) === 'true'/u);
   assert.match(flags, /value\?\.trim\(\) === '1'/u);
 });

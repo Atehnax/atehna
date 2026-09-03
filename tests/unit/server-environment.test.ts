@@ -121,21 +121,18 @@ test('quote feature flags remain independent and default closed', () => {
   assert.deepEqual(resolveQuoteFeatureFlags({}), {
     admin: false,
     publicRequests: false,
-    onlineAcceptance: false,
-    emailDelivery: false
+    onlineAcceptance: false
   });
   assert.deepEqual(
     resolveQuoteFeatureFlags({
       QUOTE_ADMIN_ENABLED: ' TRUE ',
       QUOTE_PUBLIC_REQUESTS_ENABLED: '1',
-      QUOTE_ONLINE_ACCEPTANCE_ENABLED: 'yes',
-      QUOTE_EMAIL_DELIVERY_ENABLED: '0'
+      QUOTE_ONLINE_ACCEPTANCE_ENABLED: 'yes'
     }),
     {
       admin: true,
       publicRequests: true,
-      onlineAcceptance: false,
-      emailDelivery: false
+      onlineAcceptance: false
     }
   );
 });

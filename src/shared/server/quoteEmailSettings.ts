@@ -42,7 +42,7 @@ export type QuoteEmailPendingJob = {
 export type QuoteEmailAdminState = {
   config: QuoteEmailSettings;
   schemaReady: boolean;
-  flags: Pick<QuoteFeatureFlags, 'admin' | 'emailDelivery'>;
+  flags: Pick<QuoteFeatureFlags, 'admin'>;
   queue: {
     pending: number;
     processing: number;
@@ -87,7 +87,7 @@ function emptyState(schemaReady: boolean): QuoteEmailAdminState {
   return {
     config: cloneDefaultQuoteEmailSettings(),
     schemaReady,
-    flags: { admin: flags.admin, emailDelivery: flags.emailDelivery },
+    flags: { admin: flags.admin },
     queue: {
       pending: 0,
       processing: 0,
@@ -178,7 +178,7 @@ export async function getQuoteEmailAdminState(): Promise<QuoteEmailAdminState> {
   return {
     config,
     schemaReady: true,
-    flags: { admin: flags.admin, emailDelivery: flags.emailDelivery },
+    flags: { admin: flags.admin },
     queue: {
       pending: Number(counts.pending ?? 0),
       processing: Number(counts.processing ?? 0),
@@ -196,7 +196,6 @@ export async function getQuoteEmailAdminState(): Promise<QuoteEmailAdminState> {
       recentFailures: failuresResult.rows.map((row) => {
         const retry = getQuoteEmailRetryEligibility({
           settings: config,
-          emailDeliveryEnabled: flags.emailDelivery,
           job: {
             eventType: String(row.event_type),
             audience: String(row.audience),

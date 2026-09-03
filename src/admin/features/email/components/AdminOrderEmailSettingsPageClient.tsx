@@ -1254,9 +1254,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
                     To stikalo ustavi ali omogoči poslovna e-poštna sporočila za
-                    naročila. Obvezna varnostna sporočila, kot je OTP za dostop
-                    do ponudbe, ostanejo aktivna. Skrivni dostop do ponudnika se
-                    upravlja samo v okolju Vercel.
+                    naročila. Na varnostne kode za dostop do ponudbe ne vpliva;
+                    te upravlja preklop Pošiljanje ponudb. Skrivni dostop do
+                    ponudnika se upravlja samo v okolju Vercel.
                   </p>
                 </div>
                 <div className="flex justify-end">
@@ -1306,9 +1306,11 @@ export default function AdminOrderEmailSettingsPageClient({
                     Pošiljanje ponudb
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
-                    Uporablja isti profil pošiljatelja, Reply-To, ponudnika in
-                    administratorske prejemnike kot naročila. Dogodki, predloge
-                    in čakalna vrsta ponudb ostanejo ločeni na zavihku Ponudbe.
+                    Glavni preklop upravlja vso e-pošto za ponudbe, vključno z
+                    varnostnimi kodami za spletni sprejem. Uporablja isti profil
+                    pošiljatelja, Reply-To, ponudnika in administratorske
+                    prejemnike kot naročila. Dogodki, predloge in čakalna vrsta
+                    ponudb ostanejo ločeni na zavihku Ponudbe.
                   </p>
                 </div>
                 <div className="flex justify-end">
@@ -1320,8 +1322,8 @@ export default function AdminOrderEmailSettingsPageClient({
                     }
                     ariaLabel={
                       quoteEmailSaveState.enabled
-                        ? "Izklopi poslovno e-pošto za ponudbe"
-                        : "Vključi poslovno e-pošto za ponudbe"
+                        ? "Izklopi e-pošto za ponudbe"
+                        : "Vključi e-pošto za ponudbe"
                     }
                     onChange={(enabled) => {
                       setQuoteEmailSaveState((current) => ({

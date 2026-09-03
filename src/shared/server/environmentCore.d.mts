@@ -32,7 +32,6 @@ export type QuoteFeatureFlags = Readonly<{
   admin: boolean;
   publicRequests: boolean;
   onlineAcceptance: boolean;
-  emailDelivery: boolean;
 }>;
 
 export function resolveDatabaseUrl(

@@ -24,7 +24,6 @@ import {
   type ResendFailure
 } from '@/shared/domain/order/orderEmailDelivery';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
-import { isQuoteEmailDeliveryEnabled } from '@/shared/server/quoteFeatureFlags';
 import {
   decryptQuoteEmailEnvelope,
   encryptQuoteEmailEnvelope
@@ -163,15 +162,14 @@ export async function enqueueQuoteEmailEvent(
     quoteSettings(client),
     quoteIdentity(client, input)
   ]);
-  if (!settings.enabled && input.eventType !== 'quote_access_otp') {
+  if (!settings.enabled) {
     return [];
   }
   if (!identity) {
     throw new Error('Quote email identity does not exist.');
   }
   const configuredEvent = settings.events[input.eventType];
-  const customerEnabled =
-    input.eventType === 'quote_access_otp' || configuredEvent.customer;
+  const customerEnabled = configuredEvent.customer;
   const adminEnabled = configuredEvent.admins;
   const recipients: Array<{
     audience: QuoteEmailAudience;
@@ -402,8 +400,7 @@ async function persistPinnedQuoteEmailEnvelope(
 
 async function claim(
   pool: Pool,
-  limit: number,
-  options: { otpOnly?: boolean } = {}
+  limit: number
 ): Promise<ClaimedJob[]> {
   const client = await pool.connect();
   try {
@@ -420,15 +417,11 @@ async function claim(
             status = 'processing' and locked_at < now() - interval '5 minutes'
           )
         )
-          and ($2::boolean = false or event_type = 'quote_access_otp')
         order by next_attempt_at, created_at
         for update skip locked
         limit $1
       `,
-      [
-        Math.max(1, Math.min(25, Math.floor(limit))),
-        options.otpOnly === true
-      ]
+      [Math.max(1, Math.min(25, Math.floor(limit)))]
     );
     const jobs: ClaimedJob[] = [];
     for (const row of result.rows) {
@@ -948,18 +941,16 @@ export async function processQuoteEmailJobs(
   pool: Pool,
   options: { limit?: number } = {}
 ): Promise<{ claimed: number; sent: number; retried: number; failed: number }> {
-  if (!isQuoteEmailDeliveryEnabled()) {
-    return { claimed: 0, sent: 0, retried: 0, failed: 0 };
-  }
   const settingsResult = await pool.query(
     `select config_json from quote_email_settings where key = 'default'`
   );
-  const businessEmailEnabled = normalizeQuoteEmailSettings(
+  const quoteEmailEnabled = normalizeQuoteEmailSettings(
     settingsResult.rows[0]?.config_json
   ).enabled;
-  const jobs = await claim(pool, options.limit ?? 10, {
-    otpOnly: !businessEmailEnabled
-  });
+  if (!quoteEmailEnabled) {
+    return { claimed: 0, sent: 0, retried: 0, failed: 0 };
+  }
+  const jobs = await claim(pool, options.limit ?? 10);
   const result = { claimed: jobs.length, sent: 0, retried: 0, failed: 0 };
   for (const job of jobs) {
     try {
@@ -1108,7 +1099,6 @@ export async function processQuoteEmailJobs(
 }
 
 export function scheduleQuoteEmailJobs(pool: Pool): void {
-  if (!isQuoteEmailDeliveryEnabled()) return;
   after(async () => {
     await processQuoteEmailJobs(pool, { limit: 10 }).catch((error) => {
       console.error('[quote-email] background processing failed', {

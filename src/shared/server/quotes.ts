@@ -21,7 +21,6 @@ import {
 import { normalizeQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
 import { getQuoteEmailRetryEligibility } from '@/shared/domain/quote/quoteEmailRetryEligibility';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
-import { getQuoteFeatureFlags } from '@/shared/server/quoteFeatureFlags';
 
 type RawRow = Record<string, unknown>;
 
@@ -601,7 +600,6 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
       const emailSettings = normalizeQuoteEmailSettings(
         emailSettingsResult.rows[0]?.config_json
       );
-      const emailDeliveryEnabled = getQuoteFeatureFlags().emailDelivery;
       const rawVersionById = new Map(
         rawVersions.map((row) => [toNumber(row.id), row])
       );
@@ -612,7 +610,6 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
           : rawVersionById.get(offerVersionId);
         const retry = getQuoteEmailRetryEligibility({
           settings: emailSettings,
-          emailDeliveryEnabled,
           job: {
             eventType: toText(row.event_type),
             audience: toText(row.audience),

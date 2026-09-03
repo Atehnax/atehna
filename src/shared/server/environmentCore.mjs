@@ -133,7 +133,6 @@ export function resolveQuoteFeatureFlags(environment) {
   return {
     admin: isEnabled(environment.QUOTE_ADMIN_ENABLED),
     publicRequests: isEnabled(environment.QUOTE_PUBLIC_REQUESTS_ENABLED),
-    onlineAcceptance: isEnabled(environment.QUOTE_ONLINE_ACCEPTANCE_ENABLED),
-    emailDelivery: isEnabled(environment.QUOTE_EMAIL_DELIVERY_ENABLED)
+    onlineAcceptance: isEnabled(environment.QUOTE_ONLINE_ACCEPTANCE_ENABLED)
   };
 }

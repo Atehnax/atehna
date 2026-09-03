@@ -181,7 +181,7 @@ export const QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS = [
 
 export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
   return {
-    enabled: true,
+    enabled: false,
     stockAcceptanceMode: 'manual',
     events: Object.fromEntries(
       QUOTE_EMAIL_EVENT_TYPES.map((eventType) => [
@@ -265,7 +265,8 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
       }
     };
   }
-  defaults.enabled = typeof source.enabled === 'boolean' ? source.enabled : true;
+  defaults.enabled =
+    typeof source.enabled === 'boolean' ? source.enabled : defaults.enabled;
   defaults.stockAcceptanceMode =
     source.stockAcceptanceMode === 'automatic' ? 'automatic' : 'manual';
   defaults.updatedAt =

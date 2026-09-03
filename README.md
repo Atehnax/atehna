@@ -173,12 +173,13 @@ corresponding environment variables in production.
   characters; quote replay encryption uses a quote-specific KDF/AAD domain and
   must not reuse the order bootstrap key.
 - `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
-- `QUOTE_ADMIN_ENABLED`, `QUOTE_PUBLIC_REQUESTS_ENABLED`,
-  `QUOTE_ONLINE_ACCEPTANCE_ENABLED`, and `QUOTE_EMAIL_DELIVERY_ENABLED` are
-  independent server-side rollout gates. They default off. Enable admin review
-  first, public request submission second, and online acceptance last; keep
-  quote email delivery off until the sender configuration and templates have
-  been verified.
+- `QUOTE_ADMIN_ENABLED`, `QUOTE_PUBLIC_REQUESTS_ENABLED`, and
+  `QUOTE_ONLINE_ACCEPTANCE_ENABLED` are independent server-side rollout gates.
+  They default off. Enable admin review first, public request submission second,
+  and online acceptance last. Quote business-email delivery is controlled by
+  the persisted **Pošiljanje ponudb** toggle under `/admin/email`, which also
+  defaults off. This master toggle also controls OTP security messages and must
+  be enabled before online acceptance can work.
 
 Initial order-summary generation is recorded as a durable database job in the
 same transaction as the order. The post-response callback is only a low-latency

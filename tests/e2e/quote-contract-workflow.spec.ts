@@ -636,6 +636,7 @@ test.describe('quote and seller-contract workflow', () => {
     const { updatedAt: _sharedUpdatedAt, ...storedSharedEmail } = sharedEmail;
 
     const quoteEmail = cloneDefaultQuoteEmailSettings();
+    quoteEmail.enabled = true;
     quoteEmail.stockAcceptanceMode = 'automatic';
     for (const event of Object.keys(quoteEmail.events)) {
       quoteEmail.events[event as keyof typeof quoteEmail.events] = {

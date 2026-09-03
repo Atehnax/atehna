@@ -186,7 +186,7 @@ test("settings toggles keep accessible names without redundant visible state lab
   );
   assert.match(
     settingsSource,
-    /quoteEmailSaveState\.enabled[\s\S]*?Izklopi poslovno e-pošto za ponudbe[\s\S]*?Vključi poslovno e-pošto za ponudbe/u,
+    /quoteEmailSaveState\.enabled[\s\S]*?Izklopi e-pošto za ponudbe[\s\S]*?Vključi e-pošto za ponudbe/u,
   );
   assert.match(
     settingsSource,

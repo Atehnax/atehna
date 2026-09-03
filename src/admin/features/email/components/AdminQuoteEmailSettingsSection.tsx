@@ -434,7 +434,6 @@ const AdminQuoteEmailSettingsSection = forwardRef<
     if (
       retryingJobId ||
       mutationsDisabled ||
-      !state.flags.emailDelivery ||
       !failure?.retryEligible
     ) return;
     setRetryingJobId(jobId);

@@ -65,6 +65,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const quoteOutboxCancellationDeployment = source(
     'database/migrations/20260901_quote_outbox_cancellation.sql'
   );
+  const schemaContractDeployment = source(
+    'database/migrations/20260903_schema_contract_v1.sql'
+  );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
@@ -79,10 +82,11 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260901_inventory_policy_settings.sql',
     '20260901_order_stock_enforcement_marker.sql',
     '20260901_quote_optional_acceptance_terms.sql',
-    '20260901_quote_outbox_cancellation.sql'
+    '20260901_quote_outbox_cancellation.sql',
+    '20260903_schema_contract_v1.sql'
   ]);
-  assert.equal(tableNames.length, 61);
-  assert.equal(new Set(tableNames).size, 61);
+  assert.equal(tableNames.length, 62);
+  assert.equal(new Set(tableNames).size, 62);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
   assert.match(
     schema,
@@ -107,7 +111,8 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     inventoryPolicyDeployment,
     orderStockEnforcementMarkerDeployment,
     quoteOptionalAcceptanceTermsDeployment,
-    quoteOutboxCancellationDeployment
+    quoteOutboxCancellationDeployment,
+    schemaContractDeployment
   ]) {
     assert.match(deployment, /begin;/u);
     assert.match(deployment, /set local search_path = public, pg_temp/u);
@@ -164,31 +169,70 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     /loadMigrations|applyMigrations|e2e_schema_migrations|migrationCount|migrationsDirectory/u
   );
   assert.match(setup, /create table e2e_schema_state/u);
-  assert.match(setup, /has_order_access_tokens/u);
-  assert.match(setup, /has_order_email_settings/u);
-  assert.match(setup, /has_order_email_jobs/u);
-  assert.match(setup, /has_order_stock_holds/u);
-  assert.match(setup, /has_quote_requests/u);
-  assert.match(setup, /has_quote_events/u);
-  assert.match(setup, /has_quote_access_tokens/u);
-  assert.match(setup, /has_quote_email_settings/u);
-  assert.match(setup, /has_quote_email_jobs/u);
-  assert.match(setup, /has_order_contract_status/u);
   assert.match(setup, /canonical-schema fingerprint is missing or stale/u);
+  assert.match(
+    setup,
+    /from '\.\/check-database-schema\.mjs'/u
+  );
+  assert.match(
+    setup,
+    /verifyContract = verifyDatabaseContract/u
+  );
+  assert.match(
+    setup,
+    /const manifest = await loadManifest\(\);[\s\S]*?await verifyContract\(pool, manifest\);/u
+  );
+
+  for (const delegatedTerminalProbe of [
+    'has_order_access_tokens',
+    'has_inventory_policy_settings',
+    'has_quote_manual_documents',
+    'has_order_contract_status',
+    'has_order_delivery_plan_revision',
+    'has_order_stock_enforcement_applied',
+    'has_order_item_ship_later',
+    'has_order_document_delivery_plan_revision',
+    'has_quote_request_intake_source',
+    'has_quote_request_voided_at',
+    'has_quote_email_cancelled_at',
+    'has_order_items_ship_later_index',
+    'has_quote_offer_optional_acceptance_terms',
+    'quote_offer_versions_issue_identity_check',
+    'quote_email_jobs_cancellation_check'
+  ]) {
+    assert.doesNotMatch(
+      setup,
+      new RegExp(delegatedTerminalProbe, 'u')
+    );
+  }
 
   const health = source('src/app/api/e2e/health/route.ts');
   assert.match(health, /E2E_SCHEMA_SHA256/u);
   assert.match(health, /row\.schema_sha256 !== expectedSchemaSha256/u);
-  assert.match(health, /row\.has_order_access_tokens !== true/u);
-  assert.match(health, /row\.has_order_email_settings !== true/u);
-  assert.match(health, /row\.has_order_email_jobs !== true/u);
-  assert.match(health, /row\.has_order_stock_holds !== true/u);
-  assert.match(health, /row\.has_quote_requests !== true/u);
-  assert.match(health, /row\.has_quote_events !== true/u);
-  assert.match(health, /row\.has_quote_access_tokens !== true/u);
-  assert.match(health, /row\.has_quote_email_settings !== true/u);
-  assert.match(health, /row\.has_quote_email_jobs !== true/u);
-  assert.match(health, /row\.has_order_contract_status !== true/u);
+  assert.match(
+    health,
+    /to_regclass\('public\.app_schema_contracts'\)[\s\S]*?has_schema_contract_table/u
+  );
+  assert.match(
+    health,
+    /from public\.app_schema_contracts where contract_id = \$1 and contract_sha256 = \$2/u
+  );
+  assert.match(
+    health,
+    /\[schemaContract\.contractId, schemaContract\.contractSha256\]/u
+  );
+  assert.match(health, /row\.has_schema_contract_table !== true/u);
+  assert.match(health, /!hasExactSchemaContract/u);
+  assert.match(health, /has_seed/u);
+  assert.match(health, /has_reference_product/u);
+  assert.doesNotMatch(
+    health,
+    /requiredSchemaChecks|information_schema\.columns|pg_constraint|order_access_tokens|inventory_policy_settings|quote_email_jobs/u
+  );
+  assert.doesNotMatch(
+    health,
+    /verifyDatabaseContract|schemaContract\.requirements/u
+  );
 });
 
 test('the commerce reset is explicit, scoped, and rebuilds from the canonical schema', () => {

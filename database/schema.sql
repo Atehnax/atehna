@@ -9,6 +9,22 @@ begin;
 
 create extension if not exists pgcrypto;
 
+-- Terminal schema compatibility contracts are deliberately separate from
+-- deployment history. Fresh installs record only the application contract they
+-- satisfy; they do not pretend that incremental deployments were applied.
+create table app_schema_contracts (
+  contract_id text primary key,
+  contract_sha256 text not null,
+  installed_via text not null,
+  recorded_at timestamptz not null default now(),
+  constraint app_schema_contracts_checksum_check check (
+    contract_sha256 ~ '^[a-f0-9]{64}$'
+  ),
+  constraint app_schema_contracts_installation_check check (
+    installed_via in ('fresh_schema', 'existing_database')
+  )
+);
+
 create table orders (
   id bigserial primary key,
   order_number text not null unique,
@@ -1827,7 +1843,7 @@ create table quote_events (
   quote_request_id bigint not null references quote_requests(id) on delete restrict,
   quote_offer_version_id bigint,
   event_key text,
-  event_type text not null check (
+  event_type text not null constraint quote_events_event_type_check check (
     event_type in (
       'request_received',
       'quote_request_details_changed',
@@ -2537,7 +2553,7 @@ create table quote_email_jobs (
   quote_request_id bigint not null references quote_requests(id) on delete restrict,
   quote_offer_version_id bigint,
   event_key text not null,
-  event_type text not null check (
+  event_type text not null constraint quote_email_jobs_event_type_check check (
     event_type in (
       'quote_request_submitted',
       'quote_clarification_requested',
@@ -2556,7 +2572,8 @@ create table quote_email_jobs (
   recipient_email text not null,
   recipient_name text,
   payload_json jsonb not null,
-  status text not null default 'pending' check (
+  status text not null default 'pending'
+    constraint quote_email_jobs_status_check check (
     status in ('pending', 'processing', 'sent', 'failed', 'cancelled')
   ),
   attempts integer not null default 0 check (attempts >= 0),
@@ -2845,5 +2862,16 @@ create index gurs_address_sync_runs_started_at_idx
 create index orders_gurs_house_number_id_idx
   on orders (gurs_house_number_id)
   where gurs_house_number_id is not null;
+
+insert into app_schema_contracts (
+  contract_id,
+  contract_sha256,
+  installed_via
+)
+values (
+  '20260903.prelaunch-v1',
+  '6aab79cb9019d38332d67e359a2b27c5ac3058fe8eae9c4400c735fca913c3d5',
+  'fresh_schema'
+);
 
 commit;

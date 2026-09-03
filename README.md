@@ -69,6 +69,7 @@ reviewed quote/contract artifacts below, applied in this exact order:
 9. `database/migrations/20260901_inventory_policy_settings.sql`
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
+12. `database/migrations/20260903_schema_contract_v1.sql`
 
 The admin-details follow-up is only for a database on the verified 20260828
 schema. The management follow-up requires that verified admin-details guard and
@@ -85,9 +86,22 @@ retaining the versioned terms identity and integrity hashes. The inventory-polic
 follow-up adds the global stock-enforcement switch with enforcement enabled by default,
 and the order marker records which policy governed each order's inventory lifecycle.
 The quote-outbox follow-up adds durable administrator cancellation evidence so cancelled
-messages leave the delivery queue without being deleted. No artifact is run by application
-startup. Do not apply one without production database authority, a verified backup, and
-the rollout review in `docs/quote-workflow-rollout.md`.
+messages leave the delivery queue without being deleted. The final schema-contract
+artifact verifies the required terminal tables, columns, constraints, functions,
+indexes, triggers, and settings before recording the same compatibility contract
+that a fresh schema records. It does not recreate or claim historical migration
+entries. No artifact is run by application startup. Do not apply one without
+production database authority, a verified backup, and the rollout review in
+`docs/quote-workflow-rollout.md`.
+
+`npm run check:schema-contract` validates the manifest checksum and its bindings
+to the canonical schema and terminal migration without connecting to PostgreSQL.
+`npm run check:database-schema` additionally performs a read-only verification of
+the configured database against the declared contract. Neither command changes
+the schema or data. This Phase-A contract requires every canonical runtime table
+and the exact high-risk order/quote workflow objects introduced by the reviewed
+migration chain; it is not yet an exhaustive every-column catalog signature and
+must not be used as a general deployment gate until Phase B expands that surface.
 
 ## Runtime configuration
 
@@ -287,8 +301,8 @@ automatic expiry.
 
 # Test
 
-- Static and unit gates: `npm run lint`, `npm run typecheck`,
-  `npm run test:unit`, then `npm run build`.
+- Static and unit gates: `npm run check:schema-contract`, `npm run lint`,
+  `npm run typecheck`, `npm run test:unit`, then `npm run build`.
 - E2E requires a newly provisioned disposable PostgreSQL database on loopback.
   Its name must be `atehna_e2e_` plus the lower-case
   `E2E_STORAGE_NAMESPACE`, with hyphens replaced by underscores. For
@@ -301,10 +315,16 @@ automatic expiry.
   unique 12–52 character `E2E_STORAGE_NAMESPACE` made from lower-case letters,
   digits and hyphens, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and an
   `ADMIN_SESSION_SECRET` of at least 32 characters.
-- Run `npm run build`, `npm run e2e:db:prepare`, then
+- Run `npm run build`, `npm run e2e:db:prepare`,
+  `npm run e2e:db:rehearse-contract`, `npm run check:database-schema`, then
   `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies
   `database/schema.sql`, installs deterministic catalog/media fixtures, verifies the
-  sentinel data, and clears Next's generated runtime cache before the run.
+  sentinel data, and clears Next's generated runtime cache before the run. The
+  guarded rehearsal removes only the disposable database's contract ledger,
+  temporarily flips its inventory-policy fixture to the other valid boolean
+  state, executes the explicit terminal artifact twice to prove installation,
+  idempotence, and value-independent compatibility, then restores the fixture
+  and verifies the resulting database contract.
   Playwright clears that same generated cache again during teardown so E2E
   database values cannot leak into the normal application.
 - A local system Chromium can be selected with
@@ -314,12 +334,15 @@ automatic expiry.
 ## CI safety gates
 The pull request CI workflow runs:
 - `npm ci`
+- `npm run check:schema-contract`
 - `npm run lint`
 - `npm run typecheck`
 - `npm run test:unit`
 - `npm run build`
 - four isolated PostgreSQL-backed Playwright shards with one worker and zero
-  retries
+  retries; each shard executes the terminal contract twice and runs
+  `npm run check:database-schema` after installing the fresh schema and before
+  starting Playwright
 - merged-report verification proving every expected test ran and passed once
 
 ## Deployed network measurement harness

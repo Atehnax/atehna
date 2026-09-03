@@ -20,6 +20,24 @@ const controlledEnvironmentKeys = [
 const originalEnvironment = Object.fromEntries(
   controlledEnvironmentKeys.map((key) => [key, process.env[key]])
 );
+const schemaContract = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), 'database', 'schema-contract.json'),
+    'utf8'
+  )
+) as {
+  contractId: string;
+  contractSha256: string;
+};
+const verifyCanonicalE2eSchemaStateWithContract =
+  verifyCanonicalE2eSchemaState as unknown as (
+    pool: Parameters<typeof verifyCanonicalE2eSchemaState>[0],
+    expectedSchemaSha256: string,
+    verifyContract: (
+      client: unknown,
+      manifest: typeof schemaContract
+    ) => Promise<void>
+  ) => Promise<void>;
 
 function configureEnvironment(databaseName: string, namespace: string) {
   process.env.E2E_MODE = '1';
@@ -156,15 +174,12 @@ test('database reset verifies live identity and ownership before destructive SQL
   const schemaSha256 = 'a'.repeat(64);
   const completeSchemaProbe = {
     has_catalog_items: true,
-    has_catalog_variants: true,
+    has_catalog_item_variants: true,
     has_catalog_media: true,
     has_product_appearance: true,
     has_gurs_addresses: true,
-    has_order_access_tokens: true,
-    has_order_email_settings: true,
-    has_order_email_jobs: true,
-    has_product_type: true,
-    has_gurs_search_text: true
+    has_default_variant: true,
+    has_variant_content: true
   };
   const exactSchemaPool = {
     async query(text: string, values?: readonly unknown[]) {
@@ -178,7 +193,18 @@ test('database reset verifies live identity and ownership before destructive SQL
       throw new Error(`Unexpected query: ${text}`);
     }
   };
-  await verifyCanonicalE2eSchemaState(exactSchemaPool, schemaSha256);
+  let contractVerificationCount = 0;
+  await verifyCanonicalE2eSchemaStateWithContract(
+    exactSchemaPool,
+    schemaSha256,
+    async (client: unknown, manifest: typeof schemaContract) => {
+      contractVerificationCount += 1;
+      assert.equal(client, exactSchemaPool);
+      assert.equal(manifest.contractId, schemaContract.contractId);
+      assert.equal(manifest.contractSha256, schemaContract.contractSha256);
+    }
+  );
+  assert.equal(contractVerificationCount, 1);
 
   const staleSchemaPool = {
     async query() {
@@ -190,27 +216,49 @@ test('database reset verifies live identity and ownership before destructive SQL
     /canonical-schema fingerprint is missing or stale/u
   );
 
-  const missingOrderAccessTablePool = {
-    async query(text: string) {
-      if (text.includes('from e2e_schema_state')) {
-        return { rows: [{ sha256: schemaSha256 }] };
+  for (const missingSchemaCheck of Object.keys(completeSchemaProbe)) {
+    let contractVerifierCalled = false;
+    const incompleteSchemaPool = {
+      async query(text: string) {
+        if (text.includes('from e2e_schema_state')) {
+          return { rows: [{ sha256: schemaSha256 }] };
+        }
+        if (text.includes("to_regclass('public.catalog_items')")) {
+          return {
+            rows: [{
+              ...completeSchemaProbe,
+              [missingSchemaCheck]: false
+            }]
+          };
+        }
+        throw new Error(`Unexpected query: ${text}`);
       }
-      if (text.includes("to_regclass('public.catalog_items')")) {
-        return {
-          rows: [{
-            ...completeSchemaProbe,
-            has_order_access_tokens: false
-          }]
-        };
-      }
-      throw new Error(`Unexpected query: ${text}`);
-    }
-  };
-  await assert.rejects(
-    verifyCanonicalE2eSchemaState(missingOrderAccessTablePool, schemaSha256),
-    /has_order_access_tokens/u
-  );
+    };
+    await assert.rejects(
+      verifyCanonicalE2eSchemaStateWithContract(
+        incompleteSchemaPool,
+        schemaSha256,
+        async () => {
+          contractVerifierCalled = true;
+        }
+      ),
+      new RegExp(missingSchemaCheck, 'u')
+    );
+    assert.equal(contractVerifierCalled, false);
+  }
 
+  await assert.rejects(
+    verifyCanonicalE2eSchemaStateWithContract(
+      exactSchemaPool,
+      schemaSha256,
+      async (_client: unknown, manifest: typeof schemaContract) => {
+        assert.equal(manifest.contractId, schemaContract.contractId);
+        assert.equal(manifest.contractSha256, schemaContract.contractSha256);
+        throw new Error('[schema-contract] Missing tables: quote_requests.');
+      }
+    ),
+    /\[schema-contract\] Missing tables: quote_requests\./u
+  );
 });
 
 test('E2E server clears live email credentials after inheriting the environment', () => {
@@ -231,4 +279,52 @@ test('E2E server clears live email credentials after inheriting the environment'
   assert.ok(inheritedEnvironmentIndex >= 0);
   assert.ok(clearedResendKeyIndex > inheritedEnvironmentIndex);
   assert.ok(e2eModeIndex > clearedResendKeyIndex);
+});
+
+test('terminal schema contract rehearsal is explicit and guarded by E2E ownership', () => {
+  const setupSource = readFileSync(
+    resolve(process.cwd(), 'scripts', 'e2e-database.mjs'),
+    'utf8'
+  );
+  const rehearsalStart = setupSource.indexOf(
+    'export async function rehearseE2eSchemaContract()'
+  );
+  const targetGuard = setupSource.indexOf(
+    'await verifyE2eResetTarget(',
+    rehearsalStart
+  );
+  const preflight = setupSource.indexOf(
+    'await verifyDatabase(pool, schemaSha256, seedChecksum);',
+    targetGuard
+  );
+  const ledgerDrop = setupSource.indexOf(
+    "await pool.query('drop table public.app_schema_contracts');",
+    preflight
+  );
+  const secondVerification = setupSource.indexOf(
+    'await verifyDatabase(pool, schemaSha256, seedChecksum);',
+    ledgerDrop
+  );
+
+  assert.ok(rehearsalStart >= 0);
+  assert.ok(targetGuard > rehearsalStart);
+  assert.ok(preflight > targetGuard);
+  assert.ok(ledgerDrop > preflight);
+  assert.ok(secondVerification > ledgerDrop);
+  assert.match(
+    setupSource.slice(rehearsalStart),
+    /for \(let attempt = 0; attempt < 2; attempt \+= 1\)[\s\S]*pool\.query\(terminalContractSql\)/u
+  );
+  assert.match(
+    setupSource.slice(rehearsalStart),
+    /installed_via !== 'existing_database'/u
+  );
+  assert.match(
+    setupSource.slice(rehearsalStart),
+    /stockEnforcementEnabled[\s\S]*'false'::jsonb[\s\S]*drop table public\.app_schema_contracts/u
+  );
+  assert.match(
+    setupSource.slice(rehearsalStart),
+    /installed_via !== 'existing_database'[\s\S]*stockEnforcementEnabled[\s\S]*'true'::jsonb/u
+  );
 });

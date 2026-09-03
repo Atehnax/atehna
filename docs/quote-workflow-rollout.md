@@ -14,10 +14,9 @@ invent that legal text.
 
 The 20260828 base migration was applied to the explicitly approved, configured
 Neon `neondb` target on 2026-08-28 at 21:28 UTC. No quote feature flag was
-enabled by that database deployment. This record does not state that the five
-follow-up artifacts from 20260829 and 20260830 have been applied. Do not infer
-that any artifact is installed in any environment; verify the schema markers
-independently for every target.
+enabled by that database deployment. This record does not state that any later
+follow-up artifact has been applied. Do not infer that any artifact is installed
+in any environment; verify the schema markers independently for every target.
 
 ## Recorded database deployment
 
@@ -55,6 +54,7 @@ order:
 9. `database/migrations/20260901_inventory_policy_settings.sql`
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
+12. `database/migrations/20260903_schema_contract_v1.sql`
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -101,8 +101,22 @@ issued-offer integrity evidence. The inventory-policy follow-up installs the
 single global stock-enforcement switch with the existing enforced behavior as
 its default. The order-stock marker must follow it and records whether stock
 enforcement governed each order's lifecycle without changing existing holds.
-The quote-outbox cancellation follow-up is last and adds a durable cancelled
-state plus actor/timestamp evidence without rewriting existing email jobs.
+The quote-outbox cancellation artifact is the final application-data follow-up.
+It adds a durable cancelled state plus actor/timestamp evidence without rewriting
+existing email jobs.
+
+The terminal schema-contract artifact follows all application migrations. It
+first verifies the required end state, including current columns, validated
+constraints, guard functions, enabled triggers, indexes, and the typed
+inventory-policy `default` row. Only then does it record contract
+`20260903.prelaunch-v1` with
+`installed_via='existing_database'`. A database created directly from
+`database/schema.sql` records the same contract with
+`installed_via='fresh_schema'`. This is a terminal compatibility assertion, not
+a backfill of migration history: it deliberately makes no claim about which
+historical artifact or checksum produced an already-compatible object. The
+recorded 20260828 deployment SHA-256 above remains the historical source of
+truth for that deployment.
 
 None of these files is an application migration runner. Never call any artifact
 from a request, build, or startup hook, and never copy individual statements out
@@ -124,9 +138,10 @@ Before execution:
    client: 20260828 first, verify it, then admin details, request management,
    manual documents, admin title, clarification email, order-item delivery
    planning, optional quote acceptance terms, inventory policy, the per-order
-   stock-enforcement marker, and quote-outbox cancellation. If an earlier
-   artifact is already installed, do not rerun it; verify its markers and
-   continue in order with only the unapplied follow-ups.
+   stock-enforcement marker, quote-outbox cancellation, and finally the terminal
+   schema contract. If an earlier artifact is already installed, do not rerun
+   it; verify its markers and continue in order with only the unapplied
+   follow-ups.
 7. After 20260828, record the post-deploy counts, constraint validation, and all
    `order_stock_holds` rows whose state is `legacy_unknown`.
 8. After the admin-details artifact, confirm row counts and inventory totals are
@@ -161,6 +176,51 @@ Before execution:
 17. After quote-outbox cancellation, confirm the validated status constraint
     includes `cancelled`, the cancellation evidence constraint is validated,
     and every pre-existing job remains unchanged and non-cancelled.
+18. Apply the terminal schema-contract artifact only after all prior postconditions
+    pass, then run `npm run check:database-schema` against that exact target. The
+    checker uses a read-only transaction and must report contract
+    `20260903.prelaunch-v1`.
+
+## Schema-contract deployment gates
+
+Roll out schema enforcement in two distinct phases so a code deployment cannot
+strand an environment whose database has not yet received the contract marker.
+
+Phase A - establish and verify the contract:
+
+1. Run `npm run check:schema-contract` in review and CI. This checks the manifest
+   checksum and its bindings to the fresh schema and terminal migration without
+   connecting to a database.
+2. For each Development, Preview, and Production database, take and restore-test
+   a current backup, rehearse the exact unapplied migration sequence on a recent
+   clone, and compare row counts and inventory totals before and after.
+3. In a controlled maintenance window, apply only the reviewed, still-unapplied
+   artifacts in order, ending with
+   `database/migrations/20260903_schema_contract_v1.sql`.
+4. Point `DATABASE_URL` explicitly at that target and run
+   `npm run check:database-schema`. Record the target, contract ID, backup,
+   rehearsal, application, and verification result. Repeat for every target.
+
+Phase B - enable deployment enforcement later:
+
+1. First expand the contract to every runtime-required canonical column,
+   default, constraint, index, function, and trigger (or replace it with an
+   equivalently reviewed full-catalog signature). The Phase-A contract covers
+   every runtime table plus the high-risk order/quote workflow objects, but is
+   deliberately not represented as an exhaustive application compatibility gate.
+2. Continue only when every database reachable by Development, Preview, and
+   Production deployments has independently passed the configured-database
+   check for the same contract.
+3. Add the Vercel build/startup compatibility gate in a separate reviewed
+   change, verify each environment mapping, and redeploy deliberately.
+
+This Phase-A change adds repository, fresh-schema, and isolated terminal-artifact
+CI verification only. The artifact runs twice only after the E2E target's
+loopback identity and per-run ownership marker have been verified. It is never
+run from application build/startup and does not yet block a Vercel deployment on
+a live database check. This CI rehearsal does not prove the historical upgrade
+chain against production-shaped data; the recent-clone sequence and before/after
+checks in Phase A step 2 remain a mandatory release gate.
 
 The 20260828 migration never increases or decreases inventory. It classifies an active,
 non-draft, non-cancelled legacy binding-order item quantity as held only when a

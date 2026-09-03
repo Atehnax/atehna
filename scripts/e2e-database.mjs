@@ -4,15 +4,34 @@ import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import {
+  loadManifest,
+  verifyDatabaseContract
+} from './check-database-schema.mjs';
 
 const { Pool } = pg;
 const scriptPath = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(scriptPath), '..');
 const schemaPath = resolve(projectRoot, 'database', 'schema.sql');
+const terminalSchemaContractPath = resolve(
+  projectRoot,
+  'database',
+  'migrations',
+  '20260903_schema_contract_v1.sql'
+);
 const seedPath = resolve(projectRoot, 'tests', 'fixtures', 'e2e-seed.sql');
 const nextRuntimeCacheDirectory = resolve(projectRoot, '.next', 'cache');
 const seedVersion = '2026-08-16.1';
 const e2eSchemaStateKey = 'canonical-schema';
+const requiredE2eSchemaChecks = [
+  'has_catalog_items',
+  'has_catalog_item_variants',
+  'has_catalog_media',
+  'has_product_appearance',
+  'has_gurs_addresses',
+  'has_default_variant',
+  'has_variant_content'
+];
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 const defaultPostgresPort = 5432;
 
@@ -117,6 +136,12 @@ function sha256(source) {
 async function loadCanonicalSchema() {
   const sql = await readFile(schemaPath, 'utf8');
   if (!sql.trim()) fail('Canonical SQL schema is empty.');
+  return sql;
+}
+
+async function loadTerminalSchemaContract() {
+  const sql = await readFile(terminalSchemaContractPath, 'utf8');
+  if (!sql.trim()) fail('The terminal schema contract SQL is empty.');
   return sql;
 }
 
@@ -252,7 +277,8 @@ async function seedDatabase(pool) {
 
 export async function verifyCanonicalE2eSchemaState(
   pool,
-  expectedSchemaSha256
+  expectedSchemaSha256,
+  verifyContract = verifyDatabaseContract
 ) {
   const stateResult = await pool.query(
     'select sha256 from e2e_schema_state where key = $1',
@@ -269,21 +295,6 @@ export async function verifyCanonicalE2eSchemaState(
       to_regclass('public.catalog_media') is not null as has_catalog_media,
       to_regclass('public.product_appearance_settings') is not null as has_product_appearance,
       to_regclass('public.gurs_addresses') is not null as has_gurs_addresses,
-      to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
-      to_regclass('public.order_email_settings') is not null as has_order_email_settings,
-      to_regclass('public.order_email_jobs') is not null as has_order_email_jobs,
-      to_regclass('public.order_stock_holds') is not null as has_order_stock_holds,
-      to_regclass('public.quote_requests') is not null as has_quote_requests,
-      to_regclass('public.quote_events') is not null as has_quote_events,
-      to_regclass('public.quote_access_tokens') is not null as has_quote_access_tokens,
-      to_regclass('public.quote_email_settings') is not null as has_quote_email_settings,
-      to_regclass('public.quote_email_jobs') is not null as has_quote_email_jobs,
-      exists (
-        select 1 from information_schema.columns
-        where table_schema = 'public'
-          and table_name = 'orders'
-          and column_name = 'contract_status'
-      ) as has_order_contract_status,
       exists (
         select 1 from information_schema.columns
         where table_schema = 'public'
@@ -298,25 +309,19 @@ export async function verifyCanonicalE2eSchemaState(
       ) as has_variant_content
   `);
   const schema = schemaProbe.rows[0] ?? {};
-  const missingSchemaChecks = Object.entries(schema)
-    .filter(([, present]) => present !== true)
-    .map(([name]) => name);
+  const missingSchemaChecks = requiredE2eSchemaChecks
+    .filter((name) => schema[name] !== true);
   if (missingSchemaChecks.length > 0) {
-    fail(`Required canonical schema is incomplete: ${missingSchemaChecks.join(', ')}.`);
+    fail(`Required E2E core schema is incomplete: ${missingSchemaChecks.join(', ')}.`);
   }
+
+  const manifest = await loadManifest();
+  await verifyContract(pool, manifest);
 }
 
 async function verifyDatabase(pool, schemaSha256, seedChecksum) {
   await pool.query('select 1');
   await verifyCanonicalE2eSchemaState(pool, schemaSha256);
-
-  const extensions = await pool.query(
-    "select extname from pg_extension where extname = any(array['pgcrypto', 'pg_trgm'])"
-  );
-  const extensionNames = new Set(extensions.rows.map((row) => row.extname));
-  for (const extension of ['pgcrypto', 'pg_trgm']) {
-    if (!extensionNames.has(extension)) fail(`Required PostgreSQL extension is missing: ${extension}.`);
-  }
 
   const seedProbe = await pool.query(`
     select
@@ -417,16 +422,97 @@ export async function prepareE2eDatabase() {
   }
 }
 
+export async function rehearseE2eSchemaContract() {
+  const {
+    databaseUrl,
+    databaseName,
+    databaseIdentity,
+    storageNamespace,
+    resetOwnershipHash
+  } = readE2eEnvironment();
+  const [schemaSql, seedSql, terminalContractSql] = await Promise.all([
+    loadCanonicalSchema(),
+    readFile(seedPath, 'utf8'),
+    loadTerminalSchemaContract()
+  ]);
+  const schemaSha256 = sha256(schemaSql);
+  const seedChecksum = sha256(seedSql);
+  const pool = createPool(databaseUrl);
+  try {
+    await verifyE2eResetTarget(
+      pool,
+      databaseIdentity,
+      storageNamespace,
+      resetOwnershipHash
+    );
+    await verifyDatabase(pool, schemaSha256, seedChecksum);
+
+    const mutablePolicyResult = await pool.query(`
+      update public.inventory_policy_settings
+         set config_json = jsonb_set(
+           config_json,
+           '{stockEnforcementEnabled}',
+           'false'::jsonb
+         )
+       where key = 'default'
+       returning key
+    `);
+    if (mutablePolicyResult.rows.length !== 1) {
+      fail('The mutable inventory-policy fixture is missing.');
+    }
+
+    await pool.query('drop table public.app_schema_contracts');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await pool.query(terminalContractSql);
+    }
+
+    await verifyDatabase(pool, schemaSha256, seedChecksum);
+    const { contractId, contractSha256 } = await loadManifest();
+    const contractResult = await pool.query(
+      `select installed_via
+         from public.app_schema_contracts
+        where contract_id = $1
+          and contract_sha256 = $2`,
+      [contractId, contractSha256]
+    );
+    if (
+      contractResult.rows.length !== 1
+      || contractResult.rows[0]?.installed_via !== 'existing_database'
+    ) {
+      fail('The terminal schema contract rehearsal did not record one exact existing-database contract.');
+    }
+    await pool.query(`
+      update public.inventory_policy_settings
+         set config_json = jsonb_set(
+           config_json,
+           '{stockEnforcementEnabled}',
+           'true'::jsonb
+         )
+       where key = 'default'
+    `);
+    return { databaseName, schemaSha256 };
+  } finally {
+    await pool.end();
+  }
+}
+
 async function main() {
   const command = process.argv[2];
-  if (!['prepare', 'check'].includes(command)) {
-    fail('Usage: node scripts/e2e-database.mjs <prepare|check>.');
+  if (!['prepare', 'check', 'rehearse-contract'].includes(command)) {
+    fail('Usage: node scripts/e2e-database.mjs <prepare|check|rehearse-contract>.');
   }
   const result = command === 'prepare'
     ? await prepareE2eDatabase()
-    : await checkE2eDatabase();
+    : command === 'rehearse-contract'
+      ? await rehearseE2eSchemaContract()
+      : await checkE2eDatabase();
+  const action = command === 'prepare'
+    ? 'Prepared'
+    : command === 'rehearse-contract'
+      ? 'Rehearsed the terminal contract on'
+      : 'Verified';
   console.info(
-    `[e2e-preflight] ${command === 'prepare' ? 'Prepared' : 'Verified'} isolated database ${result.databaseName} with the canonical schema.`
+    `[e2e-preflight] ${action} isolated database ${result.databaseName} with the canonical schema.`
   );
 }
 

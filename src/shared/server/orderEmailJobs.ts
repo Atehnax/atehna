@@ -246,6 +246,11 @@ async function readOrderSnapshot(
           contact_name,
           email,
           reference,
+          address_line1,
+          address_line2,
+          postal_code,
+          city,
+          country_code,
           subtotal,
           tax,
           shipping,
@@ -283,7 +288,12 @@ async function readOrderSnapshot(
       organizationName: optionalString(row.organization_name),
       contactName: String(row.contact_name ?? ''),
       email: String(row.email ?? ''),
-      reference: optionalString(row.reference)
+      reference: optionalString(row.reference),
+      addressLine1: optionalString(row.address_line1),
+      addressLine2: optionalString(row.address_line2),
+      postalCode: optionalString(row.postal_code),
+      city: optionalString(row.city),
+      countryCode: optionalString(row.country_code)
     },
     items: itemsResult.rows.map((item) => ({
       sku: String(item.sku ?? ''),
@@ -1445,7 +1455,12 @@ export async function sendOrderEmailTest(
         organizationName: 'Primer naročnika',
         contactName: 'Testni prejemnik',
         email: recipient,
-        reference: 'TEST'
+        reference: 'TEST',
+        addressLine1: 'Slovenska cesta 1',
+        addressLine2: null,
+        postalCode: '1000',
+        city: 'Ljubljana',
+        countryCode: 'SI'
       },
       items: [
         {

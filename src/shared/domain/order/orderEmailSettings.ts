@@ -1,3 +1,9 @@
+import {
+  emailTemplateRichTextToPlainText,
+  emailTemplateVariables,
+  legacyEmailTemplateContentHtml,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
 import { COMPANY_INFO } from './constants';
 import { ORDER_STATUS_OPTIONS } from './orderStatus';
 
@@ -48,44 +54,41 @@ export type OrderEmailAudienceSettings = {
 
 export type OrderEmailTemplate = {
   subject: string;
+  contentHtml?: string;
+  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
   greeting?: string;
+  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
   heading?: string;
-  body: string;
+  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
+  body?: string;
 };
 
 export type OrderEmailEventTemplates = {
   customer: OrderEmailTemplate;
+  companyCustomer: OrderEmailTemplate;
+  schoolCustomer: OrderEmailTemplate;
   admin: OrderEmailTemplate;
-  schoolCustomer?: OrderEmailTemplate;
 };
 
 export type OrderEmailTemplates = Record<
-  Exclude<OrderEmailEventType, 'order_submitted'>,
+  OrderEmailEventType,
   OrderEmailEventTemplates
-> & {
-  order_submitted: OrderEmailEventTemplates & {
-    schoolCustomer: OrderEmailTemplate;
-  };
-};
+>;
+
+const ORDER_EMAIL_CUSTOMER_TEMPLATE_VARIABLES = [
+  'recipient_name',
+  'customer_name',
+  'organization_name',
+  'contact_name',
+  'reference',
+  'status',
+  'previous_status'
+] as const;
 
 export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
-  customer: [
-    'recipient_name',
-    'customer_name',
-    'organization_name',
-    'contact_name',
-    'reference',
-    'status',
-    'previous_status'
-  ],
-  schoolCustomer: [
-    'recipient_name',
-    'customer_name',
-    'organization_name',
-    'contact_name',
-    'reference',
-    'status'
-  ],
+  customer: ORDER_EMAIL_CUSTOMER_TEMPLATE_VARIABLES,
+  companyCustomer: ORDER_EMAIL_CUSTOMER_TEMPLATE_VARIABLES,
+  schoolCustomer: ORDER_EMAIL_CUSTOMER_TEMPLATE_VARIABLES,
   admin: [
     'recipient_name',
     'customer_name',
@@ -100,6 +103,7 @@ export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
 export const ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
 export const ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
 export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
+export const ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 20_000;
 export const ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH = 1_000;
 export const ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 export const ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES = [
@@ -118,7 +122,7 @@ export type OrderEmailImageAttachment = {
 };
 
 export type OrderEmailSettings = {
-  version: 5;
+  version: 6;
   enabled: boolean;
   confirmCustomerEmails: boolean;
   senderName: string;
@@ -143,7 +147,6 @@ const HEADER_CONTROLS_GLOBAL_PATTERN = /[\u0000-\u001f\u007f]+/gu;
 const BODY_CONTROL_PATTERN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
 const BODY_CONTROLS_GLOBAL_PATTERN =
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/gu;
-const TEMPLATE_VARIABLE_PATTERN = /\{\{\s*([^{}]+?)\s*\}\}/gu;
 const MAX_ADMIN_RECIPIENTS = 20;
 const VERCEL_PUBLIC_BLOB_HOST_PATTERN =
   /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.public\.blob\.vercel-storage\.com$/u;
@@ -195,6 +198,19 @@ const defaultEvents = Object.fromEntries(
 
 const DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING =
   'Pozdravljeni, {{recipient_name}},';
+
+type LegacyOrderEmailTemplate = {
+  subject: string;
+  greeting?: string;
+  heading?: string;
+  body: string;
+};
+
+type LegacyOrderEmailEventTemplates = {
+  customer: LegacyOrderEmailTemplate;
+  admin: LegacyOrderEmailTemplate;
+  schoolCustomer?: LegacyOrderEmailTemplate;
+};
 
 const legacyDefaultTemplates = Object.fromEntries(
   ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value, label }) => {
@@ -296,31 +312,37 @@ const legacyDefaultTemplates = Object.fromEntries(
       }
     ];
   })
-) as OrderEmailTemplates;
+) as Record<OrderEmailEventType, LegacyOrderEmailEventTemplates>;
 
 const defaultTemplates = Object.fromEntries(
   ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => {
     const eventTemplates = legacyDefaultTemplates[eventType];
-    const completeTemplate = (template: OrderEmailTemplate): OrderEmailTemplate => ({
-      ...template,
-      greeting: DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING,
-      heading: template.subject
+    const completeTemplate = (
+      template: LegacyOrderEmailTemplate
+    ): OrderEmailTemplate => ({
+      subject: template.subject,
+      contentHtml: legacyEmailTemplateContentHtml({
+        greeting: template.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING,
+        heading: template.heading ?? template.subject,
+        body: template.body
+      })
     });
     return [
       eventType,
       {
         customer: completeTemplate(eventTemplates.customer),
+        companyCustomer: completeTemplate(eventTemplates.customer),
+        schoolCustomer: completeTemplate(
+          eventTemplates.schoolCustomer ?? eventTemplates.customer
+        ),
         admin: completeTemplate(eventTemplates.admin),
-        ...(eventTemplates.schoolCustomer
-          ? { schoolCustomer: completeTemplate(eventTemplates.schoolCustomer) }
-          : {})
       }
     ];
   })
 ) as OrderEmailTemplates;
 
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 5,
+  version: 6,
   enabled: false,
   confirmCustomerEmails: true,
   senderName: 'Atehna',
@@ -554,14 +576,13 @@ export function cloneOrderEmailSettings(
         eventType,
         {
           customer: { ...value.templates[eventType].customer },
+          companyCustomer: {
+            ...value.templates[eventType].companyCustomer
+          },
+          schoolCustomer: {
+            ...value.templates[eventType].schoolCustomer
+          },
           admin: { ...value.templates[eventType].admin },
-          ...(value.templates[eventType].schoolCustomer
-            ? {
-                schoolCustomer: {
-                  ...value.templates[eventType].schoolCustomer
-                }
-              }
-            : {})
         }
       ])
     ) as OrderEmailTemplates
@@ -575,20 +596,26 @@ function normalizeTemplate(
   defaults: OrderEmailTemplate
 ): OrderEmailTemplate {
   const subject = sanitizeHeaderText(rawTemplate.subject, defaults.subject);
+  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
+    Object.prototype.hasOwnProperty.call(rawTemplate, field)
+  );
+  const legacyContent = hasLegacyContent
+    ? legacyEmailTemplateContentHtml({
+        greeting: sanitizeHeaderText(
+          rawTemplate.greeting,
+          DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING
+        ),
+        heading: sanitizeHeaderText(rawTemplate.heading, subject),
+        body: sanitizeBodyText(rawTemplate.body, '')
+      })
+    : '';
+  const contentHtml =
+    typeof rawTemplate.contentHtml === 'string'
+      ? sanitizeEmailTemplateRichText(rawTemplate.contentHtml)
+      : legacyContent;
   return {
     subject,
-    greeting: sanitizeHeaderText(
-      rawTemplate.greeting,
-      defaults.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING
-    ),
-    heading:
-      rawTemplate.heading === undefined
-        ? subject
-        : sanitizeHeaderText(
-            rawTemplate.heading,
-            defaults.heading ?? subject
-          ),
-    body: sanitizeBodyText(rawTemplate.body, defaults.body)
+    contentHtml: contentHtml || defaults.contentHtml
   };
 }
 
@@ -620,21 +647,36 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       const rawEventTemplates = asRecord(rawTemplates[eventType]);
       const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[eventType];
       const rawCustomer = asRecord(rawEventTemplates.customer);
+      const rawCompanyCustomer = asRecord(rawEventTemplates.companyCustomer);
       const rawAdmin = asRecord(rawEventTemplates.admin);
       const rawSchoolCustomer = asRecord(rawEventTemplates.schoolCustomer);
+      const companyCustomerSource = Object.prototype.hasOwnProperty.call(
+        rawEventTemplates,
+        'companyCustomer'
+      )
+        ? rawCompanyCustomer
+        : rawCustomer;
+      const schoolCustomerSource = Object.prototype.hasOwnProperty.call(
+        rawEventTemplates,
+        'schoolCustomer'
+      )
+        ? rawSchoolCustomer
+        : eventType === 'order_submitted'
+          ? {}
+          : rawCustomer;
       return [
         eventType,
         {
           customer: normalizeTemplate(rawCustomer, defaults.customer),
+          companyCustomer: normalizeTemplate(
+            companyCustomerSource,
+            defaults.companyCustomer
+          ),
+          schoolCustomer: normalizeTemplate(
+            schoolCustomerSource,
+            defaults.schoolCustomer
+          ),
           admin: normalizeTemplate(rawAdmin, defaults.admin),
-          ...(defaults.schoolCustomer
-            ? {
-                schoolCustomer: normalizeTemplate(
-                  rawSchoolCustomer,
-                  defaults.schoolCustomer
-                )
-              }
-            : {})
         }
       ];
     })
@@ -648,7 +690,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 5,
+    version: 6,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
@@ -713,12 +755,6 @@ function isValidSiteUrl(value: unknown): boolean {
   }
 }
 
-function templateVariables(value: string): string[] {
-  return Array.from(value.matchAll(TEMPLATE_VARIABLE_PATTERN), (match) =>
-    String(match[1] ?? '').trim()
-  );
-}
-
 function validateTemplate(
   value: unknown,
   eventLabel: string,
@@ -729,9 +765,11 @@ function validateTemplate(
   const audienceLabel =
     audience === 'admin'
       ? 'administratorja'
+      : audience === 'companyCustomer'
+        ? 'podjetje'
       : audience === 'schoolCustomer'
         ? '\u0161olo ali javni zavod'
-        : 'stranko';
+        : 'fizi\u010dno osebo';
   const errors: string[] = [];
   if (
     value !== undefined &&
@@ -752,6 +790,14 @@ function validateTemplate(
   if (record.heading !== undefined && typeof record.heading !== 'string') {
     errors.push(`Naslov predloge za ${audienceLabel} (${eventLabel}) ni veljaven.`);
   }
+  if (
+    record.contentHtml !== undefined &&
+    typeof record.contentHtml !== 'string'
+  ) {
+    errors.push(
+      `Vsebina predloge za ${audienceLabel} (${eventLabel}) ni veljavna.`
+    );
+  }
 
   const subject =
     typeof record.subject === 'string' ? record.subject : fallback.subject;
@@ -761,7 +807,16 @@ function validateTemplate(
       : fallback.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING;
   const heading =
     typeof record.heading === 'string' ? record.heading : subject;
-  const body = typeof record.body === 'string' ? record.body : fallback.body;
+  const body = typeof record.body === 'string' ? record.body : '';
+  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
+    Object.prototype.hasOwnProperty.call(record, field)
+  );
+  const contentHtml =
+    typeof record.contentHtml === 'string'
+      ? record.contentHtml
+      : hasLegacyContent
+        ? legacyEmailTemplateContentHtml({ greeting, heading, body })
+        : fallback.contentHtml ?? '';
   if (hasHeaderControls(subject)) {
     errors.push(
       `Zadeva predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
@@ -770,6 +825,11 @@ function validateTemplate(
   if (BODY_CONTROL_PATTERN.test(body)) {
     errors.push(
       `Besedilo predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
+    );
+  }
+  if (BODY_CONTROL_PATTERN.test(contentHtml)) {
+    errors.push(
+      `Vsebina predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
     );
   }
   if (hasHeaderControls(greeting)) {
@@ -785,42 +845,24 @@ function validateTemplate(
   if (!sanitizeHeaderText(subject, '')) {
     errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) je obvezna.`);
   }
-  if (!sanitizeBodyText(body, '')) {
-    errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) je obvezno.`);
-  }
-  if (!sanitizeHeaderText(greeting, '')) {
-    errors.push(`Pozdrav predloge za ${audienceLabel} (${eventLabel}) je obvezen.`);
-  }
-  if (!sanitizeHeaderText(heading, '')) {
-    errors.push(`Naslov predloge za ${audienceLabel} (${eventLabel}) je obvezen.`);
+  if (!emailTemplateRichTextToPlainText(contentHtml)) {
+    errors.push(`Vsebina predloge za ${audienceLabel} (${eventLabel}) je obvezna.`);
   }
   if (subject.length > ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH) {
     errors.push(
       `Zadeva predloge za ${audienceLabel} (${eventLabel}) je lahko dolga najve\u010d ${ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH} znakov.`
     );
   }
-  if (body.length > ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH) {
+  if (contentHtml.length > ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH) {
     errors.push(
-      `Besedilo predloge za ${audienceLabel} (${eventLabel}) je lahko dolgo najve\u010d ${ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH} znakov.`
-    );
-  }
-  if (greeting.length > ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH) {
-    errors.push(
-      `Pozdrav predloge za ${audienceLabel} (${eventLabel}) je lahko dolg največ ${ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH} znakov.`
-    );
-  }
-  if (heading.length > ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH) {
-    errors.push(
-      `Naslov predloge za ${audienceLabel} (${eventLabel}) je lahko dolg največ ${ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH} znakov.`
+      `Vsebina predloge za ${audienceLabel} (${eventLabel}) je lahko dolga največ ${ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH} znakov.`
     );
   }
 
   const allowedVariables = new Set<string>(ORDER_EMAIL_TEMPLATE_VARIABLES[audience]);
   for (const variable of [
-    ...templateVariables(subject),
-    ...templateVariables(greeting),
-    ...templateVariables(heading),
-    ...templateVariables(body)
+    ...emailTemplateVariables(subject),
+    ...emailTemplateVariables(contentHtml)
   ]) {
     if (!allowedVariables.has(variable)) {
       errors.push(
@@ -928,15 +970,19 @@ export function validateOrderEmailSettingsInput(value: unknown): string[] {
     const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value];
     errors.push(
       ...validateTemplate(rawEvent.customer, event.label, 'customer', defaults.customer),
+      ...validateTemplate(
+        rawEvent.companyCustomer,
+        event.label,
+        'companyCustomer',
+        defaults.companyCustomer
+      ),
+      ...validateTemplate(
+        rawEvent.schoolCustomer,
+        event.label,
+        'schoolCustomer',
+        defaults.schoolCustomer
+      ),
       ...validateTemplate(rawEvent.admin, event.label, 'admin', defaults.admin),
-      ...(event.value === 'order_submitted' && defaults.schoolCustomer
-        ? validateTemplate(
-            rawEvent.schoolCustomer,
-            'Oddano naro\u010dilo \u2013 \u0161ola / javni zavod',
-            'schoolCustomer',
-            defaults.schoolCustomer
-          )
-        : [])
     );
   }
 

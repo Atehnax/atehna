@@ -1,7 +1,8 @@
 'use client';
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Send, Shield } from 'lucide-react';
+import AdminRichTextEditor from '@/admin/components/AdminRichTextEditor';
 import EmailMessagePreview, {
   type EmailMessagePreviewProps
 } from '@/admin/features/email/components/EmailMessagePreview';
@@ -10,14 +11,8 @@ import { Button } from '@/shared/ui/button';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import { Input } from '@/shared/ui/input';
 import { adminTableBulkHeaderButtonClassName } from '@/shared/ui/admin-table';
-import {
-  adminInputFocusTokenClasses,
-  adminPlaceholderTokenClasses
-} from '@/shared/ui/theme/tokens';
 
 const inputClassName = 'h-9 px-3 text-[13px] leading-5';
-const textareaClassName =
-  `min-h-40 w-full resize-none overflow-hidden rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 
 export type EmailTemplateWorkspaceAudience<Audience extends string = string> = {
   value: Audience;
@@ -46,9 +41,7 @@ export type EmailTemplateWorkspaceEditor = {
   description?: string;
   disabled?: boolean;
   subject: EmailTemplateWorkspaceField;
-  greeting: EmailTemplateWorkspaceField;
-  heading: EmailTemplateWorkspaceField;
-  body: EmailTemplateWorkspaceField;
+  contentHtml: EmailTemplateWorkspaceField;
   variables: readonly string[];
   variablesLabel?: string;
   variablesAriaLabel: string;
@@ -181,57 +174,6 @@ function FieldLabel({
   );
 }
 
-function AutoGrowingTextarea({
-  field,
-  disabled
-}: {
-  field: EmailTemplateWorkspaceField;
-  disabled?: boolean;
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    textarea.style.height = 'auto';
-    const borderHeight = textarea.offsetHeight - textarea.clientHeight;
-    textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
-  }, [field.value]);
-
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea || typeof ResizeObserver === 'undefined') return;
-
-    let observedWidth = textarea.getBoundingClientRect().width;
-    const observer = new ResizeObserver((entries) => {
-      const nextWidth = entries[0]?.contentRect.width ?? observedWidth;
-      if (Math.abs(nextWidth - observedWidth) < 0.5) return;
-      observedWidth = nextWidth;
-      textarea.style.height = 'auto';
-      const borderHeight = textarea.offsetHeight - textarea.clientHeight;
-      textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
-    });
-    observer.observe(textarea);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <textarea
-      ref={textareaRef}
-      id={field.id}
-      aria-label={field.label}
-      className={`${textareaClassName} mt-1.5`}
-      disabled={disabled}
-      maxLength={field.maxLength}
-      rows={6}
-      value={field.value}
-      onChange={(event) => field.onChange(event.target.value)}
-      data-testid={field.testId}
-    />
-  );
-}
-
 export default function EmailTemplateWorkspace<Audience extends string>({
   idPrefix,
   headingId: providedHeadingId,
@@ -306,7 +248,7 @@ export default function EmailTemplateWorkspace<Audience extends string>({
       >
         <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div className="flex min-w-0 flex-col border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 flex-1 overflow-x-auto">
+            <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
               <EuiTabs
                 value={activeAudience}
                 onChange={(nextAudience) =>
@@ -383,54 +325,23 @@ export default function EmailTemplateWorkspace<Audience extends string>({
 
               <div>
                 <FieldLabel
-                  htmlFor={editor.greeting.id}
-                  label={editor.greeting.label}
-                  description={editor.greeting.description}
+                  htmlFor={editor.contentHtml.id}
+                  label={editor.contentHtml.label}
+                  description={editor.contentHtml.description}
                 />
-                <Input
-                  id={editor.greeting.id}
-                  aria-label={editor.greeting.label}
-                  className={`${inputClassName} mt-1.5`}
-                  disabled={editor.disabled}
-                  maxLength={editor.greeting.maxLength}
-                  value={editor.greeting.value}
-                  onChange={(event) =>
-                    editor.greeting.onChange(event.target.value)
-                  }
-                  data-testid={editor.greeting.testId}
-                />
-              </div>
-
-              <div>
-                <FieldLabel
-                  htmlFor={editor.heading.id}
-                  label={editor.heading.label}
-                  description={editor.heading.description}
-                />
-                <Input
-                  id={editor.heading.id}
-                  aria-label={editor.heading.label}
-                  className={`${inputClassName} mt-1.5`}
-                  disabled={editor.disabled}
-                  maxLength={editor.heading.maxLength}
-                  value={editor.heading.value}
-                  onChange={(event) =>
-                    editor.heading.onChange(event.target.value)
-                  }
-                  data-testid={editor.heading.testId}
-                />
-              </div>
-
-              <div>
-                <FieldLabel
-                  htmlFor={editor.body.id}
-                  label={editor.body.label}
-                  description={editor.body.description}
-                />
-                <AutoGrowingTextarea
-                  field={editor.body}
-                  disabled={editor.disabled}
-                />
+                <div className="mt-1.5">
+                  <AdminRichTextEditor
+                    id={editor.contentHtml.id}
+                    value={editor.contentHtml.value}
+                    editable={!editor.disabled}
+                    onChange={editor.contentHtml.onChange}
+                    placeholder="Vnesite vsebino sporočila …"
+                    maxLength={editor.contentHtml.maxLength}
+                    testId={editor.contentHtml.testId}
+                    ariaLabel={editor.contentHtml.label}
+                    allowImages={false}
+                  />
+                </div>
               </div>
             </div>
 
@@ -447,16 +358,16 @@ export default function EmailTemplateWorkspace<Audience extends string>({
                     key={variable}
                     variant="neutral"
                     size="sm"
-                    className="!h-auto !min-w-0 max-w-full gap-1 rounded-md !border-slate-200 !bg-slate-50 px-1.5 py-0.5 text-[11px] font-normal leading-4 !text-slate-700"
+                    className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md !border-slate-200 !bg-slate-50 px-1.5 py-1 text-[11px] font-normal !leading-5 !text-slate-700"
                     title={
                       previewVariableValues.get(variable) || undefined
                     }
                   >
-                    <code className="break-all font-semibold text-slate-700">
+                    <code className="break-all font-semibold !leading-5 text-slate-700">
                       {`{{${variable}}}`}
                     </code>
-                    <span aria-hidden="true" className="text-slate-400">·</span>
-                    <span className="max-w-40 truncate text-slate-500">
+                    <span aria-hidden="true" className="!leading-5 text-slate-400">·</span>
+                    <span className="max-w-40 truncate !leading-5 text-slate-500">
                       {previewVariableValues.get(variable) || '—'}
                     </span>
                   </Badge>

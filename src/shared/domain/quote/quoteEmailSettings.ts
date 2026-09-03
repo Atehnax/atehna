@@ -1,3 +1,9 @@
+import {
+  emailTemplateRichTextToPlainText,
+  legacyEmailTemplateContentHtml,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
+
 export const QUOTE_EMAIL_EVENT_TYPES = [
   'quote_request_submitted',
   'quote_clarification_requested',
@@ -16,12 +22,23 @@ export type QuoteEmailEventType = (typeof QUOTE_EMAIL_EVENT_TYPES)[number];
 export type QuoteEmailAudienceSettings = { customer: boolean; admins: boolean };
 export type QuoteEmailTemplate = {
   subject: string;
+  contentHtml?: string;
+  /** Legacy read compatibility for existing saved settings. */
   greeting?: string;
+  /** Legacy read compatibility for existing saved settings. */
   heading?: string;
-  body: string;
+  /** Legacy read compatibility for existing saved settings. */
+  body?: string;
 };
+export type QuoteEmailTemplateAudience =
+  | 'customer'
+  | 'companyCustomer'
+  | 'schoolCustomer'
+  | 'admin';
 export type QuoteEmailEventTemplates = {
   customer: QuoteEmailTemplate;
+  companyCustomer: QuoteEmailTemplate;
+  schoolCustomer: QuoteEmailTemplate;
   admin: QuoteEmailTemplate;
 };
 
@@ -41,6 +58,7 @@ export const QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 240;
 export const QUOTE_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
 export const QUOTE_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
 export const QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 12_000;
+export const QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 24_000;
 export const QUOTE_EMAIL_DEFAULT_GREETING =
   'Pozdravljeni, {{recipient_name}},';
 export const QUOTE_EMAIL_DEFAULT_ADMIN_GREETING = 'Pozdravljeni,';
@@ -205,20 +223,27 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
     templates: Object.fromEntries(
       QUOTE_EMAIL_EVENT_TYPES.map((eventType) => {
         const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[eventType];
+        const customerTemplate: QuoteEmailTemplate = {
+          subject: defaults.subject,
+          contentHtml: legacyEmailTemplateContentHtml({
+            greeting: QUOTE_EMAIL_DEFAULT_GREETING,
+            heading: defaults.subject,
+            body: defaults.body
+          })
+        };
         return [
           eventType,
           {
-            customer: {
-              subject: defaults.subject,
-              greeting: QUOTE_EMAIL_DEFAULT_GREETING,
-              heading: defaults.subject,
-              body: defaults.body
-            },
+            customer: { ...customerTemplate },
+            companyCustomer: { ...customerTemplate },
+            schoolCustomer: { ...customerTemplate },
             admin: {
               subject: defaults.subject,
-              greeting: QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
-              heading: defaults.subject,
-              body: defaults.body
+              contentHtml: legacyEmailTemplateContentHtml({
+                greeting: QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
+                heading: defaults.subject,
+                body: defaults.body
+              })
             }
           }
         ];
@@ -248,6 +273,32 @@ function headerTemplateText(value: unknown, fallback: string): string {
     .trim();
 }
 
+function normalizeQuoteTemplate(
+  source: Record<string, unknown>,
+  defaults: QuoteEmailTemplate,
+  defaultGreeting: string
+): QuoteEmailTemplate {
+  const subject = headerTemplateText(source.subject, defaults.subject);
+  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
+    Object.prototype.hasOwnProperty.call(source, field)
+  );
+  const legacyContent = hasLegacyContent
+    ? legacyEmailTemplateContentHtml({
+        greeting: headerTemplateText(source.greeting, defaultGreeting),
+        heading: headerTemplateText(source.heading, subject),
+        body: templateText(source.body, '')
+      })
+    : '';
+  const contentHtml =
+    typeof source.contentHtml === 'string'
+      ? sanitizeEmailTemplateRichText(source.contentHtml)
+      : legacyContent;
+  return {
+    subject,
+    contentHtml: contentHtml || defaults.contentHtml || ''
+  };
+}
+
 export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings {
   const defaults = cloneDefaultQuoteEmailSettings();
   const source = record(value);
@@ -257,6 +308,18 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
     const event = record(sourceEvents[eventType]);
     const templates = record(sourceTemplates[eventType]);
     const customerTemplate = record(templates.customer);
+    const companyCustomerTemplate = Object.prototype.hasOwnProperty.call(
+      templates,
+      'companyCustomer'
+    )
+      ? record(templates.companyCustomer)
+      : customerTemplate;
+    const schoolCustomerTemplate = Object.prototype.hasOwnProperty.call(
+      templates,
+      'schoolCustomer'
+    )
+      ? record(templates.schoolCustomer)
+      : customerTemplate;
     const adminTemplate = record(templates.admin);
     defaults.events[eventType] = {
       customer:
@@ -273,58 +336,26 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
             : false
     };
     defaults.templates[eventType] = {
-      customer: {
-        subject: headerTemplateText(
-          customerTemplate.subject,
-          defaults.templates[eventType].customer.subject
-        ),
-        greeting: headerTemplateText(
-          customerTemplate.greeting,
-          defaults.templates[eventType].customer.greeting ??
-            QUOTE_EMAIL_DEFAULT_GREETING
-        ),
-        heading:
-          customerTemplate.heading === undefined
-            ? headerTemplateText(
-                customerTemplate.subject,
-                defaults.templates[eventType].customer.subject
-              )
-            : headerTemplateText(
-                customerTemplate.heading,
-                defaults.templates[eventType].customer.heading ??
-                  defaults.templates[eventType].customer.subject
-              ),
-        body: templateText(
-          customerTemplate.body,
-          defaults.templates[eventType].customer.body
-        )
-      },
-      admin: {
-        subject: headerTemplateText(
-          adminTemplate.subject,
-          defaults.templates[eventType].admin.subject
-        ),
-        greeting: headerTemplateText(
-          adminTemplate.greeting,
-          defaults.templates[eventType].admin.greeting ??
-            QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
-        ),
-        heading:
-          adminTemplate.heading === undefined
-            ? headerTemplateText(
-                adminTemplate.subject,
-                defaults.templates[eventType].admin.subject
-              )
-            : headerTemplateText(
-                adminTemplate.heading,
-                defaults.templates[eventType].admin.heading ??
-                  defaults.templates[eventType].admin.subject
-              ),
-        body: templateText(
-          adminTemplate.body,
-          defaults.templates[eventType].admin.body
-        )
-      }
+      customer: normalizeQuoteTemplate(
+        customerTemplate,
+        defaults.templates[eventType].customer,
+        QUOTE_EMAIL_DEFAULT_GREETING
+      ),
+      companyCustomer: normalizeQuoteTemplate(
+        companyCustomerTemplate,
+        defaults.templates[eventType].companyCustomer,
+        QUOTE_EMAIL_DEFAULT_GREETING
+      ),
+      schoolCustomer: normalizeQuoteTemplate(
+        schoolCustomerTemplate,
+        defaults.templates[eventType].schoolCustomer,
+        QUOTE_EMAIL_DEFAULT_GREETING
+      ),
+      admin: normalizeQuoteTemplate(
+        adminTemplate,
+        defaults.templates[eventType].admin,
+        QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
+      )
     };
   }
   defaults.enabled =
@@ -342,7 +373,12 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
   const normalized = normalizeQuoteEmailSettings(value);
   const errors: string[] = [];
   for (const eventType of QUOTE_EMAIL_EVENT_TYPES) {
-    for (const audience of ['customer', 'admin'] as const) {
+    for (const audience of [
+      'customer',
+      'companyCustomer',
+      'schoolCustomer',
+      'admin'
+    ] as const satisfies ReadonlyArray<QuoteEmailTemplateAudience>) {
       if (
         audience === 'admin' &&
         !quoteEmailEventSupportsAdminAudience(eventType)
@@ -371,28 +407,25 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
       ) {
         errors.push(`${eventType}/${audience}: vsebina ni veljavna.`);
       }
+      if (
+        rawTemplate.contentHtml !== undefined &&
+        typeof rawTemplate.contentHtml !== 'string'
+      ) {
+        errors.push(`${eventType}/${audience}: vsebina ni veljavna.`);
+      }
       const template = normalized.templates[eventType][audience];
-      const greeting = template.greeting ?? '';
-      const heading = template.heading ?? template.subject;
       if (!template.subject.trim()) {
         errors.push(`${eventType}/${audience}: zadeva ne sme biti prazna.`);
       } else if (template.subject.length > QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH) {
         errors.push(`${eventType}/${audience}: zadeva je predolga.`);
       }
-      if (!template.body.trim()) {
+      if (!emailTemplateRichTextToPlainText(template.contentHtml)) {
         errors.push(`${eventType}/${audience}: vsebina ne sme biti prazna.`);
-      } else if (template.body.length > QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH) {
+      } else if (
+        (template.contentHtml?.length ?? 0) >
+        QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH
+      ) {
         errors.push(`${eventType}/${audience}: vsebina je predolga.`);
-      }
-      if (!greeting.trim()) {
-        errors.push(`${eventType}/${audience}: pozdrav ne sme biti prazen.`);
-      } else if (greeting.length > QUOTE_EMAIL_TEMPLATE_GREETING_MAX_LENGTH) {
-        errors.push(`${eventType}/${audience}: pozdrav je predolg.`);
-      }
-      if (!heading.trim()) {
-        errors.push(`${eventType}/${audience}: naslov ne sme biti prazen.`);
-      } else if (heading.length > QUOTE_EMAIL_TEMPLATE_HEADING_MAX_LENGTH) {
-        errors.push(`${eventType}/${audience}: naslov je predolg.`);
       }
     }
   }

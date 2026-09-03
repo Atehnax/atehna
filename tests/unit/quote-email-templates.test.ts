@@ -40,6 +40,27 @@ function input(
 }
 
 describe('quote email templates', () => {
+  test('selects an independent customer template from the quote customer type', () => {
+    const cases = [
+      ['individual', 'customer', 'Fizična ponudba'],
+      ['company', 'companyCustomer', 'Ponudba podjetju'],
+      ['school', 'schoolCustomer', 'Ponudba zavodu']
+    ] as const;
+
+    for (const [customerType, templateAudience, expectedSubject] of cases) {
+      const value = input({ customerType });
+      const templates = value.quoteSettings.templates.quote_issued;
+      templates.customer.subject = 'Fizična ponudba';
+      templates.companyCustomer.subject = 'Ponudba podjetju';
+      templates.schoolCustomer.subject = 'Ponudba zavodu';
+
+      const message = buildQuoteEmailMessage(value);
+
+      assert.equal(message.subject, `[Atehna] ${expectedSubject}`);
+      assert.equal(templates[templateAudience].subject, expectedSubject);
+    }
+  });
+
   test('renders configured content with shared explicit typography', () => {
     const value = input();
     value.quoteSettings.templates.quote_issued.customer = {

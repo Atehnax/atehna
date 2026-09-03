@@ -3,12 +3,17 @@ import {
   type EmailMessageAttachment
 } from '../order/orderEmailTemplates';
 import type { OrderEmailImageAttachment } from '../order/orderEmailSettings';
+import type { CustomerType } from '../order/customerType';
 import {
   TRANSACTIONAL_EMAIL_BODY_STYLE,
   TRANSACTIONAL_EMAIL_CARD_STYLE,
-  TRANSACTIONAL_EMAIL_COPY_STYLE,
-  TRANSACTIONAL_EMAIL_HEADING_STYLE
+  TRANSACTIONAL_EMAIL_COPY_STYLE
 } from '../transactionalEmailHtml';
+import {
+  legacyEmailTemplateContentHtml,
+  renderEmailTemplateRichText,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
 import {
   QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
   QUOTE_EMAIL_DEFAULT_GREETING,
@@ -42,6 +47,7 @@ export type QuoteEmailSharedSettings = Readonly<{
 export type BuildQuoteEmailMessageInput = Readonly<{
   eventType: QuoteEmailEventType;
   audience: QuoteEmailAudience;
+  customerType?: CustomerType;
   recipientEmail: string;
   recipientName?: string | null;
   requestNumber: string;
@@ -88,14 +94,17 @@ export function buildQuoteEmailMessage(
 ): QuoteEmailMessage {
   const shared = input.sharedSettings;
   const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[input.eventType];
-  const configuredTemplate = input.quoteSettings.templates[
-    input.eventType
-  ] as unknown as Record<string, unknown>;
-  const audienceTemplate =
-    configuredTemplate[input.audience] &&
-    typeof configuredTemplate[input.audience] === 'object'
-      ? (configuredTemplate[input.audience] as Record<string, unknown>)
-      : {};
+  const templateAudience =
+    input.audience === 'admin'
+      ? 'admin'
+      : input.customerType === 'school'
+        ? 'schoolCustomer'
+        : input.customerType === 'company'
+          ? 'companyCustomer'
+          : 'customer';
+  const configuredTemplates = input.quoteSettings.templates[input.eventType];
+  const audienceTemplate = configuredTemplates[templateAudience] ??
+    configuredTemplates.customer;
   const variables = {
     recipient_name: (input.recipientName ?? '').replace(/\s+/gu, ' ').trim(),
     request_number: input.requestNumber,
@@ -113,40 +122,46 @@ export function buildQuoteEmailMessage(
     input.audience === 'admin'
       ? QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
       : QUOTE_EMAIL_DEFAULT_GREETING;
-  const greeting = (
-    safeHeaderText(
-      render(
-        typeof audienceTemplate.greeting === 'string'
-          ? audienceTemplate.greeting
-          : defaultGreeting,
-        variables
-      )
-    ) || safeHeaderText(render(defaultGreeting, variables))
-  ).replace(/,\s*,/gu, ',');
-  const heading =
-    safeHeaderText(
-      render(
-        typeof audienceTemplate.heading === 'string'
-          ? audienceTemplate.heading
-          : templateSubject,
-        variables
-      )
-    ) || subject;
-  const baseBody = render(
-    typeof audienceTemplate.body === 'string'
-      ? audienceTemplate.body
-      : defaults.body,
+  const configuredContent =
+    typeof audienceTemplate.contentHtml === 'string'
+      ? sanitizeEmailTemplateRichText(audienceTemplate.contentHtml)
+      : '';
+  const legacyContent = legacyEmailTemplateContentHtml({
+    greeting:
+      typeof audienceTemplate.greeting === 'string'
+        ? audienceTemplate.greeting
+        : defaultGreeting,
+    heading:
+      typeof audienceTemplate.heading === 'string'
+        ? audienceTemplate.heading
+        : templateSubject,
+    body:
+      typeof audienceTemplate.body === 'string'
+        ? audienceTemplate.body
+        : defaults.body
+  });
+  const content = renderEmailTemplateRichText(
+    configuredContent || legacyContent,
     variables
   );
   const detail = input.detail?.trim() || '';
-  const eventBody = `${baseBody}${detail ? `\n\n${detail}` : ''}`;
+  const detailContent = detail
+    ? renderEmailTemplateRichText(
+        legacyEmailTemplateContentHtml({ body: detail }),
+        {}
+      )
+    : { html: '', text: '' };
+  const eventContentHtml = `${content.html}${detailContent.html}`;
+  const eventContentText = [content.text, detailContent.text]
+    .filter(Boolean)
+    .join('\n\n');
   const headerText = shared.headerText.trim();
   const footerText = shared.footerText.trim();
   const action =
     input.offerUrl && input.audience === 'customer'
       ? `Preglej ponudbo: ${input.offerUrl}`
       : '';
-  const text = [headerText, greeting, heading, eventBody, action, footerText]
+  const text = [headerText, eventContentText, action, footerText]
     .filter(Boolean)
     .join('\n\n');
   const actionHtml =
@@ -162,9 +177,7 @@ export function buildQuoteEmailMessage(
   <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
     <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
       ${headerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 18px;white-space:pre-line;color:#334155;">${escapeHtml(headerText)}</p>` : ''}
-      ${greeting ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 16px;color:#334155;">${escapeHtml(greeting)}</p>` : ''}
-      <h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}margin:0 0 10px;">${escapeHtml(heading)}</h1>
-      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 20px;white-space:pre-line;color:#334155;">${escapeHtml(eventBody)}</p>
+      ${eventContentHtml}
       ${actionHtml}
       ${footerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:28px 0 0;white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${escapeHtml(footerText)}</p>` : ''}
     </div>

@@ -5,9 +5,7 @@ import { ImagePlus } from "lucide-react";
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
   ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES,
-  ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
-  ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH,
-  ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH,
+  ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   ORDER_EMAIL_EVENT_DEFINITIONS,
@@ -70,8 +68,7 @@ type UnknownRecord = Record<string, unknown>;
 type EventKey = keyof OrderEmailSettings["events"];
 type EventAudience = keyof OrderEmailSettings["events"][EventKey];
 type EmailPageTab = "settings" | "orders" | "quotes";
-type StandardTemplateAudience = "customer" | "admin";
-type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
+type TemplateAudience = keyof OrderEmailSettings["templates"][EventKey];
 type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
 type EmailImageAttachment = NonNullable<OrderEmailSettings["imageAttachment"]>;
 type StagedEmailImageAttachment = {
@@ -93,19 +90,19 @@ const acceptedEmailImageContentTypes = new Set([
   "image/gif",
 ]);
 const orderEmailTemplateAudienceOptions = [
-  { value: "customer", label: "Stranka" },
-  { value: "admin", label: "Administrator" },
-] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
-const orderEmailSubmissionTemplateAudienceOptions = [
-  { value: "customer", label: "Stranka" },
+  { value: "customer", label: "Fiz. oseba" },
+  { value: "companyCustomer", label: "Podjetje" },
   { value: "schoolCustomer", label: "Šola / javni zavod" },
-  { value: "admin", label: "Administrator" },
+  { value: "admin", label: "Admin" },
 ] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
 const ORDER_EMAIL_PREVIEW_CREATED_AT = "2026-09-03T12:37:00.000Z";
 const ORDER_EMAIL_PREVIEW_CUSTOMER_NAME = "Primer naročnika";
 const ORDER_EMAIL_PREVIEW_CONTACT_NAME = "Ana Novak";
 const ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL = "ana.novak@example.com";
 const ORDER_EMAIL_PREVIEW_REFERENCE = "TEST-2026";
+const ORDER_EMAIL_PREVIEW_ADDRESS_LINE_1 = "Slovenska cesta 1";
+const ORDER_EMAIL_PREVIEW_POSTAL_CODE = "1000";
+const ORDER_EMAIL_PREVIEW_CITY = "Ljubljana";
 const ORDER_EMAIL_PREVIEW_ORDER_NUMBER = "#PREIZKUS";
 const ORDER_EMAIL_PREVIEW_ACCESS_TOKEN =
   ["ath", "order"].join("_") + "_" + "P".repeat(43);
@@ -138,16 +135,26 @@ function buildOrderEmailPreviewMessage(
     fromEmail: "preview@example.invalid",
     replyToEmail: "",
   });
-  const customerType: "school" | "company" =
-    audience === "schoolCustomer" ? "school" : "company";
+  const customerType: "individual" | "company" | "school" =
+    audience === "schoolCustomer"
+      ? "school"
+      : audience === "customer"
+        ? "individual"
+        : "company";
   const order = {
     createdAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
     customer: {
       customerType,
-      organizationName: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+      organizationName:
+        customerType === "individual" ? null : ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
       contactName: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
       email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
       reference: ORDER_EMAIL_PREVIEW_REFERENCE,
+      addressLine1: ORDER_EMAIL_PREVIEW_ADDRESS_LINE_1,
+      addressLine2: null,
+      postalCode: ORDER_EMAIL_PREVIEW_POSTAL_CODE,
+      city: ORDER_EMAIL_PREVIEW_CITY,
+      countryCode: "SI",
     },
     items: [
       {
@@ -440,7 +447,6 @@ function FieldLabel({
 
 function orderTemplateAudienceMeta(
   audience: TemplateAudience,
-  eventType: EventKey,
 ) {
   if (audience === "schoolCustomer") {
     return {
@@ -448,7 +454,16 @@ function orderTemplateAudienceMeta(
       testId: "school-customer",
       title: "\u0160ola / javni zavod",
       description:
-        "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno.",
+        "Uporabi se za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Sistemski podatki in morebitna varna povezava za naro\u010dilnico se dodajo samodejno.",
+    };
+  }
+  if (audience === "companyCustomer") {
+    return {
+      label: "podjetje",
+      testId: "company-customer",
+      title: "Podjetje",
+      description:
+        "Uporabi se za naro\u010dnika vrste \u00bbPodjetje\u00ab. Interna zaporedna \u0161tevilka naro\u010dila se kupcu ne razkrije.",
     };
   }
   if (audience === "admin") {
@@ -461,14 +476,11 @@ function orderTemplateAudienceMeta(
     };
   }
   return {
-    label: "stranko",
-    testId: "customer",
-    title:
-      eventType === "order_submitted"
-        ? "Stranka (fizi\u010dna oseba ali podjetje)"
-        : "Stranka",
+    label: "fizi\u010dno osebo",
+    testId: "individual-customer",
+    title: "Fizi\u010dna oseba",
     description:
-      "V predlogi za stranko interna zaporedna \u0161tevilka naro\u010dila ni na voljo in se kupcu ne razkrije.",
+      "Uporabi se za naro\u010dnika vrste \u00bbFizi\u010dna oseba\u00ab. Interna zaporedna \u0161tevilka naro\u010dila se kupcu ne razkrije.",
   };
 }
 
@@ -549,21 +561,11 @@ export default function AdminOrderEmailSettingsPageClient({
       ),
     [],
   );
-  const schoolCustomerTemplate =
-    draft.templates.order_submitted.schoolCustomer ??
-    DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
   const selectedTemplateAudienceMeta = orderTemplateAudienceMeta(
     orderPreviewAudience,
-    selectedTemplateEvent,
   );
   const selectedTemplate =
-    orderPreviewAudience === "schoolCustomer"
-      ? schoolCustomerTemplate
-      : draft.templates[selectedTemplateEvent][orderPreviewAudience];
-  const selectedTemplateAudienceOptions =
-    selectedTemplateEvent === "order_submitted"
-      ? orderEmailSubmissionTemplateAudienceOptions
-      : orderEmailTemplateAudienceOptions;
+    draft.templates[selectedTemplateEvent][orderPreviewAudience];
   const selectedTemplateEventSetting = draft.events[selectedTemplateEvent] ?? {
     customer: false,
     admins: false,
@@ -677,32 +679,10 @@ export default function AdminOrderEmailSettingsPageClient({
 
   const updateTemplate = (
     audience: TemplateAudience,
-    field: "subject" | "greeting" | "heading" | "body",
+    field: "subject" | "contentHtml",
     value: string,
   ) => {
     setDraft((current) => {
-      if (audience === "schoolCustomer") {
-        const submissionTemplates = current.templates.order_submitted;
-        const currentSchoolTemplate =
-          submissionTemplates.schoolCustomer ??
-          DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-        if (!currentSchoolTemplate) return current;
-        return {
-          ...current,
-          templates: {
-            ...current.templates,
-            order_submitted: {
-              ...submissionTemplates,
-              schoolCustomer: {
-                ...submissionTemplates.schoolCustomer,
-                ...currentSchoolTemplate,
-                [field]: value,
-              },
-            },
-          },
-        };
-      }
-
       const eventTemplates =
         current.templates[selectedTemplateEvent] ??
         DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent];
@@ -724,24 +704,6 @@ export default function AdminOrderEmailSettingsPageClient({
   };
 
   const resetTemplate = (audience: TemplateAudience) => {
-    if (audience === "schoolCustomer") {
-      const defaultTemplate =
-        DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-      if (!defaultTemplate) return;
-      setDraft((current) => ({
-        ...current,
-        templates: {
-          ...current.templates,
-          order_submitted: {
-            ...current.templates.order_submitted,
-            schoolCustomer: { ...defaultTemplate },
-          },
-        },
-      }));
-      setActionErrors([]);
-      return;
-    }
-
     const defaultTemplate =
       DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent][audience];
     setDraft((current) => {
@@ -1929,7 +1891,7 @@ export default function AdminOrderEmailSettingsPageClient({
           idPrefix="order-email-template"
           testId="order-email-message-templates"
           title="Predloge sporočil"
-          description="Za vsak dogodek posebej nastavite zadevo, pozdrav, naslov in vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+          description="Za vsak dogodek posebej nastavite zadevo in oblikovano vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
           eventSelector={
             <>
               <FieldLabel
@@ -1943,12 +1905,6 @@ export default function AdminOrderEmailSettingsPageClient({
                 value={selectedTemplateEvent}
                 onChange={(value) => {
                   setSelectedTemplateEvent(value);
-                  if (
-                    value !== "order_submitted" &&
-                    orderPreviewAudience === "schoolCustomer"
-                  ) {
-                    setOrderPreviewAudience("customer");
-                  }
                   setActionErrors([]);
                 }}
                 options={templateEventOptions}
@@ -1991,7 +1947,7 @@ export default function AdminOrderEmailSettingsPageClient({
               />
             </>
           }
-          audiences={selectedTemplateAudienceOptions}
+          audiences={orderEmailTemplateAudienceOptions}
           activeAudience={orderPreviewAudience}
           onAudienceChange={(audience) => {
             setOrderPreviewAudience(audience);
@@ -2012,38 +1968,16 @@ export default function AdminOrderEmailSettingsPageClient({
               onChange: (value) =>
                 updateTemplate(orderPreviewAudience, "subject", value),
             },
-            greeting: {
-              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-greeting`,
-              label: "Pozdrav",
-              description: "Uvodna vrstica sporočila.",
-              value:
-                selectedTemplate.greeting ??
-                "Pozdravljeni, {{recipient_name}},",
-              maxLength: ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH,
-              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-greeting`,
-              onChange: (value) =>
-                updateTemplate(orderPreviewAudience, "greeting", value),
-            },
-            heading: {
-              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-heading`,
-              label: "Naslov",
-              description: "Glavni naslov v vsebini sporočila.",
-              value: selectedTemplate.heading ?? selectedTemplate.subject,
-              maxLength: ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH,
-              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-heading`,
-              onChange: (value) =>
-                updateTemplate(orderPreviewAudience, "heading", value),
-            },
-            body: {
-              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-body`,
-              label: "Vsebina",
+            contentHtml: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,
+              label: "Vsebina sporočila",
               description:
-                "Vnesite navadno besedilo. Povzetek naročila in artikli se dodajo samodejno.",
-              value: selectedTemplate.body,
-              maxLength: ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
-              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-body`,
+                "Oblikujte celotno uvodno vsebino sporočila. Povzetek naročila in artikli se dodajo samodejno.",
+              value: selectedTemplate.contentHtml ?? "",
+              maxLength: ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,
               onChange: (value) =>
-                updateTemplate(orderPreviewAudience, "body", value),
+                updateTemplate(orderPreviewAudience, "contentHtml", value),
             },
             variables: ORDER_EMAIL_TEMPLATE_VARIABLES[orderPreviewAudience],
             variablesAriaLabel: `Dovoljene spremenljivke za ${selectedTemplateAudienceMeta.label}`,

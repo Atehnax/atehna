@@ -23,6 +23,7 @@ import {
   classifyResendFailure,
   type ResendFailure
 } from '@/shared/domain/order/orderEmailDelivery';
+import { isCustomerType } from '@/shared/domain/order/customerType';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
 import {
   decryptQuoteEmailEnvelope,
@@ -104,6 +105,7 @@ async function quoteIdentity(client: PoolClient, input: EnqueueQuoteEmailInput) 
         request.request_number,
         request.email,
         request.contact_name,
+        request.customer_type,
         offer.offer_number
       from quote_requests request
       left join quote_offer_versions offer
@@ -119,6 +121,7 @@ async function quoteIdentity(client: PoolClient, input: EnqueueQuoteEmailInput) 
         request_number: string;
         email: string;
         contact_name: string;
+        customer_type: string;
         offer_number: string | null;
       }
     | undefined;
@@ -198,6 +201,9 @@ export async function enqueueQuoteEmailEvent(
     const message = buildQuoteEmailMessage({
       eventType: input.eventType,
       audience: recipient.audience,
+      customerType: isCustomerType(identity.customer_type)
+        ? identity.customer_type
+        : 'individual',
       recipientEmail: recipient.email,
       recipientName: recipient.name,
       requestNumber: identity.request_number,

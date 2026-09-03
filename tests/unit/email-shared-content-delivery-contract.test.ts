@@ -24,7 +24,7 @@ test('order and quote provider payloads combine the persisted image with only th
   assert.doesNotMatch(quoteWorker, /content_id|contentId/u);
 });
 
-test('quote outbox snapshots shared header, footer, and image before encryption', () => {
+test('quote outbox snapshots canonical rich content, shared header, footer, and image before encryption', () => {
   const quoteWorker = source('src/shared/server/quoteEmailJobs.ts');
   const quoteTemplates = source(
     'src/shared/domain/quote/quoteEmailTemplates.ts'
@@ -40,11 +40,19 @@ test('quote outbox snapshots shared header, footer, and image before encryption'
   );
   assert.match(
     quoteTemplates,
-    /\[headerText, greeting, heading, eventBody, action, footerText\][\s\S]*?\.join\('\\n\\n'\)/u
+    /const content = renderEmailTemplateRichText\([\s\S]*?configuredContent \|\| legacyContent,[\s\S]*?variables[\s\S]*?\);/u
   );
   assert.match(
     quoteTemplates,
-    /headerText \? `<p[\s\S]*?<h1 style=[\s\S]*?footerText \? `<p/u
+    /const eventContentHtml = `\$\{content\.html\}\$\{detailContent\.html\}`;[\s\S]*?const eventContentText = \[content\.text, detailContent\.text\][\s\S]*?\.join\('\\n\\n'\);/u
+  );
+  assert.match(
+    quoteTemplates,
+    /\[headerText, eventContentText, action, footerText\][\s\S]*?\.join\('\\n\\n'\)/u
+  );
+  assert.match(
+    quoteTemplates,
+    /headerText \? `<p[\s\S]*?\$\{eventContentHtml\}[\s\S]*?\$\{actionHtml\}[\s\S]*?footerText \? `<p/u
   );
   assert.match(
     quoteTemplates,

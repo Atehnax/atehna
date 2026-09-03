@@ -87,7 +87,10 @@ test('events use the canonical admin table while templates and queue retain resp
     /Pošiljanje ponudb/u
   );
   assert.match(section, /workspaceTestId="quote-email-template-grid"/u);
-  assert.match(section, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(
+    section,
+    /<EmailTemplateWorkspace<QuoteEmailTemplateAudience>/u
+  );
   assert.match(section, /headingLevel=\{3\}/u);
   assert.ok(
     templateWorkspace.includes(
@@ -130,22 +133,18 @@ test('events use the canonical admin table while templates and queue retain resp
   );
   assert.match(queueMetricCard, /text-xs text-slate-500/u);
   assert.match(templateWorkspace, /inputClassName[^\n]*mt-1\.5/u);
-  assert.match(templateWorkspace, /min-h-40 w-full resize-none overflow-hidden rounded-md/u);
-  assert.match(templateWorkspace, /function AutoGrowingTextarea/u);
-  assert.match(templateWorkspace, /textarea\.style\.height = 'auto'/u);
   assert.match(
     templateWorkspace,
-    /const borderHeight = textarea\.offsetHeight - textarea\.clientHeight/u
+    /import AdminRichTextEditor from '@\/admin\/components\/AdminRichTextEditor'/u
   );
-  assert.match(templateWorkspace, /textarea\.scrollHeight \+ borderHeight/u);
-  assert.match(templateWorkspace, /typeof ResizeObserver === 'undefined'/u);
+  assert.match(templateWorkspace, /<AdminRichTextEditor/u);
   assert.match(
     templateWorkspace,
-    /new ResizeObserver\(\(entries\) =>[\s\S]*?Math\.abs\(nextWidth - observedWidth\) < 0\.5[\s\S]*?textarea\.style\.height = 'auto'[\s\S]*?textarea\.scrollHeight \+ borderHeight/u
+    /value=\{editor\.contentHtml\.value\}[\s\S]*?onChange=\{editor\.contentHtml\.onChange\}[\s\S]*?allowImages=\{false\}/u
   );
   assert.match(
     templateWorkspace,
-    /observer\.observe\(textarea\)[\s\S]*?return \(\) => observer\.disconnect\(\)/u
+    /className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"/u
   );
   assert.match(section, /<AdminCheckbox/u);
   assert.match(templateWorkspace, /<Button/u);
@@ -160,13 +159,15 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(templateWorkspace, /resetLabel = 'Ponastavi privzeto'/u);
   assert.match(templateWorkspace, /editor\.variablesLabel \?\? 'Dovoljene spremenljivke'/u);
   assert.match(section, /testId: `quote-email-template-\$\{quotePreviewAudience\}`/u);
-  assert.match(section, /selectedAudienceTitle/u);
+  assert.match(section, /title: selectedAudience\.title/u);
   assert.match(section, /subject: \{[\s\S]*?label: 'Zadeva'/u);
-  assert.match(section, /greeting: \{[\s\S]*?label: 'Pozdrav'/u);
-  assert.match(section, /heading: \{[\s\S]*?label: 'Naslov'/u);
-  assert.match(section, /body: \{[\s\S]*?label: 'Vsebina'/u);
-  assert.match(section, /resetAriaLabel=\{`Ponastavi privzeto predlogo za \$\{selectedAudienceLabel\}`\}/u);
-  assert.match(section, /variablesAriaLabel: `Dovoljene spremenljivke za \$\{selectedAudienceLabel\}`/u);
+  assert.match(
+    section,
+    /contentHtml: \{[\s\S]*?label: 'Vsebina sporočila'/u
+  );
+  assert.doesNotMatch(section, /greeting: \{|heading: \{|body: \{/u);
+  assert.match(section, /resetAriaLabel=\{`Ponastavi privzeto predlogo za \$\{selectedAudience\.label\}`\}/u);
+  assert.match(section, /variablesAriaLabel: `Dovoljene spremenljivke za \$\{selectedAudience\.label\}`/u);
   assert.match(templateWorkspace, /editor\.variables\.map/u);
   assert.match(
     templateWorkspace,
@@ -174,7 +175,7 @@ test('events use the canonical admin table while templates and queue retain resp
   );
   assert.match(
     templateWorkspace,
-    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 rounded-md[\s\S]*?previewVariableValues\.get\(variable\)/u
+    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md[^"]*!leading-5[\s\S]*?previewVariableValues\.get\(variable\)/u
   );
   assert.match(section, /buildQuoteEmailMessage/u);
   assert.match(section, /sharedSettings: OrderEmailSettings/u);
@@ -183,9 +184,20 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(section, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
   assert.match(section, /activeAudience=\{quotePreviewAudience\}/u);
   assert.match(section, /onAudienceChange=\{setQuotePreviewAudience\}/u);
+  for (const [value, label] of [
+    ['customer', 'Fiz. oseba'],
+    ['companyCustomer', 'Podjetje'],
+    ['schoolCustomer', 'Šola / javni zavod'],
+    ['admin', 'Admin']
+  ] as const) {
+    assert.match(
+      section,
+      new RegExp(`value: '${value}', label: '${label.replace('/', '\\/')}'`, 'u')
+    );
+  }
   assert.match(
     section,
-    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'greeting', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'heading', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u
+    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'contentHtml', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u
   );
   assert.equal(section.match(/<EmailTemplateRecipientToggle/gu)?.length, 2);
   assert.match(section, /getEmailTemplateActivity\(/u);
@@ -211,16 +223,13 @@ test('density refactor preserves quote email behavior and accessible controls', 
   assert.match(section, /updateEvent\(definition\.value/u);
   assert.match(
     section,
-    /const updateTemplate = \([\s\S]*?audience: 'customer' \| 'admin',[\s\S]*?field: 'subject' \| 'greeting' \| 'heading' \| 'body'/u
+    /const updateTemplate = \([\s\S]*?audience: QuoteEmailTemplateAudience,[\s\S]*?field: 'subject' \| 'contentHtml'/u
   );
   assert.match(section, /updateTemplate\(quotePreviewAudience, 'subject', value\)/u);
-  assert.match(section, /updateTemplate\(quotePreviewAudience, 'greeting', value\)/u);
-  assert.match(section, /updateTemplate\(quotePreviewAudience, 'heading', value\)/u);
-  assert.match(section, /updateTemplate\(quotePreviewAudience, 'body', value\)/u);
+  assert.match(section, /updateTemplate\(quotePreviewAudience, 'contentHtml', value\)/u);
   assert.match(section, /label: 'Zadeva'/u);
-  assert.match(section, /label: 'Pozdrav'/u);
-  assert.match(section, /label: 'Naslov'/u);
-  assert.match(section, /label: 'Vsebina'/u);
+  assert.match(section, /label: 'Vsebina sporočila'/u);
+  assert.doesNotMatch(section, /label: 'Pozdrav'|label: 'Naslov'|label: 'Vsebina'/u);
   assert.match(section, /fetch\('\/api\/admin\/quote-email-settings'/u);
   assert.match(section, /fetch\(`\/api\/admin\/quote-email-jobs\/\$\{jobId\}\/retry`/u);
   assert.match(section, /fetch\(`\/api\/admin\/quote-email-jobs\/\$\{candidate\.id\}`[\s\S]*?method: 'DELETE'/u);

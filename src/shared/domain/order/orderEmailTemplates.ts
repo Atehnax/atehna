@@ -4,11 +4,16 @@ import {
   TRANSACTIONAL_EMAIL_BUTTON_STYLE,
   TRANSACTIONAL_EMAIL_CARD_STYLE,
   TRANSACTIONAL_EMAIL_COPY_STYLE,
-  TRANSACTIONAL_EMAIL_HEADING_STYLE,
   TRANSACTIONAL_EMAIL_META_STYLE,
   TRANSACTIONAL_EMAIL_SMALL_STYLE,
   TRANSACTIONAL_EMAIL_TABLE_STYLE
 } from '../transactionalEmailHtml';
+import {
+  legacyEmailTemplateContentHtml,
+  renderEmailTemplateRichText,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
+import { formatStructuredOrderAddress } from './orderAddress';
 import type { CustomerType } from './customerType';
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
@@ -26,6 +31,11 @@ export type OrderEmailCustomerSnapshot = {
   contactName: string;
   email: string;
   reference: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
 };
 
 export type OrderEmailOrderLineSnapshot = {
@@ -365,57 +375,71 @@ function renderTemplate(value: unknown, variables: TemplateValues): string {
 
 function buildTemplateContent(payload: OrderEmailJobPayload): {
   subject: string;
-  heading: string;
-  body: string;
-  greeting: string;
+  contentHtml: string;
+  contentText: string;
 } {
-  const audience = payload.audience === 'admin' ? 'admin' : 'customer';
-  const schoolCustomer =
-    payload.audience === 'customer' &&
-    payload.eventType === 'order_submitted' &&
-    payload.order.customer.customerType === 'school';
+  const templateAudience =
+    payload.audience === 'admin'
+      ? 'admin'
+      : payload.order.customer.customerType === 'school'
+        ? 'schoolCustomer'
+        : payload.order.customer.customerType === 'company'
+          ? 'companyCustomer'
+          : 'customer';
   const defaultEventTemplates =
     DEFAULT_ORDER_EMAIL_SETTINGS.templates[payload.eventType];
   const configuredEventTemplates =
     payload.settingsSnapshot.templates?.[payload.eventType];
-  const defaults = schoolCustomer
-    ? defaultEventTemplates.schoolCustomer ?? defaultEventTemplates.customer
-    : defaultEventTemplates[audience];
-  const configured = schoolCustomer
-    ? configuredEventTemplates?.schoolCustomer ??
-      configuredEventTemplates?.customer ??
-      defaults
-    : configuredEventTemplates?.[audience] ?? defaults;
+  const defaults = defaultEventTemplates[templateAudience];
+  const configured =
+    configuredEventTemplates?.[templateAudience] ??
+    (templateAudience !== 'admin'
+      ? configuredEventTemplates?.customer
+      : undefined) ??
+    defaults;
   const variables = buildTemplateValues(payload);
   const subject =
     safeHeaderText(renderTemplate(configured.subject, variables)) ||
     safeHeaderText(renderTemplate(defaults.subject, variables));
-  const heading =
-    safeHeaderText(
-      renderTemplate(configured.heading ?? configured.subject, variables)
-    ) ||
-    safeHeaderText(
-      renderTemplate(defaults.heading ?? defaults.subject, variables)
-    );
-  const body =
-    safeBodyText(renderTemplate(configured.body, variables)) ||
-    safeBodyText(renderTemplate(defaults.body, variables));
   const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
   const prefixText = prefix ? `[${prefix}] ` : '';
-  const recipientName = safeBodyText(payload.recipientName);
-  const legacyGreeting = recipientName
-    ? `Pozdravljeni, ${recipientName},`
-    : 'Pozdravljeni,';
-  const greeting = (
-    safeHeaderText(
-      renderTemplate(configured.greeting ?? defaults.greeting, variables)
-    ) || legacyGreeting
-  ).replace(/,\s*,/gu, ',');
+  const richContent = (
+    template: typeof configured,
+    fallback: typeof defaults
+  ) => {
+    const source = template as unknown as Record<string, unknown>;
+    const fallbackSource = fallback as unknown as Record<string, unknown>;
+    if (typeof source.contentHtml === 'string') {
+      const sanitized = sanitizeEmailTemplateRichText(source.contentHtml);
+      if (sanitized) return sanitized;
+    }
+    if (
+      typeof source.greeting === 'string' ||
+      typeof source.heading === 'string' ||
+      typeof source.body === 'string'
+    ) {
+      return legacyEmailTemplateContentHtml({
+        greeting:
+          source.greeting ??
+          fallbackSource.greeting ??
+          'Pozdravljeni, {{recipient_name}},',
+        heading: source.heading ?? source.subject ?? fallback.subject,
+        body: source.body ?? fallbackSource.body ?? ''
+      });
+    }
+    return fallback.contentHtml ?? '';
+  };
+  const renderedContent = renderEmailTemplateRichText(
+    richContent(configured, defaults),
+    variables
+  );
+  const fallbackContent = renderedContent.text
+    ? renderedContent
+    : renderEmailTemplateRichText(defaults.contentHtml, variables);
   return {
     subject: `${prefixText}${subject}`,
-    heading,
-    body,
-    greeting,
+    contentHtml: fallbackContent.html,
+    contentText: fallbackContent.text
   };
 }
 
@@ -551,6 +575,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const content = buildTemplateContent(payload);
   const order = payload.order;
   const customerName = customerDisplayName(order.customer);
+  const customerAddress = formatStructuredOrderAddress(order.customer);
   const isSchoolSubmission =
     payload.audience === 'customer' &&
     payload.eventType === 'order_submitted' &&
@@ -574,6 +599,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     ? `
       <div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:20px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
         <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Naročnik:</strong> ${escapeHtml(customerName || order.customer.contactName)}<br>
+        ${customerAddress ? `<strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Naslov:</strong> ${escapeHtml(customerAddress)}<br>` : ''}
         <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">E-pošta:</strong> ${escapeHtml(order.customer.email)}
         ${order.customer.reference ? `<br><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Referenca:</strong> ${escapeHtml(order.customer.reference)}` : ''}
       </div>
@@ -598,9 +624,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
     <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
       ${header ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 18px;color:#334155;">${multilineHtml(header)}</p>` : ''}
-      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
-      <h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}margin:0 0 10px;">${escapeHtml(content.heading)}</h1>
-      <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 20px;color:#334155;">${multilineHtml(content.body)}</p>
+      ${content.contentHtml}
       ${schoolDetailsHtml}
       ${adminCustomerDetails}
       <div style="${TRANSACTIONAL_EMAIL_META_STYLE}margin:20px 0 12px;color:#64748b;">
@@ -621,6 +645,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const adminText = payload.audience === 'admin'
     ? [
         `Naročnik: ${customerName || safeBodyText(order.customer.contactName)}`,
+        customerAddress ? `Naslov: ${customerAddress}` : null,
         `E-pošta: ${safeBodyText(order.customer.email)}`,
         order.customer.reference
           ? `Referenca: ${safeBodyText(order.customer.reference)}`
@@ -633,10 +658,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const text = [
     header,
     header ? '' : null,
-    content.greeting,
-    '',
-    content.heading,
-    content.body,
+    content.contentText,
     adminText ? `\n${adminText}` : '',
     schoolDetailsText ? `\n${schoolDetailsText}` : '',
     '',

@@ -138,13 +138,16 @@ test("email sections are assigned to compact persistent tab panels without losin
   );
   assert.doesNotMatch(quoteUi, /Pošiljanje ponudb/u);
   const quoteTemplateSource = quoteUi.slice(quoteTemplates, quoteQueue);
-  assert.match(quoteUi, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(
+    quoteUi,
+    /<EmailTemplateWorkspace<QuoteEmailTemplateAudience>/u,
+  );
   assert.match(quoteTemplateSource, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
   assert.match(quoteTemplateSource, /activeAudience=\{quotePreviewAudience\}/u);
   assert.match(quoteTemplateSource, /onAudienceChange=\{setQuotePreviewAudience\}/u);
   assert.match(
     quoteTemplateSource,
-    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'greeting', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'heading', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'body', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
+    /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'contentHtml', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
   );
   assert.doesNotMatch(
     quoteTemplateSource,
@@ -247,35 +250,28 @@ test("email workspace uses shared admin controls, typography, and save-state pre
     templateWorkspace,
     /className="!h-9 !min-w-0 shrink-0 self-end rounded-md px-3"/u,
   );
-  assert.match(templateWorkspace, /greeting: EmailTemplateWorkspaceField;/u);
-  assert.match(templateWorkspace, /heading: EmailTemplateWorkspaceField;/u);
-  assert.match(templateWorkspace, /body: EmailTemplateWorkspaceField;/u);
-  assert.match(templateWorkspace, /function AutoGrowingTextarea/u);
-  assert.match(templateWorkspace, /resize-none overflow-hidden rounded-md/u);
-  assert.match(templateWorkspace, /textarea\.style\.height = 'auto'/u);
-  assert.match(
+  assert.match(templateWorkspace, /contentHtml: EmailTemplateWorkspaceField;/u);
+  assert.doesNotMatch(
     templateWorkspace,
-    /const borderHeight = textarea\.offsetHeight - textarea\.clientHeight/u,
+    /greeting: EmailTemplateWorkspaceField|heading: EmailTemplateWorkspaceField|body: EmailTemplateWorkspaceField/u,
   );
   assert.match(
     templateWorkspace,
-    /textarea\.scrollHeight \+ borderHeight/u,
+    /import AdminRichTextEditor from '@\/admin\/components\/AdminRichTextEditor'/u,
+  );
+  assert.match(templateWorkspace, /<AdminRichTextEditor/u);
+  assert.match(
+    templateWorkspace,
+    /value=\{editor\.contentHtml\.value\}[\s\S]*?onChange=\{editor\.contentHtml\.onChange\}/u,
   );
   assert.match(
     templateWorkspace,
-    /let observedWidth = textarea\.getBoundingClientRect\(\)\.width/u,
+    /maxLength=\{editor\.contentHtml\.maxLength\}/u,
   );
+  assert.match(templateWorkspace, /allowImages=\{false\}/u);
   assert.match(
     templateWorkspace,
-    /typeof ResizeObserver === 'undefined'/u,
-  );
-  assert.match(
-    templateWorkspace,
-    /new ResizeObserver\(\(entries\) =>[\s\S]*?Math\.abs\(nextWidth - observedWidth\) < 0\.5[\s\S]*?textarea\.style\.height = 'auto'[\s\S]*?textarea\.scrollHeight \+ borderHeight/u,
-  );
-  assert.match(
-    templateWorkspace,
-    /observer\.observe\(textarea\)[\s\S]*?return \(\) => observer\.disconnect\(\)/u,
+    /className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"/u,
   );
   assert.match(
     templateWorkspace,
@@ -283,7 +279,7 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   );
   assert.match(
     templateWorkspace,
-    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 rounded-md[\s\S]*?previewVariableValues\.get\(variable\)/u,
+    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md[^"]*!leading-5[\s\S]*?previewVariableValues\.get\(variable\)/u,
   );
   assert.match(templateWorkspace, /<EmailMessagePreview \{\.\.\.preview\} variant="workspace"/u);
   assert.match(templateWorkspace, /export function EmailTemplateRecipientToggle/u);
@@ -387,14 +383,13 @@ test("converted order email Inputs keep accessible names aligned with their visi
   }
 
   assert.match(ui, /subject: \{[\s\S]*?label: "Zadeva"/u);
-  assert.match(ui, /greeting: \{[\s\S]*?label: "Pozdrav"/u);
-  assert.match(ui, /heading: \{[\s\S]*?label: "Naslov"/u);
-  assert.match(ui, /body: \{[\s\S]*?label: "Vsebina"/u);
+  assert.match(
+    ui,
+    /contentHtml: \{[\s\S]*?label: "Vsebina sporočila"/u,
+  );
   assert.match(templateWorkspace, /aria-label=\{editor\.subject\.label\}/u);
-  assert.match(templateWorkspace, /aria-label=\{editor\.greeting\.label\}/u);
-  assert.match(templateWorkspace, /aria-label=\{editor\.heading\.label\}/u);
-  assert.match(templateWorkspace, /field=\{editor\.body\}/u);
-  assert.match(templateWorkspace, /aria-label=\{field\.label\}/u);
+  assert.match(templateWorkspace, /ariaLabel=\{editor\.contentHtml\.label\}/u);
+  assert.doesNotMatch(ui, /greeting: \{|heading: \{|body: \{/u);
   assert.match(
     ui,
     /id=\{`order-email-admin-\$\{index\}`\}\s+aria-label=\{`E-poštni naslov administratorja \$\{index \+ 1\}`\}/u,
@@ -506,6 +501,10 @@ test("order and quote templates expose live audience previews from their unsaved
   assert.match(orderUi, /activeAudience=\{orderPreviewAudience\}/u);
   assert.match(orderUi, /onAudienceChange=\{\(audience\) => \{/u);
   assert.match(orderUi, /Šola \/ javni zavod/u);
+  for (const label of ["Fiz. oseba", "Podjetje", "Šola / javni zavod", "Admin"]) {
+    assert.match(orderUi, new RegExp(`label: "${label.replace('/', '\\/')}"`, "u"));
+    assert.match(quoteUi, new RegExp(`label: '${label.replace('/', '\\/')}'`, "u"));
+  }
   assert.match(orderUi, /sharedSettings=\{draft\}/u);
 
   assert.match(quoteUi, /buildQuoteEmailMessage/u);

@@ -143,7 +143,7 @@ describe('order email settings', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl, 'https://www.atehna-test.site');
-    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 5);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 6);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.headerText, '');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.imageAttachment, null);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
@@ -161,8 +161,13 @@ describe('order email settings', () => {
       'organization_name',
       'contact_name',
       'reference',
-      'status'
+      'status',
+      'previous_status'
     ]);
+    assert.deepEqual(
+      ORDER_EMAIL_TEMPLATE_VARIABLES.companyCustomer,
+      ORDER_EMAIL_TEMPLATE_VARIABLES.customer
+    );
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.subject,
       'Vaše naročilo je bilo prejeto'
@@ -172,7 +177,8 @@ describe('order email settings', () => {
       'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
     );
     const schoolBody =
-      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.body;
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer
+        .contentHtml ?? '';
     assert.match(schoolBody, /podpisani oziroma odobreni naro\u010dilnici/u);
     assert.match(schoolBody, /spodaj izpisane podatke/u);
     assert.match(
@@ -199,6 +205,14 @@ describe('order email settings', () => {
           event.value !== 'predracun_issued' &&
           event.value !== 'invoice_issued'
       });
+      assert.ok(DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].customer);
+      assert.ok(
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].companyCustomer
+      );
+      assert.ok(
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].schoolCustomer
+      );
+      assert.ok(DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].admin);
     }
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.predracun_issued.customer.subject,
@@ -217,6 +231,8 @@ describe('order email settings', () => {
     clone.events.order_submitted.customer = false;
     clone.adminRecipients.push('changed@example.com');
     clone.templates.order_submitted.customer.subject = 'Spremenjeno';
+    clone.templates.order_submitted.companyCustomer.subject =
+      'Spremenjeno za podjetje';
     clone.templates.order_submitted.schoolCustomer.subject = 'Spremenjeno za \u0161olo';
     assert.notStrictEqual(clone.imageAttachment, sourceSettings.imageAttachment);
     clone.imageAttachment!.filename = 'spremenjeno.png';
@@ -230,6 +246,10 @@ describe('order email settings', () => {
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
+    );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.companyCustomer.subject,
+      'Vaše naročilo je bilo prejeto'
     );
 
 
@@ -286,9 +306,8 @@ describe('order email settings', () => {
     );
     assert.deepEqual(normalized.templates.order_submitted.customer, {
       subject: 'Prejeto {{customer_name}}',
-      greeting: 'Pozdravljeni, {{recipient_name}},',
-      heading: 'Prejeto {{customer_name}}',
-      body: 'Prva vrstica.\nDruga vrstica.'
+      contentHtml:
+        '<p>Pozdravljeni, {{recipient_name}},</p><h1>Prejeto {{customer_name}}</h1><p>Prva vrstica.<br />Druga vrstica.</p>'
     });
     assert.deepEqual(
       normalized.templates.order_submitted.admin,
@@ -314,15 +333,18 @@ describe('order email settings', () => {
       }
     });
 
-    assert.equal(legacy.version, 5);
+    assert.equal(legacy.version, 6);
     assert.equal(legacy.confirmCustomerEmails, true);
     assert.equal(legacy.headerText, '');
     assert.equal(legacy.imageAttachment, null);
     assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
-    assert.equal(legacy.templates.order_submitted.customer.heading, 'Legacy customer');
     assert.equal(
-      legacy.templates.order_submitted.customer.greeting,
-      'Pozdravljeni, {{recipient_name}},'
+      legacy.templates.order_submitted.customer.contentHtml,
+      '<p>Pozdravljeni, {{recipient_name}},</p><h1>Legacy customer</h1><p>Legacy customer body</p>'
+    );
+    assert.deepEqual(
+      legacy.templates.order_submitted.companyCustomer,
+      legacy.templates.order_submitted.customer
     );
     assert.deepEqual(
       legacy.templates.order_submitted.schoolCustomer,
@@ -332,6 +354,36 @@ describe('order email settings', () => {
     assert.notEqual(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Mutated'
+    );
+  });
+
+  test('copies legacy customer customizations into new company and school status variants', () => {
+    const normalized = normalizeOrderEmailSettings({
+      version: 5,
+      templates: {
+        in_progress: {
+          customer: {
+            subject: 'Legacy status',
+            greeting: 'Pozdravljeni, {{recipient_name}},',
+            heading: 'Status za {{customer_name}}',
+            body: 'Trenutni status: {{status}}.'
+          }
+        }
+      }
+    });
+
+    assert.deepEqual(
+      normalized.templates.in_progress.companyCustomer,
+      normalized.templates.in_progress.customer
+    );
+    assert.deepEqual(
+      normalized.templates.in_progress.schoolCustomer,
+      normalized.templates.in_progress.customer
+    );
+    normalized.templates.in_progress.companyCustomer.subject = 'Changed';
+    assert.equal(
+      normalized.templates.in_progress.customer.subject,
+      'Legacy status'
     );
   });
 
@@ -512,7 +564,12 @@ describe('order email settings', () => {
         )
       );
 
-      for (const audience of ['customer', 'admin'] as const) {
+      for (const audience of [
+        'customer',
+        'companyCustomer',
+        'schoolCustomer',
+        'admin'
+      ] as const) {
         const invalidAudienceSettings = {
           ...settings,
           templates: {
@@ -525,7 +582,10 @@ describe('order email settings', () => {
         };
         assert.ok(
           validateOrderEmailSettingsInput(invalidAudienceSettings).some(
-            (error) => /Predloga za (stranko|administratorja)/u.test(error)
+            (error) =>
+              /Predloga za (fizično osebo|podjetje|šolo ali javni zavod|administratorja)/u.test(
+                error
+              )
           )
         );
       }
@@ -548,7 +608,7 @@ describe('order email settings', () => {
     settings.updatedAt = '2026-08-24T09:00:00.000Z';
     const stored = toStoredOrderEmailSettings(settings);
     assert.equal('updatedAt' in stored, false);
-    assert.equal(stored.version, 5);
+    assert.equal(stored.version, 6);
     assert.equal(stored.confirmCustomerEmails, false);
     assert.notStrictEqual(stored.events, settings.events);
     assert.notStrictEqual(stored.templates, settings.templates);
@@ -558,6 +618,32 @@ describe('order email settings', () => {
 });
 
 describe('order email templates', () => {
+  test('selects an independent customer template from the stored customer type', () => {
+    const cases = [
+      ['individual', 'customer', 'Fizična oseba'],
+      ['company', 'companyCustomer', 'Podjetje'],
+      ['school', 'schoolCustomer', 'Šola']
+    ] as const;
+
+    for (const [customerType, templateAudience, expectedSubject] of cases) {
+      const payload = jobPayload('customer', 'in_progress', customerType);
+      payload.settingsSnapshot.templates.in_progress.customer.subject =
+        'Fizična oseba';
+      payload.settingsSnapshot.templates.in_progress.companyCustomer.subject =
+        'Podjetje';
+      payload.settingsSnapshot.templates.in_progress.schoolCustomer.subject =
+        'Šola';
+
+      const message = buildOrderEmailMessage(payload);
+
+      assert.equal(message.subject, `[Atehna] ${expectedSubject}`);
+      assert.equal(
+        payload.settingsSnapshot.templates.in_progress[templateAudience].subject,
+        expectedSubject
+      );
+    }
+  });
+
   test('renders the editable customer submission content without internal identifiers', () => {
     const payload = jobPayload();
     Object.assign(payload.order, {
@@ -590,6 +676,51 @@ describe('order email templates', () => {
     assert.doesNotMatch(
       `${message.subject}\n${message.html}\n${message.text}`,
       /#PRIVATE-42|\/admin\/orders\/42|order\/confirmation|access[_-]?token|blob_pathname|private.*document/iu
+    );
+  });
+
+  test('renders the structured customer address in administrator recipient content', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+    Object.assign(payload.order.customer, {
+      addressLine1: 'Cesta & trg <5>',
+      addressLine2: '2. nadstropje',
+      postalCode: '1000',
+      city: 'Ljubljana',
+      countryCode: 'SI'
+    });
+
+    const message = buildOrderEmailMessage(payload);
+
+    assert.match(
+      message.html,
+      /Naročnik:<\/strong>[^]*?<br>\s*<strong[^>]*>Naslov:<\/strong> Cesta &amp; trg &lt;5&gt;, 2\. nadstropje, 1000 Ljubljana<br>/u
+    );
+    assert.match(
+      message.text,
+      /Naročnik: Primer & sinovi <d\.o\.o\.>\nNaslov: Cesta & trg <5>, 2\. nadstropje, 1000 Ljubljana\nE-pošta:/u
+    );
+  });
+
+  test('omits the administrator address row cleanly when the customer address is absent', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+
+    const message = buildOrderEmailMessage(payload);
+
+    assert.doesNotMatch(message.html, />Naslov:<\/strong>/u);
+    assert.doesNotMatch(message.text, /^Naslov:/mu);
+    assert.match(
+      message.html,
+      /Naročnik:<\/strong>[^]*?<br>\s*<strong[^>]*>E-pošta:<\/strong>/u
+    );
+    assert.match(
+      message.text,
+      /Naročnik: Primer & sinovi <d\.o\.o\.>\nE-pošta:/u
     );
   });
 

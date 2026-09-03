@@ -335,7 +335,7 @@ test('clarification is idempotently recorded before an optional isolated custome
   assert.match(orderUi, /ref=\{quoteEmailSettingsRef\}/u);
   assert.match(orderUi, /onSaveStateChange=\{setQuoteEmailSaveState\}/u);
   assert.match(orderUi, /quoteEmailSettingsRef\.current\?\.setEnabled\(enabled\)/u);
-  assert.match(quoteUi, /<EmailTemplateWorkspace<QuoteEmailAudience>/u);
+  assert.match(quoteUi, /<EmailTemplateWorkspace<QuoteEmailTemplateAudience>/u);
   assert.match(quoteUi, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
   assert.match(quoteUi, /activeAudience=\{quotePreviewAudience\}/u);
   assert.match(quoteUi, /onAudienceChange=\{setQuotePreviewAudience\}/u);

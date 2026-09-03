@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Code2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
@@ -25,6 +26,7 @@ import {
   adminTablePrimaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
+  adminTableSelectedSuccessIconButtonClassName,
   adminTableSelectedWarningIconButtonClassName,
   adminExpandableTableHeaderFirstValueAlignClassName,
   adminExpandableTableHeaderRightValueAlignClassName,
@@ -66,7 +68,7 @@ import {
 } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, CheckCircleIcon, CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination, type PageSizeValue } from '@/shared/ui/pagination';
@@ -93,6 +95,12 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
+import {
+  ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY,
+  parseAdminArticleReviewMarkers,
+  serializeAdminArticleReviewMarkers,
+  setAdminArticleReviewMarker
+} from '@/admin/features/artikli/lib/articleReviewMarkers';
 import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import {
@@ -179,7 +187,8 @@ const SUB_VARIANT_TEXT_SLOT_CLASS = adminProductVariantSubtableVariantTextSlotCl
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
   price: 'Cena brez DDV'
 };
-const MAIN_ROW_CLASS = `h-12 border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`;
+const MAIN_ROW_BASE_CLASS = 'h-12 border-t border-slate-200/90';
+const MAIN_ROW_DEFAULT_TONE_CLASS = `${adminTableRowToneClasses.even} ${adminTableRowToneClasses.hover}`;
 const MAIN_CELL_CLASS = adminExpandableTableMainCellClassName;
 const MAIN_CENTER_CELL_CLASS = adminExpandableTableMainCenterCellClassName;
 const MAIN_TEXT_SLOT_CLASS = adminExpandableTableTextSlotClassName;
@@ -636,6 +645,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [isDuplicatingSelected, setIsDuplicatingSelected] = useState(false);
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
+  const [isReviewModeEnabled, setIsReviewModeEnabled] = useState(false);
+  const [reviewedFamilyIds, setReviewedFamilyIds] = useState<Set<string>>(new Set());
+  const reviewedFamilyIdsRef = useRef<Set<string>>(new Set());
+  const isReviewMarkerStorageAvailableRef = useRef(true);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const productTypeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -711,6 +724,61 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setSavedFamilyRows({});
     setDuplicatedFamilyRows({});
   }, [items]);
+
+  useEffect(() => {
+    const applyStoredMarkers = (value: string | null) => {
+      const next = parseAdminArticleReviewMarkers(value);
+      reviewedFamilyIdsRef.current = next;
+      setReviewedFamilyIds(next);
+    };
+
+    try {
+      applyStoredMarkers(
+        window.localStorage.getItem(ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY)
+      );
+    } catch {
+      isReviewMarkerStorageAvailableRef.current = false;
+      applyStoredMarkers(null);
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY) return;
+      applyStoredMarkers(event.newValue);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const updateFamilyReviewMarker = useCallback((familyId: string, reviewed: boolean) => {
+    let current = reviewedFamilyIdsRef.current;
+
+    if (isReviewMarkerStorageAvailableRef.current) {
+      try {
+        current = parseAdminArticleReviewMarkers(
+          window.localStorage.getItem(ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY)
+        );
+      } catch {
+        isReviewMarkerStorageAvailableRef.current = false;
+      }
+    }
+
+    const next = setAdminArticleReviewMarker(current, familyId, reviewed);
+    reviewedFamilyIdsRef.current = next;
+    setReviewedFamilyIds(next);
+
+    if (isReviewMarkerStorageAvailableRef.current) {
+      try {
+        window.localStorage.setItem(
+          ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY,
+          serializeAdminArticleReviewMarkers(next)
+        );
+      } catch {
+        isReviewMarkerStorageAvailableRef.current = false;
+        // The visual marker remains available for this page session if storage is blocked.
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1827,6 +1895,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           <div className={adminTableToolbarActionsClassName}>
             <IconButton
               type="button"
+              onClick={() => setIsReviewModeEnabled((current) => !current)}
+              tone={isReviewModeEnabled ? 'success' : 'neutral'}
+              size="sm"
+              className={
+                isReviewModeEnabled
+                  ? adminTableSelectedSuccessIconButtonClassName
+                  : adminTableNeutralIconButtonClassName
+              }
+              aria-label={isReviewModeEnabled ? 'Izklopi način pregleda' : 'Vklopi način pregleda'}
+              title={isReviewModeEnabled ? 'Izklopi način pregleda' : 'Vklopi način pregleda'}
+              aria-pressed={isReviewModeEnabled}
+              data-testid="admin-items-review-mode-toggle"
+            >
+              <Code2 className="!h-[18px] !w-[18px]" />
+            </IconButton>
+            <IconButton
+              type="button"
               onClick={exportVariantsCsv}
               tone="neutral"
               size="sm"
@@ -2175,14 +2260,36 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const familyCategoryDisplay = getFamilyCategoryDisplay(family);
                 const familyProductTypeDisplay = formatProductTypeLabel(family.productType);
                 const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
+                const isFamilyReviewed = reviewedFamilyIds.has(family.id);
+                const familyReviewStatusId = `article-review-status-${family.id}`;
                 return (
                   <Fragment key={family.id}>
-                    <tr className={MAIN_ROW_CLASS} data-edit-scope={`family:${family.id}`}>
-                      <td className={`w-10 ${MAIN_CENTER_CELL_CLASS}`}><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
-                        return next;
-                      })} aria-label={`Izberi ${family.name}`} /></td>
+                    <tr
+                      className={`${MAIN_ROW_BASE_CLASS} ${
+                        isReviewModeEnabled && isFamilyReviewed
+                          ? adminTableRowToneClasses.success
+                          : MAIN_ROW_DEFAULT_TONE_CLASS
+                      }`}
+                      data-edit-scope={`family:${family.id}`}
+                      data-review-highlight={isReviewModeEnabled && isFamilyReviewed ? 'reviewed' : 'none'}
+                    >
+                      <td className={`w-10 ${MAIN_CENTER_CELL_CLASS}`}>
+                        <AdminCheckbox
+                          checked={selectedFamilyIds.has(family.id)}
+                          onChange={() => setSelectedFamilyIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
+                            return next;
+                          })}
+                          aria-label={`Izberi ${family.name}`}
+                          aria-describedby={isReviewModeEnabled && isFamilyReviewed ? familyReviewStatusId : undefined}
+                        />
+                        {isReviewModeEnabled && isFamilyReviewed ? (
+                          <span id={familyReviewStatusId} className="sr-only">
+                            Artikel je označen kot pregledan.
+                          </span>
+                        ) : null}
+                      </td>
                       <td className={MAIN_CELL_CLASS}>
                         <div className="flex h-7 items-center gap-1.5">
                           <button
@@ -2401,10 +2508,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           <RowActionsDropdown
                             label={`Možnosti za ${family.name}`}
                             editScope={`family:${family.id}`}
-                            menuWidth={144}
-                            menuClassName="w-36"
+                            menuWidth={isReviewModeEnabled ? 224 : 144}
+                            menuClassName={isReviewModeEnabled ? 'w-56' : 'w-36'}
                             items={[
                               { key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => beginFamilyEditScope(family) },
+                              ...(isReviewModeEnabled
+                                ? [
+                                    {
+                                      key: 'review-marker',
+                                      label: isFamilyReviewed
+                                        ? 'Označi za ponovni pregled'
+                                        : 'Označi kot pregledano',
+                                      icon: isFamilyReviewed ? <ActionUndoIcon /> : <CheckCircleIcon />,
+                                      onSelect: () =>
+                                        updateFamilyReviewMarker(family.id, !isFamilyReviewed)
+                                    }
+                                  ]
+                                : []),
                               {
                                 key: 'open',
                                 label: 'Odpri artikel',

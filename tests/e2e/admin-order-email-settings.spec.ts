@@ -111,9 +111,9 @@ async function openEmailContextEditor(
   previewTestId: string,
   blockId: string,
 ) {
-  const target = page
-    .getByTestId(`${previewTestId}-editor-overlays`)
-    .locator(`[data-canvas-element-id="${blockId}"]`);
+  const target = page.getByTestId(
+    `${previewTestId}-editor-block-${blockId}`,
+  );
   await expect(target).toBeVisible();
   await target.click();
   const toolbar = page.getByTestId(`${previewTestId}-editor-toolbar`);

@@ -56,8 +56,12 @@ export type BuildQuoteEmailMessageInput = Readonly<{
   customerType?: CustomerType;
   recipientEmail: string;
   recipientName?: string | null;
+  quoteCode: string;
+  offerCode?: string | null;
+  orderCode?: string | null;
   requestNumber: string;
   offerNumber?: string | null;
+  orderNumber?: string | null;
   offerUrl?: string | null;
   otpCode?: string | null;
   detail?: string | null;
@@ -113,19 +117,33 @@ export function buildQuoteEmailMessage(
   const audienceTemplate = configuredTemplates[templateAudience] ??
     configuredTemplates.customer;
   const presentation = audienceTemplate.presentation;
-  const variables = {
+  const variables: Record<string, string> = {
     recipient_name: (input.recipientName ?? '').replace(/\s+/gu, ' ').trim(),
-    request_number: input.requestNumber,
-    offer_number: input.offerNumber ?? input.requestNumber,
+    quote_code: input.quoteCode,
+    offer_code: input.offerCode ?? '',
+    order_code: input.orderCode ?? '',
     otp_code: input.otpCode ?? ''
   };
+  if (input.audience === 'admin') {
+    variables.request_number = input.requestNumber;
+    variables.offer_number = input.offerNumber ?? '';
+    variables.order_number = input.orderNumber ?? '';
+  }
+  const defaultSubject =
+    input.audience === 'admin'
+      ? defaults.adminSubject ?? defaults.subject
+      : defaults.subject;
+  const defaultBody =
+    input.audience === 'admin'
+      ? defaults.adminBody ?? defaults.body
+      : defaults.body;
   const templateSubject =
     typeof audienceTemplate.subject === 'string'
       ? audienceTemplate.subject
-      : defaults.subject;
+      : defaultSubject;
   const subject =
     safeHeaderText(render(templateSubject, variables)) ||
-    safeHeaderText(render(defaults.subject, variables));
+    safeHeaderText(render(defaultSubject, variables));
   const defaultGreeting =
     input.audience === 'admin'
       ? QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
@@ -146,7 +164,7 @@ export function buildQuoteEmailMessage(
     body:
       typeof audienceTemplate.body === 'string'
         ? audienceTemplate.body
-        : defaults.body
+        : defaultBody
   });
   const content = renderEmailTemplateRichText(
     configuredContent || legacyContent,

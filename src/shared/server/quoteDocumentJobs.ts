@@ -10,6 +10,10 @@ import {
 } from '@/shared/server/blob';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf, type PdfItem, type PdfOrder } from '@/shared/server/pdf';
+import {
+  formatOfferCode,
+  requireCommercePublicCodeBase
+} from '@/shared/domain/commercePublicCode';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
@@ -154,6 +158,7 @@ export async function renderQuoteOfferPdf(
       select
         offer.*,
         request.request_number,
+        request.public_code_base,
         request.customer_type,
         request.organization_name,
         request.contact_name,
@@ -219,6 +224,10 @@ export async function renderQuoteOfferPdf(
       .filter(Boolean)
       .join(', '),
     reference: offer.reference === null ? null : String(offer.reference),
+    publicCode: formatOfferCode(
+      requireCommercePublicCodeBase(offer.public_code_base),
+      Number(offer.version_number)
+    ),
     notes: [
       options.mode === 'preview'
         ? 'PREDOGLED – ponudba še ni izdana in je ni mogoče sprejeti.'

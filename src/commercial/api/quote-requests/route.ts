@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
+import { formatQuoteCode } from '@/shared/domain/commercePublicCode';
 import { isCustomerType, type CustomerType } from '@/shared/domain/order/customerType';
 import {
   DEFAULT_QUOTE_DELIVERY_TERMS,
@@ -39,6 +40,7 @@ import {
   enqueueQuoteEmailEvent,
   scheduleQuoteEmailJobs
 } from '@/shared/server/quoteEmailJobs';
+import { insertWithGeneratedCommercePublicCodeBase } from '@/shared/server/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -59,7 +61,7 @@ type QuoteRequestCustomer = {
 
 type StoredQuoteRequestResponse = {
   quoteRequestId: number;
-  requestNumber: string;
+  quoteCode: string;
   status: 'received';
   createdAt: string;
 };
@@ -257,15 +259,19 @@ async function reserveIdempotencyKey(
   const existing = await client.query(
     `
       select
-        request_hash,
-        quote_request_id,
-        response_json,
-        bootstrap_token_ciphertext,
-        bootstrap_token_iv,
-        bootstrap_token_tag
-      from quote_request_idempotency_keys
-      where key_hash = $1
-      for update
+        idempotency.request_hash,
+        idempotency.quote_request_id,
+        idempotency.response_json,
+        idempotency.bootstrap_token_ciphertext,
+        idempotency.bootstrap_token_iv,
+        idempotency.bootstrap_token_tag,
+        quote_request.public_code_base,
+        quote_request.created_at as quote_request_created_at
+      from quote_request_idempotency_keys idempotency
+      left join quote_requests quote_request
+        on quote_request.id = idempotency.quote_request_id
+      where idempotency.key_hash = $1
+      for update of idempotency
     `,
     [keyHash]
   );
@@ -290,10 +296,25 @@ async function reserveIdempotencyKey(
       'Povpraševanje s tem ključem se še obdeluje.'
     );
   }
+  if (!row.public_code_base || !row.quote_request_created_at) {
+    throw new OrderCommerceError(
+      409,
+      'QUOTE_ACCESS_REPLAY_UNAVAILABLE',
+      'Varne povezave za povpraševanje ni mogoče ponovno izdati.'
+    );
+  }
   return {
     kind: 'replay',
     quoteRequestId: Number(row.quote_request_id),
-    response: row.response_json as StoredQuoteRequestResponse,
+    response: {
+      quoteRequestId: Number(row.quote_request_id),
+      quoteCode: formatQuoteCode(String(row.public_code_base)),
+      status: 'received',
+      createdAt:
+        row.quote_request_created_at instanceof Date
+          ? row.quote_request_created_at.toISOString()
+          : String(row.quote_request_created_at)
+    },
     bootstrap: {
       ciphertext: String(row.bootstrap_token_ciphertext),
       initializationVector: String(row.bootstrap_token_iv),
@@ -304,10 +325,11 @@ async function reserveIdempotencyKey(
 
 function customerResponse(
   access: { tokenId: string; token: string; expiresAt: string },
-  status: 200 | 201
+  status: 200 | 201,
+  quoteCode: string
 ) {
   const response = NextResponse.json(
-    { accessId: access.tokenId },
+    { accessId: access.tokenId, quoteCode },
     { status, headers: privateHeaders }
   );
   setQuoteAccessSessionCookie(response, access);
@@ -499,7 +521,8 @@ export async function POST(request: NextRequest) {
           token,
           expiresAt: verified.expiresAt
         },
-        200
+        200,
+        reservation.response.quoteCode
       );
     }
 
@@ -558,20 +581,23 @@ export async function POST(request: NextRequest) {
     }
     const requestNumber =
       `POV-${numberingYear}-${String(requestSequence).padStart(6, '0')}`;
-    const requestResult = await client.query(
+    const allocatedRequest =
+      await insertWithGeneratedCommercePublicCodeBase((publicCodeBase) =>
+        client!.query(
       `
         insert into quote_requests (
-          request_number, status, customer_type, organization_name,
+          request_number, public_code_base, status, customer_type, organization_name,
           contact_name, email, address_line1, address_line2, city, postal_code,
           country_code, gurs_house_number_id, reference, quote_reason,
           customer_message, billing_snapshot_json, shipping_snapshot_json,
           estimate_fingerprint, estimate_json, state_version
         )
         values (
-          $1, 'received', $2, $3, $4, $5, $6, $7, $8, $9, 'SI', $10,
+          $1, $18, 'received', $2, $3, $4, $5, $6, $7, $8, $9, 'SI', $10,
           $11, $12, $13, $14::jsonb, $15::jsonb, $16, $17::jsonb, 1
         )
-        returning id, request_number, created_at
+        on conflict (public_code_base) do nothing
+        returning id, request_number, public_code_base, created_at
       `,
       [
         requestNumber,
@@ -602,12 +628,15 @@ export async function POST(request: NextRequest) {
         }),
         JSON.stringify(estimate.shipping),
         estimate.quoteFingerprint.split(':').at(-1),
-        JSON.stringify(estimate)
+        JSON.stringify(estimate),
+        publicCodeBase
       ]
-    );
-    const row = requestResult.rows[0] as {
+        )
+      );
+    const row = allocatedRequest.row as {
       id: string | number;
       request_number: string;
+      public_code_base: string;
       created_at: string | Date;
     };
     const quoteRequestId = Number(row.id);
@@ -760,7 +789,7 @@ export async function POST(request: NextRequest) {
     });
     const responsePayload: StoredQuoteRequestResponse = {
       quoteRequestId,
-      requestNumber: row.request_number,
+      quoteCode: formatQuoteCode(String(row.public_code_base)),
       status: 'received',
       createdAt:
         row.created_at instanceof Date
@@ -850,7 +879,7 @@ export async function POST(request: NextRequest) {
     client.release();
     client = null;
     if (quoteEmailQueued) scheduleQuoteEmailJobs(pool);
-    return customerResponse(access, 201);
+    return customerResponse(access, 201, responsePayload.quoteCode);
   } catch (error) {
     if (client) {
       await client.query('rollback').catch(() => undefined);

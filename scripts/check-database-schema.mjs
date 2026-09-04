@@ -18,7 +18,7 @@ const migrationPath = resolve(
   projectRoot,
   'database',
   'migrations',
-  '20260903_schema_contract_v1.sql'
+  '20260904_schema_contract_v2.sql'
 );
 const identifierPattern = /^[a-z][a-z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
@@ -193,8 +193,8 @@ export function validateManifest(manifest) {
     if (!Object.hasOwn(functionParallelCodes, routine.parallel)) {
       fail(`Function ${routine.name} parallel is invalid.`);
     }
-    if (routine.returns !== 'trigger') {
-      fail(`Function ${routine.name} must return trigger.`);
+    if (!['text', 'trigger'].includes(routine.returns)) {
+      fail(`Function ${routine.name} must return text or trigger.`);
     }
     requireFragments(
       routine.definitionIncludes,
@@ -340,6 +340,10 @@ function excludesAll(definition, fragments) {
 
 function normalizedSqlDefinition(definition) {
   return definition.trim().replace(/\s+/gu, ' ');
+}
+
+function normalizedFunctionBody(body) {
+  return body.replace(/\r\n?/gu, '\n');
 }
 
 function matchesRequiredDefault(actual, expected) {
@@ -608,7 +612,9 @@ export async function verifyDatabaseContract(client, manifest) {
   const invalidFunctions = requirements.functions.filter((expected) => {
     const actual = installedFunctions.get(expected.name);
     const bodySha256 = actual
-      ? createHash('sha256').update(actual.body, 'utf8').digest('hex')
+      ? createHash('sha256')
+          .update(normalizedFunctionBody(actual.body), 'utf8')
+          .digest('hex')
       : null;
     return (
       !actual

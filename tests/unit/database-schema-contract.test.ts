@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260903.prelaunch-v1';
+const contractId = '20260904.prelaunch-v2';
 const contractSha256 =
-  '6aab79cb9019d38332d67e359a2b27c5ac3058fe8eae9c4400c735fca913c3d5';
+  'afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -92,6 +92,7 @@ test('Vercel packages the runtime manifest without database SQL artifacts', () =
     ignoredDatabaseFiles,
     /^database\/migrations\/20260903_schema_contract_v1\.sql$/mu
   );
+  assert.match(source('.vercelignore'), /^\/database\/\*$/mu);
 });
 
 test('every named manifest requirement is bound to both deployment paths', () => {
@@ -140,7 +141,7 @@ test('every named manifest requirement is bound to both deployment paths', () =>
   };
   const schema = source('database/schema.sql');
   const migration = source(
-    'database/migrations/20260903_schema_contract_v1.sql'
+    'database/migrations/20260904_schema_contract_v2.sql'
   );
   const normalizedMigration = migration.replaceAll("''", "'");
   const requirements = manifest.requirements;
@@ -215,8 +216,10 @@ test('contract requires insert defaults while treating inventory policy as mutab
     'order_items.ship_later': ['false'],
     'orders.contract_status': ['pending_seller_acceptance'],
     'orders.delivery_plan_revision': ['1'],
+    'orders.public_code_base': ['generate_public_code_base'],
     'orders.stock_enforcement_applied': ['true'],
-    'quote_requests.intake_source': ['customer_web']
+    'quote_requests.intake_source': ['customer_web'],
+    'quote_requests.public_code_base': ['generate_public_code_base']
   });
   const exactDefaults = Object.fromEntries(
     manifest.requirements.columns
@@ -231,8 +234,10 @@ test('contract requires insert defaults while treating inventory policy as mutab
     'order_items.ship_later': 'false',
     'orders.contract_status': "'pending_seller_acceptance'::text",
     'orders.delivery_plan_revision': '1',
+    'orders.public_code_base': 'generate_public_code_base()',
     'orders.stock_enforcement_applied': 'true',
-    'quote_requests.intake_source': "'customer_web'::text"
+    'quote_requests.intake_source': "'customer_web'::text",
+    'quote_requests.public_code_base': 'generate_public_code_base()'
   });
   assert.deepEqual(manifest.requirements.settings, [
     {
@@ -244,7 +249,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
   ]);
 
   const migration = source(
-    'database/migrations/20260903_schema_contract_v1.sql'
+    'database/migrations/20260904_schema_contract_v2.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /installed\.column_default/u);
@@ -311,7 +316,7 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
     assert.ok(trigger.definitionIncludes.includes('for each row'));
   }
   for (const index of manifest.requirements.indexes) {
-    assert.match(index.definitionEquals, /^CREATE INDEX /u);
+    assert.match(index.definitionEquals, /^CREATE (?:UNIQUE )?INDEX /u);
     assert.ok(index.definitionIncludes.length >= 2);
   }
   for (const routine of manifest.requirements.functions) {
@@ -323,23 +328,31 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
     assert.equal(routine.configuration, null);
     assert.equal(routine.volatility, 'volatile');
     assert.equal(routine.parallel, 'unsafe');
-    assert.equal(routine.returns, 'trigger');
+    assert.ok(['text', 'trigger'].includes(routine.returns));
     assert.ok(routine.definitionIncludes.length >= 2);
   }
 
   const migration = source(
-    'database/migrations/20260903_schema_contract_v1.sql'
+    'database/migrations/20260904_schema_contract_v2.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /pg_get_indexdef/u);
   assert.match(migration, /pg_get_triggerdef/u);
-  assert.match(migration, /public\.digest\(convert_to\(installed\.prosrc/u);
+  assert.match(migration, /public\.digest\(\s*convert_to\(/u);
   assert.match(migration, /installed\.proconfig is not distinct from required\.configuration/u);
   assert.match(migration, /installed\.contype = required\.constraint_type/u);
   assert.match(migration, /btrim\(required\.definition_equals\)/u);
   assert.match(checker, /pg_get_indexdef/u);
   assert.match(checker, /pg_get_triggerdef/u);
-  assert.match(checker, /createHash\('sha256'\)\.update\(actual\.body/u);
+  assert.match(checker, /function normalizedFunctionBody/u);
+  assert.match(
+    checker,
+    /update\(normalizedFunctionBody\(actual\.body\), 'utf8'\)/u
+  );
+  assert.match(
+    migration,
+    /replace\(\s*replace\(installed\.prosrc, chr\(13\) \|\| chr\(10\), chr\(10\)\),\s*chr\(13\),\s*chr\(10\)\s*\)/u
+  );
   assert.match(checker, /routine\.proconfig as configuration/u);
   assert.match(checker, /constraint_record\.contype as constraint_type/u);
   assert.match(checker, /normalizedSqlDefinition\(expected\.definitionEquals\)/u);
@@ -371,7 +384,7 @@ test('fresh schema records only its terminal compatibility contract', () => {
 
 test('legacy deployment verifies terminal postconditions before recording the contract', () => {
   const migration = source(
-    'database/migrations/20260903_schema_contract_v1.sql'
+    'database/migrations/20260904_schema_contract_v2.sql'
   );
   const verificationEndAt = migration.lastIndexOf('$contract_verification$;');
   const ledgerCreateAt = migration.indexOf(

@@ -103,7 +103,7 @@ test.describe('Navigation top-bar appearance', () => {
     expect(deviceDivider.groupWidth).toBeLessThan(deviceDivider.outerWidth / 2);
   });
 
-  test('lays out the full-width Videz card in aligned colour, typography, and dimension rows', async ({ page }) => {
+  test('lays out the right-side Videz card in aligned colour, typography, and dimension rows', async ({ page }) => {
     await page.setViewportSize({ width: 1329, height: 920 });
     await page.goto('/admin/podoba/navigacija');
 
@@ -184,9 +184,8 @@ test.describe('Navigation top-bar appearance', () => {
       measurable(gutter, 'The gutter field')
     ]);
 
-    expect(Math.abs(panelBox.x - tableBox.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(panelBox.width - tableBox.width)).toBeLessThanOrEqual(2);
-    expect(tableBox.y - (panelBox.y + panelBox.height)).toBeGreaterThanOrEqual(12);
+    expect(panelBox.x - (tableBox.x + tableBox.width)).toBeGreaterThanOrEqual(12);
+    expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
 
     expect(colorsRowBox.y - (appearanceHeadingBox.y + appearanceHeadingBox.height)).toBeGreaterThanOrEqual(8);
     expect(Math.abs(backgroundBox.y - opacityBox.y)).toBeLessThanOrEqual(4);
@@ -213,7 +212,7 @@ test.describe('Navigation top-bar appearance', () => {
     expect(await settingsPanel.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
   });
 
-  test('keeps the settings panel full-width above the element table and contained at responsive widths', async ({ page }) => {
+  test('keeps the settings panel to the right of the element table and stacks it responsively', async ({ page }) => {
     await page.setViewportSize({ width: 1329, height: 920 });
     await page.goto('/admin/podoba/navigacija');
 
@@ -232,9 +231,8 @@ test.describe('Navigation top-bar appearance', () => {
         throw new Error('The top-bar settings panel and element table must both be measurable.');
       }
 
-      expect(Math.abs(panelBox.x - tableBox.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(panelBox.width - tableBox.width)).toBeLessThanOrEqual(2);
-      expect(tableBox.y - (panelBox.y + panelBox.height)).toBeGreaterThanOrEqual(12);
+      expect(panelBox.x - (tableBox.x + tableBox.width)).toBeGreaterThanOrEqual(12);
+      expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
       expect(await settingsPanel.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     };
 
@@ -335,7 +333,7 @@ test.describe('Navigation top-bar appearance', () => {
     expect(responsivePanelBox.x + responsivePanelBox.width).toBeLessThanOrEqual(1025);
     expect(Math.abs(responsivePanelBox.x - responsiveTableBox.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(responsivePanelBox.width - responsiveTableBox.width)).toBeLessThanOrEqual(2);
-    expect(responsiveTableBox.y - (responsivePanelBox.y + responsivePanelBox.height)).toBeGreaterThanOrEqual(12);
+    expect(responsivePanelBox.y - (responsiveTableBox.y + responsiveTableBox.height)).toBeGreaterThanOrEqual(12);
 
     const horizontalOverflow = await settingsPanel.evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(horizontalOverflow).toBeLessThanOrEqual(1);

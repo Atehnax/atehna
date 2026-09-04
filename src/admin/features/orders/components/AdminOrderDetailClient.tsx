@@ -39,6 +39,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   ActionUndoIcon,
+  CopyIcon,
   PencilIcon,
   SaveIcon,
   TrashCanIcon
@@ -82,6 +83,7 @@ import type {
 
 type NormalizedOrder = {
   order_number: string;
+  order_code: string;
   customer_type: string;
   organization_name: string;
   contact_name: string;
@@ -108,6 +110,8 @@ type NormalizedOrder = {
   source_quote_request_id: number | null;
   source_quote_request_number: string | null;
   source_quote_offer_number: string | null;
+  source_quote_code: string | null;
+  source_quote_offer_code: string | null;
   reference: string;
   notes: string;
   status: string;
@@ -873,6 +877,14 @@ export default function AdminOrderDetailClient({
   const orderNumberSuggestionsId = `order-number-suggestions-${orderId}`;
   const orderNumberInputRef = useRef<HTMLInputElement | null>(null);
   const [isOrderNumberMenuOpen, setIsOrderNumberMenuOpen] = useState(false);
+  const copyPublicOrderCode = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(order.order_code);
+      toast.success('Koda naročila je kopirana.');
+    } catch {
+      toast.error('Kode naročila ni bilo mogoče kopirati.');
+    }
+  }, [order.order_code, toast]);
   const orderNumberAvailability = useOrderNumberAvailability({
     orderId,
     value: draftOrderNumber,
@@ -1436,6 +1448,17 @@ export default function AdminOrderDetailClient({
                   title={pageTitle}
                   width="compact"
                 />
+                <button
+                  type="button"
+                  onClick={() => void copyPublicOrderCode()}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold tabular-nums text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+                  aria-label={`Kopiraj kodo naročila ${order.order_code}`}
+                  title="Kopiraj kodo naročila"
+                  data-testid="admin-order-public-code-copy"
+                >
+                  <span>Koda {order.order_code}</span>
+                  <CopyIcon className="h-3.5 w-3.5" />
+                </button>
 
                 <div
                   className={adminStatusInfoPillGroupClassName}
@@ -1552,14 +1575,22 @@ export default function AdminOrderDetailClient({
               {order.source_quote_request_id ? (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
                   {order.source_quote_offer_number ? (
-                    <span>Iz ponudbe {order.source_quote_offer_number}</span>
+                    <span>
+                      Iz ponudbe {order.source_quote_offer_code ?? order.source_quote_offer_number}
+                      {order.source_quote_offer_code && order.source_quote_offer_number
+                        ? ` · interno ${order.source_quote_offer_number}`
+                        : ''}
+                    </span>
                   ) : null}
                   {order.source_quote_request_number ? (
                     <Link
                       href={'/admin/orders/quotes/' + order.source_quote_request_id}
                       className="font-semibold text-[color:var(--blue-500)] hover:underline"
                     >
-                      Povpraševanje {order.source_quote_request_number}
+                      Povpraševanje {order.source_quote_code ?? order.source_quote_request_number}
+                      {order.source_quote_code && order.source_quote_request_number
+                        ? ` · interno ${order.source_quote_request_number}`
+                        : ''}
                     </Link>
                   ) : null}
                 </div>

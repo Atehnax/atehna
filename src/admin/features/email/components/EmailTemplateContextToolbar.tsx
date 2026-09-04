@@ -108,7 +108,11 @@ export type EmailTemplateContextToolbarProps = {
   disabled?: boolean;
   subject: EmailTemplateContextField;
   contentHtml: EmailTemplateContextField;
-  variables: ReadonlyArray<{ name: string; value: string }>;
+  variables: ReadonlyArray<{
+    name: string;
+    value: string;
+    internal?: boolean;
+  }>;
   presentation?: EmailTemplateContextPresentation;
   onPresentationChange: (
     presentation: EmailTemplateContextPresentation | undefined
@@ -394,13 +398,25 @@ export default function EmailTemplateContextToolbar({
           <button
             key={variable.name}
             type="button"
-            className="rounded-md border border-white/15 bg-white/10 px-1.5 py-1 text-[10px] leading-4 text-white/75 hover:bg-white/15"
-            title={variable.value || undefined}
+            className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/10 px-1.5 py-1 text-[10px] leading-4 text-white/75 hover:bg-white/15"
+            title={[
+              variable.value,
+              variable.internal ? 'Interna administratorska spremenljivka' : ''
+            ].filter(Boolean).join(' · ') || undefined}
+            aria-label={
+              `{{${variable.name}}}` +
+              (variable.internal ? ', interna spremenljivka' : '')
+            }
             onClick={() => {
               void navigator.clipboard?.writeText(`{{${variable.name}}}`);
             }}
           >
             <code>{`{{${variable.name}}}`}</code>
+            {variable.internal ? (
+              <span className="rounded bg-white/10 px-1 text-[9px] font-semibold uppercase tracking-wide text-amber-200">
+                interno
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

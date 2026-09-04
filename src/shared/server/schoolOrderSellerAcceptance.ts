@@ -699,8 +699,7 @@ export async function acceptSchoolOrderForProcessing(input: {
         quoteRequestId: sourceQuote.quoteRequestId,
         quoteOfferVersionId: sourceQuote.id,
         eventKey: 'school-quote-accepted:' + sourceQuote.id,
-        eventType: 'quote_accepted',
-        detail: 'Ustvarjeno je bilo naročilo ' + order.order_number + '.'
+        eventType: 'quote_accepted'
       });
       quoteEmailQueued = quoteEmailQueued || jobs.length > 0;
       if (jobs.length > 0) {

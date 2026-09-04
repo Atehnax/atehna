@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { verifyQuoteAccessSession } from '@/shared/server/quoteAccess';
 import { isQuoteOnlineAcceptanceEnabled } from '@/shared/server/quoteFeatureFlags';
+import {
+  formatOfferCode,
+  formatQuoteCode
+} from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -38,7 +42,6 @@ export async function GET(request: NextRequest) {
             offer.id,
             offer.quote_request_id,
             offer.version_number,
-            offer.offer_number,
             offer.status,
             offer.is_current,
             offer.customer_snapshot_json,
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
             offer.terms_version,
             offer.issued_at,
             offer.valid_until,
-            request.request_number,
+            request.public_code_base,
             request.customer_type,
             coalesce(item_rows.items, '[]'::jsonb) as items,
             coalesce(document_rows.documents, '[]'::jsonb) as documents
@@ -186,8 +189,11 @@ export async function GET(request: NextRequest) {
       await client.query('commit');
       return NextResponse.json(
         {
-          requestNumber: row.request_number,
-          offerNumber: row.offer_number,
+          quoteCode: formatQuoteCode(String(row.public_code_base)),
+          offerCode: formatOfferCode(
+            String(row.public_code_base),
+            number(row.version_number)
+          ),
           versionNumber: number(row.version_number),
           status: computedExpired ? 'expired' : row.status,
           isCurrent: row.is_current === true,

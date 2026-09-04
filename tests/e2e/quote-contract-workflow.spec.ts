@@ -7,7 +7,7 @@ import {
   type BrowserContext
 } from '@playwright/test';
 import pg, { type Pool as PgPool } from 'pg';
-import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
+import { formatOrderCode } from '@/shared/domain/commercePublicCode';
 import { cloneDefaultOrderEmailSettings } from '@/shared/domain/order/orderEmailSettings';
 import { cloneDefaultQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
 import {
@@ -238,9 +238,11 @@ async function createQuoteRequest(
   expect(response.status()).toBe(201);
   const payload = (await response.json()) as {
     accessId?: string;
+    quoteCode?: string;
     requestNumber?: unknown;
   };
   expect(payload.accessId).toMatch(/^[0-9a-f-]{36}$/u);
+  expect(payload.quoteCode).toMatch(/^PV-(?:[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}-){3}[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}$/u);
   expect(payload).not.toHaveProperty('requestNumber');
 
   const stored = await database.query<{
@@ -476,12 +478,15 @@ async function openOfferSession(
   await requireOk(offerResponse, 'quote offer review');
   const snapshot = (await offerResponse.json()) as Record<string, unknown>;
   expect(snapshot).toMatchObject({
-    offerNumber: offer.offerNumber,
+    quoteCode: expect.stringMatching(/^PV-/u),
+    offerCode: expect.stringMatching(/^PN-/u),
     versionNumber: offer.versionNumber,
     status: 'issued',
     isCurrent: true,
     responseEnabled: true
   });
+  expect(snapshot).not.toHaveProperty('requestNumber');
+  expect(snapshot).not.toHaveProperty('offerNumber');
   return { session, snapshot };
 }
 
@@ -807,7 +812,6 @@ test.describe('quote and seller-contract workflow', () => {
       await Promise.all([first.context.close(), second.context.close()]);
     }
   });
-
   test('quote confirmation endpoints bind an explicit access id without cookie fallback', async ({
     browser
   }) => {
@@ -912,6 +916,7 @@ test.describe('quote and seller-contract workflow', () => {
       expect(confirmationSnapshot.customer).toEqual({
         customerType: 'individual',
         organizationName: null,
+        customerName: 'E2E kupec',
         contactName: 'E2E kupec',
         email: fixture.email,
         addressLine1: 'Testna ulica 1',
@@ -2857,7 +2862,6 @@ test.describe('quote and seller-contract workflow', () => {
       const verificationId = await verifyOfferEmail(offer, session);
       const idempotencyKey = `quote-accept-${randomUUID()}`;
       const acceptanceBody = {
-        offerNumber: offer.offerNumber,
         versionNumber: offer.versionNumber,
         idempotencyKey
       };
@@ -3037,7 +3041,6 @@ test.describe('quote and seller-contract workflow', () => {
             'Idempotency-Key': declineKey
           },
           data: {
-            offerNumber: declinedOffer.offerNumber,
             versionNumber: declinedOffer.versionNumber,
             reason: 'another_offer',
             idempotencyKey: declineKey
@@ -3256,7 +3259,6 @@ test.describe('quote and seller-contract workflow', () => {
             'Idempotency-Key': conflictKey
           },
           data: {
-            offerNumber: conflicting.offerNumber,
             versionNumber: conflicting.versionNumber,
             idempotencyKey: conflictKey
           }
@@ -3431,7 +3433,6 @@ test.describe('quote and seller-contract workflow', () => {
             'Idempotency-Key': uploadKey
           },
           multipart: {
-            offerNumber: offer.offerNumber,
             versionNumber: String(offer.versionNumber),
             idempotencyKey: uploadKey,
             file: {
@@ -3451,13 +3452,15 @@ test.describe('quote and seller-contract workflow', () => {
       const pending = await database.query<{
         id: string | number;
         order_number: string | number;
+        public_code_base: string;
         commitment_status: string;
         contract_status: string;
         request_status: string;
         offer_status: string;
       }>(
         `
-          select orders.id, orders.order_number, orders.commitment_status, orders.contract_status,
+          select orders.id, orders.order_number, orders.public_code_base,
+                 orders.commitment_status, orders.contract_status,
                  request.status as request_status,
                  offer.status as offer_status
           from orders
@@ -3478,8 +3481,8 @@ test.describe('quote and seller-contract workflow', () => {
       expect(await inventory()).toBe(startingInventory);
 
       const orderId = Number(pending.rows[0].id);
-      const displayOrderNumber = toDisplayOrderNumber(
-        String(pending.rows[0].order_number)
+      const displayOrderCode = formatOrderCode(
+        pending.rows[0].public_code_base
       );
       const processingResponse = await request.post(
         `/api/admin/orders/${orderId}/status`,
@@ -3583,9 +3586,9 @@ test.describe('quote and seller-contract workflow', () => {
       await expect(
         page.getByRole('columnheader', { name: 'Rezultat' })
       ).toHaveCount(0);
-      await expect(linkedOrder).toContainText(displayOrderNumber);
+      await expect(linkedOrder).toContainText(displayOrderCode);
       await expect(linkedOrder).toHaveAccessibleName(
-        `Odpri povezano naročilo ${displayOrderNumber}`
+        `Odpri povezano naročilo ${displayOrderCode}`
       );
       await expect(linkedOrder).toHaveAttribute(
         'href',

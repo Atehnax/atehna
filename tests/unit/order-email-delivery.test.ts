@@ -40,6 +40,7 @@ function payload(): OrderEmailJobPayload {
     settingsSnapshot: toStoredOrderEmailSettings(settings),
     purchaseOrderUploadUrl: null,
     order: {
+      orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
       createdAt: '2026-08-24T08:15:00.000Z',
       customer: {
         customerType: 'company',

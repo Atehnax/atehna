@@ -5,6 +5,8 @@ import test from 'node:test';
 import {
   cloneDefaultQuoteEmailSettings,
   normalizeQuoteEmailSettings,
+  quoteEmailTemplateInternalVariables,
+  quoteEmailTemplateVariables,
   validateQuoteEmailSettings
 } from '../../src/shared/domain/quote/quoteEmailSettings';
 
@@ -16,7 +18,7 @@ test('quote administrator templates normalize and validate independently from cu
     templates: {
       quote_issued: {
         customer: {
-          subject: 'Customer offer {{offer_number}}',
+          subject: 'Customer offer {{offer_code}}',
           body: 'Customer body.'
         },
         admin: {
@@ -33,9 +35,9 @@ test('quote administrator templates normalize and validate independently from cu
       '<p>Pozdravljeni,</p><h1>Internal offer {{offer_number}}</h1><p>Administrator body for {{request_number}}.</p>'
   });
   assert.deepEqual(normalized.templates.quote_issued.customer, {
-    subject: 'Customer offer {{offer_number}}',
+    subject: 'Customer offer {{offer_code}}',
     contentHtml:
-      '<p>Pozdravljeni, {{recipient_name}},</p><h1>Customer offer {{offer_number}}</h1><p>Customer body.</p>'
+      '<p>Pozdravljeni, {{recipient_name}},</p><h1>Customer offer {{offer_code}}</h1><p>Customer body.</p>'
   });
   assert.deepEqual(
     normalized.templates.quote_issued.companyCustomer,
@@ -52,7 +54,7 @@ test('quote administrator templates normalize and validate independently from cu
     'Changed company subject';
   assert.equal(
     normalized.templates.quote_issued.customer.subject,
-    'Customer offer {{offer_number}}'
+    'Customer offer {{offer_code}}'
   );
   assert.notEqual(
     cloneDefaultQuoteEmailSettings().templates.quote_issued.admin.subject,
@@ -91,6 +93,79 @@ test('quote template headers reject CRLF injection and malformed raw values', ()
   );
 });
 
+test('quote customer templates reject internal numbers without runtime aliases', () => {
+  const currentDefaults = cloneDefaultQuoteEmailSettings();
+  const { version: _version, ...legacy } = currentDefaults;
+  legacy.templates.quote_request_submitted.customer.subject =
+    'Request {{ request_number }} / {{offer_number}}';
+  legacy.templates.quote_accepted.customer = {
+    subject: 'Accepted {{offer_number}}',
+    contentHtml: '<p>{{request_number}} / {{offer_number}}</p>'
+  };
+  legacy.templates.quote_accepted.admin.subject =
+    'Internal {{offer_number}}';
+
+  const normalized = normalizeQuoteEmailSettings(legacy);
+  assert.equal(normalized.version, 2);
+  assert.equal(
+    normalized.templates.quote_request_submitted.customer.subject,
+    'Request {{ request_number }} / {{offer_number}}'
+  );
+  assert.equal(
+    normalized.templates.quote_accepted.customer.subject,
+    'Accepted {{offer_number}}'
+  );
+  assert.equal(
+    normalized.templates.quote_accepted.customer.contentHtml,
+    '<p>{{request_number}} / {{offer_number}}</p>'
+  );
+  assert.equal(
+    normalized.templates.quote_accepted.admin.subject,
+    'Internal {{offer_number}}'
+  );
+  assert.ok(
+    validateQuoteEmailSettings(legacy).some((error) =>
+      error.includes('{{request_number}}') || error.includes('{{offer_number}}')
+    )
+  );
+
+  assert.ok(
+    validateQuoteEmailSettings({
+      ...legacy,
+      version: 2
+    }).some((error) => error.includes('{{request_number}}'))
+  );
+});
+
+test('quote template variables are scoped to the event and internal values to admin', () => {
+  assert.deepEqual(
+    quoteEmailTemplateVariables('quote_request_submitted', 'customer'),
+    ['recipient_name', 'quote_code']
+  );
+  assert.deepEqual(
+    quoteEmailTemplateVariables('quote_accepted', 'customer'),
+    ['recipient_name', 'offer_code', 'order_code']
+  );
+  assert.deepEqual(
+    quoteEmailTemplateVariables('quote_accepted', 'admin'),
+    [
+      'offer_code',
+      'order_code',
+      'request_number',
+      'offer_number',
+      'order_number'
+    ]
+  );
+  assert.deepEqual(
+    quoteEmailTemplateInternalVariables('quote_accepted', 'customer'),
+    []
+  );
+  assert.deepEqual(
+    quoteEmailTemplateInternalVariables('quote_accepted', 'admin'),
+    ['request_number', 'offer_number', 'order_number']
+  );
+});
+
 test('quote settings persistence stores every template variant in the normalized config', () => {
   const settings = source('src/shared/server/quoteEmailSettings.ts');
 
@@ -120,11 +195,11 @@ test('quote enqueue resolves and snapshots the configured template for each reci
   assert.match(templates, /configuredTemplates\[templateAudience\]/u);
   assert.match(
     templates,
-    /const templateSubject =[\s\S]*?audienceTemplate\.subject[\s\S]*?defaults\.subject/u
+    /const templateSubject =[\s\S]*?audienceTemplate\.subject[\s\S]*?defaultSubject/u
   );
   assert.match(
     templates,
-    /const subject =[\s\S]*?safeHeaderText\(render\(templateSubject, variables\)\)[\s\S]*?safeHeaderText\(render\(defaults\.subject, variables\)\)/u
+    /const subject =[\s\S]*?safeHeaderText\(render\(templateSubject, variables\)\)[\s\S]*?safeHeaderText\(render\(defaultSubject, variables\)\)/u
   );
   assert.match(
     templates,

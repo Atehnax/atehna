@@ -104,6 +104,7 @@ const ORDER_EMAIL_PREVIEW_ADDRESS_LINE_1 = "Slovenska cesta 1";
 const ORDER_EMAIL_PREVIEW_POSTAL_CODE = "1000";
 const ORDER_EMAIL_PREVIEW_CITY = "Ljubljana";
 const ORDER_EMAIL_PREVIEW_ORDER_NUMBER = "#PREIZKUS";
+const ORDER_EMAIL_PREVIEW_ORDER_CODE = "N-7K3M-4X9P-2D6R-8H4Q";
 const ORDER_EMAIL_PREVIEW_IMAGE_URL =
   "https://example.invalid/email-preview/testni-izdelek.svg";
 const ORDER_EMAIL_PREVIEW_IMAGE_DATA_URL =
@@ -159,6 +160,7 @@ function buildOrderEmailPreviewMessage(
         ? "individual"
         : "company";
   const order = {
+    orderCode: ORDER_EMAIL_PREVIEW_ORDER_CODE,
     createdAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
     customer: {
       customerType,
@@ -244,6 +246,7 @@ function orderEmailPreviewVariables(
     status: orderEmailPreviewStatus(eventType),
     previous_status:
       eventType === "order_submitted" ? "" : getStatusLabel("received"),
+    order_code: ORDER_EMAIL_PREVIEW_ORDER_CODE,
     order_number: ORDER_EMAIL_PREVIEW_ORDER_NUMBER,
     customer_email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
   };
@@ -1838,6 +1841,8 @@ export default function AdminOrderEmailSettingsPageClient({
                 updateTemplate(orderPreviewAudience, "contentHtml", value),
             },
             variables: ORDER_EMAIL_TEMPLATE_VARIABLES[orderPreviewAudience],
+            internalVariables:
+              orderPreviewAudience === "admin" ? ["order_number"] : [],
             variablesAriaLabel: `Dovoljene spremenljivke za ${selectedTemplateAudienceMeta.label}`,
             presentation: selectedTemplate.presentation,
             onPresentationChange: (presentation) =>

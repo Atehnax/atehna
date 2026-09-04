@@ -34,7 +34,7 @@ describe('Navigation top-bar appearance', () => {
     );
   });
 
-  test('keeps the wide Videz card grouped into colour, typography, width, and dimension rows', () => {
+  test('keeps the right-side Videz card grouped into colour, typography, width, and dimension rows', () => {
     const navigationEditorSource = readFileSync(
       resolve(
         process.cwd(),
@@ -65,6 +65,15 @@ describe('Navigation top-bar appearance', () => {
     expect(typographyRowIndex).toBeLessThan(widthSettingsIndex);
     expect(widthSettingsIndex).toBeLessThan(dimensionsIndex);
     expect(dimensionsIndex).toBeLessThan(elementsTableIndex);
+    expect(navigationEditorSource).toContain(
+      'min-[1280px]:grid-cols-[minmax(0,3fr)_minmax(500px,2fr)]'
+    );
+    expect(navigationEditorSource).toContain(
+      'min-[1280px]:col-start-2 min-[1280px]:row-start-3'
+    );
+    expect(navigationEditorSource).toContain(
+      'min-[1280px]:col-start-1 min-[1280px]:row-start-3'
+    );
 
     const widthSettingsSource = navigationEditorSource.slice(widthSettingsIndex, dimensionsIndex);
     const dimensionsSource = navigationEditorSource.slice(dimensionsIndex, elementsTableIndex);

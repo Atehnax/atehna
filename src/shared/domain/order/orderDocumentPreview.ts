@@ -40,6 +40,7 @@ export type OrderDocumentPreviewOrder = {
   email: string;
   deliveryAddress?: string | null;
   reference?: string | null;
+  publicCode?: string | null;
   notes?: string | null;
   createdAt: Date;
   subtotal: number;
@@ -85,7 +86,7 @@ export type OrderDocumentPreviewItemCells = Record<
 >;
 
 const PREVIEW_DOCUMENT_NUMBERS: Record<OrderDocumentTemplateType, string> = {
-  order_summary: '101/26',
+  order_summary: 'N-7K3M-4X9P-2D6R-8H4Q',
   offer: 'PON-2026-000123-V1',
   dobavnica: '98/26',
   predracun: '96/26',
@@ -156,6 +157,10 @@ export function createOrderDocumentPreviewContext(
       email: 'narocila@os-lesce.si',
       deliveryAddress: 'Begunjska cesta 7, 4248 Lesce',
       reference: 'NAR-2026-0186',
+      publicCode:
+        type === 'offer'
+          ? 'PN-7K3M-4X9P-2D6R-8H4Q-V1'
+          : 'N-7K3M-4X9P-2D6R-8H4Q',
       notes: 'Dostava v tajništvo šole med 8.00 in 13.00.',
       createdAt: new Date('2026-08-17T08:30:00+02:00'),
       subtotal: 65.3,
@@ -310,6 +315,12 @@ export function resolveOrderDocumentMetadataRows(
     : template.rules.dueDays;
   const candidates: OrderDocumentSemanticTextRow[] = [
     { id: 'document_number', label: labels.documentNumber, value: documentNumber, bold: true },
+    {
+      id: 'public_code',
+      label: labels.publicCode,
+      value: order.publicCode || '',
+      bold: true
+    },
     { id: 'issue_date', label: labels.issueDate, value: formatOrderDocumentDate(issuedAt) },
     { id: 'order_date', label: labels.orderDate, value: formatOrderDocumentDate(order.createdAt) },
     {
@@ -368,8 +379,9 @@ export function resolveOrderDocumentMetadataRows(
       value: type === 'invoice' ? order.reference || documentNumber : ''
     }
   ];
-  return orderSemanticRows(template, 'document_meta', candidates)
+  const rows = orderSemanticRows(template, 'document_meta', candidates)
     .filter((row) => Boolean(toSafeOrderDocumentText(row.value)));
+  return rows;
 }
 
 function inferredTaxRate(context: OrderDocumentPreviewContext) {

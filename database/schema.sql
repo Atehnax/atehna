@@ -9,6 +9,32 @@ begin;
 
 create extension if not exists pgcrypto;
 
+create function generate_public_code_base()
+returns text
+language plpgsql
+as $$
+declare
+  alphabet constant text := '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+  generated text := '';
+  random_chunk bytea;
+  byte_index integer;
+  byte_value integer;
+begin
+  while char_length(generated) < 16 loop
+    random_chunk := public.gen_random_bytes(16);
+    for byte_index in 0..length(random_chunk) - 1 loop
+      byte_value := get_byte(random_chunk, byte_index);
+      if byte_value < 240 then
+        generated := generated
+          || substr(alphabet, (byte_value % 30) + 1, 1);
+        exit when char_length(generated) = 16;
+      end if;
+    end loop;
+  end loop;
+  return generated;
+end;
+$$;
+
 -- Terminal schema compatibility contracts are deliberately separate from
 -- deployment history. Fresh installs record only the application contract they
 -- satisfy; they do not pretend that incremental deployments were applied.
@@ -28,6 +54,7 @@ create table app_schema_contracts (
 create table orders (
   id bigserial primary key,
   order_number text not null unique,
+  public_code_base text not null default generate_public_code_base(),
   customer_type text not null check (customer_type in ('individual', 'company', 'school')),
   organization_name text,
   contact_name text not null,
@@ -163,9 +190,13 @@ create table orders (
   ),
   constraint orders_parcel_count_positive_check check (
     parcel_count >= 1
+  ),
+  constraint orders_public_code_base_check check (
+    public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'
   )
 );
 
+create unique index idx_orders_public_code_base on orders(public_code_base);
 create index idx_orders_created_at on orders(created_at desc);
 create index idx_orders_deleted_at on orders(deleted_at);
 create index idx_orders_is_draft on orders(is_draft);
@@ -1276,6 +1307,7 @@ create table quote_number_counters (
 create table quote_requests (
   id bigserial primary key,
   request_number text not null unique,
+  public_code_base text not null default generate_public_code_base(),
   status text not null default 'received' check (
     status in (
       'received',
@@ -1370,9 +1402,14 @@ create table quote_requests (
   constraint quote_requests_closed_actor_type_check check (
     closed_by_actor_type is null
     or closed_by_actor_type in ('admin', 'customer', 'system')
+  ),
+  constraint quote_requests_public_code_base_check check (
+    public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'
   )
 );
 
+create unique index idx_quote_requests_public_code_base
+  on quote_requests(public_code_base);
 create index idx_quote_requests_status_created_at
   on quote_requests(status, created_at desc, id desc);
 create index idx_quote_requests_email_created_at
@@ -2636,6 +2673,110 @@ alter table orders
     references quote_offer_versions(id)
     on delete restrict;
 
+create function guard_public_code_base_immutable()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.public_code_base is distinct from old.public_code_base then
+    raise exception 'Public customer-code bases are immutable.';
+  end if;
+  return new;
+end;
+$$;
+
+create function guard_order_public_code_lineage()
+returns trigger
+language plpgsql
+as $$
+declare
+  quote_public_code_base text;
+begin
+  if tg_op = 'UPDATE'
+     and new.source_quote_offer_version_id is distinct from old.source_quote_offer_version_id then
+    raise exception 'An order quote-source link is immutable.';
+  end if;
+
+  if new.source_quote_offer_version_id is not null then
+    select request.public_code_base
+      into quote_public_code_base
+      from public.quote_offer_versions offer
+      join public.quote_requests request on request.id = offer.quote_request_id
+     where offer.id = new.source_quote_offer_version_id;
+
+    if not found then
+      raise exception 'The source quote offer does not exist.';
+    end if;
+
+    if tg_op = 'INSERT' then
+      new.public_code_base := quote_public_code_base;
+    elsif new.public_code_base is distinct from quote_public_code_base then
+      raise exception 'A converted order must retain its quote public-code base.';
+    end if;
+
+    perform pg_advisory_xact_lock(
+      hashtextextended(
+        'atehna:public-customer-code:' || quote_public_code_base,
+        0
+      )
+    );
+
+    return new;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('atehna:public-customer-code:' || new.public_code_base, 0)
+  );
+
+  if exists (
+    select 1
+      from public.quote_requests request
+     where request.public_code_base = new.public_code_base
+  ) then
+    return null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create function guard_quote_public_code_namespace()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform pg_advisory_xact_lock(
+    hashtextextended('atehna:public-customer-code:' || new.public_code_base, 0)
+  );
+
+  if exists (
+    select 1
+      from public.orders customer_order
+     where customer_order.public_code_base = new.public_code_base
+  ) then
+    return null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger orders_guard_public_code_immutable
+before update of public_code_base on orders
+for each row execute function guard_public_code_base_immutable();
+
+create trigger orders_guard_public_code_lineage
+before insert or update of public_code_base, source_quote_offer_version_id on orders
+for each row execute function guard_order_public_code_lineage();
+
+create trigger quote_requests_guard_public_code_immutable
+before update of public_code_base on quote_requests
+for each row execute function guard_public_code_base_immutable();
+
+create trigger quote_requests_guard_public_code_namespace
+before insert on quote_requests
+for each row execute function guard_quote_public_code_namespace();
+
 -- ============================================================================
 -- Order email settings and durable delivery jobs
 -- ============================================================================
@@ -2899,8 +3040,8 @@ insert into app_schema_contracts (
   installed_via
 )
 values (
-  '20260903.prelaunch-v1',
-  '6aab79cb9019d38332d67e359a2b27c5ac3058fe8eae9c4400c735fca913c3d5',
+  '20260904.prelaunch-v2',
+  'afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c',
   'fresh_schema'
 );
 

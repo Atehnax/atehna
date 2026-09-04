@@ -148,6 +148,7 @@ export const getAdminQuoteQuickDateRange = (
 
 export type AdminQuoteListRow = {
   id: number;
+  quoteCode: string;
   requestNumber: string;
   status: QuoteRequestStatus | string;
   stateVersion: number;
@@ -166,6 +167,7 @@ export type AdminQuoteListRow = {
   customerMessage: string | null;
   createdAt: string;
   latestOfferVersionId: number | null;
+  latestOfferCode: string | null;
   latestOfferNumber: string | null;
   latestOfferStatus: QuoteOfferVersionStatus | string | null;
   validUntil: string | null;
@@ -173,6 +175,7 @@ export type AdminQuoteListRow = {
   currency: string;
   shippingRequiresManualEntry: boolean;
   resultingOrderId: number | null;
+  resultingOrderCode: string | null;
   resultingOrderNumber: string | null;
   failedEmailCount: number;
   downloadableDocuments: Array<{
@@ -217,6 +220,7 @@ export type AdminQuoteItem = {
 export type AdminQuoteOfferVersion = {
   id: number;
   versionNumber: number;
+  offerCode: string;
   offerNumber: string | null;
   status: QuoteOfferVersionStatus | string;
   isCurrent: boolean;
@@ -293,6 +297,7 @@ export type AdminQuoteAccessState = {
 
 export type AdminQuoteDetail = {
   id: number;
+  quoteCode: string;
   requestNumber: string;
   status: QuoteRequestStatus | string;
   stateVersion: number;
@@ -320,6 +325,7 @@ export type AdminQuoteDetail = {
   events: AdminQuoteEvent[];
   access: AdminQuoteAccessState;
   resultingOrderId: number | null;
+  resultingOrderCode: string | null;
   resultingOrderNumber: string | null;
 };
 

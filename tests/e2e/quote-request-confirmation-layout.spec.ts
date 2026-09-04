@@ -5,6 +5,7 @@ import { SHIPPING_CALCULATION_VERSION } from '@/shared/domain/shipping/shipping'
 const TEST_ACCESS_ID = '123e4567-e89b-42d3-a456-426614174001';
 
 const confirmationSnapshot = {
+  quoteCode: 'PV-2345-6789-ABCD-EFGH',
   status: 'received',
   quoteReason: 'formal_offer',
   customerMessage: null,
@@ -146,6 +147,10 @@ test.describe('quote request confirmation layout', () => {
     await expect(heading).toHaveText('Povpraševanje je poslano');
     await expect(heading).toHaveCSS('font-size', '30px');
     await expect(status.locator('span[aria-hidden="true"]')).toHaveText('✓');
+    await expect(status).toContainText('Koda povpraševanja');
+    await expect(
+      status.getByTestId('quote-confirmation-public-code')
+    ).toHaveText(confirmationSnapshot.quoteCode);
     await expect(panels).toHaveCount(2);
     await expect(
       detailsPanel.getByRole('heading', {

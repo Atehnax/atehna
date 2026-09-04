@@ -1,6 +1,6 @@
 {
-  "contractId": "20260903.prelaunch-v1",
-  "contractSha256": "6aab79cb9019d38332d67e359a2b27c5ac3058fe8eae9c4400c735fca913c3d5",
+  "contractId": "20260904.prelaunch-v2",
+  "contractSha256": "afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c",
   "requirements": {
     "extensions": ["pg_trgm", "pgcrypto"],
     "tables": [
@@ -71,12 +71,14 @@
       {"table": "order_items", "name": "ship_later", "dataType": "boolean", "nullable": false, "defaultEquals": "false", "defaultIncludes": ["false"]},
       {"table": "orders", "name": "contract_status", "dataType": "text", "nullable": false, "defaultEquals": "'pending_seller_acceptance'::text", "defaultIncludes": ["pending_seller_acceptance"]},
       {"table": "orders", "name": "delivery_plan_revision", "dataType": "integer", "nullable": false, "defaultEquals": "1", "defaultIncludes": ["1"]},
+      {"table": "orders", "name": "public_code_base", "dataType": "text", "nullable": false, "defaultEquals": "generate_public_code_base()", "defaultIncludes": ["generate_public_code_base"]},
       {"table": "orders", "name": "source_quote_offer_version_id", "dataType": "bigint", "nullable": true},
       {"table": "orders", "name": "stock_enforcement_applied", "dataType": "boolean", "nullable": false, "defaultEquals": "true", "defaultIncludes": ["true"]},
       {"table": "quote_email_jobs", "name": "cancelled_at", "dataType": "timestamp with time zone", "nullable": true},
       {"table": "quote_email_jobs", "name": "cancelled_by_actor_id", "dataType": "text", "nullable": true},
       {"table": "quote_requests", "name": "admin_title", "dataType": "text", "nullable": true},
       {"table": "quote_requests", "name": "intake_source", "dataType": "text", "nullable": false, "defaultEquals": "'customer_web'::text", "defaultIncludes": ["customer_web"]},
+      {"table": "quote_requests", "name": "public_code_base", "dataType": "text", "nullable": false, "defaultEquals": "generate_public_code_base()", "defaultIncludes": ["generate_public_code_base"]},
       {"table": "quote_requests", "name": "void_reason", "dataType": "text", "nullable": true},
       {"table": "quote_requests", "name": "voided_at", "dataType": "timestamp with time zone", "nullable": true},
       {"table": "quote_requests", "name": "voided_by_actor_id", "dataType": "text", "nullable": true}
@@ -102,6 +104,13 @@
         "type": "check",
         "definitionEquals": "CHECK (delivery_plan_revision > 0)",
         "definitionIncludes": ["delivery_plan_revision"]
+      },
+      {
+        "table": "orders",
+        "name": "orders_public_code_base_check",
+        "type": "check",
+        "definitionEquals": "CHECK (public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'::text)",
+        "definitionIncludes": ["public_code_base", "23456789ABCDEFGHJKMNPQRSTVWXYZ", "{16}"]
       },
       {
         "table": "order_documents",
@@ -169,6 +178,13 @@
       },
       {
         "table": "quote_requests",
+        "name": "quote_requests_public_code_base_check",
+        "type": "check",
+        "definitionEquals": "CHECK (public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'::text)",
+        "definitionIncludes": ["public_code_base", "23456789ABCDEFGHJKMNPQRSTVWXYZ", "{16}"]
+      },
+      {
+        "table": "quote_requests",
         "name": "quote_requests_void_state_check",
         "type": "check",
         "definitionEquals": "CHECK (voided_at IS NULL AND voided_by_actor_id IS NULL AND void_reason IS NULL OR voided_at IS NOT NULL AND NULLIF(btrim(voided_by_actor_id), ''::text) IS NOT NULL AND NULLIF(btrim(void_reason), ''::text) IS NOT NULL)",
@@ -176,6 +192,19 @@
       }
     ],
     "functions": [
+      {
+        "name": "generate_public_code_base",
+        "bodySha256": "2f0ce4ce20a2885783126ce3fd861003fd8d52fdccd27a70a675a13531ba5d44",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "text",
+        "definitionIncludes": ["23456789ABCDEFGHJKMNPQRSTVWXYZ", "gen_random_bytes", "byte_value < 240"]
+      },
       {
         "name": "guard_order_stock_hold_transition",
         "bodySha256": "0b5106bd02a92cff965ec273b100899099f0ab746055921dd6188b38b83656d9",
@@ -188,6 +217,45 @@
         "parallel": "unsafe",
         "returns": "trigger",
         "definitionIncludes": ["legacy_unknown", "released"]
+      },
+      {
+        "name": "guard_order_public_code_lineage",
+        "bodySha256": "d138d6268fa92deedab09c09f3eea333e54bc23887094119f140a71a1e219ee7",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": ["source_quote_offer_version_id", "quote_public_code_base", "new.public_code_base := quote_public_code_base", "pg_advisory_xact_lock", "return null"]
+      },
+      {
+        "name": "guard_quote_public_code_namespace",
+        "bodySha256": "f250bdf9d4860adf5fccd122619dc30b6a5d0be9453a4832bd1ef17901eee63b",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": ["pg_advisory_xact_lock", "public.orders", "return null"]
+      },
+      {
+        "name": "guard_public_code_base_immutable",
+        "bodySha256": "0af69f1d97e57789dd907d87d4d5a1e23ea493650a0a2bef6bc0d97b5f422e24",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": ["public_code_base", "immutable"]
       },
       {
         "name": "guard_quote_append_only",
@@ -244,6 +312,12 @@
     ],
     "indexes": [
       {
+        "table": "orders",
+        "name": "idx_orders_public_code_base",
+        "definitionEquals": "CREATE UNIQUE INDEX idx_orders_public_code_base ON public.orders USING btree (public_code_base)",
+        "definitionIncludes": ["orders", "unique", "(public_code_base)"]
+      },
+      {
         "table": "order_items",
         "name": "idx_order_items_order_id_ship_later",
         "definitionEquals": "CREATE INDEX idx_order_items_order_id_ship_later ON public.order_items USING btree (order_id, ship_later, id)",
@@ -272,9 +346,36 @@
         "name": "idx_quote_requests_voided_at",
         "definitionEquals": "CREATE INDEX idx_quote_requests_voided_at ON public.quote_requests USING btree (voided_at) WHERE (voided_at IS NOT NULL)",
         "definitionIncludes": ["quote_requests", "(voided_at)", "voided_at is not null"]
+      },
+      {
+        "table": "quote_requests",
+        "name": "idx_quote_requests_public_code_base",
+        "definitionEquals": "CREATE UNIQUE INDEX idx_quote_requests_public_code_base ON public.quote_requests USING btree (public_code_base)",
+        "definitionIncludes": ["quote_requests", "unique", "(public_code_base)"]
       }
     ],
     "triggers": [
+      {
+        "table": "orders",
+        "name": "orders_guard_public_code_immutable",
+        "function": "guard_public_code_base_immutable",
+        "definitionEquals": "CREATE TRIGGER orders_guard_public_code_immutable BEFORE UPDATE OF public_code_base ON orders FOR EACH ROW EXECUTE FUNCTION guard_public_code_base_immutable()",
+        "definitionIncludes": ["before", "update of public_code_base", "for each row"]
+      },
+      {
+        "table": "orders",
+        "name": "orders_guard_public_code_lineage",
+        "function": "guard_order_public_code_lineage",
+        "definitionEquals": "CREATE TRIGGER orders_guard_public_code_lineage BEFORE INSERT OR UPDATE OF public_code_base, source_quote_offer_version_id ON orders FOR EACH ROW EXECUTE FUNCTION guard_order_public_code_lineage()",
+        "definitionIncludes": ["before", "insert", "update of public_code_base", "source_quote_offer_version_id", "for each row"]
+      },
+      {
+        "table": "quote_requests",
+        "name": "quote_requests_guard_public_code_namespace",
+        "function": "guard_quote_public_code_namespace",
+        "definitionEquals": "CREATE TRIGGER quote_requests_guard_public_code_namespace BEFORE INSERT ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_quote_public_code_namespace()",
+        "definitionIncludes": ["before", "insert", "for each row"]
+      },
       {
         "table": "order_stock_holds",
         "name": "order_stock_holds_guard_transition",
@@ -316,6 +417,13 @@
         "function": "guard_quote_request_history",
         "definitionEquals": "CREATE TRIGGER quote_requests_guard_history BEFORE DELETE OR UPDATE ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_quote_request_history()",
         "definitionIncludes": ["before", "update", "delete", "for each row"]
+      },
+      {
+        "table": "quote_requests",
+        "name": "quote_requests_guard_public_code_immutable",
+        "function": "guard_public_code_base_immutable",
+        "definitionEquals": "CREATE TRIGGER quote_requests_guard_public_code_immutable BEFORE UPDATE OF public_code_base ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_public_code_base_immutable()",
+        "definitionIncludes": ["before", "update of public_code_base", "for each row"]
       }
     ],
     "settings": [

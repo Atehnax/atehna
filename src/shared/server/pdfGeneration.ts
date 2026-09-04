@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
+import { formatOrderCode, requireCommercePublicCodeBase } from '@/shared/domain/commercePublicCode';
 import type { PdfItem, PdfOrder } from '@/shared/server/pdf';
 
 type RawOrder = Record<string, unknown>;
@@ -187,6 +188,9 @@ export async function buildPdfContext(database: Pick<Pool, 'query'>, orderId: nu
       email,
       deliveryAddress: formatOrderRowAddress(order) || null,
       reference: asNullableString(order.reference),
+      publicCode: formatOrderCode(
+        requireCommercePublicCodeBase(order.public_code_base)
+      ),
       notes: asNullableString(order.notes),
       createdAt: order.created_at ? new Date(String(order.created_at)) : new Date(),
       subtotal: asNumber(order.subtotal),

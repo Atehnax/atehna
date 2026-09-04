@@ -6,8 +6,10 @@ import {
   ORDER_DOCUMENT_FIELD_GROUP_IDS,
   ORDER_DOCUMENT_FIELD_ROW_IDS_BY_GROUP,
   cloneDefaultOrderDocumentTemplate,
+  cloneDefaultOrderDocumentTemplatesConfig,
   materializeOrderDocumentCanvasElement,
   normalizeOrderDocumentTemplate,
+  normalizeOrderDocumentTemplatesConfig,
   removeOrderDocumentFieldRow,
   resolveOrderDocumentFieldRows,
   restoreOrderDocumentFieldRow,
@@ -45,6 +47,7 @@ const EXPECTED_ROWS = {
   customer: ['customer', 'contact', 'address', 'email'],
   document_meta: [
     'document_number',
+    'public_code',
     'issue_date',
     'order_date',
     'customer_type',
@@ -126,6 +129,48 @@ test('document metadata rows can be reordered, deleted, normalized, and restored
     resolveOrderDocumentFieldRows(restored, 'document_meta')
       .some((row) => row.id === 'dispatch_method'),
     true
+  );
+});
+
+test('saved PDF templates receive the customer-code row once and later edits stay authoritative', () => {
+  const legacy = cloneDefaultOrderDocumentTemplatesConfig() as unknown as {
+    schemaVersion?: number;
+    templates: ReturnType<typeof cloneDefaultOrderDocumentTemplatesConfig>['templates'];
+  };
+  delete legacy.schemaVersion;
+  legacy.templates.invoice = setOrderDocumentFieldRows(
+    legacy.templates.invoice,
+    'document_meta',
+    resolveOrderDocumentFieldRows(legacy.templates.invoice, 'document_meta')
+      .filter((row) => row.id !== 'public_code')
+  );
+
+  const migrated = normalizeOrderDocumentTemplatesConfig(legacy);
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(
+    resolveOrderDocumentFieldRows(migrated.templates.invoice, 'document_meta')
+      .some((row) => row.id === 'public_code'),
+    true
+  );
+
+  const edited = {
+    ...migrated,
+    templates: {
+      ...migrated.templates,
+      invoice: removeOrderDocumentFieldRow(
+        migrated.templates.invoice,
+        'document_meta',
+        'public_code'
+      )
+    }
+  };
+  const normalizedEdit = normalizeOrderDocumentTemplatesConfig(edited);
+  assert.equal(
+    resolveOrderDocumentFieldRows(
+      normalizedEdit.templates.invoice,
+      'document_meta'
+    ).some((row) => row.id === 'public_code'),
+    false
   );
 });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { verifyQuoteAccessSession } from '@/shared/server/quoteAccess';
+import { formatQuoteCode } from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
       `
         select
           request.id,
+          request.public_code_base,
           request.status,
           request.quote_reason,
           request.customer_message,
@@ -72,6 +74,7 @@ export async function GET(request: NextRequest) {
     const estimate = row.estimate_json as Record<string, unknown>;
     return NextResponse.json(
       {
+        quoteCode: formatQuoteCode(String(row.public_code_base)),
         status: row.status,
         quoteReason: row.quote_reason,
         customerMessage: row.customer_message,

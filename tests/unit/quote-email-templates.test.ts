@@ -24,8 +24,12 @@ function input(
     audience: 'customer',
     recipientEmail: 'kupec@example.com',
     recipientName: 'Ana Novak',
+    quoteCode: 'PV-7K3M-4X9P-2D6R-8H4Q',
+    offerCode: 'PN-7K3M-4X9P-2D6R-8H4Q-V2',
+    orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
     requestNumber: 'P-2026-001',
     offerNumber: 'PO-2026-001',
+    orderNumber: '#42',
     offerUrl: 'https://www.atehna-test.site/offer/review#token=ath_quote_test',
     otpCode: null,
     detail: 'Dodatna podrobnost <interno>.',
@@ -68,10 +72,10 @@ describe('quote email templates', () => {
   test('renders configured content with shared explicit typography', () => {
     const value = input();
     value.quoteSettings.templates.quote_issued.customer = {
-      subject: 'Ponudba {{offer_number}} za {{request_number}}',
+      subject: 'Ponudba {{offer_code}}',
       greeting: 'Pozdravljeni, {{recipient_name}}.',
-      heading: 'Vaša ponudba {{offer_number}}',
-      body: 'Odprite ponudbo {{offer_number}}.'
+      heading: 'Vaša ponudba {{offer_code}}',
+      body: 'Odprite ponudbo {{offer_code}}.'
     };
 
     const message = buildQuoteEmailMessage(value);
@@ -81,15 +85,18 @@ describe('quote email templates', () => {
     assert.equal(message.replyTo, 'ponudbe@atehna.si');
     assert.equal(
       message.subject,
-      '[Atehna] Ponudba PO-2026-001 za P-2026-001'
+      '[Atehna] Ponudba PN-7K3M-4X9P-2D6R-8H4Q-V2'
     );
     assert.match(
       message.text,
-      /Skupna glava[\s\S]*Odprite ponudbo PO-2026-001\.[\s\S]*Dodatna podrobnost <interno>\.[\s\S]*Preglej ponudbo: https:\/\/www\.atehna-test\.site/u
+      /Skupna glava[\s\S]*Odprite ponudbo PN-7K3M-4X9P-2D6R-8H4Q-V2\.[\s\S]*Dodatna podrobnost <interno>\.[\s\S]*Preglej ponudbo: https:\/\/www\.atehna-test\.site/u
     );
     assert.match(message.html, /Dodatna podrobnost &lt;interno&gt;\./u);
     assert.match(message.html, /Pozdravljeni, Ana Novak\./u);
-    assert.match(message.html, /<h1[^>]*>Vaša ponudba PO-2026-001<\/h1>/u);
+    assert.match(
+      message.html,
+      /<h1[^>]*>Vaša ponudba PN-7K3M-4X9P-2D6R-8H4Q-V2<\/h1>/u
+    );
     assert.match(message.html, />Preglej ponudbo<\/a>/u);
     assert.match(message.html, new RegExp(`<body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}`, 'u'));
     assert.match(message.html, new RegExp(`<div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}`, 'u'));
@@ -130,6 +137,36 @@ describe('quote email templates', () => {
     assert.doesNotMatch(message.text, /Preglej ponudbo:/u);
   });
 
+  test('never exposes internal quote or order numbers to a customer template', () => {
+    const value = input();
+    value.quoteSettings.templates.quote_accepted.customer = {
+      subject:
+        '{{quote_code}} {{offer_code}} {{order_code}} {{request_number}} {{offer_number}} {{order_number}}',
+      contentHtml:
+        '<p>{{quote_code}} {{offer_code}} {{order_code}} {{request_number}} {{offer_number}} {{order_number}}</p>'
+    };
+    const message = buildQuoteEmailMessage({
+      ...value,
+      eventType: 'quote_accepted',
+      detail: null
+    });
+    const output = message.subject + '\n' + message.text;
+    assert.match(output, /PV-7K3M-4X9P-2D6R-8H4Q/u);
+    assert.match(output, /PN-7K3M-4X9P-2D6R-8H4Q-V2/u);
+    assert.match(output, /N-7K3M-4X9P-2D6R-8H4Q/u);
+    assert.doesNotMatch(output, /P-2026-001|PO-2026-001|#42/u);
+  });
+
+  test('includes the related public order code in the accepted customer default', () => {
+    const message = buildQuoteEmailMessage({
+      ...input(),
+      eventType: 'quote_accepted',
+      detail: null
+    });
+    assert.match(message.text, /N-7K3M-4X9P-2D6R-8H4Q/u);
+    assert.doesNotMatch(message.text, /#42/u);
+  });
+
   test('preserves the safe fallback sender and shared attachment behavior', () => {
     const value = input({
       sharedSettings: {
@@ -167,12 +204,15 @@ describe('quote email templates', () => {
       }
     });
     value.quoteSettings.templates.quote_issued.customer.subject =
-      'Ponudba {{offer_number}}\r\nBcc: victim@example.com';
+      'Ponudba {{offer_code}}\r\nBcc: victim@example.com';
 
     const message = buildQuoteEmailMessage(value);
 
     assert.doesNotMatch(message.subject, /[\r\n]/u);
-    assert.match(message.subject, /Ponudba PO-2026-001 Bcc:/u);
+    assert.match(
+      message.subject,
+      /Ponudba PN-7K3M-4X9P-2D6R-8H4Q-V2 Bcc:/u
+    );
   });
 
   test('normalizes and validates sparse quote presentation settings', () => {

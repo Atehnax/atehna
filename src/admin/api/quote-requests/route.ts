@@ -19,6 +19,7 @@ import {
   positiveInteger,
   quoteAdminEvidence
 } from '@/admin/api/quote-requests/quoteAdminRouteUtils';
+import { insertWithGeneratedCommercePublicCodeBase } from '@/shared/server/commercePublicCode';
 
 const CUSTOMER_TYPES = new Set(['individual', 'company', 'school']);
 const QUOTE_REASONS = new Set([
@@ -422,19 +423,22 @@ export async function POST(request: Request) {
     if (!estimateFingerprint || estimateFingerprint.length !== 64) {
       throw new Error('Prstnega odtisa povpraševanja ni bilo mogoče pripraviti.');
     }
-    const inserted = await client.query(
+    const allocatedRequest =
+      await insertWithGeneratedCommercePublicCodeBase((publicCodeBase) =>
+        client.query(
       `
         insert into quote_requests (
-          request_number, status, customer_type, organization_name,
+          request_number, public_code_base, status, customer_type, organization_name,
           contact_name, email, address_line1, address_line2, city, postal_code,
           country_code, reference, quote_reason, customer_message,
           billing_snapshot_json, shipping_snapshot_json, estimate_fingerprint,
           estimate_json, intake_source, state_version
         )
         values (
-          $1, 'received', $2, $3, $4, $5, $6, $7, $8, $9, 'SI', $10,
+          $1, $18, 'received', $2, $3, $4, $5, $6, $7, $8, $9, 'SI', $10,
           $11, $12, $13::jsonb, $14::jsonb, $15, $16::jsonb, $17, 1
         )
+        on conflict (public_code_base) do nothing
         returning id, request_number, created_at
       `,
       [
@@ -454,10 +458,12 @@ export async function POST(request: Request) {
         JSON.stringify(shippingSnapshot),
         estimateFingerprint,
         JSON.stringify(estimatePayload),
-        input.intakeSource
+        input.intakeSource,
+        publicCodeBase
       ]
-    );
-    const row = inserted.rows[0] as {
+        )
+      );
+    const row = allocatedRequest.row as {
       id: string | number;
       request_number: string;
       created_at: string | Date;

@@ -59,6 +59,7 @@ function jobPayload(
 ): OrderEmailJobPayload {
   const orderAccessToken = `ath_order_${'S'.repeat(43)}`;
   const order = {
+    orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
     createdAt: '2026-08-24T08:15:00.000Z',
     customer: {
       customerType,
@@ -144,7 +145,7 @@ describe('order email settings', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl, 'https://www.atehna-test.site');
-    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 7);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 8);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.headerText, '');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.imageAttachment, null);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
@@ -154,7 +155,8 @@ describe('order email settings', () => {
       'contact_name',
       'reference',
       'status',
-      'previous_status'
+      'previous_status',
+      'order_code'
     ]);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer, [
       'recipient_name',
@@ -163,7 +165,8 @@ describe('order email settings', () => {
       'contact_name',
       'reference',
       'status',
-      'previous_status'
+      'previous_status',
+      'order_code'
     ]);
     assert.deepEqual(
       ORDER_EMAIL_TEMPLATE_VARIABLES.companyCustomer,
@@ -334,7 +337,7 @@ describe('order email settings', () => {
       }
     });
 
-    assert.equal(legacy.version, 7);
+    assert.equal(legacy.version, 8);
     assert.equal(legacy.confirmCustomerEmails, true);
     assert.equal(legacy.headerText, '');
     assert.equal(legacy.imageAttachment, null);
@@ -355,6 +358,59 @@ describe('order email settings', () => {
     assert.notEqual(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Mutated'
+    );
+  });
+
+  test('rejects internal order numbers in customer templates without a runtime alias', () => {
+    const stored = toStoredOrderEmailSettings(configuredSettings());
+    const legacy = {
+      ...stored,
+      version: 7,
+      templates: {
+        ...stored.templates,
+        order_submitted: {
+          ...stored.templates.order_submitted,
+          customer: {
+            ...stored.templates.order_submitted.customer,
+            subject: 'Naročilo {{ order_number }}',
+            contentHtml: '<p>Koda {{order_number}}</p>'
+          },
+          admin: {
+            ...stored.templates.order_submitted.admin,
+            subject: 'Interno {{order_number}}'
+          }
+        }
+      }
+    };
+
+    const normalized = normalizeOrderEmailSettings(legacy);
+    assert.equal(normalized.version, 8);
+    assert.equal(
+      normalized.templates.order_submitted.customer.subject,
+      'Naročilo {{ order_number }}'
+    );
+    assert.equal(
+      normalized.templates.order_submitted.customer.contentHtml,
+      '<p>Koda {{order_number}}</p>'
+    );
+    assert.equal(
+      normalized.templates.order_submitted.admin.subject,
+      'Interno {{order_number}}'
+    );
+    assert.ok(
+      validateOrderEmailSettingsInput(legacy).some((error) =>
+        error.includes('{{order_number}}')
+      )
+    );
+
+    const current = {
+      ...legacy,
+      version: 8
+    };
+    assert.ok(
+      validateOrderEmailSettingsInput(current).some((error) =>
+        error.includes('{{order_number}}')
+      )
     );
   });
 
@@ -609,7 +665,7 @@ describe('order email settings', () => {
     settings.updatedAt = '2026-08-24T09:00:00.000Z';
     const stored = toStoredOrderEmailSettings(settings);
     assert.equal('updatedAt' in stored, false);
-    assert.equal(stored.version, 7);
+    assert.equal(stored.version, 8);
     assert.equal(stored.confirmCustomerEmails, false);
     assert.notStrictEqual(stored.events, settings.events);
     assert.notStrictEqual(stored.templates, settings.templates);
@@ -622,7 +678,7 @@ describe('order email settings', () => {
       ...toStoredOrderEmailSettings(configuredSettings()),
       version: 6
     });
-    assert.equal(legacy.version, 7);
+    assert.equal(legacy.version, 8);
     assert.equal(
       legacy.templates.order_submitted.customer.presentation,
       undefined
@@ -1010,6 +1066,21 @@ describe('order email templates', () => {
         /#PRIVATE-42|\/admin\/orders\/42/u,
         `customer output leaked an internal identifier for ${event.value}`
       );
+    }
+  });
+
+  test('renders the public order code for customers and administrators', () => {
+    for (const audience of ['customer', 'admin'] as const) {
+      const payload = jobPayload(audience, 'order_submitted');
+      const audienceTemplate =
+        audience === 'admin' ? 'admin' : 'companyCustomer';
+      payload.settingsSnapshot.templates.order_submitted[audienceTemplate] = {
+        subject: 'Koda {{order_code}}',
+        contentHtml: '<p>Koda naročila: {{order_code}}</p>'
+      };
+      const message = buildOrderEmailMessage(payload);
+      assert.match(message.subject, /N-7K3M-4X9P-2D6R-8H4Q/u);
+      assert.match(message.text, /N-7K3M-4X9P-2D6R-8H4Q/u);
     }
   });
 

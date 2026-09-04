@@ -4,6 +4,11 @@ import { randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
 import {
+  formatOfferCode,
+  formatOrderCode,
+  formatQuoteCode
+} from '@/shared/domain/commercePublicCode';
+import {
   normalizeQuoteEmailSettings,
   type QuoteEmailEventType
 } from '@/shared/domain/quote/quoteEmailSettings';
@@ -103,14 +108,21 @@ async function quoteIdentity(client: PoolClient, input: EnqueueQuoteEmailInput) 
     `
       select
         request.request_number,
+        request.public_code_base as request_public_code_base,
         request.email,
         request.contact_name,
         request.customer_type,
-        offer.offer_number
+        offer.offer_number,
+        offer.version_number as offer_version_number,
+        resulting_order.order_number as resulting_order_number,
+        resulting_order.public_code_base as resulting_order_public_code_base
       from quote_requests request
       left join quote_offer_versions offer
         on offer.id = $2
        and offer.quote_request_id = request.id
+      left join orders resulting_order
+        on resulting_order.source_quote_offer_version_id = offer.id
+       and resulting_order.deleted_at is null
       where request.id = $1
         and request.voided_at is null
     `,
@@ -119,10 +131,14 @@ async function quoteIdentity(client: PoolClient, input: EnqueueQuoteEmailInput) 
   return result.rows[0] as
     | {
         request_number: string;
+        request_public_code_base: string;
         email: string;
         contact_name: string;
         customer_type: string;
         offer_number: string | null;
+        offer_version_number: string | number | null;
+        resulting_order_number: string | null;
+        resulting_order_public_code_base: string | null;
       }
     | undefined;
 }
@@ -197,6 +213,17 @@ export async function enqueueQuoteEmailEvent(
     return [];
   }
   const inserted: string[] = [];
+  const quoteCode = formatQuoteCode(identity.request_public_code_base);
+  const offerCode =
+    identity.offer_number && identity.offer_version_number
+      ? formatOfferCode(
+          identity.request_public_code_base,
+          Number(identity.offer_version_number)
+        )
+      : null;
+  const orderCode = identity.resulting_order_public_code_base
+    ? formatOrderCode(identity.resulting_order_public_code_base)
+    : null;
   for (const recipient of recipients) {
     const message = buildQuoteEmailMessage({
       eventType: input.eventType,
@@ -206,8 +233,12 @@ export async function enqueueQuoteEmailEvent(
         : 'individual',
       recipientEmail: recipient.email,
       recipientName: recipient.name,
+      quoteCode,
+      offerCode,
+      orderCode,
       requestNumber: identity.request_number,
       offerNumber: identity.offer_number,
+      orderNumber: identity.resulting_order_number,
       offerUrl: input.offerUrl,
       otpCode: input.otpCode,
       detail: input.detail,

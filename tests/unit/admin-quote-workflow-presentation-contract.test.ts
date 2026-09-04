@@ -631,8 +631,16 @@ test('order detail omits redundant seller acceptance while preserving school com
   assert.doesNotMatch(detail, /\? 'Sprejeto'/u);
   assert.match(detail, /<RowActionsDropdown[\s\S]*?label: 'Zavrni naročilo'/u);
   assert.match(detail, /AdminOrderCustomerAccess[\s\S]*?compact/u);
-  assert.match(detail, /Iz ponudbe \{order\.source_quote_offer_number\}/u);
-  assert.match(detail, /Povpraševanje \{order\.source_quote_request_number\}/u);
+  assert.match(
+    detail,
+    /Iz ponudbe \{order\.source_quote_offer_code \?\? order\.source_quote_offer_number\}/u
+  );
+  assert.match(
+    detail,
+    /Povpraševanje \{order\.source_quote_code \?\? order\.source_quote_request_number\}/u
+  );
+  assert.match(detail, /interno \$\{order\.source_quote_offer_number\}/u);
+  assert.match(detail, /interno \$\{order\.source_quote_request_number\}/u);
   assert.match(detail, /admin\/orders\/quotes\/' \+ order\.source_quote_request_id/u);
   assert.doesNotMatch(school, /Šolsko povpraševanje|To povpraševanje|Zavrnjeno povpraševanje/u);
 });

@@ -5084,7 +5084,7 @@ function TopBarLayoutEditor({
       </div>
 
       <div className="grid min-w-0 items-start gap-4">
-        <div className="grid min-w-0 gap-4 min-[1180px]:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)]">
+        <div className="grid min-w-0 gap-4 min-[1280px]:grid-cols-[minmax(0,3fr)_minmax(500px,2fr)]">
           <div className="col-span-full flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
               {(Object.keys(topBarDeviceLabels) as SiteNavigationTopBarDevice[]).map((currentDevice) => (
@@ -5126,9 +5126,9 @@ function TopBarLayoutEditor({
             />
           </div>
 
-          <div className="col-span-full min-w-0 border-t border-slate-100 pt-4">
+          <div className="order-2 min-w-0 self-stretch border-t border-slate-100 pt-4 min-[1280px]:col-start-2 min-[1280px]:row-start-3 min-[1280px]:border-t-0 min-[1280px]:pt-0">
             <aside
-              className="grid min-w-0 content-start gap-5 rounded-xl border border-slate-200 bg-white p-5 md:p-6"
+              className="grid h-full min-w-0 content-start gap-5 rounded-xl border border-slate-200 bg-white p-5 md:p-6"
               data-testid="top-bar-settings-panel"
               data-appearance-editor-settings-surface
               data-settings-scroll="none"
@@ -5409,7 +5409,7 @@ function TopBarLayoutEditor({
 
           </div>
 
-          <div className="col-span-full min-w-0">
+          <div className="order-1 min-w-0 min-[1280px]:col-start-1 min-[1280px]:row-start-3">
             <div className="relative overflow-visible rounded-xl bg-white" data-testid="top-bar-elements-table">
               <div className="flex min-h-[58px] items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <h3 className="text-base font-semibold text-slate-900">Elementi v vrstici</h3>

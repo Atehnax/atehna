@@ -26,7 +26,7 @@ import {
 import { generateOrderPdf } from '../../src/shared/server/pdf';
 
 const EXPECTED_DOCUMENT_NUMBERS: Record<OrderDocumentTemplateType, string> = {
-  order_summary: '101/26',
+  order_summary: 'N-7K3M-4X9P-2D6R-8H4Q',
   offer: 'PON-2026-000123-V1',
   dobavnica: '98/26',
   predracun: '96/26',
@@ -56,6 +56,7 @@ const EXPECTED_METADATA: Record<
   ],
   offer: [
     ['issue_date', 'Datum izdaje', '25. 08. 2026'],
+    ['public_code', 'Koda ponudbe', 'PN-7K3M-4X9P-2D6R-8H4Q-V1'],
     ['due_date', 'Ponudba velja do', '09. 09. 2026'],
     ['reference', 'Referenca naročnika', 'NAR-2026-0186']
   ],
@@ -68,11 +69,13 @@ const EXPECTED_METADATA: Record<
   ],
   predracun: [
     ['issue_date', 'Datum', '25. 08. 2026'],
+    ['public_code', 'Koda naročila', 'N-7K3M-4X9P-2D6R-8H4Q'],
     ['due_date', 'Velja do', '09. 09. 2026'],
     ['reference', 'Referenca naročnika', 'NAR-2026-0186']
   ],
   invoice: [
     ['issue_date', 'Datum', '25. 08. 2026'],
+    ['public_code', 'Koda naročila', 'N-7K3M-4X9P-2D6R-8H4Q'],
     ['order_date', 'Datum naročila', '17. 08. 2026'],
     ['purchase_order_number', 'Številka naročilnice', 'NAR-2026-0186'],
     ['purchase_order_date', 'Datum naročilnice', '17. 08. 2026'],

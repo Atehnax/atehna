@@ -1,5 +1,6 @@
 import {
   emailTemplateRichTextToPlainText,
+  emailTemplateVariables,
   legacyEmailTemplateContentHtml,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
@@ -53,6 +54,7 @@ export type QuoteStockAcceptanceMode =
   (typeof QUOTE_STOCK_ACCEPTANCE_MODES)[number];
 
 export type QuoteEmailSettings = {
+  version: 2;
   enabled: boolean;
   stockAcceptanceMode: QuoteStockAcceptanceMode;
   events: Record<QuoteEmailEventType, QuoteEmailAudienceSettings>;
@@ -68,6 +70,7 @@ export const QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 24_000;
 export const QUOTE_EMAIL_DEFAULT_GREETING =
   'Pozdravljeni, {{recipient_name}},';
 export const QUOTE_EMAIL_DEFAULT_ADMIN_GREETING = 'Pozdravljeni,';
+export const QUOTE_EMAIL_SETTINGS_VERSION = 2 as const;
 
 export function quoteEmailEventSupportsAdminAudience(
   eventType: QuoteEmailEventType
@@ -75,77 +78,150 @@ export function quoteEmailEventSupportsAdminAudience(
   return eventType !== 'quote_access_otp';
 }
 
+const QUOTE_EMAIL_PUBLIC_VARIABLES_BY_EVENT: Readonly<
+  Record<QuoteEmailEventType, readonly string[]>
+> = {
+  quote_request_submitted: ['quote_code'],
+  quote_clarification_requested: ['quote_code'],
+  quote_issued: ['offer_code'],
+  quote_access_otp: ['offer_code', 'otp_code'],
+  quote_accepted: ['offer_code', 'order_code'],
+  quote_declined: ['offer_code'],
+  quote_withdrawn: ['offer_code'],
+  quote_expired: ['offer_code'],
+  quote_request_closed: ['quote_code'],
+  quote_acceptance_blocked_stock: ['offer_code'],
+  quote_delivery_failed: ['quote_code', 'offer_code']
+};
+
+const QUOTE_EMAIL_INTERNAL_VARIABLES_BY_EVENT: Readonly<
+  Record<QuoteEmailEventType, readonly string[]>
+> = {
+  quote_request_submitted: ['request_number'],
+  quote_clarification_requested: ['request_number'],
+  quote_issued: ['request_number', 'offer_number'],
+  quote_access_otp: [],
+  quote_accepted: ['request_number', 'offer_number', 'order_number'],
+  quote_declined: ['request_number', 'offer_number'],
+  quote_withdrawn: ['request_number', 'offer_number'],
+  quote_expired: ['request_number', 'offer_number'],
+  quote_request_closed: ['request_number'],
+  quote_acceptance_blocked_stock: ['request_number', 'offer_number'],
+  quote_delivery_failed: ['request_number', 'offer_number']
+};
+
+export function quoteEmailTemplateInternalVariables(
+  eventType: QuoteEmailEventType,
+  audience: QuoteEmailTemplateAudience
+): readonly string[] {
+  return audience === 'admin'
+    ? QUOTE_EMAIL_INTERNAL_VARIABLES_BY_EVENT[eventType]
+    : [];
+}
+
+export function quoteEmailTemplateVariables(
+  eventType: QuoteEmailEventType,
+  audience: QuoteEmailTemplateAudience
+): readonly string[] {
+  const recipientVariables = audience === 'admin' ? [] : ['recipient_name'];
+  return [
+    ...recipientVariables,
+    ...QUOTE_EMAIL_PUBLIC_VARIABLES_BY_EVENT[eventType],
+    ...quoteEmailTemplateInternalVariables(eventType, audience)
+  ];
+}
+
 export const QUOTE_EMAIL_EVENT_DEFAULTS: Record<
   QuoteEmailEventType,
-  { customer: boolean; admin: boolean; subject: string; body: string }
+  {
+    customer: boolean;
+    admin: boolean;
+    subject: string;
+    body: string;
+    adminSubject?: string;
+    adminBody?: string;
+  }
 > = {
   quote_request_submitted: {
     customer: true,
     admin: true,
-    subject: 'Prejeli smo vaše povpraševanje {{request_number}}',
+    subject: 'Prejeli smo vaše povpraševanje {{quote_code}}',
+    adminSubject: 'Novo povpraševanje {{request_number}}',
     body:
       'Povpraševanje ni naročilo in ne povzroči obveznosti plačila. Obvestili vas bomo, ko bo ponudba pripravljena.'
   },
   quote_clarification_requested: {
     customer: true,
     admin: false,
-    subject: 'Potrebujemo pojasnilo za {{offer_number}}',
+    subject: 'Potrebujemo pojasnilo za {{quote_code}}',
+    adminSubject: 'Potrebujemo pojasnilo za {{request_number}}',
     body:
       'Za nadaljevanje obravnave vašega povpraševanja potrebujemo naslednje pojasnilo:'
   },
   quote_issued: {
     customer: true,
     admin: false,
-    subject: 'Ponudba {{offer_number}} je pripravljena',
+    subject: 'Ponudba {{offer_code}} je pripravljena',
+    adminSubject: 'Ponudba {{offer_number}} je pripravljena',
     body: 'Ponudbo odprite prek varne povezave. Sam klik ponudbe ne sprejme.'
   },
   quote_access_otp: {
     customer: true,
     admin: false,
-    subject: 'Varnostna koda za ponudbo {{offer_number}}',
+    subject: 'Varnostna koda za ponudbo {{offer_code}}',
     body: 'Vaša enkratna varnostna koda je {{otp_code}}.'
   },
   quote_accepted: {
     customer: true,
     admin: true,
-    subject: 'Ponudba {{offer_number}} je sprejeta',
-    body: 'Sprejem ponudbe smo zabeležili in ustvarili povezano naročilo.'
+    subject: 'Ponudba {{offer_code}} je sprejeta',
+    adminSubject: 'Ponudba {{offer_number}} je sprejeta',
+    body:
+      'Sprejem ponudbe smo zabeležili in ustvarili povezano naročilo {{order_code}}.',
+    adminBody:
+      'Sprejem ponudbe smo zabeležili in ustvarili povezano naročilo {{order_number}}.'
   },
   quote_declined: {
     customer: true,
     admin: true,
-    subject: 'Ponudba {{offer_number}} je zavrnjena',
+    subject: 'Ponudba {{offer_code}} je zavrnjena',
+    adminSubject: 'Ponudba {{offer_number}} je zavrnjena',
     body: 'Vašo odločitev smo zabeležili.'
   },
   quote_withdrawn: {
     customer: true,
     admin: false,
-    subject: 'Ponudba {{offer_number}} je umaknjena',
+    subject: 'Ponudba {{offer_code}} je umaknjena',
+    adminSubject: 'Ponudba {{offer_number}} je umaknjena',
     body: 'Ponudba ni več veljavna. Za pomoč nam odgovorite na to sporočilo.'
   },
   quote_expired: {
     customer: true,
     admin: false,
-    subject: 'Ponudba {{offer_number}} je potekla',
+    subject: 'Ponudba {{offer_code}} je potekla',
+    adminSubject: 'Ponudba {{offer_number}} je potekla',
     body: 'Rok veljavnosti ponudbe je potekel.'
   },
   quote_request_closed: {
     customer: true,
     admin: false,
-    subject: 'Povpraševanje {{request_number}} je zaključeno',
+    subject: 'Povpraševanje {{quote_code}} je zaključeno',
+    adminSubject: 'Povpraševanje {{request_number}} je zaključeno',
     body: 'Povpraševanje smo zaključili brez izdaje ponudbe.'
   },
   quote_acceptance_blocked_stock: {
     customer: true,
     admin: true,
-    subject: 'Ponudbe {{offer_number}} trenutno ni mogoče sprejeti',
+    subject: 'Ponudbe {{offer_code}} trenutno ni mogoče sprejeti',
+    adminSubject: 'Ponudbe {{offer_number}} trenutno ni mogoče sprejeti',
     body:
       'Razpoložljiva zaloga se je spremenila. Povpraševanje ostaja odprto, da lahko pripravimo novo različico ponudbe.'
   },
   quote_delivery_failed: {
     customer: false,
     admin: true,
-    subject: 'Dostava e-pošte za {{offer_number}} ni uspela',
+    subject: 'Dostava e-pošte za {{offer_code}} ni uspela',
+    adminSubject: 'Dostava e-pošte za {{offer_number}} ni uspela',
     body:
       'Dostava sporočila o ponudbi ni uspela po vseh samodejnih poskusih. Preverite stanje v administraciji in opravilo po potrebi ponovite.'
   }
@@ -215,6 +291,7 @@ export const QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS = [
 
 export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
   return {
+    version: QUOTE_EMAIL_SETTINGS_VERSION,
     enabled: false,
     stockAcceptanceMode: 'manual',
     events: Object.fromEntries(
@@ -229,6 +306,8 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
     templates: Object.fromEntries(
       QUOTE_EMAIL_EVENT_TYPES.map((eventType) => {
         const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[eventType];
+        const adminSubject = defaults.adminSubject ?? defaults.subject;
+        const adminBody = defaults.adminBody ?? defaults.body;
         const customerTemplate: QuoteEmailTemplate = {
           subject: defaults.subject,
           contentHtml: legacyEmailTemplateContentHtml({
@@ -244,11 +323,11 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
             companyCustomer: { ...customerTemplate },
             schoolCustomer: { ...customerTemplate },
             admin: {
-              subject: defaults.subject,
+              subject: adminSubject,
               contentHtml: legacyEmailTemplateContentHtml({
                 greeting: QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
-                heading: defaults.subject,
-                body: defaults.body
+                heading: adminSubject,
+                body: adminBody
               })
             }
           }
@@ -441,6 +520,24 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
         QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH
       ) {
         errors.push(`${eventType}/${audience}: vsebina je predolga.`);
+      }
+      const allowedVariables = new Set(
+        quoteEmailTemplateVariables(eventType, audience)
+      );
+      for (const variable of [
+        ...emailTemplateVariables(template.subject),
+        ...emailTemplateVariables(template.contentHtml)
+      ]) {
+        if (!allowedVariables.has(variable)) {
+          errors.push(
+            eventType +
+              '/' +
+              audience +
+              ': spremenljivka {{' +
+              variable +
+              '}} ni dovoljena.'
+          );
+        }
       }
     }
   }

@@ -88,6 +88,7 @@ export type OrderNumberAvailabilityResult = {
 export type OrderRow = {
   id: number;
   order_number: string;
+  order_code: string;
   customer_type: string;
   organization_name: string | null;
   contact_name: string;
@@ -114,6 +115,8 @@ export type OrderRow = {
   source_quote_request_id?: number | null;
   source_quote_request_number?: string | null;
   source_quote_offer_number?: string | null;
+  source_quote_code?: string | null;
+  source_quote_offer_code?: string | null;
   reference: string | null;
   notes: string | null;
   status: string;
@@ -240,7 +243,10 @@ export type AdminOrderRowTuple = readonly [
   total: number | string | null,
   createdAt: string,
   isDraft: boolean,
-  deletedAt?: string | null
+  deletedAt: string | null,
+  orderCode: string,
+  sourceQuoteCode: string | null,
+  sourceQuoteOfferCode: string | null
 ];
 
 export type AdminOrderPdfDocumentTuple = readonly [

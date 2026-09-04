@@ -21,14 +21,14 @@ const quoteTablePath =
 const quoteOfferCellPath =
   'src/admin/features/quotes/components/AdminQuoteOfferCell.tsx';
 
-test('quote rows follow the order-table number, column, and matching-hover presentation', () => {
+test('quote rows show public references and retain matching-hover presentation', () => {
   const table = source(quoteTablePath);
   const header = table.slice(
     table.indexOf('<THead'),
     table.indexOf('</THead>')
   );
   const headings = [
-    'P/P',
+    'Koda',
     'Datum',
     'Naročnik',
     'Naslov',
@@ -48,7 +48,8 @@ test('quote rows follow the order-table number, column, and matching-hover prese
 
   assert.match(table, /const formatQuoteRequestNumber/u);
   assert.match(table, /Number\.isSafeInteger\(numeric\) \? `#\$\{numeric\}`/u);
-  assert.match(table, /title=\{row\.requestNumber\}/u);
+  assert.match(table, /title=\{`Koda povpraševanja \$\{row\.quoteCode\}`\}/u);
+  assert.match(table, /Interno \{displayRequestNumber\}/u);
   assert.match(table, /adminTableMatchingValueBaseClassName/u);
   assert.match(table, /adminTableMatchingValueActiveClassName/u);
   assert.match(table, /setMatchingValue\('date'/u);
@@ -56,8 +57,8 @@ test('quote rows follow the order-table number, column, and matching-hover prese
   assert.match(table, /setMatchingValue\('address', addressLabel\)/u);
   assert.match(table, /setMatchingValue\('type', customerTypeLabel\)/u);
   assert.match(table, /setMatchingValue\('total'/u);
-  assert.match(table, /min-w-\[1275px\]/u);
-  assert.match(table, /<col className="w-\[90px\]" \/>/u);
+  assert.match(table, /min-w-\[1375px\]/u);
+  assert.match(table, /<col className="w-\[190px\]" \/>/u);
   assert.match(
     table,
     /visibleColumns\.customer \? <col className="w-\[150px\]" \/>/u
@@ -84,25 +85,24 @@ test('quote rows follow the order-table number, column, and matching-hover prese
   assert.match(table, /formatSlDate\(row\.createdAt\)/u);
   assert.match(table, /formatSlDateTime\(row\.createdAt\)/u);
   assert.match(table, /data-testid=\{`quote-table-date-\$\{row\.id\}`\}/u);
-  assert.match(table, /toDisplayOrderNumber/u);
+  assert.doesNotMatch(table, /toDisplayOrderNumber/u);
   assert.match(table, /href=\{`\/admin\/orders\/\$\{row\.resultingOrderId\}`\}/u);
   assert.match(table, /data-testid=\{`quote-linked-order-\$\{row\.id\}`\}/u);
-  assert.match(table, /aria-label=\{`Odpri povezano naročilo \$\{linkedOrderNumber\}`\}/u);
+  assert.match(table, /aria-label=\{`Odpri povezano naročilo \$\{linkedOrderCode\}`\}/u);
   assert.match(
     table,
-    /grid h-12 w-full grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center whitespace-nowrap/u
+    /flex h-12 w-full flex-col items-center justify-center gap-0\.5 whitespace-nowrap/u
   );
   assert.match(table, /data-testid=\{`quote-number-cell-\$\{row\.id\}`\}/u);
-  assert.match(table, /col-start-2 row-start-1[^"]*?justify-self-center[^"]*?tabular-nums/u);
-  assert.match(table, /col-start-3 row-start-1[^"]*?justify-self-start/u);
-  assert.match(table, />[\s\S]*?\(→[\s\S]*?<\/span>/u);
+  assert.match(table, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}[\s\S]*?\{row\.quoteCode\}/u);
+  assert.match(table, />→<\/span>/u);
   const linkedOrderPresentation = table.slice(
-    table.indexOf('{row.resultingOrderId && linkedOrderNumber ? ('),
-    table.indexOf(') : null}', table.indexOf('{row.resultingOrderId && linkedOrderNumber ? ('))
+    table.indexOf('{row.resultingOrderId && linkedOrderCode ? ('),
+    table.indexOf(') : null}', table.indexOf('{row.resultingOrderId && linkedOrderCode ? ('))
   );
   assert.match(linkedOrderPresentation, /text-\[color:var\(--blue-500\)\]/u);
   assert.match(linkedOrderPresentation, /hover:text-\[color:var\(--blue-600\)\]/u);
-  assert.match(linkedOrderPresentation, /text-\[12px\]/u);
+  assert.match(linkedOrderPresentation, /\{linkedOrderCode\}/u);
   assert.match(linkedOrderPresentation, /underline decoration-\[1px\]/u);
   assert.doesNotMatch(linkedOrderPresentation, /emerald|rounded-full|bg-emerald/u);
   assert.doesNotMatch(header, />Rezultat</u);
@@ -162,31 +162,30 @@ test('quote rows follow the order-table number, column, and matching-hover prese
   assert.match(table, /\}\) \|\| '—';/u);
 });
 
-test('converted quote keeps the primary P/P number aligned and renders a parenthesized order suffix', () => {
+test('converted quote keeps the public quote reference primary and links the public order reference', () => {
   const table = source(quoteTablePath);
   const numberCellStart = table.indexOf(
-    'className="grid h-12 w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center whitespace-nowrap"'
+    'className="flex h-12 w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap"'
   );
   const numberCellEnd = table.indexOf('                    </div>', numberCellStart);
 
   assert.ok(numberCellStart >= 0 && numberCellEnd > numberCellStart);
   const numberCell = table.slice(numberCellStart, numberCellEnd);
   assert.match(numberCell, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}/u);
-  assert.match(numberCell, /col-start-2 row-start-1[^"]*?justify-self-center/u);
-  assert.match(numberCell, /\{row\.resultingOrderId && linkedOrderNumber \? \(/u);
-  assert.match(numberCell, /col-start-3 row-start-1[^"]*?justify-self-start/u);
+  assert.match(numberCell, /\{row\.quoteCode\}/u);
+  assert.match(numberCell, /Interno \{displayRequestNumber\}/u);
+  assert.match(numberCell, /\{row\.resultingOrderId && linkedOrderCode \? \(/u);
   assert.match(
     numberCell,
-    /\(→[\s\S]*?data-testid=\{`quote-linked-order-\$\{row\.id\}`\}[\s\S]*?>[\s\S]*?\{linkedOrderNumber\}[\s\S]*?<\/Link>[\s\S]*?>[\s\S]*?\)[\s\S]*?<\/span>/u
+    /→[\s\S]*?data-testid=\{`quote-linked-order-\$\{row\.id\}`\}[\s\S]*?>[\s\S]*?\{linkedOrderCode\}[\s\S]*?<\/Link>/u
   );
-  assert.doesNotMatch(numberCell, /justify-center gap-/u);
 });
-test('quote P/P filter mirrors the order-number range with URL-backed server pagination', () => {
+test('quote internal-sequence filter remains URL-backed while search accepts exact public codes', () => {
   const table = source(quoteTablePath);
   const ordersPage = source('src/admin/pages/orders/page.tsx');
   const server = source('src/shared/server/quotes.ts');
 
-  assert.match(table, /aria-label="Filtriraj P\/P"/u);
+  assert.match(table, /aria-label="Filtriraj po internem zaporedju"/u);
   assert.match(table, /requestFilterButtonRef/u);
   assert.match(table, /openHeaderFilter === 'request'/u);
   assert.match(
@@ -247,6 +246,12 @@ test('quote P/P filter mirrors the order-number range with URL-backed server pag
 
   assert.match(server, /minRequestNumber\?: number/u);
   assert.match(server, /maxRequestNumber\?: number/u);
+  assert.match(server, /parseCommercePublicCode/u);
+  assert.match(server, /qr\.public_code_base/u);
+  assert.match(
+    server,
+    /searchable_public_offer\.version_number = \$\$\{versionIndex\}/u
+  );
   assert.match(
     server,
     /const quoteRequestSequenceExpression = 'right\(qr\.request_number, 6\)::integer'/u

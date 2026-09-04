@@ -77,7 +77,6 @@ export default function QuoteRequestConfirmationPageClient() {
   const accessSessionRef = useRef<QuoteAccessSession | null>(null);
   const bootstrapTokenRef = useRef<string | null>(null);
   const locationTokenConsumedRef = useRef(false);
-
   const loadConfirmation = useCallback(async () => {
     setState({ status: 'loading' });
     try {
@@ -256,19 +255,25 @@ export default function QuoteRequestConfirmationPageClient() {
         description="Atehna bo preverila cene, dobavljivost, stroške dostave in rok dobave ter vam poslala ponudbo."
         symbol="✓"
         meta={
-          submittedAt ? (
-            <>
-              <p className="text-sm text-[color:var(--site-color-text-muted)]">
-                Datum oddaje
-              </p>
+          <>
+            <p className="text-sm text-[color:var(--site-color-text-muted)]">
+              Koda povpraševanja
+            </p>
+            <p
+              className="mt-1 font-semibold tabular-nums"
+              data-testid="quote-confirmation-public-code"
+            >
+              {snapshot.quoteCode}
+            </p>
+            {submittedAt ? (
               <time
-                className="mt-1 block font-semibold"
+                className="mt-2 block text-sm text-[color:var(--site-color-text-muted)]"
                 dateTime={snapshot.requestedAt}
               >
                 {submittedAt}
               </time>
-            </>
-          ) : undefined
+            ) : null}
+          </>
         }
         tone="success"
         testId="quote-request-submission-status"

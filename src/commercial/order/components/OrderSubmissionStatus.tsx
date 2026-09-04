@@ -9,6 +9,7 @@ export type OrderSubmissionCommitmentStatus =
   | 'rejected';
 
 type OrderSubmissionStatusProps = {
+  orderCode: string;
   commitmentStatus?: OrderSubmissionCommitmentStatus;
   contractStatus?: OrderContractStatus;
   submittedAt?: string | null;
@@ -71,6 +72,7 @@ export function getOrderSubmissionStatusContent(
 }
 
 export default function OrderSubmissionStatus({
+  orderCode,
   commitmentStatus,
   contractStatus,
   submittedAt,
@@ -88,19 +90,25 @@ export default function OrderSubmissionStatus({
       description={content.description}
       symbol={content.symbol}
       meta={
-        submittedAt ? (
-          <>
-            <p className="text-sm text-[color:var(--site-color-text-muted)]">
-              Datum oddaje
-            </p>
+        <>
+          <p className="text-sm text-[color:var(--site-color-text-muted)]">
+            Koda naročila
+          </p>
+          <p
+            className="mt-1 font-semibold tabular-nums"
+            data-testid="order-confirmation-public-code"
+          >
+            {orderCode}
+          </p>
+          {submittedAt ? (
             <time
-              className="mt-1 block font-semibold"
+              className="mt-2 block text-sm text-[color:var(--site-color-text-muted)]"
               dateTime={submittedAtDateTime ?? undefined}
             >
               {submittedAt}
             </time>
-          </>
-        ) : undefined
+          ) : null}
+        </>
       }
       tone={content.tone}
       testId="order-submission-status"

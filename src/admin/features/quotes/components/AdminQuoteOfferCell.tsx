@@ -63,14 +63,14 @@ export default function AdminQuoteOfferCell({
   quoteRequestId,
   quoteRequestLabel,
   offerVersionId,
-  offerNumber,
+  offerCode,
   offerStatus,
   documents
 }: {
   quoteRequestId: number;
   quoteRequestLabel: string;
   offerVersionId: number | null;
-  offerNumber: string | null;
+  offerCode: string | null;
   offerStatus: string | null;
   documents: QuoteListDocument[];
 }) {
@@ -234,9 +234,9 @@ export default function AdminQuoteOfferCell({
                 </p>
                 <p
                   className="truncate text-[10px] text-slate-500"
-                  title={offerNumber ?? undefined}
+                  title={offerCode ?? undefined}
                 >
-                  {offerNumber ?? 'Osnutek'}
+                  {offerCode ?? 'Osnutek'}
                 </p>
               </div>
 

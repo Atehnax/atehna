@@ -58,6 +58,15 @@ order:
 13. `database/migrations/20260903_order_document_email_events.sql`
 14. `database/migrations/20260903_schema_contract_v1.sql`
 15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
+16. `database/migrations/20260904_public_customer_codes.sql`
+17. `database/migrations/20260904_schema_contract_v2.sql`
+
+These 17 files are the schema sequence applied before the public-code
+application deployment. The template rewrite is a separate, manually
+acknowledged post-deploy data step:
+`database/migrations/20260905_public_code_email_templates_postdeploy.sql`.
+Do not append it to an automatic schema runner or execute it while the previous
+deployed version can still render email.
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -124,11 +133,26 @@ email outbox constraint after verifying the exact predecessor state and all
 existing rows; it does not rewrite orders, documents, jobs, or delivery
 evidence.
 
-The terminal schema-contract artifact follows all application migrations. It
+The public-customer-code artifact follows the postal lookup indexes. It takes
+write-blocking locks for the affected order and quote tables,
+backfills a cryptographically random 16-character base, preserves that base for
+every existing quote-to-order conversion, and aborts if one quote has produced
+multiple linked orders. It then installs format, uniqueness, immutability, and
+lineage guards. The order and quote insert guards share a transaction advisory
+lock namespace, so concurrent direct-order and quote allocation cannot reuse a
+base across tables. A random cross-table collision suppresses that attempted
+row without aborting the transaction, allowing the bounded application allocator
+to retry. Quote-to-order insertion is the sole reuse path: its lineage guard
+atomically replaces any generated order base with the source quote base before
+constraints run, which keeps migration-first rollout compatible with older
+conversion SQL. It does not read or change email settings or queued message
+envelopes.
+
+The v2 terminal schema-contract artifact follows all application migrations. It
 first verifies the required end state, including current columns, validated
 constraints, guard functions, enabled triggers, indexes, and the typed
 inventory-policy `default` row. Only then does it record contract
-`20260903.prelaunch-v1` with
+`20260904.prelaunch-v2` with
 `installed_via='existing_database'`. A database created directly from
 `database/schema.sql` records the same contract with
 `installed_via='fresh_schema'`. This is a terminal compatibility assertion, not
@@ -158,7 +182,9 @@ Before execution:
    manual documents, admin title, clarification email, order-item delivery
    planning, optional quote acceptance terms, inventory policy, the per-order
    stock-enforcement marker, quote-outbox cancellation, the GURS prefix index,
-   the order-document email events, and finally the terminal schema contract.
+   the order-document email events, GURS postal indexes, public customer codes,
+   and finally the terminal v2 schema contract. Do not include the post-deploy
+   template data migration in this pre-deploy sequence.
    If an earlier artifact is already installed, do not rerun it; verify its
    markers and continue in order with only the unapplied follow-ups.
 7. After 20260828, record the post-deploy counts, constraint validation, and all
@@ -200,10 +226,87 @@ Before execution:
 19. After the order-document email events, confirm the validated order-email
     event constraint includes `predracun_issued` and `invoice_issued` and no
     unexpected event type was accepted.
-20. Apply the terminal schema-contract artifact only after all prior postconditions
+20. After the GURS postal lookup artifact, verify exact postal-code and normalized
+    postal-place prefix lookups use the active-table covering indexes.
+21. After the public-code artifact, confirm every order and quote request has a
+    valid unique base, converted orders share their originating quote base, all
+    public-code guards are enabled, and the order/quote email-settings rows and
+    queued email jobs are byte-for-byte unchanged.
+22. Apply the v2 terminal schema-contract artifact only after all prior postconditions
     pass, then run `npm run check:database-schema` against that exact target. The
     checker uses a read-only transaction and must report contract
-    `20260903.prelaunch-v1`.
+    `20260904.prelaunch-v2`.
+
+## Public-code post-deploy template migration
+
+This is a second application rollout phase, not schema installation. Deploy and
+verify the application version that renders the new customer variables
+`{{order_code}}`, `{{quote_code}}`, and `{{offer_code}}`.
+The customer-facing template contract exposes only these new identifiers and has
+no runtime alias for sequential customer variables. The guarded database rewrite
+below is the sole transition mechanism. Keep customer order/quote creation and
+both email workers paused from deployment until the rewrite and verification
+finish.
+
+First inventory every customer envelope that could still be delivered or
+retried. This query is read-only:
+
+```sql
+select 'order' as queue,
+       status,
+       count(*) as jobs,
+       min(created_at) as oldest_created_at,
+       max(created_at) as newest_created_at
+  from public.order_email_jobs
+ where audience = 'customer'
+   and status in ('pending', 'processing', 'failed')
+ group by status
+union all
+select 'quote' as queue,
+       status,
+       count(*) as jobs,
+       min(created_at) as oldest_created_at,
+       max(created_at) as newest_created_at
+  from public.quote_email_jobs
+ where audience = 'customer'
+   and status in ('pending', 'processing', 'failed')
+ group by status
+order by queue, status;
+```
+
+Drain safe messages before the cutover. Explicitly review failed or stuck
+messages; cancel a quote message only through the existing durable cancellation
+workflow when that is the correct business decision. Order jobs have no
+equivalent cancelled state, so every listed order job must be delivered or
+otherwise reconciled under an approved operational procedure. Never delete or
+rewrite an encrypted queued envelope. The migration independently repeats this
+inventory under table locks and aborts unless both counts are zero.
+
+Run the data migration with stop-on-error behavior in one PostgreSQL session.
+The session setting is an explicit operator assertion that the compatible app
+has already been deployed:
+
+```sql
+\set ON_ERROR_STOP on
+set atehna.public_code_email_templates_app_ready = 'v1';
+\i database/migrations/20260905_public_code_email_templates_postdeploy.sql
+```
+
+The migration requires exact schema contract `20260904.prelaunch-v2`,
+upgrades only the stored order settings row keyed
+`order-email-notifications` to version 8 and the quote settings row keyed
+`default` to version 2, and checks that the old sequential variables are gone
+from customer/company/school fields. It rejects unknown future settings
+versions, malformed settings, any administrator-template change, and any
+remaining deliverable legacy customer envelope. It does not create missing
+settings rows or mutate jobs.
+
+After commit, verify the two settings versions, inspect representative
+customer templates for every event class, send one new order and one new quote
+test email, and confirm only the opaque public codes appear. Then re-enable
+customer writes and workers. Runtime code must not normalize, translate, or
+otherwise accept sequential customer template variables; retain only the
+administrator-only internal variables and this auditable migration artifact.
 
 ## Schema-contract deployment gates
 
@@ -219,9 +322,9 @@ Phase A - establish and verify the contract:
    a current backup, rehearse the exact unapplied migration sequence on a recent
    clone, and compare row counts and inventory totals before and after.
 3. In a controlled maintenance window, apply only the reviewed, still-unapplied
-   artifacts in order. The schema-contract marker is established by
-   `database/migrations/20260903_schema_contract_v1.sql`; apply the later
-   `database/migrations/20260904_gurs_postal_lookup_indexes.sql` afterward.
+   artifacts in order. The historical v1 marker precedes the GURS postal and
+   public-code migrations; the active compatibility marker is established last by
+   `database/migrations/20260904_schema_contract_v2.sql`.
 4. Point `DATABASE_URL` explicitly at that target and run
    `npm run check:database-schema`. Record the target, contract ID, backup,
    rehearsal, application, and verification result. Repeat for every target.
@@ -251,7 +354,7 @@ The 20260828 migration never increases or decreases inventory. It classifies an 
 non-draft, non-cancelled legacy binding-order item quantity as held only when a
 completed direct-checkout idempotency receipt, or a binding school order with
 an active purchase order, proves the stock-committing application path.
-Everything else becomes legacy_unknown, because the old application did not
+Everything else becomes legacy_unknown, because the previous deployed version did not
 keep enough evidence to know whether stock was decremented or a human already
 reconciled inventory. Each unknown row must be investigated; any later
 transition to held or released requires recorded reconciliation evidence.

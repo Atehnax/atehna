@@ -120,7 +120,8 @@ const ORDER_EMAIL_CUSTOMER_TEMPLATE_VARIABLES = [
   'contact_name',
   'reference',
   'status',
-  'previous_status'
+  'previous_status',
+  'order_code'
 ] as const;
 
 export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
@@ -132,6 +133,7 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
     'customer_name',
     'status',
     'previous_status',
+    'order_code',
     'order_number',
     'customer_email'
   ]
@@ -161,7 +163,7 @@ export type OrderEmailImageAttachment = {
 };
 
 export type OrderEmailSettings = {
-  version: 7;
+  version: 8;
   enabled: boolean;
   confirmCustomerEmails: boolean;
   senderName: string;
@@ -381,7 +383,7 @@ const defaultTemplates = Object.fromEntries(
 ) as OrderEmailTemplates;
 
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 7,
+  version: 8,
   enabled: false,
   confirmCustomerEmails: true,
   senderName: 'Atehna',
@@ -880,7 +882,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 7,
+    version: 8,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
@@ -1246,7 +1248,12 @@ export function validateOrderEmailSettingsInput(value: unknown): string[] {
     const rawEvent = asRecord(rawEventValue);
     const defaults = DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value];
     errors.push(
-      ...validateTemplate(rawEvent.customer, event.label, 'customer', defaults.customer),
+      ...validateTemplate(
+        rawEvent.customer,
+        event.label,
+        'customer',
+        defaults.customer
+      ),
       ...validateTemplate(
         rawEvent.companyCustomer,
         event.label,

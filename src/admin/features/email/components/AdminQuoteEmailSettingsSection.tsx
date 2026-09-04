@@ -5,6 +5,8 @@ import { RefreshCw } from 'lucide-react';
 import {
   cloneDefaultQuoteEmailSettings,
   normalizeQuoteEmailSettings,
+  quoteEmailTemplateInternalVariables,
+  quoteEmailTemplateVariables,
   QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS,
   QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
   QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
@@ -85,12 +87,6 @@ const quoteEmailEventLabelByType = new Map<string, string>(
 const quoteTemplateEventOptions = QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS.map(
   ({ value, label }) => ({ value, label })
 );
-const QUOTE_EMAIL_TEMPLATE_VARIABLES = {
-  customer: ['recipient_name', 'request_number', 'offer_number'],
-  companyCustomer: ['recipient_name', 'request_number', 'offer_number'],
-  schoolCustomer: ['recipient_name', 'request_number', 'offer_number'],
-  admin: ['request_number', 'offer_number']
-} as const;
 const quoteEmailPreviewAudienceOptions = [
   { value: 'customer', label: 'Fiz. oseba' },
   { value: 'companyCustomer', label: 'Podjetje' },
@@ -106,24 +102,35 @@ const quoteEmailSpacingDefaults = {
 } as const;
 const QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER = 'POV-2026-001';
 const QUOTE_EMAIL_PREVIEW_OFFER_NUMBER = 'PON-2026-001';
+const QUOTE_EMAIL_PREVIEW_QUOTE_CODE = 'PV-7K3M-4X9P-2D6R-8H4Q';
+const QUOTE_EMAIL_PREVIEW_OFFER_CODE = 'PN-7K3M-4X9P-2D6R-8H4Q-V2';
+const QUOTE_EMAIL_PREVIEW_ORDER_CODE = 'N-7K3M-4X9P-2D6R-8H4Q';
+const QUOTE_EMAIL_PREVIEW_ORDER_NUMBER = '#PREIZKUS';
 const quoteEmailPreviewDetails: Partial<Record<EditableEvent, string>> = {
   quote_clarification_requested:
     'Prosimo, potrdite želeno količino in pričakovani rok dobave.',
-  quote_accepted: 'Ustvarjeno je bilo naročilo #PREIZKUS.',
   quote_declined: 'Razlog: izbrana je bila druga ponudba.',
   quote_withdrawn: 'Ponudba je bila umaknjena zaradi spremembe pogojev.',
   quote_acceptance_blocked_stock:
     'Za izbrano količino trenutno ni dovolj razpoložljive zaloge.',
   quote_delivery_failed: 'Primer napake dostave: prejemnik ni dosegljiv.'
 };
-function quoteEmailPreviewVariables(audience: QuoteEmailTemplateAudience) {
-  return QUOTE_EMAIL_TEMPLATE_VARIABLES[audience].map((name) => ({
+function quoteEmailPreviewVariables(
+  eventType: QuoteEmailEventType,
+  audience: QuoteEmailTemplateAudience
+) {
+  return quoteEmailTemplateVariables(eventType, audience).map((name) => ({
     name,
     value: {
       recipient_name: 'Ana Novak',
+      quote_code: QUOTE_EMAIL_PREVIEW_QUOTE_CODE,
+      offer_code: QUOTE_EMAIL_PREVIEW_OFFER_CODE,
+      order_code: QUOTE_EMAIL_PREVIEW_ORDER_CODE,
       request_number: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
-      offer_number: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER
-    }[name]
+      offer_number: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
+      order_number: QUOTE_EMAIL_PREVIEW_ORDER_NUMBER,
+      otp_code: '482913'
+    }[name] ?? ''
   }));
 }
 
@@ -133,7 +140,7 @@ function quoteTemplateAudienceMeta(audience: QuoteEmailTemplateAudience) {
       title: 'Admin',
       label: 'administratorja',
       description:
-        'Administratorska predloga lahko uporablja številko povpraševanja in številko ponudbe.'
+        'Administratorska predloga lahko uporablja javne kode in označene interne številke.'
     };
   }
   if (audience === 'schoolCustomer') {
@@ -224,8 +231,13 @@ const AdminQuoteEmailSettingsSection = forwardRef<
               : 'ana.novak@example.com',
           recipientName:
             quotePreviewAudience === 'admin' ? null : 'Ana Novak',
+          quoteCode: QUOTE_EMAIL_PREVIEW_QUOTE_CODE,
+          offerCode: QUOTE_EMAIL_PREVIEW_OFFER_CODE,
+          orderCode: QUOTE_EMAIL_PREVIEW_ORDER_CODE,
           requestNumber: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
           offerNumber: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
+          orderNumber: QUOTE_EMAIL_PREVIEW_ORDER_NUMBER,
+          otpCode: null,
           offerUrl:
             selectedEvent === 'quote_issued'
               ? 'https://example.invalid/quote/offer'
@@ -252,8 +264,8 @@ const AdminQuoteEmailSettingsSection = forwardRef<
     }
   }, [draft, quotePreviewAudience, selectedEvent, sharedSettings]);
   const selectedQuotePreviewVariables = useMemo(
-    () => quoteEmailPreviewVariables(quotePreviewAudience),
-    [quotePreviewAudience]
+    () => quoteEmailPreviewVariables(selectedEvent, quotePreviewAudience),
+    [quotePreviewAudience, selectedEvent]
   );
   const mutationsDisabled = !state.schemaReady || !state.flags.admin;
   const selectedEventRecipients = draft.events[selectedEvent];
@@ -668,7 +680,14 @@ const AdminQuoteEmailSettingsSection = forwardRef<
               onChange: (value) =>
                 updateTemplate(quotePreviewAudience, 'contentHtml', value)
             },
-            variables: QUOTE_EMAIL_TEMPLATE_VARIABLES[quotePreviewAudience],
+            variables: quoteEmailTemplateVariables(
+              selectedEvent,
+              quotePreviewAudience
+            ),
+            internalVariables: quoteEmailTemplateInternalVariables(
+              selectedEvent,
+              quotePreviewAudience
+            ),
             variablesAriaLabel: `Dovoljene spremenljivke za ${selectedAudience.label}`,
             presentation: selectedAudienceTemplate.presentation,
             onPresentationChange: (presentation) =>

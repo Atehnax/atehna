@@ -96,6 +96,7 @@ async function resolveThemeColor(scope: Locator, cssVariable: string) {
 }
 
 const confirmationSnapshot = {
+  orderCode: 'N-2345-6789-ABCD-EFGH',
   createdAt: '2026-08-17T08:57:00.000Z',
   status: 'received',
   paymentStatus: 'unpaid',
@@ -351,6 +352,10 @@ test.describe('order confirmation layout', () => {
     await expect(status).toContainText(
       'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.'
     );
+    await expect(status).toContainText('Koda naročila');
+    await expect(
+      status.getByTestId('order-confirmation-public-code')
+    ).toHaveText(confirmationSnapshot.orderCode);
     await expect(
       customer.getByRole('heading', {
         name: 'Podatki o naročilu',

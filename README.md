@@ -73,6 +73,16 @@ reviewed quote/contract artifacts below, applied in this exact order:
 13. `database/migrations/20260903_order_document_email_events.sql`
 14. `database/migrations/20260903_schema_contract_v1.sql`
 15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
+16. `database/migrations/20260904_public_customer_codes.sql`
+17. `database/migrations/20260904_schema_contract_v2.sql`
+
+The ordered list above is the pre-deploy schema sequence. After the
+public-code-capable application is live and verified, every existing
+environment must run this separate controlled data step (it is idempotent and a
+no-op when no stored settings rows exist):
+`database/migrations/20260905_public_code_email_templates_postdeploy.sql`.
+It is intentionally not part of the pre-deploy sequence and must never run from
+build, startup, or an automatic migration runner.
 
 For steps 12 and 15, first stop scheduled and manual GURS synchronization and
 confirm that no import is running. Apply both index artifacts to the active
@@ -99,7 +109,18 @@ retaining the versioned terms identity and integrity hashes. The inventory-polic
 follow-up adds the global stock-enforcement switch with enforcement enabled by default,
 and the order marker records which policy governed each order's inventory lifecycle.
 The quote-outbox follow-up adds durable administrator cancellation evidence so cancelled
-messages leave the delivery queue without being deleted. The final schema-contract
+messages leave the delivery queue without being deleted. The public-code follow-up
+backfills opaque immutable customer references and preserves one base across
+quote-to-order conversion; it deliberately does not touch email settings or queued
+messages, so it is safe to apply before the compatible application deployment. The
+separate post-deploy data step upgrades stored customer templates from internal serial
+variables during the controlled cutover. It preserves administrator templates,
+never mutates queued envelopes, and aborts while any deliverable pre-cutover customer
+envelope remains. The application contains no runtime aliases for the old customer
+variables: this guarded database rewrite is the only transition mechanism. Keep
+customer writes and both email workers paused from application deployment until this
+data step and its verification have completed.
+The final v2 schema-contract
 artifact verifies the required terminal tables, columns, constraints, functions,
 indexes, triggers, and settings before recording the same compatibility contract
 that a fresh schema records. It does not recreate or claim historical migration

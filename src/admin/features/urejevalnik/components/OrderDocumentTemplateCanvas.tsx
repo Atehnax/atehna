@@ -290,6 +290,7 @@ const LABEL_DISPLAY_NAMES: Record<keyof OrderDocumentTemplateLabels, string> = {
   deliveryAddress: 'Naslov dostave',
   customerType: 'Vrsta naročnika',
   documentNumber: 'Številka dokumenta',
+  publicCode: 'Koda naročila ali ponudbe',
   orderNumber: 'Številka naročila',
   issueDate: 'Datum',
   orderDate: 'Datum naročila',
@@ -341,6 +342,7 @@ const childToolbarInputClassName =
 const FIELD_ROW_DISPLAY_NAMES: Record<OrderDocumentFieldRowId, string> = {
   title_text: 'Naslov dokumenta',
   document_number: 'Številka dokumenta',
+  public_code: 'Koda naročila',
   issue_date: 'Datum dokumenta',
   subtitle: 'Podnaslov',
   company_name: 'Ime podjetja',
@@ -4982,6 +4984,7 @@ export default function OrderDocumentTemplateCanvas({
         contact: 'contact',
         address: 'address',
         email: 'email',
+        public_code: 'publicCode',
         issue_date: 'issueDate',
         order_date: 'orderDate',
         customer_type: 'customerType',

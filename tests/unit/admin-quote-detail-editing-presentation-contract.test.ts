@@ -117,7 +117,9 @@ test('quote admin title and customer details are editable while request and offe
   assert.match(detail, /onChange=\{\(event\) => setDraftRequestTitle\(event\.target\.value\)\}/u);
   assert.match(detail, /<AdminDetailTitleSlot[\s\S]*?title=\{persistedRequestTitle\}/u);
   assert.match(detailTitleSlot, /<h1[\s\S]*?\{title\}[\s\S]*?<\/h1>/u);
-  assert.match(detail, /currentVersion\.offerNumber/u);
+  assert.match(detail, /currentVersion\.offerCode/u);
+  assert.match(detail, /data-testid="admin-quote-public-code-copy"/u);
+  assert.match(detail, /navigator\.clipboard\.writeText\(detail\.quoteCode\)/u);
   assert.doesNotMatch(
     detail,
     /updateDraftRequestDetails\(\{[^}\n\r]*\b(?:requestNumber|offerNumber)\b/u

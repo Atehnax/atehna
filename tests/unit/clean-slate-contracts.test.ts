@@ -17,6 +17,29 @@ const implementationSource = (relativeDirectory: string): string => {
     .join('\n');
 };
 
+test('public customer codes use a migration-only cutover with no runtime aliases', () => {
+  const runtime = [
+    source('src/shared/domain/emailTemplateRichText.ts'),
+    source('src/shared/domain/order/orderEmailSettings.ts'),
+    source('src/shared/domain/quote/quoteEmailSettings.ts')
+  ].join('\n');
+  const readme = source('README.md');
+  const rollout = source('docs/quote-workflow-rollout.md');
+
+  assert.doesNotMatch(
+    runtime,
+    /remapEmailTemplateVariables|migrateCustomerOrderNumber|migrateCustomerVariables|legacyQuoteCustomerVariableReplacements/u
+  );
+  assert.doesNotMatch(
+    [readme, rollout].join('\n'),
+    /normalization bridge|pre-v8\/pre-v2 settings-normalization aliases/u
+  );
+  assert.match(
+    rollout,
+    /guarded database rewrite[\s\S]*?sole transition mechanism/u
+  );
+});
+
 test('database setup has one canonical schema and ordered reviewed deployment artifacts', () => {
   const schemaPath = resolve(process.cwd(), 'database', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf8');
@@ -74,8 +97,17 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const orderDocumentEmailEventsDeployment = source(
     'database/migrations/20260903_order_document_email_events.sql'
   );
-  const schemaContractDeployment = source(
+  const schemaContractV1Deployment = source(
     'database/migrations/20260903_schema_contract_v1.sql'
+  );
+  const publicCustomerCodesDeployment = source(
+    'database/migrations/20260904_public_customer_codes.sql'
+  );
+  const schemaContractDeployment = source(
+    'database/migrations/20260904_schema_contract_v2.sql'
+  );
+  const publicCodeEmailTemplatesPostdeploy = source(
+    'database/migrations/20260905_public_code_email_templates_postdeploy.sql'
   );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
@@ -95,7 +127,10 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260903_gurs_address_prefix_search.sql',
     '20260903_order_document_email_events.sql',
     '20260903_schema_contract_v1.sql',
-    '20260904_gurs_postal_lookup_indexes.sql'
+    '20260904_gurs_postal_lookup_indexes.sql',
+    '20260904_public_customer_codes.sql',
+    '20260904_schema_contract_v2.sql',
+    '20260905_public_code_email_templates_postdeploy.sql'
   ]);
   assert.equal(tableNames.length, 62);
   assert.equal(new Set(tableNames).size, 62);
@@ -127,7 +162,10 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     gursAddressPrefixDeployment,
     gursPostalLookupIndexesDeployment,
     orderDocumentEmailEventsDeployment,
-    schemaContractDeployment
+    schemaContractV1Deployment,
+    publicCustomerCodesDeployment,
+    schemaContractDeployment,
+    publicCodeEmailTemplatesPostdeploy
   ]) {
     assert.match(deployment, /begin;/u);
     assert.match(deployment, /set local search_path = public, pg_temp/u);
@@ -163,6 +201,31 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(orderItemDeliveryPlanDeployment, /delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /order_delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /idx_order_items_order_id_ship_later/u);
+  assert.match(publicCustomerCodesDeployment, /generate_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /idx_orders_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /idx_quote_requests_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /guard_order_public_code_lineage/u);
+  assert.doesNotMatch(
+    publicCustomerCodesDeployment,
+    /(?:order|quote)_email_(?:settings|jobs)|migrate_(?:order|quote)_customer_templates/iu
+  );
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /atehna\.public_code_email_templates_app_ready/u
+  );
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /where key = 'order-email-notifications'/u
+  );
+  assert.match(publicCodeEmailTemplatesPostdeploy, /where key = 'default'/u);
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /legacy_customer_envelope_gate/u
+  );
+  assert.doesNotMatch(
+    publicCodeEmailTemplatesPostdeploy,
+    /(?:update|delete\s+from)\s+public\.(?:order_email_jobs|quote_email_jobs)/iu
+  );
   assert.match(inventoryPolicyDeployment, /create table inventory_policy_settings/u);
   assert.match(
     orderStockEnforcementMarkerDeployment,

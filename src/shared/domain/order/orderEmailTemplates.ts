@@ -59,6 +59,7 @@ export type OrderEmailOrderLineSnapshot = {
 };
 
 export type OrderEmailCustomerOrderSnapshot = {
+  orderCode: string;
   createdAt: string;
   customer: OrderEmailCustomerSnapshot;
   items: OrderEmailOrderLineSnapshot[];
@@ -368,7 +369,8 @@ function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
     status: orderStatusLabel(payload.eventType),
     previous_status: payload.previousStatus
       ? getStatusLabel(payload.previousStatus)
-      : ''
+      : '',
+    order_code: safeBodyText(payload.order.orderCode)
   };
   if (payload.audience === 'admin') {
     values.order_number = safeBodyText(payload.order.orderNumber);

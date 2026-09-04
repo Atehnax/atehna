@@ -69,7 +69,7 @@ const statusTabs: Array<{ value: StatusTab; label: string }> = [
 
 export const columnWidths = {
   selectAndDelete: '40px',
-  order: '88px',
+  order: '190px',
   customer: '150px',
   address: '136px',
   type: '100px',

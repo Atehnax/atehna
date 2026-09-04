@@ -295,6 +295,7 @@ export default function OrderConfirmationPageClient() {
   return (
     <div>
       <OrderSubmissionStatus
+        orderCode={snapshot.orderCode}
         commitmentStatus={snapshot.commitmentStatus}
         contractStatus={snapshot.contractStatus}
         submittedAt={submittedAt}

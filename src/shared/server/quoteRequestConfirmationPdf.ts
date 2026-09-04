@@ -7,12 +7,16 @@ import {
   type OrderDocumentTemplate
 } from '@/shared/domain/order/orderDocumentTemplates';
 import { generateOrderPdf, type PdfItem, type PdfOrder } from '@/shared/server/pdf';
+import {
+  formatQuoteCode,
+  requireCommercePublicCodeBase
+} from '@/shared/domain/commercePublicCode';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveCachedSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 
 type QuoteRequestPdfRow = {
-  request_number?: unknown;
+  public_code_base?: unknown;
   customer_type?: unknown;
   organization_name?: unknown;
   contact_name?: unknown;
@@ -91,7 +95,7 @@ function receiptTemplate(
 ): OrderDocumentTemplate {
   const labels = {
     ...source.text.labels,
-    documentNumber: 'Številka povpraševanja',
+    documentNumber: 'Koda povpraševanja',
     issueDate: 'Datum izdaje',
     orderDate: 'Datum povpraševanja',
     customer: 'Naročnik',
@@ -160,7 +164,7 @@ export async function generateQuoteRequestConfirmationPdf(
   const result = await database.query(
     `
       select
-        request.request_number,
+        request.public_code_base,
         request.customer_type,
         request.organization_name,
         request.contact_name,
@@ -204,13 +208,15 @@ export async function generateQuoteRequestConfirmationPdf(
     : [];
   if (!request || itemRows.length === 0) return null;
 
-  const requestNumber = text(request.request_number);
+  const quoteCode = formatQuoteCode(
+    requireCommercePublicCodeBase(request.public_code_base)
+  );
   const createdAt = new Date(
     request.created_at instanceof Date
       ? request.created_at
       : text(request.created_at)
   );
-  if (!requestNumber || Number.isNaN(createdAt.getTime())) {
+  if (Number.isNaN(createdAt.getTime())) {
     throw new Error('Quote request PDF has an invalid identity.');
   }
 
@@ -289,7 +295,7 @@ export async function generateQuoteRequestConfirmationPdf(
     template: receiptTemplate(sourceTemplate, hasCompleteTotals),
     order: pdfOrder,
     items: pdfItems,
-    documentNumber: requestNumber,
+    documentNumber: quoteCode,
     issuedAt: createdAt,
     logoConfig,
     logoArtwork: logoArtwork
@@ -299,6 +305,6 @@ export async function generateQuoteRequestConfirmationPdf(
 
   return {
     bytes,
-    filename: `povprasevanje-${requestNumber.toLowerCase()}.pdf`
+    filename: `povprasevanje-${quoteCode.toLowerCase()}.pdf`
   };
 }

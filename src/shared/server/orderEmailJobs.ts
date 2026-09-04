@@ -3,6 +3,7 @@ import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import { after } from 'next/server';
 import type { Pool, PoolClient } from 'pg';
+import { formatOrderCode } from '@/shared/domain/commercePublicCode';
 import { isCustomerType } from '@/shared/domain/order/customerType';
 import { SCHOOL_PURCHASE_ORDER_PROOF_FORMAT_MARKERS } from '@/shared/domain/order/schoolOrderWorkflow';
 import {
@@ -241,6 +242,7 @@ async function readOrderSnapshot(
         select
           id,
           order_number,
+          public_code_base,
           customer_type,
           organization_name,
           contact_name,
@@ -280,6 +282,7 @@ async function readOrderSnapshot(
   return {
     orderId: Number(row.id),
     orderNumber: String(row.order_number ?? `#${orderId}`),
+    orderCode: formatOrderCode(String(row.public_code_base)),
     createdAt: isoValue(row.created_at),
     customer: {
       customerType: isCustomerType(String(row.customer_type ?? ''))
@@ -316,6 +319,7 @@ function toCustomerOrderSnapshot(
   order: OrderEmailOrderSnapshot
 ): OrderEmailCustomerOrderSnapshot {
   return {
+    orderCode: order.orderCode,
     createdAt: order.createdAt,
     customer: order.customer,
     items: order.items,
@@ -1449,6 +1453,7 @@ export async function sendOrderEmailTest(
     order: {
       orderId: 0,
       orderNumber: '#PREIZKUS',
+      orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
       createdAt: now,
       customer: {
         customerType: 'company',

@@ -120,8 +120,8 @@ export default function QuoteOfferReviewPageClient() {
       setState({
         status: 'ready',
         offer: {
-          requestNumber: wire.requestNumber,
-          offerNumber: wire.offerNumber,
+          quoteCode: wire.quoteCode,
+          offerCode: wire.offerCode,
           versionNumber: wire.versionNumber,
           state: wire.status,
           issuedAt: wire.issuedAt,
@@ -171,7 +171,7 @@ export default function QuoteOfferReviewPageClient() {
 
   const offer = state.status === 'ready' ? state.offer : null;
   const responseFingerprint = offer
-    ? `${offer.offerNumber}:${offer.versionNumber}:${offer.state}`
+    ? `${offer.offerCode}:${offer.state}`
     : '';
   useEffect(() => {
     idempotencyKeysRef.current = { accept: null, decline: null, upload: null };
@@ -179,7 +179,7 @@ export default function QuoteOfferReviewPageClient() {
 
   const questionHref = useMemo(() => {
     const subject = offer
-      ? `Vprašanje glede ponudbe ${offer.offerNumber}`
+      ? `Vprašanje glede ponudbe ${offer.offerCode}`
       : 'Vprašanje glede ponudbe';
     return `mailto:${COMPANY_INFO.orderEmail}?subject=${encodeURIComponent(subject)}`;
   }, [offer]);
@@ -217,7 +217,7 @@ export default function QuoteOfferReviewPageClient() {
       } else {
         const download = document.createElement('a');
         download.href = objectUrl;
-        download.download = `${offer.offerNumber}.pdf`;
+        download.download = `${offer.offerCode}.pdf`;
         download.click();
       }
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
@@ -303,7 +303,6 @@ export default function QuoteOfferReviewPageClient() {
             'Idempotency-Key': idempotencyKeysRef.current[intent] as string
           },
           body: JSON.stringify({
-            offerNumber: offer.offerNumber,
             versionNumber: offer.versionNumber,
             ...(intent === 'decline' && declineReason
               ? { reason: declineReason }
@@ -385,7 +384,6 @@ export default function QuoteOfferReviewPageClient() {
     idempotencyKeysRef.current.upload ??= createIdempotencyKey();
     const body = new FormData();
     body.set('file', purchaseOrder);
-    body.set('offerNumber', offer.offerNumber);
     body.set('versionNumber', String(offer.versionNumber));
     try {
       const response = await fetch('/api/quote-requests/purchase-order', {
@@ -546,8 +544,11 @@ export default function QuoteOfferReviewPageClient() {
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="site-heading-1 !text-2xl sm:!text-3xl">
-              {currentOffer.offerNumber}
+              {currentOffer.offerCode}
             </h1>
+            <p className="mt-1 text-xs text-[color:var(--site-color-text-muted)]">
+              Povpraševanje {currentOffer.quoteCode}
+            </p>
             <p className="mt-2 text-sm text-[color:var(--site-color-text-muted)]">
               Izdana {formatDate(currentOffer.issuedAt)} · Veljavna do{' '}
               {formatDate(currentOffer.validUntil)}

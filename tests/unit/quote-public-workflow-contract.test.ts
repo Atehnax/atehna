@@ -154,6 +154,16 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /Okvirni izračun/u);
   assert.match(confirmation, /Zaloga ni rezervirana/u);
   assert.match(confirmation, /Podatki o povpraševanju/u);
+  assert.match(confirmation, /snapshot\.quoteCode/u);
+  assert.match(confirmationApi, /formatQuoteCode\(String\(row\.public_code_base\)\)/u);
+  assert.match(confirmationContract, /quoteCode: string/u);
+  assert.match(submitResponseContract, /quoteCode: string/u);
+  assert.match(customerResponse, /\{ accessId: access\.tokenId, quoteCode \}/u);
+  assert.match(quoteSubmission, /quote_request\.public_code_base/u);
+  assert.doesNotMatch(
+    quoteSubmission,
+    /response:\s*row\.response_json as StoredQuoteRequestResponse/u
+  );
   assert.match(
     confirmationCustomerDetails,
     /Naročnik[\s\S]*?Email[\s\S]*?Naslov/u
@@ -361,6 +371,8 @@ test('offer review uses fragment access and canonical OTP-gated explicit respons
   const offerReview = source(
     'src/commercial/quote/components/QuoteOfferReviewPageClient.tsx'
   );
+  const offerApi = source('src/commercial/api/quote-requests/offer/route.ts');
+  const contracts = source('src/commercial/quote/contracts.ts');
   const serverAccess = source('src/shared/server/quoteAccess.ts');
   const canonicalPage = source('src/app/(commercial)/quote/offer/page.tsx');
 
@@ -396,7 +408,15 @@ test('offer review uses fragment access and canonical OTP-gated explicit respons
   assert.match(offerReview, /Naročilnica je prejeta/u);
   assert.match(offerReview, /Ponudba je zavrnjena/u);
   assert.match(offerReview, /Ponudba je potekla/u);
-  assert.match(offerReview, /offerNumber: offer\.offerNumber/u);
+  assert.match(offerApi, /request\.public_code_base/u);
+  assert.match(offerApi, /quoteCode: formatQuoteCode/u);
+  assert.match(offerApi, /offerCode: formatOfferCode/u);
+  assert.match(contracts, /quoteCode: string;[\s\S]*?offerCode: string;/u);
+  assert.match(offerReview, /\{currentOffer\.offerCode\}/u);
+  assert.match(offerReview, /Povpraševanje \{currentOffer\.quoteCode\}/u);
+  assert.match(offerReview, /download\.download = `\$\{offer\.offerCode\}\.pdf`/u);
+  assert.doesNotMatch(offerReview, /offerNumber: offer\.offerNumber/u);
+  assert.doesNotMatch(offerReview, /body\.set\('offerNumber'/u);
   assert.match(offerReview, /versionNumber: offer\.versionNumber/u);
   assert.match(offerReview, /Sprejmi ponudbo z obveznostjo plačila/u);
   assert.match(offerReview, /Zavrni ponudbo/u);

@@ -43,6 +43,7 @@ export type EmailTemplateWorkspaceEditor = {
   subject: EmailTemplateWorkspaceField;
   contentHtml: EmailTemplateWorkspaceField;
   variables: readonly string[];
+  internalVariables?: readonly string[];
   variablesLabel?: string;
   variablesAriaLabel: string;
   presentation?: EmailTemplateContextPresentation;
@@ -339,7 +340,8 @@ export default function EmailTemplateWorkspace<Audience extends string>({
                   contentHtml={editor.contentHtml}
                   variables={editor.variables.map((name) => ({
                     name,
-                    value: previewVariableValues.get(name) ?? ''
+                    value: previewVariableValues.get(name) ?? '',
+                    internal: editor.internalVariables?.includes(name) ?? false
                   }))}
                   presentation={editor.presentation}
                   onPresentationChange={editor.onPresentationChange}

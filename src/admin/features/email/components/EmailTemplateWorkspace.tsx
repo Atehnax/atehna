@@ -243,10 +243,13 @@ export default function EmailTemplateWorkspace<Audience extends string>({
       </div>
 
       <div
-        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch"
         data-testid={workspaceTestId}
       >
-        <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <section
+          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"
+          data-testid={`${testId}-editor-panel`}
+        >
           <div className="flex min-w-0 flex-col border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
               <EuiTabs
@@ -377,8 +380,13 @@ export default function EmailTemplateWorkspace<Audience extends string>({
           </div>
         </section>
 
-        <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50/40 p-4 lg:h-full">
-          <EmailMessagePreview {...preview} variant="workspace" />
+        <div
+          className="relative min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/40 p-4 lg:min-h-0"
+          data-testid={`${testId}-preview-panel`}
+        >
+          <div className="lg:absolute lg:inset-4 lg:min-h-0">
+            <EmailMessagePreview {...preview} variant="workspace" />
+          </div>
         </div>
       </div>
     </section>

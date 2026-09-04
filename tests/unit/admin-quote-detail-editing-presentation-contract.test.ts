@@ -617,6 +617,15 @@ test('customer details use compact fixed-height rows with full-width address and
   assert.match(addressEditor, /role="group"/u);
   assert.match(addressEditor, /aria-label="Naslovni podatki"/u);
   assert.match(addressEditor, /data-testid="quote-request-address-fields"/u);
+  assert.match(
+    detail,
+    /const quoteDetailCompositeInputClassName =[\s\S]*?!h-6[\s\S]*?!leading-5/u
+  );
+  assert.match(
+    detail,
+    /const quoteDetailReadValueClassName =[\s\S]*?block h-6[\s\S]*?leading-6/u
+  );
+  assert.match(addressEditor, /className="grid h-6 min-w-0 flex-1/u);
   assert.match(addressEditor, /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u);
   assert.match(
     adminAddressAutocomplete,

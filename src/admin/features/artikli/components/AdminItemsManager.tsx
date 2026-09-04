@@ -29,7 +29,6 @@ import {
   adminTableSelectedSuccessIconButtonClassName,
   adminTableSelectedWarningIconButtonClassName,
   adminExpandableTableHeaderFirstValueAlignClassName,
-  adminExpandableTableHeaderRightValueAlignClassName,
   adminExpandableTableHeaderTightValueAlignClassName,
   adminExpandableTableHeaderValueAlignClassName,
   adminExpandableTableMainCellClassName,
@@ -169,8 +168,8 @@ const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
 const ARTICLE_COLUMN_CLASS = 'w-[15.25%]';
 const SKU_COLUMN_CLASS = 'w-[10.725%]';
 const PRODUCT_TYPE_COLUMN_CLASS = 'w-[9.25%]';
-const CATEGORY_COLUMN_CLASS = 'w-[19.575%]';
-const PRICE_COLUMN_CLASS = 'w-[9%]';
+const CATEGORY_COLUMN_CLASS = 'w-[16.575%]';
+const PRICE_COLUMN_CLASS = 'w-[12%]';
 const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
@@ -178,7 +177,6 @@ const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-ce
 const ARTICLE_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderFirstValueAlignClassName;
 const MAIN_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderValueAlignClassName;
 const MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderTightValueAlignClassName;
-const MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderRightValueAlignClassName;
 const SUB_HEADER_SKU_ALIGN_CLASS = adminProductVariantSubtableSkuHeaderAlignClassName;
 const SUB_HEADER_PRICE_ALIGN_CLASS = adminProductVariantSubtablePriceHeaderAlignClassName;
 const SUB_HEADER_PILL_ALIGN_CLASS = adminProductVariantSubtablePillHeaderAlignClassName;
@@ -193,19 +191,26 @@ const MAIN_CELL_CLASS = adminExpandableTableMainCellClassName;
 const MAIN_CENTER_CELL_CLASS = adminExpandableTableMainCenterCellClassName;
 const MAIN_TEXT_SLOT_CLASS = adminExpandableTableTextSlotClassName;
 const MAIN_TEXT_SLOT_TIGHT_CLASS = adminExpandableTableTightTextSlotClassName;
-const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-2 text-right';
-const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[5px] text-right';
+const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full min-w-0 items-center justify-end gap-2 overflow-hidden rounded-md border border-transparent pl-2 text-right';
+const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-1 text-right';
 const SUB_ROW_CLASS = adminSubtableRowClassName;
 const SUB_CELL_CLASS = adminSubtableCellClassName;
 const SUB_CENTER_CELL_CLASS = adminSubtableCenterCellClassName;
 const SUB_TEXT_SLOT_CLASS = adminSubtableTextSlotClassName;
-const SUB_NUMBER_SLOT_CLASS = adminSubtableNumberSlotClassName;
-const SUB_EDIT_NUMBER_SLOT_CLASS = adminSubtableEditNumberSlotClassName;
+const SUB_NUMBER_SLOT_CLASS = `${adminSubtableNumberSlotClassName} !min-w-0 !gap-2 !overflow-hidden !pl-2 !pr-0`;
+const SUB_EDIT_NUMBER_SLOT_CLASS = `${adminSubtableEditNumberSlotClassName} !pr-1`;
 const ROW_EDIT_VALUE_UNIT_SHELL_CLASS = `${compactTableValueUnitShellClassName} !h-7`;
 const ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} !pl-[13px]`;
 const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[12ch]`;
 const ROW_EDIT_VARIANT_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[9ch]`;
 const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
+const PriceColumnTrailingControlSpacer = () => (
+  <span
+    className="h-5 w-5 shrink-0"
+    aria-hidden="true"
+    data-product-price-filter-gutter="true"
+  />
+);
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const SKU_CHIP_CLASS =
   'inline-flex h-6 min-w-0 max-w-full items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium leading-none text-slate-600';
@@ -2107,7 +2112,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={`${PRICE_COLUMN_CLASS} text-right`}>
-                  <div className={`relative inline-flex items-center gap-2 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className="relative inline-flex items-center gap-2" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" title="Prodajna cena brez DDV" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena brez DDV
                     </button>
@@ -2406,7 +2411,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       </td>
                       <td className={`${PRICE_COLUMN_CLASS} whitespace-nowrap ${MAIN_CELL_CLASS} text-right`}>
                         {isEditingFamily ? (
-                          <span className="inline-flex w-full justify-end">
+                          <span className="inline-flex w-full items-center justify-end gap-2">
                             <span className={MAIN_EDIT_NUMBER_SLOT_CLASS}>
                               <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
                                 <input
@@ -2421,6 +2426,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <span className={compactTableAdornmentClassName}>€</span>
                               </span>
                             </span>
+                            <PriceColumnTrailingControlSpacer />
                           </span>
                         ) : (
                           <span
@@ -2428,9 +2434,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             onMouseEnter={() => setHoveredArticleCell('priceRange', familyPriceDisplay)}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
-                            <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}>
-                              {familyPriceDisplay}
+                            <span className={`${adminTableMatchingValueBaseClassName} min-w-0 max-w-full justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}>
+                              <span className="min-w-0 truncate" title={familyPriceDisplay}>
+                                {familyPriceDisplay}
+                              </span>
                             </span>
+                            <PriceColumnTrailingControlSpacer />
                           </span>
                         )}
                       </td>
@@ -2666,7 +2675,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     </td>
                                     <td className={`${adminProductVariantSubtablePriceColumnClassName} ${SUB_CELL_CLASS} text-right`}>
                                       {isEditing ? (
-                                        <span className="inline-flex w-full justify-end">
+                                        <span className="inline-flex w-full items-center justify-end gap-2">
                                           <span className={SUB_EDIT_NUMBER_SLOT_CLASS}>
                                             <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
                                               <input
@@ -2681,6 +2690,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                               <span className={compactTableAdornmentClassName}>€</span>
                                             </span>
                                           </span>
+                                          <PriceColumnTrailingControlSpacer />
                                         </span>
                                       ) : (
                                         <span
@@ -2688,9 +2698,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           onMouseEnter={() => setHoveredArticleCell('priceRange', variantPriceDisplay)}
                                           onMouseLeave={() => setHoveredCellMatch(null)}
                                         >
-                                          <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}>
-                                            {variantPriceDisplay}
+                                          <span className={`${adminTableMatchingValueBaseClassName} min-w-0 max-w-full justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}>
+                                            <span className="min-w-0 truncate" title={variantPriceDisplay}>
+                                              {variantPriceDisplay}
+                                            </span>
                                           </span>
+                                          <PriceColumnTrailingControlSpacer />
                                         </span>
                                       )}
                                     </td>

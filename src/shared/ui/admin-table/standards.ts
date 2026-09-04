@@ -104,7 +104,6 @@ export const adminExpandableTableHeaderContentClassName =
 export const adminExpandableTableHeaderValueAlignClassName = 'ml-2.5';
 export const adminExpandableTableHeaderTightValueAlignClassName = 'ml-1.5';
 export const adminExpandableTableHeaderFirstValueAlignClassName = 'ml-[39px]';
-export const adminExpandableTableHeaderRightValueAlignClassName = '-translate-x-2.5';
 export const adminExpandableTableCheckboxColumnClassName = 'w-10 min-w-10 max-w-10';
 export const adminExpandableTableMainCellClassName = 'h-12 px-2 !py-0 align-middle';
 export const adminExpandableTableMainCenterCellClassName =
@@ -142,9 +141,9 @@ export const adminProductVariantSubtableCheckboxColumnClassName =
 export const adminProductVariantSubtableVariantColumnClassName =
   'w-[140.3px] min-w-[140.3px] max-w-[140.3px]';
 export const adminProductVariantSubtableSkuColumnClassName =
-  'w-[478px] min-w-[478px] max-w-[478px]';
+  'w-[442px] min-w-[442px] max-w-[442px]';
 export const adminProductVariantSubtablePriceColumnClassName =
-  'w-[109px] min-w-[109px] max-w-[109px]';
+  'w-[145px] min-w-[145px] max-w-[145px]';
 export const adminProductVariantSubtablePillColumnClassName =
   'w-[150px] min-w-[150px] max-w-[150px]';
 export const adminProductVariantSubtableActionsColumnClassName =
@@ -155,7 +154,7 @@ export const adminSubtableFirstTextColumnTextOffsetClassName = '-translate-x-px'
 export const adminProductVariantSubtableVariantIndentClassName = adminSubtableFirstTextColumnIndentClassName;
 export const adminProductVariantSubtableVariantTextSlotClassName =
   `inline-flex h-7 max-w-full ${adminSubtableFirstTextColumnTextOffsetClassName} items-center rounded-md border border-transparent`;
-export const adminProductVariantSubtablePriceHeaderAlignClassName = 'relative right-[38px]';
+export const adminProductVariantSubtablePriceHeaderAlignClassName = 'relative right-10';
 export const adminProductVariantSubtablePillHeaderAlignClassName = 'relative right-2';
 
 export const adminTableMatchingValueBaseClassName =

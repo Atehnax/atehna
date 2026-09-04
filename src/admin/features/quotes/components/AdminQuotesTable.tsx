@@ -123,6 +123,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+const QUOTE_TOTAL_COLUMN_LABEL = 'Skupaj';
 
 type QuoteColumnKey =
   | 'request'
@@ -140,7 +141,7 @@ const QUOTE_COLUMN_OPTIONS: Array<{ key: QuoteColumnKey; label: string }> = [
   { key: 'address', label: 'Naslov' },
   { key: 'type', label: 'Tip' },
   { key: 'status', label: 'Status' },
-  { key: 'total', label: 'Vrednost' },
+  { key: 'total', label: QUOTE_TOTAL_COLUMN_LABEL },
   { key: 'offer', label: 'PDF' }
 ];
 
@@ -1193,7 +1194,7 @@ export default function AdminQuotesTable({
               {hasTotalFilter ? (
                 <span className={filterPillTokenClasses.base}>
                   <span>
-                    Vrednost:{' '}
+                    {QUOTE_TOTAL_COLUMN_LABEL}:{' '}
                     <span className="font-semibold">{activeTotalRangeLabel}</span>
                   </span>
                   <button
@@ -1202,7 +1203,7 @@ export default function AdminQuotesTable({
                       updateList({ minTotal: '', maxTotal: '', page: 1 })
                     }
                     className={filterPillTokenClasses.clear}
-                    aria-label={`Odstrani filter Vrednost ${activeTotalRangeLabel}`}
+                    aria-label={`Odstrani filter ${QUOTE_TOTAL_COLUMN_LABEL} ${activeTotalRangeLabel}`}
                   >
                     {filterPillClearGlyph}
                   </button>
@@ -1362,13 +1363,13 @@ export default function AdminQuotesTable({
               {visibleColumns.total ? <TH className={adminTableHeaderCellCenterClassName}>
                 <div className="flex h-11 items-center justify-center">
                   <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <span className={adminTableHeaderTextClassName}>Vrednost</span>
+                    <span className={adminTableHeaderTextClassName}>{QUOTE_TOTAL_COLUMN_LABEL}</span>
                     <button
                       ref={totalFilterButtonRef}
                       type="button"
                       data-active={openHeaderFilter === 'total'}
                       className={HEADER_FILTER_BUTTON_CLASS}
-                      aria-label="Filtriraj Vrednost"
+                      aria-label={`Filtriraj ${QUOTE_TOTAL_COLUMN_LABEL}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         setDraftTotalRange({ min: minTotal, max: maxTotal });

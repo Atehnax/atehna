@@ -34,7 +34,7 @@ test('quote rows follow the order-table number, column, and matching-hover prese
     'Naslov',
     'Tip',
     'Status',
-    'Vrednost',
+    'QUOTE_TOTAL_COLUMN_LABEL',
     'PDF',
     'Uredi'
   ];
@@ -445,13 +445,17 @@ test('quote value filter mirrors the order range control with URL-backed server 
   const ordersPage = source('src/admin/pages/orders/page.tsx');
   const server = source('src/shared/server/quotes.ts');
 
-  assert.match(table, /\{ key: 'total', label: 'Vrednost' \}/u);
+  assert.match(table, /const QUOTE_TOTAL_COLUMN_LABEL = 'Skupaj';/u);
+  assert.match(table, /\{ key: 'total', label: QUOTE_TOTAL_COLUMN_LABEL \}/u);
   assert.match(table, /AdminRangeFilterPanel/u);
   assert.match(table, /QUOTE_NUMERIC_RANGE_PRESETS/u);
-  assert.match(table, /aria-label="Filtriraj Vrednost"/u);
+  assert.match(
+    table,
+    /aria-label=\{[^}]*Filtriraj[^}]*QUOTE_TOTAL_COLUMN_LABEL[^}]*\}/u
+  );
   assert.match(table, /title="Nastavi razpon zneskov \(€\)"/u);
   assert.match(table, /min=\{0\}/u);
-  assert.match(table, /Vrednost:\{' '\}/u);
+  assert.match(table, /\{QUOTE_TOTAL_COLUMN_LABEL\}:\{' '\}/u);
   assert.match(table, /activeTotalRangeLabel/u);
   assert.match(table, /params\.set\('quoteMinTotal', normalizedMinTotal\)/u);
   assert.match(table, /params\.set\('quoteMaxTotal', normalizedMaxTotal\)/u);

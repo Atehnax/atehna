@@ -135,6 +135,24 @@ async function expectAudienceTabsWithoutVerticalScroll(section: Locator) {
     .toBe(true);
 }
 
+async function expectEqualTemplatePanelHeights(
+  page: Page,
+  workspaceTestId: string,
+) {
+  const [editorBox, previewBox] = await Promise.all([
+    requireBox(
+      page.getByTestId(workspaceTestId + "-editor-panel"),
+      workspaceTestId + " editor panel",
+    ),
+    requireBox(
+      page.getByTestId(workspaceTestId + "-preview-panel"),
+      workspaceTestId + " preview panel",
+    ),
+  ]);
+  expect(Math.abs(editorBox.y - previewBox.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(editorBox.height - previewBox.height)).toBeLessThanOrEqual(1);
+}
+
 async function replaceRichEmailContent(
   page: Page,
   editor: Locator,
@@ -154,6 +172,18 @@ async function replaceRichEmailContent(
   ] as const) {
     await node.selectText();
     await page.keyboard.insertText(value);
+    const previewNeedle = value
+      .split(/\{\{[^}]+\}\}/u)
+      .sort((left, right) => right.length - left.length)[0]
+      ?.trim() ?? value;
+    await expect
+      .poll(async () => {
+        const srcDoc = await page
+          .locator('iframe[data-testid$="-preview-frame"]:visible')
+          .getAttribute("srcdoc");
+        return srcDoc ?? "";
+      })
+      .toContain(previewNeedle);
   }
 }
 
@@ -251,6 +281,42 @@ test("admin email settings use the grouped reference layout responsively", async
     desktopTextBox.x + desktopTextBox.width,
   );
   expect(Math.abs(desktopImageBox.y - desktopTextBox.y)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(desktopImageBox.height - desktopTextBox.height),
+  ).toBeLessThanOrEqual(1);
+  const [headerTextHeight, footerTextHeight] = await Promise.all([
+    page.getByLabel("Besedilo glave").evaluate(
+      (element) => element.getBoundingClientRect().height,
+    ),
+    page.getByLabel("Dodatno besedilo v nogi").evaluate(
+      (element) => element.getBoundingClientRect().height,
+    ),
+  ]);
+  expect(headerTextHeight).toBeLessThanOrEqual(50);
+  expect(footerTextHeight).toBeLessThanOrEqual(50);
+  expect(headerTextHeight).toBeGreaterThanOrEqual(47);
+  expect(footerTextHeight).toBeGreaterThanOrEqual(47);
+  const [headerTextFits, footerTextFits] = await Promise.all([
+    page.getByLabel("Besedilo glave").evaluate(
+      (element) => element.scrollHeight <= element.clientHeight,
+    ),
+    page.getByLabel("Dodatno besedilo v nogi").evaluate(
+      (element) => element.scrollHeight <= element.clientHeight,
+    ),
+  ]);
+  expect(headerTextFits).toBeTruthy();
+  expect(footerTextFits).toBeTruthy();
+  const imageSurfaceBox = await requireBox(
+    sharedImagePanel.locator('[data-email-image-surface="true"]'),
+    "shared image surface",
+  );
+  expect(
+    Math.abs(
+      imageSurfaceBox.y +
+        imageSurfaceBox.height -
+        (desktopImageBox.y + desktopImageBox.height),
+    ),
+  ).toBeLessThanOrEqual(1);
 
   const desktopViewportMetrics = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
@@ -265,7 +331,11 @@ test("admin email settings use the grouped reference layout responsively", async
 
   await page.setViewportSize({ width: 390, height: 844 });
   const compactTabMask = page
-    .getByRole("tab", { name: "Nastavitve", exact: true, selected: true })
+    .getByRole("tab", {
+      name: "Osnovne nastavitve",
+      exact: true,
+      selected: true,
+    })
     .locator('[data-eui-tab-divider-mask="true"]');
   await expect(compactTabMask).toBeVisible();
   const compactTabMetrics = await compactTabMask.evaluate((mask) => {
@@ -431,7 +501,7 @@ test("admin can configure order email settings and templates without sending mai
       page.getByRole("link", { name: "Email", exact: true }),
     ).toBeVisible();
     const settingsTab = page.getByRole("tab", {
-      name: "Nastavitve",
+      name: "Osnovne nastavitve",
       exact: true,
     });
     const ordersTab = page.getByRole("tab", {
@@ -806,6 +876,37 @@ test("admin can configure order email settings and templates without sending mai
     const quotePreview = page.frameLocator(
       '[data-testid="quote-email-preview-frame"]',
     );
+    await expectEqualTemplatePanelHeights(
+      page,
+      "quote-email-message-templates",
+    );
+    const quotePreviewViewport = page.getByTestId(
+      "quote-email-preview-viewport",
+    );
+    const quotePreviewStage = page.getByTestId("quote-email-preview-stage");
+    const quoteZoomReset = page.getByTestId("quote-email-preview-zoom-reset");
+    await expect(quotePreviewViewport).toHaveAttribute("tabindex", "0");
+    await expect(quoteZoomReset).toHaveText("75 %");
+    const initialQuotePreviewWidth = await quotePreviewStage.evaluate(
+      (element) => element.getBoundingClientRect().width,
+    );
+    await page.getByTestId("quote-email-preview-zoom-in").click();
+    await expect(quoteZoomReset).toHaveText("100 %");
+    await expect
+      .poll(() =>
+        quotePreviewStage.evaluate(
+          (element) => element.getBoundingClientRect().width,
+        ),
+      )
+      .toBeGreaterThan(initialQuotePreviewWidth + 1);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(quoteZoomReset).toHaveText("100 %");
+    await page.getByTestId("quote-email-preview-zoom-out").click();
+    await expect(quoteZoomReset).toHaveText("75 %");
+    await quoteZoomReset.click();
+    await expect(quoteZoomReset).toHaveText("100 %");
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await expect(quoteZoomReset).toHaveText("75 %");
     await expect(
       quotePreview.getByText(quoteCustomerContentValue.greeting, { exact: true }),
     ).toBeVisible();
@@ -1031,6 +1132,23 @@ test("admin can configure order email settings and templates without sending mai
       "e2e-shared.png",
     );
     await expect(page.getByTestId("order-email-image-preview")).toBeVisible();
+    const [populatedImagePanelBox, populatedImageSurfaceBox] = await Promise.all([
+      requireBox(
+        page.getByTestId("order-email-shared-image-panel"),
+        "populated shared image panel",
+      ),
+      requireBox(
+        page.getByTestId("order-email-image-surface"),
+        "populated shared image surface",
+      ),
+    ]);
+    expect(
+      Math.abs(
+        populatedImageSurfaceBox.y
+          + populatedImageSurfaceBox.height
+          - (populatedImagePanelBox.y + populatedImagePanelBox.height),
+      ),
+    ).toBeLessThanOrEqual(1);
     const sendTestButton = page.getByTestId("order-email-send-test");
     await expect(sendTestButton).toBeDisabled();
     await expect(saveButton).toBeEnabled();
@@ -1352,6 +1470,10 @@ test("admin can configure order email settings and templates without sending mai
     const orderPreview = page.frameLocator(
       '[data-testid="order-email-preview-frame"]',
     );
+    await expectEqualTemplatePanelHeights(
+      page,
+      "order-email-message-templates",
+    );
     await expect(
       orderPreview.getByText(schoolCustomerContentValue.greeting, {
         exact: true,
@@ -1640,6 +1762,28 @@ test("admin can configure order email settings and templates without sending mai
     expect(previewBox.y).toBeGreaterThanOrEqual(
       customerCardBox.y + customerCardBox.height,
     );
+    const mobileZoomReset = page.getByTestId("order-email-preview-zoom-reset");
+    const mobilePreviewViewport = page.getByTestId("order-email-preview-viewport");
+    await expect(mobileZoomReset).toHaveText("100 %");
+    const mobilePreviewHeight = await mobilePreviewViewport.evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    expect(mobilePreviewHeight).toBeGreaterThanOrEqual(510);
+    expect(mobilePreviewHeight).toBeLessThanOrEqual(514);
+    await page.getByTestId("order-email-preview-zoom-in").click();
+    await expect(mobileZoomReset).toHaveText("125 %");
+    const zoomedMobileViewportMetrics = await page.evaluate(() => ({
+      viewportWidth: window.innerWidth,
+      documentWidth: Math.max(
+        document.documentElement.scrollWidth,
+        document.body.scrollWidth,
+      ),
+    }));
+    expect(zoomedMobileViewportMetrics.documentWidth).toBeLessThanOrEqual(
+      zoomedMobileViewportMetrics.viewportWidth + 1,
+    );
+    await mobileZoomReset.click();
+    await expect(mobileZoomReset).toHaveText("100 %");
     await orderTemplateSection
       .getByRole("tab", { name: "Šola / javni zavod", exact: true })
       .click();

@@ -142,14 +142,14 @@ test('quote value range filters the server-backed list and survives reload', asy
     await page.waitForLoadState('networkidle');
 
     const filterButton = page.getByRole('button', {
-      name: 'Filtriraj Vrednost'
+      name: 'Filtriraj Skupaj'
     });
     await expect(filterButton).toBeVisible();
 
     const headings = (await page.locator('thead th').allTextContents()).map(
       (heading) => heading.trim()
     );
-    const valueColumnIndex = headings.indexOf('Vrednost');
+    const valueColumnIndex = headings.indexOf('Skupaj');
     expect(valueColumnIndex).toBeGreaterThan(0);
 
     const valueCells = () =>
@@ -180,7 +180,7 @@ test('quote value range filters the server-backed list and survives reload', asy
     await page.waitForLoadState('networkidle');
 
     const clearFilter = page.getByRole('button', {
-      name: /Odstrani filter Vrednost/u
+      name: /Odstrani filter Skupaj/u
     });
     await expect(clearFilter).toBeVisible();
     const filteredValues = await valueCells().allTextContents();

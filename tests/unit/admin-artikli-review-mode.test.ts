@@ -14,6 +14,10 @@ const managerSource = readFileSync(
   new URL('../../src/admin/features/artikli/components/AdminItemsManager.tsx', import.meta.url),
   'utf8'
 );
+const tableStandardsSource = readFileSync(
+  new URL('../../src/shared/ui/admin-table/standards.ts', import.meta.url),
+  'utf8'
+);
 
 test('article review markers parse defensively and serialize deterministically', () => {
   assert.deepEqual(Array.from(parseAdminArticleReviewMarkers(null)), []);
@@ -64,4 +68,57 @@ test('article review controls are opt-in, accessible, local, and ordered before 
     /setReviewedFamilyIds\(\(current\) => \{[\s\S]*?localStorage\.setItem/u
   );
   assert.doesNotMatch(managerSource, /fetch\([^)]*review/iu);
+});
+
+test('article prices reserve the header filter gutter in read and edit rows', () => {
+  assert.match(
+    managerSource,
+    /PRICE_COLUMN_CLASS[\s\S]*?<div className="relative inline-flex items-center gap-2"[\s\S]*?Cena brez DDV[\s\S]*?aria-label="Filtriraj Cena"/u
+  );
+  assert.match(managerSource, /const PRICE_COLUMN_CLASS = 'w-\[12%\]'/u);
+  assert.match(managerSource, /const CATEGORY_COLUMN_CLASS = 'w-\[16\.575%\]'/u);
+  assert.match(
+    managerSource,
+    /const PriceColumnTrailingControlSpacer = \(\) => \([\s\S]*?h-5 w-5 shrink-0[\s\S]*?data-product-price-filter-gutter="true"/u
+  );
+  assert.equal(
+    managerSource.match(/<PriceColumnTrailingControlSpacer \/>/gu)?.length,
+    4
+  );
+  assert.match(
+    managerSource,
+    /const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full min-w-0 items-center justify-end gap-2 overflow-hidden/u
+  );
+  assert.match(
+    managerSource,
+    /const MAIN_EDIT_NUMBER_SLOT_CLASS = '[^']*pr-1 text-right'/u
+  );
+  assert.match(
+    managerSource,
+    /const SUB_NUMBER_SLOT_CLASS = [^\n]*adminSubtableNumberSlotClassName[^\n]*!min-w-0 !gap-2 !overflow-hidden !pl-2 !pr-0/u
+  );
+  assert.match(
+    managerSource,
+    /const SUB_EDIT_NUMBER_SLOT_CLASS = [^\n]*adminSubtableEditNumberSlotClassName[^\n]*!pr-1/u
+  );
+  assert.match(
+    tableStandardsSource,
+    /adminProductVariantSubtablePriceHeaderAlignClassName = 'relative right-10'/u
+  );
+  assert.match(
+    tableStandardsSource,
+    /adminProductVariantSubtablePriceColumnClassName =\s*\n\s*'w-\[145px\] min-w-\[145px\] max-w-\[145px\]'/u
+  );
+  assert.equal(
+    managerSource.match(/className="min-w-0 truncate" title=\{/gu)?.length,
+    2
+  );
+  assert.match(
+    managerSource,
+    /priceFilterButtonRef[\s\S]*?onClick=\{\(event\) => \{[\s\S]*?event\.stopPropagation\(\)/u
+  );
+  assert.doesNotMatch(
+    tableStandardsSource,
+    /adminExpandableTableHeaderRightValueAlignClassName/u
+  );
 });

@@ -146,11 +146,11 @@ const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 
 const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';
 const quoteDetailValueControlClassName = `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const quoteDetailCompositeInputClassName =
-  `${adminCompactIconFieldInputClassName} min-w-0 !px-2`;
+  `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
 const quoteDetailInlineTextareaClassName =
   `${quoteDetailValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const quoteDetailReadValueClassName =
-  "block h-5 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900";
+  "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 const labelClassName = 'text-[11px] font-semibold leading-4 text-slate-700';
 
 type QuoteRequestDetailsState = {
@@ -763,7 +763,7 @@ function QuoteAddressEditor({
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className="grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
         data-testid="quote-request-address-fields"
       >
         <AdminAddressAutocompleteInput

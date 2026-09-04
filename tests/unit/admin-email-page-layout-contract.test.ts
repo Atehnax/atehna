@@ -19,7 +19,7 @@ test("admin email page exposes the standardized settings, orders, and quotes tab
   assert.ok(
     settingsTab > 0 && settingsTab < ordersTab && ordersTab < quotesTab,
   );
-  assert.match(ui, /value: "settings",\s+label: "Nastavitve"/u);
+  assert.match(ui, /value: "settings",\s+label: "Osnovne nastavitve"/u);
   assert.match(ui, /value: "orders",\s+label: "Naročila"/u);
   assert.match(ui, /value: "quotes",\s+label: "Ponudbe"/u);
   assert.doesNotMatch(ui, /label: "Predloge"/u);
@@ -83,7 +83,11 @@ test("email sections are assigned to compact persistent tab panels without losin
     /grid items-stretch gap-0 lg:grid-cols-\[minmax\(0,1\.15fr\)_minmax\(20rem,0\.85fr\)\]/u,
   );
   assert.match(settingsSource, /min-w-0 space-y-3 lg:pr-5/u);
+  assert.match(settingsSource, /lg:flex lg:h-full lg:min-h-0 lg:flex-col/u);
   assert.match(settingsSource, /lg:border-l lg:border-t-0 lg:pl-5/u);
+  assert.match(ui, /textareaClassName = [\s\S]*?h-12 min-h-12[\s\S]*?py-1\.5[\s\S]*?leading-4/u);
+  assert.match(settingsSource, /data-email-image-surface="true"/u);
+  assert.match(settingsSource, /lg:min-h-0 lg:flex-1/u);
   assert.match(settingsSource, /Samodejna vsebina e-pošte/u);
   assert.match(settingsSource, /data-testid="order-email-image-empty-state"/u);
   assert.doesNotMatch(settingsSource, /lg:row-span-2/u);
@@ -240,7 +244,7 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   assert.match(ui, /<EmailTemplateWorkspace<TemplateAudience>/u);
   assert.ok(
     templateWorkspace.includes(
-      "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start",
+      "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch",
     ),
   );
   assert.match(templateWorkspace, /<EuiTabs/u);
@@ -282,6 +286,9 @@ test("email workspace uses shared admin controls, typography, and save-state pre
     /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md[^"]*!leading-5[\s\S]*?previewVariableValues\.get\(variable\)/u,
   );
   assert.match(templateWorkspace, /<EmailMessagePreview \{\.\.\.preview\} variant="workspace"/u);
+  assert.match(templateWorkspace, /data-testid=[^\n]*-editor-panel/u);
+  assert.match(templateWorkspace, /data-testid=[^\n]*-preview-panel/u);
+  assert.match(templateWorkspace, /lg:absolute lg:inset-4 lg:min-h-0/u);
   assert.match(templateWorkspace, /export function EmailTemplateRecipientToggle/u);
   assert.match(templateWorkspace, /role="switch"/u);
   assert.match(templateWorkspace, /aria-checked=\{checked\}/u);
@@ -427,14 +434,14 @@ test("shared email image attachment stages locally, uploads on save, and blocks 
   );
 });
 
-test("email message previews isolate rendered HTML while sizing workspace frames to their content", () => {
+test("email message previews isolate rendered HTML while providing a bounded, zoomable workspace", () => {
   const preview = source(
     "src/admin/features/email/components/EmailMessagePreview.tsx",
   );
 
   assert.match(preview, /<iframe/u);
   assert.match(preview, /sandbox="allow-same-origin"/u);
-  assert.equal(preview.match(/allow-same-origin/gu)?.length, 1);
+  assert.equal(preview.match(/allow-same-origin/gu)?.length, 2);
   assert.match(preview, /referrerPolicy="no-referrer"/u);
   assert.match(preview, /srcDoc=\{isolatedHtml\}/u);
   assert.match(preview, /Content-Security-Policy/u);
@@ -455,15 +462,35 @@ test("email message previews isolate rendered HTML while sizing workspace frames
   );
   assert.match(preview, /const observer = new ResizeObserver\(updateHeight\)/u);
   assert.match(preview, /observer\.observe\(frameBody\)/u);
-  assert.match(preview, /scrolling=\{workspace \? "no" : "auto"\}/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_DEFAULT_SCALE = 0\.75/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_MIN_SCALE = 0\.5/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_MAX_SCALE = 1\.5/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_DESKTOP_QUERY = "\(min-width: 1024px\)"/u);
+  assert.match(preview, /useSyncExternalStore\(/u);
+  assert.match(preview, /workspaceUsesDesktopDefault[\s\S]*?WORKSPACE_PREVIEW_DEFAULT_SCALE[\s\S]*?: 1/u);
   assert.match(
     preview,
-    /style=\{workspace \? \{ height: workspaceFrameHeight \} : undefined\}/u,
+    /role="group"\s+aria-label="Povečava predogleda"/u,
+  );
+  assert.match(preview, /aria-label="Pomanjšaj predogled"/u);
+  assert.match(preview, /aria-label="Povečaj predogled"/u);
+  assert.match(preview, /aria-label=\{`\$\{workspacePreviewPercent\} %; ponastavi povečavo na \$\{workspaceDefaultPercent\} %`\}/u);
+  assert.match(preview, /workspacePreviewScaleOverride[\s\S]*?\?\? workspaceDefaultScale/u);
+  assert.match(
+    preview,
+    /<output aria-live="polite">\{workspacePreviewPercent\} %<\/output>/u,
   );
   assert.match(
     preview,
-    /workspace[\s\S]*?"min-h-80 w-full overflow-hidden border-0 bg-white"/u,
+    /role="region"[\s\S]*?tabIndex=\{0\}[\s\S]*?aria-label="Območje predogleda sporočila"/u,
   );
+  assert.match(preview, /h-\[32rem\][\s\S]*?lg:h-auto lg:flex-1/u);
+  assert.match(preview, /workspace && !error/u);
+  assert.match(preview, /workspacePreviewPercent/u);
+  assert.match(preview, /height: workspaceRenderedFrameHeight/u);
+  assert.match(preview, /transformOrigin: "top left"/u);
+  assert.match(preview, /scrolling="no"/u);
+  assert.match(preview, /scrolling="auto"/u);
   assert.match(preview, /onLoad=\{sizeWorkspaceFrame\}/u);
   assert.match(
     preview,

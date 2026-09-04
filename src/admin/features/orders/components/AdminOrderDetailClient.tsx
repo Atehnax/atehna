@@ -205,11 +205,11 @@ const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !sh
 const orderDataValueControlClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const orderDataCompositeInputClassName =
-  `${adminCompactIconFieldInputClassName} min-w-0 !px-2`;
+  `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
 const orderDataInlineTextareaClassName =
   `${orderDataValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const orderDataReadValueClassName =
-  "block h-5 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900";
+  "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 
 const toDisplayOrderNumberValue = (value: string) => {
   const trimmed = value.trim();
@@ -448,7 +448,7 @@ function OrderAddressEditor({
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className="grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
         data-testid="admin-order-address-fields"
       >
         <AdminAddressAutocompleteInput

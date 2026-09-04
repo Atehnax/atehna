@@ -262,7 +262,7 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   );
   assert.match(
     detail,
-    /const orderDataReadValueClassName =[\s\S]*?block h-5 w-full min-w-0 flex-1 select-text truncate[\s\S]*?text-\[11px\][\s\S]*?leading-5/u
+    /const orderDataReadValueClassName =[\s\S]*?block h-6 w-full min-w-0 flex-1 select-text truncate[\s\S]*?text-\[11px\][\s\S]*?leading-6/u
   );
   assert.match(
     detail,
@@ -337,6 +337,11 @@ test('order address remains structured inside one full-width field and persists 
   assert.match(detail, /function OrderAddressEditor/u);
   assert.match(detail, /aria-label="Naslovni podatki"/u);
   assert.match(detail, /data-testid="admin-order-address-fields"/u);
+  assert.match(
+    detail,
+    /const orderDataCompositeInputClassName =[\s\S]*?!h-6[\s\S]*?!leading-5/u
+  );
+  assert.match(detail, /className="grid h-6 min-w-0 flex-1/u);
   assert.match(
     detail,
     /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u

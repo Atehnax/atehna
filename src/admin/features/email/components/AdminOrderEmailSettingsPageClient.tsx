@@ -78,7 +78,7 @@ type StagedEmailImageAttachment = {
 };
 
 const fieldClassName = "h-9 px-3 text-[13px] leading-5";
-const textareaClassName = `min-h-24 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
+const textareaClassName = `h-12 min-h-12 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-1.5 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 const alignedFieldClassName = "grid min-w-0 grid-rows-[1fr_auto]";
 const templateEventOptions = ORDER_EMAIL_EVENT_DEFINITIONS.map(
   ({ value, label }) => ({ value, label }),
@@ -1105,7 +1105,7 @@ export default function AdminOrderEmailSettingsPageClient({
         tabs={[
           {
             value: "settings",
-            label: "Nastavitve",
+            label: "Osnovne nastavitve",
             panelId: "order-email-settings-panel",
           },
           {
@@ -1483,7 +1483,7 @@ export default function AdminOrderEmailSettingsPageClient({
               </div>
 
               <div
-                className="mt-4 min-w-0 border-t border-slate-200 pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
+                className="mt-4 min-w-0 border-t border-slate-200 pt-4 lg:mt-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
                 data-testid="order-email-shared-image-panel"
               >
                 <FieldLabel
@@ -1508,8 +1508,12 @@ export default function AdminOrderEmailSettingsPageClient({
                 />
 
                 {displayedImageAttachment ? (
-                  <div className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70">
-                    <div className="flex min-h-40 items-center justify-center bg-white p-4 sm:min-h-44">
+                  <div
+                    className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+                    data-testid="order-email-image-surface"
+                    data-email-image-surface="true"
+                  >
+                    <div className="flex min-h-40 items-center justify-center bg-white p-4 sm:min-h-44 lg:min-h-0 lg:flex-1">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={displayedImageAttachment.url}
@@ -1567,8 +1571,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   </div>
                 ) : (
                   <div
-                    className="mt-1.5 flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-6 text-center sm:min-h-44"
+                    className="mt-1.5 flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-6 text-center sm:min-h-44 lg:min-h-0 lg:flex-1"
                     data-testid="order-email-image-empty-state"
+                    data-email-image-surface="true"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-slate-200">
                       <ImagePlus className="h-4 w-4" aria-hidden="true" />

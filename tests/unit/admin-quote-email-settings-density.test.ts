@@ -94,9 +94,10 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(section, /headingLevel=\{3\}/u);
   assert.ok(
     templateWorkspace.includes(
-      'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start'
+      'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch'
     )
   );
+  assert.match(templateWorkspace, /lg:absolute lg:inset-4 lg:min-h-0/u);
   assert.match(templateWorkspace, /variant="secondary"/u);
   assert.match(
     templateWorkspace,

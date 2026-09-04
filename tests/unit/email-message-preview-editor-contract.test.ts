@@ -92,6 +92,8 @@ test('interactive template workspace keeps editing contextual and the rich-text 
 
   assert.match(contextToolbar, /toolbarVariant="compact"/u);
   assert.match(contextToolbar, /heightClassName="h-\[18rem\] min-h-\[16rem\]"/u);
+  assert.match(contextToolbar, /adminControlFocusTokenClasses/u);
+  assert.doesNotMatch(contextToolbar, /focus:ring-1 focus:ring-blue-300\/30/u);
   assert.match(contextToolbar, /Splošni navpični razmik/u);
   assert.match(contextToolbar, /Zmanjšaj razmik pred \$\{spacingTargetLabel\}/u);
   assert.match(contextToolbar, /Povečaj razmik pred \$\{spacingTargetLabel\}/u);

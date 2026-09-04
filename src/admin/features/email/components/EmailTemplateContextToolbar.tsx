@@ -41,6 +41,7 @@ import type {
   OrderEmailSystemLine
 } from '@/shared/domain/order/orderEmailSettings';
 import { isOrderEmailSystemFieldId } from '@/shared/domain/order/orderEmailSettings';
+import { adminControlFocusTokenClasses } from '@/shared/ui/theme/tokens';
 
 const defaultSpacingDefaults = {
   sharedHeader: 18,
@@ -56,9 +57,9 @@ const defaultSpacingDefaults = {
 
 const blockIds = new Set<string>(EMAIL_TEMPLATE_BLOCK_IDS);
 const compactInputClassName =
-  'h-8 w-full rounded-lg border border-white/15 bg-white/10 px-2.5 text-[11px] text-white outline-none placeholder:text-white/35 focus:border-blue-300 focus:ring-1 focus:ring-blue-300/30';
+  `h-8 w-full rounded-lg border border-white/15 bg-white/10 px-2.5 text-[11px] text-white outline-none placeholder:text-white/35 ${adminControlFocusTokenClasses}`;
 const compactTextareaClassName =
-  'min-h-24 w-full resize-y rounded-lg border border-white/15 bg-white/10 px-2.5 py-2 text-[11px] leading-5 text-white outline-none placeholder:text-white/35 focus:border-blue-300 focus:ring-1 focus:ring-blue-300/30';
+  `min-h-24 w-full resize-y rounded-lg border border-white/15 bg-white/10 px-2.5 py-2 text-[11px] leading-5 text-white outline-none placeholder:text-white/35 ${adminControlFocusTokenClasses}`;
 
 export type EmailTemplateContextField = {
   value: string;

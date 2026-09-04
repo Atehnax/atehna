@@ -25,7 +25,7 @@ test('confirmation prices use integer cents and basis points for tax and reconci
   );
   assert.match(
     summarySource,
-    /moneyToCents\(unitListGross\) \* BigInt\(item\.quantity\) === moneyToCents\(lineListGross\)/u
+    /moneyToCents\(unitListGross\) \* BigInt\(item\.quantity\) ===\s*moneyToCents\(lineListGross\)/u
   );
   assert.match(
     summarySource,

@@ -101,6 +101,15 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   const sharedStatus = source(
     'src/commercial/components/SubmissionStatusPanel.tsx'
   );
+  const confirmationContentLayout = source(
+    'src/commercial/components/ConfirmationContentLayout.tsx'
+  );
+  const confirmationCustomerDetails = source(
+    'src/commercial/components/ConfirmationCustomerDetails.tsx'
+  );
+  const confirmationDocumentAction = source(
+    'src/commercial/components/confirmationDocumentAction.ts'
+  );
   const confirmationApi = source(
     'src/commercial/api/quote-requests/confirmation/route.ts'
   );
@@ -128,6 +137,10 @@ test('quote request confirmation is non-binding and does not reuse order semanti
     quoteSubmission.indexOf('function customerResponse('),
     quoteSubmission.indexOf('function errorResponse(')
   );
+  const normalizeQuoteCustomer = quoteSubmission.slice(
+    quoteSubmission.indexOf('function normalizeCustomer('),
+    quoteSubmission.indexOf('function readReason(')
+  );
   const submitResponseContract = contracts.slice(
     contracts.indexOf('export type SubmitQuoteRequestResponse ='),
     contracts.indexOf('export type QuoteRequestState =')
@@ -141,11 +154,18 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /Okvirni izračun/u);
   assert.match(confirmation, /Zaloga ni rezervirana/u);
   assert.match(confirmation, /Podatki o povpraševanju/u);
-  assert.match(confirmation, /Naročnik[\s\S]*?Email[\s\S]*?Naslov/u);
+  assert.match(
+    confirmationCustomerDetails,
+    /Naročnik[\s\S]*?Email[\s\S]*?Naslov/u
+  );
+  assert.match(
+    confirmation,
+    /customer\.organizationName\s*\|\|[\s\S]*?customer\.customerName\s*\|\|[\s\S]*?customer\.contactName/u
+  );
   assert.doesNotMatch(confirmation, /Vrsta naročnika/u);
   assert.doesNotMatch(confirmation, />\s*Kontakt\s*</u);
   assert.doesNotMatch(confirmation, /customerTypeLabel/u);
-  assert.match(confirmation, /<dl className="[^"]*text-base/u);
+  assert.match(confirmationCustomerDetails, /<dl className="[^"]*text-base/u);
   assert.match(
     confirmation,
     /data-testid="quote-request-confirmation-documents-section"[\s\S]*?Dokumenti[\s\S]*?data-testid="quote-request-confirmation-pdf"/u
@@ -163,13 +183,37 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /<SubmissionStatusPanel/u);
   assert.match(orderStatus, /<SubmissionStatusPanel/u);
   assert.match(sharedStatus, /data-confirmation-status/u);
-  assert.match(sharedStatus, /site-heading-1 mt-1 !text-2xl sm:!text-3xl/u);
+  assert.match(confirmation, /testId="quote-request-confirmation-content-grid"/u);
   assert.match(
     confirmation,
-    /site-card mt-6 grid overflow-hidden !p-0 lg:grid-cols-\[minmax\(0,1\.4fr\)_minmax\(18rem,0\.6fr\)\]/u
+    /detailsTestId="quote-request-confirmation-items-section"/u
   );
-  assert.match(confirmation, /data-confirmation-region="primary"/u);
-  assert.match(confirmation, /data-confirmation-region="secondary"/u);
+  assert.match(
+    confirmation,
+    /summaryTestId="quote-request-confirmation-summary"/u
+  );
+  assert.match(confirmationContentLayout, /data-confirmation-content-grid/u);
+  assert.match(
+    confirmationContentLayout,
+    /grid[\s\S]*?lg:grid-cols-\[minmax\(0,1\.6fr\)_minmax\(18rem,0\.9fr\)\]/u
+  );
+  assert.match(
+    confirmationContentLayout,
+    /data-confirmation-region="details"[\s\S]*?data-confirmation-region="summary"/u
+  );
+  assert.match(confirmation, /Podrobnosti povpraševanja/u);
+  assert.match(
+    confirmation,
+    /details=\{[\s\S]*?Podrobnosti povpraševanja[\s\S]*?<ConfirmationCustomerDetails[\s\S]*?testId="quote-request-confirmation-customer-section"/u
+  );
+  assert.match(
+    confirmation,
+    /summary=\{[\s\S]*?Povzetek povpraševanja[\s\S]*?data-testid="quote-request-confirmation-documents-section"/u
+  );
+  assert.match(
+    confirmationDocumentAction,
+    /CONFIRMATION_PRIMARY_DOCUMENT_ACTION_CLASS\s*=[\s\S]*?site-button--primary/u
+  );
   assert.doesNotMatch(confirmation, /mx-auto max-w-5xl/u);
   for (const page of [quoteConfirmationPage, orderConfirmationPage]) {
     assert.match(page, /ConfirmationPageFrame/u);
@@ -198,8 +242,20 @@ test('quote request confirmation is non-binding and does not reuse order semanti
     /addressLine1: row\.address_line1,[\s\S]*?addressLine2: row\.address_line2,[\s\S]*?city: row\.city,[\s\S]*?postalCode: row\.postal_code/u
   );
   assert.match(
+    confirmationApi,
+    /customerName:\s*[\s\S]*?row\.customer_type === 'individual'[\s\S]*?\? row\.contact_name[\s\S]*?: row\.organization_name \?\? row\.contact_name/u
+  );
+  assert.match(
+    normalizeQuoteCustomer,
+    /const contactName\s*=\s*customerType === 'individual' \? customerName : submittedContactName;/u
+  );
+  assert.doesNotMatch(
+    normalizeQuoteCustomer,
+    /customerType === 'individual' \? submittedContactName/u
+  );
+  assert.match(
     confirmationContract,
-    /addressLine1: string \| null;[\s\S]*?addressLine2: string \| null;[\s\S]*?city: string \| null;[\s\S]*?postalCode: string \| null;/u
+    /'customerType'[\s\S]*?'customerName'[\s\S]*?'organizationName'[\s\S]*?'contactName'[\s\S]*?'email'[\s\S]*?addressLine1: string \| null;[\s\S]*?addressLine2: string \| null;[\s\S]*?city: string \| null;[\s\S]*?postalCode: string \| null;/u
   );
   assert.doesNotMatch(confirmation, /ShippingCalculationRows/u);
   assert.match(

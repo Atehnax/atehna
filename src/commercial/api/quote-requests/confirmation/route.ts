@@ -77,6 +77,10 @@ export async function GET(request: NextRequest) {
         customerMessage: row.customer_message,
         customer: {
           customerType: row.customer_type,
+          customerName:
+            row.customer_type === 'individual'
+              ? row.contact_name
+              : row.organization_name ?? row.contact_name,
           organizationName: row.organization_name,
           contactName: row.contact_name,
           email: row.email,

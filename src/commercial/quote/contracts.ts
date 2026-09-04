@@ -57,7 +57,11 @@ export type QuoteRequestConfirmationSnapshot = {
   requestedAt: string;
   customer: Pick<
     QuoteCustomerSnapshot,
-    'customerType' | 'organizationName' | 'contactName' | 'email'
+    | 'customerType'
+    | 'customerName'
+    | 'organizationName'
+    | 'contactName'
+    | 'email'
   > & {
     addressLine1: string | null;
     addressLine2: string | null;

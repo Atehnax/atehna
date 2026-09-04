@@ -11,6 +11,8 @@ export type OrderSubmissionCommitmentStatus =
 type OrderSubmissionStatusProps = {
   commitmentStatus?: OrderSubmissionCommitmentStatus;
   contractStatus?: OrderContractStatus;
+  submittedAt?: string | null;
+  submittedAtDateTime?: string | null;
 };
 
 export type OrderSubmissionStatusContent = {
@@ -70,7 +72,9 @@ export function getOrderSubmissionStatusContent(
 
 export default function OrderSubmissionStatus({
   commitmentStatus,
-  contractStatus
+  contractStatus,
+  submittedAt,
+  submittedAtDateTime
 }: OrderSubmissionStatusProps) {
   const content = getOrderSubmissionStatusContent(
     commitmentStatus,
@@ -83,6 +87,21 @@ export default function OrderSubmissionStatus({
       heading={content.heading}
       description={content.description}
       symbol={content.symbol}
+      meta={
+        submittedAt ? (
+          <>
+            <p className="text-sm text-[color:var(--site-color-text-muted)]">
+              Datum oddaje
+            </p>
+            <time
+              className="mt-1 block font-semibold"
+              dateTime={submittedAtDateTime ?? undefined}
+            >
+              {submittedAt}
+            </time>
+          </>
+        ) : undefined
+      }
       tone={content.tone}
       testId="order-submission-status"
       headingTestId="order-confirmation-heading"

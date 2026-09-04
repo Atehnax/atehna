@@ -277,7 +277,7 @@ async function mockConfirmation(
 }
 
 test.describe('order confirmation layout', () => {
-  test('uses one compact card with the reference zero-discount summary and aligned desktop columns', async ({
+  test('uses aligned details and summary cards with the reference zero-discount totals', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -295,27 +295,46 @@ test.describe('order confirmation layout', () => {
     const pageContent = page.getByTestId('order-confirmation-page');
     const pageFrame = pageContent.locator('[data-confirmation-page-frame]');
     const status = pageFrame.getByTestId('order-submission-status');
-    const card = pageFrame.getByTestId('order-confirmation-content-card');
-    const orderSection = card.getByTestId('confirmation-order-section');
-    const summary = card.getByTestId('confirmation-summary');
-    const customer = card.getByTestId('confirmation-customer-section');
-    const documents = card.getByTestId('confirmation-documents-section');
+    const contentGrid = pageFrame.getByTestId('confirmation-content-grid');
+    const panels = contentGrid.locator(':scope > .site-card');
+    const detailsPanel = pageFrame.getByTestId('confirmation-order-section');
+    const summaryPanel = pageFrame.getByTestId('confirmation-summary');
+    const orderSection = detailsPanel;
+    const summary = summaryPanel;
+    const customer = detailsPanel.getByTestId('confirmation-customer-section');
+    const documents = summaryPanel.getByTestId('confirmation-documents-section');
 
-    await expect(card).toBeVisible();
+    await expect(panels).toHaveCount(2);
+    await expect(
+      detailsPanel.getByRole('heading', {
+        name: 'Podrobnosti naročila',
+        exact: true
+      })
+    ).toBeVisible();
+    await expect(
+      orderSection.getByRole('heading', { name: 'Izdelki', exact: true })
+    ).toBeVisible();
+
+    const [desktopFrameBox, desktopStatusBox, desktopGridBox] =
+      await Promise.all([
+        pageFrame.boundingBox(),
+        status.boundingBox(),
+        contentGrid.boundingBox()
+      ]);
+    expect(desktopFrameBox).not.toBeNull();
+    expect(desktopStatusBox).not.toBeNull();
+    expect(desktopGridBox).not.toBeNull();
     const desktopFrameWidths = await pageContent.evaluate((element) => {
       const frame = element.querySelector<HTMLElement>(
         '[data-confirmation-page-frame]'
       );
       if (!frame) throw new Error('Missing order confirmation page frame');
-
       const style = getComputedStyle(element);
-      const availableWidth =
-        element.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight);
-
       return {
-        availableWidth,
+        availableWidth:
+          element.clientWidth -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight),
         frameWidth: frame.offsetWidth
       };
     });
@@ -323,23 +342,11 @@ test.describe('order confirmation layout', () => {
       desktopFrameWidths.frameWidth / desktopFrameWidths.availableWidth,
       'the confirmation frame should use two thirds of the available desktop lane'
     ).toBeCloseTo(2 / 3, 2);
-
-    const [desktopFrameBox, desktopStatusBox, desktopCardBox] =
-      await Promise.all([
-        pageFrame.boundingBox(),
-        status.boundingBox(),
-        card.boundingBox()
-      ]);
-    expect(desktopFrameBox).not.toBeNull();
-    expect(desktopStatusBox).not.toBeNull();
-    expect(desktopCardBox).not.toBeNull();
     expect(Math.abs(desktopStatusBox!.x - desktopFrameBox!.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(desktopCardBox!.x - desktopFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopGridBox!.x - desktopFrameBox!.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(desktopStatusBox!.width - desktopFrameBox!.width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(desktopCardBox!.width - desktopFrameBox!.width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(desktopStatusBox!.width - desktopCardBox!.width)).toBeLessThanOrEqual(1);
-    await expect(pageContent.locator('.site-card')).toHaveCount(1);
-    await expect(card.locator('.site-card')).toHaveCount(0);
+    expect(Math.abs(desktopGridBox!.width - desktopFrameBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopStatusBox!.width - desktopGridBox!.width)).toBeLessThanOrEqual(1);
     await expect(status).not.toContainText('Atehna je naročilo sprejela');
     await expect(status).toContainText(
       'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.'
@@ -360,20 +367,12 @@ test.describe('order confirmation layout', () => {
     await expect(customer).not.toContainText('Naslov za dostavo');
     await expect(customer).not.toContainText('Referenca');
     await expect(customer.getByText('Maja Primer', { exact: true })).toBeVisible();
-    await expect(customer.getByRole('link', { name: 'maja@example.com' })).toHaveAttribute(
-      'href',
-      'mailto:maja@example.com'
-    );
+    const emailLink = customer.getByRole('link', { name: 'maja@example.com' });
+    await expect(emailLink).toHaveAttribute('href', 'mailto:maja@example.com');
     await expect(customer).toContainText(
       'Cankarjeva ulica 27b, 1000 Ljubljana'
     );
     const customerDetails = customer.locator('dl');
-    await expect(customerDetails).toHaveCSS('font-size', '16px');
-    await expect(customerDetails).toHaveCSS('row-gap', '8px');
-    await expect(customerDetails.locator('dd').first()).toHaveCSS(
-      'font-size',
-      '18px'
-    );
     const customerDetailCells = customerDetails.locator(':scope > div');
     await expect(customerDetailCells).toHaveCount(3);
     const customerDetailCellBoxes = await customerDetailCells.evaluateAll(
@@ -389,24 +388,20 @@ test.describe('order confirmation layout', () => {
     ).toBeLessThanOrEqual(1);
     await expect(summary.getByRole('heading', { name: 'Povzetek naročila' })).toBeVisible();
     await expect(summary.locator('[data-summary-section="calculation"]')).toBeVisible();
-    await expect(summary.getByRole('heading', { name: 'Izračun' })).toBeVisible();
     await expect(summary.locator('[data-summary-section="details"]')).toHaveCount(0);
     await expect(summary.getByRole('heading', { name: /Podrobnosti artikla/ })).toHaveCount(0);
 
-    const summaryItem = summary.locator('[data-summary-item="41001"]');
-    const itemBase = summaryItem.locator('[data-summary-row="item-base"]');
-    const itemTitle = summaryItem.locator('[data-summary-item-title]');
-    const itemMeta = summaryItem.locator('[data-summary-item-meta]');
-    const itemExpression = itemBase.locator('[data-summary-item-expression]');
-    const itemLineGross = itemBase.locator('[data-summary-item-line-gross]');
-    await expect(summaryItem).toBeVisible();
-    await expect(itemTitle).toHaveJSProperty('tagName', 'H5');
+    const itemRow = orderSection.getByTestId('confirmation-item-row');
+    const itemTitle = itemRow.getByTestId('confirmation-item-title');
+    const itemExpression = itemRow.locator('[data-confirmation-item-expression]');
+    const itemLineGross = itemRow.locator('[data-confirmation-item-line-gross]');
+    await expect(itemRow).toBeVisible();
     await expect(itemTitle).toHaveText('Aluminijasta plošča 0,3 × 100 × 100 mm');
-    await expect(itemMeta).toHaveText('SKU: MAT-KOV-ALU-0P3X100X100');
+    await expect(itemRow).toContainText('SKU: MAT-KOV-ALU-0P3X100X100');
     await expect(itemExpression).toHaveText('5 kosov × 4,83 €');
     await expect(itemLineGross).toHaveText('24,16 €');
-    await expect(summaryItem.locator('[data-summary-item-rounding-note]')).toHaveText('DDV je zaokrožen na ravni postavke.');
-    await expect(summaryItem.locator('[data-summary-row="item-discount"]')).toHaveCount(0);
+    await expect(itemRow.locator('[data-confirmation-item-discount]')).toHaveCount(0);
+    await expect(summary.locator('[data-summary-item]')).toHaveCount(0);
     await expect(summary.locator('[data-summary-row="net"]')).toContainText('Vmesna vsota brez DDV');
     await expect(summary.locator('[data-summary-row="net"]')).toContainText('19,80 €');
     await expect(summary.locator('[data-summary-row="tax"]')).toHaveCount(1);
@@ -422,56 +417,11 @@ test.describe('order confirmation layout', () => {
     await expect(summary.locator('[data-summary-row="gross"]')).toContainText('Skupaj za plačilo');
     await expect(summary.locator('[data-summary-row="gross"]')).toContainText('24,16 €');
 
-    const expressionStyle = await itemExpression.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        tagName: element.tagName,
-        backgroundColor: style.backgroundColor,
-        paddingLeft: style.paddingLeft,
-        paddingRight: style.paddingRight,
-        borderRadius: style.borderRadius
-      };
-    });
-    expect(expressionStyle).toEqual({
-      tagName: 'DT',
-      backgroundColor: 'rgba(0, 0, 0, 0)',
-      paddingLeft: '0px',
-      paddingRight: '0px',
-      borderRadius: '0px'
-    });
-
-    const netRow = summary.locator('[data-summary-row="net"]');
     const grossRow = summary.locator('[data-summary-row="gross"]');
-    const [netLabelStyle, netValueStyle, grossLabelStyle, grossValueStyle, primaryColor] =
-      await Promise.all([
-        netRow.locator('dt').evaluate((element) => ({
-          fontSize: getComputedStyle(element).fontSize,
-          fontWeight: getComputedStyle(element).fontWeight
-        })),
-        netRow.locator('dd').evaluate((element) => ({
-          fontSize: getComputedStyle(element).fontSize,
-          fontWeight: getComputedStyle(element).fontWeight
-        })),
-        grossRow.locator('dt').evaluate((element) => ({
-          color: getComputedStyle(element).color,
-          fontSize: getComputedStyle(element).fontSize,
-          fontWeight: getComputedStyle(element).fontWeight
-        })),
-        grossRow.locator('dd').evaluate((element) => ({
-          color: getComputedStyle(element).color,
-          fontSize: getComputedStyle(element).fontSize,
-          fontWeight: getComputedStyle(element).fontWeight
-        })),
-        resolveThemeColor(grossRow, '--site-color-primary')
-      ]);
-    expect(Number.parseInt(netLabelStyle.fontWeight, 10)).toBeGreaterThanOrEqual(700);
-    expect(Number.parseInt(netValueStyle.fontWeight, 10)).toBeGreaterThanOrEqual(700);
-    expect(Number.parseFloat(grossLabelStyle.fontSize)).toBeGreaterThan(Number.parseFloat(netLabelStyle.fontSize));
-    expect(Number.parseFloat(grossValueStyle.fontSize)).toBeGreaterThan(Number.parseFloat(grossLabelStyle.fontSize));
-    expect(Number.parseInt(grossLabelStyle.fontWeight, 10)).toBeGreaterThanOrEqual(600);
-    expect(Number.parseInt(grossValueStyle.fontWeight, 10)).toBeGreaterThanOrEqual(600);
-    expect(grossLabelStyle.color).toBe(primaryColor);
-    expect(grossValueStyle.color).toBe(primaryColor);
+    const primaryColor = await resolveThemeColor(grossRow, '--site-color-primary');
+    await expect(grossRow.locator('dt')).toHaveCSS('color', primaryColor);
+    await expect(grossRow.locator('dd')).toHaveCSS('color', primaryColor);
+    await expect(emailLink).toHaveCSS('color', primaryColor);
 
     await expect(summary).not.toContainText('Cena brez DDV:');
     await expect(summary).not.toContainText('Skupaj brez DDV');
@@ -487,12 +437,12 @@ test.describe('order confirmation layout', () => {
       await expect(summary.locator(`[data-summary-row="${removedRow}"]`)).toHaveCount(0);
     }
 
-    const [itemBaseBox, itemExpressionBox, itemLineGrossBox] = await Promise.all([
-      itemBase.boundingBox(),
+    const [itemRowBox, itemExpressionBox, itemLineGrossBox] = await Promise.all([
+      itemRow.boundingBox(),
       itemExpression.boundingBox(),
       itemLineGross.boundingBox()
     ]);
-    expect(itemBaseBox).not.toBeNull();
+    expect(itemRowBox).not.toBeNull();
     expect(itemExpressionBox).not.toBeNull();
     expect(itemLineGrossBox).not.toBeNull();
     expect(
@@ -504,11 +454,19 @@ test.describe('order confirmation layout', () => {
     ).toBeLessThanOrEqual(1);
     expect(itemLineGrossBox!.x).toBeGreaterThan(itemExpressionBox!.x);
     expect(itemLineGrossBox!.x + itemLineGrossBox!.width).toBeLessThanOrEqual(
-      itemBaseBox!.x + itemBaseBox!.width + 1
+      itemRowBox!.x + itemRowBox!.width + 1
     );
-    await expect(
-      documents.getByRole('link', { name: /^Potrditev naročila \(PDF\) / })
-    ).toBeVisible();
+    const pdfAction = documents.getByTestId('order-confirmation-pdf');
+    const catalogAction = summaryPanel.getByRole('link', {
+      name: 'Nazaj v katalog',
+      exact: true
+    });
+    await expect(pdfAction).toBeVisible();
+    await expect(pdfAction).toContainText('PDF');
+    await expect(pdfAction).toHaveClass(/site-button--primary/u);
+    await expect(pdfAction).toHaveAttribute('download', '');
+    await expect(pdfAction).not.toHaveAttribute('target', '_blank');
+    await expect(catalogAction).toHaveClass(/site-button--secondary/u);
     await expect(pageContent).not.toContainText('Številka naročila');
     await expect(pageContent).not.toContainText('#42');
     await expect(documents.locator('a[href^="/api/orders/documents/"]')).toHaveAttribute(
@@ -516,63 +474,24 @@ test.describe('order confirmation layout', () => {
       '/api/orders/documents/123e4567-e89b-42d3-a456-426614174010'
     );
 
-    const [orderSectionBox, summaryBox, customerBox, documentsBox] = await Promise.all([
-      orderSection.boundingBox(),
-      summary.boundingBox(),
-      customer.boundingBox(),
-      documents.boundingBox()
+    const [detailsBox, summaryBox] = await Promise.all([
+      detailsPanel.boundingBox(),
+      summaryPanel.boundingBox()
     ]);
-    expect(orderSectionBox).not.toBeNull();
+    expect(detailsBox).not.toBeNull();
     expect(summaryBox).not.toBeNull();
-    expect(customerBox).not.toBeNull();
-    expect(documentsBox).not.toBeNull();
-
-    const orderSectionRight = orderSectionBox!.x + orderSectionBox!.width;
-    const customerRight = customerBox!.x + customerBox!.width;
-    const documentsRight = documentsBox!.x + documentsBox!.width;
-    const orderSectionBottom = orderSectionBox!.y + orderSectionBox!.height;
-    const customerBottom = customerBox!.y + customerBox!.height;
-    const documentsBottom = documentsBox!.y + documentsBox!.height;
-    const summaryBottom = summaryBox!.y + summaryBox!.height;
-    const lowerRowBottom = Math.max(customerBottom, documentsBottom);
-
     expect(
-      Math.abs(orderSectionBox!.x - customerBox!.x),
-      'the item section and lower detail row should share their left edge'
-    ).toBeLessThanOrEqual(5);
-    expect(
-      Math.abs(orderSectionRight - documentsRight),
-      'customer and documents together should equal the item section width'
-    ).toBeLessThanOrEqual(5);
-    expect(
-      Math.abs(customerBox!.y - documentsBox!.y),
-      'customer and documents should start on the same lower row'
+      Math.abs(detailsBox!.y - summaryBox!.y),
+      'the detail and summary cards should start on the same row'
     ).toBeLessThanOrEqual(1);
+    expect(detailsBox!.x + detailsBox!.width).toBeLessThan(summaryBox!.x);
+    expect(Math.abs(detailsBox!.x - desktopGridBox!.x)).toBeLessThanOrEqual(1);
     expect(
-      Math.abs(customerBottom - documentsBottom),
-      'customer and documents should stretch to the same lower-row height'
+      Math.abs(
+        summaryBox!.x + summaryBox!.width -
+          (desktopGridBox!.x + desktopGridBox!.width)
+      )
     ).toBeLessThanOrEqual(1);
-    expect(documentsBox!.x).toBeGreaterThanOrEqual(customerRight - 1);
-    expect(customerBox!.y).toBeGreaterThanOrEqual(orderSectionBottom - 1);
-
-    expect(summaryBox!.x).toBeGreaterThanOrEqual(orderSectionRight - 1);
-    expect(summaryBox!.x).toBeGreaterThan(orderSectionBox!.x);
-    expect(
-      Math.abs(summaryBox!.y - orderSectionBox!.y),
-      'the summary should start beside the item section'
-    ).toBeLessThanOrEqual(1);
-    expect(
-      Math.abs(summaryBottom - lowerRowBottom),
-      'the summary should span the item and lower detail rows'
-    ).toBeLessThanOrEqual(5);
-    expect(
-      summaryBox!.height,
-      'the spanning summary should be taller than the top-left item section'
-    ).toBeGreaterThan(orderSectionBox!.height);
-    expect(
-      Math.abs(summaryBox!.x - orderSectionRight),
-      'the desktop columns should meet without an unintended gap'
-    ).toBeLessThanOrEqual(5);
   });
 
   test('keeps distinct products and their discounts associated in a responsive multi-item calculation', async ({
@@ -582,55 +501,43 @@ test.describe('order confirmation layout', () => {
     await mockConfirmation(page, () => multiItemConfirmationSnapshot);
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
+    const detailsPanel = page
+      .getByTestId('confirmation-content-grid')
+      .locator(':scope > .site-card')
+      .first();
+    const itemRows = detailsPanel.getByTestId('confirmation-item-row');
     const summary = page.getByTestId('confirmation-summary');
-    const summaryItems = summary.locator('[data-summary-item]');
-    const summaryItemList = summary.locator('[data-summary-items]');
     const summaryTotals = summary.locator('[data-summary-totals]');
-    const aluminium = summary.locator('[data-summary-item="41001"]');
-    const steel = summary.locator('[data-summary-item="52001"]');
-    const aluminiumBase = aluminium.locator('[data-summary-row="item-base"]');
-    const steelBase = steel.locator('[data-summary-row="item-base"]');
-    const steelDiscount = steel.locator('[data-summary-row="item-discount"]');
+    const aluminium = itemRows.nth(0);
+    const steel = itemRows.nth(1);
+    const steelDiscount = steel.locator('[data-confirmation-item-discount]');
 
-    await expect(summaryItemList).toHaveJSProperty('tagName', 'UL');
-    await expect(summaryItemList.locator(':scope > li[data-summary-item]')).toHaveCount(2);
-    await expect(summaryItemList.locator(':scope > li > dl')).toHaveCount(2);
+    await expect(itemRows).toHaveCount(2);
     await expect(summaryTotals).toHaveJSProperty('tagName', 'DL');
     await expect(summaryTotals.locator('[data-summary-row="net"]')).toHaveCount(1);
     await expect(summaryTotals.locator('[data-summary-row="gross"]')).toHaveCount(1);
     await expect(summaryTotals.locator('[data-summary-item]')).toHaveCount(0);
+    await expect(summary.locator('[data-summary-item]')).toHaveCount(0);
 
-    await expect(summaryItems).toHaveCount(2);
-    await expect(summaryItems.nth(0)).toHaveAttribute('data-summary-item', '41001');
-    await expect(summaryItems.nth(1)).toHaveAttribute('data-summary-item', '52001');
-
-    await expect(aluminium.locator('[data-summary-item-title]')).toHaveText(
+    await expect(aluminium.getByTestId('confirmation-item-title')).toHaveText(
       'Aluminijasta plošča 0,3 × 100 × 100 mm'
     );
-    await expect(aluminium.locator('[data-summary-item-meta]')).toHaveText(
-      'SKU: MAT-KOV-ALU-0P3X100X100'
-    );
-    await expect(aluminiumBase.locator('[data-summary-item-expression]')).toHaveText(
+    await expect(aluminium).toContainText('SKU: MAT-KOV-ALU-0P3X100X100');
+    await expect(aluminium.locator('[data-confirmation-item-expression]')).toHaveText(
       '5 kosov × 4,83 €'
     );
-    await expect(aluminiumBase.locator('[data-summary-item-line-gross]')).toHaveText('24,16 €');
-    await expect(aluminium.locator('[data-summary-item-rounding-note]')).toHaveText(
-      'DDV je zaokrožen na ravni postavke.'
-    );
-    await expect(aluminium.locator('[data-summary-row="item-discount"]')).toHaveCount(0);
+    await expect(aluminium.locator('[data-confirmation-item-line-gross]')).toHaveText('24,16 €');
+    await expect(aluminium.locator('[data-confirmation-item-discount]')).toHaveCount(0);
     await expect(aluminium).not.toContainText('10,95 €');
 
-    await expect(steel.locator('[data-summary-item-title]')).toHaveText(
+    await expect(steel.getByTestId('confirmation-item-title')).toHaveText(
       'Jeklena cev 20 × 2 mm'
     );
-    await expect(steel.locator('[data-summary-item-meta]')).toHaveText(
-      'SKU: CEV-JEK-20X2'
-    );
-    await expect(steelBase.locator('[data-summary-item-expression]')).toHaveText(
+    await expect(steel).toContainText('SKU: CEV-JEK-20X2');
+    await expect(steel.locator('[data-confirmation-item-expression]')).toHaveText(
       '10 kosov × 10,95 €'
     );
-    await expect(steelBase.locator('[data-summary-item-line-gross]')).toHaveText('109,50 €');
-    await expect(steel.locator('[data-summary-item-rounding-note]')).toHaveCount(0);
+    await expect(steel.locator('[data-confirmation-item-line-gross]')).toHaveText('109,50 €');
     await expect(steelDiscount).toContainText('Količinski popust');
     await expect(steelDiscount).toContainText('10 %');
     await expect(steelDiscount).toContainText('-10,95 €');
@@ -658,14 +565,12 @@ test.describe('order confirmation layout', () => {
     }
 
     async function readItemAlignment() {
-      return summaryItems.evaluateAll((elements) =>
+      return itemRows.evaluateAll((elements) =>
         elements.map((element) => {
-          const base = element.querySelector<HTMLElement>('[data-summary-row="item-base"]');
-          const expression = element.querySelector<HTMLElement>('[data-summary-item-expression]');
-          const lineGross = element.querySelector<HTMLElement>('[data-summary-item-line-gross]');
-          if (!base || !expression || !lineGross) throw new Error('Summary item alignment hooks are missing.');
+          const expression = element.querySelector<HTMLElement>('[data-confirmation-item-expression]');
+          const lineGross = element.querySelector<HTMLElement>('[data-confirmation-item-line-gross]');
+          if (!expression || !lineGross) throw new Error('Confirmation item alignment hooks are missing.');
           const itemRect = element.getBoundingClientRect();
-          const baseRect = base.getBoundingClientRect();
           const expressionRect = expression.getBoundingClientRect();
           const lineGrossRect = lineGross.getBoundingClientRect();
           return {
@@ -674,8 +579,6 @@ test.describe('order confirmation layout', () => {
             itemWidth: itemRect.width,
             itemClientWidth: element.clientWidth,
             itemScrollWidth: element.scrollWidth,
-            baseLeft: baseRect.left,
-            baseRight: baseRect.right,
             expressionCenter: expressionRect.top + expressionRect.height / 2,
             lineGrossCenter: lineGrossRect.top + lineGrossRect.height / 2,
             lineGrossLeft: lineGrossRect.left,
@@ -690,20 +593,12 @@ test.describe('order confirmation layout', () => {
       { width: 390, height: 844, label: 'mobile' }
     ]) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      const [summaryBox, alignment] = await Promise.all([
-        summary.boundingBox(),
+      const [detailsBox, alignment] = await Promise.all([
+        detailsPanel.boundingBox(),
         readItemAlignment()
       ]);
-      expect(summaryBox).not.toBeNull();
+      expect(detailsBox).not.toBeNull();
       expect(alignment).toHaveLength(2);
-      expect(
-        Math.abs(alignment[0].baseLeft - alignment[1].baseLeft),
-        `${viewport.label} item lines should share a left edge`
-      ).toBeLessThanOrEqual(1);
-      expect(
-        Math.abs(alignment[0].baseRight - alignment[1].baseRight),
-        `${viewport.label} item lines should share a right edge`
-      ).toBeLessThanOrEqual(1);
       expect(
         Math.abs(alignment[0].lineGrossRight - alignment[1].lineGrossRight),
         `${viewport.label} gross line amounts should be right aligned`
@@ -713,9 +608,9 @@ test.describe('order confirmation layout', () => {
           Math.abs(item.expressionCenter - item.lineGrossCenter),
           `${viewport.label} gross amount should be vertically centered against its quantity calculation`
         ).toBeLessThanOrEqual(1);
-        expect(item.lineGrossLeft).toBeGreaterThan(item.baseLeft);
-        expect(item.itemLeft).toBeGreaterThanOrEqual(summaryBox!.x - 1);
-        expect(item.itemRight).toBeLessThanOrEqual(summaryBox!.x + summaryBox!.width + 1);
+        expect(item.lineGrossLeft).toBeGreaterThan(item.itemLeft);
+        expect(item.itemLeft).toBeGreaterThanOrEqual(detailsBox!.x - 1);
+        expect(item.itemRight).toBeLessThanOrEqual(detailsBox!.x + detailsBox!.width + 1);
         expect(item.itemScrollWidth).toBeLessThanOrEqual(item.itemClientWidth + 1);
       }
     }
@@ -782,26 +677,26 @@ test.describe('order confirmation layout', () => {
     }));
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
-    const summary = page.getByTestId('confirmation-summary');
-    const aluminium = summary.locator('[data-summary-item="41001"]');
-    const copper = summary.locator('[data-summary-item="53001"]');
-    const aluminiumTitle = aluminium.locator('[data-summary-item-title]');
-    const copperTitle = copper.locator('[data-summary-item-title]');
+    const itemRows = page.getByTestId('confirmation-item-row');
+    const aluminium = itemRows.nth(0);
+    const copper = itemRows.nth(1);
+    const aluminiumTitle = aluminium.getByTestId('confirmation-item-title');
+    const copperTitle = copper.getByTestId('confirmation-item-title');
 
     await expect(aluminiumTitle).toHaveText('Aluminijasta plošča');
-    await expect(aluminium.locator('[data-summary-item-expression]')).toHaveText(
+    await expect(aluminium.locator('[data-confirmation-item-expression]')).toHaveText(
       '5 kosov × 4,83 €'
     );
     await expect(copperTitle).toHaveText('Bakrena pločevina');
-    await expect(copper.locator('[data-summary-item-expression]')).toHaveText('2 kosa × 6,10 €');
-    await expect(aluminium.locator('[data-summary-item-meta]')).toHaveCount(0);
-    await expect(copper.locator('[data-summary-item-meta]')).toHaveCount(0);
-    await expect(summary).not.toContainText('Brez naziva različice');
+    await expect(copper.locator('[data-confirmation-item-expression]')).toHaveText('2 kosa × 6,10 €');
+    await expect(aluminium.getByText(/^SKU:/u)).toHaveCount(0);
+    await expect(copper.getByText(/^SKU:/u)).toHaveCount(0);
+    await expect(page.getByTestId('confirmation-content-grid')).not.toContainText('Brez naziva različice');
     expect((await aluminiumTitle.textContent())?.match(/Aluminijasta plošča/gu)).toHaveLength(1);
     expect((await copperTitle.textContent())?.match(/Bakrena pločevina/gu)).toHaveLength(1);
   });
 
-  test('keeps each item row to one combined title, its SKU, and a full-bleed image', async ({
+  test('keeps each item row to one combined title, price expression, total, and full-bleed image', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -824,16 +719,20 @@ test.describe('order confirmation layout', () => {
     await expect(
       itemRow.getByText('0,3 × 100 × 100 mm', { exact: true })
     ).toHaveCount(0);
+    await expect(
+      itemRow.locator('[data-confirmation-item-expression]')
+    ).toHaveText('5 kosov × 4,83 €');
+    await expect(
+      itemRow.locator('[data-confirmation-item-line-gross]')
+    ).toHaveText('24,16 €');
 
     for (const removedText of [
       'Material:',
       'Debelina:',
       'Širina:',
       'Dolžina:',
-      '24,16 €',
       '19,80 € brez DDV',
-      'DDV 22 %',
-      '5 kos'
+      'DDV 22 %'
     ]) {
       await expect(itemRow).not.toContainText(removedText);
     }
@@ -874,20 +773,19 @@ test.describe('order confirmation layout', () => {
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
     const summary = page.getByTestId('confirmation-summary');
-    const summaryItem = summary.locator('[data-summary-item="41001"]');
-    const itemBase = summaryItem.locator('[data-summary-row="item-base"]');
-    const discountRow = summaryItem.locator('[data-summary-row="item-discount"]');
+    const itemRow = page.getByTestId('confirmation-item-row');
+    const discountRow = itemRow.locator('[data-confirmation-item-discount]');
     const netRow = summary.locator('[data-summary-row="net"]');
     const taxRow = summary.locator('[data-summary-row="tax"]');
     const grossRow = summary.locator('[data-summary-row="gross"]');
 
-    await expect(summaryItem.locator('[data-summary-item-title]')).toHaveText(
+    await expect(itemRow.getByTestId('confirmation-item-title')).toHaveText(
       'Aluminijasta plošča 0,3 × 100 × 100 mm'
     );
-    await expect(itemBase.locator('[data-summary-item-expression]')).toHaveText(
+    await expect(itemRow.locator('[data-confirmation-item-expression]')).toHaveText(
       '30 kosov × 4,88 €'
     );
-    await expect(itemBase.locator('[data-summary-item-line-gross]')).toHaveText('146,40 €');
+    await expect(itemRow.locator('[data-confirmation-item-line-gross]')).toHaveText('146,40 €');
     await expect(discountRow).toContainText('Količinski popust');
     await expect(discountRow).toContainText('5 %');
     await expect(discountRow).toContainText('-7,32 €');
@@ -903,20 +801,15 @@ test.describe('order confirmation layout', () => {
     await expect(summary).not.toContainText('Nova zaloga');
 
     const colors = await summary.evaluate((element) => {
-      const successProbe = document.createElement('span');
       const primaryProbe = document.createElement('span');
-      successProbe.style.color = 'var(--site-color-success)';
       primaryProbe.style.color = 'var(--site-color-primary)';
-      element.append(successProbe, primaryProbe);
+      element.append(primaryProbe);
       const result = {
-        success: window.getComputedStyle(successProbe).color,
         primary: window.getComputedStyle(primaryProbe).color
       };
-      successProbe.remove();
       primaryProbe.remove();
       return result;
     });
-    await expect(discountRow.locator('dd')).toHaveCSS('color', colors.success);
     await expect(grossRow.getByText('Skupaj za plačilo', { exact: true })).toHaveCSS('color', colors.primary);
     await expect(grossRow.getByText('139,08 €', { exact: true })).toHaveCSS('color', colors.primary);
   });
@@ -934,12 +827,12 @@ test.describe('order confirmation layout', () => {
     }));
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
-    const summary = page.getByTestId('confirmation-summary');
-    const discountRow = summary.locator('[data-summary-item="41001"] [data-summary-row="item-discount"]');
+    const itemRow = page.getByTestId('confirmation-item-row');
+    const discountRow = itemRow.locator('[data-confirmation-item-discount]');
     await expect(discountRow).toContainText('Popust');
     await expect(discountRow).toContainText('5 %');
     await expect(discountRow).toContainText('-7,32 €');
-    await expect(summary).not.toContainText('Količinski popust');
+    await expect(itemRow).not.toContainText('Količinski popust');
   });
 
   test('does not claim a quantity discount when discount metadata is inconsistent', async ({ page }) => {
@@ -955,13 +848,13 @@ test.describe('order confirmation layout', () => {
     }));
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
-    const summary = page.getByTestId('confirmation-summary');
-    await expect(summary.locator('[data-summary-row="item-discount"]')).toHaveCount(0);
-    await expect(summary).not.toContainText('Količinski popust');
-    await expect(summary).not.toContainText('Popust');
+    const itemRow = page.getByTestId('confirmation-item-row');
+    await expect(itemRow.locator('[data-confirmation-item-discount]')).toHaveCount(0);
+    await expect(itemRow).not.toContainText('Količinski popust');
+    await expect(itemRow).not.toContainText('Popust');
   });
 
-  test('uses green success styling for a received order awaiting seller review', async ({ page }) => {
+  test('uses the success status semantics for a received order awaiting seller review', async ({ page }) => {
     await mockConfirmation(page, () => ({
       ...confirmationSnapshot,
       contractStatus: 'pending_seller_acceptance'
@@ -969,17 +862,12 @@ test.describe('order confirmation layout', () => {
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
     const status = page.getByTestId('order-submission-status');
+    await expect(status).toHaveAttribute('data-confirmation-tone', 'success');
+    await expect(status).toHaveAttribute('role', 'status');
     await expect(status.getByText('Prejeto', { exact: true })).toBeVisible();
     await expect(
       status.getByRole('heading', { level: 1, name: 'Prejeli smo vaše naročilo' })
     ).toBeVisible();
-
-    const successColor = await resolveThemeColor(status, '--site-color-success');
-    await expect(status).toHaveCSS('border-top-color', successColor);
-    await expect(status.locator('span[aria-hidden="true"]')).toHaveCSS(
-      'background-color',
-      successColor
-    );
   });
 
   test('uses informational styling and order wording while confirmation is pending', async ({ page }) => {
@@ -990,17 +878,15 @@ test.describe('order confirmation layout', () => {
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
     const status = page.getByTestId('order-submission-status');
+    await expect(status).toHaveAttribute('data-confirmation-tone', 'info');
+    await expect(status).toHaveAttribute('role', 'status');
     await expect(status.getByRole('heading', { level: 1, name: 'Naročilo je prejeto' })).toBeVisible();
     await expect(status).toContainText(
       'Po e-pošti boste prejeli varno povezavo za nalaganje naročilnice. Naročilo začnemo obdelovati šele po prejemu in pregledu naročilnice. Zaloga do potrditve še ni rezervirana.'
     );
-
-    const infoColor = await resolveThemeColor(status, '--site-color-info');
-    await expect(status).toHaveCSS('border-top-color', infoColor);
-    await expect(status.locator('span[aria-hidden="true"]')).toHaveCSS('background-color', infoColor);
   });
 
-  test('stacks the same card sections without horizontal overflow on mobile', async ({
+  test('stacks the details and summary cards without horizontal overflow on mobile', async ({
     page
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1010,13 +896,16 @@ test.describe('order confirmation layout', () => {
     const pageContent = page.getByTestId('order-confirmation-page');
     const pageFrame = pageContent.locator('[data-confirmation-page-frame]');
     const status = pageFrame.getByTestId('order-submission-status');
-    const card = pageFrame.getByTestId('order-confirmation-content-card');
-    const orderSection = card.getByTestId('confirmation-order-section');
-    const customer = card.getByTestId('confirmation-customer-section');
-    const documents = card.getByTestId('confirmation-documents-section');
-    const itemMedia = card.getByTestId('confirmation-item-media');
-    const summary = card.getByTestId('confirmation-summary');
-    await expect(card).toBeVisible();
+    const contentGrid = pageFrame.getByTestId('confirmation-content-grid');
+    const panels = contentGrid.locator(':scope > .site-card');
+    const detailsPanel = panels.nth(0);
+    const summaryPanel = panels.nth(1);
+    const orderSection = detailsPanel;
+    const customer = detailsPanel.getByTestId('confirmation-customer-section');
+    const documents = summaryPanel.getByTestId('confirmation-documents-section');
+    const itemMedia = detailsPanel.getByTestId('confirmation-item-media');
+    const summary = summaryPanel;
+    await expect(panels).toHaveCount(2);
     await expect(summary).toBeVisible();
 
     const mobileFrameWidths = await pageContent.evaluate((element) => {
@@ -1052,78 +941,61 @@ test.describe('order confirmation layout', () => {
     expect(Math.abs(mobileStatusBox!.x - mobileFrameBox!.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(mobileStatusBox!.width - mobileFrameBox!.width)).toBeLessThanOrEqual(1);
 
-    const [
-      cardBox,
-      orderSectionBox,
-      summaryBox,
-      customerBox,
-      documentsBox,
-      itemMediaBox
-    ] = await Promise.all([
-      card.boundingBox(),
-      orderSection.boundingBox(),
-      summary.boundingBox(),
-      customer.boundingBox(),
-      documents.boundingBox(),
+    const [gridBox, detailsBox, summaryBox, itemMediaBox] = await Promise.all([
+      contentGrid.boundingBox(),
+      detailsPanel.boundingBox(),
+      summaryPanel.boundingBox(),
       itemMedia.boundingBox()
     ]);
-    expect(cardBox).not.toBeNull();
-    expect(orderSectionBox).not.toBeNull();
+    expect(gridBox).not.toBeNull();
+    expect(detailsBox).not.toBeNull();
     expect(summaryBox).not.toBeNull();
-    expect(customerBox).not.toBeNull();
-    expect(documentsBox).not.toBeNull();
     expect(itemMediaBox).not.toBeNull();
-    expect(Math.abs(cardBox!.x - mobileFrameBox!.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(cardBox!.width - mobileFrameBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(gridBox!.x - mobileFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(gridBox!.width - mobileFrameBox!.width)).toBeLessThanOrEqual(1);
     expect(itemMediaBox!.width).toBeLessThanOrEqual(80);
     expect(Math.abs(itemMediaBox!.width - itemMediaBox!.height)).toBeLessThanOrEqual(1);
 
-    const stackedSections = [orderSectionBox!, summaryBox!, customerBox!, documentsBox!];
-    for (const sectionBox of stackedSections) {
-      expect(sectionBox.x).toBeGreaterThanOrEqual(cardBox!.x - 1);
-      expect(sectionBox.x + sectionBox.width).toBeLessThanOrEqual(
-        cardBox!.x + cardBox!.width + 1
-      );
-    }
+    expect(detailsBox!.x).toBeGreaterThanOrEqual(gridBox!.x - 1);
+    expect(summaryBox!.x).toBeGreaterThanOrEqual(gridBox!.x - 1);
     expect(summaryBox!.y).toBeGreaterThanOrEqual(
-      orderSectionBox!.y + orderSectionBox!.height - 1
+      detailsBox!.y + detailsBox!.height - 1
     );
-    expect(customerBox!.y).toBeGreaterThanOrEqual(
-      summaryBox!.y + summaryBox!.height - 1
-    );
-    expect(documentsBox!.y).toBeGreaterThanOrEqual(
-      customerBox!.y + customerBox!.height - 1
-    );
+    await expect(orderSection).toBeVisible();
+    await expect(customer).toBeVisible();
+    await expect(documents).toBeVisible();
 
-    const accessibleSectionOrder = await card
-      .locator(
-        '[data-testid="confirmation-order-section"], [data-testid="confirmation-summary"], [data-testid="confirmation-customer-section"], [data-testid="confirmation-documents-section"]'
-      )
+    const accessibleSectionOrder = await contentGrid
+      .locator('[data-testid]')
       .evaluateAll((sections) =>
-        sections.map((section) => section.getAttribute('data-testid'))
+        sections
+          .map((section) => section.getAttribute('data-testid'))
+          .filter((testId) =>
+            [
+              'confirmation-order-section',
+              'confirmation-customer-section',
+              'confirmation-summary',
+              'confirmation-documents-section'
+            ].includes(testId ?? '')
+          )
       );
     expect(accessibleSectionOrder).toEqual([
       'confirmation-order-section',
-      'confirmation-summary',
       'confirmation-customer-section',
+      'confirmation-summary',
       'confirmation-documents-section'
     ]);
 
-    const localOverflow = await card
-      .locator(
-        '[data-testid="confirmation-order-section"], [data-testid="confirmation-summary"], [data-testid="confirmation-customer-section"], [data-testid="confirmation-documents-section"]'
-      )
-      .evaluateAll((sections) =>
-        sections.map((section) => ({
-          testId: section.getAttribute('data-testid'),
-          width: section.clientWidth,
-          scrollWidth: section.scrollWidth
+    const localOverflow = await panels.evaluateAll((panelElements) =>
+      panelElements.map((panel) => ({
+          width: panel.clientWidth,
+          scrollWidth: panel.scrollWidth
         }))
-      );
+    );
     for (const section of localOverflow) {
       expect(
         section.scrollWidth,
-        `${section.testId ?? 'confirmation section'} should not overflow locally`
+        'confirmation panel should not overflow locally'
       ).toBeLessThanOrEqual(section.width + 1);
     }
 
@@ -1167,7 +1039,8 @@ test.describe('order confirmation layout', () => {
     ).toBeVisible();
     await expect(pdfAction).toHaveJSProperty('tagName', 'BUTTON');
     await expect(pdfAction).toBeDisabled();
-    await expect(pdfAction).toContainText('Potrditev naročila (PDF)');
+    await expect(pdfAction).toContainText('PDF');
+    await expect(pdfAction).toHaveClass(/site-button--primary/u);
     await expect(preparingStatus).toBeVisible();
     await expect(
       documents.getByRole('button', { name: 'Preveri zdaj' })
@@ -1176,10 +1049,9 @@ test.describe('order confirmation layout', () => {
     expect(initialDocumentsBox).not.toBeNull();
 
     documentReady = true;
-    await expect(
-      documents.getByRole('link', { name: /^Potrditev naročila \(PDF\) / })
-    ).toBeVisible({ timeout: 4_000 });
+    await expect(pdfAction).toBeVisible({ timeout: 4_000 });
     await expect(pdfAction).toHaveJSProperty('tagName', 'A');
+    await expect(pdfAction).toHaveClass(/site-button--primary/u);
     await expect(preparingStatus).toBeHidden();
     await expect(successHeading).toBeVisible();
     await expect(

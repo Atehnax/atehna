@@ -100,7 +100,13 @@ function normalizeCustomer(body: Record<string, unknown>): QuoteRequestCustomer 
     240,
     'Organizacija'
   );
-  const contactName = limited(text(body.contactName), 240, 'Kontaktna oseba');
+  const submittedContactName = limited(
+    text(body.contactName),
+    240,
+    'Kontaktna oseba'
+  );
+  const contactName =
+    customerType === 'individual' ? customerName : submittedContactName;
   const email = limited(text(body.email).toLowerCase(), 320, 'Email');
   const addressLine1 = limited(text(body.addressLine1), 300, 'Naslov');
   const addressLine2 = limited(text(body.addressLine2), 500, 'Dodatni naslov');

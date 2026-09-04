@@ -890,7 +890,9 @@ test("admin can configure order email settings and templates without sending mai
       "quote-email-preview",
       "quote-email-template",
     );
-    const quoteAdminVariables = page.getByLabel("Dovoljene spremenljivke");
+    const quoteAdminVariables = page
+      .getByTestId("quote-email-preview-editor-toolbar")
+      .getByLabel("Dovoljene spremenljivke", { exact: true });
     await expect(
       quoteAdminVariables.getByText("{{request_number}}", { exact: true }),
     ).toBeVisible();
@@ -1006,18 +1008,22 @@ test("admin can configure order email settings and templates without sending mai
       "order-email-preview",
     );
     await expect(contextualSubject).toBeVisible();
-    const contextualPrefix = page.getByLabel(
+    const contextToolbar = page.getByTestId("order-email-preview-editor-toolbar");
+    const contextualPrefix = contextToolbar.getByLabel(
       "Predpona · skupno za naročila in ponudbe",
+      { exact: true },
     );
     await expect(contextualPrefix).toBeVisible();
     const originalPrefix = await contextualPrefix.inputValue();
     await contextualPrefix.fill(`${originalPrefix} E2E`);
     await contextualPrefix.fill(originalPrefix);
-    const contextToolbar = page.getByTestId("order-email-preview-editor-toolbar");
     await contextToolbar
       .getByRole("button", { name: "Skupna slikovna priponka" })
       .click();
-    const imageAttachmentInput = page.getByLabel("Slikovna priponka");
+    const imageAttachmentInput = contextToolbar.getByLabel(
+      "Slikovna priponka",
+      { exact: true },
+    );
     await expect(imageAttachmentInput).toHaveCount(1);
     const imageBytes = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nJ8AAAAASUVORK5CYII=",
@@ -1028,7 +1034,9 @@ test("admin can configure order email settings and templates without sending mai
       mimeType: "image/png",
       buffer: imageBytes,
     });
-    await expect(page.getByText("e2e-shared.png", { exact: true })).toBeVisible();
+    await expect(
+      contextToolbar.getByText("e2e-shared.png", { exact: true }),
+    ).toBeVisible();
     const sendTestButton = page.getByTestId("order-email-send-test");
     await expect(sendTestButton).toBeDisabled();
     await expect(saveButton).toBeEnabled();
@@ -1361,7 +1369,9 @@ test("admin can configure order email settings and templates without sending mai
     ).toBeVisible();
     await expect(orderPreviewFrame).toHaveAttribute("scrolling", "no");
 
-    const schoolCustomerVariables = page.getByLabel("Dovoljene spremenljivke");
+    const schoolCustomerVariables = page
+      .getByTestId("order-email-preview-editor-toolbar")
+      .getByLabel("Dovoljene spremenljivke", { exact: true });
     await expect(
       schoolCustomerVariables.getByText("{{organization_name}}", {
         exact: true,
@@ -1526,6 +1536,12 @@ test("admin can configure order email settings and templates without sending mai
 
     await saveButton.click();
     await delayedSaveStarted;
+    customerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    customerContent = customerEditor.editor;
     const customerContentAfterSaveStarted = {
       ...customerContentValue,
       body: "E2E novejša vsebina, vnesena med shranjevanjem.",

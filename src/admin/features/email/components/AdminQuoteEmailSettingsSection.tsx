@@ -15,6 +15,7 @@ import {
 import {
   buildQuoteEmailMessage
 } from '@/shared/domain/quote/quoteEmailTemplates';
+import type { EmailTemplatePresentation } from '@/shared/domain/emailTemplateLayout';
 import type { OrderEmailSettings } from '@/shared/domain/order/orderEmailSettings';
 import type { QuoteEmailAdminState } from '@/shared/server/quoteEmailSettings';
 import {
@@ -41,6 +42,9 @@ import EmailTemplateWorkspace, {
   EmailTemplateRecipientToggle,
   getEmailTemplateActivity
 } from '@/admin/features/email/components/EmailTemplateWorkspace';
+import type {
+  EmailTemplateContextSharedContent
+} from '@/admin/features/email/components/EmailTemplateContextToolbar';
 import { getQuoteEmailEventStatusPresentation } from '@/admin/features/email/emailEventStatusPresentation';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 
@@ -68,6 +72,7 @@ export type AdminQuoteEmailSaveState = {
 type AdminQuoteEmailSettingsSectionProps = {
   initialState: QuoteEmailAdminState;
   sharedSettings: OrderEmailSettings;
+  sharedContent: EmailTemplateContextSharedContent;
   onSaveStateChange?: (state: AdminQuoteEmailSaveState) => void;
 };
 
@@ -95,6 +100,10 @@ const quoteEmailPreviewAudienceOptions = [
   value: QuoteEmailTemplateAudience;
   label: string;
 }>;
+const quoteEmailSpacingDefaults = {
+  audienceDetails: 0,
+  primaryAction: 20
+} as const;
 const QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER = 'POV-2026-001';
 const QUOTE_EMAIL_PREVIEW_OFFER_NUMBER = 'PON-2026-001';
 const quoteEmailPreviewDetails: Partial<Record<EditableEvent, string>> = {
@@ -176,7 +185,7 @@ const AdminQuoteEmailSettingsSection = forwardRef<
   AdminQuoteEmailSettingsHandle,
   AdminQuoteEmailSettingsSectionProps
 >(function AdminQuoteEmailSettingsSection(
-  { initialState, sharedSettings, onSaveStateChange },
+  { initialState, sharedSettings, sharedContent, onSaveStateChange },
   ref
 ) {
   const { toast } = useToast();
@@ -199,37 +208,40 @@ const AdminQuoteEmailSettingsSection = forwardRef<
   );
   const quotePreview = useMemo(() => {
     try {
-      const message = buildQuoteEmailMessage({
-        eventType: selectedEvent,
-        audience: quotePreviewAudience === 'admin' ? 'admin' : 'customer',
-        customerType:
-          quotePreviewAudience === 'schoolCustomer'
-            ? 'school'
-            : quotePreviewAudience === 'companyCustomer'
-              ? 'company'
-              : 'individual',
-        recipientEmail:
-          quotePreviewAudience === 'admin'
-            ? 'admin@example.invalid'
-            : 'ana.novak@example.com',
-        recipientName:
-          quotePreviewAudience === 'admin' ? null : 'Ana Novak',
-        requestNumber: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
-        offerNumber: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
-        offerUrl:
-          selectedEvent === 'quote_issued'
-            ? 'https://example.invalid/quote/offer'
-            : null,
-        detail: quoteEmailPreviewDetails[selectedEvent] ?? null,
-        sharedSettings: {
-          ...sharedSettings,
-          senderName: sharedSettings.senderName.trim() || 'Atehna',
-          fromEmail: 'preview@example.invalid',
-          replyToEmail: '',
-          imageAttachment: null
+      const message = buildQuoteEmailMessage(
+        {
+          eventType: selectedEvent,
+          audience: quotePreviewAudience === 'admin' ? 'admin' : 'customer',
+          customerType:
+            quotePreviewAudience === 'schoolCustomer'
+              ? 'school'
+              : quotePreviewAudience === 'companyCustomer'
+                ? 'company'
+                : 'individual',
+          recipientEmail:
+            quotePreviewAudience === 'admin'
+              ? 'admin@example.invalid'
+              : 'ana.novak@example.com',
+          recipientName:
+            quotePreviewAudience === 'admin' ? null : 'Ana Novak',
+          requestNumber: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
+          offerNumber: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
+          offerUrl:
+            selectedEvent === 'quote_issued'
+              ? 'https://example.invalid/quote/offer'
+              : null,
+          detail: quoteEmailPreviewDetails[selectedEvent] ?? null,
+          sharedSettings: {
+            ...sharedSettings,
+            senderName: sharedSettings.senderName.trim() || 'Atehna',
+            fromEmail: 'preview@example.invalid',
+            replyToEmail: '',
+            imageAttachment: null
+          },
+          quoteSettings: draft
         },
-        quoteSettings: draft
-      });
+        { editorPreview: true }
+      );
       return { subject: message.subject, html: message.html, error: null };
     } catch {
       return {
@@ -280,6 +292,29 @@ const AdminQuoteEmailSettingsSection = forwardRef<
         }
       }
     }));
+  };
+
+  const updateTemplatePresentation = (
+    audience: QuoteEmailTemplateAudience,
+    presentation: EmailTemplatePresentation | undefined
+  ) => {
+    setDraft((current) => {
+      const currentTemplate = current.templates[selectedEvent][audience];
+      const { presentation: _presentation, ...templateWithoutPresentation } =
+        currentTemplate;
+      return {
+        ...current,
+        templates: {
+          ...current.templates,
+          [selectedEvent]: {
+            ...current.templates[selectedEvent],
+            [audience]: presentation
+              ? { ...templateWithoutPresentation, presentation }
+              : templateWithoutPresentation
+          }
+        }
+      };
+    });
   };
 
   const resetTemplate = (audience: QuoteEmailTemplateAudience) => {
@@ -551,15 +586,11 @@ const AdminQuoteEmailSettingsSection = forwardRef<
           headingLevel={3}
           testId="quote-email-message-templates"
           title="Predloge sporočil"
-          description="Za vsak dogodek posebej nastavite zadevo in oblikovano vsebino za posamezne skupine prejemnikov. Sistemski podatki ponudbe se dodajo samodejno."
           eventSelector={
             <>
               <label htmlFor="quote-email-template-event" className="block">
                 <span className="block text-xs font-semibold text-slate-700">
                   Dogodek ponudbe
-                </span>
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  Izberite dogodek, katerega predloge so prikazane spodaj.
                 </span>
               </label>
               <CustomSelect<EditableEvent>
@@ -611,6 +642,7 @@ const AdminQuoteEmailSettingsSection = forwardRef<
           }
           audiences={quoteEmailPreviewAudienceOptions}
           activeAudience={quotePreviewAudience}
+          selectionKey={selectedEvent}
           onAudienceChange={setQuotePreviewAudience}
           workspaceTestId="quote-email-template-grid"
           editor={{
@@ -637,8 +669,13 @@ const AdminQuoteEmailSettingsSection = forwardRef<
                 updateTemplate(quotePreviewAudience, 'contentHtml', value)
             },
             variables: QUOTE_EMAIL_TEMPLATE_VARIABLES[quotePreviewAudience],
-            variablesAriaLabel: `Dovoljene spremenljivke za ${selectedAudience.label}`
+            variablesAriaLabel: `Dovoljene spremenljivke za ${selectedAudience.label}`,
+            presentation: selectedAudienceTemplate.presentation,
+            onPresentationChange: (presentation) =>
+              updateTemplatePresentation(quotePreviewAudience, presentation),
+            spacingDefaults: quoteEmailSpacingDefaults
           }}
+          sharedContent={sharedContent}
           onReset={() => resetTemplate(quotePreviewAudience)}
           resetTestId={`quote-email-template-${quotePreviewAudience}-reset`}
           resetAriaLabel={`Ponastavi privzeto predlogo za ${selectedAudience.label}`}

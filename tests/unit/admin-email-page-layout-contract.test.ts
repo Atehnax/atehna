@@ -56,46 +56,24 @@ test("email sections are assigned to compact persistent tab panels without losin
     ui.match(/data-testid="quote-email-delivery-settings"/gu)?.length,
     1,
   );
-  assert.equal(settingsSource.match(/<SettingsCard>/gu)?.length, 5);
+  assert.equal(settingsSource.match(/<SettingsCard>/gu)?.length, 4);
   assert.match(settingsSource, /className="space-y-3 outline-none"/u);
   assert.match(settingsSource, /title="Pošiljatelj in povezave"/u);
   const senderSettings = settingsSource.indexOf(
     'testId="order-email-sender-settings"',
-  );
-  const sharedContent = settingsSource.indexOf(
-    'testId="order-email-shared-content"',
   );
   const customerConfirmation = settingsSource.indexOf(
     'data-testid="order-email-customer-confirmation-settings"',
   );
   assert.ok(
     senderSettings > 0 &&
-      senderSettings < sharedContent &&
-      sharedContent < customerConfirmation,
+      senderSettings < customerConfirmation,
   );
-  assert.match(settingsSource, /title="Skupna vsebina"/u);
-  assert.match(settingsSource, /id="order-email-subject-prefix"/u);
-  assert.match(settingsSource, /id="order-email-header"/u);
-  assert.match(settingsSource, /id="order-email-footer"/u);
-  assert.match(settingsSource, /id="order-email-image-attachment"/u);
-  assert.match(
+  assert.doesNotMatch(settingsSource, /title="Skupna vsebina"/u);
+  assert.doesNotMatch(
     settingsSource,
-    /grid items-stretch gap-0 lg:grid-cols-\[minmax\(0,1\.15fr\)_minmax\(20rem,0\.85fr\)\]/u,
+    /order-email-(?:shared-content|subject-prefix|header|footer|image-attachment)/u,
   );
-  assert.match(settingsSource, /min-w-0 space-y-3 lg:pr-5/u);
-  assert.match(settingsSource, /lg:flex lg:h-full lg:min-h-0 lg:flex-col/u);
-  assert.match(settingsSource, /lg:border-l lg:border-t-0 lg:pl-5/u);
-  assert.match(ui, /textareaClassName = [\s\S]*?h-12 min-h-12[\s\S]*?py-1\.5[\s\S]*?leading-4/u);
-  assert.match(settingsSource, /data-email-image-surface="true"/u);
-  assert.match(settingsSource, /lg:min-h-0 lg:flex-1/u);
-  assert.match(settingsSource, /Samodejna vsebina e-pošte/u);
-  assert.match(settingsSource, /data-testid="order-email-image-empty-state"/u);
-  assert.doesNotMatch(settingsSource, /lg:row-span-2/u);
-  assert.match(
-    settingsSource,
-    /accept="image\/png,image\/jpeg,image\/webp,image\/gif"/u,
-  );
-  assert.equal(ui.match(/testId="order-email-shared-content"/gu)?.length, 1);
   assert.match(settingsSource, /title="Potrditve in prejemniki"/u);
   assert.match(settingsSource, /Potrditev e-pošte stranki/u);
   assert.match(settingsSource, /order-email-customer-confirmation-settings/u);
@@ -123,10 +101,11 @@ test("email sections are assigned to compact persistent tab panels without losin
   assert.doesNotMatch(ordersSource, /title="Preizkus pošiljanja"/u);
   assert.doesNotMatch(ordersSource, /title="Skupna (?:vsebina|raba)"/u);
   const orderTemplateSource = ordersSource.slice(orderTemplates, orderQueue);
-  assert.doesNotMatch(
-    orderTemplateSource,
-    /order-email-(?:shared-content|subject-prefix|header|footer|image-attachment)/u,
-  );
+  assert.match(orderTemplateSource, /sharedContent=\{sharedContent\}/u);
+  assert.match(orderTemplateSource, /presentation: selectedTemplate\.presentation/u);
+  assert.match(orderTemplateSource, /systemLines: \{/u);
+  assert.match(orderTemplateSource, /lines: selectedTemplateSystemLines/u);
+  assert.match(orderTemplateSource, /available: selectedTemplateSystemFields/u);
 
   const quotesSource = ui.slice(quotesPanel);
   assert.match(quotesSource, /AdminQuoteEmailSettingsSection/u);
@@ -153,10 +132,10 @@ test("email sections are assigned to compact persistent tab panels without losin
     quoteTemplateSource,
     /updateTemplate\(quotePreviewAudience, 'subject', value\)[\s\S]*?updateTemplate\(quotePreviewAudience, 'contentHtml', value\)[\s\S]*?resetTemplate\(quotePreviewAudience\)/u,
   );
-  assert.doesNotMatch(
-    quoteTemplateSource,
-    /order-email-(?:shared-content|subject-prefix|header|footer|image-attachment)/u,
-  );
+  assert.match(quoteTemplateSource, /presentation: selectedAudienceTemplate\.presentation/u);
+  assert.match(quoteTemplateSource, /updateTemplatePresentation\(quotePreviewAudience, presentation\)/u);
+  assert.match(quoteTemplateSource, /sharedContent=\{sharedContent\}/u);
+  assert.match(quotesSource, /sharedContent=\{sharedContent\}/u);
   assert.match(ui, /hidden=\{activeTab !== "settings"\}/u);
   assert.match(ui, /hidden=\{activeTab !== "orders"\}/u);
   assert.match(ui, /hidden=\{activeTab !== "quotes"\}/u);
@@ -242,11 +221,6 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   assert.match(ui, /adminTableRowHeightClassName/u);
   assert.match(ui, /table-fixed text-\[12px\]/u);
   assert.match(ui, /<EmailTemplateWorkspace<TemplateAudience>/u);
-  assert.ok(
-    templateWorkspace.includes(
-      "lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch",
-    ),
-  );
   assert.match(templateWorkspace, /<EuiTabs/u);
   assert.match(templateWorkspace, /surface="panel"/u);
   assert.match(templateWorkspace, /variant="secondary"/u);
@@ -261,38 +235,25 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   );
   assert.match(
     templateWorkspace,
-    /import AdminRichTextEditor from '@\/admin\/components\/AdminRichTextEditor'/u,
+    /import EmailTemplateContextToolbar/u,
   );
-  assert.match(templateWorkspace, /<AdminRichTextEditor/u);
-  assert.match(
-    templateWorkspace,
-    /value=\{editor\.contentHtml\.value\}[\s\S]*?onChange=\{editor\.contentHtml\.onChange\}/u,
-  );
-  assert.match(
-    templateWorkspace,
-    /maxLength=\{editor\.contentHtml\.maxLength\}/u,
-  );
-  assert.match(templateWorkspace, /allowImages=\{false\}/u);
-  assert.match(
-    templateWorkspace,
-    /heightClassName="h-\[17rem\] min-h-\[15rem\]"/u,
-  );
+  assert.match(templateWorkspace, /const \[selectedBlockId, setSelectedBlockId\] = useState/u);
   assert.match(
     templateWorkspace,
     /className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"/u,
   );
   assert.match(
     templateWorkspace,
-    /const previewVariableValues = new Map\([\s\S]*?preview\.variables\.map/u,
+    /previewVariableValues = useMemo\([\s\S]*?preview\.variables\.map/u,
   );
-  assert.match(
-    templateWorkspace,
-    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md[^"]*!leading-5[\s\S]*?previewVariableValues\.get\(variable\)/u,
-  );
-  assert.match(templateWorkspace, /<EmailMessagePreview \{\.\.\.preview\} variant="workspace"/u);
-  assert.match(templateWorkspace, /data-testid=[^\n]*-editor-panel/u);
-  assert.match(templateWorkspace, /data-testid=[^\n]*-preview-panel/u);
-  assert.match(templateWorkspace, /lg:absolute lg:inset-4 lg:min-h-0/u);
+  assert.match(templateWorkspace, /<EmailMessagePreview[\s\S]*?variant="workspace"[\s\S]*?editor=\{\{/u);
+  assert.match(templateWorkspace, /<EmailTemplateContextToolbar/u);
+  assert.match(templateWorkspace, /presentation=\{editor\.presentation\}/u);
+  assert.match(templateWorkspace, /onPresentationChange=\{editor\.onPresentationChange\}/u);
+  assert.match(templateWorkspace, /sharedContent=\{sharedContent\}/u);
+  assert.match(templateWorkspace, /systemLines=\{editor\.systemLines\}/u);
+  assert.doesNotMatch(templateWorkspace, /data-testid=[^\n]*-editor-panel/u);
+  assert.doesNotMatch(templateWorkspace, /<Input|<AdminRichTextEditor/u);
   assert.match(templateWorkspace, /export function EmailTemplateRecipientToggle/u);
   assert.match(templateWorkspace, /role="switch"/u);
   assert.match(templateWorkspace, /aria-checked=\{checked\}/u);
@@ -374,12 +335,12 @@ test("order events keep lifecycle tones while templates expose delivery activity
   assert.doesNotMatch(ui, /selectedTemplateStatusPresentation/u);
 });
 
-test("converted order email Inputs keep accessible names aligned with their visible labels", () => {
+test("order email settings keep permanent fields accessible while template fields move into the contextual editor", () => {
   const ui = source(
     "src/admin/features/email/components/AdminOrderEmailSettingsPageClient.tsx",
   );
-  const templateWorkspace = source(
-    "src/admin/features/email/components/EmailTemplateWorkspace.tsx",
+  const contextToolbar = source(
+    "src/admin/features/email/components/EmailTemplateContextToolbar.tsx",
   );
 
   for (const [id, label] of [
@@ -388,7 +349,6 @@ test("converted order email Inputs keep accessible names aligned with their visi
     ["order-email-reply-to", "Naslov za odgovore"],
     ["order-email-site-url", "Naslov spletnega mesta"],
     ["order-email-test-recipient", "Prejemnik testa"],
-    ["order-email-subject-prefix", "Predpona zadeve"],
   ] as const) {
     assert.match(ui, new RegExp(`id="${id}"\\s+aria-label="${label}"`, "u"));
   }
@@ -398,8 +358,9 @@ test("converted order email Inputs keep accessible names aligned with their visi
     ui,
     /contentHtml: \{[\s\S]*?label: "Vsebina sporočila"/u,
   );
-  assert.match(templateWorkspace, /aria-label=\{editor\.subject\.label\}/u);
-  assert.match(templateWorkspace, /ariaLabel=\{editor\.contentHtml\.label\}/u);
+  assert.match(contextToolbar, /id=\{`\$\{idPrefix\}-subject`\}/u);
+  assert.match(contextToolbar, /ariaLabel="Vsebina sporočila"/u);
+  assert.match(contextToolbar, /toolbarVariant="compact"/u);
   assert.doesNotMatch(ui, /greeting: \{|heading: \{|body: \{/u);
   assert.doesNotMatch(ui, /Predpona zadeve se doda samodejno\./u);
   assert.doesNotMatch(
@@ -410,11 +371,9 @@ test("converted order email Inputs keep accessible names aligned with their visi
     ui,
     /id=\{`order-email-admin-\$\{index\}`\}\s+aria-label=\{`E-poštni naslov administratorja \$\{index \+ 1\}`\}/u,
   );
-  assert.match(ui, /id="order-email-header"\s+aria-label="Besedilo glave"/u);
-  assert.match(
-    ui,
-    /id="order-email-footer"\s+aria-label="Dodatno besedilo v nogi"/u,
-  );
+  assert.doesNotMatch(ui, /id="order-email-(?:subject-prefix|header|footer)"/u);
+  assert.match(contextToolbar, /aria-label=[\s\S]*?'Besedilo glave'/u);
+  assert.match(contextToolbar, /'Dodatno besedilo v nogi'/u);
 });
 
 test("shared email image attachment stages locally, uploads on save, and blocks test send until persisted", () => {
@@ -433,10 +392,9 @@ test("shared email image attachment stages locally, uploads on save, and blocks 
     /submittedConfig = \{\s+\.\.\.submittedDraft,\s+imageAttachment,/u,
   );
   assert.match(ui, /JSON\.stringify\(\{ config: submittedConfig \}\)/u);
-  assert.match(ui, /data-testid="order-email-image-upload"/u);
-  assert.match(ui, /data-testid="order-email-image-replace"/u);
-  assert.match(ui, /data-testid="order-email-image-remove"/u);
-  assert.match(ui, /data-testid="order-email-image-preview"/u);
+  assert.match(ui, /onImageSelected: handleImageAttachmentSelected/u);
+  assert.match(ui, /onImageRemove: removeImageAttachment/u);
+  assert.match(ui, /imageAttachment: displayedImageAttachment/u);
   assert.match(
     ui,
     /testing \|\|\s+saving \|\|\s+uploadingImageAttachment \|\|\s+stagedImageAttachment !== null/u,
@@ -495,7 +453,7 @@ test("email message previews isolate rendered HTML while providing a bounded, zo
     preview,
     /role="region"[\s\S]*?tabIndex=\{0\}[\s\S]*?aria-label="Območje predogleda sporočila"/u,
   );
-  assert.match(preview, /h-\[32rem\][\s\S]*?lg:h-auto lg:flex-1/u);
+  assert.match(preview, /h-\[37rem\]/u);
   assert.match(preview, /workspace && !error/u);
   assert.match(preview, /workspacePreviewPercent/u);
   assert.match(preview, /height: workspaceRenderedFrameHeight/u);
@@ -534,7 +492,13 @@ test("order and quote templates expose live audience previews from their unsaved
   assert.match(orderUi, /buildOrderEmailMessage/u);
   assert.match(orderUi, /toStoredOrderEmailSettings/u);
   assert.match(orderUi, /buildOrderEmailPreviewMessage\(\s*draft,/u);
-  assert.match(orderUi, /imageUrl: null/u);
+  assert.match(orderUi, /imageUrl: ORDER_EMAIL_PREVIEW_IMAGE_URL/u);
+  assert.match(orderUi, /buildOrderEmailMessage\(payload, \{ editorPreview: true \}\)/u);
+  assert.match(
+    orderUi,
+    /message\.html\.replaceAll\([\s\S]*?ORDER_EMAIL_PREVIEW_IMAGE_URL,[\s\S]*?ORDER_EMAIL_PREVIEW_IMAGE_DATA_URL/u,
+  );
+  assert.match(orderUi, /"data:image\/svg\+xml/u);
   assert.match(orderUi, /testId: "order-email-preview"/u);
   assert.match(orderUi, /activeAudience=\{orderPreviewAudience\}/u);
   assert.match(orderUi, /onAudienceChange=\{\(audience\) => \{/u);
@@ -544,13 +508,18 @@ test("order and quote templates expose live audience previews from their unsaved
     assert.match(quoteUi, new RegExp(`label: '${label.replace('/', '\\/')}'`, "u"));
   }
   assert.match(orderUi, /sharedSettings=\{draft\}/u);
+  assert.match(orderUi, /sharedContent=\{sharedContent\}/u);
+  assert.match(orderUi, /resolveOrderEmailSystemLines/u);
 
   assert.match(quoteUi, /buildQuoteEmailMessage/u);
+  assert.match(quoteUi, /\{ editorPreview: true \}/u);
   assert.match(quoteUi, /quoteSettings: draft/u);
   assert.match(quoteUi, /\.\.\.sharedSettings/u);
   assert.match(quoteUi, /testId: 'quote-email-preview'/u);
   assert.match(quoteUi, /activeAudience=\{quotePreviewAudience\}/u);
   assert.match(quoteUi, /onAudienceChange=\{setQuotePreviewAudience\}/u);
+  assert.match(quoteUi, /presentation: selectedAudienceTemplate\.presentation/u);
+  assert.match(quoteUi, /sharedContent=\{sharedContent\}/u);
   assert.doesNotMatch(orderUi, /order-email-preview-audience/u);
   assert.doesNotMatch(quoteUi, /quote-email-preview-audience/u);
   assert.doesNotMatch(

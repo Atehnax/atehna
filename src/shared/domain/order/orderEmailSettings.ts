@@ -4,6 +4,14 @@ import {
   legacyEmailTemplateContentHtml,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
+import {
+  EMAIL_TEMPLATE_SPACING_MAX_PX,
+  EMAIL_TEMPLATE_SPACING_MIN_PX,
+  cloneEmailTemplatePresentation,
+  normalizeEmailTemplatePresentation,
+  validateEmailTemplatePresentation,
+  type EmailTemplatePresentation
+} from '../emailTemplateLayout';
 import { COMPANY_INFO } from './constants';
 import { ORDER_STATUS_OPTIONS } from './orderStatus';
 
@@ -52,9 +60,39 @@ export type OrderEmailAudienceSettings = {
   admins: boolean;
 };
 
+export const ORDER_EMAIL_SYSTEM_FIELD_IDS = [
+  'orderCreatedAt',
+  'eventStatus',
+  'customerName',
+  'customerContact',
+  'customerAddress',
+  'customerEmail',
+  'customerReference',
+  'orderNumber'
+] as const;
+
+export type OrderEmailSystemFieldId =
+  (typeof ORDER_EMAIL_SYSTEM_FIELD_IDS)[number];
+
+export type OrderEmailSystemLine = {
+  field: OrderEmailSystemFieldId;
+  label: string;
+  /** Optional vertical gap immediately before this individual line. */
+  spacingBeforePx?: number;
+};
+
+export type OrderEmailTemplatePresentation = EmailTemplatePresentation & {
+  /**
+   * Ordered renderer-owned values. Missing keeps the legacy audience defaults;
+   * an explicit empty array intentionally hides every system line.
+   */
+  systemLines?: OrderEmailSystemLine[];
+};
+
 export type OrderEmailTemplate = {
   subject: string;
   contentHtml?: string;
+  presentation?: OrderEmailTemplatePresentation;
   /** Legacy read compatibility for stored v5 settings and queued snapshots. */
   greeting?: string;
   /** Legacy read compatibility for stored v5 settings and queued snapshots. */
@@ -105,6 +143,7 @@ export const ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
 export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
 export const ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 20_000;
 export const ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH = 1_000;
+export const ORDER_EMAIL_SYSTEM_LINE_LABEL_MAX_LENGTH = 80;
 export const ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 export const ORDER_EMAIL_IMAGE_ATTACHMENT_CONTENT_TYPES = [
   'image/png',
@@ -122,7 +161,7 @@ export type OrderEmailImageAttachment = {
 };
 
 export type OrderEmailSettings = {
-  version: 6;
+  version: 7;
   enabled: boolean;
   confirmCustomerEmails: boolean;
   senderName: string;
@@ -342,7 +381,7 @@ const defaultTemplates = Object.fromEntries(
 ) as OrderEmailTemplates;
 
 export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
-  version: 6,
+  version: 7,
   enabled: false,
   confirmCustomerEmails: true,
   senderName: 'Atehna',
@@ -357,6 +396,26 @@ export const DEFAULT_ORDER_EMAIL_SETTINGS: OrderEmailSettings = {
   events: defaultEvents,
   templates: defaultTemplates,
   updatedAt: null
+};
+
+export type OrderEmailSystemLineAudience = 'customer' | 'admin';
+
+export const DEFAULT_ORDER_EMAIL_SYSTEM_LINES: Readonly<
+  Record<OrderEmailSystemLineAudience, readonly OrderEmailSystemLine[]>
+> = {
+  customer: [
+    { field: 'orderCreatedAt', label: 'Datum' },
+    { field: 'eventStatus', label: 'Status' }
+  ],
+  admin: [
+    { field: 'customerName', label: 'Naročnik' },
+    { field: 'customerAddress', label: 'Naslov' },
+    { field: 'customerEmail', label: 'E-pošta' },
+    { field: 'customerReference', label: 'Referenca' },
+    { field: 'orderNumber', label: 'Naročilo' },
+    { field: 'orderCreatedAt', label: 'Datum' },
+    { field: 'eventStatus', label: 'Status' }
+  ]
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -381,6 +440,112 @@ function sanitizeHeaderText(value: unknown, fallback: string): string {
     .replace(HEADER_CONTROLS_GLOBAL_PATTERN, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
+}
+
+const orderEmailSystemFieldIds = new Set<string>(
+  ORDER_EMAIL_SYSTEM_FIELD_IDS
+);
+const customerOrderEmailSystemFieldIds =
+  new Set<OrderEmailSystemFieldId>(
+    ORDER_EMAIL_SYSTEM_FIELD_IDS.filter((field) => field !== 'orderNumber')
+  );
+const defaultOrderEmailSystemLineLabels: Record<
+  OrderEmailSystemFieldId,
+  string
+> = {
+  orderCreatedAt: 'Datum',
+  eventStatus: 'Status',
+  customerName: 'Naročnik',
+  customerContact: 'Kontakt',
+  customerAddress: 'Naslov',
+  customerEmail: 'E-pošta',
+  customerReference: 'Referenca',
+  orderNumber: 'Naročilo'
+};
+
+export function isOrderEmailSystemFieldId(
+  value: unknown
+): value is OrderEmailSystemFieldId {
+  return typeof value === 'string' && orderEmailSystemFieldIds.has(value);
+}
+
+function normalizeOrderEmailSystemLineSpacingBeforePx(
+  value: unknown
+): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return Math.min(
+    EMAIL_TEMPLATE_SPACING_MAX_PX,
+    Math.max(EMAIL_TEMPLATE_SPACING_MIN_PX, Math.round(value))
+  );
+}
+
+function normalizeOrderEmailSystemLines(
+  value: unknown,
+  audience: OrderEmailSystemLineAudience
+): OrderEmailSystemLine[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return undefined;
+  const lines: OrderEmailSystemLine[] = [];
+  const seen = new Set<OrderEmailSystemFieldId>();
+  for (const rawLine of value) {
+    const line = asRecord(rawLine);
+    if (
+      !isOrderEmailSystemFieldId(line.field) ||
+      seen.has(line.field) ||
+      (audience === 'customer' &&
+        !customerOrderEmailSystemFieldIds.has(line.field))
+    ) {
+      continue;
+    }
+    const sanitizedLabel = sanitizeHeaderText(
+      line.label,
+      defaultOrderEmailSystemLineLabels[line.field]
+    ).slice(0, ORDER_EMAIL_SYSTEM_LINE_LABEL_MAX_LENGTH);
+    const label = sanitizedLabel || defaultOrderEmailSystemLineLabels[line.field];
+    const spacingBeforePx = normalizeOrderEmailSystemLineSpacingBeforePx(
+      line.spacingBeforePx
+    );
+    lines.push({
+      field: line.field,
+      label,
+      ...(spacingBeforePx === undefined ? {} : { spacingBeforePx })
+    });
+    seen.add(line.field);
+  }
+  return lines;
+}
+
+export function resolveOrderEmailSystemLines(
+  template: Pick<OrderEmailTemplate, 'presentation'> | undefined,
+  audience: OrderEmailSystemLineAudience
+): OrderEmailSystemLine[] {
+  const configured = normalizeOrderEmailSystemLines(
+    template?.presentation?.systemLines,
+    audience
+  );
+  return (configured ?? DEFAULT_ORDER_EMAIL_SYSTEM_LINES[audience]).map(
+    (line) => ({ ...line })
+  );
+}
+
+function cloneOrderEmailTemplate(
+  value: OrderEmailTemplate
+): OrderEmailTemplate {
+  const basePresentation = cloneEmailTemplatePresentation(value.presentation);
+  const systemLines = value.presentation?.systemLines?.map((line) => ({
+    ...line
+  }));
+  const presentation =
+    basePresentation || systemLines !== undefined
+      ? {
+          ...basePresentation,
+          ...(systemLines === undefined ? {} : { systemLines })
+        }
+      : undefined;
+  return {
+    ...value,
+    ...(presentation ? { presentation } : {})
+  };
 }
 
 function normalizeEmail(value: unknown): string {
@@ -575,14 +740,16 @@ export function cloneOrderEmailSettings(
       ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => [
         eventType,
         {
-          customer: { ...value.templates[eventType].customer },
-          companyCustomer: {
-            ...value.templates[eventType].companyCustomer
-          },
-          schoolCustomer: {
-            ...value.templates[eventType].schoolCustomer
-          },
-          admin: { ...value.templates[eventType].admin },
+          customer: cloneOrderEmailTemplate(
+            value.templates[eventType].customer
+          ),
+          companyCustomer: cloneOrderEmailTemplate(
+            value.templates[eventType].companyCustomer
+          ),
+          schoolCustomer: cloneOrderEmailTemplate(
+            value.templates[eventType].schoolCustomer
+          ),
+          admin: cloneOrderEmailTemplate(value.templates[eventType].admin),
         }
       ])
     ) as OrderEmailTemplates
@@ -593,7 +760,8 @@ export const cloneDefaultOrderEmailSettings = cloneOrderEmailSettings;
 
 function normalizeTemplate(
   rawTemplate: UnknownRecord,
-  defaults: OrderEmailTemplate
+  defaults: OrderEmailTemplate,
+  audience: OrderEmailSystemLineAudience
 ): OrderEmailTemplate {
   const subject = sanitizeHeaderText(rawTemplate.subject, defaults.subject);
   const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
@@ -613,9 +781,25 @@ function normalizeTemplate(
     typeof rawTemplate.contentHtml === 'string'
       ? sanitizeEmailTemplateRichText(rawTemplate.contentHtml)
       : legacyContent;
+  const rawPresentation = asRecord(rawTemplate.presentation);
+  const basePresentation = normalizeEmailTemplatePresentation(
+    rawTemplate.presentation
+  );
+  const systemLines = normalizeOrderEmailSystemLines(
+    rawPresentation.systemLines,
+    audience
+  );
+  const presentation =
+    basePresentation || systemLines !== undefined
+      ? {
+          ...basePresentation,
+          ...(systemLines === undefined ? {} : { systemLines })
+        }
+      : undefined;
   return {
     subject,
-    contentHtml: contentHtml || defaults.contentHtml
+    contentHtml: contentHtml || defaults.contentHtml,
+    ...(presentation ? { presentation } : {})
   };
 }
 
@@ -667,16 +851,22 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
       return [
         eventType,
         {
-          customer: normalizeTemplate(rawCustomer, defaults.customer),
+          customer: normalizeTemplate(
+            rawCustomer,
+            defaults.customer,
+            'customer'
+          ),
           companyCustomer: normalizeTemplate(
             companyCustomerSource,
-            defaults.companyCustomer
+            defaults.companyCustomer,
+            'customer'
           ),
           schoolCustomer: normalizeTemplate(
             schoolCustomerSource,
-            defaults.schoolCustomer
+            defaults.schoolCustomer,
+            'customer'
           ),
-          admin: normalizeTemplate(rawAdmin, defaults.admin),
+          admin: normalizeTemplate(rawAdmin, defaults.admin, 'admin'),
         }
       ];
     })
@@ -690,7 +880,7 @@ export function normalizeOrderEmailSettings(value: unknown): OrderEmailSettings 
         : null;
 
   return {
-    version: 6,
+    version: 7,
     enabled:
       typeof record.enabled === 'boolean'
         ? record.enabled
@@ -755,6 +945,86 @@ function isValidSiteUrl(value: unknown): boolean {
   }
 }
 
+function validateOrderEmailTemplatePresentation(
+  value: unknown,
+  audience: OrderEmailSystemLineAudience,
+  templateLabel: string
+): string[] {
+  const errors = validateEmailTemplatePresentation(value).map(
+    (error) => `Postavitev predloge za ${templateLabel} ni veljavna: ${error}.`
+  );
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return errors;
+  }
+  const presentation = value as UnknownRecord;
+  if (presentation.systemLines === undefined) return errors;
+  if (!Array.isArray(presentation.systemLines)) {
+    errors.push(
+      `Sistemske vrstice predloge za ${templateLabel} niso veljavne.`
+    );
+    return errors;
+  }
+  if (presentation.systemLines.length > ORDER_EMAIL_SYSTEM_FIELD_IDS.length) {
+    errors.push(
+      `Predloga za ${templateLabel} ima preveč sistemskih vrstic.`
+    );
+  }
+  const seen = new Set<OrderEmailSystemFieldId>();
+  presentation.systemLines.forEach((rawLine, index) => {
+    if (!rawLine || typeof rawLine !== 'object' || Array.isArray(rawLine)) {
+      errors.push(
+        `Sistemska vrstica ${index + 1} predloge za ${templateLabel} ni veljavna.`
+      );
+      return;
+    }
+    const line = rawLine as UnknownRecord;
+    if (!isOrderEmailSystemFieldId(line.field)) {
+      errors.push(
+        `Sistemska vrstica ${index + 1} predloge za ${templateLabel} nima veljavnega polja.`
+      );
+      return;
+    }
+    if (
+      audience === 'customer' &&
+      !customerOrderEmailSystemFieldIds.has(line.field)
+    ) {
+      errors.push(
+        `Polje »${line.field}« ni dovoljeno v predlogi za ${templateLabel}.`
+      );
+    }
+    if (seen.has(line.field)) {
+      errors.push(
+        `Polje »${line.field}« je v predlogi za ${templateLabel} podvojeno.`
+      );
+    }
+    seen.add(line.field);
+    if (
+      typeof line.label !== 'string' ||
+      !line.label.trim() ||
+      HEADER_CONTROL_PATTERN.test(line.label) ||
+      line.label.length > ORDER_EMAIL_SYSTEM_LINE_LABEL_MAX_LENGTH
+    ) {
+      errors.push(
+        `Oznaka sistemske vrstice ${index + 1} predloge za ${templateLabel} ni veljavna.`
+      );
+    }
+    if (line.spacingBeforePx !== undefined) {
+      const spacing = line.spacingBeforePx;
+      if (
+        typeof spacing !== 'number' ||
+        !Number.isSafeInteger(spacing) ||
+        spacing < EMAIL_TEMPLATE_SPACING_MIN_PX ||
+        spacing > EMAIL_TEMPLATE_SPACING_MAX_PX
+      ) {
+        errors.push(
+          `Razmik pred sistemsko vrstico ${index + 1} predloge za ${templateLabel} mora biti celo število od ${EMAIL_TEMPLATE_SPACING_MIN_PX} do ${EMAIL_TEMPLATE_SPACING_MAX_PX}.`
+        );
+      }
+    }
+  });
+  return errors;
+}
+
 function validateTemplate(
   value: unknown,
   eventLabel: string,
@@ -778,6 +1048,13 @@ function validateTemplate(
     errors.push(`Predloga za ${audienceLabel} (${eventLabel}) ni veljavna.`);
     return errors;
   }
+  errors.push(
+    ...validateOrderEmailTemplatePresentation(
+      record.presentation,
+      audience === 'admin' ? 'admin' : 'customer',
+      `${audienceLabel} (${eventLabel})`
+    )
+  );
   if (record.subject !== undefined && typeof record.subject !== 'string') {
     errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) ni veljavna.`);
   }

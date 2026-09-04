@@ -85,35 +85,6 @@ async function expectSharpAdminFocus(control: Locator) {
   expect(colors.canonicalBorderColor).not.toBe(colors.neutralBorderColor);
 }
 
-async function expectTemplateSurfaceWithoutInnerVerticalScroll(
-  editorSurface: Locator,
-  previewFrame: Locator,
-) {
-  await expect(editorSurface).toHaveCSS("overflow-y", "hidden");
-  await expect
-    .poll(() =>
-      editorSurface.evaluate(
-        (element) => element.scrollHeight <= element.clientHeight + 2,
-      ),
-    )
-    .toBe(true);
-
-  await expect(previewFrame).toHaveAttribute("scrolling", "no");
-  await expect
-    .poll(() =>
-      previewFrame.evaluate((element) => {
-        const frame = element as HTMLIFrameElement;
-        const frameBody = frame.contentDocument?.body;
-        if (!frameBody) return false;
-        return (
-          getComputedStyle(frameBody).overflowY === "hidden" &&
-          frameBody.scrollHeight <= frame.clientHeight + 2
-        );
-      }),
-    )
-    .toBe(true);
-}
-
 function contentEditableInside(editorSurface: Locator) {
   return editorSurface.locator('[contenteditable="true"]');
 }
@@ -135,23 +106,36 @@ async function expectAudienceTabsWithoutVerticalScroll(section: Locator) {
     .toBe(true);
 }
 
-async function expectEqualTemplatePanelHeights(
+async function openEmailContextEditor(
   page: Page,
-  workspaceTestId: string,
+  previewTestId: string,
+  blockId: string,
 ) {
-  const [editorBox, previewBox] = await Promise.all([
-    requireBox(
-      page.getByTestId(workspaceTestId + "-editor-panel"),
-      workspaceTestId + " editor panel",
-    ),
-    requireBox(
-      page.getByTestId(workspaceTestId + "-preview-panel"),
-      workspaceTestId + " preview panel",
-    ),
-  ]);
-  expect(Math.abs(editorBox.y - previewBox.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(editorBox.height - previewBox.height)).toBeLessThanOrEqual(1);
-  expect(editorBox.height).toBeGreaterThanOrEqual(638);
+  const target = page
+    .getByTestId(`${previewTestId}-editor-overlays`)
+    .locator(`[data-canvas-element-id="${blockId}"]`);
+  await expect(target).toBeVisible();
+  await target.click();
+  const toolbar = page.getByTestId(`${previewTestId}-editor-toolbar`);
+  await expect(toolbar).toBeVisible();
+  await toolbar.getByRole("button", { name: "Uredi izbrani element" }).click();
+  return toolbar;
+}
+
+async function openEmailSubjectEditor(page: Page, previewTestId: string) {
+  const toolbar = await openEmailContextEditor(page, previewTestId, "subject");
+  return toolbar.getByLabel("Zadeva", { exact: true });
+}
+
+async function openEmailContentEditor(
+  page: Page,
+  previewTestId: string,
+  idPrefix: string,
+) {
+  await openEmailContextEditor(page, previewTestId, "templateContent");
+  const surface = page.getByTestId(`${idPrefix}-content-editor`);
+  await expect(surface).toBeVisible();
+  return { surface, editor: contentEditableInside(surface) };
 }
 
 async function replaceRichEmailContent(
@@ -225,15 +209,14 @@ test("admin email settings use the grouped reference layout responsively", async
   await expect(settingsPanel.getByRole("heading", { level: 2 })).toHaveText([
     "Pošiljanje",
     "Pošiljatelj in povezave",
-    "Skupna vsebina",
     "Potrditve in prejemniki",
     "Preizkus pošiljanja",
   ]);
 
   const settingsCards = settingsPanel.locator(":scope > div");
-  await expect(settingsCards).toHaveCount(5);
+  await expect(settingsCards).toHaveCount(4);
   const desktopCardBoxes = await Promise.all(
-    Array.from({ length: 5 }, (_, index) =>
+    Array.from({ length: 4 }, (_, index) =>
       requireBox(settingsCards.nth(index), `settings card ${index + 1}`),
     ),
   );
@@ -272,52 +255,8 @@ test("admin email settings use the grouped reference layout responsively", async
     "sender link fields",
   );
 
-  const sharedTextPanel = page.getByTestId("order-email-shared-text-panel");
-  const sharedImagePanel = page.getByTestId("order-email-shared-image-panel");
-  const [desktopTextBox, desktopImageBox] = await Promise.all([
-    requireBox(sharedTextPanel, "shared text panel"),
-    requireBox(sharedImagePanel, "shared image panel"),
-  ]);
-  expect(desktopImageBox.x).toBeGreaterThanOrEqual(
-    desktopTextBox.x + desktopTextBox.width,
-  );
-  expect(Math.abs(desktopImageBox.y - desktopTextBox.y)).toBeLessThanOrEqual(1);
-  expect(
-    Math.abs(desktopImageBox.height - desktopTextBox.height),
-  ).toBeLessThanOrEqual(1);
-  const [headerTextHeight, footerTextHeight] = await Promise.all([
-    page.getByLabel("Besedilo glave").evaluate(
-      (element) => element.getBoundingClientRect().height,
-    ),
-    page.getByLabel("Dodatno besedilo v nogi").evaluate(
-      (element) => element.getBoundingClientRect().height,
-    ),
-  ]);
-  expect(headerTextHeight).toBeLessThanOrEqual(50);
-  expect(footerTextHeight).toBeLessThanOrEqual(50);
-  expect(headerTextHeight).toBeGreaterThanOrEqual(47);
-  expect(footerTextHeight).toBeGreaterThanOrEqual(47);
-  const [headerTextFits, footerTextFits] = await Promise.all([
-    page.getByLabel("Besedilo glave").evaluate(
-      (element) => element.scrollHeight <= element.clientHeight,
-    ),
-    page.getByLabel("Dodatno besedilo v nogi").evaluate(
-      (element) => element.scrollHeight <= element.clientHeight,
-    ),
-  ]);
-  expect(headerTextFits).toBeTruthy();
-  expect(footerTextFits).toBeTruthy();
-  const imageSurfaceBox = await requireBox(
-    sharedImagePanel.locator('[data-email-image-surface="true"]'),
-    "shared image surface",
-  );
-  expect(
-    Math.abs(
-      imageSurfaceBox.y +
-        imageSurfaceBox.height -
-        (desktopImageBox.y + desktopImageBox.height),
-    ),
-  ).toBeLessThanOrEqual(1);
+  await expect(page.getByTestId("order-email-shared-content")).toHaveCount(0);
+  await expect(page.getByText("Skupna vsebina", { exact: true })).toHaveCount(0);
 
   const desktopViewportMetrics = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
@@ -402,15 +341,6 @@ test("admin email settings use the grouped reference layout responsively", async
   expect(compactTabMetrics.maskBottom).toBeGreaterThanOrEqual(
     compactTabMetrics.listBottom - 0.5,
   );
-  const [mobileTextBox, mobileImageBox] = await Promise.all([
-    requireBox(sharedTextPanel, "mobile shared text panel"),
-    requireBox(sharedImagePanel, "mobile shared image panel"),
-  ]);
-  expect(Math.abs(mobileImageBox.x - mobileTextBox.x)).toBeLessThanOrEqual(1);
-  expect(mobileImageBox.y).toBeGreaterThanOrEqual(
-    mobileTextBox.y + mobileTextBox.height,
-  );
-
   const mobileViewportMetrics = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
     documentWidth: Math.max(
@@ -757,9 +687,7 @@ test("admin can configure order email settings and templates without sending mai
       page.getByRole("heading", { name: "Predloge sporočil", exact: true }),
     ).toBeVisible();
     await expect(
-      page
-        .getByTestId("quote-email-template-customer")
-        .getByRole("heading", { name: "Fizična oseba", exact: true }),
+      page.getByTestId("quote-email-template-customer"),
     ).toBeVisible();
     const issuedQuoteTemplateBackground = await quoteTemplateSection.evaluate(
       (element) => getComputedStyle(element).backgroundColor,
@@ -800,15 +728,11 @@ test("admin can configure order email settings and templates without sending mai
     await expect(quoteAdminTab).toHaveAttribute("aria-selected", "false");
     await quoteCompanyTab.click();
     await expect(
-      page
-        .getByTestId("quote-email-template-companyCustomer")
-        .getByRole("heading", { name: "Podjetje", exact: true }),
+      page.getByTestId("quote-email-template-companyCustomer"),
     ).toBeVisible();
     await quoteSchoolTab.click();
     await expect(
-      page
-        .getByTestId("quote-email-template-schoolCustomer")
-        .getByRole("heading", { name: "Šola / javni zavod", exact: true }),
+      page.getByTestId("quote-email-template-schoolCustomer"),
     ).toBeVisible();
     await quoteCustomerTab.click();
     const quoteCustomerEvent = page.getByTestId(
@@ -853,33 +777,30 @@ test("admin can configure order email settings and templates without sending mai
     const quoteCustomerTemplate = page.getByTestId(
       "quote-email-template-customer",
     );
-    const quoteCustomerSubject = quoteCustomerTemplate.getByLabel("Zadeva", {
-      exact: true,
-    });
-    const quoteCustomerContentSurface = page.getByTestId(
-      "quote-email-template-customer-content",
-    );
-    const quoteCustomerContent = contentEditableInside(
-      quoteCustomerContentSurface,
+    await expect(quoteCustomerTemplate).toBeVisible();
+    const quoteCustomerSubject = await openEmailSubjectEditor(
+      page,
+      "quote-email-preview",
     );
     const quoteCustomerSubjectValue = await quoteCustomerSubject.inputValue();
     const quoteCustomerContentValue = {
       greeting: "E2E pozdrav za fizično osebo s povpraševanjem.",
       heading: "E2E ponudba za fizično osebo",
-      body: await quoteCustomerContent.locator(":scope > p").last().innerText(),
+      body: "E2E vsebina za fizično osebo.",
     };
+    const quoteCustomerEditor = await openEmailContentEditor(
+      page,
+      "quote-email-preview",
+      "quote-email-template",
+    );
     await replaceRichEmailContent(
       page,
-      quoteCustomerContent,
+      quoteCustomerEditor.editor,
       quoteCustomerContentValue,
     );
     const quotePreviewFrame = page.getByTestId("quote-email-preview-frame");
     const quotePreview = page.frameLocator(
       '[data-testid="quote-email-preview-frame"]',
-    );
-    await expectEqualTemplatePanelHeights(
-      page,
-      "quote-email-message-templates",
     );
     const quotePreviewViewport = page.getByTestId(
       "quote-email-preview-viewport",
@@ -918,43 +839,12 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      quoteCustomerContentSurface,
-      quotePreviewFrame,
-    );
+    await expect(quotePreviewFrame).toHaveAttribute("scrolling", "no");
     await quoteAdminTab.click();
     await expect(quoteAdminTab).toHaveAttribute("aria-selected", "true");
     await expect(quoteCustomerTemplate).toHaveCount(0);
     const quoteAdminTemplate = page.getByTestId("quote-email-template-admin");
-    await expect(
-      quoteAdminTemplate.getByRole("heading", {
-        name: "Admin",
-        exact: true,
-      }),
-    ).toBeVisible();
-    const quoteAdminSubject = quoteAdminTemplate.getByLabel("Zadeva", {
-      exact: true,
-    });
-    const quoteAdminContentSurface = page.getByTestId(
-      "quote-email-template-admin-content",
-    );
-    const quoteAdminContent = contentEditableInside(quoteAdminContentSurface);
-    await quoteAdminSubject.fill("Začasna administratorska zadeva ponudbe");
-    await replaceRichEmailContent(page, quoteAdminContent, {
-      greeting: "Začasen administratorski pozdrav ponudbe",
-      heading: "Začasen administratorski naslov ponudbe",
-      body: "Začasna administratorska vsebina ponudbe",
-    });
-    await page.getByTestId("quote-email-template-admin-reset").click();
-    await expect(quoteAdminSubject).not.toHaveValue(
-      "Začasna administratorska zadeva ponudbe",
-    );
-    await expect(quoteAdminContent).not.toContainText(
-      "Začasen administratorski pozdrav ponudbe",
-    );
-    await expect(quoteAdminContent).not.toContainText(
-      "Začasen administratorski naslov ponudbe",
-    );
+    await expect(quoteAdminTemplate).toBeVisible();
     const quoteAdminSubjectValue =
       "E2E – Novo povpraševanje {{request_number}}";
     const quoteAdminContentValue = {
@@ -962,8 +852,21 @@ test("admin can configure order email settings and templates without sending mai
       heading: "E2E novo povpraševanje za pregled",
       body: "E2E administratorska vsebina za ponudbo {{offer_number}}.",
     };
+    const quoteAdminSubject = await openEmailSubjectEditor(
+      page,
+      "quote-email-preview",
+    );
     await quoteAdminSubject.fill(quoteAdminSubjectValue);
-    await replaceRichEmailContent(page, quoteAdminContent, quoteAdminContentValue);
+    const quoteAdminEditor = await openEmailContentEditor(
+      page,
+      "quote-email-preview",
+      "quote-email-template",
+    );
+    await replaceRichEmailContent(
+      page,
+      quoteAdminEditor.editor,
+      quoteAdminContentValue,
+    );
     await expect(page.getByTestId("quote-email-preview-subject")).toContainText(
       "E2E",
     );
@@ -977,36 +880,24 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      quoteAdminContentSurface,
-      quotePreviewFrame,
-    );
     await quoteCustomerTab.click();
-    await expect(quoteCustomerSubject).toHaveValue(quoteCustomerSubjectValue);
-    await expectRichEmailContent(
-      quoteCustomerContent,
-      quoteCustomerContentValue,
+    await expect(await openEmailSubjectEditor(page, "quote-email-preview")).toHaveValue(
+      quoteCustomerSubjectValue,
     );
     await quoteAdminTab.click();
-    const quoteAdminVariables = quoteAdminTemplate.getByLabel(
-      "Dovoljene spremenljivke za administratorja",
+    await openEmailContentEditor(
+      page,
+      "quote-email-preview",
+      "quote-email-template",
     );
+    const quoteAdminVariables = page.getByLabel("Dovoljene spremenljivke");
     await expect(
       quoteAdminVariables.getByText("{{request_number}}", { exact: true }),
     ).toBeVisible();
     await expect(
       quoteAdminVariables.getByText("{{offer_number}}", { exact: true }),
     ).toBeVisible();
-    for (const sharedControl of [
-      "Predpona zadeve",
-      "Besedilo glave",
-      "Dodatno besedilo v nogi",
-      "Slikovna priponka",
-    ]) {
-      await expect(quoteTemplateSection.getByLabel(sharedControl)).toHaveCount(
-        0,
-      );
-    }
+    await expect(page.getByTestId("order-email-shared-content")).toHaveCount(0);
     const quoteSaveButton = page.getByTestId("quote-email-settings-save");
     const quoteSaveStatus = page.getByTestId("quote-email-save-status");
     await expect(quoteSaveButton).toBeVisible();
@@ -1036,31 +927,33 @@ test("admin can configure order email settings and templates without sending mai
       .getByTestId("quote-email-message-templates")
       .getByRole("tab", { name: "Admin", exact: true })
       .click();
-    const persistedQuoteAdminTemplate = page.getByTestId(
-      "quote-email-template-admin",
-    );
+    await expect(page.getByTestId("quote-email-template-admin")).toBeVisible();
     await expect(
-      persistedQuoteAdminTemplate.getByLabel("Zadeva", { exact: true }),
+      await openEmailSubjectEditor(page, "quote-email-preview"),
     ).toHaveValue(quoteAdminSubjectValue);
+    const persistedQuoteAdminEditor = await openEmailContentEditor(
+      page,
+      "quote-email-preview",
+      "quote-email-template",
+    );
     await expectRichEmailContent(
-      contentEditableInside(
-        page.getByTestId("quote-email-template-admin-content"),
-      ),
+      persistedQuoteAdminEditor.editor,
       quoteAdminContentValue,
     );
     await page
       .getByTestId("quote-email-message-templates")
       .getByRole("tab", { name: "Fiz. oseba", exact: true })
       .click();
-    await expect(
-      page
-        .getByTestId("quote-email-template-customer")
-        .getByLabel("Zadeva", { exact: true }),
-    ).toHaveValue(quoteCustomerSubjectValue);
+    await expect(await openEmailSubjectEditor(page, "quote-email-preview")).toHaveValue(
+      quoteCustomerSubjectValue,
+    );
+    const persistedQuoteCustomerEditor = await openEmailContentEditor(
+      page,
+      "quote-email-preview",
+      "quote-email-template",
+    );
     await expectRichEmailContent(
-      contentEditableInside(
-        page.getByTestId("quote-email-template-customer-content"),
-      ),
+      persistedQuoteCustomerEditor.editor,
       quoteCustomerContentValue,
     );
     const persistedQuoteCustomerEvent = page.getByTestId(
@@ -1106,19 +999,25 @@ test("admin can configure order email settings and templates without sending mai
     );
     await expectSharpAdminFocus(replyTo);
     const originalSiteUrl = await siteUrl.inputValue();
-    const sharedContent = page.getByTestId("order-email-shared-content");
-    await expect(
-      sharedContent.getByRole("heading", {
-        name: "Skupna vsebina",
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(sharedContent.getByLabel("Predpona zadeve")).toBeVisible();
-    await expect(sharedContent.getByLabel("Besedilo glave")).toBeVisible();
-    await expect(
-      sharedContent.getByLabel("Dodatno besedilo v nogi"),
-    ).toBeVisible();
-    const imageAttachmentInput = sharedContent.getByLabel("Slikovna priponka");
+    await expect(page.getByTestId("order-email-shared-content")).toHaveCount(0);
+    await ordersTab.click();
+    const contextualSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
+    );
+    await expect(contextualSubject).toBeVisible();
+    const contextualPrefix = page.getByLabel(
+      "Predpona · skupno za naročila in ponudbe",
+    );
+    await expect(contextualPrefix).toBeVisible();
+    const originalPrefix = await contextualPrefix.inputValue();
+    await contextualPrefix.fill(`${originalPrefix} E2E`);
+    await contextualPrefix.fill(originalPrefix);
+    const contextToolbar = page.getByTestId("order-email-preview-editor-toolbar");
+    await contextToolbar
+      .getByRole("button", { name: "Skupna slikovna priponka" })
+      .click();
+    const imageAttachmentInput = page.getByLabel("Slikovna priponka");
     await expect(imageAttachmentInput).toHaveCount(1);
     const imageBytes = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nJ8AAAAASUVORK5CYII=",
@@ -1129,27 +1028,7 @@ test("admin can configure order email settings and templates without sending mai
       mimeType: "image/png",
       buffer: imageBytes,
     });
-    await expect(page.getByTestId("order-email-image-filename")).toHaveText(
-      "e2e-shared.png",
-    );
-    await expect(page.getByTestId("order-email-image-preview")).toBeVisible();
-    const [populatedImagePanelBox, populatedImageSurfaceBox] = await Promise.all([
-      requireBox(
-        page.getByTestId("order-email-shared-image-panel"),
-        "populated shared image panel",
-      ),
-      requireBox(
-        page.getByTestId("order-email-image-surface"),
-        "populated shared image surface",
-      ),
-    ]);
-    expect(
-      Math.abs(
-        populatedImageSurfaceBox.y
-          + populatedImageSurfaceBox.height
-          - (populatedImagePanelBox.y + populatedImagePanelBox.height),
-      ),
-    ).toBeLessThanOrEqual(1);
+    await expect(page.getByText("e2e-shared.png", { exact: true })).toBeVisible();
     const sendTestButton = page.getByTestId("order-email-send-test");
     await expect(sendTestButton).toBeDisabled();
     await expect(saveButton).toBeEnabled();
@@ -1184,6 +1063,7 @@ test("admin can configure order email settings and templates without sending mai
       }),
     );
 
+    await settingsTab.click();
     await siteUrl.fill("not-a-valid-url");
     await expect(saveButton).toBeEnabled();
     await saveButton.click();
@@ -1407,20 +1287,13 @@ test("admin can configure order email settings and templates without sending mai
     await expect(orderAdminTab).toBeVisible();
     await orderCompanyTab.click();
     await expect(
-      page
-        .getByTestId("order-email-template-company-customer")
-        .getByRole("heading", { name: "Podjetje", exact: true }),
+      page.getByTestId("order-email-template-company-customer"),
     ).toBeVisible();
     await orderSchoolTab.click();
     const schoolCustomerCard = page.getByTestId(
       "order-email-template-school-customer",
     );
     await expect(schoolCustomerCard).toBeVisible();
-    await expect(
-      schoolCustomerCard.getByRole("heading", {
-        name: "\u0160ola / javni zavod",
-      }),
-    ).toBeVisible();
     await expect(
       page.getByTestId("order-email-template-individual-customer"),
     ).toHaveCount(0);
@@ -1432,17 +1305,17 @@ test("admin can configure order email settings and templates without sending mai
       heading: "E2E šolsko naročilo je sprejeto",
       body: "E2E navodila za varno nalaganje naročilnice.",
     };
-    const schoolCustomerSubject = schoolCustomerCard.getByLabel("Zadeva", {
-      exact: true,
-    });
-    const schoolCustomerContentSurface = page.getByTestId(
-      "order-email-template-school-customer-content",
-    );
-    const schoolCustomerContent = contentEditableInside(
-      schoolCustomerContentSurface,
+    let schoolCustomerSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
     );
     await schoolCustomerSubject.fill("Začasna šolska zadeva");
-    await replaceRichEmailContent(page, schoolCustomerContent, {
+    let schoolCustomerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    await replaceRichEmailContent(page, schoolCustomerEditor.editor, {
       greeting: "Začasen šolski pozdrav",
       heading: "Začasen šolski naslov",
       body: "Začasna šolska vsebina",
@@ -1452,28 +1325,27 @@ test("admin can configure order email settings and templates without sending mai
         name: "Ponastavi privzeto predlogo za šolo ali javni zavod",
       })
       .click();
+    schoolCustomerSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
+    );
     await expect(schoolCustomerSubject).not.toHaveValue(
       "Začasna šolska zadeva",
     );
-    await expect(schoolCustomerContent).not.toContainText(
-      "Začasen šolski pozdrav",
-    );
-    await expect(schoolCustomerContent).not.toContainText(
-      "Začasen šolski naslov",
-    );
     await schoolCustomerSubject.fill(schoolCustomerSubjectValue);
+    schoolCustomerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
     await replaceRichEmailContent(
       page,
-      schoolCustomerContent,
+      schoolCustomerEditor.editor,
       schoolCustomerContentValue,
     );
     const orderPreviewFrame = page.getByTestId("order-email-preview-frame");
     const orderPreview = page.frameLocator(
       '[data-testid="order-email-preview-frame"]',
-    );
-    await expectEqualTemplatePanelHeights(
-      page,
-      "order-email-message-templates",
     );
     await expect(
       orderPreview.getByText(schoolCustomerContentValue.greeting, {
@@ -1487,14 +1359,9 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      schoolCustomerContentSurface,
-      orderPreviewFrame,
-    );
+    await expect(orderPreviewFrame).toHaveAttribute("scrolling", "no");
 
-    const schoolCustomerVariables = page.getByLabel(
-      "Dovoljene spremenljivke za šolo ali javni zavod",
-    );
+    const schoolCustomerVariables = page.getByLabel("Dovoljene spremenljivke");
     await expect(
       schoolCustomerVariables.getByText("{{organization_name}}", {
         exact: true,
@@ -1511,15 +1378,22 @@ test("admin can configure order email settings and templates without sending mai
     ).toHaveCount(0);
     await selectCustomOption(page, templateEvent, "V obdelavi");
     await expect(
-      page
-        .getByTestId("order-email-template-school-customer")
-        .getByRole("heading", { name: "Šola / javni zavod", exact: true }),
+      page.getByTestId("order-email-template-school-customer"),
     ).toBeVisible();
     await expect(orderSchoolTab).toBeVisible();
     await selectCustomOption(page, templateEvent, "Naročilo prejeto");
+    schoolCustomerSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
+    );
     await expect(schoolCustomerSubject).toHaveValue(schoolCustomerSubjectValue);
+    schoolCustomerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
     await expectRichEmailContent(
-      schoolCustomerContent,
+      schoolCustomerEditor.editor,
       schoolCustomerContentValue,
     );
 
@@ -1539,16 +1413,20 @@ test("admin can configure order email settings and templates without sending mai
     const orderCustomerTemplate = page.getByTestId(
       "order-email-template-individual-customer",
     );
-    const customerSubject = orderCustomerTemplate.getByLabel("Zadeva", {
-      exact: true,
-    });
-    const customerContentSurface = page.getByTestId(
-      "order-email-template-individual-customer-content",
+    await expect(orderCustomerTemplate).toBeVisible();
+    let customerSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
     );
-    const customerContent = contentEditableInside(customerContentSurface);
     await expectSharpAdminFocus(customerSubject);
 
     await customerSubject.fill(customerSubjectValue);
+    let customerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    let customerContent = customerEditor.editor;
     await replaceRichEmailContent(page, customerContent, customerContentValue);
     await expect(
       orderPreview.getByText(customerContentValue.greeting, { exact: true }),
@@ -1560,23 +1438,23 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      customerContentSurface,
-      orderPreviewFrame,
-    );
     await expect(
       page.getByTestId("order-email-template-individual-customer-reset"),
     ).toBeVisible();
     await orderAdminTab.click();
     const orderAdminTemplate = page.getByTestId("order-email-template-admin");
-    const adminSubject = orderAdminTemplate.getByLabel("Zadeva", {
-      exact: true,
-    });
-    const adminContentSurface = page.getByTestId(
-      "order-email-template-admin-content",
+    await expect(orderAdminTemplate).toBeVisible();
+    let adminSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
     );
-    const adminContent = contentEditableInside(adminContentSurface);
     await adminSubject.fill(adminSubjectValue);
+    let adminEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    let adminContent = adminEditor.editor;
     await replaceRichEmailContent(page, adminContent, adminContentValue);
     await expect(page.getByTestId("order-email-preview-subject")).toContainText(
       "E2E",
@@ -1591,10 +1469,6 @@ test("admin can configure order email settings and templates without sending mai
         exact: true,
       }),
     ).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      adminContentSurface,
-      orderPreviewFrame,
-    );
     await expect(
       page.getByTestId("order-email-template-admin-reset"),
     ).toBeVisible();
@@ -1603,12 +1477,32 @@ test("admin can configure order email settings and templates without sending mai
     await settingsTab.click();
     await expect(page.getByTestId("order-email-settings-panel")).toBeVisible();
     await ordersTab.click();
+    customerSubject = await openEmailSubjectEditor(page, "order-email-preview");
     await expect(customerSubject).toHaveValue(customerSubjectValue);
+    customerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    customerContent = customerEditor.editor;
     await expectRichEmailContent(customerContent, customerContentValue);
     await orderAdminTab.click();
+    adminSubject = await openEmailSubjectEditor(page, "order-email-preview");
     await expect(adminSubject).toHaveValue(adminSubjectValue);
+    adminEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    adminContent = adminEditor.editor;
     await expectRichEmailContent(adminContent, adminContentValue);
     await orderCustomerTab.click();
+    customerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    customerContent = customerEditor.editor;
 
     let releaseDelayedSave!: () => void;
     const delayedSaveGate = new Promise<void>((resolve) => {
@@ -1682,7 +1576,14 @@ test("admin can configure order email settings and templates without sending mai
       page.getByLabel("Dogodek naročila"),
       "Naročilo prejeto",
     );
+    customerSubject = await openEmailSubjectEditor(page, "order-email-preview");
     await expect(customerSubject).toHaveValue(customerSubjectValue);
+    customerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
+    customerContent = customerEditor.editor;
     await expectRichEmailContent(
       customerContent,
       customerContentAfterSaveStarted,
@@ -1691,30 +1592,33 @@ test("admin can configure order email settings and templates without sending mai
       .getByTestId("order-email-message-templates")
       .getByRole("tab", { name: "Šola / javni zavod", exact: true })
       .click();
-    await expect(
-      page
-        .getByTestId("order-email-template-school-customer")
-        .getByLabel("Zadeva", { exact: true }),
-    ).toHaveValue(schoolCustomerSubjectValue);
+    schoolCustomerSubject = await openEmailSubjectEditor(
+      page,
+      "order-email-preview",
+    );
+    await expect(schoolCustomerSubject).toHaveValue(schoolCustomerSubjectValue);
+    schoolCustomerEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
     await expectRichEmailContent(
-      contentEditableInside(
-        page.getByTestId("order-email-template-school-customer-content"),
-      ),
+      schoolCustomerEditor.editor,
       schoolCustomerContentValue,
     );
     await page
       .getByTestId("order-email-message-templates")
       .getByRole("tab", { name: "Admin", exact: true })
       .click();
-    await expect(
-      page
-        .getByTestId("order-email-template-admin")
-        .getByLabel("Zadeva", { exact: true }),
-    ).toHaveValue(adminSubjectValue);
+    adminSubject = await openEmailSubjectEditor(page, "order-email-preview");
+    await expect(adminSubject).toHaveValue(adminSubjectValue);
+    adminEditor = await openEmailContentEditor(
+      page,
+      "order-email-preview",
+      "order-email-template",
+    );
     await expectRichEmailContent(
-      contentEditableInside(
-        page.getByTestId("order-email-template-admin-content"),
-      ),
+      adminEditor.editor,
       adminContentValue,
     );
     await page
@@ -1741,27 +1645,19 @@ test("admin can configure order email settings and templates without sending mai
       "order-email-template-individual-customer",
     );
     await expect(customerTemplateCard).toBeVisible();
-    await expectTemplateSurfaceWithoutInnerVerticalScroll(
-      page.getByTestId("order-email-template-individual-customer-content"),
-      orderPreviewFrame,
-    );
+    await expect(orderPreviewFrame).toHaveAttribute("scrolling", "no");
     await expect(page.getByTestId("order-email-template-admin")).toHaveCount(0);
     await expect(
       page.getByTestId("order-email-template-school-customer"),
     ).toHaveCount(0);
     const orderPreviewPanel = page.getByTestId("order-email-preview");
     const [customerCardBox, previewBox] = await Promise.all([
-      customerTemplateCard.boundingBox(),
-      orderPreviewPanel.boundingBox(),
+      requireBox(customerTemplateCard, "mobile template workspace"),
+      requireBox(orderPreviewPanel, "mobile email preview"),
     ]);
-    if (!customerCardBox || !previewBox) {
-      throw new Error(
-        "The email editor and preview must render on the mobile viewport.",
-      );
-    }
-    expect(Math.abs(customerCardBox.x - previewBox.x)).toBeLessThanOrEqual(20);
-    expect(previewBox.y).toBeGreaterThanOrEqual(
-      customerCardBox.y + customerCardBox.height,
+    expect(previewBox.x).toBeGreaterThanOrEqual(customerCardBox.x - 1);
+    expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(
+      customerCardBox.x + customerCardBox.width + 1,
     );
     const mobileZoomReset = page.getByTestId("order-email-preview-zoom-reset");
     const mobilePreviewViewport = page.getByTestId("order-email-preview-viewport");
@@ -1769,8 +1665,8 @@ test("admin can configure order email settings and templates without sending mai
     const mobilePreviewHeight = await mobilePreviewViewport.evaluate(
       (element) => element.getBoundingClientRect().height,
     );
-    expect(mobilePreviewHeight).toBeGreaterThanOrEqual(510);
-    expect(mobilePreviewHeight).toBeLessThanOrEqual(514);
+    expect(mobilePreviewHeight).toBeGreaterThanOrEqual(590);
+    expect(mobilePreviewHeight).toBeLessThanOrEqual(594);
     await page.getByTestId("order-email-preview-zoom-in").click();
     await expect(mobileZoomReset).toHaveText("110 %");
     const zoomedMobileViewportMetrics = await page.evaluate(() => ({

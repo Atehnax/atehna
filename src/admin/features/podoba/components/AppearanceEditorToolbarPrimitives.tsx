@@ -1265,7 +1265,7 @@ export function FloatingAppearanceEditorContextToolbar({
       }
       const element = target instanceof Element ? target : null;
       if (element?.closest(
-        '[data-product-canvas-element], [data-product-appearance-layers-panel], [data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar], [data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal]'
+        '[data-product-canvas-element], [data-product-appearance-layers-panel], [data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar], [data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal], [role="dialog"]'
       )) {
         return;
       }

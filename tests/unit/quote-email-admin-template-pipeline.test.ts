@@ -144,7 +144,7 @@ test('quote enqueue resolves and snapshots the configured template for each reci
   );
   assert.match(
     templates,
-    /const eventContentHtml = `\$\{content\.html\}\$\{detailContent\.html\}`/u
+    /const eventContentHtml = `\$\{templateContentHtml\}\$\{detailContentHtml\}`/u
   );
   assert.match(
     jobs,

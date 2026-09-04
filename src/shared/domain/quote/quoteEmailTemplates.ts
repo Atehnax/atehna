@@ -15,6 +15,12 @@ import {
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
 import {
+  emailTemplateEditorAttribute,
+  hasEmailTemplateSpacingOverride,
+  resolveEmailTemplateSpacingPx,
+  type EmailTemplateRenderOptions
+} from '../emailTemplateLayout';
+import {
   QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
   QUOTE_EMAIL_DEFAULT_GREETING,
   QUOTE_EMAIL_EVENT_DEFAULTS,
@@ -90,7 +96,8 @@ function render(value: string, variables: Record<string, string>): string {
 }
 
 export function buildQuoteEmailMessage(
-  input: BuildQuoteEmailMessageInput
+  input: BuildQuoteEmailMessageInput,
+  options: EmailTemplateRenderOptions = {}
 ): QuoteEmailMessage {
   const shared = input.sharedSettings;
   const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[input.eventType];
@@ -105,6 +112,7 @@ export function buildQuoteEmailMessage(
   const configuredTemplates = input.quoteSettings.templates[input.eventType];
   const audienceTemplate = configuredTemplates[templateAudience] ??
     configuredTemplates.customer;
+  const presentation = audienceTemplate.presentation;
   const variables = {
     recipient_name: (input.recipientName ?? '').replace(/\s+/gu, ' ').trim(),
     request_number: input.requestNumber,
@@ -151,7 +159,18 @@ export function buildQuoteEmailMessage(
         {}
       )
     : { html: '', text: '' };
-  const eventContentHtml = `${content.html}${detailContent.html}`;
+  const templateContentHtml =
+    options.editorPreview ||
+    hasEmailTemplateSpacingOverride(presentation, 'templateContent')
+      ? `<div${emailTemplateEditorAttribute(options, 'templateContent')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'templateContent', 0)}px;">${content.html}</div>`
+      : content.html;
+  const detailContentHtml = detailContent.html
+    ? options.editorPreview ||
+      hasEmailTemplateSpacingOverride(presentation, 'audienceDetails')
+      ? `<div${emailTemplateEditorAttribute(options, 'audienceDetails')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'audienceDetails', 0)}px;">${detailContent.html}</div>`
+      : detailContent.html
+    : '';
+  const eventContentHtml = `${templateContentHtml}${detailContentHtml}`;
   const eventContentText = [content.text, detailContent.text]
     .filter(Boolean)
     .join('\n\n');
@@ -166,7 +185,7 @@ export function buildQuoteEmailMessage(
     .join('\n\n');
   const actionHtml =
     input.offerUrl && input.audience === 'customer'
-      ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 20px;"><a href="${escapeHtml(input.offerUrl)}" style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#2563eb;text-decoration:underline;">Preglej ponudbo</a></p>`
+      ? `<p${emailTemplateEditorAttribute(options, 'primaryAction')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'primaryAction', 20)}px;"><a href="${escapeHtml(input.offerUrl)}" style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#2563eb;text-decoration:underline;">Preglej ponudbo</a></p>`
       : '';
   const attachment = normalizeEmailMessageAttachment(shared.imageAttachment);
   const senderEmail = EMAIL_PATTERN.test(shared.fromEmail)
@@ -176,10 +195,10 @@ export function buildQuoteEmailMessage(
 <html lang="sl">
   <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
     <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
-      ${headerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 18px;white-space:pre-line;color:#334155;">${escapeHtml(headerText)}</p>` : ''}
+      ${headerText ? `<p${emailTemplateEditorAttribute(options, 'sharedHeader')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'sharedHeader', 18)}px;white-space:pre-line;color:#334155;">${escapeHtml(headerText)}</p>` : ''}
       ${eventContentHtml}
       ${actionHtml}
-      ${footerText ? `<p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:28px 0 0;white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${escapeHtml(footerText)}</p>` : ''}
+      ${footerText ? `<p${emailTemplateEditorAttribute(options, 'sharedFooter')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'sharedFooter', 28)}px 0 0;white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${escapeHtml(footerText)}</p>` : ''}
     </div>
   </body>
 </html>`;

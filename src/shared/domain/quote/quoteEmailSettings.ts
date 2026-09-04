@@ -3,6 +3,11 @@ import {
   legacyEmailTemplateContentHtml,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
+import {
+  normalizeEmailTemplatePresentation,
+  validateEmailTemplatePresentation,
+  type EmailTemplatePresentation
+} from '../emailTemplateLayout';
 
 export const QUOTE_EMAIL_EVENT_TYPES = [
   'quote_request_submitted',
@@ -23,6 +28,7 @@ export type QuoteEmailAudienceSettings = { customer: boolean; admins: boolean };
 export type QuoteEmailTemplate = {
   subject: string;
   contentHtml?: string;
+  presentation?: EmailTemplatePresentation;
   /** Legacy read compatibility for existing saved settings. */
   greeting?: string;
   /** Legacy read compatibility for existing saved settings. */
@@ -293,9 +299,13 @@ function normalizeQuoteTemplate(
     typeof source.contentHtml === 'string'
       ? sanitizeEmailTemplateRichText(source.contentHtml)
       : legacyContent;
+  const presentation = normalizeEmailTemplatePresentation(
+    source.presentation
+  );
   return {
     subject,
-    contentHtml: contentHtml || defaults.contentHtml || ''
+    contentHtml: contentHtml || defaults.contentHtml || '',
+    ...(presentation ? { presentation } : {})
   };
 }
 
@@ -412,6 +422,11 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
         typeof rawTemplate.contentHtml !== 'string'
       ) {
         errors.push(`${eventType}/${audience}: vsebina ni veljavna.`);
+      }
+      if (
+        validateEmailTemplatePresentation(rawTemplate.presentation).length > 0
+      ) {
+        errors.push(`${eventType}/${audience}: postavitev ni veljavna.`);
       }
       const template = normalized.templates[eventType][audience];
       if (!template.subject.trim()) {

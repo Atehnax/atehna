@@ -1,18 +1,21 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Send, Shield } from 'lucide-react';
-import AdminRichTextEditor from '@/admin/components/AdminRichTextEditor';
 import EmailMessagePreview, {
   type EmailMessagePreviewProps
 } from '@/admin/features/email/components/EmailMessagePreview';
+import EmailTemplateContextToolbar, {
+  type EmailTemplateContextField,
+  type EmailTemplateContextPresentation,
+  type EmailTemplateContextSharedContent,
+  type EmailTemplateContextSpacingDefaults,
+  type EmailTemplateContextSystemLines
+} from '@/admin/features/email/components/EmailTemplateContextToolbar';
 import { Badge, type BadgeVariant } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import EuiTabs from '@/shared/ui/eui-tabs';
-import { Input } from '@/shared/ui/input';
 import { adminTableBulkHeaderButtonClassName } from '@/shared/ui/admin-table';
-
-const inputClassName = 'h-9 px-3 text-[13px] leading-5';
 
 export type EmailTemplateWorkspaceAudience<Audience extends string = string> = {
   value: Audience;
@@ -25,14 +28,11 @@ export type EmailTemplateWorkspaceActivity = {
   title?: string;
 };
 
-export type EmailTemplateWorkspaceField = {
+export type EmailTemplateWorkspaceField = EmailTemplateContextField & {
   id: string;
   label: string;
   description?: string;
-  value: string;
-  maxLength: number;
   testId: string;
-  onChange: (value: string) => void;
 };
 
 export type EmailTemplateWorkspaceEditor = {
@@ -45,6 +45,12 @@ export type EmailTemplateWorkspaceEditor = {
   variables: readonly string[];
   variablesLabel?: string;
   variablesAriaLabel: string;
+  presentation?: EmailTemplateContextPresentation;
+  onPresentationChange: (
+    presentation: EmailTemplateContextPresentation | undefined
+  ) => void;
+  systemLines?: EmailTemplateContextSystemLines;
+  spacingDefaults?: EmailTemplateContextSpacingDefaults;
 };
 
 export type EmailTemplateWorkspaceProps<Audience extends string = string> = {
@@ -61,14 +67,16 @@ export type EmailTemplateWorkspaceProps<Audience extends string = string> = {
   audiences: ReadonlyArray<EmailTemplateWorkspaceAudience<Audience>>;
   activeAudience: Audience;
   onAudienceChange: (audience: Audience) => void;
+  selectionKey?: string;
   editor: EmailTemplateWorkspaceEditor;
+  sharedContent: EmailTemplateContextSharedContent;
   onReset: () => void;
   resetLabel?: string;
   resetAriaLabel: string;
   resetDisabled?: boolean;
   resetTestId?: string;
   workspaceTestId?: string;
-  preview: Omit<EmailMessagePreviewProps, 'variant'>;
+  preview: Omit<EmailMessagePreviewProps, 'variant' | 'editor'>;
 };
 
 export type EmailTemplateRecipientToggleProps = {
@@ -79,6 +87,19 @@ export type EmailTemplateRecipientToggleProps = {
   testId?: string;
   title?: string;
   onChange: (checked: boolean) => void;
+};
+
+const defaultBlockLabels: Readonly<Record<string, string>> = {
+  subject: 'zadevo',
+  sharedHeader: 'skupno glavo',
+  templateContent: 'vsebino sporočila',
+  audienceDetails: 'podatke prejemnika',
+  customerDetails: 'podatke naročnika',
+  systemDetails: 'podatke naročila',
+  items: 'artikle',
+  totals: 'zneske',
+  primaryAction: 'akcijski gumb',
+  sharedFooter: 'skupno nogo'
 };
 
 export function getEmailTemplateActivity(
@@ -151,29 +172,6 @@ export function EmailTemplateRecipientToggle({
   );
 }
 
-function FieldLabel({
-  htmlFor,
-  label,
-  description
-}: {
-  htmlFor: string;
-  label: string;
-  description?: string;
-}) {
-  return (
-    <label htmlFor={htmlFor} className="block">
-      <span className="block text-xs font-semibold text-slate-700">
-        {label}
-      </span>
-      {description ? (
-        <span className="mt-0.5 block text-xs leading-4 text-slate-500">
-          {description}
-        </span>
-      ) : null}
-    </label>
-  );
-}
-
 export default function EmailTemplateWorkspace<Audience extends string>({
   idPrefix,
   headingId: providedHeadingId,
@@ -188,7 +186,9 @@ export default function EmailTemplateWorkspace<Audience extends string>({
   audiences,
   activeAudience,
   onAudienceChange,
+  selectionKey,
   editor,
+  sharedContent,
   onReset,
   resetLabel = 'Ponastavi privzeto',
   resetAriaLabel,
@@ -201,9 +201,37 @@ export default function EmailTemplateWorkspace<Audience extends string>({
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
   const audiencePanelId = `${idPrefix}-audience-panel`;
   const activeAudienceTabId = `${idPrefix}-audience-tab-${activeAudience}`;
-  const previewVariableValues = new Map(
-    preview.variables.map((variable) => [variable.name, variable.value])
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const previewVariableValues = useMemo(
+    () => new Map(
+      preview.variables.map((variable) => [variable.name, variable.value])
+    ),
+    [preview.variables]
   );
+  const blockLabels = useMemo(() => ({
+    ...defaultBlockLabels,
+    ...(editor.systemLines
+      ? Object.fromEntries(
+          editor.systemLines.lines.map((line) => [
+            `systemLine:${line.field}`,
+            (
+              line.label.trim() ||
+              editor.systemLines?.available.find(
+                (option) => option.field === line.field
+              )?.label ||
+              'dinamični podatek'
+            ).toLocaleLowerCase('sl-SI')
+          ])
+        )
+      : {})
+  }), [editor.systemLines]);
+  const selectedBlockLabel = selectedBlockId
+    ? blockLabels[selectedBlockId] ?? selectedBlockId
+    : '';
+
+  useEffect(() => {
+    setSelectedBlockId(null);
+  }, [activeAudience, idPrefix, selectionKey]);
 
   return (
     <section
@@ -242,154 +270,89 @@ export default function EmailTemplateWorkspace<Audience extends string>({
         ) : null}
       </div>
 
-      <div
-        className="grid min-w-0 gap-4 lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch"
+      <section
+        className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"
         data-testid={workspaceTestId}
       >
-        <section
-          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"
-          data-testid={`${testId}-editor-panel`}
-        >
-          <div className="flex min-w-0 flex-col border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
-              <EuiTabs
-                value={activeAudience}
-                onChange={(nextAudience) =>
-                  onAudienceChange(nextAudience as Audience)
-                }
-                tabs={audiences.map((audience) => ({
-                  value: audience.value,
-                  label: audience.label,
-                  panelId: audiencePanelId
-                }))}
-                ariaLabel="Prejemniki predloge sporočila"
-                idPrefix={`${idPrefix}-audience`}
-                surface="panel"
-                variant="secondary"
-                className="!border-b-0"
-                tabClassName="!min-w-max !px-5"
-              />
-            </div>
-            <div className="flex min-h-[42px] shrink-0 items-center justify-end px-3 py-2 sm:py-0">
-              <Button
-                type="button"
-                variant="default"
-                size="toolbar"
-                className={adminTableBulkHeaderButtonClassName}
-                disabled={editor.disabled || resetDisabled}
-                onClick={onReset}
-                aria-label={resetAriaLabel}
-                data-testid={resetTestId}
-              >
-                {resetLabel}
-              </Button>
-            </div>
+        <div className="flex min-w-0 flex-col border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+            <EuiTabs
+              value={activeAudience}
+              onChange={(nextAudience) => {
+                setSelectedBlockId(null);
+                onAudienceChange(nextAudience as Audience);
+              }}
+              tabs={audiences.map((audience) => ({
+                value: audience.value,
+                label: audience.label,
+                panelId: audiencePanelId
+              }))}
+              ariaLabel="Prejemniki predloge sporočila"
+              idPrefix={`${idPrefix}-audience`}
+              surface="panel"
+              variant="secondary"
+              className="!border-b-0"
+              tabClassName="!min-w-max !px-5"
+            />
           </div>
-
-          <div
-            id={audiencePanelId}
-            role="tabpanel"
-            aria-labelledby={activeAudienceTabId}
-            tabIndex={0}
-            className="min-w-0 p-4 outline-none"
-            data-testid={editor.testId}
-          >
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-slate-900">
-                {editor.title}
-              </h3>
-              {editor.description ? (
-                <p className="mt-0.5 text-xs leading-4 text-slate-600">
-                  {editor.description}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="mt-3 space-y-3">
-              <div>
-                <FieldLabel
-                  htmlFor={editor.subject.id}
-                  label={editor.subject.label}
-                  description={editor.subject.description}
-                />
-                <Input
-                  id={editor.subject.id}
-                  aria-label={editor.subject.label}
-                  className={`${inputClassName} mt-1.5`}
-                  disabled={editor.disabled}
-                  maxLength={editor.subject.maxLength}
-                  value={editor.subject.value}
-                  onChange={(event) =>
-                    editor.subject.onChange(event.target.value)
-                  }
-                  data-testid={editor.subject.testId}
-                />
-              </div>
-
-              <div>
-                <FieldLabel
-                  htmlFor={editor.contentHtml.id}
-                  label={editor.contentHtml.label}
-                  description={editor.contentHtml.description}
-                />
-                <div className="mt-1.5">
-                  <AdminRichTextEditor
-                    id={editor.contentHtml.id}
-                    value={editor.contentHtml.value}
-                    editable={!editor.disabled}
-                    onChange={editor.contentHtml.onChange}
-                    placeholder="Vnesite vsebino sporočila …"
-                    maxLength={editor.contentHtml.maxLength}
-                    testId={editor.contentHtml.testId}
-                    ariaLabel={editor.contentHtml.label}
-                    allowImages={false}
-                    heightClassName="h-[17rem] min-h-[15rem]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 border-t border-slate-200 pt-3">
-              <p className="text-xs font-medium text-slate-700">
-                {editor.variablesLabel ?? 'Dovoljene spremenljivke'}
-              </p>
-              <div
-                className="mt-1.5 flex flex-wrap gap-1.5"
-                aria-label={editor.variablesAriaLabel}
-              >
-                {editor.variables.map((variable) => (
-                  <Badge
-                    key={variable}
-                    variant="neutral"
-                    size="sm"
-                    className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md !border-slate-200 !bg-slate-50 px-1.5 py-1 text-[11px] font-normal !leading-5 !text-slate-700"
-                    title={
-                      previewVariableValues.get(variable) || undefined
-                    }
-                  >
-                    <code className="break-all font-semibold !leading-5 text-slate-700">
-                      {`{{${variable}}}`}
-                    </code>
-                    <span aria-hidden="true" className="!leading-5 text-slate-400">·</span>
-                    <span className="max-w-40 truncate !leading-5 text-slate-500">
-                      {previewVariableValues.get(variable) || '—'}
-                    </span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div
-          className="relative min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/40 p-4 lg:min-h-0"
-          data-testid={`${testId}-preview-panel`}
-        >
-          <div className="lg:absolute lg:inset-4 lg:min-h-0">
-            <EmailMessagePreview {...preview} variant="workspace" />
+          <div className="flex min-h-[42px] shrink-0 items-center justify-end px-3 py-2 sm:py-0">
+            <Button
+              type="button"
+              variant="default"
+              size="toolbar"
+              className={adminTableBulkHeaderButtonClassName}
+              disabled={editor.disabled || resetDisabled}
+              onClick={() => {
+                setSelectedBlockId(null);
+                onReset();
+              }}
+              aria-label={resetAriaLabel}
+              data-testid={resetTestId}
+            >
+              {resetLabel}
+            </Button>
           </div>
         </div>
-      </div>
+
+        <div
+          id={audiencePanelId}
+          role="tabpanel"
+          aria-labelledby={activeAudienceTabId}
+          tabIndex={0}
+          className="min-w-0 bg-slate-50/40 p-4 outline-none"
+          data-testid={editor.testId}
+        >
+          <EmailMessagePreview
+            {...preview}
+            variant="workspace"
+            editor={{
+              selectedBlockId,
+              blockLabels,
+              onSelectBlock: setSelectedBlockId,
+              toolbar: selectedBlockId ? (
+                <EmailTemplateContextToolbar
+                  idPrefix={idPrefix}
+                  selectedBlockId={selectedBlockId}
+                  selectedBlockLabel={selectedBlockLabel}
+                  disabled={editor.disabled}
+                  subject={editor.subject}
+                  contentHtml={editor.contentHtml}
+                  variables={editor.variables.map((name) => ({
+                    name,
+                    value: previewVariableValues.get(name) ?? ''
+                  }))}
+                  presentation={editor.presentation}
+                  onPresentationChange={editor.onPresentationChange}
+                  spacingDefaults={editor.spacingDefaults}
+                  sharedContent={sharedContent}
+                  systemLines={editor.systemLines}
+                  onClose={() => setSelectedBlockId(null)}
+                />
+              ) : null
+            }}
+          />
+        </div>
+      </section>
     </section>
   );
 }

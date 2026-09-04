@@ -4,7 +4,11 @@ import {
   buildQuoteEmailMessage,
   type BuildQuoteEmailMessageInput
 } from '@/shared/domain/quote/quoteEmailTemplates';
-import { cloneDefaultQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
+import {
+  cloneDefaultQuoteEmailSettings,
+  normalizeQuoteEmailSettings,
+  validateQuoteEmailSettings
+} from '@/shared/domain/quote/quoteEmailSettings';
 import {
   TRANSACTIONAL_EMAIL_BODY_STYLE,
   TRANSACTIONAL_EMAIL_CARD_STYLE,
@@ -169,5 +173,66 @@ describe('quote email templates', () => {
 
     assert.doesNotMatch(message.subject, /[\r\n]/u);
     assert.match(message.subject, /Ponudba PO-2026-001 Bcc:/u);
+  });
+
+  test('normalizes and validates sparse quote presentation settings', () => {
+    const settings = cloneDefaultQuoteEmailSettings();
+    settings.templates.quote_issued.customer.presentation = {
+      verticalSpacingPx: 15,
+      blockSpacingPx: {
+        sharedHeader: 7,
+        primaryAction: 9
+      }
+    };
+    const normalized = normalizeQuoteEmailSettings(settings);
+    assert.deepEqual(
+      normalized.templates.quote_issued.customer.presentation,
+      settings.templates.quote_issued.customer.presentation
+    );
+    assert.deepEqual(validateQuoteEmailSettings(normalized), []);
+
+    settings.templates.quote_issued.customer.presentation = {
+      verticalSpacingPx: 65
+    };
+    assert.ok(
+      validateQuoteEmailSettings(settings).some((error) =>
+        /postavitev/iu.test(error)
+      )
+    );
+  });
+
+  test('applies quote spacing and emits editor markers only in preview', () => {
+    const value = input();
+    value.quoteSettings.templates.quote_issued.customer.presentation = {
+      verticalSpacingPx: 11,
+      blockSpacingPx: {
+        sharedHeader: 7,
+        primaryAction: 9,
+        sharedFooter: 13
+      }
+    };
+
+    const production = buildQuoteEmailMessage(value);
+    const preview = buildQuoteEmailMessage(value, { editorPreview: true });
+
+    assert.doesNotMatch(production.html, /data-email-editor-id/u);
+    for (const marker of [
+      'sharedHeader',
+      'templateContent',
+      'audienceDetails',
+      'primaryAction',
+      'sharedFooter'
+    ]) {
+      assert.match(
+        preview.html,
+        new RegExp(`data-email-editor-id="${marker}"`, 'u')
+      );
+    }
+    assert.match(production.html, /margin:0 0 7px;white-space/u);
+    assert.match(production.html, /margin:0 0 9px/u);
+    assert.match(production.html, /margin:13px 0 0;white-space/u);
+    assert.equal(preview.subject, production.subject);
+    assert.equal(preview.text, production.text);
+    assert.deepEqual(preview.attachments, production.attachments);
   });
 });

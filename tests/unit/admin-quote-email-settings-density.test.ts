@@ -92,11 +92,7 @@ test('events use the canonical admin table while templates and queue retain resp
     /<EmailTemplateWorkspace<QuoteEmailTemplateAudience>/u
   );
   assert.match(section, /headingLevel=\{3\}/u);
-  assert.ok(
-    templateWorkspace.includes(
-      'grid min-w-0 gap-4 lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch'
-    )
-  );
+  assert.match(templateWorkspace, /className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white"/u);
   assert.doesNotMatch(
     section,
     /Uporabite lahko spodaj navedene spremenljivke\./u
@@ -105,7 +101,6 @@ test('events use the canonical admin table while templates and queue retain resp
     section,
     /Oblikujte celotno uvodno vsebino; sistemski podatki dogodka/u
   );
-  assert.match(templateWorkspace, /lg:absolute lg:inset-4 lg:min-h-0/u);
   assert.match(templateWorkspace, /variant="secondary"/u);
   assert.match(
     templateWorkspace,
@@ -141,16 +136,12 @@ test('events use the canonical admin table while templates and queue retain resp
     /text-base font-semibold tabular-nums text-slate-900/u
   );
   assert.match(queueMetricCard, /text-xs text-slate-500/u);
-  assert.match(templateWorkspace, /inputClassName[^\n]*mt-1\.5/u);
-  assert.match(
-    templateWorkspace,
-    /import AdminRichTextEditor from '@\/admin\/components\/AdminRichTextEditor'/u
-  );
-  assert.match(templateWorkspace, /<AdminRichTextEditor/u);
-  assert.match(
-    templateWorkspace,
-    /value=\{editor\.contentHtml\.value\}[\s\S]*?onChange=\{editor\.contentHtml\.onChange\}[\s\S]*?allowImages=\{false\}/u
-  );
+  assert.match(templateWorkspace, /import EmailTemplateContextToolbar/u);
+  assert.match(templateWorkspace, /<EmailTemplateContextToolbar/u);
+  assert.match(templateWorkspace, /editor=\{\{/u);
+  assert.match(templateWorkspace, /selectedBlockId/u);
+  assert.match(templateWorkspace, /presentation=\{editor\.presentation\}/u);
+  assert.match(templateWorkspace, /sharedContent=\{sharedContent\}/u);
   assert.match(
     templateWorkspace,
     /className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"/u
@@ -166,7 +157,6 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(templateWorkspace, /adminTableBulkHeaderButtonClassName/u);
   assert.doesNotMatch(section, /QuoteTemplateEditorCard/u);
   assert.match(templateWorkspace, /resetLabel = 'Ponastavi privzeto'/u);
-  assert.match(templateWorkspace, /editor\.variablesLabel \?\? 'Dovoljene spremenljivke'/u);
   assert.match(section, /testId: `quote-email-template-\$\{quotePreviewAudience\}`/u);
   assert.match(section, /title: selectedAudience\.title/u);
   assert.match(section, /subject: \{[\s\S]*?label: 'Zadeva'/u);
@@ -180,19 +170,19 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.match(templateWorkspace, /editor\.variables\.map/u);
   assert.match(
     templateWorkspace,
-    /const previewVariableValues = new Map\([\s\S]*?preview\.variables\.map/u
-  );
-  assert.match(
-    templateWorkspace,
-    /<Badge[\s\S]*?className="!h-auto !min-w-0 max-w-full gap-1 overflow-visible rounded-md[^"]*!leading-5[\s\S]*?previewVariableValues\.get\(variable\)/u
+    /previewVariableValues = useMemo\([\s\S]*?preview\.variables\.map/u
   );
   assert.match(section, /buildQuoteEmailMessage/u);
+  assert.match(section, /\{ editorPreview: true \}/u);
   assert.match(section, /sharedSettings: OrderEmailSettings/u);
   assert.match(section, /quoteSettings: draft/u);
   assert.match(section, /testId: 'quote-email-preview'/u);
   assert.match(section, /audiences=\{quoteEmailPreviewAudienceOptions\}/u);
   assert.match(section, /activeAudience=\{quotePreviewAudience\}/u);
   assert.match(section, /onAudienceChange=\{setQuotePreviewAudience\}/u);
+  assert.match(section, /presentation: selectedAudienceTemplate\.presentation/u);
+  assert.match(section, /updateTemplatePresentation\(quotePreviewAudience, presentation\)/u);
+  assert.match(section, /sharedContent=\{sharedContent\}/u);
   for (const [value, label] of [
     ['customer', 'Fiz. oseba'],
     ['companyCustomer', 'Podjetje'],
@@ -211,10 +201,7 @@ test('events use the canonical admin table while templates and queue retain resp
   assert.equal(section.match(/<EmailTemplateRecipientToggle/gu)?.length, 2);
   assert.match(section, /getEmailTemplateActivity\(/u);
   assert.doesNotMatch(section, /quote-email-preview-audience|Namizje|Mobilno/u);
-  assert.doesNotMatch(
-    section.slice(templatesIndex, queueIndex),
-    /order-email-(?:shared-content|subject-prefix|header|footer|image-attachment)/u
-  );
+  assert.doesNotMatch(section, /testId="order-email-shared-content"/u);
   assert.doesNotMatch(section, /<input\b|<button\b/u);
 });
 

@@ -44,7 +44,7 @@ test('quote outbox snapshots canonical rich content, shared header, footer, and 
   );
   assert.match(
     quoteTemplates,
-    /const eventContentHtml = `\$\{content\.html\}\$\{detailContent\.html\}`;[\s\S]*?const eventContentText = \[content\.text, detailContent\.text\][\s\S]*?\.join\('\\n\\n'\);/u
+    /const eventContentHtml = `\$\{templateContentHtml\}\$\{detailContentHtml\}`;[\s\S]*?const eventContentText = \[content\.text, detailContent\.text\][\s\S]*?\.join\('\\n\\n'\);/u
   );
   assert.match(
     quoteTemplates,

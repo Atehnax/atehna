@@ -1,3 +1,4 @@
+import ConfirmationPageFrame from '@/commercial/components/ConfirmationPageFrame';
 import OrderConfirmationPageClient from '@/commercial/order/components/OrderConfirmationPageClient';
 
 export const metadata = {
@@ -11,8 +12,8 @@ export const metadata = {
 
 export default function OrderConfirmationPage() {
   return (
-    <div className="container-base site-section" data-testid="order-confirmation-page">
+    <ConfirmationPageFrame testId="order-confirmation-page">
       <OrderConfirmationPageClient />
-    </div>
+    </ConfirmationPageFrame>
   );
 }

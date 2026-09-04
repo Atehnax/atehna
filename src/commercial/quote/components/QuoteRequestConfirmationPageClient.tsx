@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CONFIRMATION_DOCUMENT_ACTION_CLASS } from '@/commercial/components/confirmationDocumentAction';
 import SubmissionStatusPanel from '@/commercial/components/SubmissionStatusPanel';
 import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
 import {
@@ -34,10 +35,14 @@ const formatDate = (value: string) => {
       }).format(parsed);
 };
 
-const customerTypeLabel = (value?: string) => {
-  if (value === 'company') return 'Podjetje';
-  if (value === 'school') return 'Šola ali javni zavod';
-  return 'Zasebni naročnik';
+const DEFAULT_CONFIRMATION_PDF_FILENAME = 'potrditev-povprasevanja.pdf';
+
+const confirmationPdfFilename = (response: Response) => {
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const candidate = /filename="?([^";]+)"?/iu.exec(disposition)?.[1]?.trim();
+  return candidate && /^[a-z0-9][a-z0-9._-]{0,127}\.pdf$/iu.test(candidate)
+    ? candidate
+    : DEFAULT_CONFIRMATION_PDF_FILENAME;
 };
 
 const buildConfirmationItemTitle = (
@@ -63,6 +68,8 @@ const buildConfirmationItemTitle = (
 
 export default function QuoteRequestConfirmationPageClient() {
   const [state, setState] = useState<ConfirmationState>({ status: 'loading' });
+  const [documentLoading, setDocumentLoading] = useState(false);
+  const [documentError, setDocumentError] = useState<string | null>(null);
   const accessSessionRef = useRef<QuoteAccessSession | null>(null);
   const bootstrapTokenRef = useRef<string | null>(null);
   const locationTokenConsumedRef = useRef(false);
@@ -117,6 +124,70 @@ export default function QuoteRequestConfirmationPageClient() {
     void loadConfirmation();
   }, [loadConfirmation]);
 
+  const downloadConfirmationPdf = useCallback(async () => {
+    const session = accessSessionRef.current;
+    if (!session) {
+      setDocumentError('Povezava za prenos dokumenta ni veljavna.');
+      return;
+    }
+
+    setDocumentLoading(true);
+    setDocumentError(null);
+    try {
+      const response = await fetch('/api/quote-requests/confirmation/pdf', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {
+          ...buildQuoteAccessHeaders(session),
+          Accept: 'application/pdf'
+        }
+      });
+      if (!response.ok) {
+        const payload: unknown = await readJsonResponse(response, {});
+        const message =
+          payload && typeof payload === 'object' && 'message' in payload
+            ? String((payload as { message?: unknown }).message ?? '').trim()
+            : '';
+        throw new Error(
+          message || 'Dokumenta trenutno ni mogoče pripraviti.'
+        );
+      }
+
+      const contentType = response.headers
+        .get('content-type')
+        ?.split(';')[0]
+        ?.trim()
+        .toLowerCase();
+      if (contentType !== 'application/pdf') {
+        throw new Error('Strežnik ni vrnil veljavnega PDF dokumenta.');
+      }
+
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('Prejeti PDF dokument je prazen.');
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = confirmationPdfFilename(response);
+      anchor.style.display = 'none';
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error
+          ? error.message
+          : 'Dokumenta trenutno ni mogoče pripraviti.'
+      );
+    } finally {
+      setDocumentLoading(false);
+    }
+  }, []);
+
   if (state.status === 'loading') {
     return (
       <OrderLoadingState
@@ -167,6 +238,7 @@ export default function QuoteRequestConfirmationPageClient() {
     customer.addressLine2?.trim(),
     postalAddressLine
   ].filter((value): value is string => Boolean(value));
+  const address = addressLines.join(', ');
   return (
     <div data-confirmation-shell>
       <SubmissionStatusPanel
@@ -246,7 +318,7 @@ export default function QuoteRequestConfirmationPageClient() {
         </section>
 
         <aside
-          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-t-0"
+          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-start-1 lg:border-l lg:border-t-0"
           data-testid="quote-request-confirmation-summary"
           data-confirmation-region="secondary"
           aria-labelledby="quote-confirmation-summary-heading"
@@ -316,64 +388,92 @@ export default function QuoteRequestConfirmationPageClient() {
           </Link>
         </aside>
 
-        <section
-          className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-1 lg:row-start-2"
-          data-testid="quote-request-confirmation-customer-section"
-          data-confirmation-region="customer"
-          aria-labelledby="quote-confirmation-customer-heading"
+        <div
+          className="grid min-w-0 border-t border-[color:var(--site-divider-color)] lg:col-span-2 lg:row-start-2 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.35fr)]"
+          data-testid="quote-request-confirmation-lower-sections"
         >
-          <h2
-            id="quote-confirmation-customer-heading"
-            className="text-xl font-semibold"
+          <section
+            className="min-w-0 p-5 sm:p-6"
+            data-testid="quote-request-confirmation-customer-section"
+            data-confirmation-region="customer"
+            aria-labelledby="quote-confirmation-customer-heading"
           >
-            Podatki o povpraševanju
-          </h2>
-          <dl className="mt-4 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-[color:var(--site-color-text-muted)]">
-                Vrsta naročnika
-              </dt>
-              <dd className="mt-1 font-semibold">
-                {customerTypeLabel(customer.customerType)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[color:var(--site-color-text-muted)]">
-                Kontakt
-              </dt>
-              <dd className="mt-1 break-words">
-                {customer.contactName ? (
-                  <span className="block font-semibold">
-                    {customer.contactName}
-                  </span>
-                ) : null}
-                <span>{customer.email || '—'}</span>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[color:var(--site-color-text-muted)]">
-                Naročnik
-              </dt>
-              <dd className="mt-1 font-semibold">
-                {customer.organizationName || customer.contactName || '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[color:var(--site-color-text-muted)]">
-                Naslov
-              </dt>
-              <dd className="mt-1 font-semibold">
-                {addressLines.length > 0
-                  ? addressLines.map((line, index) => (
-                      <span key={`${index}-${line}`} className="block">
-                        {line}
-                      </span>
-                    ))
-                  : '—'}
-              </dd>
-            </div>
-          </dl>
-        </section>
+            <h2
+              id="quote-confirmation-customer-heading"
+              className="text-xl font-semibold sm:text-2xl"
+            >
+              Podatki o povpraševanju
+            </h2>
+            <dl className="mt-3 grid gap-x-4 gap-y-2 text-base sm:grid-cols-3">
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
+                  Naročnik
+                </dt>
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
+                  {customer.organizationName || customer.contactName || '—'}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
+                  Email
+                </dt>
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
+                  {customer.email ? (
+                    <a
+                      href={`mailto:${customer.email}`}
+                      className="text-[color:var(--site-color-primary)] underline-offset-2 hover:underline"
+                    >
+                      {customer.email}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
+                  Naslov
+                </dt>
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
+                  {address || '—'}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section
+            className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:border-l lg:border-t-0"
+            data-testid="quote-request-confirmation-documents-section"
+            data-confirmation-region="document"
+            aria-labelledby="quote-confirmation-documents-heading"
+          >
+            <h2
+              id="quote-confirmation-documents-heading"
+              className="text-xl font-semibold"
+            >
+              Dokumenti
+            </h2>
+            <button
+              type="button"
+              className={`${CONFIRMATION_DOCUMENT_ACTION_CLASS} mt-4`}
+              data-testid="quote-request-confirmation-pdf"
+              disabled={documentLoading}
+              onClick={() => void downloadConfirmationPdf()}
+            >
+              {documentLoading
+                ? 'Pripravljamo PDF …'
+                : 'Potrditev povpraševanja (PDF)'}
+            </button>
+            {documentError ? (
+              <p
+                className="mt-3 text-sm leading-5 text-[color:var(--site-color-danger)]"
+                role="alert"
+              >
+                {documentError}
+              </p>
+            ) : null}
+          </section>
+        </div>
       </article>
     </div>
   );

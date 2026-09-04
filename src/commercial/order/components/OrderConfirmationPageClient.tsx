@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CONFIRMATION_DOCUMENT_ACTION_CLASS } from '@/commercial/components/confirmationDocumentAction';
 import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
 import OrderConfirmationSummary from '@/commercial/order/components/OrderConfirmationSummary';
 import OrderSubmissionStatus from '@/commercial/order/components/OrderSubmissionStatus';
@@ -428,7 +429,7 @@ export default function OrderConfirmationPageClient() {
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="site-button site-button--secondary inline-flex min-h-11 w-full min-w-0 items-center justify-center break-words px-3 text-center"
+                      className={CONFIRMATION_DOCUMENT_ACTION_CLASS}
                     >
                       {customerDocumentLabel(document.type, index)}
                       <span className="sr-only">

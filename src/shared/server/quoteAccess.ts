@@ -102,17 +102,33 @@ export function setQuoteAccessSessionCookie(
   });
 }
 
-function quoteSessions(request: NextRequest): Array<{ accessId: string; token: string }> {
-  const selectedId = normalizeQuoteAccessId(
-    request.headers.get('x-quote-access-id')
-  );
+function quoteSessionForAccessId(
+  request: NextRequest,
+  accessId: string
+): { accessId: string; token: string } | null {
+  const selectedName = cookieName(accessId);
+  const token = selectedName
+    ? request.cookies.get(selectedName)?.value?.trim() ?? ''
+    : '';
+  return isQuoteAccessToken(token) ? { accessId, token } : null;
+}
+
+function quoteSessions(
+  request: NextRequest,
+  options: { bindToSelectedAccessId?: boolean } = {}
+): Array<{ accessId: string; token: string }> {
+  const selectedHeader = request.headers.get('x-quote-access-id');
+  const selectedId = normalizeQuoteAccessId(selectedHeader);
+  const selectedSession = selectedId
+    ? quoteSessionForAccessId(request, selectedId)
+    : null;
+  if (options.bindToSelectedAccessId && selectedHeader !== null) {
+    return selectedSession ? [selectedSession] : [];
+  }
+
   const candidates = new Map<string, string>();
-  if (selectedId) {
-    const selectedName = cookieName(selectedId);
-    const token = selectedName
-      ? request.cookies.get(selectedName)?.value?.trim() ?? ''
-      : '';
-    if (isQuoteAccessToken(token)) candidates.set(selectedId, token);
+  if (selectedSession) {
+    candidates.set(selectedSession.accessId, selectedSession.token);
   }
   for (const cookie of request.cookies.getAll()) {
     const accessId = accessIdFromCookieName(cookie.name);
@@ -264,9 +280,12 @@ export async function verifyQuoteAccessSession(
     quoteRequestId?: number;
     quoteOfferVersionId?: number;
     requireCsrf?: boolean;
+    bindToSelectedAccessId?: boolean;
   }
 ): Promise<VerifiedQuoteAccess | null> {
-  const sessions = quoteSessions(request);
+  const sessions = quoteSessions(request, {
+    bindToSelectedAccessId: input.bindToSelectedAccessId
+  });
   if (sessions.length === 0) return null;
   const csrfToken = request.headers.get('x-quote-csrf-token')?.trim() ?? '';
   if (input.requireCsrf && !/^[A-Za-z0-9_-]{43}$/u.test(csrfToken)) return null;

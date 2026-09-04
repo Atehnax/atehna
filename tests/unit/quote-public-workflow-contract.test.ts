@@ -104,6 +104,22 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   const confirmationApi = source(
     'src/commercial/api/quote-requests/confirmation/route.ts'
   );
+  const confirmationPdfApi = source(
+    'src/commercial/api/quote-requests/confirmation/pdf/route.ts'
+  );
+  const confirmationPdfRenderer = source(
+    'src/shared/server/quoteRequestConfirmationPdf.ts'
+  );
+  const quoteAccess = source('src/shared/server/quoteAccess.ts');
+  const confirmationPageFrame = source(
+    'src/commercial/components/ConfirmationPageFrame.tsx'
+  );
+  const quoteConfirmationPage = source(
+    'src/commercial/pages/quote-request/confirmation/page.tsx'
+  );
+  const orderConfirmationPage = source(
+    'src/commercial/pages/order/confirmation/page.tsx'
+  );
   const contracts = source('src/commercial/quote/contracts.ts');
   const quoteSubmission = source(
     'src/commercial/api/quote-requests/route.ts'
@@ -125,9 +141,24 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /Okvirni izračun/u);
   assert.match(confirmation, /Zaloga ni rezervirana/u);
   assert.match(confirmation, /Podatki o povpraševanju/u);
+  assert.match(confirmation, /Naročnik[\s\S]*?Email[\s\S]*?Naslov/u);
+  assert.doesNotMatch(confirmation, /Vrsta naročnika/u);
+  assert.doesNotMatch(confirmation, />\s*Kontakt\s*</u);
+  assert.doesNotMatch(confirmation, /customerTypeLabel/u);
+  assert.match(confirmation, /<dl className="[^"]*text-base/u);
   assert.match(
     confirmation,
-    /Vrsta naročnika[\s\S]*?Kontakt[\s\S]*?Naročnik[\s\S]*?Naslov/u
+    /data-testid="quote-request-confirmation-documents-section"[\s\S]*?Dokumenti[\s\S]*?data-testid="quote-request-confirmation-pdf"/u
+  );
+  assert.match(confirmation, /fetch\('\/api\/quote-requests\/confirmation\/pdf'/u);
+  assert.match(confirmation, /buildQuoteAccessHeaders\(session\)/u);
+  assert.match(confirmation, /URL\.createObjectURL/u);
+  assert.match(confirmation, /confirmationPdfFilename/u);
+  assert.match(confirmation, /content-disposition/u);
+  assert.match(confirmation, /potrditev-povprasevanja\.pdf/u);
+  assert.doesNotMatch(
+    confirmation,
+    /href=\{?['"]\/api\/quote-requests\/confirmation\/pdf/u
   );
   assert.match(confirmation, /<SubmissionStatusPanel/u);
   assert.match(orderStatus, /<SubmissionStatusPanel/u);
@@ -140,6 +171,11 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.match(confirmation, /data-confirmation-region="primary"/u);
   assert.match(confirmation, /data-confirmation-region="secondary"/u);
   assert.doesNotMatch(confirmation, /mx-auto max-w-5xl/u);
+  for (const page of [quoteConfirmationPage, orderConfirmationPage]) {
+    assert.match(page, /ConfirmationPageFrame/u);
+  }
+  assert.match(confirmationPageFrame, /data-confirmation-page-frame/u);
+  assert.match(confirmationPageFrame, /xl:w-2\/3/u);
   assert.match(
     confirmation,
     /Atehna bo preverila cene, dobavljivost, stroške dostave in rok dobave/u
@@ -175,6 +211,91 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   assert.doesNotMatch(submitResponseContract, /requestNumber/u);
   assert.doesNotMatch(confirmationContract, /requestNumber/u);
   assert.doesNotMatch(customerResponse, /requestNumber/u);
+
+  assert.match(confirmationPdfApi, /verifyQuoteAccessSession/u);
+  assert.match(confirmationPdfApi, /scope:\s*'request_confirmation'/u);
+  for (const route of [confirmationApi, confirmationPdfApi]) {
+    assert.match(route, /bindToSelectedAccessId:\s*true/u);
+  }
+  assert.match(
+    quoteAccess,
+    /if \(options\.bindToSelectedAccessId && selectedHeader !== null\) \{[\s\S]*?return selectedSession \? \[selectedSession\] : \[\];/u
+  );
+  assert.match(
+    quoteAccess,
+    /const sessions = quoteSessions\(request, \{[\s\S]*?bindToSelectedAccessId: input\.bindToSelectedAccessId/u
+  );
+  assert.match(confirmationPdfApi, /generateQuoteRequestConfirmationPdf/u);
+  assert.match(confirmationPdfApi, /application\/pdf/u);
+  assert.match(confirmationPdfApi, /Content-Disposition/u);
+  assert.match(confirmationPdfApi, /no-store, private/u);
+  assert.doesNotMatch(confirmationPdfApi, /quote_documents/u);
+  assert.doesNotMatch(confirmationPdfApi, /renderQuoteOfferPdf/u);
+  assert.match(
+    confirmationPdfRenderer,
+    /getOrderDocumentTemplate\('order_summary'\)/u
+  );
+  assert.match(confirmationPdfRenderer, /generateOrderPdf/u);
+  assert.match(confirmationPdfRenderer, /POTRDITEV POVPRAŠEVANJA/u);
+  assert.match(confirmationPdfRenderer, /setOrderDocumentFieldRows/u);
+  assert.equal(
+    confirmationPdfRenderer.match(/database\.query\(/gu)?.length,
+    1,
+    'the request and its items must come from one database statement'
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /jsonb_agg\([\s\S]*?order by item\.line_number[\s\S]*?group by request\.id/u
+  );
+  assert.doesNotMatch(
+    confirmationPdfRenderer,
+    /Promise\.all\(\[[\s\S]*?database\.query/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /typeof value !== 'string' \|\| value\.trim\(\) === ''/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /requiredNonNegativeNumber\(totals\.net[\s\S]*?requiredNonNegativeNumber\(totals\.tax/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /optionalNonNegativeNumber\(totals\.shipping[\s\S]*?optionalNonNegativeNumber\(totals\.gross/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /\(shipping === null\) !== \(gross === null\)[\s\S]*?incomplete totals/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /Math\.abs\(gross - \(subtotal \+ tax \+ shipping\)\)[\s\S]*?inconsistent totals/u
+  );
+  assert.match(confirmationPdfRenderer, /total: gross \?\? subtotal \+ tax/u);
+  assert.doesNotMatch(confirmationPdfRenderer, /total:[^\n]*shipping \?\? 0/u);
+  const confirmationPdfMetadata = confirmationPdfRenderer.slice(
+    confirmationPdfRenderer.indexOf('const metadataRows ='),
+    confirmationPdfRenderer.indexOf(
+      "template = setOrderDocumentFieldRows(\n    template,\n    'document_meta'"
+    )
+  );
+  assert.match(confirmationPdfMetadata, /row\.id === 'order_date'/u);
+  assert.doesNotMatch(confirmationPdfMetadata, /row\.id === 'issue_date'/u);
+  assert.match(confirmationPdfRenderer, /resolveCachedSiteLogoArtwork/u);
+  assert.match(
+    confirmationPdfRenderer,
+    /Buffer\.from\(logoArtwork\.base64, 'base64'\)/u
+  );
+  assert.doesNotMatch(confirmationPdfRenderer, /resolveSiteLogoArtwork\(/u);
+  assert.match(
+    confirmationPdfRenderer,
+    /hasCompleteTotals[\s\S]*?section\.id === 'totals'[\s\S]*?enabled: hasCompleteTotals/u
+  );
+  assert.match(
+    confirmationPdfRenderer,
+    /shipping !== null && gross !== null/u
+  );
+  assert.doesNotMatch(confirmationPdfRenderer, /renderQuoteOfferPdf/u);
 });
 
 test('offer review uses fragment access and canonical OTP-gated explicit responses', () => {

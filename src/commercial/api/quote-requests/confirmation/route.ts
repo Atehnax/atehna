@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   try {
     const pool = await getPool();
     const access = await verifyQuoteAccessSession(pool, request, {
-      scope: 'request_confirmation'
+      scope: 'request_confirmation',
+      bindToSelectedAccessId: true
     });
     if (!access) {
       return NextResponse.json(

@@ -1,3 +1,4 @@
+import ConfirmationPageFrame from '@/commercial/components/ConfirmationPageFrame';
 import QuoteRequestConfirmationPageClient from '@/commercial/quote/components/QuoteRequestConfirmationPageClient';
 
 export const metadata = {
@@ -8,11 +9,8 @@ export const metadata = {
 
 export default function QuoteRequestConfirmationPage() {
   return (
-    <div
-      className="container-base site-section"
-      data-testid="quote-request-confirmation-page"
-    >
+    <ConfirmationPageFrame testId="quote-request-confirmation-page">
       <QuoteRequestConfirmationPageClient />
-    </div>
+    </ConfirmationPageFrame>
   );
 }

@@ -808,6 +808,68 @@ test.describe('quote and seller-contract workflow', () => {
     }
   });
 
+  test('quote confirmation endpoints bind an explicit access id without cookie fallback', async ({
+    browser
+  }) => {
+    test.setTimeout(90_000);
+    const selected = await createQuoteRequest(browser, {
+      label: `selected-access-${randomUUID()}`
+    });
+    const fallback = await createQuoteRequest(browser, {
+      label: `fallback-access-${randomUUID()}`
+    });
+
+    try {
+      const selectedCookieSuffix = selected.accessId.replaceAll('-', '');
+      const fallbackCookieSuffix = fallback.accessId.replaceAll('-', '');
+      const selectedCookie = (await selected.context.cookies()).find((cookie) =>
+        cookie.name.endsWith(selectedCookieSuffix)
+      );
+      const fallbackCookie = (await fallback.context.cookies()).find((cookie) =>
+        cookie.name.endsWith(fallbackCookieSuffix)
+      );
+      expect(selectedCookie, 'selected quote cookie must exist').toBeTruthy();
+      expect(fallbackCookie, 'fallback quote cookie must exist').toBeTruthy();
+      if (!selectedCookie || !fallbackCookie) return;
+
+      await selected.context.addCookies([
+        fallbackCookie,
+        {
+          ...selectedCookie,
+          value: `ath_quote_${'z'.repeat(43)}`
+        }
+      ]);
+
+      const implicitResponse = await selected.context.request.get(
+        '/api/quote-requests/confirmation'
+      );
+      await requireOk(implicitResponse, 'implicit multi-cookie confirmation');
+      const implicitSnapshot = (await implicitResponse.json()) as {
+        customer?: { email?: string };
+      };
+      expect(implicitSnapshot.customer?.email).toBe(fallback.email);
+
+      const selectedHeaders = {
+        'X-Quote-Access-Id': selected.accessId
+      };
+      const [confirmationResponse, pdfResponse] = await Promise.all([
+        selected.context.request.get('/api/quote-requests/confirmation', {
+          headers: selectedHeaders
+        }),
+        selected.context.request.get('/api/quote-requests/confirmation/pdf', {
+          headers: {
+            ...selectedHeaders,
+            Accept: 'application/pdf'
+          }
+        })
+      ]);
+      expect(confirmationResponse.status()).toBe(404);
+      expect(pdfResponse.status()).toBe(404);
+    } finally {
+      await Promise.all([selected.context.close(), fallback.context.close()]);
+    }
+  });
+
   test('admin quote detail matches order styling and persists customer edits and catalog item selection', async ({
     browser,
     page

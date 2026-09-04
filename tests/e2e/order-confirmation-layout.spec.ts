@@ -293,13 +293,51 @@ test.describe('order confirmation layout', () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
 
     const pageContent = page.getByTestId('order-confirmation-page');
-    const card = page.getByTestId('order-confirmation-content-card');
+    const pageFrame = pageContent.locator('[data-confirmation-page-frame]');
+    const status = pageFrame.getByTestId('order-submission-status');
+    const card = pageFrame.getByTestId('order-confirmation-content-card');
     const orderSection = card.getByTestId('confirmation-order-section');
     const summary = card.getByTestId('confirmation-summary');
     const customer = card.getByTestId('confirmation-customer-section');
     const documents = card.getByTestId('confirmation-documents-section');
 
     await expect(card).toBeVisible();
+    const desktopFrameWidths = await pageContent.evaluate((element) => {
+      const frame = element.querySelector<HTMLElement>(
+        '[data-confirmation-page-frame]'
+      );
+      if (!frame) throw new Error('Missing order confirmation page frame');
+
+      const style = getComputedStyle(element);
+      const availableWidth =
+        element.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight);
+
+      return {
+        availableWidth,
+        frameWidth: frame.offsetWidth
+      };
+    });
+    expect(
+      desktopFrameWidths.frameWidth / desktopFrameWidths.availableWidth,
+      'the confirmation frame should use two thirds of the available desktop lane'
+    ).toBeCloseTo(2 / 3, 2);
+
+    const [desktopFrameBox, desktopStatusBox, desktopCardBox] =
+      await Promise.all([
+        pageFrame.boundingBox(),
+        status.boundingBox(),
+        card.boundingBox()
+      ]);
+    expect(desktopFrameBox).not.toBeNull();
+    expect(desktopStatusBox).not.toBeNull();
+    expect(desktopCardBox).not.toBeNull();
+    expect(Math.abs(desktopStatusBox!.x - desktopFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopCardBox!.x - desktopFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopStatusBox!.width - desktopFrameBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopCardBox!.width - desktopFrameBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(desktopStatusBox!.width - desktopCardBox!.width)).toBeLessThanOrEqual(1);
     await expect(pageContent.locator('.site-card')).toHaveCount(1);
     await expect(card.locator('.site-card')).toHaveCount(0);
     await expect(summary.getByRole('heading', { name: 'Povzetek naročila' })).toBeVisible();
@@ -922,7 +960,10 @@ test.describe('order confirmation layout', () => {
     await mockConfirmation(page);
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
-    const card = page.getByTestId('order-confirmation-content-card');
+    const pageContent = page.getByTestId('order-confirmation-page');
+    const pageFrame = pageContent.locator('[data-confirmation-page-frame]');
+    const status = pageFrame.getByTestId('order-submission-status');
+    const card = pageFrame.getByTestId('order-confirmation-content-card');
     const orderSection = card.getByTestId('confirmation-order-section');
     const customer = card.getByTestId('confirmation-customer-section');
     const documents = card.getByTestId('confirmation-documents-section');
@@ -930,6 +971,39 @@ test.describe('order confirmation layout', () => {
     const summary = card.getByTestId('confirmation-summary');
     await expect(card).toBeVisible();
     await expect(summary).toBeVisible();
+
+    const mobileFrameWidths = await pageContent.evaluate((element) => {
+      const frame = element.querySelector<HTMLElement>(
+        '[data-confirmation-page-frame]'
+      );
+      if (!frame) throw new Error('Missing order confirmation page frame');
+
+      const style = getComputedStyle(element);
+      const availableWidth =
+        element.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight);
+
+      return {
+        availableWidth,
+        frameWidth: frame.offsetWidth
+      };
+    });
+    expect(
+      Math.abs(
+        mobileFrameWidths.frameWidth - mobileFrameWidths.availableWidth
+      ),
+      'the confirmation frame should keep the full available mobile lane'
+    ).toBeLessThanOrEqual(1);
+
+    const [mobileFrameBox, mobileStatusBox] = await Promise.all([
+      pageFrame.boundingBox(),
+      status.boundingBox()
+    ]);
+    expect(mobileFrameBox).not.toBeNull();
+    expect(mobileStatusBox).not.toBeNull();
+    expect(Math.abs(mobileStatusBox!.x - mobileFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mobileStatusBox!.width - mobileFrameBox!.width)).toBeLessThanOrEqual(1);
 
     const [
       cardBox,
@@ -952,6 +1026,8 @@ test.describe('order confirmation layout', () => {
     expect(customerBox).not.toBeNull();
     expect(documentsBox).not.toBeNull();
     expect(itemMediaBox).not.toBeNull();
+    expect(Math.abs(cardBox!.x - mobileFrameBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(cardBox!.width - mobileFrameBox!.width)).toBeLessThanOrEqual(1);
     expect(itemMediaBox!.width).toBeLessThanOrEqual(80);
     expect(Math.abs(itemMediaBox!.width - itemMediaBox!.height)).toBeLessThanOrEqual(1);
 

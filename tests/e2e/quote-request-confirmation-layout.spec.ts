@@ -54,9 +54,32 @@ const confirmationSnapshot = {
 } satisfies QuoteRequestConfirmationSnapshot;
 
 async function mockConfirmation(page: Page) {
+  const pdfRequests: Array<{
+    accessId: string | null;
+    accept: string | null;
+  }> = [];
   await page.addInitScript((accessId) => {
     window.sessionStorage.setItem('atehna-quote-access-id-v1', accessId);
   }, TEST_ACCESS_ID);
+  await page.route(
+    /\/api\/quote-requests\/confirmation\/pdf(?:\?.*)?$/,
+    async (route) => {
+      const headers = await route.request().allHeaders();
+      pdfRequests.push({
+        accessId: headers['x-quote-access-id'] ?? null,
+        accept: headers.accept ?? null
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/pdf',
+        headers: {
+          'Content-Disposition':
+            'attachment; filename="povprasevanje-pov-2026-000001.pdf"'
+        },
+        body: Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF')
+      });
+    }
+  );
   await page.route(
     /\/api\/quote-requests\/confirmation(?:\?.*)?$/,
     async (route) => {
@@ -67,6 +90,7 @@ async function mockConfirmation(page: Page) {
       });
     }
   );
+  return { pdfRequests };
 }
 
 async function resolveThemeColor(scope: Locator, cssVariable: string) {
@@ -85,10 +109,11 @@ test.describe('quote request confirmation layout', () => {
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await mockConfirmation(page);
+    const observations = await mockConfirmation(page);
     await page.goto('/quote-request/confirmation');
 
     const root = page.getByTestId('quote-request-confirmation-page');
+    const frame = root.locator('[data-confirmation-page-frame]');
     const status = page.getByTestId('quote-request-submission-status');
     const heading = page.getByTestId('quote-request-confirmation-heading');
     const card = page.getByTestId('quote-request-confirmation-content-card');
@@ -97,6 +122,13 @@ test.describe('quote request confirmation layout', () => {
     const customer = page.getByTestId(
       'quote-request-confirmation-customer-section'
     );
+    const documents = page.getByTestId(
+      'quote-request-confirmation-documents-section'
+    );
+    const lower = page.getByTestId(
+      'quote-request-confirmation-lower-sections'
+    );
+    const pdfButton = page.getByTestId('quote-request-confirmation-pdf');
 
     await expect(status).toHaveAttribute('role', 'status');
     await expect(status).toHaveAttribute('data-confirmation-tone', 'success');
@@ -136,41 +168,121 @@ test.describe('quote request confirmation layout', () => {
       })
     ).toBeVisible();
     await expect(customer.locator('dt')).toHaveText([
-      'Vrsta naročnika',
-      'Kontakt',
       'Naročnik',
+      'Email',
       'Naslov'
     ]);
-    await expect(customer.getByText('Podjetje', { exact: true })).toBeVisible();
-    await expect(customer.getByText('Maja Primer', { exact: true })).toBeVisible();
+    await expect(customer).not.toContainText('Vrsta naročnika');
+    await expect(customer).not.toContainText('Kontakt');
     await expect(customer.getByText('maja@example.com', { exact: true })).toBeVisible();
     await expect(customer.getByText('Primer, d. o. o.', { exact: true })).toBeVisible();
-    await expect(customer.getByText('Slovenska cesta 1', { exact: true })).toBeVisible();
-    await expect(customer.getByText('2. nadstropje', { exact: true })).toBeVisible();
-    await expect(customer.getByText('1000 Ljubljana', { exact: true })).toBeVisible();
+    await expect(customer).toContainText(
+      'Slovenska cesta 1, 2. nadstropje, 1000 Ljubljana'
+    );
+    const detailGrid = customer.locator('dl');
+    await expect(detailGrid).toHaveCSS('font-size', '16px');
+    await expect(detailGrid).toHaveCSS('row-gap', '8px');
+    await expect(detailGrid.locator('dd').first()).toHaveCSS(
+      'font-size',
+      '18px'
+    );
+    const detailCells = detailGrid.locator(':scope > div');
+    await expect(detailCells).toHaveCount(3);
+    const detailCellBoxes = await detailCells.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width };
+      })
+    );
+    expect(
+      Math.max(...detailCellBoxes.map((box) => box.y)) -
+        Math.min(...detailCellBoxes.map((box) => box.y))
+    ).toBeLessThanOrEqual(1);
 
-    const [statusBox, cardBox, primaryBox, secondaryBox, customerBox] = await Promise.all([
+    await expect(
+      documents.getByRole('heading', { name: 'Dokumenti', exact: true })
+    ).toBeVisible();
+    await expect(pdfButton).toHaveText('Potrditev povpraševanja (PDF)');
+    const downloadPromise = page.waitForEvent('download');
+    await pdfButton.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe(
+      'povprasevanje-pov-2026-000001.pdf'
+    );
+    await expect.poll(() => observations.pdfRequests.length).toBe(1);
+    expect(observations.pdfRequests).toEqual([
+      {
+        accessId: TEST_ACCESS_ID,
+        accept: 'application/pdf'
+      }
+    ]);
+
+    const [
+      rootBox,
+      frameBox,
+      statusBox,
+      cardBox,
+      primaryBox,
+      secondaryBox,
+      lowerBox,
+      customerBox,
+      documentsBox
+    ] = await Promise.all([
+      root.boundingBox(),
+      frame.boundingBox(),
       status.boundingBox(),
       card.boundingBox(),
       primary.boundingBox(),
       secondary.boundingBox(),
-      customer.boundingBox()
+      lower.boundingBox(),
+      customer.boundingBox(),
+      documents.boundingBox()
     ]);
+    expect(rootBox).not.toBeNull();
+    expect(frameBox).not.toBeNull();
     expect(statusBox).not.toBeNull();
     expect(cardBox).not.toBeNull();
     expect(primaryBox).not.toBeNull();
     expect(secondaryBox).not.toBeNull();
+    expect(lowerBox).not.toBeNull();
     expect(customerBox).not.toBeNull();
+    expect(documentsBox).not.toBeNull();
+    const rootContentWidth = await root.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return (
+        element.getBoundingClientRect().width -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight)
+      );
+    });
+    expect(frameBox!.width / rootContentWidth).toBeGreaterThan(0.65);
+    expect(frameBox!.width / rootContentWidth).toBeLessThan(0.68);
+    expect(Math.abs(frameBox!.x - statusBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(frameBox!.width - statusBox!.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(statusBox!.x - cardBox!.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(statusBox!.width - cardBox!.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(primaryBox!.y - secondaryBox!.y)).toBeLessThanOrEqual(1);
     expect(
       Math.abs(primaryBox!.x + primaryBox!.width - secondaryBox!.x)
     ).toBeLessThanOrEqual(1);
-    expect(Math.abs(primaryBox!.x - customerBox!.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(primaryBox!.width - customerBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(cardBox!.x - lowerBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(cardBox!.width - lowerBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(lowerBox!.x - customerBox!.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(customerBox!.x + customerBox!.width - documentsBox!.x)
+    ).toBeLessThanOrEqual(1);
+    expect(Math.abs(customerBox!.y - documentsBox!.y)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(
+        lowerBox!.x + lowerBox!.width -
+          (documentsBox!.x + documentsBox!.width)
+      )
+    ).toBeLessThanOrEqual(1);
     expect(customerBox!.y).toBeGreaterThanOrEqual(
       primaryBox!.y + primaryBox!.height - 1
+    );
+    expect(lowerBox!.y).toBeGreaterThanOrEqual(
+      secondaryBox!.y + secondaryBox!.height - 1
     );
 
     const desktopStyle = await card.evaluate((element) => {
@@ -198,28 +310,63 @@ test.describe('quote request confirmation layout', () => {
     await page.goto('/quote-request/confirmation');
 
     const heading = page.getByTestId('quote-request-confirmation-heading');
+    const root = page.getByTestId('quote-request-confirmation-page');
+    const frame = root.locator('[data-confirmation-page-frame]');
     const card = page.getByTestId('quote-request-confirmation-content-card');
     const primary = page.getByTestId('quote-request-confirmation-items-section');
     const secondary = page.getByTestId('quote-request-confirmation-summary');
     const customer = page.getByTestId(
       'quote-request-confirmation-customer-section'
     );
+    const documents = page.getByTestId(
+      'quote-request-confirmation-documents-section'
+    );
+    const detailCells = customer.locator('dl > div');
 
     await expect(heading).toHaveCSS('font-size', '24px');
-    const [primaryBox, secondaryBox, customerBox] = await Promise.all([
-      primary.boundingBox(),
-      secondary.boundingBox(),
-      customer.boundingBox()
-    ]);
+    const [rootBox, frameBox, primaryBox, secondaryBox, customerBox, documentsBox] =
+      await Promise.all([
+        root.boundingBox(),
+        frame.boundingBox(),
+        primary.boundingBox(),
+        secondary.boundingBox(),
+        customer.boundingBox(),
+        documents.boundingBox()
+      ]);
+    expect(rootBox).not.toBeNull();
+    expect(frameBox).not.toBeNull();
     expect(primaryBox).not.toBeNull();
     expect(secondaryBox).not.toBeNull();
     expect(customerBox).not.toBeNull();
+    expect(documentsBox).not.toBeNull();
+    const rootContentMetrics = await root.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const paddingLeft = Number.parseFloat(style.paddingLeft);
+      const paddingRight = Number.parseFloat(style.paddingRight);
+      return {
+        x: rect.x + paddingLeft,
+        width: rect.width - paddingLeft - paddingRight
+      };
+    });
+    expect(Math.abs(frameBox!.x - rootContentMetrics.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(frameBox!.width - rootContentMetrics.width)
+    ).toBeLessThanOrEqual(1);
     expect(secondaryBox!.y).toBeGreaterThanOrEqual(
       primaryBox!.y + primaryBox!.height - 1
     );
     expect(customerBox!.y).toBeGreaterThanOrEqual(
       secondaryBox!.y + secondaryBox!.height - 1
     );
+    expect(documentsBox!.y).toBeGreaterThanOrEqual(
+      customerBox!.y + customerBox!.height - 1
+    );
+    const mobileDetailBoxes = await detailCells.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().y)
+    );
+    expect(mobileDetailBoxes[1]).toBeGreaterThan(mobileDetailBoxes[0]);
+    expect(mobileDetailBoxes[2]).toBeGreaterThan(mobileDetailBoxes[1]);
 
     const mobileLayout = await card.evaluate((element) => {
       const style = getComputedStyle(element);

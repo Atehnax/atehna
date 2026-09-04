@@ -34,7 +34,7 @@ describe('Navigation top-bar appearance', () => {
     );
   });
 
-  test('gives the compact width heading enough line height for descenders', () => {
+  test('keeps the wide Videz card grouped into colour, typography, width, and dimension rows', () => {
     const navigationEditorSource = readFileSync(
       resolve(
         process.cwd(),
@@ -43,9 +43,35 @@ describe('Navigation top-bar appearance', () => {
       'utf8'
     );
 
-    expect(navigationEditorSource).toMatch(
-      /className="text-\[11px\] font-semibold leading-\[14px\] text-slate-600">\s*Širina zgornje vrstice/
-    );
+    const settingsPanelIndex = navigationEditorSource.indexOf('data-testid="top-bar-settings-panel"');
+    const colorsRowIndex = navigationEditorSource.indexOf('data-testid="top-bar-colors-row"');
+    const typographyRowIndex = navigationEditorSource.indexOf('data-testid="top-bar-typography-row"');
+    const widthSettingsIndex = navigationEditorSource.indexOf('data-testid="top-bar-width-settings"');
+    const dimensionsIndex = navigationEditorSource.indexOf('data-testid="top-bar-dimensions-settings"');
+    const elementsTableIndex = navigationEditorSource.indexOf('data-testid="top-bar-elements-table"');
+
+    for (const index of [
+      settingsPanelIndex,
+      colorsRowIndex,
+      typographyRowIndex,
+      widthSettingsIndex,
+      dimensionsIndex,
+      elementsTableIndex
+    ]) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(settingsPanelIndex).toBeLessThan(colorsRowIndex);
+    expect(colorsRowIndex).toBeLessThan(typographyRowIndex);
+    expect(typographyRowIndex).toBeLessThan(widthSettingsIndex);
+    expect(widthSettingsIndex).toBeLessThan(dimensionsIndex);
+    expect(dimensionsIndex).toBeLessThan(elementsTableIndex);
+
+    const widthSettingsSource = navigationEditorSource.slice(widthSettingsIndex, dimensionsIndex);
+    const dimensionsSource = navigationEditorSource.slice(dimensionsIndex, elementsTableIndex);
+    expect(widthSettingsSource).toMatch(/>\s*Širina\s*</);
+    expect(widthSettingsSource).not.toContain('Širina zgornje vrstice');
+    expect(dimensionsSource).toContain('label="Odmik"');
+    expect(dimensionsSource).not.toContain('label="Min in Max odmik"');
   });
   test('keeps the customer-facing logo background transparent on hover', () => {
     const headerSource = readFileSync(

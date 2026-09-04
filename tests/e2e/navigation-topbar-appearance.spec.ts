@@ -103,30 +103,38 @@ test.describe('Navigation top-bar appearance', () => {
     expect(deviceDivider.groupWidth).toBeLessThan(deviceDivider.outerWidth / 2);
   });
 
-  test('uses the full table height to give appearance and width controls comfortable vertical spacing', async ({ page }) => {
+  test('lays out the full-width Videz card in aligned colour, typography, and dimension rows', async ({ page }) => {
     await page.setViewportSize({ width: 1329, height: 920 });
     await page.goto('/admin/podoba/navigacija');
 
     const settingsPanel = page.getByTestId('top-bar-settings-panel');
     const appearance = page.getByTestId('top-bar-appearance-settings');
+    const colorsRow = page.getByTestId('top-bar-colors-row');
+    const typographyRow = page.getByTestId('top-bar-typography-row');
     const widthSettings = page.getByTestId('top-bar-width-settings');
     const dimensions = page.getByTestId('top-bar-dimensions-settings');
     const elementTable = page.getByTestId('top-bar-elements-table');
 
     await expect(settingsPanel).toBeVisible({ timeout: 15_000 });
     await expect(appearance).toBeVisible();
+    await expect(colorsRow).toBeVisible();
+    await expect(typographyRow).toBeVisible();
     await expect(widthSettings).toBeVisible();
     await expect(dimensions).toBeVisible();
     await expect(elementTable).toBeVisible();
 
     const background = appearance.locator('input[type="text"][aria-label="Ozadje zgornje vrstice"]');
+    const backgroundOpacity = appearance.getByRole('spinbutton', { name: 'Prosojnost ozadja zgornje vrstice', exact: true });
     const textColor = appearance.locator('input[type="text"][aria-label="Barva besedila zgornje vrstice"]');
+    const fontFamily = getAppearanceEditorCompactSelect(appearance, 'Pisava zgornje vrstice');
     const fontSize = appearance.getByRole('spinbutton', { name: 'Velikost pisave zgornje vrstice', exact: true });
-    const widthHeading = widthSettings.getByText('Širina zgornje vrstice', { exact: true });
+    const fontWeight = getAppearanceEditorCompactSelect(appearance, 'Debelina pisave zgornje vrstice');
+    const fontStyle = getAppearanceEditorCompactSelect(appearance, 'Slog pisave zgornje vrstice');
+    const widthHeading = widthSettings.getByText('Širina', { exact: true });
     const widthModes = widthSettings.getByRole('button', { name: 'Vsebina', exact: true });
     const height = dimensions.getByRole('spinbutton', { name: 'Višina', exact: true });
     const breakpoint = dimensions.getByRole('textbox', { name: 'Prelomna širina', exact: true });
-    const gutter = dimensions.getByRole('textbox', { name: 'Min in Max odmik', exact: true });
+    const gutter = dimensions.getByRole('textbox', { name: 'Odmik', exact: true });
 
     const measurable = async (locator: typeof settingsPanel, label: string) => {
       const box = await locator.boundingBox();
@@ -137,11 +145,16 @@ test.describe('Navigation top-bar appearance', () => {
     const [
       panelBox,
       tableBox,
-      appearanceBox,
       appearanceHeadingBox,
+      colorsRowBox,
       backgroundBox,
+      opacityBox,
       textColorBox,
+      typographyRowBox,
+      familyBox,
       fontSizeBox,
+      weightBox,
+      styleBox,
       widthBox,
       widthHeadingBox,
       widthModesBox,
@@ -152,11 +165,16 @@ test.describe('Navigation top-bar appearance', () => {
     ] = await Promise.all([
       measurable(settingsPanel, 'The settings panel'),
       measurable(elementTable, 'The element table'),
-      measurable(appearance, 'The appearance section'),
       measurable(appearance.getByText('Videz', { exact: true }), 'The appearance heading'),
+      measurable(colorsRow, 'The colour controls row'),
       measurable(background, 'The background field'),
+      measurable(backgroundOpacity, 'The opacity field'),
       measurable(textColor, 'The text color field'),
+      measurable(typographyRow, 'The typography controls row'),
+      measurable(fontFamily, 'The font family field'),
       measurable(fontSize, 'The typography field'),
+      measurable(fontWeight, 'The font weight field'),
+      measurable(fontStyle, 'The font style field'),
       measurable(widthSettings, 'The width section'),
       measurable(widthHeading, 'The width heading'),
       measurable(widthModes, 'The width mode controls'),
@@ -166,28 +184,36 @@ test.describe('Navigation top-bar appearance', () => {
       measurable(gutter, 'The gutter field')
     ]);
 
-    expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(10);
+    expect(Math.abs(panelBox.x - tableBox.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(panelBox.width - tableBox.width)).toBeLessThanOrEqual(2);
+    expect(tableBox.y - (panelBox.y + panelBox.height)).toBeGreaterThanOrEqual(12);
 
-    expect(backgroundBox.y - (appearanceHeadingBox.y + appearanceHeadingBox.height)).toBeGreaterThanOrEqual(6);
-    expect(textColorBox.y - (backgroundBox.y + backgroundBox.height)).toBeGreaterThanOrEqual(8);
-    expect(fontSizeBox.y - (textColorBox.y + textColorBox.height)).toBeGreaterThanOrEqual(8);
-    expect(appearanceBox.y + appearanceBox.height - (fontSizeBox.y + fontSizeBox.height)).toBeGreaterThanOrEqual(8);
+    expect(colorsRowBox.y - (appearanceHeadingBox.y + appearanceHeadingBox.height)).toBeGreaterThanOrEqual(8);
+    expect(Math.abs(backgroundBox.y - opacityBox.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(backgroundBox.y - textColorBox.y)).toBeLessThanOrEqual(4);
+    expect(backgroundBox.x).toBeLessThan(opacityBox.x);
+    expect(opacityBox.x).toBeLessThan(textColorBox.x);
 
-    expect(widthBox.y - (appearanceBox.y + appearanceBox.height)).toBeGreaterThanOrEqual(10);
+    expect(typographyRowBox.y).toBeGreaterThan(colorsRowBox.y + 20);
+    expect(Math.abs(familyBox.y - fontSizeBox.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(familyBox.y - weightBox.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(familyBox.y - styleBox.y)).toBeLessThanOrEqual(4);
+    expect(familyBox.x).toBeLessThan(fontSizeBox.x);
+    expect(fontSizeBox.x).toBeLessThan(weightBox.x);
+    expect(weightBox.x).toBeLessThan(styleBox.x);
+
+    expect(widthBox.y).toBeGreaterThan(typographyRowBox.y + typographyRowBox.height);
     expect(widthModesBox.y - (widthHeadingBox.y + widthHeadingBox.height)).toBeGreaterThanOrEqual(6);
     expect(dimensionsBox.y - (widthBox.y + widthBox.height)).toBeGreaterThanOrEqual(10);
 
-    expect(breakpointBox.y - (heightBox.y + heightBox.height)).toBeGreaterThanOrEqual(7);
-    expect(gutterBox.y - (breakpointBox.y + breakpointBox.height)).toBeGreaterThanOrEqual(7);
-
-    const unusedBottomSpace = panelBox.y + panelBox.height - (gutterBox.y + gutterBox.height);
-    expect(unusedBottomSpace).toBeGreaterThanOrEqual(8);
-    expect(unusedBottomSpace).toBeLessThanOrEqual(20);
+    expect(Math.abs(heightBox.y - breakpointBox.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(heightBox.y - gutterBox.y)).toBeLessThanOrEqual(4);
+    expect(heightBox.x).toBeLessThan(breakpointBox.x);
+    expect(breakpointBox.x).toBeLessThan(gutterBox.x);
     expect(await settingsPanel.evaluate((element) => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1);
   });
 
-  test('keeps the settings panel level with the element table and contained at responsive widths', async ({ page }) => {
+  test('keeps the settings panel full-width above the element table and contained at responsive widths', async ({ page }) => {
     await page.setViewportSize({ width: 1329, height: 920 });
     await page.goto('/admin/podoba/navigacija');
 
@@ -206,8 +232,9 @@ test.describe('Navigation top-bar appearance', () => {
         throw new Error('The top-bar settings panel and element table must both be measurable.');
       }
 
-      expect(Math.abs(panelBox.y - tableBox.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(panelBox.height - tableBox.height)).toBeLessThanOrEqual(10);
+      expect(Math.abs(panelBox.x - tableBox.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(panelBox.width - tableBox.width)).toBeLessThanOrEqual(2);
+      expect(tableBox.y - (panelBox.y + panelBox.height)).toBeGreaterThanOrEqual(12);
       expect(await settingsPanel.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
     };
 
@@ -227,10 +254,25 @@ test.describe('Navigation top-bar appearance', () => {
     await expectDesktopGridGeometry();
 
     const customWidthMode = settingsPanel.getByRole('button', { name: 'Po meri', exact: true });
+    const widthModes = page.getByTestId('top-bar-width-settings').getByRole('button', { name: 'Vsebina', exact: true }).locator('..');
+    const widthModesBeforeCustom = await widthModes.boundingBox();
+    if (!widthModesBeforeCustom) throw new Error('The width mode controls must be measurable.');
     await customWidthMode.click();
     const customWidth = settingsPanel.getByRole('spinbutton', { name: 'Po meri', exact: true });
     await expect(customWidth).toBeVisible();
     await expect(customWidth).toBeEnabled();
+    const widthModesWithCustom = await widthModes.boundingBox();
+    const customWidthBox = await customWidth.boundingBox();
+    if (!widthModesWithCustom || !customWidthBox) {
+      throw new Error('The width mode controls and custom-width input must be measurable.');
+    }
+    expect(Math.abs(widthModesWithCustom.x - widthModesBeforeCustom.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(widthModesWithCustom.width - widthModesBeforeCustom.width)).toBeLessThanOrEqual(1);
+    expect(
+      customWidthBox.x + customWidthBox.width <= widthModesWithCustom.x
+      || customWidthBox.x >= widthModesWithCustom.x + widthModesWithCustom.width
+      || customWidthBox.y >= widthModesWithCustom.y + widthModesWithCustom.height
+    ).toBeTruthy();
     await expectDesktopGridGeometry();
 
     await settingsPanel.getByRole('button', { name: 'Vsebina', exact: true }).click();
@@ -277,7 +319,7 @@ test.describe('Navigation top-bar appearance', () => {
     await expect(settingsPanel.getByRole('button', { name: 'Celotna stran', exact: true })).toBeEnabled();
     await expect(settingsPanel.getByRole('spinbutton', { name: 'Višina', exact: true })).toBeEnabled();
     await expect(settingsPanel.getByRole('textbox', { name: 'Prelomna širina', exact: true })).toBeEnabled();
-    await expect(settingsPanel.getByRole('textbox', { name: 'Min in Max odmik', exact: true })).toBeEnabled();
+    await expect(settingsPanel.getByRole('textbox', { name: 'Odmik', exact: true })).toBeEnabled();
 
     await page.setViewportSize({ width: 1024, height: 1000 });
     await expect(settingsPanel).toBeVisible();
@@ -291,7 +333,9 @@ test.describe('Navigation top-bar appearance', () => {
 
     expect(responsivePanelBox.x).toBeGreaterThanOrEqual(0);
     expect(responsivePanelBox.x + responsivePanelBox.width).toBeLessThanOrEqual(1025);
+    expect(Math.abs(responsivePanelBox.x - responsiveTableBox.x)).toBeLessThanOrEqual(1);
     expect(Math.abs(responsivePanelBox.width - responsiveTableBox.width)).toBeLessThanOrEqual(2);
+    expect(responsiveTableBox.y - (responsivePanelBox.y + responsivePanelBox.height)).toBeGreaterThanOrEqual(12);
 
     const horizontalOverflow = await settingsPanel.evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(horizontalOverflow).toBeLessThanOrEqual(1);
@@ -304,7 +348,7 @@ test.describe('Navigation top-bar appearance', () => {
     }
   });
 
-  test('keeps the controls compact, updates the shared header preview, and saves every appearance field', async ({ page }) => {
+  test('updates the shared header preview and saves every appearance field from the aligned Videz rows', async ({ page }) => {
     const savedPayloads: NavigationSavePayload[] = [];
 
     await page.route('**/api/admin/site-navigation', async (route) => {
@@ -331,6 +375,8 @@ test.describe('Navigation top-bar appearance', () => {
     await page.goto('/admin/podoba/navigacija');
 
     const appearance = page.getByTestId('top-bar-appearance-settings');
+    const colorsRow = page.getByTestId('top-bar-colors-row');
+    const typographyRow = page.getByTestId('top-bar-typography-row');
     const background = appearance.locator('input[type="text"][aria-label="Ozadje zgornje vrstice"]');
     const backgroundOpacity = appearance.getByRole('spinbutton', { name: 'Prosojnost ozadja zgornje vrstice', exact: true });
     const textColor = appearance.locator('input[type="text"][aria-label="Barva besedila zgornje vrstice"]');
@@ -341,6 +387,8 @@ test.describe('Navigation top-bar appearance', () => {
 
     await expect(appearance).toBeVisible({ timeout: 15_000 });
     await expect(appearance.getByText('Videz', { exact: true })).toBeVisible();
+    await expect(colorsRow).toBeVisible();
+    await expect(typographyRow).toBeVisible();
     await expect(background).toBeVisible();
     await expect(backgroundOpacity).toBeVisible();
     await expect(textColor).toBeVisible();
@@ -348,22 +396,6 @@ test.describe('Navigation top-bar appearance', () => {
     await expect(fontSize).toBeVisible();
     await expect(fontWeight).toBeVisible();
     await expect(fontStyle).toBeVisible();
-
-    const compactLayout = await Promise.all(
-      [appearance, background, backgroundOpacity, textColor, fontFamily, fontSize, fontWeight, fontStyle].map(async (locator) => {
-        const box = await locator.boundingBox();
-        if (!box) throw new Error('The top-bar appearance control is not measurable.');
-        return box;
-      })
-    );
-    const [panelBox, backgroundBox, opacityBox, textColorBox, familyBox, sizeBox, weightBox, styleBox] = compactLayout;
-    expect(panelBox.height).toBeLessThan(250);
-    expect(Math.abs(backgroundBox.y - opacityBox.y)).toBeLessThanOrEqual(4);
-    expect(Math.abs(textColorBox.y - familyBox.y)).toBeLessThanOrEqual(4);
-    expect(Math.abs(sizeBox.y - weightBox.y)).toBeLessThanOrEqual(4);
-    expect(Math.abs(sizeBox.y - styleBox.y)).toBeLessThanOrEqual(4);
-    expect(textColorBox.y).toBeGreaterThan(backgroundBox.y + 20);
-    expect(sizeBox.y).toBeGreaterThan(textColorBox.y + 20);
 
     const sharedHeader = page.locator('[data-technical-topbar-renderer="true"] header').first();
     await expect(sharedHeader).toBeVisible();

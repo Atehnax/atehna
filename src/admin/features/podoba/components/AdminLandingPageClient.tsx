@@ -124,6 +124,15 @@ import {
 import type { CategoryShowcaseMediaSettings } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import {
+  appearancePreviewTransitionDurationMs as previewViewportTransitionDurationMs,
+  appearancePreviewTransitionEasing as previewFrameTransitionEasing,
+  easeAppearancePreviewProgress as easePreviewViewportProgress,
+  interpolateAppearancePreviewValue as lerpPreviewWidth,
+  preserveAdjacentAppearancePreviewDevice,
+  roundAppearancePreviewValue as roundPreviewWidth,
+  usePrefersReducedMotion
+} from '@/shared/ui/responsive-preview-motion';
 import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { Input } from '@/shared/ui/input';
@@ -396,9 +405,6 @@ function createHomepagePreviewHeroStorefrontStyle(
   };
 }
 
-const previewViewportTransitionDurationMs = 420;
-const previewFrameTransitionEasing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-
 type PreviewViewportGeometry = {
   logicalWidth: number;
   renderedWidth: number;
@@ -611,95 +617,26 @@ function getPreviewViewportGeometry(
   };
 }
 
-function lerpPreviewWidth(start: number, end: number, progress: number) {
-  return start + (end - start) * progress;
-}
-
-function roundPreviewWidth(width: number) {
-  return Math.round(width * 1_000) / 1_000;
-}
-
 function preserveAdjacentPreviewMode(
   currentMode: HomepagePreviewDevice,
   candidateGeometry: PreviewViewportGeometry,
   startGeometry: PreviewViewportGeometry,
   targetGeometry: PreviewViewportGeometry
 ) {
-  const candidateMode = getHomepagePreviewDeviceForViewport(candidateGeometry.logicalWidth);
-  const currentModeIndex = HOMEPAGE_PREVIEW_DEVICES.indexOf(currentMode);
-  const candidateModeIndex = HOMEPAGE_PREVIEW_DEVICES.indexOf(candidateMode);
-  if (Math.abs(candidateModeIndex - currentModeIndex) <= 1) {
-    return {
-      geometry: candidateGeometry,
-      mode: candidateMode,
-      progress: null,
-      heldIntermediateMode: false
-    } as const;
-  }
-
-  // A delayed animation frame must not jump the live renderer directly between
-  // mobile and desktop. Hold the first crossed tablet width for one painted
-  // frame, then continue on the same time-based trajectory on the next frame.
-  const logicalWidth = currentMode === 'desktop'
-    ? HOMEPAGE_PREVIEW_PROFILES.tablet.viewportWidth
-    : 768;
-  const logicalDistance = targetGeometry.logicalWidth - startGeometry.logicalWidth;
-  const progress = logicalDistance === 0
-    ? 1
-    : (logicalWidth - startGeometry.logicalWidth) / logicalDistance;
-  const geometry = {
-    logicalWidth,
-    renderedWidth: roundPreviewWidth(
-      lerpPreviewWidth(startGeometry.renderedWidth, targetGeometry.renderedWidth, progress)
-    )
-  };
-
+  const adjacentStep = preserveAdjacentAppearancePreviewDevice({
+    currentDevice: currentMode,
+    candidateGeometry,
+    startGeometry,
+    targetGeometry,
+    orderedDevices: HOMEPAGE_PREVIEW_DEVICES,
+    resolveDevice: getHomepagePreviewDeviceForViewport
+  });
   return {
-    geometry,
-    mode: 'tablet' as const,
-    progress,
-    heldIntermediateMode: true
+    geometry: adjacentStep.geometry,
+    mode: adjacentStep.device,
+    progress: adjacentStep.transitionProgress,
+    heldIntermediateMode: adjacentStep.heldIntermediateDevice
   } as const;
-}
-
-function cubicBezierCoordinate(progress: number, controlPoint1: number, controlPoint2: number) {
-  const inverse = 1 - progress;
-  return 3 * inverse * inverse * progress * controlPoint1
-    + 3 * inverse * progress * progress * controlPoint2
-    + progress * progress * progress;
-}
-
-function easePreviewViewportProgress(progress: number) {
-  const clampedProgress = Math.min(1, Math.max(0, progress));
-  let lower = 0;
-  let upper = 1;
-  let parameter = clampedProgress;
-
-  // Solve cubic-bezier(0.4, 0, 0.2, 1) by its x coordinate so both widths
-  // share exactly the same eased progress without independent CSS animations.
-  for (let iteration = 0; iteration < 12; iteration += 1) {
-    parameter = (lower + upper) / 2;
-    const x = cubicBezierCoordinate(parameter, 0.4, 0.2);
-    if (x < clampedProgress) lower = parameter;
-    else upper = parameter;
-  }
-
-  return cubicBezierCoordinate(parameter, 0, 1);
-}
-
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useLayoutEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
-
-    updatePreference();
-    mediaQuery.addEventListener('change', updatePreference);
-    return () => mediaQuery.removeEventListener('change', updatePreference);
-  }, []);
-
-  return prefersReducedMotion;
 }
 
 function useLiveResponsivePreviewViewport({

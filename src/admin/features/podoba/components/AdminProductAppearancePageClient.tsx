@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
+import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
 import { StorefrontInventoryPolicyProvider } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
@@ -72,6 +73,7 @@ import {
 } from '@/shared/domain/style/productAppearance';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { useAppearanceResponsivePreviewMotion } from '@/shared/ui/responsive-preview-motion';
 import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import {
   adminControlFocusTokenClasses,
@@ -111,6 +113,8 @@ type SectionKey = Exclude<
 >;
 type PreviewPage = 'listing' | 'product' | 'cart';
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+
+const previewDevices = ['desktop', 'tablet', 'mobile'] as const satisfies readonly PreviewDevice[];
 
 type ProductCanvasElementDefinition = {
   id: string;
@@ -1404,6 +1408,54 @@ export default function AdminProductAppearancePageClient({
   const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
   const interactivePreviewFrameRef = useRef<HTMLDivElement | null>(null);
   const interactivePreviewViewportRef = useRef<HTMLDivElement | null>(null);
+  const previewLogicalWidths = useMemo<Record<PreviewDevice, number>>(() => {
+    const tablet = toCommercialStorefrontLogicalPx(900);
+    return {
+      desktop: Math.max(
+        tablet + 1,
+        toCommercialStorefrontLogicalPx(initialGlobalStyle.layout.maxWidthPx)
+      ),
+      tablet,
+      mobile: toCommercialStorefrontLogicalPx(390)
+    };
+  }, [initialGlobalStyle.layout.maxWidthPx]);
+  const getPreviewTargetGeometry = useCallback((
+    device: PreviewDevice,
+    availableWidth: number
+  ) => {
+    const renderedWidth = device === 'desktop'
+      ? Math.min(availableWidth, showAdvancedSettings ? availableWidth : 1120)
+      : device === 'tablet'
+        ? Math.min(availableWidth * 0.76, showAdvancedSettings ? availableWidth : 1120)
+        : Math.min(availableWidth, 390);
+    return {
+      logicalWidth: previewLogicalWidths[device],
+      renderedWidth
+    };
+  }, [previewLogicalWidths, showAdvancedSettings]);
+  const resolvePreviewDevice = useCallback((logicalWidth: number): PreviewDevice => {
+    const mobileTabletBoundary = (
+      previewLogicalWidths.mobile + previewLogicalWidths.tablet
+    ) / 2;
+    const tabletDesktopBoundary = (
+      previewLogicalWidths.tablet + previewLogicalWidths.desktop
+    ) / 2;
+    if (logicalWidth <= mobileTabletBoundary) return 'mobile';
+    if (logicalWidth <= tabletDesktopBoundary) return 'tablet';
+    return 'desktop';
+  }, [previewLogicalWidths]);
+  const previewMotion = useAppearanceResponsivePreviewMotion<PreviewDevice>({
+    selectedDevice: previewDevice,
+    orderedDevices: previewDevices,
+    getTargetGeometry: getPreviewTargetGeometry,
+    resolveDevice: resolvePreviewDevice
+  });
+  const setPreviewMotionFrameElement = previewMotion.setFrameElement;
+  const setInteractivePreviewFrame = useCallback((element: HTMLDivElement | null) => {
+    interactivePreviewFrameRef.current = element;
+    interactivePreviewViewportRef.current = element;
+    setPreviewMotionFrameElement(element);
+  }, [setPreviewMotionFrameElement]);
   const activeDefinition = sections.find((section) => section.key === activeSection) ?? sections[0];
   const isAppearanceDirty = comparable(config) !== comparable(savedConfig);
   const isProductDirty = comparableProduct(product) !== comparableProduct(savedProduct);
@@ -2344,8 +2396,6 @@ export default function AdminProductAppearancePageClient({
     else groups.push({ label: section.group, items: [section] });
     return groups;
   }, []);
-  const previewWidth = previewDevice === 'desktop' ? 'w-full' : previewDevice === 'tablet' ? 'w-[76%]' : 'w-[390px] max-w-full';
-
   return (
     <StorefrontInventoryPolicyProvider
       stockEnforcementEnabled={initialStockEnforcementEnabled}
@@ -2486,28 +2536,41 @@ export default function AdminProductAppearancePageClient({
                 </div>
               </div>
               <div className="overflow-auto bg-slate-100 p-3" data-appearance-editor-scroll-purpose="preview">
-                <div className={`mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all ${previewWidth}`}>
-                  {previewPage === 'product' && previewProduct ? (
-                    <ProductAppearanceLivePreview
-                      config={config}
-                      globalStyle={initialGlobalStyle}
-                      siteLayout={initialSiteLayout}
-                      product={previewProduct}
-                      device={previewDevice}
-                      selectedElementId={null}
-                      selectedElementIds={[]}
-                      onSelectElement={() => undefined}
-                      onElementChange={() => undefined}
-                    />
-                  ) : (
-                    <ProductPreview
-                      config={config}
-                      globalStyle={initialGlobalStyle}
-                      page={previewPage}
-                      device={previewDevice}
-                      product={previewProduct}
-                    />
-                  )}
+                <div
+                  ref={previewMotion.setStageElement}
+                  className="relative flex w-full items-start justify-center overflow-x-clip"
+                  data-testid="product-preview-stage"
+                >
+                  <div
+                    ref={previewMotion.setFrameElement}
+                    className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                    data-testid="product-preview-frame"
+                    data-product-preview-frame
+                  >
+                    {previewPage === 'product' && previewProduct ? (
+                      <ProductAppearanceLivePreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        siteLayout={initialSiteLayout}
+                        product={previewProduct}
+                        device={previewMotion.renderDevice}
+                        motionFrameRef={previewMotion.frameRef}
+                        transitioning={previewMotion.phase === 'animating'}
+                        selectedElementId={null}
+                        selectedElementIds={[]}
+                        onSelectElement={() => undefined}
+                        onElementChange={() => undefined}
+                      />
+                    ) : (
+                      <ProductPreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        page={previewPage}
+                        device={previewMotion.renderDevice}
+                        product={previewProduct}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </aside>
@@ -2710,56 +2773,62 @@ export default function AdminProductAppearancePageClient({
               </div>
 
               <div
-                ref={(element) => {
-                  interactivePreviewFrameRef.current = element;
-                  interactivePreviewViewportRef.current = element;
-                }}
-                className={`admin-product-canvas-surface relative mx-auto max-w-[1120px] rounded-xl border border-slate-200 bg-white shadow-sm transition-[width] duration-200 ${previewWidth}`}
-                data-show-grid={config.canvas.showGrid}
-                data-product-preview-frame
-                style={{
-                  '--admin-product-canvas-grid-size': `${config.canvas.gridSizePx}px`
-                } as CSSProperties}
+                ref={previewMotion.setStageElement}
+                className="relative flex w-full items-start justify-center overflow-x-clip"
+                data-testid="product-preview-stage"
               >
-                {previewPage === 'product' ? (
-                  previewProduct ? (
-                    <ProductAppearanceLivePreview
+                <div
+                  ref={setInteractivePreviewFrame}
+                  className="admin-product-canvas-surface relative w-full max-w-[1120px] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                  data-testid="product-preview-frame"
+                  data-show-grid={config.canvas.showGrid}
+                  data-product-preview-frame
+                  style={{
+                    '--admin-product-canvas-grid-size': `${config.canvas.gridSizePx}px`
+                  } as CSSProperties}
+                >
+                  {previewPage === 'product' ? (
+                    previewProduct ? (
+                      <ProductAppearanceLivePreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        siteLayout={initialSiteLayout}
+                        product={previewProduct}
+                        device={previewMotion.renderDevice}
+                        motionFrameRef={previewMotion.frameRef}
+                        transitioning={previewMotion.phase === 'animating'}
+                        selectedElementId={selectedCanvasElementId}
+                        selectedElementIds={selectedCanvasElementIds}
+                        onSelectElement={selectCanvasElement}
+                        onElementChange={updateCanvasElement}
+                      />
+                    ) : (
+                      <div className="grid min-h-[520px] place-items-center p-8 text-center">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {isLoadingProduct ? 'Nalaganje artikla …' : 'Izberite artikel za resničen predogled.'}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-500">
+                            Vsebina predogleda ni več nadomestna ali vnaprej določena.
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <ProductPreview
                       config={config}
                       globalStyle={initialGlobalStyle}
-                      siteLayout={initialSiteLayout}
+                      page={previewPage}
+                      device={previewMotion.renderDevice}
                       product={previewProduct}
-                      device={previewDevice}
+                      interactive
                       selectedElementId={selectedCanvasElementId}
                       selectedElementIds={selectedCanvasElementIds}
                       onSelectElement={selectCanvasElement}
                       onElementChange={updateCanvasElement}
                     />
-                  ) : (
-                    <div className="grid min-h-[520px] place-items-center p-8 text-center">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {isLoadingProduct ? 'Nalaganje artikla …' : 'Izberite artikel za resničen predogled.'}
-                        </p>
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          Vsebina predogleda ni več nadomestna ali vnaprej določena.
-                        </p>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <ProductPreview
-                    config={config}
-                    globalStyle={initialGlobalStyle}
-                    page={previewPage}
-                    device={previewDevice}
-                    product={previewProduct}
-                    interactive
-                    selectedElementId={selectedCanvasElementId}
-                    selectedElementIds={selectedCanvasElementIds}
-                    onSelectElement={selectCanvasElement}
-                    onElementChange={updateCanvasElement}
-                  />
-                )}
+                  )}
+                </div>
               </div>
 
               <FloatingAppearanceEditorContextToolbar
@@ -2768,6 +2837,7 @@ export default function AdminProductAppearancePageClient({
                 viewportRef={interactivePreviewViewportRef}
                 ariaLabel="Orodna vrstica izbranega elementa"
                 testId="product-appearance-context-toolbar"
+                transitioning={previewMotion.phase === 'animating'}
                 onDismiss={clearCanvasSelection}
               >
                 <ProductAppearanceContextToolbar

@@ -1374,6 +1374,7 @@ function TopBarSegmentedControl<T extends string>({
   options,
   activeValue,
   compact = false,
+  contained = false,
   onChange,
   onOptionActive,
   onOptionInactive
@@ -1382,27 +1383,47 @@ function TopBarSegmentedControl<T extends string>({
   options: Array<{ value: T; label: string; disabled?: boolean }>;
   activeValue?: T | null;
   compact?: boolean;
+  contained?: boolean;
   onChange: (value: T) => void;
   onOptionActive?: (value: T) => void;
   onOptionInactive?: () => void;
 }) {
   return (
-    <div className={compact ? 'inline-flex min-h-7 w-full min-w-0 items-center gap-1' : 'inline-flex min-h-9 min-w-0 flex-wrap items-center gap-1'}>
+    <div
+      className={
+        contained
+          ? 'grid min-h-9 w-full min-w-0 grid-flow-col auto-cols-fr overflow-hidden rounded-lg border border-slate-300 bg-white'
+          : compact
+            ? 'inline-flex min-h-7 w-full min-w-0 items-center gap-1'
+            : 'inline-flex min-h-9 min-w-0 flex-wrap items-center gap-1'
+      }
+    >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           disabled={option.disabled}
-          className={`inline-flex items-center justify-center rounded-md border font-medium leading-none transition ${adminControlFocusTokenClasses} ${
-            compact ? 'h-7 min-w-0 flex-1 px-1.5 text-[11px]' : 'h-8 px-2.5 text-[12px]'
+          aria-pressed={value === option.value}
+          className={`inline-flex items-center justify-center font-medium leading-none transition ${adminControlFocusTokenClasses} ${
+            contained
+              ? 'h-9 min-w-0 border-0 border-r border-slate-200 px-2 text-[12px] last:border-r-0'
+              : `rounded-md border ${compact ? 'h-7 min-w-0 flex-1 px-1.5 text-[11px]' : 'h-8 px-2.5 text-[12px]'}`
           } ${
             value === option.value
-              ? 'border-[color:var(--blue-500)] bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
+              ? contained
+                ? 'bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
+                : 'border-[color:var(--blue-500)] bg-[color:var(--blue-50)] text-[color:var(--blue-500)]'
               : activeValue === option.value
-                ? 'border-[color:var(--blue-500)]/50 bg-[color:var(--blue-50)]/60 text-[color:var(--blue-500)]'
+                ? contained
+                  ? 'bg-[color:var(--blue-50)]/60 text-[color:var(--blue-500)]'
+                  : 'border-[color:var(--blue-500)]/50 bg-[color:var(--blue-50)]/60 text-[color:var(--blue-500)]'
               : option.disabled
-                ? 'cursor-not-allowed border-transparent text-slate-300'
-                : 'border-transparent text-slate-500 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
+                ? contained
+                  ? 'cursor-not-allowed text-slate-300'
+                  : 'cursor-not-allowed border-transparent text-slate-300'
+                : contained
+                  ? 'text-slate-600 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
+                  : 'border-transparent text-slate-500 hover:bg-[color:var(--hover-neutral)] hover:text-[color:var(--blue-500)]'
           }`}
           onBlur={onOptionInactive}
           onClick={() => onChange(option.value)}
@@ -1818,8 +1839,9 @@ function TopBarMiniNumberField({
         max={max}
         step={step}
         suffix={suffix}
-        className={rowLayout ? 'ml-auto w-[84px]' : 'w-full max-w-[84px]'}
-        inputClassName="w-10 shrink-0"
+        variant={rowLayout ? 'compact' : 'simulator'}
+        className={rowLayout ? 'ml-auto w-[84px]' : 'w-full'}
+        inputClassName={rowLayout ? 'w-10 shrink-0' : 'min-w-0 flex-1 text-[13px]'}
         ariaLabel={label}
         active={active}
         onBlur={onBlur}
@@ -1867,7 +1889,7 @@ function TopBarMiniRangeField({
   onMouseLeave?: () => void;
   onChange: (startValue: number, endValue: number) => void;
 }) {
-  const formattedValue = `${startValue}-${endValue}`;
+  const formattedValue = `${startValue} – ${endValue}`;
   const [draftValue, setDraftValue] = useState(formattedValue);
   const rowLayout = layout === 'row';
 
@@ -1889,7 +1911,7 @@ function TopBarMiniRangeField({
     const nextStartValue = Math.min(firstValue, secondValue);
     const nextEndValue = Math.max(firstValue, secondValue);
 
-    setDraftValue(`${nextStartValue}-${nextEndValue}`);
+    setDraftValue(`${nextStartValue} – ${nextEndValue}`);
     onChange(nextStartValue, nextEndValue);
   };
 
@@ -1903,7 +1925,7 @@ function TopBarMiniRangeField({
         {label}
       </TopBarHelpLabel>
       <span
-        className={`inline-flex h-7 ${rowLayout ? 'ml-auto w-[128px]' : 'w-full max-w-[128px]'} items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
+        className={`inline-flex ${rowLayout ? 'ml-auto h-7 w-[128px]' : 'h-9 w-full'} items-center overflow-hidden rounded-md border ${rowLayout ? 'border-slate-200' : 'border-slate-300'} bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
           active ? topBarActiveFieldClassName : ''
         }`}
         onMouseEnter={onMouseEnter}
@@ -2010,7 +2032,7 @@ function TopBarMiniBreakpointField({
         {label}
       </TopBarHelpLabel>
       <span
-        className={`inline-flex h-7 ${rowLayout ? 'ml-auto w-[128px]' : 'w-full max-w-[128px]'} items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
+        className={`inline-flex ${rowLayout ? 'ml-auto h-7 w-[128px]' : 'h-9 w-full'} items-center overflow-hidden rounded-md border ${rowLayout ? 'border-slate-200' : 'border-slate-300'} bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
           active ? topBarActiveFieldClassName : ''
         }`}
         onMouseEnter={onMouseEnter}
@@ -2135,7 +2157,11 @@ function TopBarAppearanceColorField({
       layout={hideLabel ? 'inline' : 'compact'}
       onChange={onChange}
       inputAttributes={{ 'aria-label': ariaLabel }}
-      className="min-w-0"
+      className={
+        hideLabel
+          ? 'h-9 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 transition focus-within:border-[color:var(--blue-500)] [&>label]:sr-only [&>span]:!ml-0 [&>span]:!max-w-none [&>span]:min-w-0 [&_input]:!border-0 [&_input]:!bg-transparent [&_input]:!px-1 [&_input]:!text-[12px] [&_input]:!font-medium [&_input]:!tracking-normal [&_input]:!ring-0'
+          : 'min-w-0'
+      }
     />
   );
 }
@@ -5100,30 +5126,27 @@ function TopBarLayoutEditor({
             />
           </div>
 
-          <div className="min-w-0 self-stretch border-t border-slate-100 pt-4 min-[1180px]:col-start-2 min-[1180px]:row-start-3 min-[1180px]:border-t-0 min-[1180px]:pt-0">
+          <div className="col-span-full min-w-0 border-t border-slate-100 pt-4">
             <aside
-              className={`grid h-full min-w-0 content-start rounded-xl border border-slate-200 bg-white p-3 ${
-                device === 'desktop' ? 'gap-3' : 'gap-2'
-              }`}
+              className="grid min-w-0 content-start gap-5 rounded-xl border border-slate-200 bg-white p-5 md:p-6"
               data-testid="top-bar-settings-panel"
               data-appearance-editor-settings-surface
               data-settings-scroll="none"
             >
               <section
-                className={`min-w-0 border-b border-slate-100 ${
-                  device === 'desktop' ? 'pb-2.5' : 'pb-1.5'
-                }`}
+                className="min-w-0"
                 data-testid="top-bar-appearance-settings"
               >
-                <h3 className={`text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 ${
-                  device === 'desktop' ? 'mb-2' : 'mb-1'
-                }`}>
-                  Videz
-                </h3>
-                <div className={`grid min-w-0 ${device === 'desktop' ? 'gap-2.5' : 'gap-1.5'}`}>
-                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
-                    <span className="truncate text-[11px] font-medium text-slate-500">Ozadje</span>
-                    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_68px] gap-1.5">
+                <h3 className="text-xl font-semibold leading-7 text-slate-900">Videz</h3>
+                <div className="mt-5 min-w-0">
+                  <h4 className="text-base font-semibold leading-6 text-slate-900">Barve in pisava</h4>
+
+                  <div
+                    className="mt-3 grid min-w-0 gap-4 lg:grid-cols-3"
+                    data-testid="top-bar-colors-row"
+                  >
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Ozadje</span>
                       <TopBarAppearanceColorField
                         label="Barva ozadja"
                         ariaLabel="Ozadje zgornje vrstice"
@@ -5132,23 +5155,24 @@ function TopBarLayoutEditor({
                         hideLabel
                         onChange={(backgroundColor) => updateSettings({ backgroundColor })}
                       />
+                    </div>
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Prosojnost</span>
                       <TopBarUnitNumberInput
                         value={deviceLayout.settings.backgroundOpacityPercent}
                         min={0}
                         max={100}
                         step={1}
                         suffix="%"
+                        variant="simulator"
                         className="w-full"
-                        inputClassName="min-w-0 flex-1 px-1 text-[11px]"
+                        inputClassName="min-w-0 flex-1 text-[13px]"
                         ariaLabel="Prosojnost ozadja zgornje vrstice"
                         onChange={(backgroundOpacityPercent) => updateSettings({ backgroundOpacityPercent })}
                       />
                     </div>
-                  </div>
-
-                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
-                    <span className="truncate text-[11px] font-medium text-slate-500">Besedilo</span>
-                    <div className="grid min-w-0 grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] gap-2.5">
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Besedilo</span>
                       <TopBarAppearanceColorField
                         label="Barva besedila"
                         ariaLabel="Barva besedila zgornje vrstice"
@@ -5157,48 +5181,61 @@ function TopBarLayoutEditor({
                         hideLabel
                         onChange={(textColor) => updateSettings({ textColor })}
                       />
+                    </div>
+                  </div>
+
+                  <div
+                    className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.62fr)_minmax(0,0.82fr)_minmax(0,0.82fr)]"
+                    data-testid="top-bar-typography-row"
+                  >
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Pisava</span>
                       <AppearanceEditorCompactSelect
                         value={deviceLayout.settings.fontFamily}
                         options={HOMEPAGE_WEBSITE_FONT_FAMILIES.map((fontFamily) => ({ value: fontFamily, label: fontFamily }))}
                         ariaLabel="Pisava zgornje vrstice"
                         marker={`topbar-${device}-font-family`}
                         tone="light"
-                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
+                        triggerClassName="!h-9 !rounded-lg !border-slate-300 !bg-white !px-2.5 !text-[12px] !font-normal !text-slate-700"
                         onValueChange={(fontFamily) => updateSettings({ fontFamily: fontFamily as WebsiteFontFamily })}
                       />
                     </div>
-                  </div>
-
-                  <div className="grid min-w-0 grid-cols-[66px_minmax(0,1fr)] items-center gap-2">
-                    <span className="truncate text-[11px] font-medium text-slate-500">Tipografija</span>
-                    <div className="grid min-w-0 grid-cols-[66px_minmax(72px,1.05fr)_minmax(58px,0.95fr)] gap-2">
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Velikost</span>
                       <TopBarUnitNumberInput
                         value={deviceLayout.settings.fontSizePx}
                         min={10}
                         max={24}
                         step={1}
                         suffix="px"
+                        variant="simulator"
                         className="w-full"
-                        inputClassName="min-w-0 flex-1 px-1 text-[11px]"
+                        inputClassName="min-w-0 flex-1 text-[13px]"
                         ariaLabel="Velikost pisave zgornje vrstice"
                         onChange={(fontSizePx) => updateSettings({ fontSizePx })}
                       />
+                    </div>
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Debelina</span>
                       <AppearanceEditorCompactSelect
                         value={String(deviceLayout.settings.fontWeight)}
                         options={topBarFontWeightOptions.map((option) => ({ value: String(option.value), label: option.label }))}
                         ariaLabel="Debelina pisave zgornje vrstice"
                         marker={`topbar-${device}-font-weight`}
                         tone="light"
-                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
+                        triggerClassName="!h-9 !rounded-lg !border-slate-300 !bg-white !px-2.5 !text-[12px] !font-normal !text-slate-700"
                         onValueChange={(fontWeight) => updateSettings({ fontWeight: Number(fontWeight) })}
                       />
+                    </div>
+                    <div className="grid min-w-0 gap-1.5">
+                      <span className="text-[12px] font-medium leading-4 text-slate-600">Slog</span>
                       <AppearanceEditorCompactSelect
                         value={deviceLayout.settings.fontStyle}
                         options={topBarFontStyleOptions}
                         ariaLabel="Slog pisave zgornje vrstice"
                         marker={`topbar-${device}-font-style`}
                         tone="light"
-                        triggerClassName="!h-7 !rounded-md !border-slate-200 !bg-white !px-2 !text-[11px] !font-normal !text-slate-700"
+                        triggerClassName="!h-9 !rounded-lg !border-slate-300 !bg-white !px-2.5 !text-[12px] !font-normal !text-slate-700"
                         onValueChange={(fontStyle) => updateSettings({
                           fontStyle: fontStyle as SiteNavigationTopBarResponsiveSettings['fontStyle']
                         })}
@@ -5208,29 +5245,21 @@ function TopBarLayoutEditor({
                 </div>
               </section>
 
-              <section className="min-w-0" data-testid="top-bar-width-settings">
-                <div className={`flex min-w-0 items-center justify-between gap-2 ${
-                  device === 'desktop' ? 'mb-2' : 'mb-1'
-                }`}>
-                  <TopBarHelpLabel help={topBarHelpCopy.widthMode} align="right" className="text-[11px] font-semibold leading-[14px] text-slate-600">
-                    Širina zgornje vrstice
+              <section className="min-w-0 border-t border-slate-200 pt-5" data-testid="top-bar-width-settings">
+                <h4 className="text-base font-semibold leading-6 text-slate-900">Zgornja vrstica</h4>
+                <div className="mt-3 grid min-w-0 gap-3">
+                  <TopBarHelpLabel
+                    help={topBarHelpCopy.widthMode}
+                    align="right"
+                    className="text-[12px] font-medium leading-4 text-slate-600"
+                  >
+                    Širina
                   </TopBarHelpLabel>
-                  {deviceLayout.settings.widthMode === 'custom' ? (
-                    <TopBarHelpLabel help={topBarHelpCopy.customWidth} align="right" className="shrink-0 text-[10px] font-medium leading-none text-slate-500">
-                      Po meri
-                    </TopBarHelpLabel>
-                  ) : null}
-                </div>
-                <div className="grid min-w-0 gap-1.5">
-                  <div className={`grid min-w-0 items-center gap-1.5 ${
-                    deviceLayout.settings.widthMode === 'custom'
-                      ? 'grid-cols-[minmax(0,1fr)_84px]'
-                      : 'grid-cols-1'
-                  }`}>
+                  <div className="min-w-0" data-testid="top-bar-width-mode-control">
                     <TopBarSegmentedControl<SiteNavigationTopBarWidthMode>
                       value={deviceLayout.settings.widthMode}
                       activeValue={activeEdit.kind === 'width-mode' ? activeEdit.fieldName as SiteNavigationTopBarWidthMode : null}
-                      compact
+                      contained
                       options={[
                         { value: 'match_content', label: topBarWidthModeLabels.match_content },
                         { value: 'custom', label: topBarWidthModeLabels.custom },
@@ -5243,26 +5272,36 @@ function TopBarLayoutEditor({
                       onOptionActive={(widthMode) => setActiveEdit({ kind: 'width-mode', fieldName: widthMode })}
                       onOptionInactive={clearActiveEditSoon}
                     />
-                    {deviceLayout.settings.widthMode === 'custom' ? (
-                      <TopBarUnitNumberInput
-                      value={deviceLayout.settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx}
-                      min={640}
-                      max={2400}
-                      className="w-[84px]"
-                      inputClassName="w-10 shrink-0 px-1"
-                      ariaLabel="Po meri"
-                      active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'customMaxWidthPx'}
-                      onBlur={clearActiveEditSoon}
-                      onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
-                      onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
-                      onMouseLeave={clearActiveEditSoon}
-                      onChange={(customMaxWidthPx) => {
-                        setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' });
-                        updateSettings({ customMaxWidthPx });
-                      }}
-                      />
-                    ) : null}
                   </div>
+                  {deviceLayout.settings.widthMode === 'custom' ? (
+                    <div className="grid max-w-[240px] min-w-0 gap-1.5">
+                      <TopBarHelpLabel
+                        help={topBarHelpCopy.customWidth}
+                        align="right"
+                        className="text-[12px] font-medium leading-4 text-slate-600"
+                      >
+                        Širina po meri
+                      </TopBarHelpLabel>
+                      <TopBarUnitNumberInput
+                        value={deviceLayout.settings.customMaxWidthPx ?? siteLayout.siteContentMaxWidthPx}
+                        min={640}
+                        max={2400}
+                        variant="simulator"
+                        className="w-full"
+                        inputClassName="min-w-0 flex-1 text-[13px]"
+                        ariaLabel="Po meri"
+                        active={activeEdit.kind === 'container-width' && activeEdit.fieldName === 'customMaxWidthPx'}
+                        onBlur={clearActiveEditSoon}
+                        onFocus={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
+                        onMouseEnter={() => setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' })}
+                        onMouseLeave={clearActiveEditSoon}
+                        onChange={(customMaxWidthPx) => {
+                          setActiveEdit({ kind: 'container-width', fieldName: 'customMaxWidthPx' });
+                          updateSettings({ customMaxWidthPx });
+                        }}
+                      />
+                    </div>
+                  ) : null}
                   {device !== 'desktop' ? (
                     <div>
                       <TopBarDeviceSettingsPanel device={device} settings={deviceLayout.settings} onChange={updateSettings} scope="navigation" />
@@ -5272,9 +5311,9 @@ function TopBarLayoutEditor({
               </section>
 
               <section className="min-w-0" data-testid="top-bar-dimensions-settings">
-                <div className={`grid min-w-0 ${device === 'desktop' ? 'gap-2' : 'gap-1.5'}`}>
+                <div className="grid min-w-0 gap-4 md:grid-cols-3">
                   <TopBarMiniNumberField
-                    layout="row"
+                    layout="stack"
                     label="Višina"
                     help={topBarHelpCopy.topBarHeight}
                     value={deviceLayout.settings.height}
@@ -5292,6 +5331,7 @@ function TopBarLayoutEditor({
                   />
                   {device === 'desktop' ? (
                     <TopBarMiniBreakpointField
+                      layout="stack"
                       label="Prelomna širina"
                       help={topBarHelpCopy.breakpoint}
                       value={`${desktopBreakpointFrom}+`}
@@ -5310,7 +5350,7 @@ function TopBarLayoutEditor({
                   ) : null}
                   {device === 'tablet' ? (
                     <TopBarMiniRangeField
-                      layout="row"
+                      layout="stack"
                       label="Prelomna širina"
                       help={topBarHelpCopy.breakpoint}
                       startValue={deviceLayout.settings.breakpointFrom ?? 768}
@@ -5322,7 +5362,7 @@ function TopBarLayoutEditor({
                   ) : null}
                   {device === 'mobile' ? (
                     <TopBarMiniRangeField
-                      layout="row"
+                      layout="stack"
                       label="Prelomna širina"
                       help={topBarHelpCopy.breakpoint}
                       startValue={0}
@@ -5341,8 +5381,8 @@ function TopBarLayoutEditor({
                     />
                   ) : null}
                   <TopBarMiniRangeField
-                    layout="row"
-                    label="Min in Max odmik"
+                    layout="stack"
+                    label="Odmik"
                     help={`${topBarHelpCopy.gutterMin} ${topBarHelpCopy.gutterMax}`}
                     startValue={siteLayout.siteGutterMinPx}
                     endValue={siteLayout.siteGutterMaxPx}
@@ -5369,7 +5409,7 @@ function TopBarLayoutEditor({
 
           </div>
 
-          <div className="min-w-0 min-[1180px]:col-start-1 min-[1180px]:row-start-3">
+          <div className="col-span-full min-w-0">
             <div className="relative overflow-visible rounded-xl bg-white" data-testid="top-bar-elements-table">
               <div className="flex min-h-[58px] items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <h3 className="text-base font-semibold text-slate-900">Elementi v vrstici</h3>

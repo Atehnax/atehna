@@ -5,7 +5,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties
+  type CSSProperties,
+  type RefObject
 } from 'react';
 import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import ProductDetailView from '@/commercial/components/storefront/ProductDetailView';
@@ -24,6 +25,7 @@ import {
 } from '@/shared/domain/style/productAppearance';
 import type { ProductCanvasSelectionOptions } from '@/shared/ui/product-canvas/ProductCanvasElement';
 import ProductCanvasGuidesOverlay from '@/shared/ui/product-canvas/ProductCanvasGuidesOverlay';
+import { appearancePreviewMotionEventName } from '@/shared/ui/responsive-preview-motion';
 
 const logicalWidthByDevice: Record<Exclude<ProductCanvasDevice, 'desktop'>, number> = {
   tablet: toCommercialStorefrontLogicalPx(900),
@@ -36,6 +38,8 @@ export default function ProductAppearanceLivePreview({
   siteLayout,
   product,
   device,
+  motionFrameRef,
+  transitioning = false,
   selectedElementId,
   selectedElementIds,
   onSelectElement,
@@ -46,6 +50,8 @@ export default function ProductAppearanceLivePreview({
   siteLayout: SiteNavigationSiteLayoutSettings;
   product: StorefrontProduct;
   device: ProductCanvasDevice;
+  motionFrameRef?: RefObject<HTMLDivElement | null>;
+  transitioning?: boolean;
   selectedElementId: string | null;
   selectedElementIds: readonly string[];
   onSelectElement: (elementId: string, options?: ProductCanvasSelectionOptions) => void;
@@ -58,7 +64,7 @@ export default function ProductAppearanceLivePreview({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(620);
-  const logicalWidth = device === 'desktop'
+  const settledLogicalWidth = device === 'desktop'
     ? toCommercialStorefrontLogicalPx(globalStyle.layout.maxWidthPx)
     : logicalWidthByDevice[device];
   const previewConfig = config;
@@ -97,24 +103,51 @@ export default function ProductAppearanceLivePreview({
     if (!viewport || !content) return;
 
     const update = () => {
+      const motionFrame = motionFrameRef?.current;
+      const motionLogicalWidth = Number(motionFrame?.dataset.previewLogicalWidth);
+      const logicalWidth = Number.isFinite(motionLogicalWidth) && motionLogicalWidth > 0
+        ? motionLogicalWidth
+        : settledLogicalWidth;
       const availableWidth = Math.max(280, viewport.clientWidth - 16);
       const nextScale = Math.min(1, availableWidth / logicalWidth);
-      setScale(nextScale);
-      setScaledHeight(Math.max(520, Math.ceil(content.scrollHeight * nextScale)));
+      const nextScaledHeight = Math.max(
+        520,
+        Math.ceil(content.scrollHeight * nextScale)
+      );
+
+      content.style.width = `${logicalWidth}px`;
+      content.style.transform = `scale(${nextScale})`;
+      viewport.style.height = `${nextScaledHeight}px`;
+      viewport.dataset.previewLogicalWidth = logicalWidth.toFixed(3);
+      viewport.dataset.previewScale = nextScale.toFixed(6);
+
+      if (motionFrame?.dataset.previewTransitioning !== 'true') {
+        setScale((currentScale) => (
+          Math.abs(currentScale - nextScale) <= 0.0001 ? currentScale : nextScale
+        ));
+        setScaledHeight((currentHeight) => (
+          currentHeight === nextScaledHeight ? currentHeight : nextScaledHeight
+        ));
+      }
     };
 
     update();
     const observer = new ResizeObserver(update);
     observer.observe(viewport);
     observer.observe(content);
-    return () => observer.disconnect();
-  }, [logicalWidth, product, previewConfig]);
+    const motionFrame = motionFrameRef?.current;
+    motionFrame?.addEventListener(appearancePreviewMotionEventName, update);
+    return () => {
+      observer.disconnect();
+      motionFrame?.removeEventListener(appearancePreviewMotionEventName, update);
+    };
+  }, [motionFrameRef, product, previewConfig, settledLogicalWidth]);
 
   return (
     <div
       ref={viewportRef}
-      className="relative w-full overflow-hidden bg-slate-100/70"
-      style={{ height: scaledHeight }}
+      className="relative h-[620px] w-full overflow-hidden bg-slate-100/70"
+      data-preview-transitioning={transitioning}
     >
       <div
         ref={contentRef}
@@ -123,9 +156,7 @@ export default function ProductAppearanceLivePreview({
         data-preview-device={device}
         className="admin-product-live-preview storefront-theme-preview absolute left-2 top-2 min-h-[640px] origin-top-left overflow-hidden bg-[color:var(--site-color-page)] text-[color:var(--site-color-text)]"
         style={{
-          ...themeStyle,
-          width: logicalWidth,
-          transform: `scale(${scale})`
+          ...themeStyle
         }}
       >
         <ProductAppearanceProvider config={previewConfig}>
@@ -145,7 +176,7 @@ export default function ProductAppearanceLivePreview({
         <ProductCanvasGuidesOverlay
           rootRef={contentRef}
           selectedElementId={selectedElementId}
-          enabled={previewConfig.canvas.showGuides}
+          enabled={previewConfig.canvas.showGuides && !transitioning}
           changeToken={[
             previewConfig.canvas.elements,
             scale,

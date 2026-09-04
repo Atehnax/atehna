@@ -148,17 +148,14 @@ test('page-level product and top-bar typography selectors pin the light admin to
   ]) {
     const select = compactSelectOpeningTagForMarker(navigationSource, marker);
     assert.match(select, /tone="light"/u);
-    assert.match(select, /triggerClassName="[^"]*!h-7[^"]*!rounded-md[^"]*!bg-white/u);
+    assert.match(select, /triggerClassName="[^"]*!h-9[^"]*!rounded-lg[^"]*!bg-white/u);
   }
 
-  assert.match(
-    navigationSource,
-    /grid-cols-\[minmax\(0,1\.12fr\)_minmax\(0,0\.88fr\)\] gap-2\.5/u
-  );
-  assert.match(
-    navigationSource,
-    /grid-cols-\[66px_minmax\(72px,1\.05fr\)_minmax\(58px,0\.95fr\)\] gap-2/u
-  );
+  const colorsRowIndex = navigationSource.indexOf('data-testid="top-bar-colors-row"');
+  const typographyRowIndex = navigationSource.indexOf('data-testid="top-bar-typography-row"');
+  assert.notEqual(colorsRowIndex, -1);
+  assert.notEqual(typographyRowIndex, -1);
+  assert.ok(colorsRowIndex < typographyRowIndex);
 });
 
 test('the shared alignment control is a roving keyboard radiogroup including justified text', () => {

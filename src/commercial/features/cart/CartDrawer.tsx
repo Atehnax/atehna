@@ -204,7 +204,6 @@ export default function CartDrawer() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        aria-describedby="cart-drawer-description"
         tabIndex={-1}
         className={`absolute flex bg-[color:var(--site-color-surface)] shadow-2xl ${
           appearance.cartSidebar.stickySummary
@@ -250,14 +249,6 @@ export default function CartDrawer() {
               <h2 id="cart-drawer-title" className="mt-1 text-xl font-semibold">
                 Košarica ({items.reduce((sum, item) => sum + item.quantity, 0)})
               </h2>
-              <p
-                id="cart-drawer-description"
-                className="mt-1 text-xs text-[color:var(--site-color-text-muted)]"
-              >
-                {stockEnforcementEnabled
-                  ? 'Cene in zalogo preverimo po veljavnem ceniku.'
-                  : 'Cene in izbrane različice preverimo po veljavnem ceniku.'}
-              </p>
             </div>
             <button
               ref={closeButtonRef}
@@ -385,7 +376,7 @@ export default function CartDrawer() {
               </p>
             ) : (
               <p className="mt-2 text-xs text-[color:var(--site-color-text-muted)]">
-                Plačilo uredimo ročno po ponudbi ali predračunu.
+                Plačilo uredimo po ponudbi ali predračunu
               </p>
             )}
 

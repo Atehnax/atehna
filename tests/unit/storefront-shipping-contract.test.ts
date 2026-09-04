@@ -207,6 +207,15 @@ test('cart page keeps the shipping breakdown while drawer, checkout and confirma
   assert.doesNotMatch(cartDrawerSource, /Po dogovoru/u);
   assert.doesNotMatch(
     cartDrawerSource,
+    /Cene in izbrane različice preverimo po veljavnem ceniku\./u
+  );
+  assert.match(
+    cartDrawerSource,
+    /Plačilo uredimo po ponudbi ali predračunu/u
+  );
+  assert.doesNotMatch(cartDrawerSource, /Plačilo uredimo ročno/u);
+  assert.doesNotMatch(
+    cartDrawerSource,
     /Osnovna poštnina|Referenčna cena posameznega paketa|\d+ × S|Po popustu za več kosov|Samodejno izračunana poštnina/u
   );
   assert.doesNotMatch(orderPageSource, /<ShippingCalculationRows/u);

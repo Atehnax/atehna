@@ -334,30 +334,19 @@ async function readFloatingLabelPosition(
   }, controlId!);
 }
 
-async function expectFloatingLabelResting(
-  control: Locator,
-  options: { multiline?: boolean } = {}
-) {
+async function expectFloatingLabelResting(control: Locator) {
   await expect
     .poll(async () => (await readFloatingLabelPosition(control)).labelCenterRatio)
-    .toBeGreaterThanOrEqual(options.multiline ? 0.12 : 0.4);
+    .toBeGreaterThanOrEqual(0.4);
 
   const metrics = await readFloatingLabelPosition(control);
   expect(metrics.dataFilled).toBe('false');
   expect(metrics.fontSize).toBeGreaterThanOrEqual(10);
-  if (options.multiline) {
-    expect(
-      metrics.labelCenterRatio,
-      'an empty blurred textarea label should sit in its first text row'
-    ).toBeGreaterThanOrEqual(0.12);
-    expect(metrics.labelCenterRatio).toBeLessThanOrEqual(0.35);
-  } else {
-    expect(
-      metrics.labelCenterRatio,
-      'an empty blurred label should sit vertically centered inside its field'
-    ).toBeGreaterThanOrEqual(0.4);
-    expect(metrics.labelCenterRatio).toBeLessThanOrEqual(0.6);
-  }
+  expect(
+    metrics.labelCenterRatio,
+    'an empty blurred label should sit vertically centered inside its field'
+  ).toBeGreaterThanOrEqual(0.4);
+  expect(metrics.labelCenterRatio).toBeLessThanOrEqual(0.6);
   expect(metrics.labelTop).toBeGreaterThanOrEqual(metrics.shellTop - 1);
   expect(metrics.labelBottom).toBeLessThanOrEqual(metrics.shellBottom + 1);
 }
@@ -969,6 +958,9 @@ test.describe('order checkout layout', () => {
             const fieldStyle = getComputedStyle(field);
             const control = field as HTMLInputElement | HTMLSelectElement;
             return {
+              isAddressRowField:
+                shell?.classList.contains('storefront-checkout-address-row-field')
+                ?? false,
               tagName: field.tagName,
               type: field instanceof HTMLInputElement ? field.type : null,
               height: box.height,
@@ -1024,37 +1016,79 @@ test.describe('order checkout layout', () => {
         Math.abs(metric.shellTopInset - metric.shellBottomInset),
         'the floating field should expose equally visible top and bottom borders'
       ).toBeLessThanOrEqual(0.25);
-      expect(
-        metric.shellLeftInset,
-        'the control must stay inside the left border of its floating shell'
-      ).toBeGreaterThanOrEqual(0.5);
-      expect(
-        metric.shellRightInset,
-        'the control must stay inside the right border of its floating shell'
-      ).toBeGreaterThanOrEqual(0.5);
-      expect(
-        Math.abs(metric.shellLeftInset - metric.shellRightInset),
-        'the floating field should expose equally visible side borders'
-      ).toBeLessThanOrEqual(0.25);
-      expect(new Set(metric.shellBorderWidths).size).toBe(1);
       expect(metric.shellOverflow).toBe('hidden');
-      expect(
-        metric.fieldRadius,
-        'the inner control radius must remain inside the shell curve'
-      ).toBeLessThan(metric.shellRadius);
+      if (!metric.isAddressRowField) {
+        expect(
+          metric.shellLeftInset,
+          'a standalone control must stay inside the left border of its shell'
+        ).toBeGreaterThanOrEqual(0.5);
+        expect(
+          metric.shellRightInset,
+          'a standalone control must stay inside the right border of its shell'
+        ).toBeGreaterThanOrEqual(0.5);
+        expect(
+          Math.abs(metric.shellLeftInset - metric.shellRightInset),
+          'a standalone field should expose equally visible side borders'
+        ).toBeLessThanOrEqual(0.25);
+        expect(new Set(metric.shellBorderWidths).size).toBe(1);
+        expect(
+          metric.fieldRadius,
+          'the inner control radius must remain inside the shell curve'
+        ).toBeLessThan(metric.shellRadius);
+      }
     }
+
+    const addressShellMetrics = await formColumn
+      .getByTestId('order-address-fields')
+      .locator('.storefront-checkout-address-row-field')
+      .evaluateAll((shells) =>
+        shells.map((shell) => {
+          const box = shell.getBoundingClientRect();
+          const style = getComputedStyle(shell);
+          return {
+            bottomLeftRadius: Number.parseFloat(style.borderBottomLeftRadius),
+            bottomRightRadius: Number.parseFloat(style.borderBottomRightRadius),
+            leftBorder: Number.parseFloat(style.borderLeftWidth),
+            rightBorder: Number.parseFloat(style.borderRightWidth),
+            topLeftRadius: Number.parseFloat(style.borderTopLeftRadius),
+            topRightRadius: Number.parseFloat(style.borderTopRightRadius),
+            x: box.x,
+            width: box.width
+          };
+        })
+      );
+    expect(addressShellMetrics).toHaveLength(4);
+    expect(addressShellMetrics[0].leftBorder).toBeGreaterThanOrEqual(0.5);
+    expect(addressShellMetrics[0].topLeftRadius).toBeGreaterThan(0);
+    expect(addressShellMetrics[0].bottomLeftRadius).toBeGreaterThan(0);
+    for (let index = 1; index < addressShellMetrics.length; index += 1) {
+      const previous = addressShellMetrics[index - 1];
+      const current = addressShellMetrics[index];
+      expect(
+        current.leftBorder,
+        'joined address fields should use one border per internal seam'
+      ).toBe(0);
+      expect(previous.rightBorder).toBeGreaterThanOrEqual(0.5);
+      expect(Math.abs(current.x - (previous.x + previous.width))).toBeLessThanOrEqual(2);
+    }
+    for (const shell of addressShellMetrics.slice(0, -1)) {
+      expect(shell.topRightRadius).toBe(0);
+      expect(shell.bottomRightRadius).toBe(0);
+    }
+    const lastAddressShell = addressShellMetrics.at(-1)!;
+    expect(lastAddressShell.rightBorder).toBeGreaterThanOrEqual(0.5);
+    expect(lastAddressShell.topRightRadius).toBeGreaterThan(0);
+    expect(lastAddressShell.bottomRightRadius).toBeGreaterThan(0);
 
     const notes = page.getByLabel('Opombe');
     await expect(notes).toBeVisible();
     const notesBox = await notes.boundingBox();
     expect(notesBox).not.toBeNull();
-    const tallestCompactField = Math.max(
-      ...fieldMetrics.map((metric) => metric.height)
-    );
     expect(
       notesBox!.height,
-      'the deliberately multiline notes textarea should remain taller than inputs'
-    ).toBeGreaterThan(tallestCompactField * 1.5);
+      'the compact notes textarea should be approximately half its former 84px height'
+    ).toBeGreaterThanOrEqual(40);
+    expect(notesBox!.height).toBeLessThanOrEqual(46);
   });
 
   test('floats accessible checkout labels on focus, values, and autofill-style input', async ({
@@ -1129,7 +1163,7 @@ test.describe('order checkout layout', () => {
 
     const notes = formColumn.getByLabel('Opombe', { exact: true });
     await expect(notes).toHaveAccessibleName('Opombe');
-    await expectFloatingLabelResting(notes, { multiline: true });
+    await expectFloatingLabelResting(notes);
     const notesMetrics = await readFloatingLabelPosition(notes);
     expect(notesMetrics.controlHeight, 'notes should remain a multiline textarea')
       .toBeGreaterThanOrEqual(40);

@@ -266,7 +266,19 @@ test.describe('quote request confirmation layout', () => {
       Math.abs(primaryBox!.x + primaryBox!.width - secondaryBox!.x)
     ).toBeLessThanOrEqual(1);
     expect(Math.abs(cardBox!.x - lowerBox!.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(cardBox!.width - lowerBox!.width)).toBeLessThanOrEqual(1);
+    const cardLowerWidths = await card.evaluate((element) => {
+      const lowerSection = element.querySelector<HTMLElement>(
+        '[data-testid="quote-request-confirmation-lower-sections"]'
+      );
+      if (!lowerSection) throw new Error('Missing quote confirmation lower row');
+      return {
+        cardInnerWidth: element.clientWidth,
+        lowerWidth: lowerSection.offsetWidth
+      };
+    });
+    expect(
+      Math.abs(cardLowerWidths.cardInnerWidth - cardLowerWidths.lowerWidth)
+    ).toBeLessThanOrEqual(1);
     expect(Math.abs(lowerBox!.x - customerBox!.x)).toBeLessThanOrEqual(1);
     expect(
       Math.abs(customerBox!.x + customerBox!.width - documentsBox!.x)
@@ -340,19 +352,28 @@ test.describe('quote request confirmation layout', () => {
     expect(customerBox).not.toBeNull();
     expect(documentsBox).not.toBeNull();
     const rootContentMetrics = await root.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
+      const frameElement = element.querySelector<HTMLElement>(
+        '[data-confirmation-page-frame]'
+      );
+      if (!frameElement) throw new Error('Missing quote confirmation page frame');
       const style = getComputedStyle(element);
       const paddingLeft = Number.parseFloat(style.paddingLeft);
       const paddingRight = Number.parseFloat(style.paddingRight);
       return {
-        x: rect.x + paddingLeft,
-        width: rect.width - paddingLeft - paddingRight
+        availableWidth: element.clientWidth - paddingLeft - paddingRight,
+        frameWidth: frameElement.offsetWidth
       };
     });
-    expect(Math.abs(frameBox!.x - rootContentMetrics.x)).toBeLessThanOrEqual(1);
     expect(
-      Math.abs(frameBox!.width - rootContentMetrics.width)
+      Math.abs(
+        rootContentMetrics.frameWidth - rootContentMetrics.availableWidth
+      )
     ).toBeLessThanOrEqual(1);
+    const frameLeftInset = frameBox!.x - rootBox!.x;
+    const frameRightInset =
+      rootBox!.x + rootBox!.width - (frameBox!.x + frameBox!.width);
+    expect(frameLeftInset).toBeGreaterThanOrEqual(-1);
+    expect(Math.abs(frameLeftInset - frameRightInset)).toBeLessThanOrEqual(1);
     expect(secondaryBox!.y).toBeGreaterThanOrEqual(
       primaryBox!.y + primaryBox!.height - 1
     );

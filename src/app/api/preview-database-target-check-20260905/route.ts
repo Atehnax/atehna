@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 10;
 
-const TARGET_BRANCH = 'prelaunch-env-schema-guardrails';
+const PREVIEW_BRANCH = 'prelaunch-env-schema-guardrails';
 const TOKEN_ENVIRONMENT_NAME = 'PREVIEW_DATABASE_TARGET_TOKEN';
 
 function json(body: unknown, status = 200) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (
     process.env.VERCEL !== '1' ||
     process.env.VERCEL_ENV !== 'preview' ||
-    process.env.VERCEL_GIT_COMMIT_REF !== TARGET_BRANCH
+    process.env.VERCEL_GIT_COMMIT_REF !== PREVIEW_BRANCH
   ) {
     return json({ message: 'Not found.' }, 404);
   }

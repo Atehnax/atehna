@@ -28,6 +28,7 @@ test('checkout keeps binding order and non-binding quote-request intents separat
   const checkout = source(
     'src/commercial/order/components/OrderPageClient.tsx'
   );
+  const ordersRoute = source('src/commercial/api/orders/route.ts');
 
   assert.match(checkout, /type CheckoutIntent = 'order' \| 'quote_request'/u);
   assert.match(checkout, /submitting-order/u);
@@ -41,7 +42,15 @@ test('checkout keeps binding order and non-binding quote-request intents separat
   assert.match(checkout, /intent: 'order'/u);
   assert.match(checkout, /intent: 'quote_request'/u);
   assert.match(checkout, /fetch\([\s\S]*?'\/api\/orders'[\s\S]*?'\/api\/quote-requests'/u);
-  assert.match(checkout, /Naročilo z obveznostjo plačila/u);
+  assert.match(checkout, /Oddaj naročilo/u);
+  assert.match(checkout, /Oddajte naročilo za izbrane artikle\./u);
+  assert.match(checkout, /Izberite naročilo ali povpraševanje\./u);
+  assert.match(checkout, /Pošljite povpraševanje za ponudbo/u);
+  assert.doesNotMatch(checkout, /neobvezujoče/u);
+  assert.match(
+    ordersRoute,
+    /buttonWording:[\s\S]*?'Pošlji naročilo v potrditev'[\s\S]*?'Oddaj naročilo'/u
+  );
   assert.match(checkout, /Pošlji naročilo v potrditev/u);
   assert.match(checkout, /Zahtevaj ponudbo/u);
   assert.match(

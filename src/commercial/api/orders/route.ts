@@ -471,7 +471,7 @@ async function insertOrder(
       buttonWording:
         customer.customerType === 'school'
           ? 'Pošlji naročilo v potrditev'
-          : 'Naročilo z obveznostjo plačila'
+          : 'Oddaj naročilo'
     },
     commitStock: !stockNotCommitted,
     stockEnforcementEnabled,

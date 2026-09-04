@@ -105,12 +105,12 @@ const CHECKOUT_INTENT_OPTIONS = [
   {
     value: 'order',
     label: 'Naročilo',
-    description: 'Oddajte naročilo z obveznostjo plačila.'
+    description: 'Oddajte naročilo za izbrane artikle.'
   },
   {
     value: 'quote_request',
     label: 'Zahtevaj ponudbo',
-    description: 'Pošljite neobvezujoče povpraševanje za ponudbo.'
+    description: 'Pošljite povpraševanje za ponudbo'
   }
 ] as const satisfies ReadonlyArray<{
   value: CheckoutIntent;
@@ -908,7 +908,7 @@ export default function OrderPageClient({
     ? 'Zahtevaj ponudbo'
     : isSchool
       ? 'Pošlji naročilo v potrditev'
-      : 'Naročilo z obveznostjo plačila';
+      : 'Oddaj naročilo';
   const checkoutActionDisabled =
     !canContinue ||
     isSubmitting ||
@@ -1051,7 +1051,7 @@ export default function OrderPageClient({
             >
               <h2 className="text-xl font-semibold">Kaj želite oddati?</h2>
               <p className="mt-2 text-sm text-[color:var(--site-color-text-muted)]">
-                Izberite naročilo ali neobvezujoče povpraševanje za ponudbo.
+                Izberite naročilo ali povpraševanje.
               </p>
               <div
                 className="mt-4 grid gap-2 sm:grid-cols-2"

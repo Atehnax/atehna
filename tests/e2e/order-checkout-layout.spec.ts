@@ -513,7 +513,7 @@ test.describe('order checkout layout', () => {
     );
     await expect(
       desktopActions.getByRole('button', {
-        name: 'Naročilo z obveznostjo plačila',
+        name: 'Oddaj naročilo',
         exact: true
       })
     ).toBeVisible();

@@ -14,10 +14,10 @@ import { IconButton } from "@/shared/ui/icon-button";
 
 const EMAIL_PREVIEW_CSP =
   "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'";
-const WORKSPACE_PREVIEW_DEFAULT_SCALE = 0.75;
+const WORKSPACE_PREVIEW_DEFAULT_SCALE = 0.9;
 const WORKSPACE_PREVIEW_MIN_SCALE = 0.5;
 const WORKSPACE_PREVIEW_MAX_SCALE = 1.5;
-const WORKSPACE_PREVIEW_SCALE_STEP = 0.25;
+const WORKSPACE_PREVIEW_SCALE_STEP = 0.1;
 const WORKSPACE_PREVIEW_DESKTOP_QUERY = "(min-width: 1024px)";
 
 function subscribeToWorkspaceDesktop(onStoreChange: () => void) {
@@ -129,7 +129,7 @@ export default function EmailMessagePreview({
       aria-labelledby={`${testId}-heading`}
       data-testid={testId}
     >
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between lg:shrink-0">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:shrink-0">
         <div className="min-w-0">
           <h3
             id={`${testId}-heading`}
@@ -137,10 +137,6 @@ export default function EmailMessagePreview({
           >
             Predogled sporočila
           </h3>
-          <p className="mt-0.5 max-w-3xl text-xs leading-5 text-slate-500">
-            Predogled uporablja spodnje testne podatke in trenutne, tudi še
-            neshranjene nastavitve. Sporočilo se ne pošlje.
-          </p>
         </div>
         {controls || (workspace && !error) ? (
           <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">

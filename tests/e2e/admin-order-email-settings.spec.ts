@@ -151,6 +151,7 @@ async function expectEqualTemplatePanelHeights(
   ]);
   expect(Math.abs(editorBox.y - previewBox.y)).toBeLessThanOrEqual(1);
   expect(Math.abs(editorBox.height - previewBox.height)).toBeLessThanOrEqual(1);
+  expect(editorBox.height).toBeGreaterThanOrEqual(638);
 }
 
 async function replaceRichEmailContent(
@@ -886,7 +887,7 @@ test("admin can configure order email settings and templates without sending mai
     const quotePreviewStage = page.getByTestId("quote-email-preview-stage");
     const quoteZoomReset = page.getByTestId("quote-email-preview-zoom-reset");
     await expect(quotePreviewViewport).toHaveAttribute("tabindex", "0");
-    await expect(quoteZoomReset).toHaveText("75 %");
+    await expect(quoteZoomReset).toHaveText("90 %");
     const initialQuotePreviewWidth = await quotePreviewStage.evaluate(
       (element) => element.getBoundingClientRect().width,
     );
@@ -902,11 +903,11 @@ test("admin can configure order email settings and templates without sending mai
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(quoteZoomReset).toHaveText("100 %");
     await page.getByTestId("quote-email-preview-zoom-out").click();
-    await expect(quoteZoomReset).toHaveText("75 %");
+    await expect(quoteZoomReset).toHaveText("90 %");
     await quoteZoomReset.click();
     await expect(quoteZoomReset).toHaveText("100 %");
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await expect(quoteZoomReset).toHaveText("75 %");
+    await expect(quoteZoomReset).toHaveText("90 %");
     await expect(
       quotePreview.getByText(quoteCustomerContentValue.greeting, { exact: true }),
     ).toBeVisible();
@@ -1771,7 +1772,7 @@ test("admin can configure order email settings and templates without sending mai
     expect(mobilePreviewHeight).toBeGreaterThanOrEqual(510);
     expect(mobilePreviewHeight).toBeLessThanOrEqual(514);
     await page.getByTestId("order-email-preview-zoom-in").click();
-    await expect(mobileZoomReset).toHaveText("125 %");
+    await expect(mobileZoomReset).toHaveText("110 %");
     const zoomedMobileViewportMetrics = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,
       documentWidth: Math.max(

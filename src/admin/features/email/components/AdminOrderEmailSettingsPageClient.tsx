@@ -1966,7 +1966,6 @@ export default function AdminOrderEmailSettingsPageClient({
             subject: {
               id: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
               label: "Zadeva",
-              description: "Predpona zadeve se doda samodejno.",
               value: selectedTemplate.subject,
               maxLength: ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
               testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
@@ -1976,8 +1975,6 @@ export default function AdminOrderEmailSettingsPageClient({
             contentHtml: {
               id: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,
               label: "Vsebina sporočila",
-              description:
-                "Oblikujte celotno uvodno vsebino sporočila. Povzetek naročila in artikli se dodajo samodejno.",
               value: selectedTemplate.contentHtml ?? "",
               maxLength: ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
               testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,

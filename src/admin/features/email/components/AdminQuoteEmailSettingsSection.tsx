@@ -621,8 +621,6 @@ const AdminQuoteEmailSettingsSection = forwardRef<
             subject: {
               id: `quote-email-template-${quotePreviewAudience}-subject`,
               label: 'Zadeva',
-              description:
-                'Uporabite lahko spodaj navedene spremenljivke.',
               value: selectedAudienceTemplate.subject,
               maxLength: QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
               testId: `quote-email-template-${quotePreviewAudience}-subject`,
@@ -632,8 +630,6 @@ const AdminQuoteEmailSettingsSection = forwardRef<
             contentHtml: {
               id: `quote-email-template-${quotePreviewAudience}-content`,
               label: 'Vsebina sporočila',
-              description:
-                'Oblikujte celotno uvodno vsebino; sistemski podatki dogodka se dodajo ob pošiljanju.',
               value: selectedAudienceTemplate.contentHtml ?? '',
               maxLength: QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
               testId: `quote-email-template-${quotePreviewAudience}-content`,

@@ -243,7 +243,7 @@ export default function EmailTemplateWorkspace<Audience extends string>({
       </div>
 
       <div
-        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch"
+        className="grid min-w-0 gap-4 lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch"
         data-testid={workspaceTestId}
       >
         <section
@@ -343,6 +343,7 @@ export default function EmailTemplateWorkspace<Audience extends string>({
                     testId={editor.contentHtml.testId}
                     ariaLabel={editor.contentHtml.label}
                     allowImages={false}
+                    heightClassName="h-[17rem] min-h-[15rem]"
                   />
                 </div>
               </div>

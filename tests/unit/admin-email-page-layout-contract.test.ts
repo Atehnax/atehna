@@ -244,7 +244,7 @@ test("email workspace uses shared admin controls, typography, and save-state pre
   assert.match(ui, /<EmailTemplateWorkspace<TemplateAudience>/u);
   assert.ok(
     templateWorkspace.includes(
-      "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch",
+      "lg:min-h-[40rem] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch",
     ),
   );
   assert.match(templateWorkspace, /<EuiTabs/u);
@@ -273,6 +273,10 @@ test("email workspace uses shared admin controls, typography, and save-state pre
     /maxLength=\{editor\.contentHtml\.maxLength\}/u,
   );
   assert.match(templateWorkspace, /allowImages=\{false\}/u);
+  assert.match(
+    templateWorkspace,
+    /heightClassName="h-\[17rem\] min-h-\[15rem\]"/u,
+  );
   assert.match(
     templateWorkspace,
     /className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"/u,
@@ -397,6 +401,11 @@ test("converted order email Inputs keep accessible names aligned with their visi
   assert.match(templateWorkspace, /aria-label=\{editor\.subject\.label\}/u);
   assert.match(templateWorkspace, /ariaLabel=\{editor\.contentHtml\.label\}/u);
   assert.doesNotMatch(ui, /greeting: \{|heading: \{|body: \{/u);
+  assert.doesNotMatch(ui, /Predpona zadeve se doda samodejno\./u);
+  assert.doesNotMatch(
+    ui,
+    /Oblikujte celotno uvodno vsebino sporočila\./u,
+  );
   assert.match(
     ui,
     /id=\{`order-email-admin-\$\{index\}`\}\s+aria-label=\{`E-poštni naslov administratorja \$\{index \+ 1\}`\}/u,
@@ -462,9 +471,11 @@ test("email message previews isolate rendered HTML while providing a bounded, zo
   );
   assert.match(preview, /const observer = new ResizeObserver\(updateHeight\)/u);
   assert.match(preview, /observer\.observe\(frameBody\)/u);
-  assert.match(preview, /const WORKSPACE_PREVIEW_DEFAULT_SCALE = 0\.75/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_DEFAULT_SCALE = 0\.9/u);
   assert.match(preview, /const WORKSPACE_PREVIEW_MIN_SCALE = 0\.5/u);
   assert.match(preview, /const WORKSPACE_PREVIEW_MAX_SCALE = 1\.5/u);
+  assert.match(preview, /const WORKSPACE_PREVIEW_SCALE_STEP = 0\.1/u);
+  assert.doesNotMatch(preview, /Predogled uporablja spodnje testne podatke/u);
   assert.match(preview, /const WORKSPACE_PREVIEW_DESKTOP_QUERY = "\(min-width: 1024px\)"/u);
   assert.match(preview, /useSyncExternalStore\(/u);
   assert.match(preview, /workspaceUsesDesktopDefault[\s\S]*?WORKSPACE_PREVIEW_DEFAULT_SCALE[\s\S]*?: 1/u);

@@ -125,6 +125,7 @@ export type AdminRichTextEditorProps = {
   testId?: string;
   ariaLabel?: string;
   allowImages?: boolean;
+  heightClassName?: string;
 };
 
 export default function AdminRichTextEditor({
@@ -136,7 +137,8 @@ export default function AdminRichTextEditor({
   maxLength = 5000,
   testId,
   ariaLabel = 'Obogateno besedilo',
-  allowImages = true
+  allowImages = true,
+  heightClassName = 'h-[150px] min-h-[130px]'
 }: AdminRichTextEditorProps) {
   const editorHostRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -340,7 +342,7 @@ export default function AdminRichTextEditor({
 
   return (
     <div
-      className={`relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)]'}`}
+      className={`relative flex ${heightClassName} resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)]'}`}
       data-testid={testId}
     >
       <div ref={toolbarRef} className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">

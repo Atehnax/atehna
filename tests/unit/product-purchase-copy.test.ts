@@ -283,7 +283,7 @@ describe('product purchase copy contracts', () => {
       'appearance.purchaseArea.copy.unavailableActionLabel'
     );
     expect(STOREFRONT_CHECKOUT_SHIPPING_MESSAGE).toBe(
-      'Poštnina se izračuna na strani za naročilo glede na skupno težo in mere.'
+      'Poštnina se izračuna v sklepni fazi naročila'
     );
     expect(purchasePanelSource).toContain(
       'STOREFRONT_CHECKOUT_SHIPPING_MESSAGE'

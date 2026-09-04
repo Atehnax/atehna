@@ -26,6 +26,8 @@ type PostalLocationComboboxProps = {
   field: PostalLookupField;
   value: string;
   label: string;
+  className?: string;
+  shellClassName?: string;
   error?: string;
   disabled?: boolean;
   lookupEnabled: boolean;
@@ -71,6 +73,8 @@ export default function PostalLocationCombobox({
   field,
   value,
   label,
+  className = '',
+  shellClassName = '',
   error,
   disabled = false,
   lookupEnabled,
@@ -299,7 +303,7 @@ export default function PostalLocationCombobox({
 
   return (
     <div
-      className="relative"
+      className={`relative ${className}`}
       onFocusCapture={() => {
         isActiveRef.current = true;
         if (suggestions.length > 0) setIsListOpen(true);
@@ -310,7 +314,7 @@ export default function PostalLocationCombobox({
         id={inputId}
         label={label}
         tone="order"
-        shellClassName={`storefront-checkout-input-shell ${
+        shellClassName={`storefront-checkout-input-shell ${shellClassName} ${
           error ? '!border-[color:var(--site-color-danger)]' : ''
         }`}
         className="storefront-checkout-input"

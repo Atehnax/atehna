@@ -292,7 +292,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await enableCheckout(page);
 
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     const postalCode = page.getByLabel('Poštna številka *', { exact: true });
@@ -346,7 +346,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await expect(listbox).toBeHidden();
 
     const apartmentDetails = page.getByLabel(
-      'Stanovanje, nadstropje, vhod ali navodila za dostavo (neobvezno)',
+      'Stanovanje',
       { exact: true }
     );
     await expect(apartmentDetails).toBeVisible();
@@ -413,7 +413,7 @@ test.describe('checkout GURS address autocomplete', () => {
 
     await enableCheckout(page);
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     const listbox = page.getByRole('listbox', { name: 'Predlogi naslovov' });
@@ -457,7 +457,7 @@ test.describe('checkout GURS address autocomplete', () => {
 
     await enableCheckout(page);
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     const listbox = page.getByRole('listbox', { name: 'Predlogi naslovov' });
@@ -501,7 +501,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await enableCheckout(page);
 
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     const postalCode = page.getByLabel('Poštna številka *', { exact: true });
@@ -584,7 +584,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await enableCheckout(page);
 
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     await page.getByLabel('Naziv naročnika *', { exact: true }).fill('Primer d.o.o.');
@@ -599,7 +599,7 @@ test.describe('checkout GURS address autocomplete', () => {
     await page.getByLabel('Poštna številka *', { exact: true }).fill('1000');
     await page
       .getByLabel(
-        'Stanovanje, nadstropje, vhod ali navodila za dostavo (neobvezno)',
+        'Stanovanje',
         { exact: true }
       )
       .fill('Pozvonite pri Novak');
@@ -802,7 +802,7 @@ test.describe('checkout postal code and postal-town completion', () => {
     await enableCheckout(page);
 
     const address = page.getByRole('combobox', {
-      name: 'Ulica ali naselje in hišna številka',
+      name: 'Naslov *',
       exact: true
     });
     const postalCode = page.getByRole('combobox', {

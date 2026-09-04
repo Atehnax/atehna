@@ -173,10 +173,12 @@ function CheckoutInput({
   label,
   error,
   className,
+  shellClassName = '',
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
+  shellClassName?: string;
 }) {
   const id = String(props.id);
   const describedBy = [
@@ -192,7 +194,7 @@ function CheckoutInput({
         id={id}
         label={label}
         tone="order"
-        shellClassName={`storefront-checkout-input-shell ${
+        shellClassName={`storefront-checkout-input-shell ${shellClassName} ${
           error ? '!border-[color:var(--site-color-danger)]' : ''
         }`}
         className="storefront-checkout-input"
@@ -214,8 +216,12 @@ function CheckoutInput({
 function CheckoutTextarea({
   label,
   className,
+  shellClassName = '',
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string;
+  shellClassName?: string;
+}) {
   const id = String(props.id);
   return (
     <div className={className}>
@@ -224,7 +230,7 @@ function CheckoutTextarea({
         id={id}
         label={label}
         tone="order"
-        shellClassName="storefront-checkout-textarea-shell"
+        shellClassName={`storefront-checkout-textarea-shell ${shellClassName}`}
         className="storefront-checkout-textarea"
       />
     </div>
@@ -1251,16 +1257,21 @@ export default function OrderPageClient({
                 value={formData.gursHouseNumberId}
               />
               <input type="hidden" name="countryCode" value="SI" />
-              <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+              <div
+                role="group"
+                aria-label="Naslovni podatki"
+                className="storefront-checkout-address-row grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(8.75rem,0.7fr)_minmax(0,1fr)] xl:gap-0"
+                data-testid="order-address-fields"
+              >
                 <div
-                  className="relative sm:col-span-2"
+                  className="relative min-w-0"
                   onFocusCapture={() => setIsAddressComboboxActive(true)}
                   onBlurCapture={handleAddressComboboxBlur}
                 >
                   <CheckoutInput
                     id="addressLine1"
                     autoComplete="off"
-                    label="Ulica ali naselje in hišna številka"
+                    label="Naslov *"
                     value={formData.addressLine1}
                     onChange={(event) =>
                       updateAddressField('addressLine1', event.target.value)
@@ -1279,6 +1290,7 @@ export default function OrderPageClient({
                     }
                     error={fieldErrors.addressLine1}
                     disabled={!canContinue}
+                    shellClassName="storefront-checkout-address-row-field"
                     required
                   />
                   <p
@@ -1335,13 +1347,14 @@ export default function OrderPageClient({
                 <CheckoutInput
                   id="addressLine2"
                   autoComplete="off"
-                  label="Stanovanje, nadstropje, vhod ali navodila za dostavo (neobvezno)"
+                  label="Stanovanje"
                   value={formData.addressLine2}
                   onChange={(event) =>
                     updateField('addressLine2', event.target.value)
                   }
                   disabled={!canContinue}
-                  className="sm:col-span-2"
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
                 <PostalLocationCombobox
                   field="postalCode"
@@ -1358,6 +1371,8 @@ export default function OrderPageClient({
                   lookupEnabled={!formData.gursHouseNumberId}
                   editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
                 <PostalLocationCombobox
                   field="postalName"
@@ -1369,6 +1384,8 @@ export default function OrderPageClient({
                   lookupEnabled={!formData.gursHouseNumberId}
                   editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
               </div>
               </section>
@@ -1386,8 +1403,9 @@ export default function OrderPageClient({
                       updateField('quoteMessage', event.target.value)
                     }
                     maxLength={2000}
-                    rows={4}
+                    rows={1}
                     disabled={!canContinue}
+                    shellClassName="storefront-checkout-textarea-shell--compact"
                   />
                 </section>
               ) : (
@@ -1421,7 +1439,9 @@ export default function OrderPageClient({
                       onChange={(event) =>
                         updateField('notes', event.target.value)
                       }
+                      rows={1}
                       disabled={!canContinue}
+                      shellClassName="storefront-checkout-textarea-shell--compact"
                     />
                   </div>
                 </section>

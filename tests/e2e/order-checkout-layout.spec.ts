@@ -639,7 +639,7 @@ test.describe('order checkout layout', () => {
       .getByLabel('Kontaktna oseba *', { exact: true })
       .fill('Maja Novak');
     await formColumn
-      .getByLabel('Ulica ali naselje in hišna številka', { exact: true })
+      .getByLabel('Naslov *', { exact: true })
       .fill('Testna ulica 1');
     await formColumn
       .getByLabel('Poštna številka *', { exact: true })
@@ -1120,7 +1120,7 @@ test.describe('order checkout layout', () => {
     await expect(email).not.toHaveAttribute('aria-describedby', /.+/);
 
     const address = formColumn.getByLabel(
-      'Ulica ali naselje in hišna številka',
+      'Naslov *',
       { exact: true }
     );
     await expect(address).toHaveAttribute('autocomplete', 'off');
@@ -1132,14 +1132,22 @@ test.describe('order checkout layout', () => {
     await expectFloatingLabelResting(notes, { multiline: true });
     const notesMetrics = await readFloatingLabelPosition(notes);
     expect(notesMetrics.controlHeight, 'notes should remain a multiline textarea')
-      .toBeGreaterThanOrEqual(82);
-    expect(notesMetrics.controlHeight).toBeLessThanOrEqual(90);
+      .toBeGreaterThanOrEqual(40);
+    expect(notesMetrics.controlHeight).toBeLessThanOrEqual(46);
 
     await notes.fill('Prva vrstica\nDruga vrstica');
     await expect(notes).toHaveValue('Prva vrstica\nDruga vrstica');
     await expectFloatingLabelRetracted(notes);
     await formColumn.getByText('Obdelava plačila', { exact: true }).click();
     await expectFloatingLabelRetracted(notes);
+
+    await formColumn
+      .getByRole('radio', { name: 'Zahtevaj ponudbo', exact: true })
+      .click();
+    const quoteNotes = formColumn.getByLabel('Opombe', { exact: true });
+    const quoteNotesMetrics = await readFloatingLabelPosition(quoteNotes);
+    expect(quoteNotesMetrics.controlHeight).toBeGreaterThanOrEqual(40);
+    expect(quoteNotesMetrics.controlHeight).toBeLessThanOrEqual(46);
   });
 
   test('requires customer type, then gates coherent customer details until email is valid', async ({
@@ -1194,9 +1202,10 @@ test.describe('order checkout layout', () => {
       { exact: true }
     );
     const address = formColumn.getByLabel(
-      'Ulica ali naselje in hišna številka',
+      'Naslov *',
       { exact: true }
     );
+    const apartment = formColumn.getByLabel('Stanovanje', { exact: true });
     const city = formColumn.getByLabel('Poštni kraj *', { exact: true });
     const postalCode = formColumn.getByLabel('Poštna številka *', {
       exact: true
@@ -1210,6 +1219,7 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
+      apartment,
       city,
       postalCode,
       reference,
@@ -1260,14 +1270,19 @@ test.describe('order checkout layout', () => {
       contactName,
       'organization and contact fields'
     );
-    await expectDesktopPair(postalCode, city, 'postal-code and city fields', {
-      balanced: false
-    });
-
-    const [emailBox, organizationBox, addressBox, cityBox] = await Promise.all([
+    const [
+      emailBox,
+      organizationBox,
+      addressBox,
+      apartmentBox,
+      postalCodeBox,
+      cityBox
+    ] = await Promise.all([
       requireBoundingBox(email, 'email field'),
       requireBoundingBox(organizationName, 'organization field'),
       requireBoundingBox(address, 'street-address field'),
+      requireBoundingBox(apartment, 'apartment field'),
+      requireBoundingBox(postalCode, 'postal-code field'),
       requireBoundingBox(city, 'city field')
     ]);
     expect(
@@ -1276,8 +1291,29 @@ test.describe('order checkout layout', () => {
     ).toBeGreaterThan(organizationBox.width * 1.9);
     expect(
       addressBox.width,
-      'street address should retain a full row for longer addresses'
+      'street address should remain the widest segment in the address row'
     ).toBeGreaterThan(cityBox.width * 1.15);
+    const addressRowBoxes = [
+      addressBox,
+      apartmentBox,
+      postalCodeBox,
+      cityBox
+    ];
+    for (let index = 1; index < addressRowBoxes.length; index += 1) {
+      const previous = addressRowBoxes[index - 1];
+      const current = addressRowBoxes[index];
+      expect(
+        Math.abs(current.y - addressBox.y),
+        'all address controls should share one desktop row'
+      ).toBeLessThanOrEqual(2);
+      expect(
+        Math.abs(current.x - (previous.x + previous.width)),
+        'the desktop address controls should form one contiguous row'
+      ).toBeLessThanOrEqual(2);
+    }
+    await expect(
+      formColumn.getByRole('textbox', { name: 'Država', exact: true })
+    ).toHaveCount(0);
 
     await organizationName.fill('Primer podjetje');
     await contactName.fill('Maja Primer');
@@ -1347,9 +1383,10 @@ test.describe('order checkout layout', () => {
       { exact: true }
     );
     const address = formColumn.getByLabel(
-      'Ulica ali naselje in hišna številka',
+      'Naslov *',
       { exact: true }
     );
+    const apartment = formColumn.getByLabel('Stanovanje', { exact: true });
     const city = formColumn.getByLabel('Poštni kraj *', { exact: true });
     const postalCode = formColumn.getByLabel('Poštna številka *', {
       exact: true
@@ -1359,6 +1396,7 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
+      apartment,
       city,
       postalCode
     ]);
@@ -1367,6 +1405,7 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
+      apartment,
       city,
       postalCode
     ]);
@@ -1376,6 +1415,7 @@ test.describe('order checkout layout', () => {
       organizationName,
       contactName,
       address,
+      apartment,
       postalCode,
       city
     ];

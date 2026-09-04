@@ -52,7 +52,7 @@ export function getOrderSubmissionStatusContent(
       eyebrow: 'Potrjeno',
       heading: 'Vaše naročilo je potrjeno',
       description:
-        'Atehna je naročilo sprejela. Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
+        'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
       symbol: '✓',
       tone: 'success'
     };

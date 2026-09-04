@@ -59,12 +59,6 @@ const formatDate = (value?: string) => {
   }).format(parsed);
 };
 
-const customerTypeLabel = (value?: string) => {
-  if (value === 'company') return 'Podjetje';
-  if (value === 'school') return 'Šola ali javni zavod';
-  return 'Zasebni naročnik';
-};
-
 const CUSTOMER_DOCUMENT_LABELS: Record<string, string> = {
   order_summary: 'Potrditev naročila (PDF)',
   purchase_order: 'Naročilnica',
@@ -260,11 +254,29 @@ export default function OrderConfirmationPageClient() {
   const { snapshot } = state;
   const submittedAt = formatDate(snapshot.createdAt);
   const customer = snapshot.customer;
+  const postalAddressLine = [customer?.postalCode, customer?.city]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
+  const address = [
+    customer?.addressLine1,
+    customer?.addressLine2,
+    postalAddressLine
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
   const purchaseOrderHref = '/order/narocilnica';
   const availableDocuments = snapshot.documents.flatMap((document, index) => {
     const url = document.url?.trim();
     return url ? [{ document, index, url }] : [];
   });
+  const orderSummaryDocument = availableDocuments.find(
+    ({ document }) => document.type === 'order_summary'
+  );
+  const otherDocuments = availableDocuments.filter(
+    ({ document }) => document.type !== 'order_summary'
+  );
 
   return (
     <div>
@@ -344,103 +356,119 @@ export default function OrderConfirmationPageClient() {
           data-testid="confirmation-lower-sections"
         >
           <section
-            className="p-5 sm:p-6"
+            className="min-w-0 p-5 sm:p-6"
             data-testid="confirmation-customer-section"
+            data-confirmation-region="customer"
             aria-labelledby="delivery-heading"
           >
-            <h2 id="delivery-heading" className="text-xl font-semibold">
-              Naročnik in dostava
+            <h2
+              id="delivery-heading"
+              className="text-xl font-semibold sm:text-2xl"
+            >
+              Podatki o naročilu
             </h2>
-            <dl className="mt-4 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Vrsta naročnika
-                </dt>
-                <dd className="mt-1 font-semibold">
-                  {customerTypeLabel(customer?.customerType)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
+            <dl className="mt-3 grid gap-x-4 gap-y-2 text-base sm:grid-cols-3">
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
                   Naročnik
                 </dt>
-                <dd className="mt-1 font-semibold">
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
                   {customer?.organizationName ||
                     customer?.customerName ||
                     customer?.contactName ||
                     '—'}
                 </dd>
               </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Kontakt
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
+                  Email
                 </dt>
-                <dd className="mt-1 break-words">
-                  {customer?.contactName ? (
-                    <span className="block font-semibold">
-                      {customer.contactName}
-                    </span>
-                  ) : null}
-                  <span>{customer?.email || '—'}</span>
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
+                  {customer?.email ? (
+                    <a
+                      href={`mailto:${customer.email}`}
+                      className="text-[color:var(--site-color-primary)] underline-offset-2 hover:underline"
+                    >
+                      {customer.email}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
                 </dd>
               </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Naslov za dostavo
+              <div className="min-w-0">
+                <dt className="leading-6 text-[color:var(--site-color-text-muted)]">
+                  Naslov
                 </dt>
-                <dd className="mt-1 font-semibold">
-                  {customer?.addressLine1 || '—'}
-                  {customer?.addressLine1 ? (
-                    <>
-                      {customer.addressLine2 ? (
-                        <span className="block">{customer.addressLine2}</span>
-                      ) : null}
-                      <span className="block">
-                        {customer.postalCode} {customer.city}
-                      </span>
-                    </>
-                  ) : null}
+                <dd className="mt-0.5 break-words text-lg font-semibold leading-6">
+                  {address || '—'}
                 </dd>
               </div>
-              {customer?.reference ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-[color:var(--site-color-text-muted)]">
-                    Referenca
-                  </dt>
-                  <dd className="mt-1 font-semibold">{customer.reference}</dd>
-                </div>
-              ) : null}
             </dl>
           </section>
 
           <section
             className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:border-l lg:border-t-0"
             data-testid="confirmation-documents-section"
+            data-confirmation-region="document"
             aria-labelledby="documents-heading"
           >
             <h2 id="documents-heading" className="text-xl font-semibold">
               Dokumenti
             </h2>
-            {availableDocuments.length > 0 ? (
-              <ul className="mt-4 grid gap-3">
-                {availableDocuments.map(({ document, index, url }) => (
-                  <li key={`${document.type}-${url}-${index}`}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={CONFIRMATION_DOCUMENT_ACTION_CLASS}
-                    >
-                      {customerDocumentLabel(document.type, index)}
-                      <span className="sr-only">
-                        {' '}
-                        (odpre se v novem zavihku)
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <ul className="mt-4 grid gap-3">
+              <li>
+                {orderSummaryDocument ? (
+                  <a
+                    href={orderSummaryDocument.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={CONFIRMATION_DOCUMENT_ACTION_CLASS}
+                    data-testid="order-confirmation-pdf"
+                  >
+                    Potrditev naročila (PDF)
+                    <span className="sr-only">
+                      {' '}
+                      (odpre se v novem zavihku)
+                    </span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className={`${CONFIRMATION_DOCUMENT_ACTION_CLASS} cursor-wait opacity-70`}
+                    data-testid="order-confirmation-pdf"
+                    disabled
+                  >
+                    Potrditev naročila (PDF)
+                    <span className="sr-only"> – pripravlja se</span>
+                  </button>
+                )}
+                <p
+                  className={`mt-1 min-h-5 text-center text-xs leading-5 text-[color:var(--site-color-text-muted)]${
+                    orderSummaryDocument ? ' invisible' : ''
+                  }`}
+                  aria-hidden={orderSummaryDocument ? true : undefined}
+                >
+                  Pripravljamo …
+                </p>
+              </li>
+              {otherDocuments.map(({ document, index, url }) => (
+                <li key={`${document.type}-${url}-${index}`}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={CONFIRMATION_DOCUMENT_ACTION_CLASS}
+                  >
+                    {customerDocumentLabel(document.type, index)}
+                    <span className="sr-only">
+                      {' '}
+                      (odpre se v novem zavihku)
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
 
             {snapshot.commitmentStatus === 'pending_confirmation' ? (
               <Link

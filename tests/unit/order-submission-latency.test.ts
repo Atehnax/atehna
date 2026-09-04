@@ -18,9 +18,20 @@ test('order submission copy distinguishes received, accepted, school-pending, an
     symbol: '…',
     tone: 'success'
   });
-  assert.equal(
-    getOrderSubmissionStatusContent('binding', 'accepted').heading,
-    'Vaše naročilo je potrjeno'
+  assert.deepEqual(
+    getOrderSubmissionStatusContent('binding', 'accepted'),
+    {
+      eyebrow: 'Potrjeno',
+      heading: 'Vaše naročilo je potrjeno',
+      description:
+        'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
+      symbol: '✓',
+      tone: 'success'
+    }
+  );
+  assert.doesNotMatch(
+    getOrderSubmissionStatusContent('binding', 'accepted').description,
+    /Atehna je naročilo sprejela/u
   );
   assert.deepEqual(getOrderSubmissionStatusContent('pending_confirmation'), {
     eyebrow: 'Potrditev',

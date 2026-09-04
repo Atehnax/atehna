@@ -340,6 +340,53 @@ test.describe('order confirmation layout', () => {
     expect(Math.abs(desktopStatusBox!.width - desktopCardBox!.width)).toBeLessThanOrEqual(1);
     await expect(pageContent.locator('.site-card')).toHaveCount(1);
     await expect(card.locator('.site-card')).toHaveCount(0);
+    await expect(status).not.toContainText('Atehna je naročilo sprejela');
+    await expect(status).toContainText(
+      'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.'
+    );
+    await expect(
+      customer.getByRole('heading', {
+        name: 'Podatki o naročilu',
+        exact: true
+      })
+    ).toBeVisible();
+    await expect(customer.locator('dt')).toHaveText([
+      'Naročnik',
+      'Email',
+      'Naslov'
+    ]);
+    await expect(customer).not.toContainText('Vrsta naročnika');
+    await expect(customer).not.toContainText('Kontakt');
+    await expect(customer).not.toContainText('Naslov za dostavo');
+    await expect(customer).not.toContainText('Referenca');
+    await expect(customer.getByText('Maja Primer', { exact: true })).toBeVisible();
+    await expect(customer.getByRole('link', { name: 'maja@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:maja@example.com'
+    );
+    await expect(customer).toContainText(
+      'Cankarjeva ulica 27b, 1000 Ljubljana'
+    );
+    const customerDetails = customer.locator('dl');
+    await expect(customerDetails).toHaveCSS('font-size', '16px');
+    await expect(customerDetails).toHaveCSS('row-gap', '8px');
+    await expect(customerDetails.locator('dd').first()).toHaveCSS(
+      'font-size',
+      '18px'
+    );
+    const customerDetailCells = customerDetails.locator(':scope > div');
+    await expect(customerDetailCells).toHaveCount(3);
+    const customerDetailCellBoxes = await customerDetailCells.evaluateAll(
+      (elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, width: rect.width };
+        })
+    );
+    expect(
+      Math.max(...customerDetailCellBoxes.map((box) => box.y)) -
+        Math.min(...customerDetailCellBoxes.map((box) => box.y))
+    ).toBeLessThanOrEqual(1);
     await expect(summary.getByRole('heading', { name: 'Povzetek naročila' })).toBeVisible();
     await expect(summary.locator('[data-summary-section="calculation"]')).toBeVisible();
     await expect(summary.getByRole('heading', { name: 'Izračun' })).toBeVisible();
@@ -1089,20 +1136,19 @@ test.describe('order confirmation layout', () => {
     );
   });
 
-  test('silently adds a document while keeping the confirmation visible', async ({
+  test('keeps the PDF action stable while its document becomes ready', async ({
     page
   }) => {
-    const requests = await mockConfirmation(page, (requestNumber) => ({
+    let documentReady = false;
+    const purchaseOrderDocument: OrderConfirmationSnapshot['documents'][number] = {
+      type: 'purchase_order',
+      url: '/api/orders/documents/123e4567-e89b-42d3-a456-426614174012'
+    };
+    const requests = await mockConfirmation(page, () => ({
       ...confirmationSnapshot,
-      documents:
-        requestNumber === 1
-          ? [
-              {
-                type: 'purchase_order',
-                url: '/api/orders/documents/123e4567-e89b-42d3-a456-426614174012'
-              }
-            ]
-          : confirmationSnapshot.documents
+      documents: documentReady
+        ? [...confirmationSnapshot.documents, purchaseOrderDocument]
+        : [purchaseOrderDocument]
     }));
     await page.goto(`/order/confirmation#token=${TEST_BOOTSTRAP_TOKEN}`);
 
@@ -1111,21 +1157,40 @@ test.describe('order confirmation layout', () => {
       name: 'Vaše naročilo je potrjeno'
     });
     const documents = page.getByTestId('confirmation-documents-section');
+    const pdfAction = page.getByTestId('order-confirmation-pdf');
+    const preparingStatus = documents.getByText('Pripravljamo …', {
+      exact: true
+    });
     await expect(successHeading).toBeVisible();
     await expect(
       documents.getByRole('link', { name: /^Naročilnica / })
     ).toBeVisible();
-    await expect(
-      documents.getByText('Potrditev naročila pripravljamo …')
-    ).toHaveCount(0);
+    await expect(pdfAction).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(pdfAction).toBeDisabled();
+    await expect(pdfAction).toContainText('Potrditev naročila (PDF)');
+    await expect(preparingStatus).toBeVisible();
     await expect(
       documents.getByRole('button', { name: 'Preveri zdaj' })
     ).toHaveCount(0);
+    const initialDocumentsBox = await documents.boundingBox();
+    expect(initialDocumentsBox).not.toBeNull();
 
+    documentReady = true;
     await expect(
       documents.getByRole('link', { name: /^Potrditev naročila \(PDF\) / })
     ).toBeVisible({ timeout: 4_000 });
+    await expect(pdfAction).toHaveJSProperty('tagName', 'A');
+    await expect(preparingStatus).toBeHidden();
     await expect(successHeading).toBeVisible();
+    await expect(
+      documents.getByRole('link', { name: /^Naročilnica / })
+    ).toBeVisible();
+    const readyDocumentsBox = await documents.boundingBox();
+    expect(readyDocumentsBox).not.toBeNull();
+    expect(Math.abs(readyDocumentsBox!.x - initialDocumentsBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(readyDocumentsBox!.y - initialDocumentsBox!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(readyDocumentsBox!.width - initialDocumentsBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(readyDocumentsBox!.height - initialDocumentsBox!.height)).toBeLessThanOrEqual(1);
     expect(requests.requestCount()).toBeGreaterThanOrEqual(2);
   });
 });

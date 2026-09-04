@@ -2838,6 +2838,26 @@ create index gurs_addresses_search_text_prefix_idx
     gurs_house_number_id
   );
 
+create index gurs_addresses_postal_code_prefix_idx
+  on gurs_addresses (
+    postal_code collate "C",
+    postal_name collate "C"
+  );
+
+create index gurs_addresses_postal_name_prefix_idx
+  on gurs_addresses (
+    (
+      regexp_replace(
+        translate(lower(postal_name), 'čšž', 'csz'),
+        '[^a-z0-9]+',
+        ' ',
+        'g'
+      )
+    ) collate "C",
+    postal_code collate "C",
+    postal_name collate "C"
+  );
+
 create table gurs_address_sync_state (
   key text primary key,
   active_source_updated_at timestamptz,

@@ -57,6 +57,7 @@ order:
 12. `database/migrations/20260903_gurs_address_prefix_search.sql`
 13. `database/migrations/20260903_order_document_email_events.sql`
 14. `database/migrations/20260903_schema_contract_v1.sql`
+15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
 
 The 20260828 base artifact takes an advisory transaction lock, verifies the
 expected current schema, adds the quote aggregate and order contract fields,
@@ -218,8 +219,9 @@ Phase A - establish and verify the contract:
    a current backup, rehearse the exact unapplied migration sequence on a recent
    clone, and compare row counts and inventory totals before and after.
 3. In a controlled maintenance window, apply only the reviewed, still-unapplied
-   artifacts in order, ending with
-   `database/migrations/20260903_schema_contract_v1.sql`.
+   artifacts in order. The schema-contract marker is established by
+   `database/migrations/20260903_schema_contract_v1.sql`; apply the later
+   `database/migrations/20260904_gurs_postal_lookup_indexes.sql` afterward.
 4. Point `DATABASE_URL` explicitly at that target and run
    `npm run check:database-schema`. Record the target, contract ID, backup,
    rehearsal, application, and verification result. Repeat for every target.

@@ -25,8 +25,9 @@ and unrelated register attributes are not stored.
 Fresh database setup includes the GURS section in the canonical
 `database/schema.sql`. It adds:
 
-- the active `gurs_addresses` search table, a prefix index for immediate
-  first-character results, and a PostgreSQL `pg_trgm` index for broader matching;
+- the active `gurs_addresses` search table, covering prefix indexes for immediate
+  street, postal-code, and normalized postal-place results, and a PostgreSQL
+  `pg_trgm` index for broader matching;
 - synchronisation state and run-history tables;
 - address provenance and optional delivery-detail fields on `orders`.
 
@@ -36,13 +37,16 @@ dataset to publish before exposing checkout. The monthly protected job then keep
 that active dataset current.
 
 For an existing database, coordinate
-`database/migrations/20260903_gurs_address_prefix_search.sql` with the code
+`database/migrations/20260903_gurs_address_prefix_search.sql` and
+`database/migrations/20260904_gurs_postal_lookup_indexes.sql` with the code
 deployment. Stop scheduled and manual synchronization, confirm no import is
-active, apply the migration to the current table, and deploy the synchronizer
-that creates the prefix index on staging tables before allowing another sync.
-Then verify a one-character lookup and an index-backed query plan. An expired
-lease is invalidated atomically by the migration and lingering `running`
-sync-history rows are marked failed; an unexpired lease blocks the migration.
+active, apply any outstanding artifacts to the current table in filename order,
+and deploy the synchronizer that creates all prefix indexes on staging tables
+before allowing another sync. Then verify a one-character street lookup,
+postal-place lookup, exact postal-code completion, and their index-backed query
+plans. An expired lease is invalidated atomically by either migration and
+lingering `running` sync-history rows are marked failed; an unexpired lease
+blocks the migration.
 
 GURS identifiers are stored as PostgreSQL `text` and remain JavaScript strings.
 They must never be converted to numbers.
@@ -78,7 +82,7 @@ Each run:
 3. retries temporary source failures a limited number of times;
 4. validates a plausible total of 400,000–800,000 records, required values,
    and unique GURS identifiers;
-5. creates and analyses the search indexes;
+5. creates and analyses the street and postal search indexes;
 6. replaces the active table in one short database transaction;
 7. records the result, count, source timestamp, and completion time.
 

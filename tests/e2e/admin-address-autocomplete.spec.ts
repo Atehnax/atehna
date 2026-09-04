@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Route } from '@playwright/test';
 import pg, { type Pool as PgPool } from 'pg';
 import { assertAuthenticatedAdmin } from './support/auth';
 
@@ -16,11 +16,52 @@ type CanonicalAddress = {
 
 const ADDRESS_QUERY = 'Cankarjeva ulica 27';
 const FIRST_CHARACTER_QUERY = ADDRESS_QUERY.slice(0, 1);
+const REFINED_ADDRESS_QUERY = ADDRESS_QUERY.slice(0, 2);
 const INITIAL_ADDRESS = {
   addressLine1: 'Testna ulica 1',
   postalCode: '1000',
   postalName: 'Ljubljana'
 } as const;
+const POSTAL_LOCATIONS = {
+  codeLookup: {
+    postalCode: '8340',
+    postalName: 'Črnomelj'
+  },
+  townLookup: {
+    postalCode: '1000',
+    postalName: 'Ljubljana'
+  },
+  staleCodeLookup: {
+    postalCode: '2000',
+    postalName: 'Maribor'
+  },
+  latestTownLookup: {
+    postalCode: '6000',
+    postalName: 'Koper - Capodistria'
+  }
+} as const;
+const MOCK_SOURCE_UPDATED_AT = '2026-07-01T00:00:00.000Z';
+
+type AdminAddressEditor = 'order' | 'quote';
+
+function createGate() {
+  let release!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+}
+
+async function fulfillLookup(
+  route: Route,
+  results: readonly unknown[]
+) {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ results, sourceUpdatedAt: MOCK_SOURCE_UPDATED_AT })
+  });
+}
 
 let database: PgPool;
 
@@ -65,6 +106,106 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     throw new Error('The real GURS address endpoint returned no canonical address.');
   }
 
+  let activeEditor: AdminAddressEditor | null = null;
+  const addressRefinementGates = {
+    order: createGate(),
+    quote: createGate()
+  };
+  const postalCodeGates = {
+    order: createGate(),
+    quote: createGate()
+  };
+  const stalePostalCodeGates = {
+    order: createGate(),
+    quote: createGate()
+  };
+  const latestPostalTownGates = {
+    order: createGate(),
+    quote: createGate()
+  };
+  const stalePostalCodeResponsesSettled: Record<
+    AdminAddressEditor,
+    boolean
+  > = {
+    order: false,
+    quote: false
+  };
+  const addressSearchRequests: Record<AdminAddressEditor, string[]> = {
+    order: [],
+    quote: []
+  };
+  const postalLookupRequests: Record<AdminAddressEditor, string[]> = {
+    order: [],
+    quote: []
+  };
+
+  await page.route(/\/api\/addresses\/search(?:\?.*)?$/u, async (route) => {
+    const query = new URL(route.request().url()).searchParams.get('query') ?? '';
+    const editor = activeEditor;
+    if (editor) addressSearchRequests[editor].push(query);
+    if (editor && query === REFINED_ADDRESS_QUERY.toLowerCase()) {
+      await addressRefinementGates[editor].promise;
+    }
+    await fulfillLookup(
+      route,
+      query === FIRST_CHARACTER_QUERY.toLowerCase() ||
+        query === REFINED_ADDRESS_QUERY.toLowerCase()
+        ? [canonicalAddress]
+        : []
+    );
+  });
+
+  await page.route(
+    /\/api\/addresses\/postal-lookup(?:\?.*)?$/u,
+    async (route) => {
+      const searchParams = new URL(route.request().url()).searchParams;
+      const field = searchParams.get('field') ?? '';
+      const query = searchParams.get('query') ?? '';
+      const editor = activeEditor;
+      if (editor) postalLookupRequests[editor].push(`${field}:${query}`);
+      const isStaleCodeRace =
+        field === 'postalCode' &&
+        query === POSTAL_LOCATIONS.staleCodeLookup.postalCode;
+      const isLatestTownRace =
+        field === 'postalName' &&
+        query === POSTAL_LOCATIONS.latestTownLookup.postalName;
+      if (
+        editor &&
+        field === 'postalCode' &&
+        query === POSTAL_LOCATIONS.codeLookup.postalCode
+      ) {
+        await postalCodeGates[editor].promise;
+      }
+      if (editor && isStaleCodeRace) {
+        await stalePostalCodeGates[editor].promise;
+      }
+      if (editor && isLatestTownRace) {
+        await latestPostalTownGates[editor].promise;
+      }
+      const results =
+        field === 'postalCode' &&
+        query === POSTAL_LOCATIONS.codeLookup.postalCode
+          ? [POSTAL_LOCATIONS.codeLookup]
+          : isStaleCodeRace
+            ? [POSTAL_LOCATIONS.staleCodeLookup]
+            : isLatestTownRace
+              ? [POSTAL_LOCATIONS.latestTownLookup]
+          : field === 'postalName' &&
+              query === POSTAL_LOCATIONS.townLookup.postalName
+            ? [POSTAL_LOCATIONS.townLookup]
+            : [];
+      try {
+        await fulfillLookup(route, results);
+      } catch (error) {
+        if (!isStaleCodeRace && !isLatestTownRace) throw error;
+      } finally {
+        if (editor && isStaleCodeRace) {
+          stalePostalCodeResponsesSettled[editor] = true;
+        }
+      }
+    }
+  );
+
   try {
     const orderCreateResponse = await request.post('/api/admin/orders');
     expect(orderCreateResponse.status()).toBe(200);
@@ -91,12 +232,102 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     await orderCard
       .getByRole('button', { name: 'Uredi podatke naročila' })
       .click();
+    activeEditor = 'order';
 
     const orderAddress = page.getByTestId('admin-order-address-autocomplete');
+    const orderPostalCode = page.getByTestId(
+      'admin-order-postal-code-autocomplete'
+    );
+    const orderPostalTown = page.getByTestId(
+      'admin-order-city-autocomplete'
+    );
     await expect(orderAddress).toHaveAttribute('role', 'combobox');
     await expect(orderAddress).toHaveAttribute('aria-autocomplete', 'list');
     await expect(orderAddress).toHaveAttribute('autocomplete', 'off');
     await expect(orderAddress).toHaveValue(INITIAL_ADDRESS.addressLine1);
+    await expect(orderPostalCode).toHaveAttribute('role', 'combobox');
+    await expect(orderPostalTown).toHaveAttribute('role', 'combobox');
+
+    await orderPostalTown.fill('');
+    await orderPostalCode.fill(POSTAL_LOCATIONS.codeLookup.postalCode);
+    await orderPostalCode.press('Tab');
+    await expect(orderPostalTown).toBeFocused();
+    await expect
+      .poll(() => postalLookupRequests.order.join('|'))
+      .toBe(`postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`);
+    await expect(orderPostalCode).toHaveAttribute('aria-busy', 'true');
+    await expect(orderPostalTown).toHaveValue('');
+    postalCodeGates.order.release();
+    await expect(orderPostalTown).toHaveValue(
+      POSTAL_LOCATIONS.codeLookup.postalName
+    );
+    await expect(orderPostalCode).toHaveAttribute('aria-busy', 'false');
+    await page.waitForTimeout(150);
+    expect(postalLookupRequests.order).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`
+    ]);
+
+    await orderPostalCode.fill('');
+    await orderPostalTown.fill(POSTAL_LOCATIONS.townLookup.postalName);
+    await expect
+      .poll(() => postalLookupRequests.order.join('|'))
+      .toBe(
+        `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}|` +
+          `postalName:${POSTAL_LOCATIONS.townLookup.postalName}`
+      );
+    await expect(orderPostalCode).toHaveValue(
+      POSTAL_LOCATIONS.townLookup.postalCode
+    );
+    await page.waitForTimeout(150);
+    expect(postalLookupRequests.order).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`,
+      `postalName:${POSTAL_LOCATIONS.townLookup.postalName}`
+    ]);
+
+    const orderRaceRequestStart = postalLookupRequests.order.length;
+    await orderPostalTown.fill('');
+    await orderPostalCode.fill(
+      POSTAL_LOCATIONS.staleCodeLookup.postalCode
+    );
+    await expect
+      .poll(() =>
+        postalLookupRequests.order.slice(orderRaceRequestStart).join('|')
+      )
+      .toBe(`postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}`);
+    await orderPostalTown.fill(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    await expect
+      .poll(() =>
+        postalLookupRequests.order.slice(orderRaceRequestStart).join('|')
+      )
+      .toBe(
+        `postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}|` +
+          `postalName:${POSTAL_LOCATIONS.latestTownLookup.postalName}`
+      );
+    stalePostalCodeGates.order.release();
+    await expect
+      .poll(() => stalePostalCodeResponsesSettled.order)
+      .toBe(true);
+    await page.waitForTimeout(100);
+    await expect(orderPostalTown).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    latestPostalTownGates.order.release();
+    await expect(orderPostalCode).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalCode
+    );
+    await expect(orderPostalTown).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    await page.waitForTimeout(150);
+    expect(
+      postalLookupRequests.order.slice(orderRaceRequestStart)
+    ).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}`,
+      `postalName:${POSTAL_LOCATIONS.latestTownLookup.postalName}`
+    ]);
+
     await orderAddress.fill('');
     await orderAddress.fill(FIRST_CHARACTER_QUERY);
 
@@ -107,6 +338,25 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     const orderOptions = orderSuggestions.getByRole('option');
     await expect(orderOptions.first()).toBeVisible();
     expect(await orderOptions.count()).toBeLessThanOrEqual(8);
+    await orderAddress.fill(REFINED_ADDRESS_QUERY);
+    await expect
+      .poll(() => addressSearchRequests.order.join('|'))
+      .toBe(
+        `${FIRST_CHARACTER_QUERY.toLowerCase()}|` +
+          REFINED_ADDRESS_QUERY.toLowerCase()
+      );
+    await expect(orderAddress).toHaveAttribute('aria-busy', 'true');
+    await expect(orderAddress).toHaveAttribute('aria-expanded', 'true');
+    await expect(orderSuggestions).toBeVisible();
+    await expect(orderOptions.first()).toContainText(
+      canonicalAddress.addressLine1
+    );
+    addressRefinementGates.order.release();
+    await expect(orderAddress).toHaveAttribute('aria-busy', 'false');
+    await expect(orderSuggestions).toBeVisible();
+    await expect(orderOptions.first()).toContainText(
+      canonicalAddress.addressLine1
+    );
     await orderAddress.press('ArrowDown');
     await expect(orderOptions.first()).toHaveAttribute(
       'aria-selected',
@@ -202,18 +452,126 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     await quoteCard
       .getByRole('button', { name: 'Uredi podatke povpraševanja' })
       .click();
+    activeEditor = 'quote';
 
     const quoteAddress = page.getByTestId('admin-quote-address-autocomplete');
+    const quotePostalCode = page.getByTestId(
+      'admin-quote-postal-code-autocomplete'
+    );
+    const quotePostalTown = page.getByTestId(
+      'admin-quote-city-autocomplete'
+    );
     await expect(quoteAddress).toHaveAttribute('role', 'combobox');
     await expect(quoteAddress).toHaveAttribute('aria-autocomplete', 'list');
     await expect(quoteAddress).toHaveValue(INITIAL_ADDRESS.addressLine1);
+    await expect(quotePostalCode).toHaveAttribute('role', 'combobox');
+    await expect(quotePostalTown).toHaveAttribute('role', 'combobox');
+
+    await quotePostalTown.fill('');
+    await quotePostalCode.fill(POSTAL_LOCATIONS.codeLookup.postalCode);
+    await quotePostalCode.press('Tab');
+    await expect(quotePostalTown).toBeFocused();
+    await expect
+      .poll(() => postalLookupRequests.quote.join('|'))
+      .toBe(`postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`);
+    await expect(quotePostalCode).toHaveAttribute('aria-busy', 'true');
+    await expect(quotePostalTown).toHaveValue('');
+    postalCodeGates.quote.release();
+    await expect(quotePostalTown).toHaveValue(
+      POSTAL_LOCATIONS.codeLookup.postalName
+    );
+    await expect(quotePostalCode).toHaveAttribute('aria-busy', 'false');
+    await page.waitForTimeout(150);
+    expect(postalLookupRequests.quote).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`
+    ]);
+
+    await quotePostalCode.fill('');
+    await quotePostalTown.fill(POSTAL_LOCATIONS.townLookup.postalName);
+    await expect
+      .poll(() => postalLookupRequests.quote.join('|'))
+      .toBe(
+        `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}|` +
+          `postalName:${POSTAL_LOCATIONS.townLookup.postalName}`
+      );
+    await expect(quotePostalCode).toHaveValue(
+      POSTAL_LOCATIONS.townLookup.postalCode
+    );
+    await page.waitForTimeout(150);
+    expect(postalLookupRequests.quote).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.codeLookup.postalCode}`,
+      `postalName:${POSTAL_LOCATIONS.townLookup.postalName}`
+    ]);
+
+    const quoteRaceRequestStart = postalLookupRequests.quote.length;
+    await quotePostalTown.fill('');
+    await quotePostalCode.fill(
+      POSTAL_LOCATIONS.staleCodeLookup.postalCode
+    );
+    await expect
+      .poll(() =>
+        postalLookupRequests.quote.slice(quoteRaceRequestStart).join('|')
+      )
+      .toBe(`postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}`);
+    await quotePostalTown.fill(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    await expect
+      .poll(() =>
+        postalLookupRequests.quote.slice(quoteRaceRequestStart).join('|')
+      )
+      .toBe(
+        `postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}|` +
+          `postalName:${POSTAL_LOCATIONS.latestTownLookup.postalName}`
+      );
+    stalePostalCodeGates.quote.release();
+    await expect
+      .poll(() => stalePostalCodeResponsesSettled.quote)
+      .toBe(true);
+    await page.waitForTimeout(100);
+    await expect(quotePostalTown).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    latestPostalTownGates.quote.release();
+    await expect(quotePostalCode).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalCode
+    );
+    await expect(quotePostalTown).toHaveValue(
+      POSTAL_LOCATIONS.latestTownLookup.postalName
+    );
+    await page.waitForTimeout(150);
+    expect(
+      postalLookupRequests.quote.slice(quoteRaceRequestStart)
+    ).toEqual([
+      `postalCode:${POSTAL_LOCATIONS.staleCodeLookup.postalCode}`,
+      `postalName:${POSTAL_LOCATIONS.latestTownLookup.postalName}`
+    ]);
+
     await quoteAddress.fill('');
     await quoteAddress.fill(FIRST_CHARACTER_QUERY);
     const quoteSuggestions = page.getByRole('listbox', {
       name: 'Predlogi naslovov'
     });
     await expect(quoteSuggestions).toBeVisible();
-    await quoteSuggestions.getByRole('option').first().click();
+    const quoteOptions = quoteSuggestions.getByRole('option');
+    await expect(quoteOptions.first()).toBeVisible();
+    await quoteAddress.fill(REFINED_ADDRESS_QUERY);
+    await expect
+      .poll(() => addressSearchRequests.quote.join('|'))
+      .toBe(
+        `${FIRST_CHARACTER_QUERY.toLowerCase()}|` +
+          REFINED_ADDRESS_QUERY.toLowerCase()
+      );
+    await expect(quoteAddress).toHaveAttribute('aria-busy', 'true');
+    await expect(quoteAddress).toHaveAttribute('aria-expanded', 'true');
+    await expect(quoteSuggestions).toBeVisible();
+    await expect(quoteOptions.first()).toContainText(
+      canonicalAddress.addressLine1
+    );
+    addressRefinementGates.quote.release();
+    await expect(quoteAddress).toHaveAttribute('aria-busy', 'false');
+    await expect(quoteSuggestions).toBeVisible();
+    await quoteOptions.first().click();
 
     await expect(quoteAddress).toHaveValue(canonicalAddress.addressLine1);
     await expect(quoteCard.getByLabel('Poštna številka')).toHaveValue(
@@ -281,6 +639,14 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
     ]);
     expect(manuallyEditedQuote.rows[0]?.gurs_house_number_id).toBeNull();
   } finally {
+    addressRefinementGates.order.release();
+    addressRefinementGates.quote.release();
+    postalCodeGates.order.release();
+    postalCodeGates.quote.release();
+    stalePostalCodeGates.order.release();
+    stalePostalCodeGates.quote.release();
+    latestPostalTownGates.order.release();
+    latestPostalTownGates.quote.release();
     if (quoteRequestId !== null) {
       await request.delete(
         '/api/admin/quote-requests/' + String(quoteRequestId),

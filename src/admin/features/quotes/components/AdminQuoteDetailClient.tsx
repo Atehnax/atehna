@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExtern
 import Link from 'next/link';
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
@@ -758,6 +759,8 @@ function QuoteAddressEditor({
   disabled: boolean;
   onChange: (patch: Partial<QuoteRequestDetailsState>) => void;
 }) {
+  const postalEditSequenceRef = useRef(0);
+
   return (
     <QuoteDetailFieldShell isEditing>
       <div
@@ -775,13 +778,16 @@ function QuoteAddressEditor({
             addressLine1: value,
             gursHouseNumberId: ''
           })}
-          onSelect={(suggestion) => onChange({
-            addressLine1: suggestion.addressLine1,
-            postalCode: suggestion.postalCode,
-            city: suggestion.postalName,
-            countryCode: 'SI',
-            gursHouseNumberId: suggestion.gursHouseNumberId
-          })}
+          onSelect={(suggestion) => {
+            postalEditSequenceRef.current += 1;
+            onChange({
+              addressLine1: suggestion.addressLine1,
+              postalCode: suggestion.postalCode,
+              city: suggestion.postalName,
+              countryCode: 'SI',
+              gursHouseNumberId: suggestion.gursHouseNumberId
+            });
+          }}
           className={quoteDetailCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
@@ -794,29 +800,38 @@ function QuoteAddressEditor({
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={quoteDetailCompositeInputClassName}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalCode"
           aria-label="Poštna številka"
-          autoComplete="postal-code"
-          type="text"
-          inputMode="numeric"
           value={details.postalCode}
           disabled={disabled}
-          placeholder="P. št."
-          onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+          testId="admin-quote-postal-code-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            postalCode: value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={`${quoteDetailCompositeInputClassName} text-center`}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalName"
           aria-label="Kraj"
-          autoComplete="address-level2"
-          type="text"
           value={details.city}
           disabled={disabled}
-          placeholder="Kraj"
-          onChange={(event) => onChange({
-            city: event.target.value,
+          testId="admin-quote-city-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            city: value,
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={quoteDetailCompositeInputClassName}

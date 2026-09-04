@@ -409,8 +409,6 @@ export default function OrderPageClient({
 
     const query = normalizeAddressSearchText(formData.addressLine1);
     setAddressSearchStatus('loading');
-    setAddressSuggestions([]);
-    setIsAddressListOpen(false);
     setActiveAddressIndex(-1);
     const search = async () => {
       const controller = new AbortController();
@@ -553,8 +551,10 @@ export default function OrderPageClient({
     },
     []
   );
+  const postalEditSequenceRef = useRef(0);
 
   const selectAddressSuggestion = (suggestion: GursAddressSearchResult) => {
+    postalEditSequenceRef.current += 1;
     setFormData((previous) => ({
       ...previous,
       addressLine1: suggestion.addressLine1,
@@ -1269,6 +1269,7 @@ export default function OrderPageClient({
                     role="combobox"
                     aria-autocomplete="list"
                     aria-expanded={isAddressListOpen}
+                    aria-busy={addressSearchStatus === 'loading'}
                     aria-controls={addressListboxId}
                     aria-describedby={`${addressListboxId}-status`}
                     aria-activedescendant={
@@ -1355,6 +1356,7 @@ export default function OrderPageClient({
                   error={fieldErrors.postalCode}
                   disabled={!canContinue}
                   lookupEnabled={!formData.gursHouseNumberId}
+                  editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
                 />
                 <PostalLocationCombobox
@@ -1365,6 +1367,7 @@ export default function OrderPageClient({
                   error={fieldErrors.city}
                   disabled={!canContinue}
                   lookupEnabled={!formData.gursHouseNumberId}
+                  editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
                 />
               </div>

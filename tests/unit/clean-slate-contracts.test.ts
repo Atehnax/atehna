@@ -68,6 +68,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const gursAddressPrefixDeployment = source(
     'database/migrations/20260903_gurs_address_prefix_search.sql'
   );
+  const gursPostalLookupIndexesDeployment = source(
+    'database/migrations/20260904_gurs_postal_lookup_indexes.sql'
+  );
   const orderDocumentEmailEventsDeployment = source(
     'database/migrations/20260903_order_document_email_events.sql'
   );
@@ -91,7 +94,8 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260901_quote_outbox_cancellation.sql',
     '20260903_gurs_address_prefix_search.sql',
     '20260903_order_document_email_events.sql',
-    '20260903_schema_contract_v1.sql'
+    '20260903_schema_contract_v1.sql',
+    '20260904_gurs_postal_lookup_indexes.sql'
   ]);
   assert.equal(tableNames.length, 62);
   assert.equal(new Set(tableNames).size, 62);
@@ -121,6 +125,7 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     quoteOptionalAcceptanceTermsDeployment,
     quoteOutboxCancellationDeployment,
     gursAddressPrefixDeployment,
+    gursPostalLookupIndexesDeployment,
     orderDocumentEmailEventsDeployment,
     schemaContractDeployment
   ]) {
@@ -170,6 +175,14 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(
     gursAddressPrefixDeployment,
     /pg_advisory_xact_lock\(hashtext\('gurs-address-sync-publish'\)\)[\s\S]+?lock table public\.gurs_address_sync_state[\s\S]+?lock table public\.gurs_addresses in share mode/u
+  );
+  assert.match(
+    gursPostalLookupIndexesDeployment,
+    /pg_advisory_xact_lock\(hashtext\('gurs-address-sync-publish'\)\)[\s\S]+?lock table public\.gurs_address_sync_state[\s\S]+?lock table public\.gurs_addresses in share mode/u
+  );
+  assert.match(
+    gursPostalLookupIndexesDeployment,
+    /postal_code collate "C"[\s\S]+?regexp_replace\(translate\(lower\(postal_name\)[\s\S]+?postal_name collate "C"/u
   );
   assert.match(
     gursAddressPrefixDeployment,

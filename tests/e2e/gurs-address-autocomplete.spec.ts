@@ -474,11 +474,19 @@ test.describe('checkout GURS address autocomplete', () => {
       await expect.poll(() => requestedQueries).toEqual(['c', 'ca']);
       await expect(status).toHaveText('Iščemo uradne naslove …');
       await expect(status).not.toContainText('ni bilo najdenih predlogov');
+      await expect(address).toHaveAttribute('aria-busy', 'true');
+      await expect(address).toHaveAttribute('aria-expanded', 'true');
+      await expect(listbox).toBeVisible();
+      await expect(listbox.getByRole('option')).toHaveCount(1);
+      await expect(listbox.getByRole('option')).toContainText(
+        cankarjeva.addressLine1
+      );
     } finally {
       refinedRequestGate.release();
     }
 
     await expect(listbox).toBeVisible();
+    await expect(address).toHaveAttribute('aria-busy', 'false');
     await expect(listbox.getByRole('option')).toContainText(
       cankarjeva.addressLine1
     );
@@ -733,6 +741,16 @@ const crnomelj = {
   postalName: 'Črnomelj'
 } as const satisfies PostalLocation;
 
+const maribor = {
+  postalCode: '2000',
+  postalName: 'Maribor'
+} as const satisfies PostalLocation;
+
+const koper = {
+  postalCode: '6000',
+  postalName: 'Koper - Capodistria'
+} as const satisfies PostalLocation;
+
 async function fulfillPostalLookup(
   route: Route,
   results: readonly PostalLocation[]
@@ -755,9 +773,11 @@ test.describe('checkout postal code and postal-town completion', () => {
     await seedCheckout(page);
   });
 
-  test('places postal code first and completes the town with one debounced lookup', async ({
+  test('places postal code first and completes an exact code after focus moves away', async ({
     page
   }) => {
+    const exactLookupGate = createGate();
+    let exactLookupStarted = false;
     const requestedLookups: string[] = [];
     await page.route(/\/api\/addresses\/search(?:\?.*)?$/, (route) =>
       fulfillAddressSearch(route)
@@ -767,6 +787,10 @@ test.describe('checkout postal code and postal-town completion', () => {
       const field = url.searchParams.get('field') ?? '';
       const query = url.searchParams.get('query') ?? '';
       requestedLookups.push(`${field}:${query}`);
+      if (field === 'postalCode' && query === ljubljana.postalCode) {
+        exactLookupStarted = true;
+        await exactLookupGate.promise;
+      }
       await fulfillPostalLookup(
         route,
         field === 'postalCode' && query === ljubljana.postalCode
@@ -813,21 +837,26 @@ test.describe('checkout postal code and postal-town completion', () => {
 
     await postalCode.fill('1');
     await expect(gursId).toHaveValue('');
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(100);
     expect(requestedLookups).toEqual([]);
 
-    await postalCode.fill('10');
-    await page.waitForTimeout(80);
-    await postalCode.fill('100');
-    await page.waitForTimeout(80);
-    await postalCode.fill('1000');
-    expect(
-      requestedLookups,
-      'postal lookups should be debounced rather than sent for each edit'
-    ).toEqual([]);
-    await expect.poll(() => requestedLookups).toEqual(['postalCode:1000']);
+    try {
+      await postalCode.fill('1000');
+      await expect.poll(() => exactLookupStarted, {
+        timeout: 500,
+        intervals: [10, 20, 50]
+      }).toBe(true);
+      expect(requestedLookups).toEqual(['postalCode:1000']);
+      await expect(postalCode).toHaveAttribute('aria-busy', 'true');
+      await page.getByLabel('Naziv naročnika *', { exact: true }).focus();
+      await expect(postalCode).toHaveAttribute('aria-busy', 'true');
+    } finally {
+      exactLookupGate.release();
+    }
+
     await expect(postalTown).toHaveValue(ljubljana.postalName);
-    await page.waitForTimeout(350);
+    await expect(postalCode).toHaveAttribute('aria-busy', 'false');
+    await page.waitForTimeout(150);
     expect(
       requestedLookups,
       'programmatic town completion must not start a reverse lookup loop'
@@ -837,12 +866,18 @@ test.describe('checkout postal code and postal-town completion', () => {
   test('matches a postal town without diacritics and completes its code', async ({
     page
   }) => {
+    const exactTownLookupGate = createGate();
+    let exactTownLookupStarted = false;
     const requestedLookups: string[] = [];
     await page.route(/\/api\/addresses\/postal-lookup(?:\?.*)?$/, async (route) => {
       const url = new URL(route.request().url());
       const field = url.searchParams.get('field') ?? '';
       const query = url.searchParams.get('query') ?? '';
       requestedLookups.push(`${field}:${query}`);
+      if (field === 'postalName' && query === 'Crnomelj') {
+        exactTownLookupStarted = true;
+        await exactTownLookupGate.promise;
+      }
       await fulfillPostalLookup(
         route,
         field === 'postalName' && query === 'Crnomelj' ? [crnomelj] : []
@@ -860,16 +895,21 @@ test.describe('checkout postal code and postal-town completion', () => {
     });
 
     await postalTown.fill('C');
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(100);
     expect(requestedLookups).toEqual([]);
-    await postalTown.fill('Cr');
-    await page.waitForTimeout(80);
-    await postalTown.fill('Crnomelj');
-    await expect.poll(() => requestedLookups).toEqual([
-      'postalName:Crnomelj'
-    ]);
+
+    try {
+      await postalTown.fill('Crnomelj');
+      await expect.poll(() => exactTownLookupStarted).toBe(true);
+      expect(requestedLookups).toEqual(['postalName:Crnomelj']);
+      await expect(postalTown).toHaveAttribute('aria-busy', 'true');
+    } finally {
+      exactTownLookupGate.release();
+    }
+
     await expect(postalCode).toHaveValue(crnomelj.postalCode);
-    await page.waitForTimeout(350);
+    await expect(postalTown).toHaveAttribute('aria-busy', 'false');
+    await page.waitForTimeout(150);
     expect(
       requestedLookups,
       'programmatic code completion must not start a reverse lookup loop'
@@ -982,11 +1022,90 @@ test.describe('checkout postal code and postal-town completion', () => {
 
     await postalCode.fill('10');
     await expect.poll(() => firstRequestStarted).toBe(true);
-    await postalCode.fill(ljubljana.postalCode);
-    await expect(postalTown).toHaveValue(ljubljana.postalName);
-    firstRequestGate.release();
-    await page.waitForTimeout(350);
+    try {
+      await postalCode.fill(ljubljana.postalCode);
+      await expect(postalTown).toHaveValue(ljubljana.postalName);
+    } finally {
+      firstRequestGate.release();
+    }
+    await page.waitForTimeout(150);
     await expect(postalTown).toHaveValue(ljubljana.postalName);
     expect(requestedLookups).toEqual(['10', '1000']);
+  });
+
+  test('ignores an older postal-code response while a newer town lookup is pending', async ({
+    page
+  }) => {
+    const olderCodeGate = createGate();
+    const newerTownGate = createGate();
+    let olderCodeStarted = false;
+    let olderCodeFulfilled = false;
+    let newerTownStarted = false;
+    const requestedLookups: string[] = [];
+
+    await page.route(/\/api\/addresses\/postal-lookup(?:\?.*)?$/, async (route) => {
+      const url = new URL(route.request().url());
+      const field = url.searchParams.get('field') ?? '';
+      const query = url.searchParams.get('query') ?? '';
+      requestedLookups.push(`${field}:${query}`);
+
+      if (field === 'postalCode' && query === maribor.postalCode) {
+        olderCodeStarted = true;
+        await olderCodeGate.promise;
+        await fulfillPostalLookup(route, [maribor]);
+        olderCodeFulfilled = true;
+        return;
+      }
+
+      if (field === 'postalName' && query === koper.postalName) {
+        newerTownStarted = true;
+        await newerTownGate.promise;
+        await fulfillPostalLookup(route, [koper]);
+        return;
+      }
+
+      await fulfillPostalLookup(route, []);
+    });
+
+    await enableCheckout(page);
+    const postalCode = page.getByRole('combobox', {
+      name: 'Poštna številka *',
+      exact: true
+    });
+    const postalTown = page.getByRole('combobox', {
+      name: 'Poštni kraj *',
+      exact: true
+    });
+
+    await postalCode.fill(maribor.postalCode);
+    await expect.poll(() => olderCodeStarted).toBe(true);
+    await expect(postalCode).toHaveAttribute('aria-busy', 'true');
+
+    await postalTown.fill(koper.postalName);
+    await expect.poll(() => newerTownStarted).toBe(true);
+    await expect(postalTown).toHaveAttribute('aria-busy', 'true');
+
+    try {
+      olderCodeGate.release();
+      await expect.poll(() => olderCodeFulfilled).toBe(true);
+      await expect(postalCode).toHaveAttribute('aria-busy', 'false');
+      await expect(postalTown).toHaveValue(koper.postalName);
+      await expect(postalTown).toHaveAttribute('aria-busy', 'true');
+    } finally {
+      olderCodeGate.release();
+      newerTownGate.release();
+    }
+
+    await expect(postalCode).toHaveValue(koper.postalCode);
+    await expect(postalTown).toHaveValue(koper.postalName);
+    await expect(postalTown).toHaveAttribute('aria-busy', 'false');
+    await page.waitForTimeout(150);
+    expect(
+      requestedLookups,
+      'the winning lookup must not start a reverse request'
+    ).toEqual([
+      `postalCode:${maribor.postalCode}`,
+      `postalName:${koper.postalName}`
+    ]);
   });
 });

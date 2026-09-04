@@ -16,6 +16,7 @@ import AdminOrderActivityCard from '@/admin/features/orders/components/AdminOrde
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
@@ -443,6 +444,8 @@ function OrderAddressEditor({
   disabled: boolean;
   onChange: (patch: Partial<DetailData>) => void;
 }) {
+  const postalEditSequenceRef = useRef(0);
+
   return (
     <DetailFieldShell isEditing>
       <div
@@ -460,13 +463,16 @@ function OrderAddressEditor({
             deliveryAddress: value,
             gursHouseNumberId: ''
           })}
-          onSelect={(suggestion) => onChange({
-            deliveryAddress: suggestion.addressLine1,
-            postalCode: suggestion.postalCode,
-            city: suggestion.postalName,
-            countryCode: 'SI',
-            gursHouseNumberId: suggestion.gursHouseNumberId
-          })}
+          onSelect={(suggestion) => {
+            postalEditSequenceRef.current += 1;
+            onChange({
+              deliveryAddress: suggestion.addressLine1,
+              postalCode: suggestion.postalCode,
+              city: suggestion.postalName,
+              countryCode: 'SI',
+              gursHouseNumberId: suggestion.gursHouseNumberId
+            });
+          }}
           className={orderDataCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
@@ -479,29 +485,38 @@ function OrderAddressEditor({
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={orderDataCompositeInputClassName}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalCode"
           aria-label="Poštna številka"
-          autoComplete="postal-code"
-          type="text"
-          inputMode="numeric"
           value={details.postalCode}
           disabled={disabled}
-          placeholder="P. št."
-          onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+          testId="admin-order-postal-code-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            postalCode: value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={`${orderDataCompositeInputClassName} text-center`}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalName"
           aria-label="Kraj"
-          autoComplete="address-level2"
-          type="text"
           value={details.city}
           disabled={disabled}
-          placeholder="Kraj"
-          onChange={(event) => onChange({
-            city: event.target.value,
+          testId="admin-order-city-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            city: value,
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={orderDataCompositeInputClassName}

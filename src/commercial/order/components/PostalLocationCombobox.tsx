@@ -6,7 +6,8 @@ import {
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
-  type KeyboardEvent as ReactKeyboardEvent
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MutableRefObject
 } from 'react';
 import {
   isGursPostalLookupQueryEligible,
@@ -19,6 +20,8 @@ import { FloatingInput } from '@/shared/ui/floating-field';
 
 type PostalLookupStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+const POSTAL_LOOKUP_FOLLOW_UP_DEBOUNCE_MS = 50;
+
 type PostalLocationComboboxProps = {
   field: PostalLookupField;
   value: string;
@@ -26,6 +29,7 @@ type PostalLocationComboboxProps = {
   error?: string;
   disabled?: boolean;
   lookupEnabled: boolean;
+  editSequenceRef: MutableRefObject<number>;
   onChange: (value: string) => void;
   onResolve: (location: GursPostalLocation) => void;
 };
@@ -70,16 +74,19 @@ export default function PostalLocationCombobox({
   error,
   disabled = false,
   lookupEnabled,
+  editSequenceRef,
   onChange,
   onResolve
 }: PostalLocationComboboxProps) {
   const [suggestions, setSuggestions] = useState<GursPostalLocation[]>([]);
   const [isListOpen, setIsListOpen] = useState(false);
-  const [isActive, setIsActive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [status, setStatus] = useState<PostalLookupStatus>('idle');
   const requestRef = useRef<AbortController | null>(null);
   const skipLookupValueRef = useRef<string | null>(null);
+  const userEditedValueRef = useRef<string | null>(null);
+  const isActiveRef = useRef(false);
+  const onResolveRef = useRef(onResolve);
   const listboxId = useId();
   const inputId = field === 'postalCode' ? 'postalCode' : 'city';
   const listLabel =
@@ -88,11 +95,16 @@ export default function PostalLocationCombobox({
       : 'Predlogi poštnih krajev';
 
   useEffect(() => {
+    onResolveRef.current = onResolve;
+  }, [onResolve]);
+
+  useEffect(() => {
     requestRef.current?.abort();
     requestRef.current = null;
 
     if (skipLookupValueRef.current === value) {
       skipLookupValueRef.current = null;
+      userEditedValueRef.current = null;
       setSuggestions([]);
       setIsListOpen(false);
       setActiveIndex(-1);
@@ -100,24 +112,31 @@ export default function PostalLocationCombobox({
     }
     skipLookupValueRef.current = null;
 
+    const wasEditedByUser = userEditedValueRef.current === value;
+
     if (
       disabled ||
       !lookupEnabled ||
-      !isActive ||
+      !wasEditedByUser ||
       !isGursPostalLookupQueryEligible(field, value)
     ) {
+      userEditedValueRef.current = null;
       setSuggestions([]);
       setIsListOpen(false);
       setActiveIndex(-1);
       setStatus('idle');
       return;
     }
+    userEditedValueRef.current = null;
 
     const query = value.trim();
-    const timeoutId = window.setTimeout(async () => {
+    const editSequence = editSequenceRef.current;
+    setStatus('loading');
+    setActiveIndex(-1);
+
+    const search = async () => {
       const controller = new AbortController();
       requestRef.current = controller;
-      setStatus('loading');
 
       try {
         const response = await fetch(
@@ -132,6 +151,13 @@ export default function PostalLocationCombobox({
         const payload =
           (await response.json()) as Partial<GursPostalLookupResponse>;
         if (controller.signal.aborted || requestRef.current !== controller) {
+          return;
+        }
+        if (editSequenceRef.current !== editSequence) {
+          setSuggestions([]);
+          setIsListOpen(false);
+          setActiveIndex(-1);
+          setStatus('idle');
           return;
         }
 
@@ -150,18 +176,25 @@ export default function PostalLocationCombobox({
           skipLookupValueRef.current = lookupValue(field, exactMatch);
           setSuggestions([]);
           setIsListOpen(false);
-          onResolve(exactMatch);
+          onResolveRef.current(exactMatch);
           return;
         }
 
         setSuggestions(results);
-        setIsListOpen(results.length > 0);
+        setIsListOpen(isActiveRef.current && results.length > 0);
       } catch (fetchError) {
         if (
           controller.signal.aborted ||
           requestRef.current !== controller ||
           (fetchError instanceof Error && fetchError.name === 'AbortError')
         ) {
+          return;
+        }
+        if (editSequenceRef.current !== editSequence) {
+          setSuggestions([]);
+          setIsListOpen(false);
+          setActiveIndex(-1);
+          setStatus('idle');
           return;
         }
         setSuggestions([]);
@@ -173,24 +206,33 @@ export default function PostalLocationCombobox({
           requestRef.current = null;
         }
       }
-    }, 250);
+    };
+    const startsImmediately =
+      field === 'postalCode' && /^\d{4}$/u.test(query);
+    const timeoutId = startsImmediately
+      ? null
+      : window.setTimeout(() => {
+          void search();
+        }, POSTAL_LOOKUP_FOLLOW_UP_DEBOUNCE_MS);
+
+    if (startsImmediately) void search();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       requestRef.current?.abort();
     };
   }, [
     disabled,
+    editSequenceRef,
     field,
-    isActive,
     lookupEnabled,
-    onResolve,
     value
   ]);
 
   const selectLocation = (location: GursPostalLocation) => {
+    editSequenceRef.current += 1;
     skipLookupValueRef.current = lookupValue(field, location);
-    onResolve(location);
+    onResolveRef.current(location);
     setSuggestions([]);
     setIsListOpen(false);
     setActiveIndex(-1);
@@ -233,7 +275,7 @@ export default function PostalLocationCombobox({
     if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
       return;
     }
-    setIsActive(false);
+    isActiveRef.current = false;
     setIsListOpen(false);
     setActiveIndex(-1);
   };
@@ -259,7 +301,7 @@ export default function PostalLocationCombobox({
     <div
       className="relative"
       onFocusCapture={() => {
-        setIsActive(true);
+        isActiveRef.current = true;
         if (suggestions.length > 0) setIsListOpen(true);
       }}
       onBlurCapture={handleBlur}
@@ -273,7 +315,11 @@ export default function PostalLocationCombobox({
         }`}
         className="storefront-checkout-input"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          editSequenceRef.current += 1;
+          userEditedValueRef.current = event.target.value;
+          onChange(event.target.value);
+        }}
         onKeyDown={handleKeyDown}
         autoComplete="off"
         inputMode={field === 'postalCode' ? 'numeric' : 'text'}
@@ -282,6 +328,7 @@ export default function PostalLocationCombobox({
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={isListOpen}
+        aria-busy={status === 'loading'}
         aria-controls={listboxId}
         aria-activedescendant={
           isListOpen && activeIndex >= 0

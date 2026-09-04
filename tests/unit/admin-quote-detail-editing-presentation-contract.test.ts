@@ -648,6 +648,53 @@ test('customer details use compact fixed-height rows with full-width address and
   }
 });
 
+test('quote postal code and place use controlled admin lookup comboboxes with atomic resolution', () => {
+  const detail = source(quoteDetailPath);
+  const addressEditor = sliceBetween(
+    detail,
+    'function QuoteAddressEditor',
+    'function QuoteDetailRow'
+  );
+  const postalCodeCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalCode"[\s\S]*?\/>/u
+  )?.[0];
+  const postalNameCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalName"[\s\S]*?\/>/u
+  )?.[0];
+
+  assert.match(
+    detail,
+    /import AdminPostalLocationCombobox from '@\/admin\/components\/AdminPostalLocationCombobox';/u
+  );
+  assert.equal(addressEditor.match(/<AdminPostalLocationCombobox\b/gu)?.length ?? 0, 2);
+  assert.ok(postalCodeCombobox, 'the quote postal-code combobox must be present');
+  assert.ok(postalNameCombobox, 'the quote postal-town combobox must be present');
+
+  assert.match(postalCodeCombobox, /field="postalCode"/u);
+  assert.match(postalCodeCombobox, /testId="admin-quote-postal-code-autocomplete"/u);
+  assert.match(postalCodeCombobox, /value=\{details\.postalCode\}/u);
+  assert.match(
+    postalCodeCombobox,
+    /onChange=\{\(value\) => onChange\(\{[\s\S]*?postalCode: value\.replace\(\/\[\^\\d\]\/g, ''\)\.slice\(0, 4\),[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
+  );
+
+  assert.match(postalNameCombobox, /field="postalName"/u);
+  assert.match(postalNameCombobox, /testId="admin-quote-city-autocomplete"/u);
+  assert.match(postalNameCombobox, /value=\{details\.city\}/u);
+  assert.match(
+    postalNameCombobox,
+    /onChange=\{\(value\) => onChange\(\{[\s\S]*?city: value,[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
+  );
+
+  for (const combobox of [postalCodeCombobox, postalNameCombobox]) {
+    assert.match(combobox, /disabled=\{disabled\}/u);
+    assert.match(
+      combobox,
+      /onResolve=\{\(location\) => onChange\(\{[\s\S]*?postalCode: location\.postalCode,[\s\S]*?city: location\.postalName,[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
+    );
+  }
+});
+
 test('quote PDF preview stays in an accessible in-page dialog and cleans up resources', () => {
   const detail = source(quoteDetailPath);
   const previewDialog = source(pdfPreviewDialogPath);

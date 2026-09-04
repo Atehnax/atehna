@@ -57,6 +57,12 @@ type GursPostalLocationRow = {
   postal_name: string;
 };
 
+type GursPostalLocationQueryRow = {
+  postal_code: string | null;
+  postal_name: string | null;
+  active_source_updated_at: Date | string | null;
+};
+
 export type GursAddressSourceMetadata = {
   sourceUpdatedAt: string | null;
   importedAt: string | null;
@@ -326,6 +332,21 @@ export async function searchGursAddresses(
   return toAddressSearchResponse(result.rows);
 }
 
+function toPostalLookupResponse(
+  rows: GursPostalLocationQueryRow[]
+): GursPostalLookupResponse {
+  const locationRows = rows.filter(
+    (row): row is GursPostalLocationQueryRow & GursPostalLocationRow =>
+      row.postal_code !== null && row.postal_name !== null
+  );
+  return {
+    results: locationRows.map(toPostalLocation),
+    sourceUpdatedAt: toIsoString(
+      rows[0]?.active_source_updated_at ?? null
+    )
+  };
+}
+
 export async function lookupGursPostalLocations(
   rawField: unknown,
   rawQuery: unknown,
@@ -340,26 +361,37 @@ export async function lookupGursPostalLocations(
   const normalizedPostalName =
     "regexp_replace(translate(lower(postal_name), 'čšž', 'csz'), '[^a-z0-9]+', ' ', 'g')";
   const fieldExpression = parsed.field === 'postalCode'
-    ? 'postal_code'
-    : normalizedPostalName;
-  const result = await database.query<GursPostalLocationRow>(
-    `select postal_code,
-            postal_name
-     from gurs_addresses
-     where search_text like '% ' || $1 || '%'
-       and ${fieldExpression} like $1 || '%'
-     group by postal_code, postal_name
+    ? 'postal_code collate "C"'
+    : `(${normalizedPostalName}) collate "C"`;
+  const result = await database.query<GursPostalLocationQueryRow>(
+    `select matched.postal_code,
+            matched.postal_name,
+            sync.active_source_updated_at
+     from (values (true)) as anchor(dummy)
+     left join gurs_address_sync_state as sync
+       on sync.key = 'active'
+     left join lateral (
+       select candidates.postal_code,
+              candidates.postal_name
+       from (
+         select distinct
+                postal_code,
+                postal_name,
+                ${fieldExpression} as lookup_value
+         from gurs_addresses
+         where ${fieldExpression} like $2
+       ) as candidates
+       order by
+         case when candidates.lookup_value = $1 then 0 else 1 end,
+         candidates.postal_code asc,
+         candidates.postal_name asc
+       limit ${GURS_POSTAL_LOOKUP_LIMIT}
+     ) as matched on true
      order by
-       case when ${fieldExpression} = $1 then 0 else 1 end,
-       postal_code asc,
-       postal_name asc
-     limit ${GURS_POSTAL_LOOKUP_LIMIT}`,
-    [parsed.query]
+       case when matched.postal_code is null then 1 else 0 end,
+       matched.postal_code asc nulls last,
+       matched.postal_name asc nulls last`,
+    [parsed.query, `${parsed.query}%`]
   );
-  const metadata = await getGursAddressSourceMetadata(database);
-
-  return {
-    results: result.rows.map(toPostalLocation),
-    sourceUpdatedAt: metadata.sourceUpdatedAt
-  };
+  return toPostalLookupResponse(result.rows);
 }

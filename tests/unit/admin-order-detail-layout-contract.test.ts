@@ -360,6 +360,53 @@ test('order address remains structured inside one full-width field and persists 
   }
   assert.match(detail, /<AdminAddressAutocompleteInput[\s\S]*?testId="admin-order-address-autocomplete"/u);
   assert.match(detail, /gursHouseNumberId: suggestion\.gursHouseNumberId/u);
+  const addressEditorStart = detail.indexOf('function OrderAddressEditor');
+  const addressEditorEnd = detail.indexOf(
+    'function OrderDatePickerField',
+    addressEditorStart
+  );
+  assert.ok(
+    addressEditorStart >= 0 && addressEditorEnd > addressEditorStart,
+    'the order address editor source must remain independently inspectable'
+  );
+  const addressEditor = detail.slice(addressEditorStart, addressEditorEnd);
+  const postalCodeCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalCode"[\s\S]*?\/>/u
+  )?.[0];
+  const postalNameCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalName"[\s\S]*?\/>/u
+  )?.[0];
+  assert.ok(postalCodeCombobox, 'the postal-code combobox must be present');
+  assert.ok(postalNameCombobox, 'the postal-town combobox must be present');
+  assert.equal(
+    [...addressEditor.matchAll(/<AdminPostalLocationCombobox/gu)].length,
+    2,
+    'the compact address editor must expose exactly two postal comboboxes'
+  );
+  assert.match(
+    postalCodeCombobox,
+    /aria-label="Poštna številka"[\s\S]*?value=\{details\.postalCode\}[\s\S]*?testId="admin-order-postal-code-autocomplete"/u
+  );
+  assert.match(
+    postalCodeCombobox,
+    /onChange=\{\(value\) => onChange\(\{\s*postalCode: value\.replace\(\/\[\^\\d\]\/g, ''\)\.slice\(0, 4\),\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalCodeCombobox,
+    /onResolve=\{\(location\) => onChange\(\{\s*postalCode: location\.postalCode,\s*city: location\.postalName,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /aria-label="Kraj"[\s\S]*?value=\{details\.city\}[\s\S]*?testId="admin-order-city-autocomplete"/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /onChange=\{\(value\) => onChange\(\{\s*city: value,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /onResolve=\{\(location\) => onChange\(\{\s*postalCode: location\.postalCode,\s*city: location\.postalName,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
   assert.match(
     detail,
     /addressLine2: draftDetails\.addressLine2,[\s\S]*?countryCode: draftDetails\.countryCode,/u

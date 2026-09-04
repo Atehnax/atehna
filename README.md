@@ -70,17 +70,19 @@ reviewed quote/contract artifacts below, applied in this exact order:
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
 12. `database/migrations/20260903_gurs_address_prefix_search.sql`
-13. `database/migrations/20260903_schema_contract_v1.sql`
+13. `database/migrations/20260903_order_document_email_events.sql`
+14. `database/migrations/20260903_schema_contract_v1.sql`
+15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
 
-For step 12, first stop scheduled and manual GURS synchronization and confirm
-that no import is running. Apply the prefix-index artifact to the active table,
-then deploy the application version whose GURS synchronizer creates the same
-index on every staging table before re-enabling synchronization. Verify both a
-one-character address lookup and an index-backed query plan. This ordering
-prevents an older synchronizer from later swapping an unindexed table into
-service. If the stored lease has expired, the migration invalidates it and
-marks lingering `running` sync-history rows as failed; a live lease aborts the
-migration instead.
+For steps 12 and 15, first stop scheduled and manual GURS synchronization and
+confirm that no import is running. Apply both index artifacts to the active
+table, then deploy the application version whose GURS synchronizer creates the
+same street and postal indexes on every staging table before re-enabling
+synchronization. Verify one-character street and postal-place lookups, exact
+postal-code completion, and index-backed query plans. This ordering prevents an
+older synchronizer from later swapping an unindexed table into service. If the
+stored lease has expired, either migration invalidates it and marks lingering
+`running` sync-history rows as failed; a live lease aborts the migration.
 
 The admin-details follow-up is only for a database on the verified 20260828
 schema. The management follow-up requires that verified admin-details guard and

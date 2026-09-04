@@ -5,19 +5,21 @@ import {
   useId,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MutableRefObject
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  isAddressSearchQueryEligible,
+  isGursPostalLookupQueryEligible,
   normalizeAddressSearchText,
-  type GursAddressSearchResponse,
-  type GursAddressSearchResult
+  type GursPostalLocation,
+  type GursPostalLookupResponse,
+  type PostalLookupField
 } from '@/shared/domain/address/gursAddress';
 
-const ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS = 50;
+const POSTAL_LOOKUP_FOLLOW_UP_DEBOUNCE_MS = 50;
 
-type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
+type PostalLookupStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 type MenuPosition = {
   top: number;
@@ -26,58 +28,101 @@ type MenuPosition = {
   placement: 'top' | 'bottom';
 };
 
-const isGursAddressSearchResult = (
-  value: unknown
-): value is GursAddressSearchResult => {
+function isPostalLocation(value: unknown): value is GursPostalLocation {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<GursAddressSearchResult>;
+  const location = value as Partial<GursPostalLocation>;
   return (
-    typeof candidate.gursHouseNumberId === 'string' &&
-    typeof candidate.addressLine1 === 'string' &&
-    typeof candidate.postalCode === 'string' &&
-    typeof candidate.postalName === 'string' &&
-    typeof candidate.settlementName === 'string' &&
-    typeof candidate.municipalityName === 'string'
+    typeof location.postalCode === 'string' &&
+    /^\d{4}$/u.test(location.postalCode) &&
+    typeof location.postalName === 'string' &&
+    location.postalName.trim().length > 0
   );
-};
+}
 
-export default function AdminAddressAutocompleteInput({
+function isExactPostalLocation(
+  field: PostalLookupField,
+  value: string,
+  location: GursPostalLocation
+) {
+  if (field === 'postalCode') {
+    const postalCode = value.trim();
+    return /^\d{4}$/u.test(postalCode) && location.postalCode === postalCode;
+  }
+
+  return (
+    normalizeAddressSearchText(location.postalName) ===
+    normalizeAddressSearchText(value)
+  );
+}
+
+function lookupValue(
+  field: PostalLookupField,
+  location: GursPostalLocation
+) {
+  return field === 'postalCode' ? location.postalCode : location.postalName;
+}
+
+export default function AdminPostalLocationCombobox({
+  field,
   value,
-  gursHouseNumberId,
   disabled = false,
   className = '',
   testId,
+  'aria-label': ariaLabel,
+  editSequenceRef,
   onChange,
-  onSelect
+  onResolve
 }: {
+  field: PostalLookupField;
   value: string;
-  gursHouseNumberId: string;
   disabled?: boolean;
   className?: string;
   testId: string;
+  'aria-label'?: string;
+  editSequenceRef: MutableRefObject<number>;
   onChange: (value: string) => void;
-  onSelect: (suggestion: GursAddressSearchResult) => void;
+  onResolve: (location: GursPostalLocation) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const isActiveRef = useRef(false);
+  const lookupWasUserEditedRef = useRef(false);
+  const skipLookupValueRef = useRef<string | null>(null);
+  const onResolveRef = useRef(onResolve);
   const listboxId = useId();
   const [isActive, setIsActive] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<GursAddressSearchResult[]>([]);
+  const [suggestions, setSuggestions] = useState<GursPostalLocation[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [status, setStatus] = useState<AddressSearchStatus>('idle');
+  const [status, setStatus] = useState<PostalLookupStatus>('idle');
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+
+  useEffect(() => {
+    onResolveRef.current = onResolve;
+  }, [onResolve]);
 
   useEffect(() => {
     requestRef.current?.abort();
     requestRef.current = null;
 
+    if (skipLookupValueRef.current === value) {
+      skipLookupValueRef.current = null;
+      lookupWasUserEditedRef.current = false;
+      setSuggestions([]);
+      setIsOpen(false);
+      setActiveIndex(-1);
+      setStatus('idle');
+      return;
+    }
+    skipLookupValueRef.current = null;
+
+    const shouldLookup = lookupWasUserEditedRef.current;
+    lookupWasUserEditedRef.current = false;
     if (
       disabled ||
-      !isActive ||
-      gursHouseNumberId ||
-      !isAddressSearchQueryEligible(value)
+      !shouldLookup ||
+      !isGursPostalLookupQueryEligible(field, value)
     ) {
       setSuggestions([]);
       setIsOpen(false);
@@ -86,40 +131,73 @@ export default function AdminAddressAutocompleteInput({
       return;
     }
 
-    const query = normalizeAddressSearchText(value);
+    const query = value.trim();
+    const editSequence = editSequenceRef.current;
     setStatus('loading');
     setActiveIndex(-1);
 
-    const search = async () => {
+    const lookup = async () => {
       const controller = new AbortController();
       requestRef.current = controller;
 
       try {
         const response = await fetch(
-          '/api/addresses/search?query=' + encodeURIComponent(query),
+          `/api/addresses/postal-lookup?field=${field}&query=${encodeURIComponent(query)}`,
           {
             headers: { Accept: 'application/json' },
             signal: controller.signal
           }
         );
-        if (!response.ok) throw new Error('Address search failed.');
+        if (!response.ok) throw new Error('Postal lookup failed.');
 
-        const payload = (await response.json()) as Partial<GursAddressSearchResponse>;
-        if (controller.signal.aborted || requestRef.current !== controller) return;
+        const payload =
+          (await response.json()) as Partial<GursPostalLookupResponse>;
+        if (controller.signal.aborted || requestRef.current !== controller) {
+          return;
+        }
+        if (editSequenceRef.current !== editSequence) {
+          setSuggestions([]);
+          setIsOpen(false);
+          setActiveIndex(-1);
+          setStatus('idle');
+          return;
+        }
 
         const results = Array.isArray(payload.results)
-          ? payload.results.filter(isGursAddressSearchResult).slice(0, 8)
+          ? payload.results.filter(isPostalLocation).slice(0, 8)
           : [];
-        setSuggestions(results);
+        const exactMatches = results.filter((location) =>
+          isExactPostalLocation(field, query, location)
+        );
+
         setActiveIndex(-1);
-        setIsOpen(results.length > 0);
         setStatus('ready');
+
+        if (exactMatches.length === 1) {
+          const exactMatch = exactMatches[0];
+          skipLookupValueRef.current = lookupValue(field, exactMatch);
+          setSuggestions([]);
+          setIsOpen(false);
+          setStatus('idle');
+          onResolveRef.current(exactMatch);
+          return;
+        }
+
+        setSuggestions(results);
+        setIsOpen(isActiveRef.current && results.length > 0);
       } catch (error) {
         if (
           controller.signal.aborted ||
           requestRef.current !== controller ||
           (error instanceof Error && error.name === 'AbortError')
         ) {
+          return;
+        }
+        if (editSequenceRef.current !== editSequence) {
+          setSuggestions([]);
+          setIsOpen(false);
+          setActiveIndex(-1);
+          setStatus('idle');
           return;
         }
         setSuggestions([]);
@@ -130,28 +208,29 @@ export default function AdminAddressAutocompleteInput({
         if (requestRef.current === controller) requestRef.current = null;
       }
     };
-    const startsImmediately = query.length === 1;
+
+    const startsImmediately =
+      field === 'postalCode' && /^\d{4}$/u.test(query);
     const timeoutId = startsImmediately
       ? null
       : window.setTimeout(() => {
-          void search();
-        }, ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS);
+          void lookup();
+        }, POSTAL_LOOKUP_FOLLOW_UP_DEBOUNCE_MS);
 
-    if (startsImmediately) void search();
+    if (startsImmediately) void lookup();
 
     return () => {
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       requestRef.current?.abort();
     };
-  }, [disabled, gursHouseNumberId, isActive, value]);
+  }, [disabled, editSequenceRef, field, value]);
 
   useEffect(() => {
     const hasVisiblePopup =
-      (isOpen && suggestions.length > 0) ||
-      (isActive &&
-        (status === 'error' ||
-          (status === 'loading' && suggestions.length === 0) ||
-          (status === 'ready' && suggestions.length === 0)));
+      isActive &&
+      (status === 'loading' ||
+        status === 'error' ||
+        (status === 'ready' && (isOpen || suggestions.length === 0)));
     if (!hasVisiblePopup) {
       setMenuPosition(null);
       return;
@@ -163,7 +242,7 @@ export default function AdminAddressAutocompleteInput({
       const rect = input.getBoundingClientRect();
       const viewportPadding = 8;
       const width = Math.min(
-        Math.max(300, rect.width),
+        Math.max(260, rect.width),
         window.innerWidth - viewportPadding * 2
       );
       const left = Math.min(
@@ -194,8 +273,11 @@ export default function AdminAddressAutocompleteInput({
     optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, isOpen]);
 
-  const chooseSuggestion = (suggestion: GursAddressSearchResult) => {
-    onSelect(suggestion);
+  const chooseLocation = (location: GursPostalLocation) => {
+    editSequenceRef.current += 1;
+    skipLookupValueRef.current = lookupValue(field, location);
+    lookupWasUserEditedRef.current = false;
+    onResolveRef.current(location);
     setSuggestions([]);
     setIsOpen(false);
     setActiveIndex(-1);
@@ -227,35 +309,41 @@ export default function AdminAddressAutocompleteInput({
       return;
     }
     if (event.key === 'Enter' && isOpen && activeIndex >= 0) {
-      const suggestion = suggestions[activeIndex];
-      if (!suggestion) return;
+      const location = suggestions[activeIndex];
+      if (!location) return;
       event.preventDefault();
-      chooseSuggestion(suggestion);
+      chooseLocation(location);
     }
   };
 
   const statusMessage =
     status === 'loading'
-      ? 'Iščem naslove.'
+      ? 'Iščem poštne podatke.'
       : status === 'ready'
         ? suggestions.length > 0
-          ? String(suggestions.length) + ' predlogov naslovov.'
-          : 'Ni predlogov naslovov.'
+          ? String(suggestions.length) + ' predlogov poštnih podatkov.'
+          : 'Ni predlogov poštnih podatkov.'
         : status === 'error'
-          ? 'Iskanje naslovov trenutno ni na voljo. Naslov lahko vnesete ročno.'
+          ? 'Iskanje poštnih podatkov trenutno ni na voljo. Podatke lahko vnesete ročno.'
           : '';
-  const showLoadingFeedback =
-    status === 'loading' && suggestions.length === 0 && isActive;
-  const showEmptyFeedback =
-    status === 'ready' && suggestions.length === 0 && isActive;
-  const showErrorFeedback =
-    status === 'error' && suggestions.length === 0 && isActive;
+  const showStatusFeedback =
+    isActive &&
+    menuPosition &&
+    ((status === 'loading' && suggestions.length === 0) ||
+      status === 'error' ||
+      (status === 'ready' && suggestions.length === 0));
+  const listLabel =
+    field === 'postalCode'
+      ? 'Predlogi poštnih številk'
+      : 'Predlogi poštnih krajev';
+  const label =
+    ariaLabel ?? (field === 'postalCode' ? 'Poštna številka' : 'Kraj');
 
   return (
     <div className="relative min-w-0">
       <input
         ref={inputRef}
-        aria-label="Naslov"
+        aria-label={label}
         role="combobox"
         aria-autocomplete="list"
         aria-controls={listboxId}
@@ -267,14 +355,26 @@ export default function AdminAddressAutocompleteInput({
             ? listboxId + '-option-' + String(activeIndex)
             : undefined
         }
-        autoComplete="off"
+        autoComplete={field === 'postalCode' ? 'postal-code' : 'address-level2'}
         type="text"
+        inputMode={field === 'postalCode' ? 'numeric' : 'text'}
+        maxLength={field === 'postalCode' ? 4 : undefined}
         value={value}
         disabled={disabled}
-        placeholder="Naslov"
-        onChange={(event) => onChange(event.target.value)}
-        onFocus={() => setIsActive(true)}
+        placeholder={field === 'postalCode' ? 'P. št.' : 'Kraj'}
+        onChange={(event) => {
+          editSequenceRef.current += 1;
+          lookupWasUserEditedRef.current = true;
+          skipLookupValueRef.current = null;
+          onChange(event.target.value);
+        }}
+        onFocus={() => {
+          isActiveRef.current = true;
+          setIsActive(true);
+          if (suggestions.length > 0) setIsOpen(true);
+        }}
         onBlur={() => {
+          isActiveRef.current = false;
           setIsActive(false);
           setIsOpen(false);
           setActiveIndex(-1);
@@ -291,23 +391,14 @@ export default function AdminAddressAutocompleteInput({
       >
         {statusMessage}
       </span>
-      {(showErrorFeedback || showEmptyFeedback || showLoadingFeedback) &&
-      menuPosition &&
-      typeof document !== 'undefined'
+      {showStatusFeedback && typeof document !== 'undefined'
         ? createPortal(
             <div
-              role={showErrorFeedback ? 'alert' : 'status'}
-              data-testid={
-                testId +
-                (showErrorFeedback
-                  ? '-error'
-                  : showLoadingFeedback
-                    ? '-loading'
-                    : '-empty')
-              }
+              role={status === 'error' ? 'alert' : 'status'}
+              data-testid={testId + '-' + status}
               className={
                 'fixed z-[150] rounded-md border px-3 py-2 text-[11px] leading-4 shadow-sm ' +
-                (showErrorFeedback
+                (status === 'error'
                   ? 'border-amber-200 bg-amber-50 text-amber-800 '
                   : 'border-slate-200 bg-white text-slate-600 ') +
                 (menuPosition.placement === 'top' ? '-translate-y-full' : '')
@@ -328,7 +419,8 @@ export default function AdminAddressAutocompleteInput({
             <div
               id={listboxId}
               role="listbox"
-              aria-label="Predlogi naslovov"
+              aria-label={listLabel}
+              aria-busy={status === 'loading'}
               data-testid={testId + '-suggestions'}
               className={
                 'fixed z-[150] max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-[0_14px_34px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.08)] ' +
@@ -342,7 +434,7 @@ export default function AdminAddressAutocompleteInput({
             >
               {suggestions.map((suggestion, index) => (
                 <button
-                  key={suggestion.gursHouseNumberId}
+                  key={suggestion.postalCode + '-' + suggestion.postalName}
                   ref={(node) => {
                     optionRefs.current[index] = node;
                   }}
@@ -352,7 +444,7 @@ export default function AdminAddressAutocompleteInput({
                   aria-selected={activeIndex === index}
                   tabIndex={-1}
                   onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => chooseSuggestion(suggestion)}
+                  onClick={() => chooseLocation(suggestion)}
                   className={
                     'block w-full rounded-md px-2.5 py-2 text-left transition focus:outline-none ' +
                     (activeIndex === index
@@ -360,11 +452,11 @@ export default function AdminAddressAutocompleteInput({
                       : 'hover:bg-[color:var(--hover-neutral)]')
                   }
                 >
-                  <span className="block truncate text-[12px] font-semibold leading-4 text-slate-800">
-                    {suggestion.addressLine1}
-                  </span>
-                  <span className="mt-0.5 block truncate text-[11px] leading-4 text-slate-500">
-                    {suggestion.postalCode} {suggestion.postalName}
+                  <span className="text-[12px] font-semibold leading-4 text-slate-800">
+                    {suggestion.postalCode}
+                  </span>{' '}
+                  <span className="text-[11px] leading-4 text-slate-500">
+                    {suggestion.postalName}
                   </span>
                 </button>
               ))}

@@ -13,6 +13,68 @@ const prefixMigration = readFileSync(
   ),
   'utf8'
 );
+const postalLookupIndexesMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'database/migrations/20260904_gurs_postal_lookup_indexes.sql'
+  ),
+  'utf8'
+);
+const postalNameLookalikeIndex =
+  'gurs_addresses_postal_name_lookalike_e2e_idx';
+
+type PostalLookupIndexRow = {
+  index_name: string;
+  index_definition: string;
+  lookup_kind: 'postalCode' | 'postalName';
+};
+
+const equivalentPostalLookupIndexesSql = `
+  select installed_index.relname as index_name,
+         pg_get_indexdef(installed.indexrelid) as index_definition,
+         case
+           when installed.indexprs is null then 'postalCode'
+           else 'postalName'
+         end as lookup_kind
+  from pg_index installed
+  join pg_class installed_index
+    on installed_index.oid = installed.indexrelid
+  join pg_am access_method
+    on access_method.oid = installed_index.relam
+  where installed.indrelid = 'public.gurs_addresses'::regclass
+    and installed.indisvalid
+    and installed.indisready
+    and not installed.indisunique
+    and access_method.amname = 'btree'
+    and installed.indpred is null
+    and (
+      (
+        installed.indnkeyatts = 2
+        and installed.indnatts = 2
+        and installed.indexprs is null
+        and pg_get_indexdef(installed.indexrelid, 1, true) = 'postal_code'
+        and pg_get_indexdef(installed.indexrelid, 2, true) = 'postal_name'
+        and installed.indcollation[0] = to_regcollation('pg_catalog."C"')
+        and installed.indcollation[1] = to_regcollation('pg_catalog."C"')
+      )
+      or (
+        installed.indnkeyatts = 3
+        and installed.indnatts = 3
+        and installed.indexprs is not null
+        and pg_get_indexdef(installed.indexrelid, 1, false) = pg_get_indexdef(
+          to_regclass('pg_temp.e2e_postal_lookup_reference_name_idx'),
+          1,
+          false
+        )
+        and pg_get_indexdef(installed.indexrelid, 2, true) = 'postal_code'
+        and pg_get_indexdef(installed.indexrelid, 3, true) = 'postal_name'
+        and installed.indcollation[0] = to_regcollation('pg_catalog."C"')
+        and installed.indcollation[1] = to_regcollation('pg_catalog."C"')
+        and installed.indcollation[2] = to_regcollation('pg_catalog."C"')
+      )
+    )
+  order by lookup_kind, index_name
+`;
 
 test.describe('GURS order address canonicalization', () => {
   test.beforeAll(() => {
@@ -146,6 +208,265 @@ test.describe('GURS order address canonicalization', () => {
     } finally {
       await client.query('rollback').catch(() => undefined);
       await client.query('reset enable_seqscan').catch(() => undefined);
+      const original = state.rows[0];
+      await client.query(
+        `update gurs_address_sync_state
+         set lock_token = $1,
+             lock_expires_at = $2,
+             last_failure_at = $3,
+             last_error = $4
+         where key = 'active'`,
+        [
+          original?.lock_token ?? null,
+          original?.lock_expires_at ?? null,
+          original?.last_failure_at ?? null,
+          original?.last_error ?? null
+        ]
+      );
+      if (runId) {
+        await client.query('delete from gurs_address_sync_runs where id = $1', [
+          runId
+        ]);
+      }
+      client.release();
+    }
+  });
+
+  test('postal lookup index migration is idempotent, lease-safe, and planner-usable', async () => {
+    const client = await database.connect();
+    await client.query(
+      `create temporary table e2e_postal_lookup_reference (
+         postal_name text not null,
+         postal_code text not null
+       ) on commit preserve rows;
+       create index e2e_postal_lookup_reference_name_idx
+         on e2e_postal_lookup_reference (
+           (
+             regexp_replace(
+               translate(lower(postal_name), 'čšž', 'csz'),
+               '[^a-z0-9]+',
+               ' ',
+               'g'
+             )
+           ) collate "C",
+           postal_code collate "C",
+           postal_name collate "C"
+         )`
+    );
+    const state = await client.query<{
+      lock_token: string | null;
+      lock_expires_at: Date | null;
+      last_failure_at: Date | null;
+      last_error: string | null;
+    }>(
+      `select lock_token, lock_expires_at, last_failure_at, last_error
+       from gurs_address_sync_state
+       where key = 'active'`
+    );
+    const originalIndexes = await client.query<PostalLookupIndexRow>(
+      equivalentPostalLookupIndexesSql
+    );
+    let runId: string | null = null;
+
+    const dropIndexes = async (indexes: PostalLookupIndexRow[]) => {
+      for (const index of indexes) {
+        const quotedName = '"' + index.index_name.replaceAll('"', '""') + '"';
+        await client.query('drop index public.' + quotedName);
+      }
+    };
+
+    try {
+      await dropIndexes(originalIndexes.rows);
+      await client.query(
+        `create index ${postalNameLookalikeIndex}
+           on gurs_addresses (
+             (
+               regexp_replace(
+                 translate(lower(postal_name), 'čšž', 'csx'),
+                 '[^a-z0-9]+',
+                 ' ',
+                 'g'
+               )
+             ) collate "C",
+             postal_code collate "C",
+             postal_name collate "C"
+           )`
+      );
+      const run = await client.query<{ id: string }>(
+        `insert into gurs_address_sync_runs (status)
+         values ('running')
+         returning id::text as id`
+      );
+      runId = run.rows[0]?.id ?? null;
+      await client.query(
+        `update gurs_address_sync_state
+         set lock_token = 'expired-postal-index-migration-test',
+             lock_expires_at = now() - interval '1 minute'
+         where key = 'active'`
+      );
+
+      await client.query(postalLookupIndexesMigration);
+      await client.query(postalLookupIndexesMigration);
+
+      const clearedLease = await client.query<{
+        lock_token: string | null;
+        lock_expires_at: Date | null;
+      }>(
+        `select lock_token, lock_expires_at
+         from gurs_address_sync_state
+         where key = 'active'`
+      );
+      expect(clearedLease.rows[0]).toEqual({
+        lock_token: null,
+        lock_expires_at: null
+      });
+      const failedRun = await client.query<{ status: string }>(
+        'select status from gurs_address_sync_runs where id = $1',
+        [runId]
+      );
+      expect(failedRun.rows[0]?.status).toBe('failed');
+
+      const equivalentIndexes = await client.query<PostalLookupIndexRow>(
+        equivalentPostalLookupIndexesSql
+      );
+      const postalCodeIndexes = equivalentIndexes.rows.filter(
+        (index) => index.lookup_kind === 'postalCode'
+      );
+      const postalNameIndexes = equivalentIndexes.rows.filter(
+        (index) => index.lookup_kind === 'postalName'
+      );
+      expect(postalCodeIndexes).toHaveLength(1);
+      expect(postalNameIndexes).toHaveLength(1);
+
+      const postalCodeIndexName = postalCodeIndexes[0]!.index_name;
+      const postalNameIndexName = postalNameIndexes[0]!.index_name;
+      expect(postalCodeIndexName).toMatch(
+        /^gurs_addresses_postal_code_\d+_idx$/u
+      );
+      expect(postalNameIndexName).toMatch(
+        /^gurs_addresses_postal_name_\d+_idx$/u
+      );
+      expect(
+        equivalentIndexes.rows.some(
+          (index) => index.index_name === postalNameLookalikeIndex
+        )
+      ).toBe(false);
+      const lookalikeStillInstalled = await client.query<{ installed: boolean }>(
+        `select to_regclass('public.${postalNameLookalikeIndex}') is not null
+                as installed`
+      );
+      expect(lookalikeStillInstalled.rows[0]?.installed).toBe(true);
+
+      await client.query('set enable_seqscan = off');
+      const postalCodeExplain = await client.query<{ 'QUERY PLAN': unknown }>(
+        `explain (format json)
+         select postal_code, postal_name
+         from gurs_addresses
+         where postal_code collate "C" like $1
+         order by postal_code collate "C", postal_name collate "C"
+         limit 12`,
+        ['1%']
+      );
+      const postalCodePlan = JSON.stringify(
+        postalCodeExplain.rows[0]?.['QUERY PLAN']
+      );
+      expect(postalCodePlan).toMatch(
+        /"Node Type":"(?:Index Scan|Index Only Scan|Bitmap Index Scan)"/u
+      );
+      expect(postalCodePlan).toContain(
+        '"Index Name":"' + postalCodeIndexName + '"'
+      );
+
+      const postalNameExplain = await client.query<{ 'QUERY PLAN': unknown }>(
+        `explain (format json)
+         select postal_code, postal_name
+         from gurs_addresses
+         where (
+           regexp_replace(
+             translate(lower(postal_name), 'čšž', 'csz'),
+             '[^a-z0-9]+',
+             ' ',
+             'g'
+           )
+         ) collate "C" like $1
+         order by (
+           regexp_replace(
+             translate(lower(postal_name), 'čšž', 'csz'),
+             '[^a-z0-9]+',
+             ' ',
+             'g'
+           )
+         ) collate "C",
+         postal_code collate "C",
+         postal_name collate "C"
+         limit 12`,
+        ['lj%']
+      );
+      const postalNamePlan = JSON.stringify(
+        postalNameExplain.rows[0]?.['QUERY PLAN']
+      );
+      expect(postalNamePlan).toMatch(
+        /"Node Type":"(?:Index Scan|Index Only Scan|Bitmap Index Scan)"/u
+      );
+      expect(postalNamePlan).toContain(
+        '"Index Name":"' + postalNameIndexName + '"'
+      );
+
+      const indexesBeforeLiveLease = await client.query<PostalLookupIndexRow>(
+        equivalentPostalLookupIndexesSql
+      );
+      const liveLease = await client.query<{
+        lock_token: string;
+        lock_expires_at: Date;
+      }>(
+        `update gurs_address_sync_state
+         set lock_token = 'live-postal-index-migration-test',
+             lock_expires_at = now() + interval '5 minutes'
+         where key = 'active'
+         returning lock_token, lock_expires_at`
+      );
+      await expect(client.query(postalLookupIndexesMigration)).rejects.toThrow(
+        'A GURS synchronization is active'
+      );
+      await client.query('rollback');
+
+      const leaseAfterRejectedMigration = await client.query<{
+        lock_token: string | null;
+        lock_expires_at: Date | null;
+      }>(
+        `select lock_token, lock_expires_at
+         from gurs_address_sync_state
+         where key = 'active'`
+      );
+      expect(leaseAfterRejectedMigration.rows[0]?.lock_token).toBe(
+        liveLease.rows[0]?.lock_token
+      );
+      expect(
+        leaseAfterRejectedMigration.rows[0]?.lock_expires_at?.toISOString()
+      ).toBe(liveLease.rows[0]?.lock_expires_at.toISOString());
+
+      const indexesAfterRejectedMigration =
+        await client.query<PostalLookupIndexRow>(
+          equivalentPostalLookupIndexesSql
+        );
+      expect(indexesAfterRejectedMigration.rows).toEqual(
+        indexesBeforeLiveLease.rows
+      );
+    } finally {
+      await client.query('rollback').catch(() => undefined);
+      await client.query('reset enable_seqscan').catch(() => undefined);
+
+      const installedIndexes = await client
+        .query<PostalLookupIndexRow>(equivalentPostalLookupIndexesSql)
+        .catch(() => ({ rows: [] as PostalLookupIndexRow[] }));
+      await dropIndexes(installedIndexes.rows);
+      await client.query(
+        `drop index if exists public.${postalNameLookalikeIndex}`
+      );
+      for (const index of originalIndexes.rows) {
+        await client.query(index.index_definition);
+      }
+
       const original = state.rows[0];
       await client.query(
         `update gurs_address_sync_state

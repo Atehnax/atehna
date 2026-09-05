@@ -28,7 +28,9 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { uploadAdminPublicMedia } from '@/shared/client/publicMediaUpload';
+import { toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
 import { ProductAppearanceProvider } from '@/commercial/components/ProductAppearanceProvider';
+import { StorefrontInventoryPolicyProvider } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import ProductCard from '@/commercial/components/storefront/ProductCard';
 import {
   ProductListingHeader,
@@ -51,6 +53,10 @@ import {
 } from '@/shared/domain/style/globalStyle';
 import type { SiteNavigationSiteLayoutSettings } from '@/shared/domain/navigation/siteNavigation';
 import {
+  STOREFRONT_CART_PENDING_SHIPPING_LABEL,
+  STOREFRONT_CHECKOUT_SHIPPING_MESSAGE
+} from '@/shared/domain/shipping/storefrontShippingCopy';
+import {
   PRODUCT_INFORMATION_BLOCKS,
   PRODUCT_SECONDARY_BLOCKS,
   cloneDefaultProductAppearanceConfig,
@@ -67,6 +73,7 @@ import {
 } from '@/shared/domain/style/productAppearance';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import { Button } from '@/shared/ui/button';
+import { useAppearanceResponsivePreviewMotion } from '@/shared/ui/responsive-preview-motion';
 import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
 import {
   adminControlFocusTokenClasses,
@@ -106,6 +113,8 @@ type SectionKey = Exclude<
 >;
 type PreviewPage = 'listing' | 'product' | 'cart';
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+
+const previewDevices = ['desktop', 'tablet', 'mobile'] as const satisfies readonly PreviewDevice[];
 
 type ProductCanvasElementDefinition = {
   id: string;
@@ -1001,8 +1010,8 @@ function ProductPreview({
           </div>
           {wrapElement('cart-summary', <div className="border-t border-slate-200 bg-white p-4">
             {config.cartSidebar.showNetTaxBreakdown ? <><div className="flex justify-between text-[10px] text-slate-500"><span>Neto</span><span>{priceFormatter.format(unitNet)}</span></div><div className="mt-1 flex justify-between text-[10px] text-slate-500"><span>DDV {Math.round(taxRate * 100)} %</span><span>{priceFormatter.format(taxAmount)}</span></div></> : null}
-            <div className="mt-1 flex justify-between gap-3 text-[10px] text-slate-500"><span>Poštnina</span><span className="text-right">Izračun v košarici</span></div>
-            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Skupaj s poštnino</span><span>—</span></div>
+            <div className="mt-1 flex justify-between gap-3 text-[10px] text-slate-500"><span>Poštnina</span><span className="text-right">{STOREFRONT_CART_PENDING_SHIPPING_LABEL}</span></div>
+            <div className="mt-3 flex justify-between border-t border-slate-100 pt-3 text-sm font-bold"><span>Vmesni seštevek z DDV</span><span>{priceFormatter.format(unitGross)}</span></div>
             {wrapElement('cart-primary-action', <div className="rounded-lg bg-[color:var(--blue-600)] py-2.5 text-center text-[10px] font-semibold text-white">Nadaljuj na naročilo</div>, 'mt-3', true)}
           </div>, 'absolute inset-x-0 bottom-0', true)}
           </div>, 'h-full', true)}
@@ -1273,7 +1282,7 @@ function ProductPreview({
             {wrapElement('product-primary-action', <div className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-2.5 text-center text-[9px] font-semibold text-slate-400">{config.purchaseArea.copy.unavailableActionLabel}</div>, 'mt-3', true)}
             {config.purchaseArea.showDeliveryEstimate ? (
               wrapElement('product-delivery', <div className="border-t border-slate-100 pt-3 text-[8px] leading-3.5 text-slate-500">
-                <p className="font-semibold text-slate-700">Poštnina se izračuna v košarici glede na skupno težo in mere.</p>
+                <p className="font-semibold text-slate-700">{STOREFRONT_CHECKOUT_SHIPPING_MESSAGE}</p>
                 {config.purchaseArea.copy.deliveryFallbackMessage ? (
                   <p>{config.purchaseArea.copy.deliveryFallbackMessage}</p>
                 ) : null}
@@ -1358,12 +1367,14 @@ export default function AdminProductAppearancePageClient({
   initialConfig,
   initialGlobalStyle,
   initialSiteLayout,
+  initialStockEnforcementEnabled,
   initialProducts,
   initialProduct
 }: {
   initialConfig: ProductAppearanceConfig;
   initialGlobalStyle: GlobalStyleConfig;
   initialSiteLayout: SiteNavigationSiteLayoutSettings;
+  initialStockEnforcementEnabled: boolean;
   initialProducts: AdminCatalogListItem[];
   initialProduct: CatalogItemEditorHydration | null;
 }) {
@@ -1397,6 +1408,54 @@ export default function AdminProductAppearancePageClient({
   const inlineToolbarRef = useRef<HTMLDivElement | null>(null);
   const interactivePreviewFrameRef = useRef<HTMLDivElement | null>(null);
   const interactivePreviewViewportRef = useRef<HTMLDivElement | null>(null);
+  const previewLogicalWidths = useMemo<Record<PreviewDevice, number>>(() => {
+    const tablet = toCommercialStorefrontLogicalPx(900);
+    return {
+      desktop: Math.max(
+        tablet + 1,
+        toCommercialStorefrontLogicalPx(initialGlobalStyle.layout.maxWidthPx)
+      ),
+      tablet,
+      mobile: toCommercialStorefrontLogicalPx(390)
+    };
+  }, [initialGlobalStyle.layout.maxWidthPx]);
+  const getPreviewTargetGeometry = useCallback((
+    device: PreviewDevice,
+    availableWidth: number
+  ) => {
+    const renderedWidth = device === 'desktop'
+      ? Math.min(availableWidth, showAdvancedSettings ? availableWidth : 1120)
+      : device === 'tablet'
+        ? Math.min(availableWidth * 0.76, showAdvancedSettings ? availableWidth : 1120)
+        : Math.min(availableWidth, 390);
+    return {
+      logicalWidth: previewLogicalWidths[device],
+      renderedWidth
+    };
+  }, [previewLogicalWidths, showAdvancedSettings]);
+  const resolvePreviewDevice = useCallback((logicalWidth: number): PreviewDevice => {
+    const mobileTabletBoundary = (
+      previewLogicalWidths.mobile + previewLogicalWidths.tablet
+    ) / 2;
+    const tabletDesktopBoundary = (
+      previewLogicalWidths.tablet + previewLogicalWidths.desktop
+    ) / 2;
+    if (logicalWidth <= mobileTabletBoundary) return 'mobile';
+    if (logicalWidth <= tabletDesktopBoundary) return 'tablet';
+    return 'desktop';
+  }, [previewLogicalWidths]);
+  const previewMotion = useAppearanceResponsivePreviewMotion<PreviewDevice>({
+    selectedDevice: previewDevice,
+    orderedDevices: previewDevices,
+    getTargetGeometry: getPreviewTargetGeometry,
+    resolveDevice: resolvePreviewDevice
+  });
+  const setPreviewMotionFrameElement = previewMotion.setFrameElement;
+  const setInteractivePreviewFrame = useCallback((element: HTMLDivElement | null) => {
+    interactivePreviewFrameRef.current = element;
+    interactivePreviewViewportRef.current = element;
+    setPreviewMotionFrameElement(element);
+  }, [setPreviewMotionFrameElement]);
   const activeDefinition = sections.find((section) => section.key === activeSection) ?? sections[0];
   const isAppearanceDirty = comparable(config) !== comparable(savedConfig);
   const isProductDirty = comparableProduct(product) !== comparableProduct(savedProduct);
@@ -2337,10 +2396,11 @@ export default function AdminProductAppearancePageClient({
     else groups.push({ label: section.group, items: [section] });
     return groups;
   }, []);
-  const previewWidth = previewDevice === 'desktop' ? 'w-full' : previewDevice === 'tablet' ? 'w-[76%]' : 'w-[390px] max-w-full';
-
   return (
-    <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="artikli">
+    <StorefrontInventoryPolicyProvider
+      stockEnforcementEnabled={initialStockEnforcementEnabled}
+    >
+      <div className="space-y-4" data-appearance-settings-density="compact" data-appearance-settings-page="artikli">
       <AdminPageHeader
         title="Artikli"
         description="Urejajte resničen artikel neposredno v predogledu. Vsebina ostane skupna z Artikli, vizualni jezik pa se deduje iz Globalnih parametrov."
@@ -2476,28 +2536,41 @@ export default function AdminProductAppearancePageClient({
                 </div>
               </div>
               <div className="overflow-auto bg-slate-100 p-3" data-appearance-editor-scroll-purpose="preview">
-                <div className={`mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all ${previewWidth}`}>
-                  {previewPage === 'product' && previewProduct ? (
-                    <ProductAppearanceLivePreview
-                      config={config}
-                      globalStyle={initialGlobalStyle}
-                      siteLayout={initialSiteLayout}
-                      product={previewProduct}
-                      device={previewDevice}
-                      selectedElementId={null}
-                      selectedElementIds={[]}
-                      onSelectElement={() => undefined}
-                      onElementChange={() => undefined}
-                    />
-                  ) : (
-                    <ProductPreview
-                      config={config}
-                      globalStyle={initialGlobalStyle}
-                      page={previewPage}
-                      device={previewDevice}
-                      product={previewProduct}
-                    />
-                  )}
+                <div
+                  ref={previewMotion.setStageElement}
+                  className="relative flex w-full items-start justify-center overflow-x-clip"
+                  data-testid="product-preview-stage"
+                >
+                  <div
+                    ref={previewMotion.setFrameElement}
+                    className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                    data-testid="product-preview-frame"
+                    data-product-preview-frame
+                  >
+                    {previewPage === 'product' && previewProduct ? (
+                      <ProductAppearanceLivePreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        siteLayout={initialSiteLayout}
+                        product={previewProduct}
+                        device={previewMotion.renderDevice}
+                        motionFrameRef={previewMotion.frameRef}
+                        transitioning={previewMotion.phase === 'animating'}
+                        selectedElementId={null}
+                        selectedElementIds={[]}
+                        onSelectElement={() => undefined}
+                        onElementChange={() => undefined}
+                      />
+                    ) : (
+                      <ProductPreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        page={previewPage}
+                        device={previewMotion.renderDevice}
+                        product={previewProduct}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </aside>
@@ -2700,56 +2773,62 @@ export default function AdminProductAppearancePageClient({
               </div>
 
               <div
-                ref={(element) => {
-                  interactivePreviewFrameRef.current = element;
-                  interactivePreviewViewportRef.current = element;
-                }}
-                className={`admin-product-canvas-surface relative mx-auto max-w-[1120px] rounded-xl border border-slate-200 bg-white shadow-sm transition-[width] duration-200 ${previewWidth}`}
-                data-show-grid={config.canvas.showGrid}
-                data-product-preview-frame
-                style={{
-                  '--admin-product-canvas-grid-size': `${config.canvas.gridSizePx}px`
-                } as CSSProperties}
+                ref={previewMotion.setStageElement}
+                className="relative flex w-full items-start justify-center overflow-x-clip"
+                data-testid="product-preview-stage"
               >
-                {previewPage === 'product' ? (
-                  previewProduct ? (
-                    <ProductAppearanceLivePreview
+                <div
+                  ref={setInteractivePreviewFrame}
+                  className="admin-product-canvas-surface relative w-full max-w-[1120px] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                  data-testid="product-preview-frame"
+                  data-show-grid={config.canvas.showGrid}
+                  data-product-preview-frame
+                  style={{
+                    '--admin-product-canvas-grid-size': `${config.canvas.gridSizePx}px`
+                  } as CSSProperties}
+                >
+                  {previewPage === 'product' ? (
+                    previewProduct ? (
+                      <ProductAppearanceLivePreview
+                        config={config}
+                        globalStyle={initialGlobalStyle}
+                        siteLayout={initialSiteLayout}
+                        product={previewProduct}
+                        device={previewMotion.renderDevice}
+                        motionFrameRef={previewMotion.frameRef}
+                        transitioning={previewMotion.phase === 'animating'}
+                        selectedElementId={selectedCanvasElementId}
+                        selectedElementIds={selectedCanvasElementIds}
+                        onSelectElement={selectCanvasElement}
+                        onElementChange={updateCanvasElement}
+                      />
+                    ) : (
+                      <div className="grid min-h-[520px] place-items-center p-8 text-center">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {isLoadingProduct ? 'Nalaganje artikla …' : 'Izberite artikel za resničen predogled.'}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-500">
+                            Vsebina predogleda ni več nadomestna ali vnaprej določena.
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <ProductPreview
                       config={config}
                       globalStyle={initialGlobalStyle}
-                      siteLayout={initialSiteLayout}
+                      page={previewPage}
+                      device={previewMotion.renderDevice}
                       product={previewProduct}
-                      device={previewDevice}
+                      interactive
                       selectedElementId={selectedCanvasElementId}
                       selectedElementIds={selectedCanvasElementIds}
                       onSelectElement={selectCanvasElement}
                       onElementChange={updateCanvasElement}
                     />
-                  ) : (
-                    <div className="grid min-h-[520px] place-items-center p-8 text-center">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {isLoadingProduct ? 'Nalaganje artikla …' : 'Izberite artikel za resničen predogled.'}
-                        </p>
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          Vsebina predogleda ni več nadomestna ali vnaprej določena.
-                        </p>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <ProductPreview
-                    config={config}
-                    globalStyle={initialGlobalStyle}
-                    page={previewPage}
-                    device={previewDevice}
-                    product={previewProduct}
-                    interactive
-                    selectedElementId={selectedCanvasElementId}
-                    selectedElementIds={selectedCanvasElementIds}
-                    onSelectElement={selectCanvasElement}
-                    onElementChange={updateCanvasElement}
-                  />
-                )}
+                  )}
+                </div>
               </div>
 
               <FloatingAppearanceEditorContextToolbar
@@ -2758,6 +2837,7 @@ export default function AdminProductAppearancePageClient({
                 viewportRef={interactivePreviewViewportRef}
                 ariaLabel="Orodna vrstica izbranega elementa"
                 testId="product-appearance-context-toolbar"
+                transitioning={previewMotion.phase === 'animating'}
                 onDismiss={clearCanvasSelection}
               >
                 <ProductAppearanceContextToolbar
@@ -2828,6 +2908,7 @@ export default function AdminProductAppearancePageClient({
           </div>
         </section>
       )}
-    </div>
+      </div>
+    </StorefrontInventoryPolicyProvider>
   );
 }

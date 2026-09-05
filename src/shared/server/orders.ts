@@ -14,6 +14,12 @@ import type {
 } from '@/shared/domain/order/orderTypes';
 import { isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import { ORDER_ATTENTION_STATUSES } from '@/shared/domain/order/orderStatus';
+import {
+  formatOfferCode,
+  formatOrderCode,
+  formatQuoteCode,
+  parseCommercePublicCode
+} from '@/shared/domain/commercePublicCode';
 
 const PAGED_ORDER_NUMBER_DESC_SQL =
   "nullif(regexp_replace(order_number::text, '\\D', '', 'g'), '')::bigint desc nulls last, id desc";
@@ -262,9 +268,12 @@ function nullableOrderJson<T>(value: unknown): T | null {
 }
 
 function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
+  const sourceQuoteCodeBase = asNullableString(rawRow.source_quote_public_code_base);
+  const sourceOfferVersion = parseNullableNumber(rawRow.source_quote_offer_version_number);
   return {
     id: Number(rawRow.id),
     order_number: String(rawRow.order_number),
+    order_code: formatOrderCode(String(rawRow.public_code_base)),
     customer_type: String(rawRow.customer_type),
     organization_name: asNullableString(rawRow.organization_name),
     contact_name: String(rawRow.contact_name),
@@ -307,6 +316,13 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
     source_quote_request_id: parseNullableNumber(rawRow.source_quote_request_id),
     source_quote_request_number: asNullableString(rawRow.source_quote_request_number),
     source_quote_offer_number: asNullableString(rawRow.source_quote_offer_number),
+    source_quote_code: sourceQuoteCodeBase
+      ? formatQuoteCode(sourceQuoteCodeBase)
+      : null,
+    source_quote_offer_code:
+      sourceQuoteCodeBase && sourceOfferVersion !== null
+        ? formatOfferCode(sourceQuoteCodeBase, sourceOfferVersion)
+        : null,
     reference: asNullableString(rawRow.reference),
     notes: asNullableString(rawRow.notes),
     status: String(rawRow.status),
@@ -473,9 +489,41 @@ export async function fetchOrdersListPage(
     if (options?.query) {
       queryParams.push(`%${options.query}%`);
       const queryIndex = queryParams.length;
+      const parsedPublicCode = parseCommercePublicCode(options.query);
+      const publicCodeConditions: string[] = [];
+      if (parsedPublicCode?.kind === 'order') {
+        queryParams.push(parsedPublicCode.base);
+        publicCodeConditions.push(`orders.public_code_base = $${queryParams.length}`);
+      }
+      if (parsedPublicCode?.kind === 'quote') {
+        queryParams.push(parsedPublicCode.base);
+        publicCodeConditions.push(`exists (
+          select 1
+          from quote_offer_versions public_code_offer
+          join quote_requests public_code_request
+            on public_code_request.id = public_code_offer.quote_request_id
+          where public_code_offer.id = orders.source_quote_offer_version_id
+            and public_code_request.public_code_base = $${queryParams.length}
+        )`);
+      }
+      if (parsedPublicCode?.kind === 'offer' && parsedPublicCode.version !== null) {
+        queryParams.push(parsedPublicCode.base, parsedPublicCode.version);
+        const baseIndex = queryParams.length - 1;
+        const versionIndex = queryParams.length;
+        publicCodeConditions.push(`exists (
+          select 1
+          from quote_offer_versions public_code_offer
+          join quote_requests public_code_request
+            on public_code_request.id = public_code_offer.quote_request_id
+          where public_code_offer.id = orders.source_quote_offer_version_id
+            and public_code_request.public_code_base = $${baseIndex}
+            and public_code_offer.version_number = $${versionIndex}
+        )`);
+      }
       conditions.push(
         `(
           orders.order_number::text ilike $${queryIndex}
+          ${publicCodeConditions.length > 0 ? `or ${publicCodeConditions.join('\n          or ')}` : ''}
           or orders.organization_name ilike $${queryIndex}
           or orders.contact_name ilike $${queryIndex}
           or orders.address_line1 ilike $${queryIndex}
@@ -544,6 +592,7 @@ export async function fetchOrdersListPage(
         select
           orders.id,
           orders.order_number,
+          orders.public_code_base,
           orders.customer_type,
           orders.organization_name,
           orders.contact_name,
@@ -571,8 +620,14 @@ export async function fetchOrdersListPage(
           orders.delivery_plan_revision,
           orders.created_at,
           orders.is_draft,
-          orders.deleted_at
+          orders.deleted_at,
+          related_request.public_code_base as source_quote_public_code_base,
+          related_offer.version_number as source_quote_offer_version_number
         from orders
+        left join quote_offer_versions related_offer
+          on related_offer.id = orders.source_quote_offer_version_id
+        left join quote_requests related_request
+          on related_request.id = related_offer.quote_request_id
         ${whereClause}
       ),
       paged_orders as (
@@ -745,6 +800,7 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
     select
       orders.id,
       orders.order_number,
+      orders.public_code_base,
       orders.customer_type,
       orders.organization_name,
       orders.contact_name,
@@ -771,6 +827,8 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       related_request.id as source_quote_request_id,
       related_request.request_number as source_quote_request_number,
       related_offer.offer_number as source_quote_offer_number,
+      related_request.public_code_base as source_quote_public_code_base,
+      related_offer.version_number as source_quote_offer_version_number,
       orders.reference,
       orders.notes,
       orders.status,
@@ -828,6 +886,7 @@ export async function fetchOrderDetailSnapshot(
           select
             orders.id,
             orders.order_number,
+            orders.public_code_base,
             orders.customer_type,
             orders.organization_name,
             orders.contact_name,
@@ -854,6 +913,8 @@ export async function fetchOrderDetailSnapshot(
             related_request.id as source_quote_request_id,
             related_request.request_number as source_quote_request_number,
             related_offer.offer_number as source_quote_offer_number,
+            related_request.public_code_base as source_quote_public_code_base,
+            related_offer.version_number as source_quote_offer_version_number,
             orders.reference,
             orders.notes,
             orders.status,

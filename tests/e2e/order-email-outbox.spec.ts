@@ -82,6 +82,8 @@ function enabledE2eSettings(original: OrderEmailSettings): OrderEmailSettings {
       order_submitted: { customer: true, admins: true },
       order_accepted: { ...disabledEvent },
       order_rejected: { ...disabledEvent },
+      predracun_issued: { ...disabledEvent },
+      invoice_issued: { ...disabledEvent },
       received: { ...disabledEvent },
       in_progress: { customer: true, admins: true },
       partially_sent: { ...disabledEvent },

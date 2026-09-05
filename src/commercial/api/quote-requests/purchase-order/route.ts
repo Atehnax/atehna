@@ -42,6 +42,10 @@ import {
 import { requestOriginMatchesHost } from '@/shared/server/requestSecurity';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isQuoteOnlineAcceptanceEnabled } from '@/shared/server/quoteFeatureFlags';
+import {
+  formatOfferCode,
+  formatOrderCode
+} from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -145,7 +149,6 @@ export async function POST(request: NextRequest) {
     );
   }
   const contentHash = createHash('sha256').update(bytes).digest('hex');
-  const offerNumber = String(formData.get('offerNumber') ?? '').trim();
   const versionNumber = Number(formData.get('versionNumber'));
   const idempotencyBody = {
     idempotencyKey: formData.get('Idempotency-Key') ?? formData.get('idempotencyKey')
@@ -194,7 +197,6 @@ export async function POST(request: NextRequest) {
         intent: 'quote_response',
         action: 'purchase_order',
         quoteOfferVersionId: access.quoteOfferVersionId,
-        offerNumber,
         versionNumber,
         contentHash
       })
@@ -245,6 +247,7 @@ export async function POST(request: NextRequest) {
       `
         select
           offer.*,
+          request.public_code_base as source_public_code_base,
           request.customer_type,
           request.organization_name,
           request.contact_name,
@@ -277,7 +280,6 @@ export async function POST(request: NextRequest) {
       );
     }
     if (
-      offerNumber !== offer.offer_number ||
       versionNumber !== Number(offer.version_number)
     ) {
       throw new QuoteResponseIdempotencyError(
@@ -285,6 +287,11 @@ export async function POST(request: NextRequest) {
         'Naročilnica se ne nanaša na prikazano ponudbo.'
       );
     }
+    const offerCode = formatOfferCode(
+      String(offer.source_public_code_base),
+      Number(offer.version_number)
+    );
+    const orderCode = formatOrderCode(String(offer.source_public_code_base));
     if (
       offer.customer_type !== 'school' &&
       !['purchase_order', 'online_or_purchase_order'].includes(
@@ -456,6 +463,7 @@ export async function POST(request: NextRequest) {
       commitmentStatus: 'pending_confirmation',
       contractStatus: 'pending_seller_acceptance',
       sourceQuoteOfferVersionId: access.quoteOfferVersionId,
+      publicCodeBase: String(offer.source_public_code_base),
       commitStock: false,
       stockActor: { type: 'school_purchase_order' }
     });
@@ -486,9 +494,9 @@ export async function POST(request: NextRequest) {
       [
         access.quoteOfferVersionId,
         quoteDocumentAccessId,
-        `narocilnica-${offer.offer_number}.${extension}`,
+        `narocilnica-${offerCode}.${extension}`,
         blob.pathname,
-        `NAROCILNICA-${offer.offer_number}-V1`,
+        `NAROCILNICA-${offerCode}-V1`,
         uploadedAt,
         contentHash,
         offer.content_hash,
@@ -512,9 +520,9 @@ export async function POST(request: NextRequest) {
       [
         placed.orderId,
         orderDocumentAccessId,
-        `narocilnica-${offer.offer_number}.${extension}`,
+        `narocilnica-${offerCode}.${extension}`,
         blob.pathname,
-        `NAROCILNICA-${placed.orderId}-V1`,
+        `NAROCILNICA-${orderCode}-V1`,
         uploadedAt,
         contentHash,
         format.formatMarker

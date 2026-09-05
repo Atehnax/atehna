@@ -2,9 +2,18 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Download } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ConfirmationContentLayout from '@/commercial/components/ConfirmationContentLayout';
+import ConfirmationCustomerDetails from '@/commercial/components/ConfirmationCustomerDetails';
+import {
+  CONFIRMATION_DOCUMENT_ACTION_CLASS,
+  CONFIRMATION_PRIMARY_DOCUMENT_ACTION_CLASS
+} from '@/commercial/components/confirmationDocumentAction';
 import OrderLoadingState from '@/commercial/order/components/OrderLoadingState';
-import OrderConfirmationSummary from '@/commercial/order/components/OrderConfirmationSummary';
+import OrderConfirmationSummary, {
+  OrderConfirmationItemPricing
+} from '@/commercial/order/components/OrderConfirmationSummary';
 import OrderSubmissionStatus from '@/commercial/order/components/OrderSubmissionStatus';
 import {
   parseOrderApiError,
@@ -16,6 +25,7 @@ import {
   exchangeOrderAccessToken,
   readStoredOrderAccessId
 } from '@/commercial/order/orderAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 
 type ConfirmationState =
   | { status: 'loading' }
@@ -55,12 +65,6 @@ const formatDate = (value?: string) => {
     dateStyle: 'long',
     timeStyle: 'short'
   }).format(parsed);
-};
-
-const customerTypeLabel = (value?: string) => {
-  if (value === 'company') return 'Podjetje';
-  if (value === 'school') return 'Šola ali javni zavod';
-  return 'Zasebni naročnik';
 };
 
 const CUSTOMER_DOCUMENT_LABELS: Record<string, string> = {
@@ -112,7 +116,7 @@ export default function OrderConfirmationPageClient() {
         },
         signal
       });
-      const payload: unknown = await response.json().catch(() => ({}));
+      const payload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         throw new Error(
           parseOrderApiError(
@@ -258,176 +262,177 @@ export default function OrderConfirmationPageClient() {
   const { snapshot } = state;
   const submittedAt = formatDate(snapshot.createdAt);
   const customer = snapshot.customer;
+  const postalAddressLine = [customer?.postalCode, customer?.city]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ');
+  const address = [
+    customer?.addressLine1,
+    customer?.addressLine2,
+    postalAddressLine
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
   const purchaseOrderHref = '/order/narocilnica';
   const availableDocuments = snapshot.documents.flatMap((document, index) => {
     const url = document.url?.trim();
     return url ? [{ document, index, url }] : [];
   });
+  const orderSummaryDocument = availableDocuments.find(
+    ({ document }) => document.type === 'order_summary'
+  );
+  const otherDocuments = availableDocuments.filter(
+    ({ document }) => document.type !== 'order_summary'
+  );
+  const customerName =
+    customer?.organizationName ||
+    customer?.customerName ||
+    customer?.contactName ||
+    '';
+  const customerEmail = customer?.email?.trim() ?? '';
 
   return (
     <div>
       <OrderSubmissionStatus
+        orderCode={snapshot.orderCode}
         commitmentStatus={snapshot.commitmentStatus}
         contractStatus={snapshot.contractStatus}
+        submittedAt={submittedAt}
+        submittedAtDateTime={snapshot.createdAt}
       />
 
-      <article
-        className="site-card mt-6 grid overflow-hidden !p-0 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"
-        data-testid="order-confirmation-content-card"
-        aria-labelledby="confirmation-items"
-      >
-        <section
-          className="min-w-0 lg:col-start-1 lg:row-start-1"
-          data-testid="confirmation-order-section"
-        >
-          <h2 id="confirmation-items" className="sr-only">Postavke naročila</h2>
-          {submittedAt ? (
-            <p className="px-5 pt-5 text-right text-sm text-[color:var(--site-color-text-muted)] sm:px-6 sm:pt-6">
-              {submittedAt}
-            </p>
-          ) : null}
-
-            <ul className="min-w-0 divide-y divide-[color:var(--site-divider-color)] p-5 sm:p-6">
-              {snapshot.items.map((item) => (
-                <li
-                  key={`${item.variantId}-${item.sku}`}
-                  className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 py-4 first:pt-0 last:pb-0"
-                  data-testid="confirmation-item-row"
-                >
-                  <div
-                    className="site-radius-sm relative aspect-square overflow-hidden bg-[color:var(--site-color-surface-muted)]"
-                    data-testid="confirmation-item-media"
+      <ConfirmationContentLayout
+        testId="confirmation-content-grid"
+        detailsTestId="confirmation-order-section"
+        summaryTestId="confirmation-summary"
+        detailsLabelledBy="confirmation-details-heading"
+        summaryLabelledBy="confirmation-summary-heading"
+        details={
+          <>
+            <h2
+              id="confirmation-details-heading"
+              className="text-2xl font-semibold"
+            >
+              Podrobnosti naročila
+            </h2>
+            <section className="mt-6" aria-labelledby="confirmation-items">
+              <h3 id="confirmation-items" className="text-base font-semibold">
+                Izdelki
+              </h3>
+              <ul className="mt-4 min-w-0 divide-y divide-[color:var(--site-divider-color)]">
+                {snapshot.items.map((item) => (
+                  <li
+                    key={`${item.variantId}-${item.sku}`}
+                    className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] gap-4 py-5 first:pt-0 last:pb-0"
+                    data-testid="confirmation-item-row"
                   >
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt=""
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <span className="flex h-full items-center justify-center px-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
-                        Brez slike
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <h3
-                      className="font-semibold text-[color:var(--site-color-text)]"
-                      data-testid="confirmation-item-title"
+                    <div
+                      className="site-radius-sm relative aspect-square overflow-hidden bg-[color:var(--site-color-surface-muted)]"
+                      data-testid="confirmation-item-media"
                     >
-                      {buildConfirmationItemTitle(
-                        item.productName,
-                        item.variantName
+                      {item.imageUrl ? (
+                        <Image
+                          src={item.imageUrl}
+                          alt=""
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full items-center justify-center px-2 text-center text-[10px] text-[color:var(--site-color-text-muted)]">
+                          Brez slike
+                        </span>
                       )}
-                    </h3>
-                    <p className="mt-0.5 break-all font-mono text-xs text-[color:var(--site-color-text-muted)]">
-                      SKU: {item.sku}
-                    </p>
-                  </div>
+                    </div>
+                    <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                      <div className="min-w-0">
+                        <h4
+                          className="font-semibold text-[color:var(--site-color-text)]"
+                          data-testid="confirmation-item-title"
+                        >
+                          {buildConfirmationItemTitle(
+                            item.productName,
+                            item.variantName
+                          )}
+                        </h4>
+                        {item.sku ? (
+                          <p className="mt-1 break-all text-xs text-[color:var(--site-color-text-muted)]">
+                            SKU: {item.sku}
+                          </p>
+                        ) : null}
+                      </div>
+                      <OrderConfirmationItemPricing item={item} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <ConfirmationCustomerDetails
+              heading="Podatki o naročilu"
+              headingId="delivery-heading"
+              name={customerName}
+              email={customerEmail}
+              address={address}
+              testId="confirmation-customer-section"
+            />
+          </>
+        }
+        summary={
+          <>
+            <OrderConfirmationSummary
+              items={snapshot.items}
+              totals={snapshot.totals}
+            />
+            <section
+              className="mt-6 border-t border-[color:var(--site-divider-color)] pt-6"
+              data-testid="confirmation-documents-section"
+              data-confirmation-region="document"
+              aria-labelledby="documents-heading"
+            >
+              <h2 id="documents-heading" className="sr-only">
+                Dokumenti
+              </h2>
+              <ul className="grid gap-3">
+                <li>
+                  {orderSummaryDocument ? (
+                    <a
+                      href={orderSummaryDocument.url}
+                      download
+                      className={CONFIRMATION_PRIMARY_DOCUMENT_ACTION_CLASS}
+                      data-testid="order-confirmation-pdf"
+                    >
+                      <Download aria-hidden="true" className="h-5 w-5" />
+                      Prenesi potrditev (PDF)
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${CONFIRMATION_PRIMARY_DOCUMENT_ACTION_CLASS} cursor-wait opacity-70`}
+                      data-testid="order-confirmation-pdf"
+                      disabled
+                    >
+                      <Download aria-hidden="true" className="h-5 w-5" />
+                      Prenesi potrditev (PDF)
+                      <span className="sr-only"> – pripravlja se</span>
+                    </button>
+                  )}
+                  <p
+                    className={`mt-1 min-h-5 text-center text-xs leading-5 text-[color:var(--site-color-text-muted)]${
+                      orderSummaryDocument ? ' invisible' : ''
+                    }`}
+                    aria-hidden={orderSummaryDocument ? true : undefined}
+                  >
+                    Pripravljamo …
+                  </p>
                 </li>
-              ))}
-            </ul>
-        </section>
-
-        <OrderConfirmationSummary
-          className="border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:border-t-0"
-          items={snapshot.items}
-          totals={snapshot.totals}
-        />
-
-        <div
-          className="grid min-w-0 border-t border-[color:var(--site-divider-color)] lg:col-start-1 lg:row-start-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]"
-          data-testid="confirmation-lower-sections"
-        >
-          <section
-            className="p-5 sm:p-6"
-            data-testid="confirmation-customer-section"
-            aria-labelledby="delivery-heading"
-          >
-            <h2 id="delivery-heading" className="text-xl font-semibold">
-              Naročnik in dostava
-            </h2>
-            <dl className="mt-4 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Vrsta naročnika
-                </dt>
-                <dd className="mt-1 font-semibold">
-                  {customerTypeLabel(customer?.customerType)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Naročnik
-                </dt>
-                <dd className="mt-1 font-semibold">
-                  {customer?.organizationName ||
-                    customer?.customerName ||
-                    customer?.contactName ||
-                    '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Kontakt
-                </dt>
-                <dd className="mt-1 break-words">
-                  {customer?.contactName ? (
-                    <span className="block font-semibold">
-                      {customer.contactName}
-                    </span>
-                  ) : null}
-                  <span>{customer?.email || '—'}</span>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:var(--site-color-text-muted)]">
-                  Naslov za dostavo
-                </dt>
-                <dd className="mt-1 font-semibold">
-                  {customer?.addressLine1 || '—'}
-                  {customer?.addressLine1 ? (
-                    <>
-                      {customer.addressLine2 ? (
-                        <span className="block">{customer.addressLine2}</span>
-                      ) : null}
-                      <span className="block">
-                        {customer.postalCode} {customer.city}
-                      </span>
-                    </>
-                  ) : null}
-                </dd>
-              </div>
-              {customer?.reference ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-[color:var(--site-color-text-muted)]">
-                    Referenca
-                  </dt>
-                  <dd className="mt-1 font-semibold">{customer.reference}</dd>
-                </div>
-              ) : null}
-            </dl>
-          </section>
-
-          <section
-            className="min-w-0 border-t border-[color:var(--site-divider-color)] p-5 sm:p-6 lg:border-l lg:border-t-0"
-            data-testid="confirmation-documents-section"
-            aria-labelledby="documents-heading"
-          >
-            <h2 id="documents-heading" className="text-xl font-semibold">
-              Dokumenti
-            </h2>
-            {availableDocuments.length > 0 ? (
-              <ul className="mt-4 grid gap-3">
-                {availableDocuments.map(({ document, index, url }) => (
+                {otherDocuments.map(({ document, index, url }) => (
                   <li key={`${document.type}-${url}-${index}`}>
                     <a
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="site-button site-button--secondary inline-flex min-h-11 w-full min-w-0 items-center justify-center break-words px-3 text-center"
+                      className={CONFIRMATION_DOCUMENT_ACTION_CLASS}
                     >
                       {customerDocumentLabel(document.type, index)}
                       <span className="sr-only">
@@ -438,25 +443,24 @@ export default function OrderConfirmationPageClient() {
                   </li>
                 ))}
               </ul>
-            ) : null}
-
-            {snapshot.commitmentStatus === 'pending_confirmation' ? (
+              {snapshot.commitmentStatus === 'pending_confirmation' ? (
+                <Link
+                  href={purchaseOrderHref}
+                  className="site-button site-button--primary mt-4 inline-flex w-full items-center justify-center"
+                >
+                  Naloži naročilnico
+                </Link>
+              ) : null}
               <Link
-                href={purchaseOrderHref}
-                className="site-button site-button--primary mt-4 inline-flex w-full items-center justify-center"
+                href="/products"
+                className="site-button site-button--secondary mt-3 inline-flex w-full items-center justify-center"
               >
-                Naloži naročilnico
+                Nazaj v katalog
               </Link>
-            ) : null}
-            <Link
-              href="/products"
-              className="site-button site-button--secondary mt-3 inline-flex w-full items-center justify-center"
-            >
-              Nazaj v katalog
-            </Link>
-          </section>
-        </div>
-      </article>
+            </section>
+          </>
+        }
+      />
     </div>
   );
 }

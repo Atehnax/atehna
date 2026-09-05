@@ -117,7 +117,9 @@ test('quote admin title and customer details are editable while request and offe
   assert.match(detail, /onChange=\{\(event\) => setDraftRequestTitle\(event\.target\.value\)\}/u);
   assert.match(detail, /<AdminDetailTitleSlot[\s\S]*?title=\{persistedRequestTitle\}/u);
   assert.match(detailTitleSlot, /<h1[\s\S]*?\{title\}[\s\S]*?<\/h1>/u);
-  assert.match(detail, /currentVersion\.offerNumber/u);
+  assert.match(detail, /currentVersion\.offerCode/u);
+  assert.match(detail, /data-testid="admin-quote-public-code-copy"/u);
+  assert.match(detail, /navigator\.clipboard\.writeText\(detail\.quoteCode\)/u);
   assert.doesNotMatch(
     detail,
     /updateDraftRequestDetails\(\{[^}\n\r]*\b(?:requestNumber|offerNumber)\b/u
@@ -617,6 +619,17 @@ test('customer details use compact fixed-height rows with full-width address and
   assert.match(addressEditor, /role="group"/u);
   assert.match(addressEditor, /aria-label="Naslovni podatki"/u);
   assert.match(addressEditor, /data-testid="quote-request-address-fields"/u);
+  assert.match(
+    detail,
+    /const quoteDetailCompositeInputClassName =[\s\S]*?!h-6[\s\S]*?!leading-5/u
+  );
+  assert.match(
+    detail,
+    /const quoteDetailReadValueClassName =[\s\S]*?block h-6[\s\S]*?leading-6/u
+  );
+  assert.match(addressEditor, /className=\{`grid h-6 min-w-0 flex-1/u);
+  assert.match(addressEditor, /customerDetailStyles\.addressFields/u);
+  assert.match(detailRow, /customerDetailStyles\.addressRow/u);
   assert.match(addressEditor, /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u);
   assert.match(
     adminAddressAutocomplete,
@@ -635,6 +648,53 @@ test('customer details use compact fixed-height rows with full-width address and
     assert.doesNotMatch(
       requestSection,
       new RegExp(`<QuoteDetailRow label="${oldRowLabel}"`, 'u')
+    );
+  }
+});
+
+test('quote postal code and place use controlled admin lookup comboboxes with atomic resolution', () => {
+  const detail = source(quoteDetailPath);
+  const addressEditor = sliceBetween(
+    detail,
+    'function QuoteAddressEditor',
+    'function QuoteDetailRow'
+  );
+  const postalCodeCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalCode"[\s\S]*?\/>/u
+  )?.[0];
+  const postalNameCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalName"[\s\S]*?\/>/u
+  )?.[0];
+
+  assert.match(
+    detail,
+    /import AdminPostalLocationCombobox from '@\/admin\/components\/AdminPostalLocationCombobox';/u
+  );
+  assert.equal(addressEditor.match(/<AdminPostalLocationCombobox\b/gu)?.length ?? 0, 2);
+  assert.ok(postalCodeCombobox, 'the quote postal-code combobox must be present');
+  assert.ok(postalNameCombobox, 'the quote postal-town combobox must be present');
+
+  assert.match(postalCodeCombobox, /field="postalCode"/u);
+  assert.match(postalCodeCombobox, /testId="admin-quote-postal-code-autocomplete"/u);
+  assert.match(postalCodeCombobox, /value=\{details\.postalCode\}/u);
+  assert.match(
+    postalCodeCombobox,
+    /onChange=\{\(value\) => onChange\(\{[\s\S]*?postalCode: value\.replace\(\/\[\^\\d\]\/g, ''\)\.slice\(0, 4\),[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
+  );
+
+  assert.match(postalNameCombobox, /field="postalName"/u);
+  assert.match(postalNameCombobox, /testId="admin-quote-city-autocomplete"/u);
+  assert.match(postalNameCombobox, /value=\{details\.city\}/u);
+  assert.match(
+    postalNameCombobox,
+    /onChange=\{\(value\) => onChange\(\{[\s\S]*?city: value,[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
+  );
+
+  for (const combobox of [postalCodeCombobox, postalNameCombobox]) {
+    assert.match(combobox, /disabled=\{disabled\}/u);
+    assert.match(
+      combobox,
+      /onResolve=\{\(location\) => onChange\(\{[\s\S]*?postalCode: location\.postalCode,[\s\S]*?city: location\.postalName,[\s\S]*?gursHouseNumberId: ''[\s\S]*?\}\)\}/u
     );
   }
 });
@@ -770,7 +830,7 @@ test('quote activity stays in the header through the shared bounded horizontal t
   const header = sliceBetween(
     quoteDetail,
     'data-testid="quote-detail-header"',
-    '<div className="grid items-start gap-5'
+    '<div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5'
   );
   const sidebar = sliceBetween(
     quoteDetail,

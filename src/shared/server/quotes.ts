@@ -21,7 +21,12 @@ import {
 import { normalizeQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
 import { getQuoteEmailRetryEligibility } from '@/shared/domain/quote/quoteEmailRetryEligibility';
 import { getOrderEmailSettings } from '@/shared/server/orderEmailSettings';
-import { getQuoteFeatureFlags } from '@/shared/server/quoteFeatureFlags';
+import {
+  formatOfferCode,
+  formatOrderCode,
+  formatQuoteCode,
+  parseCommercePublicCode
+} from '@/shared/domain/commercePublicCode';
 
 type RawRow = Record<string, unknown>;
 
@@ -95,10 +100,16 @@ function mapQuoteItem(row: RawRow): AdminQuoteItem {
   };
 }
 
-function mapQuoteOfferVersion(row: RawRow, items: AdminQuoteItem[]): AdminQuoteOfferVersion {
+function mapQuoteOfferVersion(
+  row: RawRow,
+  items: AdminQuoteItem[],
+  publicCodeBase: string
+): AdminQuoteOfferVersion {
+  const versionNumber = Math.max(1, Math.trunc(toNumber(row.version_number, 1)));
   return {
     id: toNumber(row.id),
-    versionNumber: Math.max(1, Math.trunc(toNumber(row.version_number, 1))),
+    versionNumber,
+    offerCode: formatOfferCode(publicCodeBase, versionNumber),
     offerNumber: toNullableText(row.offer_number),
     status: toText(row.status, 'draft'),
     isCurrent: row.is_current === true,
@@ -150,8 +161,11 @@ function mapQuoteListDocuments(value: unknown): AdminQuoteListRow['downloadableD
 function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
   const organizationName = toText(row.organization_name).trim();
   const contactName = toText(row.contact_name).trim();
+  const publicCodeBase = toText(row.public_code_base);
+  const latestOfferVersionNumber = toNullableNumber(row.latest_offer_version_number);
   return {
     id: toNumber(row.id),
+    quoteCode: formatQuoteCode(publicCodeBase),
     requestNumber: toText(row.request_number),
     status: toText(row.status, 'received'),
     stateVersion: Math.max(1, Math.trunc(toNumber(row.state_version, 1))),
@@ -170,6 +184,9 @@ function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
     customerMessage: toNullableText(row.customer_message),
     createdAt: toIso(row.created_at),
     latestOfferVersionId: toNullableNumber(row.latest_offer_version_id),
+    latestOfferCode: latestOfferVersionNumber === null
+      ? null
+      : formatOfferCode(publicCodeBase, Math.max(1, Math.trunc(latestOfferVersionNumber))),
     latestOfferNumber: toNullableText(row.latest_offer_number),
     latestOfferStatus: toNullableText(row.latest_offer_status),
     validUntil: toNullableIso(row.valid_until),
@@ -177,6 +194,9 @@ function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
     currency: toText(row.currency, 'EUR'),
     shippingRequiresManualEntry: row.shipping_requires_manual_entry === true,
     resultingOrderId: toNullableNumber(row.resulting_order_id),
+    resultingOrderCode: row.resulting_order_public_code_base
+      ? formatOrderCode(toText(row.resulting_order_public_code_base))
+      : null,
     resultingOrderNumber: toNullableText(row.resulting_order_number),
     failedEmailCount: Math.max(0, Math.trunc(toNumber(row.failed_email_count))),
     downloadableDocuments: mapQuoteListDocuments(row.downloadable_documents)
@@ -239,6 +259,37 @@ export async function fetchAdminQuoteRequestsPage(options: {
     if (normalizedQuery) {
       queryParams.push(`%${normalizedQuery}%`);
       const index = queryParams.length;
+      const publicCodeConditions: string[] = [];
+      const parsedPublicCode = parseCommercePublicCode(normalizedQuery);
+      if (parsedPublicCode?.kind === 'quote') {
+        queryParams.push(parsedPublicCode.base);
+        publicCodeConditions.push(`qr.public_code_base = $${queryParams.length}`);
+      }
+      if (parsedPublicCode?.kind === 'offer' && parsedPublicCode.version !== null) {
+        queryParams.push(parsedPublicCode.base, parsedPublicCode.version);
+        const baseIndex = queryParams.length - 1;
+        const versionIndex = queryParams.length;
+        publicCodeConditions.push(`(
+          qr.public_code_base = $${baseIndex}
+          and exists (
+            select 1
+            from quote_offer_versions searchable_public_offer
+            where searchable_public_offer.quote_request_id = qr.id
+              and searchable_public_offer.version_number = $${versionIndex}
+          )
+        )`);
+      }
+      if (parsedPublicCode?.kind === 'order') {
+        queryParams.push(parsedPublicCode.base);
+        publicCodeConditions.push(`exists (
+          select 1
+          from orders searchable_public_order
+          join quote_offer_versions source_public_offer
+            on source_public_offer.id = searchable_public_order.source_quote_offer_version_id
+          where source_public_offer.quote_request_id = qr.id
+            and searchable_public_order.public_code_base = $${queryParams.length}
+        )`);
+      }
       conditions.push(`(
         qr.request_number ilike $${index}
         or qr.organization_name ilike $${index}
@@ -258,6 +309,9 @@ export async function fetchAdminQuoteRequestsPage(options: {
           where source_offer.quote_request_id = qr.id
             and searchable_order.order_number::text ilike $${index}
         )
+        ${publicCodeConditions.length > 0
+          ? `or ${publicCodeConditions.join('\n        or ')}`
+          : ''}
       )`);
     }
 
@@ -335,6 +389,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
         `
           select
             qr.id,
+            qr.public_code_base,
             qr.request_number,
             qr.status,
             qr.state_version,
@@ -354,6 +409,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
             coalesce((qr.shipping_snapshot_json ->> 'status') = 'manual_quote', false)
               as shipping_requires_manual_entry,
             latest_offer.id as latest_offer_version_id,
+            latest_offer.version_number as latest_offer_version_number,
             latest_offer.offer_number as latest_offer_number,
             latest_offer.status as latest_offer_status,
             latest_offer.valid_until,
@@ -361,11 +417,12 @@ export async function fetchAdminQuoteRequestsPage(options: {
             latest_offer.currency,
             coalesce(latest_documents.documents, '[]'::json) as downloadable_documents,
             converted_order.id as resulting_order_id,
+            converted_order.public_code_base as resulting_order_public_code_base,
             converted_order.order_number as resulting_order_number,
             coalesce(failed_email.failed_count, 0)::int as failed_email_count
           from quote_requests qr
           left join lateral (
-            select offer.id, offer.offer_number, offer.status, offer.valid_until,
+            select offer.id, offer.version_number, offer.offer_number, offer.status, offer.valid_until,
                    offer.total, offer.currency
             from quote_offer_versions offer
             where offer.quote_request_id = qr.id
@@ -401,7 +458,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
             ) latest_document
           ) latest_documents on true
           left join lateral (
-            select linked_order.id, linked_order.order_number
+            select linked_order.id, linked_order.public_code_base, linked_order.order_number
             from orders linked_order
             join quote_offer_versions source_offer
               on source_offer.id = linked_order.source_quote_offer_version_id
@@ -475,10 +532,11 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         `
           select qr.*,
                  linked_order.id as resulting_order_id,
+                 linked_order.public_code_base as resulting_order_public_code_base,
                  linked_order.order_number as resulting_order_number
           from quote_requests qr
           left join lateral (
-            select orders.id, orders.order_number
+            select orders.id, orders.public_code_base, orders.order_number
             from orders
             join quote_offer_versions source_offer
               on source_offer.id = orders.source_quote_offer_version_id
@@ -561,8 +619,13 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
       }
 
       const rawVersions = versionsResult.rows as RawRow[];
+      const publicCodeBase = toText(request.public_code_base);
       const versions = rawVersions.map((row) =>
-        mapQuoteOfferVersion(row, versionItems.get(toNumber(row.id)) ?? [])
+        mapQuoteOfferVersion(
+          row,
+          versionItems.get(toNumber(row.id)) ?? [],
+          publicCodeBase
+        )
       );
       const draftSnapshotRow = rawVersions.find(
         (row) => row.status === 'draft'
@@ -601,7 +664,6 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
       const emailSettings = normalizeQuoteEmailSettings(
         emailSettingsResult.rows[0]?.config_json
       );
-      const emailDeliveryEnabled = getQuoteFeatureFlags().emailDelivery;
       const rawVersionById = new Map(
         rawVersions.map((row) => [toNumber(row.id), row])
       );
@@ -612,7 +674,6 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
           : rawVersionById.get(offerVersionId);
         const retry = getQuoteEmailRetryEligibility({
           settings: emailSettings,
-          emailDeliveryEnabled,
           job: {
             eventType: toText(row.event_type),
             audience: toText(row.audience),
@@ -651,6 +712,7 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
 
       return {
         id: toNumber(request.id),
+        quoteCode: formatQuoteCode(publicCodeBase),
         requestNumber: toText(request.request_number),
         status: toText(request.status, 'received'),
         stateVersion: Math.max(1, Math.trunc(toNumber(request.state_version, 1))),
@@ -692,6 +754,9 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         events,
         access,
         resultingOrderId: toNullableNumber(request.resulting_order_id),
+        resultingOrderCode: request.resulting_order_public_code_base
+          ? formatOrderCode(toText(request.resulting_order_public_code_base))
+          : null,
         resultingOrderNumber: toNullableText(request.resulting_order_number)
       };
     } catch (error) {

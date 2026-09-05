@@ -229,7 +229,7 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   const orderDataRow = detail.slice(detail.indexOf('function OrderDataRow'));
   assert.match(
     orderDataRow,
-    /grid h-\[35px\] items-center gap-3/u
+    /grid h-\[35px\] min-w-0 items-center gap-3/u
   );
   assert.doesNotMatch(
     orderDataRow,
@@ -262,7 +262,7 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   );
   assert.match(
     detail,
-    /const orderDataReadValueClassName =[\s\S]*?block h-5 w-full min-w-0 flex-1 select-text truncate[\s\S]*?text-\[11px\][\s\S]*?leading-5/u
+    /const orderDataReadValueClassName =[\s\S]*?block h-6 w-full min-w-0 flex-1 select-text truncate[\s\S]*?text-\[11px\][\s\S]*?leading-6/u
   );
   assert.match(
     detail,
@@ -339,6 +339,13 @@ test('order address remains structured inside one full-width field and persists 
   assert.match(detail, /data-testid="admin-order-address-fields"/u);
   assert.match(
     detail,
+    /const orderDataCompositeInputClassName =[\s\S]*?!h-6[\s\S]*?!leading-5/u
+  );
+  assert.match(detail, /className=\{`grid h-6 min-w-0 flex-1/u);
+  assert.match(detail, /customerDetailStyles\.addressFields/u);
+  assert.match(detail, /customerDetailStyles\.addressRow/u);
+  assert.match(
+    detail,
     /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u
   );
   assert.match(
@@ -355,6 +362,53 @@ test('order address remains structured inside one full-width field and persists 
   }
   assert.match(detail, /<AdminAddressAutocompleteInput[\s\S]*?testId="admin-order-address-autocomplete"/u);
   assert.match(detail, /gursHouseNumberId: suggestion\.gursHouseNumberId/u);
+  const addressEditorStart = detail.indexOf('function OrderAddressEditor');
+  const addressEditorEnd = detail.indexOf(
+    'function OrderDatePickerField',
+    addressEditorStart
+  );
+  assert.ok(
+    addressEditorStart >= 0 && addressEditorEnd > addressEditorStart,
+    'the order address editor source must remain independently inspectable'
+  );
+  const addressEditor = detail.slice(addressEditorStart, addressEditorEnd);
+  const postalCodeCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalCode"[\s\S]*?\/>/u
+  )?.[0];
+  const postalNameCombobox = addressEditor.match(
+    /<AdminPostalLocationCombobox\s+field="postalName"[\s\S]*?\/>/u
+  )?.[0];
+  assert.ok(postalCodeCombobox, 'the postal-code combobox must be present');
+  assert.ok(postalNameCombobox, 'the postal-town combobox must be present');
+  assert.equal(
+    [...addressEditor.matchAll(/<AdminPostalLocationCombobox/gu)].length,
+    2,
+    'the compact address editor must expose exactly two postal comboboxes'
+  );
+  assert.match(
+    postalCodeCombobox,
+    /aria-label="Poštna številka"[\s\S]*?value=\{details\.postalCode\}[\s\S]*?testId="admin-order-postal-code-autocomplete"/u
+  );
+  assert.match(
+    postalCodeCombobox,
+    /onChange=\{\(value\) => onChange\(\{\s*postalCode: value\.replace\(\/\[\^\\d\]\/g, ''\)\.slice\(0, 4\),\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalCodeCombobox,
+    /onResolve=\{\(location\) => onChange\(\{\s*postalCode: location\.postalCode,\s*city: location\.postalName,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /aria-label="Kraj"[\s\S]*?value=\{details\.city\}[\s\S]*?testId="admin-order-city-autocomplete"/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /onChange=\{\(value\) => onChange\(\{\s*city: value,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
+  assert.match(
+    postalNameCombobox,
+    /onResolve=\{\(location\) => onChange\(\{\s*postalCode: location\.postalCode,\s*city: location\.postalName,\s*gursHouseNumberId: ''\s*\}\)\}/u
+  );
   assert.match(
     detail,
     /addressLine2: draftDetails\.addressLine2,[\s\S]*?countryCode: draftDetails\.countryCode,/u

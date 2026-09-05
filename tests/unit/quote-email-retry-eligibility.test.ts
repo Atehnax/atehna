@@ -23,14 +23,13 @@ const baseJob: QuoteEmailRetryJobState = {
 
 const eligibility = (
   patch: Partial<QuoteEmailRetryJobState> = {},
-  options: { delivery?: boolean; enabled?: boolean; now?: number } = {}
+  options: { enabled?: boolean; now?: number } = {}
 ) => {
   const settings = cloneDefaultQuoteEmailSettings();
   settings.enabled = options.enabled ?? true;
   return getQuoteEmailRetryEligibility({
     job: { ...baseJob, ...patch },
     settings,
-    emailDeliveryEnabled: options.delivery ?? true,
     now: options.now
   });
 };
@@ -57,8 +56,7 @@ test('guaranteed-dead system jobs never expose retry', () => {
   );
 });
 
-test('disabled delivery, master, or event audience suppress retry', () => {
-  assert.equal(eligibility({}, { delivery: false }).retryEligible, false);
+test('disabled master or event audience suppresses retry', () => {
   assert.equal(eligibility({}, { enabled: false }).retryEligible, false);
 
   const settings = cloneDefaultQuoteEmailSettings();
@@ -66,8 +64,7 @@ test('disabled delivery, master, or event audience suppress retry', () => {
   assert.equal(
     getQuoteEmailRetryEligibility({
       job: baseJob,
-      settings,
-      emailDeliveryEnabled: true
+      settings
     }).retryEligible,
     false
   );

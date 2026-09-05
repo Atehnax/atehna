@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Code2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Spinner } from '@/shared/ui/loading';
@@ -25,9 +26,9 @@ import {
   adminTablePrimaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
+  adminTableSelectedSuccessIconButtonClassName,
   adminTableSelectedWarningIconButtonClassName,
   adminExpandableTableHeaderFirstValueAlignClassName,
-  adminExpandableTableHeaderRightValueAlignClassName,
   adminExpandableTableHeaderTightValueAlignClassName,
   adminExpandableTableHeaderValueAlignClassName,
   adminExpandableTableMainCellClassName,
@@ -66,7 +67,7 @@ import {
 } from '@/shared/ui/admin-table';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
-import { CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, CheckCircleIcon, CheckIcon, CloseIcon, ColumnFilterIcon, CopyIcon, DownloadIcon, OpenArticleIcon, PencilIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { RowActionsDropdown, Table, THead, TH, TR } from '@/shared/ui/table';
 import { EuiTablePagination, useTablePagination, type PageSizeValue } from '@/shared/ui/pagination';
@@ -93,6 +94,12 @@ import {
 } from '@/admin/features/artikli/lib/familyModel';
 import { formatEuroAmount as formatCurrencyAmountOnly, formatEuroRange as formatCurrencyRange } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, parseDecimalInput } from '@/admin/features/artikli/lib/decimalFormat';
+import {
+  ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY,
+  parseAdminArticleReviewMarkers,
+  serializeAdminArticleReviewMarkers,
+  setAdminArticleReviewMarker
+} from '@/admin/features/artikli/lib/articleReviewMarkers';
 import ActiveStateChip, { getActiveStateMenuItemClassName } from '@/admin/features/artikli/components/ActiveStateChip';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import {
@@ -161,8 +168,8 @@ const QUICK_EDIT_NAME_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} font-medium`;
 const ARTICLE_COLUMN_CLASS = 'w-[15.25%]';
 const SKU_COLUMN_CLASS = 'w-[10.725%]';
 const PRODUCT_TYPE_COLUMN_CLASS = 'w-[9.25%]';
-const CATEGORY_COLUMN_CLASS = 'w-[19.575%]';
-const PRICE_COLUMN_CLASS = 'w-[9%]';
+const CATEGORY_COLUMN_CLASS = 'w-[16.575%]';
+const PRICE_COLUMN_CLASS = 'w-[12%]';
 const STATUS_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const NOTE_COLUMN_CLASS = adminStatusInfoPillTableCellClassName;
 const ACTIONS_COLUMN_CLASS = 'w-[96px] min-w-[96px] max-w-[96px]';
@@ -170,7 +177,6 @@ const STATUS_NOTE_CELL_INNER_CLASS = 'inline-flex w-full items-center justify-ce
 const ARTICLE_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderFirstValueAlignClassName;
 const MAIN_HEADER_VALUE_ALIGN_CLASS = adminExpandableTableHeaderValueAlignClassName;
 const MAIN_HEADER_TIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderTightValueAlignClassName;
-const MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS = adminExpandableTableHeaderRightValueAlignClassName;
 const SUB_HEADER_SKU_ALIGN_CLASS = adminProductVariantSubtableSkuHeaderAlignClassName;
 const SUB_HEADER_PRICE_ALIGN_CLASS = adminProductVariantSubtablePriceHeaderAlignClassName;
 const SUB_HEADER_PILL_ALIGN_CLASS = adminProductVariantSubtablePillHeaderAlignClassName;
@@ -179,24 +185,32 @@ const SUB_VARIANT_TEXT_SLOT_CLASS = adminProductVariantSubtableVariantTextSlotCl
 const NUMERIC_FIELD_LABELS: Record<NumericDraftField, string> = {
   price: 'Cena brez DDV'
 };
-const MAIN_ROW_CLASS = `h-12 border-t border-slate-200/90 bg-white ${adminTableRowToneClasses.hover}`;
+const MAIN_ROW_BASE_CLASS = 'h-12 border-t border-slate-200/90';
+const MAIN_ROW_DEFAULT_TONE_CLASS = `${adminTableRowToneClasses.even} ${adminTableRowToneClasses.hover}`;
 const MAIN_CELL_CLASS = adminExpandableTableMainCellClassName;
 const MAIN_CENTER_CELL_CLASS = adminExpandableTableMainCenterCellClassName;
 const MAIN_TEXT_SLOT_CLASS = adminExpandableTableTextSlotClassName;
 const MAIN_TEXT_SLOT_TIGHT_CLASS = adminExpandableTableTightTextSlotClassName;
-const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full items-center justify-end rounded-md border border-transparent px-2 text-right';
-const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-[5px] text-right';
+const MAIN_NUMBER_SLOT_CLASS = 'inline-flex h-7 w-full min-w-0 items-center justify-end gap-2 overflow-hidden rounded-md border border-transparent pl-2 text-right';
+const MAIN_EDIT_NUMBER_SLOT_CLASS = 'inline-flex h-7 min-w-[10ch] items-center justify-end rounded-md border border-transparent pl-2 pr-1 text-right';
 const SUB_ROW_CLASS = adminSubtableRowClassName;
 const SUB_CELL_CLASS = adminSubtableCellClassName;
 const SUB_CENTER_CELL_CLASS = adminSubtableCenterCellClassName;
 const SUB_TEXT_SLOT_CLASS = adminSubtableTextSlotClassName;
-const SUB_NUMBER_SLOT_CLASS = adminSubtableNumberSlotClassName;
-const SUB_EDIT_NUMBER_SLOT_CLASS = adminSubtableEditNumberSlotClassName;
+const SUB_NUMBER_SLOT_CLASS = `${adminSubtableNumberSlotClassName} !min-w-0 !gap-2 !overflow-hidden !pl-2 !pr-0`;
+const SUB_EDIT_NUMBER_SLOT_CLASS = `${adminSubtableEditNumberSlotClassName} !pr-1`;
 const ROW_EDIT_VALUE_UNIT_SHELL_CLASS = `${compactTableValueUnitShellClassName} !h-7`;
 const ROW_EDIT_ALIGNED_TEXT_INPUT_CLASS = `${ROW_EDIT_INPUT_CLASS} !pl-[13px]`;
 const ROW_EDIT_FAMILY_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[12ch]`;
 const ROW_EDIT_VARIANT_PRICE_INPUT_CLASS = `${ROW_EDIT_COMPACT_NUMBER_INPUT_CLASS} !w-[9ch]`;
 const EDIT_SHORTCUT_IGNORE_SELECTOR = '[data-ignore-edit-shortcuts="true"], [role="menu"], [role="listbox"], [role="dialog"]';
+const PriceColumnTrailingControlSpacer = () => (
+  <span
+    className="h-5 w-5 shrink-0"
+    aria-hidden="true"
+    data-product-price-filter-gutter="true"
+  />
+);
 const getBaseSku = (family: ListFamily) => family.baseSku || family.variants[0]?.sku || '';
 const SKU_CHIP_CLASS =
   'inline-flex h-6 min-w-0 max-w-full items-center rounded-md border border-slate-200 px-2 text-[11px] font-medium leading-none text-slate-600';
@@ -636,6 +650,10 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
   const [isDuplicatingSelected, setIsDuplicatingSelected] = useState(false);
   const [archiveDialogFamilyIds, setArchiveDialogFamilyIds] = useState<Set<string> | null>(null);
   const [pendingGuardLabel, setPendingGuardLabel] = useState<string | null>(null);
+  const [isReviewModeEnabled, setIsReviewModeEnabled] = useState(false);
+  const [reviewedFamilyIds, setReviewedFamilyIds] = useState<Set<string>>(new Set());
+  const reviewedFamilyIdsRef = useRef<Set<string>>(new Set());
+  const isReviewMarkerStorageAvailableRef = useRef(true);
   const categoryFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const productTypeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const priceFilterButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -711,6 +729,61 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     setSavedFamilyRows({});
     setDuplicatedFamilyRows({});
   }, [items]);
+
+  useEffect(() => {
+    const applyStoredMarkers = (value: string | null) => {
+      const next = parseAdminArticleReviewMarkers(value);
+      reviewedFamilyIdsRef.current = next;
+      setReviewedFamilyIds(next);
+    };
+
+    try {
+      applyStoredMarkers(
+        window.localStorage.getItem(ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY)
+      );
+    } catch {
+      isReviewMarkerStorageAvailableRef.current = false;
+      applyStoredMarkers(null);
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY) return;
+      applyStoredMarkers(event.newValue);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const updateFamilyReviewMarker = useCallback((familyId: string, reviewed: boolean) => {
+    let current = reviewedFamilyIdsRef.current;
+
+    if (isReviewMarkerStorageAvailableRef.current) {
+      try {
+        current = parseAdminArticleReviewMarkers(
+          window.localStorage.getItem(ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY)
+        );
+      } catch {
+        isReviewMarkerStorageAvailableRef.current = false;
+      }
+    }
+
+    const next = setAdminArticleReviewMarker(current, familyId, reviewed);
+    reviewedFamilyIdsRef.current = next;
+    setReviewedFamilyIds(next);
+
+    if (isReviewMarkerStorageAvailableRef.current) {
+      try {
+        window.localStorage.setItem(
+          ADMIN_ARTICLE_REVIEW_MARKERS_STORAGE_KEY,
+          serializeAdminArticleReviewMarkers(next)
+        );
+      } catch {
+        isReviewMarkerStorageAvailableRef.current = false;
+        // The visual marker remains available for this page session if storage is blocked.
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1827,6 +1900,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           <div className={adminTableToolbarActionsClassName}>
             <IconButton
               type="button"
+              onClick={() => setIsReviewModeEnabled((current) => !current)}
+              tone={isReviewModeEnabled ? 'success' : 'neutral'}
+              size="sm"
+              className={
+                isReviewModeEnabled
+                  ? adminTableSelectedSuccessIconButtonClassName
+                  : adminTableNeutralIconButtonClassName
+              }
+              aria-label={isReviewModeEnabled ? 'Izklopi način pregleda' : 'Vklopi način pregleda'}
+              title={isReviewModeEnabled ? 'Izklopi način pregleda' : 'Vklopi način pregleda'}
+              aria-pressed={isReviewModeEnabled}
+              data-testid="admin-items-review-mode-toggle"
+            >
+              <Code2 className="!h-[18px] !w-[18px]" />
+            </IconButton>
+            <IconButton
+              type="button"
               onClick={exportVariantsCsv}
               tone="neutral"
               size="sm"
@@ -2022,7 +2112,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                   </div>
                 </TH>
                 <TH className={`${PRICE_COLUMN_CLASS} text-right`}>
-                  <div className={`relative inline-flex items-center gap-2 ${MAIN_HEADER_RIGHT_VALUE_ALIGN_CLASS}`} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
+                  <div className="relative inline-flex items-center gap-2" {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" title="Prodajna cena brez DDV" className={getSortTitleClass('priceRange')} onClick={() => cycleSort('priceRange')}>
                       Cena brez DDV
                     </button>
@@ -2175,14 +2265,36 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 const familyCategoryDisplay = getFamilyCategoryDisplay(family);
                 const familyProductTypeDisplay = formatProductTypeLabel(family.productType);
                 const familyPriceDisplay = formatCurrencyRange(minPrice, maxPrice);
+                const isFamilyReviewed = reviewedFamilyIds.has(family.id);
+                const familyReviewStatusId = `article-review-status-${family.id}`;
                 return (
                   <Fragment key={family.id}>
-                    <tr className={MAIN_ROW_CLASS} data-edit-scope={`family:${family.id}`}>
-                      <td className={`w-10 ${MAIN_CENTER_CELL_CLASS}`}><AdminCheckbox checked={selectedFamilyIds.has(family.id)} onChange={() => setSelectedFamilyIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
-                        return next;
-                      })} aria-label={`Izberi ${family.name}`} /></td>
+                    <tr
+                      className={`${MAIN_ROW_BASE_CLASS} ${
+                        isReviewModeEnabled && isFamilyReviewed
+                          ? adminTableRowToneClasses.success
+                          : MAIN_ROW_DEFAULT_TONE_CLASS
+                      }`}
+                      data-edit-scope={`family:${family.id}`}
+                      data-review-highlight={isReviewModeEnabled && isFamilyReviewed ? 'reviewed' : 'none'}
+                    >
+                      <td className={`w-10 ${MAIN_CENTER_CELL_CLASS}`}>
+                        <AdminCheckbox
+                          checked={selectedFamilyIds.has(family.id)}
+                          onChange={() => setSelectedFamilyIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(family.id)) next.delete(family.id); else next.add(family.id);
+                            return next;
+                          })}
+                          aria-label={`Izberi ${family.name}`}
+                          aria-describedby={isReviewModeEnabled && isFamilyReviewed ? familyReviewStatusId : undefined}
+                        />
+                        {isReviewModeEnabled && isFamilyReviewed ? (
+                          <span id={familyReviewStatusId} className="sr-only">
+                            Artikel je označen kot pregledan.
+                          </span>
+                        ) : null}
+                      </td>
                       <td className={MAIN_CELL_CLASS}>
                         <div className="flex h-7 items-center gap-1.5">
                           <button
@@ -2299,7 +2411,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                       </td>
                       <td className={`${PRICE_COLUMN_CLASS} whitespace-nowrap ${MAIN_CELL_CLASS} text-right`}>
                         {isEditingFamily ? (
-                          <span className="inline-flex w-full justify-end">
+                          <span className="inline-flex w-full items-center justify-end gap-2">
                             <span className={MAIN_EDIT_NUMBER_SLOT_CLASS}>
                               <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
                                 <input
@@ -2314,6 +2426,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                 <span className={compactTableAdornmentClassName}>€</span>
                               </span>
                             </span>
+                            <PriceColumnTrailingControlSpacer />
                           </span>
                         ) : (
                           <span
@@ -2321,9 +2434,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                             onMouseEnter={() => setHoveredArticleCell('priceRange', familyPriceDisplay)}
                             onMouseLeave={() => setHoveredCellMatch(null)}
                           >
-                            <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}>
-                              {familyPriceDisplay}
+                            <span className={`${adminTableMatchingValueBaseClassName} min-w-0 max-w-full justify-end ${getMatchingValueClassName('priceRange', familyPriceDisplay)}`}>
+                              <span className="min-w-0 truncate" title={familyPriceDisplay}>
+                                {familyPriceDisplay}
+                              </span>
                             </span>
+                            <PriceColumnTrailingControlSpacer />
                           </span>
                         )}
                       </td>
@@ -2401,10 +2517,23 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                           <RowActionsDropdown
                             label={`Možnosti za ${family.name}`}
                             editScope={`family:${family.id}`}
-                            menuWidth={144}
-                            menuClassName="w-36"
+                            menuWidth={isReviewModeEnabled ? 224 : 144}
+                            menuClassName={isReviewModeEnabled ? 'w-56' : 'w-36'}
                             items={[
                               { key: 'quick-edit', label: 'Hitro urejanje', icon: <PencilIcon />, onSelect: () => beginFamilyEditScope(family) },
+                              ...(isReviewModeEnabled
+                                ? [
+                                    {
+                                      key: 'review-marker',
+                                      label: isFamilyReviewed
+                                        ? 'Označi za ponovni pregled'
+                                        : 'Označi kot pregledano',
+                                      icon: isFamilyReviewed ? <ActionUndoIcon /> : <CheckCircleIcon />,
+                                      onSelect: () =>
+                                        updateFamilyReviewMarker(family.id, !isFamilyReviewed)
+                                    }
+                                  ]
+                                : []),
                               {
                                 key: 'open',
                                 label: 'Odpri artikel',
@@ -2546,7 +2675,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                     </td>
                                     <td className={`${adminProductVariantSubtablePriceColumnClassName} ${SUB_CELL_CLASS} text-right`}>
                                       {isEditing ? (
-                                        <span className="inline-flex w-full justify-end">
+                                        <span className="inline-flex w-full items-center justify-end gap-2">
                                           <span className={SUB_EDIT_NUMBER_SLOT_CLASS}>
                                             <span className={ROW_EDIT_VALUE_UNIT_SHELL_CLASS}>
                                               <input
@@ -2561,6 +2690,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                               <span className={compactTableAdornmentClassName}>€</span>
                                             </span>
                                           </span>
+                                          <PriceColumnTrailingControlSpacer />
                                         </span>
                                       ) : (
                                         <span
@@ -2568,9 +2698,12 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                                           onMouseEnter={() => setHoveredArticleCell('priceRange', variantPriceDisplay)}
                                           onMouseLeave={() => setHoveredCellMatch(null)}
                                         >
-                                          <span className={`${adminTableMatchingValueBaseClassName} justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}>
-                                            {variantPriceDisplay}
+                                          <span className={`${adminTableMatchingValueBaseClassName} min-w-0 max-w-full justify-end ${getMatchingValueClassName('priceRange', variantPriceDisplay)}`}>
+                                            <span className="min-w-0 truncate" title={variantPriceDisplay}>
+                                              {variantPriceDisplay}
+                                            </span>
                                           </span>
+                                          <PriceColumnTrailingControlSpacer />
                                         </span>
                                       )}
                                     </td>

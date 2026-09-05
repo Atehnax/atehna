@@ -216,18 +216,18 @@ test('failed quote retry honors live policy and signed customer confirmation', (
   );
 });
 
-test('worker claims only OTP while quote business email is disabled', () => {
+test('persisted master toggle blocks every quote email including OTP', () => {
   assert.match(
     quoteEmailJobs,
-    /and \(\$2::boolean = false or event_type = 'quote_access_otp'\)/u
+    /if \(!settings\.enabled\) \{[\s\S]*?return \[\];/u
   );
   assert.match(
     quoteEmailJobs,
-    /otpOnly: !businessEmailEnabled/u
+    /if \(!quoteEmailEnabled\) \{[\s\S]*?return \{ claimed: 0, sent: 0, retried: 0, failed: 0 \};/u
   );
   assert.doesNotMatch(
     quoteEmailJobs,
-    /enabled === false[\s\S]*?return \{ claimed: 0/u
+    /otpOnly|input\.eventType !== 'quote_access_otp'|input\.eventType === 'quote_access_otp' \|\| configuredEvent\.customer/u
   );
 });
 

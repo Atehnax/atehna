@@ -9,9 +9,52 @@ begin;
 
 create extension if not exists pgcrypto;
 
+create function generate_public_code_base()
+returns text
+language plpgsql
+as $$
+declare
+  alphabet constant text := '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+  generated text := '';
+  random_chunk bytea;
+  byte_index integer;
+  byte_value integer;
+begin
+  while char_length(generated) < 16 loop
+    random_chunk := public.gen_random_bytes(16);
+    for byte_index in 0..length(random_chunk) - 1 loop
+      byte_value := get_byte(random_chunk, byte_index);
+      if byte_value < 240 then
+        generated := generated
+          || substr(alphabet, (byte_value % 30) + 1, 1);
+        exit when char_length(generated) = 16;
+      end if;
+    end loop;
+  end loop;
+  return generated;
+end;
+$$;
+
+-- Terminal schema compatibility contracts are deliberately separate from
+-- deployment history. Fresh installs record only the application contract they
+-- satisfy; they do not pretend that incremental deployments were applied.
+create table app_schema_contracts (
+  contract_id text primary key,
+  contract_sha256 text not null,
+  installed_via text not null,
+  recorded_at timestamptz not null default now(),
+  constraint app_schema_contracts_checksum_check check (
+    contract_sha256 ~ '^[a-f0-9]{64}$'
+  ),
+  constraint app_schema_contracts_installation_check check (
+    installed_via in ('fresh_schema', 'existing_database')
+  )
+);
+
 create table orders (
   id bigserial primary key,
   order_number text not null unique,
+  public_code_base text not null default generate_public_code_base(),
   customer_type text not null check (customer_type in ('individual', 'company', 'school')),
   organization_name text,
   contact_name text not null,
@@ -147,9 +190,13 @@ create table orders (
   ),
   constraint orders_parcel_count_positive_check check (
     parcel_count >= 1
+  ),
+  constraint orders_public_code_base_check check (
+    public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'
   )
 );
 
+create unique index idx_orders_public_code_base on orders(public_code_base);
 create index idx_orders_created_at on orders(created_at desc);
 create index idx_orders_deleted_at on orders(deleted_at);
 create index idx_orders_is_draft on orders(is_draft);
@@ -537,19 +584,6 @@ values
     '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":-23.5149,"offsetY":3.6349,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
     '[]'::jsonb,
     7,
-    'active'
-  ),
-  (
-    '2d876cd4-f0ff-4007-86b4-c99f89c060c8',
-    null,
-    'testna-kategorija',
-    'testna kategorija',
-    'testna kategorija',
-    '',
-    '',
-    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":0,"offsetY":0,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
-    '[]'::jsonb,
-    8,
     'active'
   );
 
@@ -1260,6 +1294,7 @@ create table quote_number_counters (
 create table quote_requests (
   id bigserial primary key,
   request_number text not null unique,
+  public_code_base text not null default generate_public_code_base(),
   status text not null default 'received' check (
     status in (
       'received',
@@ -1354,9 +1389,14 @@ create table quote_requests (
   constraint quote_requests_closed_actor_type_check check (
     closed_by_actor_type is null
     or closed_by_actor_type in ('admin', 'customer', 'system')
+  ),
+  constraint quote_requests_public_code_base_check check (
+    public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'
   )
 );
 
+create unique index idx_quote_requests_public_code_base
+  on quote_requests(public_code_base);
 create index idx_quote_requests_status_created_at
   on quote_requests(status, created_at desc, id desc);
 create index idx_quote_requests_email_created_at
@@ -1827,7 +1867,7 @@ create table quote_events (
   quote_request_id bigint not null references quote_requests(id) on delete restrict,
   quote_offer_version_id bigint,
   event_key text,
-  event_type text not null check (
+  event_type text not null constraint quote_events_event_type_check check (
     event_type in (
       'request_received',
       'quote_request_details_changed',
@@ -2537,7 +2577,7 @@ create table quote_email_jobs (
   quote_request_id bigint not null references quote_requests(id) on delete restrict,
   quote_offer_version_id bigint,
   event_key text not null,
-  event_type text not null check (
+  event_type text not null constraint quote_email_jobs_event_type_check check (
     event_type in (
       'quote_request_submitted',
       'quote_clarification_requested',
@@ -2556,7 +2596,8 @@ create table quote_email_jobs (
   recipient_email text not null,
   recipient_name text,
   payload_json jsonb not null,
-  status text not null default 'pending' check (
+  status text not null default 'pending'
+    constraint quote_email_jobs_status_check check (
     status in ('pending', 'processing', 'sent', 'failed', 'cancelled')
   ),
   attempts integer not null default 0 check (attempts >= 0),
@@ -2619,6 +2660,110 @@ alter table orders
     references quote_offer_versions(id)
     on delete restrict;
 
+create function guard_public_code_base_immutable()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.public_code_base is distinct from old.public_code_base then
+    raise exception 'Public customer-code bases are immutable.';
+  end if;
+  return new;
+end;
+$$;
+
+create function guard_order_public_code_lineage()
+returns trigger
+language plpgsql
+as $$
+declare
+  quote_public_code_base text;
+begin
+  if tg_op = 'UPDATE'
+     and new.source_quote_offer_version_id is distinct from old.source_quote_offer_version_id then
+    raise exception 'An order quote-source link is immutable.';
+  end if;
+
+  if new.source_quote_offer_version_id is not null then
+    select request.public_code_base
+      into quote_public_code_base
+      from public.quote_offer_versions offer
+      join public.quote_requests request on request.id = offer.quote_request_id
+     where offer.id = new.source_quote_offer_version_id;
+
+    if not found then
+      raise exception 'The source quote offer does not exist.';
+    end if;
+
+    if tg_op = 'INSERT' then
+      new.public_code_base := quote_public_code_base;
+    elsif new.public_code_base is distinct from quote_public_code_base then
+      raise exception 'A converted order must retain its quote public-code base.';
+    end if;
+
+    perform pg_advisory_xact_lock(
+      hashtextextended(
+        'atehna:public-customer-code:' || quote_public_code_base,
+        0
+      )
+    );
+
+    return new;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('atehna:public-customer-code:' || new.public_code_base, 0)
+  );
+
+  if exists (
+    select 1
+      from public.quote_requests request
+     where request.public_code_base = new.public_code_base
+  ) then
+    return null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create function guard_quote_public_code_namespace()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform pg_advisory_xact_lock(
+    hashtextextended('atehna:public-customer-code:' || new.public_code_base, 0)
+  );
+
+  if exists (
+    select 1
+      from public.orders customer_order
+     where customer_order.public_code_base = new.public_code_base
+  ) then
+    return null;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger orders_guard_public_code_immutable
+before update of public_code_base on orders
+for each row execute function guard_public_code_base_immutable();
+
+create trigger orders_guard_public_code_lineage
+before insert or update of public_code_base, source_quote_offer_version_id on orders
+for each row execute function guard_order_public_code_lineage();
+
+create trigger quote_requests_guard_public_code_immutable
+before update of public_code_base on quote_requests
+for each row execute function guard_public_code_base_immutable();
+
+create trigger quote_requests_guard_public_code_namespace
+before insert on quote_requests
+for each row execute function guard_quote_public_code_namespace();
+
 -- ============================================================================
 -- Order email settings and durable delivery jobs
 -- ============================================================================
@@ -2656,6 +2801,8 @@ create table order_email_jobs (
       'order_submitted',
       'order_accepted',
       'order_rejected',
+      'predracun_issued',
+      'invoice_issued',
       'received',
       'in_progress',
       'partially_sent',
@@ -2811,6 +2958,34 @@ create unique index gurs_addresses_house_number_id_uidx
 create index gurs_addresses_search_text_trgm_idx
   on gurs_addresses using gin (search_text gin_trgm_ops);
 
+create index gurs_addresses_search_text_prefix_idx
+  on gurs_addresses (
+    search_text collate "C",
+    address_line_1 collate "C",
+    postal_code,
+    gurs_house_number_id
+  );
+
+create index gurs_addresses_postal_code_prefix_idx
+  on gurs_addresses (
+    postal_code collate "C",
+    postal_name collate "C"
+  );
+
+create index gurs_addresses_postal_name_prefix_idx
+  on gurs_addresses (
+    (
+      regexp_replace(
+        translate(lower(postal_name), 'čšž', 'csz'),
+        '[^a-z0-9]+',
+        ' ',
+        'g'
+      )
+    ) collate "C",
+    postal_code collate "C",
+    postal_name collate "C"
+  );
+
 create table gurs_address_sync_state (
   key text primary key,
   active_source_updated_at timestamptz,
@@ -2845,5 +3020,16 @@ create index gurs_address_sync_runs_started_at_idx
 create index orders_gurs_house_number_id_idx
   on orders (gurs_house_number_id)
   where gurs_house_number_id is not null;
+
+insert into app_schema_contracts (
+  contract_id,
+  contract_sha256,
+  installed_via
+)
+values (
+  '20260904.prelaunch-v2',
+  'afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c',
+  'fresh_schema'
+);
 
 commit;

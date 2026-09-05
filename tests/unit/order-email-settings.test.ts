@@ -10,6 +10,7 @@ import {
   isOrderEmailEventType,
   normalizeOrderEmailSettings,
   ORDER_EMAIL_EVENT_DEFINITIONS,
+  resolveOrderEmailSystemLines,
   toStoredOrderEmailSettings,
   validateOrderEmailSettingsInput,
   type OrderEmailEventType,
@@ -19,11 +20,17 @@ import {
   buildOrderEmailMessage,
   type OrderEmailJobPayload
 } from '@/shared/domain/order/orderEmailTemplates';
+import {
+  TRANSACTIONAL_EMAIL_FONT_FAMILY,
+  TRANSACTIONAL_EMAIL_HEADING_STYLE
+} from '@/shared/domain/transactionalEmailHtml';
 
 const requestedEvents = new Set<OrderEmailEventType>([
   'order_submitted',
   'order_accepted',
   'order_rejected',
+  'predracun_issued',
+  'invoice_issued',
   'in_progress',
   'partially_sent',
   'sent'
@@ -52,6 +59,7 @@ function jobPayload(
 ): OrderEmailJobPayload {
   const orderAccessToken = `ath_order_${'S'.repeat(43)}`;
   const order = {
+    orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
     createdAt: '2026-08-24T08:15:00.000Z',
     customer: {
       customerType,
@@ -115,6 +123,8 @@ describe('order email settings', () => {
         'order_submitted',
         'order_accepted',
         'order_rejected',
+        'predracun_issued',
+        'invoice_issued',
         ...ORDER_STATUS_OPTIONS.map((status) => status.value)
       ]
     );
@@ -135,24 +145,33 @@ describe('order email settings', () => {
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.replyToEmail, 'narocila@atehna.si');
     assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.adminRecipients, []);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.siteUrl, 'https://www.atehna-test.site');
-    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 5);
+    assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.version, 8);
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.headerText, '');
     assert.equal(DEFAULT_ORDER_EMAIL_SETTINGS.imageAttachment, null);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.customer, [
+      'recipient_name',
       'customer_name',
       'organization_name',
       'contact_name',
       'reference',
       'status',
-      'previous_status'
+      'previous_status',
+      'order_code'
     ]);
     assert.deepEqual(ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer, [
+      'recipient_name',
       'customer_name',
       'organization_name',
       'contact_name',
       'reference',
-      'status'
+      'status',
+      'previous_status',
+      'order_code'
     ]);
+    assert.deepEqual(
+      ORDER_EMAIL_TEMPLATE_VARIABLES.companyCustomer,
+      ORDER_EMAIL_TEMPLATE_VARIABLES.customer
+    );
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.subject,
       'Vaše naročilo je bilo prejeto'
@@ -162,7 +181,8 @@ describe('order email settings', () => {
       'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
     );
     const schoolBody =
-      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.body;
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer
+        .contentHtml ?? '';
     assert.match(schoolBody, /podpisani oziroma odobreni naro\u010dilnici/u);
     assert.match(schoolBody, /spodaj izpisane podatke/u);
     assert.match(
@@ -184,9 +204,28 @@ describe('order email settings', () => {
       const expected = requestedEvents.has(event.value);
       assert.deepEqual(DEFAULT_ORDER_EMAIL_SETTINGS.events[event.value], {
         customer: expected,
-        admins: expected
+        admins:
+          expected &&
+          event.value !== 'predracun_issued' &&
+          event.value !== 'invoice_issued'
       });
+      assert.ok(DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].customer);
+      assert.ok(
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].companyCustomer
+      );
+      assert.ok(
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].schoolCustomer
+      );
+      assert.ok(DEFAULT_ORDER_EMAIL_SETTINGS.templates[event.value].admin);
     }
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.predracun_issued.customer.subject,
+      'Vaš predračun je pripravljen'
+    );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.invoice_issued.customer.subject,
+      'Vaš račun je pripravljen'
+    );
   });
 
   test('clones nested settings and normalizes header fields and recipient addresses', () => {
@@ -196,6 +235,8 @@ describe('order email settings', () => {
     clone.events.order_submitted.customer = false;
     clone.adminRecipients.push('changed@example.com');
     clone.templates.order_submitted.customer.subject = 'Spremenjeno';
+    clone.templates.order_submitted.companyCustomer.subject =
+      'Spremenjeno za podjetje';
     clone.templates.order_submitted.schoolCustomer.subject = 'Spremenjeno za \u0161olo';
     assert.notStrictEqual(clone.imageAttachment, sourceSettings.imageAttachment);
     clone.imageAttachment!.filename = 'spremenjeno.png';
@@ -209,6 +250,10 @@ describe('order email settings', () => {
     assert.equal(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Va\u0161e naro\u010dilo je bilo prejeto \u2013 nalo\u017eite naro\u010dilnico'
+    );
+    assert.equal(
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.companyCustomer.subject,
+      'Vaše naročilo je bilo prejeto'
     );
 
 
@@ -235,7 +280,7 @@ describe('order email settings', () => {
         order_submitted: {
           customer: {
             subject: '  Prejeto {{customer_name}}  ',
-            body: '  Prva vrstica.\r\nDruga vrstica.  '
+            contentHtml: '  <p>Pozdravljeni, {{recipient_name}},</p><h1>Prejeto {{customer_name}}</h1><p>Prva vrstica.<br>Druga vrstica.</p>  '
           }
         }
       },
@@ -265,7 +310,8 @@ describe('order email settings', () => {
     );
     assert.deepEqual(normalized.templates.order_submitted.customer, {
       subject: 'Prejeto {{customer_name}}',
-      body: 'Prva vrstica.\nDruga vrstica.'
+      contentHtml:
+        '<p>Pozdravljeni, {{recipient_name}},</p><h1>Prejeto {{customer_name}}</h1><p>Prva vrstica.<br />Druga vrstica.</p>'
     });
     assert.deepEqual(
       normalized.templates.order_submitted.admin,
@@ -274,7 +320,7 @@ describe('order email settings', () => {
     assert.equal(normalized.updatedAt, '2026-08-24T09:00:00.000Z');
   });
 
-  test('upgrades legacy version two settings with an independent default school template', () => {
+  test('does not reconstruct old plain-text settings and retains independent current defaults', () => {
     const legacy = normalizeOrderEmailSettings({
       version: 2,
       templates: {
@@ -291,11 +337,19 @@ describe('order email settings', () => {
       }
     });
 
-    assert.equal(legacy.version, 5);
+    assert.equal(legacy.version, 8);
     assert.equal(legacy.confirmCustomerEmails, true);
     assert.equal(legacy.headerText, '');
     assert.equal(legacy.imageAttachment, null);
     assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
+    assert.equal(
+      legacy.templates.order_submitted.customer.contentHtml,
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.contentHtml
+    );
+    assert.deepEqual(
+      legacy.templates.order_submitted.companyCustomer,
+      legacy.templates.order_submitted.customer
+    );
     assert.deepEqual(
       legacy.templates.order_submitted.schoolCustomer,
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer
@@ -304,6 +358,109 @@ describe('order email settings', () => {
     assert.notEqual(
       DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer.subject,
       'Mutated'
+    );
+  });
+
+  test('rejects internal order numbers in customer templates without a runtime alias', () => {
+    const stored = toStoredOrderEmailSettings(configuredSettings());
+    const legacy = {
+      ...stored,
+      version: 7,
+      templates: {
+        ...stored.templates,
+        order_submitted: {
+          ...stored.templates.order_submitted,
+          customer: {
+            ...stored.templates.order_submitted.customer,
+            subject: 'Naročilo {{ order_number }}',
+            contentHtml: '<p>Koda {{order_number}}</p>'
+          },
+          admin: {
+            ...stored.templates.order_submitted.admin,
+            subject: 'Interno {{order_number}}'
+          }
+        }
+      }
+    };
+
+    const normalized = normalizeOrderEmailSettings(legacy);
+    assert.equal(normalized.version, 8);
+    assert.equal(
+      normalized.templates.order_submitted.customer.subject,
+      'Naročilo {{ order_number }}'
+    );
+    assert.equal(
+      normalized.templates.order_submitted.customer.contentHtml,
+      '<p>Koda {{order_number}}</p>'
+    );
+    assert.equal(
+      normalized.templates.order_submitted.admin.subject,
+      'Interno {{order_number}}'
+    );
+    assert.ok(
+      validateOrderEmailSettingsInput(legacy).some((error) =>
+        error.includes('{{order_number}}')
+      )
+    );
+
+    const current = {
+      ...legacy,
+      version: 8
+    };
+    assert.ok(
+      validateOrderEmailSettingsInput(current).some((error) =>
+        error.includes('{{order_number}}')
+      )
+    );
+  });
+
+  test('rejects retired template fields without interpreting them as rich text', () => {
+    for (const field of ['greeting', 'heading', 'body']) {
+      const settings = configuredSettings();
+      const raw = {
+        ...settings,
+        templates: {
+          ...settings.templates,
+          order_submitted: {
+            ...settings.templates.order_submitted,
+            customer: {
+              subject: settings.templates.order_submitted.customer.subject,
+              [field]: 'RETIRED CONTENT'
+            }
+          }
+        }
+      };
+      const normalized = normalizeOrderEmailSettings(raw);
+      assert.deepEqual(normalized.templates.order_submitted.customer, DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer);
+      assert.ok(validateOrderEmailSettingsInput(raw).some((error) => /nepodprta polja/u.test(error)));
+    }
+  });
+
+  test('copies current rich-text customer customizations into omitted audience variants', () => {
+    const normalized = normalizeOrderEmailSettings({
+      version: 8,
+      templates: {
+        in_progress: {
+          customer: {
+            subject: 'Customer status',
+            contentHtml: '<p>Pozdravljeni, {{recipient_name}},</p><h1>Status za {{customer_name}}</h1><p>Trenutni status: {{status}}.</p>'
+          }
+        }
+      }
+    });
+
+    assert.deepEqual(
+      normalized.templates.in_progress.companyCustomer,
+      normalized.templates.in_progress.customer
+    );
+    assert.deepEqual(
+      normalized.templates.in_progress.schoolCustomer,
+      normalized.templates.in_progress.customer
+    );
+    normalized.templates.in_progress.companyCustomer.subject = 'Changed';
+    assert.equal(
+      normalized.templates.in_progress.customer.subject,
+      'Customer status'
     );
   });
 
@@ -437,7 +594,7 @@ describe('order email settings', () => {
     const settings = configuredSettings();
     settings.templates.order_submitted.customer = {
       subject: 'Prejeto {{order_number}}',
-      body: 'Pozdravljeni, {{customer_name}}. {{unknown_value}}'
+      contentHtml: '<p>Pozdravljeni, {{customer_name}}. {{unknown_value}}</p>'
     };
     const errors = validateOrderEmailSettingsInput(settings);
     assert.ok(errors.some((error) => /\{\{order_number\}\}/u.test(error)));
@@ -445,7 +602,7 @@ describe('order email settings', () => {
 
     settings.templates.order_submitted.customer = {
       subject: 'Prejeto za {{customer_name}}',
-      body: 'Status: {{status}}; prej: {{previous_status}}'
+      contentHtml: '<p>Pozdravljeni, {{recipient_name}},</p><h1>Naročilo za {{organization_name}}</h1><p>Status: {{status}}; prej: {{previous_status}}</p>'
     };
     assert.deepEqual(validateOrderEmailSettingsInput(settings), []);
   });
@@ -454,7 +611,7 @@ describe('order email settings', () => {
     const settings = configuredSettings();
     settings.templates.order_submitted.schoolCustomer = {
       subject: 'Prejeto {{organization_name}}',
-      body: 'Interna referenca {{order_number}} za {{contact_name}}.'
+      contentHtml: '<p>Interna referenca {{order_number}} za {{contact_name}}.</p>'
     };
 
     const errors = validateOrderEmailSettingsInput(settings);
@@ -482,7 +639,12 @@ describe('order email settings', () => {
         )
       );
 
-      for (const audience of ['customer', 'admin'] as const) {
+      for (const audience of [
+        'customer',
+        'companyCustomer',
+        'schoolCustomer',
+        'admin'
+      ] as const) {
         const invalidAudienceSettings = {
           ...settings,
           templates: {
@@ -495,7 +657,10 @@ describe('order email settings', () => {
         };
         assert.ok(
           validateOrderEmailSettingsInput(invalidAudienceSettings).some(
-            (error) => /Predloga za (stranko|administratorja)/u.test(error)
+            (error) =>
+              /Predloga za (fizično osebo|podjetje|šolo ali javni zavod|administratorja)/u.test(
+                error
+              )
           )
         );
       }
@@ -518,16 +683,173 @@ describe('order email settings', () => {
     settings.updatedAt = '2026-08-24T09:00:00.000Z';
     const stored = toStoredOrderEmailSettings(settings);
     assert.equal('updatedAt' in stored, false);
-    assert.equal(stored.version, 5);
+    assert.equal(stored.version, 8);
     assert.equal(stored.confirmCustomerEmails, false);
     assert.notStrictEqual(stored.events, settings.events);
     assert.notStrictEqual(stored.templates, settings.templates);
     assert.notStrictEqual(stored.adminRecipients, settings.adminRecipients);
     assert.notStrictEqual(stored.imageAttachment, settings.imageAttachment);
   });
+
+  test('upgrades v6 sparsely and round-trips isolated presentation settings', () => {
+    const legacy = normalizeOrderEmailSettings({
+      ...toStoredOrderEmailSettings(configuredSettings()),
+      version: 6
+    });
+    assert.equal(legacy.version, 8);
+    assert.equal(
+      legacy.templates.order_submitted.customer.presentation,
+      undefined
+    );
+    assert.deepEqual(
+      resolveOrderEmailSystemLines(
+        legacy.templates.order_submitted.customer,
+        'customer'
+      ),
+      [
+        { field: 'orderCreatedAt', label: 'Datum' },
+        { field: 'eventStatus', label: 'Status' }
+      ]
+    );
+
+    legacy.templates.order_submitted.customer.presentation = {
+      verticalSpacingPx: 17,
+      blockSpacingPx: {
+        templateContent: 7,
+        systemDetails: 13
+      },
+      systemLines: [
+        {
+          field: 'customerAddress',
+          label: 'Naslov za dostavo',
+          spacingBeforePx: 0
+        },
+        { field: 'customerEmail', label: 'E-pošta', spacingBeforePx: 12 },
+        { field: 'orderCreatedAt', label: 'Datum oddaje' },
+        { field: 'eventStatus', label: 'Stanje' }
+      ]
+    };
+    const stored = toStoredOrderEmailSettings(legacy);
+    assert.deepEqual(
+      stored.templates.order_submitted.customer.presentation,
+      legacy.templates.order_submitted.customer.presentation
+    );
+
+    const clone = cloneOrderEmailSettings(legacy);
+    clone.templates.order_submitted.customer.presentation!.blockSpacingPx!
+      .systemDetails = 3;
+    clone.templates.order_submitted.customer.presentation!.systemLines![0]!
+      .label = 'Spremenjeno';
+    clone.templates.order_submitted.customer.presentation!.systemLines![0]!
+      .spacingBeforePx = 9;
+    assert.equal(
+      legacy.templates.order_submitted.customer.presentation!.blockSpacingPx!
+        .systemDetails,
+      13
+    );
+    assert.equal(
+      legacy.templates.order_submitted.customer.presentation!.systemLines![0]!
+        .label,
+      'Naslov za dostavo'
+    );
+    assert.equal(
+      legacy.templates.order_submitted.customer.presentation!.systemLines![0]!
+        .spacingBeforePx,
+      0
+    );
+
+    legacy.templates.order_submitted.customer.presentation = {
+      systemLines: []
+    };
+    const hidden = normalizeOrderEmailSettings(legacy);
+    assert.deepEqual(
+      hidden.templates.order_submitted.customer.presentation?.systemLines,
+      []
+    );
+    assert.deepEqual(
+      resolveOrderEmailSystemLines(
+        hidden.templates.order_submitted.customer,
+        'customer'
+      ),
+      []
+    );
+  });
+
+  test('rejects invalid spacing and unsafe or duplicate customer system lines', () => {
+    const settings = configuredSettings();
+    settings.templates.order_submitted.customer.presentation = {
+      verticalSpacingPx: 65,
+      blockSpacingPx: { items: -1 },
+      systemLines: [
+        { field: 'customerEmail', label: 'E-pošta' },
+        { field: 'customerEmail', label: 'Podvojeno' },
+        { field: 'orderNumber', label: 'Interna številka' },
+        { field: 'eventStatus', label: 'Status\nBcc', spacingBeforePx: 65 }
+      ]
+    };
+
+    const errors = validateOrderEmailSettingsInput(settings);
+    assert.ok(errors.some((error) => /postavitev/iu.test(error)));
+    assert.ok(errors.some((error) => /podvojeno/iu.test(error)));
+    assert.ok(errors.some((error) => /orderNumber/u.test(error)));
+    assert.ok(errors.some((error) => /Oznaka sistemske vrstice/iu.test(error)));
+    assert.ok(errors.some((error) => /Razmik pred sistemsko vrstico/iu.test(error)));
+  });
+
+  test('normalizes bounded line spacing and restores an empty contact label', () => {
+    const settings = configuredSettings();
+    settings.templates.order_submitted.companyCustomer.presentation = {
+      systemLines: [
+        { field: 'customerContact', label: '', spacingBeforePx: 0 },
+        { field: 'eventStatus', label: 'Status', spacingBeforePx: 99.4 }
+      ]
+    };
+
+    const normalized = normalizeOrderEmailSettings(settings);
+    assert.deepEqual(
+      normalized.templates.order_submitted.companyCustomer.presentation
+        ?.systemLines,
+      [
+        { field: 'customerContact', label: 'Kontakt', spacingBeforePx: 0 },
+        { field: 'eventStatus', label: 'Status', spacingBeforePx: 64 }
+      ]
+    );
+    assert.equal(
+      resolveOrderEmailSystemLines(undefined, 'customer').some(
+        (line) => line.field === 'customerContact'
+      ),
+      false
+    );
+  });
 });
 
 describe('order email templates', () => {
+  test('selects an independent customer template from the stored customer type', () => {
+    const cases = [
+      ['individual', 'customer', 'Fizična oseba'],
+      ['company', 'companyCustomer', 'Podjetje'],
+      ['school', 'schoolCustomer', 'Šola']
+    ] as const;
+
+    for (const [customerType, templateAudience, expectedSubject] of cases) {
+      const payload = jobPayload('customer', 'in_progress', customerType);
+      payload.settingsSnapshot.templates.in_progress.customer.subject =
+        'Fizična oseba';
+      payload.settingsSnapshot.templates.in_progress.companyCustomer.subject =
+        'Podjetje';
+      payload.settingsSnapshot.templates.in_progress.schoolCustomer.subject =
+        'Šola';
+
+      const message = buildOrderEmailMessage(payload);
+
+      assert.equal(message.subject, `[Atehna] ${expectedSubject}`);
+      assert.equal(
+        payload.settingsSnapshot.templates.in_progress[templateAudience].subject,
+        expectedSubject
+      );
+    }
+  });
+
   test('renders the editable customer submission content without internal identifiers', () => {
     const payload = jobPayload();
     Object.assign(payload.order, {
@@ -563,6 +885,94 @@ describe('order email templates', () => {
     );
   });
 
+  test('renders the structured customer address in administrator recipient content', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+    Object.assign(payload.order.customer, {
+      addressLine1: 'Cesta & trg <5>',
+      addressLine2: '2. nadstropje',
+      postalCode: '1000',
+      city: 'Ljubljana',
+      countryCode: 'SI'
+    });
+
+    const message = buildOrderEmailMessage(payload);
+
+    assert.match(
+      message.html,
+      /Naročnik:<\/strong>[^]*?<br>\s*<strong[^>]*>Naslov:<\/strong> Cesta &amp; trg &lt;5&gt;, 2\. nadstropje, 1000 Ljubljana<br>/u
+    );
+    assert.match(
+      message.text,
+      /Naročnik: Primer & sinovi <d\.o\.o\.>\nNaslov: Cesta & trg <5>, 2\. nadstropje, 1000 Ljubljana\nE-pošta:/u
+    );
+    assert.match(
+      message.text,
+      /Referenca: REF & <pomembno>\n\nNaročilo: #42 <script>alert\(1\)<\/script>/u
+    );
+  });
+
+  test('omits the administrator address row cleanly when the customer address is absent', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+
+    const message = buildOrderEmailMessage(payload);
+
+    assert.doesNotMatch(message.html, />Naslov:<\/strong>/u);
+    assert.doesNotMatch(message.text, /^Naslov:/mu);
+    assert.match(
+      message.html,
+      /Naročnik:<\/strong>[^]*?<br>\s*<strong[^>]*>E-pošta:<\/strong>/u
+    );
+    assert.match(
+      message.text,
+      /Naročnik: Primer & sinovi <d\.o\.o\.>\nE-pošta:/u
+    );
+  });
+
+  test('pins the shared typography on the shell and every text-bearing HTML element', () => {
+    const payload = jobPayload(
+      'admin',
+      'order_submitted'
+    ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
+    payload.settingsSnapshot.headerText = 'Skupna glava';
+    const message = buildOrderEmailMessage(payload);
+    const styledTags = message.html.match(
+      /<(?:body|div|p|h1|table|td|th|a)\b[^>]*>/gu
+    ) ?? [];
+
+    assert.ok(styledTags.length > 0);
+    for (const tag of styledTags) {
+      assert.match(
+        tag,
+        new RegExp(`font-family:${TRANSACTIONAL_EMAIL_FONT_FAMILY}`, 'u'),
+        `missing canonical font stack on ${tag}`
+      );
+    }
+    assert.match(
+      message.html,
+      new RegExp(`<h1 style="${TRANSACTIONAL_EMAIL_HEADING_STYLE}`, 'u')
+    );
+    assert.doesNotMatch(message.html, /font-family:Arial,sans-serif/u);
+  });
+
+  test('renders explicit human status labels for document email events', () => {
+    const labels: Array<[OrderEmailEventType, string]> = [
+      ['predracun_issued', 'Predračun izdan'],
+      ['invoice_issued', 'Račun izdan']
+    ];
+
+    for (const [eventType, label] of labels) {
+      const message = buildOrderEmailMessage(jobPayload('customer', eventType));
+      assert.match(message.html, new RegExp(`Status:</strong> ${label}`, 'u'));
+      assert.match(message.text, new RegExp(`Status: ${label}`, 'u'));
+    }
+  });
+
   test('renders the customized school template, fixed details, and one fragment credential', () => {
     const payload = jobPayload(
       'customer',
@@ -571,8 +981,8 @@ describe('order email templates', () => {
     ) as Extract<OrderEmailJobPayload, { audience: 'customer' }>;
     payload.settingsSnapshot.templates.order_submitted.schoolCustomer = {
       subject: '{{organization_name}}: nalo\u017eite naro\u010dilnico',
-      body:
-        'Kontakt {{contact_name}}, za naro\u010dnika {{organization_name}} uporabite referenco {{reference}}.'
+      contentHtml:
+        '<p>Kontakt {{contact_name}}, za naro\u010dnika {{organization_name}} uporabite referenco {{reference}}.</p>'
     };
     Object.assign(payload.order, {
       orderId: 42,
@@ -677,6 +1087,34 @@ describe('order email templates', () => {
     }
   });
 
+  test('renders the public order code for customers and administrators', () => {
+    for (const audience of ['customer', 'admin'] as const) {
+      const payload = jobPayload(audience, 'order_submitted');
+      const audienceTemplate =
+        audience === 'admin' ? 'admin' : 'companyCustomer';
+      payload.settingsSnapshot.templates.order_submitted[audienceTemplate] = {
+        subject: 'Koda {{order_code}}',
+        contentHtml: '<p>Koda naročila: {{order_code}}</p>'
+      };
+      const message = buildOrderEmailMessage(payload);
+      assert.match(message.subject, /N-7K3M-4X9P-2D6R-8H4Q/u);
+      assert.match(message.text, /N-7K3M-4X9P-2D6R-8H4Q/u);
+    }
+  });
+
+  test('renderer never reads retired plain-text fields from a settings snapshot', () => {
+    const payload = jobPayload('customer', 'order_submitted');
+    Object.assign(payload.settingsSnapshot.templates.order_submitted.companyCustomer, {
+      contentHtml: '',
+      greeting: 'RETIRED GREETING',
+      heading: 'RETIRED HEADING',
+      body: 'RETIRED BODY'
+    });
+    const message = buildOrderEmailMessage(payload);
+    assert.doesNotMatch(message.html + message.text, /RETIRED/u);
+    assert.match(message.text, /Prejeli smo vaše naročilo/u);
+  });
+
   test('renders editable admin content and a safe admin order link', () => {
     const payload = jobPayload(
       'admin',
@@ -684,8 +1122,8 @@ describe('order email templates', () => {
     ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
     payload.settingsSnapshot.templates.partially_sent.admin = {
       subject: 'Uredi {{order_number}}: {{status}}',
-      body:
-        'Status {{order_number}} iz {{previous_status}} v {{status}} za {{customer_email}}.'
+      contentHtml:
+        '<p>Dober dan, {{recipient_name}}.</p><h1>Pregled naročila {{order_number}}</h1><p>Status {{order_number}} iz {{previous_status}} v {{status}} za {{customer_email}}.</p>'
     };
     const message = buildOrderEmailMessage(payload);
 
@@ -695,8 +1133,9 @@ describe('order email templates', () => {
     );
     assert.match(
       message.html,
-      /<h1[^>]*>Uredi #42 &lt;script&gt;alert\(1\)&lt;\/script&gt;: Delno poslano<\/h1>/u
+      /<h1[^>]*>Pregled naročila #42 &lt;script&gt;alert\(1\)&lt;\/script&gt;<\/h1>/u
     );
+    assert.match(message.html, /Dober dan, Skrbnik\./u);
     assert.match(
       message.text,
       /Status #42 <script>alert\(1\)<\/script> iz V obdelavi v Delno poslano za kupec@example\.com\./u
@@ -749,6 +1188,93 @@ describe('order email templates', () => {
       `${message.html}\n${message.text}`,
       /\/admin\/orders\/0|Odpri naročilo v administraciji|Administracija:/u
     );
+  });
+
+  test('renders configured system lines and spacing with preview-only markers', () => {
+    const payload = jobPayload(
+      'customer',
+      'order_submitted',
+      'company'
+    ) as Extract<OrderEmailJobPayload, { audience: 'customer' }>;
+    Object.assign(payload.order.customer, {
+      addressLine1: 'Testna cesta 1',
+      postalCode: '1000',
+      city: 'Ljubljana',
+      countryCode: 'SI'
+    });
+    payload.settingsSnapshot.headerText = 'Skupna glava';
+    payload.settingsSnapshot.templates.order_submitted.companyCustomer
+      .presentation = {
+        verticalSpacingPx: 11,
+        blockSpacingPx: {
+          systemDetails: 13,
+          totals: 9
+        },
+        systemLines: [
+          { field: 'customerAddress', label: 'Dostavni naslov' },
+          { field: 'customerContact', label: '', spacingBeforePx: 0 },
+          { field: 'orderCreatedAt', label: 'Datum oddaje' },
+          { field: 'customerEmail', label: 'Kontaktni e-naslov' },
+          { field: 'eventStatus', label: 'Stanje', spacingBeforePx: 12 }
+        ]
+      };
+
+    const production = buildOrderEmailMessage(payload);
+    const preview = buildOrderEmailMessage(payload, {
+      editorPreview: true
+    });
+
+    assert.doesNotMatch(production.html, /data-email-editor-id/u);
+    for (const marker of [
+      'sharedHeader',
+      'templateContent',
+      'customerDetails',
+      'systemDetails',
+      'items',
+      'totals',
+      'sharedFooter',
+      'systemLine:customerAddress',
+      'systemLine:customerContact',
+      'systemLine:customerEmail',
+      'systemLine:orderCreatedAt',
+      'systemLine:eventStatus'
+    ]) {
+      assert.match(
+        preview.html,
+        new RegExp(`data-email-editor-id="${marker}"`, 'u')
+      );
+    }
+    assert.equal(preview.subject, production.subject);
+    assert.equal(preview.text, production.text);
+    assert.deepEqual(preview.attachments, production.attachments);
+    assert.match(production.html, /margin:0 0 11px;color:#334155/u);
+    assert.match(production.html, /margin:13px 0 13px;color:#64748b/u);
+    assert.match(production.html, /margin:9px 0 0 auto/u);
+    assert.match(
+      production.html,
+      /margin-top:0px;color:#334155;[^>]*><strong[^>]*>Kontakt:<\/strong> Ana &lt;Kupec&gt;/u
+    );
+    assert.match(
+      production.html,
+      /margin-top:12px;color:#334155;[^>]*><strong[^>]*>Stanje:<\/strong> Prejeto/u
+    );
+    assert.match(
+      production.text,
+      /Dostavni naslov: Testna cesta 1, 1000 Ljubljana[\s\S]*Kontakt: Ana <Kupec>[\s\S]*Datum oddaje:[\s\S]*Kontaktni e-naslov: kupec@example\.com[\s\S]*Stanje: Prejeto/u
+    );
+    assert.doesNotMatch(
+      `${production.html}\n${production.text}`,
+      /Naročilo:|#PRIVATE|systemLine:orderNumber/u
+    );
+  });
+
+  test('honors an explicit empty system-line list', () => {
+    const payload = jobPayload('customer');
+    payload.settingsSnapshot.templates.order_submitted.companyCustomer
+      .presentation = { systemLines: [] };
+    const message = buildOrderEmailMessage(payload);
+    assert.doesNotMatch(message.html, />Datum:<\/strong>|>Status:<\/strong>/u);
+    assert.doesNotMatch(message.text, /^Datum:|^Status:/mu);
   });
 
   test('rejects unsafe recipient headers instead of sending them', () => {

@@ -644,6 +644,48 @@ textarea[readonly] {
   min-block-size: calc(84px / var(--commercial-storefront-scale));
 }
 
+[data-storefront-theme] .storefront-checkout-textarea-shell--compact,
+[data-storefront-theme] .storefront-checkout-textarea-shell--compact
+  > .storefront-checkout-textarea {
+  block-size: calc(42px / var(--commercial-storefront-scale));
+  min-block-size: calc(42px / var(--commercial-storefront-scale));
+  min-height: calc(42px / var(--commercial-storefront-scale));
+}
+
+[data-storefront-theme] .storefront-checkout-textarea-shell--compact
+  > .storefront-checkout-textarea {
+  padding-block-end: calc(3px / var(--commercial-storefront-scale));
+}
+
+@media (min-width: 1280px) {
+  [data-storefront-theme] .storefront-checkout-address-row-field {
+    border-radius: 0;
+  }
+
+  [data-storefront-theme]
+    .storefront-checkout-address-row
+    > :not(:first-child)
+    .storefront-checkout-address-row-field {
+    border-inline-start-width: 0;
+  }
+
+  [data-storefront-theme]
+    .storefront-checkout-address-row
+    > :first-child
+    .storefront-checkout-address-row-field {
+    border-start-start-radius: var(--site-field-radius);
+    border-end-start-radius: var(--site-field-radius);
+  }
+
+  [data-storefront-theme]
+    .storefront-checkout-address-row
+    > :last-child
+    .storefront-checkout-address-row-field {
+    border-start-end-radius: var(--site-field-radius);
+    border-end-end-radius: var(--site-field-radius);
+  }
+}
+
 .order-school-notice {
   display: grid;
   grid-template-rows: 0fr;

@@ -16,7 +16,11 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { useCartStore } from '@/commercial/cart/store';
-import { cartHasBlockingIssue } from '@/commercial/cart/cartTypes';
+import {
+  cartHasBlockingIssue,
+  cartNeedsEstimate
+} from '@/commercial/cart/cartTypes';
+import { useCartQuantityValidity } from '@/commercial/cart/useCartQuantityValidity';
 import CartLine from '@/commercial/components/storefront/CartLine';
 import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
 import {
@@ -38,8 +42,10 @@ import {
   type SubmitQuoteRequestResponse
 } from '@/commercial/quote/contracts';
 import { storeQuoteAccessSession } from '@/commercial/quote/quoteAccessClient';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 import {
   isAddressSearchQueryEligible,
+  normalizeAddressSearchText,
   type GursAddressSearchResponse,
   type GursAddressSearchResult,
   type GursPostalLocation
@@ -56,7 +62,7 @@ import {
 } from '@/shared/ui/floating-field';
 
 const FORM_STORAGE_KEY = 'atehna-order-form-v4';
-const ADDRESS_SEARCH_DEBOUNCE_MS = 50;
+const ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS = 50;
 const ORDER_SUMMARY_CALCULATION_ROW_CLASS_NAME =
   'flex justify-between gap-4 text-sm font-normal not-italic text-[color:var(--site-color-text)]';
 
@@ -99,12 +105,12 @@ const CHECKOUT_INTENT_OPTIONS = [
   {
     value: 'order',
     label: 'Naročilo',
-    description: 'Oddajte naročilo z obveznostjo plačila.'
+    description: 'Oddajte naročilo za izbrane artikle.'
   },
   {
     value: 'quote_request',
     label: 'Zahtevaj ponudbo',
-    description: 'Pošljite neobvezujoče povpraševanje za ponudbo.'
+    description: 'Pošljite povpraševanje za ponudbo'
   }
 ] as const satisfies ReadonlyArray<{
   value: CheckoutIntent;
@@ -167,10 +173,12 @@ function CheckoutInput({
   label,
   error,
   className,
+  shellClassName = '',
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
+  shellClassName?: string;
 }) {
   const id = String(props.id);
   const describedBy = [
@@ -186,7 +194,7 @@ function CheckoutInput({
         id={id}
         label={label}
         tone="order"
-        shellClassName={`storefront-checkout-input-shell ${
+        shellClassName={`storefront-checkout-input-shell ${shellClassName} ${
           error ? '!border-[color:var(--site-color-danger)]' : ''
         }`}
         className="storefront-checkout-input"
@@ -208,8 +216,12 @@ function CheckoutInput({
 function CheckoutTextarea({
   label,
   className,
+  shellClassName = '',
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string;
+  shellClassName?: string;
+}) {
   const id = String(props.id);
   return (
     <div className={className}>
@@ -218,7 +230,7 @@ function CheckoutTextarea({
         id={id}
         label={label}
         tone="order"
-        shellClassName="storefront-checkout-textarea-shell"
+        shellClassName={`storefront-checkout-textarea-shell ${shellClassName}`}
         className="storefront-checkout-textarea"
       />
     </div>
@@ -235,6 +247,8 @@ export default function OrderPageClient({
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const { hasInvalidQuantity, onQuantityValidityChange } =
+    useCartQuantityValidity();
   const [formData, setFormData] = useState<OrderFormData>(initialForm);
   const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -399,11 +413,12 @@ export default function OrderPageClient({
       return;
     }
 
-    const query = formData.addressLine1.trim();
-    const timeoutId = window.setTimeout(async () => {
+    const query = normalizeAddressSearchText(formData.addressLine1);
+    setAddressSearchStatus('loading');
+    setActiveAddressIndex(-1);
+    const search = async () => {
       const controller = new AbortController();
       addressRequestRef.current = controller;
-      setAddressSearchStatus('loading');
 
       try {
         const response = await fetch(
@@ -446,10 +461,18 @@ export default function OrderPageClient({
           addressRequestRef.current = null;
         }
       }
-    }, ADDRESS_SEARCH_DEBOUNCE_MS);
+    };
+    const startsImmediately = query.length === 1;
+    const timeoutId = startsImmediately
+      ? null
+      : window.setTimeout(() => {
+          void search();
+        }, ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS);
+
+    if (startsImmediately) void search();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       addressRequestRef.current?.abort();
     };
   }, [
@@ -534,8 +557,10 @@ export default function OrderPageClient({
     },
     []
   );
+  const postalEditSequenceRef = useRef(0);
 
   const selectAddressSuggestion = (suggestion: GursAddressSearchResult) => {
+    postalEditSequenceRef.current += 1;
     setFormData((previous) => ({
       ...previous,
       addressLine1: suggestion.addressLine1,
@@ -649,9 +674,14 @@ export default function OrderPageClient({
       setIntentError('Preverite označena obvezna polja.');
       return;
     }
+    if (hasInvalidQuantity) {
+      setIntentError('Preverite označene količine artiklov.');
+      return;
+    }
     if (
       !estimateState.estimate ||
       estimateState.error ||
+      cartNeedsEstimate(items) ||
       cartHasBlockingIssue(items)
     ) {
       setIntentError(
@@ -697,9 +727,6 @@ export default function OrderPageClient({
       postalCode: formData.postalCode.trim(),
       gursHouseNumberId: formData.gursHouseNumberId,
       countryCode: formData.countryCode,
-      reference:
-        customerType === 'school' ? formData.reference.trim() : '',
-      notes: formData.notes.trim(),
       shippingConfigurationVersion: currentShipping.configurationVersion,
       quoteFingerprint: estimateState.estimate.quoteFingerprint,
       items: items.map((item) => ({
@@ -714,7 +741,12 @@ export default function OrderPageClient({
             quoteReason: STOREFRONT_QUOTE_REASON,
             quoteMessage: formData.quoteMessage.trim()
           }
-        : commonPayload;
+        : {
+            ...commonPayload,
+            reference:
+              customerType === 'school' ? formData.reference.trim() : '',
+            notes: formData.notes.trim()
+          };
 
     idempotencyKeyRefs.current[intent] ??= createIdempotencyKey();
     const idempotencyKey = idempotencyKeyRefs.current[intent] as string;
@@ -733,7 +765,7 @@ export default function OrderPageClient({
           body: JSON.stringify(payload)
         }
       );
-      const responsePayload: unknown = await response.json().catch(() => ({}));
+      const responsePayload: unknown = await readJsonResponse(response, {});
       if (!response.ok) {
         const error = parseOrderApiError(
           responsePayload,
@@ -882,12 +914,14 @@ export default function OrderPageClient({
     ? 'Zahtevaj ponudbo'
     : isSchool
       ? 'Pošlji naročilo v potrditev'
-      : 'Naročilo z obveznostjo plačila';
+      : 'Oddaj naročilo';
   const checkoutActionDisabled =
     !canContinue ||
     isSubmitting ||
     estimateState.isLoading ||
     !estimateState.estimate ||
+    hasInvalidQuantity ||
+    cartNeedsEstimate(items) ||
     (!isQuoteRequest && shippingRequiresManualQuote) ||
     cartHasBlockingIssue(items);
   const addressSearchStatusMessage =
@@ -932,6 +966,7 @@ export default function OrderPageClient({
             compact
             presentation="order-summary"
             onQuantityChange={(quantity) => setQuantity(item.lineId, quantity)}
+            onQuantityValidityChange={onQuantityValidityChange}
             onRemove={() => removeItem(item.lineId)}
           />
         ))}
@@ -1022,7 +1057,7 @@ export default function OrderPageClient({
             >
               <h2 className="text-xl font-semibold">Kaj želite oddati?</h2>
               <p className="mt-2 text-sm text-[color:var(--site-color-text-muted)]">
-                Izberite naročilo ali neobvezujoče povpraševanje za ponudbo.
+                Izberite naročilo ali povpraševanje.
               </p>
               <div
                 className="mt-4 grid gap-2 sm:grid-cols-2"
@@ -1222,16 +1257,21 @@ export default function OrderPageClient({
                 value={formData.gursHouseNumberId}
               />
               <input type="hidden" name="countryCode" value="SI" />
-              <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+              <div
+                role="group"
+                aria-label="Naslovni podatki"
+                className="storefront-checkout-address-row grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(8.75rem,0.7fr)_minmax(0,1fr)] xl:gap-0"
+                data-testid="order-address-fields"
+              >
                 <div
-                  className="relative sm:col-span-2"
+                  className="relative min-w-0"
                   onFocusCapture={() => setIsAddressComboboxActive(true)}
                   onBlurCapture={handleAddressComboboxBlur}
                 >
                   <CheckoutInput
                     id="addressLine1"
                     autoComplete="off"
-                    label="Ulica ali naselje in hišna številka"
+                    label="Naslov *"
                     value={formData.addressLine1}
                     onChange={(event) =>
                       updateAddressField('addressLine1', event.target.value)
@@ -1240,6 +1280,7 @@ export default function OrderPageClient({
                     role="combobox"
                     aria-autocomplete="list"
                     aria-expanded={isAddressListOpen}
+                    aria-busy={addressSearchStatus === 'loading'}
                     aria-controls={addressListboxId}
                     aria-describedby={`${addressListboxId}-status`}
                     aria-activedescendant={
@@ -1249,6 +1290,7 @@ export default function OrderPageClient({
                     }
                     error={fieldErrors.addressLine1}
                     disabled={!canContinue}
+                    shellClassName="storefront-checkout-address-row-field"
                     required
                   />
                   <p
@@ -1278,7 +1320,6 @@ export default function OrderPageClient({
                             role="option"
                             aria-selected={activeAddressIndex === index}
                             tabIndex={-1}
-                            onMouseEnter={() => setActiveAddressIndex(index)}
                             onPointerDown={(event) => {
                               if (event.pointerType === 'mouse') {
                                 event.preventDefault();
@@ -1306,13 +1347,14 @@ export default function OrderPageClient({
                 <CheckoutInput
                   id="addressLine2"
                   autoComplete="off"
-                  label="Stanovanje, nadstropje, vhod ali navodila za dostavo (neobvezno)"
+                  label="Stanovanje"
                   value={formData.addressLine2}
                   onChange={(event) =>
                     updateField('addressLine2', event.target.value)
                   }
                   disabled={!canContinue}
-                  className="sm:col-span-2"
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
                 <PostalLocationCombobox
                   field="postalCode"
@@ -1327,7 +1369,10 @@ export default function OrderPageClient({
                   error={fieldErrors.postalCode}
                   disabled={!canContinue}
                   lookupEnabled={!formData.gursHouseNumberId}
+                  editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
                 <PostalLocationCombobox
                   field="postalName"
@@ -1337,94 +1382,70 @@ export default function OrderPageClient({
                   error={fieldErrors.city}
                   disabled={!canContinue}
                   lookupEnabled={!formData.gursHouseNumberId}
+                  editSequenceRef={postalEditSequenceRef}
                   onResolve={applyPostalLocation}
-                />
-              </div>
-              </section>
-
-              <section
-                className="border-t border-[color:var(--site-divider-color)] pt-6"
-                data-testid="order-payment-section"
-              >
-              <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
-                <p className="font-semibold">
-                  {isQuoteRequest
-                    ? 'Neobvezujoče povpraševanje'
-                    : 'Obdelava plačila'}
-                </p>
-                <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
-                  {isQuoteRequest
-                    ? 'Povpraševanje ni naročilo in ne povzroči obveznosti plačila. Ponudbo boste lahko sprejeli ali zavrnili.'
-                    : 'Plačilne kartice ne potrebujete. Neposredno naročilo bomo po oddaji pregledali in ga posebej potrdili ali zavrnili.'}
-                </p>
-              </div>
-              <div className="mt-5 grid gap-4">
-                {isSchool ? (
-                  <CheckoutInput
-                    id="reference"
-                    label="Vaša referenca ali št. naročilnice"
-                    value={formData.reference}
-                    onChange={(event) =>
-                      updateField('reference', event.target.value)
-                    }
-                    disabled={!canContinue}
-                  />
-                ) : null}
-                <CheckoutTextarea
-                  id="notes"
-                  label="Opombe"
-                  value={formData.notes}
-                  onChange={(event) => updateField('notes', event.target.value)}
-                  disabled={!canContinue}
+                  className="min-w-0"
+                  shellClassName="storefront-checkout-address-row-field"
                 />
               </div>
               </section>
 
               {isQuoteRequest ? (
-              <section
-                className="border-t border-[color:var(--site-divider-color)] pt-6"
-                data-testid="quote-request-details-section"
-              >
-                <h2 className="text-lg font-semibold">Kaj potrebujete?</h2>
-                <p className="mt-2 text-sm leading-6 text-[color:var(--site-color-text-muted)]">
-                  Povpraševanje ni naročilo in ne povzroči obveznosti plačila.
-                  Ponudbo boste lahko sprejeli ali zavrnili.
-                </p>
-                <div className="mt-5 grid gap-4">
-                  <div
-                    className="site-radius-sm border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] px-4 py-3"
-                    data-testid="quote-request-fixed-type"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--site-color-text-muted)]">
-                      Vrsta povpraševanja
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">
-                      Formalno ponudbo za izbrane artikle
+                <section
+                  className="border-t border-[color:var(--site-divider-color)] pt-6"
+                  data-testid="quote-request-details-section"
+                >
+                  <CheckoutTextarea
+                    id="quoteMessage"
+                    label="Opombe"
+                    value={formData.quoteMessage}
+                    onChange={(event) =>
+                      updateField('quoteMessage', event.target.value)
+                    }
+                    maxLength={2000}
+                    rows={1}
+                    disabled={!canContinue}
+                    shellClassName="storefront-checkout-textarea-shell--compact"
+                  />
+                </section>
+              ) : (
+                <section
+                  className="border-t border-[color:var(--site-divider-color)] pt-6"
+                  data-testid="order-payment-section"
+                >
+                  <div className="site-radius-md border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-4">
+                    <p className="font-semibold">Obdelava plačila</p>
+                    <p className="mt-1 text-sm text-[color:var(--site-color-text-muted)]">
+                      Plačilne kartice ne potrebujete. Neposredno naročilo bomo po
+                      oddaji pregledali in ga posebej potrdili ali zavrnili.
                     </p>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="quoteMessage"
-                      className="mb-2 block text-sm font-semibold"
-                    >
-                      Dodatne želje ali vprašanja
-                    </label>
-                    <textarea
-                      id="quoteMessage"
-                      value={formData.quoteMessage}
+                  <div className="mt-5 grid gap-4">
+                    {isSchool ? (
+                      <CheckoutInput
+                        id="reference"
+                        label="Vaša referenca ali št. naročilnice"
+                        value={formData.reference}
+                        onChange={(event) =>
+                          updateField('reference', event.target.value)
+                        }
+                        disabled={!canContinue}
+                      />
+                    ) : null}
+                    <CheckoutTextarea
+                      id="notes"
+                      label="Opombe"
+                      value={formData.notes}
                       onChange={(event) =>
-                        updateField('quoteMessage', event.target.value)
+                        updateField('notes', event.target.value)
                       }
-                      maxLength={2000}
-                      rows={4}
+                      rows={1}
                       disabled={!canContinue}
-                      placeholder="Na primer želeni dobavni rok, druga količina, posebna dostava, alternativni artikel ali interna referenca."
-                      className="site-radius-sm w-full resize-y border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface)] px-4 py-3 text-sm text-[color:var(--site-color-text)] placeholder:text-[color:var(--site-color-text-muted)]"
+                      shellClassName="storefront-checkout-textarea-shell--compact"
                     />
                   </div>
-                </div>
-              </section>
-              ) : null}
+                </section>
+              )}
             </div>
             </div>
           ) : null}

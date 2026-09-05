@@ -50,9 +50,14 @@ test('system-generated access URLs expose bootstrap secrets only in fragments', 
   );
   assert.doesNotMatch(orderAccessSource, /\/order\/narocilnica\?token=/u);
   assert.doesNotMatch(emailSettingsSource, /purchase_order_upload_url|ath_order_/u);
-  assert.doesNotMatch(
+  assert.doesNotMatch(adminEmailUiSource, /ath_order_|narocilnica#token/u);
+  assert.match(
     adminEmailUiSource,
-    /purchaseOrderUploadUrl|ath_order_|narocilnica#token/u
+    /\["ath", "order"\]\.join\("_"\) \+ "_" \+ "P"\.repeat\(43\)/u
+  );
+  assert.match(
+    adminEmailUiSource,
+    /purchaseOrderUploadUrl:[\s\S]*?orderEmailPreviewPurchaseOrderUrl\(settingsSnapshot\.siteUrl\)[\s\S]*?: null/u
   );
   assert.doesNotMatch(
     checkoutRouteSource,

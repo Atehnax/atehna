@@ -19,6 +19,7 @@ type EuiTabsProps = {
   tabs: EuiTabItem[];
   className?: string;
   surface?: 'page' | 'panel';
+  variant?: 'primary' | 'secondary';
   tabClassName?: string;
   ariaLabel?: string;
   idPrefix?: string;
@@ -30,6 +31,7 @@ export default function EuiTabs({
   tabs,
   className,
   surface = 'page',
+  variant = 'primary',
   tabClassName,
   ariaLabel,
   idPrefix
@@ -59,6 +61,7 @@ export default function EuiTabs({
   const activeRaisedSurfaceClassName = surface === 'panel'
     ? '!border-b-white bg-white'
     : '!border-b-[color:var(--bg)] bg-[color:var(--bg)]';
+  const secondary = variant === 'secondary';
 
   return (
     <div
@@ -82,14 +85,20 @@ export default function EuiTabs({
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => onKeyDown(event, tabIndex)}
             className={
-              `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
-                active
-                  ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[color:var(--blue-500)]`
-                  : 'border-transparent bg-transparent font-semibold text-slate-600 hover:text-slate-900 active:text-slate-900'
-              }`
+              secondary
+                ? `relative z-10 -mb-px inline-flex h-10 min-w-[96px] items-center justify-center border-b-2 px-5 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition-colors ${tabClassName ?? ''} ${
+                    active
+                      ? 'border-[color:var(--blue-500)] font-semibold text-[color:var(--blue-500)]'
+                      : 'border-transparent font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 active:text-slate-900'
+                  }`
+                : `relative z-10 -mb-px inline-flex h-[42px] min-w-[118px] items-center justify-center rounded-t-lg border px-6 font-['Inter',system-ui,sans-serif] text-[13px] leading-4 transition ${tabClassName ?? ''} ${
+                    active
+                      ? `border-slate-200 ${activeRaisedSurfaceClassName} font-semibold text-[color:var(--blue-500)]`
+                      : 'border-transparent bg-transparent font-semibold text-slate-600 hover:text-slate-900 active:text-slate-900'
+                  }`
             }
           >
-            {active ? (
+            {active && !secondary ? (
               <span
                 aria-hidden="true"
                 data-eui-tab-divider-mask="true"

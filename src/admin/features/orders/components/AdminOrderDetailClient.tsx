@@ -16,6 +16,8 @@ import AdminOrderActivityCard from '@/admin/features/orders/components/AdminOrde
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
+import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
@@ -38,6 +40,7 @@ import { IconButton } from '@/shared/ui/icon-button';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 import {
   ActionUndoIcon,
+  CopyIcon,
   PencilIcon,
   SaveIcon,
   TrashCanIcon
@@ -81,6 +84,7 @@ import type {
 
 type NormalizedOrder = {
   order_number: string;
+  order_code: string;
   customer_type: string;
   organization_name: string;
   contact_name: string;
@@ -107,6 +111,8 @@ type NormalizedOrder = {
   source_quote_request_id: number | null;
   source_quote_request_number: string | null;
   source_quote_offer_number: string | null;
+  source_quote_code: string | null;
+  source_quote_offer_code: string | null;
   reference: string;
   notes: string;
   status: string;
@@ -205,11 +211,11 @@ const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !sh
 const orderDataValueControlClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const orderDataCompositeInputClassName =
-  `${adminCompactIconFieldInputClassName} min-w-0 !px-2`;
+  `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
 const orderDataInlineTextareaClassName =
   `${orderDataValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const orderDataReadValueClassName =
-  "block h-5 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900";
+  "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 
 const toDisplayOrderNumberValue = (value: string) => {
   const trimmed = value.trim();
@@ -443,12 +449,14 @@ function OrderAddressEditor({
   disabled: boolean;
   onChange: (patch: Partial<DetailData>) => void;
 }) {
+  const postalEditSequenceRef = useRef(0);
+
   return (
-    <DetailFieldShell isEditing>
+    <DetailFieldShell isEditing className={customerDetailStyles.addressShell}>
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="admin-order-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -460,13 +468,16 @@ function OrderAddressEditor({
             deliveryAddress: value,
             gursHouseNumberId: ''
           })}
-          onSelect={(suggestion) => onChange({
-            deliveryAddress: suggestion.addressLine1,
-            postalCode: suggestion.postalCode,
-            city: suggestion.postalName,
-            countryCode: 'SI',
-            gursHouseNumberId: suggestion.gursHouseNumberId
-          })}
+          onSelect={(suggestion) => {
+            postalEditSequenceRef.current += 1;
+            onChange({
+              deliveryAddress: suggestion.addressLine1,
+              postalCode: suggestion.postalCode,
+              city: suggestion.postalName,
+              countryCode: 'SI',
+              gursHouseNumberId: suggestion.gursHouseNumberId
+            });
+          }}
           className={orderDataCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
@@ -479,29 +490,38 @@ function OrderAddressEditor({
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={orderDataCompositeInputClassName}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalCode"
           aria-label="Poštna številka"
-          autoComplete="postal-code"
-          type="text"
-          inputMode="numeric"
           value={details.postalCode}
           disabled={disabled}
-          placeholder="P. št."
-          onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+          testId="admin-order-postal-code-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            postalCode: value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={`${orderDataCompositeInputClassName} text-center`}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalName"
           aria-label="Kraj"
-          autoComplete="address-level2"
-          type="text"
           value={details.city}
           disabled={disabled}
-          placeholder="Kraj"
-          onChange={(event) => onChange({
-            city: event.target.value,
+          testId="admin-order-city-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            city: value,
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={orderDataCompositeInputClassName}
@@ -858,6 +878,14 @@ export default function AdminOrderDetailClient({
   const orderNumberSuggestionsId = `order-number-suggestions-${orderId}`;
   const orderNumberInputRef = useRef<HTMLInputElement | null>(null);
   const [isOrderNumberMenuOpen, setIsOrderNumberMenuOpen] = useState(false);
+  const copyPublicOrderCode = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(order.order_code);
+      toast.success('Koda naročila je kopirana.');
+    } catch {
+      toast.error('Kode naročila ni bilo mogoče kopirati.');
+    }
+  }, [order.order_code, toast]);
   const orderNumberAvailability = useOrderNumberAvailability({
     orderId,
     value: draftOrderNumber,
@@ -1421,6 +1449,17 @@ export default function AdminOrderDetailClient({
                   title={pageTitle}
                   width="compact"
                 />
+                <button
+                  type="button"
+                  onClick={() => void copyPublicOrderCode()}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold tabular-nums text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+                  aria-label={`Kopiraj kodo naročila ${order.order_code}`}
+                  title="Kopiraj kodo naročila"
+                  data-testid="admin-order-public-code-copy"
+                >
+                  <span>Koda {order.order_code}</span>
+                  <CopyIcon className="h-3.5 w-3.5" />
+                </button>
 
                 <div
                   className={adminStatusInfoPillGroupClassName}
@@ -1537,14 +1576,22 @@ export default function AdminOrderDetailClient({
               {order.source_quote_request_id ? (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
                   {order.source_quote_offer_number ? (
-                    <span>Iz ponudbe {order.source_quote_offer_number}</span>
+                    <span>
+                      Iz ponudbe {order.source_quote_offer_code ?? order.source_quote_offer_number}
+                      {order.source_quote_offer_code && order.source_quote_offer_number
+                        ? ` · interno ${order.source_quote_offer_number}`
+                        : ''}
+                    </span>
                   ) : null}
                   {order.source_quote_request_number ? (
                     <Link
                       href={'/admin/orders/quotes/' + order.source_quote_request_id}
                       className="font-semibold text-[color:var(--blue-500)] hover:underline"
                     >
-                      Povpraševanje {order.source_quote_request_number}
+                      Povpraševanje {order.source_quote_code ?? order.source_quote_request_number}
+                      {order.source_quote_code && order.source_quote_request_number
+                        ? ` · interno ${order.source_quote_request_number}`
+                        : ''}
                     </Link>
                   ) : null}
                 </div>
@@ -1559,7 +1606,7 @@ export default function AdminOrderDetailClient({
 
         </section>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
           <div className="flex min-w-0 flex-col gap-5">
             <AdminOrderItemsEditorClient
               orderId={orderId}
@@ -1857,12 +1904,13 @@ function OrderDataRow({
 
   return (
     <div
-      className={`grid h-[35px] items-center gap-3 ${
+      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
       }`}
       data-order-data-row={label}
+      data-detail-editing={isEditing}
       data-order-data-span={fullWidth ? 'full' : undefined}
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-slate-500">

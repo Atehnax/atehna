@@ -7,6 +7,10 @@ import {
   normalizeProductAppearanceConfig,
   toStoredProductAppearanceConfig
 } from '@/shared/domain/style/productAppearance';
+import {
+  STOREFRONT_CART_PENDING_SHIPPING_LABEL,
+  STOREFRONT_CHECKOUT_SHIPPING_MESSAGE
+} from '@/shared/domain/shipping/storefrontShippingCopy';
 
 const purchaseCopyKeys = [
   'priceSelectionPrompt',
@@ -215,6 +219,9 @@ describe('product purchase copy contracts', () => {
     const detailSource = source(
       'src/commercial/components/storefront/ProductDetailView.tsx'
     );
+    const adminAppearanceSource = source(
+      'src/admin/features/podoba/components/AdminProductAppearancePageClient.tsx'
+    );
 
     for (const key of [
       'priceSelectionPrompt',
@@ -275,10 +282,31 @@ describe('product purchase copy contracts', () => {
     expect(detailSource).toContain(
       'appearance.purchaseArea.copy.unavailableActionLabel'
     );
-    const shippingMessage =
-      'Poštnina se izračuna v košarici glede na skupno težo in mere.';
-    expect(purchasePanelSource).toContain(shippingMessage);
-    expect(detailSource).toContain(shippingMessage);
+    expect(STOREFRONT_CHECKOUT_SHIPPING_MESSAGE).toBe(
+      'Poštnina se izračuna v sklepni fazi naročila'
+    );
+    expect(purchasePanelSource).toContain(
+      'STOREFRONT_CHECKOUT_SHIPPING_MESSAGE'
+    );
+    expect(detailSource).toContain('STOREFRONT_CHECKOUT_SHIPPING_MESSAGE');
+    expect(adminAppearanceSource).toContain(
+      'STOREFRONT_CART_PENDING_SHIPPING_LABEL'
+    );
+    expect(adminAppearanceSource).toContain(
+      'STOREFRONT_CHECKOUT_SHIPPING_MESSAGE'
+    );
+    expect(STOREFRONT_CART_PENDING_SHIPPING_LABEL).toBe(
+      'Izračun na strani za naročilo'
+    );
+    for (const storefrontSource of [
+      purchasePanelSource,
+      detailSource,
+      adminAppearanceSource
+    ]) {
+      expect(storefrontSource).not.toContain(
+        'Poštnina se izračuna v košarici glede na skupno težo in mere.'
+      );
+    }
     expect(purchasePanelSource).not.toMatch(/free.?Shipping|Brezplačn[a]? dostav/u);
     expect(detailSource).not.toMatch(/free.?Shipping|Brezplačn[a]? dostav/u);
   });

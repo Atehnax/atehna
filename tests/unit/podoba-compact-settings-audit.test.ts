@@ -20,6 +20,9 @@ const landingSource = sourceFor('AdminLandingPageClient.tsx');
 const logoSource = sourceFor('AdminLogoPageClient.tsx');
 const logoTextSource = sourceFor('SiteLogoTextLayerControls.tsx');
 const navigationSource = sourceFor('AdminNavigationPageClient.tsx');
+const navigationAppearanceStyles = readFileSync(
+  resolve(componentsDirectory, 'AdminNavigationAppearance.module.css'), 'utf8'
+);
 const globalSource = sourceFor('AdminGlobalStylePageClient.tsx');
 const productPageSource = sourceFor('AdminProductAppearancePageClient.tsx');
 const productToolbarSource = sourceFor('ProductAppearanceContextToolbar.tsx');
@@ -148,17 +151,21 @@ test('page-level product and top-bar typography selectors pin the light admin to
   ]) {
     const select = compactSelectOpeningTagForMarker(navigationSource, marker);
     assert.match(select, /tone="light"/u);
-    assert.match(select, /triggerClassName="[^"]*!h-7[^"]*!rounded-md[^"]*!bg-white/u);
+    assert.match(select, /triggerClassName="[^"]*!rounded-lg[^"]*!bg-white/u);
   }
 
+  assert.match(navigationSource, /\$\{styles\.panel\} grid h-full/u);
   assert.match(
-    navigationSource,
-    /grid-cols-\[minmax\(0,1\.12fr\)_minmax\(0,0\.88fr\)\] gap-2\.5/u
+    navigationAppearanceStyles,
+    /\.panel \[data-appearance-editor-compact-select-trigger\]\s*\{\s*height: 28px !important;/u
   );
-  assert.match(
-    navigationSource,
-    /grid-cols-\[66px_minmax\(72px,1\.05fr\)_minmax\(58px,0\.95fr\)\] gap-2/u
-  );
+  assert.doesNotMatch(navigationAppearanceStyles, /(?:transform|zoom|overflow):/u);
+
+  const colorsRowIndex = navigationSource.indexOf('data-testid="top-bar-colors-row"');
+  const typographyRowIndex = navigationSource.indexOf('data-testid="top-bar-typography-row"');
+  assert.notEqual(colorsRowIndex, -1);
+  assert.notEqual(typographyRowIndex, -1);
+  assert.ok(colorsRowIndex < typographyRowIndex);
 });
 
 test('the shared alignment control is a roving keyboard radiogroup including justified text', () => {

@@ -393,15 +393,15 @@ test('deployment is transactional, conservative, and never mutates inventory', (
 });
 
 test('quote feature flags are independent and default closed', () => {
-  const flags = source('src/shared/server/quoteFeatureFlags.ts');
+  const flags = source('src/shared/server/environmentCore.mjs');
   for (const environmentName of [
     'QUOTE_ADMIN_ENABLED',
     'QUOTE_PUBLIC_REQUESTS_ENABLED',
-    'QUOTE_ONLINE_ACCEPTANCE_ENABLED',
-    'QUOTE_EMAIL_DELIVERY_ENABLED'
+    'QUOTE_ONLINE_ACCEPTANCE_ENABLED'
   ]) {
-    assert.match(flags, new RegExp('process\\.env\\.' + environmentName, 'u'));
+    assert.match(flags, new RegExp('environment\\.' + environmentName, 'u'));
   }
+  assert.doesNotMatch(flags, /QUOTE_EMAIL_DELIVERY_ENABLED/u);
   assert.match(flags, /value\?\.trim\(\)\.toLowerCase\(\) === 'true'/u);
   assert.match(flags, /value\?\.trim\(\) === '1'/u);
 });

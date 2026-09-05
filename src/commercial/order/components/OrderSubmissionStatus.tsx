@@ -9,8 +9,11 @@ export type OrderSubmissionCommitmentStatus =
   | 'rejected';
 
 type OrderSubmissionStatusProps = {
+  orderCode: string;
   commitmentStatus?: OrderSubmissionCommitmentStatus;
   contractStatus?: OrderContractStatus;
+  submittedAt?: string | null;
+  submittedAtDateTime?: string | null;
 };
 
 export type OrderSubmissionStatusContent = {
@@ -52,7 +55,7 @@ export function getOrderSubmissionStatusContent(
       eyebrow: 'Potrjeno',
       heading: 'Vaše naročilo je potrjeno',
       description:
-        'Atehna je naročilo sprejela. Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
+        'Za nadaljnje usklajevanje bomo uporabili navedeni e-poštni naslov.',
       symbol: '✓',
       tone: 'success'
     };
@@ -69,8 +72,11 @@ export function getOrderSubmissionStatusContent(
 }
 
 export default function OrderSubmissionStatus({
+  orderCode,
   commitmentStatus,
-  contractStatus
+  contractStatus,
+  submittedAt,
+  submittedAtDateTime
 }: OrderSubmissionStatusProps) {
   const content = getOrderSubmissionStatusContent(
     commitmentStatus,
@@ -83,6 +89,27 @@ export default function OrderSubmissionStatus({
       heading={content.heading}
       description={content.description}
       symbol={content.symbol}
+      meta={
+        <>
+          <p className="text-sm text-[color:var(--site-color-text-muted)]">
+            Koda naročila
+          </p>
+          <p
+            className="mt-1 font-semibold tabular-nums"
+            data-testid="order-confirmation-public-code"
+          >
+            {orderCode}
+          </p>
+          {submittedAt ? (
+            <time
+              className="mt-2 block text-sm text-[color:var(--site-color-text-muted)]"
+              dateTime={submittedAtDateTime ?? undefined}
+            >
+              {submittedAt}
+            </time>
+          ) : null}
+        </>
+      }
       tone={content.tone}
       testId="order-submission-status"
       headingTestId="order-confirmation-heading"

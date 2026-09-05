@@ -8,6 +8,7 @@ import {
   getQuoteRequestStatusPresentation,
   type QuoteRequestStatusTone
 } from '@/shared/domain/quote/quoteRequestStatus';
+import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 
 type OrderStatus = (typeof ORDER_STATUS_OPTIONS)[number]['value'];
 type OrderStatusTone = ReturnType<typeof getStatusChipVariant>;
@@ -39,7 +40,7 @@ const ORDER_ROW_CLASS_BY_TONE: Record<OrderStatusTone, string> = {
     'bg-[color:var(--ui-neutral-bg)] hover:!bg-[color:var(--ui-neutral-bg-hover)]',
   warning: 'bg-yellow-50 hover:!bg-yellow-100',
   info: 'bg-blue-50 hover:!bg-blue-100',
-  success: 'bg-emerald-50 hover:!bg-emerald-100',
+  success: adminTableRowToneClasses.success,
   danger: 'bg-orange-100 hover:!bg-orange-200'
 };
 

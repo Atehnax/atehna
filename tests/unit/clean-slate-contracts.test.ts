@@ -17,6 +17,30 @@ const implementationSource = (relativeDirectory: string): string => {
     .join('\n');
 };
 
+test('public customer codes use a migration-only cutover with no runtime aliases', () => {
+  const runtime = [
+    source('src/shared/domain/emailTemplateRichText.ts'),
+    source('src/shared/domain/order/orderEmailSettings.ts'),
+    source('src/shared/domain/order/orderDocumentTemplates.ts'),
+    source('src/shared/domain/quote/quoteEmailSettings.ts')
+  ].join('\n');
+  const readme = source('README.md');
+  const rollout = source('docs/quote-workflow-rollout.md');
+
+  assert.doesNotMatch(
+    runtime,
+    /remapEmailTemplateVariables|migrateCustomerOrderNumber|migrateCustomerVariables|legacyQuoteCustomerVariableReplacements|migratePublicCodeRows/u
+  );
+  assert.doesNotMatch(
+    [readme, rollout].join('\n'),
+    /normalization bridge|pre-v8\/pre-v2 settings-normalization aliases/u
+  );
+  assert.match(
+    rollout,
+    /guarded database rewrite[\s\S]*?sole transition mechanism/u
+  );
+});
+
 test('database setup has one canonical schema and ordered reviewed deployment artifacts', () => {
   const schemaPath = resolve(process.cwd(), 'database', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf8');
@@ -65,6 +89,27 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   const quoteOutboxCancellationDeployment = source(
     'database/migrations/20260901_quote_outbox_cancellation.sql'
   );
+  const gursAddressPrefixDeployment = source(
+    'database/migrations/20260903_gurs_address_prefix_search.sql'
+  );
+  const gursPostalLookupIndexesDeployment = source(
+    'database/migrations/20260904_gurs_postal_lookup_indexes.sql'
+  );
+  const orderDocumentEmailEventsDeployment = source(
+    'database/migrations/20260903_order_document_email_events.sql'
+  );
+  const schemaContractV1Deployment = source(
+    'database/migrations/20260903_schema_contract_v1.sql'
+  );
+  const publicCustomerCodesDeployment = source(
+    'database/migrations/20260904_public_customer_codes.sql'
+  );
+  const schemaContractDeployment = source(
+    'database/migrations/20260904_schema_contract_v2.sql'
+  );
+  const publicCodeEmailTemplatesPostdeploy = source(
+    'database/migrations/20260905_public_code_email_templates_postdeploy.sql'
+  );
 
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
@@ -79,10 +124,17 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260901_inventory_policy_settings.sql',
     '20260901_order_stock_enforcement_marker.sql',
     '20260901_quote_optional_acceptance_terms.sql',
-    '20260901_quote_outbox_cancellation.sql'
+    '20260901_quote_outbox_cancellation.sql',
+    '20260903_gurs_address_prefix_search.sql',
+    '20260903_order_document_email_events.sql',
+    '20260903_schema_contract_v1.sql',
+    '20260904_gurs_postal_lookup_indexes.sql',
+    '20260904_public_customer_codes.sql',
+    '20260904_schema_contract_v2.sql',
+    '20260905_public_code_email_templates_postdeploy.sql'
   ]);
-  assert.equal(tableNames.length, 61);
-  assert.equal(new Set(tableNames).size, 61);
+  assert.equal(tableNames.length, 62);
+  assert.equal(new Set(tableNames).size, 62);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
   assert.match(
     schema,
@@ -107,7 +159,14 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     inventoryPolicyDeployment,
     orderStockEnforcementMarkerDeployment,
     quoteOptionalAcceptanceTermsDeployment,
-    quoteOutboxCancellationDeployment
+    quoteOutboxCancellationDeployment,
+    gursAddressPrefixDeployment,
+    gursPostalLookupIndexesDeployment,
+    orderDocumentEmailEventsDeployment,
+    schemaContractV1Deployment,
+    publicCustomerCodesDeployment,
+    schemaContractDeployment,
+    publicCodeEmailTemplatesPostdeploy
   ]) {
     assert.match(deployment, /begin;/u);
     assert.match(deployment, /set local search_path = public, pg_temp/u);
@@ -143,6 +202,31 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(orderItemDeliveryPlanDeployment, /delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /order_delivery_plan_revision integer not null default 1/u);
   assert.match(orderItemDeliveryPlanDeployment, /idx_order_items_order_id_ship_later/u);
+  assert.match(publicCustomerCodesDeployment, /generate_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /idx_orders_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /idx_quote_requests_public_code_base/u);
+  assert.match(publicCustomerCodesDeployment, /guard_order_public_code_lineage/u);
+  assert.doesNotMatch(
+    publicCustomerCodesDeployment,
+    /(?:order|quote)_email_(?:settings|jobs)|migrate_(?:order|quote)_customer_templates/iu
+  );
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /atehna\.public_code_email_templates_app_ready/u
+  );
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /where key = 'order-email-notifications'/u
+  );
+  assert.match(publicCodeEmailTemplatesPostdeploy, /where key = 'default'/u);
+  assert.match(
+    publicCodeEmailTemplatesPostdeploy,
+    /legacy_customer_envelope_gate/u
+  );
+  assert.doesNotMatch(
+    publicCodeEmailTemplatesPostdeploy,
+    /(?:update|delete\s+from)\s+public\.(?:order_email_jobs|quote_email_jobs)/iu
+  );
   assert.match(inventoryPolicyDeployment, /create table inventory_policy_settings/u);
   assert.match(
     orderStockEnforcementMarkerDeployment,
@@ -151,6 +235,30 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   assert.match(
     quoteOptionalAcceptanceTermsDeployment,
     /drop constraint quote_offer_versions_issue_identity_check/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /pg_advisory_xact_lock\(hashtext\('gurs-address-sync-publish'\)\)[\s\S]+?lock table public\.gurs_address_sync_state[\s\S]+?lock table public\.gurs_addresses in share mode/u
+  );
+  assert.match(
+    gursPostalLookupIndexesDeployment,
+    /pg_advisory_xact_lock\(hashtext\('gurs-address-sync-publish'\)\)[\s\S]+?lock table public\.gurs_address_sync_state[\s\S]+?lock table public\.gurs_addresses in share mode/u
+  );
+  assert.match(
+    gursPostalLookupIndexesDeployment,
+    /postal_code collate "C"[\s\S]+?regexp_replace\(translate\(lower\(postal_name\)[\s\S]+?postal_name collate "C"/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /lock_token is not null\s+and \(lock_expires_at is null or lock_expires_at <= now\(\)\)[\s\S]+?set lock_token = null,[\s\S]+?update public\.gurs_address_sync_runs[\s\S]+?where status = 'running'[\s\S]+?where key = 'active'\s+and lock_token is not null/u
+  );
+  assert.match(
+    gursAddressPrefixDeployment,
+    /installed\.indrelid = active_table[\s\S]+?installed\.indcollation\[0\][\s\S]+?to_regcollation\('pg_catalog\."C"'\)[\s\S]+?installed\.indcollation\[1\][\s\S]+?create index %I on public\.gurs_addresses/u
+  );
+  assert.match(
+    orderDocumentEmailEventsDeployment,
+    /order_email_jobs_event_type_check[\s\S]*?predracun_issued[\s\S]*?invoice_issued/u
   );
   assert.match(
     quoteOptionalAcceptanceTermsDeployment,
@@ -164,86 +272,96 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     /loadMigrations|applyMigrations|e2e_schema_migrations|migrationCount|migrationsDirectory/u
   );
   assert.match(setup, /create table e2e_schema_state/u);
-  assert.match(setup, /has_order_access_tokens/u);
-  assert.match(setup, /has_order_email_settings/u);
-  assert.match(setup, /has_order_email_jobs/u);
-  assert.match(setup, /has_order_stock_holds/u);
-  assert.match(setup, /has_quote_requests/u);
-  assert.match(setup, /has_quote_events/u);
-  assert.match(setup, /has_quote_access_tokens/u);
-  assert.match(setup, /has_quote_email_settings/u);
-  assert.match(setup, /has_quote_email_jobs/u);
-  assert.match(setup, /has_order_contract_status/u);
   assert.match(setup, /canonical-schema fingerprint is missing or stale/u);
+  assert.match(
+    setup,
+    /from '\.\/check-database-schema\.mjs'/u
+  );
+  assert.match(
+    setup,
+    /verifyContract = verifyDatabaseContract/u
+  );
+  assert.match(
+    setup,
+    /const manifest = await loadManifest\(\);[\s\S]*?await verifyContract\(pool, manifest\);/u
+  );
+
+  for (const delegatedTerminalProbe of [
+    'has_order_access_tokens',
+    'has_inventory_policy_settings',
+    'has_quote_manual_documents',
+    'has_order_contract_status',
+    'has_order_delivery_plan_revision',
+    'has_order_stock_enforcement_applied',
+    'has_order_item_ship_later',
+    'has_order_document_delivery_plan_revision',
+    'has_quote_request_intake_source',
+    'has_quote_request_voided_at',
+    'has_quote_email_cancelled_at',
+    'has_order_items_ship_later_index',
+    'has_quote_offer_optional_acceptance_terms',
+    'quote_offer_versions_issue_identity_check',
+    'quote_email_jobs_cancellation_check'
+  ]) {
+    assert.doesNotMatch(
+      setup,
+      new RegExp(delegatedTerminalProbe, 'u')
+    );
+  }
 
   const health = source('src/app/api/e2e/health/route.ts');
   assert.match(health, /E2E_SCHEMA_SHA256/u);
   assert.match(health, /row\.schema_sha256 !== expectedSchemaSha256/u);
-  assert.match(health, /row\.has_order_access_tokens !== true/u);
-  assert.match(health, /row\.has_order_email_settings !== true/u);
-  assert.match(health, /row\.has_order_email_jobs !== true/u);
-  assert.match(health, /row\.has_order_stock_holds !== true/u);
-  assert.match(health, /row\.has_quote_requests !== true/u);
-  assert.match(health, /row\.has_quote_events !== true/u);
-  assert.match(health, /row\.has_quote_access_tokens !== true/u);
-  assert.match(health, /row\.has_quote_email_settings !== true/u);
-  assert.match(health, /row\.has_quote_email_jobs !== true/u);
-  assert.match(health, /row\.has_order_contract_status !== true/u);
+  assert.match(
+    health,
+    /to_regclass\('public\.app_schema_contracts'\)[\s\S]*?has_schema_contract_table/u
+  );
+  assert.match(
+    health,
+    /from public\.app_schema_contracts where contract_id = \$1 and contract_sha256 = \$2/u
+  );
+  assert.match(
+    health,
+    /\[schemaContract\.contractId, schemaContract\.contractSha256\]/u
+  );
+  assert.match(health, /row\.has_schema_contract_table !== true/u);
+  assert.match(health, /!hasExactSchemaContract/u);
+  assert.match(health, /has_seed/u);
+  assert.match(health, /has_reference_product/u);
+  assert.doesNotMatch(
+    health,
+    /requiredSchemaChecks|information_schema\.columns|pg_constraint|order_access_tokens|inventory_policy_settings|quote_email_jobs/u
+  );
+  assert.doesNotMatch(
+    health,
+    /verifyDatabaseContract|schemaContract\.requirements/u
+  );
 });
 
-test('the commerce reset is explicit, scoped, and rebuilds from the canonical schema', () => {
-  const reset = source('scripts/reset-commerce-database.mjs');
-  const resetTableBlock = reset.match(/const RESET_TABLES = \[([\s\S]*?)\n\];/u)?.[1] ?? '';
+test('fresh deployments install the complete schema without an obsolete partial reset tool', () => {
+  const rollout = source('docs/shipping-rollout.md');
 
-  assert.match(reset, /resolve\(projectRoot, 'database', 'schema\.sql'\)/u);
-  assert.match(reset, /process\.argv\.includes\('--execute'\)/u);
-  assert.match(reset, /process\.argv\.includes\('--verify-build'\)/u);
-  assert.match(reset, /mode: 'verified-build-rolled-back'/u);
-  assert.match(reset, /ATEHNA_ALLOW_COMMERCE_RESET/u);
-  assert.match(reset, /ATEHNA_COMMERCE_RESET_TARGET/u);
-  assert.match(reset, /assertLiveIdentity/u);
-  assert.match(reset, /assertNoExternalForeignKeys/u);
-  assert.match(reset, /restoreSequenceHighWaterMarks/u);
-  assert.match(reset, /select max\(\$\{quoteIdentifier\(columnName\)\}\)::text/u);
-  assert.match(reset, /currentShippingSettingsVersion/u);
-  assert.match(reset, /previousShippingVersion\.version \+ 1/u);
-  assert.match(reset, /drop table if exists \$\{quotedResetTables\.join/u);
-  assert.match(reset, /await client\.query\('rollback'\)/u);
-  assert.doesNotMatch(reset, /drop schema (?:if exists )?public/iu);
-  assert.doesNotMatch(reset, /drop table if exists \$\{quotedResetTables\.join\([^\n]+cascade/iu);
+  assert.equal(
+    existsSync(resolve(process.cwd(), 'scripts/reset-commerce-database.mjs')),
+    false
+  );
+  assert.doesNotMatch(
+    rollout,
+    /reset-commerce-database|ATEHNA_ALLOW_COMMERCE_RESET|ATEHNA_COMMERCE_RESET_TARGET|--verify-build/u
+  );
+  assert.match(rollout, /verified empty\s+database/u);
+  assert.match(rollout, /--set=ON_ERROR_STOP=1[\s\S]*?--file=database\/schema\.sql/u);
+  assert.match(rollout, /npm run check:database-schema/u);
+  assert.match(rollout, /Never run `tests\/fixtures\/e2e-seed\.sql`/u);
+  assert.match(rollout, /post-deploy template rewrite is unnecessary/u);
+});
 
-  for (const requiredResetTable of [
-    'orders',
-    'order_items',
-    'order_stock_holds',
-    'order_documents',
-    'quote_requests',
-    'quote_offer_versions',
-    'quote_manual_documents',
-    'quote_events',
-    'catalog_items',
-    'catalog_item_variants',
-    'shipping_settings',
-    'analytics_charts',
-    'website_events'
-  ]) {
-    assert.match(resetTableBlock, new RegExp(`'${requiredResetTable}'`, 'u'));
-  }
+test('canonical schema contains real category defaults but no test category fixture', () => {
+  const schema = source('database/schema.sql');
 
-  for (const preservedTable of [
-    'order_email_settings',
-    'quote_email_settings',
-    'audit_events',
-    'audit_settings',
-    'site_navigation_settings',
-    'product_appearance_settings',
-    'school_directory_rows',
-    'gurs_addresses',
-    'document_scene_revisions',
-    'archive_blob_deletion_outbox'
-  ]) {
-    assert.doesNotMatch(resetTableBlock, new RegExp(`'${preservedTable}'`, 'u'));
-  }
+  assert.match(schema, /'materiali'/u);
+  assert.match(schema, /'kovine'/u);
+  assert.doesNotMatch(schema, /testna-kategorija|testna kategorija|2d876cd4-f0ff-4007-86b4-c99f89c060c8/iu);
 });
 
 test('order persistence has no removed address or amount columns', () => {

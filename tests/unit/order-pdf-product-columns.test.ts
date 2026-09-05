@@ -13,6 +13,7 @@ test('PDF items use immutable order-line SKU, product text, quantity, unit, and 
           rows: [{
             id: 42,
             order_number: '2026-0042',
+            public_code_base: '7K3M4X9P2D6R8H4Q',
             customer_type: 'company',
             organization_name: 'Preizkusno podjetje d.o.o.',
             contact_name: 'Ana Novak',

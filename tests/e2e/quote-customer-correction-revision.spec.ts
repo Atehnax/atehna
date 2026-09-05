@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type APIRequestContext, type Browser } from '@playwright/test';
 import pg, { type Pool as PgPool } from 'pg';
+import { cloneDefaultQuoteEmailSettings } from '@/shared/domain/quote/quoteEmailSettings';
 import { E2E_BASE_URL } from './support/auth';
 
 const { Pool } = pg;
@@ -12,7 +13,9 @@ const CUSTOMER_EMAIL_CONFIRMATION_REQUIRED =
   'CUSTOMER_EMAIL_CONFIRMATION_REQUIRED';
 
 let database: PgPool;
+let originalQuoteEmailSettings: StoredSettingsRow | null = null;
 
+type StoredSettingsRow = { config_json: unknown; updated_at: Date };
 type Fixture = {
   quoteRequestId: number;
   draftOfferVersionId: number;
@@ -194,6 +197,28 @@ async function processDocuments(request: APIRequestContext) {
   await requireOk(response, 'quote document worker');
 }
 
+async function restoreQuoteEmailSettings() {
+  if (!originalQuoteEmailSettings) {
+    await database.query(
+      `delete from quote_email_settings where key = 'default'`
+    );
+    return;
+  }
+  await database.query(
+    `
+      insert into quote_email_settings (key, config_json, updated_at)
+      values ('default', $1::jsonb, $2)
+      on conflict (key)
+      do update set config_json = excluded.config_json,
+                    updated_at = excluded.updated_at
+    `,
+    [
+      JSON.stringify(originalQuoteEmailSettings.config_json),
+      originalQuoteEmailSettings.updated_at
+    ]
+  );
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('issued quote customer correction revision', () => {
@@ -203,11 +228,40 @@ test.describe('issued quote customer correction revision', () => {
       throw new Error('[e2e-preflight] E2E_DATABASE_URL is required.');
     }
     database = new Pool({ connectionString: databaseUrl, ssl: false });
+
+    const existingSettings = await database.query<StoredSettingsRow>(
+      `select config_json, updated_at from quote_email_settings where key = 'default'`
+    );
+    originalQuoteEmailSettings = existingSettings.rows[0] ?? null;
+
+    const quoteEmail = cloneDefaultQuoteEmailSettings();
+    quoteEmail.enabled = true;
+    for (const eventType of Object.keys(quoteEmail.events)) {
+      quoteEmail.events[eventType as keyof typeof quoteEmail.events] = {
+        customer: false,
+        admins: false
+      };
+    }
+    quoteEmail.events.quote_issued.customer = true;
+    const { updatedAt: _updatedAt, ...storedQuoteEmail } = quoteEmail;
+    await database.query(
+      `
+        insert into quote_email_settings (key, config_json, updated_at)
+        values ('default', $1::jsonb, now())
+        on conflict (key)
+        do update set config_json = excluded.config_json, updated_at = now()
+      `,
+      [JSON.stringify(storedQuoteEmail)]
+    );
   });
 
   test.afterAll(async () => {
     if (!database) return;
-    await (database as PgPool & { end: () => Promise<void> }).end();
+    try {
+      await restoreQuoteEmailSettings();
+    } finally {
+      await (database as PgPool & { end: () => Promise<void> }).end();
+    }
   });
 
   test('keeps V1 and its PDF immutable while a corrected V2 is staged and issued', async ({

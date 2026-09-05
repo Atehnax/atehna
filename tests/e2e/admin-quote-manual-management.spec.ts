@@ -145,7 +145,7 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
     await expect(createdRow).toBeVisible();
 
     const requestNumberFilter = page.getByRole('button', {
-      name: 'Filtriraj P/P'
+      name: 'Filtriraj po internem zaporedju'
     });
     await requestNumberFilter.click();
     await page.getByLabel('Od', { exact: true }).fill(String(requestSequence));

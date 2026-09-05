@@ -204,7 +204,10 @@ async function AdminOrdersTableSection({
       order.total,
       order.created_at,
       order.is_draft ?? false,
-      order.deleted_at ?? null
+      order.deleted_at ?? null,
+      order.order_code,
+      order.source_quote_code ?? null,
+      order.source_quote_offer_code ?? null
     ] as const);
     const compactAnalyticsOrders = analyticsOrders.map((order) => [
       order.created_at,

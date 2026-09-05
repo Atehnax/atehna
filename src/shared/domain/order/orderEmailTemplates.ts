@@ -1,9 +1,34 @@
 import { formatEuro } from '../formatting';
+import {
+  TRANSACTIONAL_EMAIL_BODY_STYLE,
+  TRANSACTIONAL_EMAIL_BUTTON_STYLE,
+  TRANSACTIONAL_EMAIL_CARD_STYLE,
+  TRANSACTIONAL_EMAIL_COPY_STYLE,
+  TRANSACTIONAL_EMAIL_META_STYLE,
+  TRANSACTIONAL_EMAIL_SMALL_STYLE,
+  TRANSACTIONAL_EMAIL_TABLE_STYLE
+} from '../transactionalEmailHtml';
+import {
+  renderEmailTemplateRichText,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
+import {
+  emailTemplateEditorAttribute,
+  hasEmailTemplateSpacingOverride,
+  resolveEmailTemplateSpacingPx,
+  type EmailTemplatePresentation,
+  type EmailTemplateRenderOptions
+} from '../emailTemplateLayout';
+import { formatStructuredOrderAddress } from './orderAddress';
 import type { CustomerType } from './customerType';
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
+  resolveOrderEmailSystemLines,
   type OrderEmailImageAttachment,
   type OrderEmailEventType,
+  type OrderEmailSystemFieldId,
+  type OrderEmailSystemLine,
+  type OrderEmailTemplatePresentation,
   type StoredOrderEmailSettings
 } from './orderEmailSettings';
 import { getStatusLabel } from './orderStatus';
@@ -16,6 +41,11 @@ export type OrderEmailCustomerSnapshot = {
   contactName: string;
   email: string;
   reference: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
 };
 
 export type OrderEmailOrderLineSnapshot = {
@@ -28,6 +58,7 @@ export type OrderEmailOrderLineSnapshot = {
 };
 
 export type OrderEmailCustomerOrderSnapshot = {
+  orderCode: string;
   createdAt: string;
   customer: OrderEmailCustomerSnapshot;
   items: OrderEmailOrderLineSnapshot[];
@@ -162,6 +193,8 @@ function orderStatusLabel(eventType: OrderEmailEventType): string {
   if (eventType === 'order_submitted') return 'Prejeto – čaka na sprejem';
   if (eventType === 'order_accepted') return 'Pogodbeno sprejeto';
   if (eventType === 'order_rejected') return 'Pogodbeno zavrnjeno';
+  if (eventType === 'predracun_issued') return 'Predračun izdan';
+  if (eventType === 'invoice_issued') return 'Račun izdan';
   return getStatusLabel(eventType);
 }
 
@@ -325,6 +358,7 @@ type TemplateValues = Record<string, string>;
 
 function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
   const values: TemplateValues = {
+    recipient_name: safeBodyText(payload.recipientName),
     customer_name: customerDisplayName(payload.order.customer),
     organization_name: safeBodyText(
       payload.order.customer.organizationName
@@ -334,7 +368,8 @@ function buildTemplateValues(payload: OrderEmailJobPayload): TemplateValues {
     status: orderStatusLabel(payload.eventType),
     previous_status: payload.previousStatus
       ? getStatusLabel(payload.previousStatus)
-      : ''
+      : '',
+    order_code: safeBodyText(payload.order.orderCode)
   };
   if (payload.audience === 'admin') {
     values.order_number = safeBodyText(payload.order.orderNumber);
@@ -352,61 +387,71 @@ function renderTemplate(value: unknown, variables: TemplateValues): string {
 
 function buildTemplateContent(payload: OrderEmailJobPayload): {
   subject: string;
-  heading: string;
-  body: string;
-  greeting: string;
+  contentHtml: string;
+  contentText: string;
+  presentation: OrderEmailTemplatePresentation | undefined;
 } {
-  const audience = payload.audience === 'admin' ? 'admin' : 'customer';
-  const schoolCustomer =
-    payload.audience === 'customer' &&
-    payload.eventType === 'order_submitted' &&
-    payload.order.customer.customerType === 'school';
+  const templateAudience =
+    payload.audience === 'admin'
+      ? 'admin'
+      : payload.order.customer.customerType === 'school'
+        ? 'schoolCustomer'
+        : payload.order.customer.customerType === 'company'
+          ? 'companyCustomer'
+          : 'customer';
   const defaultEventTemplates =
     DEFAULT_ORDER_EMAIL_SETTINGS.templates[payload.eventType];
   const configuredEventTemplates =
     payload.settingsSnapshot.templates?.[payload.eventType];
-  const defaults = schoolCustomer
-    ? defaultEventTemplates.schoolCustomer ?? defaultEventTemplates.customer
-    : defaultEventTemplates[audience];
-  const configured = schoolCustomer
-    ? configuredEventTemplates?.schoolCustomer ??
-      configuredEventTemplates?.customer ??
-      defaults
-    : configuredEventTemplates?.[audience] ?? defaults;
+  const defaults = defaultEventTemplates[templateAudience];
+  const configured =
+    configuredEventTemplates?.[templateAudience] ??
+    (templateAudience !== 'admin'
+      ? configuredEventTemplates?.customer
+      : undefined) ??
+    defaults;
   const variables = buildTemplateValues(payload);
-  const heading =
+  const subject =
     safeHeaderText(renderTemplate(configured.subject, variables)) ||
     safeHeaderText(renderTemplate(defaults.subject, variables));
-  const body =
-    safeBodyText(renderTemplate(configured.body, variables)) ||
-    safeBodyText(renderTemplate(defaults.body, variables));
   const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
   const prefixText = prefix ? `[${prefix}] ` : '';
-  const recipientName = safeBodyText(payload.recipientName);
-  const greeting = recipientName ? `Pozdravljeni, ${recipientName},` : 'Pozdravljeni,';
+  const renderedContent = renderEmailTemplateRichText(
+    sanitizeEmailTemplateRichText(configured.contentHtml) || defaults.contentHtml,
+    variables
+  );
+  const fallbackContent = renderedContent.text
+    ? renderedContent
+    : renderEmailTemplateRichText(defaults.contentHtml, variables);
   return {
-    subject: `${prefixText}${heading}`,
-    heading,
-    body,
-    greeting,
+    subject: `${prefixText}${subject}`,
+    contentHtml: fallbackContent.html,
+    contentText: fallbackContent.text,
+    presentation: configured.presentation
   };
 }
 
 function buildHtmlItems(
   items: OrderEmailOrderLineSnapshot[],
-  siteUrl: string
+  siteUrl: string,
+  presentation: EmailTemplatePresentation | undefined,
+  options: EmailTemplateRenderOptions | undefined
 ): string {
+  const marker = emailTemplateEditorAttribute(options, 'items');
+  const spacing = hasEmailTemplateSpacingOverride(presentation, 'items')
+    ? `margin:${resolveEmailTemplateSpacingPx(presentation, 'items', 0)}px 0 0;`
+    : '';
   if (items.length === 0) {
-    return '<p style="margin:0;color:#64748b;">Naročilo nima postavk.</p>';
+    return `<p${marker} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}${spacing || 'margin:0;'}color:#64748b;">Naročilo nima postavk.</p>`;
   }
 
   return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+    <table${marker} role="presentation" width="100%" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}${spacing}border-collapse:collapse;">
       <thead>
         <tr>
-          <th align="left" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Artikel</th>
-          <th align="right" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Količina</th>
-          <th align="right" style="border-bottom:1px solid #dbe4ee;padding:8px 0;font-size:12px;color:#64748b;">Znesek</th>
+          <th align="left" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Artikel</th>
+          <th align="right" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Količina</th>
+          <th align="right" style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}border-bottom:1px solid #dbe4ee;padding:8px 0;color:#64748b;font-weight:700;">Znesek</th>
         </tr>
       </thead>
       <tbody>
@@ -414,19 +459,19 @@ function buildHtmlItems(
           const imageUrl = safeItemImageUrl(item.imageUrl, siteUrl);
           return `
           <tr>
-            <td style="border-bottom:1px solid #edf2f7;padding:10px 8px 10px 0;vertical-align:top;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 8px 10px 0;vertical-align:top;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-collapse:collapse;">
                 <tr>
-                  ${imageUrl ? `<td width="72" style="width:72px;padding:0 12px 0 0;vertical-align:top;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(lineDisplayName(item))}" width="72" height="72" style="display:block;width:72px;height:72px;border:0;border-radius:8px;object-fit:cover;"></td>` : ''}
-                  <td style="vertical-align:top;">
-                    <div style="font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
-                    ${safeBodyText(item.sku) ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
+                  ${imageUrl ? `<td width="72" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}width:72px;padding:0 12px 0 0;vertical-align:top;"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(lineDisplayName(item))}" width="72" height="72" style="display:block;width:72px;height:72px;border:0;border-radius:8px;object-fit:cover;"></td>` : ''}
+                  <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}vertical-align:top;">
+                    <div style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}font-weight:600;color:#0f172a;">${escapeHtml(lineDisplayName(item))}</div>
+                    ${safeBodyText(item.sku) ? `<div style="${TRANSACTIONAL_EMAIL_SMALL_STYLE}margin-top:2px;color:#64748b;">SKU: ${escapeHtml(item.sku)}</div>` : ''}
                   </td>
                 </tr>
               </table>
             </td>
-            <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 8px;vertical-align:top;color:#334155;">${escapeHtml(quantityLabel(item))}</td>
-            <td align="right" style="border-bottom:1px solid #edf2f7;padding:10px 0 10px 8px;vertical-align:top;white-space:nowrap;color:#0f172a;">${escapeHtml(formatMoney(item.lineGross))}</td>
+            <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 8px;vertical-align:top;color:#334155;">${escapeHtml(quantityLabel(item))}</td>
+            <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}border-bottom:1px solid #edf2f7;padding:10px 0 10px 8px;vertical-align:top;white-space:nowrap;color:#0f172a;">${escapeHtml(formatMoney(item.lineGross))}</td>
           </tr>
         `}).join('')}
       </tbody>
@@ -451,8 +496,8 @@ function buildHtmlTotals(order: OrderEmailCustomerOrderSnapshot): string {
   ];
   return rows.map(([label, amount, emphasized]) => `
     <tr>
-      <td style="padding:4px 12px 4px 0;color:${emphasized ? '#0f172a' : '#64748b'};font-weight:${emphasized ? '700' : '400'};">${escapeHtml(label)}</td>
-      <td align="right" style="padding:4px 0;color:#0f172a;font-weight:${emphasized ? '700' : '500'};white-space:nowrap;">${escapeHtml(formatMoney(amount))}</td>
+      <td style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}padding:4px 12px 4px 0;color:${emphasized ? '#0f172a' : '#64748b'};font-weight:${emphasized ? '700' : '400'};">${escapeHtml(label)}</td>
+      <td align="right" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}padding:4px 0;color:#0f172a;font-weight:${emphasized ? '700' : '500'};white-space:nowrap;">${escapeHtml(formatMoney(amount))}</td>
     </tr>
   `).join('');
 }
@@ -468,7 +513,9 @@ function buildTextTotals(order: OrderEmailCustomerOrderSnapshot): string {
 
 function buildSchoolOrderHtmlDetails(
   order: OrderEmailCustomerOrderSnapshot,
-  uploadUrl: string | null
+  uploadUrl: string | null,
+  presentation: EmailTemplatePresentation | undefined,
+  options: EmailTemplateRenderOptions | undefined
 ): string {
   const organization =
     safeBodyText(order.customer.organizationName) ||
@@ -477,14 +524,14 @@ function buildSchoolOrderHtmlDetails(
   const reference = safeBodyText(order.customer.reference);
 
   return `
-    <div style="margin:20px 0;padding:16px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc;color:#334155;">
-      <strong style="display:block;margin-bottom:10px;color:#0f172a;">Podatki za naro\u010dilnico</strong>
-      ${organization ? `<div><strong style="color:#0f172a;">Naro\u010dnik:</strong> ${escapeHtml(organization)}</div>` : ''}
-      ${contact ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Kontaktna oseba:</strong> ${escapeHtml(contact)}</div>` : ''}
-      ${reference ? `<div style="margin-top:4px;"><strong style="color:#0f172a;">Va\u0161a referenca:</strong> ${escapeHtml(reference)}</div>` : ''}
+    <div${emailTemplateEditorAttribute(options, 'audienceDetails')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'audienceDetails', 20)}px 0;padding:16px;border:1px solid #dbe4ee;border-radius:10px;background:#f8fafc;color:#334155;">
+      <strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}display:block;margin-bottom:10px;color:#0f172a;font-weight:700;">Podatki za naro\u010dilnico</strong>
+      ${organization ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Naro\u010dnik:</strong> ${escapeHtml(organization)}</div>` : ''}
+      ${contact ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin-top:4px;"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Kontaktna oseba:</strong> ${escapeHtml(contact)}</div>` : ''}
+      ${reference ? `<div style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin-top:4px;"><strong style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#0f172a;font-weight:700;">Va\u0161a referenca:</strong> ${escapeHtml(reference)}</div>` : ''}
       ${uploadUrl ? `
-        <p style="margin:16px 0 0;">
-          <a href="${escapeHtml(uploadUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Nalo\u017ei naro\u010dilnico</a>
+        <p style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:16px 0 0;">
+          <a href="${escapeHtml(uploadUrl)}" style="${TRANSACTIONAL_EMAIL_BUTTON_STYLE}display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;">Nalo\u017ei naro\u010dilnico</a>
         </p>
       ` : ''}
     </div>
@@ -512,7 +559,138 @@ function buildSchoolOrderTextDetails(
     .join('\n');
 }
 
-export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmailMessage {
+const customerDetailSystemFields = new Set<OrderEmailSystemFieldId>([
+  'customerName',
+  'customerContact',
+  'customerAddress',
+  'customerEmail',
+  'customerReference'
+]);
+
+type ResolvedOrderEmailSystemLine = {
+  line: OrderEmailSystemLine;
+  value: string;
+};
+
+type ResolvedOrderEmailSystemSegment = {
+  blockId: 'customerDetails' | 'systemDetails';
+  lines: ResolvedOrderEmailSystemLine[];
+};
+
+function orderEmailSystemLineValue(
+  payload: OrderEmailJobPayload,
+  field: OrderEmailSystemFieldId
+): string {
+  const order = payload.order;
+  switch (field) {
+    case 'orderCreatedAt':
+      return formatDate(order.createdAt);
+    case 'eventStatus':
+      return orderStatusLabel(payload.eventType);
+    case 'customerName':
+      return customerDisplayName(order.customer) ||
+        safeBodyText(order.customer.contactName);
+    case 'customerContact':
+      return safeBodyText(order.customer.contactName);
+    case 'customerAddress':
+      return formatStructuredOrderAddress(order.customer);
+    case 'customerEmail':
+      return safeBodyText(order.customer.email);
+    case 'customerReference':
+      return safeBodyText(order.customer.reference);
+    case 'orderNumber':
+      return payload.audience === 'admin'
+        ? safeBodyText(payload.order.orderNumber)
+        : '';
+  }
+}
+
+function resolveRenderedOrderEmailSystemLines(
+  payload: OrderEmailJobPayload,
+  presentation: OrderEmailTemplatePresentation | undefined
+): ResolvedOrderEmailSystemLine[] {
+  return resolveOrderEmailSystemLines(
+    { presentation },
+    payload.audience
+  ).flatMap((line) => {
+    const value = orderEmailSystemLineValue(payload, line.field);
+    return value ? [{ line, value }] : [];
+  });
+}
+
+function orderSystemLineEditorAttribute(
+  options: EmailTemplateRenderOptions | undefined,
+  field: OrderEmailSystemFieldId
+): string {
+  return options?.editorPreview
+    ? ` data-email-editor-id="systemLine:${field}"`
+    : '';
+}
+
+function buildHtmlSystemLines(
+  lines: readonly ResolvedOrderEmailSystemLine[],
+  options: EmailTemplateRenderOptions | undefined,
+  lineStyle: string
+): string {
+  const needsLineContainers =
+    options?.editorPreview ||
+    lines.some(({ line }) => line.spacingBeforePx !== undefined);
+  if (!needsLineContainers) {
+    return lines
+      .map(
+        ({ line, value }, index) =>
+          `<strong style="${lineStyle}color:#0f172a;font-weight:700;">${escapeHtml(line.label)}:</strong> ${escapeHtml(value)}${index < lines.length - 1 ? '<br>' : ''}`
+      )
+      .join('');
+  }
+  return lines
+    .map(
+      ({ line, value }) =>
+        `<div${orderSystemLineEditorAttribute(options, line.field)} style="${lineStyle}display:block;${line.spacingBeforePx === undefined ? '' : `margin-top:${line.spacingBeforePx}px;`}color:#334155;"><strong style="${lineStyle}color:#0f172a;font-weight:700;">${escapeHtml(line.label)}:</strong> ${escapeHtml(value)}</div>`
+    )
+    .join('');
+}
+
+function buildTextSystemLines(
+  lines: readonly ResolvedOrderEmailSystemLine[]
+): string {
+  const segments: string[][] = [];
+  let previousBlockId: ResolvedOrderEmailSystemSegment['blockId'] | null = null;
+  for (const renderedLine of lines) {
+    const blockId = customerDetailSystemFields.has(renderedLine.line.field)
+      ? 'customerDetails'
+      : 'systemDetails';
+    if (blockId !== previousBlockId) segments.push([]);
+    segments.at(-1)?.push(
+      `${safeBodyText(renderedLine.line.label)}: ${renderedLine.value}`
+    );
+    previousBlockId = blockId;
+  }
+  return segments.map((segment) => segment.join('\n')).join('\n\n');
+}
+
+function segmentOrderEmailSystemLines(
+  lines: readonly ResolvedOrderEmailSystemLine[]
+): ResolvedOrderEmailSystemSegment[] {
+  const segments: ResolvedOrderEmailSystemSegment[] = [];
+  for (const renderedLine of lines) {
+    const blockId = customerDetailSystemFields.has(renderedLine.line.field)
+      ? 'customerDetails'
+      : 'systemDetails';
+    const current = segments.at(-1);
+    if (current?.blockId === blockId) {
+      current.lines.push(renderedLine);
+    } else {
+      segments.push({ blockId, lines: [renderedLine] });
+    }
+  }
+  return segments;
+}
+
+export function buildOrderEmailMessage(
+  payload: OrderEmailJobPayload,
+  options: EmailTemplateRenderOptions = {}
+): OrderEmailMessage {
   const from = formatFromHeader(
     payload.settingsSnapshot.senderName,
     payload.settingsSnapshot.fromEmail
@@ -523,7 +701,7 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
     : undefined;
   const content = buildTemplateContent(payload);
   const order = payload.order;
-  const customerName = customerDisplayName(order.customer);
+  const presentation = content.presentation;
   const isSchoolSubmission =
     payload.audience === 'customer' &&
     payload.eventType === 'order_submitted' &&
@@ -543,81 +721,90 @@ export function buildOrderEmailMessage(payload: OrderEmailJobPayload): OrderEmai
   const attachment = normalizeEmailMessageAttachment(
     payload.settingsSnapshot.imageAttachment
   );
-  const adminCustomerDetails = payload.audience === 'admin'
-    ? `
-      <div style="margin:20px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
-        <strong style="color:#0f172a;">Naročnik:</strong> ${escapeHtml(customerName || order.customer.contactName)}<br>
-        <strong style="color:#0f172a;">E-pošta:</strong> ${escapeHtml(order.customer.email)}
-        ${order.customer.reference ? `<br><strong style="color:#0f172a;">Referenca:</strong> ${escapeHtml(order.customer.reference)}` : ''}
+  const renderedSystemLines = resolveRenderedOrderEmailSystemLines(
+    payload,
+    presentation
+  );
+  const systemDetailsSpacing = resolveEmailTemplateSpacingPx(
+    presentation,
+    'systemDetails',
+    20
+  );
+  const systemDetailsBottomSpacing = hasEmailTemplateSpacingOverride(
+    presentation,
+    'systemDetails'
+  )
+    ? systemDetailsSpacing
+    : 12;
+  const systemBlocksHtml = segmentOrderEmailSystemLines(renderedSystemLines)
+    .map((segment) =>
+      segment.blockId === 'customerDetails'
+        ? `
+      <div${emailTemplateEditorAttribute(options, 'customerDetails')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'customerDetails', 20)}px 0;padding:14px 16px;border-radius:8px;background:#f8fafc;color:#334155;">
+        ${buildHtmlSystemLines(segment.lines, options, TRANSACTIONAL_EMAIL_COPY_STYLE)}
       </div>
     `
-    : '';
-  const adminOrderNumber = payload.audience === 'admin'
-    ? `<strong style="color:#0f172a;">Naročilo:</strong> ${escapeHtml(payload.order.orderNumber)}<br>`
-    : '';
+        : `
+      <div${emailTemplateEditorAttribute(options, 'systemDetails')} style="${TRANSACTIONAL_EMAIL_META_STYLE}margin:${systemDetailsSpacing}px 0 ${systemDetailsBottomSpacing}px;color:#64748b;">
+        ${buildHtmlSystemLines(segment.lines, options, TRANSACTIONAL_EMAIL_META_STYLE)}
+      </div>
+    `
+    )
+    .join('');
   const adminAction = payload.audience === 'admin' && adminOrderUrl
     ? `
-      <p style="margin:24px 0;">
-        <a href="${escapeHtml(adminOrderUrl)}" style="display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;font-weight:600;">Odpri naročilo v administraciji</a>
+      <p${emailTemplateEditorAttribute(options, 'primaryAction')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'primaryAction', 24)}px 0;">
+        <a href="${escapeHtml(adminOrderUrl)}" style="${TRANSACTIONAL_EMAIL_BUTTON_STYLE}display:inline-block;border-radius:7px;background:#0f172a;padding:11px 16px;color:#ffffff;text-decoration:none;">Odpri naročilo v administraciji</a>
       </p>
     `
     : '';
   const schoolDetailsHtml = isSchoolSubmission
-    ? buildSchoolOrderHtmlDetails(order, schoolUploadUrl)
+    ? buildSchoolOrderHtmlDetails(
+        order,
+        schoolUploadUrl,
+        presentation,
+        options
+      )
     : '';
+  const templateContentHtml =
+    options.editorPreview ||
+    hasEmailTemplateSpacingOverride(presentation, 'templateContent')
+      ? `<div${emailTemplateEditorAttribute(options, 'templateContent')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'templateContent', 0)}px;">${content.contentHtml}</div>`
+      : content.contentHtml;
 
   const html = `<!doctype html>
 <html lang="sl">
-  <body style="margin:0;background:#f1f5f9;padding:24px;font-family:Arial,sans-serif;color:#0f172a;">
-    <div style="max-width:680px;margin:0 auto;border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:28px;">
-      ${header ? `<p style="margin:0 0 18px;line-height:1.6;color:#334155;">${multilineHtml(header)}</p>` : ''}
-      <p style="margin:0 0 16px;color:#334155;">${escapeHtml(content.greeting)}</p>
-      <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;">${escapeHtml(content.heading)}</h1>
-      <p style="margin:0 0 20px;line-height:1.6;color:#334155;">${multilineHtml(content.body)}</p>
+  <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
+    <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
+      ${header ? `<p${emailTemplateEditorAttribute(options, 'sharedHeader')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'sharedHeader', 18)}px;color:#334155;">${multilineHtml(header)}</p>` : ''}
+      ${templateContentHtml}
       ${schoolDetailsHtml}
-      ${adminCustomerDetails}
-      <div style="margin:20px 0 12px;font-size:14px;color:#64748b;">
-        ${adminOrderNumber}
-        <strong style="color:#0f172a;">Datum:</strong> ${escapeHtml(formatDate(order.createdAt))}<br>
-        <strong style="color:#0f172a;">Status:</strong> ${escapeHtml(orderStatusLabel(payload.eventType))}
-      </div>
-      ${buildHtmlItems(order.items, payload.settingsSnapshot.siteUrl)}
-      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px 0 0 auto;border-collapse:collapse;">
+      ${systemBlocksHtml}
+      ${buildHtmlItems(
+        order.items,
+        payload.settingsSnapshot.siteUrl,
+        presentation,
+        options
+      )}
+      <table${emailTemplateEditorAttribute(options, 'totals')} role="presentation" cellspacing="0" cellpadding="0" style="${TRANSACTIONAL_EMAIL_TABLE_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'totals', 18)}px 0 0 auto;border-collapse:collapse;">
         ${buildHtmlTotals(order)}
       </table>
       ${adminAction}
-      ${footer ? `<p style="margin:28px 0 0;border-top:1px solid #e2e8f0;padding-top:18px;line-height:1.6;color:#64748b;">${multilineHtml(footer)}</p>` : ''}
+      ${footer ? `<p${emailTemplateEditorAttribute(options, 'sharedFooter')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'sharedFooter', 28)}px 0 0;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${multilineHtml(footer)}</p>` : ''}
     </div>
   </body>
 </html>`;
 
-  const adminText = payload.audience === 'admin'
-    ? [
-        `Naročnik: ${customerName || safeBodyText(order.customer.contactName)}`,
-        `E-pošta: ${safeBodyText(order.customer.email)}`,
-        order.customer.reference
-          ? `Referenca: ${safeBodyText(order.customer.reference)}`
-          : null
-      ].filter((line): line is string => Boolean(line)).join('\n')
-    : '';
+  const systemLinesText = buildTextSystemLines(renderedSystemLines);
   const schoolDetailsText = isSchoolSubmission
     ? buildSchoolOrderTextDetails(order, schoolUploadUrl)
     : '';
   const text = [
     header,
     header ? '' : null,
-    content.greeting,
-    '',
-    content.heading,
-    content.body,
-    adminText ? `\n${adminText}` : '',
+    content.contentText,
     schoolDetailsText ? `\n${schoolDetailsText}` : '',
-    '',
-    payload.audience === 'admin'
-      ? `Naročilo: ${safeBodyText(payload.order.orderNumber)}`
-      : '',
-    `Datum: ${formatDate(order.createdAt)}`,
-    `Status: ${orderStatusLabel(payload.eventType)}`,
+    systemLinesText ? `\n${systemLinesText}` : '',
     '',
     buildTextItems(order.items),
     '',

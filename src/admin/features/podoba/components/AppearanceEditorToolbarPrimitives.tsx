@@ -248,12 +248,22 @@ export function AppearanceEditorCompactSelect<Value extends string>({
 
   useEffect(() => {
     if (!open) return undefined;
-    const closeForViewportChange = () => setOpen(false);
-    window.addEventListener('resize', closeForViewportChange);
-    window.addEventListener('scroll', closeForViewportChange, true);
+    const closeForViewportResize = () => setOpen(false);
+    const closeForAncestorScroll = (event: Event) => {
+      const trigger = triggerRef.current;
+      const target = event.target;
+
+      // Capture-phase scroll also sees internal control scrolling, such as a
+      // text input resetting its horizontal caret position on blur. Dismiss
+      // only when the scroll source can move the trigger in the viewport.
+      if (trigger && target instanceof Node && !target.contains(trigger)) return;
+      setOpen(false);
+    };
+    window.addEventListener('resize', closeForViewportResize);
+    window.addEventListener('scroll', closeForAncestorScroll, true);
     return () => {
-      window.removeEventListener('resize', closeForViewportChange);
-      window.removeEventListener('scroll', closeForViewportChange, true);
+      window.removeEventListener('resize', closeForViewportResize);
+      window.removeEventListener('scroll', closeForAncestorScroll, true);
     };
   }, [open]);
 
@@ -266,7 +276,7 @@ export function AppearanceEditorCompactSelect<Value extends string>({
       const firstOption = listRef.current?.querySelector<HTMLButtonElement>(
         '[role="option"]:not(:disabled)'
       );
-      (selectedOption ?? firstOption)?.focus();
+      (selectedOption ?? firstOption)?.focus({ preventScroll: true });
     });
   }, [open]);
 
@@ -1255,7 +1265,7 @@ export function FloatingAppearanceEditorContextToolbar({
       }
       const element = target instanceof Element ? target : null;
       if (element?.closest(
-        '[data-product-canvas-element], [data-product-appearance-layers-panel], [data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar], [data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal]'
+        '[data-product-canvas-element], [data-product-appearance-layers-panel], [data-product-preview-controls], [data-product-page-controls], [data-product-page-toolbar], [data-admin-color-palette-portal], [data-appearance-editor-compact-select-portal], [role="dialog"]'
       )) {
         return;
       }

@@ -100,6 +100,9 @@ describe('related product appearance editor contracts', () => {
     const productCard = source(
       'src/commercial/components/storefront/ProductCard.tsx'
     );
+    const addToCartButton = source(
+      'src/commercial/features/products/AddToCartButton.tsx'
+    );
     const summary = source(
       'src/commercial/features/products/storefrontProduct.ts'
     );
@@ -112,7 +115,12 @@ describe('related product appearance editor contracts', () => {
       'className="storefront-related-product-quick-add'
     );
     expect(productCard).toContain('storefront-related-product-quantity');
-    expect(productCard).toContain('quantity={relatedQuantity}');
+    expect(productCard).toContain('value={relatedQuantityInput}');
+    expect(productCard).toContain('resolveQuantity={resolveRelatedQuantity}');
+    expect(productCard).toContain('validateStorefrontQuantityDraft');
+    expect(addToCartButton).toContain(
+      'quantity ?? resolvedItem.reconciliation?.minOrder ?? 1'
+    );
     expect(productCard).toContain('<ShoppingCart');
     expect(productCard).toContain(
       "productIsAvailable ? 'Izberi razli"

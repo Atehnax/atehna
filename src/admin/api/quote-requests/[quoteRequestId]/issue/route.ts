@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { createPendingQuoteEmailPdfDocumentReference } from '@/shared/domain/emailPdfAttachment';
 import { getPool } from '@/shared/server/db';
 import {
   buildQuoteOfferReviewUrl,
@@ -767,7 +768,13 @@ export async function POST(
         quoteOfferVersionId: Number(draft.id),
         eventKey: `quote-issued:${draft.id}`,
         eventType: 'quote_issued',
-        offerUrl
+        offerUrl,
+        pdfDocument: createPendingQuoteEmailPdfDocumentReference({
+          quoteRequestId,
+          quoteOfferVersionId: Number(draft.id),
+          contentSha256: renderedDocumentSha256,
+          filename: `${offerNumber}.pdf`
+        })
       });
       quoteEmailQueued = jobs.length > 0;
       if (quoteEmailQueued) {

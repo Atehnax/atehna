@@ -5,10 +5,7 @@ import {
   enqueueQuoteEmailEvent,
   scheduleQuoteEmailJobs
 } from '@/shared/server/quoteEmailJobs';
-import {
-  isQuoteEmailDeliveryEnabled,
-  isQuoteOnlineAcceptanceEnabled
-} from '@/shared/server/quoteFeatureFlags';
+import { isQuoteOnlineAcceptanceEnabled } from '@/shared/server/quoteFeatureFlags';
 import { issueQuoteResponseOtp } from '@/shared/server/quoteOtp';
 import {
   consumeQuoteRateLimit,
@@ -25,10 +22,7 @@ const headers = {
 };
 
 export async function POST(request: NextRequest) {
-  if (
-    !isQuoteOnlineAcceptanceEnabled() ||
-    !isQuoteEmailDeliveryEnabled()
-  ) {
+  if (!isQuoteOnlineAcceptanceEnabled()) {
     return NextResponse.json(
       {
         code: 'QUOTE_RESPONSE_DISABLED',

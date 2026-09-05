@@ -19,6 +19,7 @@ import {
   type ConfirmationDocumentRow,
   type CustomerConfirmationDocument
 } from '@/commercial/api/orders/confirmation/documentResilience';
+import { formatOrderCode } from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
       const orderResult = await client.query(
         `
           select
+            public_code_base,
             customer_type,
             organization_name,
             contact_name,
@@ -406,6 +408,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
+        orderCode: formatOrderCode(String(order.public_code_base)),
         status: String(order.status ?? 'received'),
         paymentStatus: String(order.payment_status ?? 'unpaid'),
         commitmentStatus: String(order.commitment_status ?? 'binding'),

@@ -1,0 +1,224 @@
+import {
+  normalizeEmailMessageAttachment,
+  type EmailMessageAttachment
+} from '../order/orderEmailTemplates';
+import type { OrderEmailImageAttachment } from '../order/orderEmailSettings';
+import type { CustomerType } from '../order/customerType';
+import {
+  TRANSACTIONAL_EMAIL_BODY_STYLE,
+  TRANSACTIONAL_EMAIL_CARD_STYLE,
+  TRANSACTIONAL_EMAIL_COPY_STYLE
+} from '../transactionalEmailHtml';
+import {
+  createEmailTemplateContentHtml,
+  renderEmailTemplateRichText,
+  sanitizeEmailTemplateRichText
+} from '../emailTemplateRichText';
+import {
+  emailTemplateEditorAttribute,
+  hasEmailTemplateSpacingOverride,
+  resolveEmailTemplateSpacingPx,
+  type EmailTemplateRenderOptions
+} from '../emailTemplateLayout';
+import {
+  QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
+  QUOTE_EMAIL_DEFAULT_GREETING,
+  QUOTE_EMAIL_EVENT_DEFAULTS,
+  type QuoteEmailEventType,
+  type QuoteEmailSettings
+} from './quoteEmailSettings';
+
+export type QuoteEmailAudience = 'customer' | 'admin';
+
+export type QuoteEmailMessage = {
+  from: string;
+  to: string;
+  replyTo?: string;
+  subject: string;
+  html: string;
+  text: string;
+  attachments?: readonly EmailMessageAttachment[];
+};
+
+export type QuoteEmailSharedSettings = Readonly<{
+  senderName: string;
+  fromEmail: string;
+  replyToEmail: string;
+  subjectPrefix: string;
+  headerText: string;
+  footerText: string;
+  imageAttachment: OrderEmailImageAttachment | null;
+}>;
+
+export type BuildQuoteEmailMessageInput = Readonly<{
+  eventType: QuoteEmailEventType;
+  audience: QuoteEmailAudience;
+  customerType?: CustomerType;
+  recipientEmail: string;
+  recipientName?: string | null;
+  quoteCode: string;
+  offerCode?: string | null;
+  orderCode?: string | null;
+  requestNumber: string;
+  offerNumber?: string | null;
+  orderNumber?: string | null;
+  offerUrl?: string | null;
+  otpCode?: string | null;
+  detail?: string | null;
+  sharedSettings: QuoteEmailSharedSettings;
+  quoteSettings: Pick<QuoteEmailSettings, 'templates'>;
+}>;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+const FALLBACK_SENDER_EMAIL = 'delivery-profile-pending@invalid.local';
+
+function safeHeaderText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f]+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;')
+    .replace(/"/gu, '&quot;')
+    .replace(/'/gu, '&#39;');
+}
+
+function fromHeader(name: string, email: string): string {
+  const safeName = name.replace(/[\r\n<>]/gu, ' ').trim();
+  return safeName ? `"${safeName}" <${email}>` : email;
+}
+
+function render(value: string, variables: Record<string, string>): string {
+  return value.replace(/\{\{\s*([a-z_]+)\s*\}\}/gu, (_match, key: string) =>
+    variables[key] ?? ''
+  );
+}
+
+export function buildQuoteEmailMessage(
+  input: BuildQuoteEmailMessageInput,
+  options: EmailTemplateRenderOptions = {}
+): QuoteEmailMessage {
+  const shared = input.sharedSettings;
+  const defaults = QUOTE_EMAIL_EVENT_DEFAULTS[input.eventType];
+  const templateAudience =
+    input.audience === 'admin'
+      ? 'admin'
+      : input.customerType === 'school'
+        ? 'schoolCustomer'
+        : input.customerType === 'company'
+          ? 'companyCustomer'
+          : 'customer';
+  const configuredTemplates = input.quoteSettings.templates[input.eventType];
+  const audienceTemplate = configuredTemplates[templateAudience] ??
+    configuredTemplates.customer;
+  const presentation = audienceTemplate.presentation;
+  const variables: Record<string, string> = {
+    recipient_name: (input.recipientName ?? '').replace(/\s+/gu, ' ').trim(),
+    quote_code: input.quoteCode,
+    offer_code: input.offerCode ?? '',
+    order_code: input.orderCode ?? '',
+    otp_code: input.otpCode ?? ''
+  };
+  if (input.audience === 'admin') {
+    variables.request_number = input.requestNumber;
+    variables.offer_number = input.offerNumber ?? '';
+    variables.order_number = input.orderNumber ?? '';
+  }
+  const defaultSubject =
+    input.audience === 'admin'
+      ? defaults.adminSubject ?? defaults.subject
+      : defaults.subject;
+  const defaultBody =
+    input.audience === 'admin'
+      ? defaults.adminBody ?? defaults.body
+      : defaults.body;
+  const templateSubject =
+    typeof audienceTemplate.subject === 'string'
+      ? audienceTemplate.subject
+      : defaultSubject;
+  const subject =
+    safeHeaderText(render(templateSubject, variables)) ||
+    safeHeaderText(render(defaultSubject, variables));
+  const defaultGreeting =
+    input.audience === 'admin'
+      ? QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
+      : QUOTE_EMAIL_DEFAULT_GREETING;
+  const configuredContent =
+    typeof audienceTemplate.contentHtml === 'string'
+      ? sanitizeEmailTemplateRichText(audienceTemplate.contentHtml)
+      : '';
+  const defaultContent = createEmailTemplateContentHtml({
+    greeting: defaultGreeting,
+    heading: defaultSubject,
+    body: defaultBody
+  });
+  const content = renderEmailTemplateRichText(
+    configuredContent || defaultContent,
+    variables
+  );
+  const detail = input.detail?.trim() || '';
+  const detailContent = detail
+    ? renderEmailTemplateRichText(
+        createEmailTemplateContentHtml({ body: detail }),
+        {}
+      )
+    : { html: '', text: '' };
+  const templateContentHtml =
+    options.editorPreview ||
+    hasEmailTemplateSpacingOverride(presentation, 'templateContent')
+      ? `<div${emailTemplateEditorAttribute(options, 'templateContent')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'templateContent', 0)}px;">${content.html}</div>`
+      : content.html;
+  const detailContentHtml = detailContent.html
+    ? options.editorPreview ||
+      hasEmailTemplateSpacingOverride(presentation, 'audienceDetails')
+      ? `<div${emailTemplateEditorAttribute(options, 'audienceDetails')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'audienceDetails', 0)}px;">${detailContent.html}</div>`
+      : detailContent.html
+    : '';
+  const eventContentHtml = `${templateContentHtml}${detailContentHtml}`;
+  const eventContentText = [content.text, detailContent.text]
+    .filter(Boolean)
+    .join('\n\n');
+  const headerText = shared.headerText.trim();
+  const footerText = shared.footerText.trim();
+  const action =
+    input.offerUrl && input.audience === 'customer'
+      ? `Preglej ponudbo: ${input.offerUrl}`
+      : '';
+  const text = [headerText, eventContentText, action, footerText]
+    .filter(Boolean)
+    .join('\n\n');
+  const actionHtml =
+    input.offerUrl && input.audience === 'customer'
+      ? `<p${emailTemplateEditorAttribute(options, 'primaryAction')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'primaryAction', 20)}px;"><a href="${escapeHtml(input.offerUrl)}" style="${TRANSACTIONAL_EMAIL_COPY_STYLE}color:#2563eb;text-decoration:underline;">Preglej ponudbo</a></p>`
+      : '';
+  const attachment = normalizeEmailMessageAttachment(shared.imageAttachment);
+  const senderEmail = EMAIL_PATTERN.test(shared.fromEmail)
+    ? shared.fromEmail
+    : FALLBACK_SENDER_EMAIL;
+  const html = `<!doctype html>
+<html lang="sl">
+  <body style="${TRANSACTIONAL_EMAIL_BODY_STYLE}">
+    <div style="${TRANSACTIONAL_EMAIL_CARD_STYLE}">
+      ${headerText ? `<p${emailTemplateEditorAttribute(options, 'sharedHeader')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:0 0 ${resolveEmailTemplateSpacingPx(presentation, 'sharedHeader', 18)}px;white-space:pre-line;color:#334155;">${escapeHtml(headerText)}</p>` : ''}
+      ${eventContentHtml}
+      ${actionHtml}
+      ${footerText ? `<p${emailTemplateEditorAttribute(options, 'sharedFooter')} style="${TRANSACTIONAL_EMAIL_COPY_STYLE}margin:${resolveEmailTemplateSpacingPx(presentation, 'sharedFooter', 28)}px 0 0;white-space:pre-line;border-top:1px solid #e2e8f0;padding-top:18px;color:#64748b;">${escapeHtml(footerText)}</p>` : ''}
+    </div>
+  </body>
+</html>`;
+
+  return {
+    from: fromHeader(shared.senderName, senderEmail),
+    to: input.recipientEmail,
+    ...(shared.replyToEmail ? { replyTo: shared.replyToEmail } : {}),
+    subject: `[${safeHeaderText(shared.subjectPrefix) || 'Atehna'}] ${subject}`,
+    html,
+    text,
+    ...(attachment ? { attachments: [attachment] } : {})
+  };
+}

@@ -446,6 +446,7 @@ export type OrderDocumentTemplateLabels = {
   customerType: string;
   status: string;
   documentNumber: string;
+  publicCode: string;
   orderNumber: string;
   issueDate: string;
   orderDate: string;
@@ -591,6 +592,7 @@ export const ORDER_DOCUMENT_FIELD_ROW_IDS_BY_GROUP = {
   customer: ['customer', 'contact', 'address', 'email'],
   document_meta: [
     'document_number',
+    'public_code',
     'issue_date',
     'order_date',
     'customer_type',
@@ -730,6 +732,7 @@ export type OrderDocumentDecorationTarget =
     };
 
 export type OrderDocumentTemplatesConfig = {
+  schemaVersion: number;
   templates: Record<OrderDocumentTemplateType, OrderDocumentTemplate>;
   updatedAt?: string | null;
 };
@@ -799,6 +802,7 @@ const COMMON_LABELS: OrderDocumentTemplateLabels = {
   customerType: 'Vrsta naročnika',
   status: 'Status',
   documentNumber: 'Številka dokumenta',
+  publicCode: 'Koda naročila',
   orderNumber: 'Številka naročila',
   issueDate: 'Datum',
   orderDate: 'Datum naročila',
@@ -895,6 +899,7 @@ const sectionLayout = (
 });
 
 export const DEFAULT_ORDER_DOCUMENT_TEMPLATES_CONFIG: OrderDocumentTemplatesConfig = {
+  schemaVersion: 2,
   templates: {
     order_summary: {
       type: 'order_summary',
@@ -948,6 +953,7 @@ export const DEFAULT_ORDER_DOCUMENT_TEMPLATES_CONFIG: OrderDocumentTemplatesConf
           'Ponudbo sprejmete ali zavrnete prek varne povezave, navedene v spremnem sporočilu. Sprejem se vedno nanaša na točno navedeno številko in različico ponudbe.',
         labels: {
           ...COMMON_LABELS,
+          publicCode: 'Koda ponudbe',
           documentNumber: 'Številka in različica ponudbe',
           issueDate: 'Datum izdaje',
           dueDate: 'Ponudba velja do',
@@ -1275,34 +1281,6 @@ const DEFAULT_CANVAS_BOXES: Record<
   signatures: { yMm: 250, heightMm: 16, zIndex: 70 },
   footer: { yMm: 276, heightMm: 12, zIndex: 90 }
 };
-
-const LEGACY_CANONICAL_ABSOLUTE_BODY_BOXES: Partial<Record<
-  OrderDocumentCanvasElementId,
-  { yMm: number; heightMm: number; zIndex: number }
->> = {
-  intro: { yMm: 90, heightMm: 7.5, zIndex: 20 },
-  items: { yMm: 102.5, heightMm: 80, zIndex: 30 },
-  totals: { yMm: 177.5, heightMm: 28, zIndex: 40 },
-  notes: { yMm: 230, heightMm: 14, zIndex: 50 },
-  closing: { yMm: 207.5, heightMm: 16, zIndex: 60 },
-  signatures: { yMm: 247.5, heightMm: 16, zIndex: 70 }
-};
-
-function isLegacyCanonicalAbsoluteBodyElement(
-  element: OrderDocumentCanvasElement,
-  style: OrderDocumentTemplateStyle
-) {
-  const legacy = LEGACY_CANONICAL_ABSOLUTE_BODY_BOXES[element.id];
-  if (!legacy || element.positioning !== 'absolute') return false;
-  const close = (left: number, right: number) => Math.abs(left - right) < 0.05;
-  return element.page === 1
-    && element.repeat === 'once'
-    && close(element.xMm, style.marginMm)
-    && close(element.widthMm, A4_WIDTH_MM - style.marginMm * 2)
-    && close(element.yMm, legacy.yMm)
-    && close(element.heightMm, legacy.heightMm)
-    && close(element.zIndex, legacy.zIndex);
-}
 
 function legacyCanvasElementVisible(
   layout: OrderDocumentTemplateLayout,
@@ -1688,9 +1666,6 @@ function normalizeCanvas(
 ): OrderDocumentTemplateCanvas | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const record = asRecord(value);
-  const sourceFlowLayoutVersion = record.flowLayoutVersion === ORDER_DOCUMENT_CANVAS_FLOW_LAYOUT_VERSION
-    ? ORDER_DOCUMENT_CANVAS_FLOW_LAYOUT_VERSION
-    : 0;
   const source = asRecord(record.elements);
   const deletedElementIds = Array.isArray(record.deletedElementIds)
     ? [...new Set(record.deletedElementIds.filter(
@@ -1707,36 +1682,11 @@ function normalizeCanvas(
     if (deleted.has(id)) continue;
     if (!Object.prototype.hasOwnProperty.call(source, id)) continue;
     const fallback = createDefaultCanvasElement(id, style, layout);
-    let normalized = normalizeCanvasElement(
+    elements[id] = normalizeCanvasElement(
       id,
       source[id],
       fallback
     );
-    if (
-      sourceFlowLayoutVersion < ORDER_DOCUMENT_CANVAS_FLOW_LAYOUT_VERSION
-      && isLegacyCanonicalAbsoluteBodyElement(normalized, style)
-    ) {
-      normalized = { ...normalized, positioning: 'flow' };
-    }
-    const legacyGeometry = id === 'title'
-      ? { yMm: 50, heightMm: 10 }
-      : id === 'customer' || id === 'document_meta'
-        ? { yMm: 64, heightMm: 28 }
-        : null;
-    const untouchedLegacyGeometry = legacyGeometry
-      && normalized.positioning === 'flow'
-      && normalized.page === 1
-      && Math.abs(normalized.xMm - fallback.xMm) < 0.05
-      && Math.abs(normalized.widthMm - fallback.widthMm) < 0.05
-      && Math.abs(normalized.yMm - legacyGeometry.yMm) < 0.05
-      && Math.abs(normalized.heightMm - legacyGeometry.heightMm) < 0.05;
-    elements[id] = untouchedLegacyGeometry
-      ? {
-          ...normalized,
-          yMm: fallback.yMm,
-          heightMm: fallback.heightMm
-        }
-      : normalized;
   }
   return {
     flowLayoutVersion: ORDER_DOCUMENT_CANVAS_FLOW_LAYOUT_VERSION,
@@ -1963,7 +1913,7 @@ const DEFAULT_DOCUMENT_META_ROW_IDS: Record<
   readonly OrderDocumentFieldRowId[]
 > = {
   order_summary: ['issue_date', 'order_date', 'customer_type', 'status', 'reference'],
-  offer: ['issue_date', 'due_date', 'reference'],
+  offer: ['issue_date', 'public_code', 'due_date', 'reference'],
   dobavnica: [
     'issue_date',
     'dispatch_date',
@@ -1971,9 +1921,10 @@ const DEFAULT_DOCUMENT_META_ROW_IDS: Record<
     'purchase_order_number',
     'purchase_order_date'
   ],
-  predracun: ['issue_date', 'due_date', 'reference'],
+  predracun: ['issue_date', 'public_code', 'due_date', 'reference'],
   invoice: [
     'issue_date',
+    'public_code',
     'order_date',
     'purchase_order_number',
     'purchase_order_date',
@@ -2049,103 +2000,10 @@ function normalizeOrderDocumentFieldRowsValue(value: unknown): OrderDocumentFiel
   return fieldRows;
 }
 
-function migrateLegacyIssueDateFieldRows(
-  value: unknown,
-  type: OrderDocumentTemplateType,
-  style: OrderDocumentTemplateStyle,
-  layout: OrderDocumentTemplateLayout,
-  canvas: OrderDocumentTemplateCanvas | undefined
-): unknown {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-  const record = asRecord(value);
-  const hasTitleRows = Object.prototype.hasOwnProperty.call(record, 'title')
-    && Array.isArray(record.title);
-  const hasMetadataRows = Object.prototype.hasOwnProperty.call(record, 'document_meta')
-    && Array.isArray(record.document_meta);
-  if (!hasTitleRows && !hasMetadataRows) return value;
-
-  const rawTitleRows = hasTitleRows ? [...(record.title as unknown[])] : [];
-  const legacyIssueDate = rawTitleRows.find(
-    (candidate) => asRecord(candidate).id === 'issue_date'
-  );
-  const oldMetadataDefaults: OrderDocumentFieldRow[] = DEFAULT_DOCUMENT_META_ROW_IDS[type]
-    .filter((id) => id !== 'issue_date')
-    .map((id) => ({ id, visible: true }));
-  const metadataRows: OrderDocumentFieldRow[] = hasMetadataRows
-    ? normalizeOrderDocumentFieldRowList(record.document_meta, 'document_meta') ?? []
-    : oldMetadataDefaults;
-  const source = normalizeOrderDocumentFieldRowList(
-    legacyIssueDate ? [legacyIssueDate] : [],
-    'document_meta'
-  )?.[0];
-
-  if (source?.placement) {
-    const title = canvas?.elements.title ?? createDefaultCanvasElement('title', style, layout);
-    const metadata = canvas?.elements.document_meta
-      ?? createDefaultCanvasElement('document_meta', style, layout);
-    const placement = source.placement;
-    const mayConvert = title.positioning === 'absolute'
-      && metadata.positioning === 'absolute'
-      && title.page === metadata.page
-      && typeof placement.xMm === 'number'
-      && typeof placement.yMm === 'number';
-    if (mayConvert) {
-      const xMm = Number((title.xMm + placement.xMm! - metadata.xMm).toFixed(1));
-      const yMm = Number((title.yMm + placement.yMm! - metadata.yMm).toFixed(1));
-      const widthMm = placement.widthMm ?? 0;
-      const heightMm = placement.heightMm ?? 0;
-      const fits = xMm >= 0
-        && yMm >= 0
-        && xMm + widthMm <= metadata.widthMm
-        && yMm + heightMm <= metadata.heightMm;
-      if (fits) source.placement = { ...placement, xMm, yMm };
-      else delete source.placement;
-    } else {
-      delete source.placement;
-    }
-  }
-
-  const existingIndex = metadataRows.findIndex((row) => row.id === 'issue_date');
-  if (source && existingIndex >= 0) {
-    const existing = metadataRows[existingIndex];
-    const merged: OrderDocumentFieldRow = {
-      ...source,
-      ...existing
-    };
-    if (source.typography || existing.typography) {
-      merged.typography = { ...source.typography, ...existing.typography };
-    }
-    if (source.decoration || existing.decoration) {
-      merged.decoration = { ...source.decoration, ...existing.decoration };
-    }
-    if (existing.placement) merged.placement = existing.placement;
-    else if (source.placement) merged.placement = source.placement;
-    else delete merged.placement;
-    metadataRows[existingIndex] = merged;
-  } else if (source) {
-    metadataRows.unshift(source);
-  } else if (!hasTitleRows && existingIndex < 0) {
-    metadataRows.unshift({ id: 'issue_date', visible: true });
-  }
-
-  return {
-    ...record,
-    ...(hasTitleRows
-      ? {
-          title: rawTitleRows.filter(
-            (candidate) => asRecord(candidate).id !== 'issue_date'
-          )
-        }
-      : {}),
-    document_meta: metadataRows
-  };
-}
-
 function normalizeLayout(
   value: unknown,
   fallback: OrderDocumentTemplateLayout,
-  style: OrderDocumentTemplateStyle,
-  type: OrderDocumentTemplateType
+  style: OrderDocumentTemplateStyle
 ): OrderDocumentTemplateLayout {
   const record = asRecord(value);
   const columns = asRecord(record.columns);
@@ -2167,9 +2025,7 @@ function normalizeLayout(
   };
   const canvas = normalizeCanvas(record.canvas, style, layout);
   const table = normalizeOrderDocumentTableValue(record.table, style, layout);
-  const fieldRows = normalizeOrderDocumentFieldRowsValue(
-    migrateLegacyIssueDateFieldRows(record.fieldRows, type, style, layout, canvas)
-  );
+  const fieldRows = normalizeOrderDocumentFieldRowsValue(record.fieldRows);
   return {
     ...layout,
     ...(table ? { columns: legacyColumnsFromOrderDocumentTable(table), table } : {}),
@@ -2199,12 +2055,6 @@ export function setOrderDocumentFieldRows(
 ): OrderDocumentTemplate {
   const rows = normalizeOrderDocumentFieldRowList(value, group) ?? [];
   const fieldRows = clone(template.layout.fieldRows ?? {});
-  if (
-    group === 'document_meta'
-    && !Object.prototype.hasOwnProperty.call(fieldRows, 'title')
-  ) {
-    fieldRows.title = resolveOrderDocumentFieldRows(template, 'title');
-  }
   return {
     ...template,
     layout: {
@@ -3382,7 +3232,7 @@ export function normalizeOrderDocumentTemplate(
     style,
     company: normalizeCompany(record.company, fallback.company),
     text: normalizeText(record.text, fallback.text),
-    layout: normalizeLayout(record.layout, fallback.layout, style, type),
+    layout: normalizeLayout(record.layout, fallback.layout, style),
     rules: {
       dueDays: asNumber(rules.dueDays, fallback.rules.dueDays, 0, 365),
       validityDays: asNumber(rules.validityDays, fallback.rules.validityDays, 0, 365)
@@ -3394,6 +3244,7 @@ export function normalizeOrderDocumentTemplatesConfig(value: unknown): OrderDocu
   const record = asRecord(value);
   const templates = asRecord(record.templates);
   return {
+    schemaVersion: 2,
     templates: Object.fromEntries(
       ORDER_DOCUMENT_TEMPLATE_TYPES.map((type) => [
         type,

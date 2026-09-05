@@ -1,23 +1,14 @@
 import 'server-only';
 
-export type QuoteFeatureFlags = Readonly<{
-  admin: boolean;
-  publicRequests: boolean;
-  onlineAcceptance: boolean;
-  emailDelivery: boolean;
-}>;
+import {
+  resolveQuoteFeatureFlags,
+  type QuoteFeatureFlags
+} from '@/shared/server/serverEnvironment';
 
-function isEnabled(value: string | undefined): boolean {
-  return value?.trim().toLowerCase() === 'true' || value?.trim() === '1';
-}
+export type { QuoteFeatureFlags };
 
 export function getQuoteFeatureFlags(): QuoteFeatureFlags {
-  return {
-    admin: isEnabled(process.env.QUOTE_ADMIN_ENABLED),
-    publicRequests: isEnabled(process.env.QUOTE_PUBLIC_REQUESTS_ENABLED),
-    onlineAcceptance: isEnabled(process.env.QUOTE_ONLINE_ACCEPTANCE_ENABLED),
-    emailDelivery: isEnabled(process.env.QUOTE_EMAIL_DELIVERY_ENABLED)
-  };
+  return resolveQuoteFeatureFlags();
 }
 
 export function isQuoteAdminEnabled(): boolean {
@@ -30,8 +21,4 @@ export function arePublicQuoteRequestsEnabled(): boolean {
 
 export function isQuoteOnlineAcceptanceEnabled(): boolean {
   return getQuoteFeatureFlags().onlineAcceptance;
-}
-
-export function isQuoteEmailDeliveryEnabled(): boolean {
-  return getQuoteFeatureFlags().emailDelivery;
 }

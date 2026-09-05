@@ -5,10 +5,13 @@ import { IconButton } from '@/shared/ui/icon-button';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   DownloadIcon,
+  MailIcon,
   PdfFileIcon,
   TrashCanIcon,
   UploadIcon
 } from '@/shared/ui/icons/AdminActionIcons';
+import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
+import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { Spinner } from '@/shared/ui/loading';
 import { RowActionsDropdown } from '@/shared/ui/table';
 import { adminTableInlineCancelButtonClassName } from '@/shared/ui/admin-table';
@@ -63,9 +66,11 @@ export default function AdminOrderPdfManager({
   const [loadingType, setLoadingType] = useState<GeneratePdfType | null>(null);
   const [uploadingType, setUploadingType] = useState<PdfTypeKey | null>(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState<number | null>(null);
+  const [sendingDocumentId, setSendingDocumentId] = useState<number | null>(null);
   const [confirmDeleteDocumentId, setConfirmDeleteDocumentId] = useState<number | null>(null);
   const uploadInputRefs = useRef<Partial<Record<PdfTypeKey, HTMLInputElement | null>>>({});
   const { toast } = useToast();
+  const customerEmailConfirmation = useCustomerEmailConfirmation();
 
   useEffect(() => {
     setDocList(documents);
@@ -164,6 +169,51 @@ export default function AdminOrderPdfManager({
       return;
     }
     window.open(latest.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSendDocument = async (
+    document: PersistedOrderPdfDocument,
+    customerEmailConfirmationToken: string | null = null
+  ) => {
+    if (effectiveGenerationDisabledReason) {
+      toast.info(effectiveGenerationDisabledReason);
+      return;
+    }
+    setSendingDocumentId(document.id);
+    try {
+      const response = await fetch(
+        `/api/admin/orders/${orderId}/documents/${document.id}/email`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(customerEmailConfirmationToken
+              ? { customerEmailConfirmationToken }
+              : {})
+          })
+        }
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      if (!response.ok) {
+        if (
+          customerEmailConfirmation.handleConfirmationRequired(
+            response,
+            payload,
+            (confirmationToken) =>
+              handleSendDocument(document, confirmationToken)
+          )
+        ) {
+          return;
+        }
+        toast.error(payload.message || 'Pošiljanje dokumenta ni uspelo.');
+        return;
+      }
+      toast.success(payload.message || 'Dokument je uvrščen za pošiljanje.');
+    } finally {
+      setSendingDocumentId(null);
+    }
   };
 
   const confirmDeleteDocument = async () => {
@@ -331,6 +381,30 @@ export default function AdminOrderPdfManager({
                             }
                           ]
                         : []),
+                      ...(latestDoc &&
+                      (pdfType.key === 'predracun' ||
+                        pdfType.key === 'invoice')
+                        ? [
+                            {
+                              key: 'send-customer',
+                              label: 'Pošlji stranki',
+                              icon:
+                                sendingDocumentId === latestDoc.id ? (
+                                  <Spinner
+                                    size="sm"
+                                    className="text-slate-500"
+                                  />
+                                ) : (
+                                  <MailIcon />
+                                ),
+                              onSelect: () =>
+                                void handleSendDocument(latestDoc),
+                              disabled:
+                                Boolean(effectiveGenerationDisabledReason) ||
+                                sendingDocumentId === latestDoc.id
+                            }
+                          ]
+                        : []),
                       ...(latestDoc
                         ? [
                             {
@@ -414,6 +488,12 @@ export default function AdminOrderPdfManager({
           }}
         />
       ) : null}
+      <CustomerEmailConfirmationDialog
+        confirmation={customerEmailConfirmation.confirmation}
+        onCancel={customerEmailConfirmation.cancelConfirmation}
+        onConfirm={customerEmailConfirmation.confirm}
+        confirmDisabled={sendingDocumentId !== null}
+      />
     </>
   );
 }

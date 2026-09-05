@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   expect(login.ok()).toBeTruthy();
 });
 
-async function expectLightSelect(trigger: Locator, expectedHeight: number) {
+async function expectLightSelect(trigger: Locator, expectedHeight: number, expectedRadius = 6) {
   await expect(trigger).toBeVisible({ timeout: 15_000 });
   await expect(trigger).toHaveAttribute('data-appearance-editor-compact-select-tone', 'light');
 
@@ -37,7 +37,7 @@ async function expectLightSelect(trigger: Locator, expectedHeight: number) {
 
   expect(presentation.backgroundColor).toBe('rgb(255, 255, 255)');
   expect(Math.max(...presentation.textRgb)).toBeLessThan(140);
-  expect(presentation.borderRadius).toBe(6);
+  expect(presentation.borderRadius).toBe(expectedRadius);
   expect(Math.abs(presentation.height - expectedHeight)).toBeLessThanOrEqual(0.5);
 }
 
@@ -65,24 +65,26 @@ test.describe('Podoba light dropdowns', () => {
     await page.goto('/admin/podoba/navigacija');
 
     const appearance = page.getByTestId('top-bar-appearance-settings');
+    const typographyRow = page.getByTestId('top-bar-typography-row');
     const family = getAppearanceEditorCompactSelect(appearance, 'Pisava zgornje vrstice');
     const weight = getAppearanceEditorCompactSelect(appearance, 'Debelina pisave zgornje vrstice');
     const style = getAppearanceEditorCompactSelect(appearance, 'Slog pisave zgornje vrstice');
 
     for (const select of [family, weight, style]) {
-      await expectLightSelect(select, 28);
+      await expectLightSelect(select, 28, 8);
     }
 
-    const familyRowGap = await family.locator('xpath=../..').evaluate((row) => {
-      const [colorControl, fontControl] = Array.from(row.children).map((child) => child.getBoundingClientRect());
-      return fontControl.left - colorControl.right;
-    });
-    expect(familyRowGap).toBeGreaterThanOrEqual(9.5);
-
-    const typographyGaps = await weight.locator('xpath=../..').evaluate((row) => {
-      const boxes = Array.from(row.children).map((child) => child.getBoundingClientRect());
-      return [boxes[1].left - boxes[0].right, boxes[2].left - boxes[1].right];
-    });
-    for (const gap of typographyGaps) expect(gap).toBeGreaterThanOrEqual(7.5);
+    const [rowBox, familyBox, weightBox, styleBox] = await Promise.all(
+      [typographyRow, family, weight, style].map((locator) => locator.boundingBox())
+    );
+    if (!rowBox || !familyBox || !weightBox || !styleBox) {
+      throw new Error('The navigation typography row must be measurable.');
+    }
+    expect(Math.abs(familyBox.y - weightBox.y)).toBeLessThanOrEqual(4);
+    expect(Math.abs(familyBox.y - styleBox.y)).toBeLessThanOrEqual(4);
+    expect(familyBox.x).toBeGreaterThanOrEqual(rowBox.x);
+    expect(styleBox.x + styleBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width);
+    expect(familyBox.x).toBeLessThan(weightBox.x);
+    expect(weightBox.x).toBeLessThan(styleBox.x);
   });
 });

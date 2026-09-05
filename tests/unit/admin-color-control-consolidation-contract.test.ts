@@ -14,7 +14,7 @@ const sharedControlRoot = resolve(sourceRoot, 'shared/ui/admin-controls');
 const auditedColorSurfacePaths = [
   'shared/features/category-showcase/CategoryShowcaseEditor.tsx',
   'admin/features/artikli/components/ProductVariantOptionsCard.tsx',
-  'admin/features/artikli/components/OpisColorPopover.tsx',
+  'admin/components/AdminRichTextEditor.tsx',
   'admin/features/podoba/components/ProductDescriptionRichTextEditor.tsx',
   'admin/features/podoba/components/ProductAppearanceContextToolbar.tsx',
   'admin/features/podoba/components/AdminProductAppearancePageClient.tsx',

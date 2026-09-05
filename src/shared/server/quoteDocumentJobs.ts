@@ -10,10 +10,15 @@ import {
 } from '@/shared/server/blob';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf, type PdfItem, type PdfOrder } from '@/shared/server/pdf';
+import {
+  formatOfferCode,
+  requireCommercePublicCodeBase
+} from '@/shared/domain/commercePublicCode';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
+import { processQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
 
 type ClaimedJob = {
   id: number;
@@ -153,6 +158,7 @@ export async function renderQuoteOfferPdf(
       select
         offer.*,
         request.request_number,
+        request.public_code_base,
         request.customer_type,
         request.organization_name,
         request.contact_name,
@@ -218,6 +224,10 @@ export async function renderQuoteOfferPdf(
       .filter(Boolean)
       .join(', '),
     reference: offer.reference === null ? null : String(offer.reference),
+    publicCode: formatOfferCode(
+      requireCommercePublicCodeBase(offer.public_code_base),
+      Number(offer.version_number)
+    ),
     notes: [
       options.mode === 'preview'
         ? 'PREDOGLED – ponudba še ni izdana in je ni mogoče sprejeti.'
@@ -541,8 +551,33 @@ export async function processQuoteDocumentJobs(
 
 export function scheduleQuoteDocumentJobs(pool: Pool): void {
   after(async () => {
-    await processQuoteDocumentJobs(pool, { maximumJobs: 2 }).catch((error) => {
+    const result = await processQuoteDocumentJobs(pool, { maximumJobs: 2 }).catch((error) => {
       console.error('[quote-document] background processing failed', {
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    });
+    if (!result || result.completed === 0) return;
+    await pool.query(
+      `
+        update quote_email_jobs email_job
+        set next_attempt_at = now(),
+            updated_at = now()
+        where email_job.audience = 'customer'
+          and email_job.event_type = 'quote_issued'
+          and email_job.status = 'pending'
+          and email_job.last_error like '[document_pending]%'
+          and exists (
+            select 1
+            from quote_documents document
+            where document.quote_offer_version_id = email_job.quote_offer_version_id
+              and document.document_type = 'offer'
+              and document.version_number = 1
+          )
+      `
+    );
+    await processQuoteEmailJobs(pool, { limit: 10 }).catch((error) => {
+      console.error('[quote-document] email wake-up failed', {
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     });

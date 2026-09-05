@@ -121,7 +121,8 @@ export const adminTableRowToneClasses = {
   even: 'bg-white',
   odd: 'bg-[#eef1f8]',
   hover: 'hover:bg-[color:var(--admin-table-row-hover)]',
-  selected: 'bg-[color:var(--admin-table-row-selected)]'
+  selected: 'bg-[color:var(--admin-table-row-selected)]',
+  success: 'bg-emerald-50 hover:!bg-emerald-100'
 } as const;
 
 export const adminCategoryRowToneByLevel: Record<number, string> = {

@@ -439,6 +439,9 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
   async indexStage(stageName: string) {
     const idIndex = `${stageName}_id_uidx`;
     const searchIndex = `${stageName}_search_trgm_idx`;
+    const prefixIndex = `${stageName}_search_prefix_idx`;
+    const postalCodeIndex = `${stageName}_postal_code_idx`;
+    const postalNameIndex = `${stageName}_postal_name_idx`;
     await this.pool.query(
       `create unique index ${identifier(idIndex)}
        on ${identifier(stageName)} (gurs_house_number_id)`
@@ -446,6 +449,37 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
     await this.pool.query(
       `create index ${identifier(searchIndex)}
        on ${identifier(stageName)} using gin (search_text gin_trgm_ops)`
+    );
+    await this.pool.query(
+      `create index ${identifier(prefixIndex)}
+       on ${identifier(stageName)} (
+         search_text collate "C",
+         address_line_1 collate "C",
+         postal_code,
+         gurs_house_number_id
+       )`
+    );
+    await this.pool.query(
+      `create index ${identifier(postalCodeIndex)}
+       on ${identifier(stageName)} (
+         postal_code collate "C",
+         postal_name collate "C"
+       )`
+    );
+    await this.pool.query(
+      `create index ${identifier(postalNameIndex)}
+       on ${identifier(stageName)} (
+         (
+           regexp_replace(
+             translate(lower(postal_name), 'čšž', 'csz'),
+             '[^a-z0-9]+',
+             ' ',
+             'g'
+           )
+         ) collate "C",
+         postal_code collate "C",
+         postal_name collate "C"
+       )`
     );
     await this.pool.query(`analyze ${identifier(stageName)}`);
   }

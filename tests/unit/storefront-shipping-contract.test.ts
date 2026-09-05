@@ -7,6 +7,7 @@ import {
   type OrderQuote
 } from '@/commercial/order/contracts';
 import { SHIPPING_CALCULATION_VERSION } from '@/shared/domain/shipping/shipping';
+import { STOREFRONT_CART_PENDING_SHIPPING_LABEL } from '@/shared/domain/shipping/storefrontShippingCopy';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
@@ -189,10 +190,30 @@ test('cart page keeps the shipping breakdown while drawer, checkout and confirma
     /ShippingCalculationRows|ShippingManualQuoteNotice/u
   );
   assert.equal((cartDrawerSource.match(/Poštnina/gu) ?? []).length, 1);
+  assert.equal(
+    STOREFRONT_CART_PENDING_SHIPPING_LABEL,
+    'Izračun na strani za naročilo'
+  );
   assert.match(
     cartDrawerSource,
-    /data-testid="cart-drawer-shipping"[\s\S]*?data-summary-row="shipping"[\s\S]*?<dt>Poštnina<\/dt>[\s\S]*?totals\?\.shipping !== null[\s\S]*?formatEuro\(totals\.shipping\)[\s\S]*?shipping\.status === 'manual_quote'[\s\S]*?'Po dogovoru'/u
+    /data-testid="cart-drawer-shipping"[\s\S]*?data-summary-row="shipping"[\s\S]*?<dt>Poštnina<\/dt>[\s\S]*?STOREFRONT_CART_PENDING_SHIPPING_LABEL/u
   );
+  assert.doesNotMatch(cartDrawerSource, /formatEuro\(totals\.shipping\)/u);
+  assert.match(cartDrawerSource, /<dt>Vmesni seštevek z DDV<\/dt>/u);
+  assert.match(
+    cartDrawerSource,
+    /formatEuro\(totals\.net \+ totals\.tax\)/u
+  );
+  assert.doesNotMatch(cartDrawerSource, /Po dogovoru/u);
+  assert.doesNotMatch(
+    cartDrawerSource,
+    /Cene in izbrane različice preverimo po veljavnem ceniku\./u
+  );
+  assert.match(
+    cartDrawerSource,
+    /Plačilo uredimo po ponudbi ali predračunu/u
+  );
+  assert.doesNotMatch(cartDrawerSource, /Plačilo uredimo ročno/u);
   assert.doesNotMatch(
     cartDrawerSource,
     /Osnovna poštnina|Referenčna cena posameznega paketa|\d+ × S|Po popustu za več kosov|Samodejno izračunana poštnina/u

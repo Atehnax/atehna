@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { verifyQuoteAccessSession } from '@/shared/server/quoteAccess';
+import { formatQuoteCode } from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,8 @@ export async function GET(request: NextRequest) {
   try {
     const pool = await getPool();
     const access = await verifyQuoteAccessSession(pool, request, {
-      scope: 'request_confirmation'
+      scope: 'request_confirmation',
+      bindToSelectedAccessId: true
     });
     if (!access) {
       return NextResponse.json(
@@ -26,6 +28,7 @@ export async function GET(request: NextRequest) {
       `
         select
           request.id,
+          request.public_code_base,
           request.status,
           request.quote_reason,
           request.customer_message,
@@ -33,6 +36,10 @@ export async function GET(request: NextRequest) {
           request.organization_name,
           request.contact_name,
           request.email,
+          request.address_line1,
+          request.address_line2,
+          request.city,
+          request.postal_code,
           request.created_at,
           request.estimate_json,
           coalesce(
@@ -67,14 +74,23 @@ export async function GET(request: NextRequest) {
     const estimate = row.estimate_json as Record<string, unknown>;
     return NextResponse.json(
       {
+        quoteCode: formatQuoteCode(String(row.public_code_base)),
         status: row.status,
         quoteReason: row.quote_reason,
         customerMessage: row.customer_message,
         customer: {
           customerType: row.customer_type,
+          customerName:
+            row.customer_type === 'individual'
+              ? row.contact_name
+              : row.organization_name ?? row.contact_name,
           organizationName: row.organization_name,
           contactName: row.contact_name,
-          email: row.email
+          email: row.email,
+          addressLine1: row.address_line1,
+          addressLine2: row.address_line2,
+          city: row.city,
+          postalCode: row.postal_code
         },
         requestedAt:
           row.created_at instanceof Date

@@ -54,6 +54,7 @@ import {
 } from '@/shared/server/catalogOrderabilityLocks';
 import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
 import { getQuoteStockAcceptanceMode } from '@/shared/server/quoteEmailSettings';
+import { formatOfferCode } from '@/shared/domain/commercePublicCode';
 
 export const runtime = 'nodejs';
 
@@ -292,7 +293,6 @@ export async function POST(request: NextRequest) {
         intent: 'quote_response',
         action: 'accept',
         quoteOfferVersionId: access.quoteOfferVersionId,
-        offerNumber: parsed.body.offerNumber ?? null,
         versionNumber: parsed.body.versionNumber ?? null
       })
     );
@@ -343,7 +343,7 @@ export async function POST(request: NextRequest) {
       `
         select
           offer.*,
-          request.request_number,
+          request.public_code_base as source_public_code_base,
           request.customer_type,
           request.organization_name,
           request.contact_name,
@@ -423,7 +423,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(stored, { status: 409, headers: privateHeaders });
     }
     if (
-      parsed.body.offerNumber !== offer.offer_number ||
       Number(parsed.body.versionNumber) !== Number(offer.version_number)
     ) {
       throw new QuoteResponseIdempotencyError(
@@ -555,7 +554,10 @@ export async function POST(request: NextRequest) {
         contractEvidence: {
           acceptanceId,
           quoteOfferVersionId: access.quoteOfferVersionId,
-          offerNumber: offer.offer_number,
+          offerCode: formatOfferCode(
+            String(offer.source_public_code_base),
+            Number(offer.version_number)
+          ),
           channel: 'online',
           verifiedIdentity: `email-sha256:${consumedOtp.targetEmailHash}`,
           verificationId,
@@ -567,6 +569,7 @@ export async function POST(request: NextRequest) {
           documentSha256: offer.document_sha256
         },
         sourceQuoteOfferVersionId: access.quoteOfferVersionId,
+        publicCodeBase: String(offer.source_public_code_base),
         commitStock: true,
         stockEnforcementEnabled,
         stockActor: { type: 'customer', id: verificationId }
@@ -725,8 +728,7 @@ export async function POST(request: NextRequest) {
           quoteRequestId: access.quoteRequestId,
           quoteOfferVersionId: access.quoteOfferVersionId,
           eventKey: `quote-accepted:${acceptanceId}`,
-          eventType: 'quote_accepted',
-          detail: `Ustvarjeno je bilo naročilo ${placed.orderNumber}.`
+          eventType: 'quote_accepted'
         });
         if (jobs.length > 0) {
           await client.query(

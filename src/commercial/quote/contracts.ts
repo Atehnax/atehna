@@ -41,6 +41,7 @@ export type SubmitQuoteRequestRequest = {
 
 export type SubmitQuoteRequestResponse = {
   accessId: string;
+  quoteCode: string;
   csrfToken?: string;
 };
 
@@ -51,14 +52,24 @@ export type QuoteCustomerSnapshot = DomainQuoteCustomerSnapshot & {
 };
 
 export type QuoteRequestConfirmationSnapshot = {
+  quoteCode: string;
   status: QuoteRequestState;
   quoteReason?: QuoteRequestReason;
   customerMessage?: string | null;
   requestedAt: string;
   customer: Pick<
     QuoteCustomerSnapshot,
-    'customerType' | 'organizationName' | 'contactName' | 'email'
-  >;
+    | 'customerType'
+    | 'customerName'
+    | 'organizationName'
+    | 'contactName'
+    | 'email'
+  > & {
+    addressLine1: string | null;
+    addressLine2: string | null;
+    city: string | null;
+    postalCode: string | null;
+  };
   items: Array<{
     lineNumber: number;
     sku: string;
@@ -82,8 +93,8 @@ export type QuoteAcceptanceMethod =
   | 'online_or_purchase_order';
 
 export type QuoteOfferReviewSnapshot = {
-  requestNumber: string;
-  offerNumber: string;
+  quoteCode: string;
+  offerCode: string;
   versionNumber: number;
   state: QuoteOfferState;
   issuedAt: string;
@@ -109,8 +120,8 @@ export type QuoteOfferReviewSnapshot = {
 };
 
 export type QuoteOfferReviewWireSnapshot = {
-  requestNumber: string;
-  offerNumber: string;
+  quoteCode: string;
+  offerCode: string;
   versionNumber: number;
   status: QuoteOfferState;
   isCurrent: boolean;

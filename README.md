@@ -69,6 +69,30 @@ reviewed quote/contract artifacts below, applied in this exact order:
 9. `database/migrations/20260901_inventory_policy_settings.sql`
 10. `database/migrations/20260901_order_stock_enforcement_marker.sql`
 11. `database/migrations/20260901_quote_outbox_cancellation.sql`
+12. `database/migrations/20260903_gurs_address_prefix_search.sql`
+13. `database/migrations/20260903_order_document_email_events.sql`
+14. `database/migrations/20260903_schema_contract_v1.sql`
+15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
+16. `database/migrations/20260904_public_customer_codes.sql`
+17. `database/migrations/20260904_schema_contract_v2.sql`
+
+The ordered list above is the pre-deploy schema sequence. After the
+public-code-capable application is live and verified, every existing
+environment must run this separate controlled data step (it is idempotent and a
+no-op when no stored settings rows exist):
+`database/migrations/20260905_public_code_email_templates_postdeploy.sql`.
+It is intentionally not part of the pre-deploy sequence and must never run from
+build, startup, or an automatic migration runner.
+
+For steps 12 and 15, first stop scheduled and manual GURS synchronization and
+confirm that no import is running. Apply both index artifacts to the active
+table, then deploy the application version whose GURS synchronizer creates the
+same street and postal indexes on every staging table before re-enabling
+synchronization. Verify one-character street and postal-place lookups, exact
+postal-code completion, and index-backed query plans. This ordering prevents an
+older synchronizer from later swapping an unindexed table into service. If the
+stored lease has expired, either migration invalidates it and marks lingering
+`running` sync-history rows as failed; a live lease aborts the migration.
 
 The admin-details follow-up is only for a database on the verified 20260828
 schema. The management follow-up requires that verified admin-details guard and
@@ -85,9 +109,33 @@ retaining the versioned terms identity and integrity hashes. The inventory-polic
 follow-up adds the global stock-enforcement switch with enforcement enabled by default,
 and the order marker records which policy governed each order's inventory lifecycle.
 The quote-outbox follow-up adds durable administrator cancellation evidence so cancelled
-messages leave the delivery queue without being deleted. No artifact is run by application
-startup. Do not apply one without production database authority, a verified backup, and
-the rollout review in `docs/quote-workflow-rollout.md`.
+messages leave the delivery queue without being deleted. The public-code follow-up
+backfills opaque immutable customer references and preserves one base across
+quote-to-order conversion; it deliberately does not touch email settings or queued
+messages, so it is safe to apply before the compatible application deployment. The
+separate post-deploy data step upgrades stored customer templates from internal serial
+variables during the controlled cutover. It preserves administrator templates,
+never mutates queued envelopes, and aborts while any deliverable pre-cutover customer
+envelope remains. The application contains no runtime aliases for the old customer
+variables: this guarded database rewrite is the only transition mechanism. Keep
+customer writes and both email workers paused from application deployment until this
+data step and its verification have completed.
+The final v2 schema-contract
+artifact verifies the required terminal tables, columns, constraints, functions,
+indexes, triggers, and settings before recording the same compatibility contract
+that a fresh schema records. It does not recreate or claim historical migration
+entries. No artifact is run by application startup. Do not apply one without
+production database authority, a verified backup, and the rollout review in
+`docs/quote-workflow-rollout.md`.
+
+`npm run check:schema-contract` validates the manifest checksum and its bindings
+to the canonical schema and terminal migration without connecting to PostgreSQL.
+`npm run check:database-schema` additionally performs a read-only verification of
+the configured database against the declared contract. Neither command changes
+the schema or data. This Phase-A contract requires every canonical runtime table
+and the exact high-risk order/quote workflow objects introduced by the reviewed
+migration chain; it is not yet an exhaustive every-column catalog signature and
+must not be used as a general deployment gate until Phase B expands that surface.
 
 ## Runtime configuration
 
@@ -108,8 +156,20 @@ when intentionally resetting disposable test data.
 Copy `.env.example` to `.env.local` for local development and provide the
 corresponding environment variables in production.
 
-- A PostgreSQL URL is required through `DATABASE_URL`, `POSTGRES_URL`,
-  `POSTGRES_PRISMA_URL`, or `SUPABASE_DB_URL`.
+- `DATABASE_URL` is the application's only PostgreSQL connection setting. Set
+  it explicitly for each environment; no alternate connection variable is used
+  when it is missing or blank. Isolated tests additionally require
+  `E2E_DATABASE_URL`, which must match `DATABASE_URL` when both are configured.
+- PostgreSQL runtime limits can be set with `ATEHNA_DB_POOL_MAX`,
+  `ATEHNA_DB_CONNECTION_TIMEOUT_MS`, `ATEHNA_DB_IDLE_TIMEOUT_MS`,
+  `ATEHNA_DB_STATEMENT_TIMEOUT_MS`, and `ATEHNA_DB_LOCK_TIMEOUT_MS`. Unset
+  values retain the previous node-postgres defaults in every environment:
+  a pool of 10 connections, a 10-second idle timeout, and no pool-acquisition,
+  statement, or lock timeout. Enable tighter limits only after measuring
+  production-like workloads such as the monthly address index rebuild. Use
+  `0` to disable an individual timeout; invalid values fail before a connection
+  pool is created. Timeout parameters embedded in the database URL take
+  precedence over these separate settings.
 - `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` are required
   in production. Missing production admin credentials fail closed.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
@@ -138,12 +198,13 @@ corresponding environment variables in production.
   characters; quote replay encryption uses a quote-specific KDF/AAD domain and
   must not reuse the order bootstrap key.
 - `ORDER_DEFAULT_TAX_RATE` is optional and defaults to `0.22`.
-- `QUOTE_ADMIN_ENABLED`, `QUOTE_PUBLIC_REQUESTS_ENABLED`,
-  `QUOTE_ONLINE_ACCEPTANCE_ENABLED`, and `QUOTE_EMAIL_DELIVERY_ENABLED` are
-  independent server-side rollout gates. They default off. Enable admin review
-  first, public request submission second, and online acceptance last; keep
-  quote email delivery off until the sender configuration and templates have
-  been verified.
+- `QUOTE_ADMIN_ENABLED`, `QUOTE_PUBLIC_REQUESTS_ENABLED`, and
+  `QUOTE_ONLINE_ACCEPTANCE_ENABLED` are independent server-side rollout gates.
+  They default off. Enable admin review first, public request submission second,
+  and online acceptance last. Quote business-email delivery is controlled by
+  the persisted **Pošiljanje ponudb** toggle under `/admin/email`, which also
+  defaults off. This master toggle also controls OTP security messages and must
+  be enabled before online acceptance can work.
 
 Initial order-summary generation is recorded as a durable database job in the
 same transaction as the order. The post-response callback is only a low-latency
@@ -277,8 +338,8 @@ automatic expiry.
 
 # Test
 
-- Static and unit gates: `npm run lint`, `npm run typecheck`,
-  `npm run test:unit`, then `npm run build`.
+- Static and unit gates: `npm run check:schema-contract`, `npm run lint`,
+  `npm run typecheck`, `npm run test:unit`, then `npm run build`.
 - E2E requires a newly provisioned disposable PostgreSQL database on loopback.
   Its name must be `atehna_e2e_` plus the lower-case
   `E2E_STORAGE_NAMESPACE`, with hyphens replaced by underscores. For
@@ -291,10 +352,16 @@ automatic expiry.
   unique 12–52 character `E2E_STORAGE_NAMESPACE` made from lower-case letters,
   digits and hyphens, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and an
   `ADMIN_SESSION_SECRET` of at least 32 characters.
-- Run `npm run build`, `npm run e2e:db:prepare`, then
+- Run `npm run build`, `npm run e2e:db:prepare`,
+  `npm run e2e:db:rehearse-contract`, `npm run check:database-schema`, then
   `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies
   `database/schema.sql`, installs deterministic catalog/media fixtures, verifies the
-  sentinel data, and clears Next's generated runtime cache before the run.
+  sentinel data, and clears Next's generated runtime cache before the run. The
+  guarded rehearsal removes only the disposable database's contract ledger,
+  temporarily flips its inventory-policy fixture to the other valid boolean
+  state, executes the explicit terminal artifact twice to prove installation,
+  idempotence, and value-independent compatibility, then restores the fixture
+  and verifies the resulting database contract.
   Playwright clears that same generated cache again during teardown so E2E
   database values cannot leak into the normal application.
 - A local system Chromium can be selected with
@@ -304,12 +371,15 @@ automatic expiry.
 ## CI safety gates
 The pull request CI workflow runs:
 - `npm ci`
+- `npm run check:schema-contract`
 - `npm run lint`
 - `npm run typecheck`
 - `npm run test:unit`
 - `npm run build`
 - four isolated PostgreSQL-backed Playwright shards with one worker and zero
-  retries
+  retries; each shard executes the terminal contract twice and runs
+  `npm run check:database-schema` after installing the fresh schema and before
+  starting Playwright
 - merged-report verification proving every expected test ran and passed once
 
 ## Deployed network measurement harness
@@ -353,6 +423,43 @@ Default target routes:
 
 If `--category` or `--order-id` are not supplied, the script will try to auto-resolve them from the deployed site by finding the first matching category/order link. In a reset state with no categories or orders, matching dynamic route templates are skipped and listed in the report instead of failing the whole run.
 
+
+## Post-build asset report and budget guard
+
+After a production build, inspect deterministic aggregate sizes for emitted
+client JavaScript, font files, and static media:
+
+    npm run build
+    npm run check:build-assets
+
+The default command is report-only. It does not fail because no project budget
+has been chosen yet. To capture a trusted main-branch report:
+
+    npm run check:build-assets -- --output artifacts/build-assets-main.json
+
+A later build can be compared explicitly against that report:
+
+    npm run check:build-assets -- --baseline artifacts/build-assets-main.json
+
+Optional byte or percentage tolerances are additive:
+
+    npm run check:build-assets -- --baseline artifacts/build-assets-main.json --baseline-allow-bytes 1024 --baseline-allow-percent 0.25
+
+Independent absolute ceilings are also supported. The values below illustrate
+the command syntax only; replace them with reviewed project limits:
+
+    npm run check:build-assets -- --max-client-js-gzip-bytes 5000000 --max-font-bytes 20000000 --max-static-media-bytes 50000000
+
+Run `npm run check:build-assets -- --help` for all options. The JSON report is
+stable: it contains no timestamp, machine-specific absolute path, or build ID.
+Client-JS gzip sizes are calculated per emitted chunk using level-9 gzip as a
+local comparison proxy. The report records the zlib version and rejects a
+baseline created with different input directories, compression settings, or
+zlib version.
+
+No asset budget runs in CI until a reviewed baseline or explicit ceilings have
+been committed. The deployed Chromium network harness remains the source of
+truth for actual route-level transfer and cache behavior.
 
 # License
 Internal / project-specific.

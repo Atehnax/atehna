@@ -5,17 +5,24 @@ import { RefreshCw } from 'lucide-react';
 import {
   cloneDefaultQuoteEmailSettings,
   normalizeQuoteEmailSettings,
+  quoteEmailTemplateInternalVariables,
+  quoteEmailTemplateVariables,
   QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS,
-  QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
+  QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
   QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
   type QuoteEmailEventType,
-  type QuoteEmailSettings
+  type QuoteEmailSettings,
+  type QuoteEmailTemplateAudience
 } from '@/shared/domain/quote/quoteEmailSettings';
+import {
+  buildQuoteEmailMessage
+} from '@/shared/domain/quote/quoteEmailTemplates';
+import type { EmailTemplatePresentation } from '@/shared/domain/emailTemplateLayout';
+import type { OrderEmailSettings } from '@/shared/domain/order/orderEmailSettings';
 import type { QuoteEmailAdminState } from '@/shared/server/quoteEmailSettings';
 import {
   adminTableBodyCellCenterClassName,
   adminTableBodyCellLeftClassName,
-  adminTableBulkHeaderButtonClassName,
   adminTableHeaderCellCenterClassName,
   adminTableHeaderCellLeftClassName,
   adminTableNeutralIconButtonClassName,
@@ -24,27 +31,24 @@ import {
   adminWindowCardClassName,
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
-import { Button } from '@/shared/ui/button';
 import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { IconButton } from '@/shared/ui/icon-button';
 import { TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
-import { Input } from '@/shared/ui/input';
 import { CustomSelect } from '@/shared/ui/select';
 import { Table, TBody, TD, TH, THead, TR } from '@/shared/ui/table';
-import {
-  adminInputFocusTokenClasses,
-  adminPlaceholderTokenClasses
-} from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import EmailQueueMetricCard from '@/admin/features/email/components/EmailQueueMetricCard';
+import EmailTemplateWorkspace, {
+  EmailTemplateRecipientToggle,
+  getEmailTemplateActivity
+} from '@/admin/features/email/components/EmailTemplateWorkspace';
+import type {
+  EmailTemplateContextSharedContent
+} from '@/admin/features/email/components/EmailTemplateContextToolbar';
 import { getQuoteEmailEventStatusPresentation } from '@/admin/features/email/emailEventStatusPresentation';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
-
-const inputClassName = 'h-9 px-3 text-[13px] leading-5';
-const textareaClassName =
-  `min-h-24 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 
 type EditableEvent = (typeof QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS)[number]['value'];
 type PendingJob = QuoteEmailAdminState['queue']['pendingJobs'][number];
@@ -69,6 +73,8 @@ export type AdminQuoteEmailSaveState = {
 
 type AdminQuoteEmailSettingsSectionProps = {
   initialState: QuoteEmailAdminState;
+  sharedSettings: OrderEmailSettings;
+  sharedContent: EmailTemplateContextSharedContent;
   onSaveStateChange?: (state: AdminQuoteEmailSaveState) => void;
 };
 
@@ -81,10 +87,85 @@ const quoteEmailEventLabelByType = new Map<string, string>(
 const quoteTemplateEventOptions = QUOTE_EMAIL_EDITABLE_EVENT_DEFINITIONS.map(
   ({ value, label }) => ({ value, label })
 );
-const QUOTE_EMAIL_TEMPLATE_VARIABLES = [
-  'request_number',
-  'offer_number'
-] as const;
+const quoteEmailPreviewAudienceOptions = [
+  { value: 'customer', label: 'Fiz. oseba' },
+  { value: 'companyCustomer', label: 'Podjetje' },
+  { value: 'schoolCustomer', label: 'Šola / javni zavod' },
+  { value: 'admin', label: 'Admin' }
+] as const satisfies ReadonlyArray<{
+  value: QuoteEmailTemplateAudience;
+  label: string;
+}>;
+const quoteEmailSpacingDefaults = {
+  audienceDetails: 0,
+  primaryAction: 20
+} as const;
+const QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER = 'POV-2026-001';
+const QUOTE_EMAIL_PREVIEW_OFFER_NUMBER = 'PON-2026-001';
+const QUOTE_EMAIL_PREVIEW_QUOTE_CODE = 'PV-7K3M-4X9P-2D6R-8H4Q';
+const QUOTE_EMAIL_PREVIEW_OFFER_CODE = 'PN-7K3M-4X9P-2D6R-8H4Q-V2';
+const QUOTE_EMAIL_PREVIEW_ORDER_CODE = 'N-7K3M-4X9P-2D6R-8H4Q';
+const QUOTE_EMAIL_PREVIEW_ORDER_NUMBER = '#PREIZKUS';
+const quoteEmailPreviewDetails: Partial<Record<EditableEvent, string>> = {
+  quote_clarification_requested:
+    'Prosimo, potrdite želeno količino in pričakovani rok dobave.',
+  quote_declined: 'Razlog: izbrana je bila druga ponudba.',
+  quote_withdrawn: 'Ponudba je bila umaknjena zaradi spremembe pogojev.',
+  quote_acceptance_blocked_stock:
+    'Za izbrano količino trenutno ni dovolj razpoložljive zaloge.',
+  quote_delivery_failed: 'Primer napake dostave: prejemnik ni dosegljiv.'
+};
+function quoteEmailPreviewVariables(
+  eventType: QuoteEmailEventType,
+  audience: QuoteEmailTemplateAudience
+) {
+  return quoteEmailTemplateVariables(eventType, audience).map((name) => ({
+    name,
+    value: {
+      recipient_name: 'Ana Novak',
+      quote_code: QUOTE_EMAIL_PREVIEW_QUOTE_CODE,
+      offer_code: QUOTE_EMAIL_PREVIEW_OFFER_CODE,
+      order_code: QUOTE_EMAIL_PREVIEW_ORDER_CODE,
+      request_number: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
+      offer_number: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
+      order_number: QUOTE_EMAIL_PREVIEW_ORDER_NUMBER,
+      otp_code: '482913'
+    }[name] ?? ''
+  }));
+}
+
+function quoteTemplateAudienceMeta(audience: QuoteEmailTemplateAudience) {
+  if (audience === 'admin') {
+    return {
+      title: 'Admin',
+      label: 'administratorja',
+      description:
+        'Administratorska predloga lahko uporablja javne kode in označene interne številke.'
+    };
+  }
+  if (audience === 'schoolCustomer') {
+    return {
+      title: 'Šola / javni zavod',
+      label: 'šolo ali javni zavod',
+      description:
+        'Uporabi se za povpraševalca vrste »Šola / javni zavod« in vsebuje samo javne podatke.'
+    };
+  }
+  if (audience === 'companyCustomer') {
+    return {
+      title: 'Podjetje',
+      label: 'podjetje',
+      description:
+        'Uporabi se za povpraševalca vrste »Podjetje« in vsebuje samo javne podatke.'
+    };
+  }
+  return {
+    title: 'Fizična oseba',
+    label: 'fizično osebo',
+    description:
+      'Uporabi se za povpraševalca vrste »Fizična oseba« in vsebuje samo javne podatke.'
+  };
+}
 
 function formatAudience(value: string): string {
   if (value === 'customer') return 'Stranka';
@@ -107,130 +188,11 @@ function formatDate(value: string): string {
       }).format(date);
 }
 
-function QuoteTemplateEditorCard({
-  audience,
-  title,
-  description,
-  subject,
-  body,
-  disabled,
-  onSubjectChange,
-  onBodyChange,
-  onReset,
-  className = ''
-}: {
-  audience: 'customer' | 'admin';
-  title: string;
-  description: string;
-  subject: string;
-  body: string;
-  disabled: boolean;
-  onSubjectChange: (value: string) => void;
-  onBodyChange: (value: string) => void;
-  onReset: () => void;
-  className?: string;
-}) {
-  const audienceLabel = audience === 'customer' ? 'stranko' : 'administratorja';
-  const subjectId = `quote-email-template-${audience}-subject`;
-  const bodyId = `quote-email-template-${audience}-body`;
-
-  return (
-    <section
-      className={`min-w-0 rounded-lg border border-slate-200 bg-slate-50/60 p-4 ${className}`}
-      data-testid={`quote-email-template-${audience}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600">
-            {description}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="default"
-          size="toolbar"
-          className={adminTableBulkHeaderButtonClassName}
-          disabled={disabled}
-          onClick={onReset}
-          aria-label={`Ponastavi privzeto predlogo za ${audienceLabel}`}
-          data-testid={`quote-email-template-${audience}-reset`}
-        >
-          Ponastavi privzeto
-        </Button>
-      </div>
-
-      <div className="mt-3 space-y-3">
-        <div>
-          <label htmlFor={subjectId} className="block">
-            <span className="block text-xs font-semibold text-slate-700">
-              Zadeva za {audienceLabel}
-            </span>
-            <span className="mt-0.5 block text-xs text-slate-500">
-              Uporabite lahko spodaj navedene spremenljivke.
-            </span>
-          </label>
-          <Input
-            id={subjectId}
-            aria-label={`Zadeva za ${audienceLabel}`}
-            className={`${inputClassName} mt-1.5`}
-            disabled={disabled}
-            maxLength={QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
-            value={subject}
-            onChange={(event) => onSubjectChange(event.target.value)}
-            data-testid={`quote-email-template-${audience}-subject`}
-          />
-        </div>
-        <div>
-          <label htmlFor={bodyId} className="block">
-            <span className="block text-xs font-semibold text-slate-700">
-              Vsebina za {audienceLabel}
-            </span>
-            <span className="mt-0.5 block text-xs text-slate-500">
-              Vnesite navadno besedilo; sistemski podatki dogodka se dodajo ob
-              pošiljanju.
-            </span>
-          </label>
-          <textarea
-            id={bodyId}
-            aria-label={`Vsebina za ${audienceLabel}`}
-            className={`${textareaClassName} mt-1.5 min-h-40`}
-            disabled={disabled}
-            maxLength={QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH}
-            value={body}
-            onChange={(event) => onBodyChange(event.target.value)}
-            data-testid={`quote-email-template-${audience}-body`}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 border-t border-slate-200 pt-3">
-        <p className="text-xs font-medium text-slate-700">
-          Dovoljene spremenljivke
-        </p>
-        <div
-          className="mt-1.5 flex flex-wrap gap-1.5"
-          aria-label={`Dovoljene spremenljivke za ${audienceLabel}`}
-        >
-          {QUOTE_EMAIL_TEMPLATE_VARIABLES.map((variable) => (
-            <code
-              key={variable}
-              className="max-w-full break-all rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
-            >
-              {`{{${variable}}}`}
-            </code>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 const AdminQuoteEmailSettingsSection = forwardRef<
   AdminQuoteEmailSettingsHandle,
   AdminQuoteEmailSettingsSectionProps
 >(function AdminQuoteEmailSettingsSection(
-  { initialState, onSaveStateChange },
+  { initialState, sharedSettings, sharedContent, onSaveStateChange },
   ref
 ) {
   const { toast } = useToast();
@@ -241,6 +203,8 @@ const AdminQuoteEmailSettingsSection = forwardRef<
   );
   const [selectedEvent, setSelectedEvent] =
     useState<EditableEvent>('quote_request_submitted');
+  const [quotePreviewAudience, setQuotePreviewAudience] =
+    useState<QuoteEmailTemplateAudience>('customer');
   const [saving, setSaving] = useState(false);
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
   const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
@@ -249,9 +213,65 @@ const AdminQuoteEmailSettingsSection = forwardRef<
     () => comparable(draft) !== comparable(state.config),
     [draft, state.config]
   );
-  const selectedTemplateStatusPresentation =
-    getQuoteEmailEventStatusPresentation(selectedEvent);
+  const quotePreview = useMemo(() => {
+    try {
+      const message = buildQuoteEmailMessage(
+        {
+          eventType: selectedEvent,
+          audience: quotePreviewAudience === 'admin' ? 'admin' : 'customer',
+          customerType:
+            quotePreviewAudience === 'schoolCustomer'
+              ? 'school'
+              : quotePreviewAudience === 'companyCustomer'
+                ? 'company'
+                : 'individual',
+          recipientEmail:
+            quotePreviewAudience === 'admin'
+              ? 'admin@example.invalid'
+              : 'ana.novak@example.com',
+          recipientName:
+            quotePreviewAudience === 'admin' ? null : 'Ana Novak',
+          quoteCode: QUOTE_EMAIL_PREVIEW_QUOTE_CODE,
+          offerCode: QUOTE_EMAIL_PREVIEW_OFFER_CODE,
+          orderCode: QUOTE_EMAIL_PREVIEW_ORDER_CODE,
+          requestNumber: QUOTE_EMAIL_PREVIEW_REQUEST_NUMBER,
+          offerNumber: QUOTE_EMAIL_PREVIEW_OFFER_NUMBER,
+          orderNumber: QUOTE_EMAIL_PREVIEW_ORDER_NUMBER,
+          otpCode: null,
+          offerUrl:
+            selectedEvent === 'quote_issued'
+              ? 'https://example.invalid/quote/offer'
+              : null,
+          detail: quoteEmailPreviewDetails[selectedEvent] ?? null,
+          sharedSettings: {
+            ...sharedSettings,
+            senderName: sharedSettings.senderName.trim() || 'Atehna',
+            fromEmail: 'preview@example.invalid',
+            replyToEmail: '',
+            imageAttachment: null
+          },
+          quoteSettings: draft
+        },
+        { editorPreview: true }
+      );
+      return { subject: message.subject, html: message.html, error: null };
+    } catch {
+      return {
+        subject: '',
+        html: '',
+        error: 'Predogleda s trenutnimi nastavitvami ni mogoče prikazati.'
+      };
+    }
+  }, [draft, quotePreviewAudience, selectedEvent, sharedSettings]);
+  const selectedQuotePreviewVariables = useMemo(
+    () => quoteEmailPreviewVariables(selectedEvent, quotePreviewAudience),
+    [quotePreviewAudience, selectedEvent]
+  );
   const mutationsDisabled = !state.schemaReady || !state.flags.admin;
+  const selectedEventRecipients = draft.events[selectedEvent];
+  const selectedAudienceTemplate =
+    draft.templates[selectedEvent][quotePreviewAudience];
+  const selectedAudience = quoteTemplateAudienceMeta(quotePreviewAudience);
 
   const updateEvent = (
     eventType: QuoteEmailEventType,
@@ -267,8 +287,8 @@ const AdminQuoteEmailSettingsSection = forwardRef<
   };
 
   const updateTemplate = (
-    audience: 'customer' | 'admin',
-    field: 'subject' | 'body',
+    audience: QuoteEmailTemplateAudience,
+    field: 'subject' | 'contentHtml',
     value: string
   ) => {
     setDraft((current) => ({
@@ -286,7 +306,30 @@ const AdminQuoteEmailSettingsSection = forwardRef<
     }));
   };
 
-  const resetTemplate = (audience: 'customer' | 'admin') => {
+  const updateTemplatePresentation = (
+    audience: QuoteEmailTemplateAudience,
+    presentation: EmailTemplatePresentation | undefined
+  ) => {
+    setDraft((current) => {
+      const currentTemplate = current.templates[selectedEvent][audience];
+      const { presentation: _presentation, ...templateWithoutPresentation } =
+        currentTemplate;
+      return {
+        ...current,
+        templates: {
+          ...current.templates,
+          [selectedEvent]: {
+            ...current.templates[selectedEvent],
+            [audience]: presentation
+              ? { ...templateWithoutPresentation, presentation }
+              : templateWithoutPresentation
+          }
+        }
+      };
+    });
+  };
+
+  const resetTemplate = (audience: QuoteEmailTemplateAudience) => {
     const defaults =
       cloneDefaultQuoteEmailSettings().templates[selectedEvent][audience];
     setDraft((current) => ({
@@ -363,7 +406,6 @@ const AdminQuoteEmailSettingsSection = forwardRef<
     if (
       retryingJobId ||
       mutationsDisabled ||
-      !state.flags.emailDelivery ||
       !failure?.retryEligible
     ) return;
     setRetryingJobId(jobId);
@@ -550,79 +592,120 @@ const AdminQuoteEmailSettingsSection = forwardRef<
           <p className="mt-3 text-xs leading-5 text-slate-500">Varnostna OTP e-pošta ostane sistemska in ni izpostavljena kot poslovna predloga.</p>
         </section>
 
-        <section
-          aria-labelledby="quote-email-template-heading"
-          className={`min-w-0 px-5 py-4 ${selectedTemplateStatusPresentation.sectionClassName}`}
-          data-testid="quote-email-message-templates"
-          data-status-tone={selectedTemplateStatusPresentation.tone}
-        >
-          <div className="mb-3">
-            <h3
-              id="quote-email-template-heading"
-              className="text-base font-semibold text-slate-900"
-            >
-              Predloge sporočil
-            </h3>
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-slate-600">
-              Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za
-              posamezne skupine prejemnikov. Sistemski podatki ponudbe se
-              dodajo samodejno.
-            </p>
-          </div>
-
-          <div className="max-w-sm">
-            <label htmlFor="quote-email-template-event" className="block">
-              <span className="block text-xs font-semibold text-slate-700">
-                Dogodek ponudbe
-              </span>
-              <span className="mt-0.5 block text-xs text-slate-500">
-                Izberite dogodek, katerega predloge so prikazane spodaj.
-              </span>
-            </label>
-            <CustomSelect<EditableEvent>
-              id="quote-email-template-event"
-              testId="quote-email-template-event"
-              value={selectedEvent}
-              onChange={setSelectedEvent}
-              options={quoteTemplateEventOptions}
-              ariaLabel="Dogodek ponudbe"
-              containerClassName="mt-1.5"
-              triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
-            />
-          </div>
-
-          <div
-            className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2"
-            data-testid="quote-email-template-grid"
-          >
-            {(['customer', 'admin'] as const).map((audience) => {
-              const template = draft.templates[selectedEvent][audience];
-              return (
-                <QuoteTemplateEditorCard
-                  key={audience}
-                  audience={audience}
-                  title={audience === 'customer' ? 'Stranka' : 'Administrator'}
-                  description={
-                    audience === 'customer'
-                      ? 'Predloga uporablja javne podatke povpraševanja ali ponudbe.'
-                      : 'Administratorska predloga lahko uporablja številko povpraševanja in številko ponudbe.'
-                  }
-                  subject={template.subject}
-                  body={template.body}
-                  disabled={mutationsDisabled}
-                  onSubjectChange={(value) =>
-                    updateTemplate(audience, 'subject', value)
-                  }
-                  onBodyChange={(value) =>
-                    updateTemplate(audience, 'body', value)
-                  }
-                  onReset={() => resetTemplate(audience)}
-                  className="lg:col-span-2"
-                />
-              );
-            })}
-          </div>
-        </section>
+        <EmailTemplateWorkspace<QuoteEmailTemplateAudience>
+          idPrefix="quote-email-template"
+          headingId="quote-email-template-heading"
+          headingLevel={3}
+          testId="quote-email-message-templates"
+          title="Predloge sporočil"
+          eventSelector={
+            <>
+              <label htmlFor="quote-email-template-event" className="block">
+                <span className="block text-xs font-semibold text-slate-700">
+                  Dogodek ponudbe
+                </span>
+              </label>
+              <CustomSelect<EditableEvent>
+                id="quote-email-template-event"
+                testId="quote-email-template-event"
+                value={selectedEvent}
+                onChange={setSelectedEvent}
+                options={quoteTemplateEventOptions}
+                ariaLabel="Dogodek ponudbe"
+                containerClassName="mt-1.5"
+                triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
+              />
+            </>
+          }
+          activity={getEmailTemplateActivity(
+            draft.enabled,
+            selectedEventRecipients.customer,
+            selectedEventRecipients.admins
+          )}
+          recipientControls={
+            <>
+              <EmailTemplateRecipientToggle
+                kind="customer"
+                label="Pošiljanje stranki"
+                checked={selectedEventRecipients.customer}
+                disabled={mutationsDisabled}
+                testId="quote-email-template-recipient-customer"
+                title="Vklopi ali izklopi pošiljanje stranki za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(selectedEvent, {
+                    customer: checked
+                  })
+                }
+              />
+              <EmailTemplateRecipientToggle
+                kind="admin"
+                label="Pošiljanje administratorjem"
+                checked={selectedEventRecipients.admins}
+                disabled={mutationsDisabled}
+                testId="quote-email-template-recipient-admin"
+                title="Vklopi ali izklopi pošiljanje administratorjem za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(selectedEvent, {
+                    admins: checked
+                  })
+                }
+              />
+            </>
+          }
+          audiences={quoteEmailPreviewAudienceOptions}
+          activeAudience={quotePreviewAudience}
+          selectionKey={selectedEvent}
+          onAudienceChange={setQuotePreviewAudience}
+          workspaceTestId="quote-email-template-grid"
+          editor={{
+            testId: `quote-email-template-${quotePreviewAudience}`,
+            title: selectedAudience.title,
+            description: selectedAudience.description,
+            disabled: mutationsDisabled,
+            subject: {
+              id: `quote-email-template-${quotePreviewAudience}-subject`,
+              label: 'Zadeva',
+              value: selectedAudienceTemplate.subject,
+              maxLength: QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
+              testId: `quote-email-template-${quotePreviewAudience}-subject`,
+              onChange: (value) =>
+                updateTemplate(quotePreviewAudience, 'subject', value)
+            },
+            contentHtml: {
+              id: `quote-email-template-${quotePreviewAudience}-content`,
+              label: 'Vsebina sporočila',
+              value: selectedAudienceTemplate.contentHtml ?? '',
+              maxLength: QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
+              testId: `quote-email-template-${quotePreviewAudience}-content`,
+              onChange: (value) =>
+                updateTemplate(quotePreviewAudience, 'contentHtml', value)
+            },
+            variables: quoteEmailTemplateVariables(
+              selectedEvent,
+              quotePreviewAudience
+            ),
+            internalVariables: quoteEmailTemplateInternalVariables(
+              selectedEvent,
+              quotePreviewAudience
+            ),
+            variablesAriaLabel: `Dovoljene spremenljivke za ${selectedAudience.label}`,
+            presentation: selectedAudienceTemplate.presentation,
+            onPresentationChange: (presentation) =>
+              updateTemplatePresentation(quotePreviewAudience, presentation),
+            spacingDefaults: quoteEmailSpacingDefaults
+          }}
+          sharedContent={sharedContent}
+          onReset={() => resetTemplate(quotePreviewAudience)}
+          resetTestId={`quote-email-template-${quotePreviewAudience}-reset`}
+          resetAriaLabel={`Ponastavi privzeto predlogo za ${selectedAudience.label}`}
+          preview={{
+            subject: quotePreview.subject,
+            html: quotePreview.html,
+            variables: selectedQuotePreviewVariables,
+            error: quotePreview.error,
+            testId: 'quote-email-preview'
+          }}
+        />
 
         <section className="min-w-0 bg-white px-5 py-4" data-testid="quote-email-queue-card">
         <div className="mb-3">

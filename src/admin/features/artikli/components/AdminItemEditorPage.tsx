@@ -5,17 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ClipboardEvent as ReactClipboardEvent, type FocusEvent as ReactFocusEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Editor, Extension } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TiptapLink from '@tiptap/extension-link';
-import TiptapImage from '@tiptap/extension-image';
-import TextAlign from '@tiptap/extension-text-align';
-import Placeholder from '@tiptap/extension-placeholder';
-import Highlight from '@tiptap/extension-highlight';
-import Color from '@tiptap/extension-color';
-import FontFamily from '@tiptap/extension-font-family';
-import { TextStyle } from '@tiptap/extension-text-style';
 import {
   DndContext,
   DragOverlay,
@@ -50,7 +39,6 @@ import {
   hoverTokenClasses,
   selectTokenClasses
 } from '@/shared/ui/theme/tokens';
-import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import SegmentedControl from '@/shared/ui/segmented/segmented-control';
 import {
@@ -92,7 +80,7 @@ import { formatEuroAmount } from '@/shared/domain/formatting';
 import { formatDecimalForDisplay, formatDecimalForSku, parseDecimalInput, parseDecimalListInput } from '@/admin/features/artikli/lib/decimalFormat';
 import AdminCategoryBreadcrumbPicker from '@/admin/components/AdminCategoryBreadcrumbPicker';
 import ActiveStateChip from '@/admin/features/artikli/components/ActiveStateChip';
-import OpisColorPopover from '@/admin/features/artikli/components/OpisColorPopover';
+import AdminRichTextEditor from '@/admin/components/AdminRichTextEditor';
 import UploadedImageCropperModal from '@/admin/features/artikli/components/UploadedImageCropperModal';
 import ProductVariantOptionsCard from '@/admin/features/artikli/components/ProductVariantOptionsCard';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
@@ -148,7 +136,6 @@ import {
   articleNameInputClassName,
   compactSideInputClassName,
   compactSideInputWrapClassName,
-  numberInputClass,
   topBarArticleNameInputClassName
 } from '@/admin/features/artikli/components/artikliFieldStyles';
 import { saveCatalogItemPayload } from '@/admin/lib/catalogItemClient';
@@ -2258,342 +2245,6 @@ function SideInputIcon({ icon, muted = false, className = '' }: { icon: SideFiel
     );
   }
   return <svg {...iconProps}><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M10 12h6M10 16h6" /></svg>;
-}
-
-function OpisRichTextEditor({
-  value,
-  editable,
-  onChange
-}: {
-  value: string;
-  editable: boolean;
-  onChange: (next: string) => void;
-}) {
-  const editorHostRef = useRef<HTMLDivElement>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const sizeTriggerRef = useRef<HTMLButtonElement>(null);
-  const fontTriggerRef = useRef<HTMLButtonElement>(null);
-  const colorTriggerRef = useRef<HTMLButtonElement>(null);
-  const sizeMenuRef = useRef<HTMLDivElement>(null);
-  const fontMenuRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<Editor | null>(null);
-  const onChangeRef = useRef(onChange);
-  const initialContentRef = useRef(value || '<p></p>');
-  const [textLength, setTextLength] = useState(0);
-  const [openMenu, setOpenMenu] = useState<null | 'size' | 'font' | 'color'>(null);
-  const [customColor, setCustomColor] = useState('#1e293b');
-  const [fontSizeValue, setFontSizeValue] = useState('');
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const [mediaDialogMode, setMediaDialogMode] = useState<'link' | 'image' | null>(null);
-  const [mediaUrlDraft, setMediaUrlDraft] = useState('https://');
-  const closeRichTextMenu = useCallback(() => setOpenMenu(null), []);
-  const richTextMenuDismissRefs = useMemo(() => [toolbarRef, sizeMenuRef, fontMenuRef], []);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!editorHostRef.current) return;
-    const FontSize = Extension.create({
-      name: 'fontSize',
-      addGlobalAttributes() {
-        return [
-          {
-            types: ['textStyle'],
-            attributes: {
-              fontSize: {
-                default: null,
-                parseHTML: (element: HTMLElement) => element.style.fontSize || null,
-                renderHTML: (attributes: { fontSize?: string | null }) =>
-                  attributes.fontSize
-                    ? { style: `font-size: ${attributes.fontSize}` }
-                    : {}
-              }
-            }
-          }
-        ];
-      }
-    });
-
-    const editor = new Editor({
-      element: editorHostRef.current,
-      editable,
-      extensions: [
-        StarterKit.configure({ link: false, underline: false }),
-        Underline,
-        TextStyle,
-        FontSize,
-        Highlight.configure({ multicolor: true }),
-        Color,
-        FontFamily,
-        TiptapLink.configure({ openOnClick: false, defaultProtocol: 'https' }),
-        TiptapImage,
-        TextAlign.configure({ types: ['heading', 'paragraph'] }),
-        Placeholder.configure({ placeholder: 'Opis artikla...' })
-      ],
-      content: initialContentRef.current,
-      editorProps: {
-        attributes: {
-          class: `w-full bg-white px-5 py-4 text-[12px] font-['Inter',system-ui,sans-serif] text-slate-800 outline-none ${!editable ? 'cursor-default' : ''}`
-        }
-      },
-      onUpdate: ({ editor: nextEditor }: { editor: Editor }) => {
-        onChangeRef.current(nextEditor.getHTML());
-        setTextLength(nextEditor.getText().length);
-      }
-    });
-
-    setTextLength(editor.getText().length);
-    editorRef.current = editor;
-    return () => {
-      editor.destroy();
-      editorRef.current = null;
-    };
-  }, [editable]);
-
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const next = value || '<p></p>';
-    if (editor.getHTML() !== next) {
-      editor.commands.setContent(next, { emitUpdate: false });
-      setTextLength(editor.getText().length);
-    }
-  }, [value]);
-
-  const getMenuRefs = useCallback((menu: 'size' | 'font' | 'color') => {
-    if (menu === 'size') return { trigger: sizeTriggerRef.current, panel: sizeMenuRef.current };
-    if (menu === 'font') return { trigger: fontTriggerRef.current, panel: fontMenuRef.current };
-    return { trigger: colorTriggerRef.current, panel: null };
-  }, []);
-
-  const updateMenuPosition = useCallback(() => {
-    if (!openMenu) return;
-    const refs = getMenuRefs(openMenu);
-    if (!refs.trigger) return;
-    const rect = refs.trigger.getBoundingClientRect();
-    const panelWidth = refs.panel?.offsetWidth ?? (openMenu === 'color' ? 228 : 90);
-    const left = Math.min(Math.max(8, rect.left), window.innerWidth - panelWidth - 8);
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 8);
-    setMenuPosition({ top, left });
-  }, [getMenuRefs, openMenu]);
-
-  const positionMenuForTrigger = useCallback((menu: 'size' | 'font' | 'color', trigger: HTMLElement | null) => {
-    if (!trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const estimatedWidth = menu === 'size' ? 100 : menu === 'font' ? 135 : 228;
-    const left = Math.min(Math.max(8, rect.left), window.innerWidth - estimatedWidth - 8);
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 8);
-    setMenuPosition({ top, left });
-  }, []);
-
-  useDropdownDismiss({
-    open: openMenu === 'size' || openMenu === 'font',
-    refs: richTextMenuDismissRefs,
-    onClose: closeRichTextMenu
-  });
-
-  useEffect(() => {
-    if (!openMenu) return;
-    updateMenuPosition();
-    const onWindowChange = () => updateMenuPosition();
-    window.addEventListener('resize', onWindowChange);
-    window.addEventListener('scroll', onWindowChange, true);
-    return () => {
-      window.removeEventListener('resize', onWindowChange);
-      window.removeEventListener('scroll', onWindowChange, true);
-    };
-  }, [getMenuRefs, openMenu, updateMenuPosition]);
-
-  const run = (action: (editor: Editor) => void, options?: { focusEditor?: boolean }) => {
-    const editor = editorRef.current;
-    if (!editor || !editable) return;
-    action(editor);
-    if (options?.focusEditor ?? true) editor.commands.focus();
-  };
-  const applyFontSize = (rawValue: string) => {
-    const parsed = Number(rawValue);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
-    run((e) => e.chain().setMark('textStyle', { fontSize: `${parsed}px` }).run(), { focusEditor: false });
-  };
-  const applyColor = (nextColor: string) => {
-    const normalized = nextColor.trim();
-    if (!normalized) return;
-    setCustomColor(normalized);
-    run((e) => e.chain().setColor(normalized).run(), { focusEditor: false });
-  };
-  const escapeHtml = (value: string) => value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-  const applyListWithLineSplit = (ordered: boolean) => {
-    run((editorInstance) => {
-      const { from, to } = editorInstance.state.selection;
-      const selected = editorInstance.state.doc.textBetween(from, to, '\n');
-      const lines = selected.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-      if (lines.length > 1) {
-        const html = lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('');
-        const chain = editorInstance.chain().focus().deleteRange({ from, to }).insertContent(html);
-        if (ordered) chain.toggleOrderedList().run();
-        else chain.toggleBulletList().run();
-        return;
-      }
-      if (ordered) editorInstance.chain().focus().toggleOrderedList().run();
-      else editorInstance.chain().focus().toggleBulletList().run();
-    });
-  };
-  const submitMediaUrl = () => {
-    const normalized = mediaUrlDraft.trim();
-    if (!normalized) return;
-    if (mediaDialogMode === 'link') run((e) => e.chain().focus().setLink({ href: normalized }).run());
-    if (mediaDialogMode === 'image') run((e) => e.chain().focus().setImage({ src: normalized }).run());
-    setMediaDialogMode(null);
-    setMediaUrlDraft('https://');
-  };
-  const preventToolbarFocusLoss = (event: { preventDefault: () => void }) => event.preventDefault();
-  const toolbarButtonClass = 'rounded p-1.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50';
-  const toolbarIconClass = 'h-4 w-4';
-  const toolbarIconItalicClass = 'h-[14px] w-[14px]';
-  const toolbarIconTextSizeClass = 'h-[17.6px] w-[17.6px]';
-  const toolbarIconLargeClass = 'h-[18px] w-[18px]';
-  const toolbarIconAlignClass = 'h-4 w-4';
-  const toolbarIconSmallClass = 'h-[13.6px] w-[13.6px]';
-  const toolbarIconTinyClass = 'h-3.5 w-3.5';
-  const toolbarIconHighlightClass = 'h-3.5 w-3.5';
-  const divider = <span className="mx-1 h-6 w-px bg-slate-300" aria-hidden />;
-  const fontFamilyOptions = [
-    { label: 'Inter', value: 'Inter, system-ui, sans-serif' },
-    { label: 'Arial', value: 'Arial, sans-serif' },
-    { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-    { label: 'Georgia', value: 'Georgia, serif' },
-    { label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
-    { label: 'Verdana', value: 'Verdana, sans-serif' },
-    { label: 'Tahoma', value: 'Tahoma, sans-serif' },
-    { label: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
-    { label: 'Courier New', value: '"Courier New", Courier, monospace' },
-    { label: 'system-ui', value: 'system-ui, sans-serif' }
-  ] as const;
-
-  return (
-    <div className={`relative flex h-[150px] min-h-[130px] resize-y flex-col overflow-hidden rounded-lg border border-slate-300 ${editable ? 'bg-white' : 'bg-[color:var(--field-locked-bg)]'}`}>
-      <div ref={toolbarRef} className="flex flex-nowrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <button type="button" title="Krepko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleBold().run())} aria-label="Bold"><span className="inline-block w-4 text-center text-base font-bold leading-none">B</span></button>
-        <button type="button" title="Ležeče" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleItalic().run())} aria-label="Italic"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconItalicClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
-        <button type="button" title="Podčrtano" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleUnderline().run())} aria-label="Underline"><span className="inline-block w-4 text-center text-base underline leading-none">U</span></button>
-        {divider}
-        <button type="button" title="Točkovni seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => applyListWithLineSplit(false)} aria-label="Bullet list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 5.75A.75.75 0 1 1 4.5 5.75.75.75 0 0 1 3 5.75Zm0 4.25A.75.75 0 1 1 4.5 10 .75.75 0 0 1 3 10Zm0 4.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0ZM7 5h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Z" /></svg></button>
-        <button type="button" title="Oštevilčen seznam" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => applyListWithLineSplit(true)} aria-label="Ordered list"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3.5 5h1v4h-1V7.3l-.7.3L2.5 6.8 3.5 6.3V5Zm3.5 0h10v1.5H7V5Zm0 4.25h10v1.5H7v-1.5Zm0 4.25h10V15H7v-1.5Zm-3.5-.15a1.9 1.9 0 0 1 1.9 1.9c0 .42-.13.79-.43 1.12-.23.26-.56.48-1 .63H5.5V18H2.5v-1.08l1.32-1.1c.2-.17.34-.3.41-.4a.66.66 0 0 0 .12-.39.63.63 0 0 0-.2-.48.81.81 0 0 0-.54-.17c-.34 0-.67.11-.99.33L2 13.9a2.4 2.4 0 0 1 1.5-.55Z" /></svg></button>
-        {divider}
-        <div className="relative">
-          <button ref={sizeTriggerRef} type="button" title="Velikost besedila" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); const next = openMenu === 'size' ? null : 'size'; if (next) positionMenuForTrigger(next, event.currentTarget); setOpenMenu(next); }} aria-label="Text size"><svg className={toolbarIconTextSizeClass} viewBox="0 0 36 36" fill="currentColor" aria-hidden="true"><path d="M21,9.08A1.13,1.13,0,0,0,19.86,8H4.62a1.1,1.1,0,1,0,0,2.19H11V27a1.09,1.09,0,0,0,2.17,0V10.19h6.69A1.14,1.14,0,0,0,21,9.08Z" /><path d="M30.67,15H21.15a1.1,1.1,0,1,0,0,2.19H25V26.5a1.09,1.09,0,0,0,2.17,0V17.23h3.54a1.1,1.1,0,1,0,0-2.19Z" /></svg></button>
-          {openMenu === 'size' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={sizeMenuRef} className="fixed z-[90] w-[100px] p-2 shadow-lg" style={menuPosition}>
-              <div onMouseDown={(event) => event.stopPropagation()}>
-              <div className="grid grid-cols-[1.25fr_1fr] items-center overflow-hidden rounded-md border border-slate-300">
-                <input
-                  type="number"
-                  min={1}
-                  className={`h-8 w-full border-0 px-2 text-xs text-slate-700 outline-none focus:ring-0 ${numberInputClass}`}
-                  value={fontSizeValue}
-                  onChange={(event) => {
-                    setFontSizeValue(event.target.value);
-                    applyFontSize(event.target.value);
-                  }}
-                  placeholder="16"
-                />
-                <span className="inline-flex h-8 items-center justify-center border-l border-slate-300 bg-slate-50 text-xs text-slate-500">px</span>
-              </div>
-              </div>
-            </MenuPanel>,
-            document.body
-          ) : null}
-        </div>
-        <div className="relative">
-          <button ref={fontTriggerRef} type="button" title="Pisava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={(event) => { event.stopPropagation(); const next = openMenu === 'font' ? null : 'font'; if (next) positionMenuForTrigger(next, event.currentTarget); setOpenMenu(next); }} aria-label="Font family"><svg className={toolbarIconLargeClass} viewBox="0 0 20 20" fill="currentColor"><path d="m11.3 4.5 4.2 11h-2.1l-.8-2.4H8.2l-.8 2.4H5.3l4.2-11h1.8Zm.7 6.8-1.6-4.7-1.6 4.7H12Z" /></svg></button>
-          {openMenu === 'font' && editable && menuPosition ? createPortal(
-            <MenuPanel ref={fontMenuRef} className="fixed z-[90] w-[135px] shadow-lg" style={menuPosition}>
-              <div onMouseDown={(event) => event.stopPropagation()}>
-              {fontFamilyOptions.map((font) => (
-                <MenuItem key={font.value} className="h-8 text-[12px]" onClick={() => { run((e) => e.chain().focus().setFontFamily(font.value).run()); setOpenMenu(null); }}>
-                  <span className="text-[12px]" style={{ fontFamily: font.value }}>{font.label}</span>
-                </MenuItem>
-              ))}
-              </div>
-            </MenuPanel>,
-            document.body
-          ) : null}
-        </div>
-        <div className="relative">
-          <button
-            ref={colorTriggerRef}
-            type="button"
-            title="Barva besedila"
-            className={toolbarButtonClass}
-            disabled={!editable}
-            onMouseDown={preventToolbarFocusLoss}
-            onClick={(event) => {
-              event.stopPropagation();
-              const next = openMenu === 'color' ? null : 'color';
-              if (next) positionMenuForTrigger(next, event.currentTarget);
-              setOpenMenu(next);
-            }}
-            aria-label="Text color"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconTinyClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 10 3 3"/><path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z"/><path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031"/></svg>
-          </button>
-          <OpisColorPopover open={openMenu === 'color' && editable} anchorRef={colorTriggerRef} color={customColor} onChange={applyColor} onClose={() => setOpenMenu(null)} />
-        </div>
-        <button type="button" title="Označi besedilo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().toggleHighlight({ color: '#fde68a' }).run())} aria-label="Highlight"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconHighlightClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg></button>
-        <button type="button" title="Vodoravna črta" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setHorizontalRule().run())} aria-label="Horizontal rule"><svg className={toolbarIconClass} viewBox="0 0 20 20" fill="currentColor"><path d="M3 9.25h14v1.5H3v-1.5Z" /></svg></button>
-        {divider}
-        <button type="button" title="Povezava" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => {
-          if (e.isActive('link')) {
-            e.chain().focus().unsetLink().run();
-            return;
-          }
-          setMediaDialogMode('link');
-          setMediaUrlDraft('https://');
-        })} aria-label="Link"><svg className={toolbarIconSmallClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg></button>
-        <button type="button" title="Slika" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => { setMediaDialogMode('image'); setMediaUrlDraft('https://'); }} aria-label="Image"><svg className={toolbarIconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></button>
-        {divider}
-        <button type="button" title="Poravnaj levo" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('left').run())} aria-label="Align left"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 5H3"/><path d="M15 12H3"/><path d="M17 19H3"/></svg></button>
-        <button type="button" title="Poravnaj na sredino" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('center').run())} aria-label="Align center"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 5H3"/><path d="M17 12H7"/><path d="M19 19H5"/></svg></button>
-        <button type="button" title="Poravnaj desno" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('right').run())} aria-label="Align right"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 5H3"/><path d="M21 12H9"/><path d="M21 19H7"/></svg></button>
-        <button type="button" title="Poravnaj obojestransko" className={toolbarButtonClass} disabled={!editable} onMouseDown={preventToolbarFocusLoss} onClick={() => run((e) => e.chain().focus().setTextAlign('justify').run())} aria-label="Align justify"><svg xmlns="http://www.w3.org/2000/svg" className={toolbarIconAlignClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg></button>
-      </div>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div
-          ref={editorHostRef}
-          className={`min-h-0 flex-1 overflow-x-hidden overflow-y-hidden [&_.ProseMirror]:min-h-[112px] [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-3 [&_.ProseMirror]:text-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:prose [&_.ProseMirror]:max-w-none [&_.ProseMirror_h1]:text-xl [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h3]:text-base [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_a]:text-[#1982bf] [&_.ProseMirror_a]:underline ${editable ? '[&_.ProseMirror]:text-slate-800 [&_.ProseMirror]:prose-slate' : 'cursor-not-allowed [&_.ProseMirror]:bg-[color:var(--field-locked-bg)] [&_.ProseMirror]:text-slate-500 [&_.ProseMirror]:prose-slate'}`}
-        />
-        <div className={`pointer-events-none ml-auto px-4 pb-2 text-xs ${editable ? 'text-slate-400' : 'text-slate-500'}`}>{textLength} / 5000</div>
-      </div>
-      <Dialog
-        open={mediaDialogMode !== null}
-        onOpenChange={(open) => {
-          if (open) return;
-          setMediaDialogMode(null);
-          setMediaUrlDraft('https://');
-        }}
-        title={mediaDialogMode === 'link' ? 'Dodaj povezavo' : 'Dodaj sliko'}
-        isDismissable
-        footer={(
-          <div className={dialogFooterClassName}>
-            <Button type="button" variant="default" size="toolbar" className={dialogActionButtonClassName} onClick={() => setMediaDialogMode(null)}>Prekliči</Button>
-            <Button type="button" variant="primary" size="toolbar" className={dialogActionButtonClassName} onClick={submitMediaUrl}>Potrdi</Button>
-          </div>
-        )}
-      >
-        <div className="mt-2 space-y-1">
-          <label className="text-xs text-slate-600">{mediaDialogMode === 'link' ? 'URL povezave' : 'URL slike'}</label>
-          <input className={inputClass} value={mediaUrlDraft} onChange={(event) => setMediaUrlDraft(event.target.value)} placeholder="https://" />
-        </div>
-      </Dialog>
-    </div>
-  );
 }
 
 function NeutralDropdownChip<Value extends string>({
@@ -5969,7 +5620,14 @@ export default function AdminItemEditorPage({
               </div>
               <div className="space-y-1 pt-0.5 md:col-span-2">
                 <label className="text-sm font-semibold text-slate-900">Opis</label>
-                <OpisRichTextEditor value={draft.description} editable={isEditable} onChange={(next) => setDraft((current) => ({ ...current, description: next }))} />
+                <AdminRichTextEditor
+                  value={draft.description}
+                  editable={isEditable}
+                  onChange={(next) => setDraft((current) => ({ ...current, description: next }))}
+                  placeholder="Opis artikla..."
+                  maxLength={5000}
+                  ariaLabel="Opis artikla"
+                />
               </div>
             </div>
           </section>

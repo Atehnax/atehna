@@ -1,5 +1,7 @@
 'use client';
 
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
+
 const QUOTE_ACCESS_ID_STORAGE_KEY = 'atehna-quote-access-id-v1';
 const QUOTE_CSRF_TOKEN_STORAGE_KEY = 'atehna-quote-csrf-token-v1';
 const QUOTE_ACCESS_SESSION_ENDPOINT = '/api/quote-requests/access-session';
@@ -106,7 +108,7 @@ export async function exchangeQuoteAccessToken(
     },
     body: JSON.stringify({ token: normalizedToken, purpose })
   });
-  const payload: unknown = await response.json().catch(() => ({}));
+  const payload: unknown = await readJsonResponse(response, {});
   const record =
     payload && typeof payload === 'object'
       ? (payload as Record<string, unknown>)

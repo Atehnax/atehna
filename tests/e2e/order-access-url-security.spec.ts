@@ -8,6 +8,7 @@ const ACCESS_ID = '123e4567-e89b-42d3-a456-426614174001';
 const ACCESS_COOKIE_NAME = `ath_order_access_${ACCESS_ID.replaceAll('-', '')}`;
 
 const confirmationSnapshot = {
+  orderCode: 'N-2345-6789-ABCD-EFGH',
   createdAt: '2026-08-17T08:57:00.000Z',
   commitmentStatus: 'binding',
   contractStatus: 'accepted',

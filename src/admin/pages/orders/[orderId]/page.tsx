@@ -25,6 +25,7 @@ function normalizeOrder(order: OrderRow, orderId: number) {
   return {
     ...order,
     order_number: asText(order.order_number, `#${orderId}`),
+    order_code: asText(order.order_code),
     customer_type: asText(order.customer_type, 'company'),
     organization_name: asText(order.organization_name),
     contact_name: asText(order.contact_name, ''),
@@ -62,6 +63,8 @@ function normalizeOrder(order: OrderRow, orderId: number) {
     source_quote_request_id: order.source_quote_request_id ?? null,
     source_quote_request_number: order.source_quote_request_number ?? null,
     source_quote_offer_number: order.source_quote_offer_number ?? null,
+    source_quote_code: order.source_quote_code ?? null,
+    source_quote_offer_code: order.source_quote_offer_code ?? null,
     reference: asText(order.reference),
     notes: asText(order.notes),
     status: asText(order.status, 'received'),

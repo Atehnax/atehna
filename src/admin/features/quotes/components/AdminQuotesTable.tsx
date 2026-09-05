@@ -100,7 +100,6 @@ import {
 } from '@/shared/ui/icons/AdminActionIcons';
 import AdminCreateManualQuoteRequestButton from '@/admin/features/quotes/components/AdminCreateManualQuoteRequestButton';
 import AdminQuoteOfferCell from '@/admin/features/quotes/components/AdminQuoteOfferCell';
-import { toDisplayOrderNumber } from '@/admin/features/orders/components/adminOrdersTableUtils';
 import AdminManualShippingPendingValue from '@/admin/features/shipping/components/AdminManualShippingPendingValue';
 import AdminAnalyticsComparisonRow, {
   createAdminAnalyticsTrend
@@ -123,6 +122,7 @@ import {
 } from '@/shared/ui/theme/tokens';
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+const QUOTE_TOTAL_COLUMN_LABEL = 'Skupaj';
 
 type QuoteColumnKey =
   | 'request'
@@ -140,7 +140,7 @@ const QUOTE_COLUMN_OPTIONS: Array<{ key: QuoteColumnKey; label: string }> = [
   { key: 'address', label: 'Naslov' },
   { key: 'type', label: 'Tip' },
   { key: 'status', label: 'Status' },
-  { key: 'total', label: 'Vrednost' },
+  { key: 'total', label: QUOTE_TOTAL_COLUMN_LABEL },
   { key: 'offer', label: 'PDF' }
 ];
 
@@ -818,7 +818,7 @@ export default function AdminQuotesTable({
       const files = sourceRows.flatMap((row) =>
         row.downloadableDocuments.map((documentItem) => ({
           url: `/api/admin/quote-requests/${row.id}/documents/${documentItem.id}`,
-          filename: `${row.requestNumber}-${documentItem.filename}`
+          filename: `${row.quoteCode}-${documentItem.filename}`
         }))
       );
 
@@ -1193,7 +1193,7 @@ export default function AdminQuotesTable({
               {hasTotalFilter ? (
                 <span className={filterPillTokenClasses.base}>
                   <span>
-                    Vrednost:{' '}
+                    {QUOTE_TOTAL_COLUMN_LABEL}:{' '}
                     <span className="font-semibold">{activeTotalRangeLabel}</span>
                   </span>
                   <button
@@ -1202,7 +1202,7 @@ export default function AdminQuotesTable({
                       updateList({ minTotal: '', maxTotal: '', page: 1 })
                     }
                     className={filterPillTokenClasses.clear}
-                    aria-label={`Odstrani filter Vrednost ${activeTotalRangeLabel}`}
+                    aria-label={`Odstrani filter ${QUOTE_TOTAL_COLUMN_LABEL} ${activeTotalRangeLabel}`}
                   >
                     {filterPillClearGlyph}
                   </button>
@@ -1232,10 +1232,10 @@ export default function AdminQuotesTable({
           />
         }
       >
-        <Table className="min-w-[1275px] w-full table-fixed border-collapse text-[12px] [&_thead_th]:!border-slate-200">
+        <Table className="min-w-[1375px] w-full table-fixed border-collapse text-[12px] [&_thead_th]:!border-slate-200">
           <colgroup>
             <col className="w-[40px]" />
-            <col className="w-[90px]" />
+            <col className="w-[190px]" />
             {visibleColumns.date ? <col className="w-[125px]" /> : null}
             {visibleColumns.customer ? <col className="w-[150px]" /> : null}
             {visibleColumns.address ? <col /> : null}
@@ -1262,13 +1262,13 @@ export default function AdminQuotesTable({
               <TH className={adminTableHeaderCellCenterClassName}>
                 <div className="flex h-11 items-center justify-center">
                   <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <span className={adminTableHeaderTextClassName}>P/P</span>
+                    <span className={adminTableHeaderTextClassName}>Koda</span>
                     <button
                       ref={requestFilterButtonRef}
                       type="button"
                       data-active={openHeaderFilter === 'request'}
                       className={HEADER_FILTER_BUTTON_CLASS}
-                      aria-label="Filtriraj P/P"
+                      aria-label="Filtriraj po internem zaporedju"
                       onClick={(event) => {
                         event.stopPropagation();
                         setDraftRequestNumberRange({
@@ -1362,13 +1362,13 @@ export default function AdminQuotesTable({
               {visibleColumns.total ? <TH className={adminTableHeaderCellCenterClassName}>
                 <div className="flex h-11 items-center justify-center">
                   <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <span className={adminTableHeaderTextClassName}>Vrednost</span>
+                    <span className={adminTableHeaderTextClassName}>{QUOTE_TOTAL_COLUMN_LABEL}</span>
                     <button
                       ref={totalFilterButtonRef}
                       type="button"
                       data-active={openHeaderFilter === 'total'}
                       className={HEADER_FILTER_BUTTON_CLASS}
-                      aria-label="Filtriraj Vrednost"
+                      aria-label={`Filtriraj ${QUOTE_TOTAL_COLUMN_LABEL}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         setDraftTotalRange({ min: minTotal, max: maxTotal });
@@ -1436,11 +1436,8 @@ export default function AdminQuotesTable({
                 row.quotedTotal === null && row.shippingRequiresManualEntry
                   ? 'N/A'
                   : formatCurrency(row.quotedTotal, row.currency);
-              const linkedOrderNumber = row.resultingOrderId
-                ? toDisplayOrderNumber(
-                    row.resultingOrderNumber?.trim() ||
-                      String(row.resultingOrderId)
-                  )
+              const linkedOrderCode = row.resultingOrderId
+                ? row.resultingOrderCode
                 : null;
               const isQuickEditDirty = activeQuickEdit
                 ? activeQuickEdit.draftCustomerName.trim() !==
@@ -1485,45 +1482,37 @@ export default function AdminQuotesTable({
                     data-no-row-nav
                   >
                     <div
-                      className="grid h-12 w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center whitespace-nowrap"
+                      className="flex h-12 w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap"
                       data-testid={`quote-number-cell-${row.id}`}
                     >
                       <Link
                         href={`/admin/orders/quotes/${row.id}`}
                         prefetch={false}
-                        className="col-start-2 row-start-1 inline-flex items-center justify-center justify-self-center rounded-sm text-center text-[12px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                        aria-label={`Odpri povpraševanje ${displayRequestNumber}`}
-                        title={row.requestNumber}
+                        className="inline-flex items-center justify-center rounded-sm text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                        aria-label={`Odpri povpraševanje ${row.quoteCode}`}
+                        title={`Koda povpraševanja ${row.quoteCode}`}
                         data-testid={`quote-request-number-${row.id}`}
                       >
-                        {displayRequestNumber}
+                        {row.quoteCode}
                       </Link>
-                      {row.resultingOrderId && linkedOrderNumber ? (
-                        <span className="col-start-3 row-start-1 ml-0.5 inline-flex items-center justify-self-start text-[12px] leading-none">
-                          <span
-                            aria-hidden="true"
-                            className="font-normal text-slate-400"
-                          >
-                            (→
-                          </span>
+                      <span className="inline-flex items-center gap-1 text-[10px] leading-none text-slate-500">
+                        <span title={row.requestNumber}>Interno {displayRequestNumber}</span>
+                        {row.resultingOrderId && linkedOrderCode ? (
+                          <>
+                            <span aria-hidden="true" className="text-slate-400">→</span>
                           <Link
                             href={`/admin/orders/${row.resultingOrderId}`}
                             prefetch={false}
-                            className="inline-flex items-center rounded-sm text-[12px] font-semibold leading-none tabular-nums text-[color:var(--blue-500)] underline decoration-[1px] underline-offset-2 transition-colors hover:text-[color:var(--blue-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
-                            aria-label={`Odpri povezano naročilo ${linkedOrderNumber}`}
-                            title={`Povezano naročilo ${linkedOrderNumber}`}
+                            className="inline-flex items-center rounded-sm font-semibold leading-none tabular-nums text-[color:var(--blue-500)] underline decoration-[1px] underline-offset-2 transition-colors hover:text-[color:var(--blue-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                            aria-label={`Odpri povezano naročilo ${linkedOrderCode}`}
+                            title={`Povezano naročilo ${linkedOrderCode}`}
                             data-testid={`quote-linked-order-${row.id}`}
                           >
-                            {linkedOrderNumber}
+                            {linkedOrderCode}
                           </Link>
-                          <span
-                            aria-hidden="true"
-                            className="font-normal text-slate-400"
-                          >
-                            )
-                          </span>
-                        </span>
-                      ) : null}
+                          </>
+                        ) : null}
+                      </span>
                     </div>
                   </TD>
 
@@ -1677,9 +1666,9 @@ export default function AdminQuotesTable({
                     <div className="flex h-12 items-center justify-center">
                       <AdminQuoteOfferCell
                         quoteRequestId={row.id}
-                        quoteRequestLabel={displayRequestNumber}
+                        quoteRequestLabel={row.quoteCode}
                         offerVersionId={row.latestOfferVersionId}
-                        offerNumber={row.latestOfferNumber}
+                        offerCode={row.latestOfferCode}
                         offerStatus={row.latestOfferStatus}
                         documents={row.downloadableDocuments}
                       />

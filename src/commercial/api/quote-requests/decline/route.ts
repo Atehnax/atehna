@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
         intent: 'quote_response',
         action: 'decline',
         quoteOfferVersionId: access.quoteOfferVersionId,
-        offerNumber: parsed.body.offerNumber ?? null,
         versionNumber: parsed.body.versionNumber ?? null,
         reason
       })
@@ -133,7 +132,6 @@ export async function POST(request: NextRequest) {
       );
     }
     if (
-      parsed.body.offerNumber !== offer.offer_number ||
       Number(parsed.body.versionNumber) !== Number(offer.version_number)
     ) {
       throw new QuoteResponseIdempotencyError(

@@ -1,6 +1,103 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('admin podoba redesign', () => {
+  for (const viewportWidth of [1920, 1440, 1024, 720]) {
+    test(`navigation appearance panel stays compact and unclipped at ${viewportWidth}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width: viewportWidth, height: 1100 });
+      await page.goto('/admin/podoba/navigacija');
+
+      const panel = page.getByTestId('top-bar-settings-panel');
+      const table = page.getByTestId('top-bar-elements-table');
+      await expect(panel).toBeVisible({ timeout: 15_000 });
+      await expect(table).toBeVisible();
+      await expect(panel.getByRole('heading', { name: 'Videz', exact: true })).toBeVisible();
+      await expect(panel.getByRole('spinbutton', { name: 'Velikost pisave zgornje vrstice', exact: true })).toBeEditable();
+
+      const geometry = await panel.evaluate((element) => {
+        const tableElement = document.querySelector('[data-testid="top-bar-elements-table"]');
+        if (!(tableElement instanceof HTMLElement)) throw new Error('Navigation elements table is missing.');
+        const bounds = element.getBoundingClientRect();
+        const tableBounds = tableElement.getBoundingClientRect();
+        const controls = Array.from(element.querySelectorAll<HTMLElement>('[data-top-bar-unit-control], [data-admin-hex-color-field], [data-appearance-editor-compact-select-trigger]'));
+        return {
+          panel: { x: bounds.x, y: bounds.y, right: bounds.right, bottom: bounds.bottom, height: bounds.height },
+          table: { x: tableBounds.x, y: tableBounds.y, right: tableBounds.right, bottom: tableBounds.bottom, height: tableBounds.height },
+          overflowX: element.scrollWidth - element.clientWidth,
+          overflowY: element.scrollHeight - element.clientHeight,
+          hexFonts: Array.from(element.querySelectorAll('[data-admin-hex-color-input]')).map((input) => getComputedStyle(input).fontSize),
+          labelLineHeights: Array.from(element.querySelectorAll('[data-testid="top-bar-colors-row"] > div > span, [data-testid="top-bar-typography-row"] > div > span')).map((label) => getComputedStyle(label).lineHeight),
+          controls: controls.map((control) => {
+            const rect = control.getBoundingClientRect();
+            return { height: rect.height, withinPanel: rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom };
+          })
+        };
+      });
+      await testInfo.attach(`navigation-layout-${viewportWidth}`, { body: JSON.stringify(geometry, null, 2), contentType: 'application/json' });
+      await page.screenshot({ path: testInfo.outputPath(`navigation-appearance-${viewportWidth}.png`), fullPage: true });
+      if (viewportWidth === 1920) {
+        await page.getByRole('heading', { level: 2, name: 'Zgornja vrstica', exact: true })
+          .locator('xpath=ancestor::section[1]')
+          .screenshot({ path: testInfo.outputPath('navigation-appearance-section-1920.png') });
+      }
+
+      if (viewportWidth >= 1280) {
+        expect(geometry.panel.x).toBeGreaterThan(geometry.table.right);
+        expect(Math.abs(geometry.panel.y - geometry.table.y)).toBeLessThanOrEqual(2);
+        expect(Math.abs(geometry.panel.bottom - geometry.table.bottom)).toBeLessThanOrEqual(2);
+      } else {
+        expect(geometry.panel.y).toBeGreaterThanOrEqual(geometry.table.bottom);
+      }
+      expect(geometry.panel.x).toBeGreaterThanOrEqual(0);
+      expect(geometry.panel.right).toBeLessThanOrEqual(viewportWidth);
+      expect(geometry.overflowX).toBeLessThanOrEqual(1);
+      expect(geometry.overflowY).toBeLessThanOrEqual(1);
+      expect(geometry.hexFonts).toEqual(['11px', '11px']);
+      expect(geometry.labelLineHeights.length).toBeGreaterThanOrEqual(7);
+      expect(geometry.labelLineHeights.every((height) => height === '16px')).toBe(true);
+      expect(geometry.controls.length).toBeGreaterThanOrEqual(9);
+      for (const control of geometry.controls) {
+        expect(control.withinPanel).toBe(true);
+        expect(Math.abs(control.height - 28)).toBeLessThanOrEqual(0.5);
+      }
+
+      const font = panel.getByRole('button', { name: 'Pisava zgornje vrstice', exact: true });
+      await font.focus();
+      await font.press('Enter');
+      await expect(page.getByRole('listbox', { name: 'Pisava zgornje vrstice', exact: true })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(font).toHaveAttribute('aria-expanded', 'false');
+    });
+  }
+
+  test('navigation appearance panel grows without clipping custom width or device settings', async ({ page }) => {
+    await page.goto('/admin/podoba/navigacija');
+    const panel = page.getByTestId('top-bar-settings-panel');
+    await expect(panel).toBeVisible({ timeout: 15_000 });
+
+    for (const viewportWidth of [1440, 720]) {
+      await page.setViewportSize({ width: viewportWidth, height: 1100 });
+      for (const device of ['Desktop', 'Tablica', 'Mobilno']) {
+        await page.getByRole('button', { name: device, exact: true }).first().click();
+        await panel.getByRole('button', { name: 'Po meri', exact: true }).click();
+        await expect(panel.getByRole('spinbutton', { name: 'Po meri', exact: true })).toBeEditable();
+        const clipping = await panel.evaluate((element) => {
+          const panelBounds = element.getBoundingClientRect();
+          const controls = Array.from(element.querySelectorAll<HTMLElement>('input:not([type="hidden"]), button'))
+            .filter((control) => control.getBoundingClientRect().width > 0);
+          return {
+            x: element.scrollWidth - element.clientWidth,
+            y: element.scrollHeight - element.clientHeight,
+            outside: controls.filter((control) => {
+              const bounds = control.getBoundingClientRect();
+              return bounds.left < panelBounds.left || bounds.right > panelBounds.right || bounds.top < panelBounds.top || bounds.bottom > panelBounds.bottom;
+            }).map((control) => control.getAttribute('aria-label') || control.textContent)
+          };
+        });
+        expect(clipping, `${device} custom-width settings at ${viewportWidth}px`).toEqual({ x: 0, y: 0, outside: [] });
+      }
+    }
+  });
+
   test('navigation top-bar X cells show start-end ranges and keep width editable', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/admin/podoba/navigacija');
@@ -56,11 +153,11 @@ test.describe('admin podoba redesign', () => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/admin/podoba/navigacija');
 
-    const gutterInput = page.getByRole('textbox', { name: 'Min in Max odmik', exact: true });
+    const gutterInput = page.getByRole('textbox', { name: 'Odmik', exact: true });
     await expect(gutterInput).toBeVisible({ timeout: 15_000 });
     await gutterInput.fill('0');
     await gutterInput.press('Enter');
-    await expect(gutterInput).toHaveValue('0-0');
+    await expect(gutterInput).toHaveValue('0 – 0');
 
     const edgeDelta = await page.evaluate(() => {
       const renderer = document.querySelector('[data-technical-topbar-renderer="true"]');
@@ -155,7 +252,7 @@ test.describe('admin podoba redesign', () => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/admin/podoba/navigacija');
 
-    const gutterInput = page.getByRole('textbox', { name: 'Min in Max odmik', exact: true });
+    const gutterInput = page.getByRole('textbox', { name: 'Odmik', exact: true });
     const searchXInput = page.getByRole('textbox', { name: 'X za Iskanje', exact: true });
     const aiXInput = page.getByRole('textbox', { name: 'X za Vprašaj AI', exact: true });
     const cartXInput = page.getByRole('textbox', { name: 'X za Košarica', exact: true });
@@ -166,7 +263,7 @@ test.describe('admin podoba redesign', () => {
 
     await gutterInput.fill('0');
     await gutterInput.press('Enter');
-    await expect(gutterInput).toHaveValue('0-0');
+    await expect(gutterInput).toHaveValue('0 – 0');
 
     const selectedWidthLabel = page
       .getByTestId('top-bar-elements-table')

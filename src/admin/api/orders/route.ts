@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { insertWithGeneratedCommercePublicCodeBase } from '@/shared/server/commercePublicCode';
 
 
 export async function POST(request: Request) {
   try {
     const pool = await getPool();
 
-    const result = await pool.query(
+    const allocated = await insertWithGeneratedCommercePublicCodeBase(
+      (publicCodeBase) => pool.query(
       `
       with next_id as (
         select nextval('orders_id_seq') as id
@@ -16,6 +18,7 @@ export async function POST(request: Request) {
       insert into orders (
         id,
         order_number,
+        public_code_base,
         customer_type,
         contact_name,
         email,
@@ -26,6 +29,7 @@ export async function POST(request: Request) {
       select
         id,
         '#' || id,
+        $1,
         'company',
         'Osnutek',
         'draft@atehna.si',
@@ -33,11 +37,14 @@ export async function POST(request: Request) {
         'unpaid',
         true
       from next_id
+      on conflict (public_code_base) do nothing
       returning id, order_number
-      `
+      `,
+      [publicCodeBase]
+      )
     );
 
-    const row = result.rows[0] as { id: number; order_number: string } | undefined;
+    const row = allocated.row as { id: number; order_number: string } | undefined;
     if (!row) {
       return NextResponse.json({ message: 'Osnutka ni bilo mogoče ustvariti.' }, { status: 500 });
     }

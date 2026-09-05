@@ -13,11 +13,11 @@ import { generateOrderPdf } from '@/shared/server/pdf';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
 import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
 import {
-  allocateOrderDocumentNumber,
   buildGeneratedPdfFileName,
   buildPdfContext
 } from '@/shared/server/pdfGeneration';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
+import { processDueOrderEmailJobs } from '@/shared/server/orderEmailJobs';
 import {
   validatePersistedOrderShippingReadiness,
   type ShippingCalculation
@@ -341,11 +341,10 @@ export async function processInitialOrderSummaryJob(
         [orderId]
       );
       const version = Number(versionResult.rows[0]?.next_version ?? 1);
-      const documentNumber = await allocateOrderDocumentNumber(
-        client,
-        DOCUMENT_TYPE,
-        issuedAt
-      );
+      const documentNumber = context.orderForPdf.publicCode;
+      if (!documentNumber) {
+        throw new Error('Order confirmation requires a public order code.');
+      }
       const logoConfig = await getSiteLogoConfig();
       const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
       const pdfBuffer = await generateOrderPdf({
@@ -374,6 +373,7 @@ export async function processInitialOrderSummaryJob(
             blob_pathname,
             version_number,
             order_pricing_revision,
+            order_delivery_plan_revision,
             document_number,
             issued_at,
             content_sha256,
@@ -382,7 +382,9 @@ export async function processInitialOrderSummaryJob(
           )
           values (
             $1, $2, 'order_summary', $3, $4, $5,
-            (select pricing_revision from orders where id = $1), $6, $7, $8,
+            (select pricing_revision from orders where id = $1),
+            (select delivery_plan_revision from orders where id = $1),
+            $6, $7, $8,
             'operational', 'atehna-template-pdf-v3'
           )
         `,
@@ -440,11 +442,43 @@ function safelyRevalidateAdminOrderPaths(orderId: number): void {
   }
 }
 
+async function wakeInitialOrderEmailAfterSummary(
+  pool: Pool,
+  orderId: number
+): Promise<void> {
+  await pool.query(
+    `
+      update order_email_jobs
+      set next_attempt_at = now(),
+          updated_at = now()
+      where order_id = $1
+        and audience = 'customer'
+        and event_type in ('order_submitted', 'order_accepted')
+        and status = 'pending'
+        and last_error like '[document_pending]%'
+    `,
+    [orderId]
+  );
+  await processDueOrderEmailJobs(pool, {
+    orderId,
+    maxJobs: 2,
+    deadlineMs: 15_000
+  });
+}
+
 export function scheduleInitialOrderSummaryJob(pool: Pool, orderId: number): void {
   try {
     after(async () => {
       const result = await processInitialOrderSummaryJob(pool, orderId);
-      if (result === 'completed') safelyRevalidateAdminOrderPaths(orderId);
+      if (result === 'completed') {
+        safelyRevalidateAdminOrderPaths(orderId);
+        await wakeInitialOrderEmailAfterSummary(pool, orderId).catch((error) => {
+          console.error('[orders.summary-job] email wake-up failed', {
+            orderId,
+            message: messageFromError(error)
+          });
+        });
+      }
     });
   } catch (error) {
     console.error('[orders.summary-job] scheduling failed', {

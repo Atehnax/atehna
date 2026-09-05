@@ -98,6 +98,10 @@ import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, i
 import { isAllPageSize, resolvePageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
+import {
+  matchesParsedCommercePublicCode,
+  parseCommercePublicCode
+} from '@/shared/domain/commercePublicCode';
 
 import {
   type DocumentType,
@@ -476,6 +480,9 @@ export default function AdminOrdersTable({
       serializedOrders.map((row) => ({
         id: row[0],
         order_number: row[1],
+        order_code: row[26],
+        source_quote_code: row[27],
+        source_quote_offer_code: row[28],
         customer_type: row[2],
         organization_name: row[3] ?? '',
         contact_name: row[4],
@@ -900,7 +907,7 @@ export default function AdminOrdersTable({
         statusLabel,
         paymentLabel,
         searchBlob: normalizeForSearch(
-          [order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
+          [order.order_code, order.order_code.replace(/[\s-]+/gu, ''), order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
             .filter(Boolean)
             .join(' ')
         )
@@ -911,6 +918,7 @@ export default function AdminOrdersTable({
   }, [orders]);
 
   const filteredAndSortedOrders = useMemo(() => {
+    const parsedPublicCode = parseCommercePublicCode(debouncedQuery);
     const normalizedQuery = normalizeForSearch(debouncedQuery);
 
     const filteredOrders = orders.filter((order) => {
@@ -961,7 +969,16 @@ export default function AdminOrdersTable({
 
       const orderSearchBlob = orderRuntime?.searchBlob ?? '';
 
-      const orderMatches = !normalizedQuery || orderSearchBlob.includes(normalizedQuery);
+      const publicCodeCandidate = parsedPublicCode?.kind === 'order'
+        ? order.order_code
+        : parsedPublicCode?.kind === 'quote'
+          ? order.source_quote_code
+          : parsedPublicCode?.kind === 'offer'
+            ? order.source_quote_offer_code
+            : null;
+      const orderMatches = parsedPublicCode
+        ? matchesParsedCommercePublicCode(publicCodeCandidate, parsedPublicCode)
+        : !normalizedQuery || orderSearchBlob.includes(normalizedQuery);
 
       const latestDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
       const documentsMatchingSelectedType =
@@ -975,7 +992,8 @@ export default function AdminOrdersTable({
           .join(' ')
       );
 
-      const documentsMatch = !normalizedQuery || documentsSearchBlob.includes(normalizedQuery);
+      const documentsMatch = !parsedPublicCode
+        && (!normalizedQuery || documentsSearchBlob.includes(normalizedQuery));
 
       const hasSelectedDocumentType = documentType !== 'all';
 
@@ -2187,7 +2205,7 @@ export default function AdminOrdersTable({
         documentsBySelectedType.forEach((documentItem) => {
           filesToDownload.push({
             url: documentItem.url,
-            filename: `${toDisplayOrderNumber(order.order_number)}-${documentItem.filename}`
+            filename: `${order.order_code}-${documentItem.filename}`
           });
         });
       });
@@ -2671,14 +2689,20 @@ export default function AdminOrdersTable({
                             ) : null}
                           </div>
                         ) : (
-                          <Link
-                            href={`/admin/orders/${order.id}`}
-                            prefetch={false}
-                            className="inline-flex w-full items-center justify-center rounded-sm px-1 text-center text-[12px] font-semibold text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                            aria-label={`Odpri naročilo ${toDisplayOrderNumber(effectiveOrder.order_number)}`}
-                          >
-                            {toDisplayOrderNumber(effectiveOrder.order_number)}
-                          </Link>
+                          <div className="flex min-w-0 flex-col items-center justify-center leading-tight">
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              prefetch={false}
+                              className="inline-flex max-w-full items-center justify-center rounded-sm px-1 text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                              aria-label={`Odpri naročilo ${effectiveOrder.order_code}`}
+                              title={`Koda naročila ${effectiveOrder.order_code}`}
+                            >
+                              {effectiveOrder.order_code}
+                            </Link>
+                            <span className="mt-0.5 text-[9px] font-medium text-slate-400" title="Interna številka naročila">
+                              interno {toDisplayOrderNumber(effectiveOrder.order_number)}
+                            </span>
+                          </div>
                         )}
                       </TD> : null}
 

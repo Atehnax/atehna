@@ -1,6 +1,11 @@
 import { expect } from '@playwright/test';
 import { describe, test } from 'node:test';
-import { getDistinctCartVariantName } from '@/commercial/cart/cartTypes';
+import {
+  cartHasBlockingIssue,
+  cartNeedsEstimate,
+  getDistinctCartVariantName,
+  type CartItem
+} from '@/commercial/cart/cartTypes';
 
 describe('cart-line copy de-duplication', () => {
   test('omits a variant name already represented by a labelled option', () => {
@@ -57,5 +62,30 @@ describe('cart-line copy de-duplication', () => {
         }
       })
     ).toBe('Laboratorijska izvedba');
+  });
+});
+
+describe('cart checkout safety', () => {
+  const item = {
+    lineId: 'line-1',
+    sku: 'SKU-1',
+    name: 'Artikel',
+    quantity: 5,
+    variant: {
+      id: 1,
+      name: 'Različica',
+      sku: 'SKU-1',
+      options: []
+    },
+    reconciliation: { status: 'valid' }
+  } satisfies CartItem;
+
+  test('blocks checkout while a changed quantity still awaits estimation', () => {
+    expect(cartHasBlockingIssue([item])).toBe(false);
+    const uncheckedItems = [
+      { ...item, reconciliation: { status: 'unchecked' as const } }
+    ];
+    expect(cartHasBlockingIssue(uncheckedItems)).toBe(false);
+    expect(cartNeedsEstimate(uncheckedItems)).toBe(true);
   });
 });

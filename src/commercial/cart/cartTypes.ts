@@ -140,3 +140,7 @@ export function cartHasBlockingIssue(items: CartItem[]) {
       item.reconciliation.status === 'needs_review'
   );
 }
+
+export function cartNeedsEstimate(items: CartItem[]) {
+  return items.some((item) => item.reconciliation.status === 'unchecked');
+}

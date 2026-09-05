@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useProductAppearance } from '@/commercial/components/ProductAppearanceProvider';
 import {
   getDistinctCartVariantName,
@@ -18,6 +18,11 @@ import {
   type ProductCanvasDevice
 } from '@/shared/domain/style/productAppearance';
 import { useStockEnforcementEnabled } from '@/commercial/components/StorefrontInventoryPolicyProvider';
+import {
+  MAX_STOREFRONT_QUANTITY,
+  parseStorefrontQuantityDraft,
+  validateStorefrontQuantityDraft
+} from '@/commercial/quantity/quantityDraft';
 import ProductCanvasElement from '@/shared/ui/product-canvas/ProductCanvasElement';
 
 type CartLineProps = {
@@ -28,6 +33,8 @@ type CartLineProps = {
   highlighted?: boolean;
   readOnly?: boolean;
   onQuantityChange?: (quantity: number) => void;
+  onQuantityValidityChange?: (controlId: string, isValid: boolean) => void;
+  onQuantityCommit?: (lineId: string, quantityChanged: boolean) => void;
   onRemove?: () => void;
   onNavigate?: () => void;
   canvasDevice?: ProductCanvasDevice;
@@ -50,6 +57,8 @@ export default function CartLine({
   highlighted = false,
   readOnly = false,
   onQuantityChange,
+  onQuantityValidityChange,
+  onQuantityCommit,
   onRemove,
   onNavigate,
   canvasDevice
@@ -102,13 +111,68 @@ export default function CartLine({
         undefined
       : undefined;
   const distinctVariantName = getDistinctCartVariantName(item);
+  const [quantityDraft, setQuantityDraft] = useState(() =>
+    String(item.quantity)
+  );
+  const [quantityError, setQuantityError] = useState<string | null>(null);
+  const quantityErrorId = useId();
+  const quantityControlId = `${item.lineId}:${quantityErrorId}`;
+  const parsedQuantity = parseStorefrontQuantityDraft(quantityDraft);
+  const effectiveMaximum =
+    typeof maximum === 'number'
+      ? Math.min(maximum, MAX_STOREFRONT_QUANTITY)
+      : MAX_STOREFRONT_QUANTITY;
 
-  const commitQuantity = (value: number) => {
+  useEffect(() => {
+    setQuantityDraft(String(item.quantity));
+    setQuantityError(null);
+    onQuantityValidityChange?.(quantityControlId, true);
+  }, [item.quantity, onQuantityValidityChange, quantityControlId]);
+
+  useEffect(
+    () => () => onQuantityValidityChange?.(quantityControlId, true),
+    [onQuantityValidityChange, quantityControlId]
+  );
+
+  const commitQuantityDraft = () => {
+    const validation = validateStorefrontQuantityDraft(quantityDraft, {
+      minimum,
+      maximum
+    });
+    if (!validation.valid) {
+      setQuantityError(validation.message);
+      onQuantityValidityChange?.(quantityControlId, false);
+      return;
+    }
+
+    const quantityChanged = validation.quantity !== item.quantity;
+    const nextQuantity = String(validation.quantity);
+    setQuantityDraft(nextQuantity);
+    setQuantityError(null);
+    onQuantityValidityChange?.(quantityControlId, true);
+    onQuantityCommit?.(item.lineId, quantityChanged);
+    if (quantityChanged) {
+      onQuantityChange?.(validation.quantity);
+    }
+  };
+
+  const stepQuantity = (step: -1 | 1) => {
     if (!onQuantityChange) return;
-    const normalized = Math.max(minimum, Math.floor(value || minimum));
-    onQuantityChange(
-      typeof maximum === 'number' ? Math.min(maximum, normalized) : normalized
+    const nextQuantity = Math.max(
+      minimum,
+      Math.min(
+        effectiveMaximum,
+        parsedQuantity === null ? minimum : parsedQuantity + step
+      )
     );
+    setQuantityDraft(String(nextQuantity));
+    setQuantityError(null);
+    onQuantityValidityChange?.(quantityControlId, true);
+    const quantityChanged = nextQuantity !== item.quantity;
+    onQuantityCommit?.(item.lineId, quantityChanged);
+    if (quantityChanged) {
+      onQuantityChange(nextQuantity);
+    }
   };
 
   const line = (
@@ -233,8 +297,10 @@ export default function CartLine({
           <div className="inline-flex items-center overflow-hidden rounded-[var(--site-field-radius)] border border-[color:var(--site-border-color)]">
             <button
               type="button"
-              onClick={() => commitQuantity(item.quantity - 1)}
-              disabled={item.quantity <= minimum}
+              onClick={() => stepQuantity(-1)}
+              disabled={
+                parsedQuantity !== null && parsedQuantity <= minimum
+              }
               className="h-9 w-9 text-[color:var(--site-color-text)] hover:bg-[color:var(--site-color-surface-muted)] disabled:opacity-40"
               aria-label={`Zmanjšaj količino za ${item.name}`}
             >
@@ -244,17 +310,38 @@ export default function CartLine({
               type="number"
               inputMode="numeric"
               min={minimum}
-              max={maximum}
-              value={item.quantity}
-              onChange={(event) => commitQuantity(Number(event.target.value))}
+              max={effectiveMaximum}
+              value={quantityDraft}
+              onChange={(event) => {
+                const nextDraft = event.target.value;
+                setQuantityDraft(nextDraft);
+                setQuantityError(null);
+                const validation = validateStorefrontQuantityDraft(nextDraft, {
+                  minimum,
+                  maximum
+                });
+                onQuantityValidityChange?.(
+                  quantityControlId,
+                  validation.valid
+                );
+              }}
+              onBlur={commitQuantityDraft}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                commitQuantityDraft();
+              }}
               className="storefront-cart-line-quantity h-9 w-14 border-x border-y-0 border-[color:var(--site-border-color)] bg-transparent text-center text-sm font-semibold outline-none"
               aria-label={`Količina za ${item.name}`}
+              aria-invalid={quantityError ? 'true' : undefined}
+              aria-describedby={quantityError ? quantityErrorId : undefined}
             />
             <button
               type="button"
-              onClick={() => commitQuantity(item.quantity + 1)}
+              onClick={() => stepQuantity(1)}
               disabled={
-                typeof maximum === 'number' && item.quantity >= maximum
+                parsedQuantity !== null &&
+                parsedQuantity >= effectiveMaximum
               }
               className="h-9 w-9 text-[color:var(--site-color-text)] hover:bg-[color:var(--site-color-surface-muted)] disabled:opacity-40"
               aria-label={`Povečaj količino za ${item.name}`}
@@ -278,7 +365,15 @@ export default function CartLine({
         </p>
       </div>
 
-      {item.reconciliation.message ? (
+      {quantityError ? (
+        <p
+          id={quantityErrorId}
+          role="alert"
+          className="mt-2 text-xs font-medium text-[color:var(--site-color-danger)]"
+        >
+          {quantityError}
+        </p>
+      ) : item.reconciliation.message ? (
         <p
           className="mt-2 text-xs"
           style={{

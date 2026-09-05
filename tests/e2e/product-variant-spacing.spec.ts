@@ -323,13 +323,17 @@ test.describe('product variant label-to-control spacing', () => {
     const responsiveControls = page.getByRole('group', {
       name: 'Odzivni predogled'
     });
-    for (const device of ['Tablica', 'Mobilno', 'Desktop']) {
+    for (const [device, renderDevice] of [['Tablica', 'tablet'], ['Mobilno', 'mobile'], ['Desktop', 'desktop']]) {
       const button = responsiveControls.getByRole('button', {
         name: device,
         exact: true
       });
       await button.click();
       await expect(button).toHaveAttribute('aria-pressed', 'true');
+      // Selection changes before the shared viewport animation has settled.
+      const frame = page.locator('[data-product-preview-frame]');
+      await expect(frame).toHaveAttribute('data-preview-render-device', renderDevice);
+      await expect(frame).toHaveAttribute('data-preview-transitioning', 'false');
       expectSharedVariantGap(await readVariantSpacing(adminSelector), 17);
     }
 

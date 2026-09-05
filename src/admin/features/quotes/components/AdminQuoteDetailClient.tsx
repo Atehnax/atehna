@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExtern
 import Link from 'next/link';
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
+import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
+import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
@@ -35,7 +37,7 @@ import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
 import { Dialog } from '@/shared/ui/dialog';
-import { ActionUndoIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { PdfPreviewDialog } from '@/shared/ui/pdf-preview-dialog';
 import { CustomSelect } from '@/shared/ui/select';
 import { useToast } from '@/shared/ui/toast';
@@ -146,11 +148,11 @@ const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 
 const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';
 const quoteDetailValueControlClassName = `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const quoteDetailCompositeInputClassName =
-  `${adminCompactIconFieldInputClassName} min-w-0 !px-2`;
+  `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
 const quoteDetailInlineTextareaClassName =
   `${quoteDetailValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const quoteDetailReadValueClassName =
-  "block h-5 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-5 text-slate-900";
+  "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 const labelClassName = 'text-[11px] font-semibold leading-4 text-slate-700';
 
 type QuoteRequestDetailsState = {
@@ -737,13 +739,15 @@ function QuoteOfferFieldRow({
 }
 function QuoteDetailFieldShell({
   isEditing,
-  children
+  children,
+  className = ''
 }: {
   isEditing: boolean;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
+    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -758,12 +762,14 @@ function QuoteAddressEditor({
   disabled: boolean;
   onChange: (patch: Partial<QuoteRequestDetailsState>) => void;
 }) {
+  const postalEditSequenceRef = useRef(0);
+
   return (
-    <QuoteDetailFieldShell isEditing>
+    <QuoteDetailFieldShell isEditing className={customerDetailStyles.addressShell}>
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-5 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="quote-request-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -775,13 +781,16 @@ function QuoteAddressEditor({
             addressLine1: value,
             gursHouseNumberId: ''
           })}
-          onSelect={(suggestion) => onChange({
-            addressLine1: suggestion.addressLine1,
-            postalCode: suggestion.postalCode,
-            city: suggestion.postalName,
-            countryCode: 'SI',
-            gursHouseNumberId: suggestion.gursHouseNumberId
-          })}
+          onSelect={(suggestion) => {
+            postalEditSequenceRef.current += 1;
+            onChange({
+              addressLine1: suggestion.addressLine1,
+              postalCode: suggestion.postalCode,
+              city: suggestion.postalName,
+              countryCode: 'SI',
+              gursHouseNumberId: suggestion.gursHouseNumberId
+            });
+          }}
           className={quoteDetailCompositeInputClassName + ' !pl-0 w-full'}
         />
         <input
@@ -794,29 +803,38 @@ function QuoteAddressEditor({
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={quoteDetailCompositeInputClassName}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalCode"
           aria-label="Poštna številka"
-          autoComplete="postal-code"
-          type="text"
-          inputMode="numeric"
           value={details.postalCode}
           disabled={disabled}
-          placeholder="P. št."
-          onChange={(event) => onChange({
-            postalCode: event.target.value.replace(/[^\d]/g, '').slice(0, 4),
+          testId="admin-quote-postal-code-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            postalCode: value.replace(/[^\d]/g, '').slice(0, 4),
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={`${quoteDetailCompositeInputClassName} text-center`}
         />
-        <input
+        <AdminPostalLocationCombobox
+          field="postalName"
           aria-label="Kraj"
-          autoComplete="address-level2"
-          type="text"
           value={details.city}
           disabled={disabled}
-          placeholder="Kraj"
-          onChange={(event) => onChange({
-            city: event.target.value,
+          testId="admin-quote-city-autocomplete"
+          editSequenceRef={postalEditSequenceRef}
+          onChange={(value) => onChange({
+            city: value,
+            gursHouseNumberId: ''
+          })}
+          onResolve={(location) => onChange({
+            postalCode: location.postalCode,
+            city: location.postalName,
             gursHouseNumberId: ''
           })}
           className={quoteDetailCompositeInputClassName}
@@ -860,12 +878,13 @@ function QuoteDetailRow({
 }) {
   return (
     <div
-      className={`grid h-[35px] items-center gap-3 ${
+      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
       }`}
       data-quote-detail-row={label}
+      data-detail-editing={isEditing}
       data-quote-detail-span={fullWidth ? 'full' : undefined}
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-slate-600">
@@ -1464,6 +1483,14 @@ function QuoteItemsComparisonTable({
 export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteDetail }) {
   const router = useRouter();
   const { toast } = useToast();
+  const copyPublicQuoteCode = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(detail.quoteCode);
+      toast.success('Koda povpraševanja je kopirana.');
+    } catch {
+      toast.error('Kode povpraševanja ni bilo mogoče kopirati.');
+    }
+  }, [detail.quoteCode, toast]);
   const isClientReady = useSyncExternalStore(
     subscribeToClientReadiness,
     getClientReadinessSnapshot,
@@ -1498,12 +1525,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
   const canCloseWithoutIssuing =
     ['received', 'in_preparation'].includes(detail.status) &&
     detail.offerVersions.every((version) => version.status === 'draft');
-  const offerContextText = draftVersion && currentIssuedVersion?.offerNumber
-    ? `Aktivna ponudba ${currentIssuedVersion.offerNumber} · nova različica V${draftVersion.versionNumber} je v pripravi.`
+  const offerContextText = draftVersion && currentIssuedVersion
+    ? `Aktivna ponudba ${currentIssuedVersion.offerCode} · nova različica ${draftVersion.offerCode} je v pripravi.`
     : draftVersion
-      ? `Ponudba V${draftVersion.versionNumber} je v pripravi in še ni bila izdana.`
-      : currentVersion?.offerNumber
-        ? `Ponudba ${currentVersion.offerNumber} · ${STATUS_LABELS[currentVersion.status] ?? currentVersion.status}.`
+      ? `Ponudba ${draftVersion.offerCode} je v pripravi in še ni bila izdana.`
+      : currentVersion
+        ? `Ponudba ${currentVersion.offerCode} · ${STATUS_LABELS[currentVersion.status] ?? currentVersion.status}.`
         : 'Ponudba še ni bila pripravljena.';
   const [draft, setDraft] = useState<DraftState | null>(() =>
     editableVersion ? toDraftState(editableVersion) : canCreateDraft ? toNewDraftState(detail) : null
@@ -2306,7 +2333,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       }
       if (!response.ok) throw new Error(payload?.message ?? 'Dejanja ni bilo mogoče izvesti.');
       if (action === 'issue') {
-        const reference = payload?.offerNumber?.trim() || 'Ponudba';
+        const reference = editableVersion?.offerCode || payload?.offerNumber?.trim() || 'Ponudba';
         if (payload?.emailQueued === true) {
           toast.success(payload.message ?? `${reference} je izdana; e-pošta je v čakalni vrsti.`);
         } else {
@@ -2935,6 +2962,17 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                   title={persistedRequestTitle}
                   width="wide"
                 />
+                <button
+                  type="button"
+                  onClick={() => void copyPublicQuoteCode()}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold tabular-nums text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+                  aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
+                  title="Kopiraj kodo povpraševanja"
+                  data-testid="admin-quote-public-code-copy"
+                >
+                  <span>Koda {detail.quoteCode}</span>
+                  <CopyIcon className="h-3.5 w-3.5" />
+                </button>
                 <div className={adminStatusInfoPillGroupClassName}>
                   <AdminChipDropdown
                     value={activeVisibleRequestStatus}
@@ -3031,7 +3069,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 <span>{offerContextText}</span>
                 {detail.resultingOrderId ? (
                   <Link href={`/admin/orders/${detail.resultingOrderId}`} className="font-semibold text-[color:var(--blue-500)] hover:underline">
-                    Naročilo {detail.resultingOrderNumber ?? `#${detail.resultingOrderId}`}
+                    Naročilo {detail.resultingOrderCode ?? `#${detail.resultingOrderId}`}
+                    {detail.resultingOrderCode && detail.resultingOrderNumber
+                      ? ` · interno ${detail.resultingOrderNumber}`
+                      : ''}
                   </Link>
                 ) : null}
               </div>
@@ -3040,10 +3081,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           </div>
         </section>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
-        <main className="space-y-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
+        <main className="min-w-0 space-y-5">
           <section className={adminWindowCardClassName + ' p-4'} style={adminWindowCardStyle} data-testid="quote-request-details-card">
-            <div className="flex items-center justify-between gap-4">
+            <div className={`flex items-center justify-between gap-4 ${customerDetailStyles.customerHeading}`}>
               <div className="flex min-w-0 items-center gap-2">
                 <h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja</h2>
                 <AdminOrderCustomerActions
@@ -3178,7 +3219,12 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 <p className="mt-0.5 text-[11px] text-slate-500">Uredite pogoje ponudbe; predogled vedno uporabi zadnji shranjeni osnutek.</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {currentVersion ? <span className="text-[12px] font-semibold text-slate-700">{currentVersion.offerNumber ?? `Različica ${currentVersion.versionNumber}`}</span> : null}
+                {currentVersion ? (
+                  <span className="text-[12px] font-semibold text-slate-700">
+                    {currentVersion.offerCode}
+                    {currentVersion.offerNumber ? ` · interno ${currentVersion.offerNumber}` : ''}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className={adminCardSectionEditIconButtonClassName + (isEditingOffer || isPreparingOfferEdit ? ' bg-[color:var(--hover-neutral)]' : '')}
@@ -3680,7 +3726,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
       />
       <AdminQuoteIssueDialog
         open={isIssueDialogOpen}
-        offerReference={editableVersion?.offerNumber ?? `Ponudba V${editableVersion?.versionNumber ?? '—'}`}
+        offerReference={editableVersion?.offerCode ?? `Ponudba V${editableVersion?.versionNumber ?? '—'}`}
         recipientEmail={persistedRequestDetails.email}
         total={formatCurrency(currentVersion?.total ?? 0, currentVersion?.currency ?? 'EUR')}
         busy={busyAction === 'issue'}

@@ -21,6 +21,7 @@ import {
   buildOrderEmailMessage,
   type OrderEmailJobPayload
 } from '@/shared/domain/order/orderEmailTemplates';
+import { createPendingOrderEmailPdfDocumentReference } from '@/shared/domain/emailPdfAttachment';
 
 function payload(): OrderEmailJobPayload {
   const settings = cloneOrderEmailSettings();
@@ -39,6 +40,7 @@ function payload(): OrderEmailJobPayload {
     settingsSnapshot: toStoredOrderEmailSettings(settings),
     purchaseOrderUploadUrl: null,
     order: {
+      orderCode: 'N-7K3M-4X9P-2D6R-8H4Q',
       createdAt: '2026-08-24T08:15:00.000Z',
       customer: {
         customerType: 'company',
@@ -182,6 +184,55 @@ describe('persisted order email delivery envelope', () => {
 
     assert.deepEqual(parsed, envelope);
     assert.deepEqual(parsed.message, buildOrderEmailMessage(payload()));
+  });
+
+  test('accepts only customer PDFs whose document type exactly matches the event', () => {
+    const source = payload();
+    source.eventType = 'order_submitted';
+    source.previousStatus = null;
+    const summary = createPendingOrderEmailPdfDocumentReference(
+      42,
+      'order_summary',
+      1
+    );
+    const envelope = createOrderEmailDeliveryEnvelope(source, {
+      pdfDocument: summary
+    });
+    assert.deepEqual(envelope.pdfDocument, summary);
+    assert.deepEqual(
+      parseOrderEmailDeliveryEnvelope(
+        serializeOrderEmailDeliveryEnvelope(envelope)
+      ).pdfDocument,
+      summary
+    );
+
+    const adminAttachment = mutableJsonObject(
+      serializeOrderEmailDeliveryEnvelope(envelope)
+    );
+    adminAttachment.audience = 'admin';
+    assert.throws(
+      () => parseOrderEmailDeliveryEnvelope(adminAttachment),
+      /allowed only for a customer delivery/u
+    );
+
+    const wrongType = mutableJsonObject(
+      serializeOrderEmailDeliveryEnvelope(envelope)
+    );
+    (wrongType.pdfDocument as Record<string, unknown>).documentType = 'invoice';
+    assert.throws(
+      () => parseOrderEmailDeliveryEnvelope(wrongType),
+      /does not match the email event/u
+    );
+
+    const deliveryNote = createPendingOrderEmailPdfDocumentReference(
+      42,
+      'dobavnica',
+      1
+    );
+    assert.throws(
+      () => createOrderEmailDeliveryEnvelope(source, { pdfDocument: deliveryNote }),
+      /does not match the email event/u
+    );
   });
 
   test('rejects a seeded legacy v1 customer envelope as terminal invalid payload', () => {

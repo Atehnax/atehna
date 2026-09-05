@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getDatabaseUrl, getPool } from '@/shared/server/db';
+import schemaContract from '../../../../../database/schema-contract.json';
 
 export const dynamic = 'force-dynamic';
+
+type DatabaseReadinessRow = {
+  database_name?: string;
+  effective_user?: string;
+  schema_sha256?: string;
+  has_schema_contract_table?: boolean;
+  has_seed?: boolean;
+  has_reference_product?: boolean;
+};
 
 function getConfiguredDatabaseTarget() {
   const databaseUrl = getDatabaseUrl();
@@ -57,22 +67,8 @@ export async function GET() {
           from e2e_schema_state
           where key = 'canonical-schema'
         ) as schema_sha256,
-        to_regclass('public.order_access_tokens') is not null as has_order_access_tokens,
-        to_regclass('public.order_email_settings') is not null as has_order_email_settings,
-        to_regclass('public.order_email_jobs') is not null as has_order_email_jobs,
-        to_regclass('public.order_stock_holds') is not null as has_order_stock_holds,
-        to_regclass('public.quote_requests') is not null as has_quote_requests,
-        to_regclass('public.quote_events') is not null as has_quote_events,
-        to_regclass('public.quote_access_tokens') is not null as has_quote_access_tokens,
-        to_regclass('public.quote_email_settings') is not null as has_quote_email_settings,
-        to_regclass('public.quote_email_jobs') is not null as has_quote_email_jobs,
-        exists (
-          select 1
-          from information_schema.columns
-          where table_schema = 'public'
-            and table_name = 'orders'
-            and column_name = 'contract_status'
-        ) as has_order_contract_status,
+        to_regclass('public.app_schema_contracts') is not null
+          as has_schema_contract_table,
         exists (
           select 1
           from e2e_seed_metadata
@@ -87,38 +83,24 @@ export async function GET() {
             and variant.status = 'active'
         ) as has_reference_product
     `);
-    const row = result.rows[0] as {
-      database_name?: string;
-      effective_user?: string;
-      schema_sha256?: string;
-      has_order_access_tokens?: boolean;
-      has_order_email_settings?: boolean;
-      has_order_email_jobs?: boolean;
-      has_order_stock_holds?: boolean;
-      has_quote_requests?: boolean;
-      has_quote_events?: boolean;
-      has_quote_access_tokens?: boolean;
-      has_quote_email_settings?: boolean;
-      has_quote_email_jobs?: boolean;
-      has_order_contract_status?: boolean;
-      has_seed?: boolean;
-      has_reference_product?: boolean;
-    } | undefined;
+    const row = result.rows[0] as DatabaseReadinessRow | undefined;
+    let hasExactSchemaContract = false;
+    if (row?.has_schema_contract_table === true) {
+      const contractResult = await pool.query(
+        'select exists (select 1 from public.app_schema_contracts where contract_id = $1 and contract_sha256 = $2) as installed',
+        [schemaContract.contractId, schemaContract.contractSha256]
+      );
+      hasExactSchemaContract =
+        contractResult.rows[0]?.installed === true;
+    }
+
     if (
       !row
       || typeof row.database_name !== 'string'
       || typeof row.effective_user !== 'string'
       || row.schema_sha256 !== expectedSchemaSha256
-      || row.has_order_access_tokens !== true
-      || row.has_order_email_settings !== true
-      || row.has_order_email_jobs !== true
-      || row.has_order_stock_holds !== true
-      || row.has_quote_requests !== true
-      || row.has_quote_events !== true
-      || row.has_quote_access_tokens !== true
-      || row.has_quote_email_settings !== true
-      || row.has_quote_email_jobs !== true
-      || row.has_order_contract_status !== true
+      || row.has_schema_contract_table !== true
+      || !hasExactSchemaContract
       || row.has_seed !== true
       || row.has_reference_product !== true
     ) {

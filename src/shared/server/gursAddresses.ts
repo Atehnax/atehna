@@ -57,6 +57,12 @@ type GursPostalLocationRow = {
   postal_name: string;
 };
 
+type GursPostalLocationQueryRow = {
+  postal_code: string | null;
+  postal_name: string | null;
+  active_source_updated_at: Date | string | null;
+};
+
 export type GursAddressSourceMetadata = {
   sourceUpdatedAt: string | null;
   importedAt: string | null;
@@ -125,6 +131,23 @@ function toAddress(row: GursAddressRow): GursAddress {
     addressLine1: row.address_line_1,
     searchText: row.search_text,
     sourceUpdatedAt: toIsoString(row.source_updated_at)
+  };
+}
+
+function toAddressSearchResponse(
+  rows: GursAddressSearchQueryRow[]
+): GursAddressSearchResponse {
+  const searchRows = rows.filter(
+    (
+      row
+    ): row is GursAddressSearchQueryRow & GursAddressSearchRow =>
+      row.gurs_house_number_id !== null
+  );
+  return {
+    results: searchRows.map(toSearchResult),
+    sourceUpdatedAt: toIsoString(
+      rows[0]?.active_source_updated_at ?? null
+    )
   };
 }
 
@@ -201,8 +224,7 @@ export async function searchGursAddresses(
     if (parsed.code === 'QUERY_TOO_LONG') {
       throw new GursAddressSearchQueryError();
     }
-    // This intentionally avoids opening a database connection while the user
-    // has not yet typed enough characters for a useful search.
+    // Avoid opening a database connection for empty or punctuation-only input.
     return { results: [], sourceUpdatedAt: null };
   }
 
@@ -216,9 +238,45 @@ export async function searchGursAddresses(
       if (/^\d{2}$/.test(token)) return [` ${token}`];
       return [];
     });
-  if (tokenPatterns.length === 0) {
-    return { results: [], sourceUpdatedAt: null };
+  const usesOrderedPrefixSearch =
+    parsed.query.length < 3 || tokenPatterns.length === 0;
+  if (usesOrderedPrefixSearch) {
+    const prefixResult = await database.query<GursAddressSearchQueryRow>(
+      `select matched.gurs_house_number_id,
+              matched.address_line_1,
+              matched.postal_code,
+              matched.postal_name,
+              matched.settlement_name,
+              matched.municipality_name,
+              sync.active_source_updated_at
+       from (values (true)) as anchor(dummy)
+       left join gurs_address_sync_state as sync
+         on sync.key = 'active'
+       left join lateral (
+         select gurs_house_number_id,
+                address_line_1,
+                postal_code,
+                postal_name,
+                settlement_name,
+                municipality_name
+         from gurs_addresses
+         where search_text collate "C" like $1
+         order by
+           search_text collate "C" asc,
+           address_line_1 collate "C" asc,
+           postal_code asc,
+           gurs_house_number_id asc
+         limit ${GURS_ADDRESS_SEARCH_LIMIT}
+       ) as matched on true
+       order by
+         matched.address_line_1 asc nulls last,
+         matched.postal_code asc nulls last,
+         matched.gurs_house_number_id asc nulls last`,
+      [`${parsed.query}%`]
+    );
+    return toAddressSearchResponse(prefixResult.rows);
   }
+
   const tokenPredicates = tokenPatterns.map(
     (_, index) => `search_text like '%' || $${index + 2} || '%'`
   );
@@ -271,17 +329,20 @@ export async function searchGursAddresses(
        matched.gurs_house_number_id asc nulls last`,
     [parsed.query, ...tokenPatterns]
   );
-  const searchRows = result.rows.filter(
-    (
-      row
-    ): row is GursAddressSearchQueryRow & GursAddressSearchRow =>
-      row.gurs_house_number_id !== null
-  );
+  return toAddressSearchResponse(result.rows);
+}
 
+function toPostalLookupResponse(
+  rows: GursPostalLocationQueryRow[]
+): GursPostalLookupResponse {
+  const locationRows = rows.filter(
+    (row): row is GursPostalLocationQueryRow & GursPostalLocationRow =>
+      row.postal_code !== null && row.postal_name !== null
+  );
   return {
-    results: searchRows.map(toSearchResult),
+    results: locationRows.map(toPostalLocation),
     sourceUpdatedAt: toIsoString(
-      result.rows[0]?.active_source_updated_at ?? null
+      rows[0]?.active_source_updated_at ?? null
     )
   };
 }
@@ -300,26 +361,37 @@ export async function lookupGursPostalLocations(
   const normalizedPostalName =
     "regexp_replace(translate(lower(postal_name), 'čšž', 'csz'), '[^a-z0-9]+', ' ', 'g')";
   const fieldExpression = parsed.field === 'postalCode'
-    ? 'postal_code'
-    : normalizedPostalName;
-  const result = await database.query<GursPostalLocationRow>(
-    `select postal_code,
-            postal_name
-     from gurs_addresses
-     where search_text like '% ' || $1 || '%'
-       and ${fieldExpression} like $1 || '%'
-     group by postal_code, postal_name
+    ? 'postal_code collate "C"'
+    : `(${normalizedPostalName}) collate "C"`;
+  const result = await database.query<GursPostalLocationQueryRow>(
+    `select matched.postal_code,
+            matched.postal_name,
+            sync.active_source_updated_at
+     from (values (true)) as anchor(dummy)
+     left join gurs_address_sync_state as sync
+       on sync.key = 'active'
+     left join lateral (
+       select candidates.postal_code,
+              candidates.postal_name
+       from (
+         select distinct
+                postal_code,
+                postal_name,
+                ${fieldExpression} as lookup_value
+         from gurs_addresses
+         where ${fieldExpression} like $2
+       ) as candidates
+       order by
+         case when candidates.lookup_value = $1 then 0 else 1 end,
+         candidates.postal_code asc,
+         candidates.postal_name asc
+       limit ${GURS_POSTAL_LOOKUP_LIMIT}
+     ) as matched on true
      order by
-       case when ${fieldExpression} = $1 then 0 else 1 end,
-       postal_code asc,
-       postal_name asc
-     limit ${GURS_POSTAL_LOOKUP_LIMIT}`,
-    [parsed.query]
+       case when matched.postal_code is null then 1 else 0 end,
+       matched.postal_code asc nulls last,
+       matched.postal_name asc nulls last`,
+    [parsed.query, `${parsed.query}%`]
   );
-  const metadata = await getGursAddressSourceMetadata(database);
-
-  return {
-    results: result.rows.map(toPostalLocation),
-    sourceUpdatedAt: metadata.sourceUpdatedAt
-  };
+  return toPostalLookupResponse(result.rows);
 }

@@ -13,10 +13,7 @@ import {
 } from '@/shared/server/adminCustomerEmailConfirmation';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { quoteEmailRetryStateIsCurrent } from '@/shared/domain/quote/quoteEmailRetryEligibility';
-import {
-  isQuoteAdminEnabled,
-  isQuoteEmailDeliveryEnabled
-} from '@/shared/server/quoteFeatureFlags';
+import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 import {
   appendQuoteEvent,
   hasValidQuoteAdminSession,
@@ -55,12 +52,6 @@ export async function POST(
   }
   if (!hasValidQuoteAdminSession(request)) {
     return NextResponse.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401 });
-  }
-  if (!isQuoteEmailDeliveryEnabled()) {
-    return NextResponse.json(
-      { message: 'Pošiljanje e-pošte za ponudbe je trenutno izključeno.' },
-      { status: 409 }
-    );
   }
   const { jobId: rawJobId } = await props.params;
   const jobId = rawJobId.trim().toLowerCase();

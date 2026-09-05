@@ -150,7 +150,14 @@ export async function generateOrderDocumentRoute(
         [orderId, type]
       );
       version = Number(versionResult.rows[0]?.next_version ?? 1);
-      documentNumber = await allocateOrderDocumentNumber(client, type, issuedAt);
+      if (type === 'order_summary') {
+        documentNumber = context.orderForPdf.publicCode?.trim() ?? '';
+        if (!documentNumber) {
+          throw new Error('Naročilo nima veljavne kode za potrditev.');
+        }
+      } else {
+        documentNumber = await allocateOrderDocumentNumber(client, type, issuedAt);
+      }
 
       const pdfBuffer = Buffer.from(
         await generateOrderPdf({

@@ -120,6 +120,7 @@ export type OrderConfirmationDocument = {
 };
 
 export type OrderConfirmationSnapshot = {
+  orderCode: string;
   createdAt?: string;
   status?: string;
   paymentStatus?: string;

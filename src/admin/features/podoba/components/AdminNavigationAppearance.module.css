@@ -1,0 +1,111 @@
+/* Compact only the admin settings card; public/header previews and popovers
+   retain their own sizes. Natural height remains available for narrow screens
+   and additional tablet/mobile controls, with no scaling or clipping. */
+.panel {
+  gap: 10px;
+  padding: 12px;
+}
+
+.panel h3 {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.panel h4 {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.panel [data-testid='top-bar-appearance-settings'] > div {
+  margin-top: 8px;
+}
+
+.panel [data-testid='top-bar-colors-row'],
+.panel [data-testid='top-bar-typography-row'] {
+  margin-top: 8px;
+  gap: 10px;
+}
+
+.panel [data-testid='top-bar-colors-row'] > div,
+.panel [data-testid='top-bar-typography-row'] > div,
+.panel [data-testid='top-bar-dimensions-settings'] label {
+  gap: 4px;
+}
+
+.panel [data-testid='top-bar-colors-row'] > div > span,
+.panel [data-testid='top-bar-typography-row'] > div > span,
+.panel [data-testid='top-bar-width-settings'] > div > span,
+.panel [data-testid='top-bar-dimensions-settings'] label > span:first-child {
+  margin-bottom: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.panel [data-testid='top-bar-width-settings'] {
+  padding-top: 10px;
+}
+
+.panel [data-testid='top-bar-width-settings'] > div {
+  margin-top: 6px;
+  gap: 4px;
+}
+
+.panel [data-testid='top-bar-dimensions-settings'] > div {
+  gap: 10px;
+}
+
+.panel [data-top-bar-unit-control],
+.panel [data-admin-hex-color-field],
+.panel [data-appearance-editor-compact-select-trigger] {
+  height: 28px !important;
+}
+
+.panel input,
+.panel [data-admin-hex-color-input],
+.panel [data-top-bar-unit-control] > span,
+.panel [data-appearance-editor-compact-select-trigger] {
+  font-size: 11px !important;
+  line-height: 16px;
+}
+
+.panel [data-top-bar-unit-control] > input,
+.panel [data-appearance-editor-compact-select-trigger] {
+  padding-inline: 8px !important;
+}
+
+.panel [data-top-bar-unit-control] > input {
+  padding-block: 0;
+}
+
+.panel [data-top-bar-unit-control] > span {
+  min-width: 26px;
+  padding-inline: 6px;
+}
+
+.panel [data-admin-hex-color-field] {
+  padding-inline: 6px;
+}
+
+.panel [data-admin-hex-color-input] {
+  height: 24px;
+}
+
+.panel [data-admin-color-palette-trigger] {
+  padding: 2px;
+}
+
+.panel [data-appearance-editor-compact-select-trigger] svg {
+  width: 12px;
+  height: 12px;
+}
+
+.panel [data-testid='top-bar-width-mode-control'] > div {
+  min-height: 28px;
+}
+
+.panel [data-testid='top-bar-width-mode-control'] button {
+  height: 26px;
+  font-size: 11px;
+  line-height: 16px;
+}

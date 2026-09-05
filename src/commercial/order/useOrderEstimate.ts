@@ -9,6 +9,7 @@ import {
   type OrderApiError,
   type OrderEstimate
 } from '@/commercial/order/contracts';
+import { readJsonResponse } from '@/shared/client/readJsonResponse';
 
 export type OrderEstimateState = {
   estimate: OrderEstimate | null;
@@ -176,7 +177,7 @@ export function useOrderEstimate(
           signal: controller.signal
         });
 
-        const payload: unknown = await response.json().catch(() => ({}));
+        const payload: unknown = await readJsonResponse(response, {});
         if (isRequestStale()) return;
         if (!response.ok) {
           const apiError = parseOrderApiError(

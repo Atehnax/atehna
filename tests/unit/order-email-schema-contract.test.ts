@@ -51,6 +51,10 @@ test('canonical schema persists order email settings and durable delivery jobs',
 
   for (const eventType of [
     'order_submitted',
+    'order_accepted',
+    'order_rejected',
+    'predracun_issued',
+    'invoice_issued',
     'received',
     'in_progress',
     'partially_sent',

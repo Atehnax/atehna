@@ -78,13 +78,9 @@ export function quoteEmailRetryStateIsCurrent(
 export function getQuoteEmailRetryEligibility(input: {
   job: QuoteEmailRetryJobState;
   settings: QuoteEmailSettings;
-  emailDeliveryEnabled: boolean;
   now?: number;
 }): QuoteEmailRetryEligibility {
-  const { job, settings, emailDeliveryEnabled } = input;
-  if (!emailDeliveryEnabled) {
-    return ineligible('Dostava e-pošte je trenutno izključena.');
-  }
+  const { job, settings } = input;
   if (job.eventType === 'quote_access_otp') {
     return ineligible('Varnostne kode ni mogoče ponoviti; stranka naj zahteva novo kodo.');
   }

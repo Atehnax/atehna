@@ -188,7 +188,7 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
   );
   assert.match(
     worker,
-    /if \(!job\.payloadEncrypted\) \{[\s\S]*?persistEncryptedClaimedEnvelope/u
+    /!job\.payloadEncrypted[\s\S]*?persistEncryptedClaimedEnvelope/u
   );
   assert.match(worker, /classifyOrderEmailDeliveryValidationFailure\(error\)/u);
   assert.match(worker, /redactOrderEmailDeliveryEnvelope\(envelope\)/u);

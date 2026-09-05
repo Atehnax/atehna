@@ -1,19 +1,35 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
 import {
   DEFAULT_ORDER_EMAIL_SETTINGS,
   ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES,
-  ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH,
+  ORDER_EMAIL_SYSTEM_FIELD_IDS,
+  ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
   ORDER_EMAIL_TEMPLATE_VARIABLES,
   ORDER_EMAIL_EVENT_DEFINITIONS,
   normalizeOrderEmailSettings,
+  resolveOrderEmailSystemLines,
+  toStoredOrderEmailSettings,
+  type OrderEmailEventType,
   type OrderEmailSettings,
+  type OrderEmailSystemFieldId,
+  type OrderEmailSystemLine,
+  type OrderEmailTemplatePresentation,
 } from "@/shared/domain/order/orderEmailSettings";
+import {
+  buildOrderEmailMessage,
+  type OrderEmailJobPayload,
+} from "@/shared/domain/order/orderEmailTemplates";
+import { getStatusLabel } from "@/shared/domain/order/orderStatus";
 import type { OrderEmailAdminState } from "@/shared/server/orderEmailSettings";
 import type { QuoteEmailAdminState } from "@/shared/server/quoteEmailSettings";
+import EmailTemplateWorkspace, {
+  EmailTemplateRecipientToggle,
+  getEmailTemplateActivity,
+} from "@/admin/features/email/components/EmailTemplateWorkspace";
+import type { EmailTemplateContextSharedContent } from "@/admin/features/email/components/EmailTemplateContextToolbar";
 import AdminQuoteEmailSettingsSection, {
   type AdminQuoteEmailSaveState,
   type AdminQuoteEmailSettingsHandle,
@@ -47,18 +63,13 @@ import {
 import { IconButton } from "@/shared/ui/icon-button";
 import { CustomSelect } from "@/shared/ui/select";
 import { Table, TBody, TD, TH, THead, TR } from "@/shared/ui/table";
-import {
-  adminInputFocusTokenClasses,
-  adminPlaceholderTokenClasses,
-} from "@/shared/ui/theme/tokens";
 import { useToast } from "@/shared/ui/toast";
 
 type UnknownRecord = Record<string, unknown>;
 type EventKey = keyof OrderEmailSettings["events"];
 type EventAudience = keyof OrderEmailSettings["events"][EventKey];
 type EmailPageTab = "settings" | "orders" | "quotes";
-type StandardTemplateAudience = "customer" | "admin";
-type TemplateAudience = StandardTemplateAudience | "schoolCustomer";
+type TemplateAudience = keyof OrderEmailSettings["templates"][EventKey];
 type RecentFailure = OrderEmailAdminState["queue"]["recentFailures"][number];
 type EmailImageAttachment = NonNullable<OrderEmailSettings["imageAttachment"]>;
 type StagedEmailImageAttachment = {
@@ -68,7 +79,6 @@ type StagedEmailImageAttachment = {
 };
 
 const fieldClassName = "h-9 px-3 text-[13px] leading-5";
-const textareaClassName = `min-h-24 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-['Inter',system-ui,sans-serif] text-[13px] leading-5 text-slate-900 outline-none transition-[border-color,box-shadow,color,opacity] disabled:cursor-default disabled:bg-[color:var(--field-locked-bg)] disabled:opacity-60 ${adminInputFocusTokenClasses} ${adminPlaceholderTokenClasses}`;
 const alignedFieldClassName = "grid min-w-0 grid-rows-[1fr_auto]";
 const templateEventOptions = ORDER_EMAIL_EVENT_DEFINITIONS.map(
   ({ value, label }) => ({ value, label }),
@@ -79,11 +89,171 @@ const acceptedEmailImageContentTypes = new Set([
   "image/webp",
   "image/gif",
 ]);
+const orderEmailTemplateAudienceOptions = [
+  { value: "customer", label: "Fiz. oseba" },
+  { value: "companyCustomer", label: "Podjetje" },
+  { value: "schoolCustomer", label: "Šola / javni zavod" },
+  { value: "admin", label: "Admin" },
+] as const satisfies ReadonlyArray<{ value: TemplateAudience; label: string }>;
+const ORDER_EMAIL_PREVIEW_CREATED_AT = "2026-09-03T12:37:00.000Z";
+const ORDER_EMAIL_PREVIEW_CUSTOMER_NAME = "Primer naročnika";
+const ORDER_EMAIL_PREVIEW_CONTACT_NAME = "Ana Novak";
+const ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL = "ana.novak@example.com";
+const ORDER_EMAIL_PREVIEW_REFERENCE = "TEST-2026";
+const ORDER_EMAIL_PREVIEW_ADDRESS_LINE_1 = "Slovenska cesta 1";
+const ORDER_EMAIL_PREVIEW_POSTAL_CODE = "1000";
+const ORDER_EMAIL_PREVIEW_CITY = "Ljubljana";
+const ORDER_EMAIL_PREVIEW_ORDER_NUMBER = "#PREIZKUS";
+const ORDER_EMAIL_PREVIEW_ORDER_CODE = "N-7K3M-4X9P-2D6R-8H4Q";
+const ORDER_EMAIL_PREVIEW_IMAGE_URL =
+  "https://example.invalid/email-preview/testni-izdelek.svg";
+const ORDER_EMAIL_PREVIEW_IMAGE_DATA_URL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3E%3Crect width='144' height='144' rx='16' fill='%23f1f5f9'/%3E%3Cpath d='M28 96 48 43h48l20 53H28Z' fill='%2394a3b8'/%3E%3Cpath d='M48 43h48L83 96H35l13-53Z' fill='%23dbe4ee'/%3E%3C/svg%3E";
+const ORDER_EMAIL_SYSTEM_FIELD_LABELS: Record<
+  OrderEmailSystemFieldId,
+  string
+> = {
+  orderCreatedAt: "Datum",
+  eventStatus: "Status",
+  customerName: "Naročnik",
+  customerContact: "Kontakt",
+  customerAddress: "Naslov",
+  customerEmail: "E-pošta",
+  customerReference: "Referenca",
+  orderNumber: "Naročilo",
+};
+const ORDER_EMAIL_PREVIEW_ACCESS_TOKEN =
+  ["ath", "order"].join("_") + "_" + "P".repeat(43);
 
-function formatFileSize(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+function orderEmailPreviewPurchaseOrderUrl(siteUrl: string): string {
+  const url = new URL("/order/narocilnica", siteUrl);
+  url.hash = new URLSearchParams({
+    token: ORDER_EMAIL_PREVIEW_ACCESS_TOKEN,
+  }).toString();
+  return url.toString();
+}
+
+function orderEmailPreviewStatus(eventType: OrderEmailEventType): string {
+  if (eventType === "order_submitted") return "Prejeto – čaka na sprejem";
+  if (eventType === "order_accepted") return "Pogodbeno sprejeto";
+  if (eventType === "order_rejected") return "Pogodbeno zavrnjeno";
+  if (eventType === "predracun_issued") return "Predračun izdan";
+  if (eventType === "invoice_issued") return "Račun izdan";
+  return getStatusLabel(eventType);
+}
+
+function buildOrderEmailPreviewMessage(
+  config: OrderEmailSettings,
+  eventType: OrderEmailEventType,
+  audience: TemplateAudience,
+) {
+  const settingsSnapshot = toStoredOrderEmailSettings({
+    ...config,
+    senderName: config.senderName.trim() || "Atehna",
+    fromEmail: "preview@example.invalid",
+    replyToEmail: "",
+  });
+  const customerType: "individual" | "company" | "school" =
+    audience === "schoolCustomer"
+      ? "school"
+      : audience === "customer"
+        ? "individual"
+        : "company";
+  const order = {
+    orderCode: ORDER_EMAIL_PREVIEW_ORDER_CODE,
+    createdAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
+    customer: {
+      customerType,
+      organizationName:
+        customerType === "individual" ? null : ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+      contactName: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+      email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+      reference: ORDER_EMAIL_PREVIEW_REFERENCE,
+      addressLine1: ORDER_EMAIL_PREVIEW_ADDRESS_LINE_1,
+      addressLine2: null,
+      postalCode: ORDER_EMAIL_PREVIEW_POSTAL_CODE,
+      city: ORDER_EMAIL_PREVIEW_CITY,
+      countryCode: "SI",
+    },
+    items: [
+      {
+        sku: "TEST-001",
+        name: "Testni izdelek",
+        unit: "kos",
+        quantity: 1,
+        lineGross: 12.2,
+        imageUrl: ORDER_EMAIL_PREVIEW_IMAGE_URL,
+      },
+    ],
+    totals: {
+      net: 10,
+      tax: 2.2,
+      shipping: 0,
+      gross: 12.2,
+    },
+  };
+  const payloadBase = {
+    eventType,
+    occurredAt: ORDER_EMAIL_PREVIEW_CREATED_AT,
+    previousStatus: eventType === "order_submitted" ? null : "received",
+    settingsSnapshot,
+  };
+  const payload: OrderEmailJobPayload =
+    audience === "admin"
+      ? {
+          ...payloadBase,
+          audience: "admin",
+          recipientEmail: "admin@example.invalid",
+          recipientName: null,
+          order: {
+            ...order,
+            orderId: 999_999_999,
+            orderNumber: ORDER_EMAIL_PREVIEW_ORDER_NUMBER,
+          },
+        }
+      : {
+          ...payloadBase,
+          audience: "customer",
+          recipientEmail: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+          recipientName: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+          order,
+          purchaseOrderUploadUrl:
+            audience === "schoolCustomer" && eventType === "order_submitted"
+              ? orderEmailPreviewPurchaseOrderUrl(settingsSnapshot.siteUrl)
+              : null,
+        };
+  const message = buildOrderEmailMessage(payload, { editorPreview: true });
+  return {
+    ...message,
+    html: message.html.replaceAll(
+      ORDER_EMAIL_PREVIEW_IMAGE_URL,
+      ORDER_EMAIL_PREVIEW_IMAGE_DATA_URL,
+    ),
+  };
+}
+
+function orderEmailPreviewVariables(
+  eventType: OrderEmailEventType,
+  audience: TemplateAudience,
+) {
+  const values: Record<string, string> = {
+    recipient_name:
+      audience === "admin" ? "" : ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+    customer_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+    organization_name: ORDER_EMAIL_PREVIEW_CUSTOMER_NAME,
+    contact_name: ORDER_EMAIL_PREVIEW_CONTACT_NAME,
+    reference: ORDER_EMAIL_PREVIEW_REFERENCE,
+    status: orderEmailPreviewStatus(eventType),
+    previous_status:
+      eventType === "order_submitted" ? "" : getStatusLabel("received"),
+    order_code: ORDER_EMAIL_PREVIEW_ORDER_CODE,
+    order_number: ORDER_EMAIL_PREVIEW_ORDER_NUMBER,
+    customer_email: ORDER_EMAIL_PREVIEW_CUSTOMER_EMAIL,
+  };
+  return ORDER_EMAIL_TEMPLATE_VARIABLES[audience].map((name) => ({
+    name,
+    value: values[name] ?? "",
+  }));
 }
 
 function asRecord(value: unknown): UnknownRecord {
@@ -296,119 +466,43 @@ function FieldLabel({
   );
 }
 
-function TemplateEditorCard({
-  audience,
-  title,
-  description,
-  subject,
-  body,
-  variables,
-  onSubjectChange,
-  onBodyChange,
-  onReset,
-  className = "",
-}: {
-  audience: TemplateAudience;
-  title: string;
-  description: string;
-  subject: string;
-  body: string;
-  variables: readonly string[];
-  onSubjectChange: (value: string) => void;
-  onBodyChange: (value: string) => void;
-  onReset: () => void;
-  className?: string;
-}) {
-  const audienceLabel =
-    audience === "customer"
-      ? "stranko"
-      : audience === "schoolCustomer"
-        ? "\u0161olo ali javni zavod"
-        : "administratorja";
-  const audienceTestId =
-    audience === "schoolCustomer" ? "school-customer" : audience;
-  const subjectId = `order-email-template-${audienceTestId}-subject`;
-  const bodyId = `order-email-template-${audienceTestId}-body`;
-
-  return (
-    <section
-      className={`min-w-0 rounded-lg border border-slate-200 bg-slate-50/60 p-4 ${className}`}
-      data-testid={`order-email-template-${audienceTestId}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="mt-0.5 text-xs leading-4 text-slate-600">
-            {description}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="default"
-          size="toolbar"
-          className={adminTableBulkHeaderButtonClassName}
-          onClick={onReset}
-          aria-label={`Ponastavi privzeto predlogo za ${audienceLabel}`}
-          data-testid={`order-email-template-${audienceTestId}-reset`}
-        >
-          Ponastavi privzeto
-        </Button>
-      </div>
-
-      <div className="mt-3 space-y-3">
-        <div>
-          <FieldLabel
-            htmlFor={subjectId}
-            label={`Zadeva za ${audienceLabel}`}
-            hint="Predpona zadeve se doda samodejno."
-          />
-          <Input
-            id={subjectId}
-            aria-label={`Zadeva za ${audienceLabel}`}
-            className={`${fieldClassName} mt-1.5`}
-            value={subject}
-            maxLength={ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH}
-            onChange={(event) => onSubjectChange(event.target.value)}
-            data-testid={`order-email-template-${audienceTestId}-subject`}
-          />
-        </div>
-        <div>
-          <FieldLabel
-            htmlFor={bodyId}
-            label={`Vsebina za ${audienceLabel}`}
-            hint="Vnesite navadno besedilo. Povzetek naročila in artikli se dodajo samodejno."
-          />
-          <textarea
-            id={bodyId}
-            className={`${textareaClassName} mt-1.5 min-h-40`}
-            value={body}
-            maxLength={ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH}
-            onChange={(event) => onBodyChange(event.target.value)}
-            data-testid={`order-email-template-${audienceTestId}-body`}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 border-t border-slate-200 pt-3">
-        <p className="text-xs font-medium text-slate-700">
-          Dovoljene spremenljivke
-        </p>
-        <div
-          className="mt-1.5 flex flex-wrap gap-1.5"
-          aria-label={`Dovoljene spremenljivke za ${audienceLabel}`}
-        >
-          {variables.map((variable) => (
-            <code
-              key={variable}
-              className="max-w-full break-all rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
-            >
-              {`{{${variable}}}`}
-            </code>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+function orderTemplateAudienceMeta(
+  audience: TemplateAudience,
+) {
+  if (audience === "schoolCustomer") {
+    return {
+      label: "\u0161olo ali javni zavod",
+      testId: "school-customer",
+      title: "\u0160ola / javni zavod",
+      description:
+        "Uporabi se za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Sistemski podatki in morebitna varna povezava za naro\u010dilnico se dodajo samodejno.",
+    };
+  }
+  if (audience === "companyCustomer") {
+    return {
+      label: "podjetje",
+      testId: "company-customer",
+      title: "Podjetje",
+      description:
+        "Uporabi se za naro\u010dnika vrste \u00bbPodjetje\u00ab. Interna zaporedna \u0161tevilka naro\u010dila se kupcu ne razkrije.",
+    };
+  }
+  if (audience === "admin") {
+    return {
+      label: "administratorja",
+      testId: "admin",
+      title: "Administrator",
+      description:
+        "Interno \u0161tevilko lahko vklju\u010dite s {{order_number}}, povezava do naro\u010dila pa se doda samodejno.",
+    };
+  }
+  return {
+    label: "fizi\u010dno osebo",
+    testId: "individual-customer",
+    title: "Fizi\u010dna oseba",
+    description:
+      "Uporabi se za naro\u010dnika vrste \u00bbFizi\u010dna oseba\u00ab. Interna zaporedna \u0161tevilka naro\u010dila se kupcu ne razkrije.",
+  };
 }
 
 export default function AdminOrderEmailSettingsPageClient({
@@ -443,6 +537,8 @@ export default function AdminOrderEmailSettingsPageClient({
     });
   const [selectedTemplateEvent, setSelectedTemplateEvent] =
     useState<EventKey>("order_submitted");
+  const [orderPreviewAudience, setOrderPreviewAudience] =
+    useState<TemplateAudience>("customer");
   const [testRecipient, setTestRecipient] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -451,7 +547,6 @@ export default function AdminOrderEmailSettingsPageClient({
     useState(false);
   const [stagedImageAttachment, setStagedImageAttachment] =
     useState<StagedEmailImageAttachment | null>(null);
-  const imageAttachmentInputRef = useRef<HTMLInputElement>(null);
   const [actionErrors, setActionErrors] = useState<string[]>([]);
   const setActionError = (message: string | null) => {
     setActionErrors(message ? [message] : []);
@@ -486,11 +581,20 @@ export default function AdminOrderEmailSettingsPageClient({
       ),
     [],
   );
-  const schoolCustomerTemplate =
-    draft.templates.order_submitted.schoolCustomer ??
-    DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-  const selectedTemplateStatusPresentation =
-    getOrderEmailEventStatusPresentation(selectedTemplateEvent);
+  const selectedTemplateAudienceMeta = orderTemplateAudienceMeta(
+    orderPreviewAudience,
+  );
+  const selectedTemplate =
+    draft.templates[selectedTemplateEvent][orderPreviewAudience];
+  const selectedTemplateEventSetting = draft.events[selectedTemplateEvent] ?? {
+    customer: false,
+    admins: false,
+  };
+  const selectedTemplateActivity = getEmailTemplateActivity(
+    draft.enabled,
+    selectedTemplateEventSetting.customer,
+    selectedTemplateEventSetting.admins,
+  );
   const displayedImageAttachment = stagedImageAttachment
     ? {
         url: stagedImageAttachment.previewUrl,
@@ -498,6 +602,42 @@ export default function AdminOrderEmailSettingsPageClient({
         size: stagedImageAttachment.file.size,
       }
     : draft.imageAttachment;
+  const selectedSystemLineAudience =
+    orderPreviewAudience === "admin" ? "admin" : "customer";
+  const selectedTemplateSystemLines =
+    selectedTemplate.presentation?.systemLines !== undefined
+      ? selectedTemplate.presentation.systemLines.map((line) => ({ ...line }))
+      : resolveOrderEmailSystemLines(
+          selectedTemplate,
+          selectedSystemLineAudience,
+        );
+  const selectedTemplateSystemFields = ORDER_EMAIL_SYSTEM_FIELD_IDS.filter(
+    (field) => selectedSystemLineAudience === "admin" || field !== "orderNumber",
+  ).map((field) => ({ field, label: ORDER_EMAIL_SYSTEM_FIELD_LABELS[field] }));
+  const orderPreview = useMemo(() => {
+    try {
+      const message = buildOrderEmailPreviewMessage(
+        draft,
+        selectedTemplateEvent,
+        orderPreviewAudience,
+      );
+      return { subject: message.subject, html: message.html, error: null };
+    } catch {
+      return {
+        subject: "",
+        html: "",
+        error: "Predogleda s trenutnimi nastavitvami ni mogoče prikazati.",
+      };
+    }
+  }, [draft, orderPreviewAudience, selectedTemplateEvent]);
+  const orderPreviewVariables = useMemo(
+    () =>
+      orderEmailPreviewVariables(
+        selectedTemplateEvent,
+        orderPreviewAudience,
+      ),
+    [orderPreviewAudience, selectedTemplateEvent],
+  );
 
   const draftBasicReady =
     adminState.delivery.schemaReady &&
@@ -571,32 +711,10 @@ export default function AdminOrderEmailSettingsPageClient({
 
   const updateTemplate = (
     audience: TemplateAudience,
-    field: "subject" | "body",
+    field: "subject" | "contentHtml",
     value: string,
   ) => {
     setDraft((current) => {
-      if (audience === "schoolCustomer") {
-        const submissionTemplates = current.templates.order_submitted;
-        const currentSchoolTemplate =
-          submissionTemplates.schoolCustomer ??
-          DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-        if (!currentSchoolTemplate) return current;
-        return {
-          ...current,
-          templates: {
-            ...current.templates,
-            order_submitted: {
-              ...submissionTemplates,
-              schoolCustomer: {
-                ...submissionTemplates.schoolCustomer,
-                ...currentSchoolTemplate,
-                [field]: value,
-              },
-            },
-          },
-        };
-      }
-
       const eventTemplates =
         current.templates[selectedTemplateEvent] ??
         DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent];
@@ -617,25 +735,32 @@ export default function AdminOrderEmailSettingsPageClient({
     setActionErrors([]);
   };
 
-  const resetTemplate = (audience: TemplateAudience) => {
-    if (audience === "schoolCustomer") {
-      const defaultTemplate =
-        DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.schoolCustomer;
-      if (!defaultTemplate) return;
-      setDraft((current) => ({
+  const updateTemplatePresentation = (
+    audience: TemplateAudience,
+    presentation: OrderEmailTemplatePresentation | undefined,
+  ) => {
+    setDraft((current) => {
+      const eventTemplates =
+        current.templates[selectedTemplateEvent] ??
+        DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent];
+      return {
         ...current,
         templates: {
           ...current.templates,
-          order_submitted: {
-            ...current.templates.order_submitted,
-            schoolCustomer: { ...defaultTemplate },
+          [selectedTemplateEvent]: {
+            ...eventTemplates,
+            [audience]: {
+              ...eventTemplates[audience],
+              presentation,
+            },
           },
         },
-      }));
-      setActionErrors([]);
-      return;
-    }
+      };
+    });
+    setActionErrors([]);
+  };
 
+  const resetTemplate = (audience: TemplateAudience) => {
     const defaultTemplate =
       DEFAULT_ORDER_EMAIL_SETTINGS.templates[selectedTemplateEvent][audience];
     setDraft((current) => {
@@ -680,27 +805,18 @@ export default function AdminOrderEmailSettingsPageClient({
       const message = "Izberite sliko PNG, JPEG, WebP ali GIF.";
       setActionError(message);
       toast.error(message);
-      if (imageAttachmentInputRef.current) {
-        imageAttachmentInputRef.current.value = "";
-      }
       return;
     }
     if (file.size <= 0) {
       const message = "Izbrana slikovna datoteka je prazna.";
       setActionError(message);
       toast.error(message);
-      if (imageAttachmentInputRef.current) {
-        imageAttachmentInputRef.current.value = "";
-      }
       return;
     }
     if (file.size > ORDER_EMAIL_IMAGE_ATTACHMENT_MAX_BYTES) {
       const message = "Slikovna datoteka je lahko velika največ 5 MB.";
       setActionError(message);
       toast.error(message);
-      if (imageAttachmentInputRef.current) {
-        imageAttachmentInputRef.current.value = "";
-      }
       return;
     }
 
@@ -715,9 +831,19 @@ export default function AdminOrderEmailSettingsPageClient({
   const removeImageAttachment = () => {
     setStagedImageAttachment(null);
     updateConfig("imageAttachment", null);
-    if (imageAttachmentInputRef.current) {
-      imageAttachmentInputRef.current.value = "";
-    }
+  };
+
+  const sharedContent: EmailTemplateContextSharedContent = {
+    subjectPrefix: draft.subjectPrefix,
+    headerText: draft.headerText,
+    footerText: draft.footerText,
+    imageAttachment: displayedImageAttachment,
+    disabled: saving || uploadingImageAttachment,
+    onSubjectPrefixChange: (value) => updateConfig("subjectPrefix", value),
+    onHeaderTextChange: (value) => updateConfig("headerText", value),
+    onFooterTextChange: (value) => updateConfig("footerText", value),
+    onImageSelected: handleImageAttachmentSelected,
+    onImageRemove: removeImageAttachment,
   };
 
   const handleSave = async () => {
@@ -798,9 +924,6 @@ export default function AdminOrderEmailSettingsPageClient({
         setStagedImageAttachment((current) =>
           current?.file === submittedStagedImage.file ? null : current,
         );
-        if (imageAttachmentInputRef.current) {
-          imageAttachmentInputRef.current.value = "";
-        }
       }
       toast.success("Nastavitve samodejne e-pošte so shranjene.");
     } catch (error) {
@@ -939,6 +1062,20 @@ export default function AdminOrderEmailSettingsPageClient({
       void quoteEmailSettingsRef.current?.save();
     }
   };
+  const quoteTabHasChanges = hasChanges || quoteEmailSaveState.hasChanges;
+  const quoteTabSaving =
+    saving || uploadingImageAttachment || quoteEmailSaveState.saving;
+  const quoteTabSaveDisabled =
+    uploadingImageAttachment ||
+    saving ||
+    quoteEmailSaveState.saving ||
+    (!hasChanges && quoteEmailSaveState.saveDisabled);
+  const handleQuoteSave = () => {
+    if (!saving && !uploadingImageAttachment && hasChanges) void handleSave();
+    if (!quoteEmailSaveState.saveDisabled) {
+      void quoteEmailSettingsRef.current?.save();
+    }
+  };
 
   return (
     <fieldset
@@ -960,7 +1097,7 @@ export default function AdminOrderEmailSettingsPageClient({
                 aria-live="polite"
                 data-testid="quote-email-save-status"
                 title={
-                  quoteEmailSaveState.hasChanges
+                  quoteTabHasChanges
                     ? "Spremembe še niso shranjene."
                     : quoteEmailSaveState.updatedAt
                       ? `Shranjeno: ${formatUpdatedAt(quoteEmailSaveState.updatedAt)}`
@@ -969,23 +1106,23 @@ export default function AdminOrderEmailSettingsPageClient({
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    quoteEmailSaveState.hasChanges
+                    quoteTabHasChanges
                       ? "bg-amber-500"
                       : "bg-emerald-500"
                   }`}
                   aria-hidden="true"
                 />
-                {quoteEmailSaveState.hasChanges ? "Neshranjeno" : "Shranjeno"}
+                {quoteTabHasChanges ? "Neshranjeno" : "Shranjeno"}
               </span>
               <AdminTablePrimaryActionButton
                 type="button"
                 className="gap-2"
-                disabled={quoteEmailSaveState.saveDisabled}
-                onClick={() => void quoteEmailSettingsRef.current?.save()}
+                disabled={quoteTabSaveDisabled}
+                onClick={handleQuoteSave}
                 data-testid="quote-email-settings-save"
               >
-                {quoteEmailSaveState.saving ? <Spinner size="sm" /> : null}
-                {quoteEmailSaveState.saving
+                {quoteTabSaving ? <Spinner size="sm" /> : null}
+                {quoteTabSaving
                   ? "Shranjujem …"
                   : "Shrani spremembe"}
               </AdminTablePrimaryActionButton>
@@ -1037,7 +1174,7 @@ export default function AdminOrderEmailSettingsPageClient({
         tabs={[
           {
             value: "settings",
-            label: "Nastavitve",
+            label: "Osnovne nastavitve",
             panelId: "order-email-settings-panel",
           },
           {
@@ -1093,9 +1230,9 @@ export default function AdminOrderEmailSettingsPageClient({
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
                     To stikalo ustavi ali omogoči poslovna e-poštna sporočila za
-                    naročila. Obvezna varnostna sporočila, kot je OTP za dostop
-                    do ponudbe, ostanejo aktivna. Skrivni dostop do ponudnika se
-                    upravlja samo v okolju Vercel.
+                    naročila. Na varnostne kode za dostop do ponudbe ne vpliva;
+                    te upravlja preklop Pošiljanje ponudb. Skrivni dostop do
+                    ponudnika se upravlja samo v okolju Vercel.
                   </p>
                 </div>
                 <div className="flex justify-end">
@@ -1145,9 +1282,11 @@ export default function AdminOrderEmailSettingsPageClient({
                     Pošiljanje ponudb
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600 md:mt-0">
-                    Uporablja isti profil pošiljatelja, Reply-To, ponudnika in
-                    administratorske prejemnike kot naročila. Dogodki, predloge
-                    in čakalna vrsta ponudb ostanejo ločeni na zavihku Ponudbe.
+                    Glavni preklop upravlja vso e-pošto za ponudbe, vključno z
+                    varnostnimi kodami za spletni sprejem. Uporablja isti profil
+                    pošiljatelja, Reply-To, ponudnika in administratorske
+                    prejemnike kot naročila. Dogodki, predloge in čakalna vrsta
+                    ponudb ostanejo ločeni na zavihku Ponudbe.
                   </p>
                 </div>
                 <div className="flex justify-end">
@@ -1159,8 +1298,8 @@ export default function AdminOrderEmailSettingsPageClient({
                     }
                     ariaLabel={
                       quoteEmailSaveState.enabled
-                        ? "Izklopi poslovno e-pošto za ponudbe"
-                        : "Vključi poslovno e-pošto za ponudbe"
+                        ? "Izklopi e-pošto za ponudbe"
+                        : "Vključi e-pošto za ponudbe"
                     }
                     onChange={(enabled) => {
                       setQuoteEmailSaveState((current) => ({
@@ -1319,212 +1458,6 @@ export default function AdminOrderEmailSettingsPageClient({
                   placeholder="https://www.atehna-test.site"
                   autoComplete="url"
                 />
-              </div>
-            </div>
-          </SurfaceCard>
-        </SettingsCard>
-
-        <SettingsCard>
-          <SurfaceCard
-            title="Skupna vsebina"
-            titleAccessory={
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                Naročila in ponudbe
-              </span>
-            }
-            description="Privzeta vsebina za vsa poslovna sporočila naročil in ponudb."
-            testId="order-email-shared-content"
-          >
-            <div className="grid items-stretch gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
-              <div
-                className="min-w-0 space-y-3 lg:pr-5"
-                data-testid="order-email-shared-text-panel"
-              >
-                <div className="min-w-0">
-                  <FieldLabel
-                    htmlFor="order-email-subject-prefix"
-                    label="Predpona zadeve"
-                    hint="Dodana bo pred zadevo vsakega sporočila."
-                  />
-                  <Input
-                    id="order-email-subject-prefix"
-                    aria-label="Predpona zadeve"
-                    className={fieldClassName + " mt-1.5"}
-                    value={draft.subjectPrefix}
-                    maxLength={80}
-                    disabled={saving || uploadingImageAttachment}
-                    onChange={(event) =>
-                      updateConfig("subjectPrefix", event.target.value)
-                    }
-                    placeholder="Atehna"
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <FieldLabel
-                    htmlFor="order-email-header"
-                    label="Besedilo glave"
-                    hint="Neobvezno besedilo pred glavno vsebino sporočila."
-                  />
-                  <textarea
-                    id="order-email-header"
-                    aria-label="Besedilo glave"
-                    className={textareaClassName + " mt-1.5"}
-                    value={draft.headerText}
-                    maxLength={1000}
-                    disabled={saving || uploadingImageAttachment}
-                    onChange={(event) =>
-                      updateConfig("headerText", event.target.value)
-                    }
-                    placeholder="Pozdravljeni,"
-                  />
-                </div>
-
-                <div
-                  className="flex items-center gap-2 py-0.5"
-                  aria-hidden="true"
-                >
-                  <span className="h-px flex-1 bg-slate-200" />
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                    Samodejna vsebina e-pošte
-                  </span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-
-                <div className="min-w-0">
-                  <FieldLabel
-                    htmlFor="order-email-footer"
-                    label="Dodatno besedilo v nogi"
-                    hint="Neobvezno besedilo na koncu sporočila."
-                  />
-                  <textarea
-                    id="order-email-footer"
-                    aria-label="Dodatno besedilo v nogi"
-                    className={textareaClassName + " mt-1.5"}
-                    value={draft.footerText}
-                    maxLength={1000}
-                    disabled={saving || uploadingImageAttachment}
-                    onChange={(event) =>
-                      updateConfig("footerText", event.target.value)
-                    }
-                    placeholder="Hvala za vaše naročilo."
-                  />
-                </div>
-              </div>
-
-              <div
-                className="mt-4 min-w-0 border-t border-slate-200 pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"
-                data-testid="order-email-shared-image-panel"
-              >
-                <FieldLabel
-                  htmlFor="order-email-image-attachment"
-                  label="Slikovna priponka"
-                  hint="Neobvezna priponka · PNG, JPEG, WebP ali GIF · največ 5 MB."
-                />
-                <Input
-                  ref={imageAttachmentInputRef}
-                  id="order-email-image-attachment"
-                  type="file"
-                  hidden
-                  className="sr-only"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  aria-label="Slikovna priponka"
-                  disabled={saving || uploadingImageAttachment}
-                  onChange={(event) =>
-                    handleImageAttachmentSelected(
-                      event.target.files?.[0] ?? null,
-                    )
-                  }
-                />
-
-                {displayedImageAttachment ? (
-                  <div className="mt-1.5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70">
-                    <div className="flex min-h-40 items-center justify-center bg-white p-4 sm:min-h-44">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={displayedImageAttachment.url}
-                        alt=""
-                        className="max-h-36 max-w-full rounded-md border border-slate-200 bg-white object-contain"
-                        data-testid="order-email-image-preview"
-                      />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2.5 border-t border-slate-200 p-2.5">
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="truncate text-[13px] font-medium leading-5 text-slate-900"
-                          data-testid="order-email-image-filename"
-                        >
-                          {displayedImageAttachment.filename}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {formatFileSize(displayedImageAttachment.size)}
-                          {stagedImageAttachment ? " \u00b7 Neshranjeno" : ""}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <IconButton
-                          type="button"
-                          tone="neutral"
-                          size="md"
-                          disabled={saving || uploadingImageAttachment}
-                          onClick={() =>
-                            imageAttachmentInputRef.current?.click()
-                          }
-                          aria-label="Zamenjaj slikovno priponko"
-                          title="Zamenjaj slikovno priponko"
-                          data-testid="order-email-image-replace"
-                        >
-                          {uploadingImageAttachment ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                          )}
-                        </IconButton>
-                        <IconButton
-                          type="button"
-                          tone="danger"
-                          size="md"
-                          disabled={saving || uploadingImageAttachment}
-                          onClick={removeImageAttachment}
-                          aria-label="Odstrani slikovno priponko"
-                          title="Odstrani slikovno priponko"
-                          data-testid="order-email-image-remove"
-                        >
-                          <TrashCanIcon className="!h-4 !w-4" />
-                        </IconButton>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="mt-1.5 flex min-h-40 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-4 py-6 text-center sm:min-h-44"
-                    data-testid="order-email-image-empty-state"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-slate-200">
-                      <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium leading-5 text-slate-800">
-                        Ni izbrane slike
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Priponka se doda v izvirni velikosti.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="toolbar"
-                      className={adminTableBulkHeaderButtonClassName}
-                      disabled={saving || uploadingImageAttachment}
-                      onClick={() => imageAttachmentInputRef.current?.click()}
-                      data-testid="order-email-image-upload"
-                    >
-                      {uploadingImageAttachment ? <Spinner size="sm" /> : null}
-                      {"Nalo\u017ei"}
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
           </SurfaceCard>
@@ -1817,94 +1750,128 @@ export default function AdminOrderEmailSettingsPageClient({
             </Table>
           </div>
         </SurfaceCard>
-        <SurfaceCard
-          title="Predloge sporočil"
-          description="Za vsak dogodek posebej nastavite zadevo in uvodno vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+        <EmailTemplateWorkspace<TemplateAudience>
+          idPrefix="order-email-template"
           testId="order-email-message-templates"
-          className={selectedTemplateStatusPresentation.sectionClassName}
-          statusTone={selectedTemplateStatusPresentation.tone}
-        >
-          <div className="max-w-sm">
-            <FieldLabel
-              htmlFor="order-email-template-event"
-              label="Dogodek naročila"
-              hint="Izberite dogodek, katerega predloge so prikazane spodaj."
-            />
-            <CustomSelect<EventKey>
-              id="order-email-template-event"
-              testId="order-email-template-event"
-              value={selectedTemplateEvent}
-              onChange={(value) => {
-                setSelectedTemplateEvent(value);
-                setActionErrors([]);
-              }}
-              options={templateEventOptions}
-              ariaLabel="Dogodek naročila"
-              containerClassName="mt-1.5"
-              triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
-            />
-          </div>
-
-          <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
-            <TemplateEditorCard
-              audience="customer"
-              title={
-                selectedTemplateEvent === "order_submitted"
-                  ? "Stranka (fizi\u010dna oseba ali podjetje)"
-                  : "Stranka"
-              }
-              description="V predlogi za stranko interna zaporedna številka naročila ni na voljo in se kupcu ne razkrije."
-              subject={draft.templates[selectedTemplateEvent].customer.subject}
-              body={draft.templates[selectedTemplateEvent].customer.body}
-              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.customer}
-              onSubjectChange={(value) =>
-                updateTemplate("customer", "subject", value)
-              }
-              onBodyChange={(value) =>
-                updateTemplate("customer", "body", value)
-              }
-              onReset={() => resetTemplate("customer")}
-            />
-            {selectedTemplateEvent === "order_submitted" &&
-            schoolCustomerTemplate ? (
-              <TemplateEditorCard
-                audience="schoolCustomer"
-                title={"\u0160ola / javni zavod"}
-                description={
-                  "Uporabi se samo ob oddaji naro\u010dila za naro\u010dnika vrste \u00bb\u0160ola / javni zavod\u00ab. Varna povezava za nalaganje naro\u010dilnice in klju\u010dni podatki se dodajo samodejno."
-                }
-                subject={schoolCustomerTemplate.subject}
-                body={schoolCustomerTemplate.body}
-                variables={ORDER_EMAIL_TEMPLATE_VARIABLES.schoolCustomer}
-                onSubjectChange={(value) =>
-                  updateTemplate("schoolCustomer", "subject", value)
-                }
-                onBodyChange={(value) =>
-                  updateTemplate("schoolCustomer", "body", value)
-                }
-                onReset={() => resetTemplate("schoolCustomer")}
+          title="Predloge sporočil"
+          description="Za vsak dogodek posebej nastavite zadevo in oblikovano vsebino za posamezne skupine prejemnikov. Povzetek naročila, artikli in slike artiklov, kadar so na voljo, se dodajo samodejno."
+          eventSelector={
+            <>
+              <FieldLabel
+                htmlFor="order-email-template-event"
+                label="Dogodek naročila"
+                hint="Izberite dogodek, katerega predloge so prikazane spodaj."
               />
-            ) : null}
-            <TemplateEditorCard
-              audience="admin"
-              title="Administrator"
-              description="Interno številko lahko vključite s {{order_number}}, povezava do naročila pa se doda samodejno."
-              subject={draft.templates[selectedTemplateEvent].admin.subject}
-              body={draft.templates[selectedTemplateEvent].admin.body}
-              variables={ORDER_EMAIL_TEMPLATE_VARIABLES.admin}
-              onSubjectChange={(value) =>
-                updateTemplate("admin", "subject", value)
-              }
-              onBodyChange={(value) => updateTemplate("admin", "body", value)}
-              onReset={() => resetTemplate("admin")}
-              className={
-                selectedTemplateEvent === "order_submitted"
-                  ? "lg:col-span-2"
-                  : ""
-              }
-            />
-          </div>
-        </SurfaceCard>
+              <CustomSelect<EventKey>
+                id="order-email-template-event"
+                testId="order-email-template-event"
+                value={selectedTemplateEvent}
+                onChange={(value) => {
+                  setSelectedTemplateEvent(value);
+                  setActionErrors([]);
+                }}
+                options={templateEventOptions}
+                ariaLabel="Dogodek naročila"
+                containerClassName="mt-1.5"
+                triggerClassName="!h-9 !px-3 !text-[13px] !leading-5"
+              />
+            </>
+          }
+          activity={selectedTemplateActivity}
+          recipientControls={
+            <>
+              <EmailTemplateRecipientToggle
+                kind="customer"
+                label="Pošiljanje stranki"
+                checked={selectedTemplateEventSetting.customer}
+                title="Vklopi ali izklopi pošiljanje stranki za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(
+                    selectedTemplateEvent,
+                    "customer",
+                    checked,
+                  )
+                }
+                testId="order-email-template-recipient-customer"
+              />
+              <EmailTemplateRecipientToggle
+                kind="admin"
+                label="Pošiljanje administratorjem"
+                checked={selectedTemplateEventSetting.admins}
+                title="Vklopi ali izklopi pošiljanje administratorjem za izbrani dogodek"
+                onChange={(checked) =>
+                  updateEvent(
+                    selectedTemplateEvent,
+                    "admins",
+                    checked,
+                  )
+                }
+                testId="order-email-template-recipient-admin"
+              />
+            </>
+          }
+          audiences={orderEmailTemplateAudienceOptions}
+          activeAudience={orderPreviewAudience}
+          selectionKey={selectedTemplateEvent}
+          onAudienceChange={(audience) => {
+            setOrderPreviewAudience(audience);
+            setActionErrors([]);
+          }}
+          workspaceTestId="order-email-template-grid"
+          editor={{
+            testId: `order-email-template-${selectedTemplateAudienceMeta.testId}`,
+            title: selectedTemplateAudienceMeta.title,
+            description: selectedTemplateAudienceMeta.description,
+            subject: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
+              label: "Zadeva",
+              value: selectedTemplate.subject,
+              maxLength: ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-subject`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "subject", value),
+            },
+            contentHtml: {
+              id: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,
+              label: "Vsebina sporočila",
+              value: selectedTemplate.contentHtml ?? "",
+              maxLength: ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH,
+              testId: `order-email-template-${selectedTemplateAudienceMeta.testId}-content`,
+              onChange: (value) =>
+                updateTemplate(orderPreviewAudience, "contentHtml", value),
+            },
+            variables: ORDER_EMAIL_TEMPLATE_VARIABLES[orderPreviewAudience],
+            internalVariables:
+              orderPreviewAudience === "admin" ? ["order_number"] : [],
+            variablesAriaLabel: `Dovoljene spremenljivke za ${selectedTemplateAudienceMeta.label}`,
+            presentation: selectedTemplate.presentation,
+            onPresentationChange: (presentation) =>
+              updateTemplatePresentation(
+                orderPreviewAudience,
+                presentation,
+              ),
+            systemLines: {
+              lines: selectedTemplateSystemLines,
+              available: selectedTemplateSystemFields,
+              onChange: (systemLines: OrderEmailSystemLine[]) =>
+                updateTemplatePresentation(orderPreviewAudience, {
+                  ...selectedTemplate.presentation,
+                  systemLines,
+                }),
+            },
+          }}
+          sharedContent={sharedContent}
+          onReset={() => resetTemplate(orderPreviewAudience)}
+          resetAriaLabel={`Ponastavi privzeto predlogo za ${selectedTemplateAudienceMeta.label}`}
+          resetTestId={`order-email-template-${selectedTemplateAudienceMeta.testId}-reset`}
+          preview={{
+            subject: orderPreview.subject,
+            html: orderPreview.html,
+            variables: orderPreviewVariables,
+            error: orderPreview.error,
+            testId: "order-email-preview",
+          }}
+        />
 
         <SurfaceCard
           title="Čakalna vrsta naročil"
@@ -2050,6 +2017,8 @@ export default function AdminOrderEmailSettingsPageClient({
         <AdminQuoteEmailSettingsSection
           ref={quoteEmailSettingsRef}
           initialState={initialQuoteState}
+          sharedSettings={draft}
+          sharedContent={sharedContent}
           onSaveStateChange={setQuoteEmailSaveState}
         />
       </div>

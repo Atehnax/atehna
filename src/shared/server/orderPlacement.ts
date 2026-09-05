@@ -1,11 +1,16 @@
 import 'server-only';
 
 import type { PoolClient } from 'pg';
+import {
+  formatOrderCode,
+  requireCommercePublicCodeBase
+} from '@/shared/domain/commercePublicCode';
 import type { CustomerType } from '@/shared/domain/order/customerType';
 import type { OrderContractStatus } from '@/shared/domain/order/contractStatus';
 import { moneyToDatabaseValue } from '@/shared/server/orderCommerce';
 import { isStockEnforcementEnabled } from '@/shared/server/inventoryPolicy';
 import { commitOrderStockHolds } from '@/shared/server/orderStockHolds';
+import { insertWithGeneratedCommercePublicCodeBase } from '@/shared/server/commercePublicCode';
 
 export type OrderPlacementCustomer = {
   customerType: CustomerType;
@@ -80,6 +85,7 @@ export type PlaceOrderInput = {
   contractAcceptedAt?: string;
   contractEvidence?: Record<string, unknown> | null;
   sourceQuoteOfferVersionId?: number | null;
+  publicCodeBase?: string | null;
   commitStock: boolean;
   stockEnforcementEnabled?: boolean;
   stockActor: ContractActor;
@@ -88,6 +94,7 @@ export type PlaceOrderInput = {
 export type PlacedOrder = {
   orderId: number;
   orderNumber: string;
+  orderCode: string;
   createdAt: string;
   commitmentStatus: 'binding' | 'pending_confirmation';
   contractStatus: OrderContractStatus;
@@ -129,7 +136,7 @@ export async function placeOrderFromFrozenSnapshot(
         }
       : null;
 
-  const orderResult = await client.query(
+  const insertOrder = (publicCodeBase: string) => client.query(
     `
       with next_id as (
         select nextval('orders_id_seq') as id
@@ -137,6 +144,7 @@ export async function placeOrderFromFrozenSnapshot(
       insert into orders (
         id,
         order_number,
+        public_code_base,
         customer_type,
         organization_name,
         contact_name,
@@ -178,6 +186,7 @@ export async function placeOrderFromFrozenSnapshot(
       select
         id,
         '#' || id,
+        $31,
         $1,
         $2,
         $3,
@@ -216,6 +225,7 @@ export async function placeOrderFromFrozenSnapshot(
         $30,
         false
       from next_id
+      on conflict (public_code_base) do nothing
       returning id, order_number, created_at
     `,
     [
@@ -250,14 +260,42 @@ export async function placeOrderFromFrozenSnapshot(
       input.contractActor?.id ?? null,
       contractEvidence ? JSON.stringify(contractEvidence) : null,
       stockEnforcementEnabled,
-      input.sourceQuoteOfferVersionId ?? null
+      input.sourceQuoteOfferVersionId ?? null,
+      publicCodeBase
     ]
   );
-  const order = orderResult.rows[0] as {
+  type InsertedOrder = {
     id: string | number;
     order_number: string;
     created_at: string | Date;
   };
+  const inheritedPublicCodeBase =
+    input.publicCodeBase == null
+      ? null
+      : requireCommercePublicCodeBase(input.publicCodeBase);
+  if (input.sourceQuoteOfferVersionId && !inheritedPublicCodeBase) {
+    throw new Error('A quote-derived order requires its quote public code.');
+  }
+  if (!input.sourceQuoteOfferVersionId && inheritedPublicCodeBase) {
+    throw new Error('A direct order cannot inherit a quote public code.');
+  }
+  let order: InsertedOrder;
+  let publicCodeBase: string;
+  if (inheritedPublicCodeBase) {
+    publicCodeBase = inheritedPublicCodeBase;
+    const result = await insertOrder(publicCodeBase);
+    const row = result.rows[0] as InsertedOrder | undefined;
+    if (!row) {
+      throw new Error('The quote public code is already linked to an order.');
+    }
+    order = row;
+  } else {
+    const allocated = await insertWithGeneratedCommercePublicCodeBase<InsertedOrder>(
+      insertOrder
+    );
+    publicCodeBase = allocated.publicCodeBase;
+    order = allocated.row;
+  }
   const orderId = Number(order.id);
 
   for (const [index, item] of input.items.entries()) {
@@ -374,6 +412,7 @@ export async function placeOrderFromFrozenSnapshot(
   return {
     orderId,
     orderNumber: order.order_number,
+    orderCode: formatOrderCode(publicCodeBase),
     createdAt:
       order.created_at instanceof Date
         ? order.created_at.toISOString()

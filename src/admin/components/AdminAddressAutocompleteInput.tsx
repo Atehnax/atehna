@@ -10,11 +10,12 @@ import {
 import { createPortal } from 'react-dom';
 import {
   isAddressSearchQueryEligible,
+  normalizeAddressSearchText,
   type GursAddressSearchResponse,
   type GursAddressSearchResult
 } from '@/shared/domain/address/gursAddress';
 
-const ADDRESS_SEARCH_DEBOUNCE_MS = 50;
+const ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS = 50;
 
 type AddressSearchStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -85,15 +86,13 @@ export default function AdminAddressAutocompleteInput({
       return;
     }
 
-    const query = value.trim();
-    setSuggestions([]);
-    setIsOpen(false);
+    const query = normalizeAddressSearchText(value);
+    setStatus('loading');
     setActiveIndex(-1);
 
-    const timeoutId = window.setTimeout(async () => {
+    const search = async () => {
       const controller = new AbortController();
       requestRef.current = controller;
-      setStatus('loading');
 
       try {
         const response = await fetch(
@@ -130,10 +129,18 @@ export default function AdminAddressAutocompleteInput({
       } finally {
         if (requestRef.current === controller) requestRef.current = null;
       }
-    }, ADDRESS_SEARCH_DEBOUNCE_MS);
+    };
+    const startsImmediately = query.length === 1;
+    const timeoutId = startsImmediately
+      ? null
+      : window.setTimeout(() => {
+          void search();
+        }, ADDRESS_SEARCH_FOLLOW_UP_DEBOUNCE_MS);
+
+    if (startsImmediately) void search();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       requestRef.current?.abort();
     };
   }, [disabled, gursHouseNumberId, isActive, value]);
@@ -143,6 +150,7 @@ export default function AdminAddressAutocompleteInput({
       (isOpen && suggestions.length > 0) ||
       (isActive &&
         (status === 'error' ||
+          (status === 'loading' && suggestions.length === 0) ||
           (status === 'ready' && suggestions.length === 0)));
     if (!hasVisiblePopup) {
       setMenuPosition(null);
@@ -236,9 +244,12 @@ export default function AdminAddressAutocompleteInput({
         : status === 'error'
           ? 'Iskanje naslovov trenutno ni na voljo. Naslov lahko vnesete ročno.'
           : '';
+  const showLoadingFeedback =
+    status === 'loading' && suggestions.length === 0 && isActive;
   const showEmptyFeedback =
     status === 'ready' && suggestions.length === 0 && isActive;
-  const showErrorFeedback = status === 'error' && isActive;
+  const showErrorFeedback =
+    status === 'error' && suggestions.length === 0 && isActive;
 
   return (
     <div className="relative min-w-0">
@@ -250,6 +261,7 @@ export default function AdminAddressAutocompleteInput({
         aria-controls={listboxId}
         aria-describedby={listboxId + '-status'}
         aria-expanded={isOpen}
+        aria-busy={status === 'loading'}
         aria-activedescendant={
           isOpen && activeIndex >= 0
             ? listboxId + '-option-' + String(activeIndex)
@@ -279,14 +291,19 @@ export default function AdminAddressAutocompleteInput({
       >
         {statusMessage}
       </span>
-      {(showErrorFeedback || showEmptyFeedback) &&
+      {(showErrorFeedback || showEmptyFeedback || showLoadingFeedback) &&
       menuPosition &&
       typeof document !== 'undefined'
         ? createPortal(
             <div
               role={showErrorFeedback ? 'alert' : 'status'}
               data-testid={
-                testId + (showErrorFeedback ? '-error' : '-empty')
+                testId +
+                (showErrorFeedback
+                  ? '-error'
+                  : showLoadingFeedback
+                    ? '-loading'
+                    : '-empty')
               }
               className={
                 'fixed z-[150] rounded-md border px-3 py-2 text-[11px] leading-4 shadow-sm ' +
@@ -334,7 +351,6 @@ export default function AdminAddressAutocompleteInput({
                   role="option"
                   aria-selected={activeIndex === index}
                   tabIndex={-1}
-                  onMouseEnter={() => setActiveIndex(index)}
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => chooseSuggestion(suggestion)}
                   className={

@@ -179,9 +179,13 @@ async function expectTransformControls(transformBox: Locator, transformBounds: B
   const rotateCenterY = rotateBounds.y + rotateBounds.height / 2;
 
   // The whole preview is scaled, so sub-pixel rounding can move the visual
-  // center by roughly one rendered pixel without changing the logical center.
-  expect(Math.abs(centerX - (transformBounds.x + transformBounds.width / 2))).toBeLessThanOrEqual(2);
-  expect(Math.abs(centerY - (transformBounds.y + transformBounds.height / 2))).toBeLessThanOrEqual(2);
+  // center without changing the logical center. Keep this in step with the
+  // transform-perimeter alignment allowance above across browser platforms.
+  const transformedLayoutRoundingTolerance = 3;
+  expect(Math.abs(centerX - (transformBounds.x + transformBounds.width / 2)))
+    .toBeLessThanOrEqual(transformedLayoutRoundingTolerance);
+  expect(Math.abs(centerY - (transformBounds.y + transformBounds.height / 2)))
+    .toBeLessThanOrEqual(transformedLayoutRoundingTolerance);
   const horizontalRotationTolerance = Math.max(24, transformBounds.width * 0.15);
   expect(rotateCenterX).toBeGreaterThanOrEqual(transformBounds.x - horizontalRotationTolerance);
   expect(rotateCenterX).toBeLessThanOrEqual(

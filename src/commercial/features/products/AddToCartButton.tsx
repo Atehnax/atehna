@@ -13,6 +13,7 @@ type AddToCartButtonProps = {
   category?: string;
   unitPrice?: number;
   quantity?: number;
+  resolveQuantity?: () => number | null;
   disabled?: boolean;
   className?: string;
   children?: ReactNode;
@@ -25,7 +26,8 @@ export default function AddToCartButton({
   unit,
   category,
   unitPrice,
-  quantity = 1,
+  quantity,
+  resolveQuantity,
   disabled = false,
   className = '',
   children
@@ -56,7 +58,11 @@ export default function AddToCartButton({
       disabled={disabled || resolvedItem === null}
       onClick={() => {
         if (!resolvedItem) return;
-        addItem({ ...resolvedItem, quantity });
+        const submittedQuantity = resolveQuantity
+          ? resolveQuantity()
+          : quantity ?? resolvedItem.reconciliation?.minOrder ?? 1;
+        if (submittedQuantity === null) return;
+        addItem({ ...resolvedItem, quantity: submittedQuantity });
         openDrawer();
       }}
       className={className}

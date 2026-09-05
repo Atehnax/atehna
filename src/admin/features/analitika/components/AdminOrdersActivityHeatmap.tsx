@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { formatEuroAmount, formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
+import { formatEuroAmount, formatEuroWithSuffix, formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import { addCalendarDays } from '@/shared/domain/analytics/period';
 import type { BusinessActivityResponse } from '@/shared/domain/analytics/activity';
 import BusinessRecords from './business/BusinessRecords';
@@ -120,7 +120,7 @@ export default function AdminOrdersActivityHeatmap({
       {data && <a href={'/api/admin/analytics/business/records?' + recordQuery + '&kind=orders&format=csv'} className="text-xs font-medium text-blue-700 underline underline-offset-4">Izvoz CSV</a>}
     </div>
     <p className="mt-2 text-xs leading-relaxed text-slate-500">Zgodovina se prilagaja širini koledarja, ne izbiri obdobja zgoraj. Filtri tipa naročnika, statusa in izvora veljajo. Oddana naročila vključujejo pozneje preklicana; vrednosti blaga so brez DDV in poštnine.</p>
-    {data && <p className="mt-2 text-[11px] text-slate-500">{shortDate(data.from)} – {shortDate(data.to)} · {data.weeks} tednov</p>}
+    {data && <p className="mt-2 text-[11px] text-slate-500">{shortDate(data.from)} – {shortDate(data.to)} · {formatSlCount(data.weeks, { one: 'teden', two: 'tedna', few: 'tedni', other: 'tednov' })}</p>}
     <div ref={calendar} className="mt-4 w-full min-w-0" role="region" aria-label="Koledar aktivnosti naročil" style={gridStyle}>
       {error ? <div role="alert" className="flex min-h-40 flex-wrap items-center gap-2 text-xs text-red-700">{error}<button className="underline" onClick={() => setRetry(value => value + 1)}>Poskusi znova</button></div>
         : !data ? <p role="status" className="flex min-h-40 items-center text-xs text-slate-500">Nalaganje zgodovine aktivnosti …</p>

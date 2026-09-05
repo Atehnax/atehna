@@ -63,7 +63,7 @@ export default function AdminQuoteAnalyticsPreview({ preview }: { preview: Busin
               metric={card.format(summary?.[card.key] ?? null)}
               focusKey={card.focusKey}
             >
-              <AdminAnalyticsComparisonRow items={[{ label: '30d', value: card.format(recent), trend }]} />
+              <AdminAnalyticsComparisonRow items={[{ label: '30D', value: card.format(recent), trend }]} />
             </AdminAnalyticsSummaryCard>
           );
         })}

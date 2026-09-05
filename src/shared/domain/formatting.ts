@@ -28,3 +28,19 @@ export const formatEuroRange = (minValue: number, maxValue: number) =>
 export const formatSlInteger = (value: number) => slIntegerFormatter.format(value);
 
 export const formatSlNumber = (value: number) => slNumberFormatter.format(value);
+
+const slCountPluralRules = new Intl.PluralRules('sl-SI');
+
+type SlCountForms = { one: string; two: string; few: string; other: string };
+
+export function formatSlCount(value: number, forms: SlCountForms) {
+  const category = slCountPluralRules.select(value);
+  const form = category === 'one' || category === 'two' || category === 'few'
+    ? forms[category]
+    : forms.other;
+  return `${formatSlNumber(value)} ${form}`;
+}
+
+export const formatSlOrderCount = (value: number) => formatSlCount(value, {
+  one: 'naročilo', two: 'naročili', few: 'naročila', other: 'naročil'
+});

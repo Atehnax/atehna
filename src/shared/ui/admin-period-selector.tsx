@@ -4,7 +4,7 @@ import { BUSINESS_PERIOD_PRESETS } from '@/shared/domain/analytics/period';
 
 export type AdminPeriodOption = { value: string; label: string; ariaLabel?: string };
 export const ADMIN_PERIOD_OPTIONS: readonly AdminPeriodOption[] = BUSINESS_PERIOD_PRESETS.map(value => ({
-  value, label: value.endsWith('D') ? value.toLowerCase() : value, ariaLabel: value
+  value, label: value, ariaLabel: value
 }));
 
 type Props = {

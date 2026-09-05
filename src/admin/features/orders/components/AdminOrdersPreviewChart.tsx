@@ -61,7 +61,7 @@ function OrderPreviewCards({ preview }: { preview: BusinessOrderPreview }) {
               href={href}
               focusKey={'narocila-' + card.key}
             >
-              <AdminAnalyticsComparisonRow items={[{ label: '30d', value: card.format(recent), trend }]} />
+              <AdminAnalyticsComparisonRow items={[{ label: '30D', value: card.format(recent), trend }]} />
             </AdminAnalyticsSummaryCard>
           );
         })}

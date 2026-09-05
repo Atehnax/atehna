@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatSlCount } from '@/shared/domain/formatting';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminPeriodSelector from '@/shared/ui/admin-period-selector';
 import AdminAnalyticsMetricCard from '@/shared/ui/admin-analytics-metric-card';
@@ -15,7 +16,7 @@ function Breakdown({ title, kind, rows, exportHref }: { title: string; kind: 'pa
   const visible = rows.filter(row => (row.key ?? '').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl')));
   return <section className={adminAnalyticsPanelClassName} aria-label={title}>
     <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-950">{title}</h2><a href={exportHref} className="text-xs text-blue-700 underline">CSV · vse vrstice</a></div>
-    <p className="mt-1 text-[11px] text-slate-500">{rows.length} skupin · {numeric(rows.reduce((sum, row) => sum + row.views, 0), 0)} zabeleženih ogledov. Obiskovalci in seje se med vrsticami lahko ponovijo.</p>
+    <p className="mt-1 text-[11px] text-slate-500">{formatSlCount(rows.length, { one: 'skupina', two: 'skupini', few: 'skupine', other: 'skupin' })} · {formatSlCount(rows.reduce((sum, row) => sum + row.views, 0), { one: 'zabeležen ogled', two: 'zabeležena ogleda', few: 'zabeleženi ogledi', other: 'zabeleženih ogledov' })}. Obiskovalci in seje se med vrsticami lahko ponovijo.</p>
     <input aria-label={'Poišči: ' + title} placeholder={kind === 'pages' ? 'Poišči pot …' : 'Poišči ID artikla …'} value={search} onChange={event => setSearch(event.target.value)} className={control + ' my-3 w-full'} />
     <DataTable columns={[kind === 'pages' ? 'Pot strani' : 'ID artikla', 'Ogledi', 'Seje', 'Obiskovalci']} rows={visible.map(row => ({ values: [row.key ?? (kind === 'pages' ? 'Neznana pot' : 'Manjka ID artikla'), row.views, row.visits, row.visitors] }))} />
   </section>;
@@ -66,15 +67,15 @@ export default function WebsiteDashboard() {
     {loading && <p role="status" className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Nalaganje spletne analitike …</p>}
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p>{error}</p><button type="button" onClick={() => setReload(value => value + 1)} className="mt-2 underline">Poskusi znova</button></div>}
     {data && <>
-      <div className="text-xs leading-relaxed text-slate-500"><p>{formatDate(data.period.from)}–{formatDate(data.period.to)} · Europe/Ljubljana{data.period.partialToday ? ' · današnji dan je delen' : ''} · stanje {new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.asOf))}</p>
-        <p>Zgodovina ogledov od {data.coverage.historyFrom ? new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'medium' }).format(new Date(data.coverage.historyFrom)) : 'še ni zabeleženih dogodkov'}. Odsotnost dogodkov ne dokazuje neprekinjenega merjenja.</p></div>
+      <div className="text-xs leading-relaxed text-slate-500"><p>{formatDate(data.period.from)}–{formatDate(data.period.to)} · Europe/Ljubljana{data.period.partialToday ? ' · današnji podatki so delni' : ''} · stanje {new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.asOf))}</p>
+        <p>{data.coverage.historyFrom ? 'Zgodovina ogledov od ' + new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'medium' }).format(new Date(data.coverage.historyFrom)) + '.' : 'Ogledi še niso zabeleženi.'} Odsotnost dogodkov ne dokazuje neprekinjenega merjenja.</p></div>
       <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 xl:grid-cols-5">
         {[
           ['Obiski (seje)', numeric(data.summary.visits, 0), 'Različni ID-ji sej z ogledom strani.'],
           ['Obiskovalci', numeric(data.summary.visitors, 0), 'Različni ID-ji brskalnikov z ogledom strani.'],
           ['Ogledi strani', numeric(data.summary.pageViews, 0), 'Vsi zabeleženi dogodki page_view.'],
           ['Ogledi artiklov', numeric(data.summary.productViews, 0), 'Vsi zabeleženi dogodki product_view.'],
-          ['Vračajoči obiskovalci', numeric(data.summary.returningVisitors, 0), 'Z ogledom na katerikoli prejšnji koledarski dan.']
+          ['Vračajoči se obiskovalci', numeric(data.summary.returningVisitors, 0), 'Z ogledom na katerikoli prejšnji koledarski dan.']
         ].map(([label, value, note]) => <AdminAnalyticsMetricCard key={label} title={label} metric={value}>{note}</AdminAnalyticsMetricCard>)}
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
@@ -86,16 +87,16 @@ export default function WebsiteDashboard() {
           <a href={exportHref('days')} className="mt-2 inline-block text-[11px] text-blue-700 underline">Izvozi dnevno tabelo za prikazano stanje</a>
         </BusinessChart>
         <BusinessChart title="Vrnitev sedmi dan (D7)" description="Kohorta je dan prvega zabeleženega ogleda. Vrnitev pomeni vsaj en ogled natanko sedmi koledarski dan po njem. Upoštevamo le kohorte, katerih celoten sedmi dan je že potekel; spremljanje sega do prikazanega referenčnega časa." xTitle="Prvi zabeleženi dan" yTitle="Delež D7" data={[{ type: 'bar', name: 'Delež D7', x: data.cohorts.map(row => row.date), y: data.cohorts.map(row => row.rateD7) }]} layout={{ yaxis: { tickformat: '.0%', range: [0, 1], title: { text: 'Delež D7' } } }} columns={cohorts!.columns} rows={cohorts!.rows.map(values => ({ values }))} empty={!data.retention.eligibleVisitors} height={230}>
-          <p className="mt-2 text-xs text-slate-600">{percent(data.retention.rateD7)} · {numeric(data.retention.returnedD7, 0)} / {numeric(data.retention.eligibleVisitors, 0)} zrelih obiskovalcev · {numeric(data.retention.immatureVisitors, 0)} še nezrelih.</p>
+          <p className="mt-2 text-xs text-slate-600">Delež vrnitev D7: {percent(data.retention.rateD7)} ({numeric(data.retention.returnedD7, 0)} / {numeric(data.retention.eligibleVisitors, 0)}). Obiskovalci, za katere sedmi dan še ni potekel: {numeric(data.retention.immatureVisitors, 0)}.</p>
           <a href={exportHref('cohorts')} className="mt-2 inline-block text-[11px] text-blue-700 underline">Izvozi kohorte za prikazano stanje</a>
         </BusinessChart>
       </div>
       <div className="grid gap-4 xl:grid-cols-2"><Breakdown title="Ogledi po straneh" kind="pages" rows={data.pages} exportHref={exportHref('pages')} /><Breakdown title="Ogledi po artiklih" kind="products" rows={data.products} exportHref={exportHref('products')} /></div>
       <details className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600"><summary className="cursor-pointer font-medium text-slate-800">Definicije in pokritost meritev</summary><div className="mt-3 space-y-2 leading-relaxed">
         <p>Obisk je zabeleženi ID seje (piškotek ath_sid), ki mu zbiralnik ob dogodku podaljša veljavnost za štiri ure. Obiskovalec je ID brskalnika (ath_vid), ne prijavljen uporabnik ali oseba. Blokiranje ali brisanje piškotkov in uporaba več naprav lahko spremenijo štetje. Avtomatiziran promet ni ločeno prepoznan.</p>
-        <p>Prvič zabeleženi obiskovalci v obdobju: {numeric(data.summary.firstObservedVisitors, 0)}. Obiskovalec se lahko v istem obdobju prvič pojavi in vrne drug dan, zato se ta skupina prekriva z vračajočimi. Več ogledov istega dne samo po sebi ne pomeni vrnitve.</p>
+        <p>Prvič zabeleženi obiskovalci v obdobju: {numeric(data.summary.firstObservedVisitors, 0)}. Obiskovalec se lahko v istem obdobju prvič pojavi in vrne drug dan, zato se ta skupina prekriva z vračajočimi se obiskovalci. Več ogledov istega dne samo po sebi ne pomeni vrnitve.</p>
         <p>Kohorte temeljijo na razpoložljivi zgodovini brskalniških ID-jev, ne na znanem prvem obisku v življenju. Dnevi pred začetkom zgodovine in nezrele kohorte so označeni kot manjkajoči. Ničle pozneje pomenijo nič zabeleženih dogodkov, ne dokaza, da je zbiranje delovalo brez prekinitve.</p>
-        <p>Ogledi strani brez ID-ja obiskovalca: {data.coverage.missingVisitorPageViews}; brez ID-ja seje: {data.coverage.missingSessionPageViews}; brez poti: {data.coverage.missingPathPageViews}. Ogledi artiklov brez ID-ja: {data.coverage.missingProductViews}. Ti ogledi ostanejo v skupnem številu; brez ID-ja seje ali obiskovalca ne povečajo razločnega štetja.</p>
+        <p>Ogledi strani brez ID-ja obiskovalca: {numeric(data.coverage.missingVisitorPageViews, 0)}; brez ID-ja seje: {numeric(data.coverage.missingSessionPageViews, 0)}; brez poti: {numeric(data.coverage.missingPathPageViews, 0)}. Ogledi artiklov brez ID-ja: {numeric(data.coverage.missingProductViews, 0)}. Ti ogledi ostanejo v skupnem številu; brez ID-ja seje ali obiskovalca ne povečajo razločnega štetja.</p>
         <p>Trajanje seje, odboji, prodajni lijak in identiteta prijavljenih uporabnikov nimajo zadostnih dogodkov za zanesljiv izračun. Ta pogled jih ne ocenjuje.</p>
       </div></details>
     </>}

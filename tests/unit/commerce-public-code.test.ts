@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  abbreviateCommercePublicCode,
   formatOfferCode,
   formatOrderCode,
   formatQuoteCode,
@@ -9,6 +10,14 @@ import {
 } from '../../src/shared/domain/commercePublicCode';
 
 const base = '7K3M4X9P2D6R8H4Q';
+
+test('admin public-code display uses six leading characters, an ellipsis and four trailing characters', () => {
+  assert.equal(abbreviateCommercePublicCode('N-PZBM-Q44X-V55K-8AMY'), 'N-PZBM\u20268AMY');
+  assert.equal(abbreviateCommercePublicCode(formatQuoteCode(base)), 'PV-7K3\u20268H4Q');
+  assert.equal(abbreviateCommercePublicCode('SHORT-CODE'), 'SHORT-CODE');
+  assert.equal(abbreviateCommercePublicCode('12345678901'), '12345678901');
+  assert.equal(abbreviateCommercePublicCode('123456789012'), '123456\u20269012');
+});
 
 test('commerce public codes retain one immutable base across the journey', () => {
   assert.equal(formatQuoteCode(base), 'PV-7K3M-4X9P-2D6R-8H4Q');

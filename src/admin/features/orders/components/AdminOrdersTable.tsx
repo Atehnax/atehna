@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import AdminPublicCode from '@/shared/ui/admin-table/AdminPublicCode';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { Spinner } from '@/shared/ui/loading';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
@@ -2694,14 +2695,16 @@ export default function AdminOrdersTable({
                               href={`/admin/orders/${order.id}`}
                               prefetch={false}
                               className="inline-flex max-w-full items-center justify-center rounded-sm px-1 text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                              aria-label={`Odpri naročilo ${effectiveOrder.order_code}`}
-                              title={`Koda naročila ${effectiveOrder.order_code}`}
+                              aria-label={`Odpri naročilo ${toDisplayOrderNumber(effectiveOrder.order_number)}`}
+                              title="Interna številka naročila"
                             >
-                              {effectiveOrder.order_code}
+                              {toDisplayOrderNumber(effectiveOrder.order_number)}
                             </Link>
-                            <span className="mt-0.5 text-[9px] font-medium text-slate-400" title="Interna številka naročila">
-                              interno {toDisplayOrderNumber(effectiveOrder.order_number)}
-                            </span>
+                            <AdminPublicCode
+                              code={effectiveOrder.order_code}
+                              label="naročila"
+                              testId={`order-public-code-${order.id}`}
+                            />
                           </div>
                         )}
                       </TD> : null}

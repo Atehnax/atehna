@@ -37,6 +37,11 @@ export function formatQuoteCode(base: string): string {
   return `PV-${groupedBase(base)}`;
 }
 
+/** Compact display only; never use this value for storage, search, or copying. */
+export function abbreviateCommercePublicCode(code: string): string {
+  return code.length > 11 ? `${code.slice(0, 6)}\u2026${code.slice(-4)}` : code;
+}
+
 export function formatOfferCode(base: string, version: number): string {
   if (!Number.isSafeInteger(version) || version < 1) {
     throw new Error('The offer-code version is invalid.');

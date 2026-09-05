@@ -646,13 +646,13 @@ test('order detail omits redundant seller acceptance while preserving school com
 });
 
 test('financial and customer read models require accepted contracts and committed dates', () => {
-  const analytics = source('src/shared/server/orderAnalytics.ts');
+  const analytics = source('src/shared/server/businessAnalytics.ts');
   const orders = source('src/shared/server/orders.ts');
   const customers = source('src/shared/server/customerDirectory.ts');
   const preview = source('src/admin/features/orders/components/AdminOrdersPreviewChart.tsx');
 
-  assert.match(analytics, /order\.contract_status === 'accepted'/u);
-  assert.match(analytics, /order\.committed_at \?\? order\.contract_accepted_at/u);
+  assert.match(analytics, /row\.contract_status === 'accepted'/u);
+  assert.match(analytics, /fulfilledAt: contractEligible \? iso\(row\.analytics_fulfilled_at\)/u);
   assert.match(orders, /orders\.committed_at/u);
   assert.match(customers, /contract_status = 'accepted'/u);
   assert.match(customers, /coalesce\(committed_at, contract_accepted_at, created_at\) as purchase_at/u);

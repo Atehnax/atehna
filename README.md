@@ -14,41 +14,15 @@ Atehna includes:
   settings.
 - `/admin/orders` with compact analytics previews and order operations.
 - `/admin/email` controls automatic customer and administrator order emails.
-- `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
+- `/admin/analitika` with compact Slovenian business analytics and preserved Splet/Diagnostika tabs.
 
-## Admin analytics extension guide
+## Business analytics
 
-### Add a new metric or dimension source
-1. Extend the analytics payload in `src/shared/server/orderAnalytics.ts` (`OrdersAnalyticsDay`) and compute the field in `fetchOrdersAnalytics`.
-2. Ensure `GET /api/admin/analytics/orders` returns the new field (already passes through server payload).
-3. Register the metric in builder/UI options inside `src/admin/components/AdminAnalyticsDashboard.tsx` (`metricOptions`) and (optionally) add system chart series in `src/shared/server/analyticsCharts.ts`.
+The business surface has Pregled, Naročila, Ponudbe, Stranke, Artikli, Poštnina, Zemljevid and Laboratorij views. All use the canonical metric layer in `src/shared/domain/analytics` and `src/shared/server/businessAnalytics.ts`; extend those definitions before adding a chart, drilldown or export. The aggregate endpoint is `/api/admin/analytics/business`, matching records/CSV use its `/records` route, and the normal order page accepts `/admin/orders?analytics=1` with the same filters.
 
-### Define or adjust system charts
-1. Open `src/shared/server/analyticsCharts.ts`.
-2. Update `buildSystemCharts(dashboardKey)` entries.
-3. Configure per chart:
-   - `chart_type`
-   - `config_json.axes` fields (titles/scales/tick formats)
-   - `config_json.series` array (metric, aggregation, transform, per-series type, stack, axis side, color).
-4. Default charts are seeded only when the dashboard is empty; every chart can be edited or deleted afterwards.
+Read [metric and historical-data definitions](docs/business-analytics-definitions.md) and [capture/migration instructions](docs/business-analytics-capture.md). The old custom business builder and its alternate order calculation have been retired. The old order analytics API redirects to the canonical endpoint; old quote-dashboard links open the new Ponudbe view. Unsupported historic ranges such as MAX open the documented 90D default.
 
-### Extend builder capabilities
-Builder state is persisted via `config_json` in `analytics_charts`.
-Key places:
-- UI controls and series table: `src/admin/components/AdminAnalyticsDashboard.tsx` (BuilderModal).
-- CRUD/reorder APIs:
-  - `src/admin/api/analytics/charts/route.ts`
-  - `src/admin/api/analytics/charts/[chartId]/route.ts`
-  - `src/admin/api/analytics/charts/reorder/route.ts`
-- Validation/normalization: `src/shared/server/analyticsCharts.ts` (`parseConfig`).
-
-### Theme tokens (global + per-chart appearance)
-Global chart appearance is stored in DB and edited from the `Appearance / Theme` panel on `/admin/analitika` (API: `/api/admin/analytics/charts/appearance`).
-
-Key places:
-- CSS defaults: `src/shared/styles/globals.css` (`--chart-*` variables).
-- Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
-- Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
+The shared `analyticsCharts.ts` persistence/appearance service, its database history and compatibility routes remain for existing consumers, including ordinary order-page previews. Existing website tracking, Splet and Diagnostika code remain separate and unchanged.
 
 # Fresh database schema
 
@@ -75,6 +49,13 @@ reviewed quote/contract artifacts below, applied in this exact order:
 15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
 16. `database/migrations/20260904_public_customer_codes.sql`
 17. `database/migrations/20260904_schema_contract_v2.sql`
+18. `database/migrations/20260905_business_analytics.sql`
+19. `database/migrations/20260905_analytics_geography.sql`
+20. `database/migrations/20260905_schema_contract_v3.sql`
+
+The current terminal contract is `20260905.business-analytics-v3`. Business capture,
+resumable historical backfill and isolated validation commands are documented in
+[Business analytics capture](docs/business-analytics-capture.md).
 
 The ordered list above is the pre-deploy schema sequence. After the
 public-code-capable application is live and verified, every existing

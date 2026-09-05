@@ -29,6 +29,11 @@ export type GursAddress = {
   addressLine1: string;
   searchText: string;
   sourceUpdatedAt: string | null;
+  officialAddressId?: string | null;
+  municipalityId?: string | null;
+  regionId?: string | null;
+  easting?: number | null;
+  northing?: number | null;
 };
 
 export type GursAddressSearchResult = Pick<
@@ -118,6 +123,11 @@ export function normalizeGursAddressRow(
 
   return {
     gursHouseNumberId,
+    officialAddressId: nullableText(source.EID_NASLOV),
+    municipalityId: nullableText(source.EID_OBCINA),
+    regionId: nullableText(source.EID_STATISTICNA_REGIJA),
+    easting: nullableText(source.E) && Number.isFinite(Number(source.E)) ? Number(source.E) : null,
+    northing: nullableText(source.N) && Number.isFinite(Number(source.N)) ? Number(source.N) : null,
     streetName,
     settlementName,
     houseNumber,

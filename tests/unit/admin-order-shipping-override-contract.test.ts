@@ -28,7 +28,7 @@ const itemsEditorSource = source(
   'src/admin/features/orders/components/AdminOrderItemsEditor.tsx'
 );
 const ordersPageSource = source('src/admin/pages/orders/page.tsx');
-const orderAnalyticsSource = source('src/shared/server/orderAnalytics.ts');
+const orderAnalyticsSource = source('src/shared/server/businessAnalytics.ts');
 const ordersServerSource = source('src/shared/server/orders.ts');
 
 test('admin shipping mutation validates exact cents and row-locks every mutable order', () => {
@@ -352,7 +352,7 @@ test('draft orders stay visible in the list but are excluded from financial anal
   );
   assert.match(
     orderAnalyticsSource,
-    /fetchOrdersAnalyticsRows\([\s\S]*?includeDrafts: false/u
+    /order_record\.is_draft = false/u
   );
   assert.match(
     ordersServerSource,

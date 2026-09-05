@@ -18,7 +18,7 @@ const migrationPath = resolve(
   projectRoot,
   'database',
   'migrations',
-  '20260904_schema_contract_v2.sql'
+  '20260905_schema_contract_v3.sql'
 );
 const identifierPattern = /^[a-z][a-z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;

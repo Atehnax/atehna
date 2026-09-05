@@ -10,6 +10,11 @@ const GURS_WFS_URL = 'https://ipi.eprostor.gov.si/wfs-si-gurs-rn/wfs';
 const GURS_COLLECTION = 'SI.GURS.RN:REGISTER_NASLOVOV';
 const GURS_PROPERTIES = [
   'EID_HISNA_STEVILKA',
+  'EID_NASLOV',
+  'EID_OBCINA',
+  'EID_STATISTICNA_REGIJA',
+  'E',
+  'N',
   'ULICA_NAZIV',
   'NASELJE_NAZIV',
   'HS_STEVILKA',
@@ -357,13 +362,19 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
       address_line_1: address.addressLine1,
       search_text: address.searchText,
       source_updated_at: address.sourceUpdatedAt,
-      imported_at: args.importedAt
+      imported_at: args.importedAt,
+      official_address_id: address.officialAddressId ?? null,
+      municipality_id: address.municipalityId ?? null,
+      region_id: address.regionId ?? null,
+      easting: address.easting ?? null,
+      northing: address.northing ?? null
     }));
     await this.pool.query(
       `insert into ${identifier(args.stageName)} (
          gurs_house_number_id, street_name, settlement_name, house_number,
          house_suffix, postal_code, postal_name, municipality_name,
-         address_line_1, search_text, source_updated_at, imported_at
+         address_line_1, search_text, source_updated_at, imported_at,
+         official_address_id, municipality_id, region_id, easting, northing
        )
        select *
        from jsonb_to_recordset($1::jsonb) as row_data(
@@ -378,7 +389,12 @@ class PostgresGursAddressSyncStore implements GursAddressSyncStore {
          address_line_1 text,
          search_text text,
          source_updated_at timestamptz,
-         imported_at timestamptz
+         imported_at timestamptz,
+         official_address_id text,
+         municipality_id text,
+         region_id text,
+         easting numeric,
+         northing numeric
        )`,
       [JSON.stringify(rows)]
     );

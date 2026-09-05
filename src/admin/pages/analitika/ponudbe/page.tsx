@@ -1,51 +1,18 @@
-import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
-import AdminQuoteAnalyticsDashboard from '@/admin/features/analitika/components/AdminQuoteAnalyticsDashboard';
-import {
-  emptyQuoteAnalyticsResponse,
-  type QuoteAnalyticsRange
-} from '@/shared/domain/quote/quoteAnalytics';
-import { getDatabaseUrl } from '@/shared/server/db';
-import {
-  fetchQuoteAnalytics,
-  normalizeQuoteAnalyticsRange
-} from '@/shared/server/quoteAnalytics';
-import { AdminPageHeader } from '@/shared/ui/admin-primitives';
+import { redirect } from 'next/navigation';
+import { BUSINESS_PERIOD_PRESETS } from '@/shared/domain/analytics/period';
 
-export const metadata = {
-  title: 'Analitika povpraševanj in ponudb'
-};
-
+export const metadata = { title: 'Ponudbe | Poslovna analitika | Atehna' };
 export const dynamic = 'force-dynamic';
 
-export default async function AdminQuoteAnalyticsPage(props: {
-  searchParams?: Promise<{
-    range?: string;
-    from?: string;
-    to?: string;
-    focus?: string;
-  }>;
-}) {
-  const searchParams = await props.searchParams;
-  const range = normalizeQuoteAnalyticsRange(searchParams?.range);
-  const data = getDatabaseUrl()
-    ? await fetchQuoteAnalytics({
-        range,
-        from: searchParams?.from,
-        to: searchParams?.to
-      }).catch(() => emptyQuoteAnalyticsResponse(range as QuoteAnalyticsRange))
-    : emptyQuoteAnalyticsResponse(range as QuoteAnalyticsRange);
-
-  return (
-    <div className="w-full">
-      <AdminPageHeader
-        title="Analitika"
-        description="Pregled analitike naročil, povpraševanj, ponudb in spletnega obiska."
-      />
-      <AdminAnalyticsTopTabs />
-      <AdminQuoteAnalyticsDashboard
-        initialData={data}
-        initialFocusKey={searchParams?.focus ?? ''}
-      />
-    </div>
-  );
+export default async function AdminQuoteAnalyticsPage(props: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const search = await props.searchParams;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search ?? {})) if (typeof value === 'string') params.set(key, value);
+  const requested = (params.get('range') ?? '90D').toUpperCase();
+  const range = requested === '365D' ? '1Y' : requested;
+  if (params.has('from') && params.has('to')) params.set('range', 'custom');
+  else if ((BUSINESS_PERIOD_PRESETS as readonly string[]).includes(range)) params.set('range', range);
+  else { params.set('legacyRange', requested); params.set('range', '90D'); }
+  params.set('view', 'ponudbe');
+  redirect('/admin/analitika?' + params.toString());
 }

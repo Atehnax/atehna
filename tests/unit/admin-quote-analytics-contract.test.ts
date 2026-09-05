@@ -4,113 +4,60 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const QUOTE_FOCUS_KEYS = ['ponudbe-requests', 'ponudbe-offers-issued', 'ponudbe-accepted-converted', 'ponudbe-conversion', 'ponudbe-quoted-value', 'ponudbe-converted-order-value'] as const;
+const sourceFocusKeys = (value: string) => Array.from(value.matchAll(/focusKey: '(ponudbe-[^']+)'/gu), (match) => match[1]);
 
-const QUOTE_FOCUS_KEYS = [
-  'ponudbe-requests',
-  'ponudbe-offers-issued',
-  'ponudbe-accepted-converted',
-  'ponudbe-conversion',
-  'ponudbe-quoted-value',
-  'ponudbe-converted-order-value'
-] as const;
-
-const sourceFocusKeys = (value: string) => Array.from(
-  value.matchAll(/focusKey: '(ponudbe-[^']+)'/gu),
-  (match) => match[1]
-);
-
-test('orders and quote summaries share the same analytics-card component and visual contract', () => {
+test('ordinary order and quote summaries retain their shared analytics-card visual contract', () => {
   const sharedCard = source('src/shared/ui/admin-analytics-summary-card.tsx');
-  const sharedComparison = source(
-    'src/shared/ui/admin-analytics-comparison-row.tsx'
-  );
+  const sharedComparison = source('src/shared/ui/admin-analytics-comparison-row.tsx');
   const ordersPreview = source('src/admin/features/orders/components/AdminOrdersPreviewChart.tsx');
   const quotesTable = source('src/admin/features/quotes/components/AdminQuotesTable.tsx');
-  const quotesDashboard = source('src/admin/features/analitika/components/AdminQuoteAnalyticsDashboard.tsx');
-
-  for (const consumer of [ordersPreview, quotesTable, quotesDashboard]) {
-    assert.match(
-      consumer,
-      /import AdminAnalyticsSummaryCard from '@\/shared\/ui\/admin-analytics-summary-card'/u
-    );
-    assert.match(consumer, /<AdminAnalyticsSummaryCard/u);
-  }
-
-  assert.match(sharedCard, /min-h-\[94px\]/u);
-  assert.match(sharedCard, /rounded-\[11px\]/u);
-  assert.match(sharedCard, /px-5 py-\[11px\]/u);
-  assert.match(sharedCard, /font-\['Inter',system-ui,sans-serif\]/u);
-  assert.match(sharedCard, /text-\[11px\] font-bold uppercase/u);
-  assert.match(sharedCard, /text-\[27px\] font-semibold/u);
-  assert.match(sharedCard, /data-analytics-summary-card="true"/u);
-  assert.doesNotMatch(ordersPreview, /min-h-\[94px\]/u);
-  assert.doesNotMatch(quotesTable, /min-h-\[94px\]/u);
   for (const consumer of [ordersPreview, quotesTable]) {
-    assert.match(
-      consumer,
-      /import AdminAnalyticsComparisonRow,[\s\S]*?from '@\/shared\/ui\/admin-analytics-comparison-row'/u
-    );
+    assert.match(consumer, /import AdminAnalyticsSummaryCard from '@\/shared\/ui\/admin-analytics-summary-card'/u);
+    assert.match(consumer, /<AdminAnalyticsSummaryCard/u);
+    assert.match(consumer, /import AdminAnalyticsComparisonRow,[\s\S]*?from '@\/shared\/ui\/admin-analytics-comparison-row'/u);
     assert.match(consumer, /<AdminAnalyticsComparisonRow/u);
+    assert.doesNotMatch(consumer, /min-h-\[94px\]/u);
   }
-  assert.match(
-    sharedComparison,
-    /data-analytics-comparison-period=\{item\.label\.toLowerCase\(\)\}/u
-  );
+  for (const token of [/min-h-\[94px\]/u, /rounded-\[11px\]/u, /px-5 py-\[11px\]/u, /font-\['Inter',system-ui,sans-serif\]/u, /text-\[11px\] font-bold uppercase/u, /text-\[27px\] font-semibold/u, /data-analytics-summary-card="true"/u]) assert.match(sharedCard, token);
+  assert.match(sharedComparison, /data-analytics-comparison-period=\{item\.label\.toLowerCase\(\)\}/u);
   assert.match(sharedComparison, /tracking-\[0\.04em\]/u);
   assert.match(sharedComparison, /createAdminAnalyticsTrend/u);
 });
 
-test('all six quote summary cards deep-link with stable focus keys', () => {
+test('all six existing quote cards keep their deep links while the old page routes into canonical Ponudbe', () => {
   const quotesTable = source('src/admin/features/quotes/components/AdminQuotesTable.tsx');
-  const quotesDashboard = source('src/admin/features/analitika/components/AdminQuoteAnalyticsDashboard.tsx');
-
+  const page = source('src/admin/pages/analitika/ponudbe/page.tsx');
   assert.deepEqual(sourceFocusKeys(quotesTable), [...QUOTE_FOCUS_KEYS]);
-  assert.deepEqual(sourceFocusKeys(quotesDashboard), [...QUOTE_FOCUS_KEYS]);
-  assert.match(
-    quotesTable,
-    /href=\{`\/admin\/analitika\/ponudbe\?range=max&focus=\$\{encodeURIComponent\(card\.focusKey\)\}`\}/u
-  );
-  assert.match(quotesDashboard, /new URLSearchParams\(\{ range: data\.range, focus: card\.focusKey \}\)/u);
-  assert.match(quotesDashboard, /id=\{card\.focusKey\}/u);
-  assert.match(quotesDashboard, /isFocused=\{focusedKey === card\.focusKey\}/u);
+  assert.match(quotesTable, /href=\{`\/admin\/analitika\/ponudbe\?range=max&focus=\$\{encodeURIComponent\(card\.focusKey\)\}`\}/u);
+  assert.match(page, /params\.set\('view', 'ponudbe'\)/u);
+  assert.match(page, /params\.set\('legacyRange', requested\)/u);
+  assert.match(page, /params\.set\('range', '90D'\)/u);
+  assert.match(page, /redirect\('\/admin\/analitika\?'/u);
 });
 
-test('quote analytics are wired through the admin tab, page, API, and shared service', () => {
+test('canonical business analytics shares navigation but preserves website, diagnostics and order-page quote services', () => {
   const tabs = source('src/admin/features/analitika/components/AdminAnalyticsTopTabs.tsx');
-  const page = source('src/admin/pages/analitika/ponudbe/page.tsx');
-  const appPage = source('src/app/admin/analitika/ponudbe/page.tsx');
-  const dashboard = source('src/admin/features/analitika/components/AdminQuoteAnalyticsDashboard.tsx');
-  const api = source('src/admin/api/analytics/quotes/route.ts');
-  const appApi = source('src/app/api/admin/analytics/quotes/route.ts');
+  const page = source('src/admin/pages/analitika/page.tsx');
+  const api = source('src/admin/api/analytics/business/route.ts');
+  const legacyApi = source('src/admin/api/analytics/quotes/route.ts');
   const ordersPage = source('src/admin/pages/orders/page.tsx');
   const quotesService = source('src/shared/server/quotes.ts');
-
-  assert.match(tabs, /pathname\.startsWith\('\/admin\/analitika\/ponudbe'\)[\s\S]*?'quotes'/u);
-  assert.match(tabs, /next === 'quotes'[\s\S]*?'\/admin\/analitika\/ponudbe'/u);
-  assert.match(tabs, /\{ value: 'quotes', label: 'Povpraševanja in ponudbe' \}/u);
-
-  assert.match(page, /fetchQuoteAnalytics/u);
-  assert.match(page, /normalizeQuoteAnalyticsRange/u);
-  assert.match(page, /<AdminQuoteAnalyticsDashboard/u);
-  assert.match(page, /initialFocusKey=\{searchParams\?\.focus \?\? ''\}/u);
-  assert.match(appPage, /@\/admin\/pages\/analitika\/ponudbe\/page/u);
-
-  assert.match(api, /fetchQuoteAnalytics/u);
-  assert.match(api, /normalizeQuoteAnalyticsRange/u);
-  assert.match(api, /url\.searchParams\.get\('from'\)/u);
-  assert.match(api, /url\.searchParams\.get\('to'\)/u);
-  assert.match(appApi, /@\/admin\/api\/analytics\/quotes\/route/u);
-  assert.match(dashboard, /fetch\(`\/api\/admin\/analytics\/quotes\?range=\$\{nextRange\}`\)/u);
-
+  assert.match(tabs, /label: 'Poslovanje'/u);
+  assert.match(tabs, /label: 'Splet'/u);
+  assert.match(tabs, /label: 'Diagnostika'/u);
+  assert.match(tabs, /'\/admin\/analitika\/splet'/u);
+  assert.match(tabs, /'\/admin\/analitika\/diagnostika'/u);
+  assert.match(page, /<BusinessDashboard/u);
+  assert.match(api, /hasValidAdminSession/u);
+  assert.match(api, /fetchBusinessAnalytics/u);
+  assert.match(legacyApi, /fetchQuoteAnalytics/u);
+  assert.match(legacyApi, /normalizeQuoteAnalyticsRange/u);
+  assert.match(legacyApi, /url\.searchParams\.get\('from'\)/u);
+  assert.match(legacyApi, /url\.searchParams\.get\('to'\)/u);
   assert.match(ordersPage, /fetchAdminQuoteFunnel\(\)\.catch\(\(\) => null\)/u);
-  assert.match(
-    quotesService,
-    /import \{ fetchQuoteAnalytics \} from '@\/shared\/server\/quoteAnalytics'/u
-  );
-  assert.match(
-    quotesService,
-    /fetchAdminQuoteFunnel[\s\S]*?buildQuoteAnalyticsComparisonWindows\(today\)[\s\S]*?Promise\.all\([\s\S]*?range: 'max'[\s\S]*?range: '30d'[\s\S]*?windows\.currentFrom[\s\S]*?range: '30d'[\s\S]*?windows\.previousFrom[\s\S]*?overall: overall\.summary[\s\S]*?last30Days: last30Days\.summary[\s\S]*?previous30Days: previous30Days\.summary/u
-  );
+  assert.match(quotesService, /import \{ fetchQuoteAnalytics \} from '@\/shared\/server\/quoteAnalytics'/u);
+  assert.match(quotesService, /fetchAdminQuoteFunnel[\s\S]*?buildQuoteAnalyticsComparisonWindows\(today\)[\s\S]*?Promise\.all\([\s\S]*?range: 'max'[\s\S]*?range: '30d'[\s\S]*?windows\.currentFrom[\s\S]*?range: '30d'[\s\S]*?windows\.previousFrom[\s\S]*?overall: overall\.summary[\s\S]*?last30Days: last30Days\.summary[\s\S]*?previous30Days: previous30Days\.summary/u);
   assert.match(quotesService, /new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/u);
   assert.doesNotMatch(quotesService, /analytics\.days\.slice/u);
 });

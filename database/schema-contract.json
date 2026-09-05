@@ -1,11 +1,17 @@
 {
-  "contractId": "20260904.prelaunch-v2",
-  "contractSha256": "afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c",
+  "contractId": "20260905.business-analytics-v3",
+  "contractSha256": "78e564076da773ea1323dbf9b3befe40e2dc9374bf7d8b0cb818024559d09fdf",
   "requirements": {
-    "extensions": ["pg_trgm", "pgcrypto"],
+    "extensions": [
+      "pg_trgm",
+      "pgcrypto"
+    ],
     "tables": [
       "analytics_chart_settings",
       "analytics_charts",
+      "analytics_geography_backfill",
+      "analytics_geography_references",
+      "analytics_geography_state",
       "archive_blob_deletion_outbox",
       "audit_events",
       "audit_settings",
@@ -29,10 +35,13 @@
       "inventory_policy_settings",
       "landing_page_settings",
       "order_access_tokens",
+      "order_analytics_change_log",
       "order_document_jobs",
       "order_documents",
       "order_email_jobs",
       "order_email_settings",
+      "order_geography_audit",
+      "order_geography_resolutions",
       "order_idempotency_keys",
       "order_items",
       "order_line_snapshots",
@@ -67,21 +76,628 @@
       "website_events"
     ],
     "columns": [
-      {"table": "order_documents", "name": "order_delivery_plan_revision", "dataType": "integer", "nullable": false, "defaultEquals": "1", "defaultIncludes": ["1"]},
-      {"table": "order_items", "name": "ship_later", "dataType": "boolean", "nullable": false, "defaultEquals": "false", "defaultIncludes": ["false"]},
-      {"table": "orders", "name": "contract_status", "dataType": "text", "nullable": false, "defaultEquals": "'pending_seller_acceptance'::text", "defaultIncludes": ["pending_seller_acceptance"]},
-      {"table": "orders", "name": "delivery_plan_revision", "dataType": "integer", "nullable": false, "defaultEquals": "1", "defaultIncludes": ["1"]},
-      {"table": "orders", "name": "public_code_base", "dataType": "text", "nullable": false, "defaultEquals": "generate_public_code_base()", "defaultIncludes": ["generate_public_code_base"]},
-      {"table": "orders", "name": "source_quote_offer_version_id", "dataType": "bigint", "nullable": true},
-      {"table": "orders", "name": "stock_enforcement_applied", "dataType": "boolean", "nullable": false, "defaultEquals": "true", "defaultIncludes": ["true"]},
-      {"table": "quote_email_jobs", "name": "cancelled_at", "dataType": "timestamp with time zone", "nullable": true},
-      {"table": "quote_email_jobs", "name": "cancelled_by_actor_id", "dataType": "text", "nullable": true},
-      {"table": "quote_requests", "name": "admin_title", "dataType": "text", "nullable": true},
-      {"table": "quote_requests", "name": "intake_source", "dataType": "text", "nullable": false, "defaultEquals": "'customer_web'::text", "defaultIncludes": ["customer_web"]},
-      {"table": "quote_requests", "name": "public_code_base", "dataType": "text", "nullable": false, "defaultEquals": "generate_public_code_base()", "defaultIncludes": ["generate_public_code_base"]},
-      {"table": "quote_requests", "name": "void_reason", "dataType": "text", "nullable": true},
-      {"table": "quote_requests", "name": "voided_at", "dataType": "timestamp with time zone", "nullable": true},
-      {"table": "quote_requests", "name": "voided_by_actor_id", "dataType": "text", "nullable": true}
+      {
+        "table": "order_documents",
+        "name": "order_delivery_plan_revision",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "1",
+        "defaultIncludes": [
+          "1"
+        ]
+      },
+      {
+        "table": "order_items",
+        "name": "ship_later",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false",
+        "defaultIncludes": [
+          "false"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "contract_status",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": "'pending_seller_acceptance'::text",
+        "defaultIncludes": [
+          "pending_seller_acceptance"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "delivery_plan_revision",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "1",
+        "defaultIncludes": [
+          "1"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "public_code_base",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": "generate_public_code_base()",
+        "defaultIncludes": [
+          "generate_public_code_base"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "source_quote_offer_version_id",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "stock_enforcement_applied",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "true",
+        "defaultIncludes": [
+          "true"
+        ]
+      },
+      {
+        "table": "quote_email_jobs",
+        "name": "cancelled_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "quote_email_jobs",
+        "name": "cancelled_by_actor_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "quote_requests",
+        "name": "admin_title",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "quote_requests",
+        "name": "intake_source",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": "'customer_web'::text",
+        "defaultIncludes": [
+          "customer_web"
+        ]
+      },
+      {
+        "table": "quote_requests",
+        "name": "public_code_base",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": "generate_public_code_base()",
+        "defaultIncludes": [
+          "generate_public_code_base"
+        ]
+      },
+      {
+        "table": "quote_requests",
+        "name": "void_reason",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "quote_requests",
+        "name": "voided_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "quote_requests",
+        "name": "voided_by_actor_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_backfill",
+        "name": "source_version",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_backfill",
+        "name": "after_order_id",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0",
+        "defaultIncludes": [
+          "0"
+        ]
+      },
+      {
+        "table": "analytics_geography_backfill",
+        "name": "processed_count",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0",
+        "defaultIncludes": [
+          "0"
+        ]
+      },
+      {
+        "table": "analytics_geography_backfill",
+        "name": "completed_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_backfill",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "version",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "imported_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "metadata_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "full_geometry_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "render_geometry_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "status",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "created_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "key",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "reporting_version",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "latest_version",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "last_attempt_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "last_success_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "last_error",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "gurs_addresses",
+        "name": "official_address_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "gurs_addresses",
+        "name": "municipality_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "gurs_addresses",
+        "name": "region_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "gurs_addresses",
+        "name": "easting",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "gurs_addresses",
+        "name": "northing",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "id",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "order_id",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "revision",
+        "dataType": "integer",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "changed_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "actor_id",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "reason",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "before_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "after_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "id",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "order_id",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "action",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "actor",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "reason",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "previous_json",
+        "dataType": "jsonb",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "next_json",
+        "dataType": "jsonb",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_audit",
+        "name": "created_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_id",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "address_basis",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "address_fingerprint",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "address_snapshot_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "official_address_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "municipality_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "region_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "resolution_status",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "resolution_method",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "source_version",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "resolved_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "manual_override",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false",
+        "defaultIncludes": [
+          "false"
+        ]
+      },
+      {
+        "table": "order_items",
+        "name": "historical_unit_cost_net",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "order_line_snapshots",
+        "name": "historical_unit_cost_net",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_submitted_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_snapshot_json",
+        "dataType": "jsonb",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_fulfilled_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_fulfilled_lines_json",
+        "dataType": "jsonb",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_fulfilled_merchandise_net",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_fulfilment_origin",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_is_test",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false",
+        "defaultIncludes": [
+          "false"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "customer_directory_profile_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "school_directory_row_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_packed_weight_grams",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_carrier_cost_net",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_parcel_count",
+        "dataType": "integer",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "preparation_minutes",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_oversize",
+        "dataType": "boolean",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_length_mm",
+        "dataType": "integer",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_width_mm",
+        "dataType": "integer",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "actual_height_mm",
+        "dataType": "integer",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "merchandise_refund_net",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "refund_history_complete",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false",
+        "defaultIncludes": [
+          "false"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "shipping_tax_rate",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_measurement_revision",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "0",
+        "defaultIncludes": [
+          "0"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "analytics_measured_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "analytics_measured_by",
+        "dataType": "text",
+        "nullable": true
+      }
     ],
     "constraints": [
       {
@@ -89,106 +705,226 @@
         "name": "inventory_policy_settings_config_json_check",
         "type": "check",
         "definitionEquals": "CHECK (jsonb_typeof(config_json) = 'object'::text AND config_json ? 'stockEnforcementEnabled'::text AND jsonb_typeof(config_json -> 'stockEnforcementEnabled'::text) = 'boolean'::text)",
-        "definitionIncludes": ["stockEnforcementEnabled", "jsonb_typeof", "boolean"]
+        "definitionIncludes": [
+          "stockEnforcementEnabled",
+          "jsonb_typeof",
+          "boolean"
+        ]
       },
       {
         "table": "orders",
         "name": "orders_contract_status_check",
         "type": "check",
         "definitionEquals": "CHECK (contract_status = ANY (ARRAY['pending_seller_acceptance'::text, 'accepted'::text, 'rejected'::text]))",
-        "definitionIncludes": ["pending_seller_acceptance", "accepted", "rejected"]
+        "definitionIncludes": [
+          "pending_seller_acceptance",
+          "accepted",
+          "rejected"
+        ]
       },
       {
         "table": "orders",
         "name": "orders_delivery_plan_revision_positive_check",
         "type": "check",
         "definitionEquals": "CHECK (delivery_plan_revision > 0)",
-        "definitionIncludes": ["delivery_plan_revision"]
+        "definitionIncludes": [
+          "delivery_plan_revision"
+        ]
       },
       {
         "table": "orders",
         "name": "orders_public_code_base_check",
         "type": "check",
         "definitionEquals": "CHECK (public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'::text)",
-        "definitionIncludes": ["public_code_base", "23456789ABCDEFGHJKMNPQRSTVWXYZ", "{16}"]
+        "definitionIncludes": [
+          "public_code_base",
+          "23456789ABCDEFGHJKMNPQRSTVWXYZ",
+          "{16}"
+        ]
       },
       {
         "table": "order_documents",
         "name": "order_documents_delivery_plan_revision_positive_check",
         "type": "check",
         "definitionEquals": "CHECK (order_delivery_plan_revision > 0)",
-        "definitionIncludes": ["order_delivery_plan_revision"]
+        "definitionIncludes": [
+          "order_delivery_plan_revision"
+        ]
       },
       {
         "table": "quote_email_jobs",
         "name": "quote_email_jobs_cancellation_check",
         "type": "check",
         "definitionEquals": "CHECK (status = 'cancelled'::text AND cancelled_at IS NOT NULL AND cancelled_by_actor_id IS NOT NULL AND btrim(cancelled_by_actor_id) <> ''::text OR status <> 'cancelled'::text AND cancelled_at IS NULL AND cancelled_by_actor_id IS NULL)",
-        "definitionIncludes": ["cancelled_at", "cancelled_by_actor_id"]
+        "definitionIncludes": [
+          "cancelled_at",
+          "cancelled_by_actor_id"
+        ]
       },
       {
         "table": "quote_email_jobs",
         "name": "quote_email_jobs_event_type_check",
         "type": "check",
         "definitionEquals": "CHECK (event_type = ANY (ARRAY['quote_request_submitted'::text, 'quote_clarification_requested'::text, 'quote_issued'::text, 'quote_access_otp'::text, 'quote_accepted'::text, 'quote_declined'::text, 'quote_withdrawn'::text, 'quote_expired'::text, 'quote_request_closed'::text, 'quote_acceptance_blocked_stock'::text, 'quote_delivery_failed'::text]))",
-        "definitionIncludes": ["quote_clarification_requested"]
+        "definitionIncludes": [
+          "quote_clarification_requested"
+        ]
       },
       {
         "table": "quote_email_jobs",
         "name": "quote_email_jobs_status_check",
         "type": "check",
         "definitionEquals": "CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'sent'::text, 'failed'::text, 'cancelled'::text]))",
-        "definitionIncludes": ["cancelled"]
+        "definitionIncludes": [
+          "cancelled"
+        ]
       },
       {
         "table": "quote_events",
         "name": "quote_events_event_type_check",
         "type": "check",
         "definitionEquals": "CHECK (event_type = ANY (ARRAY['request_received'::text, 'quote_request_details_changed'::text, 'draft_created'::text, 'draft_changed'::text, 'clarification_requested'::text, 'preview_generated'::text, 'offer_issued'::text, 'quote_email_queued'::text, 'quote_email_provider_accepted'::text, 'quote_email_provider_failed'::text, 'offer_viewed'::text, 'customer_acceptance_attempted'::text, 'acceptance_blocked_stock'::text, 'customer_accepted'::text, 'customer_declined'::text, 'customer_purchase_order_uploaded'::text, 'admin_document_uploaded'::text, 'admin_purchase_order_validated'::text, 'admin_purchase_order_rejected'::text, 'offer_withdrawn'::text, 'offer_expired'::text, 'offer_superseded'::text, 'new_version_issued'::text, 'request_closed_without_offer'::text, 'request_voided'::text, 'order_created'::text]))",
-        "definitionIncludes": ["admin_document_uploaded", "quote_request_details_changed", "request_voided"]
+        "definitionIncludes": [
+          "admin_document_uploaded",
+          "quote_request_details_changed",
+          "request_voided"
+        ]
       },
       {
         "table": "quote_manual_documents",
         "name": "quote_manual_documents_offer_request_fkey",
         "type": "foreign_key",
         "definitionEquals": "FOREIGN KEY (quote_offer_version_id, quote_request_id) REFERENCES quote_offer_versions(id, quote_request_id) ON DELETE RESTRICT",
-        "definitionIncludes": ["quote_offer_versions"]
+        "definitionIncludes": [
+          "quote_offer_versions"
+        ]
       },
       {
         "table": "quote_offer_versions",
         "name": "quote_offer_versions_issue_identity_check",
         "type": "check",
         "definitionEquals": "CHECK (status = 'draft'::text AND offer_number IS NULL AND issued_at IS NULL AND issued_by_actor_type IS NULL AND issued_by_actor_id IS NULL AND is_current = false OR status <> 'draft'::text AND offer_number IS NOT NULL AND issued_at IS NOT NULL AND issued_by_actor_type IS NOT NULL AND valid_until IS NOT NULL AND valid_until > issued_at AND customer_snapshot_json <> '{}'::jsonb AND content_snapshot_json <> '{}'::jsonb AND NULLIF(btrim(delivery_terms), ''::text) IS NOT NULL AND NULLIF(btrim(payment_terms), ''::text) IS NOT NULL AND NULLIF(btrim(terms_version), ''::text) IS NOT NULL AND terms_hash IS NOT NULL AND content_hash IS NOT NULL)",
-        "definitionIncludes": ["terms_version", "terms_hash"],
-        "definitionExcludes": ["terms_text"]
+        "definitionIncludes": [
+          "terms_version",
+          "terms_hash"
+        ],
+        "definitionExcludes": [
+          "terms_text"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_admin_title_check",
         "type": "check",
         "definitionEquals": "CHECK (admin_title IS NULL OR NULLIF(btrim(admin_title), ''::text) IS NOT NULL AND char_length(admin_title) <= 240)",
-        "definitionIncludes": ["admin_title"]
+        "definitionIncludes": [
+          "admin_title"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_intake_source_check",
         "type": "check",
         "definitionEquals": "CHECK (intake_source = ANY (ARRAY['customer_web'::text, 'admin_email'::text, 'admin_testing'::text]))",
-        "definitionIncludes": ["admin_email", "admin_testing", "customer_web"]
+        "definitionIncludes": [
+          "admin_email",
+          "admin_testing",
+          "customer_web"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_public_code_base_check",
         "type": "check",
         "definitionEquals": "CHECK (public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'::text)",
-        "definitionIncludes": ["public_code_base", "23456789ABCDEFGHJKMNPQRSTVWXYZ", "{16}"]
+        "definitionIncludes": [
+          "public_code_base",
+          "23456789ABCDEFGHJKMNPQRSTVWXYZ",
+          "{16}"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_void_state_check",
         "type": "check",
         "definitionEquals": "CHECK (voided_at IS NULL AND voided_by_actor_id IS NULL AND void_reason IS NULL OR voided_at IS NOT NULL AND NULLIF(btrim(voided_by_actor_id), ''::text) IS NOT NULL AND NULLIF(btrim(void_reason), ''::text) IS NOT NULL)",
-        "definitionIncludes": ["void_reason", "voided_at", "voided_by_actor_id"]
+        "definitionIncludes": [
+          "void_reason",
+          "voided_at",
+          "voided_by_actor_id"
+        ]
+      },
+      {
+        "table": "analytics_geography_references",
+        "name": "analytics_geography_references_status_check",
+        "type": "check",
+        "definitionEquals": "CHECK (status = ANY (ARRAY['staged'::text, 'validated'::text]))"
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "analytics_geography_state_key_check",
+        "type": "check",
+        "definitionEquals": "CHECK (key = 'active'::text)"
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "analytics_geography_state_latest_version_fkey",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (latest_version) REFERENCES analytics_geography_references(version)"
+      },
+      {
+        "table": "analytics_geography_state",
+        "name": "analytics_geography_state_reporting_version_fkey",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (reporting_version) REFERENCES analytics_geography_references(version)"
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "order_analytics_change_log_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(before_json) = 'object'::text AND jsonb_typeof(after_json) = 'object'::text)"
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "order_analytics_change_log_reason_check",
+        "type": "check",
+        "definitionEquals": "CHECK (length(btrim(reason)) >= 3 AND length(btrim(reason)) <= 2000)"
+      },
+      {
+        "table": "order_analytics_change_log",
+        "name": "order_analytics_change_log_revision_check",
+        "type": "check",
+        "definitionEquals": "CHECK (revision > 0)"
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_geography_resolutions_order_id_fkey",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_geography_resolutions_resolution_status_check",
+        "type": "check",
+        "definitionEquals": "CHECK (resolution_status = ANY (ARRAY['municipality'::text, 'region_only'::text, 'ambiguous'::text, 'unmatched'::text, 'partial'::text, 'foreign'::text, 'unknown_country'::text]))"
+      },
+      {
+        "table": "order_items",
+        "name": "order_items_historical_cost_check",
+        "type": "check",
+        "definitionEquals": "CHECK (historical_unit_cost_net IS NULL OR historical_unit_cost_net >= 0::numeric)"
+      },
+      {
+        "table": "order_line_snapshots",
+        "name": "order_line_snapshots_historical_cost_check",
+        "type": "check",
+        "definitionEquals": "CHECK (historical_unit_cost_net IS NULL OR historical_unit_cost_net >= 0::numeric)"
+      },
+      {
+        "table": "orders",
+        "name": "orders_analytics_measurements_check",
+        "type": "check",
+        "definitionEquals": "CHECK ((actual_packed_weight_grams IS NULL OR actual_packed_weight_grams > 0) AND (actual_carrier_cost_net IS NULL OR actual_carrier_cost_net >= 0::numeric) AND (actual_parcel_count IS NULL OR actual_parcel_count > 0) AND (preparation_minutes IS NULL OR preparation_minutes >= 0::numeric) AND (actual_length_mm IS NULL OR actual_length_mm > 0) AND (actual_width_mm IS NULL OR actual_width_mm > 0) AND (actual_height_mm IS NULL OR actual_height_mm > 0) AND (merchandise_refund_net IS NULL OR merchandise_refund_net >= 0::numeric) AND (NOT refund_history_complete OR merchandise_refund_net IS NOT NULL) AND (shipping_tax_rate IS NULL OR shipping_tax_rate >= 0::numeric AND shipping_tax_rate <= 1::numeric) AND (analytics_fulfilled_merchandise_net IS NULL OR analytics_fulfilled_merchandise_net >= 0::numeric) AND (analytics_fulfilment_origin IS NULL OR (analytics_fulfilment_origin = ANY (ARRAY['captured'::text, 'legacy'::text]))) AND analytics_measurement_revision >= 0 AND (analytics_snapshot_json IS NULL OR jsonb_typeof(analytics_snapshot_json) = 'object'::text))"
       }
     ],
     "functions": [
@@ -203,7 +939,11 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "text",
-        "definitionIncludes": ["23456789ABCDEFGHJKMNPQRSTVWXYZ", "gen_random_bytes", "byte_value < 240"]
+        "definitionIncludes": [
+          "23456789ABCDEFGHJKMNPQRSTVWXYZ",
+          "gen_random_bytes",
+          "byte_value < 240"
+        ]
       },
       {
         "name": "guard_order_stock_hold_transition",
@@ -216,7 +956,10 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["legacy_unknown", "released"]
+        "definitionIncludes": [
+          "legacy_unknown",
+          "released"
+        ]
       },
       {
         "name": "guard_order_public_code_lineage",
@@ -229,7 +972,13 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["source_quote_offer_version_id", "quote_public_code_base", "new.public_code_base := quote_public_code_base", "pg_advisory_xact_lock", "return null"]
+        "definitionIncludes": [
+          "source_quote_offer_version_id",
+          "quote_public_code_base",
+          "new.public_code_base := quote_public_code_base",
+          "pg_advisory_xact_lock",
+          "return null"
+        ]
       },
       {
         "name": "guard_quote_public_code_namespace",
@@ -242,7 +991,11 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["pg_advisory_xact_lock", "public.orders", "return null"]
+        "definitionIncludes": [
+          "pg_advisory_xact_lock",
+          "public.orders",
+          "return null"
+        ]
       },
       {
         "name": "guard_public_code_base_immutable",
@@ -255,7 +1008,10 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["public_code_base", "immutable"]
+        "definitionIncludes": [
+          "public_code_base",
+          "immutable"
+        ]
       },
       {
         "name": "guard_quote_append_only",
@@ -268,7 +1024,10 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["append-only", "tg_op"]
+        "definitionIncludes": [
+          "append-only",
+          "tg_op"
+        ]
       },
       {
         "name": "guard_quote_offer_version",
@@ -281,7 +1040,12 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["allowed_transition", "document_sha256", "expected_offer_number", "state_version must increase"]
+        "definitionIncludes": [
+          "allowed_transition",
+          "document_sha256",
+          "expected_offer_number",
+          "state_version must increase"
+        ]
       },
       {
         "name": "guard_quote_offer_version_item",
@@ -294,7 +1058,12 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["new_offer_status", "old_offer_status", "quote_offer_version_id", "draft"]
+        "definitionIncludes": [
+          "new_offer_status",
+          "old_offer_status",
+          "quote_offer_version_id",
+          "draft"
+        ]
       },
       {
         "name": "guard_quote_request_history",
@@ -307,7 +1076,44 @@
         "volatility": "volatile",
         "parallel": "unsafe",
         "returns": "trigger",
-        "definitionIncludes": ["admin_details_changed", "admin_title", "testing_cleanup", "voiding"]
+        "definitionIncludes": [
+          "admin_details_changed",
+          "admin_title",
+          "testing_cleanup",
+          "voiding"
+        ]
+      },
+      {
+        "name": "capture_order_analytics_snapshot",
+        "bodySha256": "47edc41a9a2dc390a73f375af91f13e3d7885f9f4bae764219b0fdd987473cfe",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "analytics_snapshot_json",
+          "analytics_fulfilled_lines_json"
+        ]
+      },
+      {
+        "name": "capture_order_historical_cost",
+        "bodySha256": "3a581cff5127f62325dd5c584edfa5af8e30f5b80ae2139d52a4863ca635f53d",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "historical_unit_cost_net",
+          "captured"
+        ]
       }
     ],
     "indexes": [
@@ -315,43 +1121,122 @@
         "table": "orders",
         "name": "idx_orders_public_code_base",
         "definitionEquals": "CREATE UNIQUE INDEX idx_orders_public_code_base ON public.orders USING btree (public_code_base)",
-        "definitionIncludes": ["orders", "unique", "(public_code_base)"]
+        "definitionIncludes": [
+          "orders",
+          "unique",
+          "(public_code_base)"
+        ]
       },
       {
         "table": "order_items",
         "name": "idx_order_items_order_id_ship_later",
         "definitionEquals": "CREATE INDEX idx_order_items_order_id_ship_later ON public.order_items USING btree (order_id, ship_later, id)",
-        "definitionIncludes": ["order_items", "(order_id, ship_later, id)"]
+        "definitionIncludes": [
+          "order_items",
+          "(order_id, ship_later, id)"
+        ]
       },
       {
         "table": "quote_email_jobs",
         "name": "idx_quote_email_jobs_pending",
         "definitionEquals": "CREATE INDEX idx_quote_email_jobs_pending ON public.quote_email_jobs USING btree (next_attempt_at, created_at, id) WHERE (status = 'pending'::text)",
-        "definitionIncludes": ["quote_email_jobs", "(next_attempt_at, created_at, id)", "status = 'pending'"]
+        "definitionIncludes": [
+          "quote_email_jobs",
+          "(next_attempt_at, created_at, id)",
+          "status = 'pending'"
+        ]
       },
       {
         "table": "quote_manual_documents",
         "name": "idx_quote_manual_documents_offer_created_at",
         "definitionEquals": "CREATE INDEX idx_quote_manual_documents_offer_created_at ON public.quote_manual_documents USING btree (quote_offer_version_id, created_at DESC)",
-        "definitionIncludes": ["quote_manual_documents", "(quote_offer_version_id, created_at desc)"]
+        "definitionIncludes": [
+          "quote_manual_documents",
+          "(quote_offer_version_id, created_at desc)"
+        ]
       },
       {
         "table": "quote_manual_documents",
         "name": "idx_quote_manual_documents_request_created_at",
         "definitionEquals": "CREATE INDEX idx_quote_manual_documents_request_created_at ON public.quote_manual_documents USING btree (quote_request_id, created_at DESC)",
-        "definitionIncludes": ["quote_manual_documents", "(quote_request_id, created_at desc)"]
+        "definitionIncludes": [
+          "quote_manual_documents",
+          "(quote_request_id, created_at desc)"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "idx_quote_requests_voided_at",
         "definitionEquals": "CREATE INDEX idx_quote_requests_voided_at ON public.quote_requests USING btree (voided_at) WHERE (voided_at IS NOT NULL)",
-        "definitionIncludes": ["quote_requests", "(voided_at)", "voided_at is not null"]
+        "definitionIncludes": [
+          "quote_requests",
+          "(voided_at)",
+          "voided_at is not null"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "idx_quote_requests_public_code_base",
         "definitionEquals": "CREATE UNIQUE INDEX idx_quote_requests_public_code_base ON public.quote_requests USING btree (public_code_base)",
-        "definitionIncludes": ["quote_requests", "unique", "(public_code_base)"]
+        "definitionIncludes": [
+          "quote_requests",
+          "unique",
+          "(public_code_base)"
+        ]
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_geography_municipality_idx",
+        "definitionEquals": "CREATE INDEX order_geography_municipality_idx ON public.order_geography_resolutions USING btree (source_version, municipality_id, order_id)",
+        "definitionIncludes": [
+          "order_geography_resolutions",
+          "order_geography_municipality_idx"
+        ]
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_geography_region_idx",
+        "definitionEquals": "CREATE INDEX order_geography_region_idx ON public.order_geography_resolutions USING btree (source_version, region_id, order_id)",
+        "definitionIncludes": [
+          "order_geography_resolutions",
+          "order_geography_region_idx"
+        ]
+      },
+      {
+        "table": "order_geography_resolutions",
+        "name": "order_geography_unresolved_idx",
+        "definitionEquals": "CREATE INDEX order_geography_unresolved_idx ON public.order_geography_resolutions USING btree (resolution_status, order_id)",
+        "definitionIncludes": [
+          "order_geography_resolutions",
+          "order_geography_unresolved_idx"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_analytics_activity_idx",
+        "definitionEquals": "CREATE INDEX orders_analytics_activity_idx ON public.orders USING btree (analytics_submitted_at, customer_type, status) WHERE ((NOT is_draft) AND (NOT analytics_is_test))",
+        "definitionIncludes": [
+          "orders",
+          "orders_analytics_activity_idx"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_analytics_customer_idx",
+        "definitionEquals": "CREATE INDEX orders_analytics_customer_idx ON public.orders USING btree (customer_directory_profile_id, analytics_submitted_at) WHERE (customer_directory_profile_id IS NOT NULL)",
+        "definitionIncludes": [
+          "orders",
+          "orders_analytics_customer_idx"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_analytics_school_idx",
+        "definitionEquals": "CREATE INDEX orders_analytics_school_idx ON public.orders USING btree (school_directory_row_id, analytics_submitted_at) WHERE (school_directory_row_id IS NOT NULL)",
+        "definitionIncludes": [
+          "orders",
+          "orders_analytics_school_idx"
+        ]
       }
     ],
     "triggers": [
@@ -360,70 +1245,153 @@
         "name": "orders_guard_public_code_immutable",
         "function": "guard_public_code_base_immutable",
         "definitionEquals": "CREATE TRIGGER orders_guard_public_code_immutable BEFORE UPDATE OF public_code_base ON orders FOR EACH ROW EXECUTE FUNCTION guard_public_code_base_immutable()",
-        "definitionIncludes": ["before", "update of public_code_base", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update of public_code_base",
+          "for each row"
+        ]
       },
       {
         "table": "orders",
         "name": "orders_guard_public_code_lineage",
         "function": "guard_order_public_code_lineage",
         "definitionEquals": "CREATE TRIGGER orders_guard_public_code_lineage BEFORE INSERT OR UPDATE OF public_code_base, source_quote_offer_version_id ON orders FOR EACH ROW EXECUTE FUNCTION guard_order_public_code_lineage()",
-        "definitionIncludes": ["before", "insert", "update of public_code_base", "source_quote_offer_version_id", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "insert",
+          "update of public_code_base",
+          "source_quote_offer_version_id",
+          "for each row"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_guard_public_code_namespace",
         "function": "guard_quote_public_code_namespace",
         "definitionEquals": "CREATE TRIGGER quote_requests_guard_public_code_namespace BEFORE INSERT ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_quote_public_code_namespace()",
-        "definitionIncludes": ["before", "insert", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "insert",
+          "for each row"
+        ]
       },
       {
         "table": "order_stock_holds",
         "name": "order_stock_holds_guard_transition",
         "function": "guard_order_stock_hold_transition",
         "definitionEquals": "CREATE TRIGGER order_stock_holds_guard_transition BEFORE DELETE OR UPDATE ON order_stock_holds FOR EACH ROW EXECUTE FUNCTION guard_order_stock_hold_transition()",
-        "definitionIncludes": ["before", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_events",
         "name": "quote_events_append_only",
         "function": "guard_quote_append_only",
         "definitionEquals": "CREATE TRIGGER quote_events_append_only BEFORE DELETE OR UPDATE ON quote_events FOR EACH ROW EXECUTE FUNCTION guard_quote_append_only()",
-        "definitionIncludes": ["before", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_manual_documents",
         "name": "quote_manual_documents_append_only",
         "function": "guard_quote_append_only",
         "definitionEquals": "CREATE TRIGGER quote_manual_documents_append_only BEFORE DELETE OR UPDATE ON quote_manual_documents FOR EACH ROW EXECUTE FUNCTION guard_quote_append_only()",
-        "definitionIncludes": ["before", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_offer_version_items",
         "name": "quote_offer_version_items_guard",
         "function": "guard_quote_offer_version_item",
         "definitionEquals": "CREATE TRIGGER quote_offer_version_items_guard BEFORE INSERT OR DELETE OR UPDATE ON quote_offer_version_items FOR EACH ROW EXECUTE FUNCTION guard_quote_offer_version_item()",
-        "definitionIncludes": ["before", "insert", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "insert",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_offer_versions",
         "name": "quote_offer_versions_guard",
         "function": "guard_quote_offer_version",
         "definitionEquals": "CREATE TRIGGER quote_offer_versions_guard BEFORE INSERT OR DELETE OR UPDATE ON quote_offer_versions FOR EACH ROW EXECUTE FUNCTION guard_quote_offer_version()",
-        "definitionIncludes": ["before", "insert", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "insert",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_guard_history",
         "function": "guard_quote_request_history",
         "definitionEquals": "CREATE TRIGGER quote_requests_guard_history BEFORE DELETE OR UPDATE ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_quote_request_history()",
-        "definitionIncludes": ["before", "update", "delete", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update",
+          "delete",
+          "for each row"
+        ]
       },
       {
         "table": "quote_requests",
         "name": "quote_requests_guard_public_code_immutable",
         "function": "guard_public_code_base_immutable",
         "definitionEquals": "CREATE TRIGGER quote_requests_guard_public_code_immutable BEFORE UPDATE OF public_code_base ON quote_requests FOR EACH ROW EXECUTE FUNCTION guard_public_code_base_immutable()",
-        "definitionIncludes": ["before", "update of public_code_base", "for each row"]
+        "definitionIncludes": [
+          "before",
+          "update of public_code_base",
+          "for each row"
+        ]
+      },
+      {
+        "table": "order_items",
+        "name": "order_items_capture_historical_cost",
+        "function": "capture_order_historical_cost",
+        "definitionEquals": "CREATE TRIGGER order_items_capture_historical_cost BEFORE INSERT ON order_items FOR EACH ROW EXECUTE FUNCTION capture_order_historical_cost()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "capture_order_historical_cost"
+        ]
+      },
+      {
+        "table": "order_line_snapshots",
+        "name": "order_line_snapshots_capture_historical_cost",
+        "function": "capture_order_historical_cost",
+        "definitionEquals": "CREATE TRIGGER order_line_snapshots_capture_historical_cost BEFORE INSERT ON order_line_snapshots FOR EACH ROW EXECUTE FUNCTION capture_order_historical_cost()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "capture_order_historical_cost"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_capture_analytics_snapshot",
+        "function": "capture_order_analytics_snapshot",
+        "definitionEquals": "CREATE TRIGGER orders_capture_analytics_snapshot BEFORE INSERT OR UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION capture_order_analytics_snapshot()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "capture_order_analytics_snapshot"
+        ]
       }
     ],
     "settings": [

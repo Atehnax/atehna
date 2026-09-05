@@ -1,3 +1,4 @@
+import AdminBusinessOrderList from '@/admin/features/orders/components/AdminBusinessOrderList';
 import AdminOrdersTableLoader from '@/admin/features/orders/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/features/orders/components/AdminCreateDraftOrderButton';
 import AdminOrdersTabs from '@/admin/features/orders/components/AdminOrdersTabs';
@@ -357,6 +358,7 @@ async function AdminQuotesTableSection({
 export default async function AdminOrdersPage(
   props: {
     searchParams?: Promise<{
+      [key: string]: string | string[] | undefined;
       from?: string | string[];
       to?: string | string[];
       q?: string | string[];
@@ -379,6 +381,9 @@ export default async function AdminOrdersPage(
   }
 ) {
   const searchParams = await props.searchParams;
+  if (normalizeSearchParam(searchParams?.analytics) === '1') {
+    return <AdminBusinessOrderList searchParams={searchParams ?? {}} />;
+  }
   const quoteAdminEnabled = isQuoteAdminEnabled();
   const activeView =
     quoteAdminEnabled && normalizeSearchParam(searchParams?.view) === 'quotes'

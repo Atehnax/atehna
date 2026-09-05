@@ -693,7 +693,7 @@ test('ordinary direct orders are accepted automatically while school orders reta
 test('accepted quote traceability is bidirectional and analytics count only committed contracts', () => {
   const quotes = source('src/shared/server/quotes.ts');
   const orders = source('src/shared/server/orders.ts');
-  const analytics = source('src/shared/server/orderAnalytics.ts');
+  const analytics = source('src/shared/server/businessAnalytics.ts');
   const quoteAnalytics = source('src/shared/server/quoteAnalytics.ts');
   const customers = source('src/shared/server/customerDirectory.ts');
 
@@ -717,11 +717,11 @@ test('accepted quote traceability is bidirectional and analytics count only comm
 
   assert.match(
     analytics,
-    /order\.contract_status === 'accepted'[\s\S]*?order\.commitment_status === 'binding'/u
+    /row\.contract_status === 'accepted'[\s\S]*?row\.commitment_status === 'binding'/u
   );
   assert.match(
     analytics,
-    /order\.committed_at \?\? order\.contract_accepted_at \?\? order\.created_at/u
+    /fulfilledAt: contractEligible \? iso\(row\.analytics_fulfilled_at\)/u
   );
   assert.match(
     customers,

@@ -157,10 +157,9 @@ test('quote KPI cards match order cards and open the tracked quote analytics vie
   }));
 
   await quoteCards.filter({ hasText: 'Ponujena vrednost' }).click();
-  await expect(page).toHaveURL(/\/admin\/analitika\/ponudbe\?range=max&focus=ponudbe-quoted-value/u);
-  await expect(page.getByRole('tab', { name: 'Povpraševanja in ponudbe' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByTestId('admin-quote-analytics-dashboard')).toBeVisible();
-  await expect(page.locator('[data-focus-key="ponudbe-quoted-value"]')).toHaveAttribute('data-focused', 'true');
-  await expect(page.locator('[data-chart-key="ponudbe-lijak"]')).toBeVisible();
-  await expect(page.locator('[data-chart-key="ponudbe-vrednosti"]')).toHaveAttribute('data-focused', 'true');
+  await expect(page).toHaveURL(/\/admin\/analitika\?.*view=ponudbe/u);
+  await expect(page.getByRole('tab', { name: 'Ponudbe', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: 'Sprejem v 30 dneh od prve izdaje' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sprejem po začetni vrednosti ponudbe' })).toBeVisible();
+  await expect(page).toHaveURL(/range=90D/u);
 });

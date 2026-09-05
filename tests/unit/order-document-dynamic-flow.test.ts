@@ -21,30 +21,12 @@ import {
 } from '../../src/shared/domain/order/orderDocumentPreview';
 import { generateOrderPdf } from '../../src/shared/server/pdf';
 
-const LEGACY_BODY_GEOMETRY = {
-  intro: { xMm: 10, yMm: 90, widthMm: 190, heightMm: 7.5, page: 1, zIndex: 20 },
-  items: { xMm: 10, yMm: 102.5, widthMm: 190, heightMm: 80, page: 1, zIndex: 30 },
-  totals: { xMm: 10, yMm: 177.5, widthMm: 190, heightMm: 28, page: 1, zIndex: 40 },
-  notes: { xMm: 10, yMm: 230, widthMm: 190, heightMm: 14, page: 1, zIndex: 50 },
-  closing: { xMm: 10, yMm: 207.5, widthMm: 190, heightMm: 16, page: 1, zIndex: 60 },
-  signatures: { xMm: 10, yMm: 247.5, widthMm: 190, heightMm: 16, page: 1, zIndex: 70 }
-} as const;
-
-const LEGACY_BODY_IDS = Object.keys(
-  LEGACY_BODY_GEOMETRY
-) as Array<keyof typeof LEGACY_BODY_GEOMETRY>;
+const BODY_IDS = ['intro', 'items', 'totals', 'notes', 'closing', 'signatures'] as const;
 
 function currentSavedOrderSummary(): OrderDocumentTemplate {
   let template = cloneDefaultOrderDocumentTemplate('order_summary');
-  for (const id of LEGACY_BODY_IDS) {
+  for (const id of BODY_IDS) {
     template = materializeOrderDocumentCanvasElement(template, id);
-    Object.assign(template.layout.canvas!.elements[id]!, LEGACY_BODY_GEOMETRY[id], {
-      positioning: 'absolute',
-      locked: false,
-      repeat: 'once',
-      condition: 'always',
-      overflow: 'visible'
-    });
   }
   template.layout.sections = template.layout.sections.map((section) => ({
     ...section,
@@ -55,60 +37,42 @@ function currentSavedOrderSummary(): OrderDocumentTemplate {
   template.layout.canvas!.elements.notes!.visible = false;
   template.layout.canvas!.elements.closing!.visible = false;
   template.layout.canvas!.elements.signatures!.visible = false;
-  delete (template.layout.canvas as { flowLayoutVersion?: number }).flowLayoutVersion;
   return template;
 }
 
-function canvasVersion(template: OrderDocumentTemplate) {
-  return (template.layout.canvas as { flowLayoutVersion?: number } | undefined)
-    ?.flowLayoutVersion;
-}
-
-test('unversioned canonical body geometry migrates from fixed coordinates to document flow once', () => {
-  const normalized = normalizeOrderDocumentTemplate(
-    'order_summary',
-    currentSavedOrderSummary()
-  );
-
-  assert.equal(canvasVersion(normalized), 1);
-  for (const id of LEGACY_BODY_IDS) {
-    assert.equal(
-      normalized.layout.canvas?.elements[id]?.positioning,
-      'flow',
-      `${id} must join content-driven flow`
-    );
+test('current materialized body defaults stay in document flow across storage round-trips', () => {
+  const template = currentSavedOrderSummary();
+  const normalized = normalizeOrderDocumentTemplate('order_summary', JSON.parse(JSON.stringify(template)));
+  assert.equal(normalized.layout.canvas?.flowLayoutVersion, 1);
+  for (const id of BODY_IDS) {
+    assert.equal(normalized.layout.canvas?.elements[id]?.positioning, 'flow');
   }
-
-  const normalizedAgain = normalizeOrderDocumentTemplate('order_summary', normalized);
-  assert.equal(canvasVersion(normalizedAgain), 1);
-  assert.deepEqual(normalizedAgain.layout.canvas, normalized.layout.canvas);
+  assert.deepEqual(normalized.layout.canvas, template.layout.canvas);
+  assert.deepEqual(normalizeOrderDocumentTemplate('order_summary', normalized), normalized);
 });
 
-test('legacy migration never captures genuinely custom absolute coordinates', () => {
-  const customized = currentSavedOrderSummary();
-  Object.assign(customized.layout.canvas!.elements.intro!, { xMm: 14 });
-  Object.assign(customized.layout.canvas!.elements.items!, { widthMm: 181 });
-  Object.assign(customized.layout.canvas!.elements.totals!, { page: 2 });
-
-  const normalized = normalizeOrderDocumentTemplate('order_summary', customized);
-  assert.equal(normalized.layout.canvas?.elements.intro?.positioning, 'absolute');
-  assert.equal(normalized.layout.canvas?.elements.intro?.xMm, 14);
-  assert.equal(normalized.layout.canvas?.elements.items?.positioning, 'absolute');
-  assert.equal(normalized.layout.canvas?.elements.items?.widthMm, 181);
-  assert.equal(normalized.layout.canvas?.elements.totals?.positioning, 'absolute');
-  assert.equal(normalized.layout.canvas?.elements.totals?.page, 2);
-
-  const versioned = currentSavedOrderSummary();
-  (versioned.layout.canvas as { flowLayoutVersion?: number }).flowLayoutVersion = 1;
-  const explicit = normalizeOrderDocumentTemplate('order_summary', versioned);
-  for (const id of LEGACY_BODY_IDS) {
-    assert.equal(
-      explicit.layout.canvas?.elements[id]?.positioning,
-      'absolute',
-      `versioned manual ${id} coordinates must stay authoritative`
-    );
+test('explicit absolute body geometry remains authoritative with or without a version marker', () => {
+  const geometry = {
+    intro: { yMm: 90, heightMm: 7.5, zIndex: 20 },
+    items: { yMm: 102.5, heightMm: 80, zIndex: 30 },
+    totals: { yMm: 177.5, heightMm: 28, zIndex: 40 },
+    notes: { yMm: 230, heightMm: 14, zIndex: 50 },
+    closing: { yMm: 207.5, heightMm: 16, zIndex: 60 },
+    signatures: { yMm: 247.5, heightMm: 16, zIndex: 70 }
+  };
+  for (const version of [undefined, 1]) {
+    const template = currentSavedOrderSummary();
+    for (const id of BODY_IDS) {
+      Object.assign(template.layout.canvas!.elements[id]!, geometry[id], {
+        positioning: 'absolute', xMm: 10, widthMm: 190, page: 1, repeat: 'once'
+      });
+    }
+    if (version === undefined) delete (template.layout.canvas as { flowLayoutVersion?: number }).flowLayoutVersion;
+    const normalized = normalizeOrderDocumentTemplate('order_summary', JSON.parse(JSON.stringify(template)));
+    assert.deepEqual(normalized.layout.canvas?.elements, template.layout.canvas?.elements);
   }
 });
+
 
 test('interactive flow preview sizes product and total sections from actual content', () => {
   const template = normalizeOrderDocumentTemplate(
@@ -145,7 +109,7 @@ test('interactive flow preview sizes product and total sections from actual cont
   assert.equal(sparse.totals.positioning, 'flow');
 });
 
-test('migrated one-row PDF compacts totals immediately after the table', async () => {
+test('current flow one-row PDF compacts totals immediately after the table', async () => {
   const context = createOrderDocumentPreviewContext('order_summary');
   context.items = context.items.slice(0, 1);
   const template = normalizeOrderDocumentTemplate(
@@ -182,7 +146,7 @@ test('migrated one-row PDF compacts totals immediately after the table', async (
   assert.equal((await PDFDocument.load(bytes)).getPageCount(), 1);
 });
 
-test('migrated one-row items fill and outline end before compact totals', async () => {
+test('current flow one-row items fill and outline end before compact totals', async () => {
   const context = createOrderDocumentPreviewContext('order_summary');
   context.items = context.items.slice(0, 1);
   let template = normalizeOrderDocumentTemplate(
@@ -270,12 +234,12 @@ test('migrated one-row items fill and outline end before compact totals', async 
   );
   assert.ok(
     fillFrame.height < 80 * 72 / 25.4 / 2,
-    'the migrated 80 mm fallback must not determine the one-row decoration height'
+    'the 80 mm canvas fallback must not determine the one-row decoration height'
   );
 });
 
-test('totals and notes stay compact across the 24-27 row page-break boundary', async () => {
-  for (const itemCount of [24, 25, 26, 27]) {
+test('totals and notes stay compact across the current 22-27 row page-break boundary', async () => {
+  for (const itemCount of [22, 23, 24, 25, 26, 27]) {
     const context = createOrderDocumentPreviewContext('order_summary');
     const baseItem = context.items[0]!;
     context.items = Array.from({ length: itemCount }, (_, index) => ({
@@ -285,13 +249,13 @@ test('totals and notes stay compact across the 24-27 row page-break boundary', a
     }));
     context.order.notes = 'Opomba za preverjanje neprekinjenega toka.';
 
-    const legacy = currentSavedOrderSummary();
-    legacy.layout.sections = legacy.layout.sections.map((section) => ({
+    const saved = currentSavedOrderSummary();
+    saved.layout.sections = saved.layout.sections.map((section) => ({
       ...section,
       enabled: section.id === 'notes' ? true : section.enabled
     }));
-    legacy.layout.canvas!.elements.notes!.visible = true;
-    const template = normalizeOrderDocumentTemplate('order_summary', legacy);
+    saved.layout.canvas!.elements.notes!.visible = true;
+    const template = normalizeOrderDocumentTemplate('order_summary', saved);
     const subtotalLabel = template.text.labels.subtotal;
     const notesLabel = `${template.text.labels.notes}:`;
     const pageIds = new WeakMap<PDFPage, number>();
@@ -335,7 +299,7 @@ test('totals and notes stay compact across the 24-27 row page-break boundary', a
     assert.equal(typeof notesPageId, 'number', 'notes must render');
     assert.equal(typeof totalY, 'number');
     assert.equal(typeof notesY, 'number');
-    if (itemCount < 26) {
+    if (itemCount < 24) {
       assert.notEqual(
         notesPageId,
         totalPageId,
@@ -357,7 +321,7 @@ test('totals and notes stay compact across the 24-27 row page-break boundary', a
   }
 });
 
-test('migrated long product tables paginate and keep totals inside a page', async () => {
+test('current flow long product tables paginate and keep totals inside a page', async () => {
   const context = createOrderDocumentPreviewContext('order_summary');
   const longItems: OrderDocumentPreviewItem[] = Array.from({ length: 72 }, (_, index) => ({
     sku: `FLOW-${String(index + 1).padStart(3, '0')}`,

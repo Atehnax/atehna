@@ -1,7 +1,7 @@
 import {
   emailTemplateRichTextToPlainText,
   emailTemplateVariables,
-  legacyEmailTemplateContentHtml,
+  createEmailTemplateContentHtml,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
 import {
@@ -83,7 +83,7 @@ export type OrderEmailSystemLine = {
 
 export type OrderEmailTemplatePresentation = EmailTemplatePresentation & {
   /**
-   * Ordered renderer-owned values. Missing keeps the legacy audience defaults;
+   * Ordered renderer-owned values. Missing uses the audience defaults;
    * an explicit empty array intentionally hides every system line.
    */
   systemLines?: OrderEmailSystemLine[];
@@ -91,14 +91,8 @@ export type OrderEmailTemplatePresentation = EmailTemplatePresentation & {
 
 export type OrderEmailTemplate = {
   subject: string;
-  contentHtml?: string;
+  contentHtml: string;
   presentation?: OrderEmailTemplatePresentation;
-  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
-  greeting?: string;
-  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
-  heading?: string;
-  /** Legacy read compatibility for stored v5 settings and queued snapshots. */
-  body?: string;
 };
 
 export type OrderEmailEventTemplates = {
@@ -140,9 +134,6 @@ export const ORDER_EMAIL_TEMPLATE_VARIABLES = {
 } as const;
 
 export const ORDER_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 200;
-export const ORDER_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
-export const ORDER_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
-export const ORDER_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 5_000;
 export const ORDER_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 20_000;
 export const ORDER_EMAIL_SHARED_TEXT_MAX_LENGTH = 1_000;
 export const ORDER_EMAIL_SYSTEM_LINE_LABEL_MAX_LENGTH = 80;
@@ -240,20 +231,18 @@ const defaultEvents = Object.fromEntries(
 const DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING =
   'Pozdravljeni, {{recipient_name}},';
 
-type LegacyOrderEmailTemplate = {
+type OrderEmailDefaultCopy = {
   subject: string;
-  greeting?: string;
-  heading?: string;
   body: string;
 };
 
-type LegacyOrderEmailEventTemplates = {
-  customer: LegacyOrderEmailTemplate;
-  admin: LegacyOrderEmailTemplate;
-  schoolCustomer?: LegacyOrderEmailTemplate;
+type OrderEmailEventDefaultCopy = {
+  customer: OrderEmailDefaultCopy;
+  admin: OrderEmailDefaultCopy;
+  schoolCustomer?: OrderEmailDefaultCopy;
 };
 
-const legacyDefaultTemplates = Object.fromEntries(
+const defaultEventCopy = Object.fromEntries(
   ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value, label }) => {
     if (value === 'order_submitted') {
       return [
@@ -353,18 +342,18 @@ const legacyDefaultTemplates = Object.fromEntries(
       }
     ];
   })
-) as Record<OrderEmailEventType, LegacyOrderEmailEventTemplates>;
+) as Record<OrderEmailEventType, OrderEmailEventDefaultCopy>;
 
 const defaultTemplates = Object.fromEntries(
   ORDER_EMAIL_EVENT_DEFINITIONS.map(({ value: eventType }) => {
-    const eventTemplates = legacyDefaultTemplates[eventType];
+    const eventTemplates = defaultEventCopy[eventType];
     const completeTemplate = (
-      template: LegacyOrderEmailTemplate
+      template: OrderEmailDefaultCopy
     ): OrderEmailTemplate => ({
       subject: template.subject,
-      contentHtml: legacyEmailTemplateContentHtml({
-        greeting: template.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING,
-        heading: template.heading ?? template.subject,
+      contentHtml: createEmailTemplateContentHtml({
+        greeting: DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING,
+        heading: template.subject,
         body: template.body
       })
     });
@@ -766,23 +755,10 @@ function normalizeTemplate(
   audience: OrderEmailSystemLineAudience
 ): OrderEmailTemplate {
   const subject = sanitizeHeaderText(rawTemplate.subject, defaults.subject);
-  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
-    Object.prototype.hasOwnProperty.call(rawTemplate, field)
-  );
-  const legacyContent = hasLegacyContent
-    ? legacyEmailTemplateContentHtml({
-        greeting: sanitizeHeaderText(
-          rawTemplate.greeting,
-          DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING
-        ),
-        heading: sanitizeHeaderText(rawTemplate.heading, subject),
-        body: sanitizeBodyText(rawTemplate.body, '')
-      })
-    : '';
   const contentHtml =
     typeof rawTemplate.contentHtml === 'string'
       ? sanitizeEmailTemplateRichText(rawTemplate.contentHtml)
-      : legacyContent;
+      : defaults.contentHtml;
   const rawPresentation = asRecord(rawTemplate.presentation);
   const basePresentation = normalizeEmailTemplatePresentation(
     rawTemplate.presentation
@@ -1060,14 +1036,8 @@ function validateTemplate(
   if (record.subject !== undefined && typeof record.subject !== 'string') {
     errors.push(`Zadeva predloge za ${audienceLabel} (${eventLabel}) ni veljavna.`);
   }
-  if (record.body !== undefined && typeof record.body !== 'string') {
-    errors.push(`Besedilo predloge za ${audienceLabel} (${eventLabel}) ni veljavno.`);
-  }
-  if (record.greeting !== undefined && typeof record.greeting !== 'string') {
-    errors.push(`Pozdrav predloge za ${audienceLabel} (${eventLabel}) ni veljaven.`);
-  }
-  if (record.heading !== undefined && typeof record.heading !== 'string') {
-    errors.push(`Naslov predloge za ${audienceLabel} (${eventLabel}) ni veljaven.`);
+  if (Object.keys(record).some((key) => !['subject', 'contentHtml', 'presentation'].includes(key))) {
+    errors.push(`Predloga za ${audienceLabel} (${eventLabel}) vsebuje nepodprta polja.`);
   }
   if (
     record.contentHtml !== undefined &&
@@ -1080,45 +1050,18 @@ function validateTemplate(
 
   const subject =
     typeof record.subject === 'string' ? record.subject : fallback.subject;
-  const greeting =
-    typeof record.greeting === 'string'
-      ? record.greeting
-      : fallback.greeting ?? DEFAULT_ORDER_EMAIL_TEMPLATE_GREETING;
-  const heading =
-    typeof record.heading === 'string' ? record.heading : subject;
-  const body = typeof record.body === 'string' ? record.body : '';
-  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
-    Object.prototype.hasOwnProperty.call(record, field)
-  );
   const contentHtml =
     typeof record.contentHtml === 'string'
       ? record.contentHtml
-      : hasLegacyContent
-        ? legacyEmailTemplateContentHtml({ greeting, heading, body })
-        : fallback.contentHtml ?? '';
+      : fallback.contentHtml;
   if (hasHeaderControls(subject)) {
     errors.push(
       `Zadeva predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
     );
   }
-  if (BODY_CONTROL_PATTERN.test(body)) {
-    errors.push(
-      `Besedilo predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
-    );
-  }
   if (BODY_CONTROL_PATTERN.test(contentHtml)) {
     errors.push(
       `Vsebina predloge za ${audienceLabel} (${eventLabel}) vsebuje nedovoljene kontrolne znake.`
-    );
-  }
-  if (hasHeaderControls(greeting)) {
-    errors.push(
-      `Pozdrav predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
-    );
-  }
-  if (hasHeaderControls(heading)) {
-    errors.push(
-      `Naslov predloge za ${audienceLabel} (${eventLabel}) ne sme vsebovati kontrolnih znakov ali novih vrstic.`
     );
   }
   if (!sanitizeHeaderText(subject, '')) {

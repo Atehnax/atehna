@@ -1,10 +1,3 @@
-export const DATABASE_URL_ENV_KEYS = Object.freeze([
-  'DATABASE_URL',
-  'POSTGRES_URL',
-  'POSTGRES_PRISMA_URL',
-  'SUPABASE_DB_URL'
-]);
-
 const DATABASE_RUNTIME_ENV_KEYS = Object.freeze({
   poolMax: 'ATEHNA_DB_POOL_MAX',
   connectionTimeoutMillis: 'ATEHNA_DB_CONNECTION_TIMEOUT_MS',
@@ -21,25 +14,9 @@ const DATABASE_RUNTIME_DEFAULTS = Object.freeze({
   lockTimeoutMillis: 0
 });
 
-function configuredDatabaseUrls(environment) {
-  return DATABASE_URL_ENV_KEYS.flatMap((key) => {
-    const value = environment[key];
-    return value && value.trim() ? [{ key, value }] : [];
-  });
-}
-
 export function resolveDatabaseUrl(environment) {
-  return configuredDatabaseUrls(environment)[0]?.value ?? null;
-}
-
-export function inspectDatabaseUrlEnvironment(environment) {
-  const configured = configuredDatabaseUrls(environment);
-  const distinctValues = new Set(configured.map(({ value }) => value.trim()));
-  return {
-    selectedKey: configured[0]?.key ?? null,
-    configuredKeys: configured.map(({ key }) => key),
-    hasConflictingValues: distinctValues.size > 1
-  };
+  const value = environment.DATABASE_URL;
+  return value && value.trim() ? value : null;
 }
 
 export function resolvePostgresSslMode(environment) {

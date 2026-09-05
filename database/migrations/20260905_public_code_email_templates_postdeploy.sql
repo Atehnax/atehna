@@ -9,6 +9,8 @@
 -- The migration never changes a queued envelope. Order and quote jobs contain
 -- already-rendered encrypted content, so rewriting settings cannot make a
 -- legacy envelope safe.
+-- Saved PDF layout settings are upgraded in this same operator-controlled step;
+-- application reads never insert public-code rows into saved layouts.
 
 begin;
 
@@ -34,9 +36,10 @@ begin
   if to_regclass('public.app_schema_contracts') is null
      or to_regclass('public.order_email_settings') is null
      or to_regclass('public.quote_email_settings') is null
+     or to_regclass('public.global_style_settings') is null
      or to_regclass('public.order_email_jobs') is null
      or to_regclass('public.quote_email_jobs') is null then
-    raise exception 'Canonical schema-contract, email-settings, and email-job tables are required.';
+    raise exception 'Canonical schema-contract, email-settings, PDF-settings, and email-job tables are required.';
   end if;
 
   if not exists (
@@ -73,6 +76,7 @@ $preconditions$;
 
 lock table public.order_email_settings,
   public.quote_email_settings,
+  public.global_style_settings,
   public.order_email_jobs,
   public.quote_email_jobs in share row exclusive mode;
 
@@ -469,6 +473,115 @@ begin
 end;
 $migrate_quote_customer_templates$;
 
+-- Add the public reference once to explicitly saved PDF metadata layouts.
+-- Missing layouts keep using the current defaults, which already contain it.
+-- Existing public-code rows (including hidden ones), placement, typography,
+-- labels, other template types, and every previously issued PDF stay untouched.
+do $migrate_public_code_document_templates$
+declare
+  settings jsonb;
+  stored_version numeric;
+  template_type text;
+  template jsonb;
+  metadata_rows jsonb;
+  migrated_rows jsonb;
+  insertion_after bigint;
+begin
+  select config_json
+    into settings
+    from public.global_style_settings
+   where key = 'order-document-templates'
+   for update;
+
+  if found then
+    if jsonb_typeof(settings) is distinct from 'object' then
+      raise exception 'PDF template settings must be a JSON object.';
+    end if;
+    if settings ? 'schemaVersion'
+       and jsonb_typeof(settings -> 'schemaVersion') is distinct from 'number' then
+      raise exception 'PDF template schemaVersion must be numeric when present.';
+    end if;
+    stored_version := case
+      when jsonb_typeof(settings -> 'schemaVersion') = 'number'
+        then (settings ->> 'schemaVersion')::numeric
+      else null
+    end;
+    if stored_version > 2 then
+      raise exception 'Unsupported future PDF template version: %.', stored_version;
+    end if;
+
+    if stored_version is distinct from 2 then
+      if settings ? 'templates'
+         and jsonb_typeof(settings -> 'templates') is distinct from 'object' then
+        raise exception 'PDF templates must be a JSON object when present.';
+      end if;
+
+      foreach template_type in array array['offer', 'predracun', 'invoice'] loop
+        template := settings #> array['templates', template_type];
+        if template is null then continue; end if;
+        if jsonb_typeof(template) is distinct from 'object' then
+          raise exception 'PDF template % must be a JSON object.', template_type;
+        end if;
+        if template ? 'layout'
+           and jsonb_typeof(template -> 'layout') is distinct from 'object' then
+          raise exception 'PDF template % layout must be a JSON object.', template_type;
+        end if;
+        if (template -> 'layout') ? 'fieldRows'
+           and jsonb_typeof(template #> '{layout,fieldRows}') is distinct from 'object' then
+          raise exception 'PDF template % fieldRows must be a JSON object.', template_type;
+        end if;
+
+        metadata_rows := template #> '{layout,fieldRows,document_meta}';
+        if metadata_rows is null then continue; end if;
+        if jsonb_typeof(metadata_rows) is distinct from 'array' then
+          raise exception 'PDF template % metadata rows must be an array.', template_type;
+        end if;
+        if exists (
+          select 1 from jsonb_array_elements(metadata_rows) as metadata(row_value)
+           where jsonb_typeof(row_value) is distinct from 'object'
+              or jsonb_typeof(row_value -> 'id') is distinct from 'string'
+        ) then
+          raise exception 'PDF template % has malformed metadata rows.', template_type;
+        end if;
+
+        -- Do not restore an intentionally hidden public code or duplicate it.
+        if exists (
+          select 1 from jsonb_array_elements(metadata_rows) as metadata(row_value)
+           where row_value ->> 'id' = 'public_code'
+        ) then continue; end if;
+
+        select coalesce(min(ordinality), 0)
+          into insertion_after
+          from jsonb_array_elements(metadata_rows) with ordinality as metadata(row_value, ordinality)
+         where row_value ->> 'id' = 'issue_date';
+
+        select jsonb_agg(row_value order by position)
+          into migrated_rows
+          from (
+            select row_value, ordinality * 2 as position
+              from jsonb_array_elements(metadata_rows) with ordinality as metadata(row_value, ordinality)
+            union all
+            select '{"id":"public_code","visible":true}'::jsonb,
+                   insertion_after * 2 + 1
+          ) inserted;
+        settings := jsonb_set(
+          settings,
+          array['templates', template_type, 'layout', 'fieldRows', 'document_meta'],
+          migrated_rows,
+          false
+        );
+      end loop;
+
+      settings := jsonb_set(settings, '{schemaVersion}', '2'::jsonb, true);
+      update public.global_style_settings
+         set config_json = settings,
+             updated_at = now()
+       where key = 'order-document-templates';
+    end if;
+  end if;
+end;
+$migrate_public_code_document_templates$;
+
 -- POSTCONDITIONS FOLLOW.
 
 do $postconditions$
@@ -476,6 +589,18 @@ declare
   legacy_order_tokens bigint;
   legacy_quote_tokens bigint;
 begin
+  if exists (
+    select 1
+      from public.global_style_settings
+     where key = 'order-document-templates'
+       and (
+         jsonb_typeof(config_json -> 'schemaVersion') is distinct from 'number'
+         or (config_json ->> 'schemaVersion')::numeric <> 2
+       )
+  ) then
+    raise exception 'PDF template settings did not reach schemaVersion 2.';
+  end if;
+
   if exists (
     select 1
       from public.order_email_settings

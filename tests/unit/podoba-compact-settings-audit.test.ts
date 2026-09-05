@@ -20,6 +20,9 @@ const landingSource = sourceFor('AdminLandingPageClient.tsx');
 const logoSource = sourceFor('AdminLogoPageClient.tsx');
 const logoTextSource = sourceFor('SiteLogoTextLayerControls.tsx');
 const navigationSource = sourceFor('AdminNavigationPageClient.tsx');
+const navigationAppearanceStyles = readFileSync(
+  resolve(componentsDirectory, 'AdminNavigationAppearance.module.css'), 'utf8'
+);
 const globalSource = sourceFor('AdminGlobalStylePageClient.tsx');
 const productPageSource = sourceFor('AdminProductAppearancePageClient.tsx');
 const productToolbarSource = sourceFor('ProductAppearanceContextToolbar.tsx');
@@ -148,8 +151,15 @@ test('page-level product and top-bar typography selectors pin the light admin to
   ]) {
     const select = compactSelectOpeningTagForMarker(navigationSource, marker);
     assert.match(select, /tone="light"/u);
-    assert.match(select, /triggerClassName="[^"]*!h-9[^"]*!rounded-lg[^"]*!bg-white/u);
+    assert.match(select, /triggerClassName="[^"]*!rounded-lg[^"]*!bg-white/u);
   }
+
+  assert.match(navigationSource, /\$\{styles\.panel\} grid h-full/u);
+  assert.match(
+    navigationAppearanceStyles,
+    /\.panel \[data-appearance-editor-compact-select-trigger\]\s*\{\s*height: 28px !important;/u
+  );
+  assert.doesNotMatch(navigationAppearanceStyles, /(?:transform|zoom|overflow):/u);
 
   const colorsRowIndex = navigationSource.indexOf('data-testid="top-bar-colors-row"');
   const typographyRowIndex = navigationSource.indexOf('data-testid="top-bar-typography-row"');

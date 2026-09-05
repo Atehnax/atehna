@@ -22,6 +22,7 @@ const VISUAL_QUOTE_TITLE = 'Preglej ponudbo g j p q';
 const VISUAL_QUOTE_EMAIL = 'visual.gjpq@example.com';
 const VISUAL_ORDER_EMAIL = 'visual.order.gjpq@example.com';
 const VISUAL_ORDER_NUMBER = '#987654';
+const VISUAL_PUBLIC_CODE_BASE = '7K3M-4X9P-2D6R-8H4Q';
 const FIXED_TIMESTAMP = '2026-08-30T17:00:00.000Z';
 const VIEWPORTS = [
   { key: 'desktop', width: 1095, height: 920 },
@@ -562,9 +563,30 @@ async function normalizeVolatileOrderNumbers(page: Page) {
   }
 }
 
+async function normalizeVolatilePublicCodes(page: Page) {
+  await page.evaluate((stableBase) => {
+    const publicCodePattern = /\b(N|PV|PN)-(?:[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}-){3}[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}(-V[1-9]\d*)?\b/gu;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      if (node.nodeValue) {
+        // Public codes are immutable: normalize only rendered random text, not
+        // database records, code prefixes/versions, controls, or their geometry.
+        node.nodeValue = node.nodeValue.replace(
+          publicCodePattern,
+          (_match, prefix: string, version: string | undefined) =>
+            `${prefix}-${stableBase}${version ?? ''}`
+        );
+      }
+      node = walker.nextNode();
+    }
+  }, VISUAL_PUBLIC_CODE_BASE);
+}
+
 async function expectPageScreenshot(page: Page, name: string, masks: Locator[] = []) {
   await normalizeVolatileActivityTimestamps(page);
   await normalizeVolatileOrderNumbers(page);
+  await normalizeVolatilePublicCodes(page);
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',

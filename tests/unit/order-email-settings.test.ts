@@ -280,7 +280,7 @@ describe('order email settings', () => {
         order_submitted: {
           customer: {
             subject: '  Prejeto {{customer_name}}  ',
-            body: '  Prva vrstica.\r\nDruga vrstica.  '
+            contentHtml: '  <p>Pozdravljeni, {{recipient_name}},</p><h1>Prejeto {{customer_name}}</h1><p>Prva vrstica.<br>Druga vrstica.</p>  '
           }
         }
       },
@@ -320,7 +320,7 @@ describe('order email settings', () => {
     assert.equal(normalized.updatedAt, '2026-08-24T09:00:00.000Z');
   });
 
-  test('upgrades legacy version two settings with an independent default school template', () => {
+  test('does not reconstruct old plain-text settings and retains independent current defaults', () => {
     const legacy = normalizeOrderEmailSettings({
       version: 2,
       templates: {
@@ -344,7 +344,7 @@ describe('order email settings', () => {
     assert.equal(legacy.templates.order_submitted.customer.subject, 'Legacy customer');
     assert.equal(
       legacy.templates.order_submitted.customer.contentHtml,
-      '<p>Pozdravljeni, {{recipient_name}},</p><h1>Legacy customer</h1><p>Legacy customer body</p>'
+      DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer.contentHtml
     );
     assert.deepEqual(
       legacy.templates.order_submitted.companyCustomer,
@@ -414,16 +414,36 @@ describe('order email settings', () => {
     );
   });
 
-  test('copies legacy customer customizations into new company and school status variants', () => {
+  test('rejects retired template fields without interpreting them as rich text', () => {
+    for (const field of ['greeting', 'heading', 'body']) {
+      const settings = configuredSettings();
+      const raw = {
+        ...settings,
+        templates: {
+          ...settings.templates,
+          order_submitted: {
+            ...settings.templates.order_submitted,
+            customer: {
+              subject: settings.templates.order_submitted.customer.subject,
+              [field]: 'RETIRED CONTENT'
+            }
+          }
+        }
+      };
+      const normalized = normalizeOrderEmailSettings(raw);
+      assert.deepEqual(normalized.templates.order_submitted.customer, DEFAULT_ORDER_EMAIL_SETTINGS.templates.order_submitted.customer);
+      assert.ok(validateOrderEmailSettingsInput(raw).some((error) => /nepodprta polja/u.test(error)));
+    }
+  });
+
+  test('copies current rich-text customer customizations into omitted audience variants', () => {
     const normalized = normalizeOrderEmailSettings({
-      version: 5,
+      version: 8,
       templates: {
         in_progress: {
           customer: {
-            subject: 'Legacy status',
-            greeting: 'Pozdravljeni, {{recipient_name}},',
-            heading: 'Status za {{customer_name}}',
-            body: 'Trenutni status: {{status}}.'
+            subject: 'Customer status',
+            contentHtml: '<p>Pozdravljeni, {{recipient_name}},</p><h1>Status za {{customer_name}}</h1><p>Trenutni status: {{status}}.</p>'
           }
         }
       }
@@ -440,7 +460,7 @@ describe('order email settings', () => {
     normalized.templates.in_progress.companyCustomer.subject = 'Changed';
     assert.equal(
       normalized.templates.in_progress.customer.subject,
-      'Legacy status'
+      'Customer status'
     );
   });
 
@@ -574,7 +594,7 @@ describe('order email settings', () => {
     const settings = configuredSettings();
     settings.templates.order_submitted.customer = {
       subject: 'Prejeto {{order_number}}',
-      body: 'Pozdravljeni, {{customer_name}}. {{unknown_value}}'
+      contentHtml: '<p>Pozdravljeni, {{customer_name}}. {{unknown_value}}</p>'
     };
     const errors = validateOrderEmailSettingsInput(settings);
     assert.ok(errors.some((error) => /\{\{order_number\}\}/u.test(error)));
@@ -582,9 +602,7 @@ describe('order email settings', () => {
 
     settings.templates.order_submitted.customer = {
       subject: 'Prejeto za {{customer_name}}',
-      greeting: 'Pozdravljeni, {{recipient_name}},',
-      heading: 'Naročilo za {{organization_name}}',
-      body: 'Status: {{status}}; prej: {{previous_status}}'
+      contentHtml: '<p>Pozdravljeni, {{recipient_name}},</p><h1>Naročilo za {{organization_name}}</h1><p>Status: {{status}}; prej: {{previous_status}}</p>'
     };
     assert.deepEqual(validateOrderEmailSettingsInput(settings), []);
   });
@@ -593,7 +611,7 @@ describe('order email settings', () => {
     const settings = configuredSettings();
     settings.templates.order_submitted.schoolCustomer = {
       subject: 'Prejeto {{organization_name}}',
-      body: 'Interna referenca {{order_number}} za {{contact_name}}.'
+      contentHtml: '<p>Interna referenca {{order_number}} za {{contact_name}}.</p>'
     };
 
     const errors = validateOrderEmailSettingsInput(settings);
@@ -963,8 +981,8 @@ describe('order email templates', () => {
     ) as Extract<OrderEmailJobPayload, { audience: 'customer' }>;
     payload.settingsSnapshot.templates.order_submitted.schoolCustomer = {
       subject: '{{organization_name}}: nalo\u017eite naro\u010dilnico',
-      body:
-        'Kontakt {{contact_name}}, za naro\u010dnika {{organization_name}} uporabite referenco {{reference}}.'
+      contentHtml:
+        '<p>Kontakt {{contact_name}}, za naro\u010dnika {{organization_name}} uporabite referenco {{reference}}.</p>'
     };
     Object.assign(payload.order, {
       orderId: 42,
@@ -1084,6 +1102,19 @@ describe('order email templates', () => {
     }
   });
 
+  test('renderer never reads retired plain-text fields from a settings snapshot', () => {
+    const payload = jobPayload('customer', 'order_submitted');
+    Object.assign(payload.settingsSnapshot.templates.order_submitted.companyCustomer, {
+      contentHtml: '',
+      greeting: 'RETIRED GREETING',
+      heading: 'RETIRED HEADING',
+      body: 'RETIRED BODY'
+    });
+    const message = buildOrderEmailMessage(payload);
+    assert.doesNotMatch(message.html + message.text, /RETIRED/u);
+    assert.match(message.text, /Prejeli smo vaše naročilo/u);
+  });
+
   test('renders editable admin content and a safe admin order link', () => {
     const payload = jobPayload(
       'admin',
@@ -1091,10 +1122,8 @@ describe('order email templates', () => {
     ) as Extract<OrderEmailJobPayload, { audience: 'admin' }>;
     payload.settingsSnapshot.templates.partially_sent.admin = {
       subject: 'Uredi {{order_number}}: {{status}}',
-      greeting: 'Dober dan, {{recipient_name}}.',
-      heading: 'Pregled naročila {{order_number}}',
-      body:
-        'Status {{order_number}} iz {{previous_status}} v {{status}} za {{customer_email}}.'
+      contentHtml:
+        '<p>Dober dan, {{recipient_name}}.</p><h1>Pregled naročila {{order_number}}</h1><p>Status {{order_number}} iz {{previous_status}} v {{status}} za {{customer_email}}.</p>'
     };
     const message = buildOrderEmailMessage(payload);
 

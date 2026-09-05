@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   expect(login.ok()).toBeTruthy();
 });
 
-async function expectLightSelect(trigger: Locator, expectedHeight: number) {
+async function expectLightSelect(trigger: Locator, expectedHeight: number, expectedRadius = 6) {
   await expect(trigger).toBeVisible({ timeout: 15_000 });
   await expect(trigger).toHaveAttribute('data-appearance-editor-compact-select-tone', 'light');
 
@@ -37,7 +37,7 @@ async function expectLightSelect(trigger: Locator, expectedHeight: number) {
 
   expect(presentation.backgroundColor).toBe('rgb(255, 255, 255)');
   expect(Math.max(...presentation.textRgb)).toBeLessThan(140);
-  expect(presentation.borderRadius).toBe(6);
+  expect(presentation.borderRadius).toBe(expectedRadius);
   expect(Math.abs(presentation.height - expectedHeight)).toBeLessThanOrEqual(0.5);
 }
 
@@ -71,7 +71,7 @@ test.describe('Podoba light dropdowns', () => {
     const style = getAppearanceEditorCompactSelect(appearance, 'Slog pisave zgornje vrstice');
 
     for (const select of [family, weight, style]) {
-      await expectLightSelect(select, 36);
+      await expectLightSelect(select, 28, 8);
     }
 
     const [rowBox, familyBox, weightBox, styleBox] = await Promise.all(

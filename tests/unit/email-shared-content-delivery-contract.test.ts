@@ -40,7 +40,7 @@ test('quote outbox snapshots canonical rich content, shared header, footer, and 
   );
   assert.match(
     quoteTemplates,
-    /const content = renderEmailTemplateRichText\([\s\S]*?configuredContent \|\| legacyContent,[\s\S]*?variables[\s\S]*?\);/u
+    /const content = renderEmailTemplateRichText\([\s\S]*?configuredContent \|\| defaultContent,[\s\S]*?variables[\s\S]*?\);/u
   );
   assert.match(
     quoteTemplates,

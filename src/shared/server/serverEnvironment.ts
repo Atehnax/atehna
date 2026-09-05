@@ -1,7 +1,5 @@
 import 'server-only';
 import {
-  DATABASE_URL_ENV_KEYS,
-  inspectDatabaseUrlEnvironment as inspectDatabaseUrlEnvironmentCore,
   resolveDatabasePoolRuntimeConfig as resolveDatabasePoolRuntimeConfigCore,
   resolveDatabaseSslConfig as resolveDatabaseSslConfigCore,
   resolveDatabaseUrl as resolveDatabaseUrlCore,
@@ -11,17 +9,13 @@ import {
 import type {
   DatabasePoolRuntimeConfig,
   DatabaseSslConfig,
-  DatabaseUrlEnvironmentMetadata,
   EnvironmentSource,
   QuoteFeatureFlags
 } from './environmentCore.mjs';
 
-export { DATABASE_URL_ENV_KEYS };
 export type {
   DatabasePoolRuntimeConfig,
   DatabaseSslConfig,
-  DatabaseUrlEnvironmentKey,
-  DatabaseUrlEnvironmentMetadata,
   EnvironmentSource,
   QuoteFeatureFlags
 } from './environmentCore.mjs';
@@ -30,12 +24,6 @@ export function resolveDatabaseUrl(
   environment: EnvironmentSource = process.env
 ): string | null {
   return resolveDatabaseUrlCore(environment);
-}
-
-export function inspectDatabaseUrlEnvironment(
-  environment: EnvironmentSource = process.env
-): DatabaseUrlEnvironmentMetadata {
-  return inspectDatabaseUrlEnvironmentCore(environment);
 }
 
 export function resolvePostgresSslMode(

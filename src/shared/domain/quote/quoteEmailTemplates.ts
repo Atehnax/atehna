@@ -10,7 +10,7 @@ import {
   TRANSACTIONAL_EMAIL_COPY_STYLE
 } from '../transactionalEmailHtml';
 import {
-  legacyEmailTemplateContentHtml,
+  createEmailTemplateContentHtml,
   renderEmailTemplateRichText,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
@@ -152,28 +152,19 @@ export function buildQuoteEmailMessage(
     typeof audienceTemplate.contentHtml === 'string'
       ? sanitizeEmailTemplateRichText(audienceTemplate.contentHtml)
       : '';
-  const legacyContent = legacyEmailTemplateContentHtml({
-    greeting:
-      typeof audienceTemplate.greeting === 'string'
-        ? audienceTemplate.greeting
-        : defaultGreeting,
-    heading:
-      typeof audienceTemplate.heading === 'string'
-        ? audienceTemplate.heading
-        : templateSubject,
-    body:
-      typeof audienceTemplate.body === 'string'
-        ? audienceTemplate.body
-        : defaultBody
+  const defaultContent = createEmailTemplateContentHtml({
+    greeting: defaultGreeting,
+    heading: defaultSubject,
+    body: defaultBody
   });
   const content = renderEmailTemplateRichText(
-    configuredContent || legacyContent,
+    configuredContent || defaultContent,
     variables
   );
   const detail = input.detail?.trim() || '';
   const detailContent = detail
     ? renderEmailTemplateRichText(
-        legacyEmailTemplateContentHtml({ body: detail }),
+        createEmailTemplateContentHtml({ body: detail }),
         {}
       )
     : { html: '', text: '' };

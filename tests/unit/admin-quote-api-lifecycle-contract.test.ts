@@ -254,7 +254,7 @@ test('clarification is idempotently recorded before an optional isolated custome
     admins: true
   });
   fixedClarificationRecipients.templates.quote_clarification_requested.admin.subject = '';
-  fixedClarificationRecipients.templates.quote_clarification_requested.admin.body = '';
+  fixedClarificationRecipients.templates.quote_clarification_requested.admin.contentHtml = '';
   assert.equal(
     validateQuoteEmailSettings(fixedClarificationRecipients).some((error) =>
       error.includes('quote_clarification_requested/admin')

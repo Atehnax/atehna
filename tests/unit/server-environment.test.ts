@@ -3,7 +3,6 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  inspectDatabaseUrlEnvironment,
   resolveDatabaseSslConfig,
   resolveDatabaseUrl,
   resolvePostgresSslMode,
@@ -19,8 +18,10 @@ test('runtime environment access is behind the server-only wrapper', () => {
   assert.match(wrapper, /= process\.env/gmu);
 });
 
-test('database URL resolution preserves supported precedence and raw value', () => {
+test('database URL resolution requires DATABASE_URL and preserves its configured value', () => {
   assert.equal(resolveDatabaseUrl({}), null);
+  assert.equal(resolveDatabaseUrl({ DATABASE_URL: '' }), null);
+  assert.equal(resolveDatabaseUrl({ DATABASE_URL: '   ' }), null);
   assert.equal(
     resolveDatabaseUrl({
       DATABASE_URL: '   ',
@@ -28,7 +29,7 @@ test('database URL resolution preserves supported precedence and raw value', () 
       POSTGRES_PRISMA_URL: 'postgresql://prisma-url',
       SUPABASE_DB_URL: 'postgresql://supabase-url'
     }),
-    'postgresql://postgres-url'
+    null
   );
   assert.equal(
     resolveDatabaseUrl({
@@ -39,49 +40,40 @@ test('database URL resolution preserves supported precedence and raw value', () 
   );
 });
 
-test('database URL metadata identifies aliases and conflicts without secrets', () => {
-  const sharedUrl = 'postgresql://user:same-secret@database.example/app';
-  assert.deepEqual(
-    inspectDatabaseUrlEnvironment({
-      DATABASE_URL: ' ' + sharedUrl + ' ',
-      POSTGRES_URL: sharedUrl,
-      POSTGRES_PRISMA_URL: ''
-    }),
-    {
-      selectedKey: 'DATABASE_URL',
-      configuredKeys: ['DATABASE_URL', 'POSTGRES_URL'],
-      hasConflictingValues: false
-    }
-  );
-
-  const metadata = inspectDatabaseUrlEnvironment({
-    DATABASE_URL: 'postgresql://primary-user:primary-secret@primary.example/app',
-    POSTGRES_URL: 'postgresql://legacy-user:legacy-secret@legacy.example/app'
-  });
-  assert.deepEqual(metadata, {
-    selectedKey: 'DATABASE_URL',
-    configuredKeys: ['DATABASE_URL', 'POSTGRES_URL'],
-    hasConflictingValues: true
-  });
-
-  const serialized = JSON.stringify(metadata);
-  assert.doesNotMatch(
-    serialized,
-    /primary-secret|legacy-secret|primary\.example|legacy\.example/u
-  );
+test('obsolete database URL aliases cannot select an application database', () => {
+  for (const key of ['POSTGRES_URL', 'POSTGRES_PRISMA_URL', 'SUPABASE_DB_URL']) {
+    assert.equal(resolveDatabaseUrl({ [key]: 'postgresql://unselected.example/app' }), null);
+    assert.equal(
+      resolveDatabaseUrl({ DATABASE_URL: '', [key]: 'postgresql://unselected.example/app' }),
+      null
+    );
+  }
 });
 
-test('database URL resolution and metadata are evaluated on every call', () => {
+test('database URL resolution is evaluated on every call', () => {
   const environment: Record<string, string | undefined> = {};
   assert.equal(resolveDatabaseUrl(environment), null);
-  assert.deepEqual(inspectDatabaseUrlEnvironment(environment).configuredKeys, []);
 
-  environment.POSTGRES_PRISMA_URL = 'postgresql://late-bound-url';
+  environment.DATABASE_URL = 'postgresql://late-bound-url';
   assert.equal(resolveDatabaseUrl(environment), 'postgresql://late-bound-url');
-  assert.deepEqual(
-    inspectDatabaseUrlEnvironment(environment).configuredKeys,
-    ['POSTGRES_PRISMA_URL']
+  environment.DATABASE_URL = undefined;
+  assert.equal(resolveDatabaseUrl(environment), null);
+});
+
+test('localhost launchers keep explicit E2E isolation without database aliases', () => {
+  const e2eServer = readFileSync(resolve(process.cwd(), 'scripts/e2e-server.mjs'), 'utf8');
+  const localhost = readFileSync(resolve(process.cwd(), 'scripts/start-localhost.ps1'), 'utf8');
+  const environmentCore = readFileSync(resolve(process.cwd(), 'src/shared/server/environmentCore.mjs'), 'utf8');
+
+  assert.doesNotMatch(
+    [e2eServer, localhost, environmentCore].join('\n'),
+    /POSTGRES_URL|POSTGRES_PRISMA_URL|SUPABASE_DB_URL|DATABASE_URL_ENV_KEYS|inspectDatabaseUrlEnvironment/u
   );
+  assert.match(e2eServer, /const \{ databaseUrl \} = readE2eEnvironment\(\)/u);
+  assert.match(e2eServer, /DATABASE_URL: databaseUrl/u);
+  assert.match(localhost, /-Name 'E2E_DATABASE_URL'/u);
+  assert.match(localhost, /if \(\$e2eDatabaseUrl -ne \$databaseUrl\)/u);
+  assert.match(localhost, /Refusing to start localhost with a non-loopback database/u);
 });
 
 test('PostgreSQL SSL mode preserves trimming, case normalization, and empty values', () => {

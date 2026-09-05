@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   emailTemplateRichTextToPlainText,
   emailTemplateVariables,
-  legacyEmailTemplateContentHtml,
+  createEmailTemplateContentHtml,
   renderEmailTemplateRichText,
   sanitizeEmailTemplateRichText
 } from '../../src/shared/domain/emailTemplateRichText';
@@ -20,8 +20,8 @@ test('email rich text preserves formatting but removes active and remote content
   assert.doesNotMatch(sanitized, /javascript|tracker|script/iu);
 });
 
-test('legacy email fields become one semantic rich-text document', () => {
-  const content = legacyEmailTemplateContentHtml({
+test('default email copy composes one escaped semantic rich-text document', () => {
+  const content = createEmailTemplateContentHtml({
     greeting: 'Pozdravljeni, {{recipient_name}},',
     heading: 'Vaše naročilo je pripravljeno',
     body: 'Prva vrstica.\nDruga vrstica.\n\nHvala.'

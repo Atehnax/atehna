@@ -202,7 +202,7 @@ test.describe('Navigation top-bar appearance', () => {
     expect(weightBox.x).toBeLessThan(styleBox.x);
 
     expect(widthBox.y).toBeGreaterThan(typographyRowBox.y + typographyRowBox.height);
-    expect(widthModesBox.y - (widthHeadingBox.y + widthHeadingBox.height)).toBeGreaterThanOrEqual(6);
+    expect(widthModesBox.y - (widthHeadingBox.y + widthHeadingBox.height)).toBeGreaterThanOrEqual(4);
     expect(dimensionsBox.y - (widthBox.y + widthBox.height)).toBeGreaterThanOrEqual(10);
 
     expect(Math.abs(heightBox.y - breakpointBox.y)).toBeLessThanOrEqual(4);

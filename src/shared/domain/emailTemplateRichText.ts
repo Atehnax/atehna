@@ -111,7 +111,8 @@ function plainTextBlocks(value: unknown): string {
     .join('');
 }
 
-export function legacyEmailTemplateContentHtml(input: {
+/** Compose safe default content or plain-text details for the rich-text renderer. */
+export function createEmailTemplateContentHtml(input: {
   greeting?: unknown;
   heading?: unknown;
   body?: unknown;

@@ -46,18 +46,9 @@ $environmentPath = Join-Path $projectRoot '.env.development.local'
 $environmentValues = Read-LocalEnvironment -Path $environmentPath
 
 $databaseUrl = Require-EnvironmentValue -Values $environmentValues -Name 'DATABASE_URL'
-$databaseKeys = @(
-  'DATABASE_URL',
-  'POSTGRES_URL',
-  'POSTGRES_PRISMA_URL',
-  'SUPABASE_DB_URL',
-  'E2E_DATABASE_URL'
-)
-foreach ($databaseKey in $databaseKeys) {
-  $candidate = Require-EnvironmentValue -Values $environmentValues -Name $databaseKey
-  if ($candidate -ne $databaseUrl) {
-    throw "$databaseKey must match DATABASE_URL exactly for isolated localhost use."
-  }
+$e2eDatabaseUrl = Require-EnvironmentValue -Values $environmentValues -Name 'E2E_DATABASE_URL'
+if ($e2eDatabaseUrl -ne $databaseUrl) {
+  throw 'E2E_DATABASE_URL must match DATABASE_URL exactly for isolated localhost use.'
 }
 
 try {

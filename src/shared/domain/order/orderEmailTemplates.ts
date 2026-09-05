@@ -9,7 +9,6 @@ import {
   TRANSACTIONAL_EMAIL_TABLE_STYLE
 } from '../transactionalEmailHtml';
 import {
-  legacyEmailTemplateContentHtml,
   renderEmailTemplateRichText,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
@@ -417,34 +416,8 @@ function buildTemplateContent(payload: OrderEmailJobPayload): {
     safeHeaderText(renderTemplate(defaults.subject, variables));
   const prefix = safeHeaderText(payload.settingsSnapshot.subjectPrefix);
   const prefixText = prefix ? `[${prefix}] ` : '';
-  const richContent = (
-    template: typeof configured,
-    fallback: typeof defaults
-  ) => {
-    const source = template as unknown as Record<string, unknown>;
-    const fallbackSource = fallback as unknown as Record<string, unknown>;
-    if (typeof source.contentHtml === 'string') {
-      const sanitized = sanitizeEmailTemplateRichText(source.contentHtml);
-      if (sanitized) return sanitized;
-    }
-    if (
-      typeof source.greeting === 'string' ||
-      typeof source.heading === 'string' ||
-      typeof source.body === 'string'
-    ) {
-      return legacyEmailTemplateContentHtml({
-        greeting:
-          source.greeting ??
-          fallbackSource.greeting ??
-          'Pozdravljeni, {{recipient_name}},',
-        heading: source.heading ?? source.subject ?? fallback.subject,
-        body: source.body ?? fallbackSource.body ?? ''
-      });
-    }
-    return fallback.contentHtml ?? '';
-  };
   const renderedContent = renderEmailTemplateRichText(
-    richContent(configured, defaults),
+    sanitizeEmailTemplateRichText(configured.contentHtml) || defaults.contentHtml,
     variables
   );
   const fallbackContent = renderedContent.text

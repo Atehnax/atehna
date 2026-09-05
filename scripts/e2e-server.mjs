@@ -20,9 +20,6 @@ async function main() {
       env: {
         ...process.env,
         DATABASE_URL: databaseUrl,
-        POSTGRES_URL: databaseUrl,
-        POSTGRES_PRISMA_URL: databaseUrl,
-        SUPABASE_DB_URL: databaseUrl,
         PGSSLMODE: 'disable',
         BLOB_READ_WRITE_TOKEN: 'e2e-external-blob-disabled',
         E2E_LOCAL_PRIVATE_BLOB: '1',

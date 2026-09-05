@@ -246,7 +246,9 @@ The customer-facing template contract exposes only these new identifiers and has
 no runtime alias for sequential customer variables. The guarded database rewrite
 below is the sole transition mechanism. Keep customer order/quote creation and
 both email workers paused from deployment until the rewrite and verification
-finish.
+finish. Pause PDF-template editing and new PDF generation for the same window.
+Saved PDF layouts also use this one-time rewrite; application reads do not
+perform a version-dependent public-code layout conversion.
 
 First inventory every customer envelope that could still be delivered or
 retried. This query is read-only:
@@ -293,7 +295,7 @@ set atehna.public_code_email_templates_app_ready = 'v1';
 ```
 
 The migration requires exact schema contract `20260904.prelaunch-v2`,
-upgrades only the stored order settings row keyed
+upgrades the stored order settings row keyed
 `order-email-notifications` to version 8 and the quote settings row keyed
 `default` to version 2, and checks that the old sequential variables are gone
 from customer/company/school fields. It rejects unknown future settings
@@ -301,10 +303,32 @@ versions, malformed settings, any administrator-template change, and any
 remaining deliverable legacy customer envelope. It does not create missing
 settings rows or mutate jobs.
 
-After commit, verify the two settings versions, inspect representative
+The same transaction upgrades the `global_style_settings` row keyed
+`order-document-templates` to `schemaVersion: 2`. For saved offer, pre-invoice,
+and invoice metadata row arrays without a public-code row, it inserts the new
+row immediately after the issue date (or first if that date is absent). It
+preserves custom row order, labels, positioning, styling, all existing hidden
+rows, and every other template field. An existing public-code row is never
+duplicated or made visible. Missing layouts continue to use current defaults;
+already-v2 layouts are not changed. No issued document record or PDF blob is
+rewritten or renumbered. Rehearse this block with customized, hidden-code,
+empty-row, missing-layout, already-v2, malformed, and future-version fixtures.
+
+After commit, invalidate the `order-document-templates-config` Data Cache tag
+through approved deployment cache controls before opening a PDF editor or
+generating a new PDF. This raw-settings cache persists across deployments;
+browser refresh and an ordinary redeploy are not sufficient. If tag invalidation
+is unavailable, deploy a reviewed cache-key version change in
+`ORDER_DOCUMENT_TEMPLATES_CACHE_VERSION` after the SQL has committed. Do not save
+a stale pre-cutover editor form to refresh the cache. Read the admin PDF-settings
+API after invalidation and compare its metadata rows with the committed database
+settings before releasing the maintenance window.
+
+Then verify all three settings versions, inspect representative
 customer templates for every event class, send one new order and one new quote
-test email, and confirm only the opaque public codes appear. Then re-enable
-customer writes and workers. Runtime code must not normalize, translate, or
+test email, and confirm only the opaque public codes appear. Preview new PDFs
+and compare the saved row order/hidden choices before resuming PDF editing and
+generation. Then re-enable customer writes and workers. Runtime code must not normalize, translate, or
 otherwise accept sequential customer template variables; retain only the
 administrator-only internal variables and this auditable migration artifact.
 

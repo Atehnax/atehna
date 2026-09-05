@@ -120,6 +120,7 @@ import {
 } from '@/shared/domain/logo/siteLogo';
 import { sortTopBarTableItemsByResolvedX } from '../lib/topBarTableOrder';
 import AdminPodobaTabs from './AdminPodobaTabs';
+import styles from './AdminNavigationAppearance.module.css';
 import {
   AppearanceEditorAlignmentControl,
   AppearanceEditorCompactSelect,
@@ -1479,6 +1480,7 @@ function TopBarUnitNumberInput({
 
   return (
     <span
+      data-top-bar-unit-control
       className={`inline-flex items-center overflow-hidden rounded-md border bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
         simulatorStyle
           ? 'h-9 border-slate-300 text-slate-700'
@@ -1925,6 +1927,7 @@ function TopBarMiniRangeField({
         {label}
       </TopBarHelpLabel>
       <span
+        data-top-bar-unit-control
         className={`inline-flex ${rowLayout ? 'ml-auto h-7 w-[128px]' : 'h-9 w-full'} items-center overflow-hidden rounded-md border ${rowLayout ? 'border-slate-200' : 'border-slate-300'} bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
           active ? topBarActiveFieldClassName : ''
         }`}
@@ -2032,6 +2035,7 @@ function TopBarMiniBreakpointField({
         {label}
       </TopBarHelpLabel>
       <span
+        data-top-bar-unit-control
         className={`inline-flex ${rowLayout ? 'ml-auto h-7 w-[128px]' : 'h-9 w-full'} items-center overflow-hidden rounded-md border ${rowLayout ? 'border-slate-200' : 'border-slate-300'} bg-white text-[12px] leading-none transition focus-within:border-[color:var(--blue-500)] ${
           active ? topBarActiveFieldClassName : ''
         }`}
@@ -5128,7 +5132,7 @@ function TopBarLayoutEditor({
 
           <div className="order-2 min-w-0 self-stretch border-t border-slate-100 pt-4 min-[1280px]:col-start-2 min-[1280px]:row-start-3 min-[1280px]:border-t-0 min-[1280px]:pt-0">
             <aside
-              className="grid h-full min-w-0 content-start gap-5 rounded-xl border border-slate-200 bg-white p-5 md:p-6"
+              className={`${styles.panel} grid h-full min-w-0 content-start rounded-xl border border-slate-200 bg-white`}
               data-testid="top-bar-settings-panel"
               data-appearance-editor-settings-surface
               data-settings-scroll="none"

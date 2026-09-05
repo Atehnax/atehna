@@ -13,7 +13,8 @@ import {
   removeOrderDocumentFieldRow,
   resolveOrderDocumentFieldRows,
   restoreOrderDocumentFieldRow,
-  setOrderDocumentFieldRows
+  setOrderDocumentFieldRows,
+  validateOrderDocumentTemplatesInput
 } from '../../src/shared/domain/order/orderDocumentTemplates';
 
 const canvasSource = readFileSync(
@@ -132,46 +133,48 @@ test('document metadata rows can be reordered, deleted, normalized, and restored
   );
 });
 
-test('saved PDF templates receive the customer-code row once and later edits stay authoritative', () => {
-  const legacy = cloneDefaultOrderDocumentTemplatesConfig() as unknown as {
-    schemaVersion?: number;
-    templates: ReturnType<typeof cloneDefaultOrderDocumentTemplatesConfig>['templates'];
-  };
-  delete legacy.schemaVersion;
-  legacy.templates.invoice = setOrderDocumentFieldRows(
-    legacy.templates.invoice,
-    'document_meta',
-    resolveOrderDocumentFieldRows(legacy.templates.invoice, 'document_meta')
-      .filter((row) => row.id !== 'public_code')
-  );
-
-  const migrated = normalizeOrderDocumentTemplatesConfig(legacy);
-  assert.equal(migrated.schemaVersion, 2);
-  assert.equal(
-    resolveOrderDocumentFieldRows(migrated.templates.invoice, 'document_meta')
-      .some((row) => row.id === 'public_code'),
-    true
-  );
-
-  const edited = {
-    ...migrated,
-    templates: {
-      ...migrated.templates,
-      invoice: removeOrderDocumentFieldRow(
-        migrated.templates.invoice,
-        'document_meta',
-        'public_code'
-      )
+test('saved PDF layouts are authoritative regardless of stored version', () => {
+  for (const schemaVersion of [undefined, 1, 2]) {
+    const config = cloneDefaultOrderDocumentTemplatesConfig();
+    for (const type of ['offer', 'predracun', 'invoice'] as const) {
+      config.templates[type] = removeOrderDocumentFieldRow(
+        config.templates[type], 'document_meta', 'public_code'
+      );
     }
-  };
-  const normalizedEdit = normalizeOrderDocumentTemplatesConfig(edited);
-  assert.equal(
-    resolveOrderDocumentFieldRows(
-      normalizedEdit.templates.invoice,
-      'document_meta'
-    ).some((row) => row.id === 'public_code'),
-    false
-  );
+    const normalized = normalizeOrderDocumentTemplatesConfig({
+      ...config, schemaVersion
+    });
+    assert.equal(normalized.schemaVersion, 2);
+    for (const type of ['offer', 'predracun', 'invoice'] as const) {
+      assert.equal(
+        resolveOrderDocumentFieldRows(normalized.templates[type], 'document_meta')
+          .some((row) => row.id === 'public_code'),
+        false,
+        `Normalizing ${type} must not migrate a saved version ${schemaVersion} layout`
+      );
+    }
+  }
+});
+
+test('PDF defaults include public codes without overriding saved hidden rows', () => {
+  const config = cloneDefaultOrderDocumentTemplatesConfig();
+  for (const type of ['offer', 'predracun', 'invoice'] as const) {
+    const defaults = resolveOrderDocumentFieldRows(config.templates[type], 'document_meta');
+    assert.equal(defaults.find((row) => row.id === 'public_code')?.visible, true);
+    config.templates[type] = setOrderDocumentFieldRows(
+      config.templates[type],
+      'document_meta',
+      defaults.map((row) => row.id === 'public_code' ? { ...row, visible: false } : row)
+    );
+  }
+  const normalized = normalizeOrderDocumentTemplatesConfig(config);
+  for (const type of ['offer', 'predracun', 'invoice'] as const) {
+    assert.equal(
+      resolveOrderDocumentFieldRows(normalized.templates[type], 'document_meta')
+        .find((row) => row.id === 'public_code')?.visible,
+      false
+    );
+  }
 });
 
 test('Datum is the first natural order-data row and never a title row for all document types', () => {
@@ -186,186 +189,77 @@ test('Datum is the first natural order-data row and never a title row for all do
   }
 });
 
-test('normalization migrates legacy title Datum once while preserving safe presentation data', () => {
-  const legacy = cloneDefaultOrderDocumentTemplate('invoice') as unknown as {
-    layout: Record<string, unknown>;
-  };
-  legacy.layout.fieldRows = {
-    title: [
-      { id: 'title_text', visible: true },
-      {
-        id: 'issue_date',
-        visible: true,
-        typography: { fontFamily: 'barlow', fontWeight: 'semibold', fontSizePt: 9 },
-        decoration: { outlineEnabled: true, outlineColor: '#D6A900' },
-        placement: { xMm: 70, yMm: 4, widthMm: 35, heightMm: 7 }
-      },
-      { id: 'subtitle', visible: true }
-    ],
-    document_meta: [
-      { id: 'order_date', visible: true },
-      { id: 'due_date', visible: true }
-    ]
-  };
-
-  const migrated = normalizeOrderDocumentTemplate('invoice', legacy);
-  const titleRows = resolveOrderDocumentFieldRows(migrated, 'title');
-  const metadataRows = resolveOrderDocumentFieldRows(migrated, 'document_meta');
-  assert.equal(titleRows.some((row) => row.id === 'issue_date'), false);
-  assert.equal(metadataRows.filter((row) => row.id === 'issue_date').length, 1);
-  assert.equal(metadataRows[0]?.id, 'issue_date');
-  assert.deepEqual(metadataRows[0]?.typography, {
-    fontFamily: 'barlow',
-    fontWeight: 'semibold',
-    fontSizePt: 9
-  });
-  assert.deepEqual(metadataRows[0]?.decoration, {
-    outlineEnabled: true,
-    outlineColor: '#D6A900'
-  });
-  assert.equal(
-    metadataRows[0]?.placement,
-    undefined,
-    'flow-owned legacy coordinates are unsafe in the metadata owner and must reset'
-  );
+test('editing current title rows preserves default metadata and Datum for every document type', () => {
+  for (const type of ['order_summary', 'offer', 'dobavnica', 'predracun', 'invoice'] as const) {
+    const original = cloneDefaultOrderDocumentTemplate(type);
+    const expectedMetadata = resolveOrderDocumentFieldRows(original, 'document_meta');
+    const edited = setOrderDocumentFieldRows(
+      original,
+      'title',
+      resolveOrderDocumentFieldRows(original, 'title').map((row) => ({
+        ...row,
+        typography: { fontSizePt: 15 }
+      }))
+    );
+    const normalized = normalizeOrderDocumentTemplate(type, JSON.parse(JSON.stringify(edited)));
+    assert.deepEqual(resolveOrderDocumentFieldRows(normalized, 'document_meta'), expectedMetadata);
+    assert.equal(normalized.layout.fieldRows?.document_meta, undefined, 'title edits must not materialize metadata');
+    assert.equal(resolveOrderDocumentFieldRows(normalized, 'document_meta')[0]?.id, 'issue_date');
+    assert.deepEqual(normalizeOrderDocumentTemplate(type, normalized), normalized);
+  }
 });
 
-test('legacy title Datum deletion remains deleted and an existing metadata Datum is not duplicated', () => {
-  const deleted = cloneDefaultOrderDocumentTemplate('dobavnica') as unknown as {
-    layout: Record<string, unknown>;
-  };
-  deleted.layout.fieldRows = {
-    title: [{ id: 'title_text', visible: true }, { id: 'document_number', visible: true }]
-  };
-  const normalizedDeleted = normalizeOrderDocumentTemplate('dobavnica', deleted);
-  assert.equal(
-    resolveOrderDocumentFieldRows(normalizedDeleted, 'document_meta')
-      .some((row) => row.id === 'issue_date'),
-    false
-  );
+test('metadata Datum deletion stays deleted without materializing or depending on title rows', () => {
+  for (const titleIsEdited of [false, true]) {
+    let template = cloneDefaultOrderDocumentTemplate('invoice');
+    if (titleIsEdited) {
+      template = setOrderDocumentFieldRows(template, 'title', [{ id: 'title_text', visible: true }]);
+    }
+    const previousTitle = template.layout.fieldRows?.title;
+    template = removeOrderDocumentFieldRow(template, 'document_meta', 'issue_date');
+    assert.deepEqual(template.layout.fieldRows?.title, previousTitle);
+    const normalized = normalizeOrderDocumentTemplate('invoice', JSON.parse(JSON.stringify(template)));
+    assert.equal(resolveOrderDocumentFieldRows(normalized, 'document_meta').some((row) => row.id === 'issue_date'), false);
+    assert.deepEqual(normalized.layout.fieldRows?.title, previousTitle);
+    const restored = restoreOrderDocumentFieldRow(normalized, 'document_meta', 'issue_date');
+    assert.equal(resolveOrderDocumentFieldRows(restored, 'document_meta').filter((row) => row.id === 'issue_date').length, 1);
+  }
+});
 
-  const duplicate = cloneDefaultOrderDocumentTemplate('predracun') as unknown as {
-    layout: Record<string, unknown>;
-  };
-  duplicate.layout.fieldRows = {
+test('current metadata placement and styling stay within their explicit owner on round-trip', () => {
+  for (const positioning of ['flow', 'absolute'] as const) {
+    let template = cloneDefaultOrderDocumentTemplate('invoice');
+    template = materializeOrderDocumentCanvasElement(template, 'title');
+    template = materializeOrderDocumentCanvasElement(template, 'document_meta');
+    Object.assign(template.layout.canvas!.elements.title!, { positioning, xMm: 30, yMm: 50, widthMm: 100, heightMm: 20 });
+    Object.assign(template.layout.canvas!.elements.document_meta!, { positioning, xMm: 100, yMm: 65, widthMm: 90, heightMm: 30 });
+    template = setOrderDocumentFieldRows(template, 'document_meta', [{
+      id: 'issue_date',
+      visible: false,
+      typography: { fontFamily: 'barlow', fontWeight: 'bold', fontStyle: 'italic', fontSizePt: 11 },
+      decoration: { outlineEnabled: false, outlineColor: '#D6A900', paddingPt: 5 },
+      placement: { xMm: 2, yMm: 3, widthMm: 30, heightMm: 6 }
+    }]);
+    const normalized = normalizeOrderDocumentTemplate('invoice', JSON.parse(JSON.stringify(template)));
+    assert.deepEqual(normalized.layout.fieldRows, template.layout.fieldRows);
+    assert.deepEqual(normalized.layout.canvas, template.layout.canvas);
+    assert.deepEqual(normalizeOrderDocumentTemplate('invoice', normalized), normalized);
+  }
+});
+
+test('unsupported title Datum is rejected and never converted into current metadata', () => {
+  const config = cloneDefaultOrderDocumentTemplatesConfig();
+  const input = config as unknown as { templates: { invoice: { layout: Record<string, unknown> } } };
+  input.templates.invoice.layout.fieldRows = {
     title: [{ id: 'issue_date', visible: true, typography: { fontSizePt: 8 } }],
-    document_meta: [{ id: 'issue_date', visible: true, typography: { fontSizePt: 11 } }]
+    document_meta: [{ id: 'issue_date', visible: true, typography: { fontSizePt: 11 }, placement: { xMm: 2, yMm: 3 } }]
   };
-  const normalizedDuplicate = normalizeOrderDocumentTemplate('predracun', duplicate);
-  const dates = resolveOrderDocumentFieldRows(normalizedDuplicate, 'document_meta')
-    .filter((row) => row.id === 'issue_date');
-  assert.equal(dates.length, 1);
-  assert.equal(dates[0]?.typography?.fontSizePt, 11, 'the explicit destination setting wins');
-});
-
-test('legacy Datum placement converts only between safe absolute owners', () => {
-  let template = cloneDefaultOrderDocumentTemplate('order_summary');
-  template = materializeOrderDocumentCanvasElement(template, 'title');
-  template = materializeOrderDocumentCanvasElement(template, 'document_meta');
-  Object.assign(template.layout.canvas!.elements.title!, {
-    positioning: 'absolute',
-    xMm: 30,
-    yMm: 50,
-    widthMm: 100,
-    heightMm: 20,
-    page: 1
-  });
-  Object.assign(template.layout.canvas!.elements.document_meta!, {
-    positioning: 'absolute',
-    xMm: 100,
-    yMm: 65,
-    widthMm: 90,
-    heightMm: 30,
-    page: 1
-  });
-  const legacy = template as unknown as { layout: Record<string, unknown> };
-  legacy.layout.fieldRows = {
-    title: [{
-      id: 'issue_date',
-      visible: true,
-      placement: { xMm: 80, yMm: 20, widthMm: 30, heightMm: 6 }
-    }]
-  };
-
-  const migrated = normalizeOrderDocumentTemplate('order_summary', legacy);
-  const issueDate = resolveOrderDocumentFieldRows(migrated, 'document_meta')[0];
-  assert.equal(issueDate?.id, 'issue_date');
-  assert.deepEqual(issueDate?.placement, {
-    xMm: 10,
-    yMm: 5,
-    widthMm: 30,
-    heightMm: 6
-  });
-});
-
-test('mixed legacy Datum rows merge sparse styling while destination geometry stays atomic', () => {
-  let template = cloneDefaultOrderDocumentTemplate('invoice');
-  template = materializeOrderDocumentCanvasElement(template, 'title');
-  template = materializeOrderDocumentCanvasElement(template, 'document_meta');
-  Object.assign(template.layout.canvas!.elements.title!, {
-    positioning: 'absolute',
-    xMm: 30,
-    yMm: 50,
-    widthMm: 100,
-    heightMm: 20,
-    page: 1
-  });
-  Object.assign(template.layout.canvas!.elements.document_meta!, {
-    positioning: 'absolute',
-    xMm: 100,
-    yMm: 65,
-    widthMm: 90,
-    heightMm: 30,
-    page: 1
-  });
-  const legacy = template as unknown as { layout: Record<string, unknown> };
-  legacy.layout.fieldRows = {
-    title: [{
-      id: 'issue_date',
-      visible: true,
-      typography: {
-        fontFamily: 'barlow',
-        fontWeight: 'semibold',
-        fontStyle: 'italic'
-      },
-      decoration: {
-        outlineEnabled: true,
-        outlineColor: '#D6A900',
-        accentEnabled: true,
-        accentColor: '#B88B00',
-        paddingPt: 2
-      },
-      placement: { xMm: 80, yMm: 20, widthMm: 30, heightMm: 6 }
-    }],
-    document_meta: [{
-      id: 'issue_date',
-      visible: true,
-      typography: { fontWeight: 'bold', fontSizePt: 11 },
-      decoration: { outlineEnabled: false, paddingPt: 5 },
-      placement: { xMm: 2, yMm: 3 }
-    }]
-  };
-
-  const migrated = normalizeOrderDocumentTemplate('invoice', legacy);
-  const issueDate = resolveOrderDocumentFieldRows(migrated, 'document_meta')[0];
-  assert.deepEqual(issueDate?.typography, {
-    fontFamily: 'barlow',
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-    fontSizePt: 11
-  });
-  assert.deepEqual(issueDate?.decoration, {
-    outlineEnabled: false,
-    outlineColor: '#D6A900',
-    accentEnabled: true,
-    accentColor: '#B88B00',
-    paddingPt: 5
-  });
-  assert.deepEqual(
-    issueDate?.placement,
-    { xMm: 2, yMm: 3 },
-    'destination placement must win as one geometry object without source width or height'
-  );
+  assert.ok(validateOrderDocumentTemplatesInput(input).some((error) => error.includes('invoice.title.issue_date')));
+  const normalized = normalizeOrderDocumentTemplate('invoice', input.templates.invoice);
+  assert.deepEqual(normalized.layout.fieldRows?.title, []);
+  assert.deepEqual(normalized.layout.fieldRows?.document_meta, [{
+    id: 'issue_date', visible: true, typography: { fontSizePt: 11 }, placement: { xMm: 2, yMm: 3 }
+  }]);
 });
 
 test('default totals rows preserve each document type’s established presentation order', () => {

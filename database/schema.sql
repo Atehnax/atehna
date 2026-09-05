@@ -585,19 +585,6 @@ values
     '[]'::jsonb,
     7,
     'active'
-  ),
-  (
-    '2d876cd4-f0ff-4007-86b4-c99f89c060c8',
-    null,
-    'testna-kategorija',
-    'testna kategorija',
-    'testna kategorija',
-    '',
-    '',
-    '{"crop":{"x":0,"y":0,"width":1,"height":1},"focalPoint":{"x":0.5,"y":0.5},"scale":1,"offsetOriginX":0,"offsetOriginY":0,"offsetX":0,"offsetY":0,"fit":"contain","titleColor":"#111827","titleHoverColor":"#111827","backgroundColor":"#F5F3EF","backgroundHoverColor":"#F6F1EA","ordinalFontSizePx":11,"ordinalColor":"#354052","ordinalHoverColor":"#354052"}'::jsonb,
-    '[]'::jsonb,
-    8,
-    'active'
   );
 
 insert into catalog_categories

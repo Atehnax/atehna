@@ -19,11 +19,11 @@ test('quote administrator templates normalize and validate independently from cu
       quote_issued: {
         customer: {
           subject: 'Customer offer {{offer_code}}',
-          body: 'Customer body.'
+          contentHtml: '<p>Pozdravljeni, {{recipient_name}},</p><h1>Customer offer {{offer_code}}</h1><p>Customer body.</p>'
         },
         admin: {
           subject: 'Internal offer {{offer_number}}',
-          body: 'Administrator body for {{request_number}}.'
+          contentHtml: '<p>Pozdravljeni,</p><h1>Internal offer {{offer_number}}</h1><p>Administrator body for {{request_number}}.</p>'
         }
       }
     }
@@ -66,6 +66,27 @@ test('quote administrator templates normalize and validate independently from cu
   );
 });
 
+test('quote settings reject retired fields without interpreting them as rich text', () => {
+  const defaults = cloneDefaultQuoteEmailSettings();
+  for (const field of ['greeting', 'heading', 'body']) {
+    const settings = cloneDefaultQuoteEmailSettings();
+    const template = settings.templates.quote_issued.customer;
+    const raw = {
+      ...settings,
+      templates: {
+        ...settings.templates,
+        quote_issued: {
+          ...settings.templates.quote_issued,
+          customer: { subject: template.subject, [field]: 'RETIRED CONTENT' }
+        }
+      }
+    };
+    const normalized = normalizeQuoteEmailSettings(raw);
+    assert.deepEqual(normalized.templates.quote_issued.customer, defaults.templates.quote_issued.customer);
+    assert.ok(validateQuoteEmailSettings(raw).some((error) => /nepodprta polja/u.test(error)));
+  }
+});
+
 test('quote template headers reject CRLF injection and malformed raw values', () => {
   const unsafe = cloneDefaultQuoteEmailSettings();
   unsafe.templates.quote_issued.customer.subject =
@@ -79,14 +100,14 @@ test('quote template headers reject CRLF injection and malformed raw values', ()
         customer: {
           ...unsafe.templates.quote_issued.customer,
           subject: unsafe.templates.quote_issued.customer.subject,
-          greeting: 42
+          contentHtml: 42
         }
       }
     }
   });
 
   assert.ok(errors.some((error) => /zadeva.*kontrolnih znakov/u.test(error)));
-  assert.ok(errors.some((error) => /pozdrav ni veljaven/u.test(error)));
+  assert.ok(errors.some((error) => /vsebina ni veljavna/u.test(error)));
   assert.equal(
     normalizeQuoteEmailSettings(unsafe).templates.quote_issued.customer.subject,
     'Ponudba Bcc: victim@example.com'
@@ -209,13 +230,13 @@ test('quote enqueue resolves and snapshots the configured template for each reci
     templates,
     /const configuredContent =[\s\S]*?audienceTemplate\.contentHtml[\s\S]*?sanitizeEmailTemplateRichText\(audienceTemplate\.contentHtml\)/u
   );
-  assert.match(
+  assert.doesNotMatch(
     templates,
-    /const legacyContent = legacyEmailTemplateContentHtml\(\{[\s\S]*?audienceTemplate\.greeting[\s\S]*?audienceTemplate\.heading[\s\S]*?audienceTemplate\.body/u
+    /audienceTemplate\.(?:greeting|heading|body)|legacyContent/u
   );
   assert.match(
     templates,
-    /const content = renderEmailTemplateRichText\([\s\S]*?configuredContent \|\| legacyContent,[\s\S]*?variables/u
+    /const content = renderEmailTemplateRichText\([\s\S]*?configuredContent \|\| defaultContent,[\s\S]*?variables/u
   );
   assert.match(
     templates,

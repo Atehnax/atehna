@@ -155,6 +155,31 @@ test('post-deploy template migration is explicitly gated and leaves queued envel
   }
 });
 
+test('saved PDF public-code rows are upgraded only by the gated settings artifact', () => {
+  const migration = source('database/migrations/20260905_public_code_email_templates_postdeploy.sql');
+  const start = migration.indexOf('do $migrate_public_code_document_templates$');
+  const end = migration.indexOf('$migrate_public_code_document_templates$;', start);
+  const block = migration.slice(start, end);
+
+  assert.ok(start > migration.indexOf('$legacy_customer_envelope_gate$;'));
+  assert.match(block, /from public\.global_style_settings[\s\S]*?where key = 'order-document-templates'[\s\S]*?for update/u);
+  assert.match(block, /stored_version > 2/u);
+  assert.match(block, /stored_version is distinct from 2/u);
+  assert.match(block, /array\['offer', 'predracun', 'invoice'\]/u);
+  assert.match(block, /if metadata_rows is null then continue/u);
+  assert.match(block, /jsonb_typeof\(metadata_rows\) is distinct from 'array'/u);
+  assert.match(block, /where row_value ->> 'id' = 'public_code'[\s\S]*?then continue/u);
+  assert.match(block, /where row_value ->> 'id' = 'issue_date'/u);
+  assert.match(block, /jsonb_agg\(row_value order by position\)/u);
+  assert.match(block, /'\{schemaVersion\}', '2'::jsonb/u);
+  assert.doesNotMatch(block, /(?:update|delete\s+from)\s+public\.(?:order_documents|quote_documents|orders|quote_requests)/iu);
+  assert.match(migration, /PDF template settings did not reach schemaVersion 2\./u);
+  assert.doesNotMatch(
+    source('src/shared/domain/order/orderDocumentTemplates.ts'),
+    /migratePublicCodeRows|Number\(record\.schemaVersion/u
+  );
+});
+
 test('confirmation PDFs use public codes without replacing formal document numbers', () => {
   const orderSummaryJobs = source('src/shared/server/orderSummaryJobs.ts');
   const quoteConfirmation = source(

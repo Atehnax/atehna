@@ -798,6 +798,19 @@ test("admin can configure order email settings and templates without sending mai
       quoteCustomerEditor.editor,
       quoteCustomerContentValue,
     );
+    const quoteCustomerVariables = page
+      .getByTestId("quote-email-preview-editor-toolbar")
+      .getByLabel("Dovoljene spremenljivke", { exact: true });
+    await expect(
+      quoteCustomerVariables.getByText("{{quote_code}}", { exact: true }),
+    ).toBeVisible();
+    for (const internalVariable of [
+      "{{request_number}}", "{{offer_number}}", "{{order_number}}",
+    ]) {
+      await expect(
+        quoteCustomerVariables.getByText(internalVariable, { exact: true }),
+      ).toHaveCount(0);
+    }
     const quotePreviewFrame = page.getByTestId("quote-email-preview-frame");
     const quotePreview = page.frameLocator(
       '[data-testid="quote-email-preview-frame"]',
@@ -850,7 +863,7 @@ test("admin can configure order email settings and templates without sending mai
     const quoteAdminContentValue = {
       greeting: "E2E pozdrav za administratorja ponudbe.",
       heading: "E2E novo povpraševanje za pregled",
-      body: "E2E administratorska vsebina za ponudbo {{offer_number}}.",
+      body: "E2E administratorska vsebina za povpraševanje {{request_number}}.",
     };
     const quoteAdminSubject = await openEmailSubjectEditor(
       page,
@@ -897,8 +910,15 @@ test("admin can configure order email settings and templates without sending mai
       quoteAdminVariables.getByText("{{request_number}}", { exact: true }),
     ).toBeVisible();
     await expect(
-      quoteAdminVariables.getByText("{{offer_number}}", { exact: true }),
+      quoteAdminVariables.getByText("{{quote_code}}", { exact: true }),
     ).toBeVisible();
+    for (const unavailableVariable of [
+      "{{offer_number}}", "{{offer_code}}", "{{order_code}}",
+    ]) {
+      await expect(
+        quoteAdminVariables.getByText(unavailableVariable, { exact: true }),
+      ).toHaveCount(0);
+    }
     await expect(page.getByTestId("order-email-shared-content")).toHaveCount(0);
     const quoteSaveButton = page.getByTestId("quote-email-settings-save");
     const quoteSaveStatus = page.getByTestId("quote-email-save-status");

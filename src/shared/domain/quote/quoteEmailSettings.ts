@@ -1,7 +1,7 @@
 import {
   emailTemplateRichTextToPlainText,
   emailTemplateVariables,
-  legacyEmailTemplateContentHtml,
+  createEmailTemplateContentHtml,
   sanitizeEmailTemplateRichText
 } from '../emailTemplateRichText';
 import {
@@ -28,14 +28,8 @@ export type QuoteEmailEventType = (typeof QUOTE_EMAIL_EVENT_TYPES)[number];
 export type QuoteEmailAudienceSettings = { customer: boolean; admins: boolean };
 export type QuoteEmailTemplate = {
   subject: string;
-  contentHtml?: string;
+  contentHtml: string;
   presentation?: EmailTemplatePresentation;
-  /** Legacy read compatibility for existing saved settings. */
-  greeting?: string;
-  /** Legacy read compatibility for existing saved settings. */
-  heading?: string;
-  /** Legacy read compatibility for existing saved settings. */
-  body?: string;
 };
 export type QuoteEmailTemplateAudience =
   | 'customer'
@@ -63,9 +57,6 @@ export type QuoteEmailSettings = {
 };
 
 export const QUOTE_EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 240;
-export const QUOTE_EMAIL_TEMPLATE_GREETING_MAX_LENGTH = 300;
-export const QUOTE_EMAIL_TEMPLATE_HEADING_MAX_LENGTH = 300;
-export const QUOTE_EMAIL_TEMPLATE_BODY_MAX_LENGTH = 12_000;
 export const QUOTE_EMAIL_TEMPLATE_CONTENT_HTML_MAX_LENGTH = 24_000;
 export const QUOTE_EMAIL_DEFAULT_GREETING =
   'Pozdravljeni, {{recipient_name}},';
@@ -310,7 +301,7 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
         const adminBody = defaults.adminBody ?? defaults.body;
         const customerTemplate: QuoteEmailTemplate = {
           subject: defaults.subject,
-          contentHtml: legacyEmailTemplateContentHtml({
+          contentHtml: createEmailTemplateContentHtml({
             greeting: QUOTE_EMAIL_DEFAULT_GREETING,
             heading: defaults.subject,
             body: defaults.body
@@ -324,7 +315,7 @@ export function cloneDefaultQuoteEmailSettings(): QuoteEmailSettings {
             schoolCustomer: { ...customerTemplate },
             admin: {
               subject: adminSubject,
-              contentHtml: legacyEmailTemplateContentHtml({
+              contentHtml: createEmailTemplateContentHtml({
                 greeting: QUOTE_EMAIL_DEFAULT_ADMIN_GREETING,
                 heading: adminSubject,
                 body: adminBody
@@ -360,24 +351,13 @@ function headerTemplateText(value: unknown, fallback: string): string {
 
 function normalizeQuoteTemplate(
   source: Record<string, unknown>,
-  defaults: QuoteEmailTemplate,
-  defaultGreeting: string
+  defaults: QuoteEmailTemplate
 ): QuoteEmailTemplate {
   const subject = headerTemplateText(source.subject, defaults.subject);
-  const hasLegacyContent = ['greeting', 'heading', 'body'].some((field) =>
-    Object.prototype.hasOwnProperty.call(source, field)
-  );
-  const legacyContent = hasLegacyContent
-    ? legacyEmailTemplateContentHtml({
-        greeting: headerTemplateText(source.greeting, defaultGreeting),
-        heading: headerTemplateText(source.heading, subject),
-        body: templateText(source.body, '')
-      })
-    : '';
   const contentHtml =
     typeof source.contentHtml === 'string'
       ? sanitizeEmailTemplateRichText(source.contentHtml)
-      : legacyContent;
+      : defaults.contentHtml;
   const presentation = normalizeEmailTemplatePresentation(
     source.presentation
   );
@@ -427,23 +407,19 @@ export function normalizeQuoteEmailSettings(value: unknown): QuoteEmailSettings 
     defaults.templates[eventType] = {
       customer: normalizeQuoteTemplate(
         customerTemplate,
-        defaults.templates[eventType].customer,
-        QUOTE_EMAIL_DEFAULT_GREETING
+        defaults.templates[eventType].customer
       ),
       companyCustomer: normalizeQuoteTemplate(
         companyCustomerTemplate,
-        defaults.templates[eventType].companyCustomer,
-        QUOTE_EMAIL_DEFAULT_GREETING
+        defaults.templates[eventType].companyCustomer
       ),
       schoolCustomer: normalizeQuoteTemplate(
         schoolCustomerTemplate,
-        defaults.templates[eventType].schoolCustomer,
-        QUOTE_EMAIL_DEFAULT_GREETING
+        defaults.templates[eventType].schoolCustomer
       ),
       admin: normalizeQuoteTemplate(
         adminTemplate,
-        defaults.templates[eventType].admin,
-        QUOTE_EMAIL_DEFAULT_ADMIN_GREETING
+        defaults.templates[eventType].admin
       )
     };
   }
@@ -475,11 +451,10 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
         continue;
       }
       const rawTemplate = record(record(sourceTemplates[eventType])[audience]);
-      for (const [field, label] of [
-        ['subject', 'zadeva'],
-        ['greeting', 'pozdrav'],
-        ['heading', 'naslov']
-      ] as const) {
+      if (Object.keys(rawTemplate).some((key) => !['subject', 'contentHtml', 'presentation'].includes(key))) {
+        errors.push(`${eventType}/${audience}: predloga vsebuje nepodprta polja.`);
+      }
+      for (const [field, label] of [['subject', 'zadeva']] as const) {
         const rawValue = rawTemplate[field];
         if (rawValue === undefined) continue;
         if (typeof rawValue !== 'string') {
@@ -489,12 +464,6 @@ export function validateQuoteEmailSettings(value: unknown): string[] {
             `${eventType}/${audience}: ${label} ne sme vsebovati kontrolnih znakov ali novih vrstic.`
           );
         }
-      }
-      if (
-        rawTemplate.body !== undefined &&
-        typeof rawTemplate.body !== 'string'
-      ) {
-        errors.push(`${eventType}/${audience}: vsebina ni veljavna.`);
       }
       if (
         rawTemplate.contentHtml !== undefined &&

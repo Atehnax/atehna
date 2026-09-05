@@ -73,9 +73,7 @@ describe('quote email templates', () => {
     const value = input();
     value.quoteSettings.templates.quote_issued.customer = {
       subject: 'Ponudba {{offer_code}}',
-      greeting: 'Pozdravljeni, {{recipient_name}}.',
-      heading: 'Vaša ponudba {{offer_code}}',
-      body: 'Odprite ponudbo {{offer_code}}.'
+      contentHtml: '<p>Pozdravljeni, {{recipient_name}}.</p><h1>Vaša ponudba {{offer_code}}</h1><p>Odprite ponudbo {{offer_code}}.</p>'
     };
 
     const message = buildQuoteEmailMessage(value);
@@ -116,6 +114,19 @@ describe('quote email templates', () => {
     assert.doesNotMatch(message.html, /font-family:Arial,sans-serif/u);
   });
 
+  test('renderer never reads retired fields when rich text is missing', () => {
+    const value = input();
+    Object.assign(value.quoteSettings.templates.quote_issued.customer, {
+      contentHtml: '',
+      greeting: 'RETIRED GREETING',
+      heading: 'RETIRED HEADING',
+      body: 'RETIRED BODY'
+    });
+    const message = buildQuoteEmailMessage(value);
+    assert.doesNotMatch(message.html + message.text, /RETIRED/u);
+    assert.match(message.text, /Ponudbo odprite prek varne povezave/u);
+  });
+
   test('uses the admin template without adding the customer offer action', () => {
     const value = input({
       audience: 'admin',
@@ -123,9 +134,7 @@ describe('quote email templates', () => {
     });
     value.quoteSettings.templates.quote_issued.admin = {
       subject: 'Interna ponudba {{offer_number}}',
-      greeting: 'Pozdravljeni,',
-      heading: 'Ponudba za pregled',
-      body: 'Administratorsko obvestilo za {{request_number}}.'
+      contentHtml: '<p>Pozdravljeni,</p><h1>Ponudba za pregled</h1><p>Administratorsko obvestilo za {{request_number}}.</p>'
     };
 
     const message = buildQuoteEmailMessage(value);

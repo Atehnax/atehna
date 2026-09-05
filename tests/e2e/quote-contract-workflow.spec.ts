@@ -35,6 +35,7 @@ type QuoteRequestFixture = {
   context: BrowserContext;
   quoteRequestId: number;
   requestNumber: string;
+  quoteCode: string;
   accessId: string;
   draftOfferVersionId: number;
   email: string;
@@ -276,6 +277,7 @@ async function createQuoteRequest(
     context,
     quoteRequestId: Number(stored.rows[0].id),
     requestNumber: String(stored.rows[0].request_number),
+    quoteCode: String(payload.quoteCode),
     accessId: String(payload.accessId),
     draftOfferVersionId: Number(stored.rows[0].draft_offer_version_id),
     email,
@@ -707,7 +709,7 @@ test.describe('quote and seller-contract workflow', () => {
     });
 
     try {
-      await issueOffer(request, first);
+      const firstOffer = await issueOffer(request, first);
       await page.goto(
         `/admin/orders?view=quotes&q=${encodeURIComponent(`E2E-${token}`)}`
       );
@@ -808,6 +810,29 @@ test.describe('quote and seller-contract workflow', () => {
       await expect(
         toolbar.getByRole('button', { name: 'Prenesi vse dokumente' })
       ).toBeVisible();
+
+      const offerCode = first.quoteCode.replace(/^PV-/u, 'PN-') +
+        `-V${firstOffer.versionNumber}`;
+      for (const query of [
+        first.quoteCode,
+        first.quoteCode.toLowerCase().replaceAll('-', ' '),
+        offerCode.toLowerCase().replaceAll('-', '')
+      ]) {
+        // Navigate with q so this checks the PostgreSQL-backed filter as well as
+        // the client table's code matching, not only already-loaded rows.
+        await page.goto(`/admin/orders?view=quotes&q=${encodeURIComponent(query)}`);
+        await expect(firstSelection).toBeVisible();
+        await expect(secondSelection).toHaveCount(0);
+        await expect(firstRow).toContainText(first.quoteCode);
+      }
+      const nonexistentOfferCode = first.quoteCode.replace(/^PV-/u, 'PN-') +
+        `-V${firstOffer.versionNumber + 1}`;
+      await page.goto(
+        `/admin/orders?view=quotes&q=${encodeURIComponent(nonexistentOfferCode)}`
+      );
+      await expect(table).toBeVisible();
+      await expect(firstSelection).toHaveCount(0);
+      await expect(secondSelection).toHaveCount(0);
     } finally {
       await Promise.all([first.context.close(), second.context.close()]);
     }

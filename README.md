@@ -156,8 +156,10 @@ when intentionally resetting disposable test data.
 Copy `.env.example` to `.env.local` for local development and provide the
 corresponding environment variables in production.
 
-- A PostgreSQL URL is required through `DATABASE_URL`, `POSTGRES_URL`,
-  `POSTGRES_PRISMA_URL`, or `SUPABASE_DB_URL`.
+- `DATABASE_URL` is the application's only PostgreSQL connection setting. Set
+  it explicitly for each environment; no alternate connection variable is used
+  when it is missing or blank. Isolated tests additionally require
+  `E2E_DATABASE_URL`, which must match `DATABASE_URL` when both are configured.
 - PostgreSQL runtime limits can be set with `ATEHNA_DB_POOL_MAX`,
   `ATEHNA_DB_CONNECTION_TIMEOUT_MS`, `ATEHNA_DB_IDLE_TIMEOUT_MS`,
   `ATEHNA_DB_STATEMENT_TIMEOUT_MS`, and `ATEHNA_DB_LOCK_TIMEOUT_MS`. Unset

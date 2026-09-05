@@ -21,6 +21,7 @@ test('public customer codes use a migration-only cutover with no runtime aliases
   const runtime = [
     source('src/shared/domain/emailTemplateRichText.ts'),
     source('src/shared/domain/order/orderEmailSettings.ts'),
+    source('src/shared/domain/order/orderDocumentTemplates.ts'),
     source('src/shared/domain/quote/quoteEmailSettings.ts')
   ].join('\n');
   const readme = source('README.md');
@@ -28,7 +29,7 @@ test('public customer codes use a migration-only cutover with no runtime aliases
 
   assert.doesNotMatch(
     runtime,
-    /remapEmailTemplateVariables|migrateCustomerOrderNumber|migrateCustomerVariables|legacyQuoteCustomerVariableReplacements/u
+    /remapEmailTemplateVariables|migrateCustomerOrderNumber|migrateCustomerVariables|legacyQuoteCustomerVariableReplacements|migratePublicCodeRows/u
   );
   assert.doesNotMatch(
     [readme, rollout].join('\n'),
@@ -337,59 +338,30 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
   );
 });
 
-test('the commerce reset is explicit, scoped, and rebuilds from the canonical schema', () => {
-  const reset = source('scripts/reset-commerce-database.mjs');
-  const resetTableBlock = reset.match(/const RESET_TABLES = \[([\s\S]*?)\n\];/u)?.[1] ?? '';
+test('fresh deployments install the complete schema without an obsolete partial reset tool', () => {
+  const rollout = source('docs/shipping-rollout.md');
 
-  assert.match(reset, /resolve\(projectRoot, 'database', 'schema\.sql'\)/u);
-  assert.match(reset, /process\.argv\.includes\('--execute'\)/u);
-  assert.match(reset, /process\.argv\.includes\('--verify-build'\)/u);
-  assert.match(reset, /mode: 'verified-build-rolled-back'/u);
-  assert.match(reset, /ATEHNA_ALLOW_COMMERCE_RESET/u);
-  assert.match(reset, /ATEHNA_COMMERCE_RESET_TARGET/u);
-  assert.match(reset, /assertLiveIdentity/u);
-  assert.match(reset, /assertNoExternalForeignKeys/u);
-  assert.match(reset, /restoreSequenceHighWaterMarks/u);
-  assert.match(reset, /select max\(\$\{quoteIdentifier\(columnName\)\}\)::text/u);
-  assert.match(reset, /currentShippingSettingsVersion/u);
-  assert.match(reset, /previousShippingVersion\.version \+ 1/u);
-  assert.match(reset, /drop table if exists \$\{quotedResetTables\.join/u);
-  assert.match(reset, /await client\.query\('rollback'\)/u);
-  assert.doesNotMatch(reset, /drop schema (?:if exists )?public/iu);
-  assert.doesNotMatch(reset, /drop table if exists \$\{quotedResetTables\.join\([^\n]+cascade/iu);
+  assert.equal(
+    existsSync(resolve(process.cwd(), 'scripts/reset-commerce-database.mjs')),
+    false
+  );
+  assert.doesNotMatch(
+    rollout,
+    /reset-commerce-database|ATEHNA_ALLOW_COMMERCE_RESET|ATEHNA_COMMERCE_RESET_TARGET|--verify-build/u
+  );
+  assert.match(rollout, /verified empty\s+database/u);
+  assert.match(rollout, /--set=ON_ERROR_STOP=1[\s\S]*?--file=database\/schema\.sql/u);
+  assert.match(rollout, /npm run check:database-schema/u);
+  assert.match(rollout, /Never run `tests\/fixtures\/e2e-seed\.sql`/u);
+  assert.match(rollout, /post-deploy template rewrite is unnecessary/u);
+});
 
-  for (const requiredResetTable of [
-    'orders',
-    'order_items',
-    'order_stock_holds',
-    'order_documents',
-    'quote_requests',
-    'quote_offer_versions',
-    'quote_manual_documents',
-    'quote_events',
-    'catalog_items',
-    'catalog_item_variants',
-    'shipping_settings',
-    'analytics_charts',
-    'website_events'
-  ]) {
-    assert.match(resetTableBlock, new RegExp(`'${requiredResetTable}'`, 'u'));
-  }
+test('canonical schema contains real category defaults but no test category fixture', () => {
+  const schema = source('database/schema.sql');
 
-  for (const preservedTable of [
-    'order_email_settings',
-    'quote_email_settings',
-    'audit_events',
-    'audit_settings',
-    'site_navigation_settings',
-    'product_appearance_settings',
-    'school_directory_rows',
-    'gurs_addresses',
-    'document_scene_revisions',
-    'archive_blob_deletion_outbox'
-  ]) {
-    assert.doesNotMatch(resetTableBlock, new RegExp(`'${preservedTable}'`, 'u'));
-  }
+  assert.match(schema, /'materiali'/u);
+  assert.match(schema, /'kovine'/u);
+  assert.doesNotMatch(schema, /testna-kategorija|testna kategorija|2d876cd4-f0ff-4007-86b4-c99f89c060c8/iu);
 });
 
 test('order persistence has no removed address or amount columns', () => {

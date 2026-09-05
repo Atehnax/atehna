@@ -171,41 +171,48 @@ test('signed owner-relative row offsets survive setter and storage normalization
   );
 });
 
-test('normalization migrates only exact untouched legacy overlap geometry', () => {
+test('current-version manual title and customer geometry is preserved instead of rewritten', () => {
   let template = cloneDefaultOrderDocumentTemplate('order_summary');
   for (const id of ['title', 'customer', 'document_meta'] as const) {
     template = materializeOrderDocumentCanvasElement(template, id);
   }
+  template = normalizeOrderDocumentTemplate('order_summary', template);
   Object.assign(template.layout.canvas!.elements.title!, { yMm: 50, heightMm: 10 });
   Object.assign(template.layout.canvas!.elements.customer!, { yMm: 64, heightMm: 28 });
   Object.assign(template.layout.canvas!.elements.document_meta!, { yMm: 64, heightMm: 28 });
 
-  const migrated = normalizeOrderDocumentTemplate('order_summary', template);
+  assert.equal(template.layout.canvas?.flowLayoutVersion, 1);
+  const normalized = normalizeOrderDocumentTemplate('order_summary', JSON.parse(JSON.stringify(template)));
+  assert.deepEqual(normalized.layout.canvas, template.layout.canvas);
   assert.deepEqual(
     {
       title: [
-        resolveOrderDocumentCanvasElement(migrated, 'title').yMm,
-        resolveOrderDocumentCanvasElement(migrated, 'title').heightMm
+        resolveOrderDocumentCanvasElement(normalized, 'title').yMm,
+        resolveOrderDocumentCanvasElement(normalized, 'title').heightMm
       ],
       customer: [
-        resolveOrderDocumentCanvasElement(migrated, 'customer').yMm,
-        resolveOrderDocumentCanvasElement(migrated, 'customer').heightMm
+        resolveOrderDocumentCanvasElement(normalized, 'customer').yMm,
+        resolveOrderDocumentCanvasElement(normalized, 'customer').heightMm
       ],
       documentMeta: [
-        resolveOrderDocumentCanvasElement(migrated, 'document_meta').yMm,
-        resolveOrderDocumentCanvasElement(migrated, 'document_meta').heightMm
+        resolveOrderDocumentCanvasElement(normalized, 'document_meta').yMm,
+        resolveOrderDocumentCanvasElement(normalized, 'document_meta').heightMm
       ]
     },
     {
-      title: [50, 15],
-      customer: [67, 28],
-      documentMeta: [67, 28]
+      title: [50, 10],
+      customer: [64, 28],
+      documentMeta: [64, 28]
     }
   );
 
   template.layout.canvas!.elements.title!.xMm += 0.5;
   const customized = normalizeOrderDocumentTemplate('order_summary', template);
   assert.equal(resolveOrderDocumentCanvasElement(customized, 'title').heightMm, 10);
+  const defaults = cloneDefaultOrderDocumentTemplate('order_summary');
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'title').heightMm, 15);
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'customer').yMm, 67);
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'document_meta').yMm, 67);
 });
 
 test('validation rejects malformed placement and decoration data', () => {

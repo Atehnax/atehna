@@ -1,4 +1,5 @@
 import { getPool } from '@/shared/server/db';
+import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
 import { buildQuoteAnalyticsComparisonWindows } from '@/shared/domain/quote/quoteAnalytics';
 import { fetchQuoteAnalytics } from '@/shared/server/quoteAnalytics';
@@ -161,6 +162,7 @@ function mapQuoteListDocuments(value: unknown): AdminQuoteListRow['downloadableD
 function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
   const organizationName = toText(row.organization_name).trim();
   const contactName = toText(row.contact_name).trim();
+  const customerType = toText(row.customer_type);
   const publicCodeBase = toText(row.public_code_base);
   const latestOfferVersionNumber = toNullableNumber(row.latest_offer_version_number);
   return {
@@ -169,10 +171,10 @@ function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
     requestNumber: toText(row.request_number),
     status: toText(row.status, 'received'),
     stateVersion: Math.max(1, Math.trunc(toNumber(row.state_version, 1))),
-    customerType: toText(row.customer_type),
+    customerType,
     organizationName: toNullableText(row.organization_name),
     contactName,
-    customerName: organizationName || contactName || 'Neznana stranka',
+    customerName: getCustomerIdentity({ customerType, organizationName, contactName }).name,
     email: toText(row.email),
     addressLine1: toNullableText(row.address_line1),
     addressLine2: toNullableText(row.address_line2),

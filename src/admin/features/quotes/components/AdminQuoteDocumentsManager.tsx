@@ -105,10 +105,12 @@ const isPdfFile = (file: File) =>
 
 export default function AdminQuoteDocumentsManager({
   quoteRequestId,
+  quoteCode,
   documents,
   offerVersions
 }: {
   quoteRequestId: number;
+  quoteCode?: string;
   documents: AdminQuoteDocument[];
   offerVersions: AdminQuoteOfferVersion[];
 }) {
@@ -121,6 +123,9 @@ export default function AdminQuoteDocumentsManager({
   const uploadInputRefs = useRef<
     Partial<Record<QuoteDocumentType, HTMLInputElement | null>>
   >({});
+  const purchaseOrderAssociationId = quoteCode
+    ? `quote-purchase-order-association-${quoteRequestId}`
+    : undefined;
 
   useEffect(() => {
     setDocumentList(documents);
@@ -343,6 +348,16 @@ export default function AdminQuoteDocumentsManager({
             testId={`quote-document-type-${documentType.key}`}
             summary={
               <AdminDetailDocumentSummary label={documentType.label}>
+                {documentType.key === 'purchase_order' && quoteCode ? (
+                  <p
+                    id={purchaseOrderAssociationId}
+                    data-testid="quote-purchase-order-association"
+                    className="mt-0.5 break-words text-[11px] leading-4 text-slate-500"
+                  >
+                    Številka povpraševanja:{' '}
+                    <span className="font-medium text-slate-700">{quoteCode}</span>
+                  </p>
+                ) : null}
                 {displayedDocument ? (
                   <AdminDetailDocumentCurrent
                     href={documentUrl(
@@ -383,6 +398,7 @@ export default function AdminQuoteDocumentsManager({
                     !primaryOfferVersion || Boolean(uploadingType) || isGenerating
                   }
                   aria-label={documentType.uploadLabel}
+                  aria-describedby={documentType.key === 'purchase_order' ? purchaseOrderAssociationId : undefined}
                   data-testid={`quote-document-upload-input-${documentType.key}`}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -438,6 +454,7 @@ export default function AdminQuoteDocumentsManager({
                         : 'Najprej ustvarite osnutek ponudbe.'
                     }
                     aria-label={documentType.uploadLabel}
+                    aria-describedby={documentType.key === 'purchase_order' ? purchaseOrderAssociationId : undefined}
                     data-testid={`quote-document-upload-${documentType.key}`}
                   >
                     {uploadingType === documentType.key ? (

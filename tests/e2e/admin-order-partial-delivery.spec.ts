@@ -479,7 +479,7 @@ test('requires and atomically persists a two-section plan for partial delivery',
       exact: true
     });
     const uploadPdfAction = page.getByRole('button', {
-      name: 'Naloži',
+      name: 'Naloži naročilnico',
       exact: true
     });
     await expect(pdfSaveFirstMessage).toBeVisible();
@@ -900,7 +900,7 @@ test('manual draft persists its delivery plan before implicit seller acceptance'
     saveMutations.length = 0;
     await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
     await page
-      .getByRole('textbox', { name: 'Naročnik', exact: true })
+      .getByRole('textbox', { name: 'Naziv', exact: true })
       .fill('E2E delno shranjen ročni osnutek');
     await openStatusMenu(page);
     const inProgressOption = page.getByRole('menuitem', {

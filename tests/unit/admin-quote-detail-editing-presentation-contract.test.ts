@@ -68,10 +68,7 @@ test('quote admin title and customer details are editable while request and offe
   );
   const directlyEditableFields = [
     'customerType',
-    'organizationName',
-    'contactName',
     'email',
-    'reference',
     'quoteReason',
     'customerMessage'
   ] as const;
@@ -89,12 +86,12 @@ test('quote admin title and customer details are editable while request and offe
   assert.match(requestSection, /<input\b/u);
   assert.match(requestSection, /<textarea\b/u);
   assert.match(requestSection, /<CustomSelect\b/u);
-  assert.match(detailRow, /\{isEditing \? children : \(/u);
+  assert.match(detailRow, /readContent \?\? \(isEditing \? children : \(/u);
   assert.match(detailRow, /<span className=\{quoteDetailReadValueClassName\}>/u);
   assert.doesNotMatch(requestSection, /disabled=\{!isEditingRequestDetails/u);
   assert.doesNotMatch(requestSection, /readOnly=\{!isEditingRequestDetails/u);
 
-  for (const field of [...directlyEditableFields, ...structuredAddressFields]) {
+  for (const field of [...directlyEditableFields, ...structuredAddressFields, 'organizationName', 'contactName', 'reference']) {
     assert.match(stateShape, new RegExp(`\\b${field}: string`, 'u'));
   }
   for (const field of directlyEditableFields) {
@@ -109,6 +106,10 @@ test('quote admin title and customer details are editable while request and offe
     assert.match(addressEditor, new RegExp(`onChange\\(\\{\\s*${field}:`, 'u'));
   }
   assert.match(requestSection, /<QuoteAddressEditor[\s\S]*?details=\{activeRequestDetails\}/u);
+  assert.match(requestSection, /<AdminCustomerNameEditor values=\{activeRequestDetails\}[\s\S]*?onChange=\{updateDraftRequestDetails\}/u);
+  assert.doesNotMatch(requestSection, /label="Referenca"|updateDraftRequestDetails\(\{\s*reference:/u);
+  assert.match(detail, /reference: detail\.reference \?\? ''/u);
+  assert.match(detail, /body: JSON\.stringify\(\{[\s\S]*?\.\.\.draftRequestDetails/u);
 
   assert.match(detail, /quoteRequestDefaultTitle\(detail\.requestNumber\)/u);
   assert.match(detail, /detail\.adminTitle\?\.trim\(\)/u);
@@ -564,7 +565,7 @@ test('quote reason uses the exact Slovenian storefront selection and terms ident
   assert.match(offerSection, /label="Pogoji sprejema"/u);
   assert.doesNotMatch(offerSection, /Različica pogojev|atehna-quote-terms-v1/u);
 });
-test('customer details use compact fixed-height rows with full-width address and message fields', () => {
+test('quote customer details use paired row-major fields with a read-only code and creation date', () => {
   const detail = source(quoteDetailPath);
   const adminAddressAutocomplete = source(adminAddressAutocompletePath);
   const requestSection = sliceBetween(
@@ -578,20 +579,20 @@ test('customer details use compact fixed-height rows with full-width address and
     'function StateBadge'
   );
   const labels = [
+    'Številka povpraševanja',
+    'Datum',
     'Tip naročnika',
+    'Naročnik/Naziv',
     'Email',
-    'Naziv organizacije',
-    'Referenca',
-    'Kontaktna oseba',
-    'Kaj potrebuje?',
     'Naslov',
+    'Kaj potrebuje?',
     'Sporočilo stranke'
   ] as const;
 
   assert.equal(requestSection.match(/<dl\b/gu)?.length ?? 0, 1);
   assert.equal(requestSection.match(/<QuoteDetailRow\b/gu)?.length ?? 0, labels.length);
-  assert.match(requestSection, /<dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">/u);
-  assert.match(detailRow, /className=\{`grid h-\[35px\]/u);
+  assert.match(requestSection, /<dl className=\{`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 \$\{customerDetailStyles\.detailsGrid\}`\}>/u);
+  assert.match(detailRow, /className=\{`grid min-h-\[35px\]/u);
   assert.match(detailRow, /items-center gap-3/u);
   assert.doesNotMatch(
     detailRow,
@@ -607,9 +608,14 @@ test('customer details use compact fixed-height rows with full-width address and
   assert.doesNotMatch(requestSection, /<QuoteDetailFieldShell icon=/u);
   assert.match(detailRow, /data-quote-detail-row=\{label\}/u);
   assert.match(detailRow, /data-quote-detail-span=\{fullWidth \? 'full' : undefined\}/u);
-  assert.equal(requestSection.match(/\bfullWidth\b/gu)?.length ?? 0, 2);
-  assert.match(requestSection, /label="Naslov"[\s\S]*?formatQuoteRequestAddress\(activeRequestDetails\)[\s\S]*?fullWidth/u);
-  assert.match(requestSection, /label="Sporočilo stranke"[\s\S]*?fullWidth/u);
+  assert.doesNotMatch(requestSection, /\bfullWidth\b/u);
+  assert.match(requestSection, /label="Naslov"[\s\S]*?formatQuoteRequestAddress\(activeRequestDetails\)/u);
+  const rowTags = [...requestSection.matchAll(/<QuoteDetailRow[\s\S]*?>/gu)].map(([tag]) => tag);
+  assert.deepEqual(rowTags.map((tag) => tag.match(/label="([^"]+)"/u)?.[1] ?? 'Naročnik/Naziv'), labels);
+  assert.match(rowTags[0]!, /value=\{detail\.quoteCode\}[\s\S]*?isEditing=\{false\}/u);
+  assert.match(rowTags[1]!, /value=\{formatDateTime\(detail\.createdAt\)\}[\s\S]*?isEditing=\{false\}/u);
+  assert.match(rowTags[3]!, /label=\{activeRequestDetails\.customerType === 'individual' \? 'Naročnik' : 'Naziv'\}/u);
+  assert.doesNotMatch(requestSection, /label="(?:Referenca|Kontaktna oseba|Naziv organizacije)"/u);
 
   const addressEditor = sliceBetween(
     detail,
@@ -641,7 +647,7 @@ test('customer details use compact fixed-height rows with full-width address and
   assert.match(addressEditor, /<AdminAddressAutocompleteInput[\s\S]*?testId="admin-quote-address-autocomplete"/u);
   assert.match(addressEditor, /gursHouseNumberId: suggestion\.gursHouseNumberId/u);
 
-  for (const label of labels) {
+  for (const label of labels.filter((label) => label !== 'Naročnik/Naziv')) {
     assert.match(requestSection, new RegExp(`label="${label.replace('?', '[?]')}"`, 'u'));
   }
   for (const oldRowLabel of ['Poštna številka', 'Dodatni naslov', 'Kraj', 'Država']) {
@@ -813,14 +819,14 @@ test('quote detail composes shared title, activity, notes, documents, field, act
 
   assert.match(
     quoteDetail,
-    /adminWindowCardClassName \+ ' p-4'[^]*?data-testid="quote-request-details-card"/u
+    /adminWindowCardClassName\} \$\{customerDetailStyles\.customerCard\} p-4[^]*?data-testid="quote-request-details-card"/u
   );
   assert.match(requestSection, /<h2 className="text-base/u);
   assert.match(requestSection, /adminCardSectionEditIconButtonClassName/u);
   assert.match(detailRow, /h-\[35px\]/u);
   assert.match(detailFieldShell, /isEditing \? '' : detailFieldLockedShellClassName/u);
   assert.match(detailRow, /quoteDetailReadValueClassName/u);
-  assert.match(detailRow, /\{isEditing \? children : \(/u);
+  assert.match(detailRow, /readContent \?\? \(isEditing \? children : \(/u);
   assert.doesNotMatch(requestSection, /disabled=\{!isEditingRequestDetails/u);
   assert.doesNotMatch(requestSection, /readOnly=\{!isEditingRequestDetails/u);
 });

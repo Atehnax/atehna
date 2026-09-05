@@ -555,6 +555,8 @@ async function readSettledPreviewContract(page: Page) {
 
 test.describe('admin podoba redesign', () => {
   test('viewport switching continuously resizes one live responsive renderer across all breakpoints', async ({ page }) => {
+    // The 12-transition 60/30 Hz capture matrix needs its own budget; per-interaction assertions stay unchanged.
+    test.setTimeout(60_000);
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto('/admin/podoba/glavna-stran');
     const expectedPreviewWidths = {

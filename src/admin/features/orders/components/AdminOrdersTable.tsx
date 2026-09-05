@@ -88,6 +88,7 @@ import {
 import { CustomSelect } from '@/shared/ui/select';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel, type CustomerType } from '@/shared/domain/order/customerType';
+import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 
 import {
   ORDER_STATUS_ACTION_OPTIONS,
@@ -889,7 +890,13 @@ export default function AdminOrdersTable({
       const createdAtTimestamp = new Date(order.created_at).getTime();
       const createdAtDate = new Date(order.created_at);
       createdAtDate.setHours(0, 0, 0, 0);
-      const customerLabel = order.organization_name || order.contact_name || '';
+      const effectiveCustomer = { ...order, ...(rowDetailOverrides[order.id] ?? {}) };
+      const customerIdentity = getCustomerIdentity({
+        customerType: effectiveCustomer.customer_type,
+        organizationName: effectiveCustomer.organization_name,
+        contactName: effectiveCustomer.contact_name
+      });
+      const customerLabel = customerIdentity.name;
       const addressLabel = formatOrderAddress(order);
       const typeLabel = getCustomerTypeLabel(order.customer_type);
       const statusLabel = getOrderStatusLabelForUi(order.status);
@@ -908,7 +915,7 @@ export default function AdminOrdersTable({
         statusLabel,
         paymentLabel,
         searchBlob: normalizeForSearch(
-          [order.order_code, order.order_code.replace(/[\s-]+/gu, ''), order.order_number, customerLabel, addressLabel, typeLabel, statusLabel, paymentLabel]
+          [order.order_code, order.order_code.replace(/[\s-]+/gu, ''), order.order_number, customerLabel, customerIdentity.contact, addressLabel, typeLabel, statusLabel, paymentLabel]
             .filter(Boolean)
             .join(' ')
         )
@@ -916,7 +923,7 @@ export default function AdminOrdersTable({
     });
 
     return runtime;
-  }, [orders]);
+  }, [orders, rowDetailOverrides]);
 
   const filteredAndSortedOrders = useMemo(() => {
     const parsedPublicCode = parseCommercePublicCode(debouncedQuery);
@@ -1072,8 +1079,8 @@ export default function AdminOrdersTable({
           rightValue = rightOrderNumber;
           break;
         case 'customer':
-          leftValue = leftRuntime?.customerLabel ?? (leftOrder.organization_name || leftOrder.contact_name || '');
-          rightValue = rightRuntime?.customerLabel ?? (rightOrder.organization_name || rightOrder.contact_name || '');
+          leftValue = leftRuntime?.customerLabel ?? '';
+          rightValue = rightRuntime?.customerLabel ?? '';
           break;
         case 'address':
           leftValue = leftRuntime?.addressLabel ?? formatOrderAddress(leftOrder);
@@ -1275,7 +1282,11 @@ export default function AdminOrdersTable({
         typeof detailOverrides.organization_name === 'string' ? detailOverrides.organization_name : order.organization_name;
       const nextContactName =
         typeof detailOverrides.contact_name === 'string' ? detailOverrides.contact_name : order.contact_name;
-      const nextCustomerName = (nextOrganizationName?.trim() || nextContactName || '').trim();
+      const nextCustomerName = getCustomerIdentity({
+        customerType: nextCustomerType,
+        organizationName: nextOrganizationName,
+        contactName: nextContactName
+      }).name;
       const nextAddress = formatOrderAddress({ ...order, ...detailOverrides });
 
       setQuickEdit({
@@ -2588,6 +2599,11 @@ export default function AdminOrdersTable({
                     payment_status: rowPaymentOverrides[order.id] ?? order.payment_status ?? null
                   };
                   const rowDisplay = rowDisplayByOrderId.get(order.id);
+                  const customerIdentity = getCustomerIdentity({
+                    customerType: effectiveOrder.customer_type,
+                    organizationName: effectiveOrder.organization_name,
+                    contactName: effectiveOrder.contact_name
+                  });
                   const orderAddress = rowDisplay?.orderAddress ?? formatOrderAddress(effectiveOrder);
                   const typeLabel = rowDisplay?.typeLabel ?? getCustomerTypeLabel(effectiveOrder.customer_type);
                   const rowStatus = effectiveOrder.status;
@@ -2765,14 +2781,22 @@ export default function AdminOrdersTable({
                             aria-label={`Naročnik ${order.id}`}
                           />
                         ) : (
-                          <span
-                            className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('customer', effectiveOrder.organization_name || effectiveOrder.contact_name)}`}
-                            title={effectiveOrder.organization_name || effectiveOrder.contact_name}
-                            onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(effectiveOrder.organization_name || effectiveOrder.contact_name) })}
-                            onMouseLeave={() => setHoveredCellMatch(null)}
-                          >
-                            {effectiveOrder.organization_name || effectiveOrder.contact_name}
-                          </span>
+                          <div className="min-w-0 leading-tight">
+                            <span
+                              className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                              title={customerIdentity.name}
+                              data-testid={`order-table-customer-name-${order.id}`}
+                              onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(customerIdentity.name) })}
+                              onMouseLeave={() => setHoveredCellMatch(null)}
+                            >
+                              {customerIdentity.name || '—'}
+                            </span>
+                            {customerIdentity.contact ? (
+                              <p className="mt-0.5 truncate text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`order-table-contact-${order.id}`}>
+                                {customerIdentity.contact}
+                              </p>
+                            ) : null}
+                          </div>
                         )}
                       </TD> : null}
 

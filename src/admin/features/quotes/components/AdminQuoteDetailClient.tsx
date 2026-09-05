@@ -3141,15 +3141,17 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
             <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
               <QuoteDetailRow label="Št. povpraševanja" value={detail.quoteCode} icon="reference" isEditing={false} noWrapLabel
                 readContent={(
-                  <div className={customerDetailStyles.publicCode}>
-                    <span>{detail.quoteCode}</span>
-                    <button type="button" onClick={() => void copyPublicQuoteCode()}
-                      className={adminCardSectionIconActionButtonClassName}
-                      aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
-                      title="Kopiraj kodo povpraševanja" data-testid="admin-quote-public-code-copy">
-                      <CopyIcon className={adminCardSectionIconClassName} />
-                    </button>
-                  </div>
+                  <QuoteDetailFieldShell isEditing={false}>
+                    <div className={customerDetailStyles.publicCode}>
+                      <span>{detail.quoteCode}</span>
+                      <button type="button" onClick={() => void copyPublicQuoteCode()}
+                        className={adminCardSectionIconActionButtonClassName}
+                        aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
+                        title="Kopiraj kodo povpraševanja" data-testid="admin-quote-public-code-copy">
+                        <CopyIcon className={adminCardSectionIconClassName} />
+                      </button>
+                    </div>
+                  </QuoteDetailFieldShell>
                 )}
               />
               <QuoteDetailRow label="Datum" value={formatDateTime(detail.createdAt)} icon="calendar" isEditing={false} />

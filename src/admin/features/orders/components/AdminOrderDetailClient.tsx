@@ -1671,15 +1671,17 @@ export default function AdminOrderDetailClient({
               <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
                 <OrderDataRow label="Številka naročila" value={order.order_code} icon="number" isEditing={false}
                   readContent={(
-                    <div className={customerDetailStyles.publicCode}>
-                      <span>{order.order_code}</span>
-                      <button type="button" onClick={() => void copyPublicOrderCode()}
-                        className={adminCardSectionIconActionButtonClassName}
-                        aria-label={`Kopiraj kodo naročila ${order.order_code}`}
-                        title="Kopiraj kodo naročila" data-testid="admin-order-public-code-copy">
-                        <CopyIcon className={adminCardSectionIconClassName} />
-                      </button>
-                    </div>
+                    <DetailFieldShell isEditing={false}>
+                      <div className={customerDetailStyles.publicCode}>
+                        <span>{order.order_code}</span>
+                        <button type="button" onClick={() => void copyPublicOrderCode()}
+                          className={adminCardSectionIconActionButtonClassName}
+                          aria-label={`Kopiraj kodo naročila ${order.order_code}`}
+                          title="Kopiraj kodo naročila" data-testid="admin-order-public-code-copy">
+                          <CopyIcon className={adminCardSectionIconClassName} />
+                        </button>
+                      </div>
+                    </DetailFieldShell>
                   )}
                 />
                 <OrderDataRow

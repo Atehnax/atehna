@@ -1,7 +1,53 @@
-import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { expect, test as base } from '@playwright/test';
+import { Client } from 'pg';
+import { readE2eEnvironment, verifyE2eResetTarget } from '../../scripts/e2e-database.mjs';
+import { localDate } from '@/shared/domain/analytics/period';
 import type { BusinessAnalyticsResponse } from '@/shared/domain/analytics/businessAnalytics';
 import type { BusinessActivityResponse } from '@/shared/domain/analytics/activity';
 import { assertAuthenticatedAdmin } from './support/auth';
+import { assertLiveDatabaseIdentity, readLiveDatabaseIdentity } from './support/database-identity';
+
+// Only the history drill-down case requests this fixture. Every shard owns its
+// disposable database; no global seed, external reference import, or prior test is required.
+const test = base.extend<{ historicalOrder: { id: string; date: string } }>({
+  historicalOrder: async ({ request }, runWithFixture) => {
+    const environment = readE2eEnvironment();
+    const health = await request.get('/api/e2e/health');
+    expect(health.status()).toBe(200);
+    assertLiveDatabaseIdentity(environment.databaseIdentity, readLiveDatabaseIdentity(await health.json()));
+    const database = new Client({
+      connectionString: environment.databaseUrl,
+      ssl: false,
+      connectionTimeoutMillis: 5_000,
+      options: '--statement_timeout=15000 --lock_timeout=5000'
+    });
+    const number = 'E2E-HEATMAP-HISTORY-' + randomUUID();
+    let id: string | undefined;
+    await database.connect();
+    try {
+      await verifyE2eResetTarget(database, environment.databaseIdentity, environment.storageNamespace, environment.resetOwnershipHash);
+      // The real submission trigger captures this historical date and value.
+      const inserted = await database.query<{ id: string; analytics_submitted_at: Date }>(
+        `insert into orders (order_number, customer_type, contact_name, email, subtotal, tax, total, created_at)
+         values ($1, 'individual', 'E2E heatmap history', 'heatmap-history@example.test', 25, 5.5, 30.5, now() - interval '45 days')
+         returning id::text, analytics_submitted_at`,
+        [number]
+      );
+      id = inserted.rows[0].id;
+      await runWithFixture({ id, date: localDate(inserted.rows[0].analytics_submitted_at) });
+    } finally {
+      try {
+        if (id) {
+          const removed = await database.query('delete from orders where id = $1 and order_number = $2', [id, number]);
+          expect(removed.rowCount, 'Remove only the historical order created by this test.').toBe(1);
+        }
+      } finally {
+        await database.end();
+      }
+    }
+  }
+});
 
 test.beforeEach(async ({ request }) => { await assertAuthenticatedAdmin(request); });
 
@@ -105,7 +151,7 @@ test('activity calendar uses the canonical order population for its own visible 
   }
 });
 
-test('activity calendar fills available width with plain fixed colours and stays independent of report dates', async ({ page, request }, testInfo) => {
+test('activity calendar fills available width with plain fixed colours and stays independent of report dates', async ({ page, request, historicalOrder }, testInfo) => {
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1920, height: 1080 });
   const activityRequests: string[] = [];
@@ -172,8 +218,10 @@ test('activity calendar fills available width with plain fixed colours and stays
   expect(canonicalResponse.status()).toBe(200);
   const canonical = await canonicalResponse.json() as BusinessAnalyticsResponse;
   const recent = await (await request.get('/api/admin/analytics/business?range=30D&asOf=' + encodeURIComponent(canonical.asOf))).json() as BusinessAnalyticsResponse;
-  const pastDay = canonical.days.find(day => day.orderCount > 0 && day.date < recent.period.from);
-  expect(pastDay, 'The isolated analytics history contains an order older than 30 days.').toBeDefined();
+  const pastDay = canonical.days.find(day => day.date === historicalOrder.date);
+  expect(pastDay, 'The test creates its own isolated order older than 30 days.').toBeDefined();
+  expect(pastDay!.date < recent.period.from).toBe(true);
+  expect(pastDay!.orderCount).toBeGreaterThan(0);
   const csv = await request.get(exportUrl.pathname + exportUrl.search);
   expect(csv.status()).toBe(200);
   expect((await csv.text()).split(/\r?\n/u)).toHaveLength(canonical.summary.orderCount + 1);
@@ -184,7 +232,9 @@ test('activity calendar fills available width with plain fixed colours and stays
   await grid.locator('button[data-date="' + pastDay!.date + '"]').click();
   const drill = await drillResponse;
   expect(drill.status()).toBe(200);
-  expect((await drill.json()).total).toBe(pastDay!.orderCount);
+  const drillPayload = await drill.json();
+  expect(drillPayload.total).toBe(pastDay!.orderCount);
+  expect(drillPayload.records.map((record: { id: string }) => record.id)).toContain(historicalOrder.id);
   expect(new URL(drill.url()).searchParams.get('from')).toBe(canonical.period.from);
   expect(new URL(drill.url()).searchParams.get('asOf')).toBe(canonical.asOf);
   const dialog = page.getByRole('dialog');

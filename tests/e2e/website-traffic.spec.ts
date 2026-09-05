@@ -45,7 +45,7 @@ test('canonical website query deduplicates sessions and visitors and uses fully 
   expect(data.cohorts.find(row => row.date === '2026-04-01')?.rateD7).toBeNull();
 });
 
-test('fresh product visit reaches storage with shared IDs and appears in the protected report and CSV', async ({ browser, request }) => {
+test('fresh product visit reaches storage with shared IDs and appears in the protected report and CSV', async ({ browser, request, baseURL }) => {
   test.setTimeout(90_000);
   await assertAuthenticatedAdmin(request);
   const beforeResponse = await request.get('/api/admin/analytics/website?range=30D');
@@ -56,7 +56,7 @@ test('fresh product visit reaches storage with shared IDs and appears in the pro
   expect(category).toBeDefined();
   const product = category!.items[0] ?? category!.subcategories.flatMap(sub => sub.items)[0];
   const path = `/products/${category!.slug}/items/${product.slug}`;
-  const anonymous = await browser.newContext({ baseURL: process.env.PLAYWRIGHT_BASE_URL });
+  const anonymous = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
   try {
     expect((await anonymous.request.get('/api/admin/analytics/website')).status()).toBe(401);
     const page = await anonymous.newPage();

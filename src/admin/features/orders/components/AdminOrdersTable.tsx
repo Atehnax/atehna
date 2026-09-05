@@ -2666,7 +2666,7 @@ export default function AdminOrdersTable({
                               {customerIdentity.name || '—'}
                             </span>
                             {customerIdentity.contact ? (
-                              <p className="mt-0.5 truncate text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`order-table-contact-${order.id}`}>
+                              <p className="mt-0.5 truncate px-[5px] text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`order-table-contact-${order.id}`}>
                                 {customerIdentity.contact}
                               </p>
                             ) : null}

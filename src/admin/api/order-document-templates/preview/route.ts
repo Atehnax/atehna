@@ -4,7 +4,7 @@ import {
   normalizeOrderDocumentTemplate
 } from '@/shared/domain/order/orderDocumentTemplates';
 import { createOrderDocumentPreviewContext } from '@/shared/domain/order/orderDocumentPreview';
-import { generateOrderPdf } from '@/shared/server/pdf';
+import { generateOrderPdfPreview } from '@/shared/server/pdf';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { normalizeSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
 import { getSiteLogoConfig } from '@/shared/server/siteLogo';
@@ -37,13 +37,19 @@ export async function POST(request: Request) {
       : await getSiteLogoConfig();
     const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
     const preview = createOrderDocumentPreviewContext(type);
-    const bytes = await generateOrderPdf({
+    const rendered = await generateOrderPdfPreview({
       template,
       ...preview,
       logoConfig,
       logoArtwork: logoArtwork?.bytes ?? null
     });
-    return new Response(Buffer.from(bytes), {
+    if (body.body.includeLayout === true) {
+      return NextResponse.json({
+        pdfBase64: Buffer.from(rendered.pdf).toString('base64'),
+        layout: rendered.layout
+      }, { headers: { 'Cache-Control': 'no-store, private', 'X-Content-Type-Options': 'nosniff' } });
+    }
+    return new Response(Buffer.from(rendered.pdf), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

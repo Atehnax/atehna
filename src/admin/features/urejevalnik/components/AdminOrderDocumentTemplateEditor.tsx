@@ -10,6 +10,7 @@ import {
 import { FilePenLine, FileText, RefreshCw } from 'lucide-react';
 import {
   ORDER_DOCUMENT_TEMPLATE_TYPES,
+  arrangeOrderDocumentTemplate,
   cloneDefaultOrderDocumentTemplate,
   cloneDefaultOrderDocumentTemplatesConfig,
   normalizeOrderDocumentTemplatesConfig,
@@ -27,6 +28,7 @@ import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import Button from '@/shared/ui/button/Button';
 import { useToast } from '@/shared/ui/toast';
 import OrderDocumentTemplateCanvas from './OrderDocumentTemplateCanvas';
+import { renderOrderDocumentPreview, type OrderDocumentRenderedPreview } from '../lib/renderOrderDocumentPreview';
 
 type Props = {
   initialConfig?: unknown;
@@ -40,10 +42,7 @@ type PreviewState = {
   error: string | null;
 };
 
-type PreviewDocument = {
-  requestKey: string;
-  url: string;
-};
+type PreviewDocument = OrderDocumentRenderedPreview & { requestKey: string };
 
 const TEMPLATE_META: Record<
   OrderDocumentTemplateType,
@@ -161,6 +160,7 @@ export default function AdminOrderDocumentTemplateEditor({
   const previewRequestBody = useMemo(
     () => JSON.stringify({
       type: selectedType,
+      includeLayout: true,
       template: currentTemplate,
       logoConfig: toStoredSiteLogoConfig(logoConfig)
     }),
@@ -177,7 +177,7 @@ export default function AdminOrderDocumentTemplateEditor({
       ? previewState
       : {
           requestKey: previewRequestKey,
-          loading: viewMode === 'pdf',
+          loading: true,
           error: null
         };
   const templateDirty = useMemo(
@@ -226,7 +226,7 @@ export default function AdminOrderDocumentTemplateEditor({
   );
 
   useEffect(() => {
-    if (viewMode !== 'pdf') return undefined;
+    if (previewDocumentRef.current?.requestKey === previewRequestKey) return undefined;
     let disposed = false;
     const controller = new AbortController();
     if (previewDocumentRef.current?.requestKey !== previewRequestKey) {
@@ -247,16 +247,10 @@ export default function AdminOrderDocumentTemplateEditor({
           const payload = await response.json().catch(() => null);
           throw new Error(messageFromPayload(payload, 'Predogleda PDF ni bilo mogoče ustvariti.'));
         }
-        const pdfBlob = await response.blob();
-        if (disposed) return;
-        replacePreviewDocument({
-          requestKey: previewRequestKey,
-          url: URL.createObjectURL(
-            pdfBlob.type === 'application/pdf'
-              ? pdfBlob
-              : new Blob([pdfBlob], { type: 'application/pdf' })
-          )
-        });
+        const payload = await response.json();
+        const rendered = await renderOrderDocumentPreview(payload, controller.signal);
+        if (disposed) { URL.revokeObjectURL(rendered.url); return; }
+        replacePreviewDocument({ requestKey: previewRequestKey, ...rendered });
         setPreviewState({ requestKey: previewRequestKey, loading: false, error: null });
       } catch (error) {
         if (disposed || controller.signal.aborted) return;
@@ -274,7 +268,7 @@ export default function AdminOrderDocumentTemplateEditor({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [previewRequestBody, previewRequestKey, replacePreviewDocument, viewMode]);
+  }, [previewRequestBody, previewRequestKey, replacePreviewDocument]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -426,6 +420,9 @@ export default function AdminOrderDocumentTemplateEditor({
             >
               {dirty ? 'Neshranjene spremembe' : savedAt ? `Shranjeno ${savedAt}` : 'Vse shranjeno'}
             </span>
+            <Button type="button" variant="outline" disabled={saving} data-testid="order-document-template-arrange" onClick={() => updateCurrentTemplate(arrangeOrderDocumentTemplate)}>
+              Uredi razmike
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -516,10 +513,7 @@ export default function AdminOrderDocumentTemplateEditor({
             <button
               type="button"
               aria-pressed={viewMode === 'canvas'}
-              onClick={() => {
-                resetPreviewSession();
-                setViewMode('canvas');
-              }}
+              onClick={() => setViewMode('canvas')}
               className={`inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-semibold ${
                 viewMode === 'canvas' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'
               }`}
@@ -541,8 +535,8 @@ export default function AdminOrderDocumentTemplateEditor({
           </div>
           <p className="hidden text-xs text-slate-500 md:block">
             {viewMode === 'canvas'
-              ? 'Položaji so v milimetrih in se uporabijo pri končnem PDF.'
-              : 'Isti izrisovalnik kot pri končnem dokumentu.'}
+              ? 'Urejate isti PDF, ki ga prikaže predogled.'
+              : 'Isti dokument, brez oznak urejevalnika.'}
           </p>
         </div>
 
@@ -550,6 +544,10 @@ export default function AdminOrderDocumentTemplateEditor({
           <OrderDocumentTemplateCanvas
             key={selectedType}
             template={currentTemplate}
+            preview={activePreviewDocument}
+            previewLoading={activePreviewState.loading}
+            previewError={activePreviewState.error}
+            onRefreshPreview={() => setPreviewNonce((value) => value + 1)}
             logoConfig={logoConfig}
             onChange={(template) => updateCurrentTemplate(() => template)}
             onLogoConfigChange={(nextLogoConfig) => {
@@ -583,6 +581,7 @@ export default function AdminOrderDocumentTemplateEditor({
                       ? 'Osvežujem …'
                       : 'Predogled je posodobljen'}
                 </span>
+                {activePreviewDocument ? <a href={activePreviewDocument.url} download={`predogled-${selectedType}.pdf`} className="text-xs font-semibold text-blue-700 underline">Prenesi PDF</a> : null}
                 <button
                   type="button"
                   className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-700 hover:bg-slate-50"
@@ -596,13 +595,13 @@ export default function AdminOrderDocumentTemplateEditor({
             </div>
             <div className="relative min-h-[700px] bg-slate-200 p-3" aria-busy={activePreviewState.loading}>
               {activePreviewDocument ? (
-                <iframe
-                  key={activePreviewDocument.url}
-                  src={activePreviewDocument.url}
-                  title={`Predogled PDFja – ${currentTemplate.name}`}
-                  className="h-[calc(100vh-13rem)] min-h-[680px] w-full rounded-md border border-slate-300 bg-white"
-                  data-testid="order-document-template-preview"
-                />
+                <div data-testid="order-document-template-preview" className="mx-auto max-w-[760px] space-y-4" aria-label={`Predogled PDFja – ${currentTemplate.name}`}>
+                  {activePreviewDocument.pages.map((src, index) => (
+                    // The pixels are rendered locally from our authenticated PDF response.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={index} src={src} alt={`Stran ${index + 1} – ${currentTemplate.name}`} data-order-document-pdf-page={index + 1} className="block h-auto w-full bg-white shadow-lg" />
+                  ))}
+                </div>
               ) : (
                 <div className="flex min-h-[680px] items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-center">
                   <div>

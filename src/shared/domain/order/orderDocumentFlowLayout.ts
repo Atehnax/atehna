@@ -6,7 +6,6 @@ import {
   resolveOrderDocumentTable,
   resolveOrderDocumentTableRowHeight,
   resolveOrderDocumentTypography,
-  type OrderDocumentCanvasElement,
   type OrderDocumentCanvasElementId,
   type OrderDocumentFieldGroupId,
   type OrderDocumentTemplate
@@ -16,11 +15,9 @@ import {
   resolveOrderDocumentItemSections,
   resolveOrderDocumentPreviewText,
   resolveOrderDocumentTotalRows,
-  shouldRenderOrderDocumentPreviewElement,
   type OrderDocumentPreviewContext
 } from './orderDocumentPreview';
 
-const A4_HEIGHT_MM = 297;
 const MIN_ELEMENT_SIZE_MM = 5;
 const PT_TO_MM = 25.4 / 72;
 const MM_TO_PT = 72 / 25.4;
@@ -63,9 +60,8 @@ function placedRowsHeightMm(
 }
 
 /**
- * Estimates the natural content box of a flow-owned body section. It mirrors
- * the PDF renderer's row metrics closely enough for the editor's millimetre
- * canvas while deliberately ignoring the element's stored fallback height.
+ * Conservative sizing for the PDF renderer's enclosing flow decorations.
+ * Interactive editor geometry comes exclusively from the rendered PDF manifest.
  */
 export function estimateOrderDocumentFlowElementHeightMm(
   template: OrderDocumentTemplate,
@@ -251,55 +247,4 @@ export function estimateOrderDocumentFlowElementHeightMm(
   }
 
   return resolveOrderDocumentCanvas(template).elements[id].heightMm;
-}
-
-/** Resolves the one-page editor geometry for flow sections from real preview content. */
-export function resolveOrderDocumentFlowPreviewElements(
-  template: OrderDocumentTemplate,
-  canvas: ReturnType<typeof resolveOrderDocumentCanvas>,
-  previewContext: OrderDocumentPreviewContext
-) {
-  const elements = Object.fromEntries(
-    Object.entries(canvas.elements).map(([id, element]) => [id, { ...element }])
-  ) as Record<OrderDocumentCanvasElementId, OrderDocumentCanvasElement>;
-  const orderedBodyIds = template.layout.sections
-    .filter((section) => section.id !== 'document_details' && section.enabled)
-    .map((section) => section.id as OrderDocumentCanvasElementId)
-    .filter((id) =>
-      elements[id].visible
-      && elements[id].positioning === 'flow'
-      && shouldRenderOrderDocumentPreviewElement(elements[id], previewContext, 1)
-    );
-  if (orderedBodyIds.length === 0) return elements;
-
-  const detailsBottom = Math.max(
-    elements.document_details.yMm + elements.document_details.heightMm,
-    elements.customer.yMm + elements.customer.heightMm,
-    elements.document_meta.yMm + elements.document_meta.heightMm
-  );
-  let cursor = roundMm(detailsBottom + ORDER_DOCUMENT_FLOW_SECTION_GAP_MM);
-  for (const id of orderedBodyIds) {
-    const element = elements[id];
-    const naturalHeightMm = estimateOrderDocumentFlowElementHeightMm(
-      template,
-      previewContext,
-      id,
-      element.widthMm
-    );
-    elements[id] = {
-      ...element,
-      yMm: cursor,
-      heightMm: naturalHeightMm
-    };
-    if (naturalHeightMm > 0) {
-      cursor = roundMm(cursor + naturalHeightMm + ORDER_DOCUMENT_FLOW_SECTION_GAP_MM);
-    }
-  }
-
-  const footer = elements.footer;
-  const lastFlowBottom = Math.min(A4_HEIGHT_MM, cursor);
-  if (footer.positioning === 'flow' && footer.yMm < lastFlowBottom) {
-    elements.footer = { ...footer, yMm: Math.min(A4_HEIGHT_MM - footer.heightMm, lastFlowBottom) };
-  }
-  return elements;
 }

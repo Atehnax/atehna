@@ -140,47 +140,6 @@ test('single and multi-selection alignment changes use sparse domain APIs for ev
   assert.match(batch, /aria-pressed=\{mixed\.fontStyle\.mixed[\s\S]*?'mixed'/u);
 });
 
-test('preview alignment preserves financial columns and aligns each cell within its column', () => {
-  const semantic = sourceAround(canvasSource, 'function CanvasSemanticRowTarget', 8_000);
-  assert.match(semantic, /resolveOrderDocumentTextAlignment/u);
-  assert.match(semantic, /semanticTextAlignmentCss\(resolvedTextAlignment\)/u);
-  assert.match(semantic, /data-order-document-text-alignment=\{resolvedTextAlignment\}/u);
-  assert.match(canvasSource, /justifyContent:\s*'space-between'/u);
-  assert.match(canvasSource, /justifyContent:\s*alignment === 'left' \|\| alignment === 'justify'/u);
-  assert.match(canvasSource, /columnGap:\s*'0\.75em'/u);
-  assert.match(decorationPreviewSource, /textAlign:\s*explicitAlignment \?\? 'left'/u);
-  assert.match(decorationPreviewSource, /textAlign:\s*explicitAlignment \?\? 'right'/u);
-  assert.match(semantic, /group === 'totals'/u);
-  assert.match(semantic, /resolveOrderDocumentNaturalFinancialFramePreview/u);
-  assert.match(semantic, /Boolean\(placement\)/u);
-  assert.match(semantic, /data-order-document-financial-content-anchors=\{group === 'totals' \? 'preserved'/u);
-  assert.match(semantic, /data-order-document-natural-financial-frame=\{naturalFinancialFrame \? true/u);
-  assert.match(semantic, /\.\.\.naturalFinancialFrame\?\.style/u);
-  assert.match(semantic, /resolveOrderDocumentFinancialPairPreviewStyle\(resolvedTextAlignment\)\.container/u);
-  assert.match(canvasSource, /data-order-document-financial-paired-columns=\{group === 'totals' \? '67\/33'/u);
-  assert.match(canvasSource, /data-order-document-financial-label-cell/u);
-  assert.match(canvasSource, /data-order-document-financial-value-cell/u);
-  assert.match(canvasSource, /function CanvasFinancialOpticalEdgeText/u);
-  assert.match(canvasSource, /window\.getComputedStyle\(textElement\)/u);
-  assert.match(canvasSource, /context\.font = computedStyle\.font/u);
-  assert.match(canvasSource, /context\.measureText\(text\)/u);
-  assert.match(canvasSource, /fontSet\?\.ready\.then\(measure\)/u);
-  assert.match(canvasSource, /data-order-document-financial-optical-edge/u);
-  assert.match(canvasSource, /rowAlignment === 'distributed' \|\| rowAlignment === 'left'/u);
-  assert.match(canvasSource, /rowAlignment === 'distributed' \|\| rowAlignment === 'right'/u);
-  assert.match(canvasSource, /edge=\{opticalLabelEdge\}/u);
-  assert.match(canvasSource, /edge=\{opticalValueEdge\}/u);
-  const totals = sourceAround(canvasSource, "if (id === 'totals')", 5_000);
-  assert.match(totals, /resolveOrderDocumentFinancialPairPreviewStyle\(rowAlignment\)/u);
-  assert.match(totals, /style=\{financialPairStyle\.label\}/u);
-  assert.match(totals, /style=\{financialPairStyle\.value\}/u);
-
-  const child = sourceAround(canvasSource, 'function CanvasChildTarget', 5_500);
-  assert.match(child, /resolveOrderDocumentTextAlignment\(previewTemplate, typographyTargets\)/u);
-  const element = sourceAround(canvasSource, 'const elementTextAlignmentStyle', 1_600);
-  assert.match(element, /resolveOrderDocumentTextAlignment/u);
-});
-
 test('table header, body, and row scopes have a keyboard activation path', () => {
   const group = sourceAround(canvasSource, 'function CanvasGroupTarget', 6_000);
   assert.match(group, /data-order-document-table-scope-keyboard-handle=\{selection\.kind\}/u);
@@ -265,7 +224,9 @@ test('multi-drag preserves selection, moves a bounded common group, and suppress
   const begin = sourceAround(canvasSource, 'const beginInteraction', 4_000);
   assert.match(begin, /groupStarts/u);
   assert.match(begin, /selectedElementIdSet\.has\(id\)/u);
-  assert.match(begin, /selectedElementIds\.filter\(\(selectedId\) => !previewElements\[selectedId\]\.locked\)/u);
+  assert.match(begin, /selectedElementIds\.filter\(\(selectedId\) =>[\s\S]{0,180}!previewElements\[selectedId\]\.locked/u);
+
+  assert.match(begin, /!isSplitFlowElement\(selectedId\)/u);
 
   const move = sourceAround(canvasSource, 'if (interaction.kind === \'move\')', 5_000);
   assert.match(move, /Object\.entries\(interaction\.groupStarts\)/u);

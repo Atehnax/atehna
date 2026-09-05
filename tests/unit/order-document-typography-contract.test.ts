@@ -780,7 +780,7 @@ test('typography editing is contextual, floating, and shared by canvas and PDF o
   );
 
   assert.match(editorSource, /template:\s*currentTemplate/u);
-  assert.match(previewRouteSource, /generateOrderPdf\s*\(/u);
+  assert.match(previewRouteSource, /generateOrderPdfPreview\s*\(/u);
   assert.match(previewRouteSource, /template/u);
   assert.match(productionRouteSource, /generateOrderPdf\s*\(/u);
   assert.match(productionRouteSource, /template/u);

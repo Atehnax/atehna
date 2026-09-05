@@ -1,200 +1,187 @@
 'use client';
 
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  type RefObject
-} from 'react';
-import { createPortal } from 'react-dom';
+AppearanceEditorAlignmentControl,
+AppearanceEditorCompactSelect,
+AppearanceEditorToolbarButton,
+AppearanceEditorToolbarDivider,
+AppearanceEditorToolbarToneProvider,
+FloatingAppearanceEditorContextToolbar
+} from '@/admin/features/podoba/components/AppearanceEditorToolbarPrimitives';
+import { SiteLogoTextLayerManager } from '@/admin/features/podoba/components/SiteLogoTextLayerControls';
 import {
-  AlignJustify,
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  ArrowDown,
-  ArrowUp,
-  Bold,
-  Check,
-  ChevronDown,
-  Eye,
-  EyeOff,
-  Grid3X3,
-  Layers3,
-  Lock,
-  Magnet,
-  Move,
-  Palette,
-  Plus,
-  Ruler,
-  RotateCcw,
-  Settings2,
-  SlidersHorizontal,
-  Trash2,
-  Type,
-  X,
-  Unlock
+resolveOrderDocumentCanvasAlignment,
+type OrderDocumentAlignmentGuide
+} from '@/admin/features/urejevalnik/lib/orderDocumentCanvasAlignment';
+import {
+applyOrderDocumentTextAlignmentToTargets,
+applyOrderDocumentTypographyToTargets,
+orderDocumentChildSelection,
+orderDocumentElementSelection,
+reduceOrderDocumentCanvasSelection,
+resetOrderDocumentTextAlignmentTargets,
+resetOrderDocumentTypographyTargets,
+resolveOrderDocumentMixedTextAlignment,
+resolveOrderDocumentMixedTypography,
+resolveOrderDocumentSelectionTypographyTargets,
+type OrderDocumentCanvasChildSelection,
+type OrderDocumentCanvasSelectionEntry,
+type OrderDocumentCompanyTextKey
+} from '@/admin/features/urejevalnik/lib/orderDocumentCanvasSelection';
+import {
+resolveOrderDocumentDecorationPreviewStyle,
+resolveOrderDocumentFinancialPairPreviewStyle,
+resolveOrderDocumentNaturalFinancialFramePreview,
+type OrderDocumentDecorationContentAlignment
+} from '@/admin/features/urejevalnik/lib/orderDocumentDecorationPreview';
+import {
+clampOrderDocumentFieldRowToPage,
+clampOrderDocumentMoveWithDependents,
+clampOrderDocumentRectToPage,
+resolveOrderDocumentFieldRowPageBounds,
+resolveOrderDocumentPointerDragPosition,
+type OrderDocumentRectGeometry
+} from '@/admin/features/urejevalnik/lib/orderDocumentDragGeometry';
+import { createOrderDocumentInspectorSnapshot } from '@/admin/features/urejevalnik/lib/orderDocumentInspectorSession';
+import {
+cycleOrderDocumentSelectionCandidate,
+resolveOrderDocumentSelectionCandidatesFromHitStack,
+type OrderDocumentSelectionCandidate,
+type OrderDocumentSelectionCandidateKey
+} from '@/admin/features/urejevalnik/lib/orderDocumentOverlapSelection';
+import { SiteLogo,SiteLogoProvider } from '@/commercial/components/SiteLogo';
+import {
+getSiteLogoPresentationCapabilities,
+resolveSiteLogoMaster,
+resolveSiteLogoPresentation,
+type SiteLogoConfig,
+type SiteLogoPresentation
+} from '@/shared/domain/logo/siteLogo';
+import {
+createOrderDocumentPreviewContext,
+matchesOrderDocumentElementCondition,
+shouldRenderOrderDocumentPreviewElement
+} from '@/shared/domain/order/orderDocumentPreview';
+import type { OrderDocumentPreviewLayout } from '@/shared/domain/order/orderDocumentPreviewLayout';
+import {
+ORDER_DOCUMENT_CANVAS_ELEMENT_IDS,
+ORDER_DOCUMENT_COMPANY_CONTACT_LIMIT,
+ORDER_DOCUMENT_DECORATION_SIDES,
+ORDER_DOCUMENT_FIELD_ROW_IDS_BY_GROUP,
+ORDER_DOCUMENT_FONT_FAMILY_CATALOG,
+ORDER_DOCUMENT_FONT_SIZE_MAX_PT,
+ORDER_DOCUMENT_FONT_SIZE_MIN_PT,
+ORDER_DOCUMENT_FONT_SIZE_STEP_PT,
+ORDER_DOCUMENT_FONT_STYLE_IDS,
+ORDER_DOCUMENT_FONT_WEIGHT_IDS,
+ORDER_DOCUMENT_FONT_WEIGHT_VALUES,
+createOrderDocumentCompanyContactId,
+deleteOrderDocumentCanvasElement,
+getOrderDocumentDecorationOverride,
+getOrderDocumentTextAlignmentOverride,
+getOrderDocumentTypographyOverride,
+isOrderDocumentCanvasElementDeleted,
+materializeOrderDocumentCanvasElement,
+removeOrderDocumentFieldRow,
+resetOrderDocumentDecoration,
+resetOrderDocumentFieldRowPlacement,
+resetOrderDocumentTextAlignment,
+resetOrderDocumentTypography,
+resolveOrderDocumentCanvas,
+resolveOrderDocumentCompanyContacts,
+resolveOrderDocumentDecoration,
+resolveOrderDocumentDecorationContentInset,
+resolveOrderDocumentDeletedCanvasElementIds,
+resolveOrderDocumentFieldRows,
+resolveOrderDocumentTextAlignment,
+resolveOrderDocumentTypography,
+resolveSupportedOrderDocumentTypography,
+restoreOrderDocumentCanvasElement,
+restoreOrderDocumentFieldRow,
+setOrderDocumentCompanyContacts,
+setOrderDocumentDecoration,
+setOrderDocumentFieldRowPlacement,
+setOrderDocumentFieldRows,
+setOrderDocumentTextAlignment,
+setOrderDocumentTypography,
+type OrderDocumentCanvasElement,
+type OrderDocumentCanvasElementId,
+type OrderDocumentCompanyContact,
+type OrderDocumentDecorationSide,
+type OrderDocumentDecorationTarget,
+type OrderDocumentFieldGroupId,
+type OrderDocumentFieldRowId,
+type OrderDocumentFieldRowPlacement,
+type OrderDocumentFontStyleId,
+type OrderDocumentFontWeightId,
+type OrderDocumentResolvedTextAlignment,
+type OrderDocumentSectionId,
+type OrderDocumentTableColumnId,
+type OrderDocumentTemplate,
+type OrderDocumentTemplateCompany,
+type OrderDocumentTemplateLabels,
+type OrderDocumentTemplateRules,
+type OrderDocumentTemplateStyle,
+type OrderDocumentTemplateText,
+type OrderDocumentTextAlignment,
+type OrderDocumentTypography,
+type OrderDocumentTypographyTarget
+} from '@/shared/domain/order/orderDocumentTemplates';
+import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
+import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
+import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
+import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/tokens';
+import {
+AlignCenter,
+AlignJustify,
+AlignLeft,
+AlignRight,
+ArrowDown,
+ArrowUp,
+Bold,
+Check,
+ChevronDown,
+Eye,
+EyeOff,
+Grid3X3,
+Layers3,
+Lock,
+Magnet,
+Move,
+Palette,
+Plus,
+RotateCcw,
+Ruler,
+Settings2,
+SlidersHorizontal,
+Trash2,
+Type,
+Unlock,
+X
 } from 'lucide-react';
 import Image from 'next/image';
 import {
-  ORDER_DOCUMENT_COMPANY_CONTACT_LIMIT,
-  ORDER_DOCUMENT_CANVAS_ELEMENT_IDS,
-  ORDER_DOCUMENT_DECORATION_SIDES,
-  ORDER_DOCUMENT_FIELD_ROW_IDS_BY_GROUP,
-  ORDER_DOCUMENT_FONT_FAMILY_CATALOG,
-  ORDER_DOCUMENT_FONT_SIZE_MAX_PT,
-  ORDER_DOCUMENT_FONT_SIZE_MIN_PT,
-  ORDER_DOCUMENT_FONT_SIZE_STEP_PT,
-  ORDER_DOCUMENT_FONT_STYLE_IDS,
-  ORDER_DOCUMENT_FONT_WEIGHT_IDS,
-  ORDER_DOCUMENT_FONT_WEIGHT_VALUES,
-  createOrderDocumentCompanyContactId,
-  deleteOrderDocumentCanvasElement,
-  getOrderDocumentDecorationOverride,
-  getOrderDocumentTextAlignmentOverride,
-  getOrderDocumentTypographyOverride,
-  isOrderDocumentCanvasElementDeleted,
-  materializeOrderDocumentCanvasElement,
-  removeOrderDocumentFieldRow,
-  resolveOrderDocumentCanvas,
-  resolveOrderDocumentCompanyContacts,
-  resolveOrderDocumentDecoration,
-  resolveOrderDocumentDecorationContentInset,
-  resolveOrderDocumentFieldRows,
-  resolveOrderDocumentTable,
-  resolveOrderDocumentTableBorders,
-  resolveOrderDocumentTextAlignment,
-  resolveOrderDocumentTypography,
-  resolveSupportedOrderDocumentTypography,
-  resetOrderDocumentDecoration,
-  resetOrderDocumentFieldRowPlacement,
-  resetOrderDocumentTextAlignment,
-  resetOrderDocumentTypography,
-  resolveOrderDocumentDeletedCanvasElementIds,
-  restoreOrderDocumentCanvasElement,
-  restoreOrderDocumentFieldRow,
-  setOrderDocumentDecoration,
-  setOrderDocumentCompanyContacts,
-  setOrderDocumentFieldRowPlacement,
-  setOrderDocumentFieldRows,
-  setOrderDocumentTextAlignment,
-  setOrderDocumentTypography,
-  type OrderDocumentCompanyContact,
-  type OrderDocumentCanvasElement,
-  type OrderDocumentCanvasElementId,
-  type OrderDocumentDecorationSide,
-  type OrderDocumentDecorationTarget,
-  type OrderDocumentFieldGroupId,
-  type OrderDocumentFieldRowId,
-  type OrderDocumentFieldRowPlacement,
-  type OrderDocumentFontStyleId,
-  type OrderDocumentFontWeightId,
-  type OrderDocumentSectionId,
-  type OrderDocumentTableColumnId,
-  type OrderDocumentTemplate,
-  type OrderDocumentTemplateCompany,
-  type OrderDocumentTemplateLabels,
-  type OrderDocumentTemplateRules,
-  type OrderDocumentTemplateStyle,
-  type OrderDocumentTemplateText,
-  type OrderDocumentTextAlignment,
-  type OrderDocumentResolvedTextAlignment,
-  type OrderDocumentTypography,
-  type OrderDocumentTypographyTarget
-} from '@/shared/domain/order/orderDocumentTemplates';
-import {
-  createOrderDocumentPreviewContext,
-  formatOrderDocumentCurrency,
-  matchesOrderDocumentElementCondition,
-  resolveOrderDocumentCustomerRows,
-  resolveOrderDocumentFooterRows,
-  resolveOrderDocumentItemCells,
-  resolveOrderDocumentItemSections,
-  resolveOrderDocumentMetadataRows,
-  resolveOrderDocumentPreviewText,
-  resolveOrderDocumentTotalRows,
-  shouldRenderOrderDocumentPreviewElement,
-  type OrderDocumentPreviewContext
-} from '@/shared/domain/order/orderDocumentPreview';
-import { resolveOrderDocumentFlowPreviewElements } from '@/shared/domain/order/orderDocumentFlowLayout';
-import {
-  resolveOrderDocumentCanvasAlignment,
-  type OrderDocumentAlignmentGuide
-} from '@/admin/features/urejevalnik/lib/orderDocumentCanvasAlignment';
-import {
-  clampOrderDocumentFieldRowToPage,
-  clampOrderDocumentMoveWithDependents,
-  clampOrderDocumentRectToPage,
-  resolveOrderDocumentFieldRowPageBounds,
-  resolveOrderDocumentPointerDragPosition,
-  type OrderDocumentRectGeometry
-} from '@/admin/features/urejevalnik/lib/orderDocumentDragGeometry';
-import {
-  cycleOrderDocumentSelectionCandidate,
-  resolveOrderDocumentSelectionCandidatesFromHitStack,
-  type OrderDocumentSelectionCandidate,
-  type OrderDocumentSelectionCandidateKey
-} from '@/admin/features/urejevalnik/lib/orderDocumentOverlapSelection';
-import {
-  hasOrderDocumentDecorationContentFrame,
-  resolveOrderDocumentFinancialOpticalEdgeOffsetPx,
-  resolveOrderDocumentFinancialPairPreviewStyle,
-  resolveOrderDocumentNaturalFinancialFramePreview,
-  resolveOrderDocumentDecorationPreviewStyle,
-  type OrderDocumentDecorationContentAlignment,
-  type OrderDocumentFinancialOpticalEdge
-} from '@/admin/features/urejevalnik/lib/orderDocumentDecorationPreview';
-import {
-  applyOrderDocumentTextAlignmentToTargets,
-  applyOrderDocumentTypographyToTargets,
-  orderDocumentChildSelection,
-  orderDocumentElementSelection,
-  reduceOrderDocumentCanvasSelection,
-  resetOrderDocumentTextAlignmentTargets,
-  resetOrderDocumentTypographyTargets,
-  resolveOrderDocumentMixedTextAlignment,
-  resolveOrderDocumentMixedTypography,
-  resolveOrderDocumentSelectionTypographyTargets,
-  type OrderDocumentCanvasChildSelection,
-  type OrderDocumentCanvasSelectionEntry,
-  type OrderDocumentCompanyTextKey
-} from '@/admin/features/urejevalnik/lib/orderDocumentCanvasSelection';
-import {
-  getSiteLogoPresentationCapabilities,
-  resolveSiteLogoMaster,
-  resolveSiteLogoPresentation,
-  type SiteLogoConfig,
-  type SiteLogoPresentation
-} from '@/shared/domain/logo/siteLogo';
-import { SiteLogo, SiteLogoProvider } from '@/commercial/components/SiteLogo';
-import { CompactHexColorField } from '@/shared/ui/admin-controls/CompactHexColorField';
-import { SiteLogoTextLayerManager } from '@/admin/features/podoba/components/SiteLogoTextLayerControls';
-import AdminCheckbox from '@/shared/ui/checkbox/admin-checkbox';
-import { adminEditorSelectionOutlineTokenClasses } from '@/shared/ui/theme/tokens';
-import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
+createContext,
+useContext,
+useEffect,
+useId,
+useLayoutEffect,
+useMemo,
+useRef,
+useState,
+type CSSProperties,
+type KeyboardEvent as ReactKeyboardEvent,
+type MouseEvent as ReactMouseEvent,
+type ReactNode,
+type PointerEvent as ReactPointerEvent,
+type RefObject
+} from 'react';
+import { createPortal } from 'react-dom';
+import type { OrderDocumentRenderedPreview } from '../lib/renderOrderDocumentPreview';
 import OrderDocumentTableContextControls from './OrderDocumentTableContextControls';
-import OrderDocumentTableQuickStyleControls, {
-  type OrderDocumentTableQuickStyleScope
+import OrderDocumentTableQuickStyleControls,{
+type OrderDocumentTableQuickStyleScope
 } from './OrderDocumentTableQuickStyleControls';
-import {
-  AppearanceEditorAlignmentControl,
-  AppearanceEditorCompactSelect,
-  AppearanceEditorToolbarButton,
-  AppearanceEditorToolbarDivider,
-  AppearanceEditorToolbarToneProvider,
-  FloatingAppearanceEditorContextToolbar
-} from '@/admin/features/podoba/components/AppearanceEditorToolbarPrimitives';
-import { createOrderDocumentInspectorSnapshot } from '@/admin/features/urejevalnik/lib/orderDocumentInspectorSession';
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -561,80 +548,6 @@ type FinancialOpticalEdgeStyle = CSSProperties & {
   [FINANCIAL_OPTICAL_EDGE_OFFSET_PROPERTY]: string;
 };
 
-function CanvasFinancialOpticalEdgeText({
-  cell,
-  edge,
-  measurementKey,
-  style,
-  children
-}: {
-  cell: 'label' | 'value';
-  edge: OrderDocumentFinancialOpticalEdge;
-  measurementKey: string;
-  style?: CSSProperties;
-  children: ReactNode;
-}) {
-  const textRef = useRef<HTMLSpanElement>(null);
-
-  useLayoutEffect(() => {
-    const textElement = textRef.current;
-    if (!textElement) return;
-    let cancelled = false;
-
-    const measure = () => {
-      if (cancelled) return;
-      const context = document.createElement('canvas').getContext('2d');
-      const computedStyle = window.getComputedStyle(textElement);
-      const text = textElement.textContent ?? '';
-      if (!context || !text || !computedStyle.font) {
-        textElement.style.setProperty(FINANCIAL_OPTICAL_EDGE_OFFSET_PROPERTY, '0px');
-        textElement.dataset.orderDocumentFinancialOpticalEdgeOffsetPx = '0';
-        return;
-      }
-
-      context.font = computedStyle.font;
-      context.textAlign = 'left';
-      const offsetPx = resolveOrderDocumentFinancialOpticalEdgeOffsetPx(
-        context.measureText(text),
-        edge
-      );
-      const roundedOffsetPx = Math.round(offsetPx * 1000) / 1000;
-      textElement.style.setProperty(
-        FINANCIAL_OPTICAL_EDGE_OFFSET_PROPERTY,
-        `${roundedOffsetPx}px`
-      );
-      textElement.dataset.orderDocumentFinancialOpticalEdgeOffsetPx =
-        String(roundedOffsetPx);
-    };
-
-    measure();
-    const fontSet = document.fonts;
-    void fontSet?.ready.then(measure);
-    fontSet?.addEventListener('loadingdone', measure);
-    return () => {
-      cancelled = true;
-      fontSet?.removeEventListener('loadingdone', measure);
-    };
-  }, [edge, measurementKey]);
-
-  return (
-    <span
-      ref={textRef}
-      data-order-document-financial-label-cell={cell === 'label' || undefined}
-      data-order-document-financial-value-cell={cell === 'value' || undefined}
-      data-order-document-financial-optical-edge={edge}
-      style={{
-        ...style,
-        position: 'relative',
-        transform: `translateX(var(${FINANCIAL_OPTICAL_EDGE_OFFSET_PROPERTY}))`,
-        [FINANCIAL_OPTICAL_EDGE_OFFSET_PROPERTY]: '0px'
-      } as FinancialOpticalEdgeStyle}
-    >
-      {children}
-    </span>
-  );
-}
-
 const resolvePreviewTypographyCss = (
   template: OrderDocumentTemplate,
   target: OrderDocumentTypographyTarget | readonly OrderDocumentTypographyTarget[]
@@ -767,6 +680,7 @@ function CanvasChildTarget({
   selectedChildId,
   onSelect,
   className = '',
+  pdfHit = false,
   style,
   children
 }: {
@@ -774,6 +688,7 @@ function CanvasChildTarget({
   selectedChildId: string | readonly string[] | null;
   onSelect: (selection: CanvasChildSelection, gesture: SelectionGesture) => void;
   className?: string;
+  pdfHit?: boolean;
   style?: CSSProperties;
   children: ReactNode;
 }) {
@@ -849,7 +764,7 @@ function CanvasChildTarget({
       className={`relative z-30 min-w-0 border border-transparent bg-transparent p-0 text-inherit transition hover:border-blue-300/80 ${
         selected ? adminEditorSelectionOutlineTokenClasses : ''
       } ${selection.kind === 'table_row' ? 'cursor-pointer' : 'cursor-text'} ${className}`}
-      style={{ ...style, ...resolvedTypographyStyle, ...resolvedTextAlignmentStyle }}
+      style={pdfHit ? { ...style, background: 'transparent', padding: 0, color: 'transparent' } : { ...style, ...resolvedTypographyStyle, ...resolvedTextAlignmentStyle }}
       data-order-document-label-id={key}
       onPointerDown={(event) => {
         if (additiveSelectionPointer.handlePointerDown(event)) return;
@@ -872,6 +787,7 @@ function CanvasGroupTarget({
   selectedChildId,
   onSelect,
   className = '',
+  pdfHit = false,
   style,
   children
 }: {
@@ -879,6 +795,7 @@ function CanvasGroupTarget({
   selectedChildId: string | readonly string[] | null;
   onSelect: (selection: CanvasChildSelection, gesture: SelectionGesture) => void;
   className?: string;
+  pdfHit?: boolean;
   style?: CSSProperties;
   children: ReactNode;
 }) {
@@ -912,10 +829,10 @@ function CanvasGroupTarget({
       data-canvas-element-id={selection.id}
       data-canvas-element-selected={selected || undefined}
       aria-label={groupLabel}
-      className={`group/scope relative border border-transparent transition hover:border-blue-300/80 ${
+      className={`group/scope relative focus-within:!z-[100] border border-transparent transition hover:border-blue-300/80 ${
         selected ? adminEditorSelectionOutlineTokenClasses : ''
       } ${className}`}
-      style={{
+      style={pdfHit ? { ...style, background: 'transparent', padding: 0, color: 'transparent' } : {
         ...style,
         ...(previewTemplate ? resolvePreviewTypographyCss(previewTemplate, typographyTarget) : {}),
         ...resolvedTextAlignmentStyle
@@ -960,6 +877,7 @@ function CanvasSemanticRowTarget({
   selectedChildId,
   onSelect,
   className = '',
+  pdfHit = false,
   style,
   contentAlignment = 'left',
   children
@@ -969,6 +887,7 @@ function CanvasSemanticRowTarget({
   selectedChildId: string | readonly string[] | null;
   onSelect: (selection: CanvasChildSelection, gesture: SelectionGesture) => void;
   className?: string;
+  pdfHit?: boolean;
   style?: CSSProperties;
   contentAlignment?: OrderDocumentDecorationContentAlignment;
   children: ReactNode;
@@ -1088,7 +1007,7 @@ function CanvasSemanticRowTarget({
       className={`relative z-30 min-w-0 cursor-grab border border-transparent bg-transparent text-inherit transition hover:border-blue-300/80 active:cursor-grabbing ${
         selected ? adminEditorSelectionOutlineTokenClasses : ''
       } ${className}`}
-      style={{
+      style={pdfHit ? { ...style, background: 'transparent', padding: 0, color: 'transparent' } : {
         ...style,
         ...resolvedTypographyStyle,
         ...resolvedDecorationStyle,
@@ -1203,7 +1122,8 @@ function CompactDarkSelect<Value extends string>({
   label,
   placeholder = 'Izberite',
   onChange,
-  marker
+  marker,
+  disabled = false
 }: {
   value: Value | '';
   options: readonly CompactDarkSelectOption<Value>[];
@@ -1211,6 +1131,7 @@ function CompactDarkSelect<Value extends string>({
   placeholder?: string;
   onChange: (value: Value) => void;
   marker: string;
+  disabled?: boolean;
 }) {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
@@ -1275,7 +1196,7 @@ function CompactDarkSelect<Value extends string>({
   }, [open]);
 
   const openFromKeyboard = () => {
-    if (!open && options.some((option) => !option.disabled)) setOpen(true);
+    if (!disabled && !open && options.some((option) => !option.disabled)) setOpen(true);
   };
 
   return (
@@ -1283,6 +1204,7 @@ function CompactDarkSelect<Value extends string>({
       <button
         ref={triggerRef}
         type="button"
+        disabled={disabled}
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -3253,537 +3175,54 @@ function RulerTicks({ axis }: { axis: 'horizontal' | 'vertical' }) {
   );
 }
 
-function ElementPreview({
-  id,
-  template,
-  previewContext,
-  element,
-  selectedChildId,
-  onSelectChild
-}: {
+function selectionForPdfRegion(id: string): CanvasChildSelection | null {
+  const [parent, kind, key, column] = id.split(':');
+  const parentId = parent as OrderDocumentCanvasElementId;
+  if (kind === 'field-row') return fieldRowChild(parent as OrderDocumentFieldGroupId, key as OrderDocumentFieldRowId);
+  if (kind === 'text') return textChild(parentId, key as keyof Omit<OrderDocumentTemplateText, 'labels'>);
+  if (kind === 'label') return labelChild(parentId, key as keyof OrderDocumentTemplateLabels);
+  if (kind === 'company') return companyChild(parentId, key as OrderDocumentCompanyTextKey);
+  if (kind === 'contact') return companyContactChild(key);
+  if (kind === 'table-header') return tableHeaderChild();
+  if (kind === 'table-body') return tableBodyChild();
+  if (kind === 'table-column') return tableColumnChild(key as OrderDocumentTableColumnId);
+  if (kind === 'table-header-cell') return tableHeaderCellChild(key as OrderDocumentTableColumnId);
+  if (kind === 'table-row') return tableRowChild(Number(key));
+  if (kind === 'table-cell') return tableCellChild(Number(key), column as OrderDocumentTableColumnId);
+  return null;
+}
+
+/** The PDF paints all content. These transparent targets only provide editor interaction. */
+function ElementPreview({ id, element, regions, pageNumber, selectedChildId, onSelectChild }: {
   id: OrderDocumentCanvasElementId;
-  template: OrderDocumentTemplate;
-  previewContext: OrderDocumentPreviewContext;
   element: OrderDocumentCanvasElement;
+  regions: OrderDocumentPreviewLayout['regions'];
+  pageNumber: number;
   selectedChildId: string | readonly string[] | null;
   onSelectChild: (selection: CanvasChildSelection, gesture: SelectionGesture) => void;
 }) {
-  const textColor = element.textColor || template.style.textColor;
-  const mutedColor = element.mutedTextColor || template.style.mutedTextColor;
-  const elementDecorationTarget: OrderDocumentDecorationTarget = {
-    kind: 'element',
-    elementId: id
-  };
-  const elementDecoration = resolveOrderDocumentDecoration(
-    template,
-    elementDecorationTarget
-  );
-  const elementDecorationInsetPt = resolveOrderDocumentDecorationContentInset(
-    template,
-    elementDecorationTarget
-  );
-  const centerElementText = id === 'intro'
-    && hasOrderDocumentDecorationContentFrame(elementDecoration);
-  const contentOverflowClass = element.overflow === 'visible'
-    ? 'overflow-visible'
-    : 'overflow-hidden';
-  const elementTypographyStyle = resolvePreviewTypographyCss(template, {
-    kind: 'element',
-    elementId: id
-  });
-  const elementTextAlignmentStyle = textAlignmentCss(
-    resolveOrderDocumentTextAlignment(template, {
-      kind: 'element',
-      elementId: id
-    })
-  );
-  const baseStyle: CSSProperties = {
-    color: textColor,
-    ...resolveOrderDocumentDecorationPreviewStyle(
-      elementDecoration,
-      elementDecorationInsetPt
-    ),
-    ...(centerElementText
-      ? {
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center'
-        } as const
-      : {}),
-    ...elementTypographyStyle,
-    ...elementTextAlignmentStyle
-  };
-  const labels = template.text.labels;
-  const visibleFieldRows = (group: OrderDocumentFieldGroupId) =>
-    resolveOrderDocumentFieldRows(template, group).filter((row) => row.visible);
-
-  if (GROUP_IDS.has(id)) return null;
-  if (id === 'logo') {
-    return <AtehnaDocumentLogo />;
-  }
-  if (id === 'company') {
-    const rows = visibleFieldRows('company');
-    return (
-      <div className={`h-full text-right leading-[1.25] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => {
-          if (row.id === 'company_name') {
-            if (!template.company.name.trim()) return null;
-            return (
-              <CanvasSemanticRowTarget key={row.id} group="company" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="right" className="block w-full text-right">
-                {template.company.name}
-              </CanvasSemanticRowTarget>
-            );
-          }
-          if (row.id === 'address_line_1' || row.id === 'address_line_2') {
-            const value = row.id === 'address_line_1'
-              ? template.company.addressLine1
-              : template.company.addressLine2;
-            if (!value.trim()) return null;
-            return (
-              <CanvasSemanticRowTarget key={row.id} group="company" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="right" className="block w-full text-right">
-                {value}
-              </CanvasSemanticRowTarget>
-            );
-          }
-          if (row.id !== 'contacts') return null;
-          return (
-            <CanvasSemanticRowTarget key={row.id} group="company" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="right" className="block w-full text-right">
-              {template.company.contacts.map((contact) =>
-                contact.visible && (contact.label.trim() || contact.value.trim()) ? (
-                  <span key={contact.id} data-order-document-company-contact-id={contact.id} className="block" onPointerDown={(event) => event.stopPropagation()}>
-                    <CanvasChildTarget
-                      selection={companyContactChild(contact.id)}
-                      selectedChildId={selectedChildId}
-                      onSelect={onSelectChild}
-                      className={`block w-full text-right ${contact.emphasis ? 'font-bold tracking-[0.12em]' : ''}`}
-                    >
-                      {contact.label ? `${contact.label}: ` : ''}{contact.value}
-                    </CanvasChildTarget>
-                  </span>
-                ) : null
-              )}
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'title') {
-    const rows = visibleFieldRows('title');
-    const titleText = resolveOrderDocumentPreviewText(
-      template.text.title,
-      template,
-      previewContext
-    );
-    const subtitle = resolveOrderDocumentPreviewText(
-      template.text.subtitle,
-      template,
-      previewContext
-    );
-    return (
-      <div className={`flex h-full flex-col ${contentOverflowClass}`} style={baseStyle}>
-        <div className={`flex flex-wrap items-baseline gap-y-1 ${template.style.titleAlignment === 'right' ? 'justify-end' : ''}`}>
-          {rows.map((row) => {
-            if (row.id === 'title_text') {
-              if (!titleText) return null;
-              return (
-                <CanvasSemanticRowTarget
-                  key={row.id}
-                  group="title"
-                  rowId={row.id}
-                  selectedChildId={selectedChildId}
-                  onSelect={onSelectChild}
-                  contentAlignment={
-                    template.style.titleAlignment === 'right' ? 'right' : 'left'
-                  }
-                  className="min-w-0 flex-1 whitespace-nowrap text-left leading-none"
-                >
-                  {titleText}
-                </CanvasSemanticRowTarget>
-              );
-            }
-            if (row.id === 'document_number') {
-              return (
-                <CanvasSemanticRowTarget key={row.id} group="title" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="right" className="ml-5 shrink-0 text-right">
-                  {previewContext.documentNumber}
-                </CanvasSemanticRowTarget>
-              );
-            }
-            if (row.id !== 'subtitle') return null;
-            if (!subtitle) return null;
-            return (
-              <CanvasSemanticRowTarget
-                key={row.id}
-                group="title"
-                rowId={row.id}
-                selectedChildId={selectedChildId}
-                onSelect={onSelectChild}
-                contentAlignment={
-                  template.style.titleAlignment === 'right' ? 'right' : 'left'
-                }
-                className="basis-full text-left"
-                style={{ color: mutedColor }}
-              >
-                {subtitle}
-              </CanvasSemanticRowTarget>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  if (id === 'customer') {
-    const rows = resolveOrderDocumentCustomerRows(template, previewContext);
-    return (
-      <div className={`h-full leading-[1.55] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => {
-          return (
-            <CanvasSemanticRowTarget key={row.id} group="customer" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} className={`block w-full text-left ${row.bold ? 'font-bold' : ''}`}>
-              {row.label}: &nbsp; {row.value}
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'document_meta') {
-    const rows = resolveOrderDocumentMetadataRows(template, previewContext);
-    return (
-      <div className={`h-full text-right leading-[1.55] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => {
-          return (
-            <CanvasSemanticRowTarget key={row.id} group="document_meta" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="right" className={`block w-full text-right ${row.bold ? 'font-bold' : ''}`}>
-              {row.label}: &nbsp; {row.value}
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'intro') {
-    const intro = resolveOrderDocumentPreviewText(
-      template.text.intro,
-      template,
-      previewContext
-    );
-    if (!intro) return null;
-    return (
-      <div
-        className={`h-full leading-[1.45] ${contentOverflowClass}`}
-        style={baseStyle}
-      >
-        <CanvasChildTarget
-          selection={textChild('intro', 'intro')}
-          selectedChildId={selectedChildId}
-          onSelect={onSelectChild}
-          className="block w-full text-left"
-        >
-          {intro}
-        </CanvasChildTarget>
-      </div>
-    );
-  }
-  if (id === 'items') {
-    const itemSections = resolveOrderDocumentItemSections(
-      previewContext.type,
-      previewContext.items
-    );
-    const table = resolveOrderDocumentTable(template);
-    const tableBorders = resolveOrderDocumentTableBorders(template, table);
-    const tableBorder = `${tableBorders.widthPt}pt solid ${tableBorders.color}`;
-    const visibleColumns = table.columns.filter((column) => column.visible);
-    const columns = visibleColumns.map((column) => `${column.widthRatio}fr`).join(' ');
-    const columnLabelKeys: Record<OrderDocumentTableColumnId, keyof OrderDocumentTemplateLabels> = {
-      sku: 'code',
-      quantity: 'quantity',
-      unit: 'unit',
-      description: 'description',
-      unitPrice: 'unitPrice',
-      lineTotal: 'lineTotal'
+  const interaction = useContext(OrderDocumentFieldRowInteractionContext);
+  return regions.filter((region) => region.kind === 'child' && region.parentId === id && region.pageNumber === pageNumber).map((region, index) => {
+    const selection = selectionForPdfRegion(region.id);
+    if (!selection) return null;
+    const transient = selection.kind === 'field_row'
+      ? interaction?.transient.find((candidate) => candidate.group === selection.group && candidate.rowId === selection.rowId)?.placement
+      : null;
+    const style: CSSProperties = {
+      position: 'absolute',
+      left: ((transient ? (region.placementOriginXMm ?? element.xMm) - element.xMm + (transient.xMm ?? 0) : region.xMm - element.xMm) / element.widthMm) * 100 + '%',
+      top: ((transient ? (region.placementOriginYMm ?? element.yMm) - element.yMm + (transient.yMm ?? 0) : region.yMm - element.yMm) / element.heightMm) * 100 + '%',
+      width: ((transient?.widthMm ?? region.widthMm) / element.widthMm) * 100 + '%',
+      height: ((transient?.heightMm ?? region.heightMm) / element.heightMm) * 100 + '%',
+      zIndex: selection.kind === 'table_header' || selection.kind === 'table_body' ? 10
+        : selection.kind === 'table_row' || selection.kind === 'table_column' ? 15
+          : selection.kind === 'field_row' ? 20 : 30
     };
-    return (
-      <div className={`h-full ${contentOverflowClass}`} style={baseStyle}>
-        {itemSections.map((section, sectionIndex) => {
-          const sectionRows = section.items.map((item, index) => ({
-            cells: resolveOrderDocumentItemCells(item),
-            item,
-            rowNumber: section.startRowNumber + index
-          }));
-          return (
-            <div
-              key={section.id}
-              data-order-document-item-section={section.id}
-              style={{ marginTop: sectionIndex > 0 ? '10pt' : undefined }}
-            >
-              {section.label ? (
-                <div
-                  data-order-document-item-section-label={section.id}
-                  className="px-1 font-bold leading-[1.35]"
-                  style={{ paddingBottom: '3pt' }}
-                >
-                  {section.label}
-                </div>
-              ) : null}
-              <div
-                className="relative"
-                data-order-document-table-border-outer={tableBorders.outer || undefined}
-                data-order-document-table-border-horizontal={tableBorders.horizontal || undefined}
-                data-order-document-table-border-vertical={tableBorders.vertical || undefined}
-                style={tableBorders.outer
-                  ? { outline: tableBorder, outlineOffset: `-${tableBorders.widthPt}pt` }
-                  : undefined}
-              >
-                <CanvasGroupTarget
-                  selection={tableHeaderChild()}
-                  selectedChildId={selectedChildId}
-                  onSelect={onSelectChild}
-                  className="grid items-center gap-1 px-1 font-bold"
-                  style={{
-                    gridTemplateColumns: columns,
-                    minHeight: `${table.headerHeightPt}pt`,
-                    backgroundColor: template.style.tableHeaderBackground,
-                    color: template.style.tableHeaderTextColor,
-                    boxShadow: tableBorders.horizontal
-                      ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
-                      : undefined
-                  }}
-                >
-                  {visibleColumns.map((column) => (
-                    <CanvasChildTarget
-                      key={column.id}
-                      selection={tableHeaderCellChild(column.id)}
-                      selectedChildId={selectedChildId}
-                      onSelect={onSelectChild}
-                      className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
-                    >
-                      {labels[columnLabelKeys[column.id]]}
-                    </CanvasChildTarget>
-                  ))}
-                </CanvasGroupTarget>
-                <CanvasGroupTarget
-                  selection={tableBodyChild()}
-                  selectedChildId={selectedChildId}
-                  onSelect={onSelectChild}
-                  className="block w-full"
-                >
-                  {sectionRows.map(({ cells, item, rowNumber }, index) => (
-                    <CanvasGroupTarget
-                      key={`${item.sku}-${rowNumber}`}
-                      selection={tableRowChild(rowNumber)}
-                      selectedChildId={selectedChildId}
-                      onSelect={onSelectChild}
-                      className="grid w-full items-center gap-1 px-1 text-left"
-                      style={{
-                        gridTemplateColumns: columns,
-                        minHeight: `${
-                          table.rowHeightOverrides.find((override) => override.rowNumber === rowNumber)?.heightPt
-                            ?? table.rowHeightPt
-                        }pt`,
-                        marginTop: index === 0 ? 0 : `${table.rowGapPt}pt`,
-                        backgroundColor: (rowNumber - 1) % 2
-                          ? template.style.tableStripeColor
-                          : 'transparent',
-                        boxShadow: tableBorders.horizontal && index < sectionRows.length - 1
-                          ? `inset 0 -${tableBorders.widthPt}pt 0 ${tableBorders.color}`
-                          : undefined
-                      }}
-                    >
-                      {visibleColumns.map((column) => (
-                        <CanvasChildTarget
-                          key={column.id}
-                          selection={tableCellChild(rowNumber, column.id)}
-                          selectedChildId={selectedChildId}
-                          onSelect={onSelectChild}
-                          className={`block w-full ${column.id === 'quantity' || column.id === 'unitPrice' || column.id === 'lineTotal' ? 'text-right' : 'text-left'}`}
-                          style={{
-                            ...(column.id === 'sku' || column.id === 'description'
-                              ? { minWidth: 0, overflowWrap: 'break-word' as const }
-                              : {})
-                          }}
-                        >
-                          {cells[column.id]}
-                        </CanvasChildTarget>
-                      ))}
-                    </CanvasGroupTarget>
-                  ))}
-                </CanvasGroupTarget>
-                {tableBorders.vertical && visibleColumns.length > 1 ? (
-                  <div
-                    aria-hidden="true"
-                    data-order-document-table-vertical-rule-overlay
-                    className="pointer-events-none absolute inset-0 z-20 grid gap-1 px-1"
-                    style={{ gridTemplateColumns: columns }}
-                  >
-                    {visibleColumns.slice(0, -1).map((column, index) => (
-                      <span
-                        key={column.id}
-                        className="h-full"
-                        style={{
-                          gridColumn: index + 1,
-                          borderRight: tableBorder
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'totals') {
-    const rows = resolveOrderDocumentTotalRows(template, previewContext);
-    return (
-      <div className={`h-full leading-[1.65] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row, index) => {
-          const typographyTarget: OrderDocumentTypographyTarget = {
-            kind: 'field_row',
-            group: 'totals',
-            rowId: row.id
-          };
-          const rowAlignment = resolveOrderDocumentTextAlignment(template, typographyTarget);
-          const rowTypography = resolveOrderDocumentTypography(template, typographyTarget);
-          const financialPairStyle = resolveOrderDocumentFinancialPairPreviewStyle(rowAlignment);
-          const formattedValue = formatOrderDocumentCurrency(row.value);
-          const opticalLabelEdge = rowAlignment === 'distributed' || rowAlignment === 'left'
-            ? 'left'
-            : null;
-          const opticalValueEdge = rowAlignment === 'distributed' || rowAlignment === 'right'
-            ? 'right'
-            : null;
-          const fontMeasurementKey = [
-            rowTypography.fontFamily,
-            rowTypography.fontWeight,
-            rowTypography.fontStyle,
-            rowTypography.fontSizePt
-          ].join(':');
-          return (
-            <CanvasSemanticRowTarget
-              key={`${row.id}-${index}`}
-              group="totals"
-              rowId={row.id}
-              selectedChildId={selectedChildId}
-              onSelect={onSelectChild}
-              contentAlignment="distributed"
-              className={`grid w-full ${row.id === 'total' ? 'mt-1' : ''} ${row.bold ? 'font-bold' : ''}`}
-            >
-              <>
-                {opticalLabelEdge ? (
-                  <CanvasFinancialOpticalEdgeText
-                    cell="label"
-                    edge={opticalLabelEdge}
-                    measurementKey={`${fontMeasurementKey}:${row.label}`}
-                    style={financialPairStyle.label}
-                  >
-                    {row.label}
-                  </CanvasFinancialOpticalEdgeText>
-                ) : (
-                  <span
-                    data-order-document-financial-label-cell
-                    style={financialPairStyle.label}
-                  >
-                    {row.label}
-                  </span>
-                )}
-                {opticalValueEdge ? (
-                  <CanvasFinancialOpticalEdgeText
-                    cell="value"
-                    edge={opticalValueEdge}
-                    measurementKey={`${fontMeasurementKey}:${formattedValue}`}
-                    style={financialPairStyle.value}
-                  >
-                    {formattedValue}
-                  </CanvasFinancialOpticalEdgeText>
-                ) : (
-                  <span
-                    data-order-document-financial-value-cell
-                    style={financialPairStyle.value}
-                  >
-                    {formattedValue}
-                  </span>
-                )}
-              </>
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'notes') {
-    const rows = visibleFieldRows('notes');
-    const notes = previewContext.order.notes?.trim() ?? '';
-    return (
-      <div className={`h-full leading-[1.45] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => row.id === 'notes_label' ? (
-          <CanvasSemanticRowTarget key={row.id} group="notes" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} className="block w-full text-left">
-            {labels.notes}:
-          </CanvasSemanticRowTarget>
-        ) : row.id === 'notes_content' ? (
-          <CanvasSemanticRowTarget key={row.id} group="notes" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} className="mt-1 block w-full text-left" style={{ color: mutedColor }}>
-            {notes}
-          </CanvasSemanticRowTarget>
-        ) : null)}
-      </div>
-    );
-  }
-  if (id === 'closing') {
-    const rows = visibleFieldRows('closing');
-    return (
-      <div className={`h-full leading-[1.45] ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => {
-          const value = row.id === 'payment_terms'
-            ? resolveOrderDocumentPreviewText(template.text.paymentTerms, template, previewContext)
-            : row.id === 'closing_text'
-              ? resolveOrderDocumentPreviewText(template.text.closing, template, previewContext)
-              : row.id === 'signer_name'
-                ? resolveOrderDocumentPreviewText(template.text.signerName, template, previewContext)
-                : '';
-          if (!value) return null;
-          return (
-            <CanvasSemanticRowTarget key={row.id} group="closing" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} className="block w-full text-left">
-              {value}
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  if (id === 'signatures') {
-    const rows = visibleFieldRows('signatures');
-    return (
-      <div className={`grid h-full grid-cols-2 items-end gap-10 ${contentOverflowClass}`} style={baseStyle}>
-        {rows.map((row) => {
-          if (row.id !== 'handed_over_by' && row.id !== 'received_by') return null;
-          const label = row.id === 'handed_over_by' ? labels.handedOverBy : labels.receivedBy;
-          return (
-            <CanvasSemanticRowTarget key={row.id} group="signatures" rowId={row.id} selectedChildId={selectedChildId} onSelect={onSelectChild} contentAlignment="distributed" className="flex w-full items-end gap-2 text-left">
-              <span>{label}:</span><span className="mb-0.5 h-px flex-1 bg-current" />
-            </CanvasSemanticRowTarget>
-          );
-        })}
-      </div>
-    );
-  }
-  const rows = resolveOrderDocumentFooterRows(template, previewContext, 0, 1);
-  return (
-    <div className={`flex h-full flex-col justify-end text-center leading-[1.35] ${contentOverflowClass}`} style={baseStyle}>
-      {rows.map((row) => (
-        <CanvasSemanticRowTarget
-          key={row.id}
-          group="footer"
-          rowId={row.id}
-          selectedChildId={selectedChildId}
-          onSelect={onSelectChild}
-          contentAlignment={row.alignment === 'right' ? 'right' : 'center'}
-          className={`${row.id === 'page_numbers' ? 'mt-0.5' : ''} block w-full ${row.alignment === 'right' ? 'text-right' : 'text-center'}`}
-        >
-          {row.value}
-        </CanvasSemanticRowTarget>
-      ))}
-    </div>
-  );
+    const shared = { selectedChildId, onSelect: onSelectChild, style, pdfHit: true };
+    if (selection.kind === 'field_row') return <CanvasSemanticRowTarget key={region.id + ':' + index} {...shared} group={selection.group} rowId={selection.rowId}>{null}</CanvasSemanticRowTarget>;
+    if (['table_header', 'table_body', 'table_row', 'table_column'].includes(selection.kind)) return <CanvasGroupTarget key={region.id + ':' + index} {...shared} selection={selection}>{null}</CanvasGroupTarget>;
+    return <CanvasChildTarget key={region.id + ':' + index} {...shared} selection={selection}>{null}</CanvasChildTarget>;
+  });
 }
 
 const sectionForElement = (
@@ -3830,8 +3269,16 @@ export default function OrderDocumentTemplateCanvas({
   template,
   logoConfig,
   onChange,
-  onLogoConfigChange
+  onLogoConfigChange,
+  preview,
+  previewLoading,
+  previewError,
+  onRefreshPreview
 }: {
+  preview: OrderDocumentRenderedPreview | null;
+  previewLoading: boolean;
+  previewError: string | null;
+  onRefreshPreview: () => void;
   template: OrderDocumentTemplate;
   logoConfig: SiteLogoConfig;
   onChange: (template: OrderDocumentTemplate) => void;
@@ -3840,6 +3287,16 @@ export default function OrderDocumentTemplateCanvas({
   const [selectionEntries, setSelectionEntries] = useState<
     readonly OrderDocumentCanvasSelectionEntry[]
   >([]);
+  const [pageNumber, setPageNumber] = useState(1);
+  const lastLayoutRef = useRef<{ type: OrderDocumentTemplate['type']; layout: OrderDocumentPreviewLayout } | null>(null);
+  useEffect(() => {
+    if (preview) lastLayoutRef.current = { type: template.type, layout: preview.layout };
+    else if (lastLayoutRef.current?.type !== template.type) lastLayoutRef.current = null;
+  }, [preview, template.type]);
+  // Keep inspector anchors while refreshing pixels. Old artwork stays hidden.
+  const previewLayout = preview?.layout
+    ?? (lastLayoutRef.current?.type === template.type ? lastLayoutRef.current.layout : null);
+
   const [layersOpen, setLayersOpen] = useState(false);
   const [restoreElementsOpen, setRestoreElementsOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
@@ -3953,10 +3410,18 @@ export default function OrderDocumentTemplateCanvas({
   const logoPresentation = resolveSiteLogoPresentation(logoPlacement);
   const logoMaster = resolveSiteLogoMaster(logoConfig, 'pdf-document');
   const logoCapabilities = getSiteLogoPresentationCapabilities(logoMaster);
-  const previewElements = useMemo(
-    () => resolveOrderDocumentFlowPreviewElements(template, canvas, previewContext),
-    [canvas, previewContext, template]
-  );
+  const currentPage = Math.min(pageNumber, previewLayout?.pages.length || pageNumber);
+  const previewElements = useMemo(() => {
+    const elements = { ...canvas.elements };
+    for (const region of previewLayout?.regions ?? []) {
+      if (region.kind !== 'element' || region.pageNumber !== currentPage) continue;
+      const id = region.id as OrderDocumentCanvasElementId;
+      if (!elements[id]) continue;
+      elements[id] = { ...elements[id], xMm: region.xMm, yMm: region.yMm,
+        widthMm: region.widthMm, heightMm: region.heightMm, page: currentPage };
+    }
+    return elements;
+  }, [canvas, currentPage, previewLayout]);
   const primarySelection = selectionEntries.at(-1) ?? null;
   const selectedChild = primarySelection?.kind === 'child'
     ? primarySelection.child
@@ -4086,7 +3551,7 @@ export default function OrderDocumentTemplateCanvas({
     if (!matchesOrderDocumentElementCondition(element, previewContext)) {
       return `${label} (pogoj ni izpolnjen)`;
     }
-    if (element.page !== 1) return `${label} (ni na tej strani)`;
+    if (element.page !== currentPage) return `${label} (ni na tej strani)`;
     return label;
   };
 
@@ -4329,13 +3794,16 @@ export default function OrderDocumentTemplateCanvas({
     const rowRect = rowNode.getBoundingClientRect();
     const ownerRect = ownerNode.getBoundingClientRect();
     if (ownerRect.width <= 0 || ownerRect.height <= 0) return;
+    const region = previewLayout?.regions.find((item) => item.id === selectedChild.id && item.pageNumber === currentPage);
+    const originX = region?.placementOriginXMm ?? ownerElement.xMm;
+    const originY = region?.placementOriginYMm ?? ownerElement.yMm;
     setMeasuredSelectedRowPlacement({
-      xMm: roundMm(((rowRect.left - ownerRect.left) / ownerRect.width) * ownerElement.widthMm),
-      yMm: roundMm(((rowRect.top - ownerRect.top) / ownerRect.height) * ownerElement.heightMm),
+      xMm: roundMm(((rowRect.left - ownerRect.left) / ownerRect.width) * ownerElement.widthMm + ownerElement.xMm - originX),
+      yMm: roundMm(((rowRect.top - ownerRect.top) / ownerRect.height) * ownerElement.heightMm + ownerElement.yMm - originY),
       widthMm: roundMm((rowRect.width / ownerRect.width) * ownerElement.widthMm),
       heightMm: roundMm((rowRect.height / ownerRect.height) * ownerElement.heightMm)
     });
-  }, [previewElements, selectedChild, template]);
+  }, [currentPage, previewLayout, previewElements, selectedChild, template]);
 
   const updateCanvasSettings = (
     updates: Partial<Omit<typeof canvas, 'elements'>>
@@ -4358,6 +3826,7 @@ export default function OrderDocumentTemplateCanvas({
     updates: Partial<OrderDocumentCanvasElement>
   ) => {
     if (isOrderDocumentCanvasElementDeleted(template, id)) return;
+    if (isSplitFlowElement(id) && ['positioning', 'xMm', 'yMm', 'widthMm', 'heightMm', 'page'].some((key) => key in updates)) return;
     const materialized = materializeOrderDocumentCanvasElement(template, id);
     const source = materialized.layout.canvas;
     if (!source) return;
@@ -4385,6 +3854,7 @@ export default function OrderDocumentTemplateCanvas({
     let next = template;
     for (const id of selectedElementIds) {
       if (isOrderDocumentCanvasElementDeleted(next, id)) continue;
+      if (isSplitFlowElement(id) && ['positioning', 'xMm', 'yMm', 'widthMm', 'heightMm', 'page'].some((key) => key in updates)) continue;
       next = materializeOrderDocumentCanvasElement(next, id);
       const source = next.layout.canvas;
       if (!source) continue;
@@ -4516,8 +3986,8 @@ export default function OrderDocumentTemplateCanvas({
       && !excludedIds.has(candidateId)
       && activeElementIds.includes(candidateId)
       && !GROUP_IDS.has(candidateId)
-      && candidate.page === 1
-      && shouldRenderOrderDocumentPreviewElement(candidate, previewContext, 1)
+      && candidate.page === currentPage
+      && shouldRenderOrderDocumentPreviewElement(candidate, previewContext, currentPage)
     )
     .map(([candidateId, candidate]) => ({
       id: candidateId,
@@ -4598,7 +4068,7 @@ export default function OrderDocumentTemplateCanvas({
     selection: FieldRowSelection,
     event: ReactPointerEvent<HTMLElement>
   ) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || !preview || previewLoading) return;
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
       event.stopPropagation();
@@ -4629,15 +4099,18 @@ export default function OrderDocumentTemplateCanvas({
       if (ownerRect.width <= 0 || ownerRect.height <= 0) return null;
       const row = resolveOrderDocumentFieldRows(template, candidate.group)
         .find((item) => item.id === candidate.rowId);
+      const region = previewLayout?.regions.find((item) => item.id === candidate.id && item.pageNumber === currentPage);
+      const originX = region?.placementOriginXMm ?? ownerElement.xMm;
+      const originY = region?.placementOriginYMm ?? ownerElement.yMm;
       const measured = {
-        xMm: roundMm(((rowRect.left - ownerRect.left) / ownerRect.width) * ownerElement.widthMm),
-        yMm: roundMm(((rowRect.top - ownerRect.top) / ownerRect.height) * ownerElement.heightMm),
+        xMm: roundMm(((rowRect.left - ownerRect.left) / ownerRect.width) * ownerElement.widthMm + ownerElement.xMm - originX),
+        yMm: roundMm(((rowRect.top - ownerRect.top) / ownerRect.height) * ownerElement.heightMm + ownerElement.yMm - originY),
         widthMm: roundMm((rowRect.width / ownerRect.width) * ownerElement.widthMm),
         heightMm: roundMm((rowRect.height / ownerRect.height) * ownerElement.heightMm)
       };
       return {
         selection: candidate,
-        ownerElement,
+        ownerElement: { ...ownerElement, xMm: originX, yMm: originY },
         measuredWidthMm: measured.widthMm,
         measuredHeightMm: measured.heightMm,
         startPlacement: {
@@ -4670,6 +4143,14 @@ export default function OrderDocumentTemplateCanvas({
     setTransientFieldRowPlacements([]);
   };
 
+  const isSplitFlowElement = (id: OrderDocumentCanvasElementId) =>
+    sectionForElement(id) === id
+    && canvas.elements[id].positioning === 'flow'
+    && new Set((previewLayout?.regions ?? []).filter(
+      (region) => region.kind === 'element' && region.id === id
+    ).map((region) => region.pageNumber)).size > 1;
+  const splitFlowHint = 'Ta del se nadaljuje na več straneh. Urejate lahko njegove vrstice in celice.';
+
   const beginInteraction = (
     id: OrderDocumentCanvasElementId,
     kind: Interaction['kind'],
@@ -4684,13 +4165,13 @@ export default function OrderDocumentTemplateCanvas({
       armNextCanvasClickSuppression();
       return;
     }
-    if (element.locked) return;
+    if (element.locked || isSplitFlowElement(id) || !preview || previewLoading) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     if (!selectedElementIdSet.has(id)) selectElement(id);
     const directMovementIds = kind === 'move' && selectedElementIdSet.has(id)
-      ? selectedElementIds.filter((selectedId) => !previewElements[selectedId].locked)
+      ? selectedElementIds.filter((selectedId) => !previewElements[selectedId].locked && !isSplitFlowElement(selectedId))
       : [id];
     const movementIds = new Set<OrderDocumentCanvasElementId>(directMovementIds);
     for (const selectedId of directMovementIds) {
@@ -4942,6 +4423,9 @@ export default function OrderDocumentTemplateCanvas({
           elements[movementId] = {
             ...(source.elements[movementId] ?? movementStart),
             positioning: 'absolute',
+            page: movementStart.page,
+            widthMm: movementStart.widthMm,
+            heightMm: movementStart.heightMm,
             xMm: roundMm(movementStart.xMm + deltaX),
             yMm: roundMm(movementStart.yMm + deltaY)
           };
@@ -5946,6 +5430,7 @@ export default function OrderDocumentTemplateCanvas({
             <span className="mb-1 block">Način postavitve</span>
             <CompactDarkSelect
               marker="positioning"
+              disabled={isSplitFlowElement(id)}
               label="Način postavitve"
               value={element.positioning}
               options={[
@@ -6192,7 +5677,7 @@ export default function OrderDocumentTemplateCanvas({
                   Plasti dokumenta
                 </div>
                 <div className="max-h-[430px] space-y-1 overflow-auto">
-                  {activeElementIds.map((id) => {
+                  {(previewLayout ? activeElementIds : []).map((id) => {
                     const element = canvas.elements[id];
                     return (
                       <div
@@ -6387,6 +5872,16 @@ export default function OrderDocumentTemplateCanvas({
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={currentPage <= 1 || previewLoading} onClick={() => { clearSelection(); setPageNumber(currentPage - 1); }} className="rounded border px-2 py-1 disabled:opacity-40" aria-label="Prejšnja stran">←</button>
+            <span>Stran {currentPage} / {preview?.pages.length ?? '…'}</span>
+            <button type="button" disabled={!preview || currentPage >= preview.pages.length || previewLoading} onClick={() => { clearSelection(); setPageNumber(currentPage + 1); }} className="rounded border px-2 py-1 disabled:opacity-40" aria-label="Naslednja stran">→</button>
+          </div>
+          <span role="status" data-testid="order-document-canvas-preview-state">{previewError ? 'Predogled ni na voljo' : previewLoading ? 'Osvežujem PDF …' : 'Predogled je posodobljen'}</span>
+          {previewError ? <button type="button" onClick={onRefreshPreview} className="text-blue-700 underline">Poskusi znova</button> : null}
+        </div>
+        {previewError ? <p role="alert" className="border-t border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">{previewError}</p> : null}
         <div className="grid min-w-0 bg-slate-100">
           <div ref={scrollRegionRef} className="min-w-0 overflow-auto p-4 sm:p-6">
             <div
@@ -6443,6 +5938,11 @@ export default function OrderDocumentTemplateCanvas({
                 onPointerUp={endInteraction}
                 onPointerCancel={cancelInteraction}
               >
+                {preview?.pages[currentPage - 1] ? (
+                  // These are the same locally rendered PDF pixels used by the other view.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview.pages[currentPage - 1]} alt={`${template.name}, stran ${currentPage}`} data-order-document-pdf-page={currentPage} className="pointer-events-none absolute inset-0 h-full w-full" draggable={false} />
+                ) : null}
                 {multipleSelection ? (
                   <div
                     role="status"
@@ -6598,8 +6098,8 @@ export default function OrderDocumentTemplateCanvas({
                   const previewRendered = shouldRenderOrderDocumentPreviewElement(
                     element,
                     previewContext,
-                    1
-                  );
+                    currentPage
+                  ) && Boolean(previewLayout?.regions.some((region) => region.kind === 'element' && region.id === id && region.pageNumber === currentPage));
                   const editorOnlyReason = !element.visible
                     ? `${ELEMENT_META[id].label} je skrit`
                     : !conditionMatched
@@ -6638,7 +6138,8 @@ export default function OrderDocumentTemplateCanvas({
                         width: `${(element.widthMm / A4_WIDTH_MM) * 100}%`,
                         height: `${(element.heightMm / A4_HEIGHT_MM) * 100}%`,
                         zIndex: element.zIndex,
-                        overflow: element.overflow
+                        overflow: element.overflow,
+                        pointerEvents: !preview || previewLoading ? 'none' : undefined
                       }}
                     >
                       <div className={`relative z-10 h-full ${previewRendered ? '' : 'opacity-30'}`}>
@@ -6653,8 +6154,8 @@ export default function OrderDocumentTemplateCanvas({
                               >
                                 <ElementPreview
                                   id={id}
-                                  template={template}
-                                  previewContext={previewContext}
+                                  regions={previewLayout?.regions ?? []}
+                                  pageNumber={currentPage}
                                   element={element}
                                   selectedChildId={selectedChildIds}
                                   onSelectChild={selectChild}
@@ -6689,18 +6190,22 @@ export default function OrderDocumentTemplateCanvas({
                       data-order-document-drag-handle
                       className="pointer-events-auto absolute -top-6 left-0 flex h-5 cursor-move items-center gap-1 whitespace-nowrap rounded bg-blue-600 px-1.5 text-[8px] font-bold text-white shadow"
                       onPointerDown={(event) => beginInteraction(selectedElementId, 'move', event)}
+                      disabled={!preview || previewLoading || isSplitFlowElement(selectedElementId)}
+                      title={isSplitFlowElement(selectedElementId) ? splitFlowHint : undefined}
                       aria-label={`Premakni ${ELEMENT_META[selectedElementId].label}`}
                       tabIndex={-1}
                     >
                       {selectedElement.locked ? <Lock className="h-2.5 w-2.5" /> : <Move className="h-2.5 w-2.5" />}
                       {ELEMENT_META[selectedElementId].label}
                     </button>
-                    {!selectedElement.locked ? (
+                    {isSplitFlowElement(selectedElementId) ? <span className="absolute left-0 top-full mt-1 w-72 rounded bg-slate-800 px-2 py-1 text-[10px] text-white">{splitFlowHint}</span> : null}
+                    {!selectedElement.locked && !isSplitFlowElement(selectedElementId) ? (
                       <button
                         type="button"
                         data-order-document-resize-handle
                         className="pointer-events-auto absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 cursor-nwse-resize rounded-[3px] border-2 border-white bg-blue-600 shadow"
                         onPointerDown={(event) => beginInteraction(selectedElementId, 'resize', event)}
+                        disabled={!preview || previewLoading}
                         aria-label={`Spremeni velikost ${ELEMENT_META[selectedElementId].label}`}
                         tabIndex={-1}
                       />
@@ -6779,7 +6284,7 @@ export default function OrderDocumentTemplateCanvas({
                   </p>
                 ) : selectedChild?.kind === 'field_row' ? (
                   renderSelectedFieldRowGeometry(selectedChild)
-                ) : <div className="grid grid-cols-2 gap-2">
+                ) : <fieldset disabled={isSplitFlowElement(selectedElementId)} title={isSplitFlowElement(selectedElementId) ? splitFlowHint : undefined} className="grid grid-cols-2 gap-2">
                   <div data-testid="order-document-element-x">
                     <CompactGeometryField
                       label="X"
@@ -6820,7 +6325,7 @@ export default function OrderDocumentTemplateCanvas({
                       testId="order-document-element-height-input"
                     />
                   </div>
-                </div>
+                </fieldset>
               }
               contentPanel={renderContentPanel(selectedElementId)}
               stylePanel={

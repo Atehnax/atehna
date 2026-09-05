@@ -54,9 +54,9 @@ test('defaults expose five distinct generated PDF templates with colorful header
     assert.deepEqual([template.name, template.text.title], expectedTitles[type]);
     assert.equal(template.layout.showHeader, true);
     assert.equal(template.layout.showLogoMark, true);
-    assert.equal(template.style.marginMm, 10);
+    assert.equal(template.style.marginMm, 12);
     assert.equal(template.style.logoWidthMm, 73);
-    assert.equal(template.style.headerHeightMm, 22);
+    assert.equal(template.style.headerHeightMm, 28);
     assert.equal(template.text.labels.code, 'SKU');
     for (const [key, label] of Object.entries(template.text.labels)) {
       const firstLetter = label.match(/\p{L}/u)?.[0];

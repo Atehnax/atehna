@@ -627,7 +627,9 @@ test('customer details use compact fixed-height rows with full-width address and
     detail,
     /const quoteDetailReadValueClassName =[\s\S]*?block h-6[\s\S]*?leading-6/u
   );
-  assert.match(addressEditor, /className="grid h-6 min-w-0 flex-1/u);
+  assert.match(addressEditor, /className=\{`grid h-6 min-w-0 flex-1/u);
+  assert.match(addressEditor, /customerDetailStyles\.addressFields/u);
+  assert.match(detailRow, /customerDetailStyles\.addressRow/u);
   assert.match(addressEditor, /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u);
   assert.match(
     adminAddressAutocomplete,
@@ -828,7 +830,7 @@ test('quote activity stays in the header through the shared bounded horizontal t
   const header = sliceBetween(
     quoteDetail,
     'data-testid="quote-detail-header"',
-    '<div className="grid items-start gap-5'
+    '<div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5'
   );
   const sidebar = sliceBetween(
     quoteDetail,

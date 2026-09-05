@@ -287,6 +287,51 @@ async function assertSectionEditIcons(page: Page, minimumCount: number) {
   }
 }
 
+async function assertMobileCustomerCard(page: Page, kind: 'quote' | 'order', editing: boolean) {
+  const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+  const metrics = await card.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const children = Array.from(element.querySelectorAll('h2, dt, dd, input, textarea, button'))
+      .filter((child) => child.getClientRects().length > 0)
+      .map((child) => {
+        const rect = child.getBoundingClientRect();
+        return { label: child.getAttribute('aria-label') || child.textContent, left: rect.left, right: rect.right };
+      });
+    return { left: bounds.left, right: bounds.right, width: window.innerWidth, children };
+  });
+  expect(metrics.left).toBeGreaterThanOrEqual(0);
+  expect(metrics.right).toBeLessThanOrEqual(metrics.width);
+  for (const child of metrics.children) {
+    expect(child.left, child.label || 'customer control').toBeGreaterThanOrEqual(metrics.left);
+    expect(child.right, child.label || 'customer control').toBeLessThanOrEqual(metrics.right);
+  }
+  if (editing) {
+    const address = card.getByRole('group', { name: 'Naslovni podatki' });
+    const fields = await address.locator('input').evaluateAll((inputs) => inputs.map((input) => {
+      const bounds = input.getBoundingClientRect();
+      return { width: bounds.width, top: bounds.top, bottom: bounds.bottom };
+    }));
+    expect(fields).toHaveLength(5);
+    [150, 150, 60, 50, 35].forEach((minimum, index) => {
+      expect(fields[index]!.width, `address field ${index}`).toBeGreaterThanOrEqual(minimum);
+    });
+    expect(fields[1]!.top).toBeGreaterThanOrEqual(fields[0]!.bottom);
+    expect(fields[2]!.top).toBeGreaterThanOrEqual(fields[1]!.bottom);
+    expect(fields[3]!.top).toBe(fields[2]!.top);
+    expect(fields[4]!.top).toBe(fields[2]!.top);
+  }
+}
+
+function expectCustomerCardTransition(before: Rect, after: Rect, viewport: (typeof VIEWPORTS)[number]) {
+  if (viewport.key === 'desktop') {
+    expectSameBox(before, after);
+  } else {
+    // Mobile expands the address editor instead of squeezing five inputs into one narrow cell.
+    expectSameBox({ ...before, height: after.height }, after);
+    expect(after.height).toBeGreaterThan(before.height);
+  }
+}
+
 async function assertQuoteSectionTitleStyles(page: Page) {
   const sectionTitles = [
     'Podatki povpraševanja',
@@ -432,20 +477,22 @@ async function captureQuoteOfferLayout(page: Page) {
 
 function assertQuoteOfferLayoutUnchanged(
   before: Awaited<ReturnType<typeof captureQuoteOfferLayout>>,
-  after: Awaited<ReturnType<typeof captureQuoteOfferLayout>>
+  after: Awaited<ReturnType<typeof captureQuoteOfferLayout>>,
+  verticalShift = 0
 ) {
-  expectSameBox(before.card, after.card);
-  expectSameBox(before.details, after.details);
-  expectSameBox(before.actionBar, after.actionBar);
+  const shifted = (rect: Rect) => ({ ...rect, y: rect.y + verticalShift });
+  expectSameBox(shifted(before.card), after.card);
+  expectSameBox(shifted(before.details), after.details);
+  expectSameBox(shifted(before.actionBar), after.actionBar);
   expect(after.fields).toHaveLength(before.fields.length);
   expect(after.items).toHaveLength(before.items.length);
   before.fields.forEach((field, index) => {
     expect(after.fields[index]?.key).toBe(field.key);
-    expectSameBox(field, after.fields[index]!);
+    expectSameBox(shifted(field), after.fields[index]!);
   });
   before.items.forEach((item, index) => {
     expect(after.items[index]?.key).toBe(item.key);
-    expectSameBox(item, after.items[index]!);
+    expectSameBox(shifted(item), after.items[index]!);
   });
 }
 
@@ -708,6 +755,39 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
     testInfo.setTimeout(60_000);
   });
 
+  for (const kind of ['quote', 'order'] as const) {
+    test(`${kind} mobile customer details keep every address field usable`, async ({ page }, testInfo) => {
+      for (const width of [360, 390, 640]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto(kind === 'quote'
+          ? `/admin/orders/quotes/${fixture.quoteRequestId}`
+          : `/admin/orders/${fixture.orderId}`);
+        const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+        await expect(card).toBeVisible();
+        await settleRenderedPage(page);
+        await assertMobileCustomerCard(page, kind, false);
+        if (width === 390) {
+          await testInfo.attach(`${kind}-customer-mobile-read`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-read.png`) }), contentType: 'image/png' });
+        }
+        const edit = card.locator('button[data-admin-card-edit-action]');
+        await expect(edit).toBeEnabled();
+        await edit.click();
+        await expect(edit).toHaveAttribute('aria-pressed', 'true');
+        await assertMobileCustomerCard(page, kind, true);
+        const prefix = kind === 'quote' ? 'admin-quote' : 'admin-order';
+        const street = card.getByTestId(`${prefix}-address-autocomplete`);
+        await street.fill('Preizkusna ulica 7');
+        await expect(street).toHaveValue('Preizkusna ulica 7');
+        await card.getByLabel('Dodatni naslov', { exact: true }).fill('2. nadstropje');
+        await expect(card.getByLabel('Dodatni naslov', { exact: true })).toHaveValue('2. nadstropje');
+        await card.getByLabel('Država', { exact: true }).focus();
+        if (width === 390) {
+          await testInfo.attach(`${kind}-customer-mobile-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-edit.png`) }), contentType: 'image/png' });
+        }
+      }
+    });
+  }
+
   for (const viewport of VIEWPORTS) {
     test(`quote ${viewport.key} read mode`, async ({ page }) => {
       await page.setViewportSize(viewport);
@@ -759,8 +839,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await settleRenderedPage(page);
 
       expectSameBox(before.title, await box(titleSlot));
-      expectSameBox(before.request, await box(requestCard));
-      assertQuoteOfferLayoutUnchanged(before.offer, await captureQuoteOfferLayout(page));
+      const requestAfter = await box(requestCard);
+      expectCustomerCardTransition(before.request, requestAfter, viewport);
+      assertQuoteOfferLayoutUnchanged(before.offer, await captureQuoteOfferLayout(page), requestAfter.height - before.request.height);
       await assertQuoteSectionTitleStyles(page);
       await assertSectionEditIcons(page, 3);
       await assertDetailColumns(page, 'quote', viewport);
@@ -814,12 +895,13 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await settleRenderedPage(page);
 
       expectSameBox(before.title, await box(titleSlot));
-      expectSameBox(before.dataCard, await box(dataCard));
+      const dataCardAfter = await box(dataCard);
+      expectCustomerCardTransition(before.dataCard, dataCardAfter, viewport);
       const afterSlots = await captureOrderItemSlots(page);
       expect(afterSlots).toHaveLength(before.itemSlots.length);
       before.itemSlots.forEach((slot, index) => {
         expect(afterSlots[index]?.key).toBe(slot.key);
-        expectSameBox(slot, afterSlots[index]!);
+        expectSameBox({ ...slot, y: slot.y + dataCardAfter.height - before.dataCard.height }, afterSlots[index]!);
       });
       await assertSectionEditIcons(page, 4);
       await assertDetailColumns(page, 'order', viewport);

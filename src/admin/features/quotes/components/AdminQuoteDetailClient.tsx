@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
+import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
@@ -738,13 +739,15 @@ function QuoteOfferFieldRow({
 }
 function QuoteDetailFieldShell({
   isEditing,
-  children
+  children,
+  className = ''
 }: {
   isEditing: boolean;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
+    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -762,11 +765,11 @@ function QuoteAddressEditor({
   const postalEditSequenceRef = useRef(0);
 
   return (
-    <QuoteDetailFieldShell isEditing>
+    <QuoteDetailFieldShell isEditing className={customerDetailStyles.addressShell}>
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="quote-request-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -875,12 +878,13 @@ function QuoteDetailRow({
 }) {
   return (
     <div
-      className={`grid h-[35px] items-center gap-3 ${
+      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
       }`}
       data-quote-detail-row={label}
+      data-detail-editing={isEditing}
       data-quote-detail-span={fullWidth ? 'full' : undefined}
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-slate-600">
@@ -3077,10 +3081,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
           </div>
         </section>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
-        <main className="space-y-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
+        <main className="min-w-0 space-y-5">
           <section className={adminWindowCardClassName + ' p-4'} style={adminWindowCardStyle} data-testid="quote-request-details-card">
-            <div className="flex items-center justify-between gap-4">
+            <div className={`flex items-center justify-between gap-4 ${customerDetailStyles.customerHeading}`}>
               <div className="flex min-w-0 items-center gap-2">
                 <h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja</h2>
                 <AdminOrderCustomerActions

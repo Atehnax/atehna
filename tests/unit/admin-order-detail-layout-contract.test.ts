@@ -229,7 +229,7 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   const orderDataRow = detail.slice(detail.indexOf('function OrderDataRow'));
   assert.match(
     orderDataRow,
-    /grid h-\[35px\] items-center gap-3/u
+    /grid h-\[35px\] min-w-0 items-center gap-3/u
   );
   assert.doesNotMatch(
     orderDataRow,
@@ -341,7 +341,9 @@ test('order address remains structured inside one full-width field and persists 
     detail,
     /const orderDataCompositeInputClassName =[\s\S]*?!h-6[\s\S]*?!leading-5/u
   );
-  assert.match(detail, /className="grid h-6 min-w-0 flex-1/u);
+  assert.match(detail, /className=\{`grid h-6 min-w-0 flex-1/u);
+  assert.match(detail, /customerDetailStyles\.addressFields/u);
+  assert.match(detail, /customerDetailStyles\.addressRow/u);
   assert.match(
     detail,
     /grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_3\.5rem_minmax\(0,1fr\)_2\.25rem\]/u

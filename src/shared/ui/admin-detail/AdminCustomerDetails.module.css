@@ -1,0 +1,60 @@
+/* Customer address controls share a compact desktop row and usable mobile layout. */
+@media (max-width: 767px) {
+  .customerHeading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .customerHeading > div {
+    display: contents;
+  }
+
+  .customerHeading h2 {
+    grid-column: 1 / -1;
+  }
+
+  .addressRow.addressRow {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 4px;
+    padding-block: 4px;
+  }
+
+  .addressShell.addressShell {
+    height: auto !important;
+    padding: 6px;
+  }
+
+  .addressFields.addressFields {
+    height: auto;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 2.75rem;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .addressFields > :nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  .addressFields > * {
+    min-width: 0;
+    border-left-width: 0 !important;
+  }
+
+  .addressFields input {
+    display: block;
+  }
+
+  .addressRow[data-detail-editing='false'] dd > div {
+    height: auto !important;
+    padding-inline: 0;
+  }
+
+  .addressRow[data-detail-editing='false'] dd span {
+    height: auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

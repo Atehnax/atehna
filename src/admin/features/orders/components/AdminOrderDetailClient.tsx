@@ -17,6 +17,7 @@ import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminO
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
+import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
@@ -451,11 +452,11 @@ function OrderAddressEditor({
   const postalEditSequenceRef = useRef(0);
 
   return (
-    <DetailFieldShell isEditing>
+    <DetailFieldShell isEditing className={customerDetailStyles.addressShell}>
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className="grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden"
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="admin-order-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -1605,7 +1606,7 @@ export default function AdminOrderDetailClient({
 
         </section>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
           <div className="flex min-w-0 flex-col gap-5">
             <AdminOrderItemsEditorClient
               orderId={orderId}
@@ -1903,12 +1904,13 @@ function OrderDataRow({
 
   return (
     <div
-      className={`grid h-[35px] items-center gap-3 ${
+      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
       }`}
       data-order-data-row={label}
+      data-detail-editing={isEditing}
       data-order-data-span={fullWidth ? 'full' : undefined}
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-slate-500">

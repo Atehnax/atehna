@@ -184,19 +184,6 @@ export type OrderItemSkuAllocationRow = {
   shippedAt: string | null;
 };
 
-export type OrderAnalyticsRow = {
-  id: number;
-  created_at: string;
-  committed_at: string | null;
-  contract_accepted_at: string | null;
-  status: string | null;
-  payment_status: string | null;
-  commitment_status: string | null;
-  contract_status: OrderContractStatus | null;
-  customer_type: string | null;
-  total: number;
-};
-
 export type OrderListDocumentSummaryRow = {
   id: number;
   order_id: number;
@@ -256,14 +243,4 @@ export type AdminOrderPdfDocumentTuple = readonly [
   filename: string,
   url: string,
   createdAt: string
-];
-
-export type AdminOrderAnalyticsTuple = readonly [
-  createdAt: string,
-  status: string | null,
-  total: number,
-  commitmentStatus: string | null,
-  contractStatus: OrderContractStatus | null,
-  committedAt: string | null,
-  contractAcceptedAt: string | null
 ];

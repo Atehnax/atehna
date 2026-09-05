@@ -1,3 +1,4 @@
+import type { OrderDocumentPreviewLayout, OrderDocumentPreviewRegion } from '@/shared/domain/order/orderDocumentPreviewLayout';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import fontkit, { type Font as FontkitFont } from '@pdf-lib/fontkit';
@@ -652,7 +653,7 @@ class OrderPdfRenderer {
   private readonly canvas;
   private readonly table;
   private readonly tableBorders: ResolvedOrderDocumentTableBorders;
-  private readonly canvasMode: boolean;
+  private readonly previewRegions = new Map<string, OrderDocumentPreviewRegion>();
   private activeCanvasFrame: ActiveCanvasFrame | null = null;
   private activeCanvasElement: OrderDocumentCanvasElement | null = null;
 
@@ -667,11 +668,87 @@ class OrderPdfRenderer {
     this.canvas = resolveOrderDocumentCanvas(input.template);
     this.table = resolveOrderDocumentTable(input.template);
     this.tableBorders = resolveOrderDocumentTableBorders(input.template, this.table);
-    this.canvasMode = Object.keys(input.template.layout.canvas?.elements ?? {}).length > 0
-      || (input.template.layout.canvas?.deletedElementIds?.length ?? 0) > 0;
-    this.defaultFooterReserve = (
-      this.canvasMode ? this.canvas.elements.footer.visible : input.template.layout.showFooter
-    ) ? 45 : 18;
+    this.defaultFooterReserve = this.canvas.elements.footer.visible
+      ? Math.max(0, A4_HEIGHT - mm(this.canvas.elements.footer.yMm) - this.defaultMargin + ORDER_DOCUMENT_FLOW_SECTION_GAP_PT)
+      : 0;
+  }
+
+  private recordRegion(
+    id: string,
+    parentId: string | undefined,
+    frame: Pick<PdfDecorationFrame, 'x' | 'bottom' | 'width' | 'height'>,
+    kind: 'element' | 'child' = 'child'
+  ) {
+    const pageNumber = this.doc.getPages().indexOf(this.page) + 1;
+    const clipping = this.activeCanvasFrame?.element.overflow === 'clip' ? this.activeCanvasFrame : null;
+    const left = Math.max(0, frame.x, clipping?.x ?? 0);
+    const bottom = Math.max(0, frame.bottom, clipping?.bottom ?? 0);
+    const right = Math.min(A4_WIDTH, frame.x + frame.width, clipping?.right ?? A4_WIDTH);
+    const top = Math.min(A4_HEIGHT, frame.bottom + frame.height, clipping?.top ?? A4_HEIGHT);
+    if (pageNumber < 1 || right <= left || top <= bottom) return;
+    const region: OrderDocumentPreviewRegion = {
+      id, parentId, kind, pageNumber,
+      xMm: left / MM_TO_PT, yMm: (A4_HEIGHT - top) / MM_TO_PT,
+      widthMm: (right - left) / MM_TO_PT, heightMm: (top - bottom) / MM_TO_PT
+    };
+    const key = String(pageNumber) + ':' + id;
+    const existing = this.previewRegions.get(key);
+    if (existing) {
+      const x = Math.min(existing.xMm, region.xMm);
+      const y = Math.min(existing.yMm, region.yMm);
+      region.widthMm = Math.max(existing.xMm + existing.widthMm, region.xMm + region.widthMm) - x;
+      region.heightMm = Math.max(existing.yMm + existing.heightMm, region.yMm + region.heightMm) - y;
+      region.xMm = x;
+      region.yMm = y;
+    }
+    this.previewRegions.set(key, region);
+    if (parentId) this.recordElementRegion(parentId, frame);
+  }
+
+  private recordElementRegion(id: string, frame: Pick<PdfDecorationFrame, 'x' | 'bottom' | 'width' | 'height'>) {
+    const parentId = id === 'logo' || id === 'company' ? 'header'
+      : id === 'title' || id === 'customer' || id === 'document_meta' ? 'document_details'
+        : undefined;
+    this.recordRegion(id, parentId, frame, 'element');
+  }
+
+  private recordFieldRegion(
+    group: OrderDocumentFieldGroupId,
+    rowId: OrderDocumentFieldRowId,
+    frame: PdfDecorationFrame,
+    origin: { x: number; top: number }
+  ) {
+    const id = group + ':field-row:' + rowId;
+    this.recordRegion(id, group, frame);
+    const region = this.previewRegions.get(String(this.doc.getPages().indexOf(this.page) + 1) + ':' + id);
+    if (region) {
+      region.placementOriginXMm = origin.x / MM_TO_PT;
+      region.placementOriginYMm = (A4_HEIGHT - origin.top) / MM_TO_PT;
+    }
+  }
+
+  private drawText(text: string, options: Parameters<PDFPage['drawText']>[1]) {
+    if (text && options?.font && options.size && options.x != null && options.y != null) {
+      const ascent = options.font.heightAtSize(options.size, { descender: false });
+      const height = options.font.heightAtSize(options.size);
+      const frame = {
+        x: options.x, bottom: options.y - Math.max(0, height - ascent),
+        width: options.font.widthOfTextAtSize(text, options.size), height
+      };
+      if (this.activeCanvasElement) this.recordElementRegion(this.activeCanvasElement.id, frame);
+    }
+    this.page.drawText(text, options);
+  }
+
+  previewLayout(): OrderDocumentPreviewLayout {
+    return {
+      pages: this.doc.getPages().map((page, index) => ({
+        pageNumber: index + 1,
+        widthMm: page.getWidth() / MM_TO_PT,
+        heightMm: page.getHeight() / MM_TO_PT
+      })),
+      regions: [...this.previewRegions.values()]
+    };
   }
 
   private get font() {
@@ -1002,7 +1079,7 @@ class OrderPdfRenderer {
           wordWidths
         });
         words.forEach((word, index) => {
-          this.page.drawText(word, {
+          this.drawText(word, {
             x: positions[index]!,
             y: options.y,
             size: options.size,
@@ -1013,7 +1090,7 @@ class OrderPdfRenderer {
         return;
       }
     }
-    this.page.drawText(value, {
+    this.drawText(value, {
       x: resolveOrderDocumentPdfAlignedTextX({
         x: options.x,
         width: options.width,
@@ -1073,6 +1150,7 @@ class OrderPdfRenderer {
     frame: Pick<ActiveCanvasFrame, 'x' | 'bottom' | 'width' | 'height'>,
     borderOnly = false
   ) {
+    if (!borderOnly) this.recordElementRegion(element.id, frame);
     this.drawDecorationBox(
       resolveOrderDocumentDecoration(this.input.template, {
         kind: 'element',
@@ -1090,6 +1168,7 @@ class OrderPdfRenderer {
   ) {
     const previousElement = this.activeCanvasElement;
     this.activeCanvasElement = element;
+    this.recordElementRegion(element.id, frame);
     this.drawCanvasElementBox(element, frame);
     try {
       draw();
@@ -1134,6 +1213,7 @@ class OrderPdfRenderer {
     );
     const elementFontSize = this.textStyle({ kind: 'element', elementId: element.id }).size;
     this.y = top - (textLedElement ? elementFontSize + 1 : 0);
+    this.recordElementRegion(element.id, frame);
     this.drawCanvasElementBox(element, frame);
     const clipped = element.overflow === 'clip';
     if (clipped) {
@@ -1252,19 +1332,17 @@ class OrderPdfRenderer {
     });
     const pageNumber = this.doc.getPageCount();
     const header = this.canvas.elements.header;
-    const headerVisible = this.canvasMode
-      ? this.shouldRenderElement(header, pageNumber)
-      : this.input.template.layout.showHeader;
-    this.y = A4_HEIGHT - (headerVisible ? mm(10) : this.defaultMargin);
-    if (this.canvasMode && headerVisible) {
+    const headerVisible = this.shouldRenderElement(header, pageNumber);
+    this.y = A4_HEIGHT - this.defaultMargin;
+    if (headerVisible) {
       const headerBottom = header.positioning === 'absolute'
         ? A4_HEIGHT - mm(header.yMm + header.heightMm)
         : this.y - mm(this.input.template.style.headerHeightMm);
       this.y = headerBottom - mm(continuation ? 7 : 18);
-    } else if (headerVisible) {
-      this.drawHeader(continuation);
     }
     if (continuation) {
+      const previousElement = this.activeCanvasElement;
+      this.activeCanvasElement = header;
       const target = { kind: 'element', elementId: 'header' } as const;
       const continuationStyle = this.textStyle(
         target,
@@ -1276,7 +1354,7 @@ class OrderPdfRenderer {
         continuationStyle.size,
         this.contentWidth
       );
-      this.page.drawText(label, {
+      this.drawText(label, {
         x: resolveOrderDocumentPdfAlignedTextX({
           x: this.margin,
           width: this.contentWidth,
@@ -1292,6 +1370,7 @@ class OrderPdfRenderer {
         color: colorFromHex(this.style.mutedTextColor)
       });
       this.y -= continuationStyle.size + 10;
+      this.activeCanvasElement = previousElement;
     }
   }
 
@@ -1352,6 +1431,7 @@ class OrderPdfRenderer {
         const label = toSafeText(contact.label).replace(/:\s*$/u, '');
         const value = toSafeText(contact.value);
         return {
+          contactId: contact.id,
           text: label ? label + ': ' + value : value,
           emphasis: contact.emphasis,
           targets: [
@@ -1385,7 +1465,7 @@ class OrderPdfRenderer {
     let companyY = top;
     let previousNaturalBoundary: { bottom: number; boxed: boolean } | null = null;
     companyBlocks.forEach((block) => {
-      const renderedLines = block.lines.map((line) => {
+      const sourceLines = block.lines.map((line) => {
         const textStyle = this.textStyle(line.targets, {
           fontWeight: line.emphasis ? 'bold' : 'regular',
           fontSizePt: this.style.smallSizePt
@@ -1399,6 +1479,14 @@ class OrderPdfRenderer {
       const decoration = this.rowDecoration('company', block.row.id);
       const boxed = hasOrderDocumentBoxDecoration(decoration);
       const placement = block.row.placement;
+      const availableWidth = Math.max(1,
+        (placement?.widthMm == null ? width : mm(placement.widthMm))
+        - resolveOrderDocumentDecorationInset(decoration) * 2
+        - (decoration.accentEnabled && (decoration.accentSide === 'left' || decoration.accentSide === 'right') ? decoration.accentWidthPt : 0)
+      );
+      const renderedLines = sourceLines.flatMap((line) =>
+        wrapText(line.font, line.text, line.size, availableWidth).map((text) => ({ ...line, text }))
+      );
       const naturalHeight = renderedLines.reduce(
         (height, line) => height + line.size + Math.max(1.8, line.size * 0.22),
         resolveOrderDocumentDecorationInset(decoration) * 2
@@ -1428,6 +1516,7 @@ class OrderPdfRenderer {
       const frame: PdfDecorationFrame = placement
         ? this.decorationFrame(placement, x, ownerTop, frameBaseWidth, naturalHeight)
         : this.decorationFrame(undefined, x, naturalGeometry!.top, width, naturalHeight);
+      this.recordFieldRegion('company', block.row.id, frame, { x, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
       const safeLines = renderedLines.map((line) => {
         const text = clampText(line.font, line.text, line.size, content.width);
@@ -1460,7 +1549,13 @@ class OrderPdfRenderer {
       for (const [index, line] of safeLines.entries()) {
         baseline = boxedLayout?.[index]?.y ?? baseline - line.size;
         if (baseline < content.bottom) break;
-        this.page.drawText(line.text, {
+        if ('contactId' in line && typeof line.contactId === 'string') {
+          this.recordRegion('company:contact:' + line.contactId, 'company', {
+            x: content.x, bottom: baseline - Math.max(0, line.font.heightAtSize(line.size) - line.font.heightAtSize(line.size, { descender: false })),
+            width: content.width, height: line.font.heightAtSize(line.size)
+          });
+        }
+        this.drawText(line.text, {
           x: resolveOrderDocumentPdfAlignedTextX({
             x: content.x,
             width: content.width,
@@ -1480,61 +1575,48 @@ class OrderPdfRenderer {
         companyY = frame.bottom;
       }
     });
-  }  private drawHeader(continuation: boolean, canvasPageNumber?: number) {
+  }
+
+  private drawHeader(continuation: boolean, canvasPageNumber: number) {
     const headerTop = this.y;
     const headerHeight = this.activeCanvasFrame?.height ?? mm(this.style.headerHeightMm);
     const headerBottom = headerTop - headerHeight;
-    const logoWidth = Math.min(mm(this.style.logoWidthMm), this.contentWidth * 0.56);
-    const canvasManaged = canvasPageNumber !== undefined;
     const logo = this.canvas.elements.logo;
+    const logoWidth = mm(logo.widthMm);
+    const logoHeight = Math.min(headerHeight, mm(logo.heightMm));
+    const logoX = mm(logo.xMm);
     const company = this.canvas.elements.company;
-    const showLogoArtwork = this.input.template.layout.showLogoMark && Boolean(this.logoImage);
-    const renderLogoArtwork = canvasManaged
-      ? this.shouldRenderElement(logo, canvasPageNumber) && logo.positioning === 'flow'
-      : showLogoArtwork;
-    const showCompany = canvasManaged
-      ? this.shouldRenderElement(company, canvasPageNumber) && company.positioning === 'flow'
-      : true;
-    const reserveLogoSpace = canvasManaged
-      ? this.shouldRenderElement(logo, canvasPageNumber)
-      : showLogoArtwork;
+    const renderLogoArtwork = this.shouldRenderElement(logo, canvasPageNumber) && logo.positioning === 'flow';
+    const showCompany = this.shouldRenderElement(company, canvasPageNumber) && company.positioning === 'flow';
 
     if (renderLogoArtwork) {
       const frame = {
-        x: this.margin,
-        bottom: headerBottom,
+        x: logoX,
+        bottom: headerTop - logoHeight,
         width: logoWidth,
-        height: headerHeight
+        height: logoHeight
       };
-      if (canvasManaged) {
-        this.renderCanvasChildInBox(
+      this.renderCanvasChildInBox(
           logo,
           frame,
-          () => this.drawHeaderLogo(this.margin, headerTop, logoWidth, headerHeight)
-        );
-      } else {
-        this.drawHeaderLogo(this.margin, headerTop, logoWidth, headerHeight);
-      }
+          () => this.drawHeaderLogo(logoX, headerTop, logoWidth, logoHeight)
+      );
     }
 
     if (showCompany) {
-      const companyX = this.margin + (reserveLogoSpace ? logoWidth + 18 : 0);
-      const companyWidth = this.contentRight - companyX;
+      const companyX = mm(company.xMm);
+      const companyWidth = Math.min(mm(company.widthMm), A4_WIDTH - this.defaultMargin - companyX);
       const frame = {
         x: companyX,
         bottom: headerBottom,
         width: companyWidth,
         height: headerHeight
       };
-      if (canvasManaged) {
-        this.renderCanvasChildInBox(
+      this.renderCanvasChildInBox(
           company,
           frame,
           () => this.drawHeaderCompany(companyX, headerTop, companyWidth)
-        );
-      } else {
-        this.drawHeaderCompany(companyX, headerTop, companyWidth);
-      }
+      );
     }
 
     this.y = headerBottom - mm(continuation ? 7 : 18);
@@ -1545,33 +1627,6 @@ class OrderPdfRenderer {
     if (this.y - requiredHeight >= bottom) return false;
     this.startPage(true);
     return true;
-  }
-
-  private drawParagraph(
-    value: string,
-    options: {
-      x?: number;
-      width?: number;
-      size?: number;
-      font?: PDFFont;
-      color?: RGB;
-      lineHeight?: number;
-      gapAfter?: number;
-    } = {}
-  ) {
-    const x = options.x ?? this.margin;
-    const width = options.width ?? this.contentWidth;
-    const size = options.size ?? this.style.bodySizePt;
-    const font = options.font ?? this.font;
-    const color = options.color ?? colorFromHex(this.style.textColor);
-    const lineHeight = options.lineHeight ?? size * 1.45;
-    const lines = wrapText(font, value, size, width);
-    for (const line of lines) {
-      this.ensureSpace(lineHeight + 2);
-      if (line) this.page.drawText(line, { x, y: this.y, size, font, color });
-      this.y -= lineHeight;
-    }
-    this.y -= options.gapAfter ?? 4;
   }
 
   private drawCanvasTitleBlock(x: number, top: number, width: number) {
@@ -1611,7 +1666,6 @@ class OrderPdfRenderer {
         placement: this.fieldRowPlacement('title', row.id)
       };
     });
-    const largestSize = Math.max(...segments.map((segment) => segment.size));
     const ownerTop = this.activeCanvasFrame?.top ?? top;
     let lowest = top;
 
@@ -1625,7 +1679,10 @@ class OrderPdfRenderer {
       const decoration = this.rowDecoration('title', segment.id);
       const boxed = hasOrderDocumentBoxDecoration(decoration);
       const inset = resolveOrderDocumentDecorationInset(decoration);
-      const naturalHeight = Math.max(segment.size * 1.55, segment.size + inset * 2);
+      const lineHeight = segment.size * 1.35;
+      const preliminaryWidth = segment.placement?.widthMm == null ? naturalWidth : mm(segment.placement.widthMm);
+      const wrapped = wrapText(segment.font, segment.value, segment.size, Math.max(1, preliminaryWidth - inset * 2));
+      const naturalHeight = Math.max(segment.size * 1.55, wrapped.length * lineHeight + inset * 2);
       const naturalTopOffset = segment.size + inset;
       const placedBaseWidth = segment.placement?.widthMm == null
         ? this.measuredDecorationWidth(
@@ -1660,43 +1717,30 @@ class OrderPdfRenderer {
             naturalWidth,
             naturalHeight
           );
+      this.recordFieldRegion('title', segment.id, frame, { x, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
-      const value = clampText(segment.font, segment.value, segment.size, content.width);
-      const textWidth = segment.font.widthOfTextAtSize(value, segment.size);
+      const lines = wrapText(segment.font, segment.value, segment.size, content.width);
       const alignment = this.singleTextAlignment({
         kind: 'field_row',
         group: 'title',
         rowId: segment.id
       });
       const boxedLayout = this.boxedTextLayout(
-        content,
-        decoration,
-        segment.font,
-        segment.size,
-        segment.size,
-        [textWidth],
-        alignment
-      )?.[0];
-      const baseline = boxedLayout?.y ?? (
-        segment.placement
-          ? content.top - segment.size
-          : naturalGeometry!.baseline
+        content, decoration, segment.font, segment.size, lineHeight,
+        lines.map((line) => segment.font.widthOfTextAtSize(line, segment.size)), alignment
       );
-      const textX = boxedLayout?.x ?? (
-        resolveOrderDocumentPdfAlignedTextX({
-          x: content.x,
-          width: content.width,
-          textWidth,
-          alignment
-        })
+      const baseline = boxedLayout?.[0]?.y ?? (
+        segment.placement ? content.top - segment.size : naturalGeometry!.baseline
       );
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(value, {
-        x: textX,
-        y: baseline,
-        size: segment.size,
-        font: segment.font,
-        color: colorFromHex(this.style.textColor)
+      lines.forEach((line, index) => {
+        const y = boxedLayout?.[index]?.y ?? baseline - index * lineHeight;
+        if (y < content.bottom) return;
+        this.drawAlignedTextLine(line, {
+          x: content.x, width: content.width, y,
+          size: segment.size, font: segment.font,
+          color: colorFromHex(this.style.textColor), alignment
+        });
       });
       this.drawDecorationBox(decoration, frame, true);
       lowest = Math.min(lowest, frame.bottom, baseline - 3);
@@ -1713,15 +1757,20 @@ class OrderPdfRenderer {
     const firstLineBoundaries: Array<{ bottom: number; boxed: boolean }> = [];
     if (firstLine.length > 0) {
       const numberWidth = number && !number.placement
-        ? Math.min(width * 0.26, number.font.widthOfTextAtSize(number.value, number.size) + 8)
+        ? Math.min(width, number.font.widthOfTextAtSize(number.value, number.size) + 8)
         : 0;
-      const titleWidth = Math.max(24, width - numberWidth - (numberWidth > 0 ? gap : 0));
+      const titleTextWidth = title ? title.font.widthOfTextAtSize(title.value, title.size) : 0;
+      const separateNumber = Boolean(title && number && titleTextWidth + numberWidth + gap > width);
+      const titleWidth = separateNumber ? width : Math.max(24, width - numberWidth - (numberWidth > 0 ? gap : 0));
       if (title && !title.placement) {
         const boundary = drawSegment(title, x, top, titleWidth);
         if (boundary) firstLineBoundaries.push(boundary);
       }
       if (number && !number.placement) {
-        const boundary = drawSegment(number, x + width - numberWidth, top, numberWidth);
+        const numberBaseline = separateNumber && firstLineBoundaries.length
+          ? Math.min(...firstLineBoundaries.map((boundary) => boundary.bottom)) - number.size - 3
+          : top;
+        const boundary = drawSegment(number, separateNumber ? x : x + width - numberWidth, numberBaseline, separateNumber ? width : numberWidth);
         if (boundary) firstLineBoundaries.push(boundary);
       }
     }
@@ -1730,7 +1779,9 @@ class OrderPdfRenderer {
     ).forEach((segment) => drawSegment(segment, x, top, width));
 
     if (subtitle) {
-      const subtitleBaseline = top - largestSize * 1.45 - 1;
+      const subtitleBaseline = firstLineBoundaries.length
+        ? Math.min(...firstLineBoundaries.map((boundary) => boundary.bottom)) - subtitle.size - 3
+        : top;
       const firstLineBoundary = firstLineBoundaries.length > 0
         ? {
             bottom: Math.min(...firstLineBoundaries.map((boundary) => boundary.bottom)),
@@ -1817,6 +1868,7 @@ class OrderPdfRenderer {
             width,
             naturalHeight
           );
+      this.recordFieldRegion('customer', entry.id, frame, { x, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
       const labelWidth = Math.min(54, content.width * 0.3);
       const label = clampText(
@@ -1865,7 +1917,7 @@ class OrderPdfRenderer {
         alignment: columnAlignment
       });
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(label, {
+      this.drawText(label, {
         x: labelX,
         y: baseline,
         size: labelStyle.size,
@@ -1874,7 +1926,7 @@ class OrderPdfRenderer {
       });
       lines.forEach((line, index) => {
         const lineWidth = valueStyle.font.widthOfTextAtSize(line, valueStyle.size);
-        this.page.drawText(line, {
+        this.drawText(line, {
           x: resolveOrderDocumentPdfAlignedTextX({
             x: content.x + labelWidth,
             width: Math.max(1, content.width - labelWidth),
@@ -1923,13 +1975,16 @@ class OrderPdfRenderer {
       const decoration = this.rowDecoration('document_meta', row.id);
       const boxed = hasOrderDocumentBoxDecoration(decoration);
       const measuredContentWidth = Math.max(
-        (labelStyle.font.widthOfTextAtSize(`${row.label}:`, labelStyle.size) + 6) / 0.58,
-        valueStyle.font.widthOfTextAtSize(row.value, valueStyle.size) / 0.42
+        (labelStyle.font.widthOfTextAtSize(`${row.label}:`, labelStyle.size) + 6) / 0.45,
+        valueStyle.font.widthOfTextAtSize(row.value, valueStyle.size) / 0.55
       );
       const frameBaseWidth = placement?.widthMm == null
         ? this.measuredDecorationWidth(measuredContentWidth, decoration, width)
         : width;
-      const naturalHeight = lineHeight + resolveOrderDocumentDecorationInset(decoration) * 2;
+      const preliminaryWidth = placement?.widthMm == null ? width : mm(placement.widthMm);
+      const valueLines = wrapText(valueStyle.font, row.value, valueStyle.size,
+        Math.max(1, (preliminaryWidth - resolveOrderDocumentDecorationInset(decoration) * 2) * 0.55));
+      const naturalHeight = valueLines.length * lineHeight + resolveOrderDocumentDecorationInset(decoration) * 2;
       const naturalTopOffset = Math.max(labelStyle.size, valueStyle.size)
         + resolveOrderDocumentDecorationInset(decoration);
       const naturalGeometry: OrderDocumentPdfNaturalRowGeometry | null = placement
@@ -1955,20 +2010,17 @@ class OrderPdfRenderer {
             width,
             naturalHeight
           );
+      this.recordFieldRegion('document_meta', row.id, frame, { x, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
-      const labelWidth = content.width * 0.58;
+      const labelWidth = content.width * 0.45;
       const label = clampText(
         labelStyle.font,
         `${row.label}:`,
         labelStyle.size,
         Math.max(1, labelWidth - 6)
       );
-      const value = clampText(
-        valueStyle.font,
-        row.value,
-        valueStyle.size,
-        Math.max(1, content.width - labelWidth)
-      );
+      const values = wrapText(valueStyle.font, row.value, valueStyle.size, Math.max(1, content.width - labelWidth));
+      const value = values[0]!;
       const labelTextWidth = labelStyle.font.widthOfTextAtSize(label, labelStyle.size);
       const valueTextWidth = valueStyle.font.widthOfTextAtSize(value, valueStyle.size);
       const paired = resolveOrderDocumentPdfPairedTextLayout({
@@ -1976,13 +2028,13 @@ class OrderPdfRenderer {
         width: content.width,
         labelWidth: labelTextWidth,
         valueWidth: valueTextWidth,
-        labelColumnRatio: 0.58,
+        labelColumnRatio: 0.45,
         alignment: this.textAlignment(target)
       });
       const boxedBaseline = hasOrderDocumentBoxDecoration(decoration)
         ? resolveOrderDocumentPdfTextBoxLayout({
             content,
-            lineWidths: [0],
+            lineWidths: values.map(() => 0),
             textAscentPt: Math.max(
               labelStyle.font.heightAtSize(labelStyle.size, { descender: false }),
               valueStyle.font.heightAtSize(valueStyle.size, { descender: false })
@@ -2004,25 +2056,31 @@ class OrderPdfRenderer {
           : naturalGeometry!.baseline
       );
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(label, {
+      this.drawText(label, {
         x: paired.labelX,
         y: baseline,
         size: labelStyle.size,
         font: labelStyle.font,
         color: colorFromHex(this.style.mutedTextColor)
       });
-      this.page.drawText(value, {
-        x: paired.valueX,
-        y: baseline,
-        size: valueStyle.size,
-        font: valueStyle.font,
-        color: colorFromHex(this.style.textColor)
+      values.forEach((line, index) => {
+        const lineBaseline = baseline - index * lineHeight;
+        if (lineBaseline < content.bottom) return;
+        const linePair = resolveOrderDocumentPdfPairedTextLayout({
+          x: content.x, width: content.width, labelWidth: labelTextWidth,
+          valueWidth: valueStyle.font.widthOfTextAtSize(line, valueStyle.size),
+          labelColumnRatio: 0.45, alignment: this.textAlignment(target)
+        });
+        this.drawText(line, {
+          x: linePair.valueX, y: lineBaseline, size: valueStyle.size,
+          font: valueStyle.font, color: colorFromHex(this.style.textColor)
+        });
       });
       this.drawDecorationBox(decoration, frame, true);
       lowest = Math.min(lowest, frame.bottom);
       if (!placement) {
         previousNaturalBoundary = { bottom: frame.bottom, boxed };
-        rowY = naturalGeometry!.baseline - lineHeight;
+        rowY = naturalGeometry!.baseline - values.length * lineHeight;
       }
     }
     return Math.min(rowY, lowest);
@@ -2030,21 +2088,8 @@ class OrderPdfRenderer {
 
   private drawCanvasDocumentDetails(pageNumber = 1) {
     const childIds = ['title', 'customer', 'document_meta'] as const;
-    const hasChildCanvasState = childIds.some((id) =>
-      Object.prototype.hasOwnProperty.call(
-        this.input.template.layout.canvas?.elements ?? {},
-        id
-      ) || this.canvas.deletedElementIds.includes(id)
-    );
-    if (!hasChildCanvasState) {
-      this.drawClassicDocumentDetails();
-      return;
-    }
-
-    const parent = this.canvas.elements.document_details;
     const top = this.y;
-    const gap = 22;
-    let flowBottom = top - mm(parent.heightMm);
+    let flowBottom = top;
     const drawChild = (
       id: (typeof childIds)[number],
       flowBox: { x: number; top: number; width: number },
@@ -2074,15 +2119,17 @@ class OrderPdfRenderer {
         );
         return null;
       }
+      const flowX = mm(element.xMm);
+      const flowWidth = Math.max(1, Math.min(mm(element.widthMm), A4_WIDTH - this.defaultMargin - flowX));
       let bottom = flowBox.top;
       const frame = {
-        x: flowBox.x,
+        x: flowX,
         bottom: flowBox.top - mm(element.heightMm),
-        width: flowBox.width,
+        width: flowWidth,
         height: mm(element.heightMm)
       };
       this.renderCanvasChildInBox(element, frame, () => {
-        bottom = draw(flowBox.x, flowBox.top, flowBox.width);
+        bottom = draw(flowX, flowBox.top, flowWidth);
       });
       return bottom;
     };
@@ -2094,11 +2141,11 @@ class OrderPdfRenderer {
       (x, childTop, width) => this.drawCanvasTitleBlock(x, childTop, width)
     );
     const detailTop = title.positioning === 'flow' && titleBottom !== null
-      ? titleBottom - 2
+      ? titleBottom - mm(3)
       : top;
-    const leftWidth = this.contentWidth * 0.54;
-    const rightX = this.margin + leftWidth + gap;
-    const rightWidth = Math.max(20, this.contentRight - rightX);
+    const leftWidth = mm(this.canvas.elements.customer.widthMm);
+    const rightX = mm(this.canvas.elements.document_meta.xMm);
+    const rightWidth = mm(this.canvas.elements.document_meta.widthMm);
     const customerBottom = drawChild(
       'customer',
       { x: this.margin, top: detailTop, width: leftWidth },
@@ -2120,192 +2167,6 @@ class OrderPdfRenderer {
       color: colorFromHex(this.style.lineColor)
     });
     this.y -= ORDER_DOCUMENT_FLOW_SECTION_GAP_PT;
-  }
-
-  private drawClassicDocumentDetails() {
-    this.ensureSpace(150);
-    const lineColor = colorFromHex(this.style.lineColor);
-
-    const drawRecipient = (top: number, width: number) =>
-      this.drawCanvasCustomerBlock(this.margin, top, width);
-
-    const drawMetadata = (top: number, x: number, width: number) =>
-      this.drawCanvasMetadataBlock(x, top, width);
-
-    const drawTitle = (baseline: number) =>
-      this.drawCanvasTitleBlock(this.margin, baseline, this.contentWidth);
-
-    if (this.input.type === 'predracun' || this.input.type === 'offer') {
-      const top = this.y;
-      const leftWidth = this.contentWidth * 0.54;
-      const gap = 24;
-      const rightX = this.margin + leftWidth + gap;
-      const recipientBottom = drawRecipient(top, leftWidth);
-      const metadataBottom = drawMetadata(
-        top,
-        rightX,
-        this.contentWidth - leftWidth - gap
-      );
-      this.y = Math.min(recipientBottom, metadataBottom, top - 60) - 58;
-      this.y = drawTitle(this.y);
-    } else if (this.input.type === 'invoice') {
-      const top = this.y;
-      const titleBottom = drawTitle(top);
-      const detailsTop = titleBottom - 4;
-      const recipientBottom = drawRecipient(detailsTop, this.contentWidth * 0.5);
-      const metadataBottom = drawMetadata(
-        detailsTop,
-        this.margin + this.contentWidth * 0.57,
-        this.contentWidth * 0.43
-      );
-      this.y = Math.min(recipientBottom, metadataBottom) - 9;
-    } else {
-      this.y = drawTitle(this.y);
-      const gap = 24;
-      const leftWidth = this.contentWidth * 0.54;
-      const rightX = this.margin + leftWidth + gap;
-      const recipientBottom = drawRecipient(this.y, leftWidth);
-      const metadataBottom = drawMetadata(
-        this.y,
-        rightX,
-        this.contentWidth - leftWidth - gap
-      );
-      this.y = Math.min(recipientBottom, metadataBottom) - 7;
-    }
-
-    this.page.drawLine({
-      start: { x: this.margin, y: this.y },
-      end: { x: this.contentRight, y: this.y },
-      thickness: this.style.lineWidthPt,
-      color: lineColor
-    });
-    this.y -= ORDER_DOCUMENT_FLOW_SECTION_GAP_PT;
-  }
-
-  private drawDocumentDetails() {
-    this.ensureSpace(150);
-    const textColor = colorFromHex(this.style.textColor);
-    const muted = colorFromHex(this.style.mutedTextColor);
-    const accent = colorFromHex(this.style.accentColor);
-    const title = this.resolve(this.input.template.text.title);
-    const number = this.input.documentNumber;
-    const rawTitleLine = `${title}  ${number}`;
-    const requestedTitleSize = this.style.titleSizePt;
-    const requestedTitleWidth = this.fontBold.widthOfTextAtSize(
-      rawTitleLine,
-      requestedTitleSize
-    );
-    const titleSize = Math.max(
-      this.style.bodySizePt + 2,
-      Math.min(
-        requestedTitleSize,
-        (requestedTitleSize * this.contentWidth) / requestedTitleWidth
-      )
-    );
-    const titleLine = clampText(
-      this.fontBold,
-      rawTitleLine,
-      titleSize,
-      this.contentWidth
-    );
-    const titleWidth = this.fontBold.widthOfTextAtSize(titleLine, titleSize);
-    const titleX = this.style.titleAlignment === 'right'
-      ? Math.max(this.margin, this.contentRight - titleWidth)
-      : this.margin;
-
-    this.page.drawText(titleLine, {
-      x: titleX,
-      y: this.y,
-      size: titleSize,
-      font: this.fontBold,
-      color: textColor
-    });
-    this.y -= titleSize + 8;
-
-    if (this.input.template.text.subtitle) {
-      const subtitleLines = wrapText(
-        this.font,
-        this.resolve(this.input.template.text.subtitle),
-        this.style.smallSizePt,
-        this.contentWidth
-      );
-      subtitleLines.forEach((line) => {
-        this.page.drawText(line, {
-          x: this.margin,
-          y: this.y,
-          size: this.style.smallSizePt,
-          font: this.font,
-          color: muted
-        });
-        this.y -= this.style.smallSizePt * 1.4;
-      });
-      this.y -= 4;
-    }
-
-    this.page.drawLine({
-      start: { x: this.margin, y: this.y },
-      end: { x: this.contentRight, y: this.y },
-      thickness: this.style.lineWidthPt,
-      color: accent
-    });
-    this.y -= 15;
-
-    const top = this.y;
-    const gap = 22;
-    const leftWidth = this.contentWidth * 0.54;
-    const rightX = this.margin + leftWidth + gap;
-    const rightWidth = this.contentWidth - leftWidth - gap;
-    const recipientLines = [
-      {
-        text: this.input.order.organizationName || this.input.order.contactName,
-        bold: true
-      },
-      ...(this.input.order.organizationName
-        ? [{ text: `${this.labels.contact}: ${this.input.order.contactName}`, bold: false }]
-        : []),
-      ...(this.input.order.deliveryAddress
-        ? [{ text: this.input.order.deliveryAddress, bold: false }]
-        : []),
-      { text: `${this.labels.email}: ${this.input.order.email}`, bold: false }
-    ];
-    let leftY = top;
-    recipientLines.forEach((line, index) => {
-      const font = line.bold ? this.fontBold : this.font;
-      const size = line.bold ? this.style.bodySizePt + 1 : this.style.bodySizePt;
-      const wrapped = wrapText(font, line.text, size, leftWidth);
-      wrapped.forEach((wrappedLine) => {
-        this.page.drawText(wrappedLine, { x: this.margin, y: leftY, size, font, color: textColor });
-        leftY -= size * 1.48;
-      });
-      if (index === 0) leftY -= 3;
-    });
-
-    const metadata = this.documentMetadata();
-    let rightY = top;
-    const labelWidth = rightWidth * 0.52;
-    metadata.forEach(({ label, value, bold }) => {
-      if (!value) return;
-      const size = this.style.smallSizePt + 0.3;
-      const safeLabel = clampText(this.font, `${label}:`, size, labelWidth - 5);
-      const valueFont = bold ? this.fontBold : this.font;
-      const safeValue = clampText(valueFont, value, size, rightWidth - labelWidth);
-      this.page.drawText(safeLabel, {
-        x: rightX,
-        y: rightY,
-        size,
-        font: this.font,
-        color: muted
-      });
-      this.page.drawText(safeValue, {
-        x: rightX + rightWidth - valueFont.widthOfTextAtSize(safeValue, size),
-        y: rightY,
-        size,
-        font: valueFont,
-        color: textColor
-      });
-      rightY -= size * 1.65;
-    });
-    this.y = Math.min(leftY, rightY) - 12;
   }
 
   private documentMetadata() {
@@ -2342,7 +2203,7 @@ class OrderPdfRenderer {
       lines.length * size * 1.45 + resolveOrderDocumentDecorationInset(decoration) * 2
     );
     this.ensureSpace(height + 8);
-    const canvasManaged = this.canvasMode && this.activeCanvasElement?.id === 'intro';
+    const canvasManaged = this.activeCanvasElement?.id === 'intro';
     const frame = this.activeCanvasFrame
       ? {
           x: this.activeCanvasFrame.x,
@@ -2361,6 +2222,7 @@ class OrderPdfRenderer {
             ? Math.max(height, mm(this.activeCanvasElement?.heightMm ?? 0))
             : height
         );
+    this.recordRegion('intro:text:intro', 'intro', frame);
     const content = this.rowContentFrame(frame, decoration);
     const alignment = this.singleTextAlignment(target);
     if (!canvasManaged) this.drawDecorationBox(decoration, frame);
@@ -2472,6 +2334,7 @@ class OrderPdfRenderer {
     this.ensureSpace(height + 20);
     const top = this.y;
     const bottom = top - height;
+    this.recordRegion('items:table-header', 'items', { x: this.margin, bottom, width: this.contentWidth, height });
     if (this.style.tableHeaderBackground !== this.style.pageBackground) {
       this.page.drawRectangle({
         x: this.margin,
@@ -2483,6 +2346,8 @@ class OrderPdfRenderer {
     }
     let x = this.margin;
     columns.forEach((column, index) => {
+      this.recordRegion('items:table-header-cell:' + column.key, 'items', { x, bottom, width: column.width, height });
+      this.recordRegion('items:table-column:' + column.key, 'items', { x, bottom, width: column.width, height });
       const { font, size, alignment } = columnStyles[index]!;
       const label = clampText(font, column.label, size, column.width - 8);
       this.drawAlignedTextLine(label, {
@@ -2562,7 +2427,7 @@ class OrderPdfRenderer {
     const { font, size } = this.itemSectionLabelStyle();
     if (addGapBefore) this.y -= 10;
     const top = this.y;
-    this.page.drawText(clampText(font, label, size, this.contentWidth), {
+    this.drawText(clampText(font, label, size, this.contentWidth), {
       x: this.margin,
       y: top - size,
       size,
@@ -2695,8 +2560,14 @@ class OrderPdfRenderer {
               color: colorFromHex(this.style.tableStripeColor)
             });
           }
+          const rowFrame = { x: this.margin, bottom, width: this.contentWidth, height: chunkHeight };
+          this.recordRegion('items:table-row:' + rowNumber, 'items', rowFrame);
+          this.recordRegion('items:table-body', 'items', rowFrame);
           let x = this.margin;
           columns.forEach((column, columnIndex) => {
+            const cellFrame = { x, bottom, width: column.width, height: chunkHeight };
+            this.recordRegion('items:table-cell:' + rowNumber + ':' + column.key, 'items', cellFrame);
+            this.recordRegion('items:table-column:' + column.key, 'items', cellFrame);
             const cell = chunkCells[columnIndex]!;
             cell.lines.forEach((line, lineIndex) => {
               this.drawAlignedTextLine(line, {
@@ -2737,7 +2608,7 @@ class OrderPdfRenderer {
     );
   }
 
-  private drawClassicTotals() {
+  private drawTotals() {
     const textColor = colorFromHex(this.style.textColor);
     const muted = colorFromHex(this.style.mutedTextColor);
     const rightWidth = Math.min(220, this.contentWidth * 0.46);
@@ -2820,6 +2691,7 @@ class OrderPdfRenderer {
             naturalFrameWidth,
             naturalHeight
           );
+      this.recordFieldRegion('totals', row.id, frame, { x: this.margin, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
       const safeLabel = clampText(font, row.label, size, content.width * 0.67);
       const labelWidth = font.widthOfTextAtSize(safeLabel, size);
@@ -2867,14 +2739,14 @@ class OrderPdfRenderer {
         placement ? content.top - size : naturalGeometry!.baseline
       );
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(safeLabel, {
+      this.drawText(safeLabel, {
         x: labelX,
         y: baseline,
         size,
         font,
         color: row.bold ? textColor : muted
       });
-      this.page.drawText(safeValue, {
+      this.drawText(safeValue, {
         x: valueX,
         y: baseline,
         size,
@@ -2893,61 +2765,6 @@ class OrderPdfRenderer {
       drawRightRow(row);
     }
     this.y = Math.min(this.y, lowest) - ORDER_DOCUMENT_FLOW_SECTION_GAP_PT;
-  }
-
-  private drawTotals() {
-    const rows = this.totalRows().map((row) => ({
-      ...row,
-      value: formatCurrency(row.value)
-    }));
-    if (rows.length === 0) return;
-
-    const boxWidth = Math.min(255, this.contentWidth * 0.55);
-    const rowHeight = this.style.bodySizePt * 1.55 + 4;
-    const boxHeight = rows.length * rowHeight + 16;
-    this.ensureSpace(boxHeight + 8);
-    const boxX = this.contentRight - boxWidth;
-    const boxBottom = this.y - boxHeight;
-    this.page.drawRectangle({
-      x: boxX,
-      y: boxBottom,
-      width: boxWidth,
-      height: boxHeight,
-      color: colorFromHex(this.style.totalBackground),
-      borderColor: colorFromHex(this.style.lineColor),
-      borderWidth: this.style.lineWidthPt
-    });
-    let rowY = this.y - 13;
-    rows.forEach((row, index) => {
-      const font = row.bold ? this.fontBold : this.font;
-      const size = row.bold ? this.style.bodySizePt + 0.7 : this.style.bodySizePt;
-      const label = clampText(font, row.label, size, boxWidth * 0.62 - 15);
-      const value = clampText(font, row.value, size, boxWidth * 0.38 - 12);
-      this.page.drawText(label, {
-        x: boxX + 10,
-        y: rowY,
-        size,
-        font,
-        color: colorFromHex(this.style.textColor)
-      });
-      this.page.drawText(value, {
-        x: boxX + boxWidth - 10 - font.widthOfTextAtSize(value, size),
-        y: rowY,
-        size,
-        font,
-        color: colorFromHex(this.style.textColor)
-      });
-      if (row.bold && index > 0) {
-        this.page.drawLine({
-          start: { x: boxX + 10, y: rowY + size + 4 },
-          end: { x: boxX + boxWidth - 10, y: rowY + size + 4 },
-          thickness: Math.max(0.8, this.style.lineWidthPt),
-          color: colorFromHex(this.style.accentColor)
-        });
-      }
-      rowY -= rowHeight;
-    });
-    this.y = boxBottom - ORDER_DOCUMENT_FLOW_SECTION_GAP_PT;
   }
 
   private drawNotes() {
@@ -3003,7 +2820,8 @@ class OrderPdfRenderer {
               this.contentWidth,
               naturalHeight
             );
-        const content = this.rowContentFrame(frame, decoration);
+        this.recordFieldRegion('notes', row.id, frame, { x: this.margin, top: ownerTop });
+      const content = this.rowContentFrame(frame, decoration);
         const alignment = this.singleTextAlignment(target);
         const safeLabel = clampText(
           noteLabelStyle.font,
@@ -3028,7 +2846,7 @@ class OrderPdfRenderer {
           placement ? content.top - noteLabelStyle.size : naturalGeometry!.baseline
         );
         this.drawDecorationBox(decoration, frame);
-        this.page.drawText(safeLabel, {
+        this.drawText(safeLabel, {
           x: resolveOrderDocumentPdfAlignedTextX({
             x: content.x,
             width: content.width,
@@ -3100,7 +2918,8 @@ class OrderPdfRenderer {
               this.contentWidth,
               naturalHeight
             );
-        const content = this.rowContentFrame(frame, decoration);
+        this.recordFieldRegion('notes', row.id, frame, { x: this.margin, top: ownerTop });
+      const content = this.rowContentFrame(frame, decoration);
         const alignment = this.singleTextAlignment(target);
         const boxedLayout = this.boxedTextLayout(
           content,
@@ -3229,6 +3048,7 @@ class OrderPdfRenderer {
             this.contentWidth,
             naturalHeight
           );
+      this.recordFieldRegion('closing', part.id, frame, { x: this.margin, top: ownerTop });
       const contentFrame = this.rowContentFrame(frame, decoration);
       const alignment = this.singleTextAlignment(target);
       const boxedLayout = this.boxedTextLayout(
@@ -3313,6 +3133,7 @@ class OrderPdfRenderer {
       const frame = row.placement
         ? this.decorationFrame(row.placement, this.margin, ownerTop, frameBaseWidth, 55)
         : this.decorationFrame(undefined, naturalX, this.y, slotWidth - 8, 55);
+      this.recordFieldRegion('signatures', row.id, frame, { x: this.margin, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
       const resolvedAlignment = this.textAlignment(target);
       const alignment = resolvedAlignment === 'distributed' ? 'left' : resolvedAlignment;
@@ -3346,7 +3167,7 @@ class OrderPdfRenderer {
         ? boxedGroupBottom.y
         : Math.max(content.bottom + 5, labelY - 4);
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(labelText, {
+      this.drawText(labelText, {
         x: resolveOrderDocumentPdfAlignedTextX({
           x: content.x,
           width: labelColumnWidth,
@@ -3372,12 +3193,11 @@ class OrderPdfRenderer {
 
   private drawSection(sectionId: OrderDocumentSectionId, canvasPageNumber?: number) {
     if (sectionId === 'document_details') {
-      if (canvasPageNumber === undefined) this.drawClassicDocumentDetails();
-      else this.drawCanvasDocumentDetails(canvasPageNumber);
+      this.drawCanvasDocumentDetails(canvasPageNumber);
     }
     if (sectionId === 'intro') this.drawIntro();
     if (sectionId === 'items') this.drawItems();
-    if (sectionId === 'totals') this.drawClassicTotals();
+    if (sectionId === 'totals') this.drawTotals();
     if (sectionId === 'notes') this.drawNotes();
     if (sectionId === 'closing') this.drawClosing();
     if (sectionId === 'signatures') this.drawSignatures();
@@ -3437,7 +3257,7 @@ class OrderPdfRenderer {
         const previousPage = this.page;
         const previousY = this.y;
         this.page = page;
-        this.y = A4_HEIGHT - mm(10);
+        this.y = A4_HEIGHT - this.defaultMargin;
         const height = mm(this.input.template.style.headerHeightMm);
         const frame = {
           x: this.defaultMargin,
@@ -3487,13 +3307,9 @@ class OrderPdfRenderer {
   }
 
   private drawCanvasFooterContent(pageIndex: number, pageCount: number) {
-    const hasAbsoluteFrame = Boolean(this.activeCanvasFrame);
-    const legacyFooterY = Math.max(19, this.defaultMargin * 0.42);
-    let rowY = hasAbsoluteFrame
-      ? this.activeCanvasFrame!.top - (this.style.smallSizePt - 0.4)
-      : legacyFooterY + 14;
-    const ownerTop = this.activeCanvasFrame?.top
-      ?? legacyFooterY + mm(this.canvas.elements.footer.heightMm);
+    const frame = this.activeCanvasFrame!;
+    let rowY = frame.top - (this.style.smallSizePt - 0.4);
+    const ownerTop = frame.top;
     let previousNaturalBoundary: { bottom: number; boxed: boolean } | null = null;
     for (const row of resolveOrderDocumentFooterRows(
       this.input.template,
@@ -3546,6 +3362,7 @@ class OrderPdfRenderer {
             this.contentWidth,
             naturalHeight
           );
+      this.recordFieldRegion('footer', row.id, frame, { x: this.margin, top: ownerTop });
       const content = this.rowContentFrame(frame, decoration);
       const value = clampText(font, row.value, size, content.width);
       const textWidth = font.widthOfTextAtSize(value, size);
@@ -3572,7 +3389,7 @@ class OrderPdfRenderer {
         placement ? content.top - size : naturalGeometry!.baseline
       );
       this.drawDecorationBox(decoration, frame);
-      this.page.drawText(value, {
+      this.drawText(value, {
         x,
         y: baseline,
         size,
@@ -3590,156 +3407,30 @@ class OrderPdfRenderer {
   private drawCanvasFooters() {
     const footer = this.canvas.elements.footer;
     const pages = [...this.doc.getPages()];
-    pages.forEach((page, index) => {
+    pages.forEach((_page, index) => {
       const pageNumber = index + 1;
       if (!this.shouldRenderElement(footer, pageNumber)) return;
-      if (footer.positioning === 'absolute') {
-        this.renderAbsoluteCanvasElement(
-          footer,
-          () => this.drawCanvasFooterContent(index, pages.length),
-          pageNumber
-        );
-        return;
-      }
-      const previousPage = this.page;
-      const previousElement = this.activeCanvasElement;
-      this.page = page;
-      this.activeCanvasElement = footer;
-      const footerY = Math.max(19, this.defaultMargin * 0.42);
-      const frame = {
-        x: this.defaultMargin,
-        bottom: footerY,
-        width: this.defaultContentWidth,
-        height: mm(footer.heightMm)
-      };
-      this.drawCanvasElementBox(footer, frame);
-      this.drawCanvasFooterContent(index, pages.length);
-      this.drawCanvasElementBox(footer, frame, true);
-      this.page = previousPage;
-      this.activeCanvasElement = previousElement;
+      // A footer is anchored to its configured page frame in either positioning
+      // mode; its actual top also determines the body pagination clearance.
+      this.renderAbsoluteCanvasElement(
+        footer,
+        () => this.drawCanvasFooterContent(index, pages.length),
+        pageNumber
+      );
     });
   }
 
-  private drawFooters() {
-    const pages = this.doc.getPages();
-    const previousPage = this.page;
-    pages.forEach((page, index) => {
-      this.page = page;
-      const footerY = Math.max(19, this.margin * 0.42);
-      let rowY = footerY + 14;
-      const ownerTop = footerY + mm(this.canvas.elements.footer.heightMm);
-      let previousNaturalBoundary: { bottom: number; boxed: boolean } | null = null;
-      for (const row of resolveOrderDocumentFooterRows(
-        this.input.template,
-        this.documentContext,
-        index,
-        pages.length
-      )) {
-        if (row.id !== 'page_numbers' && !this.input.template.layout.showFooter) continue;
-        const target = { kind: 'field_row', group: 'footer', rowId: row.id } as const;
-        const footerStyle = this.textStyle(
-          target,
-          { fontWeight: 'regular', fontSizePt: this.style.smallSizePt - 0.4 }
-        );
-        const { font, size } = footerStyle;
-        const placement = this.fieldRowPlacement('footer', row.id);
-        const decoration = this.rowDecoration('footer', row.id);
-        const boxed = hasOrderDocumentBoxDecoration(decoration);
-        const frameBaseWidth = placement?.widthMm == null
-          ? this.measuredDecorationWidth(
-              font.widthOfTextAtSize(row.value, size),
-              decoration,
-              this.contentWidth
-            )
-          : this.contentWidth;
-        const naturalHeight = Math.max(11, size * 1.35)
-          + resolveOrderDocumentDecorationInset(decoration) * 2;
-        const naturalTopOffset = size + resolveOrderDocumentDecorationInset(decoration);
-        const naturalGeometry: OrderDocumentPdfNaturalRowGeometry | null = placement
-          ? null
-          : resolveOrderDocumentPdfNaturalRowGeometry({
-              desiredBaseline: rowY,
-              frameTopOffset: naturalTopOffset,
-              collisionTopOffset: boxed
-                ? naturalTopOffset
-                : font.heightAtSize(size, { descender: false }),
-              previousFrameBottom: previousNaturalBoundary?.bottom,
-              preventOverlap: boxed || Boolean(previousNaturalBoundary?.boxed)
-            });
-        const frame: PdfDecorationFrame = placement
-          ? this.decorationFrame(
-              placement,
-              this.margin,
-              ownerTop,
-              frameBaseWidth,
-              naturalHeight
-            )
-          : this.decorationFrame(
-              undefined,
-              this.margin,
-              naturalGeometry!.top,
-              this.contentWidth,
-              naturalHeight
-            );
-        const content = this.rowContentFrame(frame, decoration);
-        const value = clampText(font, row.value, size, content.width);
-        const textWidth = font.widthOfTextAtSize(value, size);
-        const alignment = this.singleTextAlignment(
-          target,
-          row.alignment === 'right' ? 'right' : 'center'
-        );
-        const boxedLine = this.boxedTextLayout(
-          content,
-          decoration,
-          font,
-          size,
-          Math.max(11, size * 1.35),
-          [textWidth],
-          alignment
-        )?.[0];
-        const x = boxedLine?.x ?? resolveOrderDocumentPdfAlignedTextX({
-          x: content.x,
-          width: content.width,
-          textWidth,
-          alignment
-        });
-        const baseline = boxedLine?.y ?? (
-          placement ? content.top - size : naturalGeometry!.baseline
-        );
-        this.drawDecorationBox(decoration, frame);
-        page.drawText(value, {
-          x,
-          y: baseline,
-          size,
-          font,
-          color: colorFromHex(this.style.mutedTextColor)
-        });
-        this.drawDecorationBox(decoration, frame, true);
-        if (!placement) {
-          previousNaturalBoundary = { bottom: frame.bottom, boxed };
-          rowY = naturalGeometry!.baseline - Math.max(11, size * 1.35);
-        }
-      }
-    });
-    this.page = previousPage;
-  }
 
   render() {
     this.startPage();
-    if (this.canvasMode) {
-      this.renderCanvasSections();
-      this.drawCanvasHeaders();
-      this.drawCanvasFooters();
-      return;
-    }
-    for (const section of this.input.template.layout.sections) {
-      if (section.enabled) this.drawSection(section.id);
-    }
-    this.drawFooters();
+    this.renderCanvasSections();
+    this.drawCanvasHeaders();
+    this.drawCanvasFooters();
   }
+
 }
 
-export async function generateOrderPdf(input: GenerateOrderPdfInput): Promise<Uint8Array> {
+export async function generateOrderPdfPreview(input: GenerateOrderPdfInput): Promise<{ pdf: Uint8Array; layout: OrderDocumentPreviewLayout }> {
   const doc = await PDFDocument.create();
   const logoConfig = normalizeSiteLogoConfig(input.logoConfig ?? cloneDefaultSiteLogoConfig());
   const [fonts, logoImage] = await Promise.all([
@@ -3766,5 +3457,9 @@ export async function generateOrderPdf(input: GenerateOrderPdfInput): Promise<Ui
     }
   });
   renderer.render();
-  return doc.save({ useObjectStreams: false });
+  return { pdf: await doc.save({ useObjectStreams: false }), layout: renderer.previewLayout() };
+}
+
+export async function generateOrderPdf(input: GenerateOrderPdfInput): Promise<Uint8Array> {
+  return (await generateOrderPdfPreview(input)).pdf;
 }

@@ -268,7 +268,8 @@ test('orders persist seller contract evidence and one durable source-offer origi
     canonicalSchema,
     /orders_source_quote_offer_version_id_fkey[\s\S]*?references quote_offer_versions\(id\)[\s\S]*?on delete restrict/u
   );
-  assert.doesNotMatch(canonicalSchema, /source_quote_offer_version_id is null/u);
+  // The order definition must permit converted orders; analytics may classify null origins as direct.
+  assert.doesNotMatch(tableDefinition(canonicalSchema, 'orders'), /source_quote_offer_version_id is null/u);
   assert.doesNotMatch(deployment, /source_quote_offer_version_id is null/u);
   assert.match(canonicalSchema, /'order_accepted'/u);
   assert.match(canonicalSchema, /'order_rejected'/u);

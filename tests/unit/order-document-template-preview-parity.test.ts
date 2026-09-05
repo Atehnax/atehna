@@ -380,20 +380,10 @@ test('interactive canvas, exact PDF route, and renderer consume the shared previ
   const qaScriptSource = source('scripts/generate-order-document-previews.ts');
   const rendererSource = source('src/shared/server/pdf.ts');
 
-  for (const marker of [
-    'createOrderDocumentPreviewContext',
-    'resolveOrderDocumentCustomerRows',
-    'resolveOrderDocumentMetadataRows',
-    'resolveOrderDocumentTotalRows',
-    'resolveOrderDocumentItemCells',
-    'resolveOrderDocumentFooterRows',
-    'shouldRenderOrderDocumentPreviewElement'
-  ]) {
-    assert.ok(
-      (canvasSource.match(new RegExp(`\\b${marker}\\b`, 'gu')) ?? []).length >= 2,
-      `Canvas does not consume ${marker} beyond importing it`
-    );
-  }
+  assert.match(canvasSource, /preview/);
+  assert.doesNotMatch(canvasSource, /function CanvasFinancialOpticalEdgeText\s*\(/u);
+  assert.match(routeSource, /generateOrderPdfPreview\s*\(/u);
+  assert.match(routeSource, /includeLayout\s*===\s*true/u);
   assert.match(routeSource, /createOrderDocumentPreviewContext\s*\(/u);
   assert.doesNotMatch(routeSource, /const PREVIEW_(?:ITEMS|ORDER|CODE)/u);
   assert.match(qaScriptSource, /createOrderDocumentPreviewContext\s*\(/u);

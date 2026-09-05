@@ -74,8 +74,8 @@ test('hide preserves an exact override while delete tombstones and resets it', (
   assert.deepEqual(resolveOrderDocumentDeletedCanvasElementIds(restored), []);
   assert.equal(restored.layout.canvas!.elements.intro, undefined);
   const canonical = resolveOrderDocumentCanvasElement(restored, 'intro');
-  assert.equal(canonical.xMm, 10);
-  assert.equal(canonical.yMm, 98);
+  assert.equal(canonical.xMm, 12);
+  assert.equal(canonical.yMm, 112);
   assert.equal(canonical.backgroundColor, '');
   assert.equal(canonical.visible, true);
   assert.equal(

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchCatalogItemSeeds, type CatalogItemSeedRow } from '@/shared/server/catalogItems';
-import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
 
 type CatalogChoice = {

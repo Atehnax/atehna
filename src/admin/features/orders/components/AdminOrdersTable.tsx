@@ -1,4 +1,6 @@
 'use client';
+import type { BusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
+import { addCalendarDays, localDate } from '@/shared/domain/analytics/period';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -98,8 +100,7 @@ import {
 import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { isAllPageSize, resolvePageSize, type PageSizeValue } from '@/shared/domain/pagination';
-import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
-import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
+import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 import {
   matchesParsedCommercePublicCode,
   parseCommercePublicCode
@@ -120,7 +121,7 @@ import {
   getOrderStatusLabelForUi,
   getNumericOrderNumber,
   normalizeForSearch,
-  shiftDateByDays,
+
   textCollator,
   toAmount,
   toDateInputValue,
@@ -152,7 +153,6 @@ type OrderQuickEditState = {
   isSaving: boolean;
 };
 
-type OrdersRangePreset = '7d' | '1m' | '3m' | '6m' | '1y' | 'ytd' | 'max' | 'custom';
 type OrdersQuickDateRange = '7d' | '30d' | '90d' | '180d' | '365d' | 'ytd';
 type OrdersColumnKey = 'order' | 'date' | 'customer' | 'address' | 'type' | 'status' | 'payment' | 'total' | 'documents';
 type SortableColumnKey = 'order' | 'date' | 'customer' | 'address' | 'status' | 'payment' | 'total' | 'type';
@@ -160,15 +160,6 @@ type TypePriority = CustomerType;
 type ColumnTypeFilter = 'all' | TypePriority;
 type ColumnPaymentFilter = 'all' | PaymentStatus;
 type SortCycleState = { column: SortableColumnKey; index: number } | null;
-type OrderAnalyticsPreviewRow = {
-  created_at: string;
-  committed_at: string | null;
-  contract_accepted_at: string | null;
-  status: string;
-  total: number;
-  commitment_status: string | null;
-  contract_status: string | null;
-};
 
 const isOrderShippingPending = (
   order: Pick<OrderRow, 'automatic_shipping' | 'shipping_override_json'>
@@ -450,7 +441,7 @@ const LazyAdminOrdersPdfCell = dynamic(() => import('@/admin/features/orders/com
 });
 export default function AdminOrdersTable({
   orders: serializedOrders,
-  analyticsOrders: serializedAnalyticsOrders,
+  orderPreview,
   documents: serializedDocuments,
   initialFrom = '',
   initialTo = '',
@@ -460,11 +451,10 @@ export default function AdminOrdersTable({
   initialPage = 1,
   initialPageSize = 25,
   totalCount,
-  topAction,
-  analyticsAppearance
+  topAction
 }: {
   orders: ReadonlyArray<AdminOrderRowTuple>;
-  analyticsOrders?: ReadonlyArray<AdminOrderAnalyticsTuple>;
+  orderPreview: BusinessOrderPreview | null;
   documents: ReadonlyArray<AdminOrderPdfDocumentTuple>;
   initialFrom?: string;
   initialTo?: string;
@@ -475,7 +465,6 @@ export default function AdminOrdersTable({
   initialPageSize?: PageSizeValue;
   totalCount?: number;
   topAction?: ReactNode;
-  analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
   const orders = useMemo<OrderRow[]>(
     () =>
@@ -517,24 +506,7 @@ export default function AdminOrdersTable({
       })),
     [serializedOrders]
   );
-  const analyticsOrders = useMemo<OrderAnalyticsPreviewRow[]>(
-    () =>
-      (
-        serializedAnalyticsOrders ??
-        serializedOrders.map(
-          (row) => [row[23], row[13], Number(row[22] ?? 0), null, null, null, null] as const
-        )
-      ).map((row) => ({
-        created_at: row[0],
-        status: row[1] ?? '',
-        total: Number(row[2] ?? 0),
-        commitment_status: row[3] ?? null,
-        contract_status: row[4] ?? null,
-        committed_at: row[5] ?? null,
-        contract_accepted_at: row[6] ?? null
-      })),
-    [serializedAnalyticsOrders, serializedOrders]
-  );
+
   const documents = useMemo<PdfDoc[]>(
     () =>
       serializedDocuments.map((entry) => ({
@@ -592,7 +564,7 @@ export default function AdminOrdersTable({
   const [fromDate, setFromDate] = useState(initialFrom);
   const [toDate, setToDate] = useState(initialTo);
   const [hasExplicitDateFilter, setHasExplicitDateFilter] = useState(Boolean(initialFrom || initialTo));
-  const [rangePreset, setRangePreset] = useState<OrdersRangePreset>('max');
+
   const debouncedQuery = useDebouncedValue(query, 200);
   const debouncedFromDate = useDebouncedValue(fromDate, 200);
   const debouncedToDate = useDebouncedValue(toDate, 200);
@@ -720,102 +692,11 @@ export default function AdminOrdersTable({
     }
   }, [openHeaderFilter, totalRange, orderNumberRange, fromDate, toDate]);
 
-  const latestOrderDate = useMemo(() => {
-    const timestamps = analyticsOrders
-      .map((order) => new Date(order.created_at).getTime())
-      .filter((value) => Number.isFinite(value));
-    if (timestamps.length === 0) {
-      const fallback = new Date();
-      fallback.setHours(0, 0, 0, 0);
-      return fallback;
-    }
-    const latest = new Date(Math.max(...timestamps));
-    latest.setHours(0, 0, 0, 0);
-    return latest;
-  }, [analyticsOrders]);
-
-  const earliestOrderDate = useMemo(() => {
-    const timestamps = analyticsOrders
-      .map((order) => new Date(order.created_at).getTime())
-      .filter((value) => Number.isFinite(value));
-    if (timestamps.length === 0) {
-      const fallback = new Date(latestOrderDate);
-      fallback.setHours(0, 0, 0, 0);
-      return fallback;
-    }
-    const earliest = new Date(Math.min(...timestamps));
-    earliest.setHours(0, 0, 0, 0);
-    return earliest;
-  }, [latestOrderDate, analyticsOrders]);
-
-  const toSafeDateRange = (from: Date, to: Date) => {
-    const start = Number.isFinite(from.getTime()) ? from : new Date(to);
-    const end = Number.isFinite(to.getTime()) ? to : new Date(start);
-    if (start.getTime() > end.getTime()) {
-      return { from: new Date(end), to: new Date(end) };
-    }
-    return { from: start, to: end };
-  };
-
-  const applyDateRange = (from: Date, to: Date, preset: OrdersRangePreset) => {
-    const safe = toSafeDateRange(from, to);
-    setFromDate(toDateInputValue(safe.from));
-    setToDate(toDateInputValue(safe.to));
-    setRangePreset(preset);
-  };
-
-  const applyAnalyticsRangePreset = (range: Exclude<OrdersRangePreset, 'custom'>) => {
-    const anchorDate = new Date(latestOrderDate);
-
-    if (range === 'ytd') {
-      const ytdStart = new Date(anchorDate.getFullYear(), 0, 1);
-      applyDateRange(ytdStart, anchorDate, 'ytd');
-      return;
-    }
-
-    if (range === 'max') {
-      applyDateRange(earliestOrderDate, anchorDate, 'max');
-      return;
-    }
-
-    const dayCountByRange: Record<Exclude<OrdersRangePreset, 'custom' | 'ytd' | 'max'>, number> = {
-      '7d': 6,
-      '1m': 29,
-      '3m': 89,
-      '6m': 179,
-      '1y': 364
-    };
-
-    const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
-    applyDateRange(fromDateValue, anchorDate, range);
-  };
-
-  useEffect(() => {
-    if (!initialFrom && !initialTo) {
-      const anchorDate = new Date(latestOrderDate);
-      applyDateRange(earliestOrderDate, anchorDate, 'max');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const applyQuickDateRange = (range: OrdersQuickDateRange) => {
-    const anchorDate = new Date(latestOrderDate);
-
-    if (range === 'ytd') {
-      const ytdStart = new Date(anchorDate.getFullYear(), 0, 1);
-      return { from: toDateInputValue(ytdStart), to: toDateInputValue(anchorDate) };
-    }
-
-    const dayCountByRange: Record<Exclude<OrdersQuickDateRange, 'ytd'>, number> = {
-      '7d': 6,
-      '30d': 29,
-      '90d': 89,
-      '180d': 179,
-      '365d': 364
-    };
-
-    const fromDateValue = shiftDateByDays(anchorDate, -dayCountByRange[range]);
-    return { from: toDateInputValue(fromDateValue), to: toDateInputValue(anchorDate) };
+    const today = localDate(orderPreview?.asOf ?? new Date());
+    if (range === 'ytd') return { from: today.slice(0, 4) + '-01-01', to: today };
+    const days: Record<Exclude<OrdersQuickDateRange, 'ytd'>, number> = { '7d': 6, '30d': 29, '90d': 89, '180d': 179, '365d': 364 };
+    return { from: addCalendarDays(today, -days[range]), to: today };
   };
 
   const documentsByOrder = useMemo(() => {
@@ -2241,14 +2122,7 @@ export default function AdminOrdersTable({
     <div className="w-full">
       <div className="w-full">
         {isChartReady ? (
-          <AdminOrdersPreviewChart
-            orders={analyticsOrders}
-            appearance={analyticsAppearance}
-            fromDate={debouncedFromDate}
-            toDate={debouncedToDate}
-            activeRange={rangePreset}
-            onRangeChange={applyAnalyticsRangePreset}
-          />
+          <AdminOrdersPreviewChart preview={orderPreview} />
         ) : (
           <div aria-hidden="true" className="mb-3 h-[120px] rounded-[11px] border border-slate-200/80 bg-white/60" />
         )}

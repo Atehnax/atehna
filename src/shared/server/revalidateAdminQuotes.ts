@@ -1,9 +1,8 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from '@/shared/server/diagnostics/cache';
 
 export function revalidateAdminQuotePaths(quoteRequestId?: number) {
   revalidatePath('/admin/orders');
   revalidatePath('/admin/analitika');
-  revalidatePath('/admin/analitika/ponudbe');
 
   if (typeof quoteRequestId === 'number' && Number.isSafeInteger(quoteRequestId)) {
     revalidatePath(`/admin/orders/quotes/${quoteRequestId}`);

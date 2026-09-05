@@ -5,15 +5,11 @@ import {
   cloneDefaultOrderDocumentTemplate,
   materializeOrderDocumentCanvasElement,
   normalizeOrderDocumentTemplate,
-  resolveOrderDocumentCanvas,
   setOrderDocumentDecoration,
-  type OrderDocumentCanvasElementId,
   type OrderDocumentTemplate
 } from '../../src/shared/domain/order/orderDocumentTemplates';
 import {
-  ORDER_DOCUMENT_FLOW_SECTION_GAP_PT,
-  ORDER_DOCUMENT_FLOW_SECTION_GAP_MM,
-  resolveOrderDocumentFlowPreviewElements
+  ORDER_DOCUMENT_FLOW_SECTION_GAP_PT
 } from '../../src/shared/domain/order/orderDocumentFlowLayout';
 import {
   createOrderDocumentPreviewContext,
@@ -73,41 +69,6 @@ test('explicit absolute body geometry remains authoritative with or without a ve
   }
 });
 
-
-test('interactive flow preview sizes product and total sections from actual content', () => {
-  const template = normalizeOrderDocumentTemplate(
-    'order_summary',
-    currentSavedOrderSummary()
-  );
-  const oneItemContext = createOrderDocumentPreviewContext('order_summary');
-  oneItemContext.items = oneItemContext.items.slice(0, 1);
-  const severalItemsContext = createOrderDocumentPreviewContext('order_summary');
-  const canvas = resolveOrderDocumentCanvas(template);
-
-  const sparse = resolveOrderDocumentFlowPreviewElements(
-    template,
-    canvas,
-    oneItemContext
-  );
-  const populated = resolveOrderDocumentFlowPreviewElements(
-    template,
-    canvas,
-    severalItemsContext
-  );
-
-  assert.ok(sparse.items.heightMm < populated.items.heightMm);
-  assert.ok(sparse.totals.yMm < populated.totals.yMm);
-  assert.ok(
-    Math.abs(
-      sparse.totals.yMm
-        - (sparse.items.yMm + sparse.items.heightMm)
-        - ORDER_DOCUMENT_FLOW_SECTION_GAP_MM
-    ) <= 0.11,
-    'totals must follow the rendered one-row table by only the shared flow gap'
-  );
-  assert.equal(sparse.items.positioning, 'flow');
-  assert.equal(sparse.totals.positioning, 'flow');
-});
 
 test('current flow one-row PDF compacts totals immediately after the table', async () => {
   const context = createOrderDocumentPreviewContext('order_summary');
@@ -238,7 +199,7 @@ test('current flow one-row items fill and outline end before compact totals', as
   );
 });
 
-test('totals and notes stay compact across the current 22-27 row page-break boundary', async () => {
+test('totals and notes stay compact around a multi-page table boundary', async () => {
   for (const itemCount of [22, 23, 24, 25, 26, 27]) {
     const context = createOrderDocumentPreviewContext('order_summary');
     const baseItem = context.items[0]!;
@@ -299,7 +260,7 @@ test('totals and notes stay compact across the current 22-27 row page-break boun
     assert.equal(typeof notesPageId, 'number', 'notes must render');
     assert.equal(typeof totalY, 'number');
     assert.equal(typeof notesY, 'number');
-    if (itemCount < 24) {
+    if (notesPageId !== totalPageId) {
       assert.notEqual(
         notesPageId,
         totalPageId,

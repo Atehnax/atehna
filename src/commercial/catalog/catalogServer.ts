@@ -3,7 +3,7 @@ import type { CatalogCategory, CatalogItem, CatalogSearchItem, CatalogSubcategor
 import { selectCatalogRelatedItems } from '@/commercial/catalog/catalogRelatedProducts';
 import { catalogCategoryItemHref, toPublicCatalogSlug } from '@/commercial/catalog/catalogRoutes';
 import { sortCatalogItems } from '@/commercial/catalog/catalogUtils';
-import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
 import {
   getCatalogCategoryCardsFromDatabase,
   getCatalogCategoryPageDataFromDatabase,

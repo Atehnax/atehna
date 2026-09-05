@@ -18,7 +18,7 @@ import {
   patchCategoryTree,
   replaceCategoryTree
 } from '@/shared/server/catalogCategories';
-import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
+import { recordCatalogInvalidation } from '@/shared/server/diagnostics/instrumentation';
 import { computeObjectDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';

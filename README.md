@@ -14,41 +14,17 @@ Atehna includes:
   settings.
 - `/admin/orders` with compact analytics previews and order operations.
 - `/admin/email` controls automatic customer and administrator order emails.
-- `/admin/analitika` with a dark pro-grade dashboard and a DB-persisted custom chart builder.
+- `/admin/analitika` with new Slovenian Poslovanje, Splet and Diagnostika dashboards.
 
-## Admin analytics extension guide
+## Business analytics
 
-### Add a new metric or dimension source
-1. Extend the analytics payload in `src/shared/server/orderAnalytics.ts` (`OrdersAnalyticsDay`) and compute the field in `fetchOrdersAnalytics`.
-2. Ensure `GET /api/admin/analytics/orders` returns the new field (already passes through server payload).
-3. Register the metric in builder/UI options inside `src/admin/components/AdminAnalyticsDashboard.tsx` (`metricOptions`) and (optionally) add system chart series in `src/shared/server/analyticsCharts.ts`.
+The business surface has Pregled, Naročila, Ponudbe, Stranke, Artikli, Poštnina, Zemljevid and Laboratorij views. All use the canonical metric layer in `src/shared/domain/analytics` and `src/shared/server/businessAnalytics.ts`; extend those definitions before adding a chart, drilldown or export. The aggregate endpoint is `/api/admin/analytics/business`, matching records/CSV use its `/records` route, and the normal order page accepts `/admin/orders?analytics=1` with the same filters.
 
-### Define or adjust system charts
-1. Open `src/shared/server/analyticsCharts.ts`.
-2. Update `buildSystemCharts(dashboardKey)` entries.
-3. Configure per chart:
-   - `chart_type`
-   - `config_json.axes` fields (titles/scales/tick formats)
-   - `config_json.series` array (metric, aggregation, transform, per-series type, stack, axis side, color).
-4. Default charts are seeded only when the dashboard is empty; every chart can be edited or deleted afterwards.
+Read [metric and historical-data definitions](docs/business-analytics-definitions.md) and [capture/migration instructions](docs/business-analytics-capture.md). The custom chart builder, separate order/quote calculators, saved-chart service, retired APIs and quote-dashboard redirects are removed. Ordinary order and quote previews use canonical server summaries; there is no analytics compatibility layer.
 
-### Extend builder capabilities
-Builder state is persisted via `config_json` in `analytics_charts`.
-Key places:
-- UI controls and series table: `src/admin/components/AdminAnalyticsDashboard.tsx` (BuilderModal).
-- CRUD/reorder APIs:
-  - `src/admin/api/analytics/charts/route.ts`
-  - `src/admin/api/analytics/charts/[chartId]/route.ts`
-  - `src/admin/api/analytics/charts/reorder/route.ts`
-- Validation/normalization: `src/shared/server/analyticsCharts.ts` (`parseConfig`).
+Splet uses recorded page/product events, distinct visits/visitors, daily returning visitors and fully observed D7 cohorts, with exact-period tables and CSV. Its tracker serializes first-page events so page and product views share identity cookies. See [website metric definitions](docs/website-traffic.md).
 
-### Theme tokens (global + per-chart appearance)
-Global chart appearance is stored in DB and edited from the `Appearance / Theme` panel on `/admin/analitika` (API: `/api/admin/analytics/charts/appearance`).
-
-Key places:
-- CSS defaults: `src/shared/styles/globals.css` (`--chart-*` variables).
-- Runtime adapter: `src/admin/components/charts/chartTheme.ts` (`getChartThemeFromCssVars`).
-- Per-chart overrides persisted in `config_json.appearance` via `src/shared/server/analyticsCharts.ts`.
+Diagnostika uses a new persistent PostgreSQL collector with request traces, measured phases, errors, latency percentiles, payload coverage, explicit cache execution/invalidation events and protected CSV. See [diagnostics collection and retention](docs/diagnostics.md). The old file collector and both old dashboard implementations are deleted. V4 removes the retired chart tables after verifying an exact inert archive of configuration history; no application code reads that archive.
 
 # Fresh database schema
 
@@ -75,6 +51,15 @@ reviewed quote/contract artifacts below, applied in this exact order:
 15. `database/migrations/20260904_gurs_postal_lookup_indexes.sql`
 16. `database/migrations/20260904_public_customer_codes.sql`
 17. `database/migrations/20260904_schema_contract_v2.sql`
+18. `database/migrations/20260905_business_analytics.sql`
+19. `database/migrations/20260905_analytics_geography.sql`
+20. `database/migrations/20260905_schema_contract_v3.sql`
+21. `database/migrations/20260905_analytics_retirement.sql`
+22. `database/migrations/20260905_schema_contract_v4.sql`
+
+The current terminal contract is `20260905.analytics-v4`. Business capture,
+resumable historical backfill and isolated validation commands are documented in
+[Business analytics capture](docs/business-analytics-capture.md).
 
 The ordered list above is the pre-deploy schema sequence. After the
 public-code-capable application is live and verified, every existing
@@ -329,8 +314,8 @@ eligible database and blob cleanup. Active and inactive products have no
 automatic expiry.
 
 # Example
-- `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.
-- `/admin/analitika` contains default charts plus custom builder-created charts.
+- `/admin/orders` shows six canonical order metrics or six quote metrics, with elapsed-period comparisons and links to their detailed business view.
+- `/admin/analitika` provides eight business views; Splet and Diagnostika have dedicated new dashboards.
 
 # Install
 

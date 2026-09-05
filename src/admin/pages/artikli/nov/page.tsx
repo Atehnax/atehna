@@ -1,5 +1,5 @@
 import AdminItemEditorPage from '@/admin/features/artikli/components/AdminItemEditorPage';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender } from '@/shared/server/diagnostics/instrumentation';
 
 export const dynamic = 'force-dynamic';
 

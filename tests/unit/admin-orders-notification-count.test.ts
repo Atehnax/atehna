@@ -72,7 +72,7 @@ test('order and quote tabs use standardized reusable notification metadata', () 
   assert.match(ordersServer, /\[\.\.\.ORDER_ATTENTION_STATUSES\]/u);
   const attentionCountLoader = ordersServer.slice(
     ordersServer.indexOf('export async function fetchOrderAttentionCount'),
-    ordersServer.indexOf('export async function fetchOrdersAnalyticsRows')
+    ordersServer.indexOf('export async function fetchOrderById')
   );
   assert.doesNotMatch(attentionCountLoader, /is_draft/u);
   assert.deepEqual(ORDER_ATTENTION_STATUSES, [

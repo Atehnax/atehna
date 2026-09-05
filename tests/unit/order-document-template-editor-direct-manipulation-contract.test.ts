@@ -101,9 +101,9 @@ test('selected PDF elements use the shared floating context toolbar instead of a
 
 test('company contact rows are selectable and managed contextually', () => {
   assert.match(domainSource, /contacts\s*:/u);
-  assert.match(canvasSource, /company\.contacts\.map\s*\(/u);
+  assert.match(canvasSource, /kind === 'contact'\) return companyContactChild/u);
 
-  const contactRowSource = sourceAround('data-order-document-company-contact-id={contact.id}');
+  const contactRowSource = sourceAround('data-order-document-child-id={selection.id}', 5000);
   assert.match(contactRowSource, /on(?:Click|PointerDown)=/u);
 
   for (const marker of [
@@ -124,17 +124,11 @@ test('company contact output is data-driven and never hard-codes an always-visib
   assert.doesNotMatch(rendererSource, /`Fax:|['"]Fax:/u);
 });
 
-test('flow-mode preview derives sequential, content-sized body frames without mutating defaults', () => {
-  const start = flowLayoutSource.indexOf('export function resolveOrderDocumentFlowPreviewElements');
-  assert.notEqual(start, -1, 'Missing shared flow preview resolver');
-  const resolver = flowLayoutSource.slice(start);
-  assert.match(resolver, /template\.layout\.sections/u);
-  assert.match(resolver, /elements\[id\]\.visible[\s\S]*elements\[id\]\.positioning === 'flow'/u);
-  assert.match(resolver, /estimateOrderDocumentFlowElementHeightMm/u);
-  assert.match(resolver, /yMm:\s*cursor/u);
-  assert.match(resolver, /ORDER_DOCUMENT_FLOW_SECTION_GAP_MM/u);
-  assert.match(resolver, /shouldRenderOrderDocumentPreviewElement\(elements\[id\], previewContext, 1\)/u);
+test('interactive geometry comes from the current PDF page without an approximate second renderer', () => {
   const previewDerivation = sourceAround('const previewElements = useMemo');
-  assert.match(previewDerivation, /resolveOrderDocumentFlowPreviewElements\(template, canvas, previewContext\)/u);
+  assert.match(previewDerivation, /previewLayout\?\.regions/u);
+  assert.match(previewDerivation, /region\.pageNumber !== currentPage/u);
   assert.match(previewDerivation, /previewElements\[selectedElementId\]/u);
+  assert.doesNotMatch(canvasSource, /resolveOrderDocumentFlowPreviewElements/u);
+  assert.doesNotMatch(flowLayoutSource, /export function resolveOrderDocumentFlowPreviewElements/u);
 });

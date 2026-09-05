@@ -174,7 +174,7 @@ test('admin delete is a lifecycle-guarded logical void and never deletes the quo
 
 test('voided quote requests are excluded from the list, new badge, detail, and analytics', () => {
   const quotes = source('src/shared/server/quotes.ts');
-  const analytics = source('src/shared/server/quoteAnalytics.ts');
+  const analytics = source('src/shared/server/businessAnalytics.ts');
 
   assert.match(quotes, /const conditions = \[[\s\S]*?'qr\.voided_at is null'/u);
   assert.match(quotes, /status = 'received' and voided_at is null/u);
@@ -184,7 +184,7 @@ test('voided quote requests are excluded from the list, new badge, detail, and a
   );
   assert.match(
     analytics,
-    /from quote_requests request[\s\S]*?and request\.voided_at is null/u
+    /from quote_requests request[\s\S]*?where request\.voided_at is null/u
   );
 });
 

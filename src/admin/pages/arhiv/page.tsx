@@ -1,7 +1,7 @@
 import AdminDeletedArchiveTableLoader from '@/admin/features/arhiv/components/AdminDeletedArchiveTableLoader';
 import AdminArchiveTabs from '@/admin/features/arhiv/components/AdminArchiveTabs';
 import { fetchArchiveEntries } from '@/shared/server/deletedArchive';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import { getDatabaseUrl } from '@/shared/server/db';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 

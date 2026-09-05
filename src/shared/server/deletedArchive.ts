@@ -3,7 +3,7 @@ import {
   deleteBlob,
   deletePrivateOrderDocumentBlob
 } from '@/shared/server/blob';
-import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
 import type { ArchiveEntry, ArchiveItemType, RestoreTarget } from '@/shared/domain/archive/archiveTypes';
 
 export class ArchiveRestoreConflictError extends Error {

@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from '@/shared/server/diagnostics/cache';
 
 export function revalidateAdminOrderPaths(orderId?: number) {
   revalidatePath('/admin/orders');

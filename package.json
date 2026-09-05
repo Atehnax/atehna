@@ -21,7 +21,9 @@
     "e2e:report:verify": "node scripts/verify-playwright-report.mjs",
     "addresses:sync": "tsx scripts/sync-addresses.ts",
     "check:build-assets": "node scripts/check-build-assets.mjs",
-    "measure:deployed-network": "node scripts/measure-deployed-network.mjs"
+    "measure:deployed-network": "node scripts/measure-deployed-network.mjs",
+    "geography:import": "tsx scripts/import-geography.ts",
+    "geography:backfill": "tsx scripts/backfill-geography.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -51,9 +53,11 @@
     "cropperjs": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.22.0",
+    "mapshaper": "0.6.46",
     "next": "16.3.1",
     "next-mdx-remote": "^6.0.0",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "6.3.289",
     "pg": "^8.12.0",
     "plotly.js-basic-dist-min": "^3.4.0",
     "react": "19.2.5",
@@ -87,6 +91,9 @@
     "browserslist": "4.28.8",
     "postcss-selector-parser": "6.1.4",
     "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3"
+    "@types/react-dom": "19.2.3",
+    "mapshaper": {
+      "adm-zip": "^0.6.0"
+    }
   }
 }

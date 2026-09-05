@@ -22,7 +22,7 @@ test('semantic decorations resolve professional defaults and explicit false disa
     resolveOrderDocumentDecoration(template, { kind: 'element', elementId: 'intro' }),
     {
       fillEnabled: false,
-      fillColor: '#FFFFFF',
+      fillColor: '#F1F3F5',
       outlineEnabled: false,
       outlineColor: '#202020',
       outlineWidthPt: 0.5,
@@ -210,9 +210,9 @@ test('current-version manual title and customer geometry is preserved instead of
   const customized = normalizeOrderDocumentTemplate('order_summary', template);
   assert.equal(resolveOrderDocumentCanvasElement(customized, 'title').heightMm, 10);
   const defaults = cloneDefaultOrderDocumentTemplate('order_summary');
-  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'title').heightMm, 15);
-  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'customer').yMm, 67);
-  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'document_meta').yMm, 67);
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'title').heightMm, 14);
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'customer').yMm, 64);
+  assert.equal(resolveOrderDocumentCanvasElement(defaults, 'document_meta').yMm, 64);
 });
 
 test('validation rejects malformed placement and decoration data', () => {

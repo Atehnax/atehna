@@ -18,7 +18,7 @@ const migrationPath = resolve(
   projectRoot,
   'database',
   'migrations',
-  '20260904_schema_contract_v2.sql'
+  '20260905_schema_contract_v4.sql'
 );
 const identifierPattern = /^[a-z][a-z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
@@ -111,6 +111,8 @@ export function validateManifest(manifest) {
   }
   requireUniqueStrings(requirements.extensions, 'extensions');
   requireUniqueStrings(requirements.tables, 'tables');
+  requireUniqueStrings(requirements.absentTables, 'absentTables');
+  requireUniqueStrings(requirements.absentFunctions, 'absentFunctions');
 
   for (const [description, entries] of [
     ['columns', requirements.columns],
@@ -516,6 +518,24 @@ export async function verifyDatabaseContract(client, manifest) {
     fail(`Missing tables: ${missingTables.join(', ')}.`);
   }
 
+  const retiredTables = await client.query(
+    `select relation.relname from pg_class relation
+     join pg_namespace namespace on namespace.oid = relation.relnamespace
+     where namespace.nspname = 'public' and relation.relname = any($1::text[])`,
+    [requirements.absentTables]
+  );
+  if (retiredTables.rows.length > 0) {
+    fail(`Retired analytics relations remain: ${retiredTables.rows.map((row) => row.relname).join(', ')}.`);
+  }
+  const retiredFunctions = await client.query(
+    `select routine.proname from pg_proc routine
+     join pg_namespace namespace on namespace.oid = routine.pronamespace
+     where namespace.nspname = 'public' and routine.proname = any($1::text[])`,
+    [requirements.absentFunctions]
+  );
+  if (retiredFunctions.rows.length > 0) {
+    fail(`Retired analytics functions remain: ${retiredFunctions.rows.map((row) => row.proname).join(', ')}.`);
+  }
   const columnTables = [...new Set(requirements.columns.map((column) => column.table))];
   const columnNames = [...new Set(requirements.columns.map((column) => column.name))];
   const columns = await client.query(

@@ -1,7 +1,7 @@
 import AdminItemsManagerLoader from '@/admin/features/artikli/components/AdminItemsManagerLoader';
 import AdminInventoryPolicyControl from '@/admin/features/artikli/components/AdminInventoryPolicyControl';
 import { fetchAdminCatalogListItems } from '@/shared/server/catalogItems';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender } from '@/shared/server/diagnostics/instrumentation';
 import { getDatabaseUrl, isDatabaseUnavailableError } from '@/shared/server/db';
 import { getInventoryPolicySettings } from '@/shared/server/inventoryPolicy';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';

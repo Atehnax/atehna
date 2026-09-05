@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { revalidateTag, unstable_cache } from 'next/cache';
+import { revalidateTag } from '@/shared/server/diagnostics/cache';
+import { unstable_cache } from 'next/cache';
 import sharp from 'sharp';
 import {
   SITE_LOGO_PURPOSE_CATALOG,

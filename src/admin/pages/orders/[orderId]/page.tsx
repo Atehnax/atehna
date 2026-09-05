@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import AdminOrderDetailClient from '@/admin/features/orders/components/AdminOrderDetailClient';
 import { fetchOrderDetailSnapshot } from '@/shared/server/orders';
 import type { OrderRow } from '@/shared/domain/order/orderTypes';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 
 export const metadata = {
   title: 'Podrobnosti naročila'

@@ -19,6 +19,18 @@
     {
       "path": "/api/admin/addresses/sync",
       "schedule": "0 2 1 * *"
+    },
+    {
+      "path": "/api/admin/analytics/geography/refresh",
+      "schedule": "0 5 2 * *"
+    },
+    {
+      "path": "/api/admin/analytics/geography/process",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/admin/analytics/diagnostics/prune",
+      "schedule": "50 4 * * *"
     }
   ]
 }

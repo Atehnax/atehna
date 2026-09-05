@@ -328,23 +328,3 @@ export type AdminQuoteDetail = {
   resultingOrderCode: string | null;
   resultingOrderNumber: string | null;
 };
-
-export type AdminQuoteFunnel = {
-  requests: number;
-  offersIssued: number;
-  acceptedOrConverted: number;
-  declined: number;
-  withdrawn: number;
-  expired: number;
-  conversionRate: number;
-  averageRequestToIssueHours: number | null;
-  averageIssueToAcceptHours: number | null;
-  quotedValue: number;
-  convertedOrderValue: number;
-};
-
-export type AdminQuoteFunnelPreview = {
-  overall: AdminQuoteFunnel;
-  last30Days: AdminQuoteFunnel;
-  previous30Days: AdminQuoteFunnel;
-};

@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260904.prelaunch-v2';
+const contractId = '20260905.analytics-v4';
 const contractSha256 =
-  'afc67bcb1962a62a362fb10b5c5aaa3fe2407295bdd9d2408abd8ade57eb508c';
+  'a2d78beb3aa65a1b60a75e11b6efed10a78e6f00cabb9af8a4ebacc592eaa4da';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -47,7 +47,7 @@ test('schema manifest carries a deterministic requirements checksum', () => {
       /^create table ([a-z0-9_]+) \(/gmu
     )
   ].map((match) => match[1]).sort();
-  assert.equal(manifest.requirements.tables.length, 61);
+  assert.equal(manifest.requirements.tables.length, 67);
   assert.deepEqual(
     [...manifest.requirements.tables, 'app_schema_contracts'].sort(),
     schemaTables
@@ -141,7 +141,7 @@ test('every named manifest requirement is bound to both deployment paths', () =>
   };
   const schema = source('database/schema.sql');
   const migration = source(
-    'database/migrations/20260904_schema_contract_v2.sql'
+    'database/migrations/20260905_schema_contract_v4.sql'
   );
   const normalizedMigration = migration.replaceAll("''", "'");
   const requirements = manifest.requirements;
@@ -212,6 +212,21 @@ test('contract requires insert defaults while treating inventory policy as mutab
   );
 
   assert.deepEqual(defaults, {
+    'diagnostics_events.error': ["false"],
+    'diagnostics_events.phases_json': ["'{}'::jsonb"],
+    'diagnostics_events.details_json': ["'{}'::jsonb"],
+    'retired_configuration_archive.captured_at': ["now()"],
+    'analytics_geography_backfill.after_order_id': ["0"],
+    'analytics_geography_backfill.processed_count': ["0"],
+    'analytics_geography_backfill.updated_at': ["now()"],
+    'analytics_geography_references.created_at': ["now()"],
+    'order_analytics_change_log.changed_at': ["now()"],
+    'order_geography_audit.created_at': ["now()"],
+    'order_geography_resolutions.resolved_at': ["now()"],
+    'order_geography_resolutions.manual_override': ["false"],
+    'orders.analytics_is_test': ["false"],
+    'orders.refund_history_complete': ["false"],
+    'orders.analytics_measurement_revision': ["0"],
     'order_documents.order_delivery_plan_revision': ['1'],
     'order_items.ship_later': ['false'],
     'orders.contract_status': ['pending_seller_acceptance'],
@@ -230,6 +245,21 @@ test('contract requires insert defaults while treating inventory policy as mutab
       ])
   );
   assert.deepEqual(exactDefaults, {
+    'diagnostics_events.error': "false",
+    'diagnostics_events.phases_json': "'{}'::jsonb",
+    'diagnostics_events.details_json': "'{}'::jsonb",
+    'retired_configuration_archive.captured_at': "now()",
+    'analytics_geography_backfill.after_order_id': "0",
+    'analytics_geography_backfill.processed_count': "0",
+    'analytics_geography_backfill.updated_at': "now()",
+    'analytics_geography_references.created_at': "now()",
+    'order_analytics_change_log.changed_at': "now()",
+    'order_geography_audit.created_at': "now()",
+    'order_geography_resolutions.resolved_at': "now()",
+    'order_geography_resolutions.manual_override': "false",
+    'orders.analytics_is_test': "false",
+    'orders.refund_history_complete': "false",
+    'orders.analytics_measurement_revision': "0",
     'order_documents.order_delivery_plan_revision': '1',
     'order_items.ship_later': 'false',
     'orders.contract_status': "'pending_seller_acceptance'::text",
@@ -249,7 +279,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
   ]);
 
   const migration = source(
-    'database/migrations/20260904_schema_contract_v2.sql'
+    'database/migrations/20260905_schema_contract_v4.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /installed\.column_default/u);
@@ -333,7 +363,7 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
   }
 
   const migration = source(
-    'database/migrations/20260904_schema_contract_v2.sql'
+    'database/migrations/20260905_schema_contract_v4.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /pg_get_indexdef/u);
@@ -384,7 +414,7 @@ test('fresh schema records only its terminal compatibility contract', () => {
 
 test('legacy deployment verifies terminal postconditions before recording the contract', () => {
   const migration = source(
-    'database/migrations/20260904_schema_contract_v2.sql'
+    'database/migrations/20260905_schema_contract_v4.sql'
   );
   const verificationEndAt = migration.lastIndexOf('$contract_verification$;');
   const ledgerCreateAt = migration.indexOf(
@@ -448,4 +478,18 @@ test('database checker is read-only and requires the exact contract row', () => 
     checker,
     /client\.query\(\s*[`'"]\s*(?:create|alter|drop|insert|update|delete)\b/iu
   );
+});
+
+
+test('v4 requires retired analytics to be absent and persistent diagnostics to exist', () => {
+  const manifest = JSON.parse(source('database/schema-contract.json'));
+  assert.deepEqual(manifest.requirements.absentTables, ['analytics_charts', 'analytics_chart_settings']);
+  assert.deepEqual(manifest.requirements.absentFunctions, ['set_analytics_charts_updated_at']);
+  assert.ok(manifest.requirements.tables.includes('diagnostics_events'));
+  assert.ok(manifest.requirements.tables.includes('retired_configuration_archive'));
+  const migration = source('database/migrations/20260905_analytics_retirement.sql');
+  assert.ok(migration.indexOf('archive.payload is distinct from to_jsonb(source)') < migration.indexOf('drop table if exists analytics_charts'));
+  const checker = source('scripts/check-database-schema.mjs');
+  assert.ok(checker.includes('requirements.absentTables'));
+  assert.ok(checker.includes('requirements.absentFunctions'));
 });

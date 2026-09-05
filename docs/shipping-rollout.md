@@ -27,7 +27,7 @@ partially replace tables in an existing database or load demonstration data.
    the same verified new target and run `npm run check:database-schema`.
    The checker reads the process environment, does not load a local `.env`
    file, and verifies the database in a read-only transaction. Confirm contract
-   `20260904.prelaunch-v2` and `installed_via='fresh_schema'`.
+   `20260905.analytics-v4` and `installed_via='fresh_schema'`.
 4. Confirm that products, customers, orders, quotes, documents, and delivery
    queues are empty. The schema installs only the real category taxonomy and
    operational defaults. Never run `tests/fixtures/e2e-seed.sql` or the

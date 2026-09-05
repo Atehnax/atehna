@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { revalidateTag, unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag } from '@/shared/server/diagnostics/cache';
+import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient } from 'pg';
 import {
   PRODUCT_APPEARANCE_SETTINGS_KEY,

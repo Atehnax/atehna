@@ -138,7 +138,7 @@ test('default pdf-document fit fills the accepted 73 mm logo frame edge to edge'
   }
   const millimetres = (value: number) => value * 72 / 25.4;
   assert.ok(images.length > 0);
-  assert.ok(Math.abs((images[0].x ?? 0) - millimetres(10)) < POINT_TOLERANCE);
+  assert.ok(Math.abs((images[0].x ?? 0) - millimetres(buildInput('dobavnica').template.style.marginMm)) < POINT_TOLERANCE);
   assert.ok(Math.abs((images[0].width ?? 0) - millimetres(73)) < POINT_TOLERANCE);
 });
 

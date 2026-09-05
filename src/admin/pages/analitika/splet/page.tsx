@@ -1,60 +1,9 @@
-import AdminWebsiteAnalyticsDashboard from '@/admin/features/analitika/components/AdminWebsiteAnalyticsDashboard';
+import { Suspense } from 'react';
 import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
-import { fetchWebsiteAnalytics } from '@/shared/server/websiteAnalytics';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
-import { getDatabaseUrl } from '@/shared/server/db';
+import WebsiteDashboard from '@/admin/features/analitika/components/website/WebsiteDashboard';
 
-export const metadata = {
-  title: 'Administracija analitika splet'
-};
-
+export const metadata = { title: 'Splet | Analitika' };
 export const dynamic = 'force-dynamic';
-
-const toIsoOrNull = (value?: string) => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-};
-
-export default async function AdminWebsiteAnalyticsPage(
-  props: {
-    searchParams?: Promise<{ from?: string; to?: string }>;
-  }
-) {
-  const searchParams = await props.searchParams;
-  return instrumentAdminRouteRender('/admin/analitika/splet', async () => {
-    const from = searchParams?.from ?? '';
-  const to = searchParams?.to ?? '';
-
-  const fallbackAnalytics = { visitsByDay: [], topPages: [], topProducts: [], returningVisitors7d: 0, retentionByDay: [] };
-  const analytics = getDatabaseUrl()
-    ? await profileRoutePhase('db', 'AdminWebsiteAnalyticsPage:fetchWebsiteAnalytics', () =>
-        fetchWebsiteAnalytics({ fromDate: toIsoOrNull(from), toDate: toIsoOrNull(to) })
-      ).catch(() => fallbackAnalytics)
-    : fallbackAnalytics;
-
-  await profileRoutePhase('payload', 'AdminWebsiteAnalyticsPage:analytics', async () => {
-    profilePayloadEstimate('AdminWebsiteAnalyticsPage:analytics', analytics);
-  });
-
-    return (
-      <div className="w-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
-        <p className="mt-1 text-[13px] text-slate-500">Pregled analitike naročil in spletnega obiska.</p>
-      </div>
-      <AdminAnalyticsTopTabs />
-      <AdminWebsiteAnalyticsDashboard
-      visitsByDay={analytics.visitsByDay}
-      topPages={analytics.topPages}
-      topProducts={analytics.topProducts}
-      returningVisitors7d={analytics.returningVisitors7d}
-      retentionByDay={analytics.retentionByDay}
-      initialFrom={from}
-      initialTo={to}
-      />
-      </div>
-    );
-  });
+export default function WebsiteAnalyticsPage() {
+  return <div className="w-full"><AdminAnalyticsTopTabs /><Suspense fallback={<p className="p-6 text-sm text-slate-500">Nalaganje spletne analitike …</p>}><WebsiteDashboard /></Suspense></div>;
 }

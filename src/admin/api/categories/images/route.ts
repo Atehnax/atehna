@@ -11,7 +11,7 @@ import {
   updateTopLevelCategoryPresentations,
   type TopLevelCategoryPresentationUpdate
 } from '@/shared/server/catalogCategories';
-import { recordCatalogInvalidation } from '@/shared/server/catalogDiagnostics';
+import { recordCatalogInvalidation } from '@/shared/server/diagnostics/instrumentation';
 import {
   getCategoryShowcaseItemsFromDatabase,
 } from '@/shared/server/categoryShowcase';

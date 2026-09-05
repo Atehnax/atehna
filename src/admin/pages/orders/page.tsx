@@ -1,13 +1,16 @@
+import { fetchBusinessOrderPreview, fetchBusinessQuotePreview } from '@/shared/server/businessAnalytics';
+import type { BusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
+import AdminBusinessOrderList from '@/admin/features/orders/components/AdminBusinessOrderList';
 import AdminOrdersTableLoader from '@/admin/features/orders/components/AdminOrdersTableLoader';
 import AdminCreateDraftOrderButton from '@/admin/features/orders/components/AdminCreateDraftOrderButton';
 import AdminOrdersTabs from '@/admin/features/orders/components/AdminOrdersTabs';
 import AdminQuotesTable from '@/admin/features/quotes/components/AdminQuotesTable';
 import {
   fetchOrderAttentionCount,
-  fetchOrdersAnalyticsRows,
+
   fetchOrdersListPage
 } from '@/shared/server/orders';
-import type { OrderAnalyticsRow, OrderRow } from '@/shared/domain/order/orderTypes';
+import type { OrderRow } from '@/shared/domain/order/orderTypes';
 import {
   normalizeAdminQuoteAmountBound,
   normalizeAdminQuoteCustomerTypeFilter,
@@ -16,14 +19,12 @@ import {
   type AdminQuoteStatusFilter
 } from '@/shared/domain/quote/quoteAdminTypes';
 import {
-  fetchAdminQuoteFunnel,
   fetchAdminQuoteRequestsPage,
   fetchNewQuoteRequestCount
 } from '@/shared/server/quotes';
 import { isAllPageSize, parsePageSizeValue } from '@/shared/domain/pagination';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import { getDatabaseUrl } from '@/shared/server/db';
-import { fetchGlobalAnalyticsAppearance, type AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 
 export const metadata = {
@@ -106,7 +107,7 @@ async function AdminOrdersTableSection({
       ? 1
       : Math.max(1, Number(normalizeSearchParam(searchParams?.page)) || 1);
   let orders: OrderRow[] = [];
-  let analyticsOrders: OrderAnalyticsRow[] = [];
+  let orderPreview: BusinessOrderPreview | null = null;
   let documents: Array<{
     id: number;
     order_id: number;
@@ -118,23 +119,11 @@ async function AdminOrdersTableSection({
   let totalCount = 0;
   let warningMessage: string | null = null;
 
-  const fallbackAppearance: AnalyticsGlobalAppearance = {
-    sectionBg: '#f1f0ec',
-    canvasBg: '#ffffff',
-    cardBg: '#ffffff',
-    plotBg: '#ffffff',
-    axisTextColor: '#111827',
-    seriesPalette: ['#3e67d6', '#059669', '#a16207', '#3e67d6', '#3e67d6'],
-    gridColor: '#d8d6cf',
-    gridOpacity: 0.35
-  };
-  let analyticsAppearance = fallbackAppearance;
-
   if (!getDatabaseUrl()) {
     warningMessage = 'Povezava z bazo ni nastavljena.';
   } else {
     try {
-      const [ordersPageResult, analyticsOrdersResult, analyticsAppearanceResult] = await Promise.all([
+      const [ordersPageResult, orderPreviewResult] = await Promise.all([
         fetchOrdersListPage({
           includeDrafts: true,
           fromDate: toIsoOrNull(from),
@@ -145,15 +134,10 @@ async function AdminOrdersTableSection({
           page,
           pageSize
         }),
-        fetchOrdersAnalyticsRows({
-          includeDrafts: false,
-          fromDate: toIsoOrNull(from),
-          toDate: getToDateIsoOrNull(to)
-        }, '/admin/orders:analytics-preview'),
-        fetchGlobalAnalyticsAppearance('narocila', '/admin/orders').catch(() => fallbackAppearance)
+        fetchBusinessOrderPreview().catch(() => null)
       ]);
       orders = ordersPageResult.orders;
-      analyticsOrders = analyticsOrdersResult;
+      orderPreview = orderPreviewResult;
       documents = ordersPageResult.documentSummaries.map((documentSummary) => ({
         id: documentSummary.id,
         order_id: documentSummary.order_id,
@@ -163,7 +147,6 @@ async function AdminOrdersTableSection({
         created_at: documentSummary.created_at
       }));
       totalCount = ordersPageResult.totalCount;
-      analyticsAppearance = analyticsAppearanceResult;
       console.info(`/admin/orders loaded rows=${orders.length} total=${totalCount} page=${page} pageSize=${pageSize}`);
     } catch (error) {
       console.error('Failed to load /admin/orders data', error);
@@ -173,7 +156,7 @@ async function AdminOrdersTableSection({
 
     await profileRoutePhase('payload', 'AdminOrdersTableSection:props', async () => {
       profilePayloadEstimate('AdminOrdersTableSection:orders', orders);
-      profilePayloadEstimate('AdminOrdersTableSection:analyticsOrders', analyticsOrders);
+      profilePayloadEstimate('AdminOrdersTableSection:orderPreview', orderPreview);
       profilePayloadEstimate('AdminOrdersTableSection:documents', documents);
       profilePayloadEstimate('AdminOrdersTableSection:totalCount', totalCount);
     });
@@ -209,15 +192,7 @@ async function AdminOrdersTableSection({
       order.source_quote_code ?? null,
       order.source_quote_offer_code ?? null
     ] as const);
-    const compactAnalyticsOrders = analyticsOrders.map((order) => [
-      order.created_at,
-      order.status,
-      order.total,
-      order.commitment_status,
-      order.contract_status,
-      order.committed_at,
-      order.contract_accepted_at
-    ] as const);
+
     const compactDocuments = documents.map((document) => [
       document.id,
       document.order_id,
@@ -236,7 +211,7 @@ async function AdminOrdersTableSection({
 
         <AdminOrdersTableLoader
           orders={compactOrders}
-          analyticsOrders={compactAnalyticsOrders}
+          orderPreview={orderPreview}
           documents={compactDocuments}
           initialFrom={from}
           initialTo={to}
@@ -247,7 +222,6 @@ async function AdminOrdersTableSection({
           initialPageSize={pageSize}
           totalCount={totalCount}
           topAction={<AdminCreateDraftOrderButton />}
-          analyticsAppearance={analyticsAppearance}
         />
       </>
     );
@@ -321,9 +295,9 @@ async function AdminQuotesTableSection({
       page,
       pageSize
     }),
-    fetchAdminQuoteFunnel().catch(() => null)
+    fetchBusinessQuotePreview().catch(() => null)
   ])
-    .then(([result, funnel]) => ({ result, funnel }))
+    .then(([result, analyticsPreview]) => ({ result, analyticsPreview }))
     .catch((error: unknown) => {
       console.error('Failed to load quote administration list', error);
       return null;
@@ -338,7 +312,7 @@ async function AdminQuotesTableSection({
   return (
     <AdminQuotesTable
       result={loaded.result}
-      funnel={loaded.funnel}
+      analyticsPreview={loaded.analyticsPreview}
       query={query}
       status={status}
       customerType={customerType}
@@ -357,6 +331,7 @@ async function AdminQuotesTableSection({
 export default async function AdminOrdersPage(
   props: {
     searchParams?: Promise<{
+      [key: string]: string | string[] | undefined;
       from?: string | string[];
       to?: string | string[];
       q?: string | string[];
@@ -379,6 +354,9 @@ export default async function AdminOrdersPage(
   }
 ) {
   const searchParams = await props.searchParams;
+  if (normalizeSearchParam(searchParams?.analytics) === '1') {
+    return <AdminBusinessOrderList searchParams={searchParams ?? {}} />;
+  }
   const quoteAdminEnabled = isQuoteAdminEnabled();
   const activeView =
     quoteAdminEnabled && normalizeSearchParam(searchParams?.view) === 'quotes'

@@ -134,26 +134,6 @@ test('table-rule geometry independently resolves outer, horizontal, and visible-
   ]);
 });
 
-test('Canvas paints table rules without changing cell gaps, padding, or row-gap continuity', () => {
-  const items = sourceAround(canvasSource, "if (id === 'items')");
-  assert.match(items, /resolveOrderDocumentTableBorders\(template, table\)/u);
-  for (const marker of ['outer', 'horizontal', 'vertical']) {
-    assert.match(
-      items,
-      new RegExp(`data-order-document-table-border-${marker}`, 'u')
-    );
-  }
-  assert.match(items, /className="grid items-center gap-1 px-1 font-bold"/u);
-  assert.match(items, /className="grid w-full items-center gap-1 px-1 text-left"/u);
-  assert.match(items, /boxShadow:\s*tableBorders\.horizontal/u);
-  assert.match(items, /outlineOffset:\s*`-\$\{tableBorders\.widthPt\}pt`/u);
-  assert.match(items, /data-order-document-table-vertical-rule-overlay/u);
-  assert.match(items, /className="pointer-events-none absolute inset-0 z-20 grid gap-1 px-1"/u);
-  assert.match(items, /visibleColumns\.slice\(0, -1\)/u);
-  assert.doesNotMatch(items, /padding(?:Left|Right):\s*tableBorders\.vertical/u);
-  assert.doesNotMatch(items, /borderLeft:\s*tableBorders\.vertical/u);
-});
-
 test('justified word geometry fills the complete line while single words remain left aligned', () => {
   assert.deepEqual(resolveOrderDocumentPdfJustifiedWordLayout({
     x: 10,

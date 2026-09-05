@@ -9,6 +9,8 @@ import {
   type KeyboardEvent as ReactKeyboardEvent
 } from 'react';
 import Link from 'next/link';
+import type { BusinessQuotePreview } from '@/shared/domain/analytics/quotePreview';
+import AdminQuoteAnalyticsPreview from './AdminQuoteAnalyticsPreview';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   getAdminQuoteQuickDateRange,
@@ -18,15 +20,12 @@ import {
   normalizeAdminQuoteRequestNumberRange,
   type AdminQuoteQuickDateRange,
   type AdminQuoteCustomerTypeFilter,
-  type AdminQuoteFunnelPreview,
+
   type AdminQuoteListRow,
   type AdminQuoteListPage,
   type AdminQuoteStatusFilter
 } from '@/shared/domain/quote/quoteAdminTypes';
-import {
-  formatEuroWithSuffix,
-  formatSlInteger
-} from '@/shared/domain/formatting';
+
 import {
   formatSlDate,
   formatSlDateTime
@@ -103,10 +102,7 @@ import {
 import AdminCreateManualQuoteRequestButton from '@/admin/features/quotes/components/AdminCreateManualQuoteRequestButton';
 import AdminQuoteOfferCell from '@/admin/features/quotes/components/AdminQuoteOfferCell';
 import AdminManualShippingPendingValue from '@/admin/features/shipping/components/AdminManualShippingPendingValue';
-import AdminAnalyticsComparisonRow, {
-  createAdminAnalyticsTrend
-} from '@/shared/ui/admin-analytics-comparison-row';
-import AdminAnalyticsSummaryCard from '@/shared/ui/admin-analytics-summary-card';
+
 import { IconButton } from '@/shared/ui/icon-button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { Input } from '@/shared/ui/input';
@@ -267,8 +263,6 @@ const formatQuoteTableAddress = (
     city: row.city
   }) || '—';
 
-const formatHours = (value: number | null) => value === null ? '—' : `${value.toFixed(1)} h`;
-
 function buildListHref(input: {
   pathname: string;
   query: string;
@@ -314,104 +308,6 @@ function buildListHref(input: {
   if (input.page > 1) params.set('quotePage', String(input.page));
   if (input.pageSize !== 25) params.set('quotePageSize', String(input.pageSize));
   return `${input.pathname}?${params.toString()}`;
-}
-
-const formatPercentage = (value: number) => `${value.toFixed(1)} %`;
-
-function FunnelSummary({ funnel }: { funnel: AdminQuoteFunnelPreview }) {
-  const { overall, last30Days, previous30Days } = funnel;
-  const cards = [
-    {
-      title: 'Povpraševanja',
-      metric: formatSlInteger(overall.requests),
-      comparisonValue: formatSlInteger(last30Days.requests),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.requests,
-        previous30Days.requests
-      ),
-      focusKey: 'ponudbe-requests'
-    },
-    {
-      title: 'Izdane ponudbe',
-      metric: formatSlInteger(overall.offersIssued),
-      comparisonValue: formatSlInteger(last30Days.offersIssued),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.offersIssued,
-        previous30Days.offersIssued
-      ),
-      focusKey: 'ponudbe-offers-issued'
-    },
-    {
-      title: 'Sprejeto / pretvorjeno',
-      metric: formatSlInteger(overall.acceptedOrConverted),
-      comparisonValue: formatSlInteger(last30Days.acceptedOrConverted),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.acceptedOrConverted,
-        previous30Days.acceptedOrConverted
-      ),
-      focusKey: 'ponudbe-accepted-converted'
-    },
-    {
-      title: 'Konverzija',
-      metric: formatPercentage(overall.conversionRate),
-      comparisonValue: formatPercentage(last30Days.conversionRate),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.conversionRate,
-        previous30Days.conversionRate
-      ),
-      focusKey: 'ponudbe-conversion'
-    },
-    {
-      title: 'Ponujena vrednost',
-      metric: formatEuroWithSuffix(overall.quotedValue),
-      comparisonValue: formatEuroWithSuffix(last30Days.quotedValue),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.quotedValue,
-        previous30Days.quotedValue
-      ),
-      focusKey: 'ponudbe-quoted-value'
-    },
-    {
-      title: 'Vrednost povezanih naročil',
-      metric: formatEuroWithSuffix(overall.convertedOrderValue),
-      comparisonValue: formatEuroWithSuffix(last30Days.convertedOrderValue),
-      comparisonTrend: createAdminAnalyticsTrend(
-        last30Days.convertedOrderValue,
-        previous30Days.convertedOrderValue
-      ),
-      focusKey: 'ponudbe-converted-order-value'
-    }
-  ];
-
-  return (
-    <section
-      aria-label="Lijak ponudb"
-      className="mb-3 grid gap-[14px] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
-    >
-      {cards.map((card) => (
-        <AdminAnalyticsSummaryCard
-          key={card.focusKey}
-          href={`/admin/analitika/ponudbe?range=max&focus=${encodeURIComponent(card.focusKey)}`}
-          title={card.title}
-          metric={card.metric}
-          focusKey={card.focusKey}
-        >
-          <AdminAnalyticsComparisonRow
-            items={[
-              {
-                label: '30d',
-                value: card.comparisonValue,
-                trend: card.comparisonTrend
-              }
-            ]}
-          />
-        </AdminAnalyticsSummaryCard>
-      ))}
-      <p className="text-[11px] text-slate-500 sm:col-span-2 xl:col-span-6">
-        Povprečno od povpraševanja do izdaje: {formatHours(overall.averageRequestToIssueHours)} · od izdaje do sprejema: {formatHours(overall.averageIssueToAcceptHours)}. Ponujena vrednost ni prihodek.
-      </p>
-    </section>
-  );
 }
 
 type QuoteListUpdates = {
@@ -461,7 +357,7 @@ const hasCompleteEditableSnapshot = (row: AdminQuoteListRow) =>
 
 export default function AdminQuotesTable({
   result,
-  funnel,
+  analyticsPreview,
   query,
   status,
   customerType,
@@ -475,7 +371,7 @@ export default function AdminQuotesTable({
   pageSize
 }: {
   result: AdminQuoteListPage;
-  funnel: AdminQuoteFunnelPreview | null;
+  analyticsPreview: BusinessQuotePreview | null;
   query: string;
   status: AdminQuoteStatusFilter;
   customerType: AdminQuoteCustomerTypeFilter;
@@ -995,7 +891,7 @@ export default function AdminQuotesTable({
 
   return (
     <div className="w-full" data-testid="admin-quotes-table">
-      {funnel ? <FunnelSummary funnel={funnel} /> : null}
+      {analyticsPreview ? <AdminQuoteAnalyticsPreview preview={analyticsPreview} /> : <p className="mb-3 text-sm text-slate-500">Analitika ponudb trenutno ni na voljo.</p>}
 
       {deleteTargetIds ? (
         <LazyConfirmDialog

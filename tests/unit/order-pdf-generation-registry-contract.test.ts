@@ -71,7 +71,7 @@ test('the PDF renderer has no generic text-logo fallback', () => {
   );
   assert.match(
     source,
-    /const showLogoArtwork = this\.input\.template\.layout\.showLogoMark && Boolean\(this\.logoImage\);/u
+    /const renderLogoArtwork = this\.shouldRenderElement\(logo, canvasPageNumber\) && logo\.positioning === 'flow';/u
   );
   assert.match(source, /logoArtwork\?: Uint8Array \| null/u);
   assert.match(source, /loadDocumentLogo\(doc, input\.logoArtwork\)/u);

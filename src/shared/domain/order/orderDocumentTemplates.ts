@@ -835,18 +835,18 @@ const COMMON_STYLE: OrderDocumentTemplateStyle = {
   mutedTextColor: '#2F2F2F',
   lineColor: '#202020',
   accentColor: '#D6A900',
-  tableHeaderBackground: '#FFFFFF',
+  tableHeaderBackground: '#F1F3F5',
   tableHeaderTextColor: '#151515',
-  tableStripeColor: '#FFFFFF',
-  totalBackground: '#FFFFFF',
-  marginMm: 10,
-  headerHeightMm: 22,
+  tableStripeColor: '#FAFBFC',
+  totalBackground: '#F1F3F5',
+  marginMm: 12,
+  headerHeightMm: 28,
   logoWidthMm: 73,
-  titleSizePt: 15.5,
-  bodySizePt: 8.5,
-  smallSizePt: 7,
-  tableSizePt: 8,
-  rowPaddingPt: 2.5,
+  titleSizePt: 17,
+  bodySizePt: 9,
+  smallSizePt: 7.5,
+  tableSizePt: 9,
+  rowPaddingPt: 3.5,
   lineWidthPt: 0.5,
   titleAlignment: 'left'
 };
@@ -1262,24 +1262,26 @@ export function resolveSupportedOrderDocumentTypography(
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 
+// Starting boxes describe a calm A4 layout. Flow rendering measures the actual
+// content and grows/paginates it; these heights never cap a text block.
 const DEFAULT_CANVAS_BOXES: Record<
   OrderDocumentCanvasElementId,
   { yMm: number; heightMm: number; zIndex: number }
 > = {
-  header: { yMm: 10, heightMm: 22, zIndex: 0 },
-  logo: { yMm: 10, heightMm: 22, zIndex: 2 },
-  company: { yMm: 10, heightMm: 22, zIndex: 2 },
-  document_details: { yMm: 50, heightMm: 45, zIndex: 10 },
-  title: { yMm: 50, heightMm: 15, zIndex: 12 },
-  customer: { yMm: 67, heightMm: 28, zIndex: 12 },
-  document_meta: { yMm: 67, heightMm: 28, zIndex: 12 },
-  intro: { yMm: 98, heightMm: 18, zIndex: 20 },
-  items: { yMm: 119, heightMm: 80, zIndex: 30 },
-  totals: { yMm: 202, heightMm: 28, zIndex: 40 },
-  notes: { yMm: 233, heightMm: 14, zIndex: 50 },
-  closing: { yMm: 250, heightMm: 16, zIndex: 60 },
-  signatures: { yMm: 250, heightMm: 16, zIndex: 70 },
-  footer: { yMm: 276, heightMm: 12, zIndex: 90 }
+  header: { yMm: 12, heightMm: 28, zIndex: 0 },
+  logo: { yMm: 12, heightMm: 22, zIndex: 2 },
+  company: { yMm: 12, heightMm: 28, zIndex: 2 },
+  document_details: { yMm: 48, heightMm: 60, zIndex: 10 },
+  title: { yMm: 48, heightMm: 14, zIndex: 12 },
+  customer: { yMm: 64, heightMm: 44, zIndex: 12 },
+  document_meta: { yMm: 64, heightMm: 44, zIndex: 12 },
+  intro: { yMm: 112, heightMm: 18, zIndex: 20 },
+  items: { yMm: 134, heightMm: 55, zIndex: 30 },
+  totals: { yMm: 193, heightMm: 27, zIndex: 40 },
+  notes: { yMm: 224, heightMm: 14, zIndex: 50 },
+  closing: { yMm: 242, heightMm: 24, zIndex: 60 },
+  signatures: { yMm: 242, heightMm: 24, zIndex: 70 },
+  footer: { yMm: 273, heightMm: 12, zIndex: 90 }
 };
 
 function legacyCanvasElementVisible(
@@ -1331,33 +1333,44 @@ function createDefaultCanvasElement(
   layout: OrderDocumentTemplateLayout
 ): OrderDocumentCanvasElement {
   const marginMm = style.marginMm;
+  const contentWidthMm = A4_WIDTH_MM - marginMm * 2;
   const box = DEFAULT_CANVAS_BOXES[id];
   const isHeaderChild = id === 'logo' || id === 'company';
+  const isHeader = id === 'header' || isHeaderChild;
+  const metadataWidthMm = Math.min(80, contentWidthMm * 0.45);
+  const columnGapMm = 8;
+  const rightColumnX = A4_WIDTH_MM - marginMm - metadataWidthMm;
   const xMm = id === 'company'
-    ? Math.min(A4_WIDTH_MM - marginMm - 5, marginMm + style.logoWidthMm + 6)
-    : id === 'document_meta'
-      ? marginMm + (A4_WIDTH_MM - marginMm * 2) * 0.6
+    ? Math.min(A4_WIDTH_MM - marginMm - 5, marginMm + style.logoWidthMm + 8)
+    : id === 'document_meta' || id === 'totals'
+      ? rightColumnX
       : marginMm;
   const widthMm = id === 'logo'
-    ? Math.min(style.logoWidthMm, A4_WIDTH_MM - marginMm * 2)
+    ? Math.min(style.logoWidthMm, contentWidthMm)
     : id === 'company'
       ? A4_WIDTH_MM - marginMm - xMm
-      : id === 'title'
-        ? (A4_WIDTH_MM - marginMm * 2) * 0.55
-        : id === 'customer'
-          ? (A4_WIDTH_MM - marginMm * 2) * 0.54
-          : id === 'document_meta'
-            ? (A4_WIDTH_MM - marginMm * 2) * 0.4
-            : A4_WIDTH_MM - marginMm * 2;
+      : id === 'customer'
+        ? contentWidthMm - metadataWidthMm - columnGapMm
+        : id === 'document_meta' || id === 'totals'
+          ? metadataWidthMm
+          : contentWidthMm;
+  const yMm = isHeader
+    ? marginMm
+    : id === 'footer'
+      ? A4_HEIGHT_MM - marginMm - box.heightMm
+      : box.yMm + marginMm - COMMON_STYLE.marginMm
+        + style.headerHeightMm - COMMON_STYLE.headerHeightMm;
   return {
     id,
     positioning: 'flow',
     visible: legacyCanvasElementVisible(layout, id),
     locked: id === 'header' || id === 'document_details',
     xMm,
-    yMm: box.yMm,
+    yMm,
     widthMm,
-    heightMm: isHeaderChild ? style.headerHeightMm : box.heightMm,
+    heightMm: id === 'logo'
+      ? Math.min(box.heightMm, style.headerHeightMm)
+      : isHeader ? style.headerHeightMm : box.heightMm,
     page: 1,
     zIndex: box.zIndex,
     textColor: '',
@@ -1711,26 +1724,26 @@ const DEFAULT_ORDER_DOCUMENT_TABLE_COLUMN_RATIOS: Record<
   OrderDocumentTableColumnId,
   number
 > = {
-  sku: 13,
+  sku: 14,
   quantity: 9,
-  unit: 8,
-  description: 39,
+  unit: 7,
+  description: 40,
   unitPrice: 14,
-  lineTotal: 17
+  lineTotal: 16
 };
 
 function createDefaultOrderDocumentTable(
   style: OrderDocumentTemplateStyle,
   layout: OrderDocumentTemplateLayout
 ): OrderDocumentTable {
-  const defaultRowHeight = style.tableSizePt + style.rowPaddingPt * 2 + 2;
+  const defaultRowHeight = Math.ceil((style.tableSizePt * 1.35 + style.rowPaddingPt * 2) * 2) / 2;
   return {
     columns: ORDER_DOCUMENT_TABLE_COLUMN_IDS.map((id) => ({
       id,
       visible: id === 'description' || layout.columns[id],
       widthRatio: DEFAULT_ORDER_DOCUMENT_TABLE_COLUMN_RATIOS[id]
     })),
-    headerHeightPt: defaultRowHeight,
+    headerHeightPt: Math.max(22, defaultRowHeight + 2.5),
     rowHeightPt: defaultRowHeight,
     rowGapPt: 0,
     rowHeightOverrides: [],
@@ -3216,6 +3229,83 @@ export function cloneDefaultOrderDocumentTemplate(
   type: OrderDocumentTemplateType
 ): OrderDocumentTemplate {
   return clone(DEFAULT_ORDER_DOCUMENT_TEMPLATES_CONFIG.templates[type]);
+}
+
+/**
+ * Explicitly tidy a saved template without replacing its business content.
+ * This is an editor operation, never an implicit migration during loading.
+ * Semantic visibility, conditions and visual overrides survive; manual page,
+ * box and row placement is replaced by the measured document flow.
+ */
+export function arrangeOrderDocumentTemplate(
+  template: OrderDocumentTemplate
+): OrderDocumentTemplate {
+  const arranged = clone(template);
+  const defaults = DEFAULT_ORDER_DOCUMENT_TEMPLATES_CONFIG.templates[template.type];
+  arranged.style = {
+    ...arranged.style,
+    marginMm: defaults.style.marginMm,
+    headerHeightMm: defaults.style.headerHeightMm,
+    logoWidthMm: defaults.style.logoWidthMm,
+    titleSizePt: defaults.style.titleSizePt,
+    bodySizePt: defaults.style.bodySizePt,
+    smallSizePt: defaults.style.smallSizePt,
+    tableSizePt: defaults.style.tableSizePt,
+    rowPaddingPt: defaults.style.rowPaddingPt
+  };
+  arranged.layout.sections = ORDER_DOCUMENT_SECTION_IDS.map((id) => ({
+    id,
+    enabled: template.layout.sections.find((section) => section.id === id)?.enabled
+      ?? defaults.layout.sections.find((section) => section.id === id)!.enabled
+  }));
+
+  const canvas = clone(template.layout.canvas ?? DEFAULT_ORDER_DOCUMENT_TEMPLATE_CANVAS);
+  canvas.flowLayoutVersion = ORDER_DOCUMENT_CANVAS_FLOW_LAYOUT_VERSION;
+  canvas.elements = {};
+  for (const id of ORDER_DOCUMENT_CANVAS_ELEMENT_IDS) {
+    if (canvas.deletedElementIds.includes(id)) continue;
+    const fallback = createDefaultCanvasElement(id, arranged.style, arranged.layout);
+    const existing = arranged.layout.canvas?.elements[id];
+    canvas.elements[id] = {
+      ...fallback,
+      ...existing,
+      positioning: 'flow',
+      xMm: fallback.xMm,
+      yMm: fallback.yMm,
+      widthMm: fallback.widthMm,
+      heightMm: fallback.heightMm,
+      page: 1,
+      zIndex: fallback.zIndex,
+      repeat: fallback.repeat,
+      overflow: 'visible'
+    };
+  }
+  arranged.layout.canvas = canvas;
+
+  if (arranged.layout.fieldRows) {
+    for (const rows of Object.values(arranged.layout.fieldRows)) {
+      for (const row of rows) delete row.placement;
+    }
+  }
+
+  const table = resolveOrderDocumentTable(arranged);
+  const defaultTable = createDefaultOrderDocumentTable(arranged.style, arranged.layout);
+  table.columns = table.columns.map((column) => ({
+    ...column,
+    widthRatio: DEFAULT_ORDER_DOCUMENT_TABLE_COLUMN_RATIOS[column.id]
+  }));
+  table.headerHeightPt = defaultTable.headerHeightPt;
+  table.rowHeightPt = defaultTable.rowHeightPt;
+  table.rowGapPt = defaultTable.rowGapPt;
+  table.rowHeightOverrides = table.rowHeightOverrides
+    .map((override) => {
+      const retained = { ...override };
+      delete retained.heightPt;
+      return retained;
+    })
+    .filter((override) => override.typography || override.textAlign);
+  arranged.layout.table = table;
+  return arranged;
 }
 
 export function normalizeOrderDocumentTemplate(

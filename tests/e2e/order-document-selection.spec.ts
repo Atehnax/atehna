@@ -11,7 +11,7 @@ const modifiedClick = { button: 0 } as const;
 test.describe('order-document canvas additive selection', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/urejevalnik');
-    await expect(page.getByTestId('order-document-canvas')).toBeVisible();
+    await expect(page.getByTestId('order-document-canvas-preview-state')).toHaveText('Predogled je posodobljen', { timeout: 30_000 });
   });
 
   test('Ctrl pointerdown adds top-level elements and its trailing click cannot undo the toggle', async ({ page }) => {

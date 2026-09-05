@@ -50,7 +50,10 @@ export function proxy(request: NextRequest) {
     pathname === '/api/admin/audit-events/prune' ||
     pathname === '/api/admin/order-email-settings/process' ||
     pathname === '/api/admin/quote-workflow/process' ||
-    pathname === '/api/admin/addresses/sync';
+    pathname === '/api/admin/addresses/sync' ||
+    pathname === '/api/admin/analytics/geography/refresh' ||
+    pathname === '/api/admin/analytics/geography/process' ||
+    pathname === '/api/admin/analytics/diagnostics/prune';
   const isAuthorizedCron =
     isConfiguredCronPath &&
     request.method === 'GET' &&

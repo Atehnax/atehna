@@ -1,8 +1,7 @@
 import { getPool } from '@/shared/server/db';
-import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import { normalizeOrderPdfFilenameForPresentation } from '@/shared/domain/order/orderTypes';
 import type {
-  OrderAnalyticsRow,
   OrderDocumentRow,
   OrderItemRow,
   OrderItemSkuAllocationRow,
@@ -400,26 +399,6 @@ function mapOrderDocumentRow(rawRow: Record<string, unknown>): OrderDocumentRow 
   };
 }
 
-function mapOrderAnalyticsRow(rawRow: Record<string, unknown>): OrderAnalyticsRow {
-  return {
-    id: Number(rawRow.id),
-    created_at: toIsoTimestamp(rawRow.created_at),
-    committed_at: toNullableIsoTimestamp(rawRow.committed_at),
-    contract_accepted_at: toNullableIsoTimestamp(rawRow.contract_accepted_at),
-    status: asNullableString(rawRow.status),
-    payment_status: asNullableString(rawRow.payment_status),
-    commitment_status: asNullableString(rawRow.commitment_status),
-    contract_status:
-      rawRow.contract_status === 'pending_seller_acceptance'
-      || rawRow.contract_status === 'accepted'
-      || rawRow.contract_status === 'rejected'
-        ? rawRow.contract_status
-        : null,
-    customer_type: asNullableString(rawRow.customer_type),
-    total: Number(rawRow.total ?? 0)
-  };
-}
-
 function mapPaymentLogRow(rawRow: Record<string, unknown>): PaymentLogRow {
   return {
     id: Number(rawRow.id),
@@ -723,73 +702,6 @@ export async function fetchOrderAttentionCount(): Promise<number> {
     )
   );
   return Number(result.rows[0]?.count ?? 0);
-}
-
-export async function fetchOrdersAnalyticsRows(
-  options?: {
-    fromDate?: string | null;
-    toDate?: string | null;
-    includeDrafts?: boolean;
-  },
-  diagnosticsContext = '/admin/analitika'
-): Promise<OrderAnalyticsRow[]> {
-  return instrumentCatalogLoader('fetchOrdersAnalyticsRows', diagnosticsContext, async () => {
-    const pool = await getPool();
-    const conditions: string[] = [];
-    const queryParams: unknown[] = [];
-
-    if (!options?.includeDrafts) {
-      conditions.push('coalesce(orders.is_draft, false) = false');
-    }
-    conditions.push('orders.deleted_at is null');
-    if (options?.fromDate && options?.toDate) {
-      queryParams.push(options.fromDate, options.toDate);
-      const fromIndex = queryParams.length - 1;
-      const toIndex = queryParams.length;
-      conditions.push(`(
-        (orders.created_at >= $${fromIndex} and orders.created_at <= $${toIndex})
-        or (
-          coalesce(orders.committed_at, orders.contract_accepted_at) >= $${fromIndex}
-          and coalesce(orders.committed_at, orders.contract_accepted_at) <= $${toIndex}
-        )
-      )`);
-    } else if (options?.fromDate) {
-      queryParams.push(options.fromDate);
-      conditions.push(`(
-        orders.created_at >= $${queryParams.length}
-        or coalesce(orders.committed_at, orders.contract_accepted_at) >= $${queryParams.length}
-      )`);
-    } else if (options?.toDate) {
-      queryParams.push(options.toDate);
-      conditions.push(`(
-        orders.created_at <= $${queryParams.length}
-        or coalesce(orders.committed_at, orders.contract_accepted_at) <= $${queryParams.length}
-      )`);
-    }
-
-    const whereClause = conditions.length > 0 ? `where ${conditions.join(' and ')}` : '';
-    const query = `
-      select
-        orders.id,
-        orders.created_at,
-        orders.committed_at,
-        orders.contract_accepted_at,
-        orders.status,
-        orders.payment_status,
-        orders.commitment_status,
-        orders.contract_status,
-        orders.customer_type,
-        coalesce(orders.total::numeric, orders.subtotal::numeric + orders.tax::numeric, 0::numeric)::text as total
-      from orders
-      ${whereClause}
-      order by orders.created_at desc, orders.id desc
-    `;
-
-    const result = await profileRoutePhase('db', 'fetchOrdersAnalyticsRows:query', () => pool.query(query, queryParams));
-    return profileRoutePhase('transform', 'fetchOrdersAnalyticsRows:mapRows', async () =>
-      result.rows.map((rawRow) => mapOrderAnalyticsRow(rawRow as Record<string, unknown>))
-    );
-  });
 }
 
 export async function fetchOrderById(orderId: number, diagnosticsContext = '/admin/orders/[orderId]'): Promise<OrderRow | null> {

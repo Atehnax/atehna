@@ -323,15 +323,8 @@ test('PDF renderer resolves the canonical presentation rows in every multi-row b
 
 test('semantic rows expose contextual move, remove, and restore controls on the canvas', () => {
   assert.match(canvasSource, /resolveOrderDocumentFieldRows/u);
-  for (const group of ORDER_DOCUMENT_FIELD_GROUP_IDS) {
-    const sharedResolver =
-      SHARED_PREVIEW_ROW_RESOLVERS[group as keyof typeof EXPECTED_ROWS];
-    assert.ok(
-      canvasSource.includes(`visibleFieldRows('${group}')`)
-        || Boolean(sharedResolver && canvasSource.includes(sharedResolver)),
-      `Canvas preview must consume ordered/omitted ${group} rows`
-    );
-  }
+  assert.match(canvasSource, /regions\.filter\(\(region\) => region\.kind === 'child'/u);
+  assert.match(canvasSource, /kind === 'field-row'\) return fieldRowChild/u);
   for (const marker of [
     'data-order-document-semantic-row-id',
     'data-order-document-row-move="up"',

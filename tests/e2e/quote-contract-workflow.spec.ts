@@ -823,7 +823,9 @@ test.describe('quote and seller-contract workflow', () => {
         await page.goto(`/admin/orders?view=quotes&q=${encodeURIComponent(query)}`);
         await expect(firstSelection).toBeVisible();
         await expect(secondSelection).toHaveCount(0);
-        await expect(firstRow).toContainText(first.quoteCode);
+        await expect(firstRow.getByTestId(`quote-public-code-${first.quoteRequestId}`)).toHaveAttribute(
+          'aria-label', `Kopiraj celotno kodo povpraševanja: ${first.quoteCode}`
+        );
       }
       const nonexistentOfferCode = first.quoteCode.replace(/^PV-/u, 'PN-') +
         `-V${firstOffer.versionNumber + 1}`;

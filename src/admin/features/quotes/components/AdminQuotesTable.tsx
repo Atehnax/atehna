@@ -43,6 +43,7 @@ import {
 } from '@/shared/domain/quote/quoteRequestStatus';
 import { AdminChipDropdown } from '@/shared/ui/admin-controls/AdminChipDropdown';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import AdminPublicCode from '@/shared/ui/admin-table/AdminPublicCode';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   AdminTableLayout,
@@ -1262,7 +1263,7 @@ export default function AdminQuotesTable({
               <TH className={adminTableHeaderCellCenterClassName}>
                 <div className="flex h-11 items-center justify-center">
                   <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                    <span className={adminTableHeaderTextClassName}>Koda</span>
+                    <span className={adminTableHeaderTextClassName}>Povpraševanje</span>
                     <button
                       ref={requestFilterButtonRef}
                       type="button"
@@ -1489,14 +1490,18 @@ export default function AdminQuotesTable({
                         href={`/admin/orders/quotes/${row.id}`}
                         prefetch={false}
                         className="inline-flex items-center justify-center rounded-sm text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                        aria-label={`Odpri povpraševanje ${row.quoteCode}`}
-                        title={`Koda povpraševanja ${row.quoteCode}`}
+                        aria-label={`Odpri povpraševanje ${displayRequestNumber}`}
+                        title={row.requestNumber}
                         data-testid={`quote-request-number-${row.id}`}
                       >
-                        {row.quoteCode}
+                        {displayRequestNumber}
                       </Link>
                       <span className="inline-flex items-center gap-1 text-[10px] leading-none text-slate-500">
-                        <span title={row.requestNumber}>Interno {displayRequestNumber}</span>
+                        <AdminPublicCode
+                          code={row.quoteCode}
+                          label="povpraševanja"
+                          testId={`quote-public-code-${row.id}`}
+                        />
                         {row.resultingOrderId && linkedOrderCode ? (
                           <>
                             <span aria-hidden="true" className="text-slate-400">→</span>

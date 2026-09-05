@@ -21,14 +21,14 @@ const quoteTablePath =
 const quoteOfferCellPath =
   'src/admin/features/quotes/components/AdminQuoteOfferCell.tsx';
 
-test('quote rows show public references and retain matching-hover presentation', () => {
+test('quote rows show internal numbers first with copyable public references and retain matching-hover presentation', () => {
   const table = source(quoteTablePath);
   const header = table.slice(
     table.indexOf('<THead'),
     table.indexOf('</THead>')
   );
   const headings = [
-    'Koda',
+    'Povpraševanje',
     'Datum',
     'Naročnik',
     'Naslov',
@@ -48,8 +48,8 @@ test('quote rows show public references and retain matching-hover presentation',
 
   assert.match(table, /const formatQuoteRequestNumber/u);
   assert.match(table, /Number\.isSafeInteger\(numeric\) \? `#\$\{numeric\}`/u);
-  assert.match(table, /title=\{`Koda povpraševanja \$\{row\.quoteCode\}`\}/u);
-  assert.match(table, /Interno \{displayRequestNumber\}/u);
+  assert.match(table, /title=\{row\.requestNumber\}/u);
+  assert.match(table, /<AdminPublicCode[\s\S]*?code=\{row\.quoteCode\}/u);
   assert.match(table, /adminTableMatchingValueBaseClassName/u);
   assert.match(table, /adminTableMatchingValueActiveClassName/u);
   assert.match(table, /setMatchingValue\('date'/u);
@@ -94,7 +94,7 @@ test('quote rows show public references and retain matching-hover presentation',
     /flex h-12 w-full flex-col items-center justify-center gap-0\.5 whitespace-nowrap/u
   );
   assert.match(table, /data-testid=\{`quote-number-cell-\$\{row\.id\}`\}/u);
-  assert.match(table, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}[\s\S]*?\{row\.quoteCode\}/u);
+  assert.match(table, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}[\s\S]*?\{displayRequestNumber\}/u);
   assert.match(table, />→<\/span>/u);
   const linkedOrderPresentation = table.slice(
     table.indexOf('{row.resultingOrderId && linkedOrderCode ? ('),
@@ -162,7 +162,7 @@ test('quote rows show public references and retain matching-hover presentation',
   assert.match(table, /\}\) \|\| '—';/u);
 });
 
-test('converted quote keeps the public quote reference primary and links the public order reference', () => {
+test('converted quote keeps its internal number primary and its public copy control alongside the linked order', () => {
   const table = source(quoteTablePath);
   const numberCellStart = table.indexOf(
     'className="flex h-12 w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap"'
@@ -173,7 +173,7 @@ test('converted quote keeps the public quote reference primary and links the pub
   const numberCell = table.slice(numberCellStart, numberCellEnd);
   assert.match(numberCell, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}/u);
   assert.match(numberCell, /\{row\.quoteCode\}/u);
-  assert.match(numberCell, /Interno \{displayRequestNumber\}/u);
+  assert.match(numberCell, /\{displayRequestNumber\}[\s\S]*?<\/Link>[\s\S]*?<AdminPublicCode/u);
   assert.match(numberCell, /\{row\.resultingOrderId && linkedOrderCode \? \(/u);
   assert.match(
     numberCell,

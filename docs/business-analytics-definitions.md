@@ -1,6 +1,6 @@
 # Poslovna analitika: podatkovne definicije
 
-`/admin/analitika` uporablja `shared/domain/analytics/period.ts`, `statistics.ts`, `metrics.ts` in `shared/server/businessAnalytics.ts`. Zamenjava ne spreminja podatkovnih storitev ali sledilnika zavihkov Splet in Diagnostika.
+`/admin/analitika` uporablja `shared/domain/analytics/period.ts`, `statistics.ts`, `metrics.ts` in `shared/server/businessAnalytics.ts`. Zavihka Splet in Diagnostika uporabljata ločena prenovljena zbiralnika in prikaza.
 
 ## Populacije in datumi
 
@@ -14,6 +14,14 @@
 Vsi datumi so shranjeni kot `timestamptz`/ISO UTC. Lokalni dnevi, začetki obdobij in primerjave uporabljajo `Europe/Ljubljana`. `30D`, `90D`, `180D` vključujejo današnji delni dan in predhodnih 29/89/179 lokalnih datumov. `1Y`/`2Y` začneta dan po enakem datumu pred enim/dvema letoma; 29. februar se dosledno omeji na zadnji veljaven dan meseca. YTD primerja enako pretečeno obdobje prejšnjega leta. Zaključeni prilagojeni končni datumi uporabljajo izključno mejo naslednjega lokalnega dne. DST dnevi imajo lahko 23 ali 25 ur.
 
 Agregat ima en `asOf` ter transakcijo `repeatable read read only`; povezani kliki in izvozi prenesejo njegov referenčni čas. Ta omejuje datume dogodkov, ni mehanizem obnove že izbrisane/prepisane pretekle zbirke. Sprememba vračil lahko legitimno spremeni že prikazano kohorto. HTTP odgovori so `private, no-store`; ni skupnega predpomnilnika, ki bi preživel spremembo poslovnega zapisa ali razkril podatke drugim uporabnikom.
+
+## Koledar aktivnosti naročil
+
+Koledar uporablja lasten zaščiteni vir `/api/admin/analytics/business/activity` ter iste kanonične dogodke oddaje kot poslovni agregat. Obdobje določata širina prikaza in trenutni čas, ne izbira `30D`, `90D`, drugih prednastavitev ali datumov po meri. Stolpci predstavljajo tedne od ponedeljka naprej; zadnji stolpec je tekoči teden v `Europe/Ljubljana`. Prikaz sega nazaj toliko tednov, kolikor jih sprejme razpoložljiva širina z najmanj 16-pikselnimi celicami in 4-pikselnimi presledki. Na širokem namiznem zaslonu zato zajame več kot leto, na ožjem zaslonu krajšo zgodovino. Spreminjanje širine pridobi ustrezno zgodovino brez vodoravnega drsenja koledarja. Prihodnji dnevi v tekočem tednu ostanejo prazni; današnji dan je delni.
+
+Filtri tipa naročnika, statusa in izvora naročila veljajo tudi za koledar. Sprememba obdobja drugih grafov ohrani njegove dneve, barve in referenčni `asOf`, brez nove zahteve za koledar. Klik na dan in izvoz CSV preneseta njegove lastne meje `from`/`to`, `asOf` in poslovne filtre. Tako se starejši prikazani dan odpre pravilno tudi ob izbranem 30D za druge grafe.
+
+Število naročil ima stalne, neprekrivajoče se barvne pasove: 0 je siv, nato sledijo 1–2, 3–5, 6–10, 11–14 in 15 ali več naročil. Pozitivni pasovi napredujejo od zelene prek turkizne in modre do vijolične. Barva dneva zato ni odvisna od največjega naročila ali največje dnevne aktivnosti v trenutno vidni zgodovini. Celice imajo enostavno polno barvo, brez črtastih vzorcev. Dnevi brez razpoložljive zgodovine so prav tako sivi, vendar opis dneva in dostopna tabela ohranita razliko med manjkajočim podatkom in izmerjeno ničlo. Način vrednosti naročil uporablja pet pasov glede na največjo razpoložljivo dnevno neto vrednost; manjkajočih zneskov ne spremeni v nič.
 
 ## Zgodovinski posnetki in identiteta
 

@@ -1,5 +1,6 @@
 import 'server-only';
 import { profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
+import { buildBusinessActivity, parseBusinessActivityQuery, type BusinessActivityResponse } from '@/shared/domain/analytics/activity';
 import { buildBusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
 import { buildBusinessQuotePreview } from '@/shared/domain/analytics/quotePreview';
 import type { PoolClient } from 'pg';
@@ -9,7 +10,7 @@ import { calculateShipping, type CalculatedShipping, type ShippingCalculationIte
 import { isCustomerType } from '@/shared/domain/order/customerType';
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { aggregateBusinessAnalytics, matchesBusinessFilters, orderHref, quoteDeadline, sumCents } from '@/shared/domain/analytics/metrics';
-import { inPeriod, resolveBusinessPeriod } from '@/shared/domain/analytics/period';
+import { inPeriod, localDate, resolveBusinessPeriod } from '@/shared/domain/analytics/period';
 import type { BusinessAnalyticsResponse, BusinessDrilldownResponse, BusinessFilters, BusinessRecord, CanonicalOrder, CanonicalQuote } from '@/shared/domain/analytics/businessAnalytics';
 
 export class BusinessAnalyticsInputError extends Error {}
@@ -19,7 +20,7 @@ function iso(value: unknown): string | null { if (value == null) return null; co
 function object(value: unknown): Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function nullableNumber(value: unknown): number | null { if (value == null || value === '') return null; const number = Number(value); return Number.isFinite(number) ? number : null; }
 export function decimalCents(value: unknown): number | null { if (value == null || value === '') return null; const text = String(value); if (!/^-?\d+(?:\.\d{1,2})?$/.test(text)) return null; const negative = text.startsWith('-'); const [whole, fraction = ''] = text.replace('-', '').split('.'); const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0')); const signed = negative ? -cents : cents; return signed <= BigInt(Number.MAX_SAFE_INTEGER) && signed >= BigInt(Number.MIN_SAFE_INTEGER) ? Number(signed) : null; }
-const canonicalOrdersSql = (includeDetails: boolean) => `
+const canonicalOrdersCandidatesSql = `
   with candidates as (
     select order_record.*,
       source_offer.quote_request_id,
@@ -36,6 +37,8 @@ const canonicalOrdersSql = (includeDetails: boolean) => `
       and coalesce(source_request.intake_source, '') <> 'admin_testing'
       and coalesce(order_record.analytics_submitted_at, order_record.created_at) < $1::timestamptz
   )
+`;
+const canonicalOrdersSql = (includeDetails: boolean, submittedFrom: boolean) => `${canonicalOrdersCandidatesSql}
   select candidate.id, candidate.order_number, candidate.created_at, candidate.analytics_submitted_at,
     candidate.analytics_snapshot_json, candidate.analytics_fulfilled_at, candidate.analytics_fulfilled_merchandise_net,
     candidate.customer_directory_profile_id, candidate.school_directory_row_id, candidate.customer_type,
@@ -63,10 +66,11 @@ const canonicalOrdersSql = (includeDetails: boolean) => `
     where line_snapshot.order_id = candidate.id
   ) snapshot_lines on true
   where candidate.opportunity_order_rank = 1
+    ${submittedFrom ? 'and coalesce(candidate.analytics_submitted_at, candidate.created_at) >= $2::timestamptz' : ''}
   order by coalesce(candidate.analytics_submitted_at, candidate.created_at), candidate.id
 `;
 export function mapCanonicalOrder(row: Record<string, unknown>): CanonicalOrder { const snapshot = object(row.analytics_snapshot_json); const snapshotOrigin = snapshot.origin === 'captured' ? 'captured' : snapshot.origin === 'legacy' ? 'legacy' : 'missing'; const currentAddress = { addressLine1: row.address_line1, addressLine2: row.address_line2, postalCode: row.postal_code, city: row.city, countryCode: row.country_code, gursHouseNumberId: row.gurs_house_number_id }; const type = String(snapshot.customerType ?? row.customer_type ?? 'unknown'); const linkedCustomer = row.school_directory_row_id ? `school:${row.school_directory_row_id}` : row.customer_directory_profile_id ? `profile:${row.customer_directory_profile_id}` : null; const initialCents = nullableNumber(snapshot.subtotalNetCents); const lineSubtotal = nullableNumber(row.original_subtotal_cents); const activityCents = row.currency !== 'EUR' ? null : snapshotOrigin === 'captured' ? initialCents : lineSubtotal ?? initialCents ?? decimalCents(row.subtotal); const contractEligible = row.contract_status === 'accepted' && row.commitment_status === 'binding'; return { id: String(row.id), number: String(row.order_number), submittedAt: iso(row.analytics_submitted_at) ?? iso(row.created_at)!, fulfilledAt: contractEligible ? iso(row.analytics_fulfilled_at) : null, customerKey: linkedCustomer, customerType: isCustomerType(type) ? type : 'unknown', customerName: String(snapshot.customerName ?? row.organization_name ?? row.contact_name ?? 'Nepovezan naročnik'), activityCents, fulfilledCents: contractEligible && row.currency === 'EUR' ? decimalCents(row.analytics_fulfilled_merchandise_net) : null, refundCents: decimalCents(row.merchandise_refund_net), refundComplete: row.refund_history_complete === true, status: String(row.status), source: row.source_quote_offer_version_id ? 'quote' : 'direct', addressSnapshot: Object.keys(object(snapshot.address)).length ? object(snapshot.address) : currentAddress, snapshotOrigin, fulfilledLines: Array.isArray(row.analytics_fulfilled_lines_json) ? row.analytics_fulfilled_lines_json as CanonicalOrder['lines'] : undefined, shippingGrossCents: nullableNumber(snapshot.shippingGrossCents), shippingTaxRate: nullableNumber(snapshot.shippingTaxRate) ?? nullableNumber(row.shipping_tax_rate), shippingSnapshot: snapshot.shippingSnapshot ?? row.shipping_snapshot_json, packedWeightGrams: nullableNumber(row.actual_packed_weight_grams), carrierCostNetCents: decimalCents(row.actual_carrier_cost_net), parcelCount: nullableNumber(row.actual_parcel_count), preparationMinutes: nullableNumber(row.preparation_minutes), oversize: typeof row.actual_oversize === 'boolean' ? row.actual_oversize : null, lines: Array.isArray(row.analytics_lines) ? row.analytics_lines.map((value: unknown) => { const line = object(value); return { id: String(line.id), key: String(line.key), name: String(line.name), category: String(line.category), quantity: Number(line.quantity), lineNetCents: Number(line.lineNetCents), unitCostCents: nullableNumber(line.unitCostCents) }; }) : [] }; }
-async function readOrders(client: PoolClient, asOf: Date, includeDetails = false): Promise<CanonicalOrder[]> { const result = await profileRoutePhase('db', 'business-orders', () => client.query(canonicalOrdersSql(includeDetails), [asOf.toISOString()])); return result.rows.map(mapCanonicalOrder); }
+async function readOrders(client: PoolClient, asOf: Date, includeDetails = false, submittedFrom?: string): Promise<CanonicalOrder[]> { const result = await profileRoutePhase('db', 'business-orders', () => client.query(canonicalOrdersSql(includeDetails, submittedFrom !== undefined), submittedFrom === undefined ? [asOf.toISOString()] : [asOf.toISOString(), submittedFrom])); return result.rows.map(mapCanonicalOrder); }
 async function readQuotes(client: PoolClient, asOf: Date): Promise<CanonicalQuote[]> { const result = await profileRoutePhase('db', 'business-quotes', () => client.query(`
   with first_issue as (
     select distinct on (quote_request_id) quote_request_id, issued_at, subtotal, currency, customer_snapshot_json
@@ -217,4 +221,23 @@ export async function fetchBusinessQuotePreview(asOf = new Date()) {
 /** Project order summaries on the server; never serialize historical order rows to the table client. */
 export async function fetchBusinessOrderPreview(asOf = new Date()) {
   return withSnapshot(async (client) => buildBusinessOrderPreview(await readOrders(client, asOf), asOf));
+}
+
+/** Read only the viewport's submitted orders, after globally deduplicating quote opportunities. */
+export async function fetchBusinessActivity(params: URLSearchParams): Promise<BusinessActivityResponse> {
+  const asOf = new Date();
+  const { window, filters } = parseBusinessActivityQuery(params, asOf);
+  return withSnapshot(async client => {
+    const history = await profileRoutePhase('db', 'business-activity-history', () => client.query(
+      `${canonicalOrdersCandidatesSql}
+       select min(coalesce(analytics_submitted_at, created_at)) as history_from
+       from candidates where opportunity_order_rank = 1`,
+      [window.asOf]
+    ));
+    const firstRecordedAt = iso(history.rows[0]?.history_from);
+    const orders = await readOrders(client, asOf, false, window.start);
+    return profileRoutePhase('transform', 'business-activity-days', async () =>
+      buildBusinessActivity(orders, window, filters, firstRecordedAt ? localDate(firstRecordedAt) : null)
+    );
+  });
 }

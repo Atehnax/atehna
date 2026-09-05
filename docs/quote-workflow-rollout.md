@@ -38,7 +38,7 @@ deployment, a review of the legacy-stock reconciliation output.
 
 ## Database deployment
 
-Fresh databases install the complete `database/schema.sql`. The numbered sequence below records the quote/public-code release through historical contract v2. The current application also requires the business analytics and geography migrations followed by contract `20260905.business-analytics-v3`; use the current [capture and deployment sequence](business-analytics-capture.md#namestitev-obstojece-baze) before deploying this revision.
+Fresh databases install the complete `database/schema.sql`. The numbered sequence below records the quote/public-code release through historical contract v2. The current application also requires the business analytics, geography and analytics retirement migrations followed by contract `20260905.analytics-v4`; use the current [capture and deployment sequence](business-analytics-capture.md#namestitev-obstojece-baze) before deploying this revision.
 
 An existing database uses these reviewed, one-time additive artifacts in strict
 order:
@@ -154,7 +154,7 @@ constraints, guard functions, enabled triggers, indexes, and the typed
 inventory-policy `default` row. Only then does it record contract
 `20260904.prelaunch-v2` with
 `installed_via='existing_database'`. That release's fresh schema recorded v2 with
-`installed_via='fresh_schema'`; the current fresh schema records v3 instead.
+`installed_via='fresh_schema'`; the current fresh schema records v4 instead.
 Each marker is a terminal compatibility assertion, not
 a backfill of migration history: it deliberately makes no claim about which
 historical artifact or checksum produced an already-compatible object. The
@@ -348,9 +348,9 @@ Phase A - establish and verify the contract:
 3. In a controlled maintenance window, apply only the reviewed, still-unapplied
    artifacts in order. The historical v1 marker precedes the GURS postal and
    public-code migrations. For the current release, also apply the business analytics
-   and geography artifacts in the linked current deployment sequence; its active
+   geography and analytics retirement artifacts in the linked current deployment sequence; its active
    compatibility marker is established last by
-   `database/migrations/20260905_schema_contract_v3.sql`.
+   `database/migrations/20260905_schema_contract_v4.sql`.
 4. Point `DATABASE_URL` explicitly at that target and run
    `npm run check:database-schema`. Record the target, contract ID, backup,
    rehearsal, application, and verification result. Repeat for every target.

@@ -1,6 +1,6 @@
 import AdminItemEditorPage from '@/admin/features/artikli/components/AdminItemEditorPage';
 import { fetchCatalogItemEditorBySlug } from '@/shared/server/catalogItems';
-import { instrumentAdminRouteRender } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender } from '@/shared/server/diagnostics/instrumentation';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';

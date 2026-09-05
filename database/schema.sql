@@ -193,6 +193,45 @@ create table orders (
   ),
   constraint orders_public_code_base_check check (
     public_code_base ~ '^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{16}$'
+  ),
+  analytics_submitted_at timestamptz,
+  analytics_snapshot_json jsonb,
+  analytics_fulfilled_at timestamptz,
+  analytics_fulfilled_lines_json jsonb,
+  analytics_fulfilled_merchandise_net numeric(12, 2),
+  analytics_fulfilment_origin text,
+  analytics_is_test boolean not null default false,
+  customer_directory_profile_id text,
+  school_directory_row_id text,
+  actual_packed_weight_grams bigint,
+  actual_carrier_cost_net numeric(12, 2),
+  actual_parcel_count integer,
+  preparation_minutes numeric(10, 2),
+  actual_oversize boolean,
+  actual_length_mm integer,
+  actual_width_mm integer,
+  actual_height_mm integer,
+  merchandise_refund_net numeric(12, 2),
+  refund_history_complete boolean not null default false,
+  shipping_tax_rate numeric(5, 4),
+  analytics_measurement_revision integer not null default 0,
+  analytics_measured_at timestamptz,
+  analytics_measured_by text,
+  constraint orders_analytics_measurements_check check (
+    (actual_packed_weight_grams is null or actual_packed_weight_grams > 0)
+    and (actual_carrier_cost_net is null or actual_carrier_cost_net >= 0)
+    and (actual_parcel_count is null or actual_parcel_count > 0)
+    and (preparation_minutes is null or preparation_minutes >= 0)
+    and (actual_length_mm is null or actual_length_mm > 0)
+    and (actual_width_mm is null or actual_width_mm > 0)
+    and (actual_height_mm is null or actual_height_mm > 0)
+    and (merchandise_refund_net is null or merchandise_refund_net >= 0)
+    and (not refund_history_complete or merchandise_refund_net is not null)
+    and (shipping_tax_rate is null or shipping_tax_rate between 0 and 1)
+    and (analytics_fulfilled_merchandise_net is null or analytics_fulfilled_merchandise_net >= 0)
+    and (analytics_fulfilment_origin is null or analytics_fulfilment_origin in ('captured', 'legacy'))
+    and analytics_measurement_revision >= 0
+    and (analytics_snapshot_json is null or jsonb_typeof(analytics_snapshot_json) = 'object')
   )
 );
 
@@ -302,41 +341,38 @@ create index idx_deleted_archive_expires_at on deleted_archive_entries(expires_a
 create index idx_deleted_archive_item_type on deleted_archive_entries(item_type);
 create index idx_deleted_archive_order_id on deleted_archive_entries(order_id);
 
-create table analytics_charts (
-  id bigserial primary key,
-  dashboard_key text not null default 'narocila',
-  key text not null unique,
-  title text not null,
-  description text,
-  comment text,
-  chart_type text not null,
-  config_json jsonb not null default '{}'::jsonb,
-  position integer not null default 0,
-  is_system boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+create table retired_configuration_archive (
+  source_table text not null,
+  source_key text not null,
+  captured_at timestamptz not null default now(),
+  payload jsonb not null,
+  constraint retired_configuration_archive_pkey primary key (source_table, source_key),
+  constraint retired_configuration_archive_source_check check (source_table in ('analytics_charts', 'analytics_chart_settings')),
+  constraint retired_configuration_archive_payload_check check (jsonb_typeof(payload) = 'object')
 );
 
-create index analytics_charts_dashboard_position_idx
-  on analytics_charts(dashboard_key, position);
-
-create function set_analytics_charts_updated_at()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
-create trigger analytics_charts_set_updated_at
-before update on analytics_charts
-for each row execute function set_analytics_charts_updated_at();
-
-create table analytics_chart_settings (
-  dashboard_key text primary key,
-  settings_json jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
+create table diagnostics_events (
+  id uuid constraint diagnostics_events_pkey primary key,
+  recorded_at timestamptz not null,
+  trace_id uuid not null,
+  context text not null,
+  operation text not null,
+  kind text not null,
+  duration_ms double precision,
+  payload_bytes bigint,
+  error boolean not null default false,
+  error_code text,
+  phases_json jsonb not null default '{}'::jsonb,
+  details_json jsonb not null default '{}'::jsonb,
+  constraint diagnostics_events_kind_check check (kind in ('route', 'loader', 'cache_miss', 'invalidation')),
+  constraint diagnostics_events_duration_check check (duration_ms is null or duration_ms >= 0),
+  constraint diagnostics_events_payload_bytes_check check (payload_bytes is null or payload_bytes >= 0),
+  constraint diagnostics_events_phases_json_check check (jsonb_typeof(phases_json) = 'object'),
+  constraint diagnostics_events_details_json_check check (jsonb_typeof(details_json) = 'object')
 );
+create index diagnostics_events_recorded_at_idx on diagnostics_events (recorded_at);
+create index diagnostics_events_context_recorded_at_idx on diagnostics_events (context, recorded_at);
+create index diagnostics_events_error_recorded_at_idx on diagnostics_events (recorded_at) where error;
 
 create table site_navigation_settings (
   key text primary key,
@@ -1016,7 +1052,9 @@ create table order_items (
     and line_tax >= 0
     and line_gross >= 0
     and tax_rate >= 0 and tax_rate <= 1
-  )
+  ),
+  historical_unit_cost_net numeric(12, 2),
+  constraint order_items_historical_cost_check check (historical_unit_cost_net is null or historical_unit_cost_net >= 0)
 );
 
 create index idx_order_items_order_id on order_items(order_id);
@@ -1059,7 +1097,9 @@ create table order_line_snapshots (
   currency text not null default 'EUR',
   snapshot_json jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
-  unique (order_id, line_number)
+  unique (order_id, line_number),
+  historical_unit_cost_net numeric(12, 2),
+  constraint order_line_snapshots_historical_cost_check check (historical_unit_cost_net is null or historical_unit_cost_net >= 0)
 );
 
 create index idx_order_line_snapshots_order_id
@@ -2949,7 +2989,12 @@ create table gurs_addresses (
   address_line_1 text not null,
   search_text text not null,
   source_updated_at timestamptz,
-  imported_at timestamptz not null default now()
+  imported_at timestamptz not null default now(),
+  official_address_id text,
+  municipality_id text,
+  region_id text,
+  easting numeric,
+  northing numeric
 );
 
 create unique index gurs_addresses_house_number_id_uidx
@@ -3023,68 +3068,11 @@ create index orders_gurs_house_number_id_idx
 
 
 -- Additive business analytics measurements and immutable submission evidence.
--- Apply to an existing compatible database; never runs from checkout or startup.
+-- Analytics capture and reference data for a fresh database.
 
 set local lock_timeout = '10s';
 set local statement_timeout = '5min';
 set local search_path = public, pg_temp;
-
-alter table orders
-  add column if not exists analytics_submitted_at timestamptz,
-  add column if not exists analytics_snapshot_json jsonb,
-  add column if not exists analytics_fulfilled_at timestamptz,
-  add column if not exists analytics_fulfilled_lines_json jsonb,
-  add column if not exists analytics_fulfilled_merchandise_net numeric(12, 2),
-  add column if not exists analytics_fulfilment_origin text,
-  add column if not exists analytics_is_test boolean not null default false,
-  add column if not exists customer_directory_profile_id text,
-  add column if not exists school_directory_row_id text,
-  add column if not exists actual_packed_weight_grams bigint,
-  add column if not exists actual_carrier_cost_net numeric(12, 2),
-  add column if not exists actual_parcel_count integer,
-  add column if not exists preparation_minutes numeric(10, 2),
-  add column if not exists actual_oversize boolean,
-  add column if not exists actual_length_mm integer,
-  add column if not exists actual_width_mm integer,
-  add column if not exists actual_height_mm integer,
-  add column if not exists merchandise_refund_net numeric(12, 2),
-  add column if not exists refund_history_complete boolean not null default false,
-  add column if not exists shipping_tax_rate numeric(5, 4),
-  add column if not exists analytics_measurement_revision integer not null default 0,
-  add column if not exists analytics_measured_at timestamptz,
-  add column if not exists analytics_measured_by text;
-
-alter table order_items add column if not exists historical_unit_cost_net numeric(12, 2);
-alter table order_line_snapshots add column if not exists historical_unit_cost_net numeric(12, 2);
-
-do $analytics_constraints$
-begin
-  if not exists (select 1 from pg_constraint where conname = 'orders_analytics_measurements_check' and conrelid = 'orders'::regclass) then
-    alter table orders add constraint orders_analytics_measurements_check check (
-      (actual_packed_weight_grams is null or actual_packed_weight_grams > 0)
-      and (actual_carrier_cost_net is null or actual_carrier_cost_net >= 0)
-      and (actual_parcel_count is null or actual_parcel_count > 0)
-      and (preparation_minutes is null or preparation_minutes >= 0)
-      and (actual_length_mm is null or actual_length_mm > 0)
-      and (actual_width_mm is null or actual_width_mm > 0)
-      and (actual_height_mm is null or actual_height_mm > 0)
-      and (merchandise_refund_net is null or merchandise_refund_net >= 0)
-      and (not refund_history_complete or merchandise_refund_net is not null)
-      and (shipping_tax_rate is null or shipping_tax_rate between 0 and 1)
-      and (analytics_fulfilled_merchandise_net is null or analytics_fulfilled_merchandise_net >= 0)
-      and (analytics_fulfilment_origin is null or analytics_fulfilment_origin in ('captured', 'legacy'))
-      and analytics_measurement_revision >= 0
-      and (analytics_snapshot_json is null or jsonb_typeof(analytics_snapshot_json) = 'object')
-    );
-  end if;
-  if not exists (select 1 from pg_constraint where conname = 'order_items_historical_cost_check' and conrelid = 'order_items'::regclass) then
-    alter table order_items add constraint order_items_historical_cost_check check (historical_unit_cost_net is null or historical_unit_cost_net >= 0);
-  end if;
-  if not exists (select 1 from pg_constraint where conname = 'order_line_snapshots_historical_cost_check' and conrelid = 'order_line_snapshots'::regclass) then
-    alter table order_line_snapshots add constraint order_line_snapshots_historical_cost_check check (historical_unit_cost_net is null or historical_unit_cost_net >= 0);
-  end if;
-end;
-$analytics_constraints$;
 
 create table order_analytics_change_log (
   id bigserial primary key,
@@ -3103,14 +3091,14 @@ create table order_analytics_change_log (
   )
 );
 
-create index if not exists orders_analytics_activity_idx
+create index orders_analytics_activity_idx
   on orders (analytics_submitted_at, customer_type, status) where not is_draft and not analytics_is_test;
-create index if not exists orders_analytics_customer_idx
+create index orders_analytics_customer_idx
   on orders (customer_directory_profile_id, analytics_submitted_at) where customer_directory_profile_id is not null;
-create index if not exists orders_analytics_school_idx
+create index orders_analytics_school_idx
   on orders (school_directory_row_id, analytics_submitted_at) where school_directory_row_id is not null;
 
-create or replace function capture_order_analytics_snapshot()
+create function capture_order_analytics_snapshot()
 returns trigger
 language plpgsql
 as $function$
@@ -3214,12 +3202,11 @@ begin
 end;
 $function$;
 
-drop trigger if exists orders_capture_analytics_snapshot on orders;
 create trigger orders_capture_analytics_snapshot
 before insert or update on orders
 for each row execute function capture_order_analytics_snapshot();
 
-create or replace function capture_order_historical_cost()
+create function capture_order_historical_cost()
 returns trigger
 language plpgsql
 as $function$
@@ -3235,24 +3222,13 @@ begin
 end;
 $function$;
 
-drop trigger if exists order_items_capture_historical_cost on order_items;
 create trigger order_items_capture_historical_cost
 before insert on order_items
 for each row execute function capture_order_historical_cost();
 
-drop trigger if exists order_line_snapshots_capture_historical_cost on order_line_snapshots;
 create trigger order_line_snapshots_capture_historical_cost
 before insert on order_line_snapshots
 for each row execute function capture_order_historical_cost();
-
-
-
-
-alter table gurs_addresses add column if not exists official_address_id text;
-alter table gurs_addresses add column if not exists municipality_id text;
-alter table gurs_addresses add column if not exists region_id text;
-alter table gurs_addresses add column if not exists easting numeric;
-alter table gurs_addresses add column if not exists northing numeric;
 
 create table analytics_geography_references (
   version text primary key,
@@ -3271,7 +3247,7 @@ create table analytics_geography_state (
   last_success_at timestamptz,
   last_error text
 );
-insert into analytics_geography_state (key) values ('active') on conflict (key) do nothing;
+insert into analytics_geography_state (key) values ('active');
 
 create table order_geography_resolutions (
   order_id bigint primary key constraint order_geography_resolutions_order_id_fkey references orders(id) on delete cascade,
@@ -3287,9 +3263,9 @@ create table order_geography_resolutions (
   resolved_at timestamptz not null default now(),
   manual_override boolean not null default false
 );
-create index if not exists order_geography_municipality_idx on order_geography_resolutions (source_version, municipality_id, order_id);
-create index if not exists order_geography_region_idx on order_geography_resolutions (source_version, region_id, order_id);
-create index if not exists order_geography_unresolved_idx on order_geography_resolutions (resolution_status, order_id);
+create index order_geography_municipality_idx on order_geography_resolutions (source_version, municipality_id, order_id);
+create index order_geography_region_idx on order_geography_resolutions (source_version, region_id, order_id);
+create index order_geography_unresolved_idx on order_geography_resolutions (resolution_status, order_id);
 
 create table order_geography_audit (
   id bigserial primary key,
@@ -3310,6 +3286,6 @@ create table analytics_geography_backfill (
 );
 
 insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
-values ('20260905.business-analytics-v3', '78e564076da773ea1323dbf9b3befe40e2dc9374bf7d8b0cb818024559d09fdf', 'fresh_schema');
+values ('20260905.analytics-v4', 'a2d78beb3aa65a1b60a75e11b6efed10a78e6f00cabb9af8a4ebacc592eaa4da', 'fresh_schema');
 
 commit;

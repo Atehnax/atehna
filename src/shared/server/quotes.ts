@@ -1,8 +1,7 @@
 import { getPool } from '@/shared/server/db';
 import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
-import { instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
-import { buildQuoteAnalyticsComparisonWindows } from '@/shared/domain/quote/quoteAnalytics';
-import { fetchQuoteAnalytics } from '@/shared/server/quoteAnalytics';
+import { instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
+
 import {
   normalizeAdminQuoteDateRange,
   normalizeAdminQuoteRequestNumberRange,
@@ -11,7 +10,7 @@ import {
   type AdminQuoteDocument,
   type AdminQuoteEmailJob,
   type AdminQuoteEvent,
-  type AdminQuoteFunnelPreview,
+
   type AdminQuoteItem,
   type AdminQuoteListPage,
   type AdminQuoteListRow,
@@ -768,33 +767,4 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
       client.release();
     }
   });
-}
-
-export async function fetchAdminQuoteFunnel(): Promise<AdminQuoteFunnelPreview> {
-  const today = new Date().toISOString().slice(0, 10);
-  const windows = buildQuoteAnalyticsComparisonWindows(today);
-  const [overall, last30Days, previous30Days] = await Promise.all([
-    fetchQuoteAnalytics(
-      { range: 'max', to: windows.anchorTo },
-      '/admin/orders:quotes-preview:overall'
-    ),
-    fetchQuoteAnalytics(
-      { range: '30d', from: windows.currentFrom, to: windows.currentTo },
-      '/admin/orders:quotes-preview:last-30-days'
-    ),
-    fetchQuoteAnalytics(
-      {
-        range: '30d',
-        from: windows.previousFrom,
-        to: windows.previousTo
-      },
-      '/admin/orders:quotes-preview:previous-30-days'
-    )
-  ]);
-
-  return {
-    overall: overall.summary,
-    last30Days: last30Days.summary,
-    previous30Days: previous30Days.summary
-  };
 }

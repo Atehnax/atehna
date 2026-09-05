@@ -1,3 +1,4 @@
+import { buildBusinessOrderPreview, projectBusinessOrderSummary } from '@/shared/domain/analytics/orderPreview';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolveBusinessPeriod, localDate, localInstant, calendarDates } from '../../src/shared/domain/analytics/period';
@@ -39,3 +40,26 @@ test('same activity cohort retains cancellation and exact cents, realised partia
 test('unlinked customers never form a giant customer and refund/cost/time data remain missing', () => { const result = aggregate([order({ customerKey: null, refundComplete: false, refundCents: null }), order({ id: '2', customerKey: null })]); assert.equal(result.customers.totalCustomers, 0); assert.equal(result.customers.unlinkedOrders, 2); assert.equal(result.summary.realisedValue, null); assert.equal(result.products.points[0].contributionPerUnit, null); assert.equal(result.products.costCoveredUnits, 0); assert.equal(result.shipping.usable, 0); assert.equal(result.workload.regression.n, 0); });
 test('quotes use first-issued mature cohort, retain immature separately, and match band denominators', () => { const q1 = quote({ firstIssuedAt: '2026-08-06T09:00:00.000Z' }); const q2 = quote({ id: 'q2', firstIssuedAt: '2026-08-30T09:00:00.000Z', mature: false, acceptedAt: null, acceptedInWindow: false }); const q3 = quote({ id: 'q3', firstIssuedAt: '2026-08-06T09:00:00.000Z', initialValueCents: 50000, acceptedAt: null, acceptedInWindow: false }); const result = aggregate([], [q1, q2, q3], { range: '90D' }); assert.equal(result.quotes.mature.total, 2); assert.equal(result.quotes.mature.accepted, 1); assert.equal(result.quotes.immature, 1); assert.equal(result.quotes.byValue.reduce((sum, band) => sum + band.total, 0), 2); assert.equal(result.quotes.decisionStatistics.n, 1); assert.equal(aggregate([], [q1], { source: 'direct' }).summary.quoteAcceptance.rate, null); assert.equal(quoteDeadline('2026-03-20T10:00:00Z'), '2026-04-19T10:00:00.000Z'); });
 test('cohorts use full available linked history and future months unavailable', () => { const old = order({ id: 'old', fulfilledAt: '2026-01-01T10:00:00.000Z', submittedAt: '2026-01-01T09:00:00.000Z' }); const branch = order({ id: 'branch', customerKey: 'school:branch-2' }); const result = aggregate([old, order(), branch]); assert.equal(result.cohorts.rows.length, 1); assert.equal(result.cohorts.rows[0].customers, 1); assert.equal(result.cohorts.rows[0].month, '2026-08'); assert.equal(result.cohorts.rows[0].retention[2], null); assert.equal(result.customers.totalCustomers, 2); });
+
+test('ordinary order cards share canonical monetary values, cancellations, refund coverage and immutable reference time', () => {
+  const history = order({ id: 'old', submittedAt: '2026-05-01T08:00:00.000Z', fulfilledAt: '2026-05-02T08:00:00.000Z' });
+  const rows = [history, order(), order({ id: '2', activityCents: 20001, fulfilledCents: 20001, refundCents: 5000, status: 'cancelled' })];
+  const preview = buildBusinessOrderPreview(rows, asOf);
+  assert.deepEqual(preview.current, projectBusinessOrderSummary(aggregate(rows, [], { range: '90D' }).summary));
+  assert.equal(preview.current.orderCount, 2);
+  assert.equal(preview.current.activityValue, 300.01);
+  assert.equal(preview.current.realisedValue, 250.01);
+  assert.equal(preview.current.realisedCount, 2);
+  assert.equal(preview.current.meanOrderValue, 150.005);
+  assert.equal(preview.current.medianOrderValue, 150.005);
+  assert.equal(preview.previous30Days?.orderCount, 0);
+  assert.equal(buildBusinessOrderPreview([order({ refundComplete: false })], asOf).current.realisedValue, null);
+  assert.equal(buildBusinessOrderPreview([], asOf).current.meanOrderValue, null);
+  assert.equal(buildBusinessOrderPreview([], asOf).previous30Days, null);
+  const href = new URL(preview.href, 'https://example.test');
+  assert.equal(href.pathname, '/admin/analitika');
+  assert.equal(href.searchParams.get('view'), 'narocila');
+  assert.equal(href.searchParams.get('range'), '90D');
+  assert.equal(href.searchParams.get('asOf'), asOf.toISOString());
+  assert.equal(JSON.stringify(preview).includes('customerName'), false);
+});

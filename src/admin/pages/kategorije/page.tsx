@@ -1,6 +1,6 @@
 import AdminCategoriesTablePageLoader from '@/admin/features/kategorije/components/AdminCategoriesTablePageLoader';
 import { getCatalogAdminInitialPayloadFromDatabase } from '@/shared/server/catalogCategories';
-import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentAdminRouteRender, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 
 export const dynamic = 'force-dynamic';
 

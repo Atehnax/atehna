@@ -14,15 +14,17 @@ Atehna includes:
   settings.
 - `/admin/orders` with compact analytics previews and order operations.
 - `/admin/email` controls automatic customer and administrator order emails.
-- `/admin/analitika` with compact Slovenian business analytics and preserved Splet/Diagnostika tabs.
+- `/admin/analitika` with new Slovenian Poslovanje, Splet and Diagnostika dashboards.
 
 ## Business analytics
 
 The business surface has Pregled, Naročila, Ponudbe, Stranke, Artikli, Poštnina, Zemljevid and Laboratorij views. All use the canonical metric layer in `src/shared/domain/analytics` and `src/shared/server/businessAnalytics.ts`; extend those definitions before adding a chart, drilldown or export. The aggregate endpoint is `/api/admin/analytics/business`, matching records/CSV use its `/records` route, and the normal order page accepts `/admin/orders?analytics=1` with the same filters.
 
-Read [metric and historical-data definitions](docs/business-analytics-definitions.md) and [capture/migration instructions](docs/business-analytics-capture.md). The old custom business builder and its alternate order calculation have been retired. The old order analytics API redirects to the canonical endpoint; old quote-dashboard links open the new Ponudbe view. Unsupported historic ranges such as MAX open the documented 90D default.
+Read [metric and historical-data definitions](docs/business-analytics-definitions.md) and [capture/migration instructions](docs/business-analytics-capture.md). The custom chart builder, separate order/quote calculators, saved-chart service, retired APIs and quote-dashboard redirects are removed. Ordinary order and quote previews use canonical server summaries; there is no analytics compatibility layer.
 
-The shared `analyticsCharts.ts` persistence/appearance service, its database history and compatibility routes remain for existing consumers, including ordinary order-page previews. Existing website tracking, Splet and Diagnostika code remain separate and unchanged.
+Splet uses recorded page/product events, distinct visits/visitors, daily returning visitors and fully observed D7 cohorts, with exact-period tables and CSV. Its tracker serializes first-page events so page and product views share identity cookies. See [website metric definitions](docs/website-traffic.md).
+
+Diagnostika uses a new persistent PostgreSQL collector with request traces, measured phases, errors, latency percentiles, payload coverage, explicit cache execution/invalidation events and protected CSV. See [diagnostics collection and retention](docs/diagnostics.md). The old file collector and both old dashboard implementations are deleted. V4 removes the retired chart tables after verifying an exact inert archive of configuration history; no application code reads that archive.
 
 # Fresh database schema
 
@@ -52,8 +54,10 @@ reviewed quote/contract artifacts below, applied in this exact order:
 18. `database/migrations/20260905_business_analytics.sql`
 19. `database/migrations/20260905_analytics_geography.sql`
 20. `database/migrations/20260905_schema_contract_v3.sql`
+21. `database/migrations/20260905_analytics_retirement.sql`
+22. `database/migrations/20260905_schema_contract_v4.sql`
 
-The current terminal contract is `20260905.business-analytics-v3`. Business capture,
+The current terminal contract is `20260905.analytics-v4`. Business capture,
 resumable historical backfill and isolated validation commands are documented in
 [Business analytics capture](docs/business-analytics-capture.md).
 
@@ -310,8 +314,8 @@ eligible database and blob cleanup. Active and inactive products have no
 automatic expiry.
 
 # Example
-- `/admin/orders` shows 4 compact preview charts and click-through to `/admin/analitika`.
-- `/admin/analitika` contains default charts plus custom builder-created charts.
+- `/admin/orders` shows six canonical order metrics or six quote metrics, with elapsed-period comparisons and links to their detailed business view.
+- `/admin/analitika` provides eight business views; Splet and Diagnostika have dedicated new dashboards.
 
 # Install
 

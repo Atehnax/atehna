@@ -1,50 +1,8 @@
 import { Suspense } from 'react';
-import AdminDiagnosticsDashboard from '@/admin/features/analitika/components/AdminDiagnosticsDashboard';
 import AdminAnalyticsTopTabs from '@/admin/features/analitika/components/AdminAnalyticsTopTabs';
-import { AdminDiagnosticsSectionSkeleton } from '@/admin/components/AdminPageSkeletons';
-
-export const metadata = {
-  title: 'Administracija analitika diagnostika'
-};
-
+import DiagnosticsDashboard from '@/admin/features/analitika/components/diagnostics/DiagnosticsDashboard';
+export const metadata = { title: 'Administracija · Diagnostika' };
 export const dynamic = 'force-dynamic';
-
-const WINDOW_MINUTE_TO_HOURS: Record<string, number> = {
-  '5m': 5 / 60,
-  '15m': 0.25,
-  '60m': 1,
-  '6h': 6,
-  '24h': 24
-};
-
-function resolveWindowHours(windowParam?: string) {
-  return WINDOW_MINUTE_TO_HOURS[windowParam ?? ''] ?? 0.25;
-}
-
-async function AdminDiagnosticsDashboardSection({
-  searchParams
-}: {
-  searchParams?: { window?: string };
-}) {
-  return <AdminDiagnosticsDashboard windowHours={resolveWindowHours(searchParams?.window)} />;
-}
-
-export default async function AdminDiagnosticsPage(
-  props: {
-    searchParams?: Promise<{ window?: string }>;
-  }
-) {
-  const searchParams = await props.searchParams;
-  return (
-    <div className="w-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Analitika</h1>
-        <p className="mt-1 text-[13px] text-slate-500">Pregled analitike naročil, spletnega obiska in operativne diagnostike.</p>
-      </div>
-      <AdminAnalyticsTopTabs />
-      <Suspense fallback={<AdminDiagnosticsSectionSkeleton />}>
-        <AdminDiagnosticsDashboardSection searchParams={searchParams} />
-      </Suspense>
-    </div>
-  );
+export default function DiagnosticsPage() {
+  return <div className="w-full"><div className="mb-4"><h1 className="text-2xl font-semibold text-slate-900">Analitika</h1><p className="mt-1 text-[13px] text-slate-500">Merjene zahteve, napake in poraba virov.</p></div><Suspense fallback={<p>Nalaganje …</p>}><AdminAnalyticsTopTabs /><DiagnosticsDashboard /></Suspense></div>;
 }

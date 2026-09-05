@@ -42,3 +42,11 @@ Razpršeni prikazi imajo največ 600 sistematično izbranih oznak, Q–Q največ
 `/api/admin/analytics/business` in `/records` preverita obstoječo administratorsko sejo pred dostopom do baze. Drilldown, CSV in `/admin/orders?analytics=1` uporabljajo isti strežniški izbirnik. Izbira geografskega območja delegira istemu preverjenemu članstvu kot zemljevid, vključno s prstnim odtisom naslova in referenčno različico. Običajen `/admin/orders` ohrani prejšnje vedenje. CSV nevtralizira vnose, ki bi jih preglednica lahko izvedla kot formule.
 
 Osnovno preverjanje: `npx tsx --test tests/unit/business-analytics.test.ts`. Datotečne pogodbe, migracije, zajem in geografske integracije imajo ločene preizkuse. Izpraznjena baza oziroma nedostopna baza ne nalaga demo podatkov; odsotne meritve ostanejo manjkajoče.
+
+## Povzetki na seznamu naročil in ponudb
+
+Običajni seznam naročil in tabela ponudb kažeta šest kartic za zadnjih 90 dni. Kartice so strežniška projekcija istega agregatorja kot Poslovanje, brez prenosa zgodovinskih vrstic v brskalnik. Filtri delovne tabele ne spreminjajo kartic; pod karticami je to izrecno navedeno. Klik odpre ustrezen novi pogled z istim asOf. Starih analitičnih API-jev ali preusmeritev ni več.
+
+Naročila prikazujejo število in neto vrednost oddanih naročil, število realiziranih naročil, neto realizacijo po potrjenih vračilih ter povprečje in mediano vrednosti oddanega blaga. Ponudbe prikazujejo prve izdaje, zrele priložnosti, pravočasne sprejeme zrelih priložnosti, stopnjo sprejema ter mediano časa do izdaje in do sprejema. Osnutki brez prve izdaje niso ponudbene priložnosti. Mediana do sprejema vključuje tudi pozne sprejeme.
+
+Noga vsake kartice uporablja zadnjih 30 dni in predhodno enako pretečeno obdobje v Ljubljani. Primerjava pred začetkom opazovane zgodovine ter odstotna sprememba ob ničelnem ali manjkajočem prejšnjem imenovalcu ostaneta nedostopni. Današnji dan je delni.

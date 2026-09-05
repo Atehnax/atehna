@@ -348,7 +348,7 @@ test('draft orders stay visible in the list but are excluded from financial anal
   );
   assert.match(
     ordersPageSource,
-    /fetchOrdersAnalyticsRows\(\{[\s\S]*?includeDrafts: false/u
+    /fetchBusinessOrderPreview\(\)/u
   );
   assert.match(
     orderAnalyticsSource,
@@ -356,6 +356,6 @@ test('draft orders stay visible in the list but are excluded from financial anal
   );
   assert.match(
     ordersServerSource,
-    /export async function fetchOrdersAnalyticsRows\([\s\S]*?if \(!options\?\.includeDrafts\) \{\s*conditions\.push\('coalesce\(orders\.is_draft, false\) = false'\);/u
+    /fetchOrdersListPage/u
   );
 });

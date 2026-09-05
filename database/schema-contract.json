@@ -1,14 +1,12 @@
 {
-  "contractId": "20260905.business-analytics-v3",
-  "contractSha256": "78e564076da773ea1323dbf9b3befe40e2dc9374bf7d8b0cb818024559d09fdf",
+  "contractId": "20260905.analytics-v4",
+  "contractSha256": "a2d78beb3aa65a1b60a75e11b6efed10a78e6f00cabb9af8a4ebacc592eaa4da",
   "requirements": {
     "extensions": [
       "pg_trgm",
       "pgcrypto"
     ],
     "tables": [
-      "analytics_chart_settings",
-      "analytics_charts",
       "analytics_geography_backfill",
       "analytics_geography_references",
       "analytics_geography_state",
@@ -28,6 +26,7 @@
       "catalog_variant_option_values",
       "customer_directory_profiles",
       "deleted_archive_entries",
+      "diagnostics_events",
       "global_style_settings",
       "gurs_address_sync_runs",
       "gurs_address_sync_state",
@@ -67,6 +66,7 @@
       "quote_request_items",
       "quote_requests",
       "quote_response_idempotency_keys",
+      "retired_configuration_archive",
       "school_directory_columns",
       "school_directory_meta",
       "school_directory_rows",
@@ -697,6 +697,118 @@
         "name": "analytics_measured_by",
         "dataType": "text",
         "nullable": true
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "id",
+        "dataType": "uuid",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "recorded_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "trace_id",
+        "dataType": "uuid",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "context",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "operation",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "kind",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "duration_ms",
+        "dataType": "double precision",
+        "nullable": true
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "payload_bytes",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "error",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false",
+        "defaultIncludes": [
+          "false"
+        ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "error_code",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "phases_json",
+        "dataType": "jsonb",
+        "nullable": false,
+        "defaultEquals": "'{}'::jsonb",
+        "defaultIncludes": [
+          "'{}'::jsonb"
+        ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "details_json",
+        "dataType": "jsonb",
+        "nullable": false,
+        "defaultEquals": "'{}'::jsonb",
+        "defaultIncludes": [
+          "'{}'::jsonb"
+        ]
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "source_table",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "source_key",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "captured_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()",
+        "defaultIncludes": [
+          "now()"
+        ]
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "payload",
+        "dataType": "jsonb",
+        "nullable": false
       }
     ],
     "constraints": [
@@ -925,6 +1037,48 @@
         "name": "orders_analytics_measurements_check",
         "type": "check",
         "definitionEquals": "CHECK ((actual_packed_weight_grams IS NULL OR actual_packed_weight_grams > 0) AND (actual_carrier_cost_net IS NULL OR actual_carrier_cost_net >= 0::numeric) AND (actual_parcel_count IS NULL OR actual_parcel_count > 0) AND (preparation_minutes IS NULL OR preparation_minutes >= 0::numeric) AND (actual_length_mm IS NULL OR actual_length_mm > 0) AND (actual_width_mm IS NULL OR actual_width_mm > 0) AND (actual_height_mm IS NULL OR actual_height_mm > 0) AND (merchandise_refund_net IS NULL OR merchandise_refund_net >= 0::numeric) AND (NOT refund_history_complete OR merchandise_refund_net IS NOT NULL) AND (shipping_tax_rate IS NULL OR shipping_tax_rate >= 0::numeric AND shipping_tax_rate <= 1::numeric) AND (analytics_fulfilled_merchandise_net IS NULL OR analytics_fulfilled_merchandise_net >= 0::numeric) AND (analytics_fulfilment_origin IS NULL OR (analytics_fulfilment_origin = ANY (ARRAY['captured'::text, 'legacy'::text]))) AND analytics_measurement_revision >= 0 AND (analytics_snapshot_json IS NULL OR jsonb_typeof(analytics_snapshot_json) = 'object'::text))"
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_details_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(details_json) = 'object'::text)"
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_duration_check",
+        "type": "check",
+        "definitionEquals": "CHECK (duration_ms IS NULL OR duration_ms >= 0::double precision)"
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_kind_check",
+        "type": "check",
+        "definitionEquals": "CHECK (kind = ANY (ARRAY['route'::text, 'loader'::text, 'cache_miss'::text, 'invalidation'::text]))"
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_payload_bytes_check",
+        "type": "check",
+        "definitionEquals": "CHECK (payload_bytes IS NULL OR payload_bytes >= 0)"
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_phases_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(phases_json) = 'object'::text)"
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "retired_configuration_archive_payload_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(payload) = 'object'::text)"
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "retired_configuration_archive_source_check",
+        "type": "check",
+        "definitionEquals": "CHECK (source_table = ANY (ARRAY['analytics_charts'::text, 'analytics_chart_settings'::text]))"
       }
     ],
     "functions": [
@@ -1237,6 +1391,51 @@
           "orders",
           "orders_analytics_school_idx"
         ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_context_recorded_at_idx",
+        "definitionEquals": "CREATE INDEX diagnostics_events_context_recorded_at_idx ON public.diagnostics_events USING btree (context, recorded_at)",
+        "definitionIncludes": [
+          "diagnostics_events",
+          "diagnostics_events_context_recorded_at_idx"
+        ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_error_recorded_at_idx",
+        "definitionEquals": "CREATE INDEX diagnostics_events_error_recorded_at_idx ON public.diagnostics_events USING btree (recorded_at) WHERE error",
+        "definitionIncludes": [
+          "diagnostics_events",
+          "diagnostics_events_error_recorded_at_idx"
+        ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX diagnostics_events_pkey ON public.diagnostics_events USING btree (id)",
+        "definitionIncludes": [
+          "diagnostics_events",
+          "diagnostics_events_pkey"
+        ]
+      },
+      {
+        "table": "diagnostics_events",
+        "name": "diagnostics_events_recorded_at_idx",
+        "definitionEquals": "CREATE INDEX diagnostics_events_recorded_at_idx ON public.diagnostics_events USING btree (recorded_at)",
+        "definitionIncludes": [
+          "diagnostics_events",
+          "diagnostics_events_recorded_at_idx"
+        ]
+      },
+      {
+        "table": "retired_configuration_archive",
+        "name": "retired_configuration_archive_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX retired_configuration_archive_pkey ON public.retired_configuration_archive USING btree (source_table, source_key)",
+        "definitionIncludes": [
+          "retired_configuration_archive",
+          "retired_configuration_archive_pkey"
+        ]
       }
     ],
     "triggers": [
@@ -1401,6 +1600,13 @@
         "jsonField": "stockEnforcementEnabled",
         "jsonType": "boolean"
       }
+    ],
+    "absentTables": [
+      "analytics_charts",
+      "analytics_chart_settings"
+    ],
+    "absentFunctions": [
+      "set_analytics_charts_updated_at"
     ]
   }
 }

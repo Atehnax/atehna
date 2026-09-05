@@ -656,7 +656,9 @@ test('financial and customer read models require accepted contracts and committe
   assert.match(orders, /orders\.committed_at/u);
   assert.match(customers, /contract_status = 'accepted'/u);
   assert.match(customers, /coalesce\(committed_at, contract_accepted_at, created_at\) as purchase_at/u);
-  assert.match(preview, /VREDNOST NAROČIL/u);
+  assert.match(preview, /Vrednost oddanih/u);
+  assert.match(preview, /BusinessOrderPreview/u);
+  assert.doesNotMatch(preview, /isFinancialOrder|getPeriodMetrics/u);
 });
 
 test('legacy order offer documents are quarantined instead of becoming order confirmations', () => {

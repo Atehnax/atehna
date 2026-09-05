@@ -19,17 +19,17 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
   const email = `quote-${token}@example.test`;
   let quoteRequestId: number | null = null;
   let completed = false;
-  const readAnalyticsRequestCount = async () => {
-    const response = await request.get('/api/admin/analytics/quotes?range=max');
+  const readIssuedOpportunityCount = async () => {
+    const response = await request.get('/api/admin/analytics/business?view=ponudbe&range=90D');
     expect(response.ok()).toBe(true);
     const payload = await response.json() as {
-      summary?: { requests?: unknown };
+      quotes: { mature: { total: number }; immature: number };
     };
-    const count = Number(payload.summary?.requests);
+    const count = Number(payload.quotes.mature.total + payload.quotes.immature);
     expect(Number.isSafeInteger(count) && count >= 0).toBe(true);
     return count;
   };
-  const baselineRequestCount = await readAnalyticsRequestCount();
+  const baselineIssuedCount = await readIssuedOpportunityCount();
 
   try {
     await page.goto('/admin/orders?view=quotes');
@@ -61,7 +61,7 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
     const nonMatchingRequestSequence = requestSequence === 999_999
       ? requestSequence - 1
       : requestSequence + 1;
-    await expect.poll(readAnalyticsRequestCount).toBe(baselineRequestCount + 1);
+    await expect.poll(readIssuedOpportunityCount).toBe(baselineIssuedCount);
 
     await expect(page).toHaveURL(
       new RegExp(`/admin/orders/quotes/${quoteRequestId}$`, 'u')
@@ -258,7 +258,7 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
     await expect(page.getByTestId(`quote-table-row-${quoteRequestId}`)).toHaveCount(0, {
       timeout: 10_000
     });
-    await expect.poll(readAnalyticsRequestCount).toBe(baselineRequestCount);
+    await expect.poll(readIssuedOpportunityCount).toBe(baselineIssuedCount);
 
     completed = true;
   } finally {

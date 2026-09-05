@@ -694,7 +694,6 @@ test('accepted quote traceability is bidirectional and analytics count only comm
   const quotes = source('src/shared/server/quotes.ts');
   const orders = source('src/shared/server/orders.ts');
   const analytics = source('src/shared/server/businessAnalytics.ts');
-  const quoteAnalytics = source('src/shared/server/quoteAnalytics.ts');
   const customers = source('src/shared/server/customerDirectory.ts');
 
   assert.match(quotes, /if \(filter === 'ordered'\) return `qr\.status in \('accepted','converted_to_order'\)`/u);
@@ -727,22 +726,10 @@ test('accepted quote traceability is bidirectional and analytics count only comm
     customers,
     /contract_status = 'accepted'[\s\S]*?commitment_status = 'binding'[\s\S]*?status <> 'cancelled'/u
   );
-  assert.match(
-    quoteAnalytics,
-    /latest_issued[\s\S]*?distinct on \(quote_request_id\)[\s\S]*?issued_at is not null[\s\S]*?order by quote_request_id, issued_at desc, version_number desc, id desc/u
-  );
-  assert.match(
-    quoteAnalytics,
-    /acceptance_facts[\s\S]*?quote_offer_acceptances[\s\S]*?union all[\s\S]*?quote_offer_versions[\s\S]*?accepted_at is not null[\s\S]*?first_acceptance[\s\S]*?group by quote_request_id/u
-  );
-  assert.match(
-    quoteAnalytics,
-    /eligible_connected_orders[\s\S]*?order_record\.deleted_at is null[\s\S]*?order_record\.is_draft, false\) = false[\s\S]*?order_record\.contract_status = 'accepted'[\s\S]*?order_record\.commitment_status = 'binding'[\s\S]*?order_record\.status <> 'cancelled'[\s\S]*?group by source_offer\.quote_request_id/u
-  );
-  assert.match(
-    quoteAnalytics,
-    /left join latest_issued[\s\S]*?left join first_acceptance[\s\S]*?left join eligible_connected_orders/u
-  );
+  assert.match(analytics, /first_issue[\s\S]*?order by quote_request_id, issued_at, version_number, id/u);
+  assert.match(analytics, /acceptance_facts[\s\S]*?quote_offer_acceptances[\s\S]*?union all[\s\S]*?first_acceptance[\s\S]*?group by quote_request_id/u);
+  assert.match(analytics, /order_record\.deleted_at is null[\s\S]*?order_record\.is_draft = false/u);
+  assert.match(analytics, /candidate\.opportunity_order_rank = 1/u);
 });
 
 test('offer verification status is scoped to the current CSRF-bound access session', () => {

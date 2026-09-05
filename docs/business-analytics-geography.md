@@ -72,7 +72,7 @@ Apply the additive migration with the application's normal migration workflow:
 database/migrations/20260905_analytics_geography.sql
 ```
 
-This is included in the canonical schema and schema contract v3 together with the business analytics migration.
+This is included in the canonical schema and schema contract v4 together with the business analytics migration.
 
 With the intended database explicitly configured:
 

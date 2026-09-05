@@ -1,8 +1,8 @@
-import { loadEnvConfig } from '@next/env';
+import nextEnv from '@next/env';
 import { getPool } from '../src/shared/server/db';
 
 // Explicit destination name is required; this operation never selects a database implicitly.
-loadEnvConfig(process.cwd());
+nextEnv.loadEnvConfig(process.cwd());
 const nameArgument = process.argv.find((value) => value.startsWith('--database-name='));
 const expectedName = nameArgument?.slice('--database-name='.length);
 if (!process.argv.includes('--apply') || !expectedName) {

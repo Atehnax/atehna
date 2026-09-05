@@ -1,6 +1,7 @@
-import { unstable_cache, revalidateTag } from 'next/cache';
+import { revalidateTag } from '@/shared/server/diagnostics/cache';
+import { unstable_cache } from 'next/cache';
 import { getPool } from '@/shared/server/db';
-import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCategoryShowcaseMediaSettings,

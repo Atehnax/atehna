@@ -5,7 +5,7 @@ import {
   type CategoryShowcaseMediaSettings
 } from '@/shared/features/category-showcase/categoryShowcaseSchema';
 import { CATEGORY_SHOWCASE_TAG } from '@/shared/server/catalogCache';
-import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/catalogDiagnostics';
+import { instrumentCatalogCacheMiss, instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
 import { getPool } from '@/shared/server/db';
 
 export type StoredCategoryShowcaseItem = {

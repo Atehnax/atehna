@@ -1,11 +1,11 @@
+import type { BusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
 import AdminOrdersTable from '@/admin/features/orders/components/AdminOrdersTable';
-import type { AnalyticsGlobalAppearance } from '@/shared/server/analyticsCharts';
-import type { AdminOrderAnalyticsTuple, AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
+import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
 import type { PageSizeValue } from '@/shared/domain/pagination';
 
 export default function AdminOrdersTableLoader(props: {
   orders: ReadonlyArray<AdminOrderRowTuple>;
-  analyticsOrders?: ReadonlyArray<AdminOrderAnalyticsTuple>;
+  orderPreview: BusinessOrderPreview | null;
   documents: ReadonlyArray<AdminOrderPdfDocumentTuple>;
   initialFrom?: string;
   initialTo?: string;
@@ -16,7 +16,6 @@ export default function AdminOrdersTableLoader(props: {
   initialPageSize?: PageSizeValue;
   totalCount?: number;
   topAction?: React.ReactNode;
-  analyticsAppearance?: AnalyticsGlobalAppearance;
 }) {
   return <AdminOrdersTable {...props} />;
 }

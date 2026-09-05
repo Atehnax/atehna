@@ -16,35 +16,44 @@ Prazno polje ohrani neznan podatek. Dejanska zapakirana masa ni masa artiklov; d
 
 ## Namestitev obstoječe baze
 
-Najprej ustavite ročne in mesečne uvoze naslovov. Na preverjeno obstoječo bazo, ki že izpolnjuje pogodbo v2, po vrsti uporabite:
+Za preklop začasno ustavite aplikacijo, opravila in ročne/mesečne uvoze naslovov; stara različica ne sme pisati nastavitev po njihovi arhivaciji. Pred izvedbo preverite obnovljivo varnostno kopijo in zaporedje na izolirani kopiji baze. Na preverjeno obstoječo bazo, ki že izpolnjuje pogodbo v2, po vrsti uporabite:
 
 1. `database/migrations/20260905_business_analytics.sql`
 2. `database/migrations/20260905_analytics_geography.sql`
 3. `database/migrations/20260905_schema_contract_v3.sql`
+4. `database/migrations/20260905_analytics_retirement.sql`
+5. `database/migrations/20260905_schema_contract_v4.sql`
 
-Vsak artefakt ima lastno transakcijo. Geografska migracija doda izbirna polja lokalnemu imeniku naslovov; pred ponovnim zagonom osveževanja namestite tudi novi uvoznik, ki jih ohrani na začasni tabeli. Ne izvajajte celotne `schema.sql` nad obstoječo bazo. Sveža prazna baza uporabi samo celotno `database/schema.sql`, ki vsebuje iste definicije in pogodbo `20260905.business-analytics-v3`.
+Vsak artefakt ima lastno transakcijo. Baza, ki je že preverjeno na v3, potrebuje samo zadnja dva artefakta. Umik nastavitev najprej brez sprememb arhivira vsako vrstico obeh starih tabel v `retired_configuration_archive`, preveri enakost JSON in nato odstrani `analytics_charts`, `analytics_chart_settings` ter `set_analytics_charts_updated_at()`. Arhiv nima aplikacijskih bralcev, API-ja ali združljivostne plasti. Če se že shranjeni arhiv razlikuje, se celotna migracija povrne. V4 zahteva odsotnost starih tabel/funkcije; ponovni zagon stare aplikacije zato ni podprt. Geografska migracija doda izbirna polja lokalnemu imeniku naslovov; pred ponovnim zagonom osveževanja namestite tudi novi uvoznik, ki jih ohrani na začasni tabeli. Ne izvajajte celotne `schema.sql` nad obstoječo bazo. Sveža prazna baza uporabi samo celotno `database/schema.sql`, ki vsebuje iste definicije in pogodbo `20260905.analytics-v4`.
 
-Z izrecno nastavljenim ciljnim `DATABASE_URL`:
+Po migracijah preverite pogodbo, namestite novo aplikacijo in šele nato nadaljujte uvoze. Z izrecno nastavljenim ciljnim `DATABASE_URL`:
 
 ```text
 npm run check:schema-contract
 npm run check:database-schema
 npx tsx scripts/backfill-business-analytics.ts --database-name=PREVERJENO_IME_BAZE --apply
 npm run addresses:sync
-npm run geography:import
+npm run geography:import -- --bundled
 npm run geography:backfill
 ```
+
+`geography:backfill` ponavljajte, dokler je `remaining=true`. Začetni `--bundled` ohrani točno pregledano referenčno različico; poznejši `geography:import` osveži kandidata brez tihe zamenjave poročevalske različice.
 
 Ohranitev starih posnetkov obdeluje največ 500 vrstic na transakcijo in nadaljuje samo pri naročilih brez posnetka. Ponoven zagon je idempotenten; prekinitev izgubi največ trenutni paket. Podedovani posnetek je označen `origin: legacy`: izvorni datum oddaje lahko temelji le na `created_at`, tip/naslov/vrednost na še razpoložljivem zapisu. Podedovana realizacija uporabi prvi dnevniški prehod `sent/finished` in ohranjeno trenutno vrednost z oznako `analytics_fulfilment_origin: legacy`. To ni dokaz, da so ti podatki bili isti že ob oddaji ali realizaciji. Manjkajoči stroški, vračila, meritve in izgubljeni dogodki se ne dopolnijo z izmišljenimi vrednostmi.
 
 Uvoz prostorskih referenc in zgodovinska preslikava sta ločena ukaza. Osvežitev meje ne prepiše samodejno shranjenih preslikav ali ročnih popravkov. Referenčno različico, starost podatkov in nerešene naslove prikazuje Zemljevid.
 
+## Trajna diagnostika
+
+`diagnostics_events` shranjuje dogodke novega zbiralnika. Dnevno opravilo odstrani zapise, starejše od sedmih dni; med zagonoma ali ob napaki opravila so lahko fizično prisotni tudi starejši zapisi. Dogodek vsebuje: sled, kontekst, operacijo, vrsto, trajanje, velikost, oznako napake in omejene faze/podrobnosti. Ne shranjuje teles zahtev, glav ali osebnih podatkov. Indeksi pokrivajo čas, kontekst/čas in napake. Stari konfiguracijski gradnik ni povezan z novo diagnostiko.
+
 ## Preverjanje
 
 ```text
 npx tsx --test tests/unit/business-analytics-measurements.test.ts tests/unit/database-schema-contract.test.ts
+node scripts/check-analytics-retirement.mjs
 npx tsx scripts/check-business-analytics-database.ts
 npx tsx scripts/check-business-analytics-api.ts
 ```
 
-Zadnja dva ukaza zahtevata varovala obstoječega okolja E2E: izrecno lokalno bazo, ujemajoči se imenski prostor in identiteto. Preizkus baze vse svoje poslovne vrstice povrne z rollbackom. API-preizkus zahteva pripravljene označene analitične podatke in preveri identiteto baze prek zdravja izoliranega strežnika; preverjene meritve po testu obnovi in ohrani revizijsko sled. `tests/fixtures/business-analytics-seed.ts` lahko napolni samo izolirano bazo E2E; nikoli se ne naloži iz aplikacije, migracije ali produkcijskega opravila.
+Zadnji trije ukazi zahtevajo varovala obstoječega okolja E2E: izrecno lokalno bazo, ujemajoči se imenski prostor in identiteto. Preizkusa umika nastavitev in zajema baze vse svoje podatkovne spremembe povrneta z rollbackom. API-preizkus zahteva pripravljene označene analitične podatke in preveri identiteto baze prek zdravja izoliranega strežnika; preverjene meritve po testu obnovi in ohrani revizijsko sled. `tests/fixtures/business-analytics-seed.ts` lahko napolni samo izolirano bazo E2E; nikoli se ne naloži iz aplikacije, migracije ali produkcijskega opravila.

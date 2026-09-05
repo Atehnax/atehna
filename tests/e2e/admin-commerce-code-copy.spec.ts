@@ -99,6 +99,11 @@ for (const kind of ['order', 'quote'] as const) {
       await expect(code).toHaveAttribute('title', fullCode);
       await expect(code).toHaveAccessibleName(new RegExp(`^Kopiraj celotno kodo .+: ${fullCode}$`, 'u'));
       expect(await code.textContent()).not.toContain(fullCode);
+      await code.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+      await expect.poll(() => code.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+      })).toBe(true);
       const primaryBox = await primary.boundingBox();
       const codeBox = await code.boundingBox();
       expect(primaryBox).not.toBeNull();

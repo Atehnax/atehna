@@ -1,5 +1,7 @@
 'use client';
 
+import { adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
+
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Data, Layout, PlotMouseEvent } from 'plotly.js';
@@ -34,7 +36,7 @@ export default function BusinessChart({
     if (typeof custom !== 'string') return;
     try { onDrill?.(JSON.parse(custom) as Drill); } catch { /* A non-drillable summary mark. */ }
   };
-  return <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
+  return <article className={adminAnalyticsPanelClassName}>
     <div className="flex items-start justify-between gap-2"><div><h2 className="text-sm font-semibold text-slate-950">{title}</h2><p className="mt-1 text-[11px] leading-relaxed text-slate-500">{description}</p></div>{rows && columns && <div className="flex shrink-0 gap-2 text-[11px] text-blue-700"><button type="button" aria-pressed={table} onClick={() => setTable(!table)} className="rounded px-1 py-1 underline">{table ? 'Graf' : 'Tabela'}</button><button type="button" onClick={() => downloadRows(title, columns, rows)} className="rounded px-1 py-1 underline">CSV</button></div>}</div>
     {table && rows && columns ? <div className="mt-4"><DataTable columns={columns} rows={rows} onDrill={onDrill} /></div> : empty ? <div className="flex items-center justify-center px-4 text-center text-sm text-slate-500" style={{ height }}>Ni uporabnih opazovanj. Manjkajoči podatki niso ničle.</div> : <Plot data={data} layout={{ autosize: true, height, paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', font: { family: 'Inter, system-ui, sans-serif', size: 11, color: '#64748b' }, margin: { l: 60, r: 18, t: 30, b: 52 }, showlegend: data.length > 1, legend: { orientation: 'h', x: 0, y: 1.18, font: { size: 10 } }, hovermode: 'closest', xaxis: { title: { text: xTitle, font: { size: 10 } }, gridcolor: '#f1f5f9', zeroline: false, automargin: true }, yaxis: { title: { text: yTitle, font: { size: 10 } }, gridcolor: '#f1f5f9', zerolinecolor: '#e2e8f0', automargin: true }, colorway: palette, ...layout }} config={{ responsive: true, displayModeBar: false }} useResizeHandler style={{ width: '100%' }} onClick={onPoint} />}
     {children}

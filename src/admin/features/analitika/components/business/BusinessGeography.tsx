@@ -1,5 +1,7 @@
 'use client';
 
+import { adminAnalyticsControlClassName, adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GeographyFeature, GeographyReference, Position } from '@/shared/domain/analytics/geography';
 import type { BusinessRecord } from '@/shared/domain/analytics/businessAnalytics';
@@ -14,7 +16,7 @@ type GeoResponse = {
   denominator: string; selected: { id: string; total: number; records: BusinessRecord[] } | null;
 };
 const colors = ['#e2e8f0', '#dcfce7', '#bbf7d0', '#86efac', '#4ade80', '#15803d'];
-const control = 'h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700';
+const control = adminAnalyticsControlClassName;
 const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('sl');
 const project = ([longitude, latitude]: Position): Position => [longitude * Math.cos(46 * Math.PI / 180), -latitude];
 function pathFor(feature: GeographyFeature) {
@@ -81,7 +83,7 @@ export default function BusinessGeography({ query, compact = false, onOpen, onDr
       setOperation(backfill ? 'Serija obdelana. Večje zgodovine nadaljujte z ukazom za paketni pripis; napredek je shranjen.' : 'Popravek je shranjen v revizijski sledi.'); setRevision(value => value + 1);
     } catch (error) { setOperation(error instanceof Error ? error.message : 'Napaka pri shranjevanju.'); } finally { setPending(false); }
   };
-  return <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
+  return <article className={adminAnalyticsPanelClassName}>
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-slate-950">Naročila po Sloveniji</h2><p className="mt-1 text-[11px] text-slate-500">Uradne meje GURS · shranjeni naslov naročnika · ista oddana naročila kot v koledarju.</p></div>{compact && <button type="button" className="text-xs text-blue-700 underline" onClick={onOpen}>Celoten zemljevid →</button>}</div>
     <div className="mt-3 flex flex-wrap gap-2"><select aria-label="Geografska raven" className={control} value={level} onChange={event => { setLevel(event.target.value as typeof level); setSelectedId(''); setHoverId(''); setZoom(1); setPan({ x: 0, y: 0 }); }}><option value="municipality">Občine</option><option value="region">Statistične regije</option></select><select aria-label="Mera zemljevida" className={control} value={metric} onChange={event => setMetric(event.target.value as typeof metric)}><option value="orders">Naročila</option><option value="value">Vrednost naročil</option></select>{!compact && <select aria-label="Barvna lestvica" className={control} value={scale} onChange={event => setScale(event.target.value as typeof scale)}><option value="linear">Linearna lestvica</option><option value="sqrt">Kvadratni koren intenzivnosti</option></select>}</div>
     {error ? <p role="alert" className="my-6 text-sm text-red-700">{error}<button className="ml-2 underline" onClick={() => setRevision(revision + 1)}>Ponovi</button></p> : !data || !geometry ? <p role="status" className="py-20 text-center text-sm text-slate-500">Nalaganje uradnih meja in geografskih agregatov …</p> : <>

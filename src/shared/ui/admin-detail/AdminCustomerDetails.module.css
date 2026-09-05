@@ -35,17 +35,12 @@
   gap: 6px;
   padding-block: 3px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.6;
   text-align: left;
-  color: var(--blue-500);
-  border-radius: 4px;
-  cursor: copy;
+  color: #0f172a;
   user-select: text;
 }
-
-.publicCode:hover { text-decoration: underline; }
-.publicCode:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
 @container (min-width: 440px) {
   .detailsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

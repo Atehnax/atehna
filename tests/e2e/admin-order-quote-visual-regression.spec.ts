@@ -332,7 +332,7 @@ async function assertCustomerDetailsRows(
   const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
   const spanAttribute = kind === 'quote' ? 'data-quote-detail-span' : 'data-order-data-span';
   const labels = [
-    kind === 'quote' ? 'Številka povpraševanja' : 'Številka naročila',
+    kind === 'quote' ? 'Št. povpraševanja' : 'Številka naročila',
     'Datum', 'Tip naročnika', customerLabel, 'Email', 'Naslov',
     ...(kind === 'quote' ? ['Kaj potrebuje?'] : []),
     'Sporočilo stranke'

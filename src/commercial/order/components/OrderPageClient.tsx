@@ -1216,7 +1216,7 @@ export default function OrderPageClient({
                   <CheckoutInput
                     id="organizationName"
                     autoComplete="organization"
-                    label="Naziv naročnika *"
+                    label={isSchool ? 'Naziv šole ali javnega zavoda *' : 'Naziv podjetja *'}
                     value={formData.organizationName}
                     onChange={(event) =>
                       updateField('organizationName', event.target.value)
@@ -1424,7 +1424,8 @@ export default function OrderPageClient({
                     {isSchool ? (
                       <CheckoutInput
                         id="reference"
-                        label="Vaša referenca ali št. naročilnice"
+                        label="Referenca (neobvezno; naročilnica pozneje)"
+                        shellClassName="[&>[data-floating-field-label]]:right-3 [&>[data-floating-field-label]]:leading-tight"
                         value={formData.reference}
                         onChange={(event) =>
                           updateField('reference', event.target.value)

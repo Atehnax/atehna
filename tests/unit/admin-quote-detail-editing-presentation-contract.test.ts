@@ -579,7 +579,7 @@ test('quote customer details use paired row-major fields with a read-only code a
     'function StateBadge'
   );
   const labels = [
-    'Številka povpraševanja',
+    'Št. povpraševanja',
     'Datum',
     'Tip naročnika',
     'Naročnik/Naziv',

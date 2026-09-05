@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 type AdminAnalyticsSummaryCardProps = {
   href: string;
   title: string;
+  description?: string;
   metric: string;
   children?: ReactNode;
   id?: string;
@@ -14,6 +15,7 @@ type AdminAnalyticsSummaryCardProps = {
 export default function AdminAnalyticsSummaryCard({
   href,
   title,
+  description,
   metric,
   children,
   id,
@@ -24,6 +26,8 @@ export default function AdminAnalyticsSummaryCard({
     <Link
       href={href}
       id={id}
+      title={description}
+      aria-description={description}
       aria-label={`${title}: ${metric}`}
       aria-current={isFocused ? 'location' : undefined}
       data-analytics-summary-card="true"
@@ -33,7 +37,7 @@ export default function AdminAnalyticsSummaryCard({
     >
       <p
         className="min-w-0 truncate whitespace-nowrap text-[11px] font-bold uppercase leading-3 tracking-[0.035em] text-[#6f7784]"
-        title={title}
+        title={description ?? title}
       >
         {title}
       </p>

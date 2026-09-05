@@ -1394,7 +1394,7 @@ export default function AdminQuotesTable({
                       >
                         {displayRequestNumber}
                       </Link>
-                      <span className="inline-flex items-center gap-1 text-[10px] leading-none text-slate-500">
+                      <span className="inline-flex items-center gap-1 text-[10px] leading-none text-slate-500 [&>button]:cursor-default">
                         <AdminPublicCode
                           code={row.quoteCode}
                           label="povpraševanja"
@@ -1456,7 +1456,7 @@ export default function AdminQuotesTable({
                     ) : (
                       <div className="min-w-0 leading-tight">
                         <span
-                          className={`${adminTableMatchingValueBaseClassName} max-w-full truncate font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                          className={`${adminTableMatchingValueBaseClassName} -ml-[5px] max-w-full truncate font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
                           title={customerIdentity.name}
                           data-testid={`quote-table-customer-name-${row.id}`}
                           onMouseEnter={() =>

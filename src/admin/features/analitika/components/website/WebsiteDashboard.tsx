@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import AdminPeriodSelector from '@/shared/ui/admin-period-selector';
+import AdminAnalyticsMetricCard from '@/shared/ui/admin-analytics-metric-card';
+import { buttonTokenClasses, adminAnalyticsControlClassName, adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
 import BusinessChart, { DataTable, numeric, percent } from '../business/BusinessChart';
-import { BUSINESS_PERIOD_PRESETS } from '@/shared/domain/analytics/period';
 import { websiteExportRows, type WebsiteBreakdown, type WebsiteExport, type WebsiteTraffic } from '@/shared/domain/analytics/websiteTraffic';
 
-const control = 'h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:outline-blue-600';
+const control = adminAnalyticsControlClassName;
 const formatDate = (date: string) => new Intl.DateTimeFormat('sl-SI', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(date + 'T12:00:00Z'));
 function Breakdown({ title, kind, rows, exportHref }: { title: string; kind: 'pages' | 'products'; rows: WebsiteBreakdown[]; exportHref: string }) {
   const [search, setSearch] = useState('');
   const visible = rows.filter(row => (row.key ?? '').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl')));
-  return <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4" aria-label={title}>
+  return <section className={adminAnalyticsPanelClassName} aria-label={title}>
     <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-950">{title}</h2><a href={exportHref} className="text-xs text-blue-700 underline">CSV · vse vrstice</a></div>
     <p className="mt-1 text-[11px] text-slate-500">{rows.length} skupin · {numeric(rows.reduce((sum, row) => sum + row.views, 0), 0)} zabeleženih ogledov. Obiskovalci in seje se med vrsticami lahko ponovijo.</p>
     <input aria-label={'Poišči: ' + title} placeholder={kind === 'pages' ? 'Poišči pot …' : 'Poišči ID artikla …'} value={search} onChange={event => setSearch(event.target.value)} className={control + ' my-3 w-full'} />
@@ -54,26 +56,26 @@ export default function WebsiteDashboard() {
   const daily = data ? websiteExportRows(data, 'days') : null;
   const cohorts = data ? websiteExportRows(data, 'cohorts') : null;
   return <div className="space-y-4" aria-busy={loading}>
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-xl font-semibold text-slate-950">Splet</h1><p className="mt-1 text-xs text-slate-500">Zabeležen obisk, vsebina in vračanje obiskovalcev.</p></div><button type="button" className={control} onClick={() => setReload(value => value + 1)}>Osveži</button></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-xl font-semibold text-slate-950">Splet</h1><p className="mt-1 text-xs text-slate-500">Zabeležen obisk, vsebina in vračanje obiskovalcev.</p></div><button type="button" className={buttonTokenClasses.control} onClick={() => setReload(value => value + 1)}>Osveži</button></div>
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3" aria-label="Obdobje spletne analitike">
-      {BUSINESS_PERIOD_PRESETS.map(preset => <button key={preset} type="button" aria-label={preset} aria-pressed={range === preset} onClick={() => changePeriod(preset)} className={control + (range === preset ? ' border-green-700 bg-green-50 text-green-800' : '')}><span aria-hidden="true">{range === preset ? '✓ ' : ''}</span>{preset}</button>)}
+      <AdminPeriodSelector value={range} onChange={changePeriod} ariaLabel="Obdobje spletne analitike" />
       <label className="flex items-center gap-1 text-xs text-slate-500">Od<input aria-label="Splet: začetni datum" type="date" value={customFrom} onChange={event => setCustomFrom(event.target.value)} className={control} /></label>
       <label className="flex items-center gap-1 text-xs text-slate-500">Do<input aria-label="Splet: končni datum" type="date" value={customTo} onChange={event => setCustomTo(event.target.value)} className={control} /></label>
-      <button type="button" className={control} onClick={() => changePeriod('custom')}>Uporabi datuma</button>
+      <button type="button" className={buttonTokenClasses.control} onClick={() => changePeriod('custom')}>Uporabi datuma</button>
     </div>
     {loading && <p role="status" className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Nalaganje spletne analitike …</p>}
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p>{error}</p><button type="button" onClick={() => setReload(value => value + 1)} className="mt-2 underline">Poskusi znova</button></div>}
     {data && <>
       <div className="text-xs leading-relaxed text-slate-500"><p>{formatDate(data.period.from)}–{formatDate(data.period.to)} · Europe/Ljubljana{data.period.partialToday ? ' · današnji dan je delen' : ''} · stanje {new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'short', timeStyle: 'short' }).format(new Date(data.asOf))}</p>
         <p>Zgodovina ogledov od {data.coverage.historyFrom ? new Intl.DateTimeFormat('sl-SI', { timeZone: data.timezone, dateStyle: 'medium' }).format(new Date(data.coverage.historyFrom)) : 'še ni zabeleženih dogodkov'}. Odsotnost dogodkov ne dokazuje neprekinjenega merjenja.</p></div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 xl:grid-cols-5">
         {[
           ['Obiski (seje)', numeric(data.summary.visits, 0), 'Različni ID-ji sej z ogledom strani.'],
           ['Obiskovalci', numeric(data.summary.visitors, 0), 'Različni ID-ji brskalnikov z ogledom strani.'],
           ['Ogledi strani', numeric(data.summary.pageViews, 0), 'Vsi zabeleženi dogodki page_view.'],
           ['Ogledi artiklov', numeric(data.summary.productViews, 0), 'Vsi zabeleženi dogodki product_view.'],
           ['Vračajoči obiskovalci', numeric(data.summary.returningVisitors, 0), 'Z ogledom na katerikoli prejšnji koledarski dan.']
-        ].map(([label, value, note]) => <article key={label} className="rounded-xl border border-slate-200 bg-white p-3"><h2 className="text-[11px] font-medium text-slate-500">{label}</h2><p className="mt-1 text-xl font-semibold text-slate-950">{value}</p><p className="mt-1 text-[10px] leading-relaxed text-slate-500">{note}</p></article>)}
+        ].map(([label, value, note]) => <AdminAnalyticsMetricCard key={label} title={label} metric={value}>{note}</AdminAnalyticsMetricCard>)}
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
         <BusinessChart title="Dnevni obisk" description="Koledarski dnevi v Ljubljani; ponovljeni ogledi iste seje ne ustvarijo novega obiska. Seje in obiskovalci so deduplicirani tudi za celotno obdobje, zato vsota dnevnih vrednosti ni nujno skupni rezultat." xTitle="Dan" yTitle="Zabeleženo število" data={[

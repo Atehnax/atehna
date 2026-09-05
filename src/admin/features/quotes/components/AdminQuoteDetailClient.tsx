@@ -49,6 +49,8 @@ import {
   adminTableEditIconButtonClassName,
   adminTableBodyCellLeftClassName,
   adminCardSectionEditIconButtonClassName,
+  adminCardSectionIconActionButtonClassName,
+  adminCardSectionIconClassName,
   adminTableHeaderCellCenterClassName,
   adminTableHeaderCellLeftClassName,
   adminTableNeutralIconButtonClassName,
@@ -872,6 +874,7 @@ function QuoteDetailRow({
   icon,
   isEditing,
   fullWidth = false,
+  noWrapLabel = false,
   readContent,
   children
 }: {
@@ -880,6 +883,7 @@ function QuoteDetailRow({
   icon: QuoteDetailFieldIconType;
   isEditing: boolean;
   fullWidth?: boolean;
+  noWrapLabel?: boolean;
   readContent?: ReactNode;
   children?: ReactNode;
 }) {
@@ -896,7 +900,7 @@ function QuoteDetailRow({
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-slate-600">
         <QuoteDetailFieldIcon icon={icon} />
-        <span className="min-w-0 truncate">{label}</span>
+        <span className={noWrapLabel ? 'min-w-0 truncate !whitespace-nowrap' : 'min-w-0 truncate'}>{label}</span>
       </dt>
       <dd className="min-w-0" title={!isEditing ? displayValue(value) : undefined}>
         {readContent ?? (isEditing ? children : (
@@ -3135,14 +3139,17 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
             ) : null}
 
             <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
-              <QuoteDetailRow label="Številka povpraševanja" value={detail.quoteCode} icon="reference" isEditing={false}
+              <QuoteDetailRow label="Št. povpraševanja" value={detail.quoteCode} icon="reference" isEditing={false} noWrapLabel
                 readContent={(
-                  <button type="button" onClick={() => void copyPublicQuoteCode()}
-                    className={customerDetailStyles.publicCode}
-                    aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
-                    title="Kopiraj kodo povpraševanja" data-testid="admin-quote-public-code-copy">
-                    <span>{detail.quoteCode}</span><CopyIcon className="h-3.5 w-3.5 shrink-0" />
-                  </button>
+                  <div className={customerDetailStyles.publicCode}>
+                    <span>{detail.quoteCode}</span>
+                    <button type="button" onClick={() => void copyPublicQuoteCode()}
+                      className={adminCardSectionIconActionButtonClassName}
+                      aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
+                      title="Kopiraj kodo povpraševanja" data-testid="admin-quote-public-code-copy">
+                      <CopyIcon className={adminCardSectionIconClassName} />
+                    </button>
+                  </div>
                 )}
               />
               <QuoteDetailRow label="Datum" value={formatDateTime(detail.createdAt)} icon="calendar" isEditing={false} />

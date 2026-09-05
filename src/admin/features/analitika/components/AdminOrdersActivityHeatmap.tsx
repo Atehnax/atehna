@@ -1,30 +1,30 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
+import { formatEuroAmount, formatEuroWithSuffix, formatSlInteger } from '@/shared/domain/formatting';
 import { addCalendarDays } from '@/shared/domain/analytics/period';
 import type { BusinessActivityResponse } from '@/shared/domain/analytics/activity';
 import BusinessRecords from './business/BusinessRecords';
 import styles from './AdminOrdersActivityHeatmap.module.css';
+import AdminPeriodSelector from '@/shared/ui/admin-period-selector';
+import { adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
 
 type Mode = 'orders' | 'revenue';
 type Day = BusinessActivityResponse['days'][number];
 const colors = ['#e5e7eb', '#86efac', '#2dd4bf', '#38bdf8', '#6366f1', '#6d28d9'];
 const countBands = ['1–2', '3–5', '6–10', '11–14', '15+'];
+const valueBands = ['< 20,00 €', '20,00–< 50,00 €', '50,00–< 100,00 €', '100,00–< 250,00 €', '≥ 250,00 €'];
 const weekdays = ['P', 'T', 'S', 'Č', 'P', 'S', 'N'];
 const months = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'avg.', 'sep.', 'okt.', 'nov.', 'dec.'];
 const dayDate = (date: string) => new Date(date + 'T12:00:00Z');
-const fullDateFormat = new Intl.DateTimeFormat('sl-SI', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const shortDateFormat = new Intl.DateTimeFormat('sl-SI', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' });
-const fullDate = (date: string) => fullDateFormat.format(dayDate(date));
+const fullDate = (date: string) => date.split('-').reverse().join('.');
 const shortDate = (date: string) => shortDateFormat.format(dayDate(date));
 const countLevel = (value: number | null) => value == null || value <= 0 ? 0 : value <= 2 ? 1 : value <= 5 ? 2 : value <= 10 ? 3 : value < 15 ? 4 : 5;
 const knownCount = (day: Day) => day.available ? day.orderCount : null;
 const knownValue = (day: Day) => day.available && day.valueCount === day.orderCount ? day.activityValue : null;
-const dayDescription = (day: Day) => fullDate(day.date) + ': ' +
-  (knownCount(day) == null ? 'število ni na voljo' : formatSlInteger(day.orderCount) + ' naročil') + ', ' +
-  (knownValue(day) == null ? 'vrednost ni na voljo' : formatEuroWithSuffix(day.activityValue)) +
-  (day.partial ? ', delen dan' : '');
+const valueLevel = (value: number | null) => value == null || value <= 0 ? 0 : value < 20 ? 1 : value < 50 ? 2 : value < 100 ? 3 : value < 250 ? 4 : 5;
+const dayDescription = (day: Day) => `${fullDate(day.date)} | ${knownCount(day) == null ? '—' : formatSlInteger(day.orderCount)} nar. | ${knownValue(day) == null ? '—' : formatEuroAmount(day.activityValue) + '€'}`;
 
 export default function AdminOrdersActivityHeatmap({
   customerType = 'all', status = 'all', source = 'all'
@@ -78,7 +78,7 @@ export default function AdminOrdersActivityHeatmap({
       const start = addCalendarDays(data!.from, index * 7);
       return { start, dates: Array.from({ length: 7 }, (_, offset) => addCalendarDays(start, offset)) };
     });
-    return { byDate, weeks, maximum: Math.max(0, ...(data?.days.map(day => knownValue(day) ?? 0) ?? [])) };
+    return { byDate, weeks };
   }, [data]);
   const cellSize = data ? Math.max(1, (layout.width - 30 - (data.weeks - 1) * 4) / data.weeks) : 16;
   const gridStyle = { '--activity-cell': cellSize + 'px', '--activity-weeks': data?.weeks ?? layout.weeks } as CSSProperties;
@@ -111,20 +111,16 @@ export default function AdminOrdersActivityHeatmap({
     calendar.current?.querySelector<HTMLButtonElement>('[data-date="' + next + '"]')?.focus();
   };
 
-  return <article data-testid="order-activity-heatmap" className="relative min-w-0 w-full rounded-xl border border-slate-200 bg-white p-4">
+  return <article data-testid="order-activity-heatmap" className={'relative w-full ' + adminAnalyticsPanelClassName}>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-base font-semibold text-slate-950">Aktivnost naročil</h2>
-        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Mera aktivnosti">
-          {([{ value: 'orders', label: 'Naročila' }, { value: 'revenue', label: 'Vrednost naročil' }] as const).map(option =>
-            <button key={option.value} type="button" aria-pressed={mode === option.value} onClick={() => setMode(option.value)} className={'rounded-md px-3 py-1.5 text-xs font-semibold ' + (mode === option.value ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500')}>{mode === option.value && <span aria-hidden="true">✓ </span>}{option.label}</button>
-          )}
-        </div>
+        <h2 className="text-sm font-semibold text-slate-950">Aktivnost naročil</h2>
+        <AdminPeriodSelector value={mode} onChange={value => setMode(value as Mode)} ariaLabel="Mera aktivnosti" options={[{ value: 'orders', label: 'Naročila' }, { value: 'revenue', label: 'Vrednost naročil' }]} />
       </div>
       {data && <a href={'/api/admin/analytics/business/records?' + recordQuery + '&kind=orders&format=csv'} className="text-xs font-medium text-blue-700 underline underline-offset-4">Izvoz CSV</a>}
     </div>
     <p className="mt-2 text-xs leading-relaxed text-slate-500">Zgodovina se prilagaja širini koledarja, ne izbiri obdobja zgoraj. Filtri tipa naročnika, statusa in izvora veljajo. Oddana naročila vključujejo pozneje preklicana; vrednosti blaga so brez DDV in poštnine.</p>
-    {data && <p className="mt-2 text-[11px] text-slate-500">{shortDate(data.from)} – {shortDate(data.to)} · {data.weeks} tednov · Europe/Ljubljana · danes delno</p>}
+    {data && <p className="mt-2 text-[11px] text-slate-500">{shortDate(data.from)} – {shortDate(data.to)} · {data.weeks} tednov</p>}
     <div ref={calendar} className="mt-4 w-full min-w-0" role="region" aria-label="Koledar aktivnosti naročil" style={gridStyle}>
       {error ? <div role="alert" className="flex min-h-40 flex-wrap items-center gap-2 text-xs text-red-700">{error}<button className="underline" onClick={() => setRetry(value => value + 1)}>Poskusi znova</button></div>
         : !data ? <p role="status" className="flex min-h-40 items-center text-xs text-slate-500">Nalaganje zgodovine aktivnosti …</p>
@@ -138,9 +134,9 @@ export default function AdminOrdersActivityHeatmap({
                   const day = model.byDate.get(date);
                   if (!day) return <span key={date} aria-hidden="true" />;
                   const value = mode === 'orders' ? knownCount(day) : knownValue(day);
-                  const level = mode === 'orders' ? countLevel(value) : value == null || value <= 0 || !model.maximum ? 0 : Math.min(5, Math.max(1, Math.ceil(value / model.maximum * 5)));
+                  const level = mode === 'orders' ? countLevel(value) : valueLevel(value);
                   return <button key={date} type="button" className={styles.day}
-                    data-date={date} data-count-level={countLevel(knownCount(day))}
+                    data-date={date} data-count-level={countLevel(knownCount(day))} data-value-level={valueLevel(knownValue(day))}
                     style={{ '--activity-color': colors[level] } as CSSProperties}
                     aria-label={dayDescription(day)} title={dayDescription(day)} aria-pressed={selected?.date === date}
                     tabIndex={date === (tabDate && model.byDate.has(tabDate) ? tabDate : data.to) ? 0 : -1}
@@ -155,11 +151,10 @@ export default function AdminOrdersActivityHeatmap({
     </div>
     <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-500" aria-label={mode === 'orders' ? 'Legenda: število naročil' : 'Legenda: vrednost naročil'}>
       <span className="inline-flex items-center gap-1.5"><i className="h-3 w-3 rounded-[2px]" style={{ backgroundColor: colors[0] }} />0 / brez podatka</span>
-      {(mode === 'orders' ? countBands : model.maximum > 0 ? colors.slice(1).map((_, index) => '≤ ' + formatEuroWithSuffix(model.maximum * (index + 1) / 5)) : []).map((label, index) => <span key={label} className="inline-flex items-center gap-1.5"><i className="h-3 w-3 rounded-[2px]" style={{ backgroundColor: colors[index + 1] }} />{label}</span>)}
+      {(mode === 'orders' ? countBands : valueBands).map((label, index) => <span key={label} className="inline-flex items-center gap-1.5"><i className="h-3 w-3 rounded-[2px]" style={{ backgroundColor: colors[index + 1] }} />{label}</span>)}
     </div>
-    <p className="mt-2 text-[10px] text-slate-400">Siva pomeni nič naročil ali nerazpoložljivo zgodovino; razliko pokažeta opis dneva in tabela.{mode === 'revenue' && ' Barvni pasovi vrednosti se prilagodijo največji dnevni vrednosti.'}</p>
     <p className="mt-3 min-h-4 text-xs text-slate-600" aria-live="polite">{detail ? dayDescription(detail) : 'Izberite dan za pregled naročil. Po koledarju se lahko premikate s puščicami.'}</p>
-    {data && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">Dostopna tabela po dnevih</summary><div className="mt-2 max-h-64 overflow-auto"><table className="w-full text-left"><thead><tr><th className="p-2">Datum</th><th>Naročila</th><th>Vrednost blaga brez DDV in poštnine</th></tr></thead><tbody>{data.days.map(day => <tr key={day.date} className="border-t border-slate-100"><td className="p-2"><button className="text-blue-700 underline" onClick={() => setSelected({ date: day.date, query: recordQuery })}>{fullDate(day.date)}{day.partial ? ' (delno)' : ''}</button></td><td>{knownCount(day) == null ? 'Ni na voljo' : formatSlInteger(day.orderCount)}</td><td>{knownValue(day) == null ? 'Manjka podatek' : formatEuroWithSuffix(day.activityValue)}</td></tr>)}</tbody></table></div></details>}
+    {data && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">Dostopna tabela po dnevih</summary><div className="mt-2 max-h-64 overflow-auto"><table className="w-full text-left"><thead><tr><th className="p-2">Datum</th><th>Naročila</th><th>Vrednost blaga brez DDV in poštnine</th></tr></thead><tbody>{data.days.map(day => <tr key={day.date} className="border-t border-slate-100"><td className="p-2"><button className="text-blue-700 underline" onClick={() => setSelected({ date: day.date, query: recordQuery })}>{fullDate(day.date)}</button></td><td>{knownCount(day) == null ? 'Ni na voljo' : formatSlInteger(day.orderCount)}</td><td>{knownValue(day) == null ? 'Manjka podatek' : formatEuroWithSuffix(day.activityValue)}</td></tr>)}</tbody></table></div></details>}
     {selected && <BusinessRecords key={selected.date + selected.query} query={selected.query} drill={{ kind: 'orders', date: selected.date }} onClose={() => setSelected(null)} />}
   </article>;
 }

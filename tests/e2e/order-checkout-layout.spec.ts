@@ -525,7 +525,7 @@ test.describe('order checkout layout', () => {
     );
     await expect(quoteDetails.locator('#quoteReason')).toHaveCount(0);
     await expect(
-      formColumn.getByLabel('Vaša referenca ali št. naročilnice', {
+      formColumn.getByLabel('Referenca (neobvezno; naročilnica pozneje)', {
         exact: true
       })
     ).toHaveCount(0);
@@ -560,7 +560,7 @@ test.describe('order checkout layout', () => {
     );
     await expect(page.getByTestId('order-payment-section')).toBeVisible();
     await expect(
-      formColumn.getByLabel('Vaša referenca ali št. naročilnice', {
+      formColumn.getByLabel('Referenca (neobvezno; naročilnica pozneje)', {
         exact: true
       })
     ).toBeVisible();
@@ -622,7 +622,7 @@ test.describe('order checkout layout', () => {
       .getByLabel('E-poštni naslov *', { exact: true })
       .fill('nabava@example.com');
     await formColumn
-      .getByLabel('Naziv naročnika *', { exact: true })
+      .getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u)
       .fill('Testna šola');
     await formColumn
       .getByLabel('Kontaktna oseba *', { exact: true })
@@ -637,7 +637,7 @@ test.describe('order checkout layout', () => {
       .getByLabel('Poštni kraj *', { exact: true })
       .fill('Ljubljana');
     await formColumn
-      .getByLabel('Vaša referenca ali št. naročilnice', { exact: true })
+      .getByLabel('Referenca (neobvezno; naročilnica pozneje)', { exact: true })
       .fill('SKRITA-REFERENCA');
     await formColumn
       .getByLabel('Opombe', { exact: true })
@@ -1228,9 +1228,7 @@ test.describe('order checkout layout', () => {
     await expect(submit).toHaveText('Pošlji naročilo v potrditev');
 
     const email = formColumn.getByLabel('E-poštni naslov *', { exact: true });
-    const organizationName = formColumn.getByLabel('Naziv naročnika *', {
-      exact: true
-    });
+    const organizationName = formColumn.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u);
     const contactName = formColumn.getByLabel(
       'Kontaktna oseba *',
       { exact: true }
@@ -1245,7 +1243,7 @@ test.describe('order checkout layout', () => {
       exact: true
     });
     const reference = formColumn.getByLabel(
-      'Vaša referenca ali št. naročilnice',
+      'Referenca (neobvezno; naročilnica pozneje)',
       { exact: true }
     );
     const notes = formColumn.getByLabel('Opombe', { exact: true });
@@ -1409,9 +1407,7 @@ test.describe('order checkout layout', () => {
     await page.getByRole('radio', { name: 'Šola / javni zavod' }).click();
 
     const email = formColumn.getByLabel('E-poštni naslov *', { exact: true });
-    const organizationName = formColumn.getByLabel('Naziv naročnika *', {
-      exact: true
-    });
+    const organizationName = formColumn.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u);
     const contactName = formColumn.getByLabel(
       'Kontaktna oseba *',
       { exact: true }

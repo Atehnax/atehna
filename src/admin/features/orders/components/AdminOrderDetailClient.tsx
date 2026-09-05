@@ -56,6 +56,8 @@ import { AdminDetailTitleSlot } from '@/shared/ui/admin-detail/AdminDetailTitleS
 import { AdminNotesCard } from '@/shared/ui/admin-detail/AdminNotesCard';
 import {
   adminCardSectionEditIconButtonClassName,
+  adminCardSectionIconActionButtonClassName,
+  adminCardSectionIconClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
   adminTableSelectedDangerIconButtonClassName,
@@ -1669,12 +1671,15 @@ export default function AdminOrderDetailClient({
               <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
                 <OrderDataRow label="Številka naročila" value={order.order_code} icon="number" isEditing={false}
                   readContent={(
-                    <button type="button" onClick={() => void copyPublicOrderCode()}
-                      className={customerDetailStyles.publicCode}
-                      aria-label={`Kopiraj kodo naročila ${order.order_code}`}
-                      title="Kopiraj kodo naročila" data-testid="admin-order-public-code-copy">
-                      <span>{order.order_code}</span><CopyIcon className="h-3.5 w-3.5 shrink-0" />
-                    </button>
+                    <div className={customerDetailStyles.publicCode}>
+                      <span>{order.order_code}</span>
+                      <button type="button" onClick={() => void copyPublicOrderCode()}
+                        className={adminCardSectionIconActionButtonClassName}
+                        aria-label={`Kopiraj kodo naročila ${order.order_code}`}
+                        title="Kopiraj kodo naročila" data-testid="admin-order-public-code-copy">
+                        <CopyIcon className={adminCardSectionIconClassName} />
+                      </button>
+                    </div>
                   )}
                 />
                 <OrderDataRow

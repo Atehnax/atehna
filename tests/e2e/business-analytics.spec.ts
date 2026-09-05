@@ -285,11 +285,13 @@ test('activity calendar retains customer, source and status filters and reports 
   await expect(heatmap.getByTestId('activity-calendar-grid')).toBeVisible();
 });
 
-test('activity calendar applies every fixed count boundary with solid colours (read-only presentation fixture)', async ({ page }, testInfo) => {
+test('activity calendar applies fixed count and euro boundaries with compact tooltips (read-only presentation fixture)', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1920, height: 1080 });
   const counts = [0, 1, 2, 3, 5, 6, 10, 11, 14, 15, 22, 0];
   const levels = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 0];
+  const values = [0, 19.99, 20, 49.99, 50, 99.99, 100, 143.68, 249.99, 250, 500, 0];
+  const valueLevels = [0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 0];
   const colors = ['rgb(229, 231, 235)', 'rgb(134, 239, 172)', 'rgb(45, 212, 191)', 'rgb(56, 189, 248)', 'rgb(99, 102, 241)', 'rgb(109, 40, 217)'];
   let sampleDays: BusinessActivityResponse['days'] = [];
   await page.route('**/api/admin/analytics/business/activity?*', async route => {
@@ -298,7 +300,7 @@ test('activity calendar applies every fixed count boundary with solid colours (r
     const activity = await response.json() as BusinessActivityResponse;
     sampleDays = activity.days.slice(0, counts.length).map((day, index) => ({
       ...day, orderCount: counts[index], valueCount: counts[index],
-      activityValue: counts[index] * 100, available: index !== counts.length - 1
+      activityValue: values[index], available: index !== counts.length - 1
     }));
     await route.fulfill({ response, json: { ...activity, days: [...sampleDays, ...activity.days.slice(counts.length)] } });
   });
@@ -313,7 +315,14 @@ test('activity calendar applies every fixed count boundary with solid colours (r
     await expect(cell).toHaveCSS('background-color', colors[levels[index]]);
     await expect(cell).toHaveCSS('background-image', 'none');
   }
-  await expect(grid.locator('button[data-date="' + sampleDays.at(-1)!.date + '"]')).toHaveAttribute('title', /število ni na voljo/u);
+  await expect(grid.locator('button[data-date="' + sampleDays.at(-1)!.date + '"]')).toHaveAttribute('title', /\d{2}\.\d{2}\.\d{4} \| — nar\. \| —/u);
+  await heatmap.getByRole('button', { name: 'Vrednost naročil', exact: true }).click();
+  for (const [index, day] of sampleDays.entries()) {
+    const cell = grid.locator('button[data-date="' + day.date + '"]');
+    await expect(cell).toHaveCSS('background-color', colors[valueLevels[index]]);
+    if (day.available) await expect(cell).toHaveAttribute('title', day.date.split('-').reverse().join('.') + ' | ' + counts[index] + ' nar. | ' + new Intl.NumberFormat('sl-SI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(values[index]) + '€');
+  }
+  await expect(heatmap).not.toContainText('Barvni pasovi vrednosti');
   await heatmap.screenshot({ path: testInfo.outputPath('activity-colour-fixture-desktop.png') });
 });
 

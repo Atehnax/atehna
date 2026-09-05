@@ -150,7 +150,7 @@ export default function PurchaseOrderUploadForm() {
   };
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+    <form className="min-w-0 space-y-5" onSubmit={handleSubmit} noValidate>
       <div>
         <label
           className="mb-2 block text-sm font-semibold text-[color:var(--site-color-text)]"
@@ -171,14 +171,14 @@ export default function PurchaseOrderUploadForm() {
         />
         <label
           htmlFor="purchaseOrder"
-          className="site-radius-md flex min-h-16 cursor-pointer items-center gap-3 border border-dashed border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] px-4 transition hover:border-[color:var(--site-color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--site-field-focus)]"
+          className="site-radius-md flex min-h-16 cursor-pointer flex-wrap items-center gap-3 border border-dashed border-[color:var(--site-border-color)] p-4 transition hover:border-[color:var(--site-color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--site-field-focus)]"
         >
           <span className="site-button site-button--secondary pointer-events-none inline-flex shrink-0 items-center justify-center">
             {selectedFile ? 'Zamenjaj datoteko' : 'Izberi datoteko'}
           </span>
           {selectedFile ? (
-            <span className="min-w-0 text-sm">
-              <span className="block truncate font-semibold text-[color:var(--site-color-text)]">
+            <span className="min-w-0 flex-1 basis-40 text-sm">
+              <span className="block break-words font-semibold text-[color:var(--site-color-text)]">
                 {selectedFile.name}
               </span>
               <span className="block text-xs text-[color:var(--site-color-text-muted)]">
@@ -186,7 +186,7 @@ export default function PurchaseOrderUploadForm() {
               </span>
             </span>
           ) : (
-            <span className="min-w-0 truncate text-sm text-[color:var(--site-color-text-muted)]">
+            <span className="min-w-0 flex-1 basis-40 text-sm leading-5 text-[color:var(--site-color-text-muted)]">
               Podpisan PDF ali JPG, največ 10 MB
             </span>
           )}
@@ -196,7 +196,7 @@ export default function PurchaseOrderUploadForm() {
       {accessState.status === 'loading' ? (
         <p
           role="status"
-          className="site-radius-sm border border-[color:var(--site-border-color)] bg-[color:var(--site-color-surface-muted)] p-3 text-sm"
+          className="site-radius-sm border border-[color:var(--site-border-color)] p-3 text-sm leading-6"
         >
           Preverjamo varno povezavo …
         </p>
@@ -205,7 +205,7 @@ export default function PurchaseOrderUploadForm() {
       {accessState.status === 'error' ? (
         <p
           role="alert"
-          className="site-radius-sm border border-[color:var(--site-color-warning)] bg-[color:var(--site-color-surface-muted)] p-3 text-sm"
+          className="site-radius-sm border border-[color:var(--site-color-warning)] p-3 text-sm leading-6"
         >
           {accessState.message}
         </p>
@@ -215,7 +215,7 @@ export default function PurchaseOrderUploadForm() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="site-button site-button--secondary"
+            className="site-button site-button--secondary inline-flex items-center justify-center"
             onClick={() => void loadAccessSession()}
           >
             Poskusi znova

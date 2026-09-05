@@ -351,7 +351,7 @@ test.describe('checkout GURS address autocomplete', () => {
     );
     await expect(apartmentDetails).toBeVisible();
     await apartmentDetails.fill('2. nadstropje, vhod B');
-    await page.getByLabel('Naziv naročnika *', { exact: true }).fill('Primer d.o.o.');
+    await page.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u).fill('Primer d.o.o.');
     await page.getByLabel('Kontaktna oseba *', { exact: true }).fill('Ana Novak');
     await page
       .getByTestId('order-summary-column')
@@ -510,7 +510,7 @@ test.describe('checkout GURS address autocomplete', () => {
 
     await address.fill('Cankar');
     await expect(page.getByRole('listbox')).toBeVisible();
-    await page.getByLabel('Naziv naročnika *', { exact: true }).focus();
+    await page.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u).focus();
     await expect(address).toHaveValue('Cankar');
     await expect(gursId).toHaveValue('');
 
@@ -587,7 +587,7 @@ test.describe('checkout GURS address autocomplete', () => {
       name: 'Naslov *',
       exact: true
     });
-    await page.getByLabel('Naziv naročnika *', { exact: true }).fill('Primer d.o.o.');
+    await page.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u).fill('Primer d.o.o.');
     await page
       .getByLabel('Kontaktna oseba *', { exact: true })
       .fill('Ana Novak');
@@ -848,7 +848,7 @@ test.describe('checkout postal code and postal-town completion', () => {
       }).toBe(true);
       expect(requestedLookups).toEqual(['postalCode:1000']);
       await expect(postalCode).toHaveAttribute('aria-busy', 'true');
-      await page.getByLabel('Naziv naročnika *', { exact: true }).focus();
+      await page.getByLabel(/^Naziv (podjetja|šole ali javnega zavoda) \*$/u).focus();
       await expect(postalCode).toHaveAttribute('aria-busy', 'true');
     } finally {
       exactLookupGate.release();

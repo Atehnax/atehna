@@ -45,6 +45,12 @@ export const adminSearchPlaceholderTokenClasses =
 export const adminControlFocusTokenClasses =
   'focus:border-[color:var(--blue-500)] focus:outline-none focus:ring-0 focus:shadow-none focus-visible:border-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
 
+/** Shared surfaces and field geometry for all admin analytics sections. */
+export const adminAnalyticsPanelClassName =
+  'min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+export const adminAnalyticsControlClassName =
+  'h-8 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-700 ' + adminControlFocusTokenClasses;
+
 export const adminControlFocusWithinTokenClasses =
   'focus-within:border-[color:var(--blue-500)] focus-within:outline-none';
 

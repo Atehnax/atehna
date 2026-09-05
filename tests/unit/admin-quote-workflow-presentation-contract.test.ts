@@ -116,7 +116,6 @@ test('quote customer actions open the matching Stranke profile beside request de
     /customerEndpoint=\{`\/api\/admin\/quote-requests\/\$\{detail\.id\}\/customer`\}/u
   );
   for (const prop of [
-    'organizationName',
     'contactName',
     'email',
     'addressLine1',
@@ -130,7 +129,8 @@ test('quote customer actions open the matching Stranke profile beside request de
       new RegExp(prop + '=\\{persistedRequestDetails\\.' + prop + '\\}', 'u')
     );
   }
-  assert.doesNotMatch(customerActions, /customerType/u);
+  assert.match(customerActions, /organizationName=\{persistedRequestDetails\.customerType === 'individual' \? '' : persistedRequestDetails\.organizationName\}/u);
+  assert.doesNotMatch(customerActions, /\bcustomerType=\{/u);
   assert.doesNotMatch(detail, /function QuoteCustomerSummaryCard/u);
 });
 

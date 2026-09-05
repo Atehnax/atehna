@@ -33,6 +33,7 @@ import {
 } from '@/shared/domain/order/dateTime';
 import { formatStructuredOrderAddress } from '@/shared/domain/order/orderAddress';
 import { getCustomerTypeLabel } from '@/shared/domain/order/customerType';
+import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import {
   getQuoteRequestStatusLabel,
   getQuoteRequestStatusMenuItemClassName,
@@ -871,8 +872,8 @@ export default function AdminQuotesTable({
     }
     setQuickEdit({
       quoteRequestId: row.id,
-      initialCustomerName: row.customerName,
-      draftCustomerName: row.customerName,
+      initialCustomerName: getCustomerIdentity(row).name,
+      draftCustomerName: getCustomerIdentity(row).name,
       initialStatus: row.status,
       draftStatus: row.status,
       stateVersion: row.stateVersion,
@@ -1433,6 +1434,7 @@ export default function AdminQuotesTable({
               const dateTimeLabel = formatSlDateTime(row.createdAt);
               const addressLabel = formatQuoteTableAddress(row);
               const customerTypeLabel = getCustomerTypeLabel(row.customerType);
+              const customerIdentity = getCustomerIdentity(row);
               const totalLabel =
                 row.quotedTotal === null && row.shippingRequiresManualEntry
                   ? 'N/A'
@@ -1558,15 +1560,21 @@ export default function AdminQuotesTable({
                     ) : (
                       <div className="min-w-0 leading-tight">
                         <span
-                          className={`${adminTableMatchingValueBaseClassName} max-w-full truncate font-medium text-slate-900 ${getMatchingValueClassName('customer', row.customerName)}`}
-                          title={row.customerName}
+                          className={`${adminTableMatchingValueBaseClassName} max-w-full truncate font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                          title={customerIdentity.name}
+                          data-testid={`quote-table-customer-name-${row.id}`}
                           onMouseEnter={() =>
-                            setMatchingValue('customer', row.customerName)
+                            setMatchingValue('customer', customerIdentity.name)
                           }
                           onMouseLeave={() => setHoveredCellMatch(null)}
                         >
-                          {row.customerName}
+                          {customerIdentity.name || '—'}
                         </span>
+                        {customerIdentity.contact ? (
+                          <p className="mt-0.5 truncate text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`quote-table-contact-${row.id}`}>
+                            {customerIdentity.contact}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 truncate text-[11px] text-slate-500">
                           {row.email}
                         </p>

@@ -32,7 +32,7 @@ const VIEWPORTS = [
 type Rect = { x: number; y: number; width: number; height: number };
 type VisualFixture = { quoteRequestId: number; orderId: number; orderNumber: string };
 
-async function requireOk(response: APIResponse, label: string) {
+async function requireOk(response: Pick<APIResponse, 'ok' | 'status' | 'text'>, label: string) {
   if (response.ok()) return;
   throw new Error(`${label} failed with ${response.status()}: ${await response.text()}`);
 }
@@ -322,14 +322,58 @@ async function assertMobileCustomerCard(page: Page, kind: 'quote' | 'order', edi
   }
 }
 
-function expectCustomerCardTransition(before: Rect, after: Rect, viewport: (typeof VIEWPORTS)[number]) {
-  if (viewport.key === 'desktop') {
-    expectSameBox(before, after);
-  } else {
-    // Mobile expands the address editor instead of squeezing five inputs into one narrow cell.
-    expectSameBox({ ...before, height: after.height }, after);
-    expect(after.height).toBeGreaterThan(before.height);
+async function assertCustomerDetailsRows(
+  page: Page,
+  kind: 'quote' | 'order',
+  customerLabel: 'Naročnik' | 'Naziv',
+  desktop: boolean
+) {
+  const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+  const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
+  const spanAttribute = kind === 'quote' ? 'data-quote-detail-span' : 'data-order-data-span';
+  const labels = [
+    kind === 'quote' ? 'Številka povpraševanja' : 'Številka naročila',
+    'Datum', 'Tip naročnika', customerLabel, 'Email', 'Naslov',
+    ...(kind === 'quote' ? ['Kaj potrebuje?'] : []),
+    'Sporočilo stranke'
+  ];
+  const rows = card.locator(`[${rowAttribute}]`);
+  await expect(rows).toHaveCount(labels.length);
+  expect(await rows.evaluateAll((elements, attribute) => elements.map((element) => element.getAttribute(attribute)), rowAttribute)).toEqual(labels);
+  await expect(card.locator(`[${rowAttribute}="Naslov"]`)).not.toHaveAttribute(spanAttribute, 'full');
+  const messageRow = card.locator(`[${rowAttribute}="Sporočilo stranke"]`);
+  if (kind === 'order') await expect(messageRow).toHaveAttribute(spanAttribute, 'full');
+  else await expect(messageRow).not.toHaveAttribute(spanAttribute, 'full');
+  const copy = rows.first().getByTestId(`admin-${kind}-public-code-copy`);
+  await expect(copy).toBeVisible();
+  await expect(copy).toBeEnabled();
+  await expect(rows.first().locator('input')).toHaveCount(0);
+  const header = page.getByTestId(kind === 'quote' ? 'quote-detail-header' : 'admin-order-detail-header');
+  await expect(header.getByTestId(`admin-${kind}-public-code-copy`)).toHaveCount(0);
+  if (kind === 'quote') {
+    await expect(card.locator(`[${rowAttribute}="Datum"] input`)).toHaveCount(0);
+    await expect(card.getByLabel('Referenca', { exact: true })).toHaveCount(0);
   }
+  const columnCount = await card.locator('dl').first().evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length);
+  if (desktop) expect(columnCount).toBe(2);
+  if (columnCount === 2) {
+    const boxes = await rows.evaluateAll((elements) => elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom };
+    }));
+    for (let index = 0; index + 1 < labels.length; index += 2) {
+      expect(Math.abs(boxes[index]!.y - boxes[index + 1]!.y)).toBeLessThanOrEqual(1);
+      expect(boxes[index + 1]!.x).toBeGreaterThan(boxes[index]!.right);
+      if (index > 0) expect(boxes[index]!.y).toBeGreaterThanOrEqual(boxes[index - 2]!.bottom);
+    }
+  }
+}
+
+function expectCustomerCardTransition(before: Rect, after: Rect, viewport: (typeof VIEWPORTS)[number]) {
+  // Address and entity-name editors may expand at any card width; their
+  // controls must stay in normal flow without moving the card's outer edges.
+  expectSameBox({ ...before, height: after.height }, after);
+  expect(after.height, `${viewport.key} customer editor`).toBeGreaterThanOrEqual(before.height);
 }
 
 async function assertQuoteSectionTitleStyles(page: Page) {
@@ -587,6 +631,14 @@ async function normalizeVolatileActivityTimestamps(page: Page) {
         timestamp.textContent = '30.8. 19:00';
       });
     });
+  await page.locator('[data-quote-detail-row="Datum"] dd span').evaluateAll((dates, timestamp) => {
+    const stableDate = new Intl.DateTimeFormat('sl-SI', {
+      dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Ljubljana'
+    }).format(new Date(timestamp));
+    // This helper runs only before PNG comparisons; stored creation dates and
+    // all behavioral assertions retain their real values.
+    dates.forEach((date) => { date.textContent = stableDate; });
+  }, FIXED_TIMESTAMP);
 }
 
 async function normalizeVolatileOrderNumbers(page: Page) {
@@ -797,6 +849,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await settleRenderedPage(page);
 
       await assertQuoteTitleDescenders(page);
+      await assertCustomerDetailsRows(page, 'quote', 'Naročnik', viewport.key === 'desktop');
       await assertQuoteSectionTitleStyles(page);
       await assertSectionEditIcons(page, 3);
       await assertDetailColumns(page, 'quote', viewport);
@@ -840,6 +893,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
 
       expectSameBox(before.title, await box(titleSlot));
       const requestAfter = await box(requestCard);
+      await assertCustomerDetailsRows(page, 'quote', 'Naročnik', viewport.key === 'desktop');
       expectCustomerCardTransition(before.request, requestAfter, viewport);
       assertQuoteOfferLayoutUnchanged(before.offer, await captureQuoteOfferLayout(page), requestAfter.height - before.request.height);
       await assertQuoteSectionTitleStyles(page);
@@ -866,6 +920,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await settleRenderedPage(page);
 
       await expect(page.getByTestId('admin-order-title-slot')).toContainText(`Naročilo ${fixture.orderNumber}`);
+      await assertCustomerDetailsRows(page, 'order', 'Naziv', viewport.key === 'desktop');
       await assertSectionEditIcons(page, 4);
       await assertDetailColumns(page, 'order', viewport);
       await captureOrderItemSlots(page);
@@ -896,6 +951,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
 
       expectSameBox(before.title, await box(titleSlot));
       const dataCardAfter = await box(dataCard);
+      await assertCustomerDetailsRows(page, 'order', 'Naziv', viewport.key === 'desktop');
       expectCustomerCardTransition(before.dataCard, dataCardAfter, viewport);
       const afterSlots = await captureOrderItemSlots(page);
       expect(afterSlots).toHaveLength(before.itemSlots.length);
@@ -909,6 +965,105 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await expectPageScreenshot(page, `order-${viewport.key}-edit.png`);
       await expectOrderItemsScreenshot(page, `order-items-${viewport.key}-edit.png`);
       await expectOrderShippingScreenshot(page, `order-shipping-${viewport.key}-edit.png`);
+    });
+  }
+
+  for (const kind of ['quote', 'order'] as const) {
+    test(`${kind} first data row copies the complete immutable public code`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width: 1280, height: 920 });
+      await page.goto(kind === 'quote'
+        ? `/admin/orders/quotes/${fixture.quoteRequestId}`
+        : `/admin/orders/${fixture.orderId}`);
+      const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+      const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
+      const numberRow = card.locator(`[${rowAttribute}]`).first();
+      const code = (await numberRow.locator('dd').innerText()).match(/\b(?:N|PV)-(?:[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}-){3}[23456789ABCDEFGHJKMNPQRSTVWXYZ]{4}\b/u)?.[0];
+      expect(code).toBeTruthy();
+      expect(code?.startsWith(kind === 'quote' ? 'PV-' : 'N-')).toBe(true);
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(page.url()).origin });
+      const copy = numberRow.getByTestId(`admin-${kind}-public-code-copy`);
+      await assertCustomerDetailsRows(page, kind, kind === 'quote' ? 'Naročnik' : 'Naziv', true);
+      await testInfo.attach(`${kind}-customer-desktop-read`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-desktop-read.png`) }), contentType: 'image/png' });
+      await copy.click();
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+      await card.locator('button[data-admin-card-edit-action]').click();
+      await expect(numberRow.locator('input')).toHaveCount(0);
+      await assertCustomerDetailsRows(page, kind, kind === 'quote' ? 'Naročnik' : 'Naziv', true);
+      await testInfo.attach(`${kind}-customer-desktop-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-desktop-edit.png`) }), contentType: 'image/png' });
+      await copy.click();
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+    });
+
+    test(`${kind} keeps full customer names and distinct organization contacts when saving details`, async ({ page }, testInfo) => {
+      testInfo.setTimeout(120_000);
+      const id = kind === 'quote' ? fixture.quoteRequestId : fixture.orderId;
+      const table = kind === 'quote' ? 'quote_requests' : 'orders';
+      const endpoint = kind === 'quote' ? `/api/admin/quote-requests/${id}/details` : `/api/admin/orders/${id}/details`;
+      for (const customerType of ['individual', 'company', 'school'] as const) {
+        const organization = customerType === 'individual' ? 'Ana' : customerType === 'company' ? 'Podjetje Gaja d.o.o.' : 'Osnovna šola Gaja';
+        const contact = 'Ana Novak';
+        const label = customerType === 'individual' ? 'Naročnik' : 'Naziv';
+        // These are this suite's synthetic, pre-issue fixtures only. A stale
+        // first name in organization_name must never replace the full contact.
+        await database.query(`update ${table} set customer_type = $2, organization_name = $3, contact_name = $4${kind === 'quote' ? ', state_version = state_version + 1' : ''} where id = $1`, [id, customerType, organization, contact]);
+        const before = (await database.query<{ reference: string | null; created_at: Date }>(`select reference, created_at from ${table} where id = $1`, [id])).rows[0]!;
+        await page.goto(kind === 'quote' ? `/admin/orders/quotes/${id}` : `/admin/orders/${id}`);
+        const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+        const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
+        const customerRow = card.locator(`[${rowAttribute}="${label}"]`);
+        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? contact : `${organization} (${contact})`);
+        await card.locator('button[data-admin-card-edit-action]').click();
+        const nameInput = card.getByLabel(customerType === 'individual' ? 'Naročnik' : 'Kontaktna oseba', { exact: true });
+        await expect(nameInput).toHaveValue(contact);
+        if (customerType === 'individual') {
+          await expect(card.getByLabel('Naziv', { exact: true })).toHaveCount(0);
+          await expect(card.getByLabel('Kontaktna oseba', { exact: true })).toHaveCount(0);
+        } else {
+          await expect(card.getByLabel('Naziv', { exact: true })).toHaveValue(organization);
+        }
+        await expect(card.getByLabel('Referenca', { exact: true })).toHaveCount(0);
+        await card.getByLabel('Sporočilo stranke', { exact: true }).fill(`Nepovezana opomba ${kind} ${customerType}`);
+        const savedResponse = page.waitForResponse((response) => response.url().endsWith(endpoint) && response.request().method() === (kind === 'quote' ? 'PUT' : 'POST'));
+        await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+        const saved = await savedResponse;
+        await requireOk(saved, `save ${kind} ${customerType} unrelated note`);
+        expect(saved.request().postDataJSON().contactName).toBe(contact);
+        const persisted = (await database.query<{ contact_name: string; organization_name: string | null; reference: string | null; created_at: Date }>(`select contact_name, organization_name, reference, created_at from ${table} where id = $1`, [id])).rows[0]!;
+        expect(persisted.contact_name).toBe(contact);
+        if (customerType !== 'individual') expect(persisted.organization_name).toBe(organization);
+        expect(persisted.reference).toBe(before.reference);
+        if (kind === 'quote') expect(persisted.created_at.toISOString()).toBe(before.created_at.toISOString());
+        await page.reload();
+        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? contact : `${organization} (${contact})`);
+        await card.locator('button[data-admin-card-edit-action]').click();
+        const editedName = 'Ana Novak Kovač';
+        await nameInput.fill('Ana');
+        await nameInput.pressSequentially(' Novak Kovač');
+        await expect(nameInput).toHaveValue(editedName);
+        const renamedResponse = page.waitForResponse((response) => response.url().endsWith(endpoint) && response.request().method() === (kind === 'quote' ? 'PUT' : 'POST'));
+        await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+        await requireOk(await renamedResponse, `edit ${kind} ${customerType} contact`);
+        await page.reload();
+        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? editedName : `${organization} (${editedName})`);
+        const search = new URLSearchParams({ q: editedName });
+        if (kind === 'quote') search.set('view', 'quotes');
+        await page.goto(`/admin/orders?${search.toString()}`);
+        const tableName = page.getByTestId(`${kind}-table-customer-name-${id}`);
+        const tableContact = page.getByTestId(`${kind}-table-contact-${id}`);
+        await expect(tableName).toBeVisible();
+        await expect(tableName).toHaveText(customerType === 'individual' ? editedName : organization);
+        if (customerType === 'individual') {
+          await expect(tableContact).toHaveCount(0);
+        } else {
+          await expect(tableContact).toBeVisible();
+          await expect(tableContact).toHaveText(editedName);
+          const [nameFontSize, contactFontSize] = await Promise.all([
+            tableName.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+            tableContact.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+          ]);
+          expect(contactFontSize).toBeLessThan(nameFontSize);
+        }
+      }
     });
   }
 });

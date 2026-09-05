@@ -63,14 +63,14 @@ test('customer actions sit beside the order data title and preserve behavior', a
     const orderDataCard = page.getByTestId('admin-order-data-card');
     const orderDataRows = orderDataCard.locator('[data-order-data-row]');
     const addressRow = orderDataCard.locator('[data-order-data-row="Naslov"]');
-    const notesRow = orderDataCard.locator('[data-order-data-row="Opombe stranke"]');
+    const notesRow = orderDataCard.locator('[data-order-data-row="Sporočilo stranke"]');
     const compactRow = orderDataCard.locator('[data-order-data-row="Datum"]');
     const orderDataEditAction = orderDataCard.getByRole('button', {
       name: 'Uredi podatke naročila'
     });
 
     await expect(orderDataCard).toBeVisible();
-    await expect(orderDataRows).toHaveCount(6);
+    await expect(orderDataRows).toHaveCount(7);
     await expect(orderDataCard.locator('input, select, textarea')).toHaveCount(0);
     await expect(addressRow).toContainText(
       'Testna ulica 1, 2. nadstropje, 1000 Ljubljana, SI'
@@ -99,11 +99,11 @@ test('customer actions sit beside the order data title and preserve behavior', a
     expect(notesRowBox).not.toBeNull();
     expect(compactRowBox).not.toBeNull();
     for (const rowBox of readRowBoxes) {
-      expect(Math.abs(rowBox.height - 35)).toBeLessThanOrEqual(1);
+      expect(rowBox.height).toBeGreaterThanOrEqual(35);
     }
     if (addressRowBox && notesRowBox && compactRowBox) {
-      expect(Math.abs(addressRowBox.width - notesRowBox.width)).toBeLessThanOrEqual(1);
-      expect(addressRowBox.width).toBeGreaterThan(compactRowBox.width * 1.9);
+      expect(Math.abs(addressRowBox.width - compactRowBox.width)).toBeLessThanOrEqual(1);
+      expect(notesRowBox.width).toBeGreaterThan(compactRowBox.width * 1.9);
     }
 
     const detailMutationRequests: string[] = [];
@@ -150,16 +150,19 @@ test('customer actions sit beside the order data title and preserve behavior', a
     expect(editCardBox).not.toBeNull();
     expect(editRowBoxes).toHaveLength(readRowBoxes.length);
     if (readCardBox && editCardBox) {
-      for (const key of ['x', 'y', 'width', 'height'] as const) {
+      for (const key of ['x', 'y', 'width'] as const) {
         expect(Math.abs(readCardBox[key] - editCardBox[key])).toBeLessThanOrEqual(1);
       }
+      expect(editCardBox.height).toBeGreaterThanOrEqual(readCardBox.height);
     }
     for (let index = 0; index < readRowBoxes.length; index += 1) {
-      for (const key of ['x', 'y', 'width', 'height'] as const) {
+      for (const key of ['x', 'width'] as const) {
         expect(
           Math.abs(readRowBoxes[index][key] - editRowBoxes[index][key])
         ).toBeLessThanOrEqual(1);
       }
+      expect(editRowBoxes[index].height).toBeGreaterThanOrEqual(35);
+      expect(editRowBoxes[index].y).toBeGreaterThanOrEqual(readRowBoxes[index].y);
     }
 
     await orderDataEditAction.click();

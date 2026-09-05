@@ -133,7 +133,7 @@ test('order detail follows the requested two-column information hierarchy', () =
   const orderData = detail.indexOf('data-testid="admin-order-data-card"');
   const customerActions = detail.indexOf('<AdminOrderCustomerActions', orderData);
   const orderDataRows = detail.indexOf(
-    '<dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">',
+    '<dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2',
     orderData
   );
   const adminNotes = detail.indexOf('<AdminNotesCard');
@@ -147,7 +147,7 @@ test('order detail follows the requested two-column information hierarchy', () =
   assert.ok(header >= 0 && headerAudit > header && activityTimeline > headerAudit);
   assert.equal(detail.match(/<AdminOrderActivityCard/g)?.length, 1);
   assert.ok(items >= 0 && orderData > items);
-  assert.match(detail, /className=\{`\$\{adminWindowCardClassName\} order-first p-4`\}/u);
+  assert.match(detail, /className=\{`\$\{adminWindowCardClassName\} \$\{customerDetailStyles\.customerCard\} order-first p-4`\}/u);
   assert.ok(customerActions > orderData && orderDataRows > customerActions);
   assert.equal(detail.match(/<AdminOrderCustomerActions/g)?.length, 1);
   assert.match(
@@ -224,12 +224,12 @@ test('activity is an embedded chronological horizontal timeline in the order hea
   assert.doesNotMatch(sharedActivityTimeline, /\bw-px\b/u);
 });
 
-test('order data keeps one compact row geometry across read and edit modes', () => {
+test('order data uses compact expandable rows in the requested row-major order', () => {
   assert.match(detail, /function OrderDataRow/u);
   const orderDataRow = detail.slice(detail.indexOf('function OrderDataRow'));
   assert.match(
     orderDataRow,
-    /grid h-\[35px\] min-w-0 items-center gap-3/u
+    /grid min-h-\[35px\] min-w-0 items-center gap-3/u
   );
   assert.doesNotMatch(
     orderDataRow,
@@ -269,16 +269,16 @@ test('order data keeps one compact row geometry across read and edit modes', () 
     /isEditing \? \([\s\S]*?children[\s\S]*?\) : \([\s\S]*?<DetailFieldShell isEditing=\{false\}>[\s\S]*?orderDataReadValueClassName/u
   );
   assert.doesNotMatch(detail, /\{isEditing \? children : display\}/u);
-  assert.equal(detail.match(/<OrderDataRow/g)?.length, 6);
+  assert.equal(detail.match(/<OrderDataRow/g)?.length, 7);
 
   const orderDataRowTags = [...detail.matchAll(/<OrderDataRow[\s\S]*?>/gu)].map(([tag]) => tag);
   const expectedRowIcons = new Map([
+    ['Številka naročila', 'number'],
     ['Datum', 'calendar'],
     ['Tip naročnika', 'type'],
-    ['Naročnik', 'customer'],
     ['Email', 'email'],
     ['Naslov', 'address'],
-    ['Opombe stranke', 'notes']
+    ['Sporočilo stranke', 'notes']
   ]);
   for (const [label, icon] of expectedRowIcons) {
     const rowTag = orderDataRowTags.find((tag) => tag.includes('label="' + label + '"'));
@@ -293,7 +293,17 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   assert.match(customerTypeRowTag, /\breserveTrailingControl\b/u);
   assert.match(detail, /reserveTrailingControl \? 'pr-5' : ''/u);
 
-  for (const label of ['Naslov', 'Opombe stranke']) {
+  const customerRowTag = orderDataRowTags[3];
+  assert.ok(customerRowTag);
+  assert.match(customerRowTag, /label=\{activeOrderDataDetails\.customerType === 'individual' \? 'Naročnik' : 'Naziv'\}/u);
+  assert.match(customerRowTag, /icon="customer"/u);
+  assert.deepEqual(orderDataRowTags.map((tag) => tag.match(/label="([^"]+)"/u)?.[1] ?? 'Naročnik/Naziv'), [
+    'Številka naročila', 'Datum', 'Tip naročnika', 'Naročnik/Naziv', 'Email', 'Naslov', 'Sporočilo stranke'
+  ]);
+  const addressRowTag = orderDataRowTags.find((tag) => tag.includes('label="Naslov"'));
+  assert.ok(addressRowTag);
+  assert.doesNotMatch(addressRowTag, /\bfullWidth\b/u);
+  for (const label of ['Sporočilo stranke']) {
     const rowTag = orderDataRowTags.find((tag) => tag.includes('label="' + label + '"'));
     assert.ok(rowTag, 'Expected a full-width order-data row for ' + label);
     assert.match(rowTag, /\bfullWidth\b/u);
@@ -314,12 +324,31 @@ test('order data keeps one compact row geometry across read and edit modes', () 
   assert.doesNotMatch(detail, /<span>Uredi podatke<\/span>/u);
   assert.match(
     detail,
-    /<dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">/u
+    /<dl className=\{`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 \$\{customerDetailStyles\.detailsGrid\}`\}>/u
   );
   assert.doesNotMatch(detail, /OrderDataReadOnlyRow/u);
 });
 
-test('order address remains structured inside one full-width field and persists without lossy parsing', () => {
+test('order customer identity and public code remain distinct from internal numbering when saved', () => {
+  const customerCard = detail.slice(detail.indexOf('data-testid="admin-order-data-card"'), detail.indexOf('<AdminNotesCard'));
+  const saveDetails = detail.slice(detail.indexOf('const saveDetails ='), detail.indexOf('if (requests.length > 0)'));
+  const editor = readFileSync(resolve(process.cwd(), 'src/shared/ui/admin-detail/AdminCustomerNameEditor.tsx'), 'utf8');
+  assert.match(customerCard, /label="Številka naročila" value=\{order\.order_code\}[\s\S]*?isEditing=\{false\}/u);
+  assert.match(customerCard, /data-testid="admin-order-public-code-copy"/u);
+  assert.match(customerCard, /<span>\{order\.order_code\}<\/span>/u);
+  assert.match(detail, /navigator\.clipboard\.writeText\(order\.order_code\)/u);
+  assert.doesNotMatch(detail.slice(0, detail.indexOf('data-testid="admin-order-data-card"')), /data-testid="admin-order-public-code-copy"/u);
+  assert.match(detail, /getCustomerIdentity\(activeOrderDataDetails\)/u);
+  assert.match(customerCard, /<AdminCustomerNameEditor values=\{activeOrderDataDetails\}[\s\S]*?onChange=\{updateDraftDetails\}/u);
+  assert.match(saveDetails, /contactName: draftDetails\.contactName\.trim\(\)/u);
+  assert.doesNotMatch(saveDetails, /contactName: draftDetails\.organizationName/u);
+  assert.match(editor, /aria-label=\{individual \? 'Naročnik' : 'Naziv'\}/u);
+  assert.match(editor, /!individual \? \([\s\S]*?aria-label="Kontaktna oseba"/u);
+  assert.match(editor, /contactName: event\.target\.value/u);
+  assert.doesNotMatch(editor, /event\.target\.value\.trim\(\)/u);
+});
+
+test('order address remains structured inside one field and persists without lossy parsing', () => {
   assert.match(
     detail,
     /type DetailData = \{[\s\S]*?addressLine2: string;[\s\S]*?countryCode: string;/u

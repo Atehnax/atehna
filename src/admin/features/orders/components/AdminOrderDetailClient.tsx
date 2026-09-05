@@ -18,6 +18,8 @@ import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
+import { AdminCustomerNameEditor } from '@/shared/ui/admin-detail/AdminCustomerNameEditor';
+import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
 import { parseCustomerEmailConfirmationRequired } from '@/admin/features/email/customerEmailConfirmation';
@@ -274,8 +276,8 @@ const asDetailData = (order: NormalizedOrder): DetailData => ({
   postalCode: order.postal_code.trim(),
   orderDate: toDisplayOrderDate(order.created_at),
   customerType: order.customer_type,
-  organizationName: order.organization_name?.trim() ? order.organization_name : order.contact_name,
-  contactName: order.contact_name,
+  organizationName: order.organization_name ?? '',
+  contactName: order.contact_name.trim() ? order.contact_name : (order.customer_type === 'individual' ? order.organization_name ?? '' : ''),
   email: order.email,
   city: order.city.trim(),
   deliveryAddress: order.address_line1.trim(),
@@ -336,7 +338,7 @@ function HeaderOrderIcon({ className = '' }: { className?: string }) {
   );
 }
 
-type DetailFieldIconType = 'calendar' | 'customer' | 'postal' | 'type' | 'email' | 'address' | 'notes';
+type DetailFieldIconType = 'number' | 'calendar' | 'customer' | 'postal' | 'type' | 'email' | 'address' | 'notes';
 
 function DetailFieldIcon({ icon }: { icon: DetailFieldIconType }) {
   const commonProps = {
@@ -873,7 +875,11 @@ export default function AdminOrderDetailClient({
       : undefined;
   const deliveryPlanEditingLocked = deliveryPlanEditingLockedReason !== undefined;
   const pageTitle = `Naročilo ${displayOrderNumber}`;
-  const customerDisplayName = activeHeaderDetails.organizationName.trim() || activeHeaderDetails.contactName.trim() || activeHeaderDetails.email.trim() || '—';
+  const customerDisplayName = getCustomerIdentity(activeHeaderDetails).name || activeHeaderDetails.email.trim() || '—';
+  const activeCustomerIdentity = getCustomerIdentity(activeOrderDataDetails);
+  const activeCustomerName = activeCustomerIdentity.contact
+    ? `${activeCustomerIdentity.name} (${activeCustomerIdentity.contact})`
+    : activeCustomerIdentity.name;
   const activeOrderNumberValue = toEditableOrderNumber(isMasterEditing ? draftOrderNumber : displayOrderNumber);
   const orderNumberSuggestionsId = `order-number-suggestions-${orderId}`;
   const orderNumberInputRef = useRef<HTMLInputElement | null>(null);
@@ -1099,8 +1105,8 @@ export default function AdminOrderDetailClient({
           body: JSON.stringify({
             orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
             customerType: draftDetails.customerType,
-            organizationName: draftDetails.organizationName,
-            contactName: draftDetails.organizationName.trim() || draftDetails.contactName.trim(),
+            organizationName: draftDetails.customerType === 'individual' ? '' : draftDetails.organizationName.trim(),
+            contactName: draftDetails.contactName.trim() || (draftDetails.customerType === 'individual' ? getCustomerIdentity(draftDetails).name : ''),
             email: draftDetails.email,
             addressLine1: draftDetails.deliveryAddress,
             addressLine2: draftDetails.addressLine2,
@@ -1449,18 +1455,6 @@ export default function AdminOrderDetailClient({
                   title={pageTitle}
                   width="compact"
                 />
-                <button
-                  type="button"
-                  onClick={() => void copyPublicOrderCode()}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold tabular-nums text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                  aria-label={`Kopiraj kodo naročila ${order.order_code}`}
-                  title="Kopiraj kodo naročila"
-                  data-testid="admin-order-public-code-copy"
-                >
-                  <span>Koda {order.order_code}</span>
-                  <CopyIcon className="h-3.5 w-3.5" />
-                </button>
-
                 <div
                   className={adminStatusInfoPillGroupClassName}
                   data-testid="admin-order-header-statuses"
@@ -1639,7 +1633,7 @@ export default function AdminOrderDetailClient({
 
 
             <section
-              className={`${adminWindowCardClassName} order-first p-4`}
+              className={`${adminWindowCardClassName} ${customerDetailStyles.customerCard} order-first p-4`}
               style={adminWindowCardStyle}
               data-testid="admin-order-data-card"
             >
@@ -1648,7 +1642,7 @@ export default function AdminOrderDetailClient({
                   <h2 className="text-base font-semibold text-slate-900">Podatki naročila</h2>
                   <AdminOrderCustomerActions
                     orderId={orderId}
-                    organizationName={persistedDetails.organizationName}
+                    organizationName={persistedDetails.customerType === 'individual' ? '' : persistedDetails.organizationName}
                     contactName={persistedDetails.contactName}
                     email={persistedDetails.email}
                     addressLine1={persistedDetails.deliveryAddress}
@@ -1672,7 +1666,17 @@ export default function AdminOrderDetailClient({
                 </button>
               </div>
 
-              <dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">
+              <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
+                <OrderDataRow label="Številka naročila" value={order.order_code} icon="number" isEditing={false}
+                  readContent={(
+                    <button type="button" onClick={() => void copyPublicOrderCode()}
+                      className={customerDetailStyles.publicCode}
+                      aria-label={`Kopiraj kodo naročila ${order.order_code}`}
+                      title="Kopiraj kodo naročila" data-testid="admin-order-public-code-copy">
+                      <span>{order.order_code}</span><CopyIcon className="h-3.5 w-3.5 shrink-0" />
+                    </button>
+                  )}
+                />
                 <OrderDataRow
                   label="Datum"
                   value={formatOrderDataDate(activeOrderDataDetails.orderDate)}
@@ -1707,17 +1711,8 @@ export default function AdminOrderDetailClient({
                     />
                   </DetailFieldShell>
                 </OrderDataRow>
-                <OrderDataRow label="Naročnik" value={activeOrderDataDetails.organizationName} icon="customer" isEditing={isOrderDataEditing}>
-                  <DetailFieldShell isEditing>
-                    <input
-                      type="text"
-                      aria-label="Naročnik"
-                      value={activeOrderDataDetails.organizationName}
-                      disabled={pageIsBusy}
-                      onChange={(event) => updateDraftDetails({ organizationName: event.target.value })}
-                      className={orderDataValueControlClassName}
-                    />
-                  </DetailFieldShell>
+                <OrderDataRow label={activeOrderDataDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'} value={activeCustomerName} icon="customer" isEditing={isOrderDataEditing}>
+                  <AdminCustomerNameEditor values={activeOrderDataDetails} disabled={pageIsBusy} onChange={updateDraftDetails} />
                 </OrderDataRow>
                 <OrderDataRow label="Email" value={activeOrderDataDetails.email} icon="email" isEditing={isOrderDataEditing}>
                   <DetailFieldShell isEditing>
@@ -1736,7 +1731,6 @@ export default function AdminOrderDetailClient({
                   value={formatOrderDataAddress(activeOrderDataDetails)}
                   icon="address"
                   isEditing={isOrderDataEditing}
-                  fullWidth
                 >
                   <OrderAddressEditor
                     details={activeOrderDataDetails}
@@ -1745,7 +1739,7 @@ export default function AdminOrderDetailClient({
                   />
                 </OrderDataRow>
                 <OrderDataRow
-                  label="Opombe stranke"
+                  label="Sporočilo stranke"
                   value={activeOrderDataDetails.notes}
                   icon="notes"
                   isEditing={isOrderDataEditing}
@@ -1758,7 +1752,7 @@ export default function AdminOrderDetailClient({
                       value={activeOrderDataDetails.notes}
                       readOnly={pageIsBusy}
                       onChange={(event) => updateDraftDetails({ notes: event.target.value })}
-                      aria-label="Opombe stranke"
+                      aria-label="Sporočilo stranke"
                       className={orderDataInlineTextareaClassName}
                     />
                   </DetailFieldShell>
@@ -1809,6 +1803,7 @@ export default function AdminOrderDetailClient({
 
             <AdminOrderPdfManagerClient
               orderId={orderId}
+              orderCode={order.order_code}
               documents={documents}
               unsavedChangesReason={
                 hasUnsavedChanges
@@ -1890,6 +1885,7 @@ function OrderDataRow({
   isEditing,
   fullWidth = false,
   reserveTrailingControl = false,
+  readContent,
   children
 }: {
   label: string;
@@ -1898,13 +1894,14 @@ function OrderDataRow({
   isEditing: boolean;
   fullWidth?: boolean;
   reserveTrailingControl?: boolean;
-  children: ReactNode;
+  readContent?: ReactNode;
+  children?: ReactNode;
 }) {
   const display = displayValue(value);
 
   return (
     <div
-      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
+      className={`grid min-h-[35px] min-w-0 items-center gap-3 ${customerDetailStyles.detailRow} ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
@@ -1922,7 +1919,7 @@ function OrderDataRow({
         title={!isEditing && display !== '—' ? display : undefined}
         data-order-data-value
       >
-        {isEditing ? (
+        {readContent ?? (isEditing ? (
           children
         ) : (
           <DetailFieldShell isEditing={false}>
@@ -1930,7 +1927,7 @@ function OrderDataRow({
               {display}
             </span>
           </DetailFieldShell>
-        )}
+        ))}
       </dd>
     </div>
   );

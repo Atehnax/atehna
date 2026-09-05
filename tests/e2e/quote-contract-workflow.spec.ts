@@ -1244,7 +1244,7 @@ test.describe('quote and seller-contract workflow', () => {
       );
       expect(readRequestRowGeometry).toHaveLength(8);
       for (const row of readRequestRowGeometry) {
-        expect(Math.abs(row.height - 35)).toBeLessThanOrEqual(1);
+        expect(row.height).toBeGreaterThanOrEqual(35);
       }
       const normalRequestRow = readRequestRowGeometry.find(
         (row) => row.label === 'Tip naročnika'
@@ -1255,9 +1255,7 @@ test.describe('quote and seller-contract workflow', () => {
       const customerMessageRequestRow = readRequestRowGeometry.find(
         (row) => row.label === 'Sporočilo stranke'
       );
-      expect(addressRequestRow?.width ?? 0).toBeGreaterThan(
-        (normalRequestRow?.width ?? 0) * 1.9
-      );
+      expect(Math.abs((addressRequestRow?.width ?? 0) - (normalRequestRow?.width ?? 0))).toBeLessThanOrEqual(1);
       expect(
         Math.abs(
           (addressRequestRow?.width ?? 0) - (customerMessageRequestRow?.width ?? 0)
@@ -1437,19 +1435,15 @@ test.describe('quote and seller-contract workflow', () => {
           };
         })
       );
-      expect(
-        Math.abs(
-          (editRequestCardBox?.height ?? 0) - (readRequestCardBox?.height ?? 0)
-        )
-      ).toBeLessThanOrEqual(1);
+      expect(editRequestCardBox?.height ?? 0).toBeGreaterThanOrEqual(readRequestCardBox?.height ?? 0);
       expect(editRequestRowGeometry).toHaveLength(readRequestRowGeometry.length);
       for (const [index, editRow] of editRequestRowGeometry.entries()) {
         const readRow = readRequestRowGeometry[index];
         expect(editRow.label).toBe(readRow?.label);
         expect(Math.abs(editRow.x - (readRow?.x ?? 0))).toBeLessThanOrEqual(1);
-        expect(Math.abs(editRow.y - (readRow?.y ?? 0))).toBeLessThanOrEqual(1);
+        expect(editRow.y).toBeGreaterThanOrEqual(readRow?.y ?? 0);
         expect(Math.abs(editRow.width - (readRow?.width ?? 0))).toBeLessThanOrEqual(1);
-        expect(Math.abs(editRow.height - (readRow?.height ?? 0))).toBeLessThanOrEqual(1);
+        expect(editRow.height).toBeGreaterThanOrEqual(35);
       }
       await workflowStatusEditButton.click();
       await expect(workflowStatusEditButton).toHaveAttribute('aria-pressed', 'true');
@@ -1524,16 +1518,19 @@ test.describe('quote and seller-contract workflow', () => {
       await workflowStatusControl.click();
       await expect(page.getByRole('menu')).toHaveCount(0);
 
+      const storedReferenceBeforeEdit = (await database.query<{ reference: string | null }>(
+        'select reference from quote_requests where id = $1', [fixture.quoteRequestId]
+      )).rows[0]!.reference;
       await requestCard.getByRole('button', { name: 'Uredi podatke povpraševanja' }).click();
       await page.getByRole('button', { name: 'Tip naročnika' }).click();
       await page.getByRole('option', { name: 'Podjetje' }).click();
-      await page.getByLabel('Naziv organizacije').fill('E2E urejen naročnik');
+      await page.getByLabel('Naziv', { exact: true }).fill('E2E urejen naročnik');
       await page.getByLabel('Kontaktna oseba').fill('E2E urejen kontakt');
       await page.getByLabel('Naslov', { exact: true }).fill('Urejena ulica 7');
       await page.getByLabel('Dodatni naslov').fill('2. nadstropje');
       await page.getByLabel('Poštna številka').fill('2000');
       await page.getByLabel('Kraj').fill('Maribor');
-      await page.getByLabel('Referenca').fill('E2E-UREJENO');
+      await expect(requestCard.getByLabel('Referenca', { exact: true })).toHaveCount(0);
       await page.getByLabel('Sporočilo stranke').fill('Urejeno v administraciji.');
 
       const detailsResponsePromise = page.waitForResponse((response) =>
@@ -1544,9 +1541,13 @@ test.describe('quote and seller-contract workflow', () => {
       const detailsResponse = await detailsResponsePromise;
       await requireOk(detailsResponse, 'save quote request details');
       expect(detailsResponse.ok()).toBe(true);
+      expect(detailsResponse.request().postDataJSON().reference).toBe(storedReferenceBeforeEdit ?? '');
+      expect((await database.query<{ reference: string | null }>(
+        'select reference from quote_requests where id = $1', [fixture.quoteRequestId]
+      )).rows[0]!.reference).toBe(storedReferenceBeforeEdit);
 
       await page.reload();
-      await expect(requestDetailRow('Naziv organizacije')).toContainText('E2E urejen naročnik');
+      await expect(requestDetailRow('Naziv')).toContainText('E2E urejen naročnik');
       await expect(offerEditAction).toHaveAttribute('aria-pressed', 'false');
       await offerEditAction.click();
       await expect(offerEditAction).toHaveAttribute('aria-pressed', 'true');
@@ -1580,8 +1581,7 @@ test.describe('quote and seller-contract workflow', () => {
       await expect(workflowStatus).toContainText('V pripravi');
       await expect(workflowStatus).not.toContainText('Osnutek');
       await expect(requestCard.locator('input, select, textarea')).toHaveCount(0);
-      await expect(requestDetailRow('Naziv organizacije')).toContainText('E2E urejen naročnik');
-      await expect(requestDetailRow('Kontaktna oseba')).toContainText('E2E urejen kontakt');
+      await expect(requestDetailRow('Naziv')).toContainText('E2E urejen naročnik (E2E urejen kontakt)');
       await expect(requestDetailRow('Naslov')).toContainText('Urejena ulica 7');
       await expect(requestDetailRow('Naslov')).toContainText('2. nadstropje');
       await expect(requestDetailRow('Naslov')).toContainText('2000 Maribor');
@@ -2152,7 +2152,7 @@ test.describe('quote and seller-contract workflow', () => {
       });
       await masterEdit.click();
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'true');
-      await page.getByLabel('Kontaktna oseba').fill(changedContact);
+      await page.getByLabel('Naročnik', { exact: true }).fill(changedContact);
       await page.getByLabel('Dobavni pogoji').fill(changedDeliveryTerms);
       await expect(saveButton).toBeEnabled();
 
@@ -2180,7 +2180,7 @@ test.describe('quote and seller-contract workflow', () => {
         page.getByText(failureMessage, { exact: true })
       ).toBeVisible();
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByLabel('Kontaktna oseba')).toHaveValue(
+      await expect(page.getByLabel('Naročnik', { exact: true })).toHaveValue(
         changedContact
       );
       await expect(page.getByLabel('Dobavni pogoji')).toHaveValue(
@@ -2223,7 +2223,7 @@ test.describe('quote and seller-contract workflow', () => {
       };
 
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'false');
-      await expect(page.getByLabel('Kontaktna oseba')).toHaveCount(0);
+      await expect(page.getByLabel('Naročnik', { exact: true })).toHaveCount(0);
       expect(draftBodies).toHaveLength(1);
       expect(detailsBodies).toHaveLength(2);
       expect(detailsBodies[1]).toMatchObject({

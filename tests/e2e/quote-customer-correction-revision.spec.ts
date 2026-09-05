@@ -341,7 +341,7 @@ test.describe('issued quote customer correction revision', () => {
       .getByRole('option', { name: 'Šola / javni zavod', exact: true })
       .click();
     await requestCard
-      .getByLabel('Naziv organizacije', { exact: true })
+      .getByLabel('Naziv', { exact: true })
       .fill('E2E popravljeni javni zavod');
     await requestCard
       .getByLabel('Kontaktna oseba', { exact: true })
@@ -375,7 +375,7 @@ test.describe('issued quote customer correction revision', () => {
     expect(correction.quoteOfferVersionId).not.toBe(original.quoteOfferVersionId);
 
     await expect(
-      requestCard.getByLabel('Naziv organizacije', { exact: true })
+      requestCard.getByLabel('Naziv', { exact: true })
     ).toHaveCount(0);
     await expect(requestCard).toContainText('E2E popravljeni javni zavod');
     await expect(requestCard).toContainText('E2E popravljena kontaktna oseba');

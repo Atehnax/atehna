@@ -17,7 +17,6 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
   const organizationName = `E2E testno povpraševanje ${token}`;
   const contactName = `E2E skrbnik ${token}`;
   const email = `quote-${token}@example.test`;
-  const reference = `E2E-TEST-${token}`;
   let quoteRequestId: number | null = null;
   let completed = false;
   const readAnalyticsRequestCount = async () => {
@@ -75,13 +74,13 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
       .click();
     await requestCard.getByRole('button', { name: 'Tip naročnika' }).click();
     await page.getByRole('option', { name: 'Podjetje', exact: true }).click();
-    await requestCard.getByLabel('Naziv organizacije', { exact: true }).fill(organizationName);
+    await requestCard.getByLabel('Naziv', { exact: true }).fill(organizationName);
     await requestCard.getByLabel('Kontaktna oseba', { exact: true }).fill(contactName);
     await requestCard.getByLabel('Email', { exact: true }).fill(email);
     await requestCard.getByLabel('Naslov', { exact: true }).fill('Testna ulica 1');
     await requestCard.getByLabel('Poštna številka', { exact: true }).fill('1000');
     await requestCard.getByLabel('Kraj', { exact: true }).fill('Ljubljana');
-    await requestCard.getByLabel('Referenca', { exact: true }).fill(reference);
+    await expect(requestCard.getByLabel('Referenca', { exact: true })).toHaveCount(0);
     await requestCard
       .getByLabel('Sporočilo stranke', { exact: true })
       .fill(`Samodejni E2E preizkus ${token}; zapis se po preverjanju odstrani.`);
@@ -94,7 +93,8 @@ test('admin can create a draft quote directly and remove it from the quotes tabl
     await page.getByRole('button', { name: 'Shrani', exact: true }).click();
     const detailsResponse = await detailsResponsePromise;
     expect(detailsResponse.ok()).toBe(true);
-    await expect(requestCard.getByLabel('Naziv organizacije', { exact: true })).toHaveCount(0);
+    expect(detailsResponse.request().postDataJSON().reference).toBe('');
+    await expect(requestCard.getByLabel('Naziv', { exact: true })).toHaveCount(0);
     await expect(requestCard).toContainText(organizationName);
 
     const filteredListUrl = `/admin/orders?view=quotes&q=${encodeURIComponent(organizationName)}`;

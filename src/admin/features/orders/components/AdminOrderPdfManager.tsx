@@ -51,12 +51,14 @@ const formatTimestamp = (value: string) => pdfTimestampFormatter.format(new Date
 
 export default function AdminOrderPdfManager({
   orderId,
+  orderCode,
   documents,
   adminNotesSlot,
   unsavedChangesReason,
   generationDisabledReason
 }: {
   orderId: number;
+  orderCode?: string;
   documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
   unsavedChangesReason?: string;
@@ -81,6 +83,9 @@ export default function AdminOrderPdfManager({
   }, [docList]);
   const effectiveGenerationDisabledReason =
     unsavedChangesReason ?? generationDisabledReason;
+  const purchaseOrderAssociationId = orderCode
+    ? `order-purchase-order-association-${orderId}`
+    : undefined;
 
   const handleGenerate = async (type: GeneratePdfType) => {
     if (effectiveGenerationDisabledReason) {
@@ -255,6 +260,16 @@ export default function AdminOrderPdfManager({
               key={pdfType.key}
               summary={
                 <AdminDetailDocumentSummary label={pdfType.label}>
+                  {pdfType.key === 'purchase_order' && orderCode ? (
+                    <p
+                      id={purchaseOrderAssociationId}
+                      data-testid="order-purchase-order-association"
+                      className="mt-0.5 break-words text-[11px] leading-4 text-slate-500"
+                    >
+                      Številka naročila:{' '}
+                      <span className="font-medium text-slate-700">{orderCode}</span>
+                    </p>
+                  ) : null}
                   {latestDoc ? (
                     <AdminDetailDocumentCurrent
                       href={latestDoc.url}
@@ -276,6 +291,8 @@ export default function AdminOrderPdfManager({
                       type="file"
                       accept="application/pdf"
                       className="hidden"
+                      aria-label="Naloži naročilnico"
+                      aria-describedby={purchaseOrderAssociationId}
                       disabled={
                         Boolean(unsavedChangesReason) ||
                         uploadingType === pdfType.key
@@ -324,6 +341,8 @@ export default function AdminOrderPdfManager({
                         uploadingType === pdfType.key
                       }
                       title={unsavedChangesReason ?? 'Naloži'}
+                      aria-label="Naloži naročilnico"
+                      aria-describedby={purchaseOrderAssociationId}
                     >
                       {uploadingType === pdfType.key ? (
                         <Spinner size="sm" className="text-slate-500" />

@@ -6,6 +6,8 @@ import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminO
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
+import { AdminCustomerNameEditor } from '@/shared/ui/admin-detail/AdminCustomerNameEditor';
+import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
@@ -177,7 +179,7 @@ const asQuoteRequestDetails = (detail: AdminQuoteDetail): QuoteRequestDetailsSta
   status: detail.status,
   customerType: detail.customerType,
   organizationName: detail.organizationName ?? '',
-  contactName: detail.contactName,
+  contactName: detail.contactName.trim() ? detail.contactName : (detail.customerType === 'individual' ? detail.organizationName ?? '' : ''),
   email: detail.email,
   addressLine1: detail.addressLine1 ?? '',
   addressLine2: detail.addressLine2 ?? '',
@@ -636,7 +638,7 @@ const toNewDraftState = (detail: AdminQuoteDetail): DraftState => {
   };
 };
 
-type QuoteDetailFieldIconType = 'type' | 'customer' | 'email' | 'address' | 'reference' | 'message';
+type QuoteDetailFieldIconType = 'calendar' | 'type' | 'customer' | 'email' | 'address' | 'reference' | 'message';
 
 function HeaderQuoteIcon() {
   return (
@@ -668,6 +670,9 @@ function QuoteDetailFieldIcon({ icon }: { icon: QuoteDetailFieldIconType }) {
     'aria-hidden': true
   };
 
+  if (icon === 'calendar') {
+    return <svg {...commonProps}><rect x="3.5" y="4.5" width="13" height="12" rx="2" /><path d="M6.5 2.8v3.4M13.5 2.8v3.4M3.8 8h12.4" /></svg>;
+  }
   if (icon === 'customer') {
     return <svg {...commonProps}><circle cx="10" cy="6.7" r="3" /><path d="M4.5 16.2c.8-3 2.7-4.5 5.5-4.5s4.7 1.5 5.5 4.5" /></svg>;
   }
@@ -867,6 +872,7 @@ function QuoteDetailRow({
   icon,
   isEditing,
   fullWidth = false,
+  readContent,
   children
 }: {
   label: string;
@@ -874,11 +880,12 @@ function QuoteDetailRow({
   icon: QuoteDetailFieldIconType;
   isEditing: boolean;
   fullWidth?: boolean;
-  children: ReactNode;
+  readContent?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div
-      className={`grid h-[35px] min-w-0 items-center gap-3 ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
+      className={`grid min-h-[35px] min-w-0 items-center gap-3 ${customerDetailStyles.detailRow} ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
           ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
@@ -891,12 +898,12 @@ function QuoteDetailRow({
         <QuoteDetailFieldIcon icon={icon} />
         <span className="min-w-0 truncate">{label}</span>
       </dt>
-      <dd className="min-w-0">
-        {isEditing ? children : (
+      <dd className="min-w-0" title={!isEditing ? displayValue(value) : undefined}>
+        {readContent ?? (isEditing ? children : (
           <QuoteDetailFieldShell isEditing={false}>
             <span className={quoteDetailReadValueClassName}>{displayValue(value)}</span>
           </QuoteDetailFieldShell>
-        )}
+        ))}
       </dd>
     </div>
   );
@@ -1725,6 +1732,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
   const activeRequestDetails = isEditingRequestDetails
     ? draftRequestDetails
     : persistedRequestDetails;
+  const activeCustomerIdentity = getCustomerIdentity(activeRequestDetails);
+  const activeCustomerName = activeCustomerIdentity.contact
+    ? `${activeCustomerIdentity.name} (${activeCustomerIdentity.contact})`
+    : activeCustomerIdentity.name;
   const activeRequestStatus = isEditingRequestHeader
     ? draftRequestDetails.status
     : persistedRequestDetails.status;
@@ -2962,17 +2973,6 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                   title={persistedRequestTitle}
                   width="wide"
                 />
-                <button
-                  type="button"
-                  onClick={() => void copyPublicQuoteCode()}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold tabular-nums text-slate-700 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                  aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
-                  title="Kopiraj kodo povpraševanja"
-                  data-testid="admin-quote-public-code-copy"
-                >
-                  <span>Koda {detail.quoteCode}</span>
-                  <CopyIcon className="h-3.5 w-3.5" />
-                </button>
                 <div className={adminStatusInfoPillGroupClassName}>
                   <AdminChipDropdown
                     value={activeVisibleRequestStatus}
@@ -3055,7 +3055,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                 <span>{formatDateTime(detail.createdAt)}</span>
                 <span aria-hidden>·</span>
-                <span>{persistedRequestDetails.organizationName.trim() || persistedRequestDetails.contactName.trim() || '—'}</span>
+                <span>{getCustomerIdentity(persistedRequestDetails).name || '—'}</span>
                 {currentVersion ? (
                   <>
                     <span aria-hidden>·</span>
@@ -3083,14 +3083,14 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
 
         <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1.23fr)_minmax(340px,0.77fr)]">
         <main className="min-w-0 space-y-5">
-          <section className={adminWindowCardClassName + ' p-4'} style={adminWindowCardStyle} data-testid="quote-request-details-card">
+          <section className={`${adminWindowCardClassName} ${customerDetailStyles.customerCard} p-4`} style={adminWindowCardStyle} data-testid="quote-request-details-card">
             <div className={`flex items-center justify-between gap-4 ${customerDetailStyles.customerHeading}`}>
               <div className="flex min-w-0 items-center gap-2">
                 <h2 className="text-base font-semibold text-slate-900">Podatki povpraševanja</h2>
                 <AdminOrderCustomerActions
                   orderId={detail.id}
                   customerEndpoint={`/api/admin/quote-requests/${detail.id}/customer`}
-                  organizationName={persistedRequestDetails.organizationName}
+                  organizationName={persistedRequestDetails.customerType === 'individual' ? '' : persistedRequestDetails.organizationName}
                   contactName={persistedRequestDetails.contactName}
                   email={persistedRequestDetails.email}
                   addressLine1={persistedRequestDetails.addressLine1}
@@ -3134,7 +3134,18 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               </p>
             ) : null}
 
-            <dl className="mt-2 grid min-w-0 gap-x-8 md:grid-cols-2">
+            <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
+              <QuoteDetailRow label="Številka povpraševanja" value={detail.quoteCode} icon="reference" isEditing={false}
+                readContent={(
+                  <button type="button" onClick={() => void copyPublicQuoteCode()}
+                    className={customerDetailStyles.publicCode}
+                    aria-label={`Kopiraj kodo povpraševanja ${detail.quoteCode}`}
+                    title="Kopiraj kodo povpraševanja" data-testid="admin-quote-public-code-copy">
+                    <span>{detail.quoteCode}</span><CopyIcon className="h-3.5 w-3.5 shrink-0" />
+                  </button>
+                )}
+              />
+              <QuoteDetailRow label="Datum" value={formatDateTime(detail.createdAt)} icon="calendar" isEditing={false} />
               <QuoteDetailRow label="Tip naročnika" value={getCustomerTypeLabel(activeRequestDetails.customerType)} icon="type" isEditing={isEditingRequestDetails}>
                 <QuoteDetailFieldShell isEditing>
                   <CustomSelect
@@ -3150,25 +3161,25 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                   />
                 </QuoteDetailFieldShell>
               </QuoteDetailRow>
+              <QuoteDetailRow label={activeRequestDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'} value={activeCustomerName} icon="customer" isEditing={isEditingRequestDetails}>
+                <AdminCustomerNameEditor values={activeRequestDetails} disabled={Boolean(busyAction)} onChange={updateDraftRequestDetails} />
+              </QuoteDetailRow>
               <QuoteDetailRow label="Email" value={activeRequestDetails.email} icon="email" isEditing={isEditingRequestDetails}>
                 <QuoteDetailFieldShell isEditing>
                   <input aria-label="Email" type="email" value={activeRequestDetails.email} disabled={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ email: event.target.value })} className={quoteDetailValueControlClassName} />
                 </QuoteDetailFieldShell>
               </QuoteDetailRow>
-              <QuoteDetailRow label="Naziv organizacije" value={activeRequestDetails.organizationName} icon="customer" isEditing={isEditingRequestDetails}>
-                <QuoteDetailFieldShell isEditing>
-                  <input aria-label="Naziv organizacije" type="text" value={activeRequestDetails.organizationName} disabled={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ organizationName: event.target.value })} className={quoteDetailValueControlClassName} />
-                </QuoteDetailFieldShell>
-              </QuoteDetailRow>
-              <QuoteDetailRow label="Referenca" value={activeRequestDetails.reference} icon="reference" isEditing={isEditingRequestDetails}>
-                <QuoteDetailFieldShell isEditing>
-                  <input aria-label="Referenca" type="text" value={activeRequestDetails.reference} disabled={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ reference: event.target.value })} className={quoteDetailValueControlClassName} />
-                </QuoteDetailFieldShell>
-              </QuoteDetailRow>
-              <QuoteDetailRow label="Kontaktna oseba" value={activeRequestDetails.contactName} icon="customer" isEditing={isEditingRequestDetails}>
-                <QuoteDetailFieldShell isEditing>
-                  <input aria-label="Kontaktna oseba" type="text" value={activeRequestDetails.contactName} disabled={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ contactName: event.target.value })} className={quoteDetailValueControlClassName} />
-                </QuoteDetailFieldShell>
+              <QuoteDetailRow
+                label="Naslov"
+                value={formatQuoteRequestAddress(activeRequestDetails)}
+                icon="address"
+                isEditing={isEditingRequestDetails}
+              >
+                <QuoteAddressEditor
+                  details={activeRequestDetails}
+                  disabled={Boolean(busyAction)}
+                  onChange={updateDraftRequestDetails}
+                />
               </QuoteDetailRow>
               <QuoteDetailRow label="Kaj potrebuje?" value={getQuoteReasonLabel(activeRequestDetails.quoteReason)} icon="reference" isEditing={isEditingRequestDetails}>
                 <QuoteDetailFieldShell isEditing>
@@ -3186,24 +3197,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 </QuoteDetailFieldShell>
               </QuoteDetailRow>
               <QuoteDetailRow
-                label="Naslov"
-                value={formatQuoteRequestAddress(activeRequestDetails)}
-                icon="address"
-                isEditing={isEditingRequestDetails}
-                fullWidth
-              >
-                <QuoteAddressEditor
-                  details={activeRequestDetails}
-                  disabled={Boolean(busyAction)}
-                  onChange={updateDraftRequestDetails}
-                />
-              </QuoteDetailRow>
-              <QuoteDetailRow
                 label="Sporočilo stranke"
                 value={activeRequestDetails.customerMessage}
                 icon="message"
                 isEditing={isEditingRequestDetails}
-                fullWidth
               >
                 <QuoteDetailFieldShell isEditing>
                   <textarea aria-label="Sporočilo stranke" rows={1} wrap="off" value={activeRequestDetails.customerMessage} readOnly={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ customerMessage: event.target.value })} className={quoteDetailInlineTextareaClassName} />
@@ -3605,6 +3602,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
             autoFocus={isEditingAdminNotes && !isMasterEditing}
           />          <AdminQuoteDocumentsManager
             quoteRequestId={detail.id}
+            quoteCode={detail.quoteCode}
             documents={detail.documents}
             offerVersions={detail.offerVersions}
           />

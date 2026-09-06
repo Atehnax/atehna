@@ -37,6 +37,8 @@ export type Variant = {
   sku: string;
   price: number;
   costNet?: number | null;
+  stockRevision?: string;
+  pricingRevision?: string;
   contentOverride?: CatalogVariantContentOverride | null;
   discountPct: number;
   stock: number;

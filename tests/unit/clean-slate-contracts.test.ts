@@ -136,10 +136,12 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260905_business_analytics.sql',
     '20260905_public_code_email_templates_postdeploy.sql',
     '20260905_schema_contract_v3.sql',
-    '20260905_schema_contract_v4.sql'
+    '20260905_schema_contract_v4.sql',
+    '20260906_pricing_stock.sql',
+    '20260906_schema_contract_v5.sql'
   ]);
-  assert.equal(tableNames.length, 68);
-  assert.equal(new Set(tableNames).size, 68);
+  assert.equal(tableNames.length, 70);
+  assert.equal(new Set(tableNames).size, 70);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
   assert.match(
     schema,

@@ -1,3 +1,4 @@
+import AdminArticlesWorkspace from '@/admin/features/artikli/components/AdminArticlesWorkspace';
 import AdminItemsManagerLoader from '@/admin/features/artikli/components/AdminItemsManagerLoader';
 import AdminInventoryPolicyControl from '@/admin/features/artikli/components/AdminInventoryPolicyControl';
 import { fetchAdminCatalogListItems } from '@/shared/server/catalogItems';
@@ -63,11 +64,13 @@ async function AdminItemsManagerSection() {
 }
 
 
-export default async function AdminArtikliPage() {
+export default async function AdminArtikliPage({ searchParams }: { searchParams?: Promise<{ view?: string | string[] }> }) {
+  const params = await searchParams;
+  const view = params?.view === 'pricing-stock' ? 'pricing-stock' : 'list';
   return (
     <div className="w-full space-y-4">
       <AdminPageHeader title="Artikli" description="Urejanje artiklov, statusov in prikaza v katalogu." />
-      {await AdminItemsManagerSection()}
+      <AdminArticlesWorkspace view={view}>{view === 'list' ? await AdminItemsManagerSection() : null}</AdminArticlesWorkspace>
     </div>
   );
 }

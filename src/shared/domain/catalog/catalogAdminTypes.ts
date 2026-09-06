@@ -52,6 +52,10 @@ export type CatalogItemQuantityDiscountRule = {
 };
 
 export type CatalogItemEditorVariantPayload = CatalogShippingMeasurements & {
+  stockRevision?: string;
+  pricingRevision?: string;
+  expectedStockRevision?: string;
+  expectedPricingRevision?: string;
   id?: number;
   variantName: string;
   length?: number | null;
@@ -143,6 +147,8 @@ export type CatalogItemEditorPayload = CatalogShippingMeasurements & {
 };
 
 export type AdminCatalogVariantSummary = CatalogShippingMeasurements & {
+  stockRevision?: string;
+  pricingRevision?: string;
   id: number;
   variantName: string;
   variantSku: string | null;
@@ -275,6 +281,8 @@ export type CatalogItemQuickPatch = CatalogShippingMeasurements & {
 };
 
 export type CatalogVariantQuickPatch = CatalogShippingMeasurements & {
+  expectedStockRevision?: string;
+  expectedPricingRevision?: string;
   variantName?: string;
   variantSku?: string | null;
   length?: number | null;
@@ -306,6 +314,7 @@ export type CatalogItemIdentityConflict = CatalogItemIdentityAvailability & {
 };
 
 export type CatalogItemSaveResponse = {
+  variants?: Array<{ id: number; stockRevision: string; pricingRevision: string }>;
   id?: number;
   slug?: string;
   updatedAt?: string;

@@ -1,6 +1,6 @@
 {
-  "contractId": "20260905.analytics-v4",
-  "contractSha256": "a2d78beb3aa65a1b60a75e11b6efed10a78e6f00cabb9af8a4ebacc592eaa4da",
+  "contractId": "20260906.pricing-stock-v5",
+  "contractSha256": "734e6783336185c47794343094842fa51474ee0f384b8a702f64220ac08528bd",
   "requirements": {
     "extensions": [
       "pg_trgm",
@@ -48,6 +48,8 @@
       "order_status_logs",
       "order_stock_holds",
       "orders",
+      "pricing_stock_history",
+      "pricing_stock_model",
       "product_appearance_settings",
       "quote_access_tokens",
       "quote_document_jobs",
@@ -809,6 +811,144 @@
         "name": "payload",
         "dataType": "jsonb",
         "nullable": false
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "work_minutes",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "other_costs",
+        "dataType": "numeric",
+        "nullable": true
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "purchase_updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "stock_revision",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0"
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "pricing_revision",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "id",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "nextval('pricing_stock_history_id_seq'::regclass)"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "occurred_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "clock_timestamp()"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "entity_type",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "entity_id",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "item_id",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "sku",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "actor_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "actor_name",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "source",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "request_id",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "model_revision",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "before_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "after_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "key",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "revision",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0"
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "config_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
       }
     ],
     "constraints": [
@@ -1079,6 +1219,48 @@
         "name": "retired_configuration_archive_source_check",
         "type": "check",
         "definitionEquals": "CHECK (source_table = ANY (ARRAY['analytics_charts'::text, 'analytics_chart_settings'::text]))"
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "catalog_variant_tdabc_inputs_check",
+        "type": "check",
+        "definitionEquals": "CHECK ((work_minutes IS NULL OR work_minutes >= 0::numeric AND work_minutes <= 99999999.9999) AND (other_costs IS NULL OR other_costs >= 0::numeric AND other_costs <= 9999999999.99) AND stock_revision >= 0 AND pricing_revision >= 0)"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "pricing_stock_history_after_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(after_json) = 'object'::text)"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "pricing_stock_history_before_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(before_json) = 'object'::text)"
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "pricing_stock_history_entity_type_check",
+        "type": "check",
+        "definitionEquals": "CHECK (entity_type = ANY (ARRAY['variant'::text, 'model'::text]))"
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "pricing_stock_model_config_json_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(config_json) = 'object'::text)"
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "pricing_stock_model_key_check",
+        "type": "check",
+        "definitionEquals": "CHECK (key = 'default'::text)"
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "pricing_stock_model_revision_check",
+        "type": "check",
+        "definitionEquals": "CHECK (revision >= 0)"
       }
     ],
     "functions": [
@@ -1268,6 +1450,42 @@
           "historical_unit_cost_net",
           "captured"
         ]
+      },
+      {
+        "name": "record_catalog_variant_pricing_stock",
+        "bodySha256": "82f9c48dce34261f77363ee6e4558c8fef901493b02c0673b9129307d1f0a782",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "pricing_stock_history",
+          "atehna.pricing_stock_audit",
+          "before_json",
+          "after_json"
+        ]
+      },
+      {
+        "name": "track_catalog_variant_pricing_stock",
+        "bodySha256": "399a2999accb8ffea6ab155be1070bb809d7bcc848f31189cddf26cc59df9b3c",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "stock_revision",
+          "pricing_revision",
+          "purchase_updated_at",
+          "is distinct from"
+        ]
       }
     ],
     "indexes": [
@@ -1436,6 +1654,33 @@
           "retired_configuration_archive",
           "retired_configuration_archive_pkey"
         ]
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "idx_pricing_stock_history_entity",
+        "definitionEquals": "CREATE INDEX idx_pricing_stock_history_entity ON public.pricing_stock_history USING btree (entity_type, entity_id, occurred_at DESC)",
+        "definitionIncludes": [
+          "pricing_stock_history",
+          "entity_id"
+        ]
+      },
+      {
+        "table": "pricing_stock_history",
+        "name": "pricing_stock_history_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX pricing_stock_history_pkey ON public.pricing_stock_history USING btree (id)",
+        "definitionIncludes": [
+          "pricing_stock_history",
+          "unique"
+        ]
+      },
+      {
+        "table": "pricing_stock_model",
+        "name": "pricing_stock_model_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX pricing_stock_model_pkey ON public.pricing_stock_model USING btree (key)",
+        "definitionIncludes": [
+          "pricing_stock_model",
+          "unique"
+        ]
       }
     ],
     "triggers": [
@@ -1591,6 +1836,30 @@
           "for each row",
           "capture_order_analytics_snapshot"
         ]
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "catalog_variant_pricing_stock_revision",
+        "function": "track_catalog_variant_pricing_stock",
+        "definitionEquals": "CREATE TRIGGER catalog_variant_pricing_stock_revision BEFORE INSERT OR UPDATE ON catalog_item_variants FOR EACH ROW EXECUTE FUNCTION track_catalog_variant_pricing_stock()",
+        "definitionIncludes": [
+          "before",
+          "update",
+          "for each row",
+          "track_catalog_variant_pricing_stock"
+        ]
+      },
+      {
+        "table": "catalog_item_variants",
+        "name": "catalog_variant_pricing_stock_history",
+        "function": "record_catalog_variant_pricing_stock",
+        "definitionEquals": "CREATE TRIGGER catalog_variant_pricing_stock_history AFTER UPDATE ON catalog_item_variants FOR EACH ROW EXECUTE FUNCTION record_catalog_variant_pricing_stock()",
+        "definitionIncludes": [
+          "after",
+          "update",
+          "for each row",
+          "record_catalog_variant_pricing_stock"
+        ]
       }
     ],
     "settings": [
@@ -1599,6 +1868,24 @@
         "key": "default",
         "jsonField": "stockEnforcementEnabled",
         "jsonType": "boolean"
+      },
+      {
+        "table": "pricing_stock_model",
+        "key": "default",
+        "jsonField": "formulaVersion",
+        "jsonType": "number"
+      },
+      {
+        "table": "pricing_stock_model",
+        "key": "default",
+        "jsonField": "formula",
+        "jsonType": "string"
+      },
+      {
+        "table": "pricing_stock_model",
+        "key": "default",
+        "jsonField": "parameters",
+        "jsonType": "object"
       }
     ],
     "absentTables": [

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemIdentityConflictError,
+  CatalogVariantConcurrencyConflictError,
   CatalogItemValidationError,
   fetchCatalogItemEditorBySlug,
   quickPatchCatalogVariantByIdentifier
@@ -29,7 +30,7 @@ export async function PATCH(request: Request) {
     }
 
     const before = await fetchCatalogItemEditorBySlug(itemIdentifier);
-    const updated = await quickPatchCatalogVariantByIdentifier(itemIdentifier, variantId, patch);
+    const updated = await quickPatchCatalogVariantByIdentifier(itemIdentifier, variantId, patch, { request });
     if (!updated) {
       return NextResponse.json({ message: 'Različica ni bila najdena.' }, { status: 404 });
     }
@@ -53,6 +54,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof CatalogVariantConcurrencyConflictError) {
+      return NextResponse.json({ message: error.message, code: 'CATALOG_VARIANT_CONFLICT', variantId: error.variantId, currentStock: error.currentStock, stockRevision: error.stockRevision, pricingRevision: error.pricingRevision }, { status: 409 });
+    }
     if (error instanceof CatalogItemIdentityConflictError) {
       return NextResponse.json({ message: error.message, conflicts: error.conflicts }, { status: error.statusCode });
     }

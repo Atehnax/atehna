@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useArticleNavigationGuard } from './ArticleNavigationGuard';
 import { useRouter } from 'next/navigation';
 import { Code2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
@@ -475,6 +476,8 @@ function toListFamilies(items: AdminCatalogListItem[]): ListFamily[] {
         sku: variant.variantSku ?? '',
         price: variant.price,
         costNet: variant.costNet,
+        stockRevision: variant.stockRevision,
+        pricingRevision: variant.pricingRevision,
         discountPct: variant.discountPct,
         stock: variant.inventory,
         active: variant.status === 'active',
@@ -1502,7 +1505,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
           body: JSON.stringify({
             itemIdentifier: activeScopeFamily.slug,
             variantId: Number(variant.id),
-            patch
+            patch: { ...patch, ...(patch.inventory !== undefined ? { expectedStockRevision: variant.stockRevision } : {}), ...(patch.price !== undefined ? { expectedPricingRevision: variant.pricingRevision } : {}) }
           })
         });
         const variantBody = (await variantResponse.json().catch(() => ({}))) as CatalogVariantQuickSaveResponse;
@@ -1548,6 +1551,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
     pendingGuardActionRef.current = { label, run };
     setPendingGuardLabel(label);
   }, [activeEditScope, activeScopeFamily, activeEditSnapshot?.isDirty, clearActiveEditScopeState]);
+  useArticleNavigationGuard(requestCurrentEditResolution);
   const beginFamilyEditScope = useCallback((family: ListFamily) => {
     const allVariants = getEditableVariantsForFamily(family);
     const nextKind = resolveScopeKind(allVariants);
@@ -1638,7 +1642,7 @@ export default function AdminItemsManager({ items }: { items: AdminCatalogListIt
                 body: JSON.stringify({
                   itemIdentifier: target.family.slug,
                   variantId: Number(target.variant.id),
-                  patch
+                  patch: { ...patch, ...(patch.inventory !== undefined ? { expectedStockRevision: target.variant.stockRevision } : {}), ...(patch.price !== undefined ? { expectedPricingRevision: target.variant.pricingRevision } : {}) }
                 })
               }).then(async (response) => {
                 const body = (await response.json().catch(() => ({}))) as CatalogVariantQuickSaveResponse;

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   CatalogItemConcurrencyConflictError,
+  CatalogVariantConcurrencyConflictError,
   CatalogItemIdentityConflictError,
   CatalogItemValidationError,
   fetchCatalogItemEditorBySlug,
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
       ? await fetchCatalogItemEditorBySlug(String(payload.id))
       : await fetchCatalogItemEditorBySlug(payload.slug);
     const itemPayload = payload as CatalogItemEditorPayload;
-    const saved = await upsertCatalogItem(itemPayload);
+    const saved = await upsertCatalogItem(itemPayload, { request });
     const after = await fetchCatalogItemEditorBySlug(String(saved.id));
     const diff = computeCatalogItemAuditDiff(before as Record<string, unknown> | null, after as Record<string, unknown> | null);
     const action = before ? inferCatalogItemAuditAction(diff, 'updated') : 'created';
@@ -157,9 +158,17 @@ export async function POST(request: Request) {
     return NextResponse.json<CatalogItemSaveApiResponse>({
       id: saved.id,
       slug: saved.slug,
-      updatedAt: saved.updatedAt
+      updatedAt: saved.updatedAt,
+      variants: after?.variants.filter((variant) => variant.id !== undefined).map((variant) => ({
+        id: variant.id!,
+        stockRevision: variant.stockRevision ?? '0',
+        pricingRevision: variant.pricingRevision ?? '0'
+      }))
     });
   } catch (error) {
+    if (error instanceof CatalogVariantConcurrencyConflictError) {
+      return NextResponse.json({ message: error.message, code: 'CATALOG_VARIANT_CONFLICT', variantId: error.variantId, currentStock: error.currentStock, stockRevision: error.stockRevision, pricingRevision: error.pricingRevision }, { status: 409 });
+    }
     if (error instanceof CatalogItemConcurrencyConflictError) {
       return NextResponse.json<CatalogItemSaveApiResponse>(
         { message: error.message, updatedAt: error.currentUpdatedAt },

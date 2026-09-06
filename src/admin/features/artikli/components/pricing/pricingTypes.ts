@@ -45,6 +45,8 @@ export type SimpleProductData = {
 };
 
 export type WeightVariant = {
+  stockRevision?: string;
+  pricingRevision?: string;
   id: string;
   sku: string;
   fraction: string;

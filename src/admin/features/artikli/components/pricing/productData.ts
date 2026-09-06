@@ -551,6 +551,8 @@ function normalizeWeightVariant(
   const netMassKg = netMassKgRaw === null ? null : Math.max(0, netMassKgRaw);
   return {
     id: matchingCatalogVariant?.id ?? asString(record.id, fallback.id),
+    stockRevision: matchingCatalogVariant?.stockRevision ?? (typeof record.stockRevision === 'string' ? record.stockRevision : undefined),
+    pricingRevision: matchingCatalogVariant?.pricingRevision ?? (typeof record.pricingRevision === 'string' ? record.pricingRevision : undefined),
     sku: asString(record.sku, fallback.sku),
     fraction,
     color: normalizeSingleWeightColorValue(asString(record.color, fallback.color)),
@@ -745,7 +747,10 @@ export function normalizeWeightProductData(value: unknown, context: ProductDataN
     normalizeWeightVariant(entry, index, baseData, context.baseSku, context.variants)
   );
   const fractionInventory = normalizeWeightFractionInventoryList(record.fractionInventory, baseData, variants);
-  const syncedVariants = syncWeightVariantsWithFractionInventory(variants, fractionInventory);
+  const legacySyncedVariants = syncWeightVariantsWithFractionInventory(variants, fractionInventory);
+  // Registered SKU stock is canonical; explicit group edits already synchronize
+  // their chosen values before normalization. Do not reapply stale group JSON.
+  const syncedVariants = variants.map((variant, index) => variant.stockRevision !== undefined ? variant : legacySyncedVariants[index]);
   return {
     ...baseData,
     stockKg: fractionInventory[0]?.stockKg ?? baseData.stockKg,
@@ -892,6 +897,8 @@ export function buildWeightCatalogVariants(dataInput: TypeSpecificProductData, b
     const unitPrice = getWeightVariantUnitPrice(variant);
     return createVariant({
       id: variant.id,
+      stockRevision: variant.stockRevision,
+      pricingRevision: variant.pricingRevision,
       label: getWeightVariantDisplayLabel(variant),
       weight: getWeightVariantTotalMass(variant) ?? variant.netMassKg,
       length: variant.lengthMm,

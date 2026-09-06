@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260905.analytics-v4';
+const contractId = '20260906.pricing-stock-v5';
 const contractSha256 =
-  'a2d78beb3aa65a1b60a75e11b6efed10a78e6f00cabb9af8a4ebacc592eaa4da';
+  '734e6783336185c47794343094842fa51474ee0f384b8a702f64220ac08528bd';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -47,7 +47,7 @@ test('schema manifest carries a deterministic requirements checksum', () => {
       /^create table ([a-z0-9_]+) \(/gmu
     )
   ].map((match) => match[1]).sort();
-  assert.equal(manifest.requirements.tables.length, 67);
+  assert.equal(manifest.requirements.tables.length, 69);
   assert.deepEqual(
     [...manifest.requirements.tables, 'app_schema_contracts'].sort(),
     schemaTables
@@ -141,7 +141,7 @@ test('every named manifest requirement is bound to both deployment paths', () =>
   };
   const schema = source('database/schema.sql');
   const migration = source(
-    'database/migrations/20260905_schema_contract_v4.sql'
+    'database/migrations/20260906_schema_contract_v5.sql'
   );
   const normalizedMigration = migration.replaceAll("''", "'");
   const requirements = manifest.requirements;
@@ -245,6 +245,12 @@ test('contract requires insert defaults while treating inventory policy as mutab
       ])
   );
   assert.deepEqual(exactDefaults, {
+    'catalog_item_variants.stock_revision': '0',
+    'catalog_item_variants.pricing_revision': '0',
+    'pricing_stock_history.id': "nextval('pricing_stock_history_id_seq'::regclass)",
+    'pricing_stock_history.occurred_at': 'clock_timestamp()',
+    'pricing_stock_model.revision': '0',
+    'pricing_stock_model.updated_at': 'now()',
     'diagnostics_events.error': "false",
     'diagnostics_events.phases_json': "'{}'::jsonb",
     'diagnostics_events.details_json': "'{}'::jsonb",
@@ -275,11 +281,14 @@ test('contract requires insert defaults while treating inventory policy as mutab
       key: 'default',
       jsonField: 'stockEnforcementEnabled',
       jsonType: 'boolean'
-    }
+    },
+    { table: 'pricing_stock_model', key: 'default', jsonField: 'formulaVersion', jsonType: 'number' },
+    { table: 'pricing_stock_model', key: 'default', jsonField: 'formula', jsonType: 'string' },
+    { table: 'pricing_stock_model', key: 'default', jsonField: 'parameters', jsonType: 'object' }
   ]);
 
   const migration = source(
-    'database/migrations/20260905_schema_contract_v4.sql'
+    'database/migrations/20260906_schema_contract_v5.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /installed\.column_default/u);
@@ -342,7 +351,7 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
   for (const trigger of manifest.requirements.triggers) {
     assert.ok(functionNames.has(trigger.function));
     assert.match(trigger.definitionEquals, /^CREATE TRIGGER /u);
-    assert.ok(trigger.definitionIncludes.includes('before'));
+    assert.ok(trigger.definitionIncludes.includes(trigger.function === 'record_catalog_variant_pricing_stock' ? 'after' : 'before'));
     assert.ok(trigger.definitionIncludes.includes('for each row'));
   }
   for (const index of manifest.requirements.indexes) {
@@ -363,7 +372,7 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
   }
 
   const migration = source(
-    'database/migrations/20260905_schema_contract_v4.sql'
+    'database/migrations/20260906_schema_contract_v5.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /pg_get_indexdef/u);
@@ -414,7 +423,7 @@ test('fresh schema records only its terminal compatibility contract', () => {
 
 test('legacy deployment verifies terminal postconditions before recording the contract', () => {
   const migration = source(
-    'database/migrations/20260905_schema_contract_v4.sql'
+    'database/migrations/20260906_schema_contract_v5.sql'
   );
   const verificationEndAt = migration.lastIndexOf('$contract_verification$;');
   const ledgerCreateAt = migration.indexOf(

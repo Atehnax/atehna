@@ -1,4 +1,7 @@
 import { getPool } from '@/shared/server/db';
+import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
+import { getAuditActor, getAuditRequestContext } from '@/shared/server/audit';
+import { setPricingStockAuditContext } from '@/shared/server/pricingStockTransaction';
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
 import { CATALOG_PUBLIC_TAG } from '@/shared/server/catalogCache';
 import type { PoolClient } from 'pg';
@@ -89,6 +92,31 @@ export class CatalogItemConcurrencyConflictError extends Error {
     this.itemId = itemId;
     this.currentUpdatedAt = currentUpdatedAt;
   }
+}
+
+export class CatalogVariantConcurrencyConflictError extends Error {
+  readonly statusCode = 409;
+  readonly code = 'CATALOG_VARIANT_CONFLICT';
+  constructor(public readonly variantId: number, public readonly currentStock: number, public readonly stockRevision: string, public readonly pricingRevision: string) {
+    super('Cena ali zaloga različice je bila medtem spremenjena. Osvežite podatke in ponovno uporabite spremembe.');
+    this.name = 'CatalogVariantConcurrencyConflictError';
+  }
+}
+async function catalogPricingAuditContext(client: PoolClient, request?: Request) {
+  if (!request) return;
+  const actor = await getAuditActor(request);
+  const context = getAuditRequestContext(request);
+  await setPricingStockAuditContext(client, { actorId: actor.actor_id, actorName: actor.actor_name, source: 'admin/articles', requestId: context.requestId });
+}
+function assertVariantFinancialRevision(existing: Record<string, unknown>, patch: { inventory?: number; price?: number; costNet?: number | null; expectedStockRevision?: string; expectedPricingRevision?: string }) {
+  const stockChanged = patch.inventory !== undefined && patch.inventory !== asNumber(existing.inventory);
+  const pricingChanged = (patch.price !== undefined && patch.price !== asNumber(existing.price))
+    || (patch.costNet !== undefined && patch.costNet !== asNullableNumber(existing.cost_net));
+  const stockConflict = patch.inventory !== undefined && (patch.expectedStockRevision !== undefined
+    ? patch.expectedStockRevision !== String(existing.stock_revision) : stockChanged);
+  const pricingConflict = (patch.price !== undefined || patch.costNet !== undefined) && (patch.expectedPricingRevision !== undefined
+    ? patch.expectedPricingRevision !== String(existing.pricing_revision) : pricingChanged);
+  if (stockConflict || pricingConflict) throw new CatalogVariantConcurrencyConflictError(asNumber(existing.id),asNumber(existing.inventory),String(existing.stock_revision),String(existing.pricing_revision));
 }
 
 function asIsoTimestamp(value: unknown): string | null {
@@ -1849,6 +1877,8 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'shippingHeightMm', civ.shipping_height_mm,
               'price', civ.price,
               'costNet', civ.cost_net,
+              'stockRevision', civ.stock_revision::text,
+              'pricingRevision', civ.pricing_revision::text,
               'discountPct', civ.discount_pct,
               'inventory', civ.inventory,
               'minOrder', civ.min_order,
@@ -1951,6 +1981,8 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
         weight: entry.weight === null ? null : asNumber(entry.weight),
         price: asNumber(entry.price),
         costNet: entry.costNet === null ? null : asNumber(entry.costNet),
+        stockRevision: String(entry.stockRevision),
+        pricingRevision: String(entry.pricingRevision),
         discountPct: asNumber(entry.discountPct),
         inventory: asNumber(entry.inventory),
         minOrder: Math.max(1, asNumber(entry.minOrder, 1)),
@@ -1971,7 +2003,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       slug: String(row.slug ?? ''),
       itemName: String(row.item_name ?? ''),
       productType: requireCatalogEditorProductType(row.editor_product_type),
-      typeSpecificData: normalizeTypeSpecificData(row.type_specific_data),
+      typeSpecificData: overlayCanonicalEditorPricing(row.type_specific_data, variants),
       description: asStringOrNull(row.description),
       brand: asStringOrNull(row.brand),
       material: asStringOrNull(row.material),
@@ -2087,6 +2119,8 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
             'errorTolerance', civ.error_tolerance,
             'price', civ.price,
             'costNet', civ.cost_net,
+              'stockRevision', civ.stock_revision::text,
+              'pricingRevision', civ.pricing_revision::text,
             'contentOverride', civ.content_override_json,
             'discountPct', civ.discount_pct,
             'inventory', civ.inventory,
@@ -2212,6 +2246,8 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
       errorTolerance: asStringOrNull(variant.errorTolerance),
       price: asNumber(variant.price),
       costNet: variant.costNet === null ? null : asNumber(variant.costNet),
+      stockRevision: String(variant.stockRevision),
+      pricingRevision: String(variant.pricingRevision),
       contentOverride: normalizeVariantContentOverride(variant.contentOverride),
       discountPct: asNumber(variant.discountPct),
       inventory: asNumber(variant.inventory),
@@ -2306,7 +2342,7 @@ export async function fetchCatalogItemEditorBySlug(slug: string): Promise<Catalo
     itemName: String(row.item_name ?? ''),
     itemType: String(row.item_type ?? 'unit') as CatalogItemType,
     productType,
-    typeSpecificData: normalizeTypeSpecificData(row.type_specific_data),
+    typeSpecificData: overlayCanonicalEditorPricing(row.type_specific_data, variants),
     badge: asStringOrNull(row.badge),
     status: normalizeCatalogItemLifecycleState(row.status),
     statusBeforeDelete: row.status_before_delete === null ? null : normalizeActiveState(row.status_before_delete),
@@ -2472,7 +2508,8 @@ export async function quickPatchCatalogItemByIdentifier(
 export async function quickPatchCatalogVariantByIdentifier(
   itemIdentifier: string,
   variantId: number,
-  patch: CatalogVariantQuickPatch
+  patch: CatalogVariantQuickPatch,
+  options: { request?: Request } = {}
 ): Promise<{ item: AdminCatalogListItem; variant: AdminCatalogVariantSummary } | null> {
   const normalizedIdentifier = itemIdentifier.trim();
   if (!normalizedIdentifier || !Number.isFinite(variantId)) throw new Error('Neveljaven identifikator različice.');
@@ -2481,6 +2518,7 @@ export async function quickPatchCatalogVariantByIdentifier(
   const client = await pool.connect();
   try {
     await client.query('begin');
+    await catalogPricingAuditContext(client, options.request);
 
     const itemId = await resolveItemIdByIdentifier(client, normalizedIdentifier);
     if (!itemId) {
@@ -2488,6 +2526,7 @@ export async function quickPatchCatalogVariantByIdentifier(
       return null;
     }
 
+    await client.query('select id from catalog_items where id=$1 for update', [itemId]);
     const existingResult = await client.query(
       `
       select
@@ -2505,6 +2544,9 @@ export async function quickPatchCatalogVariantByIdentifier(
         civ.shipping_height_mm,
         civ.error_tolerance,
         civ.price,
+        civ.cost_net,
+        civ.stock_revision::text,
+        civ.pricing_revision::text,
         civ.discount_pct,
         civ.inventory,
         civ.min_order,
@@ -2521,6 +2563,7 @@ export async function quickPatchCatalogVariantByIdentifier(
       join catalog_items ci on ci.id = civ.item_id
       where civ.id = $1 and civ.item_id = $2
       limit 1
+      for update of civ
       `,
       [variantId, itemId]
     );
@@ -2529,6 +2572,7 @@ export async function quickPatchCatalogVariantByIdentifier(
       await client.query('rollback');
       return null;
     }
+    assertVariantFinancialRevision(existing, patch);
     const nextVariantSku = patch.variantSku !== undefined ? asStringOrNull(patch.variantSku) : asStringOrNull(existing.variant_sku);
     const nextVariantStatus = patch.status !== undefined ? patch.status : normalizeActiveState(existing.status);
     const nextVariantPrice = patch.price !== undefined ? patch.price : asNumber(existing.price, Number.NaN);
@@ -2601,7 +2645,7 @@ export async function quickPatchCatalogVariantByIdentifier(
           error_tolerance = $7,
           price = $8,
           discount_pct = $9,
-          inventory = $10,
+          inventory = case when $21::boolean then $10 else inventory end,
           min_order = $11,
           status = $12,
           badge = $13,
@@ -2633,7 +2677,8 @@ export async function quickPatchCatalogVariantByIdentifier(
         nextVariantShipping.shippingWidthMm,
         nextVariantShipping.shippingHeightMm,
         variantId,
-        itemId
+        itemId,
+        patch.inventory !== undefined
       ]
     );
     await ensureCatalogDefaultVariantIsUsable(client, itemId);
@@ -2969,7 +3014,7 @@ async function assertPersistedCatalogOptionAssignmentsReady(
   );
 }
 
-export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload): Promise<{ id: number; slug: string; updatedAt: string }> {
+export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload, options: { request?: Request } = {}): Promise<{ id: number; slug: string; updatedAt: string }> {
   const payload = normalizeCatalogEditorShippingPayload(inputPayload);
   const appearanceOverrideResult = validateAndNormalizeCatalogAppearanceOverride(
     payload.appearanceOverride
@@ -2982,6 +3027,7 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload):
   const client = await pool.connect();
   try {
     await client.query('begin');
+    await catalogPricingAuditContext(client, options.request);
 
     const categoryId = await resolveCategoryIdByPath(payload.categoryPath, client);
     if (payload.status === 'active') {
@@ -3032,12 +3078,13 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload):
       }
     }
 
+    if (effectiveId !== null) await client.query('select id from catalog_item_variants where item_id=$1 order by id for update', [effectiveId]);
     const existingVariants = effectiveId === null
       ? []
       : (
           await client.query(
             `
-            select id, variant_name, variant_sku, position
+            select id, variant_name, variant_sku, position, price, cost_net, inventory, stock_revision::text, pricing_revision::text
             from catalog_item_variants
             where item_id = $1
             order by position asc, id asc
@@ -3080,6 +3127,16 @@ export async function upsertCatalogItem(inputPayload: CatalogItemEditorPayload):
       const matchedId = asNumber(positionMatch.id);
       claimedVariantIds.add(matchedId);
       return matchedId;
+    });
+
+    payload.variants.forEach((variant, index) => {
+      const existingId = resolvedExistingVariantIds[index];
+      if (existingId === null) return;
+      const existing = existingVariantById.get(existingId)!;
+      assertVariantFinancialRevision(existing, variant);
+      // Optional cost/stock omitted by older non-financial callers remain intact.
+      if (variant.costNet === undefined) variant.costNet = asNullableNumber(existing.cost_net);
+      if (variant.inventory === undefined) variant.inventory = asNumber(existing.inventory);
     });
 
     await assertCatalogItemIdentityAvailable(client, {

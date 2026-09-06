@@ -3,220 +3,101 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-const editorSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/features/podoba/components/AdminLogoPageClient.tsx'),
-  'utf8'
-);
+const source = (name: string) => readFileSync(resolve(process.cwd(), name), 'utf8');
+const component = (name: string) => source('src/admin/features/podoba/components/' + name);
+const editor = component('AdminLogoPageClient.tsx');
+const canvas = component('LogoEditorCanvas.tsx');
+const properties = component('LogoEditorProperties.tsx');
+const crop = component('LogoImageCropDialog.tsx');
+const placements = component('LogoPlacementSelector.tsx');
 
-test('the primary logo editor is canvas-first and exposes four compact use cases', () => {
-  assert.match(editorSource, /SITE_LOGO_PRIMARY_USE_CASE_IDS\.map/u);
-  assert.match(editorSource, /data-logo-use-case-tab=/u);
-  assert.match(editorSource, /data-logo-other-outputs/u);
-  assert.match(editorSource, /data-logo-use-case-preview/u);
-  assert.match(editorSource, /<LogoUseCasePreview\b/u);
-  assert.match(editorSource, /<FloatingAppearanceEditorContextToolbar\b/u);
-  assert.match(editorSource, /data-logo-context-toolbar/u);
-  assert.doesNotMatch(editorSource, /<aside\b/u);
-  assert.doesNotMatch(editorSource, /data-testid="logo-master-variants"/u);
+test('the primary logo editor provides a canvas, independent variants and placement contexts', () => {
+  for (const marker of ['LogoEditorCanvas', 'LogoEditorProperties', 'LogoPlacementPreview', 'LogoPlacementSelector', 'library.variants', 'LOGO_PLACEMENT_IDS']) assert.ok(editor.includes(marker), marker);
+  assert.doesNotMatch(editor, /SITE_LOGO_PRIMARY_USE_CASE_IDS|masterId|SiteLogoTextLayerControls/u);
 });
-
-test('logo previews and PDF documents share the canonical artwork renderer', () => {
-  assert.match(editorSource, /<SiteLogoArtwork\b/u);
-  assert.match(editorSource, /resolveSiteLogoMaster/u);
-  assert.match(editorSource, /resolveSiteLogoPresentation/u);
-  assert.match(editorSource, /['"]pdf-document['"]/u);
-  assert.match(editorSource, /SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID/u);
+test('logo previews and PDF documents use rendered library output', () => {
+  assert.match(editor, /action: 'preview'/u);
+  assert.match(editor, /currentPreview/u);
+  const document = source('src/shared/server/documentLogo.ts');
+  assert.match(document, /publishedLogoProjection/u);
+  assert.match(document, /readLogoPublishedOutput\(revision\.png2x\)/u);
 });
-
-test('all logo presentation fields remain reachable only from the contextual toolbar', () => {
-  for (const field of [
-    'backgroundColor',
-    'taglineBackgroundColor',
-    'primaryTextColor',
-    'secondaryTextColor',
-    'taglineTextColor',
-    'outline.enabled',
-    'outline.color',
-    'outline.widthPx',
-    'shadow.enabled',
-    'shadow.color',
-    'shadow.opacity',
-    'shadow.blurPx',
-    'shadow.offsetXpx',
-    'shadow.offsetYpx'
-  ]) {
-    assert.ok(
-      editorSource.includes(`data-logo-presentation-control="${field}"`)
-      || editorSource.includes(`marker="${field}"`),
-      `Missing contextual logo presentation control: ${field}`
-    );
-  }
-  assert.match(editorSource, /data-logo-toolbar-panel=/u);
-  assert.match(editorSource, /data-logo-fit-mode=/u);
+test('layer typography, color and effect controls remain reachable', () => {
+  for (const field of ['fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing', 'lineHeight', 'fill', 'strokeWidth', 'shadow.color', 'shadow.opacity', 'shadow.blur', 'shadow.offsetX', 'shadow.offsetY']) assert.ok(properties.includes(field), field);
+  assert.match(properties, /fieldset disabled=\{locked\}/u);
 });
-
-test('header logo size is edited in visible pixels while non-header outputs retain percentage scale', () => {
-  assert.match(editorSource, /data-logo-header-size-control/u);
-  assert.match(editorSource, /Višina logotipa/u);
-  assert.match(editorSource, /SITE_LOGO_HEADER_DISPLAY_HEIGHT_MIN_PX/u);
-  assert.match(editorSource, /SITE_LOGO_HEADER_DISPLAY_HEIGHT_MAX_PX/u);
-  assert.match(editorSource, /displayHeightPx:\s*clamp\(/u);
-  assert.match(
-    editorSource,
-    /override:\s*\{\s*\.\.\.effectivePlacement\.override,\s*scale:\s*1\s*\}/u
-  );
-  assert.match(editorSource, /displaySize\s*\?\s*\([\s\S]*?\)\s*:\s*\([\s\S]*?max=\{LOGO_EDITOR_SCALE_MAX \* 100\}/u);
+test('header placement size remains a navigation constraint in visible pixels', () => {
+  assert.match(source('src/admin/features/podoba/components/AdminNavigationPageClient.tsx'), /logoHeightPx/u);
+  assert.match(source('src/shared/domain/logo/logoPlacement.ts'), /resolveHeaderLogoSize/u);
+  assert.doesNotMatch(editor, /displayHeightPx|SITE_LOGO_HEADER_DISPLAY_HEIGHT/u);
 });
-
-test('explicit header sizing keeps a renderable master through empty selection and upload removal', () => {
-  assert.match(
-    editorSource,
-    /function resolveSelectedSiteLogoMasterId\([\s\S]*?isSiteLogoHeaderPurpose\(purposeId\)[\s\S]*?placement\.displayHeightPx != null[\s\S]*?SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID/u
-  );
-  assert.match(
-    editorSource,
-    /const selectMaster = \([\s\S]*?resolveSelectedSiteLogoMasterId\([\s\S]*?suggestion:\s*deriveSiteLogoFitSuggestion\([\s\S]*?override:\s*null/u
-  );
-  assert.match(
-    editorSource,
-    /return isSiteLogoHeaderPurpose\(purposeId\) && placement\.displayHeightPx != null[\s\S]*?\? SITE_LOGO_BUILTIN_ORIGINAL_MASTER_ID[\s\S]*?: null;/u
-  );
-  assert.ok(
-    (editorSource.match(/selectMaster\(/gu) ?? []).length >= 3,
-    'Expected every compact source selector to use the centralized fallback and fresh-fit rule'
-  );
-  assert.match(
-    editorSource,
-    /if \(placement\.masterId !== slotId\) return \[purposeId, placement\];/u
-  );
-  assert.match(
-    editorSource,
-    /const fallbackMasterId = getPreferredMasterId\(configWithoutMaster, purposeId\);[\s\S]*?masterId:\s*fallbackMasterId,[\s\S]*?suggestion:\s*deriveSiteLogoFitSuggestion\([\s\S]*?getMaster\(configWithoutMaster, fallbackMasterId\)[\s\S]*?override:\s*null/u
-  );
-  assert.doesNotMatch(editorSource, /masterId:\s*(?:event\.target\.value|masterId) \|\| null/u);
+test('placement selection offers explicit original, brand and hidden fallbacks', () => {
+  for (const fallback of ['original', 'brand', 'none', 'default']) assert.ok(placements.includes('fallback:' + fallback), fallback);
+  assert.match(placements, /disabled=\{!candidate\.published\}/u);
 });
-
-test('explicitly empty sources stay empty and fill-mode transform handles escape clipping ancestors', () => {
-  assert.match(
-    editorSource,
-    /const current = placement\?\.masterId;[\s\S]*?if \(current === null\) return null;/u
-  );
-  assert.match(
-    editorSource,
-    /const showOverflowingTransformHandles = toolbarOpen && !activeTextLayerId && logoEditMode !== 'move';/u
-  );
-  assert.match(
-    editorSource,
-    /activeHeaderDisplaySize \|\| showOverflowingTransformHandles \? 'overflow-visible' : 'overflow-hidden'/u
-  );
+test('empty canvases stay empty and selection controls live outside clipped artwork', () => {
+  assert.match(canvas, /!project\.layers\.length/u);
+  assert.match(canvas, /<Moveable/u);
+  assert.ok(canvas.indexOf('<Moveable ref=') > canvas.indexOf('className={styles.canvasArtwork}'));
+  assert.match(source('src/shared/server/logoLibraryOperations.ts'), /selected\.fallback === 'none'\) return null/u);
 });
-
-test('the active admin header preview uses its configured visible pixel dimensions directly', () => {
-  assert.doesNotMatch(editorSource, /toCommercialStorefrontLogicalPx/u);
-  assert.match(editorSource, /width:\s*\x60\$\{displaySize\.widthPx\}px\x60/u);
-  assert.match(editorSource, /height:\s*\x60\$\{displaySize\.heightPx\}px\x60/u);
-  assert.match(
-    editorSource,
-    /data-logo-display-height-px=\{displaySize\.heightPx\}/u
-  );
-  assert.match(
-    editorSource,
-    /headerArtworkStyle[\s\S]*?imagePlacementStyle\([\s\S]*?widthPx:\s*displaySize\.widthPx,\s*heightPx:\s*displaySize\.heightPx[\s\S]*?data-logo-header-preview-viewport[\s\S]*?<MeasuredSiteLogoArtwork[\s\S]*?style=\{[\s\S]{0,240}?headerArtworkStyle/u
-  );
-  assert.match(editorSource, /new ResizeObserver\(measure\)/u);
-  assert.match(editorSource, /effectScale=\{effectScale\}/u);
+test('placement previews reuse real storefront components and device constraints', () => {
+  const preview = component('LogoPlacementPreview.tsx');
+  for (const marker of ['<SiteHeader', '<SiteFooter', 'COMMERCIAL_STOREFRONT_SCALE', 'resolveHeaderLogoSize', 'getBoundingClientRect']) assert.ok(preview.includes(marker), marker);
 });
-
-test('the canvas applies placement scale and exposes direct move, resize, and crop modes', () => {
-  assert.match(
-    editorSource,
-    /resolveSiteLogoFittedArtworkRect\(\{[\s\S]*?artworkScale:\s*geometry\.scale/u
-  );
-  assert.match(editorSource, /type LogoEditMode = 'move' \| 'resize' \| 'crop'/u);
-  assert.match(editorSource, /data-logo-edit-mode-control=\{mode\}/u);
-  assert.match(editorSource, /pressed=\{editMode === mode\}/u);
-  assert.match(editorSource, /onEditModeChange\(mode\)/u);
-  assert.match(editorSource, /'move'[\s\S]*?'resize'[\s\S]*?'crop'/u);
+test('canvas interactions expose direct move, resize, rotation and reversible crop', () => {
+  assert.match(canvas, /draggable resizable rotatable/u);
+  assert.match(canvas, /onDragGroup=/u);
+  assert.match(canvas, /onResizeGroup=/u);
+  assert.match(canvas, /onRotateGroup=/u);
+  assert.match(editor, /<LogoImageCropDialog/u);
 });
-
-test('resize and crop modes render keyboard-accessible transform handles', () => {
-  assert.match(editorSource, /data-logo-editable-artwork-frame/u);
-  assert.match(editorSource, /data-logo-transform-bounds/u);
-  assert.match(editorSource, /data-logo-transform-handle=\{handle\}/u);
-  assert.match(editorSource, /data-logo-resize-handle=/u);
-  assert.match(editorSource, /data-logo-crop-handle=/u);
-  assert.match(editorSource, /onPointerDown=\{\(event\) =>/u);
-  assert.match(editorSource, /onKeyDown=\{\(event\) =>/u);
-  assert.match(editorSource, /data-logo-clipped-artwork-layer/u);
-  assert.match(editorSource, /data-logo-crop-shade/u);
-  assert.match(editorSource, /overflow-visible/u);
-  assert.match(editorSource, /clipPath:\s*'none'/u);
-  assert.match(editorSource, /WebkitClipPath:\s*'none'/u);
-  assert.match(editorSource, /onResizePointerDown/u);
-  assert.match(editorSource, /onCropPointerDown/u);
-  assert.match(editorSource, /onResizeKeyboard/u);
-  assert.match(editorSource, /onCropKeyboard/u);
+test('crop handles and numeric geometry support keyboard access', () => {
+  assert.match(crop, /aria-label=\{'Izrez: '/u);
+  assert.match(crop, /onPointerDown=/u);
+  assert.match(crop, /onKeyDown=/u);
+  for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) assert.ok(crop.includes(key), key);
+  assert.match(properties, /LogoNumber label="Širina sloja"/u);
+  assert.match(properties, /LogoNumber label="Višina sloja"/u);
 });
-
-test('crop editing persists source-relative crop geometry in the placement override', () => {
-  assert.match(editorSource, /function cropFromPointerDelta\(/u);
-  assert.match(editorSource, /function applyCrop\([^)]*crop:/u);
-  assert.match(
-    editorSource,
-    /override:\s*\{\s*\.\.\.placement\.override,\s*crop:\s*normalize(?:Editor|SiteLogo)Crop(?:Rect)?\(crop\)\s*\}/u
-  );
-  assert.match(editorSource, /data-logo-crop-field/u);
-  assert.match(editorSource, /setOverride\(\{\s*crop:/u);
+test('crop edits normalized coordinates while retaining the original source', () => {
+  assert.match(crop, /onApply\(\{ \.\.\.crop \}\)/u);
+  assert.match(crop, /value \/ 100/u);
+  assert.match(crop, /src=\{asset\.url\}/u);
+  assert.doesNotMatch(crop, /fetch\(|PUT|upload|writeFile/u);
+  assert.match(properties, /layer\.crop = nextCrop/u);
 });
-
-test('logo toolbar settings use compact viewport-aware popovers without the legacy 640px surface', () => {
-  assert.match(editorSource, /<AppearanceEditorToolbarPopover\b/u);
-  assert.match(
-    editorSource,
-    /<AppearanceEditorToolbarPopover[\s\S]{0,240}?ariaLabel=[\s\S]{0,240}?size=/u
-  );
-  assert.match(editorSource, /size=[^\n]{0,180}?'wide'[^\n]{0,180}?'compact'/u);
-  assert.doesNotMatch(editorSource, /w-\[min\(640px,calc\(100vw-32px\)\)\]/u);
-  assert.doesNotMatch(editorSource, /useAppearanceEditorToolbarPlacement\(\)/u);
-  assert.match(editorSource, /data-logo-translation-field=\{axis\}/u);
-  assert.match(editorSource, /className="w-\[58px\][^"]*"/u);
+test('editor settings and crop dialogs stay bounded to the viewport', () => {
+  const css = component('LogoEditor.module.css');
+  assert.match(css, /\.dialog[^}]*max-height:90vh/u);
+  assert.match(css, /\.editorBody[^}]*minmax\(0,1fr\)/u);
+  assert.match(css, /@media\(max-width:760px\)/u);
+  assert.match(editor, /requestFullscreen/u);
 });
-
-test('selecting another logo master derives a fresh fit suggestion and clears stale overrides', () => {
-  assert.match(editorSource, /deriveSiteLogoFitSuggestion/u);
-  assert.match(
-    editorSource,
-    /suggestion:\s*deriveSiteLogoFitSuggestion\(\s*purposeId,\s*[\s\S]{0,160}?\)/u
-  );
-  assert.match(editorSource, /override:\s*null/u);
+test('opening another variant loads its own draft and clears selection and undo history', () => {
+  const open = editor.slice(editor.indexOf('function openVariant'), editor.indexOf('async function saveWorking'));
+  assert.match(open, /cloneLogoProject\(variant\.draft\)/u);
+  assert.match(open, /setSelected\(\[\]\)/u);
+  assert.match(open, /history\.current = \{ past: \[\], future: \[\], gesture: null \}/u);
 });
-
-test('logo canvas and color controls expose compact crop, extension, and supported transparency editing', () => {
-  assert.match(editorSource, /data-logo-canvas-edge-controls/u);
-  assert.match(editorSource, /Platno \(napredno\)/u);
-  assert.match(editorSource, /SITE_LOGO_CANVAS_EDGE_IDS\.map/u);
-  assert.match(editorSource, /updateSiteLogoCanvasEdges\(config, purposeId/u);
-  assert.match(editorSource, /data-logo-transparent-color-controls/u);
-  assert.match(editorSource, /updateSiteLogoColorTransparency\(config, purposeId/u);
-  assert.match(editorSource, /capabilities\.artworkColors[\s\S]*?channel="taglineBackground"/u);
+test('transparent canvas, source trimming and independent layer opacity remain editable', () => {
+  assert.match(editor, /trimLogoCanvas/u);
+  assert.match(editor, /Ozadje platna/u);
+  assert.match(properties, /Prosojnost \(%\)/u);
+  assert.match(properties, /Odstrani prosojne robove slike/u);
+  assert.match(properties, /Obnovi celotno sliko/u);
 });
-
-test('the 3x3 logo placement radiogroup is immediately visible and keyboard navigable', () => {
-  assert.match(editorSource, /data-logo-placement-alignment/u);
-  assert.match(editorSource, /role="radiogroup"[\s\S]{0,100}?aria-label="Poravnava logotipa"/u);
-  assert.match(editorSource, /role="radio"/u);
-  assert.match(editorSource, /tabIndex=\{index === rovingPlacementPresetIndex \? 0 : -1\}/u);
-  for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']) {
-    assert.ok(editorSource.includes(`event.key === '${key}'`), `Missing ${key} placement navigation`);
-  }
-  assert.match(editorSource, /querySelectorAll<HTMLButtonElement>\('\[data-logo-placement-preset\]'\)/u);
+test('alignment is explicit, labeled and supports both canvas and selected layers', () => {
+  assert.match(editor, /aria-label="Poravnava glede na"/u);
+  assert.match(editor, /value="canvas"/u);
+  assert.match(editor, /value="selection"/u);
+  for (const label of ['Poravnaj levo', 'Poravnaj desno', 'Poravnaj zgoraj', 'Poravnaj spodaj', 'Enakomerno razporedi vodoravno', 'Enakomerno razporedi navpično']) assert.ok(editor.includes(label), label);
 });
-
-test('cross-use-case synchronization is explicit and preserves target geometry by default', () => {
-  assert.match(editorSource, /data-logo-sync-suggestion/u);
-  assert.match(editorSource, /data-logo-apply-to-purpose=/u);
-  assert.match(editorSource, /suggestSiteLogoPlacement/u);
-  assert.match(editorSource, /copySiteLogoPlacement/u);
-  assert.match(editorSource, /copyGeometry/u);
-  assert.doesNotMatch(editorSource, /useEffect\([^)]*copySiteLogoPlacement/su);
+test('shared placement changes are explicit and retain separate editable projects', () => {
+  assert.match(placements, /async function apply\(/u);
+  assert.match(placements, /action: 'assign'/u);
+  assert.match(placements, /placements: \{ \[purpose\]: selectedAssignment \}/u);
+  assert.match(placements, /expectedRevision: library\.revision/u);
+  assert.match(editor, /action: 'duplicate'/u);
+  assert.doesNotMatch(placements, /action: 'save'|copySiteLogoPlacement/u);
 });

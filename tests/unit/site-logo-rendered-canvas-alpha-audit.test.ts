@@ -9,7 +9,7 @@ test('rendered logo canvas preserves exact signed edges, independent channels, e
       SITE_LOGO_COLOR_CHANNEL_IDS,
       resolveSiteLogoCanvasLayout
     } = await import('./src/shared/domain/logo/siteLogo.ts');
-    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtwork.ts');
+    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtworkCore.ts');
     const { readFile } = await import('node:fs/promises');
     const sharp = (await import('sharp')).default;
 

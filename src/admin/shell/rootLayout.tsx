@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import AdminRouteHeader from '@/admin/components/AdminRouteHeader';
 import AdminLayout from '@/admin/pages/layout';
 import { SiteLogoProvider } from '@/commercial/components/SiteLogo';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
+import { getPublishedSiteLogos } from '@/shared/server/logoLibrary';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 export default async function AdminRootLayout({
@@ -10,10 +10,8 @@ export default async function AdminRootLayout({
 }: {
   children: ReactNode;
 }) {
-  const [siteNavigation, siteLogo] = await Promise.all([
-    getSiteNavigationConfig(),
-    getSiteLogoConfig()
-  ]);
+  const siteLogo = await getPublishedSiteLogos();
+  const siteNavigation = await getSiteNavigationConfig();
   const { siteLayout } = siteNavigation;
   const style = {
     '--site-content-max-width': siteLayout.siteContentMaxWidthPx + 'px',

@@ -18,12 +18,8 @@ import {
   type OrderDocumentTemplatesConfig,
   type OrderDocumentTemplateType
 } from '@/shared/domain/order/orderDocumentTemplates';
-import {
-  cloneDefaultSiteLogoConfig,
-  normalizeSiteLogoConfig,
-  toStoredSiteLogoConfig,
-  type SiteLogoConfig
-} from '@/shared/domain/logo/siteLogo';
+import type { PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
+import { useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import Button from '@/shared/ui/button/Button';
 import { useToast } from '@/shared/ui/toast';
@@ -32,7 +28,7 @@ import { renderOrderDocumentPreview, type OrderDocumentRenderedPreview } from '.
 
 type Props = {
   initialConfig?: unknown;
-  initialLogoConfig?: SiteLogoConfig;
+  initialLogoConfig?: PublishedSiteLogoConfig;
   quoteOfferTemplateEnabled?: boolean;
 };
 
@@ -116,22 +112,11 @@ export default function AdminOrderDocumentTemplateEditor({
       ),
     [initialConfig]
   );
-  const normalizedInitialLogo = useMemo(
-    () =>
-      normalizeSiteLogoConfig(
-        initialLogoConfig ?? cloneDefaultSiteLogoConfig()
-      ),
-    [initialLogoConfig]
-  );
+  const contextLogoConfig = useSiteLogoConfig();
+  const logoConfig = initialLogoConfig ?? contextLogoConfig;
   const [draft, setDraft] = useState<OrderDocumentTemplatesConfig>(() => clone(normalizedInitial));
   const [savedConfig, setSavedConfig] = useState<OrderDocumentTemplatesConfig>(() =>
     clone(normalizedInitial)
-  );
-  const [logoConfig, setLogoConfig] = useState<SiteLogoConfig>(() =>
-    clone(normalizedInitialLogo)
-  );
-  const [savedLogoConfig, setSavedLogoConfig] = useState<SiteLogoConfig>(() =>
-    clone(normalizedInitialLogo)
   );
   const [selectedType, setSelectedType] =
     useState<OrderDocumentTemplateType>('order_summary');
@@ -162,7 +147,7 @@ export default function AdminOrderDocumentTemplateEditor({
       type: selectedType,
       includeLayout: true,
       template: currentTemplate,
-      logoConfig: toStoredSiteLogoConfig(logoConfig)
+      logoRevision: logoConfig.revision
     }),
     [currentTemplate, logoConfig, selectedType]
   );
@@ -184,19 +169,8 @@ export default function AdminOrderDocumentTemplateEditor({
     () => JSON.stringify(draft.templates) !== JSON.stringify(savedConfig.templates),
     [draft.templates, savedConfig.templates]
   );
-  const logoDirty = useMemo(
-    () =>
-      JSON.stringify(toStoredSiteLogoConfig(logoConfig)) !==
-      JSON.stringify(toStoredSiteLogoConfig(savedLogoConfig)),
-    [logoConfig, savedLogoConfig]
-  );
-  const dirty = templateDirty || logoDirty;
-  const savedAt = formatUpdatedAt(
-    [savedConfig.updatedAt, savedLogoConfig.updatedAt]
-      .filter((value): value is string => Boolean(value))
-      .sort()
-      .at(-1)
-  );
+  const dirty = templateDirty;
+  const savedAt = formatUpdatedAt(savedConfig.updatedAt);
 
   const replacePreviewDocument = useCallback((nextDocument: PreviewDocument | null) => {
     const previousDocument = previewDocumentRef.current;
@@ -305,90 +279,19 @@ export default function AdminOrderDocumentTemplateEditor({
     setActionError(null);
     const submittedConfig = clone(draft);
     const submittedTemplatesJson = JSON.stringify(submittedConfig.templates);
-    const submittedLogoConfig = toStoredSiteLogoConfig(logoConfig);
-    const submittedLogoJson = JSON.stringify(submittedLogoConfig);
     try {
-      const requests: Array<Promise<
-        | { kind: 'templates'; config: OrderDocumentTemplatesConfig }
-        | { kind: 'logo'; config: SiteLogoConfig }
-      >> = [];
-
-      if (templateDirty) {
-        requests.push((async () => {
-          const response = await fetch('/api/admin/order-document-templates', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(submittedConfig)
-          });
-          const payload = (await response.json().catch(() => null)) as unknown;
-          if (!response.ok) {
-            throw new Error(messageFromPayload(payload, 'Predlog PDF ni bilo mogoče shraniti.'));
-          }
-          const returnedConfig = isRecord(payload) && 'config' in payload ? payload.config : payload;
-          return {
-            kind: 'templates' as const,
-            config: normalizeOrderDocumentTemplatesConfig(
-              isRecord(returnedConfig) ? returnedConfig : submittedConfig
-            )
-          };
-        })());
-      }
-
-      if (logoDirty) {
-        requests.push((async () => {
-          const response = await fetch('/api/admin/site-logo', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config: submittedLogoConfig })
-          });
-          const payload = (await response.json().catch(() => null)) as unknown;
-          if (!response.ok) {
-            throw new Error(messageFromPayload(payload, 'Nastavitev logotipa ni bilo mogoče shraniti.'));
-          }
-          const returnedConfig = isRecord(payload) && 'config' in payload ? payload.config : payload;
-          return {
-            kind: 'logo' as const,
-            config: normalizeSiteLogoConfig(
-              isRecord(returnedConfig) ? returnedConfig : submittedLogoConfig
-            )
-          };
-        })());
-      }
-
-      const results = await Promise.allSettled(requests);
-      for (const result of results) {
-        if (result.status !== 'fulfilled') continue;
-        if (result.value.kind === 'templates') {
-          const nextSaved = result.value.config;
-          setSavedConfig(clone(nextSaved));
-          setDraft((currentDraft) =>
-            JSON.stringify(currentDraft.templates) === submittedTemplatesJson
-              ? clone(nextSaved)
-              : currentDraft
-          );
-        } else {
-          const nextSaved = result.value.config;
-          setSavedLogoConfig(clone(nextSaved));
-          setLogoConfig((currentLogoConfig) =>
-            JSON.stringify(toStoredSiteLogoConfig(currentLogoConfig)) === submittedLogoJson
-              ? clone(nextSaved)
-              : currentLogoConfig
-          );
-        }
-      }
-
-      const failed = results.find(
-        (result): result is PromiseRejectedResult => result.status === 'rejected'
-      );
-      if (failed) throw failed.reason;
-
-      toast.success(
-        templateDirty && logoDirty
-          ? 'Predloge PDF in logotip so shranjeni.'
-          : logoDirty
-            ? 'Nastavitve logotipa za PDF so shranjene.'
-            : 'Predloge PDF so shranjene.'
-      );
+      const response = await fetch('/api/admin/order-document-templates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submittedConfig)
+      });
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!response.ok) throw new Error(messageFromPayload(payload, 'Predlog PDF ni bilo mogoče shraniti.'));
+      const returnedConfig = isRecord(payload) && 'config' in payload ? payload.config : payload;
+      const nextSaved = normalizeOrderDocumentTemplatesConfig(isRecord(returnedConfig) ? returnedConfig : submittedConfig);
+      setSavedConfig(clone(nextSaved));
+      setDraft(currentDraft => JSON.stringify(currentDraft.templates) === submittedTemplatesJson ? clone(nextSaved) : currentDraft);
+      toast.success('Predloge PDF so shranjene.');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Sprememb ni bilo mogoče shraniti.';
@@ -550,10 +453,7 @@ export default function AdminOrderDocumentTemplateEditor({
             onRefreshPreview={() => setPreviewNonce((value) => value + 1)}
             logoConfig={logoConfig}
             onChange={(template) => updateCurrentTemplate(() => template)}
-            onLogoConfigChange={(nextLogoConfig) => {
-              setLogoConfig(normalizeSiteLogoConfig(nextLogoConfig));
-              setActionError(null);
-            }}
+            onLogoAssignmentChange={() => setPreviewNonce(value => value + 1)}
           />
         ) : (
           <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="Predogled PDFja">

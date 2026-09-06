@@ -21,11 +21,7 @@ import {
   type PdfItem,
   type PdfOrder
 } from '../../src/shared/server/pdf';
-import {
-  cloneDefaultSiteLogoConfig,
-  resolveSiteLogoFittedArtworkRect,
-  resolveSiteLogoGeometry
-} from '../../src/shared/domain/logo/siteLogo';
+
 
 const A4_WIDTH_PT = 595.28;
 const A4_HEIGHT_PT = 841.89;
@@ -122,24 +118,23 @@ test('generateOrderPdf creates valid A4 PDFs with deterministic metadata for eve
   }
 });
 
-test('default pdf-document fit fills the accepted 73 mm logo frame edge to edge', async () => {
+test('published document artwork keeps its aspect ratio inside the accepted logo frame', async () => {
   const originalDrawImage = PDFPage.prototype.drawImage;
-  const images: Array<{ x?: number; width?: number }> = [];
+  const images: Array<{ x?: number; width?: number; height?: number; sourceWidth: number; sourceHeight: number }> = [];
   PDFPage.prototype.drawImage = function drawImage(image, options) {
-    images.push({ x: options?.x, width: options?.width });
+    images.push({ x: options?.x, width: options?.width, height: options?.height, sourceWidth: image.width, sourceHeight: image.height });
     return originalDrawImage.call(this, image, options);
   };
   try {
-    const logoConfig = cloneDefaultSiteLogoConfig();
-    assert.equal(logoConfig.placements['pdf-document'].fitMode, 'fill');
-    await generateOrderPdf({ ...buildInput('dobavnica'), logoConfig });
+    await generateOrderPdf(buildInput('dobavnica'));
   } finally {
     PDFPage.prototype.drawImage = originalDrawImage;
   }
   const millimetres = (value: number) => value * 72 / 25.4;
   assert.ok(images.length > 0);
-  assert.ok(Math.abs((images[0].x ?? 0) - millimetres(buildInput('dobavnica').template.style.marginMm)) < POINT_TOLERANCE);
-  assert.ok(Math.abs((images[0].width ?? 0) - millimetres(73)) < POINT_TOLERANCE);
+  assert.ok((images[0].x ?? 0) >= millimetres(buildInput('dobavnica').template.style.marginMm));
+  assert.ok((images[0].width ?? 0) <= millimetres(73) + POINT_TOLERANCE);
+  assert.ok(Math.abs((images[0].width! / images[0].height!) - images[0].sourceWidth / images[0].sourceHeight) < POINT_TOLERANCE);
 });
 
 test('generateOrderPdf keeps every document title baseline horizontal', async () => {
@@ -576,7 +571,6 @@ test('absolute canvas elements drive real logo geometry, title color, clipping f
   });
   template.style.titleAlignment = 'left';
   input.template = template;
-  input.logoConfig = cloneDefaultSiteLogoConfig();
 
   const originalDrawImage = PDFPage.prototype.drawImage;
   const originalDrawText = PDFPage.prototype.drawText;
@@ -649,19 +643,10 @@ test('absolute canvas elements drive real logo geometry, title color, clipping f
     };
     const logoImage = images[0];
     assert.ok(logoImage);
-    const logoPlacement = input.logoConfig.placements['pdf-document'];
-    const logoGeometry = resolveSiteLogoGeometry(logoPlacement);
-    const fittedLogo = resolveSiteLogoFittedArtworkRect({
-      sourceWidth: logoImage.sourceWidth,
-      sourceHeight: logoImage.sourceHeight,
-      viewportWidth: logoFrame.width,
-      viewportHeight: logoFrame.height,
-      geometry: logoGeometry,
-      fitMode: logoPlacement.fitMode,
-      artworkScale: logoGeometry.scale
-    });
-    assert.ok(Math.abs(logoImage.x - (logoFrame.x + fittedLogo.left)) < POINT_TOLERANCE);
-    assert.ok(Math.abs(logoImage.width - fittedLogo.width) < POINT_TOLERANCE);
+    const scale = Math.min(logoFrame.width / logoImage.sourceWidth, logoFrame.height / logoImage.sourceHeight);
+    const renderedWidth = logoImage.sourceWidth * scale;
+    assert.ok(Math.abs(logoImage.x - (logoFrame.x + (logoFrame.width - renderedWidth) / 2)) < POINT_TOLERANCE);
+    assert.ok(Math.abs(logoImage.width - renderedWidth) < POINT_TOLERANCE);
     assert.ok(rectangles.some((rectangle) =>
       Math.abs((rectangle.x ?? 0) - logoFrame.x) < POINT_TOLERANCE
       && Math.abs((rectangle.y ?? 0) - logoFrame.y) < POINT_TOLERANCE

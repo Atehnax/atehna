@@ -9,7 +9,7 @@ import {
 } from '@/shared/domain/logo/siteLogo';
 
 const saveRouteSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/api/site-logo/route.ts'),
+  resolve(process.cwd(), 'src/shared/server/logoLibrary.ts'),
   'utf8'
 );
 const publicRouteSource = readFileSync(
@@ -17,7 +17,7 @@ const publicRouteSource = readFileSync(
   'utf8'
 );
 const artworkCacheSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/server/siteLogoArtwork.ts'),
+  resolve(process.cwd(), 'src/shared/server/logoLibraryStorage.ts'),
   'utf8'
 );
 
@@ -209,58 +209,26 @@ test('server content validation rejects active, external, obfuscated, and over-c
   assert.match(result.dimensionMismatch.message ?? '', /dimensions do not match/u);
 });
 
-test('admin save validates normalized content before persistence and refreshes every rendered purpose', () => {
-  const normalizeIndex = saveRouteSource.indexOf('normalizeSiteLogoConfig(configInput)');
-  const previousIndex = saveRouteSource.indexOf('getSiteLogoConfigStrict()');
-  const validateIndex = saveRouteSource.indexOf('validateSiteLogoConfigContent(normalizedConfig, previousConfig)');
-  const updateIndex = saveRouteSource.indexOf('updateSiteLogoConfig(normalizedConfig');
-  assert.ok(normalizeIndex >= 0);
-  assert.ok(previousIndex > normalizeIndex);
-  assert.ok(validateIndex > previousIndex);
-  assert.ok(updateIndex > validateIndex);
-  assert.match(saveRouteSource, /errors: \[message\][\s\S]{0,80}status: 400/u);
-  assert.match(saveRouteSource, /for \(const purposeId of SITE_LOGO_PURPOSE_IDS\)/u);
-  assert.match(saveRouteSource, /revalidatePath\(`\/api\/site-logo\/\$\{purposeId\}`\)/u);
-  assert.match(saveRouteSource, /revalidateSiteLogoArtworkCache\(\)/u);
+test('library save validates projects before persistence and public mutations refresh published output', () => {
+  const mutation = saveRouteSource.slice(saveRouteSource.indexOf('export async function mutateLogoLibrary'), saveRouteSource.indexOf('export async function uploadLogoLibrarySource'));
+  assert.match(mutation, /requireLogoRevision\(snapshot\.revision, input\.expectedRevision\)/u);
+  assert.ok(mutation.indexOf('validateProject(') < mutation.indexOf('commitLogoLibraryChange('));
+  assert.ok(mutation.indexOf('createLogoPublication(') < mutation.indexOf('commitLogoLibraryChange('));
+  assert.match(mutation, /if \(publicChanged\) revalidatePublishedLogos\(\)/u);
+  assert.match(saveRouteSource, /revalidateTag\(LOGO_LIBRARY_PUBLIC_CACHE_TAG, \{ expire: 0 \}\)/u);
+  assert.match(saveRouteSource, /for \(const purpose of LOGO_PLACEMENT_IDS\) revalidatePath/u);
 });
 
-test('public rendered artwork is serializable, tagged, bounded, and CDN shielded', () => {
-  assert.match(artworkCacheSource, /unstable_cache\(/u);
-  assert.match(artworkCacheSource, /SITE_LOGO_RENDERED_ARTWORK_CACHE_TAG/u);
-  assert.match(artworkCacheSource, /toStoredSiteLogoConfig\(config\)/u);
-  assert.match(artworkCacheSource, /renderPurposeSizedCachedArtwork/u);
-  assert.match(
-    artworkCacheSource,
-    /isSiteLogoHeaderPurpose\(purposeId\)[\s\S]*?placement\.displayHeightPx != null[\s\S]*?\? 1[\s\S]*?: geometry\.scale/u
-  );
-  assert.match(artworkCacheSource, /palette:\s*true,\s*colours:\s*256/u);
-  assert.match(artworkCacheSource, /SITE_LOGO_CACHED_ARTWORK_MAX_BASE64_BYTES\s*=\s*1_400_000/u);
-  assert.match(artworkCacheSource, /base64\.length > SITE_LOGO_CACHED_ARTWORK_MAX_BASE64_BYTES/u);
-  assert.match(artworkCacheSource, /revalidate:\s*SITE_LOGO_RENDERED_ARTWORK_CACHE_SECONDS/u);
-  assert.match(publicRouteSource, /resolveCachedSiteLogoArtwork\(config, purposeId\)/u);
-  assert.match(publicRouteSource, /SITE_LOGO_PUBLIC_CACHE_CONTROL/u);
-  assert.match(
-    publicRouteSource,
-    /if \(artwork\)[\s\S]*?new Response\(Uint8Array\.from\(Buffer\.from\(artwork\.base64, 'base64'\)\)[\s\S]*?'Content-Type': 'image\/png'/u
-  );
-  assert.match(
-    publicRouteSource,
-    /try\s*\{[\s\S]*?resolveCachedSiteLogoArtwork\(config, purposeId\)[\s\S]*?catch \(error\)[\s\S]*?transientArtworkFailure = true/u
-  );
-  assert.match(
-    publicRouteSource,
-    /'Cache-Control':\s*transientArtworkFailure[\s\S]*?\? 'no-store, max-age=0'[\s\S]*?: SITE_LOGO_PUBLIC_CACHE_CONTROL/u
-  );
-
-  const largestPurpose = Object.values(SITE_LOGO_PURPOSE_CATALOG).reduce((largest, purpose) => (
-    purpose.widthPx * purpose.heightPx > largest.widthPx * largest.heightPx ? purpose : largest
-  ));
-  const conservativeIndexedPngBytes = largestPurpose.widthPx * largestPurpose.heightPx
-    + largestPurpose.heightPx
-    + 65_536;
-  const conservativeBase64Bytes = Math.ceil(conservativeIndexedPngBytes * 4 / 3);
-  assert.ok(
-    conservativeBase64Bytes <= 1_400_000,
-    `Largest purpose exceeds cache contract: ${conservativeBase64Bytes} bytes`
-  );
+test('public output is immutable, bounded and separate from private originals', () => {
+  assert.match(artworkCacheSource, /LOGO_OUTPUT_MAX_BYTES/u);
+  assert.match(artworkCacheSource, /addRandomSuffix: false, allowOverwrite: false/u);
+  assert.match(artworkCacheSource, /access: privateSource \? 'private' : 'public'/u);
+  assert.match(artworkCacheSource, /cacheControlMaxAge: 365 \* 24 \* 60 \* 60/u);
+  assert.match(artworkCacheSource, /readLimitedLogoStream\(result\.stream, maximum\)/u);
+  assert.match(artworkCacheSource, /result\.blob\.pathname !== pathname/u);
+  assert.match(publicRouteSource, /getPublishedSiteLogos\(\)/u);
+  assert.match(publicRouteSource, /readLogoPublishedOutput\(revision\.png2x\)/u);
+  assert.match(publicRouteSource, /max-age=0, must-revalidate/u);
+  assert.match(publicRouteSource, /status: 503/u);
+  assert.doesNotMatch(publicRouteSource, /resolveCachedSiteLogoArtwork|readLogoSource|draft/u);
 });

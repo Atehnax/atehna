@@ -6,9 +6,7 @@ import {
 import { createOrderDocumentPreviewContext } from '@/shared/domain/order/orderDocumentPreview';
 import { generateOrderPdfPreview } from '@/shared/server/pdf';
 import { readRequiredJsonRecord } from '@/shared/server/requestJson';
-import { normalizeSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { getDocumentLogoArtwork } from '@/shared/server/documentLogo';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 
 export const dynamic = 'force-dynamic';
@@ -32,16 +30,12 @@ export async function POST(request: Request) {
       );
     }
     const template = normalizeOrderDocumentTemplate(type, body.body.template);
-    const logoConfig = body.body.logoConfig
-      ? normalizeSiteLogoConfig(body.body.logoConfig)
-      : await getSiteLogoConfig();
-    const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
+    const logoArtwork = await getDocumentLogoArtwork();
     const preview = createOrderDocumentPreviewContext(type);
     const rendered = await generateOrderPdfPreview({
       template,
       ...preview,
-      logoConfig,
-      logoArtwork: logoArtwork?.bytes ?? null
+      logoArtwork
     });
     if (body.body.includeLayout === true) {
       return NextResponse.json({

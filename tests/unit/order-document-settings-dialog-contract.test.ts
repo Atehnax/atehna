@@ -61,9 +61,8 @@ test('the settings dialog has explicit rollback and commit actions', () => {
   assert.match(contextToolbar, /data-order-document-settings-dialog-action="save"/u);
   assert.match(contextToolbar, /onCancelEdit\(\)[\s\S]*?setPanel\(null\)/u);
   assert.match(contextToolbar, /onCommitEdit\(\)[\s\S]*?setPanel\(null\)/u);
-  assert.match(canvasSource, /createOrderDocumentInspectorSnapshot\(template, logoConfig\)/u);
+  assert.match(canvasSource, /createOrderDocumentInspectorSnapshot\(template\)/u);
   assert.match(canvasSource, /onChange\(snapshot\.template\)/u);
-  assert.match(canvasSource, /onLogoConfigChange\(snapshot\.logoConfig\)/u);
 });
 
 test('outside click, layered Escape, focus trap, and portaled controls preserve modal behavior', () => {

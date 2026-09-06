@@ -1,12 +1,10 @@
 import AdminLogoPageClient from '@/admin/features/podoba/components/AdminLogoPageClient';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-
+import { getLogoLibrary, getPublishedSiteLogos } from '@/shared/server/logoLibrary';
+import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 export const dynamic = 'force-dynamic';
-
-export const metadata = {
-  title: 'Administracija logotip'
-};
-
+export const metadata = { title: 'Administracija logotipi' };
 export default async function AdminPodobaLogotipPage() {
-  return <AdminLogoPageClient initialConfig={await getSiteLogoConfig()} />;
+  const initialLibrary = await getLogoLibrary();
+  const [initialPublished, navigation] = await Promise.all([getPublishedSiteLogos(), getSiteNavigationConfig()]);
+  return <AdminLogoPageClient initialLibrary={initialLibrary} initialPublished={initialPublished} navigation={navigation} />;
 }

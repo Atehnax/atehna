@@ -100,10 +100,9 @@ test('public media policy infers a technical-document MIME type without widening
 
 test('public media payload parser rejects scope confusion and caller-controlled paths', () => {
   const payload = JSON.stringify({
-    scope: 'site-logo',
-    masterId: 'symbol',
-    originalFileName: '../../logo.svg',
-    contentType: 'image/svg+xml',
+    scope: 'email-shared-image',
+    originalFileName: '../../logo.png',
+    contentType: 'image/png',
     uploadId: '123e4567-e89b-42d3-a456-426614174002',
     pathname: 'catalog-items/other/file.svg'
   });
@@ -112,8 +111,8 @@ test('public media payload parser rejects scope confusion and caller-controlled 
     () => parsePublicMediaUploadPayload(payload, 'catalog-item'),
     /Namen nalaganja medija se ne ujema/u
   );
-  const parsed = parsePublicMediaUploadPayload(payload, 'site-logo');
-  assert.equal(parsed.originalFileName, 'logo.svg');
+  const parsed = parsePublicMediaUploadPayload(payload, 'email-shared-image');
+  assert.equal(parsed.originalFileName, 'logo.png');
   assert.equal(getPublicMediaUploadPolicy(parsed).pathname.includes('..'), false);
 });
 
@@ -152,7 +151,6 @@ test('all public admin media callers use the shared direct-upload helper', () =>
     'src/admin/features/artikli/components/AdminItemEditorPage.tsx',
     'src/admin/features/podoba/components/AdminProductAppearancePageClient.tsx',
     'src/admin/features/podoba/components/AdminLandingPageClient.tsx',
-    'src/admin/features/podoba/components/AdminLogoPageClient.tsx',
     'src/admin/features/kategorije/components/AdminCategoriesMainTable.tsx',
     'src/shared/features/category-showcase/useCategoryShowcaseEditor.ts'
   ];
@@ -211,4 +209,13 @@ test('failed staged media uploads are evicted so a later retry can succeed', asy
   const articleEditorSource = source('src/admin/features/artikli/components/AdminItemEditorPage.tsx');
   assert.match(articleEditorSource, /saveInFlightRef\.current/u);
   assert.match(articleEditorSource, /getOrCreateCachedMediaUpload/u);
+});
+
+test('retired logo scope cannot issue a public media upload authorization', () => {
+  assert.throws(() => parsePublicMediaUploadPayload(JSON.stringify({
+    scope: 'site-logo', masterId: 'symbol', originalFileName: 'logo.svg',
+    contentType: 'image/svg+xml', uploadId: '123e4567-e89b-42d3-a456-426614174002'
+  })), /Namen nalaganja medija ni veljaven/u);
+  assert.match(source('src/admin/features/podoba/components/AdminLogoPageClient.tsx'), /api\/admin\/logo-library\/assets/u);
+  assert.doesNotMatch(source('src/admin/features/podoba/components/AdminLogoPageClient.tsx'), /uploadAdminPublicMedia/u);
 });

@@ -347,10 +347,10 @@ test('quote request confirmation is non-binding and does not reuse order semanti
   );
   assert.match(confirmationPdfMetadata, /row\.id === 'order_date'/u);
   assert.doesNotMatch(confirmationPdfMetadata, /row\.id === 'issue_date'/u);
-  assert.match(confirmationPdfRenderer, /resolveCachedSiteLogoArtwork/u);
+  assert.match(confirmationPdfRenderer, /getDocumentLogoArtwork/u);
   assert.match(
     confirmationPdfRenderer,
-    /Buffer\.from\(logoArtwork\.base64, 'base64'\)/u
+    /const logoArtwork = await getDocumentLogoArtwork\(\)/u
   );
   assert.doesNotMatch(confirmationPdfRenderer, /resolveSiteLogoArtwork\(/u);
   assert.match(

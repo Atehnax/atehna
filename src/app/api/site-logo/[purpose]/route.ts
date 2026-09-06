@@ -1,100 +1,34 @@
 import { createElement } from 'react';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import sharp from 'sharp';
 import { ImageResponse } from 'next/og';
-import {
-  SITE_LOGO_PURPOSE_CATALOG,
-  SITE_LOGO_PURPOSE_IDS,
-  type SiteLogoPurposeId
-} from '@/shared/domain/logo/siteLogo';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import {
-  SITE_LOGO_PUBLIC_CACHE_CONTROL,
-  resolveCachedSiteLogoArtwork
-} from '@/shared/server/siteLogoArtwork';
-
+import { LOGO_PLACEMENT_IDS, type LogoPlacementId } from '@/shared/domain/logo/logoLibrary';
+import { LOGO_OUTPUT_DIMENSIONS } from '@/shared/domain/logo/logoOutputDimensions';
+import { getLogoLibrary, getPublishedSiteLogos } from '@/shared/server/logoLibrary';
+import { readLogoPublishedOutput } from '@/shared/server/logoLibraryStorage';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-const OUTPUT_PURPOSES = new Set<SiteLogoPurposeId>(SITE_LOGO_PURPOSE_IDS);
-
-function fallbackNode(purposeId: SiteLogoPurposeId) {
-  const purpose = SITE_LOGO_PURPOSE_CATALOG[purposeId];
-  const compact = purpose.widthPx === purpose.heightPx;
-  return createElement(
-    'div',
-    {
-      style: {
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: purposeId === 'social-share' ? '#F8FAFC' : 'transparent',
-        color: '#0F172A',
-        fontSize: compact ? Math.round(purpose.widthPx * 0.52) : Math.round(purpose.heightPx * 0.34),
-        fontWeight: 700,
-        letterSpacing: '-0.035em'
-      }
-    },
-    compact ? 'A' : 'Atehna'
-  );
-}
-
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ purpose: string }> }
-) {
-  const { purpose: rawPurpose } = await context.params;
-  if (!SITE_LOGO_PURPOSE_IDS.includes(rawPurpose as SiteLogoPurposeId)) {
-    return new Response('Not found', { status: 404 });
+export const maxDuration = 120;
+export async function GET(_request: Request, context: { params: Promise<{ purpose: string }> }) {
+  const { purpose } = await context.params;
+  if (!(LOGO_PLACEMENT_IDS as readonly string[]).includes(purpose)) return new Response('Not found', { status: 404 });
+  const selected = (await getPublishedSiteLogos()).placements[purpose as LogoPlacementId];
+  if (!selected) return new Response(null, { status: 204, headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' } });
+  const dimensions = LOGO_OUTPUT_DIMENSIONS[purpose as LogoPlacementId];
+  const headers = { 'Cache-Control': 'public, max-age=0, must-revalidate', 'X-Content-Type-Options': 'nosniff', ETag: '"' + selected.revision + '-' + purpose + '"' };
+  if (selected.fallback === 'brand') {
+    return new ImageResponse(createElement('div', { style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', fontSize: Math.round(dimensions.heightPx * .42), fontWeight: 700 } }, dimensions.widthPx === dimensions.heightPx ? 'A' : 'Atehna'), { width: dimensions.widthPx, height: dimensions.heightPx, headers });
   }
-  const purposeId = rawPurpose as SiteLogoPurposeId;
-  if (!OUTPUT_PURPOSES.has(purposeId)) return new Response('Not found', { status: 404 });
-
-  const purpose = SITE_LOGO_PURPOSE_CATALOG[purposeId];
-  const config = await getSiteLogoConfig();
-  const placement = config.placements[purposeId];
-  let artwork: Awaited<ReturnType<typeof resolveCachedSiteLogoArtwork>> = null;
-  let transientArtworkFailure = false;
-  if (placement?.enabled) {
-    try {
-      artwork = await resolveCachedSiteLogoArtwork(config, purposeId);
-    } catch (error) {
-      transientArtworkFailure = true;
-      console.error(`Failed to render public site logo for ${purposeId}`, error);
-    }
+  let bytes: Buffer;
+  if (selected.fallback === 'original') bytes = await readFile(join(process.cwd(), 'public', 'brand', 'atehna-document-wordmark.png'));
+  else {
+    const library = await getLogoLibrary();
+    const variant = library.variants.find(value => value.id === selected.variantId);
+    const revision = [variant?.published, ...(variant?.history ?? [])].find(value => value?.id === selected.revision);
+    if (!revision) return new Response('Logo temporarily unavailable', { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    bytes = await readLogoPublishedOutput(revision.png2x);
   }
-  if (artwork) {
-    return new Response(Uint8Array.from(Buffer.from(artwork.base64, 'base64')), {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': SITE_LOGO_PUBLIC_CACHE_CONTROL
-      }
-    });
-  }
-
-  return new ImageResponse(
-    createElement(
-      'div',
-      {
-        style: {
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'transparent'
-        }
-      },
-      fallbackNode(purposeId)
-    ),
-    {
-      width: purpose.widthPx,
-      height: purpose.heightPx,
-      headers: {
-        'Cache-Control': transientArtworkFailure
-          ? 'no-store, max-age=0'
-          : SITE_LOGO_PUBLIC_CACHE_CONTROL
-      }
-    }
-  );
+  const rendered = await sharp(bytes, { limitInputPixels: 16_000_000 }).resize(dimensions.widthPx, dimensions.heightPx, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  return new Response(Uint8Array.from(rendered), { headers: { ...headers, 'Content-Type': 'image/png' } });
 }

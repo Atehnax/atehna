@@ -1,7 +1,7 @@
 import AdminNavigationPageClient from '@/admin/features/podoba/components/AdminNavigationPageClient';
 import { SiteLogoProvider } from '@/commercial/components/SiteLogo';
 import { getGlobalStyleConfig } from '@/shared/server/globalStyle';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
+import { getPublishedSiteLogos } from '@/shared/server/logoLibrary';
 import { getSiteNavigationConfig } from '@/shared/server/siteNavigation';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,10 @@ export const metadata = {
 };
 
 export default async function AdminPodobaNavigacijaPage() {
-  const [config, globalStyle, siteLogo] = await Promise.all([
+  const siteLogo = await getPublishedSiteLogos();
+  const [config, globalStyle] = await Promise.all([
     getSiteNavigationConfig(),
-    getGlobalStyleConfig(),
-    getSiteLogoConfig()
+    getGlobalStyleConfig()
   ]);
 
   return (

@@ -1,4 +1,5 @@
 import 'server-only';
+import { ensureLogoLibrary } from '@/shared/server/logoLibrary';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
 import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
@@ -806,6 +807,7 @@ function serializeStoredSiteNavigationConfig(config: SiteNavigationConfig) {
 }
 
 async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationConfig> {
+  await ensureLogoLibrary();
   const pool = await getPool();
   const result = await pool.query(
     'select config_json, updated_at from site_navigation_settings where key = $1 limit 1',
@@ -824,7 +826,7 @@ async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationCon
 
 const getCachedSiteNavigationConfigFromDatabase = unstable_cache(
   readSiteNavigationConfigFromDatabase,
-  ['site-navigation-config'],
+  ['site-navigation-config-v2-logo-library'],
   { tags: [SITE_NAVIGATION_CACHE_TAG] }
 );
 

@@ -1,9 +1,7 @@
-import type { SiteLogoConfig } from '@/shared/domain/logo/siteLogo';
 import type { OrderDocumentTemplate } from '@/shared/domain/order/orderDocumentTemplates';
 
 export type OrderDocumentInspectorSnapshot = {
   template: OrderDocumentTemplate;
-  logoConfig: SiteLogoConfig;
 };
 
 const cloneInspectorValue = <Value,>(value: Value): Value => {
@@ -18,9 +16,7 @@ const cloneInspectorValue = <Value,>(value: Value): Value => {
  * This isolated snapshot makes Cancel a real rollback rather than a cosmetic close.
  */
 export const createOrderDocumentInspectorSnapshot = (
-  template: OrderDocumentTemplate,
-  logoConfig: SiteLogoConfig
+  template: OrderDocumentTemplate
 ): OrderDocumentInspectorSnapshot => ({
-  template: cloneInspectorValue(template),
-  logoConfig: cloneInspectorValue(logoConfig)
+  template: cloneInspectorValue(template)
 });

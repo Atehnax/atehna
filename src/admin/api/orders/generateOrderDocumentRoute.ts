@@ -9,8 +9,7 @@ import {
 import { getPool } from '@/shared/server/db';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf } from '@/shared/server/pdf';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { getDocumentLogoArtwork } from '@/shared/server/documentLogo';
 import { validatePersistedOrderShippingReadiness } from '@/shared/domain/shipping/shipping';
 import {
   allocateOrderDocumentNumber,
@@ -35,10 +34,9 @@ export async function generateOrderDocumentRoute(
     }
 
     const pool = await getPool();
-    const [initialContext, template, logoConfig] = await Promise.all([
+    const [initialContext, template] = await Promise.all([
       buildPdfContext(pool, orderId),
-      getOrderDocumentTemplate(type),
-      getSiteLogoConfig()
+      getOrderDocumentTemplate(type)
     ]);
     if (!initialContext.ok) {
       return NextResponse.json(
@@ -47,7 +45,7 @@ export async function generateOrderDocumentRoute(
       );
     }
     let context = initialContext;
-    const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
+    const logoArtwork = await getDocumentLogoArtwork();
 
     const issuedAt = new Date();
     const documentAccessId = randomUUID();
@@ -167,8 +165,7 @@ export async function generateOrderDocumentRoute(
           items: context.itemsForPdf,
           documentNumber,
           issuedAt,
-          logoConfig,
-          logoArtwork: logoArtwork?.bytes ?? null
+            logoArtwork
         })
       );
       const contentHash = createHash('sha256').update(pdfBuffer).digest('hex');

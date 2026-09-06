@@ -10,7 +10,7 @@ const adminLogoSource = readFileSync(resolve(
 ), 'utf8');
 const clientArtworkSource = readFileSync(resolve(
   process.cwd(),
-  'src/shared/components/SiteLogoArtwork.tsx'
+  'src/admin/features/podoba/components/LogoEditorCanvas.tsx'
 ), 'utf8');
 
 test('uploaded logos preserve signed edges, one canvas background, and independent effects', () => {
@@ -170,24 +170,18 @@ test('uploaded logos preserve signed edges, one canvas background, and independe
   assert.ok(result.effectsShadow > 0);
 });
 
-test('Admin preview hides unsupported uploaded channels and measures the real effect scale', () => {
-  const backgroundIndex = adminLogoSource.indexOf('channel="background"');
-  const capabilityIndex = adminLogoSource.indexOf('capabilities.artworkColors ? (', backgroundIndex);
-  const taglineIndex = adminLogoSource.indexOf('channel="taglineBackground"', capabilityIndex);
-  assert.ok(backgroundIndex >= 0);
-  assert.ok(capabilityIndex > backgroundIndex);
-  assert.ok(taglineIndex > capabilityIndex);
-
-  assert.match(adminLogoSource, /function MeasuredSiteLogoArtwork/u);
-  assert.match(adminLogoSource, /getBoundingClientRect\(\)/u);
-  assert.match(
-    adminLogoSource,
-    /rect\.width\s*\/\s*Math\.max\(1, canvasLayout\.width\)[\s\S]{0,160}rect\.height\s*\/\s*Math\.max\(1, canvasLayout\.height\)/u
-  );
-  assert.match(adminLogoSource, /effectScale=\{effectScale\}/u);
-  assert.equal(
-    adminLogoSource.match(/<MeasuredSiteLogoArtwork\b/gu)?.length ?? 0,
-    2
-  );
-  assert.match(clientArtworkSource, /effectScale\?: number/u);
+test('uploaded artwork stays a source image layer and exposes crop, masks and shared placement measurement', () => {
+  assert.match(adminLogoSource, /api\/admin\/logo-library\/assets/u);
+  assert.match(adminLogoSource, /result\.asset\.id/u);
+  assert.match(adminLogoSource, /<LogoPlacementPreview/u);
+  assert.match(clientArtworkSource, /asset\.url/u);
+  assert.match(clientArtworkSource, /layer\.mask === 'ellipse'/u);
+  assert.match(clientArtworkSource, /crop\.width/u);
+  const properties = readFileSync(resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorProperties.tsx'), 'utf8');
+  assert.match(properties, /Vdelano besedilo ni ločeno urejljivo/u);
+  assert.match(properties, /Zamenjaj sliko/u);
+  assert.match(properties, /Izreži sliko/u);
+  const preview = readFileSync(resolve(process.cwd(), 'src/admin/features/podoba/components/LogoPlacementPreview.tsx'), 'utf8');
+  assert.match(preview, /getBoundingClientRect\(\)/u);
+  assert.match(preview, /asset\.bounds/u);
 });

@@ -62,7 +62,7 @@ test('admin routes preserve their shell geometry with reduced storefront work', 
   const routeHeader = source('src/admin/components/AdminRouteHeader.tsx');
 
   assert.match(adminShell, /getSiteNavigationConfig\(\)/u);
-  assert.match(adminShell, /getSiteLogoConfig\(\)/u);
+  assert.match(adminShell, /getPublishedSiteLogos\(\)/u);
   assert.doesNotMatch(adminShell, /getGlobalStyleConfig/u);
   assert.doesNotMatch(adminShell, /getProductAppearanceConfig/u);
   assert.doesNotMatch(adminShell, /getInventoryPolicySettings/u);

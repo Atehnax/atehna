@@ -53,14 +53,7 @@ import {
   type OrderDocumentTypographyOverride,
   type OrderDocumentTypographyTarget
 } from '@/shared/domain/order/orderDocumentTemplates';
-import {
-  cloneDefaultSiteLogoConfig,
-  normalizeSiteLogoConfig,
-  resolveSiteLogoFittedArtworkRect,
-  resolveSiteLogoFittedCropRect,
-  resolveSiteLogoGeometry,
-  type SiteLogoConfig
-} from '@/shared/domain/logo/siteLogo';
+
 import {
   formatOrderDocumentCurrency as formatCurrency,
   matchesOrderDocumentElementCondition,
@@ -91,7 +84,6 @@ export type GenerateOrderPdfInput = {
   items: PdfItem[];
   documentNumber: string;
   issuedAt: Date;
-  logoConfig?: SiteLogoConfig;
   logoArtwork?: Uint8Array | null;
 };
 
@@ -1378,44 +1370,15 @@ class OrderPdfRenderer {
     if (!this.logoImage) return;
     const sourceWidth = this.logoImage.width;
     const sourceHeight = this.logoImage.height;
-    const placement = this.input.logoConfig!.placements['pdf-document'];
-    const geometry = resolveSiteLogoGeometry(placement);
-    const fitted = resolveSiteLogoFittedArtworkRect({
-      sourceWidth,
-      sourceHeight,
-      viewportWidth: width,
-      viewportHeight: height,
-      geometry,
-      fitMode: placement.fitMode,
-      artworkScale: geometry.scale
-    });
-    const fittedCrop = resolveSiteLogoFittedCropRect(fitted, geometry.crop);
-    const imageX = x + fitted.left;
-    const imageTop = top - fitted.top;
-    const cropLeft = Math.max(0, fittedCrop.left);
-    const cropTop = Math.max(0, fittedCrop.top);
-    const cropRight = Math.min(width, fittedCrop.left + fittedCrop.width);
-    const cropBottom = Math.min(height, fittedCrop.top + fittedCrop.height);
-    if (cropRight <= cropLeft || cropBottom <= cropTop) return;
-
-    this.page.pushOperators(
-      pushGraphicsState(),
-      rectangle(
-        x + cropLeft,
-        top - cropBottom,
-        cropRight - cropLeft,
-        cropBottom - cropTop
-      ),
-      clip(),
-      endPath()
-    );
+    const scale = Math.min(width / sourceWidth, height / sourceHeight);
+    const renderedWidth = sourceWidth * scale;
+    const renderedHeight = sourceHeight * scale;
     this.page.drawImage(this.logoImage, {
-      x: imageX,
-      y: imageTop - fitted.height,
-      width: fitted.width,
-      height: fitted.height
+      x: x + (width - renderedWidth) / 2,
+      y: top - (height + renderedHeight) / 2,
+      width: renderedWidth,
+      height: renderedHeight
     });
-    this.page.pushOperators(popGraphicsState());
   }
 
   private drawHeaderCompany(x: number, top: number, width: number) {
@@ -3432,7 +3395,6 @@ class OrderPdfRenderer {
 
 export async function generateOrderPdfPreview(input: GenerateOrderPdfInput): Promise<{ pdf: Uint8Array; layout: OrderDocumentPreviewLayout }> {
   const doc = await PDFDocument.create();
-  const logoConfig = normalizeSiteLogoConfig(input.logoConfig ?? cloneDefaultSiteLogoConfig());
   const [fonts, logoImage] = await Promise.all([
     loadOrderPdfFonts(doc, input),
     loadDocumentLogo(doc, input.logoArtwork)
@@ -3447,7 +3409,6 @@ export async function generateOrderPdfPreview(input: GenerateOrderPdfInput): Pro
 
   const renderer = new OrderPdfRenderer(doc, fonts, logoImage, {
     ...input,
-    logoConfig,
     template: {
       ...input.template,
       text: {

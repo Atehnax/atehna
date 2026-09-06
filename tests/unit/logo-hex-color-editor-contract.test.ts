@@ -9,7 +9,7 @@ const compactFieldSource = readFileSync(
   'utf8'
 );
 const logoEditorSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/features/podoba/components/AdminLogoPageClient.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorProperties.tsx'),
   'utf8'
 );
 const documentCanvasSource = readFileSync(
@@ -17,15 +17,7 @@ const documentCanvasSource = readFileSync(
   'utf8'
 );
 
-const logoColorMarkers = [
-  'backgroundColor',
-  'taglineBackgroundColor',
-  'primaryTextColor',
-  'secondaryTextColor',
-  'taglineTextColor',
-  'outline.color',
-  'shadow.color'
-] as const;
+const logoColorMarkers = ['fill', 'stroke', 'shadow.color'] as const;
 
 test('HEX normalization accepts common pasted HEX forms and persists #RRGGBB', () => {
   assert.equal(normalizeHexColor('#abc'), '#AABBCC');
@@ -63,18 +55,13 @@ test('the shared logo field keeps invalid drafts local and commits valid typed H
   assert.doesNotMatch(compactFieldSource, /type="color"/u);
 });
 
-test('Podoba and Urejevalnik share one HEX-only control for every logo color', () => {
-  for (const source of [logoEditorSource, documentCanvasSource]) {
-    assert.match(source, /import \{ CompactHexColorField \}/u);
-    assert.doesNotMatch(source, /type="color"/u);
-    assert.doesNotMatch(source, /<aside\b/u);
-    for (const marker of logoColorMarkers) {
-      assert.ok(
-        source.includes(`marker="${marker}"`),
-        `Missing shared HEX logo color: ${marker}`
-      );
-    }
-    assert.match(source, /label="Barva d\.o\.o\."/u);
-    assert.doesNotMatch(source, /Sekundarna (?:barva|rumena)|zadnji A/iu);
-  }
+test('logo layer colors use the shared HEX field and PDF templates select the published logo', () => {
+  assert.match(logoEditorSource, /import \{ CompactHexColorField \}/u);
+  assert.doesNotMatch(logoEditorSource, /type="color"/u);
+  for (const marker of logoColorMarkers) assert.ok(logoEditorSource.includes('marker="' + marker + '"'), marker);
+  assert.match(logoEditorSource, /allowAlpha/u);
+  assert.match(logoEditorSource, /allowClear/u);
+  assert.match(documentCanvasSource, /<LogoPlacementSelector purpose="pdf-document"/u);
+  assert.doesNotMatch(documentCanvasSource, /site-logo-pdf-|updateLogoPresentation|marker="(?:primaryTextColor|taglineBackgroundColor|secondaryTextColor)"/u);
+  assert.doesNotMatch(logoEditorSource, /Sekundarna (?:barva|rumena)|zadnji A/iu);
 });

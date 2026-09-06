@@ -14,8 +14,7 @@ import {
   formatOfferCode,
   requireCommercePublicCodeBase
 } from '@/shared/domain/commercePublicCode';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { getDocumentLogoArtwork } from '@/shared/server/documentLogo';
 import { getQuoteCustomerMessage } from '@/shared/domain/quote/quoteCustomerMessage';
 import { lockQuoteWorkflow } from '@/shared/server/quoteAccess';
 import { processQuoteEmailJobs } from '@/shared/server/quoteEmailJobs';
@@ -272,11 +271,10 @@ export async function renderQuoteOfferPdf(
     taxRate: number(item.tax_rate),
     discountPercentage: number(item.discount_pct)
   }));
-  const [template, logoConfig] = await Promise.all([
-    getOrderDocumentTemplate('offer'),
-    getSiteLogoConfig()
+  const [template] = await Promise.all([
+    getOrderDocumentTemplate('offer')
   ]);
-  const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
+  const logoArtwork = await getDocumentLogoArtwork();
   const bytes = await generateOrderPdf({
     type: 'offer',
     template,
@@ -284,8 +282,7 @@ export async function renderQuoteOfferPdf(
     items: pdfItems,
     documentNumber,
     issuedAt,
-    logoConfig,
-    logoArtwork: logoArtwork?.bytes ?? null
+    logoArtwork
   });
   return {
     bytes,

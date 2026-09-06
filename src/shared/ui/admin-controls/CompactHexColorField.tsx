@@ -399,7 +399,7 @@ export function CompactHexColorField({
             })}
           </div>
         </div>,
-        document.body
+        document.fullscreenElement ?? document.body
       )
     : null;
 

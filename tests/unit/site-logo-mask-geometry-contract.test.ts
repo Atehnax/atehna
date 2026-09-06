@@ -16,7 +16,7 @@ const generatorSource = readFileSync(
   'utf8'
 );
 const clientArtworkSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/components/SiteLogoArtwork.tsx'),
+  resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'),
   'utf8'
 );
 const serverArtworkSource = readFileSync(
@@ -148,12 +148,12 @@ test('the primary mask owns the full final A without overlap or holes', async ()
   assert.ok(at(secondary, 1630, 360) > 0, 'The authentic d.o.o. suffix must remain in the secondary tone.');
 });
 
-test('client and server consume the same secondary mask and server pixels reproduce its alpha exactly', () => {
+test('published client needs no masks while the migration renderer reproduces original alpha exactly', () => {
   assert.match(
     clientArtworkSource,
-    /BuiltInSiteLogoTextLayer/u
+    /asset.pngUrl/u
   );
-  assert.match(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS\.secondary/u);
+  assert.doesNotMatch(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS/u);
   assert.match(serverArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS\[key\]/u);
   assert.match(serverArtworkSource, /builtInTextLayerMask\(\s*masks,\s*'secondaryText'/u);
   assert.match(serverArtworkSource, /coloredMask\(secondaryWorkspaceMask/u);
@@ -161,7 +161,7 @@ test('client and server consume the same secondary mask and server pixels reprod
   assert.match(generatorSource, /retainedComponents\.length !== 12 \|\| suffixLabels\.size !== 6/u);
 
   const script = String.raw`
-    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtwork.ts');
+    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtworkCore.ts');
     const sharp = (await import('sharp')).default;
     const presentation = {
       backgroundColor: '#000000',

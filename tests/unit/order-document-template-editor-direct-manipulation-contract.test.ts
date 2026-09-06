@@ -56,19 +56,21 @@ test('document metadata does not dump every label field into the inspector', () 
   assert.match(metadataBranch, /data-order-document-label-edit/u);
 });
 
-test('the authentic logo uses the verified crop and fills its editable rectangle', () => {
-  const previewStart = canvasSource.indexOf('function ElementPreview');
-  assert.notEqual(previewStart, -1, 'Missing element preview');
-  const logoBranch = sourceBetween("if (id === 'logo')", "if (id === 'company')", previewStart);
-  assert.match(logoBranch, /<AtehnaDocumentLogo\b/u);
-  assert.doesNotMatch(logoBranch, /object-contain|objectFit:\s*['"]contain['"]/u);
-
-  const cropHelper = sourceBetween('function AtehnaDocumentLogo', 'function CanvasChildTarget');
-  assert.match(cropHelper, /atehna-document-wordmark\.png/u);
-  assert.match(cropHelper, /object-fill/u);
-  assert.match(cropHelper, /height:\s*['"]141\.414%['"]/u);
-  assert.match(cropHelper, /top:\s*['"]-11\.7845%['"]/u);
-  assert.doesNotMatch(cropHelper, /object-contain|objectFit:\s*['"]contain['"]/u);
+test('the PDF uses the published PNG with one contain fit and no repeated legacy crop', () => {
+  const placement = sourceBetween('function AtehnaDocumentLogo', 'function CanvasChildTarget');
+  assert.match(placement, /purposeId="pdf-document"/u);
+  assert.doesNotMatch(placement, /141\.414|11\.7845|object-fill|atehna-document-wordmark\.png/u);
+  const documentLogo = readFileSync(resolve(process.cwd(), 'src/shared/server/documentLogo.ts'), 'utf8');
+  assert.match(documentLogo, /readLogoPublishedOutput\(revision\.png2x\)/u);
+  const start = rendererSource.indexOf('private drawHeaderLogo(');
+  const end = rendererSource.indexOf('private drawHeaderCompany(', start);
+  assert.ok(start >= 0 && end > start);
+  const fit = rendererSource.slice(start, end);
+  assert.match(fit, /Math\.min\(width \/ sourceWidth, height \/ sourceHeight\)/u);
+  assert.equal(fit.match(/drawImage\(this\.logoImage/g)?.length, 1);
+  assert.match(fit, /width: renderedWidth/u);
+  assert.match(fit, /height: renderedHeight/u);
+  assert.doesNotMatch(fit, /crop|extract|141\.414|11\.7845/u);
 });
 
 test('PDF canvas uses the shared admin selection outline without changing document stacking', () => {

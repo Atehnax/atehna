@@ -113,11 +113,9 @@ import SiteFooter, {
 import SiteHeader from '@/commercial/components/SiteHeader';
 import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
-import {
-  resolveSiteLogoDisplaySize,
-  type SiteLogoDisplaySize,
-  type SiteLogoPurposeId
-} from '@/shared/domain/logo/siteLogo';
+import { resolveHeaderLogoSize, type LogoDisplaySize as SiteLogoDisplaySize } from '@/shared/domain/logo/logoPlacement';
+import type { LogoPlacementId as SiteLogoPurposeId } from '@/shared/domain/logo/logoLibrary';
+import LogoPlacementSelector from './LogoPlacementSelector';
 import { sortTopBarTableItemsByResolvedX } from '../lib/topBarTableOrder';
 import AdminPodobaTabs from './AdminPodobaTabs';
 import styles from './AdminNavigationAppearance.module.css';
@@ -2644,7 +2642,7 @@ function calculateTopBarGeometry({
   const placementBounds = selectedContainer.contentRect;
 
   visibleItems.forEach((item) => {
-    const baseWidth = getTopBarElementRenderedPlacementWidth({ item, items, device, settings }) / coordinateScaleFactor;
+    const baseWidth = (item.id === 'logo' && item.anchorWidthPx != null ? item.anchorWidthPx : getTopBarElementRenderedPlacementWidth({ item, items, device, settings })) / coordinateScaleFactor;
     const width = getTopBarElementRenderedPlacementWidth({
       item,
       items,
@@ -4672,9 +4670,8 @@ function TopBarLayoutEditor({
   const addElementMenuDismissRefs = useMemo(() => [addElementMenuRef], []);
   const deviceLayout = layout.responsive[device];
   const logoPurposeId = `header-${device}` as SiteLogoPurposeId;
-  const logoDisplaySize = resolveSiteLogoDisplaySize(
-    logoPurposeId,
-    siteLogoConfig.placements[logoPurposeId]
+  const logoDisplaySize = resolveHeaderLogoSize(
+    device, deviceLayout, siteLogoConfig.placements[logoPurposeId]
   );
   const defaultDeviceLayout = initialLayout.responsive[device];
   const layoutItems = useMemo(() => sortedResponsiveItems(deviceLayout.items), [deviceLayout.items]);
@@ -4794,7 +4791,7 @@ function TopBarLayoutEditor({
   const updateDeviceItem = (id: SiteNavigationTopBarElementId, updates: Partial<SiteNavigationTopBarResponsiveItem>) => {
     updateDeviceLayout((current) => ({
       ...current,
-      items: current.items.map((item) => (item.id === id ? normalizeDeviceItemWidth({ ...item, ...updates }, current.settings) : item))
+      items: current.items.map((item) => (item.id === id ? normalizeDeviceItemWidth({ ...item, ...updates, ...(id === 'logo' && (updates.widthPx != null || updates.xPx != null || updates.xRatio != null) ? { anchorWidthPx: undefined } : {}) }, current.settings) : item))
     }));
   };
 
@@ -5107,6 +5104,17 @@ function TopBarLayoutEditor({
             </div>
           </div>
 
+          <div className="col-span-full flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3">
+            <LogoPlacementSelector key={logoPurposeId} purpose={logoPurposeId} compact />
+            <label className="grid gap-1 text-xs text-slate-600">Največja višina logotipa (px)
+              <input type="number" min={8} max={64} step={0.5}
+                aria-label={'Največja višina logotipa · ' + topBarDeviceLabels[device]}
+                value={deviceLayout.settings.logoHeightPx ?? 18}
+                onChange={event => updateSettings({ logoHeightPx: Number(event.target.value) })}
+                className="h-8 w-24 rounded-md border border-slate-300 px-2" />
+            </label>
+            <p className="text-[11px] text-slate-500">Logotip ohrani razmerje stranic in se omeji na prostor v vrstici.</p>
+          </div>
           <div className="col-span-full">
             <TopBarResponsivePreview
               device={device}
@@ -7798,12 +7806,14 @@ export default function AdminNavigationPageClient({
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link
-              href="/admin/podoba/logotip"
-              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-[color:var(--blue-600)]"
-            >
-              Uredi logotip
-            </Link>
+            <details className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs">
+              <summary className="cursor-pointer font-medium">Logotipi noge</summary>
+              <div className="mt-3 grid gap-3">
+                {(['footer-desktop', 'footer-tablet', 'footer-mobile'] as const).map(purpose =>
+                  <LogoPlacementSelector key={purpose} purpose={purpose} compact />
+                )}
+              </div>
+            </details>
             <fieldset
               aria-label="Vidnost delov noge"
               className="m-0 flex min-w-0 flex-wrap items-center justify-end gap-2 border-0 p-0"

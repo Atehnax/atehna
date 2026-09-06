@@ -3,7 +3,7 @@ import {
   getOrderDocumentTemplatesConfig,
   withoutQuoteOfferTemplate
 } from '@/shared/server/orderDocumentTemplates';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
+import { getPublishedSiteLogos } from '@/shared/server/logoLibrary';
 import { isQuoteAdminEnabled } from '@/shared/server/quoteFeatureFlags';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export default async function AdminDocumentEditorPage() {
   const quoteAdminEnabled = isQuoteAdminEnabled();
   const [initialConfig, initialLogoConfig] = await Promise.all([
     getOrderDocumentTemplatesConfig(),
-    getSiteLogoConfig()
+    getPublishedSiteLogos()
   ]);
 
   return (

@@ -19,7 +19,7 @@ const auditedColorSurfacePaths = [
   'admin/features/podoba/components/ProductAppearanceContextToolbar.tsx',
   'admin/features/podoba/components/AdminProductAppearancePageClient.tsx',
   'admin/features/podoba/components/AdminGlobalStylePageClient.tsx',
-  'admin/features/podoba/components/AdminLogoPageClient.tsx',
+  'admin/features/podoba/components/LogoEditorProperties.tsx',
   'admin/features/podoba/components/AdminNavigationPageClient.tsx',
   'admin/features/podoba/components/AdminLandingPageClient.tsx',
   'admin/features/urejevalnik/components/OrderDocumentTemplateCanvas.tsx'
@@ -32,7 +32,7 @@ const emptyOrInheritedColorSurfacePaths = [
   'admin/features/urejevalnik/components/OrderDocumentTemplateCanvas.tsx'
 ] as const;
 
-const alphaColorSurfacePaths: readonly string[] = [];
+const alphaColorSurfacePaths: readonly string[] = ['admin/features/podoba/components/LogoEditorProperties.tsx'];
 
 function readSource(relativePath: string) {
   return readFileSync(resolve(sourceRoot, relativePath), 'utf8');

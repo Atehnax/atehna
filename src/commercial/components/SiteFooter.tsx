@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Clock, Globe2, Mail, MapPin, Phone } from 'lucide-react';
 import { ResponsiveSiteLogo } from '@/commercial/components/SiteLogo';
-import { SiteLogoArtwork } from '@/shared/components/SiteLogoArtwork';
 import {
   resolveHomepageFooterTextAlignment,
   type HomepageTextAlignment,
@@ -14,7 +13,6 @@ import {
   type HomepageFooterSpacing,
   type HomepageSocialType
 } from '@/shared/domain/landing/landingPage';
-import { SITE_LOGO_BUILTIN_ORIGINAL_MASTER } from '@/shared/domain/logo/siteLogo';
 
 export type FooterPresentation = Pick<HomepageFooterSettings, 'logoMode' | 'layoutColumns' | 'spacing' | 'topBorder'>;
 
@@ -293,29 +291,6 @@ function orderedFooterItems<T>(items: readonly T[], includeHidden = false) {
     .map(({ item }) => item);
 }
 
-function renderDefaultSiteFooterLogo(fluid = false) {
-  return (
-    <span
-      className={classNames(
-        'inline-flex items-center justify-center overflow-hidden',
-        fluid ? 'h-full min-h-0 w-full min-w-0' : 'h-10 w-[126px]'
-      )}
-      data-site-logo-fallback="shared"
-    >
-      <SiteLogoArtwork
-        master={SITE_LOGO_BUILTIN_ORIGINAL_MASTER}
-        alt="Atehna"
-        className="max-h-full max-w-full"
-        style={{
-          aspectRatio: `${SITE_LOGO_BUILTIN_ORIGINAL_MASTER.intrinsicWidth} / ${SITE_LOGO_BUILTIN_ORIGINAL_MASTER.intrinsicHeight}`,
-          height: '100%',
-          width: 'auto'
-        }}
-      />
-    </span>
-  );
-}
-
 const footerLogoPurposes = {
   desktop: 'footer-desktop',
   tablet: 'footer-tablet',
@@ -327,7 +302,6 @@ export function renderSiteFooterLogo(
   _logoMode: HomepageFooterSettings['logoMode'],
   fluid = false
 ) {
-  const fallback = renderDefaultSiteFooterLogo(fluid);
   const className = fluid ? 'h-full w-full' : 'h-10 w-[126px]';
   const purposeClassNames = fluid
     ? undefined
@@ -340,7 +314,6 @@ export function renderSiteFooterLogo(
   return (
     <ResponsiveSiteLogo
       purposes={footerLogoPurposes}
-      fallback={fallback}
       className={className}
       purposeClassNames={purposeClassNames}
       alt="Atehna"

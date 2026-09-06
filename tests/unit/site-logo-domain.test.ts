@@ -199,83 +199,32 @@ test('uploaded masters support background and alpha effects but not per-glyph re
   });
 });
 
-test('storefront header and footer renderer consume shared masters and presentation', () => {
-  const source = readFileSync(
-    resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'),
-    'utf8'
-  );
-  assert.match(source, /resolveSiteLogoMaster/u);
-  assert.match(source, /resolveSiteLogoPresentation/u);
-  assert.match(source, /<SiteLogoArtwork\b/u);
-  assert.match(source, /resolveSiteLogoCanvasLayout/u);
-  assert.match(source, /resolveSiteLogoFittedArtworkRect/u);
-  assert.match(source, /resolveSiteLogoCropClipPath\(geometry\.crop\)/u);
-  assert.match(source, /fitMode:\s*placement\.fitMode/u);
+test('storefront header and footer consume immutable published assets with contain sizing', () => {
+  const source = readFileSync(resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'), 'utf8');
+  assert.match(source, /PublishedSiteLogoConfig/u);
+  assert.match(source, /asset\.svgUrl \|\| asset\.pngUrl/u);
+  assert.match(source, /width=\{asset\.width\} height=\{asset\.height\}/u);
+  assert.match(source, /object-contain/u);
+  assert.match(source, /data-site-logo-revision=\{asset\.revision\}/u);
+  assert.match(source, /if \(!asset\) return null/u);
+  assert.doesNotMatch(source, /resolveSiteLogoMaster|SiteLogoArtwork|geometry\.scale/u);
 });
 
-test('the real SiteHeader applies explicit pixel size to the outer viewport exactly once', () => {
-  const logoSource = readFileSync(
-    resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'),
-    'utf8'
-  );
-  const headerSource = readFileSync(
-    resolve(process.cwd(), 'src/commercial/components/SiteHeader.tsx'),
-    'utf8'
-  );
-
-  assert.match(headerSource, /resolveSiteLogoDisplaySize\(/u);
+test('the real SiteHeader applies physical logo size once while preserving its slot anchor', () => {
+  const logoSource = readFileSync(resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'), 'utf8');
+  const headerSource = readFileSync(resolve(process.cwd(), 'src/commercial/components/SiteHeader.tsx'), 'utf8');
+  assert.match(headerSource, /resolveHeaderLogoSize\(/u);
   assert.match(headerSource, /activeHeaderLogoDisplaySize\?\.explicit/u);
-  assert.match(
-    headerSource,
-    /headerLogoLinkPaddingEndPx\s*=\s*10\s*\*\s*COMMERCIAL_STOREFRONT_SCALE/u
-  );
-  assert.match(
-    headerSource,
-    /activeHeaderLogoDisplaySize\.widthPx\s*\+\s*headerLogoLinkPaddingEndPx/u
-  );
-  assert.match(
-    headerSource,
-    /const logicalCenteredExpansionShiftPx\s*=\s*toCommercialStorefrontLogicalPx\(\s*\(itemWidthPx - baseItemWidthPx\) \/ 2\s*\)/u
-  );
-  assert.match(
-    headerSource,
-    /item\.region === 'center'[\s\S]*?left:\s*\x60calc\(\$\{baseLeft\} - \$\{logicalCenteredExpansionShiftPx\}px\)\x60/u
-  );
-  assert.match(
-    headerSource,
-    /item\.region === 'edgeRight'[\s\S]*?\{ left: 'auto', right: 0 \}/u
-  );
-  assert.match(
-    headerSource,
-    /const baseItemWidthPx\s*=\s*getTopBarItemRenderedWidthPx\(\s*item,\s*activeDevice,\s*settings\s*\)/u
-  );
-  assert.match(
-    headerSource,
-    /:\s*\{ left:\s*\x60min\(\$\{leftPercent\}%, calc\(100% - \$\{logicalWidthPx\}px\)\)\x60 \}/u
-  );
-  assert.match(
-    headerSource,
-    /width:\s*.*displaySize\.widthPx.*\/ var\(--commercial-storefront-scale\)/u
-  );
-  assert.match(
-    headerSource,
-    /height:\s*.*displaySize\.heightPx.*\/ var\(--commercial-storefront-scale\)/u
-  );
+  assert.match(headerSource, /headerLogoLinkPaddingEndPx\s*=\s*10\s*\*\s*COMMERCIAL_STOREFRONT_SCALE/u);
+  assert.match(headerSource, /activeHeaderLogoDisplaySize\.widthPx\s*\+\s*headerLogoLinkPaddingEndPx/u);
+  assert.match(headerSource, /const logicalCenteredExpansionShiftPx\s*=\s*toCommercialStorefrontLogicalPx\(\s*\(itemWidthPx - baseItemWidthPx\) \/ 2\s*\)/u);
+  assert.match(headerSource, /item\.region === 'center'[\s\S]*?logicalCenteredExpansionShiftPx/u);
+  assert.match(headerSource, /item\.region === 'edgeRight'[\s\S]*?\{ left: 'auto', right: 0 \}/u);
+  assert.match(headerSource, /item\.anchorWidthPx != null \? item\.anchorWidthPx : getTopBarItemRenderedWidthPx/u);
+  assert.match(headerSource, /width:\s*.*displaySize\.widthPx.*\/ var\(--commercial-storefront-scale\)/u);
+  assert.match(headerSource, /height:\s*.*displaySize\.heightPx.*\/ var\(--commercial-storefront-scale\)/u);
   assert.match(headerSource, /className=\{headerLogoClassNames\[device\]\}/u);
   assert.match(logoSource, /style=\{style\}/u);
-  assert.match(
-    logoSource,
-    /artworkScale\s*=\s*isSiteLogoHeaderPurpose\(purposeId\)[\s\S]*?placement\.displayHeightPx\s*!=\s*null[\s\S]*?\?\s*1[\s\S]*?:\s*geometry\.scale/u
-  );
-  assert.match(
-    logoSource,
-    /resolveSiteLogoFittedArtworkRect\(\{[\s\S]*?fitMode:\s*placement\.fitMode,[\s\S]*?artworkScale/u
-  );
-  assert.match(logoSource, /sourceWidth:\s*canvasLayout\.width/u);
-  assert.match(logoSource, /sourceHeight:\s*canvasLayout\.height/u);
-  assert.doesNotMatch(logoSource, /const scale[XY]\s*=/u);
-  assert.doesNotMatch(
-    logoSource,
-    /displayHeightPx[\s\S]{0,240}(?:Math\.(?:min|max)|clamp)\([^)]*geometry\.scale/u
-  );
+  assert.match(logoSource, /object-contain/u);
+  assert.doesNotMatch(logoSource, /const scale[XY]\s*=|geometry\.scale|displayHeightPx/u);
 });

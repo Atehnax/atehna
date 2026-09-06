@@ -14,17 +14,11 @@ import {
   cloneDefaultSiteNavigationConfig,
   toStoredSiteNavigationConfig
 } from '@/shared/domain/navigation/siteNavigation';
-import { normalizeSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
+import { publishedLogoAsset, publishedLogoFixture } from './fixtures/published-site-logo';
 
 const clone = <T>(value: T): T => structuredClone(value);
 
-const sectionTestLogoConfig = normalizeSiteLogoConfig({
-  placements: {
-    'footer-desktop': { enabled: false },
-    'footer-tablet': { enabled: false },
-    'footer-mobile': { enabled: false }
-  }
-});
+const sectionTestLogoConfig = publishedLogoFixture();
 
 function renderFooter(
   patch: Partial<typeof DEFAULT_HOMEPAGE_SETTINGS.footer> = {}
@@ -185,30 +179,7 @@ test('the public lower footer keeps contact and legal content left while copyrig
 });
 
 test('the footer uses the shared responsive logo placement instead of the legacy logo renderer', () => {
-  const logoConfig = normalizeSiteLogoConfig({
-    masters: [
-      {
-        id: 'footer-regression-logo',
-        label: 'Footer regression logo',
-        kind: 'lockup',
-        tone: 'default',
-        url: '/footer-regression-logo.svg',
-        pathname: 'footer-regression-logo.svg',
-        filename: 'footer-regression-logo.svg',
-        mimeType: 'image/svg+xml',
-        size: 128,
-        intrinsicWidth: 320,
-        intrinsicHeight: 96,
-        opticalBounds: { x: 0, y: 0, width: 1, height: 1 }
-      }
-    ],
-    placements: {
-      'footer-desktop': {
-        enabled: true,
-        masterId: 'footer-regression-logo'
-      }
-    }
-  });
+  const logoConfig = publishedLogoFixture({ 'footer-desktop': publishedLogoAsset('footer-regression-logo') });
   const settings = normalizeHomepageFooterSettings({
     ...DEFAULT_HOMEPAGE_SETTINGS.footer,
     logoMode: 'hidden'
@@ -222,7 +193,7 @@ test('the footer uses the shared responsive logo placement instead of the legacy
   );
 
   assert.match(markup, /data-site-logo-purpose="footer-desktop"/u);
-  assert.match(markup, /data-site-logo-master="footer-regression-logo"/u);
+  assert.match(markup, /data-site-logo-variant="footer-regression-logo"/u);
 
   const source = readFileSync(
     resolve(process.cwd(), 'src/commercial/components/SiteFooter.tsx'),

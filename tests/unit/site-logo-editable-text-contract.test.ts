@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import { blankLogoProject } from '@/shared/domain/logo/logoLibrary';
+import { validateLogoProject } from '@/shared/domain/logo/logoProject';
 import {
   DEFAULT_SITE_LOGO_PRESENTATION,
   cloneDefaultSiteLogoConfig,
@@ -25,11 +27,11 @@ const documentEditorSource = readFileSync(
   'utf8'
 );
 const sharedTextControlsSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/features/podoba/components/SiteLogoTextLayerControls.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorProperties.tsx'),
   'utf8'
 );
 const clientArtworkSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/components/SiteLogoArtwork.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorCanvas.tsx'),
   'utf8'
 );
 const serverArtworkSource = readFileSync(
@@ -223,105 +225,51 @@ test('hide preserves customization while remove resets it and restore makes the 
   assert.equal(resolveSiteLogoPresentation(config.placements['header-desktop']).secondaryText.enabled, true);
 });
 
-test('the logo workspace edits each text layer directly through its floating toolbar', () => {
-  for (const layer of ['secondaryText', 'taglineText']) {
-    assert.ok(
-      logoEditorSource.includes(`data-logo-text-layer={layerKey}`)
-        || logoEditorSource.includes('data-logo-text-layer={layerId}')
-        || logoEditorSource.includes(`data-logo-text-layer="${layer}"`),
-      `Missing direct canvas target for ${layer}.`
-    );
-  }
-  assert.match(logoEditorSource, /data-logo-text-toolbar/u);
-  for (const panel of ['edit', 'layers']) {
-    assert.ok(
-      logoEditorSource.includes(`data-logo-text-toolbar-panel="${panel}"`)
-        || logoEditorSource.includes('data-logo-text-toolbar-panel={panel}'),
-      `Missing floating ${panel} panel.`
-    );
-  }
-  for (const control of [
-    'content',
-    'fontFamily',
-    'fontSizePx',
-    'fontStyle',
-    'fontWeight',
-    'letterSpacingPx'
-  ]) {
-    assert.ok(
-      sharedTextControlsSource.includes(`data-logo-text-control="${control}"`)
-        || sharedTextControlsSource.includes('data-logo-text-control={control}')
-        || sharedTextControlsSource.includes('data-logo-text-control={marker}'),
-      `Missing editable ${control} control.`
-    );
-  }
-  assert.match(sharedTextControlsSource, /data-logo-text-hide/u);
-  assert.match(sharedTextControlsSource, /data-logo-text-remove/u);
-  assert.match(sharedTextControlsSource, /data-logo-text-restore/u);
-  assert.doesNotMatch(logoEditorSource, /data-logo-text-sidebar/u);
+test('the logo workspace edits arbitrary text layers through the selected-layer inspector', () => {
+  assert.match(logoEditorSource, /addLayer\(kind: 'text'/u);
+  assert.match(logoEditorSource, /<LogoEditorProperties/u);
+  assert.match(clientArtworkSource, /data-logo-selectable/u);
+  for (const field of ['text', 'fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing']) assert.ok(sharedTextControlsSource.includes('layer.' + field), field);
+  assert.match(sharedTextControlsSource, /aria-label="Vsebina besedila"/u);
+  assert.match(sharedTextControlsSource, /item\.visible = !item\.visible|target\.visible = !target\.visible/u);
+  assert.match(sharedTextControlsSource, /onDelete/u);
+  assert.doesNotMatch(logoEditorSource, /secondaryText|taglineText|SiteLogoTextLayerControls/u);
 });
 
-test('logo text fields keep a local draft so spaces survive until an explicit commit', () => {
-  assert.equal(
-    sanitizeSiteLogoTextContent('  varčevanje z energijo  '),
-    'varčevanje z energijo'
-  );
-  assert.match(sharedTextControlsSource, /useState\(layer\.content\)/u);
-  assert.match(sharedTextControlsSource, /value=\{contentDraft\}/u);
-  assert.match(
-    sharedTextControlsSource,
-    /onChange=\{\(event\) => setContentDraft\(event\.currentTarget\.value\)\}/u
-  );
-  assert.match(sharedTextControlsSource, /onBlur=\{commitContent\}/u);
-  assert.match(sharedTextControlsSource, /event\.key === 'Enter'[\s\S]*?commitContent\(\)/u);
-  assert.match(sharedTextControlsSource, /event\.key === 'Escape'[\s\S]*?setContentDraft\(layer\.content\)/u);
-  assert.match(
-    sharedTextControlsSource,
-    /sanitizeSiteLogoTextContent\(contentDraft, layer\.content\)/u
-  );
-  assert.doesNotMatch(
-    sharedTextControlsSource,
-    /onChange=\{\(event\) => onChange\(\{ content: event\.currentTarget\.value \}\)\}/u
-  );
+test('logo text drafts retain spaces and commit only through the explicit library save', () => {
+  assert.equal(sanitizeSiteLogoTextContent('  varčevanje z energijo  '), 'varčevanje z energijo');
+  const project = blankLogoProject();
+  project.layers.push({ id: 'text', name: 'Text', type: 'text', x: 0, y: 0, width: 600, height: 100, rotation: 0, opacity: 1, visible: true, locked: false,
+    text: '  varčevanje z energijo  ', fontFamily: 'Inter', fontSize: 24, fontWeight: 400, fontStyle: 'normal', fill: '#000000', textAlign: 'left', lineHeight: 1.2, letterSpacing: 0 });
+  const saved = validateLogoProject(JSON.parse(JSON.stringify(project)));
+  assert.equal(saved.layers[0].type === 'text' && saved.layers[0].text, '  varčevanje z energijo  ');
+  assert.match(sharedTextControlsSource, /value=\{layer\.text\}/u);
+  assert.match(sharedTextControlsSource, /item\.text = event\.target\.value/u);
+  assert.match(logoEditorSource, /async function saveWorking/u);
+  assert.match(logoEditorSource, /action: 'save'/u);
+  assert.doesNotMatch(sharedTextControlsSource, /fetch\(/u);
 });
 
-test('Urejevalnik exposes the same PDF suffix and tagline controls instead of preview-only settings', () => {
-  assert.match(documentEditorSource, /SiteLogoTextLayerManager/u);
-  assert.match(documentEditorSource, /purposeId="pdf-document"/u);
-  assert.match(documentEditorSource, /showFields/u);
-  for (const control of [
-    'content',
-    'fontFamily',
-    'fontSizePx',
-    'fontStyle',
-    'fontWeight',
-    'letterSpacingPx'
-  ]) {
-    assert.ok(
-      sharedTextControlsSource.includes(`data-logo-text-control="${control}"`)
-        || sharedTextControlsSource.includes('data-logo-text-control={control}')
-        || sharedTextControlsSource.includes('data-logo-text-control={marker}'),
-      `Missing PDF logo ${control} control in Urejevalnik.`
-    );
-  }
-  assert.match(sharedTextControlsSource, /data-logo-text-hide/u);
-  assert.match(sharedTextControlsSource, /data-logo-text-remove/u);
-  assert.match(sharedTextControlsSource, /data-logo-text-restore/u);
+test('Urejevalnik selects the shared published PDF logo and links editing to the library', () => {
+  assert.match(documentEditorSource, /LogoPlacementSelector/u);
+  assert.match(documentEditorSource, /purpose="pdf-document"/u);
+  assert.match(documentEditorSource, /objavljeno različico iz knjižnice/u);
+  assert.match(documentEditorSource, /Sloje in besedilo urejate v urejevalniku logotipa/u);
+  assert.doesNotMatch(documentEditorSource, /SiteLogoTextLayerManager|api\/admin\/site-logo/u);
+  for (const field of ['fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing']) assert.ok(sharedTextControlsSource.includes(field), field);
 });
 
-test('client and server renderers consume both text layers and remove inactive originals from effects', () => {
-  for (const source of [clientArtworkSource, serverArtworkSource]) {
-    assert.match(source, /presentation\.secondaryText/u);
-    assert.match(source, /presentation\.taglineText/u);
-  }
-  assert.match(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS\.secondary/u);
-  assert.match(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS\.tagline/u);
+test('migration rendering retains both old text layers while the new client uses arbitrary text layers', () => {
+  assert.match(serverArtworkSource, /presentation\.secondaryText/u);
+  assert.match(serverArtworkSource, /presentation\.taglineText/u);
   assert.match(serverArtworkSource, /masks\.secondary/u);
   assert.match(serverArtworkSource, /masks\.tagline/u);
+  assert.match(clientArtworkSource, /layer\.type === 'text'/u);
+  assert.doesNotMatch(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS|secondaryText|taglineText/u);
 
   const script = String.raw`
     const { DEFAULT_SITE_LOGO_PRESENTATION } = await import('./src/shared/domain/logo/siteLogo.ts');
-    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtwork.ts');
+    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtworkCore.ts');
     const sharp = (await import('sharp')).default;
 
     const read = async (input) => sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -373,18 +321,17 @@ test('client and server renderers consume both text layers and remove inactive o
   assert.deepEqual(result, { staleSecondaryPixels: 0, staleTaglinePixels: 0 });
 });
 
-test('an explicit artwork effect scale overrides numeric-style inference for measured previews', () => {
-  assert.match(clientArtworkSource, /effectScale\?: number/u);
-  assert.match(
-    clientArtworkSource,
-    /typeof effectScaleInput === 'number'[\s\S]*?Number\.isFinite\(effectScaleInput\)[\s\S]*?Math\.max\(0, effectScaleInput\)[\s\S]*?typeof style\?\.width === 'number'/u
-  );
+test('canvas zoom scales geometry and visual effects together without inferred style scaling', () => {
+  assert.match(clientArtworkSource, /transform: `scale\(\$\{zoom\}\)`/u);
+  assert.match(clientArtworkSource, /layer\.shadow\.offsetX/u);
+  assert.match(clientArtworkSource, /layer\.shadow\.blur \/ 2/u);
+  assert.doesNotMatch(clientArtworkSource, /effectScaleInput|typeof style\?\.width/u);
 });
 
 test('canonical text masks move and resize exactly while escaped Slovene custom text renders safely', () => {
   const script = String.raw`
     const { DEFAULT_SITE_LOGO_PRESENTATION } = await import('./src/shared/domain/logo/siteLogo.ts');
-    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtwork.ts');
+    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtworkCore.ts');
     const sharp = (await import('sharp')).default;
     const bounds = async (presentation) => {
       const { data, info } = await sharp(await renderBuiltInAtehnaLogoArtwork(presentation)).raw().toBuffer({ resolveWithObject: true });

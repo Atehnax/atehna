@@ -200,15 +200,15 @@ test('upload guidance is explicit and requests no internal order number', () => 
 
   for (const step of [
     'Pripravite dokument',
-    'Preverite datoteko',
-    'Varno naložite'
+    'Izberite datoteko',
+    'Naložite naročilnico'
   ]) {
     assert.ok(page.includes(step));
   }
   assert.match(page, /podpisano oziroma odobreno naročilnico/iu);
   assert.match(page, /PDF ali JPG do velikosti 10 MB/u);
   assert.match(page, /interne številke naročila ni treba vpisovati/u);
-  assert.match(page, /Naročilo šole \/ javnega zavoda/u);
+  assert.match(page, /Naročilo šole ali javnega zavoda/u);
   assert.match(form, /consumeOrderAccessTokenFromLocation/u);
   assert.match(form, /exchangeOrderAccessToken/u);
   assert.match(form, /readStoredOrderAccessId/u);

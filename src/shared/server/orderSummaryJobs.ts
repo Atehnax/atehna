@@ -10,8 +10,7 @@ import {
 } from '@/shared/server/blob';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
 import { generateOrderPdf } from '@/shared/server/pdf';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import { resolveSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { getDocumentLogoArtwork } from '@/shared/server/documentLogo';
 import {
   buildGeneratedPdfFileName,
   buildPdfContext
@@ -345,15 +344,13 @@ export async function processInitialOrderSummaryJob(
       if (!documentNumber) {
         throw new Error('Order confirmation requires a public order code.');
       }
-      const logoConfig = await getSiteLogoConfig();
-      const logoArtwork = await resolveSiteLogoArtwork(logoConfig, 'pdf-document');
+      const logoArtwork = await getDocumentLogoArtwork();
       const pdfBuffer = await generateOrderPdf({
         type: DOCUMENT_TYPE,
         template,
         documentNumber,
         issuedAt,
-        logoConfig,
-        logoArtwork: logoArtwork?.bytes ?? null,
+        logoArtwork,
         order: context.orderForPdf,
         items: context.itemsForPdf
       });

@@ -18,7 +18,9 @@ const sourceFor = (name: string) => componentFiles.find((file) => file.name === 
 const primitivesSource = sourceFor('AppearanceEditorToolbarPrimitives.tsx');
 const landingSource = sourceFor('AdminLandingPageClient.tsx');
 const logoSource = sourceFor('AdminLogoPageClient.tsx');
-const logoTextSource = sourceFor('SiteLogoTextLayerControls.tsx');
+const logoPropertiesSource = sourceFor('LogoEditorProperties.tsx');
+const logoStyles = readFileSync(resolve(componentsDirectory, 'LogoEditor.module.css'), 'utf8');
+const nativeLogoControls = new Set(['AdminLogoPageClient.tsx', 'LogoEditorProperties.tsx', 'LogoPlacementPreview.tsx', 'LogoPlacementSelector.tsx']);
 const navigationSource = sourceFor('AdminNavigationPageClient.tsx');
 const navigationAppearanceStyles = readFileSync(
   resolve(componentsDirectory, 'AdminNavigationAppearance.module.css'), 'utf8'
@@ -50,15 +52,28 @@ function compactSelectOpeningTagForMarker(source: string, marker: string) {
   return openingTagAround(source, markerIndex);
 }
 
-test('every Podoba selector uses the compact themed listbox instead of a native select', () => {
+test('existing Podoba selectors retain themed listboxes while the layered logo editor owns compact native controls', () => {
   const offenders = componentFiles
-    .filter(({ source }) => /<select\b/u.test(source))
+    .filter(({ name, source }) => !nativeLogoControls.has(name) && /<select\b/u.test(source))
     .map(({ name }) => name);
   assert.deepEqual(offenders, []);
 
-  for (const source of [landingSource, logoSource, navigationSource, globalSource, productPageSource, productToolbarSource]) {
+  for (const source of [landingSource, navigationSource, globalSource, productPageSource, productToolbarSource]) {
     assert.match(source, /AppearanceEditorCompactSelect/u);
   }
+});
+
+test('layered logo selectors have accessible names and share their compact input styling', () => {
+  for (const label of ['Izvoz logotipa', 'Poravnava glede na', 'Ozadje platna', 'Mesto predogleda', 'Vsebina predogleda']) {
+    assert.ok(logoSource.includes('aria-label="' + label + '"'), 'Missing logo control label: ' + label);
+  }
+  for (const label of ['Pisava', 'Debelina pisave', 'Poravnava besedila', 'Maska slike']) {
+    assert.ok(logoPropertiesSource.includes('aria-label="' + label + '"'), 'Missing layer control label: ' + label);
+  }
+  for (const source of [logoSource, logoPropertiesSource]) assert.match(source, /<select[^]*?className=\{styles\.input\}/u);
+  assert.match(sourceFor('LogoPlacementSelector.tsx'), /aria-label=\{'Različica · '/u);
+  assert.match(sourceFor('LogoPlacementSelector.tsx'), /className="h-8 min-w-40 max-w-full/u);
+  assert.match(sourceFor('LogoPlacementPreview.tsx'), /<label[^]*?>Ozadje[^]*?<select value=\{background\}/u);
 });
 
 test('the landing-page header uses the standard compact Podoba publication status', () => {
@@ -125,14 +140,13 @@ test('light settings inherit the admin palette while dark editor surfaces opt in
     for (const tag of tags) assert.doesNotMatch(tag, /tone="dark"/u);
   }
 
-  for (const source of [landingSource, productToolbarSource, productDescriptionSource, logoTextSource]) {
+  for (const source of [landingSource, productToolbarSource, productDescriptionSource]) {
     const tags = compactSelectOpeningTags(source);
     assert.ok(tags.length > 0);
     for (const tag of tags) assert.match(tag, /tone="dark"/u);
   }
-  const logoSelectTags = compactSelectOpeningTags(logoSource);
-  assert.equal(logoSelectTags.length, 1);
-  assert.equal(logoSelectTags.filter((tag) => /tone="dark"/u.test(tag)).length, 1);
+  assert.match(logoStyles, /\.input\s*\{[^}]*height:30px;[^}]*background:#fff;[^}]*color:#0f172a;/u);
+  assert.match(logoStyles, /\.workspace select:focus-visible/u);
 });
 
 test('page-level product and top-bar typography selectors pin the light admin tone and aligned sizing', () => {
@@ -184,7 +198,8 @@ test('the shared alignment control is a roving keyboard radiogroup including jus
   assert.match(landingSource, /options=\{\['left', 'center', 'right', 'justify'\] as const\}/u);
   assert.match(productPageSource, /options=\{\['inherit', 'left', 'center', 'right', 'justify'\] as const\}/u);
   assert.match(productToolbarSource, /options=\{\['inherit', 'left', 'center', 'right', 'justify'\] as const\}/u);
-  assert.match(logoTextSource, /options=\{\['left', 'center', 'right'\] as const\}/u);
+  assert.match(logoPropertiesSource, /<select aria-label="Poravnava besedila"[^]*?value=\{layer\.textAlign\}/u);
+  for (const value of ['left', 'center', 'right']) assert.ok(logoPropertiesSource.includes('value="' + value + '"'));
 });
 
 test('settings surfaces avoid internal scrolling except for the shared short-viewport fallback', () => {
@@ -227,21 +242,23 @@ test('settings surfaces avoid internal scrolling except for the shared short-vie
 test('each Podoba route declares at least one compact, bounded settings surface', () => {
   const routeSources = [
     ['landing', landingSource],
-    ['logo', `${logoSource}\n${primitivesSource}`],
     ['navigation', navigationSource],
     ['global', globalSource],
     ['product', `${productPageSource}\n${productToolbarSource}`]
   ] as const;
-  assert.match(logoSource, /<AppearanceEditorToolbarPopover/u);
+  assert.match(logoSource, /<LogoEditorProperties/u);
+  assert.match(logoPropertiesSource, /<aside className=\{styles\.inspector\}/u);
+  assert.match(logoPropertiesSource, /className=\{styles\.properties\}/u);
+  assert.match(logoPropertiesSource, /<fieldset disabled=\{locked\}/u);
+  assert.match(logoStyles, /\.editorBody\s*\{[^}]*height:min\(72vh,850px\)/u);
+  assert.match(logoStyles, /\.properties\s*\{[^}]*min-height:0;[^}]*overflow:auto/u);
   for (const [route, source] of routeSources) {
     assert.match(source, /data-appearance-editor-settings-surface/u, `${route} has no declared settings surface`);
     assert.match(
       source,
-      route === 'logo'
-        ? /data-appearance-editor-toolbar-popover[\s\S]*?data-settings-scroll="internal"/u
-        : route === 'landing'
-          ? /data-homepage-toolbar-popover-scroll-region[\s\S]*?data-settings-scroll="internal"/u
-          : /data-settings-scroll="none"/u,
+      route === 'landing'
+        ? /data-homepage-toolbar-popover-scroll-region[\s\S]*?data-settings-scroll="internal"/u
+        : /data-settings-scroll="none"/u,
       `${route} does not promise an immediately visible or viewport-bounded settings surface`
     );
   }
@@ -258,7 +275,10 @@ test('the audit covers the complete current Podoba component inventory', () => {
     'AdminProductAppearancePageClient.tsx',
     'ProductAppearanceContextToolbar.tsx',
     'ProductDescriptionRichTextEditor.tsx',
-    'SiteLogoTextLayerControls.tsx'
+    'LogoEditorProperties.tsx',
+    'LogoEditorCanvas.tsx',
+    'LogoPlacementSelector.tsx',
+    'LogoPlacementPreview.tsx'
   ]) {
     assert.ok(componentFiles.some(({ name }) => name === required), `Missing ${required} from audit inventory`);
   }

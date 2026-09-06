@@ -1,191 +1,33 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { COMMERCIAL_STOREFRONT_SCALE } from '../../src/commercial/components/commercialStorefrontScale';
-import { SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX } from '../../src/shared/domain/navigation/siteNavigation';
+const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n?/g, '\n');
+const navigation = read('src/admin/features/podoba/components/AdminNavigationPageClient.tsx');
+const header = read('src/commercial/components/SiteHeader.tsx');
+const preview = read('src/admin/features/podoba/components/LogoPlacementPreview.tsx');
 
-const navigationEditorSource = readFileSync(
-  resolve(
-    process.cwd(),
-    'src/admin/features/podoba/components/AdminNavigationPageClient.tsx'
-  ),
-  'utf8'
-).replace(/\r\n?/gu, '\n');
-
-function sourceBetween(start: string, end: string) {
-  const startIndex = navigationEditorSource.indexOf(start);
-  const endIndex = navigationEditorSource.indexOf(end, startIndex + start.length);
-
-  assert.notEqual(startIndex, -1, `Missing source boundary: ${start}`);
-  assert.notEqual(endIndex, -1, `Missing source boundary: ${end}`);
-
-  return navigationEditorSource.slice(startIndex, endIndex);
-}
-
-test('navigation overlay resolves the active header logo size from the shared logo configuration', () => {
-  assert.match(navigationEditorSource, /const siteLogoConfig = useSiteLogoConfig\(\);/u);
-  assert.match(
-    navigationEditorSource,
-    /const logoPurposeId = `header-\$\{device\}` as SiteLogoPurposeId;/u
-  );
-  assert.match(
-    navigationEditorSource,
-    /const logoDisplaySize = resolveSiteLogoDisplaySize\(\s*logoPurposeId,\s*siteLogoConfig\.placements\[logoPurposeId\]\s*\);/u
-  );
-  assert.match(
-    navigationEditorSource,
-    /<TopBarResponsivePreview[\s\S]*?logoDisplaySize=\{logoDisplaySize\}/u
-  );
-
-  const responsivePreviewSource = sourceBetween(
-    'function TopBarResponsivePreview(',
-    'function TopBarElementRow('
-  );
-  assert.match(responsivePreviewSource, /logoDisplaySize\?: SiteLogoDisplaySize \| null;/u);
-  assert.match(
-    responsivePreviewSource,
-    /calculateTopBarGeometry\(\{[\s\S]*?device,\s*logoDisplaySize,\s*labelScale:/u
-  );
+test('public header and navigation overlay share navigation-owned logo fitting', () => {
+  for (const source of [navigation, header]) {
+    assert.match(source, /resolveHeaderLogoSize\(/);
+    assert.doesNotMatch(source, /resolveSiteLogoDisplaySize|shared\/domain\/logo\/siteLogo/);
+    assert.match(source, /item\.anchorWidthPx/);
+  }
+  assert.match(navigation, /updateSettings\(\{ logoHeightPx:/);
 });
 
-test('logo dragging reuses the configured logo without leaving the source artwork behind', () => {
-  const brandPreviewSource = sourceBetween(
-    'function AdminTopBarBrandPreview(',
-    'function AdminTopBarSearchPreview('
-  );
-  assert.match(brandPreviewSource, /<SiteLogo/u);
-  assert.match(brandPreviewSource, /purposeId=\{purposeId\}/u);
-  assert.match(brandPreviewSource, /fallback=\{<AdminTopBarDefaultBrandPreview \/>\}/u);
-
-  const responsivePreviewSource = sourceBetween(
-    'function TopBarResponsivePreview(',
-    'function TopBarElementRow('
-  );
-  assert.match(
-    responsivePreviewSource,
-    /const isDraggingLogo = dragState\?\.type === 'element' && dragState\.elementId === 'logo';/u
-  );
-  assert.match(responsivePreviewSource, /\[&_a\[data-navbar-left\]\]:invisible/u);
-  assert.match(
-    responsivePreviewSource,
-    /<AdminTopBarElementPreview[\s\S]*?logoDisplaySize=\{logoDisplaySize\}/u
-  );
-  assert.doesNotMatch(responsivePreviewSource, /bg-white\/75/u);
-});
-test('explicit logo overlay dimensions include the same 7.5 physical pixels of link padding as the storefront', () => {
-  assert.equal(COMMERCIAL_STOREFRONT_SCALE, 0.75);
-  assert.equal(10 * COMMERCIAL_STOREFRONT_SCALE, 7.5);
-  assert.match(
-    navigationEditorSource,
-    /const topBarLogoLinkPaddingFinalPx = 10 \* COMMERCIAL_STOREFRONT_SCALE;/u
-  );
-
-  const visualHeightSource = sourceBetween(
-    'function getTopBarElementVisualHeight(',
-    'function getTopBarRenderedViewportHeight('
-  );
-  assert.match(visualHeightSource, /logoDisplaySize\?\.explicit/u);
-  assert.match(
-    visualHeightSource,
-    /\(logoDisplaySize\.heightPx \+ topBarLogoLinkPaddingFinalPx\) \/ Math\.max\(coordinateScale, 0\.0001\)/u
-  );
-
-  const computedWidthSource = sourceBetween(
-    'function getTopBarElementComputedWidth(',
-    'function getTopBarElementRenderedPlacementWidth('
-  );
-  assert.match(computedWidthSource, /logoDisplaySize\?\.explicit/u);
-  assert.match(
-    computedWidthSource,
-    /logoDisplaySize\.widthPx \+ topBarLogoLinkPaddingFinalPx/u
-  );
+test('logo composition preview reuses real header and footer with an isolated published context', () => {
+  assert.match(preview, /<SiteLogoProvider config=\{config\} previewDevice=\{device\}/);
+  assert.match(preview, /<SiteHeader/);
+  assert.match(preview, /previewMode="inline"/);
+  assert.match(preview, /<SiteFooter settings=\{normalized.footer\}/);
+  assert.doesNotMatch(preview, /admin-site-navigation-preview/);
 });
 
-test('legacy navigation-logo overlay geometry remains 88 by 34 when no pixel size is explicit', () => {
-  assert.equal(SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX, 88);
-
-  const visualHeightSource = sourceBetween(
-    'function getTopBarElementVisualHeight(',
-    'function getTopBarRenderedViewportHeight('
-  );
-  assert.match(
-    visualHeightSource,
-    /logoDisplaySize\?\.explicit[\s\S]*?\?[^:]+:\s*34;/u
-  );
-
-  const computedWidthSource = sourceBetween(
-    'function getTopBarElementComputedWidth(',
-    'function getTopBarElementRenderedPlacementWidth('
-  );
-  assert.match(computedWidthSource, /SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX/u);
-  assert.match(
-    computedWidthSource,
-    /logoDisplaySize\?\.explicit \? logoDisplaySize\.widthPx \+ topBarLogoLinkPaddingFinalPx : 0/u
-  );
-});
-
-test('expanded logo overlay width preserves its saved center anchor', () => {
-  const xPlacementSource = sourceBetween(
-    'function getTopBarElementXInBounds(',
-    'function isTopBarPlacementItemRendered('
-  );
-  assert.match(xPlacementSource, /baseElementWidth = elementWidth/u);
-  assert.match(
-    xPlacementSource,
-    /const baseMaxXPx = Math\.max\(0, placementBoundsWidth - baseElementWidth\);/u
-  );
-  assert.match(
-    xPlacementSource,
-    /const baseXPx = clampTopBarNumber\(ratioX, 0, baseMaxXPx\);/u
-  );
-  assert.match(
-    xPlacementSource,
-    /baseXPx - Math\.max\(0, elementWidth - baseElementWidth\) \/ 2/u
-  );
-  assert.doesNotMatch(
-    xPlacementSource,
-    /clampTopBarNumber\(centeredXPx/u,
-    'A final clamp would shift the saved center when the visual logo width expands.'
-  );
-
-  const geometrySource = sourceBetween(
-    'function calculateTopBarGeometry(',
-    'function useMeasuredElementWidth<'
-  );
-  assert.match(
-    geometrySource,
-    /const baseWidth = getTopBarElementRenderedPlacementWidth\(\{ item, items, device, settings \}\) \/ coordinateScaleFactor;/u
-  );
-  assert.match(
-    geometrySource,
-    /const width = getTopBarElementRenderedPlacementWidth\(\{[\s\S]*?logoDisplaySize[\s\S]*?\}\) \/ coordinateScaleFactor;/u
-  );
-  assert.match(
-    geometrySource,
-    /getTopBarElementXInBounds\(item, placementBounds\.width, width, baseWidth\)/u
-  );
-});
-
-test('visual logo expansion is not written back into persisted navigation item widths', () => {
-  const normalizationSource = sourceBetween(
-    'const normalizeDeviceItemWidth = (',
-    'const updateDeviceItem = ('
-  );
-  assert.doesNotMatch(normalizationSource, /logoDisplaySize|displayHeightPx/u);
-
-  const rowSource = sourceBetween(
-    'function TopBarElementRow(',
-    'function GroupEditor('
-  );
-  assert.match(rowSource, /logoDisplaySize\?: SiteLogoDisplaySize \| null;/u);
-  assert.match(
-    rowSource,
-    /const resolvedWidth = getTopBarElementComputedWidth\(\{ item, items, device, settings \}\);/u
-  );
-  assert.match(
-    rowSource,
-    /const placementWidth = getTopBarElementRenderedPlacementWidth\(\{\s*item,\s*items,\s*device,\s*settings,\s*logoDisplaySize\s*\}\);/u
-  );
+test('navigation root-preview bridge and logo drag visibility preserve the existing navbar contract', () => {
+  assert.match(navigation, /admin-site-navigation-preview/);
+  assert.match(navigation, /new CustomEvent\(adminSiteNavigationPreviewEventName/);
+  assert.match(navigation, /\[&_a\[data-navbar-left\]\]:invisible/);
+  assert.match(header, /commercial-storefront-scale admin-site-header-preview-scale/);
+  assert.match(header, /href="\/"[\s\S]*?aria-label="Atehna home"/);
 });

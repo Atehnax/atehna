@@ -8,7 +8,7 @@ AppearanceEditorToolbarDivider,
 AppearanceEditorToolbarToneProvider,
 FloatingAppearanceEditorContextToolbar
 } from '@/admin/features/podoba/components/AppearanceEditorToolbarPrimitives';
-import { SiteLogoTextLayerManager } from '@/admin/features/podoba/components/SiteLogoTextLayerControls';
+import LogoPlacementSelector from '@/admin/features/podoba/components/LogoPlacementSelector';
 import {
 resolveOrderDocumentCanvasAlignment,
 type OrderDocumentAlignmentGuide
@@ -50,13 +50,7 @@ type OrderDocumentSelectionCandidate,
 type OrderDocumentSelectionCandidateKey
 } from '@/admin/features/urejevalnik/lib/orderDocumentOverlapSelection';
 import { SiteLogo,SiteLogoProvider } from '@/commercial/components/SiteLogo';
-import {
-getSiteLogoPresentationCapabilities,
-resolveSiteLogoMaster,
-resolveSiteLogoPresentation,
-type SiteLogoConfig,
-type SiteLogoPresentation
-} from '@/shared/domain/logo/siteLogo';
+import type { PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 import {
 createOrderDocumentPreviewContext,
 matchesOrderDocumentElementCondition,
@@ -159,7 +153,6 @@ Type,
 Unlock,
 X
 } from 'lucide-react';
-import Image from 'next/image';
 import {
 createContext,
 useContext,
@@ -252,8 +245,6 @@ const COMPANY_FIELDS: ReadonlyArray<{
   label: string;
   multiline?: boolean;
 }> = [
-  { key: 'logoText', label: 'Besedilo logotipa' },
-  { key: 'logoTagline', label: 'Slogan' },
   { key: 'name', label: 'Ime podjetja' },
   { key: 'addressLine1', label: 'Naslov – 1. vrstica' },
   { key: 'addressLine2', label: 'Naslov – 2. vrstica' },
@@ -647,28 +638,10 @@ const fieldRowChild = (
   rowId
 });
 
-function AtehnaDocumentLogoFallback({ className = '' }: { className?: string }) {
-  return (
-    <span className={`relative block h-full w-full overflow-hidden ${className}`}>
-      <Image
-        src="/brand/atehna-document-wordmark.png"
-        alt="ATEHNA"
-        width={1873}
-        height={840}
-        unoptimized
-        draggable={false}
-        className="absolute left-0 w-full max-w-none object-fill"
-        style={{ height: '141.414%', top: '-11.7845%' }}
-      />
-    </span>
-  );
-}
-
 function AtehnaDocumentLogo({ className = '' }: { className?: string }) {
   return (
     <SiteLogo
       purposeId="pdf-document"
-      fallback={<AtehnaDocumentLogoFallback />}
       className={`h-full w-full ${className}`}
       alt="ATEHNA"
     />
@@ -3269,7 +3242,7 @@ export default function OrderDocumentTemplateCanvas({
   template,
   logoConfig,
   onChange,
-  onLogoConfigChange,
+  onLogoAssignmentChange,
   preview,
   previewLoading,
   previewError,
@@ -3280,9 +3253,9 @@ export default function OrderDocumentTemplateCanvas({
   previewError: string | null;
   onRefreshPreview: () => void;
   template: OrderDocumentTemplate;
-  logoConfig: SiteLogoConfig;
+  logoConfig: PublishedSiteLogoConfig;
   onChange: (template: OrderDocumentTemplate) => void;
-  onLogoConfigChange: (config: SiteLogoConfig) => void;
+  onLogoAssignmentChange: () => void;
 }) {
   const [selectionEntries, setSelectionEntries] = useState<
     readonly OrderDocumentCanvasSelectionEntry[]
@@ -3333,14 +3306,13 @@ export default function OrderDocumentTemplateCanvas({
 
   const beginInspectorEdit = () => {
     if (inspectorSnapshotRef.current) return;
-    inspectorSnapshotRef.current = createOrderDocumentInspectorSnapshot(template, logoConfig);
+    inspectorSnapshotRef.current = createOrderDocumentInspectorSnapshot(template);
   };
   const cancelInspectorEdit = () => {
     const snapshot = inspectorSnapshotRef.current;
     inspectorSnapshotRef.current = null;
     if (!snapshot) return;
     onChange(snapshot.template);
-    onLogoConfigChange(snapshot.logoConfig);
   };
   const commitInspectorEdit = () => {
     inspectorSnapshotRef.current = null;
@@ -3406,10 +3378,6 @@ export default function OrderDocumentTemplateCanvas({
     () => createOrderDocumentPreviewContext(template.type),
     [template.type]
   );
-  const logoPlacement = logoConfig.placements['pdf-document'];
-  const logoPresentation = resolveSiteLogoPresentation(logoPlacement);
-  const logoMaster = resolveSiteLogoMaster(logoConfig, 'pdf-document');
-  const logoCapabilities = getSiteLogoPresentationCapabilities(logoMaster);
   const currentPage = Math.min(pageNumber, previewLayout?.pages.length || pageNumber);
   const previewElements = useMemo(() => {
     const elements = { ...canvas.elements };
@@ -3889,30 +3857,6 @@ export default function OrderDocumentTemplateCanvas({
     key: Key,
     value: OrderDocumentTemplateStyle[Key]
   ) => onChange({ ...template, style: { ...template.style, [key]: value } });
-  const setLogoPresentation = (presentation: SiteLogoPresentation) => {
-    onLogoConfigChange({
-      ...logoConfig,
-      placements: {
-        ...logoConfig.placements,
-        'pdf-document': {
-          ...logoPlacement,
-          presentation
-        }
-      }
-    });
-  };
-  const updateLogoPresentation = <Key extends keyof SiteLogoPresentation>(
-    key: Key,
-    value: SiteLogoPresentation[Key]
-  ) => setLogoPresentation({ ...logoPresentation, [key]: value });
-  const updateLogoOutline = <Key extends keyof SiteLogoPresentation['outline']>(
-    key: Key,
-    value: SiteLogoPresentation['outline'][Key]
-  ) => updateLogoPresentation('outline', { ...logoPresentation.outline, [key]: value });
-  const updateLogoShadow = <Key extends keyof SiteLogoPresentation['shadow']>(
-    key: Key,
-    value: SiteLogoPresentation['shadow'][Key]
-  ) => updateLogoPresentation('shadow', { ...logoPresentation.shadow, [key]: value });
   const updateCompany = <Key extends keyof OrderDocumentTemplateCompany>(
     key: Key,
     value: OrderDocumentTemplateCompany[Key]
@@ -4736,32 +4680,12 @@ export default function OrderDocumentTemplateCanvas({
     }
     if (id === 'logo') {
       return (
-        <div className="space-y-3" data-logo-text-pdf-controls>
-          <InspectorSection title="Logotip">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="aspect-[73/22] w-full">
-                <AtehnaDocumentLogo />
-              </div>
-            </div>
-            <p className="text-[11px] leading-4 text-slate-500">
-              PDF uporablja skupno različico »Dokumenti PDF«. Videz in besedilni plasti uredite tukaj, položaj celotnega logotipa pa neposredno na strani.
-            </p>
-          </InspectorSection>
-          {logoCapabilities.editableText ? (
-            <InspectorSection title="Besedilo logotipa">
-              <SiteLogoTextLayerManager
-                config={logoConfig}
-                purposeId="pdf-document"
-                showFields
-                onConfigChange={onLogoConfigChange}
-              />
-            </InspectorSection>
-          ) : (
-            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] leading-4 text-slate-500">
-              Besedilo d.o.o. in slogan lahko urejate pri vgrajenem logotipu ATEHNA. Naložena slika ohrani besedilo iz datoteke.
-            </p>
-          )}
-        </div>
+        <InspectorSection title="Logotip dokumentov">
+          <LogoPlacementSelector purpose="pdf-document" onLibraryChange={onLogoAssignmentChange} compact />
+          <p className="text-xs leading-5 text-slate-500">
+            Vsi dokumenti uporabljajo objavljeno različico iz knjižnice. Sloje in besedilo urejate v urejevalniku logotipa; položaj in mere ostanejo del te predloge.
+          </p>
+        </InspectorSection>
       );
     }
     if (id === 'company') {
@@ -5131,161 +5055,9 @@ export default function OrderDocumentTemplateCanvas({
           data-logo-placement="pdf-document"
           data-logo-toolbar-panel="appearance"
         >
-          <InspectorSection title="Barve logotipa za PDF">
-            <CompactHexColorField
-              id="site-logo-pdf-backgroundColor"
-              label="Glavno ozadje"
-              value={logoPresentation.backgroundColor}
-              marker="backgroundColor"
-              onChange={(value) => updateLogoPresentation('backgroundColor', value)}
-            />
-            <CompactHexColorField
-              id="site-logo-pdf-taglineBackgroundColor"
-              label="Ozadje slogana"
-              value={logoPresentation.taglineBackgroundColor}
-              marker="taglineBackgroundColor"
-              onChange={(value) => updateLogoPresentation('taglineBackgroundColor', value)}
-            />
-            <fieldset disabled={!logoCapabilities.artworkColors} className="space-y-2.5 disabled:opacity-50">
-              <CompactHexColorField
-                id="site-logo-pdf-primaryTextColor"
-                label="Primarna rumena"
-                value={logoPresentation.primaryTextColor}
-                marker="primaryTextColor"
-                onChange={(value) => updateLogoPresentation('primaryTextColor', value)}
-              />
-              <CompactHexColorField
-                id="site-logo-pdf-secondaryTextColor"
-                label="Barva d.o.o."
-                value={logoPresentation.secondaryTextColor}
-                marker="secondaryTextColor"
-                onChange={(value) => updateLogoPresentation('secondaryTextColor', value)}
-              />
-              <CompactHexColorField
-                id="site-logo-pdf-taglineTextColor"
-                label="Besedilo slogana"
-                value={logoPresentation.taglineTextColor}
-                marker="taglineTextColor"
-                onChange={(value) => updateLogoPresentation('taglineTextColor', value)}
-              />
-            </fieldset>
-            {!logoCapabilities.artworkColors ? (
-              <p className="text-[10px] leading-4 text-slate-500">
-                Pri naloženi sliki je mogoče spremeniti ozadji; posamezne barve znakov so del datoteke.
-              </p>
-            ) : null}
-          </InspectorSection>
-
-          <InspectorSection title="Obroba znakov">
-            <fieldset disabled={!logoCapabilities.outline} className="space-y-2.5 disabled:opacity-50">
-              <div data-logo-presentation-control="outline.enabled">
-                <Toggle
-                  id="site-logo-pdf-outline-enabled"
-                  label="Vključi obrobo"
-                  checked={logoPresentation.outline.enabled}
-                  onChange={(enabled) => updateLogoOutline('enabled', enabled)}
-                />
-              </div>
-              {logoPresentation.outline.enabled ? (
-                <>
-                  <CompactHexColorField
-                    id="site-logo-pdf-outline-color"
-                    label="Barva obrobe"
-                    value={logoPresentation.outline.color}
-                    marker="outline.color"
-                    onChange={(value) => updateLogoOutline('color', value)}
-                  />
-                  <div data-logo-presentation-control="outline.widthPx">
-                    <NumberField
-                      id="site-logo-pdf-outline-widthPx"
-                      label="Debelina obrobe"
-                      value={logoPresentation.outline.widthPx}
-                      min={0}
-                      max={24}
-                      step={0.5}
-                      unit="px"
-                      onChange={(value) => updateLogoOutline('widthPx', value)}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </fieldset>
-          </InspectorSection>
-
-          <InspectorSection title="Senca znakov">
-            <fieldset disabled={!logoCapabilities.shadow} className="space-y-2.5 disabled:opacity-50">
-              <div data-logo-presentation-control="shadow.enabled">
-                <Toggle
-                  id="site-logo-pdf-shadow-enabled"
-                  label="Vključi senco"
-                  checked={logoPresentation.shadow.enabled}
-                  onChange={(enabled) => updateLogoShadow('enabled', enabled)}
-                />
-              </div>
-              {logoPresentation.shadow.enabled ? (
-                <>
-                  <CompactHexColorField
-                    id="site-logo-pdf-shadow-color"
-                    label="Barva sence"
-                    value={logoPresentation.shadow.color}
-                    marker="shadow.color"
-                    onChange={(value) => updateLogoShadow('color', value)}
-                  />
-                  <div data-logo-presentation-control="shadow.opacity">
-                    <NumberField
-                      id="site-logo-pdf-shadow-opacity"
-                      label="Prosojnost"
-                      value={logoPresentation.shadow.opacity}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      unit="0–1"
-                      onChange={(value) => updateLogoShadow('opacity', value)}
-                    />
-                  </div>
-                  <div data-logo-presentation-control="shadow.blurPx">
-                    <NumberField
-                      id="site-logo-pdf-shadow-blurPx"
-                      label="Zameglitev"
-                      value={logoPresentation.shadow.blurPx}
-                      min={0}
-                      max={64}
-                      step={0.5}
-                      unit="px"
-                      onChange={(value) => updateLogoShadow('blurPx', value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div data-logo-presentation-control="shadow.offsetXpx">
-                      <NumberField
-                        id="site-logo-pdf-shadow-offsetXpx"
-                        label="Odmik X"
-                        value={logoPresentation.shadow.offsetXpx}
-                        min={-64}
-                        max={64}
-                        step={0.5}
-                        unit="px"
-                        onChange={(value) => updateLogoShadow('offsetXpx', value)}
-                      />
-                    </div>
-                    <div data-logo-presentation-control="shadow.offsetYpx">
-                      <NumberField
-                        id="site-logo-pdf-shadow-offsetYpx"
-                        label="Odmik Y"
-                        value={logoPresentation.shadow.offsetYpx}
-                        min={-64}
-                        max={64}
-                        step={0.5}
-                        unit="px"
-                        onChange={(value) => updateLogoShadow('offsetYpx', value)}
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : null}
-            </fieldset>
-          </InspectorSection>
-
+          <p className="col-span-full text-xs leading-5 text-slate-500">
+            Videz izbrane različice uredite v knjižnici logotipov. Tukaj nastavljate prostor na dokumentu.
+          </p>
           <InspectorSection title="Mere dokumenta">
             <NumberField
               id="order-document-template-style-logoWidthMm"

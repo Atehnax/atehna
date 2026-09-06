@@ -16,17 +16,11 @@ import {
   cloneDefaultSiteNavigationConfig,
   toStoredSiteNavigationConfig
 } from '@/shared/domain/navigation/siteNavigation';
-import { normalizeSiteLogoConfig } from '@/shared/domain/logo/siteLogo';
+import { publishedLogoFixture } from './fixtures/published-site-logo';
 
 const clone = <T>(value: T): T => structuredClone(value);
 
-const hiddenFooterLogoConfig = normalizeSiteLogoConfig({
-  placements: {
-    'footer-desktop': { enabled: false },
-    'footer-tablet': { enabled: false },
-    'footer-mobile': { enabled: false }
-  }
-});
+const hiddenFooterLogoConfig = publishedLogoFixture();
 
 function renderFooter(value: unknown) {
   const settings = normalizeHomepageFooterSettings(value);

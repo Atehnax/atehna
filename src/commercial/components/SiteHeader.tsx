@@ -11,11 +11,8 @@ import {
 } from '@/commercial/components/commercialStorefrontScale';
 import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
-import {
-  resolveSiteLogoDisplaySize,
-  type SiteLogoDisplaySize,
-  type SiteLogoPurposeId
-} from '@/shared/domain/logo/siteLogo';
+import { resolveHeaderLogoSize, type LogoDisplaySize as SiteLogoDisplaySize } from '@/shared/domain/logo/logoPlacement';
+import type { LogoPlacementId as SiteLogoPurposeId } from '@/shared/domain/logo/logoLibrary';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
   SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
@@ -244,7 +241,7 @@ function getTopBarItemLayoutStyle(
   logoDisplayWidthPx?: number
 ): CSSProperties {
   const leftPercent = Math.max(0, Math.min(1, item.xRatio)) * 100;
-  const baseItemWidthPx = getTopBarItemRenderedWidthPx(
+  const baseItemWidthPx = item.id === 'logo' && item.anchorWidthPx != null ? item.anchorWidthPx : getTopBarItemRenderedWidthPx(
     item,
     activeDevice,
     settings
@@ -1113,11 +1110,10 @@ export default function SiteHeader({
     [effectivePreviewDevice, normalizedNavigation, resolvedViewportWidth]
   );
   const activeHeaderLogoPurposeId = `header-${activeTopBarDevice}` as SiteLogoPurposeId;
-  const activeHeaderLogoDisplaySize = resolveSiteLogoDisplaySize(
-    activeHeaderLogoPurposeId,
-    siteLogoConfig.placements[activeHeaderLogoPurposeId]
-  );
   const activeTopBarLayout = normalizedNavigation.topBarLayout.responsive[activeTopBarDevice];
+  const activeHeaderLogoDisplaySize = resolveHeaderLogoSize(
+    activeTopBarDevice, activeTopBarLayout, siteLogoConfig.placements[activeHeaderLogoPurposeId]
+  );
   const usesCompactTopBar =
     activeTopBarDevice === 'mobile' || activeTopBarLayout.settings.navigationMode === 'hamburger';
   const navigationItems = useMemo(

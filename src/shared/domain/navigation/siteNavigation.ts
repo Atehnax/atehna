@@ -78,6 +78,8 @@ export type SiteNavigationTopBarResponsiveItem = {
   xPx: number;
   xRatio: number;
   widthPx: number;
+  /** Width of the saved center anchor, independent of the available artwork slot. */
+  anchorWidthPx?: number;
   widthEditable: boolean;
   zIndex: number;
   region: SiteNavigationTopBarRegion;
@@ -117,6 +119,8 @@ export type SiteNavigationTopBarResponsiveSettings = {
   menuOpenMode?: SiteNavigationTopBarMenuOpenMode;
   actionPriority?: SiteNavigationTopBarActionId[];
   height: number;
+  /** Maximum logo artwork height in visible CSS pixels; never changes header height. */
+  logoHeightPx?: number;
   paddingX: number;
   sticky: boolean;
   shadow: boolean;
@@ -369,6 +373,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         zones: defaultTopBarZoneSettings('centered_nav'),
         searchMode: 'icon',
         height: 73,
+        logoHeightPx: 18,
         paddingX: 32,
         sticky: false,
         shadow: false,
@@ -399,6 +404,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         aiMode: 'button',
         cartBadge: true,
         height: 64,
+        logoHeightPx: 16.5,
         paddingX: 24,
         sticky: true,
         shadow: true
@@ -428,6 +434,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         aiMode: 'button',
         cartBadge: true,
         height: 56,
+        logoHeightPx: 15,
         paddingX: 16,
         sticky: true,
         shadow: false,
@@ -715,6 +722,7 @@ function normalizeTopBarResponsiveSettings(
 ): SiteNavigationTopBarResponsiveSettings {
   const record = asRecord(value);
   const baseSettings = {
+    logoHeightPx: asBoundedNumber(record.logoHeightPx, fallback.logoHeightPx ?? (device === 'desktop' ? 18 : device === 'tablet' ? 16.5 : 15), 8, 64, 0.5),
     widthMode: asTopBarWidthMode(record.widthMode, fallback.widthMode ?? 'match_content'),
     customMaxWidthPx: asNullableBoundedNumber(
       record.customMaxWidthPx,
@@ -947,6 +955,7 @@ function normalizeTopBarResponsiveItems(
       xPx,
       xRatio,
       widthPx,
+      anchorWidthPx: id === 'logo' ? asNullableBoundedNumber(raw?.anchorWidthPx, null, 1, 1600, 0.01) ?? undefined : undefined,
       widthEditable: isCollapsedSearch
         ? false
         : asVisible(raw?.widthEditable ?? fallback.widthEditable),

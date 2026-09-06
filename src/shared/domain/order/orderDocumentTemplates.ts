@@ -419,8 +419,6 @@ export type OrderDocumentCompanyContact = {
 };
 
 export type OrderDocumentTemplateCompany = {
-  logoText: string;
-  logoTagline: string;
   name: string;
   addressLine1: string;
   addressLine2: string;
@@ -738,8 +736,6 @@ export type OrderDocumentTemplatesConfig = {
 };
 
 const COMMON_COMPANY: OrderDocumentTemplateCompany = {
-  logoText: 'ATEHNA',
-  logoTagline: 'varčevanje z energijo',
   name: 'ATEHNA d.o.o., izobraževanje, proizvodnja in storitve',
   addressLine1: 'Ajdovska 1',
   addressLine2: '4264 Bohinjska Bistrica',
@@ -1432,8 +1428,6 @@ type OrderDocumentCompanyStringKey = Exclude<
 >;
 
 const ORDER_DOCUMENT_COMPANY_STRING_KEYS: readonly OrderDocumentCompanyStringKey[] = [
-  'logoText',
-  'logoTagline',
   'name',
   'addressLine1',
   'addressLine2',

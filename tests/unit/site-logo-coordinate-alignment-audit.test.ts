@@ -16,19 +16,19 @@ import {
 } from '@/shared/domain/logo/siteLogo';
 
 const editorSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/features/podoba/components/AdminLogoPageClient.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorCanvas.tsx'),
   'utf8'
 );
 const controlsSource = readFileSync(
-  resolve(process.cwd(), 'src/admin/features/podoba/components/SiteLogoTextLayerControls.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorProperties.tsx'),
   'utf8'
 );
 const clientArtworkSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/components/SiteLogoArtwork.tsx'),
+  resolve(process.cwd(), 'src/admin/features/podoba/components/LogoEditorCanvas.tsx'),
   'utf8'
 );
 const serverArtworkSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/server/siteLogoArtworkCore.ts'),
+  resolve(process.cwd(), 'src/shared/server/logoLibraryRender.ts'),
   'utf8'
 );
 
@@ -105,32 +105,19 @@ test('strict validation rejects malformed logo text alignment instead of silentl
   );
 });
 
-test('logo target hitboxes and drag deltas use the source frame when the canvas is cropped or extended', () => {
-  assert.match(editorSource, /resolveSiteLogoCanvasLayout/u);
-  assert.match(editorSource, /mapSiteLogoSourcePointToCanvas/u);
-  assert.match(editorSource, /mapSiteLogoCanvasDeltaToSource/u);
-  assert.match(
-    editorSource,
-    /layer\.textAlign === 'center'[\s\S]{0,160}layer\.textAlign === 'right'/u
-  );
-  assert.match(
-    editorSource,
-    /mapSiteLogoSourcePointToCanvas\([\s\S]{0,500}(?:layer\.x|anchored)/u
-  );
-  assert.match(
-    editorSource,
-    /mapSiteLogoCanvasDeltaToSource\([\s\S]{0,700}(?:clientX|canvasDelta)/u
-  );
+test('logo hit targets and drag deltas follow the current layer coordinates and normalized crop', () => {
+  assert.match(editorSource, /data-logo-selectable/u);
+  assert.match(editorSource, /layer\.x = event\.beforeTranslate\[0\]/u);
+  assert.match(editorSource, /layer\.y = event\.beforeTranslate\[1\]/u);
+  assert.match(editorSource, /-crop\.x \* layer\.width \/ crop\.width/u);
+  assert.match(editorSource, /-crop\.y \* layer\.height \/ crop\.height/u);
+  assert.match(editorSource, /transformOrigin: 'center'/u);
 });
 
-test('alignment is exposed as an accessible control and has client/server rendering parity', () => {
-  assert.match(controlsSource, /data-logo-text-control="textAlign"/u);
-  assert.match(controlsSource, /AppearanceEditorAlignmentControl/u);
-  assert.match(controlsSource, /options=\{\['left', 'center', 'right'\] as const\}/u);
-
-  assert.match(clientArtworkSource, /layer\.textAlign === 'center' \? 0\.5/u);
-  assert.match(clientArtworkSource, /layer\.textAlign === 'right' \? 1/u);
+test('alignment is accessible and both editable and export renderers consume it', () => {
+  assert.match(controlsSource, /aria-label="Poravnava besedila"/u);
+  for (const value of ['left', 'center', 'right']) assert.ok(controlsSource.includes('value="' + value + '"'));
   assert.match(clientArtworkSource, /textAnchor=\{layer\.textAlign === 'center'/u);
-  assert.match(serverArtworkSource, /layer\.textAlign === 'center' \? 0\.5/u);
-  assert.match(serverArtworkSource, /layer\.textAlign === 'right' \? 1/u);
+  assert.match(serverArtworkSource, /layer\.textAlign === 'center'/u);
+  assert.match(serverArtworkSource, /layer\.textAlign === 'right'/u);
 });

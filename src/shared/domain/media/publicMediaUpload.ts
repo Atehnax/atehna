@@ -8,7 +8,6 @@ export const PUBLIC_MEDIA_UPLOAD_LIMITS = {
   categoryImage: 5 * 1024 * 1024,
   landingImage: 5 * 1024 * 1024,
   landingVideo: 40 * 1024 * 1024,
-  siteLogo: 10 * 1024 * 1024,
   emailSharedImage: 5 * 1024 * 1024
 } as const;
 
@@ -46,7 +45,6 @@ export const PUBLIC_MEDIA_CONTENT_TYPES = {
     'image/vnd.dwg',
     'application/octet-stream'
   ],
-  siteLogo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'],
   emailSharedImage: ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 } as const;
 
@@ -56,7 +54,6 @@ export type PublicMediaUploadContext =
   | { scope: 'catalog-item'; itemSlug: string; mediaKind: CatalogPublicMediaKind }
   | { scope: 'category-image'; categorySlug: string; subcategoryPath?: string[] }
   | { scope: 'landing-media'; elementId: string; mediaKind: 'image' | 'video' }
-  | { scope: 'site-logo'; masterId: string }
   | { scope: 'email-shared-image' };
 
 export type PublicMediaUploadPayload = PublicMediaUploadContext & {
@@ -230,14 +227,6 @@ function mediaPolicyForPayload(payload: PublicMediaUploadPayload) {
     }
   }
 
-  if (payload.scope === 'site-logo') {
-    return {
-      allowedContentTypes: [...PUBLIC_MEDIA_CONTENT_TYPES.siteLogo],
-      maximumSizeInBytes: PUBLIC_MEDIA_UPLOAD_LIMITS.siteLogo,
-      mediaFolder: 'images' as const,
-      mediaKind: 'image' as const
-    };
-  }
 
   if (payload.scope === 'email-shared-image') {
     return {
@@ -332,19 +321,6 @@ export function parsePublicMediaUploadPayload(
     };
   }
 
-  if (scope === 'site-logo') {
-    const masterId = parseString(record.masterId, 'ID glavne različice', 80);
-    if (!/^[a-zA-Z0-9._-]{1,80}$/u.test(masterId)) {
-      throw new Error('ID glavne različice ni veljaven.');
-    }
-    return {
-      scope,
-      masterId,
-      uploadId,
-      originalFileName,
-      contentType
-    };
-  }
 
   if (scope === 'email-shared-image') {
     return {
@@ -423,13 +399,6 @@ export function getPublicMediaUploadPolicy(payload: PublicMediaUploadPayload): P
     pathname = [
       'landing-page',
       sanitizeSlug(normalizedPayload.elementId, 'element'),
-      storedFileName
-    ].join('/');
-  } else if (normalizedPayload.scope === 'site-logo') {
-    pathname = [
-      'site-logo',
-      'masters',
-      sanitizeSlug(normalizedPayload.masterId, 'master'),
       storedFileName
     ].join('/');
   } else {

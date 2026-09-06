@@ -22,9 +22,13 @@ test('six quote cards link directly to canonical Ponudbe and disclose population
   const cards = source('src/admin/features/quotes/components/AdminQuoteAnalyticsPreview.tsx');
   const preview = source('src/shared/domain/analytics/quotePreview.ts');
   for (const key of ['issued', 'mature', 'accepted', 'acceptanceRate', 'medianResponseHours', 'medianDecisionHours']) assert.ok(cards.includes("key: '" + key + "'"));
-  assert.match(cards, /href=\{preview\.href\}/u);
+  assert.match(cards, /businessPreviewHref\('ponudbe', range, preview\.asOf\)/u);
+  assert.match(cards, /href=\{href\}/u);
+  assert.match(cards, /<AdminPeriodSelector value=\{range\}/u);
   assert.match(cards, /previous > 0/u);
-  assert.match(cards, /filtri tabele ne spreminjajo kartic/u);
+  assert.match(cards, /Vsako povpraševanje štejemo enkrat/u);
+  assert.match(cards, /zaključenim 30-dnevnim opazovanjem/u);
+  assert.match(cards, /value: '—', direction: 'neutral'/u);
   assert.match(preview, /view: 'ponudbe', range: '90D', asOf/u);
   assert.match(preview, /aggregateBusinessAnalytics/u);
   assert.match(preview, /projectBusinessQuoteSummary/u);

@@ -25,14 +25,14 @@ const navigationEditorSource = readFileSync(
   'utf8'
 );
 
-test('the navigation footer preview receives the saved shared-logo configuration', () => {
-  assert.match(navigationPageSource, /getSiteLogoConfig/u);
+test('the navigation footer preview receives published logo assignments', () => {
+  assert.match(navigationPageSource, /getPublishedSiteLogos/u);
   assert.match(
     `${navigationPageSource}\n${navigationEditorSource}`,
     /SiteLogoProvider/u
   );
-  assert.match(navigationEditorSource, /Uredi logotip/u);
-  assert.match(navigationEditorSource, /\/admin\/podoba\/logotip/u);
+  assert.match(navigationEditorSource, /LogoPlacementSelector/u);
+  assert.match(navigationEditorSource, /footer-desktop[\s\S]*?footer-tablet[\s\S]*?footer-mobile/u);
   assert.doesNotMatch(navigationEditorSource, /function FooterLogoEditor\b/u);
   assert.doesNotMatch(navigationEditorSource, /Besedilo logotipa/u);
   assert.doesNotMatch(navigationEditorSource, /Prikaz logotipa v nogi/u);

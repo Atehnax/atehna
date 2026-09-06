@@ -12,8 +12,7 @@ import {
   requireCommercePublicCodeBase
 } from '@/shared/domain/commercePublicCode';
 import { getOrderDocumentTemplate } from '@/shared/server/orderDocumentTemplates';
-import { getSiteLogoConfig } from '@/shared/server/siteLogo';
-import { resolveCachedSiteLogoArtwork } from '@/shared/server/siteLogoArtwork';
+import { getDocumentLogoArtwork } from '@/shared/server/documentLogo';
 
 type QuoteRequestPdfRow = {
   public_code_base?: unknown;
@@ -282,14 +281,10 @@ export async function generateQuoteRequestConfirmationPdf(
     )
   }));
 
-  const [sourceTemplate, logoConfig] = await Promise.all([
-    getOrderDocumentTemplate('order_summary'),
-    getSiteLogoConfig()
+  const [sourceTemplate] = await Promise.all([
+    getOrderDocumentTemplate('order_summary')
   ]);
-  const logoArtwork = await resolveCachedSiteLogoArtwork(
-    logoConfig,
-    'pdf-document'
-  );
+  const logoArtwork = await getDocumentLogoArtwork();
   const bytes = await generateOrderPdf({
     type: 'order_summary',
     template: receiptTemplate(sourceTemplate, hasCompleteTotals),
@@ -297,10 +292,7 @@ export async function generateQuoteRequestConfirmationPdf(
     items: pdfItems,
     documentNumber: quoteCode,
     issuedAt: createdAt,
-    logoConfig,
-    logoArtwork: logoArtwork
-      ? Uint8Array.from(Buffer.from(logoArtwork.base64, 'base64'))
-      : null
+    logoArtwork
   });
 
   return {

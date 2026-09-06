@@ -492,7 +492,7 @@ test('runtime server modules assume the canonical schema instead of mutating it'
     'src/shared/server/landingPage.ts',
     'src/shared/server/productAppearance.ts',
     'src/shared/server/shipping.ts',
-    'src/shared/server/siteLogo.ts',
+    'src/shared/server/logoLibrary.ts',
     'src/shared/server/siteNavigation.ts'
   ];
 

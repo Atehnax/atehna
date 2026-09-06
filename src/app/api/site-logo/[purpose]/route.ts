@@ -1,8 +1,7 @@
-import { createElement } from 'react';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { ImageResponse } from 'next/og';
+import { createLogoBrandFallback } from '@/shared/server/logoBrandFallback';
 import { LOGO_PLACEMENT_IDS, type LogoPlacementId } from '@/shared/domain/logo/logoLibrary';
 import { LOGO_OUTPUT_DIMENSIONS } from '@/shared/domain/logo/logoOutputDimensions';
 import { getLogoLibrary, getPublishedSiteLogos } from '@/shared/server/logoLibrary';
@@ -18,7 +17,7 @@ export async function GET(_request: Request, context: { params: Promise<{ purpos
   const dimensions = LOGO_OUTPUT_DIMENSIONS[purpose as LogoPlacementId];
   const headers = { 'Cache-Control': 'public, max-age=0, must-revalidate', 'X-Content-Type-Options': 'nosniff', ETag: '"' + selected.revision + '-' + purpose + '"' };
   if (selected.fallback === 'brand') {
-    return new ImageResponse(createElement('div', { style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', fontSize: Math.round(dimensions.heightPx * .42), fontWeight: 700 } }, dimensions.widthPx === dimensions.heightPx ? 'A' : 'Atehna'), { width: dimensions.widthPx, height: dimensions.heightPx, headers });
+    return createLogoBrandFallback(purpose as LogoPlacementId, headers);
   }
   let bytes: Buffer;
   if (selected.fallback === 'original') bytes = await readFile(join(process.cwd(), 'public', 'brand', 'atehna-document-wordmark.png'));

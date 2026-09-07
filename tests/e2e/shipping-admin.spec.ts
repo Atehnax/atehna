@@ -148,7 +148,7 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await preview.getByLabel('Največja posamezna dimenzija').fill('1001');
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('S = 10,00 € + 5,00 € = 15,00 €');
+  ).toContainText('10,00 € + 5,00 € = 15,00 €');
   await surchargeType.selectOption('percentage');
   await expect(surchargeType.locator('option:checked')).toHaveText('%');
   const percentageSurcharge = dimensionalRules.getByLabel(
@@ -167,10 +167,10 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await expect(preview.getByText('Večji artikel ·', { exact: false })).toBeVisible();
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('S = 10,00 € + 0,50 € = 10,50 €');
+  ).toContainText('10,00 € + 0,50 € = 10,50 €');
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('Sₙ = 1 × 10,50 € = 10,50 €');
+  ).toContainText('1 × 10,50 € − 0,00 € = 10,50 €');
   await dimensionalRules
     .getByLabel('Večji artikel: operator primerjave')
     .selectOption('>=');
@@ -193,7 +193,7 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await preview.getByLabel('Število paketov').fill('2');
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('Sₙ = 2 × 10,50 € × (1 − 50 / 100) = 10,50 €');
+  ).toContainText('2 × 10,50 € − 10,50 € = 10,50 €');
 
   const orderValueDiscounts = page.getByTestId('shipping-order-value-discounts');
   await orderValueDiscounts.getByRole('button', { name: 'Dodaj prag' }).click();
@@ -211,7 +211,7 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await orderValueDiscounts.getByLabel('Nad 50 evrov: aktivno').click();
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('Sₖ = max(0, 10,50 € − 1,05 €) = 9,45 €');
+  ).toContainText('10,50 € − 1,05 € = 9,45 €');
   await preview.getByLabel('Vrednost blaga z DDV').fill('50');
   await expect(preview.getByText('Nad 50 evrov · 10 %', { exact: false })).toBeVisible();
   await orderValueComparison.selectOption('>');
@@ -232,7 +232,7 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await expect(preview.getByText('Nad 80 evrov · 20 %', { exact: false })).toBeVisible();
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('Sₖ = max(0, 10,50 € − 2,10 €) = 8,40 €');
+  ).toContainText('10,50 € − 2,10 € = 8,40 €');
   await orderValueDiscounts.getByRole('button', { name: 'Odstrani Nad 80 evrov' }).click();
   await expect(orderValueDiscounts.getByLabel('Vrednostni prag 2: naziv')).toHaveCount(0);
 
@@ -251,7 +251,7 @@ test('Poštnina admin previews weight boundaries and an unsaved dimensional surc
   await preview.getByLabel('Število paketov').fill('3');
   await expect(
     preview.getByTestId('shipping-preview-calculation-breakdown')
-  ).toContainText('Sₙ = 3 × max(0, 10,50 € − 2,00 €) = 25,50 €');
+  ).toContainText('3 × 10,50 € − 6,00 € = 25,50 €');
   await multiPieceDiscounts
     .getByRole('button', { name: 'Odstrani Od 3 paketov' })
     .click();

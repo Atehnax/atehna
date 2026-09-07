@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import EuiTabs, { type EuiTabItem } from '@/shared/ui/eui-tabs';
 
-type AdminOrdersView = 'orders' | 'quotes';
+type AdminOrdersView = 'orders' | 'quotes' | 'archive';
 
 function notificationCountLabel(
   count: number,
@@ -63,14 +63,15 @@ export default function AdminOrdersTabs({
           },
           panelId: 'admin-orders-panel-quotes'
         } satisfies EuiTabItem]
-      : [])
+      : []),
+    { value: 'archive', label: 'Arhiv naročil', panelId: 'admin-orders-panel-archive' }
   ];
 
   return (
     <EuiTabs
       value={activeView}
       onChange={(nextView) => {
-        router.push(nextView === 'quotes' ? '/admin/orders?view=quotes' : '/admin/orders');
+        router.push(nextView === 'orders' ? '/admin/orders' : `/admin/orders?view=${nextView}`);
       }}
       tabs={tabs}
       ariaLabel="Naročila in ponudbe"

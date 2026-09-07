@@ -59,6 +59,9 @@ export const adminTableSelectedWarningIconButtonClassName =
 export const adminTableSelectedDangerIconButtonClassName =
   '!inline-flex !h-9 !w-9 !shrink-0 !items-center !justify-center !rounded-md !border !border-rose-300/80 !bg-white !text-rose-700 hover:!bg-rose-50 active:!bg-rose-100 disabled:!border-slate-200 disabled:!bg-white disabled:!text-slate-300';
 
+export const adminTableDeleteMenuItemClassName =
+  'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600';
+
 export const adminTablePrimaryButtonClassName =
   `${adminTextButtonTypographyTokenClasses} !h-9 !rounded-md !px-4 !text-[13px] !font-semibold !tracking-[0.005em] hover:!bg-[#1777af] active:!bg-[#146997]`;
 
@@ -92,6 +95,11 @@ export const adminTableBodyCellCenterClassName = `${adminTableBodyCellBaseClassN
 export const adminTableBodyCellLeftClassName = `${adminTableBodyCellBaseClassName} text-left`;
 
 export const adminTableRowHeightClassName = 'h-12';
+
+/** Use for a cell's main value and subordinate description/code, with no extra row gap. */
+export const adminTableTextStackClassName = 'admin-table-text-stack';
+export const adminTablePrimaryTextClassName = 'admin-table-primary-text';
+export const adminTableSecondaryTextClassName = 'admin-table-secondary-text';
 
 export const adminExpandableTableHeaderCellBaseClassName =
   'h-11 border-b border-slate-200 px-2 py-0 align-middle text-[12px] font-semibold text-slate-700';

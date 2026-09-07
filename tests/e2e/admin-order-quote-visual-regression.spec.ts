@@ -309,7 +309,11 @@ async function assertMobileCustomerCard(page: Page, kind: 'quote' | 'order', edi
     const address = card.getByRole('group', { name: 'Naslovni podatki' });
     const fields = await address.locator('input').evaluateAll((inputs) => inputs.map((input) => {
       const bounds = input.getBoundingClientRect();
-      return { width: bounds.width, top: bounds.top, bottom: bounds.bottom };
+      // Autocomplete inputs have a bordered wrapper; compare the shared grid compartments.
+      const compartment = input.parentElement?.getAttribute('role') === 'group' ? input : input.parentElement;
+      if (!compartment) throw new Error('Address field compartment is missing.');
+      const frame = compartment.getBoundingClientRect();
+      return { width: bounds.width, top: frame.top, bottom: frame.bottom };
     }));
     expect(fields).toHaveLength(5);
     [150, 150, 60, 50, 35].forEach((minimum, index) => {
@@ -319,6 +323,7 @@ async function assertMobileCustomerCard(page: Page, kind: 'quote' | 'order', edi
     expect(fields[2]!.top).toBeGreaterThanOrEqual(fields[1]!.bottom);
     expect(fields[3]!.top).toBe(fields[2]!.top);
     expect(fields[4]!.top).toBe(fields[2]!.top);
+    expect(fields[4]!.bottom).toBe(fields[2]!.bottom);
   }
 }
 
@@ -333,17 +338,16 @@ async function assertCustomerDetailsRows(
   const spanAttribute = kind === 'quote' ? 'data-quote-detail-span' : 'data-order-data-span';
   const labels = [
     kind === 'quote' ? 'Št. povpraševanja' : 'Številka naročila',
-    'Datum', 'Tip naročnika', customerLabel, 'Email', 'Naslov',
+    'Datum', 'Tip naročnika', 'Email', customerLabel, 'Naslov',
     ...(kind === 'quote' ? ['Kaj potrebuje?'] : []),
     'Sporočilo stranke'
   ];
   const rows = card.locator(`[${rowAttribute}]`);
   await expect(rows).toHaveCount(labels.length);
   expect(await rows.evaluateAll((elements, attribute) => elements.map((element) => element.getAttribute(attribute)), rowAttribute)).toEqual(labels);
-  await expect(card.locator(`[${rowAttribute}="Naslov"]`)).not.toHaveAttribute(spanAttribute, 'full');
-  const messageRow = card.locator(`[${rowAttribute}="Sporočilo stranke"]`);
-  if (kind === 'order') await expect(messageRow).toHaveAttribute(spanAttribute, 'full');
-  else await expect(messageRow).not.toHaveAttribute(spanAttribute, 'full');
+  for (const label of [customerLabel, 'Naslov', ...(kind === 'quote' ? ['Kaj potrebuje?'] : []), 'Sporočilo stranke']) {
+    await expect(card.locator(`[${rowAttribute}="${label}"]`)).toHaveAttribute(spanAttribute, 'full');
+  }
   const copy = rows.first().getByTestId(`admin-${kind}-public-code-copy`);
   await expect(copy).toBeVisible();
   await expect(copy).toBeEnabled();
@@ -361,19 +365,23 @@ async function assertCustomerDetailsRows(
       const rect = element.getBoundingClientRect();
       return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom };
     }));
-    for (let index = 0; index + 1 < labels.length; index += 2) {
+    for (let index = 0; index < 4; index += 2) {
       expect(Math.abs(boxes[index]!.y - boxes[index + 1]!.y)).toBeLessThanOrEqual(1);
       expect(boxes[index + 1]!.x).toBeGreaterThan(boxes[index]!.right);
       if (index > 0) expect(boxes[index]!.y).toBeGreaterThanOrEqual(boxes[index - 2]!.bottom);
+    }
+    for (let index = 4; index < labels.length; index += 1) {
+      expect(Math.abs(boxes[index]!.x - boxes[0]!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(boxes[index]!.right - boxes[1]!.right)).toBeLessThanOrEqual(1);
+      expect(boxes[index]!.y).toBeGreaterThanOrEqual(boxes[index - 1]!.bottom);
     }
   }
 }
 
 function expectCustomerCardTransition(before: Rect, after: Rect, viewport: (typeof VIEWPORTS)[number]) {
-  // Address and entity-name editors may expand at any card width; their
-  // controls must stay in normal flow without moving the card's outer edges.
-  expectSameBox({ ...before, height: after.height }, after);
-  expect(after.height, `${viewport.key} customer editor`).toBeGreaterThanOrEqual(before.height);
+  // Switching the same customer data between read and edit preserves all bounds.
+  expectSameBox(before, after);
+  expect(Math.abs(after.height - before.height), `${viewport.key} customer editor`).toBeLessThanOrEqual(1);
 }
 
 async function assertQuoteSectionTitleStyles(page: Page) {
@@ -818,14 +826,37 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         await expect(card).toBeVisible();
         await settleRenderedPage(page);
         await assertMobileCustomerCard(page, kind, false);
-        if (width === 390) {
-          await testInfo.attach(`${kind}-customer-mobile-read`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-read.png`) }), contentType: 'image/png' });
+        const cardBefore = await box(card);
+        const scrollBefore = await page.evaluate(() => window.scrollY);
+        const name = card.getByRole('group', { name: /^(?:Naročnik|Naziv in kontaktna oseba)$/u });
+        const nameBefore = await name.locator(':scope > *').evaluateAll((fields) => fields.map((field) => {
+          const { x, y, width, height } = field.getBoundingClientRect();
+          return { x, y, width, height };
+        }));
+        if (kind === 'order') {
+          expect(nameBefore).toHaveLength(2);
+          expect(Math.abs(nameBefore[0]!.width - nameBefore[1]!.width)).toBeLessThanOrEqual(1);
+        }
+        if (width === 390 || width === 640) {
+          await testInfo.attach(`${kind}-customer-mobile-read`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-${width}-read.png`) }), contentType: 'image/png' });
         }
         const edit = card.locator('button[data-admin-card-edit-action]');
         await expect(edit).toBeEnabled();
         await edit.click();
         await expect(edit).toHaveAttribute('aria-pressed', 'true');
         await assertMobileCustomerCard(page, kind, true);
+        const cardAfter = await box(card);
+        const scrollAfter = await page.evaluate(() => window.scrollY);
+        expectSameBox({ ...cardBefore, y: cardBefore.y + scrollBefore }, { ...cardAfter, y: cardAfter.y + scrollAfter });
+        const nameAfter = await name.locator(':scope > *').evaluateAll((fields) => fields.map((field) => {
+          const { x, y, width, height } = field.getBoundingClientRect();
+          return { x, y, width, height };
+        }));
+        expect(nameAfter).toHaveLength(nameBefore.length);
+        nameBefore.forEach((field, index) => expectSameBox(
+          { ...field, y: field.y + scrollBefore },
+          { ...nameAfter[index]!, y: nameAfter[index]!.y + scrollAfter }
+        ));
         const prefix = kind === 'quote' ? 'admin-quote' : 'admin-order';
         const street = card.getByTestId(`${prefix}-address-autocomplete`);
         await street.fill('Preizkusna ulica 7');
@@ -833,8 +864,8 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         await card.getByLabel('Dodatni naslov', { exact: true }).fill('2. nadstropje');
         await expect(card.getByLabel('Dodatni naslov', { exact: true })).toHaveValue('2. nadstropje');
         await card.getByLabel('Država', { exact: true }).focus();
-        if (width === 390) {
-          await testInfo.attach(`${kind}-customer-mobile-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-edit.png`) }), contentType: 'image/png' });
+        if (width === 390 || width === 640) {
+          await testInfo.attach(`${kind}-customer-mobile-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-mobile-${width}-edit.png`) }), contentType: 'image/png' });
         }
       }
     });
@@ -1011,9 +1042,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
         const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
         const customerRow = card.locator(`[${rowAttribute}="${label}"]`);
-        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? contact : `${organization} (${contact})`);
+        await expect(customerRow.locator('dd [role="group"] > span')).toHaveText(customerType === 'individual' ? [contact] : [organization, contact]);
         await card.locator('button[data-admin-card-edit-action]').click();
-        const nameInput = card.getByLabel(customerType === 'individual' ? 'Naročnik' : 'Kontaktna oseba', { exact: true });
+        const nameInput = card.getByRole('textbox', { name: customerType === 'individual' ? 'Naročnik' : 'Kontaktna oseba', exact: true });
         await expect(nameInput).toHaveValue(contact);
         if (customerType === 'individual') {
           await expect(card.getByLabel('Naziv', { exact: true })).toHaveCount(0);
@@ -1034,7 +1065,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         expect(persisted.reference).toBe(before.reference);
         if (kind === 'quote') expect(persisted.created_at.toISOString()).toBe(before.created_at.toISOString());
         await page.reload();
-        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? contact : `${organization} (${contact})`);
+        await expect(customerRow.locator('dd [role="group"] > span')).toHaveText(customerType === 'individual' ? [contact] : [organization, contact]);
         await card.locator('button[data-admin-card-edit-action]').click();
         const editedName = 'Ana Novak Kovač';
         await nameInput.fill('Ana');
@@ -1044,7 +1075,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         await page.getByRole('button', { name: 'Shrani', exact: true }).click();
         await requireOk(await renamedResponse, `edit ${kind} ${customerType} contact`);
         await page.reload();
-        await expect(customerRow.locator('dd')).toHaveText(customerType === 'individual' ? editedName : `${organization} (${editedName})`);
+        await expect(customerRow.locator('dd [role="group"] > span')).toHaveText(customerType === 'individual' ? [editedName] : [organization, editedName]);
         const search = new URLSearchParams({ q: editedName });
         if (kind === 'quote') search.set('view', 'quotes');
         await page.goto(`/admin/orders?${search.toString()}`);

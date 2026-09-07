@@ -1,5 +1,6 @@
 'use client';
 
+import { SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
@@ -41,7 +42,7 @@ import {
 } from '@/shared/ui/admin-table';
 import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
-import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionRestoreIcon, ColumnFilterIcon, adminActionIconSizeClassName, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { useToast } from '@/shared/ui/toast';
@@ -261,7 +262,7 @@ export default function AdminArchivedItemsTable() {
   const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: sortedArchivedItems.length,
     storageKey: 'adminArhivArtikli.pageSize',
-    defaultPageSize: 50,
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
@@ -531,7 +532,7 @@ export default function AdminArchivedItemsTable() {
             showLabel={false}
             menuWidth={156}
             triggerClassName={adminTableNeutralIconButtonClassName}
-            icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+            icon={<SlidersHorizontal className={adminActionIconSizeClassName} strokeWidth={1.5} />}
           />
           <IconButton
             type="button"

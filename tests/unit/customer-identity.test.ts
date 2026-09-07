@@ -63,7 +63,7 @@ test('both admin tables render the shared identity with only a distinct secondar
     assert.match(table, /import \{ getCustomerIdentity \} from '@\/shared\/domain\/order\/customerIdentity'/u);
     assert.match(table, /\{customerIdentity\.name \|\| '—'\}/u);
     assert.match(table, /\{customerIdentity\.contact \? \(/u);
-    assert.match(table, /text-\[10px\] leading-4 text-slate-500/u);
+    assert.match(table, /adminTableSecondaryTextClassName[^\n]*text-\[10px\] text-slate-500/u);
     assert.ok(table.includes(`${kind}-table-customer-name-`));
     assert.ok(table.includes(`${kind}-table-contact-`));
   }

@@ -7,6 +7,7 @@ type AdminTableLayoutProps = {
   filterRowLeft?: ReactNode;
   filterRowRight?: ReactNode;
   children: ReactNode;
+  footerLeft?: ReactNode;
   footerRight?: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -23,6 +24,7 @@ export default function AdminTableLayout({
   filterRowLeft,
   filterRowRight,
   children,
+  footerLeft,
   footerRight,
   className,
   style,
@@ -55,9 +57,12 @@ export default function AdminTableLayout({
 
       <div className={contentClassName}>{children}</div>
 
-      {footerRight ? (
+      {footerLeft || footerRight ? (
         <div className="border-t border-slate-200 bg-white px-3 py-2">
-          <div className="flex justify-end">{footerRight}</div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {footerLeft ? <div className="min-w-0">{footerLeft}</div> : null}
+            {footerRight ? <div className="ml-auto flex justify-end">{footerRight}</div> : null}
+          </div>
         </div>
       ) : null}
     </TableShell>

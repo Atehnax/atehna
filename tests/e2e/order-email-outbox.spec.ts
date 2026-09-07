@@ -553,13 +553,7 @@ test.describe('order email outbox integration', () => {
       ))).toBe(true);
     } finally {
       if (orderId !== null) {
-        await database.query(
-          `delete from audit_events
-           where entity_type = 'order'
-             and entity_id = $1
-             and action = 'status_changed'`,
-          [String(orderId)]
-        );
+        // Immutable order audit evidence is retained until the isolated E2E reset.
         await database.query('delete from orders where id = $1', [orderId]);
       } else {
         await database.query('delete from orders where email = $1', [email]);

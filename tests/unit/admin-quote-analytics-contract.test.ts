@@ -38,7 +38,7 @@ test('the ordinary quote workflow only reads the canonical opportunity loader fo
   const service = source('src/shared/server/businessAnalytics.ts');
   const quotes = source('src/shared/server/quotes.ts');
   assert.match(page, /fetchBusinessQuotePreview\(\)\.catch/u);
-  assert.match(service, /buildBusinessQuotePreview\(await readQuotes\(client, asOf\), asOf\)/u);
+  assert.match(service, /buildBusinessQuotePreview\(await readQuotes\(client, asOf, settings\), asOf, settings\)/u);
   assert.doesNotMatch(quotes, /fetchQuoteAnalytics|fetchAdminQuoteFunnel/u);
   assert.match(quotes, /fetchAdminQuoteRequestsPage/u);
   assert.match(quotes, /fetchAdminQuoteDetail/u);

@@ -1,3 +1,4 @@
+import { AUDIT_GROUP_WINDOW_MS } from './auditTypes';
 import type { AuditAction, AuditCollectionValue, AuditDiff, AuditDiffEntry, AuditEntityType, AuditEventRecord, AuditScalarDiff } from './auditTypes';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '../domain/order/customerType';
 import { getStatusLabel as getOrderStatusLabel, isOrderStatus } from '../domain/order/orderStatus';
@@ -651,7 +652,7 @@ function makeGroup(events: AuditEventRecord[]): AuditEventGroup {
   };
 }
 
-export function groupAuditEvents(events: AuditEventRecord[], windowMs = 10000): AuditEventGroup[] {
+export function groupAuditEvents(events: AuditEventRecord[], windowMs = AUDIT_GROUP_WINDOW_MS): AuditEventGroup[] {
   const sorted = [...events].sort((a, b) => parseTime(b.occurredAt) - parseTime(a.occurredAt));
   const groups: AuditEventRecord[][] = [];
 

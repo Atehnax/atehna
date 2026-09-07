@@ -348,7 +348,7 @@ test('draft orders stay visible in the list but are excluded from financial anal
   );
   assert.match(
     ordersPageSource,
-    /fetchBusinessOrderPreview\(\)/u
+    /fetchBusinessOrderPreview\(undefined, \{ entrySource, history \}\)/u
   );
   assert.match(
     orderAnalyticsSource,

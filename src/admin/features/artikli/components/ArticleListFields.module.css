@@ -1,0 +1,200 @@
+.identity {
+  display: grid;
+  grid-template-rows: var(--admin-table-primary-line-height) var(--admin-table-secondary-line-height);
+  min-width: 0;
+  height: calc(var(--admin-table-primary-line-height) + var(--admin-table-secondary-line-height));
+}
+
+.identityName,
+.identitySku {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0 8px;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: none;
+}
+
+.identityName {
+  height: var(--admin-table-primary-line-height);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: calc(var(--admin-table-primary-line-height) - 2px);
+  color: var(--slate-900, #0f172a);
+}
+
+.identitySku {
+  height: var(--admin-table-secondary-line-height);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: calc(var(--admin-table-secondary-line-height) - 2px);
+  color: #64748b;
+}
+
+input.identityName,
+input.identitySku {
+  border-color: #cbd5e1;
+  background: white;
+  outline: none;
+}
+
+input.identityName:focus,
+input.identitySku:focus {
+  border-color: var(--blue-500, #1982bf);
+}
+
+.numberField {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.numberValue {
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  border: 0;
+  padding: 0 8px;
+  background: transparent;
+  text-align: right;
+  font: inherit;
+  line-height: 26px;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: none;
+  outline: none;
+}
+
+.numberReadout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-width: 0;
+  padding: 0 3px;
+}
+
+.numberField[data-unit] .numberReadout {
+  padding-right: 1px;
+}
+
+.numberMatch {
+  min-width: 0;
+  max-width: 100%;
+  gap: 5px;
+}
+
+.readAmount {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readUnit {
+  flex-shrink: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.numberField[data-unit] .numberValue {
+  padding-right: 2px;
+}
+
+.numberUnit {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid transparent;
+  padding: 0 6px 0 2px;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.numberField[data-editing] {
+  border-color: #cbd5e1;
+  background: white;
+}
+
+.numberField[data-editing]:focus-within {
+  border-color: var(--blue-500, #1982bf);
+}
+
+.numberField[data-editing] .numberUnit {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.priceSlot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.priceHeading {
+  text-align: right;
+}
+
+.delivery {
+  display: block;
+  /* Align the value with the title, allowing for the filter gutter and outline padding. */
+  padding-right: 23px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Indent only variant selection and identity; numeric columns share the parent grid. */
+.variantCheckbox {
+  transform: translateX(16px);
+}
+
+.variantIdentity {
+  margin-left: 50px;
+}
+
+.variantHeadingText {
+  margin-left: 59px;
+}
+
+.variantRow > td {
+  background: #f8fafc;
+}
+
+.variantRow:hover > td {
+  background: #f1f5f9;
+}
+
+.numberField[data-invalid] {
+  border-color: #e11d48;
+  background: #fff1f2;
+}

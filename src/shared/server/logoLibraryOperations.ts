@@ -1,9 +1,11 @@
 import {
   blankLogoProject, LOGO_PLACEMENT_IDS, logoVariantUsages,
-  type LogoLibrary, type LogoLibraryAction, type LogoPublishedRevision, type PublishedLogoAsset, type PublishedSiteLogoConfig,
+  type LogoLibrary, type LogoLibraryAction, type LogoPublishedRevision,
   type LogoAssignment, type LogoPlacementId
 } from '@/shared/domain/logo/logoLibrary';
 import { validateLogoProject } from '@/shared/domain/logo/logoProject';
+
+export { publishedLogoProjection } from '@/shared/domain/logo/publishedLogo';
 
 export class LogoLibraryError extends Error {
   constructor(message: string, public status = 400) { super(message); this.name = 'LogoLibraryError'; }
@@ -66,10 +68,25 @@ export function applyLogoLibraryAction(
       variant!.name = cleanName(input.name); variant!.updatedAt = context.now;
       publicChanged = Boolean(variant!.published);
       break;
-    case 'delete':
+    case 'delete': {
+      if (input.replacement !== undefined) {
+        const replacement = assignment(input.replacement, library);
+        if (replacement.variantId === variant!.id || (
+          !replacement.variantId && replacement.fallback === 'default' && library.placements.standalone.variantId === variant!.id
+        )) throw new LogoLibraryError('Izberite drug nadomestni logotip.');
+        for (const purpose of LOGO_PLACEMENT_IDS) {
+          // Only directly assigned places change. Inherited places retain their
+          // default relationship and follow the explicitly chosen replacement.
+          if (library.placements[purpose].variantId === variant!.id) {
+            library.placements[purpose] = { ...replacement };
+            publicChanged = true;
+          }
+        }
+      }
       if (logoVariantUsages(library, variant!.id).length) throw new LogoLibraryError('Različica je v uporabi. Najprej prerazporedite njena mesta uporabe.', 409);
       library.variants = library.variants.filter(value => value.id !== variant!.id);
       break;
+    }
     case 'assign': {
       if (!input.placements || typeof input.placements !== 'object' || Array.isArray(input.placements) || !Object.keys(input.placements).length) {
         throw new LogoLibraryError('Izberite vsaj eno mesto uporabe.');
@@ -109,29 +126,4 @@ export function applyLogoLibraryAction(
     throw new LogoLibraryError('Knjižnica presega dovoljeno velikost. Odstranite neuporabljene različice.');
   }
   return { library, publicChanged };
-}
-
-const original = (): PublishedLogoAsset => ({
-  variantId: null, name: 'Atehna · izvirnik', revision: 'original-v1',
-  pngUrl: '/brand/atehna-document-wordmark.png', svgUrl: null, width: 1873, height: 840,
-  bounds: { x: 0, y: 0, width: 1873, height: 840 }, fallback: 'original'
-});
-const brand = (): PublishedLogoAsset => ({
-  variantId: null, name: 'Atehna', revision: 'brand-v1', pngUrl: '', svgUrl: null,
-  width: 130, height: 30, bounds: { x: 0, y: 0, width: 130, height: 30 }, fallback: 'brand'
-});
-export function publishedLogoProjection(library: LogoLibrary): PublishedSiteLogoConfig {
-  const resolve = (purpose: LogoPlacementId): PublishedLogoAsset | null => {
-    const selected = library.placements[purpose];
-    const variant = selected.variantId ? library.variants.find(value => value.id === selected.variantId) : undefined;
-    if (variant?.published) {
-      const revision = variant.published;
-      return { variantId: variant.id, name: variant.name, revision: revision.id, pngUrl: revision.png.url,
-        svgUrl: revision.svg.url, width: revision.png.width, height: revision.png.height, bounds: structuredClone(revision.bounds) };
-    }
-    if (selected.fallback === 'default' && purpose !== 'standalone') return resolve('standalone');
-    if (selected.fallback === 'none') return null;
-    return selected.fallback === 'brand' ? brand() : original();
-  };
-  return { revision: library.revision, placements: Object.fromEntries(LOGO_PLACEMENT_IDS.map(purpose => [purpose, resolve(purpose)])) as PublishedSiteLogoConfig['placements'] };
 }

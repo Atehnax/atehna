@@ -29,7 +29,6 @@ import {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const POSTAL_CODE_PATTERN = /^\d{4}$/u;
-const ADMIN_DRAFT_CONTACT_NAME = 'Osnutek';
 const ADMIN_DRAFT_EMAIL = 'draft@atehna.si';
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -317,11 +316,10 @@ export async function POST(
     const customerDetailsComplete =
       Boolean(contactName)
       && EMAIL_PATTERN.test(email)
-      && contactName !== ADMIN_DRAFT_CONTACT_NAME
       && email !== ADMIN_DRAFT_EMAIL
       && (
         customerType === 'individual'
-        || (Boolean(organizationName) && organizationName !== ADMIN_DRAFT_CONTACT_NAME)
+        || Boolean(organizationName)
       )
       && Boolean(addressLine1)
       && POSTAL_CODE_PATTERN.test(postalCode)

@@ -72,9 +72,9 @@ test('customer actions sit beside the order data title and preserve behavior', a
     await expect(orderDataCard).toBeVisible();
     await expect(orderDataRows).toHaveCount(7);
     await expect(orderDataCard.locator('input, select, textarea')).toHaveCount(0);
-    await expect(addressRow).toContainText(
-      'Testna ulica 1, 2. nadstropje, 1000 Ljubljana, SI'
-    );
+    await expect(addressRow.locator('[role="group"] > span')).toHaveText([
+      'Testna ulica 1', '2. nadstropje', '1000', 'Ljubljana', 'SI'
+    ]);
     await expect(notesRow).toContainText('E2E opombe stranke');
 
     const readCardBox = await orderDataCard.boundingBox();
@@ -99,10 +99,10 @@ test('customer actions sit beside the order data title and preserve behavior', a
     expect(notesRowBox).not.toBeNull();
     expect(compactRowBox).not.toBeNull();
     for (const rowBox of readRowBoxes) {
-      expect(rowBox.height).toBeGreaterThanOrEqual(35);
+      expect(rowBox.height).toBeGreaterThanOrEqual(28);
     }
     if (addressRowBox && notesRowBox && compactRowBox) {
-      expect(Math.abs(addressRowBox.width - compactRowBox.width)).toBeLessThanOrEqual(1);
+      expect(addressRowBox.width).toBeGreaterThan(compactRowBox.width * 1.9);
       expect(notesRowBox.width).toBeGreaterThan(compactRowBox.width * 1.9);
     }
 
@@ -150,19 +150,17 @@ test('customer actions sit beside the order data title and preserve behavior', a
     expect(editCardBox).not.toBeNull();
     expect(editRowBoxes).toHaveLength(readRowBoxes.length);
     if (readCardBox && editCardBox) {
-      for (const key of ['x', 'y', 'width'] as const) {
+      for (const key of ['x', 'y', 'width', 'height'] as const) {
         expect(Math.abs(readCardBox[key] - editCardBox[key])).toBeLessThanOrEqual(1);
       }
-      expect(editCardBox.height).toBeGreaterThanOrEqual(readCardBox.height);
     }
     for (let index = 0; index < readRowBoxes.length; index += 1) {
-      for (const key of ['x', 'width'] as const) {
+      for (const key of ['x', 'y', 'width', 'height'] as const) {
         expect(
           Math.abs(readRowBoxes[index][key] - editRowBoxes[index][key])
         ).toBeLessThanOrEqual(1);
       }
-      expect(editRowBoxes[index].height).toBeGreaterThanOrEqual(35);
-      expect(editRowBoxes[index].y).toBeGreaterThanOrEqual(readRowBoxes[index].y);
+      expect(editRowBoxes[index].height).toBeGreaterThanOrEqual(28);
     }
 
     await orderDataEditAction.click();
@@ -245,10 +243,7 @@ test('customer actions sit beside the order data title and preserve behavior', a
     await expect(page.getByRole('dialog')).toBeVisible();
   } finally {
     if (orderId !== null) {
-      await database.query(
-        `delete from audit_events where entity_type = 'order' and entity_id = $1`,
-        [String(orderId)]
-      );
+      // Immutable order audit evidence is retained until the isolated E2E reset.
       await database.query('delete from orders where id = $1', [orderId]);
     }
   }

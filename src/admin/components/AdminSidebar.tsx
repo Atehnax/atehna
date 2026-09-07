@@ -24,7 +24,7 @@ const primaryLinkGroups = [
     { href: '/admin/postnina', label: 'Poštnina', icon: ShippingIcon }
   ],
   [
-    { href: '/admin/arhiv', label: 'Arhiv', icon: ArchiveIcon },
+    { href: '/admin/trash', label: 'Koš', icon: TrashIcon },
     { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
   ]
 ] as const;
@@ -190,12 +190,10 @@ function FilePenLineIcon({ className }: { className?: string }) {
   );
 }
 
-function ArchiveIcon({ className }: { className?: string }) {
+function TrashIcon({ className }: { className?: string }) {
   return (
     <svg {...sidebarSvgProps} className={className}>
-      <rect width="20" height="5" x="2" y="3" rx="1" />
-      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
-      <path d="M10 12h4" />
+      <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
     </svg>
   );
 }

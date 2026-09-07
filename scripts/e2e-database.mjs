@@ -17,7 +17,7 @@ const terminalSchemaContractPath = resolve(
   projectRoot,
   'database',
   'migrations',
-  '20260906_schema_contract_v5.sql'
+  '20260907_schema_contract_v6.sql'
 );
 const seedPath = resolve(projectRoot, 'tests', 'fixtures', 'e2e-seed.sql');
 const nextRuntimeCacheDirectory = resolve(projectRoot, '.next', 'cache');

@@ -8,6 +8,11 @@ const navigationEditorSource = readFileSync(
   'utf8'
 );
 
+const footerWorkspaceSource = readFileSync(
+  resolve(process.cwd(), 'src/admin/features/podoba/components/FooterEditorWorkspace.tsx'),
+  'utf8'
+);
+
 test('footer alignment uses one compact accessible contextual radiogroup', () => {
   const helperStart = navigationEditorSource.indexOf('function FooterTextAlignmentMenu');
   const helperEnd = navigationEditorSource.indexOf('function TopLevelNavItemEditor', helperStart);
@@ -43,12 +48,13 @@ test('every persisted footer text scope is bound to its contextual control and l
   assert.match(navigationEditorSource, /onValueChange=\{\(copyrightTextAlign\) => updateFooter\(\{ copyrightTextAlign \}\)\}/u);
   assert.match(navigationEditorSource, /const footerTextAlignmentOptions = \['left', 'center', 'right', 'justify'\] as const/u);
   assert.match(navigationEditorSource, /const footerShortTextAlignmentOptions = \['left', 'center', 'right'\] as const/u);
-  assert.match(navigationEditorSource, /<SiteFooter[\s\S]*?settings=\{config\.footer\}/u);
+  assert.match(navigationEditorSource, /<FooterEditorWorkspace[\s\S]*?footer=\{config\.footer\}[\s\S]*?adapter=\{footerEditorAdapter\}/u);
+  assert.match(footerWorkspaceSource, /<SiteFooter settings=\{footer\} editorAdapter=\{editing \? adapter : undefined\}/u);
 });
 
 test('inline editing and newly created footer content preserve alignment', () => {
   assert.match(navigationEditorSource, /className=\{`\$\{compactInputClassName\}[\s\S]*?style=\{style\}/u);
   assert.match(navigationEditorSource, /title: 'Nov stolpec',[\s\S]*?titleTextAlign: 'left'/u);
-  assert.match(navigationEditorSource, /label: 'Nova povezava',[\s\S]*?textAlign: 'left'/u);
+  assert.match(navigationEditorSource, /label: 'Nova povezava',[\s\S]*?textAlign: column\.titleTextAlign/u);
   assert.match(navigationEditorSource, /label: 'Nova pravna povezava',[\s\S]*?textAlign: 'left'/u);
 });

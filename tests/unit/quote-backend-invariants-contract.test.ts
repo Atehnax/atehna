@@ -601,10 +601,9 @@ test('school purchase order requires consumed OTP and stays non-binding until ad
     wholeOrderDelete,
     /source_quote_offer_version_id !== null[\s\S]*?QUOTE_DERIVED_ORDER_DELETE_BLOCKED/u
   );
-  assert.match(
-    archive,
-    /from quote_documents[\s\S]*?where blob_pathname = \$1/u
-  );
+  // The trash retains documents permanently; restoring cannot purge shared quote evidence.
+  assert.doesNotMatch(archive, /delete\s+from\s+(?:orders|order_documents|quote_documents)\b/iu);
+  assert.doesNotMatch(archive, /from ['"]@vercel\/blob['"]|purgeArchive|deleteBlob/u);
   assert.match(
     archive,
     /document\.type = 'purchase_order'[\s\S]*?source_quote_offer_version_id is not null[\s\S]*?ARCHIVE_QUOTE_PURCHASE_ORDER_IMMUTABLE/u

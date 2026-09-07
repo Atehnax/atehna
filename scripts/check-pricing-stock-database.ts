@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { readE2eEnvironment } from './e2e-database.mjs';
 import { commitPricingStockBatch, commitPricingStockModel, readPricingStockModel, readPricingStockRows, PricingStockError, type PricingStockDatabase } from '../src/shared/server/pricingStockTransaction';
-import { createDefaultPricingStockModel, PricingStockValidationError } from '../src/shared/domain/pricingStock';
+import { createDefaultPricingStockModel, PricingStockValidationError, previewPricingStockColumn } from '../src/shared/domain/pricingStock';
 import { CatalogVariantConcurrencyConflictError, upsertCatalogItem, quickPatchCatalogVariantByIdentifier } from '../src/shared/server/catalogItems';
 import { getPool } from '../src/shared/server/db';
 import { commitOrderStockHolds, releaseOrderStockHolds } from '../src/shared/server/orderStockHolds';
@@ -33,7 +33,14 @@ try {
   itemId=Number((await client.query("insert into catalog_items(item_name,item_type,status,slug) values($1,'unit','inactive',$2) returning id",['Pricing-stock fixture',`pricing-stock-${token}`])).rows[0].id);
   ids=(await client.query(`insert into catalog_item_variants(item_id,variant_name,variant_sku,price,cost_net,inventory,work_minutes,other_costs,status)
     values($1,'A',$2,20,5,10,6,1,'inactive'),($1,'B',$3,30,null,20,null,null,'inactive') returning id`,[itemId,`TEST-A-${token}`,`TEST-B-${token}`])).rows.map(row=>Number(row.id));
-  let rows=await read();assert.equal(rows.length,2);assert.equal(rows[1].purchaseNet,null);assert.equal(rows[1].workMinutes,null);assert.equal(rows[1].calculation.status,'missing');
+  await client.query("insert into catalog_item_editor_details(item_id,product_type) values($1,'dimensions')",[itemId]);
+  await client.query("update catalog_items set shape='plošča',material='jeklo' where id=$1",[itemId]);
+  await client.query('update catalog_item_variants set length=case when id=$1 then 100 else 50 end,width=20,thickness=5,weight=case when id=$1 then 1 else 0.5 end where item_id=$2',[ids[0],itemId]);
+  let rows=await read();assert.equal(rows.length,2);
+  assert.deepEqual(rows[0].sizing,{productType:'dimensions',lengthMm:'100.000',widthMm:'20.000',thicknessMm:'5.000',weightKg:'1.000',shape:'plošča',material:'jeklo'});
+  const proportionalPreview=previewPricingStockColumn(rows[0],[rows[1]],'saleNet','proportional');
+  assert.equal(proportionalPreview.rows[0].proposed,'10.00');assert.deepEqual(proportionalPreview.rows[0].ratio,{numerator:'1',denominator:'2'});
+  assert.equal((await read())[1].saleNet,'30.00','Column preview must not write canonical values.');assert.equal(rows[1].purchaseNet,null);assert.equal(rows[1].workMinutes,null);assert.equal(rows[1].calculation.status,'missing');
   const original=rows[0];
   // A real competing transaction reserves/decrements stock while a price edit waits.
   await writer.query('begin');await writer.query('update catalog_item_variants set inventory=inventory-2 where id=$1',[ids[0]]);
@@ -66,9 +73,19 @@ try {
   const costTimestamp=rows[0].purchaseUpdatedAt;
   await commitPricingStockBatch(adapter,{expectedModelRevision:(await readPricingStockModel(client)).revision,rows:[{variantId:ids[0],expectedPricingRevision:rows[0].pricingRevision,patch:{saleNet:'23'}}]},actor);
   assert.equal((await read())[0].purchaseUpdatedAt,costTimestamp);
-  // Toggle cannot be bypassed by a stock mutation, but does not disable price edits.
+  // Order stock limiting does not disable inventory maintenance or its safeguards.
   await client.query("update inventory_policy_settings set config_json='{\"stockEnforcementEnabled\":false}' where key='default'");
-  rows=await read();await assert.rejects(commitPricingStockBatch(adapter,{expectedModelRevision:(await readPricingStockModel(client)).revision,rows:[{variantId:ids[0],expectedStockRevision:rows[0].stockRevision,patch:{inventory:9}}]},actor),error=>error instanceof PricingStockError&&error.code==='PRICING_STOCK_DISABLED');
+  rows=await read();const beforePolicyOffStock=rows[0];
+  const savedWithPolicyOff=await commitPricingStockBatch(adapter,{expectedModelRevision:(await readPricingStockModel(client)).revision,rows:[{variantId:ids[0],expectedStockRevision:beforePolicyOffStock.stockRevision,patch:{inventory:9}}]},actor);
+  const savedStock=savedWithPolicyOff.rows.find(row=>row.variantId===ids[0])!;
+  assert.equal(savedStock.inventory,9);assert.equal(savedWithPolicyOff.stockEnforcementEnabled,false);assert.equal(savedWithPolicyOff.capabilities.editStock,true);
+  assert.equal(BigInt(savedStock.stockRevision),BigInt(beforePolicyOffStock.stockRevision)+1n);
+  assert.equal(savedStock.pricingRevision,beforePolicyOffStock.pricingRevision);
+  const stockAudit=(await client.query("select actor_id,source,before_json,after_json from pricing_stock_history where entity_type='variant' and entity_id=$1 order by id desc limit 1",[String(ids[0])])).rows[0];
+  assert.equal(stockAudit.actor_id,actor.actorId);assert.equal(stockAudit.source,actor.source);assert.equal(stockAudit.before_json.inventory,beforePolicyOffStock.inventory);assert.equal(stockAudit.after_json.inventory,9);
+  await assert.rejects(commitPricingStockBatch(adapter,{expectedModelRevision:savedWithPolicyOff.model.revision,rows:[{variantId:ids[0],expectedStockRevision:beforePolicyOffStock.stockRevision,patch:{inventory:11}}]},actor),error=>error instanceof PricingStockError&&error.status===409);
+  assert.equal((await read())[0].inventory,9,'Stale inventory is still rejected while order stock limiting is off.');
+  assert.equal((await client.query("select config_json from inventory_policy_settings where key='default'")).rows[0].config_json.stockEnforcementEnabled,false,'Inventory maintenance must not enable order stock limiting.');
   await client.query('rollback');
   // Model and row drafts are one atomic operation: sale 0 -> 10 makes 1/sale valid.
   await client.query('begin');
@@ -123,7 +140,7 @@ try {
   await releaseOrderStockHolds(client,orderId,'fixture cancelled',{type:'admin',id:actor.actorId});assert.equal((await read())[0].inventory,8);
   await releaseOrderStockHolds(client,orderId,'fixture cancelled',{type:'admin',id:actor.actorId});assert.equal((await read())[0].inventory,8);
   await client.query('rollback');
-  console.info('Pricing-stock database verification passed: concurrent stock/price writes, stale and ABA rejection, atomic batch rollback, nullable inputs, mandatory history, cost timestamp, model CAS/evaluation, combined model/row success and conflict/invalid rollback, historical order-cost preservation, disabled-stock policy, hold deduction/release and no double subtraction.');
+  console.info('Pricing-stock database verification passed: concurrent stock/price writes, stale and ABA rejection, atomic batch rollback, nullable inputs, mandatory history, cost timestamp, model CAS/evaluation, combined model/row success and conflict/invalid rollback, canonical sizing/column preview, historical order-cost preservation, inventory editing with order stock limiting disabled, hold deduction/release and no double subtraction.');
 }finally{
   await writer.query('rollback').catch(()=>{});await client.query('rollback').catch(()=>{});
   if(itemId!==undefined)await client.query('delete from catalog_items where id=$1',[itemId]);

@@ -1,3 +1,4 @@
+import { parseBusinessOriginFilters } from './filters';
 import type { BusinessDay, BusinessFilters, CanonicalOrder } from './businessAnalytics';
 import { matchesBusinessFilters, sumCents } from './metrics';
 import { addCalendarDays, BUSINESS_TIMEZONE, calendarDates, inPeriod, localDate, localInstant } from './period';
@@ -5,7 +6,7 @@ import { isCustomerType } from '../order/customerType';
 import { isOrderStatus } from '../order/orderStatus';
 
 export class BusinessActivityInputError extends Error {}
-export type BusinessActivityFilters = Pick<BusinessFilters, 'customerType' | 'status' | 'source'>;
+export type BusinessActivityFilters = Pick<BusinessFilters, 'customerType' | 'status' | 'source' | 'entrySource' | 'history'>;
 export type BusinessActivityWindow = {
   weeks: number;
   asOf: string;
@@ -42,7 +43,9 @@ export function parseBusinessActivityQuery(params: URLSearchParams, asOf = new D
   if (customerType !== 'all' && customerType !== 'unknown' && !isCustomerType(customerType)) throw new BusinessActivityInputError('Neveljaven tip naročnika.');
   if (status !== 'all' && !isOrderStatus(status)) throw new BusinessActivityInputError('Neveljaven status.');
   if (source !== 'all' && source !== 'direct' && source !== 'quote') throw new BusinessActivityInputError('Neveljaven vir naročila.');
-  return { window: resolveBusinessActivityWindow(params.get('weeks'), asOf), filters: { customerType, status, source } satisfies BusinessActivityFilters };
+  let origin: Pick<BusinessFilters, 'entrySource' | 'history'>;
+  try { origin = parseBusinessOriginFilters(params); } catch (error) { throw new BusinessActivityInputError(error instanceof Error ? error.message : 'Neveljaven filter.'); }
+  return { window: resolveBusinessActivityWindow(params.get('weeks'), asOf), filters: { customerType, status, source, ...origin } satisfies BusinessActivityFilters };
 }
 
 /** Count the same submitted-order population and exact net cents as the business report. */

@@ -172,7 +172,7 @@ export async function fetchGeography(params: URLSearchParams) {
     asOf: asOf.toISOString(), period, filters, reference: { metadata: reference.metadata, assetUrl: '/api/admin/analytics/geography/boundaries', latestVersion: state?.latest_version ?? null, lastError: state?.last_error ?? null },
     ...summary, addressSource: addressSource.rows[0] ?? null,
     denominator: 'Delež naročil, razrešenih do občine, med vsemi slovenskimi naročili, razrešenimi do občine. Regijski dodatki so prikazani ločeno.',
-    selected: selectedId ? { id: selectedId, total: selectedRecords.length, records: selectedRecords.slice(0, params.get('export') === 'orders' ? undefined : 50).map((order) => ({ id: order.id, number: order.number, date: order.submittedAt, customerType: order.customerType, customerName: order.customerName, status: order.status, source: order.source, value: order.activityCents === null ? null : order.activityCents / 100, href: `/admin/orders/${order.id}` })) } : null
+    selected: selectedId ? { id: selectedId, total: selectedRecords.length, records: selectedRecords.slice(0, params.get('export') === 'orders' ? undefined : 50).map((order) => ({ id: order.id, number: order.number, date: order.submittedAt, customerType: order.customerType, customerName: order.customerName, status: order.status, source: order.source, entrySource: order.entrySource, isHistorical: order.isHistorical, value: order.activityCents === null ? null : order.activityCents / 100, href: `/admin/orders/${order.id}` })) } : null
   };
 }
 async function savedSnapshot(orderId: string, database: Queryable): Promise<AddressSnapshot> {

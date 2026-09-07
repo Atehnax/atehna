@@ -1,7 +1,18 @@
 import type { PricingStockValues, PricingStockModel, PricingStockCalculation } from './types';
 
+export type PricingStockSizing = {
+  productType: 'simple' | 'dimensions' | 'weight' | 'unique_machine' | null;
+  lengthMm: string | null;
+  widthMm: string | null;
+  thicknessMm: string | null;
+  weightKg: string | null;
+  shape: string | null;
+  material: string | null;
+};
+
 export type PricingStockRow = PricingStockValues & {
   variantId: number;
+  sizing?: PricingStockSizing;
   itemId: number;
   itemName: string;
   variantName: string;

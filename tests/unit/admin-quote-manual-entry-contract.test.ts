@@ -67,7 +67,7 @@ test('admin quote creation supports a direct draft while preserving full manual 
   );
 
   assert.match(route, /\bmode\b[\s\S]{0,120}?['"]draft['"]/u);
-  assert.match(route, /['"]Osnutek['"]/u);
+  assert.match(route, /organizationName: null[\s\S]*?contactName: ''/u);
   assert.match(route, /['"]draft@atehna\.si['"]/u);
   assert.match(route, /requestedItem[\s\S]{0,120}?\bnull\b/u);
   assert.match(route, /items:\s*requestedItem \? \[requestedItem\] : \[\]/u);
@@ -77,9 +77,10 @@ test('admin quote creation supports a direct draft while preserving full manual 
   assert.match(route, /await insertCatalogRequestItem/u);
   assert.match(route, /await insertManualRequestItem/u);
 
-  // Draft sentinels satisfy storage constraints, but must never pass issuance validation.
+  // Empty draft names and the reserved draft email must never pass issuance validation.
   assert.match(issue, /QUOTE_CUSTOMER_DETAILS_INCOMPLETE/u);
-  assert.match(issue, /['"]Osnutek['"]/u);
+  assert.match(issue, /Boolean\(contactName\)/u);
+  assert.doesNotMatch(issue, /ADMIN_DRAFT_CONTACT_NAME/u);
   assert.match(issue, /['"]draft@atehna\.si['"]/u);
 });
 

@@ -13,6 +13,9 @@ import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import {
   adminCardSectionEditIconButtonClassName,
+  adminTableTextStackClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
   adminTableInlineActionRowClassName,
   adminTableInlineCancelButtonClassName,
   adminTableInlineCancelIconClassName,
@@ -28,6 +31,7 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { IconButton } from '@/shared/ui/icon-button';
+import { Button } from '@/shared/ui/button';
 import {
   ApplyToAllIcon,
   CheckIcon,
@@ -78,6 +82,7 @@ export type OrderItemsSaveOptions = {
 
 export type OrderItemsSaveResult = {
   ok: boolean;
+  historicalRevision?: number;
   persistDeferredDeliveryPlan?: () => Promise<void>;
   commitDeferredDeliveryPlan?: () => void;
 };
@@ -196,8 +201,11 @@ export default function AdminOrderItemsEditor({
   orderId,
   items,
   initialSubtotal = 0,
+  initialPricingRevision = 1,
+  initialHistoricalRevision = 0,
   initialTax = 0,
   initialShipping = 0,
+  isHistorical = false,
   initialShippingOverride = false,
   initialShippingOverrideStale = false,
   initialShippingManualQuote = false,
@@ -219,8 +227,11 @@ export default function AdminOrderItemsEditor({
 }: {
   orderId: number;
   items: OrderItemInput[];
+  initialPricingRevision?: number;
+  initialHistoricalRevision?: number;
   initialSubtotal?: number;
   initialTax?: number;
+  isHistorical?: boolean;
   initialShipping?: number;
   initialShippingOverride?: boolean;
   initialShippingOverrideStale?: boolean;
@@ -251,11 +262,17 @@ export default function AdminOrderItemsEditor({
   const [shippingOverrideStale, setShippingOverrideStale] = useState(initialShippingOverrideStale);
   const [shippingManualQuote, setShippingManualQuote] = useState(initialShippingManualQuote);
   const [isItemsSaving, setIsItemsSaving] = useState(false);
+  const [persistedHistoricalTaxRate, setPersistedHistoricalTaxRate] = useState(initialTaxRate ?? TAX_RATE);
+  const [draftHistoricalTaxPercent, setDraftHistoricalTaxPercent] = useState(String((initialTaxRate ?? TAX_RATE) * 100));
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { toast } = useToast();
+  const historicalRevisionRef = useRef(initialHistoricalRevision);
+  useEffect(() => { historicalRevisionRef.current = initialHistoricalRevision; }, [initialHistoricalRevision]);
+  const pricingRevisionRef = useRef(initialPricingRevision);
+  useEffect(() => { pricingRevisionRef.current = initialPricingRevision; }, [initialPricingRevision]);
   const saveItemsRef = useRef<OrderItemsSaveHandler>(async () => ({ ok: true }));
   const deliveryPlanRevisionRef = useRef(
     Number.isSafeInteger(initialDeliveryPlanRevision) && initialDeliveryPlanRevision >= 1
@@ -333,7 +350,7 @@ export default function AdminOrderItemsEditor({
   }, []);
 
   const itemsEditable = hasExternalEditMode ? Boolean(externalEditMode) : itemsSectionMode === 'edit';
-  const taxRate =
+  const standardTaxRate =
     typeof initialTaxRate === 'number' &&
     Number.isFinite(initialTaxRate) &&
     initialTaxRate >= 0 &&
@@ -342,14 +359,16 @@ export default function AdminOrderItemsEditor({
       : initialSubtotal > 0 && initialTax >= 0
         ? Math.min(1, initialTax / initialSubtotal)
         : TAX_RATE;
+  const taxRate = isHistorical ? (itemsEditable ? parseLocaleNumber(draftHistoricalTaxPercent) / 100 : persistedHistoricalTaxRate) : standardTaxRate;
+  const historicalTaxDirty = isHistorical && parseLocaleNumber(draftHistoricalTaxPercent) / 100 !== persistedHistoricalTaxRate;
   const taxRateLabel = new Intl.NumberFormat('sl-SI', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(taxRate * 100);
 
   const isCommercialItemsDirty = useMemo(
-    () => !areCommercialItemsEqual(draftItems, persistedItems),
-    [draftItems, persistedItems]
+    () => historicalTaxDirty || !areCommercialItemsEqual(draftItems, persistedItems),
+    [draftItems, persistedItems, historicalTaxDirty]
   );
   const deliveryPlanDirty = useMemo(
     () => isDeliveryPlanDirty(draftItems, persistedItems),
@@ -405,7 +424,7 @@ export default function AdminOrderItemsEditor({
   const shippingPending = shippingManualQuote && !hasShippingOverride;
   const shippingIsStale =
     shippingOverrideStale || (hasShippingOverride && isCommercialItemsDirty);
-  const shippingContextLabel = shippingManualQuote
+  const shippingContextLabel = isHistorical ? 'Izvorna' : shippingManualQuote
     ? `Po dogovoru${shippingIsStale ? ' · zastarelo' : ''}`
     : hasShippingOverride
       ? shippingIsStale ? 'Zastarelo' : null
@@ -442,21 +461,32 @@ export default function AdminOrderItemsEditor({
 
   const startItemsEdit = () => {
     setDraftItems(cloneEditableItems(persistedItems));
+    setDraftHistoricalTaxPercent(String(persistedHistoricalTaxRate * 100));
     setSelectedDraftItemIds([]);
     setItemsSectionMode('edit');
   };
 
   const cancelItemsEdit = useCallback(() => {
     setDraftItems(cloneEditableItems(persistedItems));
+    setDraftHistoricalTaxPercent(String(persistedHistoricalTaxRate * 100));
     setSelectedDraftItemIds([]);
     setItemsSectionMode('read');
     setIsPickerOpen(false);
     setCatalogQuery('');
-  }, [persistedItems]);
+  }, [persistedItems, persistedHistoricalTaxRate]);
+
+  const addManualHistoricalItem = () => {
+    if (!isHistorical || addItemDisabled) return;
+    setDraftItems(current => [...current, {
+      id: 'historical-' + crypto.randomUUID(),
+      sku: '', name: '', unit: 'kos', quantity: 1, unitPrice: 0, discountPercentage: 0,
+      catalogItemId: null, catalogVariantId: null, shipLater: false
+    }]);
+    closeItemPickerAndRestoreFocus();
+  };
 
   const openAddItem = async () => {
     if (addItemDisabled) return;
-
     setIsPickerOpen(true);
     if (catalogChoices.length > 0) return;
     const response = await fetch('/api/admin/catalog-items');
@@ -506,6 +536,7 @@ export default function AdminOrderItemsEditor({
       return { ok: true };
     }
 
+    if (isHistorical && (!draftHistoricalTaxPercent.trim() || taxRate < 0 || taxRate > 1)) {toast.error('Vnesite veljavno izvorno stopnjo DDV med 0 in 100 %.');return {ok:false};}
     if (draftItems.length === 0) {
       toast.error('Naročilo mora vsebovati vsaj eno postavko.');
       return { ok: false };
@@ -513,6 +544,7 @@ export default function AdminOrderItemsEditor({
 
     setIsItemsSaving(true);
     try {
+      let savedHistoricalRevision: number | undefined;
       let nextDesiredItems = cloneEditableItems(draftItems);
       let nextServerItems = cloneEditableItems(persistedItems);
 
@@ -521,6 +553,7 @@ export default function AdminOrderItemsEditor({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            ...(isHistorical ? {historicalTaxRate: taxRate, expectedPricingRevision: pricingRevisionRef.current, expectedHistoricalRevision: historicalRevisionRef.current} : {}),
             items: draftItems.map((item) => ({
               id: item.persistedId,
               catalogItemId: item.catalogItemId,
@@ -542,6 +575,7 @@ export default function AdminOrderItemsEditor({
 
         const payload = (await response.json()) as {
           pricingRevision?: number;
+          historicalRevision?: number | string;
           deliveryPlanRevision?: number;
           totals?: {
             shipping?: number;
@@ -561,6 +595,7 @@ export default function AdminOrderItemsEditor({
             discountPercentage: number;
           }>;
         };
+        if (isHistorical && Number.isSafeInteger(Number(payload.historicalRevision))) { savedHistoricalRevision = Number(payload.historicalRevision); historicalRevisionRef.current = savedHistoricalRevision; }
         if (!payload.items || payload.items.length !== draftItems.length) {
           throw new Error('Strežnik ni vrnil vseh shranjenih postavk.');
         }
@@ -613,6 +648,7 @@ export default function AdminOrderItemsEditor({
           Number.isSafeInteger(payload.pricingRevision) &&
           Number(payload.pricingRevision) >= 1
         ) {
+          pricingRevisionRef.current = Number(payload.pricingRevision);
           onPricingRevisionChange?.(Number(payload.pricingRevision));
         }
         onDeliveryPlanChange?.(toDeliveryPlanSnapshot(nextDesiredItems));
@@ -666,6 +702,7 @@ export default function AdminOrderItemsEditor({
         await persistDeliveryPlan();
       }
 
+      setPersistedHistoricalTaxRate(taxRate);
       setPersistedItems(cloneEditableItems(nextDesiredItems));
       setDraftItems(cloneEditableItems(nextDesiredItems));
       setSelectedDraftItemIds([]);
@@ -674,7 +711,7 @@ export default function AdminOrderItemsEditor({
         setItemsSectionMode('read');
         toast.success('Postavke so posodobljene.');
       }
-      return { ok: true };
+      return { ok: true, historicalRevision: savedHistoricalRevision };
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Napaka pri shranjevanju postavk.');
       return { ok: false };
@@ -684,6 +721,9 @@ export default function AdminOrderItemsEditor({
   }, [
     draftItems,
     persistedItems,
+    isHistorical,
+    draftHistoricalTaxPercent,
+    taxRate,
     cancelItemsEdit,
     hasExternalEditMode,
     isCommercialItemsDirty,
@@ -702,13 +742,14 @@ export default function AdminOrderItemsEditor({
     lastExternalEditModeRef.current = externalEditMode;
 
     setDraftItems(cloneEditableItems(persistedItems));
+    setDraftHistoricalTaxPercent(String(persistedHistoricalTaxRate * 100));
     setSelectedDraftItemIds([]);
     setItemsSectionMode(externalEditMode ? 'edit' : 'read');
     if (!externalEditMode) {
       setIsPickerOpen(false);
       setCatalogQuery('');
     }
-  }, [externalEditMode, hasExternalEditMode, persistedItems]);
+  }, [externalEditMode, hasExternalEditMode, persistedItems, persistedHistoricalTaxRate]);
 
   useEffect(() => {
     onDirtyChange?.(isItemsDirty);
@@ -820,9 +861,11 @@ export default function AdminOrderItemsEditor({
           />
         </td>
         <td className="px-3 py-3 align-middle">
-          <div className="grid gap-0.5">
-            <p className="truncate text-[12px] font-medium text-slate-900">{item.name}</p>
-            <p className="truncate text-[11px] text-slate-500">{item.sku}</p>
+          <div className={isHistorical && commercialItemsEditable ? "grid gap-0.5" : adminTableTextStackClassName}>
+            {isHistorical && commercialItemsEditable ? <>
+              <input aria-label="Izvorno ime postavke" placeholder="Ime postavke" value={item.name} onChange={event=>updateItem(item.id,{name:event.target.value})} className={adminTableInlineEditInputClassName} disabled={isItemsSaving} />
+              <div className="flex gap-1"><input aria-label="Izvorni SKU" placeholder="SKU" value={item.sku} onChange={event=>updateItem(item.id,{sku:event.target.value})} className={adminTableInlineEditInputClassName} disabled={isItemsSaving} /><input aria-label="Izvorna enota" value={item.unit} onChange={event=>updateItem(item.id,{unit:event.target.value})} className={adminTableInlineEditInputClassName+' !w-14'} disabled={isItemsSaving} /></div>
+            </> : <><p className={`${adminTablePrimaryTextClassName} truncate text-[12px] font-medium text-slate-900`}>{item.name}</p><p className={`${adminTableSecondaryTextClassName} truncate text-[11px] text-slate-500`}>{item.sku}</p></>}
           </div>
         </td>
         <td className="px-1 py-3 text-center">
@@ -1142,14 +1185,38 @@ export default function AdminOrderItemsEditor({
                 Pred dokončanjem osnutka določite ročno poštnino in razlog.
               </p>
             ) : null}
-            {itemsEditable && isItemsDirty && !hasShippingOverride ? (
+            {!isHistorical && itemsEditable && isItemsDirty && !hasShippingOverride ? (
               <p className="text-right text-[10px] leading-3 text-slate-500">
                 Poštnina bo preračunana ob shranjevanju postavk.
               </p>
             ) : null}
-            <div className="flex items-center justify-between text-slate-500">
-              <span>DDV ({taxRateLabel} %)</span>
-              <span className="font-semibold">{formatCurrency(totals.tax)}</span>
+            <div className="flex items-center justify-between text-slate-500" data-admin-order-tax-row>
+              {isHistorical ? (
+                <span className="inline-flex h-7 items-center gap-1">
+                  <span data-admin-order-tax-label>DDV</span>
+                  <span className="inline-flex h-7 w-16 items-center" data-admin-order-tax-rate-slot>
+                    {commercialItemsEditable ? (
+                      <input
+                        aria-label="Izvorna stopnja DDV (%)"
+                        inputMode="decimal"
+                        value={draftHistoricalTaxPercent}
+                        onChange={(event) => setDraftHistoricalTaxPercent(event.target.value)}
+                        disabled={isItemsSaving}
+                        data-admin-table-value-input
+                        className={adminTableInlineEditInputClassName + ' !leading-5'}
+                      />
+                    ) : (
+                      <span className={adminTableInlineEditInputClassName + ' inline-flex items-center !border-transparent !bg-transparent !leading-5'}>
+                        {taxRateLabel}
+                      </span>
+                    )}
+                  </span>
+                  <span data-admin-order-tax-unit>%</span>
+                </span>
+              ) : (
+                <span>DDV ({taxRateLabel} %)</span>
+              )}
+              <span className="font-semibold" data-admin-order-tax-amount>{formatCurrency(totals.tax)}</span>
             </div>
             <div className="border-t border-slate-200 pt-1">
               <div className="flex items-center justify-between text-[13px] font-semibold text-slate-900">
@@ -1217,6 +1284,13 @@ export default function AdminOrderItemsEditor({
                 <div className="px-3 py-6 text-center text-[12px] text-slate-500">Ni ujemajočih artiklov.</div>
               ) : null}
             </div>
+            {isHistorical ? (
+              <div className="mt-3 flex justify-end">
+                <Button type="button" variant="default" size="toolbar" onClick={addManualHistoricalItem} disabled={addItemDisabled}>
+                  Vnesi postavko ročno
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

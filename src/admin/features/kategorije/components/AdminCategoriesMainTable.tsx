@@ -99,6 +99,7 @@ import { useToast } from '@/shared/ui/toast';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { StatusToggle } from '@/shared/ui/status-toggle';
+import { CategoryTreeRowMotion } from './CategoryTreeRowMotion';
 import { UnsavedChangesDialog } from '@/shared/ui/unsaved-changes-dialog';
 
 const AdminCategoriesPreview = dynamic(
@@ -242,7 +243,6 @@ const treeButtonRadius = treeButtonDiameter / 2;
 const treeConnectorBleed = 3;
 const treeConnectorStrokeColor = 'rgb(203 213 225 / 0.9)';
 const treeConnectorStrokeWidth = 1;
-const expandTransitionMs = 140;
 const treeCheckboxSize = 16;
 const treeCheckboxHalf = treeCheckboxSize / 2;
 
@@ -546,8 +546,6 @@ export default function AdminCategoriesMainTable({
   const [tableSort, setTableSort] = useState<{ key: CategorySortKey; direction: CategorySortDirection } | null>(null);
   const [millerSearchQuery, setMillerSearchQuery] = useState('');
   const [warningDialog, setWarningDialog] = useState<{ title: string; description: string } | null>(null);
-  const [openingRowIds, setOpeningRowIds] = useState<string[]>([]);
-  const [closingRowIds, setClosingRowIds] = useState<string[]>([]);
   const [imageDeleteTarget, setImageDeleteTarget] = useState<ImageDeleteTarget>(null);
   const [loading, setLoading] = useState(!initialPayload);
   const [saving, setSaving] = useState(false);
@@ -2818,8 +2816,6 @@ export default function AdminCategoriesMainTable({
   }, [activeView, catalog.categories, categoryShowcaseEditor.items, selected, selectedContext, statusByRow]);
 
   const selectedRowSet = useMemo(() => new Set(selectedRows), [selectedRows]);
-  const openingRowIdSet = useMemo(() => new Set(openingRowIds), [openingRowIds]);
-  const closingRowIdSet = useMemo(() => new Set(closingRowIds), [closingRowIds]);
 
   const getDescendantIds = useCallback((id: string) => {
     if (id === rootId) {
@@ -2890,47 +2886,18 @@ export default function AdminCategoriesMainTable({
   };
 
   const toggleAllExpanded = () => {
-    if (areAllRowsExpanded) {
-      setClosingRowIds((prev) => [...new Set([...prev, ...expandableRowIds])]);
-      setExpanded((prev) => ({
-        ...prev,
-        ...Object.fromEntries(expandableRowIds.map((id) => [id, false]))
-      }));
-      window.setTimeout(() => {
-        setClosingRowIds((prev) => prev.filter((entry) => !expandableRowIds.includes(entry)));
-      }, expandTransitionMs);
-      return;
-    }
-
-    const rowsToOpen = expandableRowIds.filter((id) => !isRowExpanded(id));
-    setOpeningRowIds((prev) => [...new Set([...prev, ...rowsToOpen])]);
     setExpanded((prev) => ({
       ...prev,
-      ...Object.fromEntries(expandableRowIds.map((id) => [id, true]))
+      ...Object.fromEntries(expandableRowIds.map((id) => [id, !areAllRowsExpanded]))
     }));
-    window.setTimeout(() => {
-      setOpeningRowIds((prev) => prev.filter((entry) => !rowsToOpen.includes(entry)));
-    }, expandTransitionMs);
   };
 
   const toggleExpanded = useCallback((id: string) => {
-    const currentlyExpanded = isRowExpanded(id);
-
-    if (currentlyExpanded) {
-      setClosingRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-      setExpanded((prev) => ({ ...prev, [id]: false }));
-      window.setTimeout(() => {
-        setClosingRowIds((prev) => prev.filter((entry) => entry !== id));
-      }, expandTransitionMs);
-      return;
-    }
-
-    setOpeningRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    setExpanded((prev) => ({ ...prev, [id]: true }));
-    window.setTimeout(() => {
-      setOpeningRowIds((prev) => prev.filter((entry) => entry !== id));
-    }, expandTransitionMs);
-  }, [isRowExpanded]);
+    setExpanded((prev) => ({
+      ...prev,
+      [id]: !(id === rootId ? (prev[id] ?? true) : Boolean(prev[id]))
+    }));
+  }, []);
 
   const saveInlineEdit = useCallback(async () => {
     if (!editingRow) return true;
@@ -3180,7 +3147,7 @@ export default function AdminCategoriesMainTable({
   const visibleRowIds = useMemo(() => {
     const ids: string[] = [];
     const isRootExpanded =
-      isSearchActive || (expanded[rootId] ?? true) || closingRowIds.includes(rootId);
+      isSearchActive || (expanded[rootId] ?? true);
 
     if (!isRootExpanded) {
       return ids;
@@ -3196,7 +3163,7 @@ export default function AdminCategoriesMainTable({
         const currentId = subId(categorySlug, currentPath);
         ids.push(currentId);
 
-        if (isSearchActive || expanded[currentId] || closingRowIds.includes(currentId)) {
+        if (isSearchActive || expanded[currentId]) {
           appendVisibleSubcategoryIds(categorySlug, subcategory.subcategories, currentPath);
         }
       });
@@ -3206,13 +3173,13 @@ export default function AdminCategoriesMainTable({
       const categoryNodeId = catId(category.slug);
       ids.push(categoryNodeId);
 
-      if (isSearchActive || expanded[categoryNodeId] || closingRowIds.includes(categoryNodeId)) {
+      if (isSearchActive || expanded[categoryNodeId]) {
         appendVisibleSubcategoryIds(category.slug, category.subcategories);
       }
     });
 
     return ids;
-  }, [closingRowIds, expanded, filteredCategories, isSearchActive]);
+  }, [expanded, filteredCategories, isSearchActive]);
 
   const selectableVisibleRowIds = useMemo(() => visibleRowIds, [visibleRowIds]);
   const selectedRowIdSet = useMemo(() => new Set(selectedRows), [selectedRows]);
@@ -3307,7 +3274,7 @@ export default function AdminCategoriesMainTable({
     ancestorContinuationColumns,
     continueCurrentColumnBelow,
     hasPreviousSibling,
-    parentIsAnimating
+    visible
   }: {
     id: string;
     title: string;
@@ -3321,7 +3288,7 @@ export default function AdminCategoriesMainTable({
     ancestorContinuationColumns: boolean[];
     continueCurrentColumnBelow: boolean;
     hasPreviousSibling?: boolean;
-    parentIsAnimating?: boolean;
+    visible: boolean;
   }) => {
     const resolvedSubcategoryPath = toSubcategoryPath(subcategoryPath);
 
@@ -3334,7 +3301,7 @@ export default function AdminCategoriesMainTable({
         pathEquals(selected.subcategoryPath ?? selected.subcategorySlug, resolvedSubcategoryPath));
 
     const hasChildren = childrenCount > 0;
-    const isExpanded = expanded[id] ?? false;
+    const isExpanded = isSearchActive || (expanded[id] ?? false);
     const isRowEditing = editingRow?.id === id;
     const isChecked = selectedRowSet.has(id);
     const persistedRowStatus = statusByRow[id] ?? 'active';
@@ -3403,9 +3370,6 @@ export default function AdminCategoriesMainTable({
 
       startInlineStatusEdit();
     };
-
-    const isOpening = parentIsAnimating && openingRowIdSet.size > 0;
-    const isClosing = parentIsAnimating && closingRowIdSet.size > 0;
 
     const toggleChecked = () => {
       setSelectedRows((prev) => {
@@ -3502,9 +3466,10 @@ export default function AdminCategoriesMainTable({
         }) => (
           <tr
             key={id}
+            data-category-row={id}
             ref={setNodeRef}
             style={style}
-            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} border-t border-slate-200/90 transition-[background-color,opacity,transform] duration-150 ${adminTableRowToneClasses.hover} ${isClosing ? 'opacity-80 translate-y-[-1px]' : 'translate-y-0'} ${isOpening ? 'opacity-100' : ''} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+            className={`${isSelected ? adminTableRowToneClasses.selected : 'bg-white'} border-t border-slate-200/90 transition-colors duration-150 ${adminTableRowToneClasses.hover} ${isDragging ? 'opacity-70' : ''} ${kind !== 'root' ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
             {...dragHandleProps}
           >
             <td className="relative overflow-visible px-2 py-0 text-center align-middle">
@@ -3581,6 +3546,7 @@ export default function AdminCategoriesMainTable({
                       <button
                         type="button"
                         aria-label="Razširi/skrij"
+                        aria-expanded={isExpanded}
                         onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => toggleExpanded(id)}
                         className="inline-grid h-4 w-4 place-items-center rounded-[2px] border border-slate-300 text-slate-600"
@@ -3760,30 +3726,24 @@ export default function AdminCategoriesMainTable({
           </tr>
         );
 
-        if (isDragDisabled) {
-          return row({ dragHandleProps: {}, isDragging: false });
-        }
-
         return (
-          <SortableTreeRow
-            key={id}
-            id={id}
-            disabled={false}
-          >
-            {({ dragHandleProps, setNodeRef, style, isDragging }) =>
-              row({ dragHandleProps, setNodeRef, style, isDragging })}
-          </SortableTreeRow>
+          <CategoryTreeRowMotion key={id} open={visible}>
+            {(animateRow) => isDragDisabled
+              ? animateRow(row({ dragHandleProps: {}, isDragging: false }))
+              : <SortableTreeRow id={id} disabled={!visible}>
+                  {(args) => animateRow(row(args))}
+                </SortableTreeRow>}
+          </CategoryTreeRowMotion>
         );
       })()
     );
   }, [
-    closingRowIdSet,
     editingRow,
     ensureFullPayloadLoaded,
     expanded,
     getDescendantIds,
+    isSearchActive,
     handleInlineEditKeyDown,
-    openingRowIdSet,
     requestInlineEditResolution,
     selected,
     selectedRowSet,
@@ -3796,6 +3756,7 @@ export default function AdminCategoriesMainTable({
     category: RecursiveCatalogCategory,
     nodes: RecursiveNode[],
     level: number,
+    visible: boolean,
     parentPath: string[] = [],
     ancestorContinuationColumns: boolean[] = []
   ): ReactNode[] => {
@@ -3805,9 +3766,7 @@ export default function AdminCategoriesMainTable({
       const currentPath = [...parentPath, subcategory.slug];
       const currentId = subId(category.slug, currentPath);
       const isLastSibling = index === nodes.length - 1;
-      const isExpandedHere =
-        isSearchActive || expanded[currentId] || closingRowIdSet.has(currentId);
-      const hasVisibleChildren = isExpandedHere && subcategory.subcategories.length > 0;
+      const childrenVisible = visible && (isSearchActive || Boolean(expanded[currentId]));
 
       rows.push(
         renderTreeRow({
@@ -3823,40 +3782,31 @@ export default function AdminCategoriesMainTable({
           ancestorContinuationColumns,
           hasPreviousSibling: index > 0,
           continueCurrentColumnBelow: !isLastSibling,
-          parentIsAnimating: openingRowIdSet.has(currentId) || closingRowIdSet.has(currentId)
-        })
+          visible
+        }),
+        ...buildSubcategoryRows(
+          category,
+          subcategory.subcategories,
+          level + 1,
+          childrenVisible,
+          currentPath,
+          [...ancestorContinuationColumns, !isLastSibling]
+        )
       );
-
-      if (hasVisibleChildren) {
-        rows.push(
-          ...buildSubcategoryRows(
-            category,
-            subcategory.subcategories,
-            level + 1,
-            currentPath,
-            [...ancestorContinuationColumns, !isLastSibling]
-          )
-        );
-      }
     });
 
     return rows;
-  }, [closingRowIdSet, expanded, isSearchActive, openingRowIdSet, renderTreeRow]);
+  }, [expanded, isSearchActive, renderTreeRow]);
 
   const treeRows = useMemo<ReactNode[]>(() => {
     if (activeView !== 'table') return [];
     const rows: ReactNode[] = [];
-    const isRootExpanded = isSearchActive || (expanded[rootId] ?? true) || closingRowIdSet.has(rootId);
-
-    if (!isRootExpanded) {
-      return rows;
-    }
+    const isRootExpanded = isSearchActive || (expanded[rootId] ?? true);
 
     filteredCategories.forEach((category, categoryIndex) => {
       const categoryNodeId = catId(category.slug);
-      const isCategoryExpanded =
-        isSearchActive || (expanded[categoryNodeId] ?? false) || closingRowIdSet.has(categoryNodeId);
-      const hasVisibleChildren = isCategoryExpanded && category.subcategories.length > 0;
+      const childrenVisible = isRootExpanded && (isSearchActive || Boolean(expanded[categoryNodeId]));
+      const hasVisibleChildren = childrenVisible && category.subcategories.length > 0;
       const hasNextCategory = categoryIndex < filteredCategories.length - 1;
 
       rows.push(
@@ -3872,32 +3822,26 @@ export default function AdminCategoriesMainTable({
           ancestorContinuationColumns: [],
           hasPreviousSibling: categoryIndex > 0,
           continueCurrentColumnBelow: hasVisibleChildren || hasNextCategory,
-          parentIsAnimating: openingRowIdSet.has(rootId) || closingRowIdSet.has(rootId)
-        })
-      );
-
-      if (isCategoryExpanded) {
-        rows.push(
-          ...buildSubcategoryRows(
+          visible: isRootExpanded
+        }),
+        ...buildSubcategoryRows(
           category,
           category.subcategories,
           2,
+          childrenVisible,
           [],
           [hasNextCategory]
         )
-        );
-      }
+      );
     });
 
     return rows;
   }, [
     activeView,
     buildSubcategoryRows,
-    closingRowIdSet,
     expanded,
     filteredCategories,
     isSearchActive,
-    openingRowIdSet,
     renderTreeRow
   ]);
 

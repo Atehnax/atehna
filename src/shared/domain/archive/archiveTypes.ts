@@ -11,7 +11,7 @@ export type ArchiveEntry = {
   address: string | null;
   customer_type: string | null;
   deleted_at: string;
-  expires_at: string;
+  expires_at: string | null;
 };
 
 export type ArchiveEntryTuple = readonly [
@@ -25,7 +25,7 @@ export type ArchiveEntryTuple = readonly [
   address: string | null,
   customerType: string | null,
   deletedAt: string,
-  expiresAt: string
+  expiresAt: string | null
 ];
 
 export type RestoreTarget = {

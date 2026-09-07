@@ -1,3 +1,4 @@
+import { addCalendarDays, localInstant, validCalendarDate } from '@/shared/domain/analytics/period';
 import { fetchBusinessOrderPreview, fetchBusinessQuotePreview } from '@/shared/server/businessAnalytics';
 import type { BusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
 import AdminBusinessOrderList from '@/admin/features/orders/components/AdminBusinessOrderList';
@@ -55,24 +56,19 @@ function normalizeDateInput(value: string): string {
   const trimmedValue = value.trim();
   if (!DATE_INPUT_PATTERN.test(trimmedValue)) return '';
 
-  const parsedDate = new Date(`${trimmedValue}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) return '';
+  if (!validCalendarDate(trimmedValue)) return '';
 
   return trimmedValue;
 }
 
 const toIsoOrNull = (value: string) => {
   if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
+  return validCalendarDate(value) ? localInstant(value).toISOString() : null;
 };
 
 const getToDateIsoOrNull = (value: string) => {
   if (!value) return null;
-  const date = new Date(`${value}T23:59:59.999`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
+  return validCalendarDate(value) ? new Date(localInstant(addCalendarDays(value, 1)).getTime() - 1).toISOString() : null;
 };
 
 const normalizeQuoteStatus = (value: string): AdminQuoteStatusFilter =>
@@ -89,6 +85,9 @@ async function AdminOrdersTableSection({
     q?: string | string[];
     status?: string | string[];
     docType?: string | string[];
+    entrySource?: string | string[];
+    history?: string | string[];
+    view?: string | string[];
     page?: string | string[];
     pageSize?: string | string[];
   };
@@ -99,6 +98,11 @@ async function AdminOrdersTableSection({
     const query = normalizeSearchParam(searchParams?.q).trim();
     const status = normalizeSearchParam(searchParams?.status).trim() || 'all';
     const documentType = normalizeSearchParam(searchParams?.docType).trim() || 'all';
+    const sourceParam = normalizeSearchParam(searchParams?.entrySource);
+    const entrySource = sourceParam === 'website' || sourceParam === 'manual' || sourceParam === 'unknown' ? sourceParam : 'all';
+    const historyParam = normalizeSearchParam(searchParams?.history);
+    const history = historyParam === 'historical' || historyParam === 'current' ? historyParam : 'all';
+    const archived = normalizeSearchParam(searchParams?.view) === 'archive';
     const pageSize = parsePageSizeValue(
       normalizeSearchParam(searchParams?.pageSize),
       ORDERS_PAGE_SIZE_OPTIONS
@@ -131,10 +135,13 @@ async function AdminOrdersTableSection({
           query,
           status,
           documentType,
+          entrySource,
+          history,
+          archived,
           page,
           pageSize
         }),
-        fetchBusinessOrderPreview().catch(() => null)
+        archived ? Promise.resolve(null) : fetchBusinessOrderPreview(undefined, { entrySource, history }).catch(() => null)
       ]);
       orders = ordersPageResult.orders;
       orderPreview = orderPreviewResult;
@@ -190,7 +197,13 @@ async function AdminOrdersTableSection({
       order.deleted_at ?? null,
       order.order_code,
       order.source_quote_code ?? null,
-      order.source_quote_offer_code ?? null
+      order.source_quote_offer_code ?? null,
+      order.entry_source ?? null,
+      order.is_historical ?? false,
+      order.original_reference_system ?? null,
+      order.original_reference ?? null,
+      order.recorded_at ?? null,
+      order.archived_at ?? null
     ] as const);
 
     const compactDocuments = documents.map((document) => [
@@ -218,10 +231,13 @@ async function AdminOrdersTableSection({
           initialQuery={query}
           initialStatusFilter={status}
           initialDocumentType={documentType}
+          initialEntrySource={entrySource}
+          initialHistory={history}
+          archived={archived}
           initialPage={page}
           initialPageSize={pageSize}
           totalCount={totalCount}
-          topAction={<AdminCreateDraftOrderButton />}
+          topAction={archived ? undefined : <AdminCreateDraftOrderButton />}
         />
       </>
     );
@@ -339,7 +355,6 @@ export default async function AdminOrdersPage(
       docType?: string | string[];
       page?: string | string[];
       pageSize?: string | string[];
-      view?: string | string[];
       quoteStatus?: string | string[];
       quoteCustomerType?: string | string[];
       quoteFrom?: string | string[];
@@ -361,7 +376,7 @@ export default async function AdminOrdersPage(
   const activeView =
     quoteAdminEnabled && normalizeSearchParam(searchParams?.view) === 'quotes'
       ? 'quotes'
-      : 'orders';
+      : normalizeSearchParam(searchParams?.view) === 'archive' ? 'archive' : 'orders';
   const [attentionOrderCount, newQuoteCount] = getDatabaseUrl()
     ? await Promise.all([
         fetchOrderAttentionCount().catch(() => 0),
@@ -376,7 +391,7 @@ export default async function AdminOrdersPage(
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Naročila</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {activeView === 'orders'
+            {activeView === 'archive' ? 'Arhivirana naročila so ohranjena in vključena v analitiko.' : activeView === 'orders'
               ? 'Pregled in urejanje naročil.'
               : 'Ločen pregled neobvezujočih povpraševanj in izdanih ponudb.'}
           </p>

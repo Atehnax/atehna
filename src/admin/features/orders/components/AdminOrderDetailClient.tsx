@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import HistoricalOrderShippingField from './HistoricalOrderShippingField';
+import { historicalDate, historicalMoney, historicalReference } from '@/shared/domain/order/historicalOrder';
 import PaymentChip from '@/admin/features/orders/components/PaymentChip';
 import StatusChip from '@/admin/features/orders/components/StatusChip';
+import { AdminOrderOriginBadge } from './AdminOrderOriginBadge';
 import AdminOrderItemsEditorClient, {
   type OrderDeliveryPlanSnapshot,
   type OrderItemsSaveHandler
@@ -19,6 +22,8 @@ import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutoco
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import { AdminCustomerNameEditor } from '@/shared/ui/admin-detail/AdminCustomerNameEditor';
+import { AdminCustomerAddressValue } from '@/shared/ui/admin-detail/AdminCustomerAddressValue';
+import { AdminCustomerMessageField } from '@/shared/ui/admin-detail/AdminCustomerMessageField';
 import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
 import { useCustomerEmailConfirmation } from '@/admin/features/email/useCustomerEmailConfirmation';
@@ -33,8 +38,8 @@ import {
 } from '@/admin/features/orders/components/useOrderNumberAvailability';
 import { CUSTOMER_TYPE_FORM_OPTIONS } from '@/shared/domain/order/customerType';
 
-import { ORDER_STATUS_ACTION_OPTIONS, getStatusLabel, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
-import { toDateInputValue } from '@/shared/domain/order/dateTime';
+import { ORDER_STATUS_ACTION_OPTIONS, ORDER_STATUS_OPTIONS, getStatusLabel, getStatusMenuItemClassName } from '@/shared/domain/order/orderStatus';
+import { toDateInputValue, parseOrderDateInput as toApiOrderDate } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentMenuItemClassName, isPaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -123,6 +128,17 @@ type NormalizedOrder = {
   payment_status: string;
   admin_order_notes: string;
   created_at: string;
+  recorded_at?: string | null;
+  entry_source?: 'website' | 'manual' | null;
+  is_historical?: boolean;
+  original_reference_system?: string | null;
+  original_reference?: string | null;
+  archived_at?: string | null;
+  historical_fulfilled_at?: string | null;
+  historical_payment_at?: string | null;
+  historical_revision?: number;
+  merchandise_refund_net?: number | null;
+  refund_history_complete?: boolean;
   subtotal: number;
   tax: number;
   tax_rate?: number | null;
@@ -206,8 +222,6 @@ const EMPTY_ORDER_EDIT_SCOPES: OrderEditScopes = {
   notes: false
 };
 
-const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 !h-7 w-full`;
@@ -216,8 +230,6 @@ const orderDataValueControlClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const orderDataCompositeInputClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
-const orderDataInlineTextareaClassName =
-  `${orderDataValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const orderDataReadValueClassName =
   "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 
@@ -250,28 +262,6 @@ const orderHeaderCurrencyFormatter = new Intl.NumberFormat('sl-SI', {
 const formatOrderHeaderDate = (value: string) => {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : orderHeaderDateFormatter.format(parsed);
-};
-
-const toApiOrderDate = (value: string) => {
-  const trimmed = value.trim();
-  const displayMatch = DATE_DISPLAY_PATTERN.exec(trimmed);
-  if (displayMatch) {
-    const [, day, month, year] = displayMatch;
-    const isoCandidate = `${year}-${month}-${day}`;
-    const parsed = new Date(`${isoCandidate}T00:00:00`);
-    if (
-      !Number.isNaN(parsed.getTime()) &&
-      parsed.getFullYear() === Number(year) &&
-      parsed.getMonth() + 1 === Number(month) &&
-      parsed.getDate() === Number(day)
-    ) {
-      return isoCandidate;
-    }
-    return '';
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  return '';
 };
 
 const asDetailData = (order: NormalizedOrder): DetailData => ({
@@ -438,7 +428,7 @@ function DetailFieldShell({
   className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
+    <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -460,7 +450,7 @@ function OrderAddressEditor({
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="admin-order-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -482,7 +472,7 @@ function OrderAddressEditor({
               gursHouseNumberId: suggestion.gursHouseNumberId
             });
           }}
-          className={orderDataCompositeInputClassName + ' !pl-0 w-full'}
+          className={orderDataCompositeInputClassName + ' w-full'}
         />
         <input
           aria-label="Dodatni naslov"
@@ -566,7 +556,7 @@ function OrderDatePickerField({
   const [isOpen, setIsOpen] = useState(false);
   const selectedIso = toApiOrderDate(value);
   const selectedDate = useMemo(() => (selectedIso ? new Date(`${selectedIso}T00:00:00`) : null), [selectedIso]);
-  const today = new Date();
+  const today = new Date(`${toDateInputValue(new Date())}T00:00:00`);
   const [visibleMonth, setVisibleMonth] = useState(() =>
     new Date((selectedDate ?? today).getFullYear(), (selectedDate ?? today).getMonth(), 1)
   );
@@ -621,7 +611,7 @@ function OrderDatePickerField({
 
   return (
     <div ref={rootRef} className="relative">
-      <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
+      <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
 
         <input
           type="text"
@@ -729,6 +719,12 @@ function OrderDatePickerField({
   );
 }
 
+const historicalFieldsFromOrder = (order: NormalizedOrder) => ({
+  originalReferenceSystem: order.original_reference_system ?? '',
+  originalReference: order.original_reference ?? '',
+  historicalShippingGross: String(order.shipping ?? 0)
+});
+
 export default function AdminOrderDetailClient({
   orderId,
   order,
@@ -762,6 +758,16 @@ export default function AdminOrderDetailClient({
     ...EMPTY_ORDER_EDIT_SCOPES
   }));
   const [isSaving, setIsSaving] = useState(false);
+  const [persistedHistoricalFields, setPersistedHistoricalFields] = useState(() => historicalFieldsFromOrder(order));
+  const [draftHistoricalFields, setDraftHistoricalFields] = useState(() => historicalFieldsFromOrder(order));
+  const [historicalRevision, setHistoricalRevision] = useState(String(order.historical_revision ?? 0));
+  const latestHistoricalRevisionRef = useRef(String(order.historical_revision ?? 0));
+  const rememberHistoricalRevision = useCallback((revision: string) => {
+    if (/^\d+$/.test(revision) && BigInt(revision) > BigInt(latestHistoricalRevisionRef.current)) {
+      latestHistoricalRevisionRef.current = revision;
+    }
+  }, []);
+  useEffect(() => { rememberHistoricalRevision(String(order.historical_revision ?? 0)); }, [order.historical_revision, rememberHistoricalRevision]);
   const [itemsDirty, setItemsDirty] = useState(false);
   const [itemsSaving, setItemsSaving] = useState(false);
   const [deliveryPlanSnapshot, setDeliveryPlanSnapshot] = useState<OrderDeliveryPlanSnapshot>(() => ({
@@ -817,8 +823,9 @@ export default function AdminOrderDetailClient({
   const paymentStatusDirty = draftDetails.paymentStatus !== persistedDetails.paymentStatus;
   const detailsDirty = coreDetailsDirty || statusDirty || paymentStatusDirty;
   const adminNotesDirty = draftAdminNotes !== persistedAdminNotes;
-  const hasUnsavedChanges =
-    detailsDirty || adminNotesDirty || itemsDirty || shippingDirty;
+  const historicalFieldsDirty = Boolean(order.is_historical) && JSON.stringify(draftHistoricalFields) !== JSON.stringify(persistedHistoricalFields);
+  const operationalUnsavedChanges = detailsDirty || adminNotesDirty || itemsDirty || shippingDirty;
+  const hasUnsavedChanges = operationalUnsavedChanges || historicalFieldsDirty;
   const activeHeaderDetails = isMasterEditing ? draftDetails : persistedDetails;
   const canSelectPartiallySent =
     deliveryPlanSnapshot.currentItemCount > 0 && deliveryPlanSnapshot.laterItemCount > 0;
@@ -828,7 +835,8 @@ export default function AdminOrderDetailClient({
       ? 'V razdelku »V tej pošiljki« mora ostati vsaj ena postavka.'
       : undefined;
   const orderStatusOptions = useMemo(
-    () => ORDER_STATUS_ACTION_OPTIONS.map((option) => {
+    () => (order.is_historical ? ORDER_STATUS_OPTIONS : ORDER_STATUS_ACTION_OPTIONS).map((option) => {
+      if (order.is_historical) return option;
       if (option.value === 'partially_sent' && !canSelectPartiallySent) {
         return {
           ...option,
@@ -849,6 +857,7 @@ export default function AdminOrderDetailClient({
       return option;
     }),
     [
+      order.is_historical,
       canSelectPartiallySent,
       deliveryPlanSnapshot.laterItemCount,
       partiallySentUnavailableReason
@@ -863,14 +872,18 @@ export default function AdminOrderDetailClient({
     ?? activeOrderDataDetails.customerType;
 
   const activeAdminNotes = isAdminNotesEditing ? draftAdminNotes : persistedAdminNotes;
-  const pageIsBusy = isSaving || itemsSaving || shippingSaving || isDeleting || isRejecting;
+  const operationalPageIsBusy = isSaving || itemsSaving || shippingSaving || isDeleting || isRejecting;
+  const pageIsBusy = operationalPageIsBusy;
+  const historicalFinalized = Boolean(order.is_historical && !order.is_draft);
   const commercialItemsLocked =
-    Boolean(order.deleted_at) ||
+    Boolean(order.deleted_at) || historicalFinalized || (!order.is_historical && (
     Boolean(order.source_quote_offer_version_id) ||
     ['partially_sent', 'sent', 'finished', 'cancelled'].includes(persistedDetails.status) ||
     ['paid', 'refunded'].includes(persistedDetails.paymentStatus) ||
-    documents.some((document) => isShippingBearingOrderPdfType(document.type));
-  const deliveryPlanEditingLockedReason = order.deleted_at
+    documents.some((document) => isShippingBearingOrderPdfType(document.type))));
+  const deliveryPlanEditingLockedReason = order.is_historical
+    ? 'Zgodovinski vnos ne spreminja trenutnega razporeda dobave.'
+    : order.deleted_at
     ? 'Razporeda dobave izbrisanega naročila ni mogoče spreminjati.'
     : ['sent', 'finished', 'cancelled'].includes(persistedDetails.status)
       ? `Razporeda dobave ni mogoče spreminjati pri statusu »${getStatusLabel(persistedDetails.status)}«.`
@@ -922,6 +935,22 @@ export default function AdminOrderDetailClient({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  // Keep an unsaved historical draft on its original revision until explicitly saved or discarded.
+  const historicalHeaderSource = order.is_historical
+    ? JSON.stringify({ details: asDetailData(order), notes: order.admin_order_notes ?? '', fields: historicalFieldsFromOrder(order), revision: String(order.historical_revision ?? 0), orderNumber: toDisplayOrderNumberValue(toDisplayOrderNumber(order.order_number)) })
+    : null;
+  const previousHistoricalHeaderSource = useRef(historicalHeaderSource);
+  useEffect(() => {
+    if (!historicalHeaderSource || historicalHeaderSource === previousHistoricalHeaderSource.current || hasUnsavedChanges || operationalPageIsBusy) return;
+    previousHistoricalHeaderSource.current = historicalHeaderSource;
+    const incoming = JSON.parse(historicalHeaderSource) as { details: DetailData; notes: string; fields: ReturnType<typeof historicalFieldsFromOrder>; revision: string; orderNumber: string };
+    setPersistedDetails(incoming.details); setDraftDetails(incoming.details);
+    setPersistedAdminNotes(incoming.notes); setDraftAdminNotes(incoming.notes);
+    setPersistedHistoricalFields(incoming.fields); setDraftHistoricalFields(incoming.fields);
+    setHistoricalRevision(incoming.revision);
+    setDisplayOrderNumber(incoming.orderNumber); setDraftOrderNumber(toEditableOrderNumber(incoming.orderNumber));
+  }, [historicalHeaderSource, hasUnsavedChanges, operationalPageIsBusy]);
+
   const registerItemsSaveHandler = useCallback((handler: OrderItemsSaveHandler) => {
     itemsSaveHandlerRef.current = handler;
     return () => {
@@ -970,7 +999,8 @@ export default function AdminOrderDetailClient({
     setDraftDetails({ ...persistedDetails });
     setDraftOrderNumber(toEditableOrderNumber(displayOrderNumber));
     setDraftAdminNotes(persistedAdminNotes);
-  }, [displayOrderNumber, persistedAdminNotes, persistedDetails]);
+    setDraftHistoricalFields({ ...persistedHistoricalFields });
+  }, [displayOrderNumber, persistedAdminNotes, persistedDetails, persistedHistoricalFields]);
 
   const discardUnsavedChanges = useCallback(() => {
     resetDraftsToPersisted();
@@ -998,6 +1028,7 @@ export default function AdminOrderDetailClient({
   }, [hasUnsavedChanges, runPendingUnsavedAction]);
 
   const toggleMasterEdit = () => {
+    if (order.deleted_at) return;
     if (isMasterEditing) {
       requestUnsavedResolution({ kind: 'exit-edit', label: 'zaključkom urejanja naročila' });
       return;
@@ -1014,6 +1045,7 @@ export default function AdminOrderDetailClient({
   };
 
   const toggleSectionEdit = (scope: OrderSectionEditScope) => {
+    if (order.deleted_at) return;
     if (editScopes[scope]) {
       if (scope === 'details') {
         setDraftDetails((current) => ({
@@ -1028,6 +1060,8 @@ export default function AdminOrderDetailClient({
         }
       } else if (scope === 'notes') {
         setDraftAdminNotes(persistedAdminNotes);
+      } else if (scope === 'shipping' && order.is_historical) {
+        setDraftHistoricalFields((current) => ({ ...current, historicalShippingGross: persistedHistoricalFields.historicalShippingGross }));
       }
 
       setEditScopes((current) => ({ ...current, [scope]: false }));
@@ -1080,6 +1114,24 @@ export default function AdminOrderDetailClient({
     };
   }, [hasUnsavedChanges, requestUnsavedResolution]);
 
+  const coreDetailsPayload = {
+    orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
+    customerType: draftDetails.customerType,
+    organizationName: draftDetails.customerType === 'individual' ? '' : draftDetails.organizationName.trim(),
+    contactName: draftDetails.contactName.trim() || (draftDetails.customerType === 'individual' ? getCustomerIdentity(draftDetails).name : ''),
+    email: draftDetails.email,
+    addressLine1: draftDetails.deliveryAddress,
+    addressLine2: draftDetails.addressLine2,
+    postalCode: draftDetails.postalCode,
+    city: draftDetails.city,
+    countryCode: draftDetails.countryCode,
+    gursHouseNumberId: draftDetails.gursHouseNumberId || null,
+    notes: draftDetails.notes,
+    ...(toApiOrderDate(draftDetails.orderDate) !== toApiOrderDate(persistedDetails.orderDate)
+      ? { orderDate: toApiOrderDate(draftDetails.orderDate) }
+      : {})
+  };
+
   const saveDetails = async (
     customerEmailConfirmationToken: string | null,
     onCustomerEmailConfirmationRequired: (confirmationToken: string) => void
@@ -1088,7 +1140,7 @@ export default function AdminOrderDetailClient({
     const requests: Promise<Response>[] = [];
     let detailsResponseIndex: number | null = null;
 
-    if (paymentStatusDirty || adminNotesDirty) {
+    if (!order.is_historical && (paymentStatusDirty || adminNotesDirty)) {
       requests.push(
         fetch(`/api/admin/orders/${orderId}/payment-status`, {
           method: 'POST',
@@ -1104,21 +1156,7 @@ export default function AdminOrderDetailClient({
         fetch(`/api/admin/orders/${orderId}/details`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderNumber: toDisplayOrderNumberValue(draftOrderNumber),
-            customerType: draftDetails.customerType,
-            organizationName: draftDetails.customerType === 'individual' ? '' : draftDetails.organizationName.trim(),
-            contactName: draftDetails.contactName.trim() || (draftDetails.customerType === 'individual' ? getCustomerIdentity(draftDetails).name : ''),
-            email: draftDetails.email,
-            addressLine1: draftDetails.deliveryAddress,
-            addressLine2: draftDetails.addressLine2,
-            postalCode: draftDetails.postalCode,
-            city: draftDetails.city,
-            countryCode: draftDetails.countryCode,
-            gursHouseNumberId: draftDetails.gursHouseNumberId || null,
-            notes: draftDetails.notes,
-            orderDate: toApiOrderDate(draftDetails.orderDate)
-          })
+          body: JSON.stringify(coreDetailsPayload)
         })
       );
     }
@@ -1199,17 +1237,33 @@ export default function AdminOrderDetailClient({
   };
   const saveAll = async (
     afterSave?: () => void,
-    customerEmailConfirmationToken: string | null = null
+    customerEmailConfirmationToken: string | null = null,
+    completeHistorical = false
   ) => {
-    if (!isEditing || pageIsBusy) return false;
+    if ((!isEditing && !completeHistorical) || pageIsBusy || order.deleted_at) return false;
     if (isMasterEditing && !orderNumberIsAllowed) {
       toast.error(orderNumberValidationMessage ?? 'Vnesite veljavno številko naročila.');
       return false;
     }
 
+    const saveHistoricalFacts = Boolean(order.is_historical && (historicalFieldsDirty || detailsDirty || adminNotesDirty || completeHistorical));
+    if (order.is_historical && (saveHistoricalFacts || itemsDirty) && historicalRevision !== latestHistoricalRevisionRef.current) {
+      toast.error('Naročilo je bilo medtem spremenjeno. Vnos je ohranjen; pred shranjevanjem preverite najnovejši zapis.');
+      return false;
+    }
+    if (saveHistoricalFacts) {
+      try {
+        historicalReference(draftHistoricalFields.originalReferenceSystem, draftHistoricalFields.originalReference, true);
+        historicalDate(toApiOrderDate(draftDetails.orderDate), 'Datum naročila', false);
+        historicalMoney(draftHistoricalFields.historicalShippingGross, 'Poštnina');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Preverite podatke naročila.');
+        return false;
+      }
+    }
     setIsSaving(true);
     try {
-      if (statusDirty) {
+      if (statusDirty && !order.is_historical) {
         const preflightResponse = await fetch(`/api/admin/orders/${orderId}/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1254,16 +1308,45 @@ export default function AdminOrderDetailClient({
           })
         : { ok: true };
       if (!itemsSaveResult.ok) return false;
+      if (itemsSaveResult.historicalRevision !== undefined) {
+        rememberHistoricalRevision(String(itemsSaveResult.historicalRevision));
+        setHistoricalRevision(String(itemsSaveResult.historicalRevision));
+      }
+      if (saveHistoricalFacts) {
+        const response = await fetch(`/api/admin/orders/${orderId}/details`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(coreDetailsDirty ? coreDetailsPayload : {}),
+            ...draftHistoricalFields,
+            orderDate: toApiOrderDate(draftDetails.orderDate),
+            historicalStatus: draftDetails.status,
+            historicalPaymentStatus: draftDetails.paymentStatus,
+            ...(adminNotesDirty ? { historicalNotes: draftAdminNotes } : {}),
+            historicalComplete: completeHistorical,
+            expectedHistoricalRevision: String(itemsSaveResult.historicalRevision ?? historicalRevision),
+            ...(completeHistorical ? { expectedPricingRevision: latestPricingRevisionRef.current } : {})
+          })
+        });
+        const payload = await response.json().catch(() => null) as { message?: string; historicalRevision?: string | number; pricingRevision?: number } | null;
+        if (!response.ok) throw new Error(payload?.message || 'Shranjevanje naročila ni uspelo.');
+        if (!/^\d+$/.test(String(payload?.historicalRevision))) throw new Error('Strežnik ni vrnil veljavne različice naročila.');
+        rememberHistoricalRevision(String(payload?.historicalRevision));
+        setHistoricalRevision(String(payload?.historicalRevision));
+        if (payload?.pricingRevision !== undefined) updateLatestPricingRevision(payload.pricingRevision);
+        setPersistedHistoricalFields({ ...draftHistoricalFields });
+      }
 
       const shippingSaved = shippingSaveHandlerRef.current
         ? await shippingSaveHandlerRef.current(latestPricingRevisionRef.current)
         : true;
       if (!shippingSaved) return false;
 
-      const saveResult = await saveDetails(
-        customerEmailConfirmationToken,
-        (confirmationToken) => void saveAll(afterSave, confirmationToken)
-      );
+      const saveResult = order.is_historical
+        ? { finalizationMessage: null, confirmationRequired: false }
+        : await saveDetails(
+            customerEmailConfirmationToken,
+            (confirmationToken) => void saveAll(afterSave, confirmationToken)
+          );
       if (saveResult.confirmationRequired) return false;
       const { finalizationMessage } = saveResult;
       await itemsSaveResult.persistDeferredDeliveryPlan?.();
@@ -1387,7 +1470,7 @@ export default function AdminOrderDetailClient({
           <span>{pageTitle}</span>
         </div>
 
-        {order.is_draft && !hasUnsavedChanges ? (
+        {order.is_draft && !order.is_historical && !hasUnsavedChanges ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             Osnutek lahko urejate in shranjujete sproti. Dokumenti in rezervacija zaloge bodo na voljo, ko bodo podatki popolni.
           </div>
@@ -1457,6 +1540,7 @@ export default function AdminOrderDetailClient({
                   title={pageTitle}
                   width="compact"
                 />
+                <AdminOrderOriginBadge entrySource={order.entry_source} isHistorical={order.is_historical} />
                 <div
                   className={adminStatusInfoPillGroupClassName}
                   data-testid="admin-order-header-statuses"
@@ -1495,7 +1579,7 @@ export default function AdminOrderDetailClient({
                 className={adminTableNeutralIconButtonClassName}
                 aria-label={isMasterEditing ? 'Končaj urejanje naročila' : 'Uredi celotno naročilo'}
                 title={isMasterEditing ? 'Končaj urejanje' : 'Uredi vse podatke naročila'}
-                disabled={pageIsBusy}
+                disabled={pageIsBusy || Boolean(order.deleted_at)}
               >
                 <PencilIcon />
               </IconButton>
@@ -1524,7 +1608,7 @@ export default function AdminOrderDetailClient({
                 className={adminTableSelectedDangerIconButtonClassName}
                 aria-label="Izbriši naročilo"
                 title="Izbriši"
-                disabled={pageIsBusy}
+                disabled={pageIsBusy || hasUnsavedChanges}
               >
                 <TrashCanIcon />
               </IconButton>
@@ -1548,11 +1632,31 @@ export default function AdminOrderDetailClient({
                 triggerClassName={adminTableNeutralIconButtonClassName}
                 menuWidth={190}
                 items={[
+                  ...(order.is_historical && order.is_draft ? [{
+                    key: 'complete-historical',
+                    label: 'Zaključi zgodovinski vnos',
+                    disabled: pageIsBusy || Boolean(order.deleted_at),
+                    onSelect: () => { void saveAll(undefined, null, true); }
+                  }] : []),
+                  {
+                    key: 'archive',
+                    label: order.archived_at ? 'Vrni v aktivna naročila' : 'Arhiviraj naročilo',
+                    disabled: pageIsBusy || isEditing || Boolean(order.deleted_at),
+                    onSelect: () => { void (async () => {
+                      try {
+                        const response = await fetch(`/api/admin/orders/${orderId}/archive`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({archived:!order.archived_at})});
+                        const result = await response.json();
+                        if(!response.ok) throw new Error(result.message || 'Premik ni uspel.');
+                        router.refresh();
+                        toast.success(order.archived_at ? 'Vrnjeno v aktivna naročila.' : 'Naročilo je arhivirano.');
+                      } catch(error) {toast.error(error instanceof Error ? error.message : 'Premik ni uspel.');}
+                    })(); }
+                  },
                   {
                     key: 'reject',
                     label: 'Zavrni naročilo',
                     onSelect: () => setIsRejectModalOpen(true),
-                    disabled: pageIsBusy || isEditing || Boolean(order.deleted_at) || Boolean(order.is_draft) || activeHeaderDetails.status === 'cancelled',
+                    disabled: Boolean(order.is_historical) || pageIsBusy || isEditing || Boolean(order.deleted_at) || Boolean(order.is_draft) || activeHeaderDetails.status === 'cancelled',
                     className: '!text-rose-700'
                   }
                 ]}
@@ -1560,15 +1664,56 @@ export default function AdminOrderDetailClient({
             </div>
           </div>
 
-          <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-end">
-            <div className="min-w-0 lg:max-w-[360px]">
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                <span>{formatOrderHeaderDate(order.created_at)}</span>
-                <span aria-hidden>·</span>
-                <span>{customerDisplayName}</span>
-                <span aria-hidden>·</span>
-                <span className="font-semibold tabular-nums text-slate-700">{orderHeaderCurrencyFormatter.format(order.total)}</span>
-              </p>
+          <div className={
+            order.is_historical
+              ? 'mt-3 grid min-w-0 gap-4 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-end'
+              : 'mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-end'
+          }>
+            <div className={order.is_historical ? 'min-w-0' : 'min-w-0 lg:max-w-[360px]'}>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{formatOrderHeaderDate(order.created_at)}</span>
+                  <span aria-hidden>·</span>
+                  <span>{customerDisplayName}</span>
+                  <span aria-hidden>·</span>
+                  <span className="font-semibold tabular-nums text-slate-700">{orderHeaderCurrencyFormatter.format(order.total)}</span>
+                </div>
+                {order.is_historical ? (
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" data-testid="admin-historical-source-fields">
+                    {([
+                      ['originalReferenceSystem', 'Izvorni sistem'],
+                      ['originalReference', 'Izvorna št. računa']
+                    ] as const).map(([field, label]) => {
+                      const value = (isMasterEditing ? draftHistoricalFields : persistedHistoricalFields)[field];
+                      return (
+                        <label key={field} className="inline-flex min-w-0 items-center gap-1 text-[11px] leading-[18px] text-slate-500">
+                          <span className="shrink-0">{label}</span>
+                          <span className={[
+                            'flex h-5 min-w-0 items-center rounded-md border px-1.5 transition-none',
+                            field === 'originalReferenceSystem' ? 'w-28' : 'w-20',
+                            isMasterEditing
+                              ? 'border-slate-300 bg-white focus-within:border-[color:var(--blue-500)]'
+                              : 'border-transparent bg-transparent'
+                          ].join(' ')}>
+                            {isMasterEditing ? (
+                              <input
+                                aria-label={label}
+                                value={value}
+                                disabled={pageIsBusy}
+                                maxLength={field === 'originalReferenceSystem' ? 80 : 200}
+                                className={[adminCompactIconFieldInputClassName, 'min-w-0 !h-[18px] !leading-[18px] transition-none'].join(' ')}
+                                onChange={(event) => setDraftHistoricalFields((current) => ({ ...current, [field]: event.target.value }))}
+                              />
+                            ) : (
+                              <span className="min-w-0 truncate text-slate-900" title={value}>{value || '—'}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
               {order.source_quote_request_id ? (
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
                   {order.source_quote_offer_number ? (
@@ -1610,6 +1755,9 @@ export default function AdminOrderDetailClient({
               initialSubtotal={order.subtotal}
               initialTax={order.tax}
               initialShipping={order.shipping}
+              isHistorical={order.is_historical}
+              initialPricingRevision={order.pricing_revision}
+              initialHistoricalRevision={order.historical_revision ?? 0}
               initialShippingOverride={Boolean(order.shipping_override_json)}
               initialShippingOverrideStale={order.shipping_override_stale === true}
               initialShippingManualQuote={
@@ -1661,7 +1809,7 @@ export default function AdminOrderDetailClient({
                   aria-label="Uredi podatke naročila"
                   aria-pressed={isOrderDataEditing}
                   title="Uredi podatke"
-                  disabled={pageIsBusy}
+                  disabled={pageIsBusy || Boolean(order.deleted_at)}
                   data-admin-card-edit-action="order-data"
                 >
                   <PencilIcon className="h-4 w-4" />
@@ -1718,9 +1866,6 @@ export default function AdminOrderDetailClient({
                     />
                   </DetailFieldShell>
                 </OrderDataRow>
-                <OrderDataRow label={activeOrderDataDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'} value={activeCustomerName} icon="customer" isEditing={isOrderDataEditing}>
-                  <AdminCustomerNameEditor values={activeOrderDataDetails} disabled={pageIsBusy} onChange={updateDraftDetails} />
-                </OrderDataRow>
                 <OrderDataRow label="Email" value={activeOrderDataDetails.email} icon="email" isEditing={isOrderDataEditing}>
                   <DetailFieldShell isEditing>
                     <input
@@ -1734,10 +1879,28 @@ export default function AdminOrderDetailClient({
                   </DetailFieldShell>
                 </OrderDataRow>
                 <OrderDataRow
+                  label={activeOrderDataDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'}
+                  value={activeCustomerName}
+                  icon="customer"
+                  isEditing={isOrderDataEditing}
+                  fullWidth
+                  readContent={<AdminCustomerNameEditor values={activeOrderDataDetails} disabled={pageIsBusy} onChange={updateDraftDetails} isEditing={false} />}
+                >
+                  <AdminCustomerNameEditor values={activeOrderDataDetails} disabled={pageIsBusy} onChange={updateDraftDetails} />
+                </OrderDataRow>
+                <OrderDataRow
                   label="Naslov"
                   value={formatOrderDataAddress(activeOrderDataDetails)}
                   icon="address"
                   isEditing={isOrderDataEditing}
+                  fullWidth
+                  readContent={<AdminCustomerAddressValue
+                    addressLine1={activeOrderDataDetails.deliveryAddress}
+                    addressLine2={activeOrderDataDetails.addressLine2}
+                    postalCode={activeOrderDataDetails.postalCode}
+                    city={activeOrderDataDetails.city}
+                    countryCode={activeOrderDataDetails.countryCode}
+                  />}
                 >
                   <OrderAddressEditor
                     details={activeOrderDataDetails}
@@ -1751,18 +1914,9 @@ export default function AdminOrderDetailClient({
                   icon="notes"
                   isEditing={isOrderDataEditing}
                   fullWidth
+                  readContent={<AdminCustomerMessageField value={activeOrderDataDetails.notes} isEditing={false} disabled={pageIsBusy} onChange={(notes) => updateDraftDetails({ notes })} />}
                 >
-                  <DetailFieldShell isEditing>
-                    <textarea
-                      rows={1}
-                      wrap="off"
-                      value={activeOrderDataDetails.notes}
-                      readOnly={pageIsBusy}
-                      onChange={(event) => updateDraftDetails({ notes: event.target.value })}
-                      aria-label="Sporočilo stranke"
-                      className={orderDataInlineTextareaClassName}
-                    />
-                  </DetailFieldShell>
+                  <AdminCustomerMessageField value={activeOrderDataDetails.notes} isEditing disabled={pageIsBusy} onChange={(notes) => updateDraftDetails({ notes })} />
                 </OrderDataRow>
               </dl>
             </section>
@@ -1783,7 +1937,14 @@ export default function AdminOrderDetailClient({
               autoFocus={editScopes.notes && !isMasterEditing}
             />
 
-            <AdminOrderShippingOverride
+            {order.is_historical ? <HistoricalOrderShippingField
+              orderId={orderId}
+              value={isShippingEditing ? draftHistoricalFields.historicalShippingGross : persistedHistoricalFields.historicalShippingGross}
+              isEditing={isShippingEditing}
+              disabled={pageIsBusy || Boolean(order.deleted_at)}
+              onChange={(value) => setDraftHistoricalFields((current) => ({ ...current, historicalShippingGross: value }))}
+              onRequestEdit={() => toggleSectionEdit('shipping')}
+            /> : <AdminOrderShippingOverride
               orderId={orderId}
               shipping={order.shipping}
               automaticShipping={order.automatic_shipping ?? null}
@@ -1806,7 +1967,7 @@ export default function AdminOrderDetailClient({
               onPricingRevisionChange={updateLatestPricingRevision}
               onRegisterSave={registerShippingSaveHandler}
               pageBusy={pageIsBusy}
-            />
+            />}
 
             <AdminOrderPdfManagerClient
               orderId={orderId}
@@ -1818,7 +1979,9 @@ export default function AdminOrderDetailClient({
                   : undefined
               }
               generationDisabledReason={
-                order.is_draft
+                order.is_historical
+                  ? 'Za zgodovinsko naročilo lahko priložite izvorne PDF dokumente.'
+                  : order.is_draft
                   ? 'Dokument lahko ustvarite po shranitvi dokončanega osnutka z veljavno poštnino.'
                   : order.shipping_override_stale
                     ? 'Pred izdajo dokumenta preračunajte ali odstranite zastarelo ročno poštnino.'
@@ -1826,7 +1989,7 @@ export default function AdminOrderDetailClient({
               }
             />
 
-            {!order.is_draft ? (
+            {!order.is_draft && !order.is_historical ? (
               <AdminOrderCustomerAccess
                 orderId={orderId}
                 customerType={persistedDetails.customerType}
@@ -1909,9 +2072,7 @@ function OrderDataRow({
   return (
     <div
       className={`grid min-h-[35px] min-w-0 items-center gap-3 ${customerDetailStyles.detailRow} ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
-        fullWidth
-          ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
-          : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
+        fullWidth ? customerDetailStyles.fullWidthRow : ''
       }`}
       data-order-data-row={label}
       data-detail-editing={isEditing}
@@ -1919,16 +2080,14 @@ function OrderDataRow({
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-slate-500">
         <DetailFieldIcon icon={icon} />
-        <span className="min-w-0 truncate">{label}</span>
+        <span className="min-w-0 truncate" title={label}>{label === 'Številka naročila' || label === 'Št. povpraševanja' ? 'Številka' : label === 'Sporočilo stranke' ? 'Sporočilo' : label}</span>
       </dt>
       <dd
         className="min-w-0"
         title={!isEditing && display !== '—' ? display : undefined}
         data-order-data-value
       >
-        {readContent ?? (isEditing ? (
-          children
-        ) : (
+        {isEditing ? children : (readContent ?? (
           <DetailFieldShell isEditing={false}>
             <span className={`${orderDataReadValueClassName} ${reserveTrailingControl ? 'pr-5' : ''}`}>
               {display}

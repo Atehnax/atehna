@@ -102,6 +102,15 @@ create table orders (
   stock_enforcement_applied boolean not null default true,
   source_quote_offer_version_id bigint,
   is_draft boolean not null default false,
+  entry_source text,
+  is_historical boolean not null default false,
+  original_reference_system text,
+  original_reference text,
+  recorded_at timestamptz not null default clock_timestamp(),
+  historical_fulfilled_at timestamptz,
+  historical_payment_at timestamptz,
+  historical_revision bigint not null default 0,
+  archived_at timestamptz,
   deleted_at timestamptz,
   created_at timestamptz not null default now(),
   constraint orders_commitment_status_check check (
@@ -152,7 +161,7 @@ create table orders (
     )
     or (
       contract_status = 'accepted'
-      and contract_accepted_at is not null
+      and (is_historical or contract_accepted_at is not null)
       and contract_accepted_actor_type is not null
       and contract_acceptance_evidence_json is not null
       and contract_rejected_at is null
@@ -160,7 +169,7 @@ create table orders (
       and contract_rejected_actor_id is null
       and contract_rejection_reason is null
       and contract_rejection_evidence_json is null
-      and committed_at is not null
+      and (is_historical or committed_at is not null)
     )
     or (
       contract_status = 'rejected'
@@ -333,7 +342,7 @@ create table deleted_archive_entries (
   document_id bigint,
   label text not null,
   deleted_at timestamptz not null default now(),
-  expires_at timestamptz not null default (now() + interval '90 days'),
+  expires_at timestamptz,
   payload jsonb not null default '{}'::jsonb
 );
 
@@ -3077,6 +3086,86 @@ create index orders_gurs_house_number_id_idx
   where gurs_house_number_id is not null;
 
 
+
+alter table orders add constraint orders_entry_source_check check (entry_source is null or entry_source in ('website', 'manual'));
+alter table orders add constraint orders_original_reference_check check (
+  (original_reference_system is null) = (original_reference is null)
+  and (original_reference_system is null or length(btrim(original_reference_system)) between 1 and 80)
+  and (original_reference is null or length(btrim(original_reference)) between 1 and 200)
+  and (not is_historical or is_draft or original_reference is not null)
+);
+alter table orders add constraint orders_historical_guard_check check (
+  historical_revision >= 0 and (not is_historical or (entry_source is not distinct from 'manual' and not stock_enforcement_applied))
+);
+create unique index orders_original_reference_unique on orders (lower(btrim(original_reference_system)), lower(btrim(original_reference)))
+  where original_reference is not null;
+create index orders_entry_source_created_idx on orders (entry_source, created_at);
+create index orders_archived_at_idx on orders (archived_at) where archived_at is not null;
+create table order_historical_changes (
+  id bigserial constraint order_historical_changes_pkey primary key,
+  order_id bigint not null constraint order_historical_changes_order_id_fkey references orders(id),
+  revision bigint not null constraint order_historical_changes_revision_check check (revision > 0),
+  changed_at timestamptz not null default clock_timestamp(),
+  actor_id text not null,
+  before_json jsonb not null,
+  after_json jsonb not null,
+  constraint order_historical_changes_order_id_revision_key unique (order_id, revision),
+  constraint order_historical_changes_check check (jsonb_typeof(before_json) = 'object' and jsonb_typeof(after_json) = 'object')
+);
+create table business_analytics_settings (
+  key text constraint business_analytics_settings_pkey primary key constraint business_analytics_settings_key_check check (key = 'default'),
+  quote_go_live_date date,
+  revision bigint not null default 0 constraint business_analytics_settings_revision_check check (revision >= 0),
+  updated_at timestamptz not null default now()
+);
+insert into business_analytics_settings (key) values ('default');
+create function protect_order_entry_evidence()
+returns trigger language plpgsql as $function$
+begin
+  if tg_op = 'INSERT' then
+    new.recorded_at := clock_timestamp();
+  elsif new.recorded_at is distinct from old.recorded_at
+    or new.is_historical is distinct from old.is_historical
+    or new.entry_source is distinct from old.entry_source then
+    raise exception 'Order entry provenance is immutable.';
+  end if;
+  return new;
+end;
+$function$;
+create trigger orders_protect_entry_evidence before insert or update on orders
+for each row execute function protect_order_entry_evidence();
+create function reject_historical_order_stock_hold()
+returns trigger language plpgsql as $function$
+begin
+  if exists (select 1 from orders where id = new.order_id and is_historical) then
+    raise exception 'Historical orders cannot change stock.';
+  end if;
+  return new;
+end;
+$function$;
+create trigger order_stock_holds_reject_historical before insert or update on order_stock_holds
+for each row execute function reject_historical_order_stock_hold();
+
+create function protect_order_audit_history()
+returns trigger language plpgsql as $function$
+begin
+  if old.entity_type = 'order' or (old.entity_type = 'media' and coalesce(old.metadata_json->>'item_type','') = 'pdf') then
+    raise exception 'Order audit history cannot be deleted.';
+  end if;
+  return old;
+end;
+$function$;
+create trigger audit_events_protect_order_history before delete on audit_events
+for each row execute function protect_order_audit_history();
+create function protect_historical_change_log()
+returns trigger language plpgsql as $function$
+begin
+  raise exception 'Historical order change evidence is immutable.';
+end;
+$function$;
+create trigger order_historical_changes_immutable before update or delete on order_historical_changes
+for each row execute function protect_historical_change_log();
+
 -- Additive business analytics measurements and immutable submission evidence.
 -- Analytics capture and reference data for a fresh database.
 
@@ -3116,6 +3205,50 @@ declare
   should_capture boolean := false;
   captured_time timestamptz;
 begin
+
+  if new.is_historical then
+    if lower(tg_op) = 'update' and old.is_draft and not new.is_draft
+      and current_setting('atehna.historical_order_write', true) is distinct from 'allowed' then
+      raise exception 'Historical entry must be completed explicitly.';
+    end if;
+    if lower(tg_op) = 'update' and not old.is_draft
+      and current_setting('atehna.historical_order_write', true) is distinct from 'allowed'
+      and (new.status is distinct from old.status or new.payment_status is distinct from old.payment_status
+        or new.subtotal is distinct from old.subtotal or new.tax is distinct from old.tax or new.shipping is distinct from old.shipping
+        or new.created_at is distinct from old.created_at
+        or new.historical_fulfilled_at is distinct from old.historical_fulfilled_at
+        or new.historical_payment_at is distinct from old.historical_payment_at
+        or new.analytics_snapshot_json is distinct from old.analytics_snapshot_json
+        or new.analytics_submitted_at is distinct from old.analytics_submitted_at
+        or new.analytics_fulfilled_at is distinct from old.analytics_fulfilled_at
+        or new.analytics_fulfilled_merchandise_net is distinct from old.analytics_fulfilled_merchandise_net
+        or new.analytics_fulfilled_lines_json is distinct from old.analytics_fulfilled_lines_json) then
+      raise exception 'Historical facts require the audited historical entry workflow.';
+    end if;
+    if not new.is_draft and (lower(tg_op) = 'insert'
+      or current_setting('atehna.historical_order_write', true) = 'allowed') then
+      new.analytics_submitted_at := new.created_at;
+      new.analytics_snapshot_json := jsonb_build_object(
+        'version', 1, 'origin', 'legacy', 'dateBasis', 'original-order-date',
+        'customerType', new.customer_type, 'customerName', coalesce(nullif(new.organization_name, ''), new.contact_name),
+        'address', jsonb_build_object('addressLine1', new.address_line1, 'addressLine2', new.address_line2,
+          'city', new.city, 'postalCode', new.postal_code, 'countryCode', new.country_code, 'gursHouseNumberId', new.gurs_house_number_id),
+        'subtotalNetCents', (new.subtotal * 100)::bigint, 'shippingGrossCents', (new.shipping * 100)::bigint,
+        'taxCents', (new.tax * 100)::bigint, 'shippingSnapshot', new.shipping_snapshot_json,
+        'shippingTaxRate', new.shipping_tax_rate, 'capturedAt', new.recorded_at, 'source', 'direct'
+      );
+      new.analytics_fulfilled_at := case when new.status in ('sent', 'finished')
+        and new.contract_status = 'accepted' and new.commitment_status = 'binding' then new.historical_fulfilled_at else null end;
+      new.analytics_fulfilled_merchandise_net := case when new.status in ('sent', 'finished') and new.contract_status = 'accepted' and new.commitment_status = 'binding' then new.subtotal else null end;
+      new.analytics_fulfilment_origin := case when new.status in ('sent', 'finished') and new.contract_status = 'accepted' and new.commitment_status = 'binding' then 'legacy' else null end;
+      select case when new.status in ('sent', 'finished') and new.contract_status = 'accepted' and new.commitment_status = 'binding' then jsonb_agg(jsonb_build_object(
+        'id', oi.id::text, 'key', coalesce('variant:' || oi.catalog_variant_id::text, 'product:' || oi.catalog_item_id::text, 'sku:' || oi.sku),
+        'name', oi.name, 'category', oi.category_id, 'quantity', oi.quantity,
+        'lineNetCents', (oi.line_net * 100)::bigint, 'unitCostCents', (oi.historical_unit_cost_net * 100)::bigint
+      ) order by oi.id) else null end into new.analytics_fulfilled_lines_json from order_items oi where oi.order_id = new.id;
+    end if;
+    return new;
+  end if;
   if lower(tg_op) = 'update' then
     if old.analytics_snapshot_json is not null and (
       new.analytics_snapshot_json is distinct from old.analytics_snapshot_json
@@ -3296,7 +3429,7 @@ create table analytics_geography_backfill (
 );
 
 insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
-values ('20260906.pricing-stock-v5', '734e6783336185c47794343094842fa51474ee0f384b8a702f64220ac08528bd', 'fresh_schema');
+values ('20260907.historical-orders-v6', '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af', 'fresh_schema');
 
 commit;
 

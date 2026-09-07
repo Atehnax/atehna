@@ -1,0 +1,8 @@
+.row.row { height:0; border-top-width:0; border-bottom-width:0; }
+.row.row > :is(td,th) { height:0; padding:0!important; border-top-width:0; border-bottom-width:0; }
+.cellContent.cellContent { box-sizing:border-box; display:flex; align-items:center; width:100%; height:auto; min-height:40px; }
+.bodyCell.bodyCell { min-height:41px; border-top:1px solid rgb(226 232 240 / .9); }
+.inner { width:100%; min-width:0; }
+/* Indented checkboxes extend into the name column; only clip vertically during motion. */
+.clip { overflow:visible clip; }
+.unclipped { overflow:visible; }

@@ -12,7 +12,7 @@ import {
 import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import type { CatalogSearchItem } from '@/shared/domain/catalog/catalogTypes';
 import { resolveHeaderLogoSize, type LogoDisplaySize as SiteLogoDisplaySize } from '@/shared/domain/logo/logoPlacement';
-import type { LogoPlacementId as SiteLogoPurposeId } from '@/shared/domain/logo/logoLibrary';
+import type { LogoPlacementId as SiteLogoPurposeId, PublishedLogoAsset, PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 import {
   DEFAULT_SITE_NAVIGATION_CONFIG,
   SITE_NAVIGATION_DESKTOP_DROPDOWN_ROW_GAP_PX,
@@ -76,12 +76,14 @@ const mobileMenuId = 'site-mobile-menu';
 const adminSiteNavigationPreviewEventName = 'admin-site-navigation-preview';
 type AdminSiteNavigationPreviewEventDetail = {
   enabled: boolean;
+  logoConfig?: PublishedSiteLogoConfig;
   navigation?: SiteNavigationConfig;
   previewDevice?: SiteNavigationTopBarDevice;
   previewViewportWidth?: number;
 };
 type AdminSiteNavigationPreviewState = {
   navigation: SiteNavigationConfig;
+  logoConfig?: PublishedSiteLogoConfig;
   previewDevice?: SiteNavigationTopBarDevice;
   previewViewportWidth?: number;
 };
@@ -335,10 +337,12 @@ function explicitHeaderLogoStyle(displaySize: SiteLogoDisplaySize): CSSPropertie
 
 function Brand({
   device,
-  displaySize
+  displaySize,
+  asset
 }: {
   device: SiteNavigationTopBarDevice;
   displaySize: SiteLogoDisplaySize;
+  asset: PublishedLogoAsset | null;
 }) {
   const purposeId = `header-${device}` as SiteLogoPurposeId;
   return (
@@ -348,6 +352,8 @@ function Brand({
       className={headerLogoClassNames[device]}
       alt="Atehna"
       style={explicitHeaderLogoStyle(displaySize)}
+      sourceBounds={displaySize.sourceBounds}
+      assetOverride={asset}
     />
   );
 }
@@ -1078,7 +1084,7 @@ export default function SiteHeader({
   previewViewportWidth
 }: SiteHeaderProps) {
   const pathname = usePathname();
-  const siteLogoConfig = useSiteLogoConfig();
+  const configuredLogoConfig = useSiteLogoConfig();
   const headerRef = useRef<HTMLElement>(null);
   const switchTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -1094,6 +1100,7 @@ export default function SiteHeader({
   const [adminPreview, setAdminPreview] = useState<AdminSiteNavigationPreviewState | null>(null);
   const isAdminPath = pathname.startsWith('/admin');
   const isInlinePreview = previewMode === 'inline';
+  const siteLogoConfig = !isInlinePreview && adminPreview?.logoConfig ? adminPreview.logoConfig : configuredLogoConfig;
   const effectiveNavigation = isInlinePreview ? navigation : adminPreview?.navigation ?? navigation;
   const effectivePreviewDevice = isInlinePreview ? previewDevice : adminPreview?.previewDevice;
   const effectivePreviewViewportWidth = isInlinePreview ? previewViewportWidth : adminPreview?.previewViewportWidth;
@@ -1329,6 +1336,7 @@ export default function SiteHeader({
           navigation: normalizeSiteNavigationConfig(detail.navigation),
           previewDevice: detail.previewDevice,
           previewViewportWidth: detail.previewViewportWidth,
+          logoConfig: detail.logoConfig,
         });
       } else {
         setAdminPreview(null);
@@ -1404,7 +1412,7 @@ export default function SiteHeader({
             style={logoTextRenderingStyle}
           >
             {activeHeaderLogoDisplaySize ? (
-              <Brand device={activeTopBarDevice} displaySize={activeHeaderLogoDisplaySize} />
+              <Brand device={activeTopBarDevice} displaySize={activeHeaderLogoDisplaySize} asset={siteLogoConfig.placements[activeHeaderLogoPurposeId]} />
             ) : null}
           </Link>
         </div>

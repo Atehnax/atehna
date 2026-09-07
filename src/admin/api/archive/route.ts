@@ -3,13 +3,11 @@ import { revalidatePath } from 'next/cache';
 import {
   ArchiveRestoreConflictError,
   fetchArchiveEntries,
-  permanentlyDeleteArchiveEntries,
   restoreArchiveEntries,
   restoreArchiveTargets
 } from '@/shared/server/deletedArchive';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
 import type {
-  ArchiveDeleteResponse,
   ArchiveEntriesResponse,
   ArchiveRestoreResponse,
   RestoreTarget
@@ -48,48 +46,11 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const parsedBody = await readRequiredJsonRecord(request);
-    if (!parsedBody.ok) return parsedBody.response;
-    const body = parsedBody.body;
-    const ids = Array.isArray(body.ids) ? body.ids.filter(isArchiveEntryId) : [];
-    if (ids.length === 0) {
-      return NextResponse.json({ message: 'Ni izbranih zapisov za trajni izbris.' }, { status: 400 });
-    }
-
-    const beforeEntries = await fetchArchiveEntries('all');
-    const selected = beforeEntries.filter((entry) => ids.includes(entry.id));
-    const deletedCount = await permanentlyDeleteArchiveEntries(ids);
-    for (const entry of selected) {
-      await insertAuditEventForRequest(request, {
-        entityType: entry.item_type === 'order' ? 'order' : 'media',
-        entityId: String(entry.order_id ?? entry.document_id ?? entry.id),
-        entityLabel: entry.item_type === 'order' ? `Naročilo ${entry.label.split(' ')[0] ?? entry.order_id}` : entry.label,
-        action: 'deleted',
-        summary: entry.item_type === 'order' ? 'Naročilo trajno izbrisano' : 'Dokument trajno izbrisan',
-        diff: {
-          status: {
-            label: 'Status',
-            before: 'v arhivu',
-            after: 'trajno izbrisano'
-          }
-        },
-        metadata: {
-          archive_entry_id: entry.id,
-          item_type: entry.item_type,
-          order_id: entry.order_id,
-          document_id: entry.document_id
-        }
-      });
-    }
-    return NextResponse.json<ArchiveDeleteResponse>({ success: true, deletedCount });
-  } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
-      { status: 500 }
-    );
-  }
+export async function DELETE() {
+  return NextResponse.json(
+    { code: 'TRASH_PERMANENT_DELETE_DISABLED', message: 'Naročila in dokumenti v košu ostanejo na voljo za obnovo. Trajni izbris ni dovoljen.' },
+    { status: 405, headers: { Allow: 'GET, PATCH' } }
+  );
 }
 
 export async function PATCH(request: Request) {
@@ -122,7 +83,7 @@ export async function PATCH(request: Request) {
     const restoredFromTargets = targets.length > 0 ? await restoreArchiveTargets(targets) : 0;
     for (const entry of selected) {
       await insertAuditEventForRequest(request, {
-        entityType: entry.item_type === 'order' ? 'order' : 'media',
+        entityType: 'order',
         entityId: String(entry.order_id ?? entry.document_id ?? entry.id),
         entityLabel: entry.item_type === 'order' ? `Naročilo ${entry.label.split(' ')[0] ?? entry.order_id}` : entry.label,
         action: 'restored',
@@ -130,7 +91,7 @@ export async function PATCH(request: Request) {
         diff: {
           status: {
             label: 'Status',
-            before: 'v arhivu',
+            before: 'v košu',
             after: 'obnovljeno'
           }
         },
@@ -143,7 +104,7 @@ export async function PATCH(request: Request) {
       });
     }
 
-    revalidatePath('/admin/arhiv');
+    revalidatePath('/admin/trash');
     revalidatePath('/admin/orders');
     revalidatePath('/admin/orders/[orderId]', 'page');
 

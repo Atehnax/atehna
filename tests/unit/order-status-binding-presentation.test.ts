@@ -34,7 +34,8 @@ test('order status action help is wired to detail, row, and bulk selectors', asy
     'src/admin/features/orders/components/AdminOrdersTable.tsx'
   );
 
-  assert.match(detail, /ORDER_STATUS_ACTION_OPTIONS\.map/u);
+  assert.match(detail, /\(order\.is_historical \? ORDER_STATUS_OPTIONS : ORDER_STATUS_ACTION_OPTIONS\)\.map/u);
+  assert.match(detail, /if \(order\.is_historical\) return option;/u);
   assert.match(
     detail,
     /order\.commitment_status === 'binding' && order\.contract_status === 'accepted'/u

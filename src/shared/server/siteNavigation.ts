@@ -132,6 +132,7 @@ const navigationFieldLabels: Record<string, string> = {
   lowerContactVisible: 'Kontakt v spodnjem delu',
   logoMode: 'Logotip',
   logoText: 'Besedilo logotipa',
+  logoHeightPx: 'Višina logotipa (px)',
   layoutColumns: 'Å tevilo stolpcev',
   spacing: 'Odmik',
   topBorder: 'Zgornja obroba',

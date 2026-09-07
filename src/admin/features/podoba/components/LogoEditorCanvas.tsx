@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import Moveable from 'react-moveable';
 import { flushSync } from 'react-dom';
 import Selecto from 'react-selecto';
@@ -51,10 +51,11 @@ export function LogoCanvasArtwork({ layers, assets, interactive = false }: { lay
 
 type Props = {
   project: LogoProject; assets: LogoSourceAsset[]; selected: string[]; onSelect: (ids: string[]) => void;
+  onEditLayer?: (id: string) => void; onCropImage?: (id: string) => void;
   onChange: (project: LogoProject, record?: boolean) => void; onGestureStart: () => void; onGestureEnd: () => void;
   tool: 'select' | 'hand'; keepRatio: boolean; snap: boolean; background: 'transparent' | 'light' | 'dark';
 };
-export default function LogoEditorCanvas({ project, assets, selected, onSelect, onChange, onGestureStart, onGestureEnd, tool, keepRatio, snap, background }: Props) {
+export default function LogoEditorCanvas({ project, assets, selected, onSelect, onChange, onGestureStart, onGestureEnd, tool, keepRatio, snap, background, onEditLayer, onCropImage }: Props) {
   const viewport = useRef<HTMLDivElement>(null), stage = useRef<HTMLDivElement>(null), moveable = useRef<Moveable>(null);
   const selection = useRef<{ setSelectedTargets: (elements: HTMLElement[]) => unknown }>(null);
   const transforming = useRef(false);
@@ -121,10 +122,25 @@ export default function LogoEditorCanvas({ project, assets, selected, onSelect, 
     event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
     panGesture.current = { x: event.clientX, y: event.clientY, startX: pan.x, startY: pan.y };
   };
+  const editLayer = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (panning || transforming.current || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const element = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-logo-layer]') : null;
+    const id = element?.dataset.logoLayer;
+    if (!element || !id || !stage.current?.contains(element) || isLogoLayerLocked(project, id)) return;
+    const layer = findLogoLayer(project, id);if (!layer) return;
+    event.preventDefault();event.stopPropagation();
+    flushSync(() => onSelect([id]));
+    if (layer.type === 'image') onCropImage?.(id);
+    else onEditLayer?.(id);
+  };
+  const selectedLayer = selected.length === 1 ? findLogoLayer(project, selected[0]) : undefined;
+  const editHint = selectedLayer && !isLogoLayerLocked(project, selectedLayer.id)
+    ? selectedLayer.type === 'image' && onCropImage ? 'Dvoklik: izrez slike' : selectedLayer.type === 'text' && onEditLayer ? 'Dvoklik: urejanje besedila' : null
+    : null;
   const guidelines = Array.from(stage.current?.querySelectorAll<HTMLElement>('[data-logo-selectable]') ?? []).filter(element => !targets.some(target => target === element || target.contains(element) || element.contains(target))); 
   return <div className={styles.canvasColumn}>
     <LogoEditorFonts />
-    <div ref={viewport} className={`${styles.viewport} ${panning ? styles.panning : ''}`} data-testid="logo-editor-canvas" onPointerDown={beginPan}
+    <div ref={viewport} className={`${styles.viewport} ${panning ? styles.panning : ''}`} data-testid="logo-editor-canvas" onPointerDown={beginPan} onDoubleClick={editLayer}
       onPointerMove={event => { const active = panGesture.current; if (active) setPan({ x: active.startX + event.clientX - active.x, y: active.startY + event.clientY - active.y }); }}
       onPointerUp={() => { panGesture.current = null; }} onPointerCancel={() => { panGesture.current = null; }}
       >
@@ -146,7 +162,7 @@ export default function LogoEditorCanvas({ project, assets, selected, onSelect, 
           }
           elements = elements.filter(element => !isLogoLayerLocked(project, element.dataset.logoLayer ?? ''));
           onSelect(elements.map(element => element.dataset.logoLayer!).filter(Boolean));
-          if (event.isDragStartEnd && elements.length && !modifier) {
+          if (event.isDragStartEnd && elements.length && !modifier && !event.isDouble) {
             input.preventDefault();
             void moveable.current?.waitToChangeTarget().then(() => moveable.current?.dragStart(input));
           }
@@ -168,7 +184,7 @@ export default function LogoEditorCanvas({ project, assets, selected, onSelect, 
         onRotateGroup={event => applyEvents(event.events, (layer, item) => { layer.rotation = item.beforeRotate; layer.x = item.drag.beforeTranslate[0]; layer.y = item.drag.beforeTranslate[1]; })} onRotateGroupEnd={finish} />}
       {transformError && <div role="alert" className={`${styles.status} ${styles.error}`} style={{ position: 'absolute', left: 12, right: 12, bottom: 8, zIndex: 2 }}>{transformError}</div>}
     </div>
-    <div className={styles.canvasStatus}><span>Platno {Math.round(project.canvas.width)} × {Math.round(project.canvas.height)} px</span><div><button type="button" onClick={() => setZoom(value => Math.max(.05, value / 1.2))} aria-label="Pomanjšaj">−</button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom(value => Math.min(8, value * 1.2))} aria-label="Povečaj">+</button><button type="button" onClick={fit}>Prilagodi pogledu</button></div><span>Preslednica: premik pogleda</span></div>
+    <div className={styles.canvasStatus}><span>Platno {Math.round(project.canvas.width)} × {Math.round(project.canvas.height)} px</span><div><button type="button" onClick={() => setZoom(value => Math.max(.05, value / 1.2))} aria-label="Pomanjšaj">−</button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)} %</button><button type="button" onClick={() => setZoom(value => Math.min(8, value * 1.2))} aria-label="Povečaj">+</button><button type="button" onClick={fit}>Prilagodi pogledu</button></div><span>{editHint ? editHint + ' · ' : ''}Preslednica: premik pogleda</span></div>
   </div>;
 }
 

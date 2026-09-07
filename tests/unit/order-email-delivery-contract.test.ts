@@ -125,9 +125,10 @@ test('email worker is per-recipient, idempotent, retryable, and hard-disabled in
     'locked recipient and active-token validation must precede every provider request'
   );
   assert.match(deliveryBody, /client\.query\('begin'\)/u);
+  assert.match(deliveryBody, /currentOrder\.is_historical !== true/u, 'historical orders cannot be delivered by queued email');
   assert.match(
     deliveryBody,
-    /select email, status, contract_status, is_draft, deleted_at[\s\S]*?from orders[\s\S]*?for share/u
+    /select email, status, contract_status, is_draft, is_historical, deleted_at[\s\S]*?from orders[\s\S]*?for share/u
   );
   assert.match(
     deliveryBody,

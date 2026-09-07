@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import type { LogoLibrary, LogoProject } from '../../src/shared/domain/logo/logoLibrary';
 import {
   getAppearanceEditorCompactSelect,
   readAppearanceEditorCompactSelectOptions
@@ -29,6 +30,39 @@ async function dragBy(
   await page.mouse.up();
 }
 
+async function readLogoLibrary(page: Page): Promise<LogoLibrary> {
+  const response = await page.request.get('/api/admin/logo-library');
+  expect(response.ok()).toBe(true);
+  return (await response.json() as { library: LogoLibrary }).library;
+}
+
+async function guardLogoPersistence(page: Page) {
+  const writes: string[] = [];
+  await page.route(/\/api\/admin\/(?:site-logo|logo-library)(?:\/|\?|$)/, async route => {
+    const request = route.request();
+    if (request.method() === 'GET' || (request.method() === 'POST'
+      && new URL(request.url()).pathname === '/api/admin/logo-library'
+      && request.postDataJSON()?.action === 'preview')) {
+      await route.continue();
+      return;
+    }
+    writes.push(request.method() + ' ' + new URL(request.url()).pathname);
+    await route.abort('blockedbyclient');
+  });
+  page.on('dialog', dialog => dialog.accept());
+  return writes;
+}
+
+async function importLocalLogoProject(page: Page, project: LogoProject) {
+  const libraryDialog = page.getByRole('dialog', { name: 'Različice logotipa', exact: true });
+  if (!await libraryDialog.isVisible()) await page.getByRole('button', { name: /^Različice/ }).click();
+  const chooser = page.waitForEvent('filechooser');
+  await libraryDialog.getByRole('button', { name: 'Uvozi projekt', exact: true }).click();
+  await (await chooser).setFiles({ name: 'logo-editor-test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(project)) });
+  await expect(libraryDialog).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Shrani osnutek', exact: true })).toBeEnabled();
+}
+
 test.describe('admin podoba redesign', () => {
   test('Logotip is the third podoba tab and its canonical route loads', async ({ page }) => {
     await page.goto('/admin/podoba/glavna-stran');
@@ -40,186 +74,154 @@ test.describe('admin podoba redesign', () => {
     await expect(page.getByRole('tab', { name: 'Logotip' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('logo outputs are selected from compact use cases and edited contextually', async ({ page }) => {
+  test('logo variants expose contextual layers and previews for every use case', async ({ page }) => {
+    const writes = await guardLogoPersistence(page);
+    const before = await readLogoLibrary(page);
     await page.goto('/admin/podoba/logotip');
+    await expect(page.getByTestId('logo-library-editor')).toBeVisible();
+    await expect(page.getByTestId('logo-editor-canvas')).toBeVisible();
+    await expect(page.getByTestId('logo-layers')).toBeVisible();
 
-    const catalogue = page.getByTestId('logo-purpose-catalogue');
-    await expect(catalogue.getByRole('tab')).toHaveCount(4);
-    await expect(catalogue.getByRole('tab', { name: 'Glava' })).toBeVisible();
-    await expect(catalogue.getByRole('tab', { name: 'Noga' })).toBeVisible();
-    await expect(catalogue.getByRole('tab', { name: 'Samostojno' })).toBeVisible();
-    await expect(catalogue.getByRole('tab', { name: 'Dokumenti' })).toBeVisible();
-    await expect(page.locator('[data-logo-use-case="header-desktop"]')).toBeVisible();
-    await expect(page.getByTestId('logo-context-toolbar')).toBeVisible();
-    await expect(page.getByText('Barva logotipa', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Pisava logotipa', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Filter', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Nova različica', exact: true }).click();
+    const create = page.getByRole('dialog', { name: 'Nova različica', exact: true });
+    const starters = create.getByRole('group', { name: 'Začetna sestava' });
+    await expect(starters.getByRole('button')).toHaveCount(3);
+    await starters.getByRole('button', { name: /^Besedilni logotip/ }).click();
+    await expect(starters.getByRole('button', { name: /^Besedilni logotip/ })).toHaveAttribute('aria-pressed', 'true');
+    await create.getByRole('button', { name: 'Prekliči', exact: true }).click();
+    const originalName = await page.getByRole('textbox', { name: 'Ime različice', exact: true }).inputValue();
+    await page.getByRole('button', { name: 'Kopija različice', exact: true }).click();
+    await expect(create.getByRole('textbox', { name: 'Ime nove različice' })).toHaveValue(originalName + ' · kopija');
+    await expect(create.getByRole('button', { name: 'Ustvari kopijo', exact: true })).toBeEnabled();
+    await create.getByRole('button', { name: 'Prekliči', exact: true }).click();
 
-    await catalogue.getByRole('button', { name: 'Drugi izhodi' }).click();
-    await catalogue.getByRole('menuitem', { name: 'Favicon' }).click();
-    await expect(page.locator('[data-logo-use-case="favicon"]')).toBeVisible();
-    const visibilityToggle = page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Skrij uporabo' });
-    await visibilityToggle.click();
-    await expect(page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prikaži uporabo' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Shrani', exact: true })).toBeEnabled();
-
-    await page.getByRole('button', { name: 'Zavrzi neshranjene spremembe' }).click();
-    await expect(page.getByRole('button', { name: 'Shrani', exact: true })).toBeDisabled();
-  });
-
-  test('logo fit, resize, crop, and move tools remain compact and edit the canvas directly', async ({ page }) => {
-    await page.setViewportSize({ width: 1024, height: 640 });
-    const persistenceWrites: string[] = [];
-    page.on('request', (request) => {
-      if (
-        request.url().includes('/api/admin/site-logo')
-        && request.method() !== 'GET'
-      ) {
-        persistenceWrites.push(`${request.method()} ${request.url()}`);
-      }
-    });
-
-    await page.goto('/admin/podoba/logotip');
-    const discardButton = page.getByRole('button', { name: 'Zavrzi neshranjene spremembe' });
-    const saveButton = page.getByRole('button', { name: 'Shrani', exact: true });
-
-    try {
-      const catalogue = page.getByTestId('logo-purpose-catalogue');
-      await catalogue.getByRole('tab', { name: 'Samostojno' }).click();
-
-      const toolbar = page.getByTestId('logo-context-toolbar');
-      const preview = page.locator('[data-logo-use-case="standalone"]');
-      const fitTrigger = toolbar.getByRole('button', { name: 'Prileganje', exact: true });
-      await expect(toolbar).toBeVisible();
-      await expect(preview).toBeVisible();
-
-      await fitTrigger.click();
-      const fitPopover = page.getByRole('dialog', { name: 'Prileganje logotipa' });
-      await expect(fitPopover).toHaveAttribute('data-appearance-editor-toolbar-popover-ready', 'true');
-      await expect(fitPopover).toHaveAttribute('data-appearance-editor-toolbar-popover-size', 'compact');
-      const fitBounds = await requireBoundingBox(fitPopover);
-      const viewport = page.viewportSize();
-      if (!viewport) throw new Error('Expected a configured Playwright viewport.');
-      expect(fitBounds.width).toBeLessThanOrEqual(361);
-      expect(fitBounds.x).toBeGreaterThanOrEqual(7);
-      expect(fitBounds.y).toBeGreaterThanOrEqual(7);
-      expect(fitBounds.x + fitBounds.width).toBeLessThanOrEqual(viewport.width - 7);
-      expect(fitBounds.y + fitBounds.height).toBeLessThanOrEqual(viewport.height - 7);
-
-      const xInput = fitPopover.locator('[data-logo-translation-field="x"]').getByRole('spinbutton');
-      const yInput = fitPopover.locator('[data-logo-translation-field="y"]').getByRole('spinbutton');
-      const cropYInput = fitPopover.locator('[data-logo-crop-field="y"]');
-      const cropHeightInput = fitPopover.locator('[data-logo-crop-field="height"]');
-      const initialCropY = Number(await cropYInput.inputValue());
-      const initialCropHeight = Number(await cropHeightInput.inputValue());
-      const initialX = Number(await xInput.inputValue());
-      const initialY = Number(await yInput.inputValue());
-      await fitTrigger.click();
-      await expect(fitPopover).toBeHidden();
-
-      const resizeMode = toolbar.locator('[data-logo-edit-mode-control="resize"]');
-      await resizeMode.click();
-      await expect(resizeMode).toHaveAttribute('aria-pressed', 'true');
-      const resizeHandles = preview.locator('[data-logo-resize-handle]');
-      await expect(resizeHandles).toHaveCount(4);
-      const artworkFrame = preview.locator('[data-logo-editable-artwork-frame]');
-      const resizeBefore = await requireBoundingBox(artworkFrame);
-      await dragBy(page, preview.locator('[data-logo-resize-handle="se"]'), {
-        x: Math.min(48, resizeBefore.width * 0.12),
-        y: Math.min(36, resizeBefore.height * 0.16)
-      });
-      await expect.poll(async () => (await artworkFrame.boundingBox())?.width ?? 0).toBeGreaterThan(
-        resizeBefore.width * 1.02
-      );
-
-      const cropMode = toolbar.locator('[data-logo-edit-mode-control="crop"]');
-      await cropMode.click();
-      await expect(cropMode).toHaveAttribute('aria-pressed', 'true');
-      const cropHandles = preview.locator('[data-logo-crop-handle]');
-      await expect(cropHandles).toHaveCount(8);
-      const cropBounds = preview.locator('[data-logo-transform-bounds]');
-      const cropBefore = await requireBoundingBox(cropBounds);
-      const cropStyleBefore = await cropBounds.evaluate((element) => ({
-        top: (element as HTMLElement).style.top,
-        height: (element as HTMLElement).style.height
-      }));
-      await dragBy(page, preview.locator('[data-logo-crop-handle="n"]'), {
-        x: 0,
-        y: Math.min(36, cropBefore.height * 0.18)
-      });
-      await expect.poll(() => cropBounds.evaluate((element) => (
-        (element as HTMLElement).style.height
-      ))).not.toBe(cropStyleBefore.height);
-      expect(await cropBounds.evaluate((element) => (element as HTMLElement).style.top)).not.toBe(
-        cropStyleBefore.top
-      );
-
-      const moveMode = toolbar.locator('[data-logo-edit-mode-control="move"]');
-      await moveMode.click();
-      await expect(moveMode).toHaveAttribute('aria-pressed', 'true');
-      const canvas = preview.locator(':scope > div[tabindex="0"]');
-      await dragBy(
-        page,
-        canvas,
-        {
-          x: initialX > 50 ? -40 : 40,
-          y: initialY > 50 ? -24 : 24
-        },
-        { x: 0.12, y: 0.82 }
-      );
-
-      await fitTrigger.click();
-      await expect(fitPopover).toBeVisible();
-      await expect.poll(async () => Number(await xInput.inputValue())).not.toBe(initialX);
-      await expect.poll(async () => Number(await yInput.inputValue())).not.toBe(initialY);
-      await expect.poll(async () => Number(await cropYInput.inputValue())).not.toBe(initialCropY);
-      await expect.poll(async () => Number(await cropHeightInput.inputValue())).not.toBe(initialCropHeight);
-      await expect(page.getByText('Neshranjeno', { exact: true })).toBeVisible();
-      await expect(saveButton).toBeEnabled();
-    } finally {
-      await page.keyboard.press('Escape').catch(() => undefined);
-      if (await discardButton.isEnabled().catch(() => false)) {
-        await discardButton.click();
-        await expect(saveButton).toBeDisabled();
-      }
-      await page.reload();
-      await expect(saveButton).toBeDisabled();
-      expect(persistenceWrites).toEqual([]);
+    await page.locator('summary').filter({ hasText: /^Predogled v uporabi/ }).click();
+    const placement = page.getByRole('combobox', { name: 'Mesto predogleda', exact: true });
+    await expect(placement.locator('option')).toHaveCount(12);
+    for (const purpose of ['header-desktop', 'footer-desktop', 'standalone', 'pdf-document', 'favicon']) {
+      await placement.selectOption(purpose);
+      await expect(page.locator('[data-logo-context-preview="' + purpose + '"]')).toBeVisible();
     }
+    await page.locator('summary').filter({ hasText: /^Uporaba / }).click();
+    const favicon = page.locator('[data-logo-placement-selector="favicon"]');
+    const selection = favicon.getByRole('combobox');
+    const initial = await selection.inputValue();
+    await selection.selectOption(initial === 'fallback:none' ? 'fallback:original' : 'fallback:none');
+    await expect(favicon.getByRole('button', { name: 'Uporabi', exact: true })).toBeEnabled();
+    await favicon.getByRole('button', { name: 'Prekliči', exact: true }).click();
+    await expect(selection).toHaveValue(initial);
+
+    await page.getByRole('button', { name: 'Dodaj besedilo', exact: true }).click();
+    const properties = page.getByTestId('logo-properties');
+    await expect(properties.getByRole('textbox', { name: 'Vsebina besedila' })).toBeVisible();
+    await expect(properties.getByRole('combobox', { name: 'Pisava', exact: true })).toBeVisible();
+    const id = await properties.getAttribute('data-logo-inspector-layer');
+    const layer = page.getByTestId('logo-layers').locator('[data-layer-row="' + id + '"]');
+    const artwork = page.getByTestId('logo-editor-canvas').locator('[data-logo-layer="' + id + '"]');
+    await layer.getByRole('button', { name: 'Skrij Besedilo', exact: true }).click();
+    await expect(artwork).toHaveCount(0);
+    await layer.getByRole('button', { name: 'Pokaži Besedilo', exact: true }).click();
+    await expect(artwork).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Shrani osnutek', exact: true })).toBeEnabled();
+    expect(writes).toEqual([]);
+    expect(await readLogoLibrary(page)).toEqual(before);
   });
 
-  test('logo masters are optically analysed and remain non-destructive', async ({ page }) => {
+  test('logo resize, crop and move tools edit the canvas directly without saving sources', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 640 });
+    const writes = await guardLogoPersistence(page);
+    const before = await readLogoLibrary(page);
+    const asset = before.assets.find(candidate => candidate.width > 100 && candidate.height > 100);
+    expect(asset, 'The migrated canonical logo has an immutable image source.').toBeDefined();
+    if (!asset) throw new Error('Canonical logo image source is missing.');
+    const project: LogoProject = { version: 1, canvas: { width: 600, height: 300 }, layers: [{
+      id: 'e2e-canvas-image', name: 'Preizkusna slika', type: 'image', assetId: asset.id,
+      x: 100, y: 80, width: 300, height: 130, rotation: 0, opacity: 1, visible: true, locked: false,
+      crop: { x: 0, y: 0, width: 1, height: 1 }, mask: 'rectangle'
+    }] };
     await page.goto('/admin/podoba/logotip');
-    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Izvirnik' }).click();
-    const master = page.locator('[data-logo-master-library] [data-logo-master="full-lockup"]');
-    await master.locator('input[type="file"]').setInputFiles({
-      name: 'atehna-lockup.svg',
-      mimeType: 'image/svg+xml',
-      buffer: Buffer.from(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200"><g fill="#111827"><rect x="130" y="60" width="80" height="80" rx="12"/><text x="235" y="125" font-size="72" font-family="Arial">Atehna</text></g></svg>'
-      )
-    });
+    await importLocalLogoProject(page, project);
+    await page.getByTestId('logo-layers').getByRole('button', { name: 'Preizkusna slika', exact: true }).click();
+    await page.getByRole('button', { name: 'Prilagodi pogledu', exact: true }).click();
+    const canvas = page.getByTestId('logo-editor-canvas');
+    const artwork = canvas.locator('[data-logo-layer="e2e-canvas-image"]');
+    const properties = page.getByTestId('logo-properties');
+    const width = properties.getByRole('spinbutton', { name: 'Širina sloja', exact: true });
+    const height = properties.getByRole('spinbutton', { name: 'Višina sloja', exact: true });
+    await expect(properties.getByRole('checkbox', { name: 'Ohrani razmerje stranic' })).toBeChecked();
+    const initialBounds = await requireBoundingBox(artwork);
+    await expect(canvas.locator('.moveable-control[data-direction="se"]')).toBeVisible();
+    await dragBy(page, canvas.locator('.moveable-control[data-direction="se"]'), { x: 35, y: 20 });
+    await expect.poll(async () => Number(await width.inputValue())).toBeGreaterThan(300);
+    expect(Number(await width.inputValue()) / Number(await height.inputValue())).toBeCloseTo(300 / 130, 1);
+    expect((await requireBoundingBox(artwork)).width).toBeGreaterThan(initialBounds.width);
 
-    await expect(master.locator('img')).toBeVisible();
-    await expect(page.getByText('Neshranjeno', { exact: true })).toBeVisible();
-    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Izreži izbrano sliko', exact: true }).click();
+    const crop = page.getByRole('dialog', { name: 'Izreži sliko', exact: true });
+    await expect(crop.locator('[data-crop-handle]')).toHaveCount(8);
+    const cropDialogBounds = await requireBoundingBox(crop);
+    expect(cropDialogBounds.x).toBeGreaterThanOrEqual(7);
+    expect(cropDialogBounds.y).toBeGreaterThanOrEqual(7);
+    expect(cropDialogBounds.x + cropDialogBounds.width).toBeLessThanOrEqual(1017);
+    expect(cropDialogBounds.y + cropDialogBounds.height).toBeLessThanOrEqual(633);
+    const frame = crop.getByRole('group', { name: 'Okvir izreza', exact: true });
+    const cropBefore = await requireBoundingBox(frame);
+    const sourceUrl = await crop.getByTestId('logo-crop-source').locator('img').getAttribute('src');
+    await dragBy(page, crop.locator('[data-crop-handle="n"]'), { x: 0, y: Math.min(30, cropBefore.height * .2) });
+    await expect.poll(async () => (await requireBoundingBox(frame)).height).toBeLessThan(cropBefore.height - 5);
+    const heightBeforeCrop = Number(await height.inputValue());
+    await crop.getByRole('button', { name: 'Uporabi izrez', exact: true }).click();
+    await expect(crop).toBeHidden();
+    await expect.poll(async () => Number(await height.inputValue())).toBeLessThan(heightBeforeCrop);
+    await expect(artwork.locator('image')).toHaveAttribute('href', sourceUrl!);
 
-    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prileganje', exact: true }).click();
-    const headerHeight = page.getByRole('spinbutton', {
-      name: 'Višina logotipa za Glava · namizje'
-    });
-    await expect(headerHeight).toHaveAttribute('min', '8');
-    await expect(headerHeight).toHaveAttribute('max', '64');
-    await headerHeight.fill('14');
-    await expect(headerHeight).toHaveValue('14');
-    await expect(page.getByText('Višina: 14 px', { exact: true })).toBeVisible();
-    await expect(page.getByText('Ročno prilagojeno', { exact: true })).toBeVisible();
-    await page.locator('[data-logo-placement-option="header-tablet"]').click();
-    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
-    await page.locator('[data-logo-placement-option="header-desktop"]').click();
-    await page.getByTestId('logo-context-toolbar').getByRole('button', { name: 'Prileganje', exact: true }).click();
-    await page.getByRole('button', { name: 'Uporabi predlagano prileganje' }).click();
-    await expect(page.getByText('Predlagano prileganje', { exact: true })).toBeVisible();
+    await properties.locator('summary').filter({ hasText: 'Položaj, zasuk in prosojnost' }).click();
+    const x = properties.getByRole('spinbutton', { name: 'Položaj X', exact: true });
+    const y = properties.getByRole('spinbutton', { name: 'Položaj Y', exact: true });
+    const beforeMove = { x: Number(await x.inputValue()), y: Number(await y.inputValue()) };
+    await dragBy(page, artwork, { x: 32, y: 18 });
+    await expect.poll(async () => Number(await x.inputValue())).toBeGreaterThan(beforeMove.x);
+    await expect.poll(async () => Number(await y.inputValue())).toBeGreaterThan(beforeMove.y);
+    await expect(page.getByRole('button', { name: 'Shrani osnutek', exact: true })).toBeEnabled();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Shrani osnutek', exact: true })).toBeDisabled();
+    expect(writes).toEqual([]);
+    expect(await readLogoLibrary(page)).toEqual(before);
+  });
+
+  test('rendered logo bounds drive reversible fitting without changing source artwork', async ({ page }) => {
+    const writes = await guardLogoPersistence(page);
+    const before = await readLogoLibrary(page);
+    const project: LogoProject = { version: 1, canvas: { width: 600, height: 240 }, layers: [{
+      id: 'e2e-optical-shape', name: 'Vidna vsebina', type: 'shape', shape: 'rectangle',
+      x: 130, y: 60, width: 160, height: 80, rotation: 0, opacity: 1, visible: true, locked: false,
+      fill: '#111827', stroke: 'none', strokeWidth: 0, radius: 0
+    }] };
+    await page.goto('/admin/podoba/logotip');
+    await importLocalLogoProject(page, project);
+    await page.locator('summary').filter({ hasText: /^Predogled v uporabi/ }).click();
+    await page.getByRole('combobox', { name: 'Mesto predogleda', exact: true }).selectOption('standalone');
+    const preview = page.getByRole('region', { name: 'Predogled uporabe · Privzeti logotip', exact: true });
+    await expect(preview.locator('[data-logo-visible-bounds]')).toBeVisible();
+    await expect(preview.getByText(/Logotip vsebuje veliko praznega roba/)).toBeVisible();
+    await preview.getByRole('button', { name: 'Obreži na vsebino', exact: true }).click();
+    const properties = page.getByTestId('logo-properties');
+    await expect(properties.getByRole('spinbutton', { name: 'Širina platna', exact: true })).toHaveValue('160');
+    await expect(properties.getByRole('spinbutton', { name: 'Višina platna', exact: true })).toHaveValue('80');
+    const artwork = page.getByTestId('logo-editor-canvas').locator('[data-logo-layer="e2e-optical-shape"]');
+    await expect.poll(() => artwork.evaluate(element => ({
+      width: (element as HTMLElement).style.width, height: (element as HTMLElement).style.height,
+      transform: (element as HTMLElement).style.transform
+    }))).toEqual({ width: '160px', height: '80px', transform: 'translate(0px, 0px) rotate(0deg)' });
+    await page.getByRole('button', { name: 'Razveljavi', exact: true }).click();
+    await expect(properties.getByRole('spinbutton', { name: 'Širina platna', exact: true })).toHaveValue('600');
+    await expect(properties.getByRole('spinbutton', { name: 'Višina platna', exact: true })).toHaveValue('240');
+    await expect(artwork).toHaveCSS('width', '160px');
+    await page.getByRole('button', { name: 'Uveljavi', exact: true }).click();
+    await expect(properties.getByRole('spinbutton', { name: 'Širina platna', exact: true })).toHaveValue('160');
+    await expect(page.getByRole('button', { name: 'Shrani osnutek', exact: true })).toBeEnabled();
+    expect(writes).toEqual([]);
+    expect(await readLogoLibrary(page)).toEqual(before);
   });
 
   test('Globalni parametri is the fourth podoba tab and its route loads', async ({ page }) => {

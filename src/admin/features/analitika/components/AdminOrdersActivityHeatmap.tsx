@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { formatEuroAmount, formatEuroWithSuffix, formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import { addCalendarDays } from '@/shared/domain/analytics/period';
+import { readAnalyticsJson } from '@/shared/client/readAnalyticsJson';
 import type { BusinessActivityResponse } from '@/shared/domain/analytics/activity';
 import BusinessRecords from './business/BusinessRecords';
 import styles from './AdminOrdersActivityHeatmap.module.css';
@@ -27,8 +28,8 @@ const valueLevel = (value: number | null) => value == null || value <= 0 ? 0 : v
 const dayDescription = (day: Day) => `${fullDate(day.date)} | ${knownCount(day) == null ? '—' : formatSlInteger(day.orderCount)} nar. | ${knownValue(day) == null ? '—' : formatEuroAmount(day.activityValue) + '€'}`;
 
 export default function AdminOrdersActivityHeatmap({
-  customerType = 'all', status = 'all', source = 'all'
-}: { customerType?: string; status?: string; source?: string }) {
+  customerType = 'all', status = 'all', source = 'all', entrySource = 'all', history = 'all'
+}: { customerType?: string; status?: string; source?: string; entrySource?: string; history?: string }) {
   const calendar = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState({ width: 0, weeks: 0 });
   const [mode, setMode] = useState<Mode>('orders');
@@ -38,7 +39,7 @@ export default function AdminOrdersActivityHeatmap({
   const [focused, setFocused] = useState<string | null>(null);
   const [tabDate, setTabDate] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ date: string; query: string } | null>(null);
-  const query = new URLSearchParams({ weeks: String(layout.weeks), customerType, status, source }).toString();
+  const query = new URLSearchParams({ weeks: String(layout.weeks), customerType, status, source, entrySource, history }).toString();
 
   useEffect(() => {
     const element = calendar.current;
@@ -60,11 +61,7 @@ export default function AdminOrdersActivityHeatmap({
     const controller = new AbortController();
     setFailure(null);
     fetch('/api/admin/analytics/business/activity?' + query, { cache: 'no-store', signal: controller.signal })
-      .then(async response => {
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message ?? 'Zgodovina aktivnosti ni na voljo.');
-        return payload as BusinessActivityResponse;
-      })
+      .then(response => readAnalyticsJson<BusinessActivityResponse>(response, 'Zgodovina aktivnosti ni na voljo.'))
       .then(data => { if (!controller.signal.aborted) setResult({ query, data }); })
       .catch(error => { if (!controller.signal.aborted) setFailure({ query, message: error.message }); });
     return () => controller.abort();
@@ -97,7 +94,7 @@ export default function AdminOrdersActivityHeatmap({
   });
   const recordParams = data ? new URLSearchParams({
     range: 'custom', from: data.from, to: data.to, asOf: data.asOf,
-    customerType: data.filters.customerType, status: data.filters.status, source: data.filters.source
+    customerType: data.filters.customerType, status: data.filters.status, source: data.filters.source, entrySource: data.filters.entrySource ?? 'all', history: data.filters.history ?? 'all'
   }) : null;
   const recordQuery = recordParams?.toString() ?? '';
   const detail = model.byDate.get(focused ?? selected?.date ?? '');
@@ -154,7 +151,7 @@ export default function AdminOrdersActivityHeatmap({
       {(mode === 'orders' ? countBands : valueBands).map((label, index) => <span key={label} className="inline-flex items-center gap-1.5"><i className="h-3 w-3 rounded-[2px]" style={{ backgroundColor: colors[index + 1] }} />{label}</span>)}
     </div>
     <p className="mt-3 min-h-4 text-xs text-slate-600" aria-live="polite">{detail ? dayDescription(detail) : 'Izberite dan za pregled naročil. Po koledarju se lahko premikate s puščicami.'}</p>
-    {data && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">Dostopna tabela po dnevih</summary><div className="mt-2 max-h-64 overflow-auto"><table className="w-full text-left"><thead><tr><th className="p-2">Datum</th><th>Naročila</th><th>Vrednost blaga brez DDV in poštnine</th></tr></thead><tbody>{data.days.map(day => <tr key={day.date} className="border-t border-slate-100"><td className="p-2"><button className="text-blue-700 underline" onClick={() => setSelected({ date: day.date, query: recordQuery })}>{fullDate(day.date)}</button></td><td>{knownCount(day) == null ? 'Ni na voljo' : formatSlInteger(day.orderCount)}</td><td>{knownValue(day) == null ? 'Manjka podatek' : formatEuroWithSuffix(day.activityValue)}</td></tr>)}</tbody></table></div></details>}
+    {data && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">Dostopna tabela po dnevih</summary><div className="mt-2 max-h-64 overflow-auto"><table className="w-full text-left"><thead><tr><th className="p-2">Datum</th><th>Naročila</th><th>Vrednost blaga brez DDV in poštnine</th></tr></thead><tbody>{data.days.map(day => <tr key={day.date} className="border-t border-slate-100"><td className="p-2"><button className="text-blue-700 underline" onClick={() => setSelected({ date: day.date, query: recordQuery })}>{fullDate(day.date)}</button></td><td>{knownCount(day) == null ? '—' : formatSlInteger(day.orderCount)}</td><td>{knownValue(day) == null ? '—' : formatEuroWithSuffix(day.activityValue)}</td></tr>)}</tbody></table></div></details>}
     {selected && <BusinessRecords key={selected.date + selected.query} query={selected.query} drill={{ kind: 'orders', date: selected.date }} onClose={() => setSelected(null)} />}
   </article>;
 }

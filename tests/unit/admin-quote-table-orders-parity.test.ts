@@ -91,7 +91,7 @@ test('quote rows show internal numbers first with copyable public references and
   assert.match(table, /aria-label=\{`Odpri povezano naročilo \$\{linkedOrderCode\}`\}/u);
   assert.match(
     table,
-    /flex h-12 w-full flex-col items-center justify-center gap-0\.5 whitespace-nowrap/u
+    /adminTableTextStackClassName\} h-12 w-full items-center justify-center whitespace-nowrap/u
   );
   assert.match(table, /data-testid=\{`quote-number-cell-\$\{row\.id\}`\}/u);
   assert.match(table, /data-testid=\{`quote-request-number-\$\{row\.id\}`\}[\s\S]*?\{displayRequestNumber\}/u);
@@ -165,7 +165,7 @@ test('quote rows show internal numbers first with copyable public references and
 test('converted quote keeps its internal number primary and its public copy control alongside the linked order', () => {
   const table = source(quoteTablePath);
   const numberCellStart = table.indexOf(
-    'className="flex h-12 w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap"'
+    'className={`${adminTableTextStackClassName} h-12 w-full items-center justify-center whitespace-nowrap`}'
   );
   const numberCellEnd = table.indexOf('                    </div>', numberCellStart);
 
@@ -680,7 +680,7 @@ test('quote table mirrors order selection and toolbar controls with guarded dele
   assert.match(table, /headerRight=\{/u);
   assert.match(table, /adminTableToolbarActionsClassName/u);
   assert.match(table, /adminTableNeutralIconButtonClassName/u);
-  assert.match(table, /<PanelAddRemoveIcon/u);
+  assert.match(table, /<ColumnVisibilityControl[\s\S]*?options=\{QUOTE_COLUMN_OPTIONS\}[\s\S]*?visibleMap=\{visibleColumns\}/u);
   assert.match(table, /showLabel=\{false\}/u);
   assert.match(table, /Prenesi izbrane \(\$\{selected\.length\}\)/u);
   assert.match(table, /'Prenesi vse dokumente'/u);

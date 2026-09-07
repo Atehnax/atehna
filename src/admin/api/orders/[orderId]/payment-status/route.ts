@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { isPaymentStatus } from '@/shared/domain/order/paymentStatus';
@@ -12,6 +13,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
   const params = await props.params;
   try {
     const orderId = Number(params.orderId);
+  if (Number.isSafeInteger(orderId) && orderId > 0) { const historicalBlock = await rejectHistoricalOrderOperation(orderId); if (historicalBlock) return historicalBlock; }
     if (!Number.isFinite(orderId)) {
       return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
     }

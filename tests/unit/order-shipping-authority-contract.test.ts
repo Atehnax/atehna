@@ -194,7 +194,7 @@ test('admin item edits recalculate or preserve-and-stale shipping and document i
   assert.match(itemRouteSource, /lockForTransaction: true/u);
   assert.match(
     itemRouteSource,
-    /if \(itemDiff\)[\s\S]*?calculateShipping\([\s\S]*?if \(hasShippingOverride\)[\s\S]*?shippingOverrideStale = true/u,
+    /if \(itemDiff && order\.is_historical !== true\)[\s\S]*?calculateShipping\([\s\S]*?if \(hasShippingOverride\)[\s\S]*?shippingOverrideStale = true/u,
     'edited items must refresh the automatic snapshot before leaving an override stale'
   );
   assert.match(itemRouteSource, /SHIPPING_MAX_AMOUNT_CENTS/u);
@@ -265,7 +265,7 @@ test('manual-quote drafts persist safely before a reasoned override', () => {
   );
   assert.match(
     itemsEditorSource,
-    /const shippingContextLabel = shippingManualQuote[\s\S]*?`Po dogovoru\$\{shippingIsStale/u
+    /const shippingContextLabel = isHistorical \? 'Izvorna' : shippingManualQuote[\s\S]*?`Po dogovoru\$\{shippingIsStale/u
   );
   assert.match(itemsEditorSource, /shippingManualQuote \? '—' : formatCurrency\(totals\.shipping\)/u);
   assert.doesNotMatch(itemsEditorSource, /Potreben je ročni znesek/u);

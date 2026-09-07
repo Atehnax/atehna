@@ -180,6 +180,8 @@ export type HomepageFooterDeviceSettings = {
   layoutColumns: number;
   spacing: HomepageFooterSpacing;
   topBorder: boolean;
+  /** Omitted for existing configurations so the original logo sizing remains unchanged. */
+  logoHeightPx?: number;
 };
 
 export type HomepagePageDeviceSettings = {
@@ -1613,7 +1615,11 @@ function normalizeSocialLink(value: unknown, index: number): HomepageFooterSocia
 
 function normalizeFooterDeviceSettings(value: unknown, fallback: HomepageFooterDeviceSettings): HomepageFooterDeviceSettings {
   const record = asRecord(value);
+  const logoHeightPx = typeof record.logoHeightPx === 'number' && Number.isFinite(record.logoHeightPx)
+    ? Math.min(160, Math.max(8, record.logoHeightPx))
+    : undefined;
   return {
+    ...(logoHeightPx !== undefined ? { logoHeightPx } : {}),
     layoutColumns: asNumber(record.layoutColumns ?? record.columns, fallback.layoutColumns, 1, MAX_FOOTER_COLUMNS),
     spacing: enumValue(record.spacing, HOMEPAGE_FOOTER_SPACINGS, fallback.spacing),
     topBorder: asBoolean(record.topBorder, fallback.topBorder)

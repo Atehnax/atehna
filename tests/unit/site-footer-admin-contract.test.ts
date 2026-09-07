@@ -25,28 +25,43 @@ const navigationEditorSource = readFileSync(
   'utf8'
 );
 
-test('the navigation footer preview receives published logo assignments', () => {
+const footerWorkspaceSource = readFileSync(
+  resolve(process.cwd(), 'src/admin/features/podoba/components/FooterEditorWorkspace.tsx'),
+  'utf8'
+);
+
+test('the navigation footer preview receives published assignments and the selected device profile', () => {
   assert.match(navigationPageSource, /getPublishedSiteLogos/u);
   assert.match(
-    `${navigationPageSource}\n${navigationEditorSource}`,
+    `${navigationPageSource}\n${footerWorkspaceSource}`,
     /SiteLogoProvider/u
   );
-  assert.match(navigationEditorSource, /LogoPlacementSelector/u);
-  assert.match(navigationEditorSource, /footer-desktop[\s\S]*?footer-tablet[\s\S]*?footer-mobile/u);
+  assert.match(footerWorkspaceSource, /footer-desktop[\s\S]*?footer-tablet[\s\S]*?footer-mobile/u);
+  assert.match(footerWorkspaceSource, /<LogoPlacementSelector[^>]*purpose=\{activeDevice\.purpose\}/u);
+  assert.match(footerWorkspaceSource, /<SiteLogoProvider config=\{logos\} previewDevice=\{device\}/u);
+  assert.match(navigationEditorSource, /<FooterEditorWorkspace[\s\S]*?footer=\{config\.footer\}[\s\S]*?adapter=\{footerEditorAdapter\}/u);
+  assert.match(footerWorkspaceSource, /const editing = mode === 'edit'/u);
+  assert.match(footerWorkspaceSource, /<SiteFooter settings=\{footer\} editorAdapter=\{editing \? adapter : undefined\} previewDevice=\{device\}/u);
   assert.doesNotMatch(navigationEditorSource, /function FooterLogoEditor\b/u);
-  assert.doesNotMatch(navigationEditorSource, /Besedilo logotipa/u);
-  assert.doesNotMatch(navigationEditorSource, /Prikaz logotipa v nogi/u);
+  assert.doesNotMatch(`${navigationEditorSource}\n${footerWorkspaceSource}`, /Besedilo logotipa|Prikaz logotipa v nogi/u);
 });
 
-test('the admin editor exposes independent accessible section controls', () => {
-  assert.match(navigationEditorSource, /<fieldset[^>]*aria-label="Vidnost delov noge"/u);
-  assert.match(navigationEditorSource, /Prikaži zgornji del/u);
-  assert.match(navigationEditorSource, /Prikaži spodnji del/u);
-  assert.match(navigationEditorSource, /Prikaži kontakt v spodnjem delu/u);
-  assert.match(
-    navigationEditorSource,
-    /!config\.footer\.upperSectionVisible[\s\S]*?Prikaži kontakt v spodnjem delu/u
-  );
+test('the footer workspace exposes independent accessible shared switches', () => {
+  assert.match(footerWorkspaceSource, /import \{ AdminSwitch \} from '@\/shared\/ui\/admin-switch'/u);
+  assert.match(footerWorkspaceSource, /<fieldset[^>]*aria-label="Vidnost delov noge"/u);
+  for (const [field, label] of [
+    ['visible', 'Prikaži nogo'],
+    ['upperSectionVisible', 'Prikaži zgornji del'],
+    ['lowerSectionVisible', 'Prikaži spodnji del'],
+    ['lowerContactVisible', 'Prikaži kontakt v spodnjem delu']
+  ]) {
+    assert.ok(footerWorkspaceSource.includes(`<AdminSwitch checked={footer.${field}} ariaLabel="${label}"`), `Missing accessible shared switch for ${field}`);
+    assert.ok(footerWorkspaceSource.includes(`onChange={(${field}) => onChange({ ${field} })}`), `Missing independent ${field} update`);
+  }
+  assert.doesNotMatch(footerWorkspaceSource, /\{!footer\.upperSectionVisible\s*&&/u);
+  assert.match(footerWorkspaceSource, /ariaLabel="Prikaži kontakt v spodnjem delu" disabled=\{footer\.upperSectionVisible \|\| !footer\.lowerSectionVisible\}/u);
+  assert.doesNotMatch(footerWorkspaceSource, /Vidni deli/u);
+  assert.match(navigationEditorSource, /<FooterEditorWorkspace[\s\S]*?onChange=\{updateFooter\}/u);
 });
 
 test('the lower contact adapter receives every canonical editable contact field', () => {
@@ -127,7 +142,7 @@ test('the admin lower footer keeps legal editors and copyright in the shared low
   );
   assert.match(
     navigationEditorSource,
-    /className="flex min-h-7 items-center justify-end gap-1 pr-1"[\s\S]{0,220}?aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2"/u
+    /className="flex min-h-7 items-center justify-start gap-1 pr-1"[\s\S]{0,220}?aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-start gap-x-5 gap-y-2"/u
   );
   assert.doesNotMatch(navigationEditorSource, /order-last flex min-h-7 basis-full/u);
 });

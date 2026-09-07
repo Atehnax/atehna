@@ -145,7 +145,7 @@ test('light settings inherit the admin palette while dark editor surfaces opt in
     assert.ok(tags.length > 0);
     for (const tag of tags) assert.match(tag, /tone="dark"/u);
   }
-  assert.match(logoStyles, /\.input\s*\{[^}]*height:30px;[^}]*background:#fff;[^}]*color:#0f172a;/u);
+  assert.match(logoStyles, /\.input\s*\{[^}]*height:34px;[^}]*background:#fff;[^}]*color:#334155;/u);
   assert.match(logoStyles, /\.workspace select:focus-visible/u);
 });
 
@@ -250,7 +250,7 @@ test('each Podoba route declares at least one compact, bounded settings surface'
   assert.match(logoPropertiesSource, /<aside className=\{styles\.inspector\}/u);
   assert.match(logoPropertiesSource, /className=\{styles\.properties\}/u);
   assert.match(logoPropertiesSource, /<fieldset disabled=\{locked\}/u);
-  assert.match(logoStyles, /\.editorBody\s*\{[^}]*height:min\(72vh,850px\)/u);
+  assert.match(logoStyles, /\.editorBody\s*\{[^}]*height:min\(70vh,780px\)/u);
   assert.match(logoStyles, /\.properties\s*\{[^}]*min-height:0;[^}]*overflow:auto/u);
   for (const [route, source] of routeSources) {
     assert.match(source, /data-appearance-editor-settings-surface/u, `${route} has no declared settings surface`);

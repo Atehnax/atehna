@@ -15,7 +15,7 @@ export default function AdminArticlesWorkspace({ view, children }: { view: 'list
   };
   return <ArticleNavigationGuardContext.Provider value={register}>
     <div aria-busy={pending} className="min-w-0 space-y-3">
-      <EuiTabs value={view} onChange={navigate} ariaLabel="Pogledi artiklov" idPrefix="articles" tabs={[{ value: 'list', label: 'Seznam artiklov', panelId: 'articles-list' }, { value: 'pricing-stock', label: 'Cene in zaloga', panelId: 'articles-pricing-stock' }]} />
+      <EuiTabs value={view} onChange={navigate} ariaLabel="Pogledi artiklov" idPrefix="articles" tabs={[{ value: 'list', label: 'Seznam artiklov', panelId: 'articles-list' }, { value: 'pricing-stock', label: 'Razlika v ceni', panelId: 'articles-pricing-stock' }]} />
       <section id={'articles-' + view} role="tabpanel" aria-labelledby={'articles-tab-' + view} className="min-w-0">
         {view === 'pricing-stock' ? <PricingStockWorkspace /> : children}
       </section>

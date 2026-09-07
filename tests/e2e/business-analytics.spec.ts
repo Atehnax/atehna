@@ -238,7 +238,7 @@ test('activity calendar fills available width with plain fixed colours and stays
   expect(new URL(drill.url()).searchParams.get('from')).toBe(canonical.period.from);
   expect(new URL(drill.url()).searchParams.get('asOf')).toBe(canonical.asOf);
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText(pastDay!.orderCount + ' zapisov');
+  await expect(dialog).toContainText(new RegExp(pastDay!.orderCount + ' zapis(?:a|i|ov)? · stran 1', 'u'));
   const dayExport = await dialog.getByRole('link', { name: 'Izvozi vse ujemajoče zapise CSV', exact: true }).getAttribute('href');
   const dayCsv = await request.get(dayExport!);
   expect(dayCsv.status()).toBe(200);

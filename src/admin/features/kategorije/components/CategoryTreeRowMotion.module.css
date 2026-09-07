@@ -1,0 +1,15 @@
+.row.row { height:0; border-top-width:0; border-bottom-width:0; }
+.row.row > td { height:0; padding:0!important; border-top-width:0; border-bottom-width:0; }
+.cellContent.cellContent {
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  width:100%;
+  height:auto;
+  min-height:55px;
+  border-top:1px solid rgb(226 232 240 / .9);
+}
+.inner { width:100%; min-width:0; }
+/* Tree checkboxes extend sideways into the name column. Only clip vertically. */
+.clip { overflow:visible clip; }
+.unclipped { overflow:visible; }

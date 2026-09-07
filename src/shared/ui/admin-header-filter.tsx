@@ -35,7 +35,7 @@ export const getHeaderPopoverStyle = (
   const anchorRect = anchorElement.getBoundingClientRect();
   const left = Math.min(
     Math.max(viewportPadding, anchorRect.left + anchorRect.width / 2 - width / 2),
-    window.innerWidth - width - viewportPadding
+    document.documentElement.clientWidth - width - viewportPadding
   );
 
   return {

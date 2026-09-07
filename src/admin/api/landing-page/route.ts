@@ -40,7 +40,7 @@ export async function PUT(request: Request) {
       revalidatePath('/products/[category]', 'page');
       revalidatePath('/admin/podoba/glavna');
       revalidatePath('/admin/podoba/glavna-stran');
-      revalidatePath('/admin/arhiv/podoba');
+      revalidatePath('/admin/dnevnik');
     }
 
     return NextResponse.json({ config: result.config });

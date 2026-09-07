@@ -29,7 +29,7 @@ import { Button } from '@/shared/ui/button';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import EditableChipMenu, { type EditableChipMenuOption } from '@/shared/ui/badge/editable-chip-menu';
 import { IconButton } from '@/shared/ui/icon-button';
-import { ActionUndoIcon, ApplyToAllIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionUndoIcon, ApplyToAllIcon, CheckIcon, CloseIcon, CopyIcon, PencilIcon, PlusIcon, ProductSymbolIcon, SaveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
@@ -3387,8 +3387,8 @@ export default function AdminItemEditorPage({
     }
     const shouldArchive = window.confirm(
       hasUnsavedChanges
-        ? 'Artikel ima neshranjene spremembe, ki bodo izgubljene. Če nadaljujete, bo izbrisan in 90 dni shranjen v arhivu. Želite nadaljevati?'
-        : 'Ali želite izbrisati ta artikel? Shranjen bo v arhivu 90 dni in v tem času ga lahko obnovite.'
+        ? 'Artikel ima neshranjene spremembe, ki bodo izgubljene. Če nadaljujete, bo izbrisan in 90 dni shranjen v košu. Želite nadaljevati?'
+        : 'Ali želite izbrisati ta artikel? Shranjen bo v košu 90 dni in v tem času ga lahko obnovite.'
     );
     if (!shouldArchive) return;
 
@@ -3398,8 +3398,8 @@ export default function AdminItemEditorPage({
         const body = (await response.json().catch(() => ({}))) as { message?: string };
         throw new Error(body.message || 'Brisanje artikla ni uspelo.');
       }
-      toast.success('Artikel je izbrisan in premaknjen v 90-dnevni arhiv.');
-      router.push('/admin/arhiv/artikli');
+      toast.success('Artikel je izbrisan in premaknjen v koš z 90-dnevno hrambo.');
+      router.push('/admin/trash?view=articles');
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Brisanje artikla ni uspelo.');
@@ -7130,12 +7130,7 @@ export default function AdminItemEditorPage({
                               disabled={!canBulkApplyRow}
                               onClick={applyProportionalDimensionVariantWeights}
                             >
-                              <span
-                                aria-hidden="true"
-                                className="inline-flex !h-3.5 !w-3.5 shrink-0 items-center justify-center text-[14px] font-semibold leading-none"
-                              >
-                                ∏
-                              </span>
+                              <ProductSymbolIcon className="!h-3.5 !w-3.5" />
                             </button>
                           ) : null}
                         </span>

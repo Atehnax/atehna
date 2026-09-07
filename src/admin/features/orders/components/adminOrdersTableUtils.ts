@@ -1,3 +1,4 @@
+import { toDateInputValue as toLjubljanaDateInputValue } from '@/shared/domain/order/dateTime';
 import { getStatusLabel, isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { formatEuro } from '@/shared/domain/formatting';
 import { formatOrderRowAddress } from '@/shared/domain/order/orderAddress';
@@ -132,12 +133,7 @@ export const normalizeForSearch = (value: string) =>
     .toLowerCase()
     .trim();
 
-const padTwoDigits = (value: number) => String(value).padStart(2, '0');
-
-export const toDateInputValue = (dateValue: Date) =>
-  `${dateValue.getFullYear()}-${padTwoDigits(dateValue.getMonth() + 1)}-${padTwoDigits(
-    dateValue.getDate()
-  )}`;
+export const toDateInputValue = (dateValue: Date) => toLjubljanaDateInputValue(dateValue);
 
 export const shiftDateByDays = (dateValue: Date, dayShift: number) => {
   const clonedDate = new Date(dateValue);

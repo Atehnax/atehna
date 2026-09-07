@@ -286,13 +286,7 @@ async function cleanupOrders(
   }
 
   if (hardDeleteOrderIds.length === 0) return;
-  const entityIds = hardDeleteOrderIds.map(String);
-  await database.query(
-    `delete from audit_events
-     where entity_type = 'order'
-       and entity_id = any($1::text[])`,
-    [entityIds]
-  );
+  // Immutable order audit evidence is retained until the isolated E2E reset.
   await database.query(
     'delete from orders where id = any($1::bigint[])',
     [hardDeleteOrderIds]

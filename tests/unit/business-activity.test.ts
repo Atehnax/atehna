@@ -56,7 +56,7 @@ test('dashboard period and frozen reference parameters cannot affect the indepen
     assert.throws(() => parseBusinessActivityQuery(new URLSearchParams(invalid), asOf), BusinessActivityInputError);
   }
   const filtered = parseBusinessActivityQuery(new URLSearchParams('customerType=school&source=quote&status=cancelled'), asOf);
-  assert.deepEqual(filtered.filters, { customerType: 'school', source: 'quote', status: 'cancelled' });
+  assert.deepEqual(filtered.filters, { customerType: 'school', source: 'quote', status: 'cancelled', entrySource: 'all', history: 'all' });
 });
 
 test('Ljubljana midnight and both DST changes preserve local Monday and calendar-day boundaries', () => {

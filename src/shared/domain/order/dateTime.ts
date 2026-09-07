@@ -1,3 +1,5 @@
+import { localDate, validCalendarDate } from '@/shared/domain/analytics/period';
+
 const slDateFormatter = new Intl.DateTimeFormat('sl-SI', {
   timeZone: 'Europe/Ljubljana',
   year: 'numeric',
@@ -43,8 +45,19 @@ export const formatSlDate = (value: string) => {
   return formatFromParts(value, slDateFormatter);
 };
 
-export const toDateInputValue = (value: string) => {
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return new Date().toISOString().slice(0, 10);
-  return parsedDate.toISOString().slice(0, 10);
+/** Calendar day shown to administrators, independent of their browser timezone. */
+export const toDateInputValue = (value: string | Date): string => {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return validCalendarDate(value) ? value : '';
+  }
+  const parsedDate = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(parsedDate.getTime()) ? localDate(parsedDate) : '';
+};
+
+/** Parse a calendar input without interpreting it as a browser-local instant. */
+export const parseOrderDateInput = (value: string): string => {
+  const trimmed = value.trim();
+  const display = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+  const candidate = display ? `${display[3]}-${display[2]}-${display[1]}` : trimmed;
+  return validCalendarDate(candidate) ? candidate : '';
 };

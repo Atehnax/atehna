@@ -1,5 +1,6 @@
 'use client';
 
+import { SlidersHorizontal } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import {
@@ -27,6 +28,9 @@ import {
   adminTablePopoverPresetButtonClassName,
   adminTablePopoverPrimaryButtonClassName,
   adminTablePopoverSecondaryButtonClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
+  adminTableTextStackClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableToolbarActionsClassName,
@@ -36,7 +40,7 @@ import {
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
 import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
-import { ColumnFilterIcon, PanelAddRemoveIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ColumnFilterIcon, adminActionIconSizeClassName } from '@/shared/ui/icons/AdminActionIcons';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { EmptyState, Table, TBody, TD, THead, TH, TR } from '@/shared/ui/table';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
@@ -163,7 +167,7 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
   const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
     totalCount: sortedEntries.length,
     storageKey: 'adminArhivPodoba.pageSize',
-    defaultPageSize: 50,
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
@@ -278,7 +282,7 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
             showLabel={false}
             menuWidth={164}
             triggerClassName={adminTableNeutralIconButtonClassName}
-            icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+            icon={<SlidersHorizontal className={adminActionIconSizeClassName} strokeWidth={1.5} />}
           />
         </div>
       }
@@ -368,18 +372,18 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
               {visibleColumns.entityType ? <TD className={`${adminTableBodyCellBaseClassName} font-medium text-slate-900`}>{entry.entityTypeLabel}</TD> : null}
               {visibleColumns.location ? (
                 <TD className={adminTableBodyCellBaseClassName}>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900" title={entry.entityLabel}>{entry.entityLabel}</p>
-                    {entry.parentLabel ? <p className="truncate text-[11px] text-slate-500" title={entry.parentLabel}>{entry.parentLabel}</p> : null}
+                  <div className={adminTableTextStackClassName}>
+                    <p className={`${adminTablePrimaryTextClassName} truncate font-medium text-slate-900`} title={entry.entityLabel}>{entry.entityLabel}</p>
+                    {entry.parentLabel ? <p className={`${adminTableSecondaryTextClassName} truncate text-[11px] text-slate-500`} title={entry.parentLabel}>{entry.parentLabel}</p> : null}
                   </div>
                 </TD>
               ) : null}
               {visibleColumns.changes ? (
                 <TD className={adminTableBodyCellBaseClassName}>
-                  <div className="grid gap-1">
-                    <p className="truncate font-medium text-slate-700" title={entry.summary}>{entry.summary}</p>
+                  <div className={adminTableTextStackClassName}>
+                    <p className={`${adminTablePrimaryTextClassName} truncate font-medium text-slate-700`} title={entry.summary}>{entry.summary}</p>
                     {entry.changes.slice(0, 3).map((change) => (
-                      <p key={`${entry.id}-${change.field}`} className="truncate text-[11px] text-slate-500">
+                      <p key={`${entry.id}-${change.field}`} className={`${adminTableSecondaryTextClassName} truncate text-[11px] text-slate-500`}>
                         <span className="font-semibold text-slate-600">{change.field}:</span>{' '}
                         <span className="text-rose-700">{change.before || 'prazno'}</span>
                         <span className="px-1 text-slate-400">→</span>
@@ -387,7 +391,7 @@ export default function AdminPodobaArchiveTable({ entries }: { entries: SiteNavi
                       </p>
                     ))}
                     {entry.changes.length > 3 ? (
-                      <p className="text-[11px] text-slate-400">+ {entry.changes.length - 3} dodatnih sprememb</p>
+                      <p className={`${adminTableSecondaryTextClassName} text-[11px] text-slate-400`}>+ {entry.changes.length - 3} dodatnih sprememb</p>
                     ) : null}
                   </div>
                 </TD>

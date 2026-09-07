@@ -1,5 +1,6 @@
 import { getPool } from '@/shared/server/db';
 import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
+import { resolveCatalogVariantDeliveryEstimate } from '@/shared/domain/catalog/catalogDeliveryEstimate';
 import { getAuditActor, getAuditRequestContext } from '@/shared/server/audit';
 import { setPricingStockAuditContext } from '@/shared/server/pricingStockTransaction';
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
@@ -1867,6 +1868,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
               'id', civ.id,
               'variantName', civ.variant_name,
               'variantSku', civ.variant_sku,
+              'deliveryEstimateOverride', civ.content_override_json->>'deliveryEstimate',
               'length', civ.length,
               'width', civ.width,
               'thickness', civ.thickness,
@@ -1956,6 +1958,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
 
   return (result.rows as Record<string, unknown>[]).map((row) => {
     const variantsJson = Array.isArray(row.variants) ? row.variants : [];
+    const productType = requireCatalogEditorProductType(row.editor_product_type);
     const itemShipping = {
       shippingWeightGrams: asNullableNumber(row.shipping_weight_grams),
       shippingLengthMm: asNullableNumber(row.shipping_length_mm),
@@ -1975,6 +1978,13 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
         id: asNumber(entry.id),
         variantName: String(entry.variantName ?? ''),
         variantSku: asStringOrNull(entry.variantSku),
+        deliveryEstimate: resolveCatalogVariantDeliveryEstimate(productType, row.type_specific_data, {
+          id: asNumber(entry.id),
+          thickness: entry.thickness === null ? null : asNumber(entry.thickness),
+          length: entry.length === null ? null : asNumber(entry.length),
+          width: entry.width === null ? null : asNumber(entry.width),
+          contentOverride: { deliveryEstimate: entry.deliveryEstimateOverride }
+        }),
         length: entry.length === null ? null : asNumber(entry.length),
         width: entry.width === null ? null : asNumber(entry.width),
         thickness: entry.thickness === null ? null : asNumber(entry.thickness),
@@ -2002,7 +2012,7 @@ export async function fetchAdminCatalogListItems(): Promise<AdminCatalogListItem
       id: Number(row.id),
       slug: String(row.slug ?? ''),
       itemName: String(row.item_name ?? ''),
-      productType: requireCatalogEditorProductType(row.editor_product_type),
+      productType,
       typeSpecificData: overlayCanonicalEditorPricing(row.type_specific_data, variants),
       description: asStringOrNull(row.description),
       brand: asStringOrNull(row.brand),

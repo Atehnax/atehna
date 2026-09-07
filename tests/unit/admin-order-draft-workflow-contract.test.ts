@@ -49,7 +49,7 @@ test('manual draft details persist independently and finalize only when ready', 
   );
   assert.equal(detailsRoute.includes('when $21::boolean then false'), true);
   assert.equal(
-    detailsRoute.includes('isDraft: isDraft && !finalizesDraft'),
+    detailsRoute.includes('isDraft: before.is_draft === true && !finalizesDraft'),
     true
   );
   assert.equal(

@@ -1,3 +1,4 @@
+import { historicalDate, historicalReference, HistoricalOrderInputError } from '@/shared/domain/order/historicalOrder';
 import { NextResponse } from 'next/server';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
@@ -7,6 +8,13 @@ import { insertWithGeneratedCommercePublicCodeBase } from '@/shared/server/comme
 
 export async function POST(request: Request) {
   try {
+    const raw = await request.text();
+    let body: Record<string, unknown> = {};
+    if (raw.trim()) { try { const value: unknown = JSON.parse(raw); if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(); body = value as Record<string, unknown>; } catch { return NextResponse.json({ message: 'Zahtevek ni veljaven.' }, { status: 400 }); } }
+    if (Object.hasOwn(body, 'isHistorical') && typeof body.isHistorical !== 'boolean') return NextResponse.json({ message: 'Vrsta vnosa ni veljavna.' }, { status: 400 });
+    const historical = body.isHistorical === true;
+    const reference = historicalReference(body.originalReferenceSystem, body.originalReference);
+    const orderDate = historical ? historicalDate(body.orderDate, 'Datum naročila') : null;
     const pool = await getPool();
 
     const allocated = await insertWithGeneratedCommercePublicCodeBase(
@@ -24,23 +32,23 @@ export async function POST(request: Request) {
         email,
         status,
         payment_status,
-        is_draft
+        is_draft, entry_source, is_historical, original_reference_system, original_reference, created_at, stock_enforcement_applied, merchandise_refund_net, refund_history_complete
       )
       select
         id,
         '#' || id,
         $1,
         'company',
-        'Osnutek',
-        'draft@atehna.si',
+        $6,
+        case when $2 then '' else 'draft@atehna.si' end,
         'received',
         'unpaid',
-        true
+        true, 'manual', $2, $3, $4, coalesce($5::timestamptz, now()), not $2, null, false
       from next_id
       on conflict (public_code_base) do nothing
       returning id, order_number
       `,
-      [publicCodeBase]
+      [publicCodeBase, historical, reference.originalReferenceSystem, reference.originalReference, orderDate, '']
       )
     );
 
@@ -76,6 +84,8 @@ export async function POST(request: Request) {
     revalidateAdminOrderPaths(row.id);
     return NextResponse.json({ orderId: row.id });
   } catch (error) {
+    if (error instanceof HistoricalOrderInputError) return NextResponse.json({ message: error.message }, { status: 400 });
+    if ((error as { constraint?: string }).constraint === 'orders_original_reference_unique') return NextResponse.json({ code: 'ORDER_ORIGINAL_REFERENCE_DUPLICATE', message: 'Ta izvorni sistem in številka naročila že obstajata.' }, { status: 409 });
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Napaka na strežniku.' },
       { status: 500 }

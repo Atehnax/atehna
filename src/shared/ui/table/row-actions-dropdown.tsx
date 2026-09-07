@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import IconButton from '../icon-button/IconButton';
 import { MoreActionsIcon } from '@/shared/ui/icons/AdminActionIcons';
@@ -8,7 +8,7 @@ import MenuItem from '../menu/menu-item';
 import MenuPanel from '../menu/menu-panel';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 
-type RowActionItem = {
+export type RowActionItem = {
   key: string;
   label: string;
   icon?: ReactNode;
@@ -22,6 +22,7 @@ type RowActionsDropdownProps = {
   items: RowActionItem[];
   className?: string;
   triggerClassName?: string;
+  renderTrigger?: (props: ButtonHTMLAttributes<HTMLButtonElement>) => ReactNode;
   menuClassName?: string;
   menuWidth?: number;
   menuZIndex?: number;
@@ -39,6 +40,7 @@ export default function RowActionsDropdown({
   items,
   className,
   triggerClassName,
+  renderTrigger,
   menuClassName,
   menuWidth = 112,
   menuZIndex = 70,
@@ -46,6 +48,8 @@ export default function RowActionsDropdown({
   editScope
 }: RowActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuId = useId();
+  const focusLastItemRef = useRef(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({ visibility: 'hidden' });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -61,7 +65,7 @@ export default function RowActionsDropdown({
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const menuHeight = menuRef.current?.getBoundingClientRect().height ?? 0;
-    const maxLeft = window.innerWidth - menuWidth - VIEWPORT_MARGIN_PX;
+    const maxLeft = document.documentElement.clientWidth - menuWidth - VIEWPORT_MARGIN_PX;
     const left = clamp(triggerRect.right - menuWidth, VIEWPORT_MARGIN_PX, Math.max(VIEWPORT_MARGIN_PX, maxLeft));
 
     const bottomTop = triggerRect.bottom + MENU_GAP_PX;
@@ -119,34 +123,71 @@ export default function RowActionsDropdown({
     };
   }, [isOpen, updateMenuPosition]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const enabledItems = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
+      if (enabledItems?.length) enabledItems[focusLastItemRef.current ? enabledItems.length - 1 : 0].focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen]);
+
+  const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const enabledItems = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []);
+    if (event.key === 'Tab') {
+      setIsOpen(false);
+      triggerRef.current?.querySelector('button')?.focus();
+      return;
+    }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || !enabledItems.length) return;
+    event.preventDefault();
+    const currentIndex = enabledItems.findIndex(item => item === document.activeElement);
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? enabledItems.length - 1
+      : (currentIndex + (event.key === 'ArrowDown' ? 1 : -1) + enabledItems.length) % enabledItems.length;
+    enabledItems[nextIndex]?.focus();
+  };
+  const triggerProps: ButtonHTMLAttributes<HTMLButtonElement> = {
+    type: 'button',
+    'aria-label': label,
+    title: label,
+    'aria-haspopup': 'menu',
+    'aria-expanded': isOpen,
+    'aria-controls': isOpen ? menuId : undefined,
+    onClick: () => { focusLastItemRef.current = false; setIsOpen(previousOpen => !previousOpen); },
+    onKeyDown: event => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusLastItemRef.current = event.key === 'ArrowUp';
+        setIsOpen(true);
+      }
+    }
+  };
+
   return (
     <div ref={rootRef} className={`relative ${className ?? ''}`.trim()} data-edit-scope={editScope}>
       <div ref={triggerRef} className="inline-flex">
-        <IconButton
-          type="button"
+        {renderTrigger ? renderTrigger(triggerProps) : <IconButton
+          {...triggerProps}
           tone="neutral"
           className={`h-8 w-8 border-0 bg-transparent text-slate-600 shadow-none hover:border-transparent hover:bg-transparent hover:text-slate-600 active:bg-transparent ${triggerClassName ?? ''}`.trim()}
-          aria-label={label}
-          title={label}
-          aria-haspopup="menu"
-          aria-expanded={isOpen}
-          onClick={() => setIsOpen((previousOpen) => !previousOpen)}
         >
           <MoreActionsIcon />
-        </IconButton>
+        </IconButton>}
       </div>
 
       {isOpen ? (
         createPortal(
           <div
             ref={menuRef}
+            id={menuId}
             role="menu"
+            onKeyDown={handleMenuKeyDown}
             aria-label={label}
             style={menuStyle}
             data-edit-scope={editScope}
             data-testid={menuTestId}
           >
-            <MenuPanel className={`w-28 ${menuClassName ?? ''}`.trim()}>
+            <MenuPanel className={`w-full ${menuClassName ?? ''}`.trim()}>
               {items.map((item) => (
                 <MenuItem
                   key={item.key}

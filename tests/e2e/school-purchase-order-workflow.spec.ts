@@ -195,27 +195,29 @@ async function requireOk(response: APIResponse, label: string) {
   );
 }
 
-async function permanentlyDeleteArchivedEntries(
+async function expectArchivedEntriesRetained(
   request: APIRequestContext,
   entryIds: number[]
 ) {
-  if (entryIds.length === 0) return;
-  await database.query(
-    `update deleted_archive_entries
-     set expires_at = now() - interval '1 second'
-     where id = any($1::bigint[])`,
+  expect(entryIds.length).toBeGreaterThan(0);
+  const before = await database.query(
+    'select * from deleted_archive_entries where id = any($1::bigint[]) order by id',
     [entryIds]
   );
+  expect(before.rows).toHaveLength(entryIds.length);
+  expect(before.rows.every((entry) => entry.expires_at === null)).toBe(true);
   const response = await request.delete('/api/admin/archive', {
     data: { ids: entryIds }
   });
-  await requireOk(response, 'permanent archive cleanup');
-  const payload = await response.json() as { deletedCount?: number };
-  if (payload.deletedCount !== entryIds.length) {
-    throw new Error(
-      `Permanent archive cleanup deleted ${payload.deletedCount ?? 0} of ${entryIds.length} entries.`
-    );
-  }
+  expect(response.status()).toBe(405);
+  await expect(response.json()).resolves.toMatchObject({
+    code: 'TRASH_PERMANENT_DELETE_DISABLED'
+  });
+  const after = await database.query(
+    'select * from deleted_archive_entries where id = any($1::bigint[]) order by id',
+    [entryIds]
+  );
+  expect(after.rows).toEqual(before.rows);
 }
 
 async function cleanupOrderThroughArchive(
@@ -254,84 +256,37 @@ async function cleanupOrderThroughArchive(
     );
     await requireOk(deleteResponse, 'allowed order-document cleanup');
   }
-
-  const documentArchiveEntries = await database.query<{ id: string }>(
-    `select id
-     from deleted_archive_entries
-     where item_type = 'pdf'
-       and order_id = $1
-     order by id`,
+  const retainedDocuments = await database.query<{ id: string; deleted_at: Date | null }>(
+    'select id, deleted_at from order_documents where order_id = $1 order by id',
     [orderId]
   );
-  await permanentlyDeleteArchivedEntries(
-    request,
-    documentArchiveEntries.rows.map((entry) => Number(entry.id))
-  );
-
-  const remainingDocuments = await database.query(
-    'select id from order_documents where order_id = $1',
-    [orderId]
-  );
-  if (remainingDocuments.rowCount !== 0) {
-    throw new Error('Order-document archive cleanup left database rows behind.');
-  }
+  expect(retainedDocuments.rows.length).toBeGreaterThanOrEqual(activeDocuments.rows.length);
+  expect(retainedDocuments.rows.every((document) => document.deleted_at !== null)).toBe(true);
   const remainingBlobJobs = await database.query(
-    `select id
-     from archive_blob_deletion_outbox
-     where source_order_id = $1`,
+    'select id from archive_blob_deletion_outbox where source_order_id = $1',
     [orderId]
   );
-  if (remainingBlobJobs.rowCount !== 0) {
-    throw new Error('Order-document archive cleanup left blob deletion jobs behind.');
-  }
+  expect(remainingBlobJobs.rowCount).toBe(0);
 
   const orderDeleteResponse = await request.delete(
     `/api/admin/orders/${orderId}`
   );
   await requireOk(orderDeleteResponse, 'order archive cleanup');
-  const orderArchiveEntry = await database.query<{ id: string }>(
-    `select id
-     from deleted_archive_entries
-     where item_type = 'order'
-       and order_id = $1
-     limit 1`,
+  const archiveEntries = await database.query<{ id: string; item_type: string }>(
+    `select id, item_type from deleted_archive_entries
+     where order_id = $1 and item_type in ('order', 'pdf') order by id`,
     [orderId]
   );
-  if (orderArchiveEntry.rowCount !== 1) {
-    throw new Error('Order archive cleanup did not create its scoped archive entry.');
-  }
-  const durableCommerceEvidence = await database.query(
-    `select 1
-     from orders order_record
-     where order_record.id = $1
-       and (
-         order_record.source_quote_offer_version_id is not null
-         or exists (
-           select 1
-           from order_stock_holds stock_hold
-           where stock_hold.order_id = order_record.id
-         )
-       )
-     limit 1`,
+  expect(archiveEntries.rows.filter((entry) => entry.item_type === 'order')).toHaveLength(1);
+  await expectArchivedEntriesRetained(request, archiveEntries.rows.map((entry) => Number(entry.id)));
+  const retainedOrder = await database.query<{ deleted_at: Date | null }>(
+    'select deleted_at from orders where id = $1',
     [orderId]
   );
-  if (durableCommerceEvidence.rowCount === 1) {
-    // Production intentionally retains archived orders that have contractual
-    // or stock-ledger evidence. The disposable E2E database is reset later.
-    return;
-  }
-  await permanentlyDeleteArchivedEntries(
-    request,
-    [Number(orderArchiveEntry.rows[0].id)]
-  );
-
-  const remainingOrder = await database.query(
-    'select id from orders where id = $1',
-    [orderId]
-  );
-  if (remainingOrder.rowCount !== 0) {
-    throw new Error('Order archive cleanup left the order behind.');
-  }
+  expect(retainedOrder.rows).toHaveLength(1);
+  expect(retainedOrder.rows[0].deleted_at).not.toBeNull();
+  // Orders, documents, and immutable audit evidence remain in this disposable
+  // E2E database until its guarded reset; cleanup must follow production retention.
 }
 
 async function restoreSettings(originalSettings: StoredSettingsRow | null) {
@@ -861,19 +816,7 @@ test.describe('school purchase-order workflow', () => {
           );
         });
       }
-      if (orderId !== null) {
-        await database.query(
-          `delete from audit_events
-           where (entity_type = 'order' and entity_id = $1)
-              or (
-                entity_type = 'media'
-                and action = 'deleted'
-                and metadata_json->>'item_type' = 'pdf'
-                and metadata_json->>'order_id' = $1
-              )`,
-          [String(orderId)]
-        );
-      }
+      // Immutable order/PDF audit evidence is retained until the isolated E2E reset.
       await database.query(
         'update catalog_item_variants set inventory = $1 where id = $2',
         [originalInventory, SCHOOL_VARIANT_ID]
@@ -1315,19 +1258,7 @@ test.describe('school purchase-order workflow', () => {
           );
         });
       }
-      if (orderId !== null) {
-        await database.query(
-          `delete from audit_events
-           where (entity_type = 'order' and entity_id = $1)
-              or (
-                entity_type = 'media'
-                and action = 'deleted'
-                and metadata_json->>'item_type' = 'pdf'
-                and metadata_json->>'order_id' = $1
-              )`,
-          [String(orderId)]
-        );
-      }
+      // Immutable order/PDF audit evidence is retained until the isolated E2E reset.
       await database.query(
         'update catalog_item_variants set inventory = $1 where id = $2',
         [originalInventory, SCHOOL_VARIANT_ID]

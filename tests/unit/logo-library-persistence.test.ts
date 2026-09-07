@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { blankLogoProject, defaultLogoAssignments, type LogoLibrary, type LogoPublishedRevision } from '@/shared/domain/logo/logoLibrary';
+import { blankLogoProject, defaultLogoAssignments, type LogoAssignment, type LogoLibrary, type LogoPublishedRevision } from '@/shared/domain/logo/logoLibrary';
 import { applyLogoLibraryAction, publishedLogoProjection } from '@/shared/server/logoLibraryOperations';
 import { commitLogoLibraryChange, type LogoLibraryTransactionClient } from '@/shared/server/logoLibraryTransaction';
 
@@ -118,4 +118,103 @@ test('oversized library is rejected before database or audit write', async () =>
   }, async () => { audits += 1; }), /dovoljeno velikost/u);
   assert.equal(client.committed.revision, 1);
   assert.equal(audits, 0);
+});
+
+function assignedDeletionFixture(): LogoLibrary {
+  const library = fixture();
+  library.variants[0].published = publication();
+  library.variants.push({ ...structuredClone(library.variants[0]), id: 'replacement', name: 'Nadomestni', published: publication(blankLogoProject(), 'replacement-publication') });
+  library.placements.standalone = { variantId: 'variant-one', fallback: 'none' };
+  library.placements['header-mobile'] = { variantId: null, fallback: 'default' };
+  library.placements['footer-desktop'] = { variantId: 'variant-one', fallback: 'none' };
+  library.placements['pdf-document'] = { variantId: 'replacement', fallback: 'none' };
+  library.assets.push({ id: 'source', name: 'Source', url: '/source.png', pathname: 'private/source.png', mimeType: 'image/png', width: 640, height: 240, bytes: 1024, bounds: { x: 0, y: 0, width: 640, height: 240 }, warnings: [] });
+  return library;
+}
+
+test('explicit original replacement deletes one variant and redirects direct and inherited uses in one revision', () => {
+  const library = assignedDeletionFixture(), before = structuredClone(library);
+  const result = applyLogoLibraryAction(library, { action: 'delete', variantId: 'variant-one', expectedRevision: 1, replacement: { variantId: null, fallback: 'original' } }, context);
+  assert.equal(result.library.revision, 2);
+  assert.equal(result.publicChanged, true);
+  assert.deepEqual(result.library.variants.map(variant => variant.id), ['replacement']);
+  assert.deepEqual(result.library.placements.standalone, { variantId: null, fallback: 'original' });
+  assert.deepEqual(result.library.placements['footer-desktop'], { variantId: null, fallback: 'original' });
+  assert.deepEqual(result.library.placements['header-mobile'], before.placements['header-mobile'], 'Inherited places keep following the default');
+  assert.deepEqual(result.library.placements['pdf-document'], before.placements['pdf-document']);
+  const projected = publishedLogoProjection(result.library);
+  assert.equal(projected.placements.standalone?.fallback, 'original');
+  assert.equal(projected.placements['header-mobile']?.fallback, 'original');
+  assert.equal(projected.placements['footer-desktop']?.fallback, 'original');
+  assert.equal(projected.placements['pdf-document']?.variantId, 'replacement');
+  assert.deepEqual(result.library.assets, before.assets);
+  assert.deepEqual(library, before, 'The mutation does not alter the saved input or source assets');
+});
+
+test('explicit published replacement propagates through default inheritance without changing unrelated places', () => {
+  const library = assignedDeletionFixture();
+  const result = applyLogoLibraryAction(library, { action: 'delete', variantId: 'variant-one', expectedRevision: 1, replacement: { variantId: 'replacement', fallback: 'default' } }, context);
+  const projected = publishedLogoProjection(result.library);
+  for (const purpose of ['standalone', 'header-mobile', 'footer-desktop', 'pdf-document'] as const) {
+    assert.equal(projected.placements[purpose]?.variantId, 'replacement');
+    assert.equal(projected.placements[purpose]?.revision, 'replacement-publication');
+  }
+  assert.deepEqual(result.library.placements['header-desktop'], library.placements['header-desktop']);
+  assert.equal(result.publicChanged, true);
+});
+
+test('replacement is never inferred and self, indirect self, unpublished and malformed choices are rejected', () => {
+  const library = assignedDeletionFixture(), before = structuredClone(library);
+  const deleted = { action: 'delete' as const, variantId: 'variant-one', expectedRevision: 1 };
+  assert.throws(() => applyLogoLibraryAction(library, deleted, context), /v uporabi/);
+  for (const replacement of [
+    { variantId: 'variant-one', fallback: 'default' },
+    { variantId: null, fallback: 'default' }
+  ] as LogoAssignment[]) assert.throws(() => applyLogoLibraryAction(library, { ...deleted, replacement }, context), /drug nadomestni/);
+  for (const invalid of [null, true, [], { variantId: 'missing', fallback: 'default' }, { variantId: null, fallback: 'unknown' }, { variantId: 42, fallback: 'original' }]) {
+    assert.throws(() => applyLogoLibraryAction(library, { ...deleted, replacement: invalid as LogoAssignment }, context));
+  }
+  library.variants[1].published = null;
+  assert.throws(() => applyLogoLibraryAction(library, { ...deleted, replacement: { variantId: 'replacement', fallback: 'default' } }, context), /le objavljeno/);
+  library.variants[1].published = before.variants[1].published;
+  assert.deepEqual(library, before);
+});
+
+test('unassigned deletion still needs no replacement and does not change public assignments', () => {
+  const library = fixture();
+  const result = applyLogoLibraryAction(library, { action: 'delete', variantId: 'variant-one', expectedRevision: 1 }, context);
+  assert.equal(result.library.variants.length, 0);
+  assert.deepEqual(result.library.placements, library.placements);
+  assert.equal(result.publicChanged, false);
+});
+
+test('replacement and deletion commit together with audit and reject a stale reviewed revision', async () => {
+  const db = new MemoryTransaction(); db.committed = assignedDeletionFixture();
+  let audits = 0;
+  const change = (current: LogoLibrary) => applyLogoLibraryAction(current, { action: 'delete', variantId: 'variant-one', expectedRevision: 1, replacement: { variantId: null, fallback: 'original' } }, context).library;
+  await commitLogoLibraryChange(db, 1, change, async (before, after) => {
+    audits += 1;
+    assert.ok(before.variants.some(variant => variant.id === 'variant-one'));
+    assert.ok(!after.variants.some(variant => variant.id === 'variant-one'));
+    assert.equal(after.placements.standalone.fallback, 'original');
+    assert.equal(db.committed.revision, 1, 'Neither change is visible before the audit completes');
+  });
+  assert.equal(audits, 1);
+  assert.equal(db.committed.revision, 2);
+  assert.equal(db.log.filter(sql => sql.startsWith('update')).length, 1);
+  assert.equal(publishedLogoProjection(db.committed).placements['header-mobile']?.fallback, 'original');
+  const committed = structuredClone(db.committed);
+  await assert.rejects(commitLogoLibraryChange(db, 1, change, async () => { audits += 1; }), /Osvežite knjižnico/);
+  assert.equal(audits, 1);
+  assert.deepEqual(db.committed, committed);
+});
+
+test('audit failure rolls back both the chosen replacement and variant deletion', async () => {
+  const db = new MemoryTransaction(); db.committed = assignedDeletionFixture();
+  const before = structuredClone(db.committed);
+  await assert.rejects(commitLogoLibraryChange(db, 1, current => applyLogoLibraryAction(current, {
+    action: 'delete', variantId: 'variant-one', expectedRevision: 1, replacement: { variantId: 'replacement', fallback: 'default' }
+  }, context).library, async () => { throw new Error('Audit failure'); }), /Audit failure/);
+  assert.deepEqual(db.committed, before);
+  assert.equal(db.log.at(-1), 'rollback');
 });

@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
     if (result.changed) {
       revalidateSiteNavigationConfigCache();
       revalidatePath('/', 'layout');
-      revalidatePath('/admin/arhiv/podoba');
+      revalidatePath('/admin/dnevnik');
     }
 
     return NextResponse.json({ config: result.config });
@@ -59,7 +59,7 @@ export async function PATCH(request: Request) {
     if (result.changed) {
       revalidateSiteNavigationConfigCache();
       revalidatePath('/', 'layout');
-      revalidatePath('/admin/arhiv/podoba');
+      revalidatePath('/admin/dnevnik');
     }
 
     return NextResponse.json({ config: result.config });

@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
       revalidateProductAppearanceConfigCache();
       revalidatePath('/', 'layout');
       revalidatePath('/admin/podoba/artikli');
-      revalidatePath('/admin/arhiv/podoba');
+      revalidatePath('/admin/dnevnik');
     }
     return NextResponse.json({ config: result.config });
   } catch (error) {

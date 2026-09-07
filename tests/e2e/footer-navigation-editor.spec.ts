@@ -78,7 +78,7 @@ test.describe('admin podoba redesign', () => {
     const frameRadii = previewRadiusContract.frame.radii;
     expect(previewRadiusContract.frame.overflow).toBe('visible');
     expect(new Set(frameRadii).size).toBe(1);
-    expect(parseFloat(frameRadii[0] ?? '0')).toBeGreaterThan(0);
+    expect(frameRadii).toEqual(['0px', '0px', '0px', '0px']);
     for (const layer of [
       previewRadiusContract.surface,
       previewRadiusContract.footer,
@@ -92,7 +92,7 @@ test.describe('admin podoba redesign', () => {
     const footerColumnOptionButtons = footerColumns.getByRole('button', { name: /^Možnosti stolpca / });
     const footerLinkMoveButtons = footerColumns.getByRole('button', { name: /^Premakni (?!stolpec )/ });
     const footerLinkOptionButtons = footerColumns.getByRole('button', { name: /^Možnosti povezave v nogi / });
-    await expect(footerColumnMoveButtons).toHaveCount(0);
+    await expect(footerColumnMoveButtons).toHaveCount(3);
     await expect(footerColumnOptionButtons).toHaveCount(3);
     await expect(footerLinkMoveButtons).toHaveCount(9);
     await expect(footerLinkOptionButtons).toHaveCount(9);
@@ -101,7 +101,7 @@ test.describe('admin podoba redesign', () => {
     }
 
     const columnTitleButtons = footerColumns.getByRole('button', { name: /^(Izdelki|Podpora|O nas)$/ });
-    const addFooterColumnButton = footerPreview.getByRole('button', { name: 'Dodaj stolpec v nogo' });
+    const addFooterColumnButton = footerEditor.getByRole('button', { name: 'Dodaj stolpec v nogo' });
     await expect(columnTitleButtons).toHaveCount(3);
     await expect(addFooterColumnButton).toBeVisible();
     const [columnTitleBoxes, columnMenuBoxes, columnsNavBox, addFooterColumnBox] = await Promise.all([
@@ -119,16 +119,17 @@ test.describe('admin podoba redesign', () => {
     expect(columnsNavBox).not.toBeNull();
     expect(addFooterColumnBox).not.toBeNull();
     if (!columnsNavBox || !addFooterColumnBox) throw new Error('Kontrole stolpcev noge nimajo merljive geometrije.');
-    const addFooterColumnCenterY = addFooterColumnBox.y + addFooterColumnBox.height / 2;
+    const contentHeadingBox = await footerEditor.getByRole('heading', { name: 'Vsebina noge', exact: true }).boundingBox();
+    expect(contentHeadingBox).not.toBeNull();
+    expect(addFooterColumnBox.y + addFooterColumnBox.height).toBeLessThanOrEqual(columnsNavBox.y);
+    expect(addFooterColumnBox.x).toBeGreaterThan((contentHeadingBox?.x ?? 0) + (contentHeadingBox?.width ?? 0));
     columnTitleBoxes.forEach((titleBox, index) => {
       const menuBox = columnMenuBoxes[index];
       if (!menuBox) throw new Error('Stolpec noge nima menijske kontrole.');
       const titleCenterY = titleBox.y + titleBox.height / 2;
       const menuCenterY = menuBox.y + menuBox.height / 2;
       expect(Math.abs(menuCenterY - titleCenterY)).toBeLessThanOrEqual(4);
-      expect(Math.abs(addFooterColumnCenterY - titleCenterY)).toBeLessThanOrEqual(4);
     });
-    expect(addFooterColumnBox.x).toBeGreaterThanOrEqual(columnsNavBox.x + columnsNavBox.width - 1);
 
     for (const columnTitle of ['Izdelki', 'Podpora', 'O nas']) {
       const columnEditor = footerColumns
@@ -185,9 +186,10 @@ test.describe('admin podoba redesign', () => {
     expect(projectsMoveBox).not.toBeNull();
     if (!catalogMoveBox || !catalogRowBox || !projectsMoveBox) throw new Error('Povezav v nogi ni mogoče premakniti.');
     expect(Math.abs(catalogMoveBox.x - catalogRowBox.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(catalogMoveBox.y - catalogRowBox.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(catalogMoveBox.width - catalogRowBox.width)).toBeLessThanOrEqual(2);
-    expect(Math.abs(catalogMoveBox.height - catalogRowBox.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs((catalogMoveBox.y + catalogMoveBox.height / 2) - (catalogRowBox.y + catalogRowBox.height / 2))).toBeLessThanOrEqual(1);
+    expect(catalogMoveBox.width).toBeGreaterThan(0);
+    expect(catalogMoveBox.width).toBeLessThan(catalogRowBox.width);
+    expect(catalogMoveBox.height).toBeLessThanOrEqual(catalogRowBox.height);
     await expect(catalogMoveButton).toHaveAttribute('aria-roledescription', 'sortable');
     await expect(catalogMoveButton).toHaveAttribute('aria-describedby', /site-footer-column-links-/);
 
@@ -302,16 +304,16 @@ test.describe('admin podoba redesign', () => {
     )).toBeLessThanOrEqual(1);
 
     await socialOptionButtons.first().click();
-    await socialRegion.getByRole('button', { name: 'Skrij', exact: true }).click();
+    await page.getByRole('button', { name: 'Skrij', exact: true }).click();
     await expect(socialRegion.getByText('Skrito', { exact: true })).toHaveCount(1);
     await socialOptionButtons.first().click();
-    await socialRegion.getByRole('button', { name: 'Prikaži', exact: true }).click();
+    await page.getByRole('button', { name: 'Prikaži', exact: true }).click();
     await expect(socialRegion.getByText('Skrito', { exact: true })).toHaveCount(0);
 
     await addSocialButton.click();
     await expect(socialMoveButtons).toHaveCount(5);
     await socialRegion.getByRole('button', { name: 'Možnosti družbenega omrežja Nov profil' }).click();
-    await socialRegion.getByRole('button', { name: 'Izbriši', exact: true }).click();
+    await page.getByRole('button', { name: 'Izbriši', exact: true }).click();
     await expect(socialMoveButtons).toHaveCount(4);
     await expect(footerPreview.getByRole('button', { name: 'Dodaj pravno povezavo' })).toBeVisible();
     await expect(footerPreview.getByRole('button', { name: /^© \d{4} Atehna d\.o\.o\./ })).toBeVisible();
@@ -373,8 +375,8 @@ test.describe('admin podoba redesign', () => {
     legalCenters.forEach((center) => {
       expect(Math.abs(center - legalRowCenterY)).toBeLessThanOrEqual(1);
     });
-    expect(addLegalBox.width).toBe(28);
-    expect(addLegalBox.height).toBe(28);
+    expect(addLegalBox.width).toBe(36);
+    expect(addLegalBox.height).toBe(36);
     expect(privacyBox.x).toBeGreaterThan(termsBox.x + termsBox.width);
     expect(cookiesBox.x).toBeGreaterThan(privacyBox.x + privacyBox.width);
     const legalAddGap = addLegalBox.x - (lastLegalOptionsBox.x + lastLegalOptionsBox.width);
@@ -394,7 +396,7 @@ test.describe('admin podoba redesign', () => {
     await linkLabelInput.fill(newLinkLabel);
     await linkLabelInput.press('Enter');
 
-    const saveButton = page.getByRole('button', { name: 'Shrani', exact: true });
+    const saveButton = footerEditor.getByRole('button', { name: 'Shrani spremembe', exact: true });
     await expect(saveButton).toBeEnabled();
     const saveRequestPromise = page.waitForRequest((request) => (
       request.method() === 'PUT' && request.url().includes('/api/admin/site-navigation')

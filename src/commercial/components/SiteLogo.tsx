@@ -1,15 +1,18 @@
 'use client';
 
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { LOGO_PLACEMENT_IDS, type LogoPlacementId, type PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
+import { LOGO_PLACEMENT_IDS, type LogoPlacementId, type LogoBounds, type PublishedLogoAsset, type PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 
 type SiteLogoProps = {
   purposeId: LogoPlacementId; fallback?: ReactNode; className?: string;
   imageClassName?: string; alt?: string; style?: CSSProperties;
+  sourceBounds?: LogoBounds; assetOverride?: PublishedLogoAsset | null;
+  maxHeightPx?: number;
 };
 type ResponsiveSiteLogoProps = Omit<SiteLogoProps, 'purposeId'> & {
   purposes: { desktop: LogoPlacementId; tablet: LogoPlacementId; mobile: LogoPlacementId };
   purposeClassNames?: Partial<Record<'desktop' | 'tablet' | 'mobile', string>>;
+  purposeMaxHeights?: Partial<Record<'desktop' | 'tablet' | 'mobile', number>>;
 };
 
 const defaultOriginal = {
@@ -37,13 +40,65 @@ export function DefaultSiteBrand() {
   </span>;
 }
 
-export function SiteLogo({ purposeId, fallback, className = '', imageClassName = '', alt = '', style }: SiteLogoProps) {
-  const asset = useSiteLogoConfig().placements[purposeId];
+/** Explicit footer sizing scales the existing DOM brand without changing its default rendering. */
+function HeightLimitedSiteBrand({ asset, height, fallback, purposeId, className, style }: {
+  asset: PublishedLogoAsset; height: number; fallback?: ReactNode;
+  purposeId: LogoPlacementId; className: string; style?: CSSProperties;
+}) {
+  const width = Number.isFinite(asset.width) && asset.width > 0 ? asset.width : 130;
+  const sourceHeight = Number.isFinite(asset.height) && asset.height > 0 ? asset.height : 30;
+  const hostRef = useRef<HTMLSpanElement>(null);
+  const [scale, setScale] = useState(height / sourceHeight);
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = () => {
+      // Computed CSS width stays in local coordinates even inside a scaled preview.
+      const displayedWidth = Number.parseFloat(getComputedStyle(host).width);
+      if (Number.isFinite(displayedWidth) && displayedWidth > 0) setScale(displayedWidth / width);
+    };
+    update();
+    const observer = new ResizeObserver(update); observer.observe(host);
+    return () => observer.disconnect();
+  }, [height, width, sourceHeight]);
+  return <span ref={hostRef} className={'relative inline-block min-h-0 min-w-0 shrink-0 align-middle ' + className}
+    style={{ ...style, width: height * width / sourceHeight, height: 'auto', maxWidth: '100%', aspectRatio: `${width} / ${sourceHeight}` }}
+    data-site-logo-purpose={purposeId} data-site-logo-variant="brand" data-site-logo-revision={asset.revision}
+    data-logo-placement-area data-logo-max-height={height}>
+    <span className="absolute left-0 top-0 inline-flex items-center" style={{ width, height: sourceHeight, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+      {fallback ?? <DefaultSiteBrand />}
+    </span>
+  </span>;
+}
+
+export function SiteLogo({ purposeId, fallback, className = '', imageClassName = '', alt = '', style, sourceBounds, assetOverride, maxHeightPx }: SiteLogoProps) {
+  const configuredAsset = useSiteLogoConfig().placements[purposeId];
+  const asset = assetOverride === undefined ? configuredAsset : assetOverride;
   if (!asset) return null;
-  if (asset.fallback === 'brand') return fallback ?? <DefaultSiteBrand />;
+  const maximumHeight = typeof maxHeightPx === 'number' && Number.isFinite(maxHeightPx) && maxHeightPx > 0 ? maxHeightPx : null;
+  if (asset.fallback === 'brand') return maximumHeight
+    ? <HeightLimitedSiteBrand asset={asset} height={maximumHeight} fallback={fallback} purposeId={purposeId} className={className} style={style} />
+    : fallback ?? <DefaultSiteBrand />;
+  const cropped = sourceBounds && sourceBounds.width > 0 && sourceBounds.height > 0
+    && (sourceBounds.x !== 0 || sourceBounds.y !== 0 || sourceBounds.width !== asset.width || sourceBounds.height !== asset.height);
+  const sourceWidth = cropped ? sourceBounds.width : asset.width;
+  const sourceHeight = cropped ? sourceBounds.height : asset.height;
+  const proportionalStyle: CSSProperties | undefined = maximumHeight && sourceWidth > 0 && sourceHeight > 0 ? {
+    width: maximumHeight * sourceWidth / sourceHeight, height: 'auto', maxWidth: '100%', aspectRatio: `${sourceWidth} / ${sourceHeight}`
+  } : undefined;
+  const imageStyle: CSSProperties | undefined = cropped ? {
+    position: 'absolute', maxWidth: 'none', maxHeight: 'none',
+    width: `${asset.width / sourceBounds.width * 100}%`,
+    height: `${asset.height / sourceBounds.height * 100}%`,
+    left: `${-sourceBounds.x / sourceBounds.width * 100}%`,
+    top: `${-sourceBounds.y / sourceBounds.height * 100}%`
+  } : proportionalStyle ? { height: 'auto' } : undefined;
+
   return <span
     className={'relative inline-flex min-h-0 min-w-0 shrink-0 items-center justify-center ' + className}
-    style={style}
+    style={cropped || proportionalStyle ? { ...style, ...proportionalStyle, ...(cropped ? { overflow: 'hidden' } : {}) } : style}
+    data-logo-max-height={proportionalStyle ? maximumHeight : undefined}
+    data-logo-source-window={cropped ? `${sourceBounds.x},${sourceBounds.y},${sourceBounds.width},${sourceBounds.height}` : undefined}
     data-site-logo-purpose={purposeId}
     data-site-logo-variant={asset.variantId ?? asset.fallback}
     data-site-logo-revision={asset.revision}
@@ -55,12 +110,13 @@ export function SiteLogo({ purposeId, fallback, className = '', imageClassName =
       src={asset.svgUrl || asset.pngUrl} alt={alt} width={asset.width} height={asset.height}
       draggable={false}
       className={'block h-full w-full max-h-full max-w-full object-contain ' + imageClassName}
+      style={imageStyle}
       data-site-logo-published-image
     />
   </span>;
 }
 
-export function ResponsiveSiteLogo({ purposes, purposeClassNames, className, ...props }: ResponsiveSiteLogoProps) {
+export function ResponsiveSiteLogo({ purposes, purposeClassNames, purposeMaxHeights, className, ...props }: ResponsiveSiteLogoProps) {
   const previewDevice = useContext(LogoPreviewDeviceContext);
   const hostRef = useRef<HTMLSpanElement>(null);
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -80,6 +136,6 @@ export function ResponsiveSiteLogo({ purposes, purposeClassNames, className, ...
   }, [previewDevice]);
   const activeDevice = previewDevice ?? device;
   return <span ref={hostRef} className="inline-flex h-full w-full min-h-0 min-w-0">
-    <SiteLogo {...props} purposeId={purposes[activeDevice]} className={purposeClassNames?.[activeDevice] ?? className} />
+    <SiteLogo {...props} purposeId={purposes[activeDevice]} maxHeightPx={purposeMaxHeights?.[activeDevice] ?? props.maxHeightPx} className={purposeClassNames?.[activeDevice] ?? className} />
   </span>;
 }

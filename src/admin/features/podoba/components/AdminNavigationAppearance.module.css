@@ -109,3 +109,46 @@
   font-size: 11px;
   line-height: 16px;
 }
+
+/* The device tabs and logo settings share one compact editor toolbar. */
+.deviceToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.logoControls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.logoHeight {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11px;
+}
+.logoHeightControl.logoHeightControl {
+  width: 84px;
+  height: 28px;
+}
+.logoHeightControl > input {
+  padding-inline: 8px;
+  font-size: 11px;
+}
+.logoHeightControl > span {
+  min-width: 26px;
+  padding-inline: 6px;
+  font-size: 11px;
+}

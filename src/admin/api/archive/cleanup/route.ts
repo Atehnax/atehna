@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cleanupExpiredArchiveEntries } from '@/shared/server/deletedArchive';
 import { purgeExpiredCatalogItems } from '@/shared/server/catalogItems';
 
 export async function POST(request: Request) {
@@ -12,7 +11,8 @@ export async function POST(request: Request) {
     }
 
     const purgedProductCount = await purgeExpiredCatalogItems();
-    const deletedArchiveCount = await cleanupExpiredArchiveEntries();
+    // Orders and their documents remain recoverable indefinitely.
+    const deletedArchiveCount = 0;
     return NextResponse.json({
       success: true,
       deletedCount: purgedProductCount + deletedArchiveCount,

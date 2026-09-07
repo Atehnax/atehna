@@ -77,30 +77,25 @@ test.describe('Navigation top-bar appearance', () => {
     expect(dividerGeometry.borderBottomStyle).toBe('solid');
     expect(dividerGeometry.borderBottomColor).not.toBe('rgba(0, 0, 0, 0)');
 
-    const mobileDeviceButton = page.getByRole('button', { name: 'Mobilno', exact: true }).first();
-    const deviceDivider = await mobileDeviceButton.locator('..').evaluate((group) => {
-      const buttons = Array.from(group.querySelectorAll('button'));
-      const firstButton = buttons[0]?.getBoundingClientRect();
-      const lastButton = buttons.at(-1)?.getBoundingClientRect();
-      const groupBox = group.getBoundingClientRect();
-      const outerBox = group.parentElement?.getBoundingClientRect();
-      const style = getComputedStyle(group);
-
-      return {
-        groupWidth: groupBox.width,
-        buttonSpan: firstButton && lastButton ? lastButton.right - firstButton.left : 0,
-        outerWidth: outerBox?.width ?? 0,
-        borderBottomWidth: Number.parseFloat(style.borderBottomWidth),
-        borderBottomStyle: style.borderBottomStyle,
-        borderBottomColor: style.borderBottomColor
-      };
+    const deviceGroup = page.getByRole('group', { name: 'Naprava za predogled zgornje vrstice', exact: true });
+    const toolbar = page.getByTestId('top-bar-device-toolbar');
+    const logoControls = page.getByTestId('top-bar-logo-controls');
+    await expect(deviceGroup.getByRole('button')).toHaveText(['Desktop', 'Tablica', 'Mobilno']);
+    await expect(deviceGroup.getByRole('button', { name: 'Desktop', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    const [groupBox, toolbarBox, logoBox] = await Promise.all([deviceGroup.boundingBox(), toolbar.boundingBox(), logoControls.boundingBox()]);
+    if (!groupBox || !toolbarBox || !logoBox) throw new Error('The combined device and logo toolbar must be measurable.');
+    const deviceDivider = await toolbar.evaluate(element => {
+      const style = getComputedStyle(element);
+      return { width: Number.parseFloat(style.borderBottomWidth), style: style.borderBottomStyle, color: style.borderBottomColor };
     });
+    expect(deviceDivider.width).toBeGreaterThan(0);
+    expect(deviceDivider.style).toBe('solid');
+    expect(deviceDivider.color).not.toBe('rgba(0, 0, 0, 0)');
+    expect(groupBox.width).toBeLessThan(toolbarBox.width / 2);
+    expect(Math.abs(groupBox.y + groupBox.height / 2 - logoBox.y - logoBox.height / 2)).toBeLessThanOrEqual(1);
+    expect(logoBox.x).toBeGreaterThan(groupBox.x + groupBox.width);
+    expect(Math.abs(logoBox.x + logoBox.width - toolbarBox.x - toolbarBox.width)).toBeLessThanOrEqual(1);
 
-    expect(deviceDivider.borderBottomWidth).toBeGreaterThan(0);
-    expect(deviceDivider.borderBottomStyle).toBe('solid');
-    expect(deviceDivider.borderBottomColor).not.toBe('rgba(0, 0, 0, 0)');
-    expect(Math.abs(deviceDivider.groupWidth - deviceDivider.buttonSpan)).toBeLessThanOrEqual(1);
-    expect(deviceDivider.groupWidth).toBeLessThan(deviceDivider.outerWidth / 2);
   });
 
   test('lays out the right-side Videz card in aligned colour, typography, and dimension rows', async ({ page }) => {
@@ -242,12 +237,12 @@ test.describe('Navigation top-bar appearance', () => {
       { button: 'Tablica', previewLabel: /Tablica · viewport:/ },
       { button: 'Mobilno', previewLabel: /Mobilno · viewport:/ }
     ]) {
-      await page.getByRole('button', { name: device.button, exact: true }).first().click();
+      await page.getByTestId('top-bar-device-toolbar').getByRole('button', { name: device.button, exact: true }).click();
       await expect(page.getByText(device.previewLabel).first()).toBeVisible();
       await expectDesktopGridGeometry();
     }
 
-    await page.getByRole('button', { name: 'Desktop', exact: true }).first().click();
+    await page.getByTestId('top-bar-device-toolbar').getByRole('button', { name: 'Desktop', exact: true }).click();
     await expect(page.getByText(/Desktop · viewport:/).first()).toBeVisible();
     await expectDesktopGridGeometry();
 
@@ -494,7 +489,7 @@ test.describe('Navigation top-bar appearance', () => {
       triggerColor: 'rgb(244, 211, 94)'
     });
 
-    await page.getByRole('button', { name: 'Tablica', exact: true }).click();
+    await page.getByRole('group', { name: 'Naprava za predogled zgornje vrstice', exact: true }).getByRole('button', { name: 'Tablica', exact: true }).click();
     await background.fill('#0E7490');
     await backgroundOpacity.fill('65');
     await textColor.fill('#F8FAFC');
@@ -511,13 +506,13 @@ test.describe('Navigation top-bar appearance', () => {
       textColorVariable: '#F8FAFC'
     });
 
-    await page.getByRole('button', { name: 'Mobilno', exact: true }).click();
+    await page.getByRole('group', { name: 'Naprava za predogled zgornje vrstice', exact: true }).getByRole('button', { name: 'Mobilno', exact: true }).click();
     const mobileBaseline = {
       backgroundColor: await background.inputValue(),
       backgroundOpacityPercent: Number(await backgroundOpacity.inputValue()),
       textColor: await textColor.inputValue()
     };
-    await page.getByRole('button', { name: 'Desktop', exact: true }).click();
+    await page.getByTestId('top-bar-device-toolbar').getByRole('button', { name: 'Desktop', exact: true }).click();
     await expect(background).toHaveValue('#18324A');
     await expect(backgroundOpacity).toHaveValue('42');
     await expect(textColor).toHaveValue('#F4D35E');

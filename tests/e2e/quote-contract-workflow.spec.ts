@@ -1121,7 +1121,8 @@ test.describe('quote and seller-contract workflow', () => {
       await expect(requestDetailRows).toHaveCount(8);
       await expect(requestCard.locator('input, select, textarea')).toHaveCount(0);
       await expect(requestDetailRow('Naslov')).toContainText('Testna ulica 1');
-      await expect(requestDetailRow('Naslov')).toContainText('1000 Ljubljana');
+      await expect(requestDetailRow('Naslov').getByText('1000', { exact: true })).toBeVisible();
+      await expect(requestDetailRow('Naslov').getByText('Ljubljana', { exact: true })).toBeVisible();
       await expect(requestDetailRow('Naslov')).toContainText('SI');
       await expect(requestDetailRow('Kaj potrebuje?')).toContainText(
         'Formalno ponudbo za izbrane artikle'
@@ -1244,7 +1245,7 @@ test.describe('quote and seller-contract workflow', () => {
       );
       expect(readRequestRowGeometry).toHaveLength(8);
       for (const row of readRequestRowGeometry) {
-        expect(row.height).toBeGreaterThanOrEqual(35);
+        expect(row.height).toBeGreaterThanOrEqual(28);
       }
       const normalRequestRow = readRequestRowGeometry.find(
         (row) => row.label === 'Tip naročnika'
@@ -1255,7 +1256,7 @@ test.describe('quote and seller-contract workflow', () => {
       const customerMessageRequestRow = readRequestRowGeometry.find(
         (row) => row.label === 'Sporočilo stranke'
       );
-      expect(Math.abs((addressRequestRow?.width ?? 0) - (normalRequestRow?.width ?? 0))).toBeLessThanOrEqual(1);
+      expect(Math.abs((addressRequestRow?.width ?? 0) - 2 * (normalRequestRow?.width ?? 0) - 24)).toBeLessThanOrEqual(1);
       expect(
         Math.abs(
           (addressRequestRow?.width ?? 0) - (customerMessageRequestRow?.width ?? 0)
@@ -1443,7 +1444,7 @@ test.describe('quote and seller-contract workflow', () => {
         expect(Math.abs(editRow.x - (readRow?.x ?? 0))).toBeLessThanOrEqual(1);
         expect(editRow.y).toBeGreaterThanOrEqual(readRow?.y ?? 0);
         expect(Math.abs(editRow.width - (readRow?.width ?? 0))).toBeLessThanOrEqual(1);
-        expect(editRow.height).toBeGreaterThanOrEqual(35);
+        expect(editRow.height).toBeGreaterThanOrEqual(28);
       }
       await workflowStatusEditButton.click();
       await expect(workflowStatusEditButton).toHaveAttribute('aria-pressed', 'true');
@@ -1525,7 +1526,7 @@ test.describe('quote and seller-contract workflow', () => {
       await page.getByRole('button', { name: 'Tip naročnika' }).click();
       await page.getByRole('option', { name: 'Podjetje' }).click();
       await page.getByLabel('Naziv', { exact: true }).fill('E2E urejen naročnik');
-      await page.getByLabel('Kontaktna oseba').fill('E2E urejen kontakt');
+      await page.getByLabel('Kontaktna oseba', { exact: true }).fill('E2E urejen kontakt');
       await page.getByLabel('Naslov', { exact: true }).fill('Urejena ulica 7');
       await page.getByLabel('Dodatni naslov').fill('2. nadstropje');
       await page.getByLabel('Poštna številka').fill('2000');
@@ -1581,10 +1582,12 @@ test.describe('quote and seller-contract workflow', () => {
       await expect(workflowStatus).toContainText('V pripravi');
       await expect(workflowStatus).not.toContainText('Osnutek');
       await expect(requestCard.locator('input, select, textarea')).toHaveCount(0);
-      await expect(requestDetailRow('Naziv')).toContainText('E2E urejen naročnik (E2E urejen kontakt)');
+      await expect(requestDetailRow('Naziv')).toContainText('E2E urejen naročnik');
+      await expect(requestDetailRow('Naziv')).toContainText('E2E urejen kontakt');
       await expect(requestDetailRow('Naslov')).toContainText('Urejena ulica 7');
       await expect(requestDetailRow('Naslov')).toContainText('2. nadstropje');
-      await expect(requestDetailRow('Naslov')).toContainText('2000 Maribor');
+      await expect(requestDetailRow('Naslov').getByText('2000', { exact: true })).toBeVisible();
+      await expect(requestDetailRow('Naslov').getByText('Maribor', { exact: true })).toBeVisible();
       await expect(requestDetailRow('Naslov')).toContainText('SI');
       await expect(requestDetailRow('Kaj potrebuje?')).toContainText(
         'Formalno ponudbo za izbrane artikle'
@@ -2152,7 +2155,7 @@ test.describe('quote and seller-contract workflow', () => {
       });
       await masterEdit.click();
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'true');
-      await page.getByLabel('Naročnik', { exact: true }).fill(changedContact);
+      await page.getByRole('textbox', { name: 'Naročnik', exact: true }).fill(changedContact);
       await page.getByLabel('Dobavni pogoji').fill(changedDeliveryTerms);
       await expect(saveButton).toBeEnabled();
 
@@ -2180,7 +2183,7 @@ test.describe('quote and seller-contract workflow', () => {
         page.getByText(failureMessage, { exact: true })
       ).toBeVisible();
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByLabel('Naročnik', { exact: true })).toHaveValue(
+      await expect(page.getByRole('textbox', { name: 'Naročnik', exact: true })).toHaveValue(
         changedContact
       );
       await expect(page.getByLabel('Dobavni pogoji')).toHaveValue(
@@ -2223,7 +2226,7 @@ test.describe('quote and seller-contract workflow', () => {
       };
 
       await expect(masterEdit).toHaveAttribute('aria-pressed', 'false');
-      await expect(page.getByLabel('Naročnik', { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('textbox', { name: 'Naročnik', exact: true })).toHaveCount(0);
       expect(draftBodies).toHaveLength(1);
       expect(detailsBodies).toHaveLength(2);
       expect(detailsBodies[1]).toMatchObject({

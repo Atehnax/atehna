@@ -5,22 +5,24 @@ test('footer sections are independently editable and save the horizontal contact
 
   const editor = page.getByTestId('site-footer-links-editor');
   const preview = editor.getByTestId('site-footer-editor-preview');
-  const upperToggle = editor.getByRole('checkbox', { name: 'Prikaži zgornji del' });
-  const lowerToggle = editor.getByRole('checkbox', { name: 'Prikaži spodnji del' });
+  const upperToggle = editor.getByRole('switch', { name: 'Prikaži zgornji del' });
+  const lowerToggle = editor.getByRole('switch', { name: 'Prikaži spodnji del' });
 
   await expect(editor.getByRole('group', { name: 'Vidnost delov noge' })).toBeVisible();
   await expect(upperToggle).toBeChecked();
   await expect(lowerToggle).toBeChecked();
   await expect(preview.getByTestId('site-footer-upper-section')).toBeVisible();
   await expect(preview.getByTestId('site-footer-lower-section')).toBeVisible();
-  await expect(editor.getByRole('checkbox', { name: 'Prikaži kontakt v spodnjem delu' })).toHaveCount(0);
+  await expect(editor.getByRole('switch', { name: 'Prikaži kontakt v spodnjem delu' })).toBeVisible();
+  await expect(editor.getByRole('switch', { name: 'Prikaži kontakt v spodnjem delu' })).toBeDisabled();
 
-  await upperToggle.uncheck();
+  await upperToggle.click();
 
-  const lowerContactToggle = editor.getByRole('checkbox', {
+  const lowerContactToggle = editor.getByRole('switch', {
     name: 'Prikaži kontakt v spodnjem delu'
   });
   await expect(lowerContactToggle).toBeVisible();
+  await expect(lowerContactToggle).toBeEnabled();
   await expect(lowerContactToggle).toBeChecked();
   const lowerContact = preview.getByTestId('site-footer-lower-contact');
   await expect(lowerContact).toBeVisible();
@@ -34,13 +36,13 @@ test('footer sections are independently editable and save the horizontal contact
   await phoneInput.press('Enter');
   await expect(lowerContact.getByRole('button', { name: nextPhone, exact: true })).toBeVisible();
 
-  await lowerToggle.uncheck();
+  await lowerToggle.click();
   await expect(lowerToggle).not.toBeChecked();
-  await upperToggle.check();
+  await upperToggle.click();
   await expect(upperToggle).toBeChecked();
-  await lowerToggle.check();
-  await upperToggle.uncheck();
-  await lowerContactToggle.uncheck();
+  await lowerToggle.click();
+  await upperToggle.click();
+  await lowerContactToggle.click();
   await expect(lowerContactToggle).not.toBeChecked();
 
   let savedPayload: {
@@ -66,7 +68,7 @@ test('footer sections are independently editable and save the horizontal contact
     });
   });
 
-  await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+  await editor.getByRole('button', { name: 'Shrani spremembe', exact: true }).click();
 
   await expect.poll(() => savedPayload).not.toBeNull();
   expect(savedPayload).not.toBeNull();
@@ -78,5 +80,6 @@ test('footer sections are independently editable and save the horizontal contact
   });
 
   const editLogoLink = editor.getByRole('link', { name: 'Uredi logotip' });
-  await expect(editLogoLink).toHaveAttribute('href', '/admin/podoba/logotip');
+  await expect(editLogoLink).toHaveCount(0);
+  await expect(editor.getByRole('spinbutton', { name: 'Višina logotipa v nogi' })).toBeVisible();
 });

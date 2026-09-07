@@ -697,10 +697,7 @@ test.describe.serial('shipping persistence and order authority', () => {
         if (documentBlobPath) {
           await deletePrivateOrderDocumentBlob(documentBlobPath).catch(() => undefined);
         }
-        await database.query(
-          "delete from audit_events where entity_type = 'order' and entity_id = $1",
-          [String(orderId)]
-        );
+        // Immutable order audit evidence is retained until the isolated E2E reset.
         await database.query('delete from orders where id = $1', [orderId]);
       } else {
         await database.query('delete from orders where email = $1', [email]);
@@ -869,10 +866,7 @@ test.describe.serial('shipping persistence and order authority', () => {
         } else {
           await database.query('delete from orders where id = $1', [draftOrderId]);
         }
-        await database.query(
-          "delete from audit_events where entity_type = 'order' and entity_id = $1",
-          [String(draftOrderId)]
-        );
+        // Immutable order audit evidence is retained until the isolated E2E reset.
       }
       await restoreCatalog(database, catalogBackup);
     }

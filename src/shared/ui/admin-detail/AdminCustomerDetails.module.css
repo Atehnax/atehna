@@ -225,6 +225,10 @@
     gap: 2px;
   }
   .detailRow.fullWidthRow dt { height: 18px; }
+}
+
+/* Wrap the address before five compartments become too narrow beside the label. */
+@container (max-width: 619px) {
   .addressFields.addressFields {
     height: auto;
     grid-template-columns: 4.5rem minmax(0, 1fr) 2.75rem;

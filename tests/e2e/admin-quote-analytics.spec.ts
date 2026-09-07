@@ -5,6 +5,7 @@ import {
 } from '@/shared/domain/formatting';
 import { assertAuthenticatedAdmin } from './support/auth';
 import type { BusinessAnalyticsResponse } from '@/shared/domain/analytics/businessAnalytics';
+import type { BusinessAnalyticsSettings } from '@/shared/domain/analytics/businessSettings';
 
 type CardStyle = {
   height: number;
@@ -39,8 +40,33 @@ const readCardStyle = async (locator: Locator) => {
   });
 };
 
-test.beforeEach(async ({ request }) => {
+const settingsPath = '/api/admin/analytics/business/settings';
+let originalSettings: BusinessAnalyticsSettings | null = null;
+
+test.beforeEach(async ({ request, baseURL }) => {
   await assertAuthenticatedAdmin(request);
+  const response = await request.get(settingsPath);
+  expect(response.ok()).toBe(true);
+  originalSettings = await response.json() as BusinessAnalyticsSettings;
+  // The default fixture intentionally leaves quote analytics inactive until go-live.
+  const enabled = await request.put(settingsPath, {
+    headers: { origin: baseURL!, 'x-forwarded-proto': new URL(baseURL!).protocol.slice(0, -1) },
+    data: { quoteGoLiveDate: '2000-01-01', expectedRevision: originalSettings.revision }
+  });
+  expect(enabled.ok()).toBe(true);
+});
+
+test.afterEach(async ({ request, baseURL }) => {
+  if (!originalSettings) return;
+  const response = await request.get(settingsPath);
+  expect(response.ok()).toBe(true);
+  const current = await response.json() as BusinessAnalyticsSettings;
+  const restored = await request.put(settingsPath, {
+    headers: { origin: baseURL!, 'x-forwarded-proto': new URL(baseURL!).protocol.slice(0, -1) },
+    data: { quoteGoLiveDate: originalSettings.quoteGoLiveDate, expectedRevision: current.revision }
+  });
+  expect(restored.ok()).toBe(true);
+  originalSettings = null;
 });
 
 test('quote KPI cards match order cards and open the tracked quote analytics view', async ({ page, request }) => {

@@ -243,10 +243,7 @@ test('customer actions sit beside the order data title and preserve behavior', a
     await expect(page.getByRole('dialog')).toBeVisible();
   } finally {
     if (orderId !== null) {
-      await database.query(
-        `delete from audit_events where entity_type = 'order' and entity_id = $1`,
-        [String(orderId)]
-      );
+      // Immutable order audit evidence is retained until the isolated E2E reset.
       await database.query('delete from orders where id = $1', [orderId]);
     }
   }

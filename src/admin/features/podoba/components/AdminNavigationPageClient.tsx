@@ -6547,7 +6547,7 @@ function FooterSocialLinkEditor({
           Skrito
         </span>
       ) : null}
-      <div ref={menuRef} className="relative z-30 self-center">
+      <div ref={menuRef} className="relative z-30 flex self-center">
         <button
           type="button"
           aria-label={`Možnosti družbenega omrežja ${link.label || homepageSocialTypeLabels[link.type]}`}

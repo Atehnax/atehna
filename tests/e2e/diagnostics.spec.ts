@@ -132,7 +132,7 @@ test('diagnostics windows, context, errors, trace and mobile layout use the same
   await page.goto('/admin/analitika/diagnostika?window=5m');
   await expect(page.getByRole('tab', { name: 'Diagnostika', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('heading', { name: 'Zadnje meritve in sled zahtev', exact: true })).toBeVisible();
-  await expect(page.getByText(/Zbiranje uporablja trajne zapise v bazi/u)).toBeVisible();
+  await expect(page.getByText(/Meritve se zapisujejo v podatkovno bazo in hranijo sedem dni/u)).toBeVisible();
   await expect(page.getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
   for (const [window, label, minutes] of [
     ['15m', '15 min', 15], ['60m', '1 ura', 60], ['6h', '6 ur', 360],

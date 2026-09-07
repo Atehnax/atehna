@@ -269,7 +269,7 @@ test('RVC percentage filters retain independent euro ranges and distinguish zero
   expect(box!.x).toBeGreaterThanOrEqual(8);expect(box!.x + box!.width).toBeLessThanOrEqual(1366 - 8);
   expect(box!.y).toBeGreaterThanOrEqual(8);expect(box!.y + box!.height).toBeLessThanOrEqual(900 - 8);
   await expect(dialog.getByRole('button', { name: 'Potrdi', exact: true })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: '%', exact: true })).toHaveCSS('background-color', 'rgb(233, 239, 255)');
+  await expect(dialog.getByRole('button', { name: '%', exact: true })).toHaveCSS('background-color', 'rgb(25, 130, 191)');
   const screenshot = testInfo.outputPath('rvc-percent-filter.png');
   await page.screenshot({ path: screenshot });await testInfo.attach('RVC percentage filter', { path: screenshot, contentType: 'image/png' });
   await page.keyboard.press('Escape');await remove('%');await assertRows([4]);

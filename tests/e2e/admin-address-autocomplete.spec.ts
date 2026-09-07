@@ -656,10 +656,7 @@ test('admin order and quote editors suggest, save, and clear canonical addresses
       );
     }
     if (orderId !== null) {
-      await database.query(
-        "delete from audit_events where entity_type = 'order' and entity_id = $1",
-        [String(orderId)]
-      );
+      // Immutable order audit evidence is retained until the isolated E2E reset.
       await database.query('delete from orders where id = $1', [orderId]);
     }
   }

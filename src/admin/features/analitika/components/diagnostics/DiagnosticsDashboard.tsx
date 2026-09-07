@@ -1,5 +1,7 @@
 'use client';
 
+import { numeric, percent } from '../../lib/formatting';
+
 import { useEffect, useRef, useState } from 'react';
 import { formatSlCount } from '@/shared/domain/formatting';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,7 +9,7 @@ import AdminPeriodSelector from '@/shared/ui/admin-period-selector';
 import AdminAnalyticsMetricCard from '@/shared/ui/admin-analytics-metric-card';
 import { buttonTokenClasses, adminAnalyticsControlClassName, adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
 import { DIAGNOSTIC_WINDOWS, type DiagnosticsResponse, type DiagnosticEvent } from '@/shared/domain/analytics/diagnostics';
-import BusinessChart, { DataTable, numeric, percent } from '../business/BusinessChart';
+import BusinessChart, { DataTable } from '../business/BusinessChart';
 
 const control = adminAnalyticsControlClassName;
 const labels: Record<string, string> = { route: 'Zahteve', loader: 'Branje podatkov', cache_miss: 'Izvedbe brez zadetka predpomnilnika', invalidation: 'Razveljavitve predpomnilnika' };

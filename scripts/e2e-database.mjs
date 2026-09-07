@@ -13,12 +13,6 @@ const { Pool } = pg;
 const scriptPath = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(scriptPath), '..');
 const schemaPath = resolve(projectRoot, 'database', 'schema.sql');
-const terminalSchemaContractPath = resolve(
-  projectRoot,
-  'database',
-  'migrations',
-  '20260907_schema_contract_v6.sql'
-);
 const seedPath = resolve(projectRoot, 'tests', 'fixtures', 'e2e-seed.sql');
 const nextRuntimeCacheDirectory = resolve(projectRoot, '.next', 'cache');
 const seedVersion = '2026-08-16.1';
@@ -136,12 +130,6 @@ function sha256(source) {
 async function loadCanonicalSchema() {
   const sql = await readFile(schemaPath, 'utf8');
   if (!sql.trim()) fail('Canonical SQL schema is empty.');
-  return sql;
-}
-
-async function loadTerminalSchemaContract() {
-  const sql = await readFile(terminalSchemaContractPath, 'utf8');
-  if (!sql.trim()) fail('The terminal schema contract SQL is empty.');
   return sql;
 }
 
@@ -422,95 +410,18 @@ export async function prepareE2eDatabase() {
   }
 }
 
-export async function rehearseE2eSchemaContract() {
-  const {
-    databaseUrl,
-    databaseName,
-    databaseIdentity,
-    storageNamespace,
-    resetOwnershipHash
-  } = readE2eEnvironment();
-  const [schemaSql, seedSql, terminalContractSql] = await Promise.all([
-    loadCanonicalSchema(),
-    readFile(seedPath, 'utf8'),
-    loadTerminalSchemaContract()
-  ]);
-  const schemaSha256 = sha256(schemaSql);
-  const seedChecksum = sha256(seedSql);
-  const pool = createPool(databaseUrl);
-  try {
-    await verifyE2eResetTarget(
-      pool,
-      databaseIdentity,
-      storageNamespace,
-      resetOwnershipHash
-    );
-    await verifyDatabase(pool, schemaSha256, seedChecksum);
-
-    const mutablePolicyResult = await pool.query(`
-      update public.inventory_policy_settings
-         set config_json = jsonb_set(
-           config_json,
-           '{stockEnforcementEnabled}',
-           'false'::jsonb
-         )
-       where key = 'default'
-       returning key
-    `);
-    if (mutablePolicyResult.rows.length !== 1) {
-      fail('The mutable inventory-policy fixture is missing.');
-    }
-
-    await pool.query('drop table public.app_schema_contracts');
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      await pool.query(terminalContractSql);
-    }
-
-    await verifyDatabase(pool, schemaSha256, seedChecksum);
-    const { contractId, contractSha256 } = await loadManifest();
-    const contractResult = await pool.query(
-      `select installed_via
-         from public.app_schema_contracts
-        where contract_id = $1
-          and contract_sha256 = $2`,
-      [contractId, contractSha256]
-    );
-    if (
-      contractResult.rows.length !== 1
-      || contractResult.rows[0]?.installed_via !== 'existing_database'
-    ) {
-      fail('The terminal schema contract rehearsal did not record one exact existing-database contract.');
-    }
-    await pool.query(`
-      update public.inventory_policy_settings
-         set config_json = jsonb_set(
-           config_json,
-           '{stockEnforcementEnabled}',
-           'true'::jsonb
-         )
-       where key = 'default'
-    `);
-    return { databaseName, schemaSha256 };
-  } finally {
-    await pool.end();
-  }
-}
 
 async function main() {
   const command = process.argv[2];
-  if (!['prepare', 'check', 'rehearse-contract'].includes(command)) {
-    fail('Usage: node scripts/e2e-database.mjs <prepare|check|rehearse-contract>.');
+  if (!['prepare', 'check'].includes(command)) {
+    fail('Usage: node scripts/e2e-database.mjs <prepare|check>.');
   }
   const result = command === 'prepare'
     ? await prepareE2eDatabase()
-    : command === 'rehearse-contract'
-      ? await rehearseE2eSchemaContract()
-      : await checkE2eDatabase();
+    : await checkE2eDatabase();
   const action = command === 'prepare'
     ? 'Prepared'
-    : command === 'rehearse-contract'
-      ? 'Rehearsed the terminal contract on'
-      : 'Verified';
+    : 'Verified';
   console.info(
     `[e2e-preflight] ${action} isolated database ${result.databaseName} with the canonical schema.`
   );

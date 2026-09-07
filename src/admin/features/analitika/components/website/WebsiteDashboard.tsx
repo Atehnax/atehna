@@ -1,16 +1,17 @@
 'use client';
 
+import { numeric, percent, formatAnalyticsCalendarDay as formatDate } from '../../lib/formatting';
+
 import { useEffect, useState } from 'react';
 import { formatSlCount } from '@/shared/domain/formatting';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AdminPeriodSelector from '@/shared/ui/admin-period-selector';
 import AdminAnalyticsMetricCard from '@/shared/ui/admin-analytics-metric-card';
 import { buttonTokenClasses, adminAnalyticsControlClassName, adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
-import BusinessChart, { DataTable, numeric, percent } from '../business/BusinessChart';
+import BusinessChart, { DataTable } from '../business/BusinessChart';
 import { websiteExportRows, type WebsiteBreakdown, type WebsiteExport, type WebsiteTraffic } from '@/shared/domain/analytics/websiteTraffic';
 
 const control = adminAnalyticsControlClassName;
-const formatDate = (date: string) => new Intl.DateTimeFormat('sl-SI', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(date + 'T12:00:00Z'));
 function Breakdown({ title, kind, rows, exportHref }: { title: string; kind: 'pages' | 'products'; rows: WebsiteBreakdown[]; exportHref: string }) {
   const [search, setSearch] = useState('');
   const visible = rows.filter(row => (row.key ?? '').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl')));

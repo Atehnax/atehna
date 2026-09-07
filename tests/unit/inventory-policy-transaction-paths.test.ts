@@ -30,9 +30,6 @@ const confirmation = source(
 );
 const stockHolds = source('src/shared/server/orderStockHolds.ts');
 const schema = source('database/schema.sql');
-const markerMigration = source(
-  'database/migrations/20260901_order_stock_enforcement_marker.sql'
-);
 
 test('authoritative estimates keep all orderability rules but make only stock quantity policy-aware', () => {
   assert.match(
@@ -207,21 +204,11 @@ test('admin item edits follow the durable order marker without abandoning existi
   );
 });
 
-test('per-order marker defaults tracked for legacy safety and is installed additively', () => {
+test('per-order marker defaults to tracked stock enforcement', () => {
   assert.match(
     schema,
     /stock_enforcement_applied boolean not null default true/u
   );
-  assert.match(
-    markerMigration,
-    /add column if not exists stock_enforcement_applied boolean/u
-  );
-  assert.match(
-    markerMigration,
-    /set stock_enforcement_applied = true[\s\S]*?where stock_enforcement_applied is null/u
-  );
-  assert.match(markerMigration, /set default true/u);
-  assert.match(markerMigration, /set not null/u);
 });
 
 test('cancellation and rejection continue releasing prior holds independent of the global switch', () => {

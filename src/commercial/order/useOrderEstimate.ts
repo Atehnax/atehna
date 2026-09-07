@@ -13,8 +13,6 @@ import { readJsonResponse } from '@/shared/client/readJsonResponse';
 
 export type OrderEstimateState = {
   estimate: OrderEstimate | null;
-  /** @deprecated Use estimate. */
-  quote: OrderEstimate | null;
   isLoading: boolean;
   error: OrderApiError | null;
   missingVariantLineIds: string[];
@@ -294,7 +292,6 @@ export function useOrderEstimate(
 
   return {
     ...state,
-    quote: state.estimate,
     missingVariantLineIds,
     refresh
   };

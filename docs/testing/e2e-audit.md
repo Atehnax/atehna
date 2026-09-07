@@ -1,5 +1,7 @@
 # Playwright E2E coverage and layer audit
 
+> Historical audit: the counts and "current" inventories below describe the 2026-08-17 stage, not the present repository. Use [the verification policy](verification-policy.md) for current gates and `npx playwright test --list` / `npm run test:unit` for the live inventory. The retained rationale remains useful when proposing equivalent coverage replacements.
+
 Date: 2026-08-17
 
 This document inventories every current case under tests/e2e and tests/unit after the conservative browserless migration, including the two generated viewport cases from product-detail-compactness.spec.ts. It is a coverage audit, not permission to weaken or remove currently failing tests. All 88 migrated unit cases retain their audited test titles and assertion logic; they were moved out of Playwright collection, not deleted. Additional unit coverage includes twelve E2E Blob/database/cache-teardown and production-storage safety checks, storefront and product contracts, four order-submission latency and recovery contracts, seven order-access transport-security contracts, and focused document-privacy and quantity-discount coverage.

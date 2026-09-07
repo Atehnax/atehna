@@ -7,9 +7,6 @@ const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8');
 
 const schema = source('database/schema.sql');
-const migration = source(
-  'database/migrations/20260901_quote_outbox_cancellation.sql'
-);
 const settings = source('src/shared/server/quoteEmailSettings.ts');
 const cancelRoute = source(
   'src/admin/api/quote-email-jobs/[jobId]/route.ts'
@@ -35,19 +32,6 @@ test('cancelled quote emails are terminal, evidenced, and excluded from worker c
     quoteEmailJobs,
     /quote_email_jobs_cancellation_check[\s\S]*?status = 'cancelled'[\s\S]*?cancelled_at is not null[\s\S]*?cancelled_by_actor_id is not null[\s\S]*?btrim\(cancelled_by_actor_id\) <> ''/u
   );
-  assert.match(migration, /^begin;/mu);
-  assert.match(migration, /pg_advisory_xact_lock/u);
-  assert.match(
-    migration,
-    /drop constraint quote_email_jobs_status_check[\s\S]*?add constraint quote_email_jobs_status_check/u
-  );
-  assert.match(migration, /add column cancelled_at timestamptz/u);
-  assert.match(migration, /add constraint quote_email_jobs_cancellation_check/u);
-  assert.match(
-    migration,
-    /status = 'cancelled'[\s\S]*?cancelled_at is not null[\s\S]*?cancelled_by_actor_id is not null[\s\S]*?btrim\(cancelled_by_actor_id\) <> ''/u
-  );
-  assert.match(migration, /commit;\s*$/u);
 
   const claim = worker.slice(
     worker.indexOf('async function claim('),

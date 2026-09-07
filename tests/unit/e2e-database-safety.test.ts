@@ -281,50 +281,16 @@ test('E2E server clears live email credentials after inheriting the environment'
   assert.ok(e2eModeIndex > clearedResendKeyIndex);
 });
 
-test('terminal schema contract rehearsal is explicit and guarded by E2E ownership', () => {
-  const setupSource = readFileSync(
-    resolve(process.cwd(), 'scripts', 'e2e-database.mjs'),
-    'utf8'
-  );
-  const rehearsalStart = setupSource.indexOf(
-    'export async function rehearseE2eSchemaContract()'
-  );
-  const targetGuard = setupSource.indexOf(
-    'await verifyE2eResetTarget(',
-    rehearsalStart
-  );
-  const preflight = setupSource.indexOf(
-    'await verifyDatabase(pool, schemaSha256, seedChecksum);',
-    targetGuard
-  );
-  const ledgerDrop = setupSource.indexOf(
-    "await pool.query('drop table public.app_schema_contracts');",
-    preflight
-  );
-  const secondVerification = setupSource.indexOf(
-    'await verifyDatabase(pool, schemaSha256, seedChecksum);',
-    ledgerDrop
-  );
-
-  assert.ok(rehearsalStart >= 0);
-  assert.ok(targetGuard > rehearsalStart);
-  assert.ok(preflight > targetGuard);
-  assert.ok(ledgerDrop > preflight);
-  assert.ok(secondVerification > ledgerDrop);
-  assert.match(
-    setupSource.slice(rehearsalStart),
-    /for \(let attempt = 0; attempt < 2; attempt \+= 1\)[\s\S]*pool\.query\(terminalContractSql\)/u
-  );
-  assert.match(
-    setupSource.slice(rehearsalStart),
-    /installed_via !== 'existing_database'/u
-  );
-  assert.match(
-    setupSource.slice(rehearsalStart),
-    /stockEnforcementEnabled[\s\S]*'false'::jsonb[\s\S]*drop table public\.app_schema_contracts/u
-  );
-  assert.match(
-    setupSource.slice(rehearsalStart),
-    /installed_via !== 'existing_database'[\s\S]*stockEnforcementEnabled[\s\S]*'true'::jsonb/u
-  );
+test('fresh schema preparation verifies ownership before reset and has no upgrade path', () => {
+  const setupSource = readFileSync(resolve(process.cwd(), 'scripts/e2e-database.mjs'), 'utf8');
+  const preparation = setupSource.slice(setupSource.indexOf('export async function prepareE2eDatabase()'));
+  const targetGuard = preparation.indexOf('await verifyE2eResetTarget(');
+  const schemaDrop = preparation.indexOf("await pool.query('drop schema if exists public cascade');");
+  const install = preparation.indexOf('await pool.query(schemaSql);');
+  const verification = preparation.indexOf('await verifyDatabase(pool, schemaSha256, seedChecksum);');
+  assert.ok(targetGuard >= 0);
+  assert.ok(schemaDrop > targetGuard);
+  assert.ok(install > schemaDrop);
+  assert.ok(verification > install);
+  assert.doesNotMatch(setupSource, /rehearseE2eSchemaContract|terminalContractSql|drop table public\.app_schema_contracts/u);
 });

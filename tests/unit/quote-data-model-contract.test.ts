@@ -7,18 +7,6 @@ const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
 const canonicalSchema = source('database/schema.sql');
-const deployment = source(
-  'database/migrations/20260828_quote_workflow_and_order_contract.sql'
-);
-const requestManagementDeployment = source(
-  'database/migrations/20260829_quote_request_management.sql'
-);
-const clarificationEmailDeployment = source(
-  'database/migrations/20260830_quote_clarification_email.sql'
-);
-const optionalAcceptanceTermsDeployment = source(
-  'database/migrations/20260901_quote_optional_acceptance_terms.sql'
-);
 
 function TypeScriptFilesUnder(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -36,70 +24,9 @@ function tableDefinition(sql: string, tableName: string): string {
   return match[1].replaceAll(/\s+/gu, ' ').trim();
 }
 
-function constantSqlTextArray(sql: string, variableName: string): string[] {
-  const match = sql.match(
-    new RegExp(
-      variableName + '\\s+constant\\s+text\\[\\]\\s*:=\\s*array\\[([\\s\\S]*?)\\];',
-      'u'
-    )
-  );
-  assert.ok(match, 'missing ' + variableName);
-  return Array.from(match[1].matchAll(/'([^']+)'/gu), (entry) => entry[1]);
-}
-
-test('canonical and original additive quote table definitions stay aligned before later evolutions', () => {
-  for (const tableName of [
-    'order_stock_holds',
-    'quote_number_counters',
-    'quote_request_items',
-    'quote_offer_version_items',
-    'quote_offer_acceptances',
-    'quote_documents',
-    'quote_document_jobs',
-    'quote_access_tokens',
-    'quote_request_idempotency_keys',
-    'quote_response_idempotency_keys',
-    'quote_email_verifications',
-    'quote_rate_limits',
-    'quote_email_settings'
-  ]) {
-    assert.equal(
-      tableDefinition(deployment, tableName),
-      tableDefinition(canonicalSchema, tableName),
-      tableName + ' differs between the clean schema and additive deployment'
-    );
-  }
-
-  const originalOfferVersions = tableDefinition(
-    deployment,
-    'quote_offer_versions'
-  );
-  const expectedEvolvedOfferVersions = originalOfferVersions.replace(
-    " and nullif(btrim(terms_text), '') is not null",
-    ''
-  );
-  assert.equal(
-    tableDefinition(canonicalSchema, 'quote_offer_versions'),
-    expectedEvolvedOfferVersions,
-    'quote_offer_versions differs beyond the reviewed optional acceptance-terms evolution'
-  );
-});
 
 test('issued offers may omit free-text acceptance terms without weakening other identity evidence', () => {
   const offerVersions = tableDefinition(canonicalSchema, 'quote_offer_versions');
-  const replacementStart = optionalAcceptanceTermsDeployment.indexOf(
-    'alter table quote_offer_versions'
-  );
-  const postflightStart = optionalAcceptanceTermsDeployment.indexOf(
-    '\ndo $$',
-    replacementStart
-  );
-  assert.ok(replacementStart >= 0, 'missing quote-offer constraint replacement');
-  assert.ok(postflightStart > replacementStart, 'missing quote-offer migration postflight');
-  const replacement = optionalAcceptanceTermsDeployment.slice(
-    replacementStart,
-    postflightStart
-  );
 
   for (const requiredIdentityRule of [
     /valid_until is not null/u,
@@ -111,119 +38,20 @@ test('issued offers may omit free-text acceptance terms without weakening other 
     /content_hash is not null/u
   ]) {
     assert.match(offerVersions, requiredIdentityRule);
-    assert.match(replacement, requiredIdentityRule);
   }
   assert.doesNotMatch(
     offerVersions,
     /nullif\(btrim\(terms_text\), ''\) is not null/u
   );
-  assert.doesNotMatch(replacement, /\bterms_text\b/u);
-  assert.match(optionalAcceptanceTermsDeployment, /^begin;/mu);
-  assert.match(optionalAcceptanceTermsDeployment, /pg_advisory_xact_lock/u);
-  assert.match(
-    optionalAcceptanceTermsDeployment,
-    /installed_constraint_oid[\s\S]*?installed_constraint_definition/u
-  );
-  assert.match(
-    optionalAcceptanceTermsDeployment,
-    /drop constraint quote_offer_versions_issue_identity_check[\s\S]*?add constraint quote_offer_versions_issue_identity_check/u
-  );
-  assert.match(optionalAcceptanceTermsDeployment, /commit;\s*$/u);
 });
 
-test('clarification email evolves the outbox event constraint through a reviewed migration', () => {
+test('canonical outbox permits clarification email events', () => {
   const emailJobs = tableDefinition(canonicalSchema, 'quote_email_jobs');
-  const predecessorEventTypes = constantSqlTextArray(
-    clarificationEmailDeployment,
-    'predecessor_event_types'
-  );
-  const targetEventTypes = constantSqlTextArray(
-    clarificationEmailDeployment,
-    'target_event_types'
-  );
-  const expectedPredecessorEventTypes = [
-    'quote_acceptance_blocked_stock',
-    'quote_accepted',
-    'quote_access_otp',
-    'quote_declined',
-    'quote_delivery_failed',
-    'quote_expired',
-    'quote_issued',
-    'quote_request_closed',
-    'quote_request_submitted',
-    'quote_withdrawn'
-  ];
 
   assert.match(emailJobs, /quote_clarification_requested/u);
-  assert.match(clarificationEmailDeployment, /^begin;/mu);
-  assert.match(clarificationEmailDeployment, /pg_advisory_xact_lock/u);
-  assert.match(
-    clarificationEmailDeployment,
-    /alter table quote_email_jobs[\s\S]*?drop constraint[\s\S]*?quote_email_jobs_event_type_check/u
-  );
-  assert.match(
-    clarificationEmailDeployment,
-    /add constraint quote_email_jobs_event_type_check[\s\S]*?quote_clarification_requested/u
-  );
-  assert.deepEqual(predecessorEventTypes, expectedPredecessorEventTypes);
-  assert.deepEqual(
-    targetEventTypes,
-    [...expectedPredecessorEventTypes, 'quote_clarification_requested'].sort()
-  );
-  assert.match(clarificationEmailDeployment, /installed_constraint_oid oid/u);
-  assert.match(clarificationEmailDeployment, /installed_event_types text\[\]/u);
-  assert.match(
-    clarificationEmailDeployment,
-    /array_agg\(distinct \(captured\.matches\)\[1\] order by \(captured\.matches\)\[1\]\)/u
-  );
-  assert.match(
-    clarificationEmailDeployment,
-    /regexp_matches\([\s\S]*?pg_get_constraintdef\(installed_constraint_oid, true\)[\s\S]*?captured\(matches\)/u
-  );
-  assert.match(
-    clarificationEmailDeployment,
-    /installed_event_types is distinct from predecessor_event_types[\s\S]*?installed_event_types is distinct from target_event_types/u
-  );
-  const postflight = clarificationEmailDeployment.slice(
-    clarificationEmailDeployment.indexOf('alter table quote_email_jobs')
-  );
-  assert.match(
-    postflight,
-    /installed_event_types is distinct from target_event_types/u
-  );
-  assert.doesNotMatch(clarificationEmailDeployment, /position\(/u);
-  assert.match(clarificationEmailDeployment, /commit;\s*$/u);
-});test('manual intake and logical void evolve requests and events through a transactional additive migration', () => {
-  assert.match(requestManagementDeployment, /^begin;/mu);
-  assert.match(requestManagementDeployment, /pg_advisory_xact_lock/u);
-  assert.match(
-    requestManagementDeployment,
-    /alter table quote_requests[\s\S]*?add column if not exists intake_source/u
-  );
-  assert.match(
-    requestManagementDeployment,
-    /add column if not exists voided_at[\s\S]*?add column if not exists voided_by_actor_id[\s\S]*?add column if not exists void_reason/u
-  );
-  assert.match(requestManagementDeployment, /admin_email/u);
-  assert.match(requestManagementDeployment, /admin_testing/u);
-  assert.match(requestManagementDeployment, /request_voided/u);
-  assert.match(
-    requestManagementDeployment,
-    /Quote requests are durable records and cannot be deleted/u
-  );
-  assert.match(
-    requestManagementDeployment,
-    /explicitly tagged test request can be voided/u
-  );
-  assert.match(
-    requestManagementDeployment,
-    /Non-test quote requests with commercial history cannot be voided/u
-  );
-  assert.match(
-    requestManagementDeployment,
-    /customer acceptance, purchase-order evidence, or linked orders cannot be voided/u
-  );
-  assert.match(requestManagementDeployment, /commit;\s*$/u);
+});
+
+test('canonical requests persist manual intake and logical void evidence', () => {
 
   for (const column of [
     'intake_source',
@@ -270,13 +98,8 @@ test('orders persist seller contract evidence and one durable source-offer origi
   );
   // The order definition must permit converted orders; analytics may classify null origins as direct.
   assert.doesNotMatch(tableDefinition(canonicalSchema, 'orders'), /source_quote_offer_version_id is null/u);
-  assert.doesNotMatch(deployment, /source_quote_offer_version_id is null/u);
   assert.match(canonicalSchema, /'order_accepted'/u);
   assert.match(canonicalSchema, /'order_rejected'/u);
-  assert.match(
-    deployment,
-    /alter table order_email_jobs[\s\S]*?order_email_jobs_event_type_check/u
-  );
 });
 
 test('quote snapshots and issued offer history are immutable', () => {
@@ -381,16 +204,6 @@ test('quote credentials, OTP, CSRF, throttling, and replay storage are isolated'
     canonicalSchema,
     /scope in \([\s\S]*?'quote_request'[\s\S]*?'otp_issue'[\s\S]*?'offer_response'/u
   );
-});
-
-test('deployment is transactional, conservative, and never mutates inventory', () => {
-  assert.match(deployment, /^begin;/mu);
-  assert.match(deployment, /pg_advisory_xact_lock/u);
-  assert.match(deployment, /classification', 'conservative_operational_evidence'/u);
-  assert.match(deployment, /inventoryChangedByMigration', false/u);
-  assert.match(deployment, /raise notice 'Legacy stock rows require reconciliation/u);
-  assert.doesNotMatch(deployment, /update\s+catalog_item_variants/iu);
-  assert.match(deployment, /commit;\s*$/u);
 });
 
 test('quote feature flags are independent and default closed', () => {

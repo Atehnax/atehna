@@ -21,13 +21,13 @@ partially replace tables in an existing database or load demonstration data.
    ```
 
    The file owns its `BEGIN`/`COMMIT` transaction. Do not extract individual
-   statements, execute historical upgrade artifacts on this new schema, or
+   statements or
    invoke setup from application requests, builds, or startup.
 3. Run `npm run check:schema-contract`. Then explicitly set `DATABASE_URL` to
    the same verified new target and run `npm run check:database-schema`.
    The checker reads the process environment, does not load a local `.env`
    file, and verifies the database in a read-only transaction. Confirm contract
-   `20260905.analytics-v4` and `installed_via='fresh_schema'`.
+   `20260907.historical-orders-v6` and `installed_via='fresh_schema'`.
 4. Confirm that products, customers, orders, quotes, documents, and delivery
    queues are empty. The schema installs only the real category taxonomy and
    operational defaults. Never run `tests/fixtures/e2e-seed.sql` or the

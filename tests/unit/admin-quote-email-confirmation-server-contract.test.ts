@@ -5,7 +5,7 @@ import test from 'node:test';
 
 const root = process.cwd();
 const read = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), 'utf8');
+  readFileSync(path.join(root, relativePath), 'utf8').replace(/\r\n/gu, '\n');
 
 const resolver = read(
   'src/shared/server/adminCustomerEmailConfirmation.ts'

@@ -36,3 +36,31 @@ export async function commitLogoLibraryChange(
     await client.query('rollback'); throw error;
   }
 }
+
+/** Initialize only fresh settings; preserved libraries never pass through a converter. */
+export async function initializeLogoLibraryTransaction(
+  client: LogoLibraryTransactionClient,
+  createLibrary: () => Promise<LogoLibrary>
+): Promise<LogoLibrary> {
+  await client.query('begin');
+  try {
+    await client.query("select pg_advisory_xact_lock(hashtext('atehna-logo-library-v1'))");
+    const current = await client.query('select config_json from site_logo_settings where key = $1 for update', [LOGO_LIBRARY_SETTINGS_KEY]);
+    if (current.rows[0]) {
+      const library = readLogoLibraryRecord(current.rows[0].config_json);
+      await client.query('commit');
+      return library;
+    }
+    const previous = await client.query('select config_json from site_logo_settings where key = $1 for update', ['website-site-logo']);
+    if (previous.rows.length) {
+      throw new LogoLibraryError('Obstoječe nastavitve logotipa zahtevajo ohranjeno knjižnico logotipov. Pred zagonom obnovite pripravljeno knjižnico; stare nastavitve niso spremenjene.', 503);
+    }
+    const library = readLogoLibraryRecord(await createLibrary());
+    await client.query('insert into site_logo_settings (key, config_json) values ($1, $2::jsonb)', [LOGO_LIBRARY_SETTINGS_KEY, JSON.stringify(library)]);
+    await client.query('commit');
+    return library;
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  }
+}

@@ -2,6 +2,13 @@ name: CI
 
 on:
   pull_request:
+  workflow_dispatch:
+
+# Only disposable PR verification is superseded. Explicit full runs keep their
+# own group, so they cannot cancel each other or a PR candidate.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -28,13 +35,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
-        run: npm run typecheck
-
       - name: Unit and contract tests
         run: npm run test:unit
 
-      - name: Build
+      - name: Restore Next.js compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-${{ runner.arch }}-node20-next-${{ hashFiles('package.json', 'package-lock.json', 'next.config.mjs', 'tsconfig.json', 'postcss.config.mjs', 'tailwind.config.ts', '.github/workflows/ci.yml') }}-${{ hashFiles('src/**', 'public/**', 'database/**', 'tests/**', 'scripts/**') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-node20-next-${{ hashFiles('package.json', 'package-lock.json', 'next.config.mjs', 'tsconfig.json', 'postcss.config.mjs', 'tailwind.config.ts', '.github/workflows/ci.yml') }}-
+
+      # Next 16.3 uses the project-local tsc CLI with this complete tsconfig.
+      # Keep npm run typecheck for fast local feedback, without running it twice here.
+      - name: Build and full-project TypeScript check
         run: npm run build
 
       - name: Upload production build
@@ -104,9 +118,6 @@ jobs:
       - name: Prepare isolated E2E database
         run: npm run e2e:db:prepare
 
-      - name: Rehearse terminal schema contract
-        run: npm run e2e:db:rehearse-contract
-
       - name: Verify configured E2E database contract
         run: npm run check:database-schema
 
@@ -161,16 +172,25 @@ jobs:
           path: all-blob-reports
           merge-multiple: true
 
-      - name: Merge blob reports to HTML
-        run: npx playwright merge-reports --reporter=html all-blob-reports
+      - name: Merge blob reports to HTML and JSON
+        run: PLAYWRIGHT_JSON_OUTPUT_FILE=merged-results.json npx playwright merge-reports --reporter=html,json all-blob-reports
 
-      - name: Create merged and expected JSON inventories
-        run: |
-          PLAYWRIGHT_JSON_OUTPUT_FILE=merged-results.json npx playwright merge-reports --reporter=json all-blob-reports
-          PLAYWRIGHT_JSON_OUTPUT_FILE=expected-tests.json npx playwright test --list --reporter=json
+      - name: Collect expected test inventory
+        run: PLAYWRIGHT_JSON_OUTPUT_FILE=expected-tests.json npx playwright test --list --reporter=json
 
       - name: Verify one passing execution per retained test
         run: npm run e2e:report:verify -- merged-results.json expected-tests.json
+
+      - name: Require successful verification jobs
+        if: always()
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          if [ "$CHECKS_RESULT" != "success" ] || [ "$E2E_RESULT" != "success" ]; then
+            echo "::error::Required jobs did not succeed (checks: $CHECKS_RESULT, e2e: $E2E_RESULT)."
+            exit 1
+          fi
 
       - name: Upload merged HTML report
         if: always()

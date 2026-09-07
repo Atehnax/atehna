@@ -189,13 +189,10 @@ test('voided quote requests are excluded from the list, new badge, detail, and a
   );
 });
 
-test('schema and migration preserve quote durability and void evidence', () => {
+test('canonical schema preserves quote durability and void evidence', () => {
   const schema = source('database/schema.sql');
-  const migration = source(
-    'database/migrations/20260829_quote_request_management.sql'
-  );
 
-  for (const contents of [schema, migration]) {
+  for (const contents of [schema]) {
     assert.match(contents, /intake_source/u);
     assert.match(contents, /admin_email/u);
     assert.match(contents, /admin_testing/u);

@@ -36,7 +36,7 @@ Mapshaper reprojects the declared native CRS to CRS84 longitude/latitude. It sim
 - Render resolution: 53,532 vertices, the same 224 parts and 4 holes.
 - Imported full and rendered geometries, metadata and content-derived version are stored in `analytics_geography_references`.
 - Database staging, validation and active-state publication run transactionally under an advisory lock. A failure preserves the previous reporting reference and records an error. The static file is published using a temporary file and rename.
-- A refresh records `latest_version` while retaining `reporting_version`. Only the first import initializes reporting. Historical orders are never silently reassigned after a source refresh. A new reporting vintage requires an explicit, reviewed reclassification migration; there is deliberately no automatic promotion.
+- A refresh records `latest_version` while retaining `reporting_version`. Only the first import initializes reporting. Historical orders are never silently reassigned after a source refresh. A new reporting vintage requires an explicit, reviewed reclassification operation; there is deliberately no automatic promotion.
 
 The browser receives aggregates and simplified boundaries, never the national address registry or customer coordinates. Full geometry is retained outside `public`, and in the database.
 
@@ -66,15 +66,9 @@ Region counts include their additional region-only orders, but each region's `mu
 
 ## Commands and access
 
-Apply the additive migration with the application's normal migration workflow:
-
-```
-database/migrations/20260905_analytics_geography.sql
-```
-
-This is included in the canonical schema and schema contract v4 together with the business analytics migration.
-
-With the intended database explicitly configured:
+Install the current `database/schema.sql` into a verified empty database, then
+run the repository and read-only database contract checks. Spatial reference
+initialization and normal refresh remain explicit operations against that target.
 
 ```sh
 # Initialize the exact shipped reference without external access:

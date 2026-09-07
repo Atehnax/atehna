@@ -5,7 +5,7 @@ import test from 'node:test';
 import { validateOrderDeliveryPlanForStatus } from '../../src/shared/domain/order/orderDeliveryPlan';
 
 const source = (relativePath: string) =>
-  readFileSync(resolve(process.cwd(), relativePath), 'utf8');
+  readFileSync(resolve(process.cwd(), relativePath), 'utf8').replaceAll('\r\n', '\n');
 
 test('partial delivery requires both current and deferred lines', () => {
   assert.deepEqual(
@@ -50,11 +50,8 @@ test('sent and finished orders cannot retain deferred lines', () => {
   }
 });
 
-test('schema and additive migration preserve existing lines in the current shipment', () => {
+test('canonical schema defaults new lines to the current shipment', () => {
   const schema = source('database/schema.sql');
-  const migration = source(
-    'database/migrations/20260831_order_item_delivery_plan.sql'
-  );
   const types = source('src/shared/domain/order/orderTypes.ts');
   const mapping = source('src/shared/server/orders.ts');
 
@@ -62,14 +59,6 @@ test('schema and additive migration preserve existing lines in the current shipm
   assert.match(schema, /delivery_plan_revision integer not null default 1/u);
   assert.match(schema, /order_delivery_plan_revision integer not null default 1/u);
   assert.match(schema, /order_id, ship_later, id/u);
-  assert.match(
-    migration,
-    /lock table orders, order_items, order_documents in share row exclusive mode/u
-  );
-  assert.match(migration, /add column if not exists ship_later boolean not null default false/u);
-  assert.match(migration, /add column if not exists delivery_plan_revision integer not null default 1/u);
-  assert.match(migration, /add column if not exists order_delivery_plan_revision integer not null default 1/u);
-  assert.match(migration, /item_definition is distinct from 'boolean:NO'/u);
   assert.match(types, /ship_later: boolean/u);
   assert.match(mapping, /ship_later: rawRow\.ship_later === true/u);
 });

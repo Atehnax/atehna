@@ -88,14 +88,11 @@ test('Vercel packages the runtime manifest without database SQL artifacts', () =
     /^database\/schema-contract\.json$/mu
   );
   assert.match(ignoredDatabaseFiles, /^database\/schema\.sql$/mu);
-  assert.match(
-    ignoredDatabaseFiles,
-    /^database\/migrations\/20260903_schema_contract_v1\.sql$/mu
-  );
+
   assert.match(source('.vercelignore'), /^\/database\/\*$/mu);
 });
 
-test('every named manifest requirement is bound to both deployment paths', () => {
+test('every named manifest requirement is bound to the canonical schema', () => {
   const manifest = JSON.parse(source('database/schema-contract.json')) as {
     requirements: {
       extensions: string[];
@@ -140,10 +137,6 @@ test('every named manifest requirement is bound to both deployment paths', () =>
     };
   };
   const schema = source('database/schema.sql');
-  const migration = source(
-    'database/migrations/20260907_schema_contract_v6.sql'
-  );
-  const normalizedMigration = migration.replaceAll("''", "'");
   const requirements = manifest.requirements;
   const requiredNames = new Set([
     ...requirements.extensions,
@@ -162,10 +155,6 @@ test('every named manifest requirement is bound to both deployment paths', () =>
 
   for (const requiredName of requiredNames) {
     assert.ok(schema.includes(requiredName), 'schema is missing ' + requiredName);
-    assert.ok(
-      migration.includes(requiredName),
-      'terminal migration is missing ' + requiredName
-    );
   }
 
   const semanticFragments = new Set([
@@ -186,10 +175,6 @@ test('every named manifest requirement is bound to both deployment paths', () =>
     assert.ok(
       implicitBtree || schema.toLowerCase().includes(fragment.toLowerCase()),
       'schema is missing semantic fragment ' + fragment
-    );
-    assert.ok(
-      normalizedMigration.toLowerCase().includes(fragment.toLowerCase()),
-      'terminal migration is missing semantic fragment ' + fragment
     );
   }
 });
@@ -298,22 +283,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
     { table: 'pricing_stock_model', key: 'default', jsonField: 'formula', jsonType: 'string' },
     { table: 'pricing_stock_model', key: 'default', jsonField: 'parameters', jsonType: 'object' }
   ]);
-
-  const migration = source(
-    'database/migrations/20260907_schema_contract_v6.sql'
-  );
   const checker = source('scripts/check-database-schema.mjs');
-  assert.match(migration, /installed\.column_default/u);
-  assert.match(migration, /required\.default_equals/u);
-  assert.doesNotMatch(migration, /required\.default_fragments/u);
-  assert.match(
-    migration,
-    /jsonb_typeof\(config_json -> 'stockEnforcementEnabled'\) = 'boolean'/u
-  );
-  assert.doesNotMatch(
-    migration,
-    /config_json -> 'stockEnforcementEnabled'\s*=\s*'true'::jsonb/u
-  );
   assert.match(checker, /column_default/u);
   assert.match(checker, /matchesRequiredDefault/u);
   assert.match(checker, /normalizedSqlDefinition\(expected\.defaultEquals\)/u);
@@ -382,27 +352,13 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
     assert.ok(['text', 'trigger'].includes(routine.returns));
     assert.ok(routine.definitionIncludes.length >= 2);
   }
-
-  const migration = source(
-    'database/migrations/20260907_schema_contract_v6.sql'
-  );
   const checker = source('scripts/check-database-schema.mjs');
-  assert.match(migration, /pg_get_indexdef/u);
-  assert.match(migration, /pg_get_triggerdef/u);
-  assert.match(migration, /public\.digest\(\s*convert_to\(/u);
-  assert.match(migration, /installed\.proconfig is not distinct from required\.configuration/u);
-  assert.match(migration, /installed\.contype = required\.constraint_type/u);
-  assert.match(migration, /btrim\(required\.definition_equals\)/u);
   assert.match(checker, /pg_get_indexdef/u);
   assert.match(checker, /pg_get_triggerdef/u);
   assert.match(checker, /function normalizedFunctionBody/u);
   assert.match(
     checker,
     /update\(normalizedFunctionBody\(actual\.body\), 'utf8'\)/u
-  );
-  assert.match(
-    migration,
-    /replace\(\s*replace\(installed\.prosrc, chr\(13\) \|\| chr\(10\), chr\(10\)\),\s*chr\(13\),\s*chr\(10\)\s*\)/u
   );
   assert.match(checker, /routine\.proconfig as configuration/u);
   assert.match(checker, /constraint_record\.contype as constraint_type/u);
@@ -411,64 +367,24 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
     checker,
     /function normalizedSqlDefinition\(definition\) \{\s*return definition\.trim\(\)\.replace\(\/\\s\+\/gu, ' '\);\s*\}/u
   );
-  assert.doesNotMatch(
-    migration,
-    /lower\([\s\S]{0,120}required\.definition_equals/u
-  );
 });
 
-test('fresh schema records only its terminal compatibility contract', () => {
+test('fresh schema records its contract after every object in one transaction', () => {
   const schema = source('database/schema.sql');
   const ledgerCreateAt = schema.indexOf('create table app_schema_contracts');
-  const terminalObjectAt = schema.lastIndexOf('create index orders_gurs_house_number_id_idx');
+  const terminalObjectAt = schema.lastIndexOf('create trigger catalog_variant_pricing_stock_history');
   const contractInsertAt = schema.lastIndexOf('insert into app_schema_contracts');
   const commitAt = schema.lastIndexOf('commit;');
 
   assert.ok(ledgerCreateAt > schema.indexOf('create extension if not exists pgcrypto'));
   assert.ok(contractInsertAt > terminalObjectAt);
   assert.ok(commitAt > contractInsertAt);
+  assert.equal(schema.match(/^begin;/gmu)?.length, 1);
+  assert.equal(schema.match(/^commit;/gmu)?.length, 1);
   assert.match(schema, new RegExp(contractId, 'u'));
   assert.match(schema, new RegExp(contractSha256, 'u'));
   assert.match(schema, /'fresh_schema'/u);
   assert.doesNotMatch(schema, /202608(?:28|29|30|31)_|20260901_/u);
-});
-
-test('legacy deployment verifies terminal postconditions before recording the contract', () => {
-  const migration = source(
-    'database/migrations/20260907_schema_contract_v6.sql'
-  );
-  const verificationEndAt = migration.lastIndexOf('$contract_verification$;');
-  const ledgerCreateAt = migration.indexOf(
-    'create table if not exists app_schema_contracts'
-  );
-  const ledgerShapeEndAt = migration.lastIndexOf('$contract_ledger_shape$;');
-  const contractInsertAt = migration.lastIndexOf('insert into app_schema_contracts');
-
-  assert.match(migration, /\nbegin;[\s\S]*\ncommit;\s*$/u);
-  assert.match(migration, /set local search_path = public, pg_temp/u);
-  assert.match(migration, /pg_advisory_xact_lock/u);
-  assert.match(migration, /information_schema\.columns/u);
-  assert.match(migration, /pg_get_constraintdef/u);
-  assert.match(migration, /installed\.convalidated/u);
-  assert.match(migration, /installed\.indisvalid/u);
-  assert.match(migration, /installed\.indisready/u);
-  assert.match(migration, /installed\.tgenabled = 'O'/u);
-  assert.match(
-    migration,
-    /inventory_policy_settings[\s\S]*stockEnforcementEnabled[\s\S]*jsonb_typeof/u
-  );
-  assert.ok(verificationEndAt > migration.indexOf('do $contract_verification$'));
-  assert.ok(ledgerCreateAt > verificationEndAt);
-  assert.ok(ledgerShapeEndAt > ledgerCreateAt);
-  assert.ok(contractInsertAt > ledgerShapeEndAt);
-  assert.match(migration, /app_schema_contracts_pkey/u);
-  assert.match(migration, /app_schema_contracts_checksum_check/u);
-  assert.match(migration, /app_schema_contracts_installation_check/u);
-  assert.match(migration, /installed\.convalidated/u);
-  assert.match(migration, new RegExp(contractId, 'u'));
-  assert.match(migration, new RegExp(contractSha256, 'u'));
-  assert.match(migration, /'existing_database'/u);
-  assert.doesNotMatch(migration, /202608(?:28|29|30|31)_|20260901_/u);
 });
 
 test('database checker is read-only and requires the exact contract row', () => {
@@ -508,8 +424,6 @@ test('v4 requires retired analytics to be absent and persistent diagnostics to e
   assert.deepEqual(manifest.requirements.absentFunctions, ['set_analytics_charts_updated_at']);
   assert.ok(manifest.requirements.tables.includes('diagnostics_events'));
   assert.ok(manifest.requirements.tables.includes('retired_configuration_archive'));
-  const migration = source('database/migrations/20260905_analytics_retirement.sql');
-  assert.ok(migration.indexOf('archive.payload is distinct from to_jsonb(source)') < migration.indexOf('drop table if exists analytics_charts'));
   const checker = source('scripts/check-database-schema.mjs');
   assert.ok(checker.includes('requirements.absentTables'));
   assert.ok(checker.includes('requirements.absentFunctions'));
@@ -530,8 +444,5 @@ test('v6 binds durable history, provenance and the absence of trash expiry defau
   }
   const historicalCheck = manifest.requirements.constraints.find((constraint: {name: string}) => constraint.name === 'orders_historical_guard_check');
   assert.match(historicalCheck.definitionEquals, /NOT .*IS DISTINCT FROM.*manual/iu);
-  const terminal = source('database/migrations/20260907_schema_contract_v6.sql');
-  assert.doesNotMatch(terminal, /47edc41a9a2dc390a73f375af91f13e3d7885f9f4bae764219b0fdd987473cfe/u);
-  assert.match(terminal, /actual.column_default is distinct from requirement->>'defaultEquals'/u);
   assert.match(source('scripts/check-database-schema.mjs'), /expected.defaultEquals === null.*actual === null/u);
 });

@@ -1,5 +1,7 @@
 'use client';
 
+import { numeric } from '../../lib/formatting';
+
 import { adminAnalyticsPanelClassName } from '@/shared/ui/theme/tokens';
 
 import { useState } from 'react';
@@ -7,9 +9,6 @@ import type { ReactNode } from 'react';
 import type { Data, Layout, PlotMouseEvent } from 'plotly.js';
 import Plot from '../charts/PlotlyClient';
 
-export const eur = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? '—' : new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(value);
-export const numeric = (value: number | null | undefined, digits = 2) => value == null || !Number.isFinite(value) ? '—' : new Intl.NumberFormat('sl-SI', { maximumFractionDigits: digits }).format(value);
-export const percent = (value: number | null | undefined) => value == null || !Number.isFinite(value * 100) ? '—' : numeric(value * 100, 1) + ' %';
 export const palette = ['#15803d', '#2563eb', '#b45309', '#7c3aed', '#0891b2'];
 export type Drill = Record<string, string>;
 export type TableRow = { values: Array<string | number | null>; drill?: Drill; href?: string };

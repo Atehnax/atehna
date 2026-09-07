@@ -56,15 +56,6 @@ export type OrderEstimate = {
   quoteFingerprint: string;
 };
 
-/** @deprecated Use OrderEstimateRequest. */
-export type OrderQuoteRequest = OrderEstimateRequest;
-/** @deprecated Use OrderEstimateItem. */
-export type OrderQuoteItem = OrderEstimateItem;
-/** @deprecated Use OrderEstimateTotals. */
-export type OrderQuoteTotals = OrderEstimateTotals;
-/** @deprecated Use OrderEstimate. */
-export type OrderQuote = OrderEstimate;
-
 export type OrderConfirmationItem = OrderEstimateItem & {
   lineListNet: number;
   lineDiscountNet: number;
@@ -234,9 +225,6 @@ export function isOrderEstimate(value: unknown): value is OrderEstimate {
     Math.round(totals.shipping * 100) === record.shipping.finalAmountCents
   );
 }
-
-/** @deprecated Use isOrderEstimate. */
-export const isOrderQuote = isOrderEstimate;
 
 export function parseOrderApiError(
   value: unknown,

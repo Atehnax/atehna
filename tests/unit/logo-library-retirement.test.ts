@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { GET, PUT } from '@/admin/api/site-logo/route';
 import { LOGO_OUTPUT_DIMENSIONS } from '@/shared/domain/logo/logoOutputDimensions';
-import { SITE_LOGO_PURPOSE_CATALOG } from '@/shared/domain/logo/siteLogo';
 
 const source = (name: string) => readFileSync(resolve(process.cwd(), name), 'utf8');
 
@@ -35,8 +34,18 @@ test('public consumers use the published projection and metadata dimensions rema
     'src/commercial/components/SiteLogo.tsx', 'src/commercial/components/SiteHeader.tsx',
     'src/commercial/components/SiteFooter.tsx', 'src/app/api/site-logo/[purpose]/route.ts'
   ]) assert.doesNotMatch(source(name), /domain\/logo\/siteLogo|SiteLogoArtwork|getSiteLogoConfig|resolveCachedSiteLogoArtwork/u, name);
-  for (const [purpose, dimensions] of Object.entries(LOGO_OUTPUT_DIMENSIONS)) {
-    const legacy = SITE_LOGO_PURPOSE_CATALOG[purpose as keyof typeof SITE_LOGO_PURPOSE_CATALOG];
-    assert.deepEqual(dimensions, { widthPx: legacy.widthPx, heightPx: legacy.heightPx });
-  }
+  assert.deepEqual(LOGO_OUTPUT_DIMENSIONS, {
+    'header-desktop': { widthPx: 176, heightPx: 48 },
+    'header-tablet': { widthPx: 144, heightPx: 44 },
+    'header-mobile': { widthPx: 112, heightPx: 40 },
+    'footer-desktop': { widthPx: 176, heightPx: 56 },
+    'footer-tablet': { widthPx: 160, heightPx: 52 },
+    'footer-mobile': { widthPx: 144, heightPx: 48 },
+    standalone: { widthPx: 512, heightPx: 230 },
+    'pdf-document': { widthPx: 946, heightPx: 300 },
+    favicon: { widthPx: 48, heightPx: 48 },
+    'apple-touch-icon': { widthPx: 180, heightPx: 180 },
+    'pwa-maskable': { widthPx: 512, heightPx: 512 },
+    'social-share': { widthPx: 1200, heightPx: 630 }
+  });
 });

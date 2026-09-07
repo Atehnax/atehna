@@ -1,26 +1,32 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+
 import { createHash } from 'node:crypto';
+
 import { readFileSync } from 'node:fs';
+
 import { resolve } from 'node:path';
+
 import test from 'node:test';
+
 import sharp from 'sharp';
 
 const brandPath = (filename: string) => resolve(process.cwd(), 'public/brand', filename);
+
 const primaryMaskPath = brandPath('atehna-logo-primary-mask.png');
+
 const secondaryMaskPath = brandPath('atehna-logo-secondary-mask.png');
+
 const taglineMaskPath = brandPath('atehna-logo-tagline-mask.png');
+
 const artworkMaskPath = brandPath('atehna-logo-artwork-mask.png');
+
 const generatorSource = readFileSync(
   resolve(process.cwd(), 'scripts/generate-atehna-logo-masks.mjs'),
   'utf8'
 );
+
 const clientArtworkSource = readFileSync(
   resolve(process.cwd(), 'src/commercial/components/SiteLogo.tsx'),
-  'utf8'
-);
-const serverArtworkSource = readFileSync(
-  resolve(process.cwd(), 'src/shared/server/siteLogoArtworkCore.ts'),
   'utf8'
 );
 
@@ -148,58 +154,9 @@ test('the primary mask owns the full final A without overlap or holes', async ()
   assert.ok(at(secondary, 1630, 360) > 0, 'The authentic d.o.o. suffix must remain in the secondary tone.');
 });
 
-test('published client needs no masks while the migration renderer reproduces original alpha exactly', () => {
-  assert.match(
-    clientArtworkSource,
-    /asset.pngUrl/u
-  );
+test('published client needs no masks and the retained asset generator preserves glyph ownership', () => {
+  assert.match(clientArtworkSource, /asset.pngUrl/u);
   assert.doesNotMatch(clientArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS/u);
-  assert.match(serverArtworkSource, /SITE_LOGO_BUILTIN_MASK_URLS\[key\]/u);
-  assert.match(serverArtworkSource, /builtInTextLayerMask\(\s*masks,\s*'secondaryText'/u);
-  assert.match(serverArtworkSource, /coloredMask\(secondaryWorkspaceMask/u);
   assert.match(generatorSource, /FINAL_A_RIGHT_FACE_X = 1501/u);
   assert.match(generatorSource, /retainedComponents\.length !== 12 \|\| suffixLabels\.size !== 6/u);
-
-  const script = String.raw`
-    const { renderBuiltInAtehnaLogoArtwork } = await import('./src/shared/server/siteLogoArtworkCore.ts');
-    const sharp = (await import('sharp')).default;
-    const presentation = {
-      backgroundColor: '#000000',
-      taglineBackgroundColor: '#000000',
-      primaryTextColor: '#000000',
-      secondaryTextColor: '#FFFFFF',
-      taglineTextColor: '#000000',
-      outline: { enabled: false, color: '#000000', widthPx: 0 },
-      shadow: { enabled: false, color: '#000000', opacity: 0, blurPx: 0, offsetXpx: 0, offsetYpx: 0 }
-    };
-    const [rendered, mask] = await Promise.all([
-      sharp(await renderBuiltInAtehnaLogoArtwork(presentation)).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
-      sharp('./public/brand/atehna-logo-secondary-mask.png').ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-    ]);
-    let mismatches = 0;
-    for (let index = 0; index < rendered.info.width * rendered.info.height; index += 1) {
-      const expected = mask.data[index * mask.info.channels + 3];
-      for (let channel = 0; channel < 3; channel += 1) {
-        if (rendered.data[index * rendered.info.channels + channel] !== expected) mismatches += 1;
-      }
-    }
-    process.stdout.write(JSON.stringify({
-      mismatches,
-      width: rendered.info.width,
-      height: rendered.info.height
-    }));
-  `;
-  const parity = JSON.parse(execFileSync(process.execPath, [
-    '--conditions=react-server',
-    '--import',
-    'tsx',
-    '--input-type=module',
-    '--eval',
-    script
-  ], {
-    cwd: process.cwd(),
-    encoding: 'utf8'
-  })) as { mismatches: number; width: number; height: number };
-
-  assert.deepEqual(parity, { mismatches: 0, width: 1873, height: 840 });
 });

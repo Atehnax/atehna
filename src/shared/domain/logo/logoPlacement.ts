@@ -1,9 +1,7 @@
 import type { LogoBounds, PublishedLogoAsset } from './logoLibrary';
 import {
-  normalizeSiteNavigationConfig,
   SITE_NAVIGATION_TOP_BAR_LOGO_WIDTH_PX,
   SITE_NAVIGATION_TOP_BAR_SEARCH_COLLAPSED_WIDTH_PX,
-  type SiteNavigationConfig,
   type SiteNavigationTopBarDevice,
   type SiteNavigationTopBarResponsiveLayout
 } from '@/shared/domain/navigation/siteNavigation';
@@ -97,32 +95,4 @@ export function resizeHeaderLogo(
       ...(item.region === 'center' ? { anchorWidthPx: previousAnchorWidth } : {})
     })
   };
-}
-
-/** One-time migration of existing placement sizing into navigation's ownership. */
-export function migrateLogoNavigationConstraints(navigationInput: unknown, previousLogoInput: unknown): SiteNavigationConfig {
-  const navigation = normalizeSiteNavigationConfig(navigationInput);
-  const old = previousLogoInput && typeof previousLogoInput === 'object'
-    ? previousLogoInput as { placements?: Record<string, { displayHeightPx?: unknown }> } : {};
-  const ratios = { desktop: 176 / 48, tablet: 144 / 44, mobile: 112 / 40 };
-  for (const key of ['topBarLayout', 'topBarInitialLayout'] as const) {
-    for (const device of ['desktop', 'tablet', 'mobile'] as const) {
-      const layout = navigation[key].responsive[device];
-      const oldHeight = old.placements?.['header-' + device]?.displayHeightPx;
-      const explicit = typeof oldHeight === 'number' && Number.isFinite(oldHeight);
-      const height = explicit ? Math.max(8, Math.min(64, oldHeight)) : HEADER_LOGO_DEFAULT_HEIGHTS[device];
-      layout.settings.logoHeightPx = height;
-      if (explicit) {
-        const item = layout.items.find(candidate => candidate.id === 'logo');
-        if (item) {
-          const previousWidth = Math.max(item.widthPx, item.fixedWidthPx ?? 0, 88);
-          const width = Math.max(previousWidth, height * ratios[device] + HEADER_LOGO_LINK_PADDING_PX);
-          if (item.region === 'center' && width > previousWidth) item.anchorWidthPx = item.anchorWidthPx ?? previousWidth;
-          item.widthPx = width;
-          item.fixedWidthPx = width;
-        }
-      }
-    }
-  }
-  return navigation;
 }

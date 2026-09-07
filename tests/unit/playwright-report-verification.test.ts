@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -141,3 +142,72 @@ for (const scenario of invalidCases) {
     assert.match(result.stderr, scenario.message);
   });
 }
+
+
+type GateStep = { name: string; if?: string; run?: string; id?: string };
+async function reportJob() {
+  const { load } = createRequire(import.meta.url)('js-yaml');
+  const workflow = load(await readFile(resolve('.github/workflows/ci.yml'), 'utf8'));
+  return workflow.jobs['e2e-report'] as {
+    if: string;
+    'timeout-minutes': number;
+    steps: GateStep[];
+  };
+}
+
+function executeGate(step: GateStep, values: Record<string, string>) {
+  const bash = process.platform === 'win32'
+    ? join(process.env.ProgramFiles ?? 'C:/Program Files', 'Git/usr/bin/bash.exe')
+    : 'bash';
+  assert.ok(step.run, `Missing gate command: ${step.name}`);
+  const result = spawnSync(bash, ['--noprofile', '--norc', '-c', step.run], {
+    encoding: 'utf8', env: { ...process.env, ...values }
+  });
+  assert.ifError(result.error);
+  return result;
+}
+
+test('required report gate remains scheduled after cancellation and is bounded', async () => {
+  const job = await reportJob();
+  assert.equal(job.if, '${{ always() }}');
+  assert.ok(job['timeout-minutes'] > 0 && job['timeout-minutes'] <= 10);
+  assert.equal(job.steps[0].name, 'Reject cancellation before report setup');
+  assert.equal(job.steps[0].if, 'cancelled()');
+  assert.equal(job.steps[1].name, 'Require successful verification jobs');
+  assert.equal(job.steps[1].if, 'always()');
+  const cancelledGate = job.steps.at(-1);
+  assert.ok(cancelledGate);
+  assert.equal(cancelledGate.if, 'cancelled()');
+  for (const step of [job.steps[0], cancelledGate]) {
+    const result = executeGate(step, {});
+    assert.equal(result.status, 1, result.stderr);
+  }
+  const verifyIndex = job.steps.findIndex((step) => step.id === 'verify-report');
+  const finalIndex = job.steps.findIndex((step) => step.name === 'Require a complete verified report');
+  assert.ok(verifyIndex > 0 && finalIndex > verifyIndex);
+  assert.equal(job.steps[finalIndex].if, 'always()');
+});
+
+test('required report gate rejects every incomplete prerequisite combination before setup', async () => {
+  const job = await reportJob();
+  const states = ['success', 'failure', 'cancelled', 'skipped', ''];
+  for (const checks of states) {
+    for (const e2e of states) {
+      const result = executeGate(job.steps[1], {
+        CHECKS_RESULT: checks, E2E_RESULT: e2e
+      });
+      assert.equal(result.status, checks === 'success' && e2e === 'success' ? 0 : 1, result.stderr);
+    }
+  }
+
+});
+
+test('final report gate rejects missing or unsuccessful report verification', async () => {
+  const job = await reportJob();
+  const gate = job.steps.find((step) => step.name === 'Require a complete verified report');
+  assert.ok(gate);
+  for (const report of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    const result = executeGate(gate, { REPORT_RESULT: report });
+    assert.equal(result.status, report === 'success' ? 0 : 1, result.stderr);
+  }
+});

@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260906.pricing-stock-v5';
+const contractId = '20260907.historical-orders-v6';
 const contractSha256 =
-  '734e6783336185c47794343094842fa51474ee0f384b8a702f64220ac08528bd';
+  '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -47,7 +47,7 @@ test('schema manifest carries a deterministic requirements checksum', () => {
       /^create table ([a-z0-9_]+) \(/gmu
     )
   ].map((match) => match[1]).sort();
-  assert.equal(manifest.requirements.tables.length, 69);
+  assert.equal(manifest.requirements.tables.length, 71);
   assert.deepEqual(
     [...manifest.requirements.tables, 'app_schema_contracts'].sort(),
     schemaTables
@@ -103,7 +103,7 @@ test('every named manifest requirement is bound to both deployment paths', () =>
       columns: Array<{
         table: string;
         name: string;
-        defaultEquals?: string;
+        defaultEquals?: string | null;
         defaultIncludes?: string[];
       }>;
       constraints: Array<{
@@ -141,7 +141,7 @@ test('every named manifest requirement is bound to both deployment paths', () =>
   };
   const schema = source('database/schema.sql');
   const migration = source(
-    'database/migrations/20260906_schema_contract_v5.sql'
+    'database/migrations/20260907_schema_contract_v6.sql'
   );
   const normalizedMigration = migration.replaceAll("''", "'");
   const requirements = manifest.requirements;
@@ -179,8 +179,12 @@ test('every named manifest requirement is bound to both deployment paths', () =>
     ...requirements.settings.map((entry) => entry.jsonType)
   ]);
   for (const fragment of semanticFragments) {
+    // PostgreSQL emits USING btree for primary keys and omitted index methods.
+    const implicitBtree = fragment === 'btree'
+      && requirements.indexes.filter((entry) => entry.definitionIncludes.includes(fragment))
+        .every((entry) => entry.definitionEquals.includes('USING btree'));
     assert.ok(
-      schema.toLowerCase().includes(fragment.toLowerCase()),
+      implicitBtree || schema.toLowerCase().includes(fragment.toLowerCase()),
       'schema is missing semantic fragment ' + fragment
     );
     assert.ok(
@@ -196,7 +200,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
       columns: Array<{
         table: string;
         name: string;
-        defaultEquals?: string;
+        defaultEquals?: string | null;
         defaultIncludes?: string[];
       }>;
       settings: Array<Record<string, unknown>>;
@@ -245,6 +249,14 @@ test('contract requires insert defaults while treating inventory policy as mutab
       ])
   );
   assert.deepEqual(exactDefaults, {
+    "business_analytics_settings.revision": "0",
+    "business_analytics_settings.updated_at": "now()",
+    "deleted_archive_entries.expires_at": null,
+    "order_historical_changes.id": "nextval('order_historical_changes_id_seq'::regclass)",
+    "order_historical_changes.changed_at": "clock_timestamp()",
+    "orders.is_historical": "false",
+    "orders.recorded_at": "clock_timestamp()",
+    "orders.historical_revision": "0",
     'catalog_item_variants.stock_revision': '0',
     'catalog_item_variants.pricing_revision': '0',
     'pricing_stock_history.id': "nextval('pricing_stock_history_id_seq'::regclass)",
@@ -288,7 +300,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
   ]);
 
   const migration = source(
-    'database/migrations/20260906_schema_contract_v5.sql'
+    'database/migrations/20260907_schema_contract_v6.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /installed\.column_default/u);
@@ -372,7 +384,7 @@ test('contract binds exact constraint semantics, indexes, triggers, and guard bo
   }
 
   const migration = source(
-    'database/migrations/20260906_schema_contract_v5.sql'
+    'database/migrations/20260907_schema_contract_v6.sql'
   );
   const checker = source('scripts/check-database-schema.mjs');
   assert.match(migration, /pg_get_indexdef/u);
@@ -423,7 +435,7 @@ test('fresh schema records only its terminal compatibility contract', () => {
 
 test('legacy deployment verifies terminal postconditions before recording the contract', () => {
   const migration = source(
-    'database/migrations/20260906_schema_contract_v5.sql'
+    'database/migrations/20260907_schema_contract_v6.sql'
   );
   const verificationEndAt = migration.lastIndexOf('$contract_verification$;');
   const ledgerCreateAt = migration.indexOf(
@@ -501,4 +513,25 @@ test('v4 requires retired analytics to be absent and persistent diagnostics to e
   const checker = source('scripts/check-database-schema.mjs');
   assert.ok(checker.includes('requirements.absentTables'));
   assert.ok(checker.includes('requirements.absentFunctions'));
+});
+
+
+test('v6 binds durable history, provenance and the absence of trash expiry defaults', () => {
+  const manifest = JSON.parse(source('database/schema-contract.json'));
+  assert.deepEqual(
+    manifest.requirements.columns.find((column: {table: string; name: string}) =>
+      column.table === 'deleted_archive_entries' && column.name === 'expires_at'),
+    {table: 'deleted_archive_entries', name: 'expires_at', dataType: 'timestamp with time zone', nullable: true, defaultEquals: null}
+  );
+  assert.deepEqual(manifest.requirements.requiredRows, [{table: 'business_analytics_settings', key: 'default'}]);
+  for (const guard of ['protect_order_entry_evidence', 'reject_historical_order_stock_hold', 'protect_order_audit_history', 'protect_historical_change_log']) {
+    assert.ok(manifest.requirements.functions.some((routine: {name: string}) => routine.name === guard));
+    assert.ok(manifest.requirements.triggers.some((trigger: {function: string}) => trigger.function === guard));
+  }
+  const historicalCheck = manifest.requirements.constraints.find((constraint: {name: string}) => constraint.name === 'orders_historical_guard_check');
+  assert.match(historicalCheck.definitionEquals, /NOT .*IS DISTINCT FROM.*manual/iu);
+  const terminal = source('database/migrations/20260907_schema_contract_v6.sql');
+  assert.doesNotMatch(terminal, /47edc41a9a2dc390a73f375af91f13e3d7885f9f4bae764219b0fdd987473cfe/u);
+  assert.match(terminal, /actual.column_default is distinct from requirement->>'defaultEquals'/u);
+  assert.match(source('scripts/check-database-schema.mjs'), /expected.defaultEquals === null.*actual === null/u);
 });

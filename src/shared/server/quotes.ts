@@ -1,3 +1,4 @@
+import { normalizeManualDraftCustomer } from '@/shared/domain/order/manualDraftCustomer';
 import { getPool } from '@/shared/server/db';
 import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import { instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
@@ -159,6 +160,7 @@ function mapQuoteListDocuments(value: unknown): AdminQuoteListRow['downloadableD
 }
 
 function mapQuoteListRow(row: RawRow): AdminQuoteListRow {
+  row = normalizeManualDraftCustomer(row, 'quote');
   const organizationName = toText(row.organization_name).trim();
   const contactName = toText(row.contact_name).trim();
   const customerType = toText(row.customer_type);
@@ -394,6 +396,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
             qr.request_number,
             qr.status,
             qr.state_version,
+            qr.intake_source,
             qr.customer_type,
             qr.organization_name,
             qr.contact_name,
@@ -402,6 +405,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
             qr.address_line2,
             qr.postal_code,
             qr.city,
+            qr.gurs_house_number_id,
             qr.country_code,
             qr.reference,
             qr.quote_reason,
@@ -551,7 +555,8 @@ export async function fetchAdminQuoteDetail(quoteRequestId: number): Promise<Adm
         `,
         [quoteRequestId]
       );
-      const request = requestResult.rows[0] as RawRow | undefined;
+      const storedRequest = requestResult.rows[0] as RawRow | undefined;
+      const request = storedRequest ? normalizeManualDraftCustomer(storedRequest, 'quote') : undefined;
       if (!request) {
         await client.query('commit');
         return null;

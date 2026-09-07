@@ -6,6 +6,7 @@ import type { BusinessAnalyticsResponse } from '@/shared/domain/analytics/busine
 type PreviewRequest<Summary> = {
   range: string;
   asOf: string;
+  extraQuery: string;
   summary: Summary | null;
   failed: boolean;
 };
@@ -14,7 +15,8 @@ type PreviewRequest<Summary> = {
 export function useBusinessPreviewRange<Summary extends Record<string, number | null>>(
   initial: Summary,
   asOf: string,
-  project: (response: BusinessAnalyticsResponse) => Summary
+  project: (response: BusinessAnalyticsResponse) => Summary,
+  extraQuery = ''
 ) {
   const [range, setRange] = useState('90D');
   const [attempt, setAttempt] = useState(0);
@@ -23,10 +25,12 @@ export function useBusinessPreviewRange<Summary extends Record<string, number | 
   useEffect(() => {
     if (range === '90D') return;
     const controller = new AbortController();
-    const query = new URLSearchParams({ range, asOf });
+    const query = new URLSearchParams(extraQuery);
+    query.set('range', range);
+    query.set('asOf', asOf);
 
     async function load() {
-      setRequest({ range, asOf, summary: null, failed: false });
+      setRequest({ range, asOf, extraQuery, summary: null, failed: false });
       try {
         const response = await fetch('/api/admin/analytics/business?' + query, {
           signal: controller.signal,
@@ -41,19 +45,19 @@ export function useBusinessPreviewRange<Summary extends Record<string, number | 
         if (Object.values(summary).some(value => value !== null && (
           typeof value !== 'number' || !Number.isFinite(value)
         ))) throw new Error('Analytics summary is incomplete');
-        if (!controller.signal.aborted) setRequest({ range, asOf, summary, failed: false });
+        if (!controller.signal.aborted) setRequest({ range, asOf, extraQuery, summary, failed: false });
       } catch {
         if (!controller.signal.aborted) {
-          setRequest({ range, asOf, summary: null, failed: true });
+          setRequest({ range, asOf, extraQuery, summary: null, failed: true });
         }
       }
     }
 
     void load();
     return () => controller.abort();
-  }, [range, asOf, project, attempt]);
+  }, [range, asOf, project, attempt, extraQuery]);
 
-  const matching = request?.range === range && request.asOf === asOf ? request : null;
+  const matching = request?.range === range && request.asOf === asOf && request.extraQuery === extraQuery ? request : null;
   const summary = range === '90D' ? initial : matching?.summary ?? null;
   const failed = range !== '90D' && (matching?.failed ?? false);
   const retry = useCallback(() => setAttempt(value => value + 1), []);
@@ -61,6 +65,10 @@ export function useBusinessPreviewRange<Summary extends Record<string, number | 
   return { range, setRange, summary, loading: summary === null && !failed, failed, retry };
 }
 
-export function businessPreviewHref(view: 'narocila' | 'ponudbe', range: string, asOf: string) {
-  return '/admin/analitika?' + new URLSearchParams({ view, range, asOf });
+export function businessPreviewHref(view: 'narocila' | 'ponudbe', range: string, asOf: string, extraQuery = '') {
+  const params = new URLSearchParams(extraQuery);
+  params.set('view', view);
+  params.set('range', range);
+  params.set('asOf', asOf);
+  return '/admin/analitika?' + params;
 }

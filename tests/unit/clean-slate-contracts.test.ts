@@ -138,11 +138,13 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     '20260905_schema_contract_v3.sql',
     '20260905_schema_contract_v4.sql',
     '20260906_pricing_stock.sql',
-    '20260906_schema_contract_v5.sql'
+    '20260906_schema_contract_v5.sql',
+    '20260907_historical_orders.sql',
+    '20260907_schema_contract_v6.sql'
   ]);
-  assert.equal(tableNames.length, 70);
-  assert.equal(new Set(tableNames).size, 70);
-  assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 2);
+  assert.equal(tableNames.length, 72);
+  assert.equal(new Set(tableNames).size, 72);
+  assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 5);
   assert.match(
     schema,
     /alter table catalog_items[\s\S]*?catalog_items_default_variant_id_fkey[\s\S]*?catalog_items_default_variant_same_item_fkey/u
@@ -151,6 +153,9 @@ test('database setup has one canonical schema and ordered reviewed deployment ar
     schema,
     /alter table orders[\s\S]*?orders_source_quote_offer_version_id_fkey/u
   );
+  for (const check of ['orders_entry_source_check', 'orders_original_reference_check', 'orders_historical_guard_check']) {
+    assert.ok(schema.includes('alter table orders add constraint ' + check));
+  }
   assert.doesNotMatch(
     schema,
     /create\s+(?:unique\s+)?(?:table|index)\s+if\s+not\s+exists|create\s+or\s+replace\s+function|drop\s+trigger\s+if\s+exists|on\s+conflict[^;]*do\s+nothing|add\s+column\s+if\s+not\s+exists|drop\s+constraint\s+if\s+exists|not\s+valid|validate\s+constraint|\bdo\s+\$\$|\b(?:upgrade|retrofit|migration)\w*\b/iu

@@ -1,4 +1,7 @@
+import { handleHistoricalOrderDetails } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
+import { parseOrderDateInput, toDateInputValue } from '@/shared/domain/order/dateTime';
+import { localInstant } from '@/shared/domain/analytics/period';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
 import { getPool } from '@/shared/server/db';
 import { getOrderNumberAvailability } from '@/shared/server/orders';
@@ -30,6 +33,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     if (!bodyResult.ok) return bodyResult.response;
 
     const body = bodyResult.body;
+    const historicalResponse = await handleHistoricalOrderDetails(request, orderId, body);
+    if (historicalResponse) return historicalResponse;
     const {
       customerType,
       organizationName,
@@ -91,33 +96,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       );
     }
 
-    const normalizeOrderDate = (value: unknown) => {
-      if (typeof value !== 'string') return null;
-      const trimmed = value.trim();
-
-      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-        return `${trimmed}T00:00:00.000Z`;
-      }
-
-      const displayMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-      if (!displayMatch) return null;
-
-      const [, day, month, year] = displayMatch;
-      const isoDate = `${year}-${month}-${day}`;
-      const parsed = new Date(`${isoDate}T00:00:00`);
-      if (
-        Number.isNaN(parsed.getTime()) ||
-        parsed.getUTCFullYear() !== Number(year) ||
-        parsed.getUTCMonth() + 1 !== Number(month) ||
-        parsed.getUTCDate() !== Number(day)
-      ) {
-        return null;
-      }
-
-      return `${isoDate}T00:00:00.000Z`;
-    };
-
-    const normalizedOrderDate = normalizeOrderDate(orderDate);
+    const orderDateProvided = Object.hasOwn(body, 'orderDate');
+    const requestedOrderDate = typeof orderDate === 'string' ? parseOrderDateInput(orderDate) : '';
+    if (orderDateProvided && !requestedOrderDate) {
+      return NextResponse.json({ message: 'Datum naročila ni veljaven.' }, { status: 400 });
+    }
+    let normalizedOrderDate = requestedOrderDate ? localInstant(requestedOrderDate).toISOString() : null;
 
     const trimmedOrderNumber = typeof orderNumber === 'string' ? orderNumber.trim() : '';
     const orderNumberAvailability = trimmedOrderNumber
@@ -170,7 +154,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       ];
       const beforeResult = await client.query(
         `
-          select order_number, customer_type, organization_name, contact_name, email, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at, status, commitment_status, contract_status, contract_accepted_at, contract_accepted_actor_type, contract_accepted_actor_id, committed_at, is_draft, deleted_at, subtotal, tax, shipping, automatic_shipping, shipping_snapshot_json, shipping_override_json, shipping_override_stale, parcel_count, total
+          select order_number, customer_type, organization_name, contact_name, email, address_line1, address_line2, postal_code, city, gurs_house_number_id, country_code, reference, notes, created_at, status, commitment_status, contract_status, contract_accepted_at, contract_accepted_actor_type, contract_accepted_actor_id, committed_at, is_draft, is_historical, deleted_at, subtotal, tax, shipping, automatic_shipping, shipping_snapshot_json, shipping_override_json, shipping_override_stale, parcel_count, total
           from orders
           where id = $1
           for update
@@ -182,6 +166,15 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
       }
       const before = beforeResult.rows[0] as Record<string, unknown>;
+      const currentOrderDate = toDateInputValue(before.created_at as string | Date);
+      if (orderDateProvided && requestedOrderDate === currentOrderDate) normalizedOrderDate = null;
+      if (before.is_historical === true && normalizedOrderDate !== null) {
+        await client.query('rollback');
+        return NextResponse.json({
+          code: 'ORDER_HISTORICAL_DATE_REQUIRES_FACTS',
+          message: 'Izvorni datum spremenite med zgodovinskimi dejstvi, kjer se preveri različica in ohrani sled spremembe.'
+        }, { status: 409 });
+      }
       const stockEnforcementEnabled = await isStockEnforcementEnabled(client);
       if (before.deleted_at) {
         await client.query('rollback');
@@ -203,7 +196,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         before.contract_status === null || before.contract_status === undefined
           ? null
           : String(before.contract_status);
-      const isDraft = before.is_draft === true;
+      const isDraft = before.is_draft === true && before.is_historical !== true;
       let activeStockHoldCountBeforeFinalization = 0;
       if (isDraft) {
         const activeStockHoldsResult = await client.query(
@@ -327,7 +320,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       let draftFinalizationBlock: { code: string; message: string } | null =
         isDraft &&
         (!normalizedContactName ||
-          normalizedContactName.toLocaleLowerCase('sl-SI') === 'osnutek' ||
           !normalizedEmail ||
           normalizedEmail.toLocaleLowerCase('en-US') === 'draft@atehna.si' ||
           !nextAddressLine1 ||
@@ -592,7 +584,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       await client.query('commit');
       responsePayload = {
         success: true,
-        isDraft: isDraft && !finalizesDraft,
+        isDraft: before.is_draft === true && !finalizesDraft,
         finalized: finalizesDraft,
         finalizationBlock: draftFinalizationBlock
       };

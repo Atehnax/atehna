@@ -1,10 +1,11 @@
 'use client';
 import type { BusinessOrderPreview } from '@/shared/domain/analytics/orderPreview';
-import { addCalendarDays, localDate } from '@/shared/domain/analytics/period';
+import { addCalendarDays, localDate, localInstant } from '@/shared/domain/analytics/period';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { Archive, ArchiveRestore, SlidersHorizontal } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -20,7 +21,7 @@ import {
   ColumnFilterIcon,
   DownloadIcon,
   OpenArticleIcon,
-  PanelAddRemoveIcon,
+  adminActionIconSizeClassName,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
@@ -37,6 +38,9 @@ import {
 } from '@/shared/ui/theme/tokens';
 import {
   adminTableCardClassName,
+  adminTableTextStackClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
   adminTableCardStyle,
   adminTableBulkHeaderButtonClassName,
   adminTableCompactPopoverPanelClassName,
@@ -59,6 +63,8 @@ import {
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableSelectedDangerIconButtonClassName,
+  adminTableSelectedWarningIconButtonClassName,
+  adminTableDeleteMenuItemClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
   adminTableToolbarSearchWrapperClassName,
@@ -79,6 +85,7 @@ import {
 } from '@/shared/ui/admin-header-filter';
 import StatusChip from '@/admin/features/orders/components/StatusChip';
 import PaymentChip from '@/admin/features/orders/components/PaymentChip';
+import { AdminOrderOriginBadge, AdminOrderOriginLegend } from './AdminOrderOriginBadge';
 import OrderNumberSuggestionMenu from '@/admin/features/orders/components/OrderNumberSuggestionMenu';
 import AdminManualShippingPendingValue from '@/admin/features/shipping/components/AdminManualShippingPendingValue';
 import {
@@ -97,7 +104,7 @@ import {
   ORDER_STATUS_OPTIONS,
   getStatusMenuItemClassName
 } from '@/shared/domain/order/orderStatus';
-import { formatSlDate, formatSlDateTime } from '@/shared/domain/order/dateTime';
+import { formatSlDate, formatSlDateTime, parseOrderDateInput as toApiOrderDate } from '@/shared/domain/order/dateTime';
 import { PAYMENT_STATUS_OPTIONS, getPaymentLabel, getPaymentMenuItemClassName, isPaymentStatus, type PaymentStatus } from '@/shared/domain/order/paymentStatus';
 import { isAllPageSize, resolvePageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import type { AdminOrderPdfDocumentTuple, AdminOrderRowTuple } from '@/shared/domain/order/orderTypes';
@@ -162,8 +169,8 @@ type ColumnPaymentFilter = 'all' | PaymentStatus;
 type SortCycleState = { column: SortableColumnKey; index: number } | null;
 
 const isOrderShippingPending = (
-  order: Pick<OrderRow, 'automatic_shipping' | 'shipping_override_json'>
-) => order.automatic_shipping === null && !order.shipping_override_json;
+  order: Pick<OrderRow, 'automatic_shipping' | 'shipping_override_json' | 'is_historical'>
+) => !order.is_historical && order.automatic_shipping === null && !order.shipping_override_json;
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const ORDER_COLUMN_OPTIONS: Array<{ key: OrdersColumnKey; label: string }> = [
@@ -241,7 +248,6 @@ const ORDERS_TEXT_INPUT_FULL_CLASS = `${ORDERS_INLINE_TEXT_INPUT_CLASS} !w-full 
 const ORDERS_TYPE_SELECT_TRIGGER_CLASS = `${ORDERS_INLINE_SELECT_TRIGGER_CLASS} !min-w-[82px] !font-normal`;
 const ORDERS_EMPHASIZED_VALUE_CLASS = 'font-semibold text-slate-900';
 const ORDERS_STANDARD_VALUE_CLASS = 'font-normal text-slate-700';
-const DATE_DISPLAY_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 
 type InlineChipSelectOption<Value extends string> = {
   value: Value;
@@ -403,22 +409,6 @@ const toDisplayOrderNumberValue = (value: string) => {
   if (!trimmed) return '#';
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
-const toApiOrderDate = (value: string) => {
-  const trimmed = value.trim();
-  const displayMatch = DATE_DISPLAY_PATTERN.exec(trimmed);
-  if (displayMatch) {
-    const [, day, month, year] = displayMatch;
-    const isoCandidate = `${year}-${month}-${day}`;
-    const parsed = new Date(`${isoCandidate}T00:00:00`);
-    if (!Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() === Number(year) && parsed.getUTCMonth() + 1 === Number(month) && parsed.getUTCDate() === Number(day)) {
-      return isoCandidate;
-    }
-    return '';
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  return '';
-};
 const formatDateForRangeChip = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '—';
@@ -448,6 +438,9 @@ export default function AdminOrdersTable({
   initialQuery = '',
   initialStatusFilter = 'all',
   initialDocumentType = 'all',
+  initialEntrySource = 'all',
+  initialHistory = 'all',
+  archived = false,
   initialPage = 1,
   initialPageSize = 25,
   totalCount,
@@ -461,6 +454,9 @@ export default function AdminOrdersTable({
   initialQuery?: string;
   initialStatusFilter?: StatusTab | string;
   initialDocumentType?: DocumentType | string;
+  initialEntrySource?: string;
+  initialHistory?: string;
+  archived?: boolean;
   initialPage?: number;
   initialPageSize?: PageSizeValue;
   totalCount?: number;
@@ -474,6 +470,12 @@ export default function AdminOrdersTable({
         order_code: row[26],
         source_quote_code: row[27],
         source_quote_offer_code: row[28],
+        entry_source: row[29] ?? null,
+        is_historical: row[30] ?? false,
+        original_reference_system: row[31] ?? null,
+        original_reference: row[32] ?? null,
+        recorded_at: row[33] ?? null,
+        archived_at: row[34] ?? null,
         customer_type: row[2],
         organization_name: row[3] ?? '',
         contact_name: row[4],
@@ -796,7 +798,7 @@ export default function AdminOrdersTable({
         statusLabel,
         paymentLabel,
         searchBlob: normalizeForSearch(
-          [order.order_code, order.order_code.replace(/[\s-]+/gu, ''), order.order_number, customerLabel, customerIdentity.contact, addressLabel, typeLabel, statusLabel, paymentLabel]
+          [order.order_code, order.order_code.replace(/[\s-]+/gu, ''), order.order_number, order.original_reference, order.original_reference_system, customerLabel, customerIdentity.contact, addressLabel, typeLabel, statusLabel, paymentLabel]
             .filter(Boolean)
             .join(' ')
         )
@@ -824,14 +826,14 @@ export default function AdminOrdersTable({
       const orderTimestamp = orderRuntime?.createdAtTimestamp ?? new Date(order.created_at).getTime();
 
       if (debouncedFromDate) {
-        const fromTimestamp = new Date(`${debouncedFromDate}T00:00:00`).getTime();
+        const fromTimestamp = new Date(localInstant(debouncedFromDate)).getTime();
         if (!Number.isNaN(fromTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp < fromTimestamp) {
           return false;
         }
       }
 
       if (debouncedToDate) {
-        const toTimestamp = new Date(`${debouncedToDate}T23:59:59.999`).getTime();
+        const toTimestamp = new Date(localInstant(addCalendarDays(debouncedToDate, 1))).getTime() - 1;
         if (!Number.isNaN(toTimestamp) && !Number.isNaN(orderTimestamp) && orderTimestamp > toTimestamp) {
           return false;
         }
@@ -865,9 +867,10 @@ export default function AdminOrdersTable({
           : parsedPublicCode?.kind === 'offer'
             ? order.source_quote_offer_code
             : null;
-      const orderMatches = parsedPublicCode
+      const originalReferenceMatches = Boolean(normalizedQuery) && normalizeForSearch([order.original_reference_system, order.original_reference].filter(Boolean).join(' ')).includes(normalizedQuery);
+      const orderMatches = originalReferenceMatches || (parsedPublicCode
         ? matchesParsedCommercePublicCode(publicCodeCandidate, parsedPublicCode)
-        : !normalizedQuery || orderSearchBlob.includes(normalizedQuery);
+        : !normalizedQuery || orderSearchBlob.includes(normalizedQuery));
 
       const latestDocumentsForOrder = latestDocumentsByOrder.get(order.id) ?? [];
       const documentsMatchingSelectedType =
@@ -1027,7 +1030,7 @@ export default function AdminOrdersTable({
   } = useTablePagination({
     totalCount: filteredAndSortedOrders.length,
     storageKey: 'adminOrders.pageSize',
-    defaultPageSize: 50,
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
@@ -1045,13 +1048,16 @@ export default function AdminOrdersTable({
     : clientPageCount;
 
   const updateServerFilters = useCallback(
-    (updates: Partial<Record<'from' | 'to' | 'q' | 'status' | 'docType' | 'page' | 'pageSize', string>>) => {
+    (updates: Partial<Record<'from' | 'to' | 'q' | 'status' | 'docType' | 'entrySource' | 'history' | 'page' | 'pageSize', string>>) => {
       if (!isServerFilteredMode) return;
       const params = new URLSearchParams();
       const applyValue = (key: keyof typeof updates, fallbackValue: string) => {
         const candidate = (updates[key] ?? fallbackValue).trim();
         if (candidate) params.set(key, candidate);
       };
+      if (archived) params.set('view', 'archive');
+      applyValue('entrySource', initialEntrySource === 'all' ? '' : initialEntrySource);
+      applyValue('history', initialHistory === 'all' ? '' : initialHistory);
       applyValue('from', debouncedFromDate);
       applyValue('to', debouncedToDate);
       applyValue('q', debouncedQuery);
@@ -1062,8 +1068,34 @@ export default function AdminOrdersTable({
 
       router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ''}`);
     },
-    [debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, page, pageSizeSelection, pathname, router, statusFilter]
+    [archived, initialEntrySource, initialHistory, debouncedFromDate, debouncedQuery, debouncedToDate, documentType, isServerFilteredMode, page, pageSizeSelection, pathname, router, statusFilter]
   );
+  const [isArchiving, setIsArchiving] = useState(false);
+  const moveToArchive = async (ids: number[]) => {
+    if (isArchiving || !ids.length) return;
+    setIsArchiving(true);
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/admin/orders/${id}/archive`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ archived: !archived })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Premik naročila ni uspel.');
+      }
+      setSelected([]);
+      toast.success(archived ? 'Naročila so vrnjena v aktivni seznam.' : 'Naročila so arhivirana.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Premik naročila ni uspel.');
+    } finally {
+      setIsArchiving(false);
+      router.refresh();
+    }
+  };
+  const originChips = [
+    ...(initialEntrySource !== 'all' ? [{key: 'entrySource', title: 'Vnos', value: initialEntrySource === 'website' ? 'Splet' : initialEntrySource === 'manual' ? 'Ročno' : 'Neznan', clear: () => updateServerFilters({entrySource: '', page: '1'})}] : []),
+    ...(initialHistory !== 'all' ? [{key: 'history', title: 'Obdobje vnosa', value: initialHistory === 'historical' ? 'Zgodovinska' : 'Tekoča', clear: () => updateServerFilters({history: '', page: '1'})}] : [])
+  ];
   const handlePageChange = useCallback(
     (nextPage: number) => {
       if (isServerFilteredMode) {
@@ -1316,7 +1348,7 @@ export default function AdminOrdersTable({
             postalCode: quickEdit.postalCode ?? '',
             reference: quickEdit.reference ?? '',
             notes: quickEdit.notes ?? '',
-            orderDate: nextOrderDate
+            ...(nextOrderDate !== toApiOrderDate(quickEdit.initialOrderDate) ? { orderDate: nextOrderDate } : {})
           })
         });
         const detailsPayload = await response.json().catch(() => null) as {
@@ -1352,7 +1384,9 @@ export default function AdminOrdersTable({
             [quickEdit.orderId]: {
               ...current[quickEdit.orderId],
               order_number: nextOrderNumber || toDisplayOrderNumberValue(quickEdit.initialOrderNumber),
-              created_at: `${(nextOrderDate || quickEdit.initialOrderDate)}T00:00:00.000Z`,
+              ...(nextOrderDate && nextOrderDate !== toApiOrderDate(quickEdit.initialOrderDate)
+                ? { created_at: localInstant(nextOrderDate).toISOString() }
+                : {}),
               customer_type: quickEdit.draftCustomerType,
               is_draft: nextIsDraft,
               organization_name: nextOrganizationName || null,
@@ -1492,7 +1526,11 @@ export default function AdminOrdersTable({
     );
   }, [orders]);
 
+  const filterResetKey = JSON.stringify([debouncedFromDate, debouncedQuery, debouncedToDate, documentType, statusFilter, sortState, columnStatusFilter, columnPaymentFilter, columnTypeFilter, totalRange, orderNumberRange]);
+  const previousFilterResetKey = useRef(filterResetKey);
   useEffect(() => {
+    if (previousFilterResetKey.current === filterResetKey) return;
+    previousFilterResetKey.current = filterResetKey;
     if (isServerFilteredMode) {
       updateServerFilters({ page: '1' });
       return;
@@ -1512,6 +1550,7 @@ export default function AdminOrdersTable({
     columnTypeFilter,
     totalRange,
     orderNumberRange,
+    filterResetKey,
     updateServerFilters
   ]);
 
@@ -2121,8 +2160,8 @@ export default function AdminOrdersTable({
   return (
     <div className="w-full">
       <div className="w-full">
-        {isChartReady ? (
-          <AdminOrdersPreviewChart preview={orderPreview} />
+        {archived ? null : isChartReady ? (
+          <AdminOrdersPreviewChart preview={orderPreview} entrySource={initialEntrySource} history={initialHistory} />
         ) : (
           <div aria-hidden="true" className="mb-3 h-[120px] rounded-[11px] border border-slate-200/80 bg-white/60" />
         )}
@@ -2215,10 +2254,22 @@ export default function AdminOrdersTable({
                   }}
                   showLabel={false}
                   triggerClassName={adminTableNeutralIconButtonClassName}
-                  icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+                  icon={<SlidersHorizontal className={adminActionIconSizeClassName} strokeWidth={1.5} />}
                   menuWidth={128}
                 />
                 <IconButton
+                  type="button"
+                  onClick={() => void moveToArchive(selected)}
+                  disabled={!hasSelectedRows || isArchiving}
+                  tone={hasSelectedRows ? 'warning' : 'neutral'}
+                  size="sm"
+                  className={hasSelectedRows ? adminTableSelectedWarningIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
+                  aria-label={archived ? 'Vrni izbrana naročila' : 'Arhiviraj izbrana naročila'}
+                  title={archived ? 'Vrni v aktivna naročila' : 'Arhiviraj'}
+                >
+                  {archived ? <ArchiveRestore className={adminActionIconSizeClassName} /> : <Archive className={adminActionIconSizeClassName} />}
+                </IconButton>
+                {!archived ? <IconButton
                   type="button"
                   onClick={handleDelete}
                   disabled={!hasSelectedRows || isDeleting}
@@ -2233,15 +2284,15 @@ export default function AdminOrdersTable({
                   ) : (
                     <TrashCanIcon />
                   )}
-                </IconButton>
-                {topAction ? <div className="flex items-center [&_button]:!rounded-md [&_button]:!px-4">{topAction}</div> : null}
+                </IconButton> : null}
+                {topAction ? <div className="flex items-center">{topAction}</div> : null}
               </div>
             </>
           }
           filterRowLeft={
-            activeFilterChips.length > 0 ? (
+            activeFilterChips.length + originChips.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
-                {activeFilterChips.map((chip) => (
+                {[...activeFilterChips, ...originChips].map((chip) => (
                   <span key={chip.key} className={filterPillTokenClasses.base}>
                     <span>
                       {chip.title}{' '}
@@ -2263,6 +2314,9 @@ export default function AdminOrdersTable({
               onChangeItemsPerPage={handlePageSizeChange}
               itemsPerPageOptions={PAGE_SIZE_OPTIONS}
             />
+          }
+          footerLeft={
+            <AdminOrderOriginLegend showUnknown={orders.some((order) => !order.is_historical && order.entry_source !== 'website' && order.entry_source !== 'manual')} />
           }
           footerRight={
             <EuiTablePagination
@@ -2308,7 +2362,7 @@ export default function AdminOrdersTable({
                 {visibleColumns.order ? <TH className={ORDERS_HEADER_CELL_CENTER_CLASS}>
                   <div className={ORDERS_HEADER_CONTENT_CLASS} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                     <button type="button" onClick={() => onSort('order')} className={getHeaderTitleClass('order')}>Naročilo</button>
-                    <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order'} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
+                    <button ref={orderFilterButtonRef} data-active={openHeaderFilter === 'order' || initialEntrySource !== 'all' || initialHistory !== 'all' || Boolean(orderNumberRange.min || orderNumberRange.max)} type="button" onClick={(event) => { event.stopPropagation(); toggleHeaderFilter('order'); }} className={HEADER_FILTER_BUTTON_CLASS} aria-label="Filtriraj Naročilo">
                       <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                     </button>
                   </div>
@@ -2341,7 +2395,7 @@ export default function AdminOrdersTable({
                         <button
                           type="button"
                           onClick={() => setIsStatusHeaderMenuOpen((previousOpen) => !previousOpen)}
-                          disabled={isBulkUpdatingStatus}
+                          disabled={isBulkUpdatingStatus || archived || orders.some((order) => selected.includes(order.id) && order.is_historical)}
                           className={ORDERS_BULK_HEADER_BUTTON_CLASS}
                           aria-haspopup="menu"
                           aria-expanded={isStatusHeaderMenuOpen}
@@ -2558,6 +2612,7 @@ export default function AdminOrdersTable({
                               aria-label={`Številka naročila ${order.id}`}
                               autoFocus
                             />
+                            <AdminOrderOriginBadge entrySource={order.entry_source} isHistorical={order.is_historical} className="ml-1.5" />
                             <OrderNumberSuggestionMenu
                               anchorRef={quickEditOrderNumberInputRef}
                               open={isQuickEditOrderNumberMenuOpen && isRowQuickEditing}
@@ -2580,16 +2635,27 @@ export default function AdminOrdersTable({
                             ) : null}
                           </div>
                         ) : (
-                          <div className="flex min-w-0 flex-col items-center justify-center leading-tight">
-                            <Link
-                              href={`/admin/orders/${order.id}`}
-                              prefetch={false}
-                              className="inline-flex max-w-full items-center justify-center rounded-sm px-1 text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
-                              aria-label={`Odpri naročilo ${toDisplayOrderNumber(effectiveOrder.order_number)}`}
-                              title="Interna številka naročila"
-                            >
-                              {toDisplayOrderNumber(effectiveOrder.order_number)}
-                            </Link>
+                          <div className={`${adminTableTextStackClassName} items-center justify-center`}>
+                            <div className="flex max-w-full items-center justify-center gap-1.5">
+                              <Link
+                                href={`/admin/orders/${order.id}`}
+                                prefetch={false}
+                                className={`${adminTablePrimaryTextClassName} max-w-full shrink-0 whitespace-nowrap rounded-sm px-1 text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]`}
+                                aria-label={`Odpri naročilo ${toDisplayOrderNumber(effectiveOrder.order_number)}`}
+                                title="Interna številka naročila"
+                              >
+                                {toDisplayOrderNumber(effectiveOrder.order_number)}
+                              </Link>
+                              {order.original_reference ? (
+                                <span
+                                  className={`${adminTableSecondaryTextClassName} min-w-0 max-w-24 truncate text-[10px] text-slate-500`}
+                                  title={`Izvorna št. računa: ${order.original_reference}${order.original_reference_system ? ' · ' + order.original_reference_system : ''}`}
+                                >
+                                  {order.original_reference}
+                                </span>
+                              ) : null}
+                              <AdminOrderOriginBadge entrySource={order.entry_source} isHistorical={order.is_historical} />
+                            </div>
                             <AdminPublicCode
                               code={effectiveOrder.order_code}
                               label="naročila"
@@ -2655,18 +2721,20 @@ export default function AdminOrdersTable({
                             aria-label={`Naročnik ${order.id}`}
                           />
                         ) : (
-                          <div className="min-w-0 leading-tight">
-                            <span
-                              className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('customer', customerIdentity.name)}`}
-                              title={customerIdentity.name}
-                              data-testid={`order-table-customer-name-${order.id}`}
-                              onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(customerIdentity.name) })}
-                              onMouseLeave={() => setHoveredCellMatch(null)}
-                            >
-                              {customerIdentity.name || '—'}
+                          <div className={adminTableTextStackClassName}>
+                            <span className={adminTablePrimaryTextClassName}>
+                              <span
+                                className={`${adminTableMatchingValueBaseClassName} max-w-full truncate align-top ${ORDERS_STANDARD_VALUE_CLASS} ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                                title={customerIdentity.name}
+                                data-testid={`order-table-customer-name-${order.id}`}
+                                onMouseEnter={() => setHoveredCellMatch({ column: 'customer', value: getComparableCellValue(customerIdentity.name) })}
+                                onMouseLeave={() => setHoveredCellMatch(null)}
+                              >
+                                {customerIdentity.name || '—'}
+                              </span>
                             </span>
                             {customerIdentity.contact ? (
-                              <p className="mt-0.5 truncate px-[5px] text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`order-table-contact-${order.id}`}>
+                              <p className={`${adminTableSecondaryTextClassName} truncate px-[5px] text-[10px] text-slate-500`} title={customerIdentity.contact} data-testid={`order-table-contact-${order.id}`}>
                                 {customerIdentity.contact}
                               </p>
                             ) : null}
@@ -2881,6 +2949,7 @@ export default function AdminOrdersTable({
                                   {
                                     key: 'quick-edit',
                                     label: 'Hitro urejanje',
+                                    disabled: order.is_historical || archived,
                                     icon: <PencilIcon />,
                                     onSelect: () => {
                                       startQuickEdit(order);
@@ -2895,11 +2964,18 @@ export default function AdminOrdersTable({
                                     }
                                   },
                                   {
+                                    key: 'archive',
+                                    label: archived ? 'Vrni v aktivna' : 'Arhiviraj',
+                                    icon: archived ? <ArchiveRestore size={16} /> : <Archive size={16} />,
+                                    disabled: isArchiving,
+                                    onSelect: () => { void moveToArchive([order.id]); }
+                                  },
+                                  {
                                     key: 'delete',
                                     label: 'Izbriši',
                                     icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
-                                    className: 'text-rose-600 hover:!bg-rose-50 hover:!text-rose-600',
-                                    disabled: deletingRowId === order.id,
+                                    className: adminTableDeleteMenuItemClassName,
+                                    disabled: archived || deletingRowId === order.id,
                                     onSelect: () => {
                                       void handleDeleteRow(order.id);
                                     }
@@ -2920,6 +2996,14 @@ export default function AdminOrdersTable({
         <HeaderFilterPortal open={Boolean(openHeaderFilter)}>
             {openHeaderFilter === 'order' ? (
               <div style={getHeaderPopoverStyle(orderFilterButtonRef.current, 192)} className={adminTableCompactPopoverPanelClassName}>
+                {isServerFilteredMode ? <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3">
+                  <label className="grid gap-1 text-xs text-slate-600">Vnos
+                    <CustomSelect value={initialEntrySource} onChange={(value) => updateServerFilters({ entrySource: value, page: '1' })} ariaLabel="Vnos naročila" options={[{value:'all',label:'Vsi vnosi'},{value:'website',label:'Splet'},{value:'manual',label:'Ročno'},{value:'unknown',label:'Neznan izvor'}]} />
+                  </label>
+                  <label className="grid gap-1 text-xs text-slate-600">Naročila
+                    <CustomSelect value={initialHistory} onChange={(value) => updateServerFilters({ history: value, page: '1' })} ariaLabel="Zgodovinska naročila" options={[{value:'all',label:'Vsa'},{value:'current',label:'Tekoča'},{value:'historical',label:'Zgodovinska'}]} />
+                  </label>
+                </div> : null}
                 <h4 className="mb-2 text-[11px] font-semibold text-slate-800">Nastavi razpon naročil</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <AdminFilterInput type="number" placeholder="Od" value={draftOrderNumberRange.min} onChange={(event) => setDraftOrderNumberRange((current) => ({ ...current, min: event.target.value }))} aria-label="Od" />

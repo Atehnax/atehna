@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
 import { validateOrderDeliveryPlanForStatus } from '@/shared/domain/order/orderDeliveryPlan';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
@@ -29,6 +30,7 @@ export async function POST(
 ) {
   const params = await props.params;
   const orderId = Number(params.orderId);
+  if (Number.isSafeInteger(orderId) && orderId > 0) { const historicalBlock = await rejectHistoricalOrderOperation(orderId); if (historicalBlock) return historicalBlock; }
   if (!Number.isSafeInteger(orderId) || orderId <= 0) {
     return NextResponse.json(
       { code: 'INVALID_ORDER_ID', message: 'Neveljaven ID naročila.' },

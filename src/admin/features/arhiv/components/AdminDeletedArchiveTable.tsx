@@ -1,5 +1,8 @@
 'use client';
 
+import { groupTrashRows } from '@/shared/domain/archive/trashRows';
+import TrashRowMotion from './TrashRowMotion';
+import { SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -26,7 +29,6 @@ import {
   adminTablePopoverSecondaryButtonClassName,
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
-  adminTableSelectedDangerIconButtonClassName,
   adminTableSelectedSuccessIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
@@ -35,12 +37,11 @@ import {
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
 import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
-import { ActionRestoreIcon, ColumnFilterIcon, PanelAddRemoveIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionRestoreIcon, ColumnFilterIcon, adminActionIconSizeClassName } from '@/shared/ui/icons/AdminActionIcons';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
 import AdminFilterInput from '@/shared/ui/admin-filter-input';
-import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   HeaderFilterPortal,
   HEADER_FILTER_BUTTON_CLASS,
@@ -60,10 +61,10 @@ type DisplayRow = {
 
 type TypeFilterValue = 'all' | 'order' | 'pdf';
 type CustomerTypeFilterValue = 'all' | CustomerType;
-type ArchiveHeaderFilter = 'type' | 'orderDate' | 'customerType' | 'deletedDate' | 'expiresDate' | null;
-type ArchiveSortKey = 'type' | 'element' | 'order_created_at' | 'customer_name' | 'address' | 'customer_type' | 'deleted_at' | 'expires_at';
+type ArchiveHeaderFilter = 'type' | 'orderDate' | 'customerType' | 'deletedDate' | null;
+type ArchiveSortKey = 'type' | 'element' | 'order_created_at' | 'customer_name' | 'address' | 'customer_type' | 'deleted_at';
 type ArchiveSortDirection = 'asc' | 'desc';
-type ArchiveColumnKey = 'type' | 'element' | 'orderDate' | 'customer' | 'address' | 'orderType' | 'deleted' | 'expires';
+type ArchiveColumnKey = 'type' | 'element' | 'orderDate' | 'customer' | 'address' | 'orderType' | 'deleted';
 
 const TYPE_FILTER_OPTIONS: Array<{ value: TypeFilterValue; label: string }> = [
   { value: 'all', label: 'Vse vrste' },
@@ -77,8 +78,7 @@ const ARCHIVE_COLUMN_OPTIONS: Array<{ key: ArchiveColumnKey; label: string }> = 
   { key: 'customer', label: 'Naročnik' },
   { key: 'address', label: 'Naslov' },
   { key: 'orderType', label: 'Tip' },
-  { key: 'deleted', label: 'Zabeleženo' },
-  { key: 'expires', label: 'Izbris' }
+  { key: 'deleted', label: 'Izbrisano' }
 ];
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const formatDateOnly = (value: string) => {
@@ -113,6 +113,7 @@ export default function AdminDeletedArchiveTable({
   const router = useRouter();
   const [entries, setEntries] = useState(normalizedInitialEntries);
   const [selected, setSelected] = useState<number[]>([]);
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(() => new Set());
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilterValue>('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState<CustomerTypeFilterValue>('all');
@@ -120,8 +121,6 @@ export default function AdminDeletedArchiveTable({
   const [draftOrderDateRange, setDraftOrderDateRange] = useState({ from: '', to: '' });
   const [deletedDateRange, setDeletedDateRange] = useState({ from: '', to: '' });
   const [draftDeletedDateRange, setDraftDeletedDateRange] = useState({ from: '', to: '' });
-  const [expiresDateRange, setExpiresDateRange] = useState({ from: '', to: '' });
-  const [draftExpiresDateRange, setDraftExpiresDateRange] = useState({ from: '', to: '' });
   const [openHeaderFilter, setOpenHeaderFilter] = useState<ArchiveHeaderFilter>(null);
   const [sortState, setSortState] = useState<{ key: ArchiveSortKey; direction: ArchiveSortDirection } | null>(null);
   const [hoveredCellMatch, setHoveredCellMatch] = useState<{ column: ArchiveSortKey; value: string } | null>(null);
@@ -132,18 +131,13 @@ export default function AdminDeletedArchiveTable({
     customer: true,
     address: true,
     orderType: false,
-    deleted: true,
-    expires: true
+    deleted: true
   });
   const typeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const orderDateFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const customerTypeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const deletedDateFilterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const expiresDateFilterButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [retentionReferenceTime] = useState(() => Date.now());
   const { toast } = useToast();
 
   const filtered = useMemo(() => {
@@ -161,8 +155,7 @@ export default function AdminDeletedArchiveTable({
       const matchesCustomerType = customerTypeFilter === 'all' ? true : entry.customer_type === customerTypeFilter;
       const matchesOrderDate = dateInRange(entry.order_created_at, orderDateRange.from, orderDateRange.to);
       const matchesDeletedDate = dateInRange(entry.deleted_at, deletedDateRange.from, deletedDateRange.to);
-      const matchesExpiresDate = dateInRange(entry.expires_at, expiresDateRange.from, expiresDateRange.to);
-      if (!matchesType || !matchesCustomerType || !matchesOrderDate || !matchesDeletedDate || !matchesExpiresDate) return false;
+      if (!matchesType || !matchesCustomerType || !matchesOrderDate || !matchesDeletedDate) return false;
       if (!query) return true;
       const values = [
         entry.label,
@@ -174,7 +167,7 @@ export default function AdminDeletedArchiveTable({
       ];
       return values.some((value) => value.toLowerCase().includes(query));
     });
-  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, entries, expiresDateRange.from, expiresDateRange.to, orderDateRange.from, orderDateRange.to, search, typeFilter]);
+  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, entries, orderDateRange.from, orderDateRange.to, search, typeFilter]);
 
   const displayRows = useMemo<DisplayRow[]>(() => {
     if (typeFilter === 'pdf') {
@@ -254,17 +247,18 @@ export default function AdminDeletedArchiveTable({
     return sortedRows;
   }, [filtered, sortState, typeFilter]);
 
+  const rowGroups = useMemo(() => groupTrashRows(displayRows), [displayRows]);
   const { page, pageSize, pageSizeSelection, pageCount, setPage, setPageSize } = useTablePagination({
-    totalCount: displayRows.length,
-    storageKey: 'adminArhiv.pageSize',
-    defaultPageSize: 50,
+    totalCount: rowGroups.length,
+    storageKey: 'adminTrash.orders.pageSize',
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
 
   const pagedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return displayRows.slice(start, start + pageSize);
-  }, [displayRows, page, pageSize]);
+    return rowGroups.slice(start, start + pageSize).flat();
+  }, [rowGroups, page, pageSize]);
 
   const activeFilterChips = useMemo(() => {
     const chips: Array<{ key: string; title: string; value: string; clear: () => void }> = [];
@@ -292,13 +286,11 @@ export default function AdminDeletedArchiveTable({
       chips.push({ key: 'orderDate', title: 'Datum naročila:', value: `${orderDateRange.from || '—'} – ${orderDateRange.to || '—'}`, clear: () => { setOrderDateRange({ from: '', to: '' }); setDraftOrderDateRange({ from: '', to: '' }); } });
     }
     if (deletedDateRange.from || deletedDateRange.to) {
-      chips.push({ key: 'deletedDate', title: 'Zabeleženo:', value: `${deletedDateRange.from || '—'} – ${deletedDateRange.to || '—'}`, clear: () => { setDeletedDateRange({ from: '', to: '' }); setDraftDeletedDateRange({ from: '', to: '' }); } });
+      chips.push({ key: 'deletedDate', title: 'Izbrisano:', value: `${deletedDateRange.from || '—'} – ${deletedDateRange.to || '—'}`, clear: () => { setDeletedDateRange({ from: '', to: '' }); setDraftDeletedDateRange({ from: '', to: '' }); } });
     }
-    if (expiresDateRange.from || expiresDateRange.to) {
-      chips.push({ key: 'expiresDate', title: 'Izbris:', value: `${expiresDateRange.from || '—'} – ${expiresDateRange.to || '—'}`, clear: () => { setExpiresDateRange({ from: '', to: '' }); setDraftExpiresDateRange({ from: '', to: '' }); } });
-    }
+
     return chips;
-  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, expiresDateRange.from, expiresDateRange.to, orderDateRange.from, orderDateRange.to, search, typeFilter]);
+  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, orderDateRange.from, orderDateRange.to, search, typeFilter]);
 
   const toggleColumnVisibility = (key: ArchiveColumnKey) => {
     setVisibleColumns((current) => {
@@ -345,14 +337,6 @@ export default function AdminDeletedArchiveTable({
         ),
     [displayRows, selectedIdSet]
   );
-  const selectedHasRetentionLock = useMemo(
-    () =>
-      selectedEntriesFromRows.some(
-        (entry) =>
-          new Date(entry.expires_at).getTime() > retentionReferenceTime
-      ),
-    [retentionReferenceTime, selectedEntriesFromRows]
-  );
 
   const toggleOne = (row: DisplayRow) => {
     const { entry, isChild, parentOrderId } = row;
@@ -396,7 +380,7 @@ export default function AdminDeletedArchiveTable({
       }
 
       const mergedSelection = new Set(previousSelected);
-      displayRows.forEach((row) => {
+      pagedRows.forEach((row) => {
         mergedSelection.add(row.entry.id);
         if (!row.isChild && row.entry.item_type === 'order' && row.entry.order_id !== null) {
           const childIds = groupedChildIdsByOrder.get(row.entry.order_id) ?? [];
@@ -446,19 +430,6 @@ export default function AdminDeletedArchiveTable({
     }
   };
 
-  const bulkDelete = () => {
-    if (selectedHasRetentionLock) {
-      toast.error('Trajni izbris je na voljo šele po poteku 90-dnevne hrambe.');
-      return;
-    }
-    const deletableIds = selected.filter((id) => id > 0);
-    if (deletableIds.length === 0) {
-      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
-      return;
-    }
-
-    setIsDeleteConfirmOpen(true);
-  };
 
 
   const handleSort = (key: ArchiveSortKey) => {
@@ -482,42 +453,13 @@ export default function AdminDeletedArchiveTable({
 
   useEffect(() => {
     setPage(1);
-  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, expiresDateRange.from, expiresDateRange.to, orderDateRange.from, orderDateRange.to, search, setPage, sortState, typeFilter]);
+  }, [customerTypeFilter, deletedDateRange.from, deletedDateRange.to, orderDateRange.from, orderDateRange.to, search, setPage, sortState, typeFilter]);
 
   useHeaderFilterDismiss({
     isOpen: Boolean(openHeaderFilter),
     onClose: () => setOpenHeaderFilter(null)
   });
 
-  const confirmBulkDelete = async () => {
-    const deletableIds = selected.filter((id) => id > 0);
-    if (deletableIds.length === 0) {
-      toast.info('Izbrani zapisi nimajo arhivske postavke za trajni izbris.');
-      setIsDeleteConfirmOpen(false);
-      return;
-    }
-
-    setIsDeleteConfirmOpen(false);
-    setIsDeleting(true);
-    try {
-      const response = await fetch('/api/admin/archive', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: deletableIds })
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        toast.error(body.message || 'Trajni izbris ni uspel.');
-        return;
-      }
-
-      setEntries((previousEntries) => previousEntries.filter((entry) => !deletableIds.includes(entry.id)));
-      setSelected([]);
-      toast.success('Izbrani zapisi so trajno izbrisani.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <AdminTableLayout
@@ -530,8 +472,8 @@ export default function AdminDeletedArchiveTable({
             <AdminSearchInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Poišči arhivirane zapise"
-              aria-label="Poišči arhivirane zapise"
+              placeholder="Poišči izbrisana naročila in dokumente"
+              aria-label="Poišči izbrisana naročila in dokumente"
               wrapperClassName={adminTableToolbarSearchWrapperClassName}
               inputClassName={adminTableSearchInputClassName}
               iconClassName={adminTableSearchIconClassName}
@@ -548,7 +490,7 @@ export default function AdminDeletedArchiveTable({
             showLabel={false}
             menuWidth={156}
             triggerClassName={adminTableNeutralIconButtonClassName}
-            icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+            icon={<SlidersHorizontal className={adminActionIconSizeClassName} strokeWidth={1.5} />}
           />
           <IconButton
             type="button"
@@ -556,7 +498,7 @@ export default function AdminDeletedArchiveTable({
             tone={hasSelectedRows ? 'success' : 'neutral'}
             className={hasSelectedRows ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={bulkRestore}
-            disabled={!hasSelectedRows || isRestoring || isDeleting}
+            disabled={!hasSelectedRows || isRestoring}
             aria-label="Obnovi izbrano"
             title="Obnovi"
           >
@@ -564,26 +506,6 @@ export default function AdminDeletedArchiveTable({
               <Spinner size="sm" className="text-slate-500" />
             ) : (
               <ActionRestoreIcon />
-            )}
-          </IconButton>
-          <IconButton
-            type="button"
-            size="sm"
-            tone={hasSelectedRows ? 'danger' : 'neutral'}
-            className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
-            onClick={bulkDelete}
-            disabled={!hasSelectedRows || selectedHasRetentionLock || isDeleting || isRestoring}
-            aria-label="Trajno izbriši izbrano"
-            title={
-              selectedHasRetentionLock
-                ? 'Trajni izbris je na voljo po poteku 90-dnevne hrambe'
-                : 'Trajno izbriši'
-            }
-          >
-            {isDeleting ? (
-              <Spinner size="sm" className="text-rose-700" />
-            ) : (
-              <TrashCanIcon />
             )}
           </IconButton>
         </div>
@@ -629,21 +551,6 @@ export default function AdminDeletedArchiveTable({
         />
       }
     >
-      {isDeleteConfirmOpen ? (
-        <LazyConfirmDialog
-          open={isDeleteConfirmOpen}
-          title="Trajni izbris"
-          description="Ali ste prepričani, da želite trajno izbrisati izbrane zapise?"
-          confirmLabel="Izbriši"
-          cancelLabel="Prekliči"
-          isDanger
-          onCancel={() => setIsDeleteConfirmOpen(false)}
-          onConfirm={() => {
-            void confirmBulkDelete();
-          }}
-          confirmDisabled={isDeleting}
-        />
-      ) : null}
 
       <Table className="w-full min-w-[1080px] table-fixed border-collapse text-[12px] font-['Inter',system-ui,sans-serif]">
           <colgroup>
@@ -655,7 +562,6 @@ export default function AdminDeletedArchiveTable({
             {visibleColumns.address ? <col className="w-[209px]" /> : null}
             {visibleColumns.orderType ? <col className="w-[100px]" /> : null}
             {visibleColumns.deleted ? <col className="w-[150px]" /> : null}
-            {visibleColumns.expires ? <col className="w-[161px]" /> : null}
           </colgroup>
           <THead className="border-t border-slate-200 bg-[color:var(--admin-table-header-bg)]">
             <TR>
@@ -694,19 +600,9 @@ export default function AdminDeletedArchiveTable({
               {visibleColumns.deleted ? <TH className={`${adminTableHeaderCellCenterClassName} w-40`}>
                 <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
                   <button type="button" onClick={() => handleSort('deleted_at')} className={getHeaderTitleClass('deleted_at')}>
-                    Zabeleženo
+                    Izbrisano
                   </button>
                   <button ref={deletedDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'deletedDate'} aria-label="Filtriraj datum zabeležbe" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'deletedDate' ? null : 'deletedDate'))}>
-                    <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
-                  </button>
-                </div>
-              </TH> : null}
-              {visibleColumns.expires ? <TH className={`${adminTableHeaderCellCenterClassName} w-40 pr-5`}>
-                <div className={adminTableHeaderContentClassName} {...{ [HEADER_FILTER_ROOT_ATTR]: 'true' }}>
-                  <button type="button" onClick={() => handleSort('expires_at')} className={getHeaderTitleClass('expires_at')}>
-                    Izbris
-                  </button>
-                  <button ref={expiresDateFilterButtonRef} type="button" className={HEADER_FILTER_BUTTON_CLASS} data-active={openHeaderFilter === 'expiresDate'} aria-label="Filtriraj datum izbrisa" onClick={() => setOpenHeaderFilter((previousFilter) => (previousFilter === 'expiresDate' ? null : 'expiresDate'))}>
                     <ColumnFilterIcon className="!h-[12px] !w-[12px]" />
                   </button>
                 </div>
@@ -725,7 +621,8 @@ export default function AdminDeletedArchiveTable({
                     })();
 
               return (
-                <TR key={entry.id} className={`border-t border-slate-200/90 bg-white text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
+                <TrashRowMotion key={entry.id} open={!isChild || (parentOrderId !== null && expandedOrders.has(parentOrderId))}>
+                <TR className={`border-t border-slate-200/90 bg-white text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
                   <TD className="px-0 py-3 text-center">
                     <AdminCheckbox
                       className="disabled:cursor-default disabled:opacity-50"
@@ -745,13 +642,16 @@ export default function AdminDeletedArchiveTable({
                     </span>
                   </TD> : null}
                   {visibleColumns.element ? <TD className={`px-3 py-3 font-['Inter',system-ui,sans-serif] text-slate-800 ${isChild ? 'pl-6' : ''}`}>
-                    {entry.item_type === 'order' && entry.order_id ? (
-                      <a href={`/admin/orders/${entry.order_id}`} className="font-medium text-[color:var(--blue-500)] hover:text-[color:var(--blue-600)]">
-                        {entry.label}
-                      </a>
-                    ) : (
-                      <span>{isChild ? `↳ ${entry.label}` : entry.label}</span>
-                    )}
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {entry.item_type === 'order' && entry.order_id !== null && (groupedChildIdsByOrder.get(entry.order_id)?.length ?? 0) > 0 ? (
+                        <button type="button" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+                          aria-label={`${expandedOrders.has(entry.order_id) ? 'Skrij' : 'Prikaži'} dokumente ${entry.label}`} aria-expanded={expandedOrders.has(entry.order_id)}
+                          onClick={() => setExpandedOrders(current => { const next = new Set(current); if (next.has(entry.order_id!)) next.delete(entry.order_id!); else next.add(entry.order_id!); return next; })}>
+                          {expandedOrders.has(entry.order_id) ? '▾' : '▸'}
+                        </button>
+                      ) : null}
+                      <span className="min-w-0 truncate font-medium" title={entry.label}>{entry.label}</span>
+                    </div>
                   </TD> : null}
                   {visibleColumns.orderDate ? <TD className="px-3 py-3 text-center text-slate-600">
                     <span
@@ -782,18 +682,14 @@ export default function AdminDeletedArchiveTable({
                       {formatDateOnly(entry.deleted_at)}
                     </span>
                   </TD> : null}
-                  {visibleColumns.expires ? <TD className="px-3 py-3 pr-5 text-center text-slate-600">
-                    <span className={`${adminTableMatchingValueBaseClassName} ${getMatchingValueClassName('expires_at', formatDateOnly(entry.expires_at))}`} onMouseEnter={() => setHoveredCellMatch({ column: 'expires_at', value: toComparableValue(formatDateOnly(entry.expires_at)) })} onMouseLeave={() => setHoveredCellMatch(null)}>
-                      {formatDateOnly(entry.expires_at)}
-                    </span>
-                  </TD> : null}
                 </TR>
+                </TrashRowMotion>
               );
             })}
             {pagedRows.length === 0 ? (
               <TR>
                 <TD colSpan={1 + Object.values(visibleColumns).filter(Boolean).length} className="py-8 text-center text-sm text-slate-500">
-                  <EmptyState title="Arhiv je prazen." />
+                  <EmptyState title="Koš naročil je prazen." />
                 </TD>
               </TR>
             ) : null}
@@ -856,25 +752,6 @@ export default function AdminDeletedArchiveTable({
             <div className="grid grid-cols-2 gap-2">
               <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setDeletedDateRange(draftDeletedDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
               <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const empty = { from: '', to: '' }; setDraftDeletedDateRange(empty); setDeletedDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
-            </div>
-          </div>
-        ) : null}
-        {openHeaderFilter === 'expiresDate' ? (
-          <div role="menu" style={getHeaderPopoverStyle(expiresDateFilterButtonRef.current, 380)} className={adminTablePopoverPanelClassName}>
-            <div className="mb-3 grid grid-cols-3 gap-2">
-              {DATE_RANGE_PRESETS.map((preset) => (
-                <button key={preset.key} type="button" className={adminTablePopoverPresetButtonClassName} onClick={() => setDraftExpiresDateRange(getQuickDateRange(preset.key))}>
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            <div className="mb-3 border-t border-slate-200 pt-3 grid grid-cols-2 gap-2">
-              <AdminFilterInput type="date" value={draftExpiresDateRange.from} onChange={(event) => setDraftExpiresDateRange((current) => ({ ...current, from: event.target.value }))} aria-label="Od" />
-              <AdminFilterInput type="date" value={draftExpiresDateRange.to} onChange={(event) => setDraftExpiresDateRange((current) => ({ ...current, to: event.target.value }))} aria-label="Do" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" className={adminTablePopoverPrimaryButtonClassName} onClick={() => { setExpiresDateRange(draftExpiresDateRange); setOpenHeaderFilter(null); }}>Potrdi</button>
-              <button type="button" className={adminTablePopoverSecondaryButtonClassName} onClick={() => { const empty = { from: '', to: '' }; setDraftExpiresDateRange(empty); setExpiresDateRange(empty); setOpenHeaderFilter(null); }}>Ponastavi</button>
             </div>
           </div>
         ) : null}

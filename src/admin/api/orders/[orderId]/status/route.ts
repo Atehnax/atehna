@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
 import { revalidateAdminOrderPaths } from '@/shared/server/revalidateAdminOrders';
@@ -56,6 +57,7 @@ export async function POST(
   let client: PoolClient | null = null;
   try {
     const orderId = Number(params.orderId);
+  if (Number.isSafeInteger(orderId) && orderId > 0) { const historicalBlock = await rejectHistoricalOrderOperation(orderId); if (historicalBlock) return historicalBlock; }
     if (!Number.isFinite(orderId)) {
       return NextResponse.json(
         { message: 'Neveljaven ID naročila.' },

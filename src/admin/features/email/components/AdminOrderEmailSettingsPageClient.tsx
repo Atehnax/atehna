@@ -55,6 +55,9 @@ import {
   adminTableBulkHeaderButtonClassName,
   adminTableHeaderCellCenterClassName,
   adminTableHeaderCellLeftClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
+  adminTableTextStackClassName,
   adminTableRowHeightClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminWindowCardClassName,
@@ -1708,12 +1711,14 @@ export default function AdminOrderEmailSettingsPageClient({
                         scope="row"
                         className={`${adminTableBodyCellLeftClassName} border-b-0 !font-normal`}
                       >
-                        <span className="block font-medium text-slate-900">
-                          {definition.label}
-                        </span>
-                        <span className="mt-0.5 block text-xs leading-4 text-slate-500">
-                          {definition.description}
-                        </span>
+                        <div className={adminTableTextStackClassName}>
+                          <span className={`${adminTablePrimaryTextClassName} font-medium text-slate-900`}>
+                            {definition.label}
+                          </span>
+                          <span className={`${adminTableSecondaryTextClassName} text-xs text-slate-500`}>
+                            {definition.description}
+                          </span>
+                        </div>
                       </TH>
                       <TD className={adminTableBodyCellCenterClassName}>
                         <AdminCheckbox

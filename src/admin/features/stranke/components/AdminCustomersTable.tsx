@@ -554,7 +554,7 @@ export default function AdminCustomersTable({ initialDirectory }: { initialDirec
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
     storageKey: 'admin-customers-page-size-v1',
-    defaultPageSize: 100,
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
   const setPage = pagination.setPage;

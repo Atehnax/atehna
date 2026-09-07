@@ -54,7 +54,7 @@ export type LogoLibraryAction =
   | { action: 'save'; variantId: string; name: string; project: LogoProject; expectedRevision: number; expectedDraftRevision: number }
   | { action: 'duplicate'; variantId: string; name: string; expectedRevision: number }
   | { action: 'rename'; variantId: string; name: string; expectedRevision: number }
-  | { action: 'delete'; variantId: string; expectedRevision: number }
+  | { action: 'delete'; variantId: string; expectedRevision: number; replacement?: LogoAssignment }
   | { action: 'assign'; placements: Partial<Record<LogoPlacementId, LogoAssignment>>; expectedRevision: number }
   | { action: 'publish'; variantId: string; expectedRevision: number; expectedDraftRevision: number }
   | { action: 'restore'; variantId: string; revisionId: string; expectedRevision: number }

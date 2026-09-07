@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { abbreviateCommercePublicCode } from '@/shared/domain/commercePublicCode';
 import { useToast } from '@/shared/ui/toast';
+import { adminTableSecondaryTextClassName } from './standards';
 
 type AdminPublicCodeProps = {
   code: string;
@@ -50,7 +51,7 @@ export default function AdminPublicCode({ code, label, testId }: AdminPublicCode
       type="button"
       data-testid={testId}
       data-no-row-nav
-      className="inline-block max-w-full cursor-copy select-text whitespace-nowrap rounded-sm text-[10px] font-medium leading-4 text-slate-500 transition-colors hover:text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+      className={`${adminTableSecondaryTextClassName} max-w-full cursor-copy select-text whitespace-nowrap rounded-sm text-[10px] font-medium text-slate-500 transition-colors hover:text-[color:var(--blue-500)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30`}
       aria-label={`Kopiraj celotno kodo ${label}: ${code}`}
       title={code}
       onClick={async (event) => {

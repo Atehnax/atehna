@@ -22,6 +22,7 @@ import type { PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 import { useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
 import Button from '@/shared/ui/button/Button';
+import { adminTextButtonTypographyTokenClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
 import OrderDocumentTemplateCanvas from './OrderDocumentTemplateCanvas';
 import { renderOrderDocumentPreview, type OrderDocumentRenderedPreview } from '../lib/renderOrderDocumentPreview';
@@ -323,7 +324,7 @@ export default function AdminOrderDocumentTemplateEditor({
             >
               {dirty ? 'Neshranjene spremembe' : savedAt ? `Shranjeno ${savedAt}` : 'Vse shranjeno'}
             </span>
-            <Button type="button" variant="outline" disabled={saving} data-testid="order-document-template-arrange" onClick={() => updateCurrentTemplate(arrangeOrderDocumentTemplate)}>
+            <Button type="button" variant="outline" className={adminTextButtonTypographyTokenClasses} disabled={saving} data-testid="order-document-template-arrange" onClick={() => updateCurrentTemplate(arrangeOrderDocumentTemplate)}>
               Uredi razmike
             </Button>
             <Button
@@ -331,6 +332,7 @@ export default function AdminOrderDocumentTemplateEditor({
               variant="outline"
               onClick={resetSelectedTemplate}
               disabled={saving}
+              className={adminTextButtonTypographyTokenClasses}
               data-testid="order-document-template-reset"
             >
               Ponastavi predlogo

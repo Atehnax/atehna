@@ -197,6 +197,8 @@ export type SiteFooterProps = {
   presentation?: Partial<FooterPresentation>;
   containerClassName?: string;
   responsivePresentation?: boolean;
+  /** Force an admin preview profile independently of the containing viewport. */
+  previewDevice?: 'desktop' | 'tablet' | 'mobile';
   editorAdapter?: SiteFooterEditorAdapter;
 };
 
@@ -298,7 +300,7 @@ const footerLogoPurposes = {
 } as const;
 
 export function renderSiteFooterLogo(
-  _settings: HomepageFooterSettings,
+  settings: HomepageFooterSettings,
   _logoMode: HomepageFooterSettings['logoMode'],
   fluid = false
 ) {
@@ -316,6 +318,11 @@ export function renderSiteFooterLogo(
       purposes={footerLogoPurposes}
       className={className}
       purposeClassNames={purposeClassNames}
+      purposeMaxHeights={fluid ? undefined : {
+        desktop: settings.responsive.desktop.logoHeightPx,
+        tablet: settings.responsive.tablet.logoHeightPx,
+        mobile: settings.responsive.mobile.logoHeightPx
+      }}
       alt="Atehna"
     />
   );
@@ -415,6 +422,7 @@ export default function SiteFooter({
   presentation = {},
   containerClassName = 'site-container',
   responsivePresentation = true,
+  previewDevice,
   editorAdapter
 }: SiteFooterProps) {
   if (!settings.visible && !editorAdapter?.forceVisible) return null;
@@ -440,6 +448,7 @@ export default function SiteFooter({
   const contact = settings.contact;
   const hasContact = Boolean(contact.email || contact.phone || contact.address || contact.workingHours);
   const views = resolvedPresentation(settings, presentation, responsivePresentation);
+  const preview = previewDevice ? settings.responsive[previewDevice] : null;
   const mobileColumns = boundedColumnCount(views.mobile.layoutColumns);
   const tabletColumns = boundedColumnCount(views.tablet.layoutColumns);
   const desktopColumns = boundedColumnCount(views.desktop.layoutColumns);
@@ -449,8 +458,9 @@ export default function SiteFooter({
   const copyrightTextAlign = resolveHomepageFooterTextAlignment(settings.copyrightTextAlign);
 
   const logo = renderSiteFooterLogo(settings, logoMode);
+  const hasLogoHeightOverride = Object.values(settings.responsive).some(value => typeof value.logoHeightPx === 'number' && Number.isFinite(value.logoHeightPx) && value.logoHeightPx > 0);
   const logoDefaultNode = (
-    <Link href="/" prefetch={false} aria-label="Atehna domov" className="inline-flex">
+    <Link href="/" prefetch={false} aria-label="Atehna domov" className={hasLogoHeightOverride ? 'inline-flex max-w-full' : 'inline-flex'}>
       {logo}
     </Link>
   );
@@ -561,9 +571,11 @@ export default function SiteFooter({
       aria-label="Povezave v nogi"
       className={classNames(
         'grid gap-6',
-        mobileColumnClassNames[mobileColumns],
-        tabletColumnClassNames[tabletColumns],
-        desktopColumnClassNames[desktopColumns]
+        preview ? mobileColumnClassNames[boundedColumnCount(preview.layoutColumns)] : classNames(
+          mobileColumnClassNames[mobileColumns],
+          tabletColumnClassNames[tabletColumns],
+          desktopColumnClassNames[desktopColumns]
+        )
       )}
     >
       {renderedColumns}
@@ -783,7 +795,11 @@ export default function SiteFooter({
     : null;
 
   const upperSectionChildren = (
-    <div className="grid gap-8 lg:grid-cols-[minmax(180px,1fr)_minmax(0,2.2fr)_minmax(220px,0.9fr)]">
+    <div className={previewDevice
+      ? previewDevice === 'desktop'
+        ? 'grid gap-8 grid-cols-[minmax(180px,1fr)_minmax(0,2.2fr)_minmax(220px,0.9fr)]'
+        : 'grid gap-8 grid-cols-1'
+      : 'grid gap-8 lg:grid-cols-[minmax(180px,1fr)_minmax(0,2.2fr)_minmax(220px,0.9fr)]'}>
       <div className="min-w-0">
         {renderedLogo}
         {renderedDescription}
@@ -875,7 +891,9 @@ export default function SiteFooter({
       aria-label="Pravne povezave"
       className={classNames(
         'flex flex-wrap gap-x-5 gap-y-2',
-        hasCustomLegalAlignment && 'w-full sm:w-auto sm:min-w-[24rem]'
+        hasCustomLegalAlignment && (previewDevice
+          ? previewDevice === 'mobile' ? 'w-full' : 'w-auto min-w-[24rem]'
+          : 'w-full sm:w-auto sm:min-w-[24rem]')
       )}
       data-footer-alignment-frame={hasCustomLegalAlignment ? 'distributed' : 'intrinsic'}
     >
@@ -898,7 +916,11 @@ export default function SiteFooter({
     <>
       {shouldRenderLowerLeading ? (
         <div
-          className="flex min-w-0 basis-full flex-wrap items-center gap-x-5 gap-y-3 lg:basis-0 lg:flex-1"
+          className={previewDevice
+            ? previewDevice === 'desktop'
+              ? 'flex min-w-0 basis-0 flex-wrap items-center gap-x-5 gap-y-3 flex-1'
+              : 'flex min-w-0 basis-full flex-wrap items-center gap-x-5 gap-y-3'
+            : 'flex min-w-0 basis-full flex-wrap items-center gap-x-5 gap-y-3 lg:basis-0 lg:flex-1'}
           data-footer-lower-leading="true"
         >
           {lowerContactRegion}
@@ -907,7 +929,11 @@ export default function SiteFooter({
       ) : null}
       {shouldRenderCopyright ? (
         <div
-          className="min-w-0 basis-full lg:ml-auto lg:basis-auto lg:shrink-0 lg:whitespace-nowrap"
+          className={previewDevice
+            ? previewDevice === 'desktop'
+              ? 'min-w-0 ml-auto basis-auto shrink-0 whitespace-nowrap'
+              : 'min-w-0 basis-full'
+            : 'min-w-0 basis-full lg:ml-auto lg:basis-auto lg:shrink-0 lg:whitespace-nowrap'}
           data-footer-lower-copyright="right"
         >
           {renderedCopyright}
@@ -946,9 +972,11 @@ export default function SiteFooter({
     <div
       className={classNames(
         containerClassName,
-        mobileSpacingClassNames[views.mobile.spacing],
-        tabletSpacingClassNames[views.tablet.spacing],
-        desktopSpacingClassNames[views.desktop.spacing]
+        preview ? mobileSpacingClassNames[preview.spacing] : classNames(
+          mobileSpacingClassNames[views.mobile.spacing],
+          tabletSpacingClassNames[views.tablet.spacing],
+          desktopSpacingClassNames[views.desktop.spacing]
+        )
       )}
     >
       {upperSectionRegion}
@@ -958,12 +986,14 @@ export default function SiteFooter({
   const surfaceControls = controlsFor({ scope: 'surface', settings, hidden: !settings.visible });
   const surfaceClassName = classNames(
     'site-footer-surface border-[color:var(--site-divider-color)] bg-[color:var(--site-color-surface)] text-[color:var(--site-color-text)]',
-    views.mobile.topBorder ? 'border-t' : 'border-t-0',
-    views.tablet.topBorder ? 'sm:border-t' : 'sm:border-t-0',
-    views.desktop.topBorder ? 'lg:border-t' : 'lg:border-t-0'
+    preview ? (preview.topBorder ? 'border-t' : 'border-t-0') : classNames(
+      views.mobile.topBorder ? 'border-t' : 'border-t-0',
+      views.tablet.topBorder ? 'sm:border-t' : 'sm:border-t-0',
+      views.desktop.topBorder ? 'lg:border-t' : 'lg:border-t-0'
+    )
   );
   const surfaceDefaultNode = (
-    <footer className={surfaceClassName}>
+    <footer className={surfaceClassName} data-footer-preview-device={previewDevice}>
       {surfaceChildren}
     </footer>
   );

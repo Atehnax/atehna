@@ -437,7 +437,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
     storageKey: 'admin-schools-page-size-v3',
-    defaultPageSize: 100,
+    defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
   const setPage = pagination.setPage;

@@ -7,6 +7,8 @@ import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutoco
 import AdminPostalLocationCombobox from '@/admin/components/AdminPostalLocationCombobox';
 import customerDetailStyles from '@/shared/ui/admin-detail/AdminCustomerDetails.module.css';
 import { AdminCustomerNameEditor } from '@/shared/ui/admin-detail/AdminCustomerNameEditor';
+import { AdminCustomerAddressValue } from '@/shared/ui/admin-detail/AdminCustomerAddressValue';
+import { AdminCustomerMessageField } from '@/shared/ui/admin-detail/AdminCustomerMessageField';
 import { getCustomerIdentity } from '@/shared/domain/order/customerIdentity';
 import AuditHistoryDrawer from '@/admin/components/AuditHistoryDrawer';
 import CustomerEmailConfirmationDialog from '@/admin/features/email/components/CustomerEmailConfirmationDialog';
@@ -46,6 +48,9 @@ import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   adminTableBodyCellCenterClassName,
+  adminTableTextStackClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
   adminTableEditIconButtonClassName,
   adminTableBodyCellLeftClassName,
   adminCardSectionEditIconButtonClassName,
@@ -153,8 +158,6 @@ const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !sh
 const quoteDetailValueControlClassName = `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const quoteDetailCompositeInputClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
-const quoteDetailInlineTextareaClassName =
-  `${quoteDetailValueControlClassName} !h-5 resize-none overflow-hidden whitespace-nowrap`;
 const quoteDetailReadValueClassName =
   "block h-6 w-full min-w-0 flex-1 select-text truncate font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-6 text-slate-900";
 const labelClassName = 'text-[11px] font-semibold leading-4 text-slate-700';
@@ -754,7 +757,7 @@ function QuoteDetailFieldShell({
   className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
+    <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -776,7 +779,7 @@ function QuoteAddressEditor({
       <div
         role="group"
         aria-label="Naslovni podatki"
-        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] divide-x divide-slate-200 overflow-hidden ${customerDetailStyles.addressFields}`}
+        className={`grid h-6 min-w-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_3.5rem_minmax(0,1fr)_2.25rem] overflow-hidden ${customerDetailStyles.addressFields}`}
         data-testid="quote-request-address-fields"
       >
         <AdminAddressAutocompleteInput
@@ -798,7 +801,7 @@ function QuoteAddressEditor({
               gursHouseNumberId: suggestion.gursHouseNumberId
             });
           }}
-          className={quoteDetailCompositeInputClassName + ' !pl-0 w-full'}
+          className={quoteDetailCompositeInputClassName + ' w-full'}
         />
         <input
           aria-label="Dodatni naslov"
@@ -891,7 +894,7 @@ function QuoteDetailRow({
     <div
       className={`grid min-h-[35px] min-w-0 items-center gap-3 ${customerDetailStyles.detailRow} ${icon === 'address' ? customerDetailStyles.addressRow : ''} ${
         fullWidth
-          ? 'grid-cols-[120px_minmax(0,1fr)] md:col-span-2'
+          ? customerDetailStyles.fullWidthRow
           : 'grid-cols-[minmax(120px,0.42fr)_minmax(0,1fr)]'
       }`}
       data-quote-detail-row={label}
@@ -900,10 +903,10 @@ function QuoteDetailRow({
     >
       <dt className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-slate-600">
         <QuoteDetailFieldIcon icon={icon} />
-        <span className={noWrapLabel ? 'min-w-0 truncate !whitespace-nowrap' : 'min-w-0 truncate'}>{label}</span>
+        <span className={noWrapLabel ? 'min-w-0 truncate !whitespace-nowrap' : 'min-w-0 truncate'} title={label}>{label === 'Številka naročila' || label === 'Št. povpraševanja' ? 'Številka' : label === 'Sporočilo stranke' ? 'Sporočilo' : label}</span>
       </dt>
       <dd className="min-w-0" title={!isEditing ? displayValue(value) : undefined}>
-        {readContent ?? (isEditing ? children : (
+        {isEditing ? children : (readContent ?? (
           <QuoteDetailFieldShell isEditing={false}>
             <span className={quoteDetailReadValueClassName}>{displayValue(value)}</span>
           </QuoteDetailFieldShell>
@@ -1239,12 +1242,14 @@ function QuoteItemsComparisonTable({
                     </span>
                   </th>
                   <td className={adminTableBodyCellLeftClassName + ' text-slate-900'}>
-                    <span data-item-title className="block truncate font-medium">
-                      {itemTitle(requestedItem)}
-                    </span>
-                    <span data-item-sku className="mt-0.5 block text-[10px] font-normal text-slate-500">
-                      SKU: {requestedItem.sku || '—'}
-                    </span>
+                    <div className={adminTableTextStackClassName}>
+                      <span data-item-title className={`${adminTablePrimaryTextClassName} truncate font-medium`}>
+                        {itemTitle(requestedItem)}
+                      </span>
+                      <span data-item-sku className={`${adminTableSecondaryTextClassName} text-[10px] font-normal text-slate-500`}>
+                        SKU: {requestedItem.sku || '—'}
+                      </span>
+                    </div>
                   </td>
                   <td className={adminTableBodyCellCenterClassName}>
                     <span data-item-field="quantity" className={quoteItemQuantitySlotClassName}>
@@ -1306,69 +1311,71 @@ function QuoteItemsComparisonTable({
                     </span>
                   </th>
                   <td className={adminTableBodyCellLeftClassName + ' py-2'}>
-                    {draftItem ? (
-                      <CustomSelect
-                        value={
-                          draftItem.catalogVariantId > 0
-                            ? String(draftItem.catalogVariantId)
-                            : ''
-                        }
-                        onChange={(catalogVariantId) => {
-                          const choice = catalogChoices.find(
-                            (candidate) =>
-                              candidate.catalogVariantId === Number(catalogVariantId)
-                          );
-                          if (!choice) return;
-                          const discountPct = normaliseDiscount(
-                            choice.discountPercentage
-                          );
-                          onUpdateDraftItem(draftItem.id, {
-                            catalogItemId: choice.catalogItemId,
-                            catalogVariantId: choice.catalogVariantId,
-                            productName: choice.productName,
-                            variantName: choice.variantName,
-                            sku: choice.sku,
-                            unit: choice.unit,
-                            baseUnitNet: choice.unitPrice,
-                            discountPct,
-                            unitNet: unitNetFromDiscount(
-                              choice.unitPrice,
-                              discountPct
-                            )
-                          });
-                        }}
-                        options={catalogOptions}
-                        disabled={
-                          disabled ||
-                          catalogLoadState !== 'ready' ||
-                          catalogChoices.length === 0
-                        }
-                        placeholder={
-                          catalogLoadState === 'loading' ||
-                          catalogLoadState === 'idle'
-                            ? 'Nalagam katalog …'
-                            : catalogLoadState === 'error'
-                              ? 'Kataloga ni mogoče naložiti'
-                              : 'Izberite artikel'
-                        }
-                        ariaLabel={'Ponujeni artikel ' + rowLabel}
-                        containerClassName="w-full"
-                        className={compactInputClassName + ' !h-7 w-full text-left'}
-                        valueClassName="text-[11px] font-medium text-slate-900"
-                        menuClassName="text-[11px]"
-                      />
-                    ) : (
-                      <span
-                        data-item-title
-                        className="block truncate font-medium text-slate-900"
-                        title={snapshotItem ? itemTitle(snapshotItem) : ''}
-                      >
-                        {snapshotItem ? itemTitle(snapshotItem) : '—'}
+                    <div className={adminTableTextStackClassName}>
+                      {draftItem ? (
+                        <CustomSelect
+                          value={
+                            draftItem.catalogVariantId > 0
+                              ? String(draftItem.catalogVariantId)
+                              : ''
+                          }
+                          onChange={(catalogVariantId) => {
+                            const choice = catalogChoices.find(
+                              (candidate) =>
+                                candidate.catalogVariantId === Number(catalogVariantId)
+                            );
+                            if (!choice) return;
+                            const discountPct = normaliseDiscount(
+                              choice.discountPercentage
+                            );
+                            onUpdateDraftItem(draftItem.id, {
+                              catalogItemId: choice.catalogItemId,
+                              catalogVariantId: choice.catalogVariantId,
+                              productName: choice.productName,
+                              variantName: choice.variantName,
+                              sku: choice.sku,
+                              unit: choice.unit,
+                              baseUnitNet: choice.unitPrice,
+                              discountPct,
+                              unitNet: unitNetFromDiscount(
+                                choice.unitPrice,
+                                discountPct
+                              )
+                            });
+                          }}
+                          options={catalogOptions}
+                          disabled={
+                            disabled ||
+                            catalogLoadState !== 'ready' ||
+                            catalogChoices.length === 0
+                          }
+                          placeholder={
+                            catalogLoadState === 'loading' ||
+                            catalogLoadState === 'idle'
+                              ? 'Nalagam katalog …'
+                              : catalogLoadState === 'error'
+                                ? 'Kataloga ni mogoče naložiti'
+                                : 'Izberite artikel'
+                          }
+                          ariaLabel={'Ponujeni artikel ' + rowLabel}
+                          containerClassName="w-full"
+                          className={compactInputClassName + ' !h-7 w-full text-left'}
+                          valueClassName="text-[11px] font-medium text-slate-900"
+                          menuClassName="text-[11px]"
+                        />
+                      ) : (
+                        <span
+                          data-item-title
+                          className={`${adminTablePrimaryTextClassName} truncate font-medium text-slate-900`}
+                          title={snapshotItem ? itemTitle(snapshotItem) : ''}
+                        >
+                          {snapshotItem ? itemTitle(snapshotItem) : '—'}
+                        </span>
+                      )}
+                      <span data-item-sku className={`${adminTableSecondaryTextClassName} text-[10px] font-normal text-slate-500`}>
+                        SKU: {offeredSku || '—'}
                       </span>
-                    )}
-                    <span data-item-sku className="mt-0.5 block text-[10px] font-normal text-slate-500">
-                      SKU: {offeredSku || '—'}
-                    </span>
+                    </div>
                   </td>
                   <td className={adminTableBodyCellCenterClassName}>
                     {draftItem ? (
@@ -3127,14 +3134,14 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               </button>
             </div>
 
-            {isEditingRequestDetails && currentIssuedVersion ? (
+            {currentIssuedVersion ? (
               <p
                 className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800"
                 data-testid="quote-customer-correction-revision-notice"
               >
                 {draftVersion
-                  ? 'Urejate podatke nove različice. Trenutno izdana ponudba ostaja nespremenjena.'
-                  : 'Popravki bodo ob shranjevanju ustvarili novo različico. Trenutno izdana ponudba ostaja nespremenjena.'}
+                  ? 'Popravki podatkov se shranijo v novo različico. Trenutno izdana ponudba ostane nespremenjena.'
+                  : 'Popravki podatkov ob shranjevanju ustvarijo novo različico. Trenutno izdana ponudba ostane nespremenjena.'}
               </p>
             ) : null}
 
@@ -3170,19 +3177,36 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                   />
                 </QuoteDetailFieldShell>
               </QuoteDetailRow>
-              <QuoteDetailRow label={activeRequestDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'} value={activeCustomerName} icon="customer" isEditing={isEditingRequestDetails}>
-                <AdminCustomerNameEditor values={activeRequestDetails} disabled={Boolean(busyAction)} onChange={updateDraftRequestDetails} />
-              </QuoteDetailRow>
               <QuoteDetailRow label="Email" value={activeRequestDetails.email} icon="email" isEditing={isEditingRequestDetails}>
                 <QuoteDetailFieldShell isEditing>
                   <input aria-label="Email" type="email" value={activeRequestDetails.email} disabled={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ email: event.target.value })} className={quoteDetailValueControlClassName} />
                 </QuoteDetailFieldShell>
               </QuoteDetailRow>
               <QuoteDetailRow
+                label={activeRequestDetails.customerType === 'individual' ? 'Naročnik' : 'Naziv'}
+                value={activeCustomerName}
+                icon="customer"
+                isEditing={isEditingRequestDetails}
+                fullWidth
+                readContent={<AdminCustomerNameEditor values={activeRequestDetails} isEditing={false} disabled={Boolean(busyAction)} onChange={updateDraftRequestDetails} />}
+              >
+                <AdminCustomerNameEditor values={activeRequestDetails} disabled={Boolean(busyAction)} onChange={updateDraftRequestDetails} />
+              </QuoteDetailRow>
+              <QuoteDetailRow
                 label="Naslov"
                 value={formatQuoteRequestAddress(activeRequestDetails)}
                 icon="address"
                 isEditing={isEditingRequestDetails}
+                fullWidth
+                readContent={(
+                  <AdminCustomerAddressValue
+                    addressLine1={activeRequestDetails.addressLine1}
+                    addressLine2={activeRequestDetails.addressLine2}
+                    postalCode={activeRequestDetails.postalCode}
+                    city={activeRequestDetails.city}
+                    countryCode={activeRequestDetails.countryCode}
+                  />
+                )}
               >
                 <QuoteAddressEditor
                   details={activeRequestDetails}
@@ -3190,7 +3214,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                   onChange={updateDraftRequestDetails}
                 />
               </QuoteDetailRow>
-              <QuoteDetailRow label="Kaj potrebuje?" value={getQuoteReasonLabel(activeRequestDetails.quoteReason)} icon="reference" isEditing={isEditingRequestDetails}>
+              <QuoteDetailRow label="Kaj potrebuje?" value={getQuoteReasonLabel(activeRequestDetails.quoteReason)} icon="reference" isEditing={isEditingRequestDetails} fullWidth>
                 <QuoteDetailFieldShell isEditing>
                   <CustomSelect
                     ariaLabel="Kaj potrebuje?"
@@ -3210,10 +3234,10 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 value={activeRequestDetails.customerMessage}
                 icon="message"
                 isEditing={isEditingRequestDetails}
+                fullWidth
+                readContent={<AdminCustomerMessageField value={activeRequestDetails.customerMessage} isEditing={false} disabled={Boolean(busyAction)} onChange={(value) => updateDraftRequestDetails({ customerMessage: value })} />}
               >
-                <QuoteDetailFieldShell isEditing>
-                  <textarea aria-label="Sporočilo stranke" rows={1} wrap="off" value={activeRequestDetails.customerMessage} readOnly={Boolean(busyAction)} onChange={(event) => updateDraftRequestDetails({ customerMessage: event.target.value })} className={quoteDetailInlineTextareaClassName} />
-                </QuoteDetailFieldShell>
+                <AdminCustomerMessageField value={activeRequestDetails.customerMessage} isEditing disabled={Boolean(busyAction)} onChange={(value) => updateDraftRequestDetails({ customerMessage: value })} />
               </QuoteDetailRow>
             </dl>
           </section>

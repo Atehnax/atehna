@@ -21,8 +21,11 @@ const AdminOrderItemsEditor = dynamic(() => import('@/admin/features/orders/comp
 export default function AdminOrderItemsEditorClient(props: {
   orderId: number;
   items: OrderItemInput[];
+  initialHistoricalRevision?: number;
+  initialPricingRevision?: number;
   initialSubtotal?: number;
   initialTax?: number;
+  isHistorical?: boolean;
   initialShipping?: number;
   initialShippingOverride?: boolean;
   initialShippingOverrideStale?: boolean;

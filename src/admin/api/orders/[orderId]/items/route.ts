@@ -10,7 +10,7 @@ import {
 import { getPool } from '@/shared/server/db';
 import { computeOrderLineItemsDiff, countAuditChangedFields, diffHasEntries } from '@/shared/audit/auditDiff';
 import type { AuditDiff } from '@/shared/audit/auditTypes';
-import { insertAuditEventForRequest } from '@/shared/server/audit';
+import { getAuditActor, insertAuditEventForRequest } from '@/shared/server/audit';
 import { isJsonRecord, readRequiredJsonRecord } from '@/shared/server/requestJson';
 import { getShippingConfiguration } from '@/shared/server/shipping';
 import { SHIPPING_BEARING_ORDER_PDF_TYPES } from '@/shared/domain/order/orderTypes';
@@ -343,12 +343,6 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           { status: 400 }
         );
       }
-      if (!item.catalogVariantId) {
-        return NextResponse.json(
-          { message: 'Vsaka postavka mora imeti veljaven ID različice kataloga.' },
-          { status: 400 }
-        );
-      }
       if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) {
         return NextResponse.json(
           { message: 'Količina mora biti celo število in vsaj 1.' },
@@ -395,6 +389,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           shippingManualQuoteReason: string | null;
           total: number;
           pricingRevision: number;
+          historicalRevision?: string;
           deliveryPlanRevision: number;
           items: Array<{
             id: number;
@@ -432,6 +427,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             stock_enforcement_applied,
             source_quote_offer_version_id,
             is_draft,
+            is_historical,
+            historical_revision,
+            pricing_revision,
             status,
             payment_status,
             deleted_at
@@ -447,6 +445,18 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       }
 
       const order = orderBeforeResult.rows[0] as Record<string, unknown>;
+      if (order.is_historical !== true && normalizedItems.some(item => !item.catalogVariantId)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Vsaka postavka mora imeti veljaven ID različice kataloga.' }, { status: 400 });
+      }
+      if (order.is_historical === true && String(bodyResult.body.expectedHistoricalRevision ?? '') !== String(order.historical_revision)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ code: 'ORDER_HISTORICAL_CONFLICT', message: 'Zgodovinski zapis je bil medtem spremenjen. Ponovno ga naložite.' }, { status: 409 });
+      }
+      if (order.is_historical === true && String(bodyResult.body.expectedPricingRevision ?? '') !== String(order.pricing_revision)) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ code: 'ORDER_HISTORICAL_PRICING_CONFLICT', message: 'Postavke so bile medtem spremenjene. Ponovno jih naložite.' }, { status: 409 });
+      }
       const parcelCount = Number(order.parcel_count);
       if (!Number.isSafeInteger(parcelCount) || parcelCount < 1) {
         await client.query('ROLLBACK');
@@ -462,8 +472,9 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       const paymentStatus = String(order.payment_status ?? 'unpaid');
       const stateLocked =
         order.deleted_at ||
-        ['partially_sent', 'sent', 'finished', 'cancelled'].includes(orderStatus) ||
-        ['paid', 'refunded'].includes(paymentStatus);
+        (order.is_historical === true && order.is_draft !== true) ||
+        (order.is_historical !== true && (['partially_sent', 'sent', 'finished', 'cancelled'].includes(orderStatus) ||
+        ['paid', 'refunded'].includes(paymentStatus)));
       if (stateLocked) {
         await client.query('ROLLBACK');
         return NextResponse.json(
@@ -516,7 +527,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      const parsedTaxRate = normalizeNumber(order.tax_rate);
+      const hasHistoricalTaxRate = Object.hasOwn(bodyResult.body, 'historicalTaxRate');
+      if (hasHistoricalTaxRate && (order.is_historical !== true || !/^(?:0(?:[.,]\d{1,4})?|1(?:[.,]0{1,4})?)$/.test(String(bodyResult.body.historicalTaxRate)))) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Izvorna stopnja DDV mora biti med 0 in 1 z največ štirimi decimalkami.' }, { status: 400 });
+      }
+      const parsedTaxRate = normalizeNumber(hasHistoricalTaxRate ? bodyResult.body.historicalTaxRate : order.tax_rate);
       const taxRate =
         Number.isFinite(parsedTaxRate) && parsedTaxRate >= 0 && parsedTaxRate <= 1
           ? parsedTaxRate
@@ -605,7 +621,11 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         };
       });
       const metadataByInputIndex = await Promise.all(
-        metadataInputItems.map((item) => resolveCatalogMetadata(client, item))
+        metadataInputItems.map(async (item) => {
+          if (order.is_historical === true && !item.catalogVariantId) return null;
+          const metadata = await resolveCatalogMetadata(client, item);
+          return order.is_historical === true && metadata ? { ...metadata, productName: item.name } : metadata;
+        })
       );
       const nextVariantIds = pricedItems.map((item, index) => {
         const oldRow = item.id ? oldRowsById.get(item.id) : undefined;
@@ -621,6 +641,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
       }> = [];
 
       if (
+        order.is_historical !== true &&
         order.stock_enforcement_applied !== false &&
         order.is_draft !== true &&
         order.commitment_status === 'binding'
@@ -974,7 +995,8 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         totalPrice: pricedItems[index].lineNet
       }));
       const itemDiff = computeOrderLineItemsDiff(oldItems, newItems);
-      if (itemDiff) {
+      const pricingChanged = Boolean(itemDiff) || taxRate !== normalizeNumber(order.tax_rate);
+      if (pricingChanged) {
         await client.query(
           'delete from order_line_snapshots where order_id = $1',
           [orderId]
@@ -1091,7 +1113,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
-      if (itemDiff) {
+      if (itemDiff && order.is_historical !== true) {
         try {
           const shippingConfiguration = await getShippingConfiguration(client, {
             lockForTransaction: true
@@ -1194,6 +1216,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
               shipping_snapshot_json = $5::jsonb,
               shipping_override_stale = $6,
               total = $7,
+              tax_rate = $11,
               pricing_revision = pricing_revision + case when $8 then 1 else 0 end,
               delivery_plan_revision = delivery_plan_revision + case when $9 then 1 else 0 end
           where id = $10
@@ -1207,9 +1230,10 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           JSON.stringify(shippingSnapshot),
           shippingOverrideStale,
           total,
-          Boolean(itemDiff),
+          pricingChanged,
           deliveryPlanMembershipChanged,
-          orderId
+          orderId,
+          taxRate
         ]
       );
       const pricingRevision = Number(
@@ -1269,6 +1293,15 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         );
       }
 
+      let historicalRevision: string | undefined;
+      if (order.is_historical === true && pricingChanged) {
+        const actor = await getAuditActor(request);
+        if (!actor.actor_id?.startsWith('admin:')) throw new Error('Potrebna je prijava.');
+        const revision = await client.query('update orders set historical_revision=historical_revision+1 where id=$1 returning historical_revision', [orderId]);
+        historicalRevision = String(revision.rows[0].historical_revision);
+        await client.query('insert into order_historical_changes (order_id,revision,actor_id,before_json,after_json) values ($1,$2,$3,$4::jsonb,$5::jsonb)',
+          [orderId, historicalRevision, actor.actor_id, JSON.stringify({ items: oldItems, taxRate: order.tax_rate, subtotal: order.subtotal, tax: order.tax, shipping: order.shipping }), JSON.stringify({ items: newItems, taxRate, subtotal, tax, shipping })]);
+      }
       responsePayload = {
         subtotal,
         tax,
@@ -1279,6 +1312,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
         shippingManualQuoteReason,
         total,
         pricingRevision,
+        historicalRevision,
         deliveryPlanRevision,
         items: savedItems
       };
@@ -1296,6 +1330,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
     return NextResponse.json({
       success: true,
       pricingRevision: responsePayload.pricingRevision,
+      ...(responsePayload.historicalRevision ? { historicalRevision: responsePayload.historicalRevision } : {}),
       deliveryPlanRevision: responsePayload.deliveryPlanRevision,
       totals: {
         subtotal: responsePayload.subtotal,

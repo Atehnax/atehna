@@ -53,6 +53,8 @@ export async function readPricingStockRows(db: PricingStockDatabase, model: Pric
       coalesce(v.unit,i.unit,'kos') as unit, i.category_id, coalesce(c.title,'Brez kategorije') as category_label,
       case when i.status='active' and v.status='active' then 'active' else 'inactive' end as status,
       v.price::text, v.cost_net::text, v.inventory, v.work_minutes::text, v.other_costs::text,
+      v.length::text as length_mm, v.width::text as width_mm, v.thickness::text as thickness_mm, v.weight::text as weight_kg,
+      editor.product_type, i.shape, i.material,
       v.stock_revision::text, v.pricing_revision::text, v.purchase_updated_at, v.updated_at,
       coalesce(reservations.reserved,0)::text as reserved, coalesce(reservations.uncertain,false) or exists (
         select 1 from order_items line join orders o on o.id=line.order_id
@@ -62,6 +64,7 @@ export async function readPricingStockRows(db: PricingStockDatabase, model: Pric
       ) as reservation_uncertain
     from catalog_item_variants v join catalog_items i on i.id=v.item_id
     left join catalog_categories c on c.id=i.category_id
+    left join catalog_item_editor_details editor on editor.item_id=i.id
     left join lateral (
       select sum(h.quantity) filter (where h.state='held') as reserved,
         bool_or(h.state='legacy_unknown' or o.status='partially_sent') as uncertain
@@ -73,7 +76,7 @@ export async function readPricingStockRows(db: PricingStockDatabase, model: Pric
     order by i.position,i.id,v.position,v.id`, ids ? [ids] : undefined);
   return result.rows.map(raw => {
     const values: PricingStockValues = { saleNet: decimal(raw.price), purchaseNet: decimal(raw.cost_net), inventory: Number(raw.inventory), workMinutes: decimal(raw.work_minutes), otherCosts: decimal(raw.other_costs) };
-    return { ...values, variantId:Number(raw.id),itemId:Number(raw.item_id),itemName:String(raw.item_name),itemSlug:String(raw.item_slug),variantName:String(raw.variant_name),sku:decimal(raw.variant_sku),unit:String(raw.unit),categoryId:decimal(raw.category_id),categoryLabel:String(raw.category_label),status:raw.status==='active'?'active':'inactive',stockRevision:String(raw.stock_revision),pricingRevision:String(raw.pricing_revision),purchaseUpdatedAt:raw.purchase_updated_at?iso(raw.purchase_updated_at):null,updatedAt:iso(raw.updated_at),reserved:raw.reservation_uncertain ? null : Number(raw.reserved),available:values.inventory,reservationNote:raw.reservation_uncertain ? 'Rezervacij ni mogoče zanesljivo določiti za delno poslana ali neevidentirana naročila.' : 'Evidentirane enote v aktivnih naročilih. Zaloga je že zmanjšana za te rezervacije.',calculation:calculatePricingStockRow(values,model) };
+    return { ...values, sizing:{productType:raw.product_type==='simple'||raw.product_type==='dimensions'||raw.product_type==='weight'||raw.product_type==='unique_machine'?raw.product_type:null,lengthMm:decimal(raw.length_mm),widthMm:decimal(raw.width_mm),thicknessMm:decimal(raw.thickness_mm),weightKg:decimal(raw.weight_kg),shape:decimal(raw.shape),material:decimal(raw.material)}, variantId:Number(raw.id),itemId:Number(raw.item_id),itemName:String(raw.item_name),itemSlug:String(raw.item_slug),variantName:String(raw.variant_name),sku:decimal(raw.variant_sku),unit:String(raw.unit),categoryId:decimal(raw.category_id),categoryLabel:String(raw.category_label),status:raw.status==='active'?'active':'inactive',stockRevision:String(raw.stock_revision),pricingRevision:String(raw.pricing_revision),purchaseUpdatedAt:raw.purchase_updated_at?iso(raw.purchase_updated_at):null,updatedAt:iso(raw.updated_at),reserved:raw.reservation_uncertain ? null : Number(raw.reserved),available:values.inventory,reservationNote:raw.reservation_uncertain ? 'Rezervacij ni mogoče zanesljivo določiti za delno poslana ali neevidentirana naročila.' : 'Evidentirane enote v aktivnih naročilih. Zaloga je že zmanjšana za te rezervacije.',calculation:calculatePricingStockRow(values,model) };
   });
 }
 export async function readPricingStockState(db: PricingStockDatabase): Promise<PricingStockState> {
@@ -105,11 +108,6 @@ export async function commitPricingStockBatch(db: PricingStockDatabase, raw: unk
     const model=await readPricingStockModel(db,input.model?'update':'share');
     const ids=input.rows.map(row=>row.variantId);
     if (input.expectedModelRevision!==model.revision) throw new PricingStockError('Model je bil medtem spremenjen. Preglejte nov izračun pred shranjevanjem.',409,'PRICING_STOCK_CONFLICT',{model,currentRows:await readPricingStockRows(db,model,ids),conflicts:[]});
-    const stockChange=input.rows.some(row=>'inventory' in row.patch);
-    if(stockChange) {
-      const policy=await db.query("select config_json from inventory_policy_settings where key='default' for share");
-      if((policy.rows[0]?.config_json as {stockEnforcementEnabled?:boolean}|undefined)?.stockEnforcementEnabled===false) throw new PricingStockError('Urejanje zaloge je izključeno z nastavitvijo Zaloga.',409,'PRICING_STOCK_DISABLED');
-    }
     if(input.model)await lockPricingStockModelInputs(db);
     // Match full article saves: parent rows first, then variants in ID order.
     await db.query('select id from catalog_items where id in (select item_id from catalog_item_variants where id=any($1::bigint[])) order by id for update',[ids]);

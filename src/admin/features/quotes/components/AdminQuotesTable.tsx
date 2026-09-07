@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent
 } from 'react';
 import Link from 'next/link';
+import { SlidersHorizontal } from 'lucide-react';
 import type { BusinessQuotePreview } from '@/shared/domain/analytics/quotePreview';
 import AdminQuoteAnalyticsPreview from './AdminQuoteAnalyticsPreview';
 import { usePathname, useRouter } from 'next/navigation';
@@ -47,6 +48,9 @@ import AdminPublicCode from '@/shared/ui/admin-table/AdminPublicCode';
 import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import {
   AdminTableLayout,
+  adminTableTextStackClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
   adminTableBodyCellCenterClassName,
   adminTableBodyCellLeftClassName,
   adminTableCardClassName,
@@ -95,7 +99,7 @@ import {
   ColumnFilterIcon,
   DownloadIcon,
   OpenArticleIcon,
-  PanelAddRemoveIcon,
+  adminActionIconSizeClassName,
   PencilIcon,
   TrashCanIcon
 } from '@/shared/ui/icons/AdminActionIcons';
@@ -973,7 +977,7 @@ export default function AdminQuotesTable({
               }}
               showLabel={false}
               triggerClassName={adminTableNeutralIconButtonClassName}
-              icon={<PanelAddRemoveIcon className="!scale-[0.8]" />}
+              icon={<SlidersHorizontal className={adminActionIconSizeClassName} strokeWidth={1.5} />}
               menuWidth={164}
             />
             <IconButton
@@ -1381,20 +1385,20 @@ export default function AdminQuotesTable({
                     data-no-row-nav
                   >
                     <div
-                      className="flex h-12 w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap"
+                      className={`${adminTableTextStackClassName} h-12 w-full items-center justify-center whitespace-nowrap`}
                       data-testid={`quote-number-cell-${row.id}`}
                     >
                       <Link
                         href={`/admin/orders/quotes/${row.id}`}
                         prefetch={false}
-                        className="inline-flex items-center justify-center rounded-sm text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]"
+                        className={`${adminTablePrimaryTextClassName} rounded-sm text-center text-[11px] font-semibold tabular-nums text-slate-900 transition-colors hover:text-[color:var(--blue-500)] hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]`}
                         aria-label={`Odpri povpraševanje ${displayRequestNumber}`}
                         title={row.requestNumber}
                         data-testid={`quote-request-number-${row.id}`}
                       >
                         {displayRequestNumber}
                       </Link>
-                      <span className="inline-flex items-center gap-1 text-[10px] leading-none text-slate-500 [&>button]:cursor-default">
+                      <span className={`${adminTableSecondaryTextClassName} !flex items-center gap-1 text-[10px] text-slate-500 [&>button]:cursor-default`}>
                         <AdminPublicCode
                           code={row.quoteCode}
                           label="povpraševanja"
@@ -1406,7 +1410,7 @@ export default function AdminQuotesTable({
                           <Link
                             href={`/admin/orders/${row.resultingOrderId}`}
                             prefetch={false}
-                            className="inline-flex items-center rounded-sm font-semibold leading-none tabular-nums text-[color:var(--blue-500)] underline decoration-[1px] underline-offset-2 transition-colors hover:text-[color:var(--blue-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
+                            className="inline-flex items-center rounded-sm font-semibold leading-[inherit] tabular-nums text-[color:var(--blue-500)] underline decoration-[1px] underline-offset-2 transition-colors hover:text-[color:var(--blue-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3e67d6]/30"
                             aria-label={`Odpri povezano naročilo ${linkedOrderCode}`}
                             title={`Povezano naročilo ${linkedOrderCode}`}
                             data-testid={`quote-linked-order-${row.id}`}
@@ -1454,24 +1458,26 @@ export default function AdminQuotesTable({
                         aria-label={`Naročnik ${displayRequestNumber}`}
                       />
                     ) : (
-                      <div className="min-w-0 leading-tight">
-                        <span
-                          className={`${adminTableMatchingValueBaseClassName} -ml-[5px] max-w-full truncate font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
-                          title={customerIdentity.name}
-                          data-testid={`quote-table-customer-name-${row.id}`}
-                          onMouseEnter={() =>
-                            setMatchingValue('customer', customerIdentity.name)
-                          }
-                          onMouseLeave={() => setHoveredCellMatch(null)}
-                        >
-                          {customerIdentity.name || '—'}
+                      <div className={adminTableTextStackClassName}>
+                        <span className={adminTablePrimaryTextClassName}>
+                          <span
+                            className={`${adminTableMatchingValueBaseClassName} -ml-[5px] max-w-full truncate align-top font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                            title={customerIdentity.name}
+                            data-testid={`quote-table-customer-name-${row.id}`}
+                            onMouseEnter={() =>
+                              setMatchingValue('customer', customerIdentity.name)
+                            }
+                            onMouseLeave={() => setHoveredCellMatch(null)}
+                          >
+                            {customerIdentity.name || '—'}
+                          </span>
                         </span>
                         {customerIdentity.contact ? (
-                          <p className="mt-0.5 truncate text-[10px] leading-4 text-slate-500" title={customerIdentity.contact} data-testid={`quote-table-contact-${row.id}`}>
+                          <p className={`${adminTableSecondaryTextClassName} truncate text-[10px] text-slate-500`} title={customerIdentity.contact} data-testid={`quote-table-contact-${row.id}`}>
                             {customerIdentity.contact}
                           </p>
                         ) : null}
-                        <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                        <p className={`${adminTableSecondaryTextClassName} truncate text-[11px] text-slate-500`}>
                           {row.email}
                         </p>
                       </div>

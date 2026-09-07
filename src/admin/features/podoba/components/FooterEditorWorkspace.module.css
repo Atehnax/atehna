@@ -1,0 +1,55 @@
+/* Keep editing tools on the admin palette inside the configurable public preview. */
+.editorControl { --text-muted: var(--footer-editor-control-muted); --blue-500: var(--footer-editor-control-blue); --bg: var(--footer-editor-control-bg); --surface-1: var(--footer-editor-control-surface); }
+.card { --footer-editor-control-muted: var(--text-muted); --footer-editor-control-blue: var(--blue-500); --footer-editor-control-bg: var(--bg); --footer-editor-control-surface: var(--surface-1); min-width: 0; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 16px; }
+.actions, .deviceChoice { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.deviceRow, .settingsRow { gap: 16px 24px; padding: 14px 16px; border-top: 1px solid #e2e8f0; }
+.deviceRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.deviceHint { width: 112px; flex-shrink: 0; font-size: 12px; line-height: 20px; color: #64748b; }
+.settingsRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.logoHeight { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; font-size: 11px; color: #64748b; }
+.logoHeightControl { display: inline-flex; flex-shrink: 0; align-items: center; width: 84px; height: 28px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 6px; background: white; }
+.logoHeightControl:focus-within { border-color: var(--blue-500); }
+.logoSettings { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-width: 0; }
+.logoThumbnail { display: flex; align-items: center; justify-content: center; width: 100px; height: 44px; flex-shrink: 0; padding: 4px; border-radius: 6px; background: #f8fafc; }
+.sectionSwitches { display: grid; grid-template-columns: repeat(3, 140px); align-items: start; gap: 12px 16px; margin: 0; border: 0; padding: 8px 0 0; }
+.sectionSwitches .visibility { display: grid; grid-template-columns: minmax(0, 1fr) 48px; align-items: center; gap: 8px; min-height: 28px; line-height: 14px; }
+.visibility { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #475569; }
+.canvasViewport { overflow-x: auto; padding: 0 16px 16px; }
+.canvas.canvas { container-type: inline-size; width: 100%; margin: 0 auto; border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; }
+.canvas[data-footer-editor-device='desktop'] { min-width: 1100px; }
+.canvas[data-footer-editor-device='tablet'] { width: 768px; }
+.canvas[data-footer-editor-device='mobile'] { width: 390px; max-width: 100%; }
+.canvas[data-footer-editor-mode='edit'] :global(.site-container) { padding-inline: 12px; }
+.canvas[data-footer-editor-mode='edit'] > div > footer { border-top: 0; }
+.emptyPreview { display: grid; justify-items: center; gap: 8px; padding: 64px 16px; color: #64748b; text-align: center; font-size: 13px; }
+.emptyPreview span { font-size: 12px; }
+.upperContent { flex: 1; min-width: 0; }
+.canvas[data-footer-editor-device='desktop'] .upperContent > div > div { grid-template-columns: minmax(140px,.8fr) minmax(0,2.5fr) minmax(190px,1fr); gap: 20px; }
+.columns { display: grid; grid-template-columns: repeat(var(--footer-editor-columns, 3), minmax(0, 1fr)); gap: 12px; }
+.column { --footer-column-actions-width: 50px; position: relative; min-width: 0; border: 1px solid transparent; border-radius: 8px; padding: 12px; transition: border-color 180ms, background 180ms; }
+.column:hover { border-color: #cbd5e1; }
+.column[data-selected='true'] { border-color: var(--blue-500); background: color-mix(in srgb, var(--blue-50) 60%, white); }
+.selectedBadge { position: absolute; left: -1px; top: -17px; padding: 2px 7px; border-radius: 4px 4px 0 0; background: var(--blue-500); color: white; font-size: 10px; line-height: 14px; }
+.columnTitle { min-height: 28px; padding: 2px calc(var(--footer-column-actions-width) + 3px) 8px 19px; border-bottom: 1px solid #e2e8f0; }
+.columnActions { position: absolute; right: 12px; top: 12px; z-index: 30; display: flex; align-items: center; gap: 2px; width: var(--footer-column-actions-width); }
+.columnGrip { position: absolute; top: 12px; left: 8px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 24px; color: #64748b; cursor: grab; touch-action: none; }
+.columnGrip:active { cursor: grabbing; }
+.link { position: relative; display: grid; grid-template-columns: 16px minmax(0,1fr) 24px; align-items: center; gap: 3px; min-height: 32px; border-radius: 5px; }
+.columnLink { grid-template-columns: 16px minmax(0,1fr) var(--footer-column-actions-width); }
+.link:hover, .link:focus-within { background: color-mix(in srgb, var(--blue-50) 50%, transparent); }
+.linkGrip { display: flex; align-items: center; justify-content: center; height: 24px; width: 16px; color: #94a3b8; cursor: grab; touch-action: none; }
+.linkLabel button { white-space: normal; overflow-wrap: anywhere; text-align: inherit; }
+.linkAlignment { position: absolute !important; right: 24px; top: 3px; background: white; opacity: 0; pointer-events: none; }
+.link:hover .linkAlignment, .link:focus-within .linkAlignment { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .column { transition: none; } }
+@media (max-width: 640px) { .heading, .settingsRow, .deviceRow { padding: 12px; } .canvasViewport { padding-inline: 8px; } .deviceChoice { gap: 8px; } .logoSettings { gap: 8px; } }
+
+/* Responsive rearrangement depends only on viewport width, never the selected device or visibility values. */
+@media (max-width: 1100px) {
+  .settingsRow { grid-template-columns: minmax(0, 1fr); }
+  .sectionSwitches { grid-row: 1; justify-self: end; padding-top: 0; }
+  .logoSettings { grid-row: 2; }
+}
+@media (max-width: 640px) { .sectionSwitches { justify-self: start; } }
+@media (max-width: 560px) { .sectionSwitches { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); } }

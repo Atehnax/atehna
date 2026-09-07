@@ -21,9 +21,9 @@ const cards: { key: keyof BusinessQuotePreviewSummary; title: string; descriptio
 
 // Project the existing canonical response without bundling its server aggregation.
 const projectSummary = ({ quotes }: BusinessAnalyticsResponse): BusinessQuotePreviewSummary => ({
-  issued: quotes.mature.total + quotes.immature,
-  mature: quotes.mature.total,
-  accepted: quotes.mature.accepted,
+  issued: quotes.issuedCount,
+  mature: quotes.enabled ? quotes.mature.total : null,
+  accepted: quotes.enabled ? quotes.mature.accepted : null,
   acceptanceRate: quotes.mature.rate,
   medianResponseHours: quotes.responseStatistics.median,
   medianDecisionHours: quotes.decisionStatistics.median
@@ -34,6 +34,8 @@ export default function AdminQuoteAnalyticsPreview({ preview }: { preview: Busin
     preview.current, preview.asOf, projectSummary
   );
   const href = businessPreviewHref('ponudbe', range, preview.asOf);
+
+  if (!preview.settings.quoteGoLiveDate) return <section aria-label="Analitika ponudb" className="mb-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600">Analitika povpraševanj in ponudb še nima datuma začetka. <a className="text-blue-700 underline" href="/admin/analitika?view=ponudbe#quote-analytics-settings">Nastavite datum začetka</a>.</section>;
 
   return (
     <section aria-label="Analitika ponudb" aria-busy={loading} className="mb-3">

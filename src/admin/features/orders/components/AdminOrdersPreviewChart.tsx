@@ -28,11 +28,11 @@ const projectSummary = ({ summary }: BusinessAnalyticsResponse): BusinessOrderPr
   medianOrderValue: summary.medianOrderValue
 });
 
-function OrderPreviewCards({ preview }: { preview: BusinessOrderPreview }) {
+function OrderPreviewCards({ preview, extraQuery }: { preview: BusinessOrderPreview; extraQuery: string }) {
   const { range, setRange, summary, loading, failed, retry } = useBusinessPreviewRange(
-    preview.current, preview.asOf, projectSummary
+    preview.current, preview.asOf, projectSummary, extraQuery
   );
-  const href = businessPreviewHref('narocila', range, preview.asOf);
+  const href = businessPreviewHref('narocila', range, preview.asOf, extraQuery);
 
   return (
     <section aria-label="Analitika naročil" aria-busy={loading} className="mb-3">
@@ -70,7 +70,7 @@ function OrderPreviewCards({ preview }: { preview: BusinessOrderPreview }) {
   );
 }
 
-export default function AdminOrdersPreviewChart({ preview }: { preview: BusinessOrderPreview | null }) {
+export default function AdminOrdersPreviewChart({ preview, entrySource = 'all', history = 'all' }: { preview: BusinessOrderPreview | null; entrySource?: string; history?: string }) {
   if (!preview) return <p className="mb-3 text-sm text-slate-500">Analitika naročil trenutno ni na voljo.</p>;
-  return <OrderPreviewCards preview={preview} />;
+  return <OrderPreviewCards preview={preview} extraQuery={new URLSearchParams({entrySource, history}).toString()} />;
 }

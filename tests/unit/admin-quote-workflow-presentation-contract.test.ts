@@ -19,7 +19,8 @@ test('/admin/orders keeps quote records in a URL-backed sibling table', () => {
   assert.doesNotMatch(page, />Navodila<\/summary>/u);
   assert.doesNotMatch(page, /<nav aria-label="Naročila in ponudbe"/u);
   assert.match(ordersTabs, /EuiTabs/u);
-  assert.match(ordersTabs, /view=quotes/u);
+  assert.match(ordersTabs, /value: 'quotes'/u);
+  assert.match(ordersTabs, /\/admin\/orders\?view=\$\{nextView\}/u);
   assert.match(ordersTabs, /Povpraševanja in ponudbe/u);
   assert.match(ordersTabs, /newQuoteCount/u);
   assert.match(ordersTabs, /router\.push/u);

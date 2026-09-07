@@ -84,9 +84,9 @@ test('quote admin title and customer details are editable while request and offe
   assert.match(requestSection, /<dl\b/u);
   assert.match(requestSection, /<QuoteDetailRow\b/u);
   assert.match(requestSection, /<input\b/u);
-  assert.match(requestSection, /<textarea\b/u);
+  assert.match(requestSection, /<AdminCustomerMessageField\b/u);
   assert.match(requestSection, /<CustomSelect\b/u);
-  assert.match(detailRow, /readContent \?\? \(isEditing \? children : \(/u);
+  assert.match(detailRow, /isEditing \? children : \(readContent \?\? \(/u);
   assert.match(detailRow, /<span className=\{quoteDetailReadValueClassName\}>/u);
   assert.doesNotMatch(requestSection, /disabled=\{!isEditingRequestDetails/u);
   assert.doesNotMatch(requestSection, /readOnly=\{!isEditingRequestDetails/u);
@@ -565,7 +565,7 @@ test('quote reason uses the exact Slovenian storefront selection and terms ident
   assert.match(offerSection, /label="Pogoji sprejema"/u);
   assert.doesNotMatch(offerSection, /Različica pogojev|atehna-quote-terms-v1/u);
 });
-test('quote customer details use paired row-major fields with a read-only code and creation date', () => {
+test('quote customer details pair metadata and give composite information full-width rows', () => {
   const detail = source(quoteDetailPath);
   const adminAddressAutocomplete = source(adminAddressAutocompletePath);
   const requestSection = sliceBetween(
@@ -582,8 +582,8 @@ test('quote customer details use paired row-major fields with a read-only code a
     'Št. povpraševanja',
     'Datum',
     'Tip naročnika',
-    'Naročnik/Naziv',
     'Email',
+    'Naročnik/Naziv',
     'Naslov',
     'Kaj potrebuje?',
     'Sporočilo stranke'
@@ -599,22 +599,23 @@ test('quote customer details use paired row-major fields with a read-only code a
     /border-b border-slate-200|last:border-b-0/u
   );
   assert.match(detailRow, /grid-cols-\[minmax\(120px,0\.42fr\)_minmax\(0,1fr\)\]/u);
-  assert.match(detailRow, /grid-cols-\[120px_minmax\(0,1fr\)\] md:col-span-2/u);
+  assert.match(detailRow, /customerDetailStyles\.fullWidthRow/u);
   assert.match(
     detailRow,
-    /<dt className="flex min-w-0 items-center gap-1\.5[^"]*">[\s\S]*?<QuoteDetailFieldIcon icon=\{icon\} \/>[\s\S]*?\{label\}/u
+    /<dt className="flex min-w-0 items-center gap-1\.5[^"]*">[\s\S]*?<QuoteDetailFieldIcon icon=\{icon\} \/>[\s\S]*?<span[^>]*title=\{label\}>/u
   );
+  assert.match(detailRow, /label === 'Številka naročila' \|\| label === 'Št\. povpraševanja' \? 'Številka' : label === 'Sporočilo stranke' \? 'Sporočilo' : label/u);
   assert.match(detailRow, /<QuoteDetailFieldShell isEditing=\{false\}>/u);
   assert.doesNotMatch(requestSection, /<QuoteDetailFieldShell icon=/u);
   assert.match(detailRow, /data-quote-detail-row=\{label\}/u);
   assert.match(detailRow, /data-quote-detail-span=\{fullWidth \? 'full' : undefined\}/u);
-  assert.doesNotMatch(requestSection, /\bfullWidth\b/u);
+  assert.equal(requestSection.match(/\bfullWidth\b/gu)?.length ?? 0, 4);
   assert.match(requestSection, /label="Naslov"[\s\S]*?formatQuoteRequestAddress\(activeRequestDetails\)/u);
   const rowTags = [...requestSection.matchAll(/<QuoteDetailRow[\s\S]*?>/gu)].map(([tag]) => tag);
   assert.deepEqual(rowTags.map((tag) => tag.match(/label="([^"]+)"/u)?.[1] ?? 'Naročnik/Naziv'), labels);
   assert.match(rowTags[0]!, /value=\{detail\.quoteCode\}[\s\S]*?isEditing=\{false\}/u);
   assert.match(rowTags[1]!, /value=\{formatDateTime\(detail\.createdAt\)\}[\s\S]*?isEditing=\{false\}/u);
-  assert.match(rowTags[3]!, /label=\{activeRequestDetails\.customerType === 'individual' \? 'Naročnik' : 'Naziv'\}/u);
+  assert.match(rowTags[4]!, /label=\{activeRequestDetails\.customerType === 'individual' \? 'Naročnik' : 'Naziv'\}/u);
   assert.doesNotMatch(requestSection, /label="(?:Referenca|Kontaktna oseba|Naziv organizacije)"/u);
 
   const addressEditor = sliceBetween(
@@ -826,7 +827,7 @@ test('quote detail composes shared title, activity, notes, documents, field, act
   assert.match(detailRow, /h-\[35px\]/u);
   assert.match(detailFieldShell, /isEditing \? '' : detailFieldLockedShellClassName/u);
   assert.match(detailRow, /quoteDetailReadValueClassName/u);
-  assert.match(detailRow, /readContent \?\? \(isEditing \? children : \(/u);
+  assert.match(detailRow, /isEditing \? children : \(readContent \?\? \(/u);
   assert.doesNotMatch(requestSection, /disabled=\{!isEditingRequestDetails/u);
   assert.doesNotMatch(requestSection, /readOnly=\{!isEditingRequestDetails/u);
 });
@@ -969,8 +970,8 @@ test('every writable quote window keeps one persistent blue icon-only pencil in 
     /const canEditRequestDetails =[\s\S]*?Boolean\(draftVersion \|\| currentIssuedVersion\)[\s\S]*?detail.status === 'received'[\s\S]*?detail.status === 'in_preparation'/u
   );
   assert.match(detail, /data-testid="quote-customer-correction-revision-notice"/u);
-  assert.match(detail, /Popravki bodo ob shranjevanju ustvarili novo različico/u);
-  assert.match(detail, /Trenutno izdana ponudba ostaja nespremenjena/u);
+  assert.match(detail, /Popravki podatkov ob shranjevanju ustvarijo novo različico/u);
+  assert.match(detail, /Trenutno izdana ponudba ostane nespremenjena/u);
   assert.match(
     detail,
     /draftStateVersion\?: number \| null[\s\S]*?quoteOfferVersionId\?: number \| null[\s\S]*?draftVersionNumber\?: number \| null[\s\S]*?revisionCreated\?: boolean[\s\S]*?correctionScope\?: 'request' \| 'draft_revision'[\s\S]*?issuedOfferVersionId\?: number \| null/u
@@ -1191,7 +1192,7 @@ test('requested and offered items share one paired table with selectable offered
   assert.match(comparisonTable, /SKU: \{requestedItem\.sku \|\| '—'\}/u);
   assert.equal(
     comparisonTable.match(
-      /data-item-sku className="mt-0\.5 block text-\[10px\] font-normal text-slate-500"/gu
+      /data-item-sku className=\{`\$\{adminTableSecondaryTextClassName\} text-\[10px\] font-normal text-slate-500`\}/gu
     )?.length ?? 0,
     2
   );

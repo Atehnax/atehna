@@ -232,8 +232,8 @@ export async function POST(request: Request) {
       input = {
         isDraft: true,
         customerType: 'company',
-        organizationName: 'Osnutek',
-        contactName: 'Osnutek',
+        organizationName: null,
+        contactName: '',
         email: 'draft@atehna.si',
         addressLine1: null,
         addressLine2: null,

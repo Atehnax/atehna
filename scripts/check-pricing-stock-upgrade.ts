@@ -71,6 +71,9 @@ try {
   assert.equal(Number((await client.query('select count(*) as count from pricing_stock_history')).rows[0].count),0,'Migration must not fabricate operational audit changes.');
   await client.query(await readFile('database/migrations/20260906_schema_contract_v5.sql','utf8'));
   assert.deepEqual(await snapshot(client),before,'Terminal verification must not mutate business rows.');
+  // The current runtime manifest includes the subsequent additive history contract.
+  await client.query(await readFile('database/migrations/20260907_historical_orders.sql','utf8'));
+  await client.query(await readFile('database/migrations/20260907_schema_contract_v6.sql','utf8'));
   const manifest=await loadManifest();await verifyRepositoryContract(manifest);
   await client.query('begin read only');await verifyDatabaseContract(client,manifest);await client.query('rollback');
   // Only a real new purchase-cost change gets a timestamp; history stays historical.
@@ -83,7 +86,7 @@ try {
   assert.deepEqual((await client.query('select purchase_updated_at from catalog_item_variants where id=$1',[variantIds[0]])).rows[0].purchase_updated_at,changed.purchase_updated_at);
   const inserted=(await client.query("insert into catalog_item_variants(item_id,variant_name,price,cost_net,inventory,status) values($1,'New',5,1.50,0,'inactive') returning purchase_updated_at,stock_revision::text,pricing_revision::text",[itemId])).rows[0];
   assert.ok(inserted.purchase_updated_at instanceof Date);assert.equal(inserted.stock_revision,'0');assert.equal(inserted.pricing_revision,'0');
-  console.info('Pricing-stock upgrade verified: pre-feature HEAD schema, original row fingerprints/counts preserved, migration twice, saved model preserved, existing purchase timestamps unknown, new cost timestamps accurate, immutable order costs and live v5 schema contract.');
+  console.info('Pricing-stock upgrade verified: pre-feature HEAD schema, original row fingerprints/counts preserved, migration twice, saved model preserved, existing purchase timestamps unknown, new cost timestamps accurate, immutable order costs and the current v6 schema contract after the historical-order migration.');
 }finally{
   if(client){await client.query('rollback').catch(()=>{});client.release();}
   if(target)await target.end();

@@ -1,0 +1,4 @@
+.row { height: auto !important; }
+.row > td { padding-top: 0 !important; padding-bottom: 0 !important; border-top: 0 !important; }
+.cell { min-height: 0; overflow: hidden; }
+.inner { padding-block: 12px; }

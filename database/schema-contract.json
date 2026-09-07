@@ -1,6 +1,6 @@
 {
-  "contractId": "20260906.pricing-stock-v5",
-  "contractSha256": "734e6783336185c47794343094842fa51474ee0f384b8a702f64220ac08528bd",
+  "contractId": "20260907.historical-orders-v6",
+  "contractSha256": "2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af",
   "requirements": {
     "extensions": [
       "pg_trgm",
@@ -13,6 +13,7 @@
       "archive_blob_deletion_outbox",
       "audit_events",
       "audit_settings",
+      "business_analytics_settings",
       "catalog_categories",
       "catalog_item_editor_details",
       "catalog_item_quantity_discounts",
@@ -41,6 +42,7 @@
       "order_email_settings",
       "order_geography_audit",
       "order_geography_resolutions",
+      "order_historical_changes",
       "order_idempotency_keys",
       "order_items",
       "order_line_snapshots",
@@ -949,6 +951,140 @@
         "dataType": "timestamp with time zone",
         "nullable": false,
         "defaultEquals": "now()"
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "key",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "quote_go_live_date",
+        "dataType": "date",
+        "nullable": true
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "revision",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0"
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "deleted_archive_entries",
+        "name": "expires_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "id",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "nextval('order_historical_changes_id_seq'::regclass)"
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_id",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "revision",
+        "dataType": "bigint",
+        "nullable": false
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "changed_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "clock_timestamp()"
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "actor_id",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "before_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "after_json",
+        "dataType": "jsonb",
+        "nullable": false
+      },
+      {
+        "table": "orders",
+        "name": "entry_source",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "is_historical",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "false"
+      },
+      {
+        "table": "orders",
+        "name": "original_reference_system",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "original_reference",
+        "dataType": "text",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "recorded_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "clock_timestamp()"
+      },
+      {
+        "table": "orders",
+        "name": "historical_fulfilled_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "historical_payment_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
+      },
+      {
+        "table": "orders",
+        "name": "historical_revision",
+        "dataType": "bigint",
+        "nullable": false,
+        "defaultEquals": "0"
+      },
+      {
+        "table": "orders",
+        "name": "archived_at",
+        "dataType": "timestamp with time zone",
+        "nullable": true
       }
     ],
     "constraints": [
@@ -1261,6 +1397,60 @@
         "name": "pricing_stock_model_revision_check",
         "type": "check",
         "definitionEquals": "CHECK (revision >= 0)"
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "business_analytics_settings_key_check",
+        "type": "check",
+        "definitionEquals": "CHECK (key = 'default'::text)"
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "business_analytics_settings_revision_check",
+        "type": "check",
+        "definitionEquals": "CHECK (revision >= 0)"
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(before_json) = 'object'::text AND jsonb_typeof(after_json) = 'object'::text)"
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_order_id_fkey",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (order_id) REFERENCES orders(id)"
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_revision_check",
+        "type": "check",
+        "definitionEquals": "CHECK (revision > 0)"
+      },
+      {
+        "table": "orders",
+        "name": "orders_contract_state_evidence_check",
+        "type": "check",
+        "definitionEquals": "CHECK (contract_status = 'pending_seller_acceptance'::text AND contract_accepted_at IS NULL AND contract_accepted_actor_type IS NULL AND contract_accepted_actor_id IS NULL AND contract_acceptance_evidence_json IS NULL AND contract_rejected_at IS NULL AND contract_rejected_actor_type IS NULL AND contract_rejected_actor_id IS NULL AND contract_rejection_reason IS NULL AND contract_rejection_evidence_json IS NULL AND committed_at IS NULL OR contract_status = 'accepted'::text AND (is_historical OR contract_accepted_at IS NOT NULL) AND contract_accepted_actor_type IS NOT NULL AND contract_acceptance_evidence_json IS NOT NULL AND contract_rejected_at IS NULL AND contract_rejected_actor_type IS NULL AND contract_rejected_actor_id IS NULL AND contract_rejection_reason IS NULL AND contract_rejection_evidence_json IS NULL AND (is_historical OR committed_at IS NOT NULL) OR contract_status = 'rejected'::text AND contract_accepted_at IS NULL AND contract_accepted_actor_type IS NULL AND contract_accepted_actor_id IS NULL AND contract_acceptance_evidence_json IS NULL AND contract_rejected_at IS NOT NULL AND contract_rejected_actor_type IS NOT NULL AND contract_rejection_evidence_json IS NOT NULL AND committed_at IS NULL)"
+      },
+      {
+        "table": "orders",
+        "name": "orders_entry_source_check",
+        "type": "check",
+        "definitionEquals": "CHECK (entry_source IS NULL OR (entry_source = ANY (ARRAY['website'::text, 'manual'::text])))"
+      },
+      {
+        "table": "orders",
+        "name": "orders_historical_guard_check",
+        "type": "check",
+        "definitionEquals": "CHECK (historical_revision >= 0 AND (NOT is_historical OR NOT entry_source IS DISTINCT FROM 'manual'::text AND NOT stock_enforcement_applied))"
+      },
+      {
+        "table": "orders",
+        "name": "orders_original_reference_check",
+        "type": "check",
+        "definitionEquals": "CHECK ((original_reference_system IS NULL) = (original_reference IS NULL) AND (original_reference_system IS NULL OR length(btrim(original_reference_system)) >= 1 AND length(btrim(original_reference_system)) <= 80) AND (original_reference IS NULL OR length(btrim(original_reference)) >= 1 AND length(btrim(original_reference)) <= 200) AND (NOT is_historical OR is_draft OR original_reference IS NOT NULL))"
       }
     ],
     "functions": [
@@ -1421,7 +1611,7 @@
       },
       {
         "name": "capture_order_analytics_snapshot",
-        "bodySha256": "47edc41a9a2dc390a73f375af91f13e3d7885f9f4bae764219b0fdd987473cfe",
+        "bodySha256": "8a8fc134af45aa3c2c5021398308966055a037a076c54c78a10308c6c57a2436",
         "language": "plpgsql",
         "securityDefiner": false,
         "leakproof": false,
@@ -1431,8 +1621,9 @@
         "parallel": "unsafe",
         "returns": "trigger",
         "definitionIncludes": [
-          "analytics_snapshot_json",
-          "analytics_fulfilled_lines_json"
+          "is_historical",
+          "historical_fulfilled_at",
+          "historical_payment_at"
         ]
       },
       {
@@ -1485,6 +1676,72 @@
           "pricing_revision",
           "purchase_updated_at",
           "is distinct from"
+        ]
+      },
+      {
+        "name": "protect_historical_change_log",
+        "bodySha256": "b5dd3757b0e9cebb3126eb83f04e831314947b42da18ece0a90daabe1fb2d906",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "raise exception",
+          "Historical order"
+        ]
+      },
+      {
+        "name": "protect_order_audit_history",
+        "bodySha256": "a29f9722e45c9f66c5673c3a259b237a4e0b9c4b40d534d580ee309b3256fb37",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "entity_type",
+          "'order'",
+          "'pdf'"
+        ]
+      },
+      {
+        "name": "protect_order_entry_evidence",
+        "bodySha256": "7b42b7560dd16d83c34318116885ef81901acc3962b69f98682ff5d038a1eb9a",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "recorded_at",
+          "is_historical",
+          "entry_source"
+        ]
+      },
+      {
+        "name": "reject_historical_order_stock_hold",
+        "bodySha256": "590affce0280f84c7f05d0106a314baf2ee7d851e44507a51a16b610cb16ebe8",
+        "language": "plpgsql",
+        "securityDefiner": false,
+        "leakproof": false,
+        "strict": false,
+        "configuration": null,
+        "volatility": "volatile",
+        "parallel": "unsafe",
+        "returns": "trigger",
+        "definitionIncludes": [
+          "order_id",
+          "is_historical"
         ]
       }
     ],
@@ -1681,6 +1938,60 @@
           "pricing_stock_model",
           "unique"
         ]
+      },
+      {
+        "table": "business_analytics_settings",
+        "name": "business_analytics_settings_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX business_analytics_settings_pkey ON public.business_analytics_settings USING btree (key)",
+        "definitionIncludes": [
+          "business_analytics_settings",
+          "btree"
+        ]
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_order_id_revision_key",
+        "definitionEquals": "CREATE UNIQUE INDEX order_historical_changes_order_id_revision_key ON public.order_historical_changes USING btree (order_id, revision)",
+        "definitionIncludes": [
+          "order_historical_changes",
+          "btree"
+        ]
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX order_historical_changes_pkey ON public.order_historical_changes USING btree (id)",
+        "definitionIncludes": [
+          "order_historical_changes",
+          "btree"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_archived_at_idx",
+        "definitionEquals": "CREATE INDEX orders_archived_at_idx ON public.orders USING btree (archived_at) WHERE (archived_at IS NOT NULL)",
+        "definitionIncludes": [
+          "orders",
+          "btree"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_entry_source_created_idx",
+        "definitionEquals": "CREATE INDEX orders_entry_source_created_idx ON public.orders USING btree (entry_source, created_at)",
+        "definitionIncludes": [
+          "orders",
+          "btree"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_original_reference_unique",
+        "definitionEquals": "CREATE UNIQUE INDEX orders_original_reference_unique ON public.orders USING btree (lower(btrim(original_reference_system)), lower(btrim(original_reference))) WHERE (original_reference IS NOT NULL)",
+        "definitionIncludes": [
+          "orders",
+          "btree"
+        ]
       }
     ],
     "triggers": [
@@ -1860,6 +2171,50 @@
           "for each row",
           "record_catalog_variant_pricing_stock"
         ]
+      },
+      {
+        "table": "audit_events",
+        "name": "audit_events_protect_order_history",
+        "function": "protect_order_audit_history",
+        "definitionEquals": "CREATE TRIGGER audit_events_protect_order_history BEFORE DELETE ON audit_events FOR EACH ROW EXECUTE FUNCTION protect_order_audit_history()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "protect_order_audit_history"
+        ]
+      },
+      {
+        "table": "order_historical_changes",
+        "name": "order_historical_changes_immutable",
+        "function": "protect_historical_change_log",
+        "definitionEquals": "CREATE TRIGGER order_historical_changes_immutable BEFORE DELETE OR UPDATE ON order_historical_changes FOR EACH ROW EXECUTE FUNCTION protect_historical_change_log()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "protect_historical_change_log"
+        ]
+      },
+      {
+        "table": "order_stock_holds",
+        "name": "order_stock_holds_reject_historical",
+        "function": "reject_historical_order_stock_hold",
+        "definitionEquals": "CREATE TRIGGER order_stock_holds_reject_historical BEFORE INSERT OR UPDATE ON order_stock_holds FOR EACH ROW EXECUTE FUNCTION reject_historical_order_stock_hold()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "reject_historical_order_stock_hold"
+        ]
+      },
+      {
+        "table": "orders",
+        "name": "orders_protect_entry_evidence",
+        "function": "protect_order_entry_evidence",
+        "definitionEquals": "CREATE TRIGGER orders_protect_entry_evidence BEFORE INSERT OR UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION protect_order_entry_evidence()",
+        "definitionIncludes": [
+          "before",
+          "for each row",
+          "protect_order_entry_evidence"
+        ]
       }
     ],
     "settings": [
@@ -1894,6 +2249,12 @@
     ],
     "absentFunctions": [
       "set_analytics_charts_updated_at"
+    ],
+    "requiredRows": [
+      {
+        "table": "business_analytics_settings",
+        "key": "default"
+      }
     ]
   }
 }

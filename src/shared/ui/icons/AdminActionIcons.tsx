@@ -379,6 +379,24 @@ export function ApplyToAllIcon({ className, ...props }: ActionIconProps) {
   );
 }
 
+export function ProductSymbolIcon({ className, ...props }: ActionIconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={iconClassName(className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M3 3h14M5.5 3v14M14.5 3v14M3.5 17h4M12.5 17h4" />
+    </svg>
+  );
+}
+
 export function ArchiveIcon({ className, ...props }: ActionIconProps) {
   return (
     <svg

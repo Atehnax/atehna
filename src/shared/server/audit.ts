@@ -3,9 +3,10 @@ import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import type { QueryResult } from 'pg';
 import { getPool } from '@/shared/server/db';
+import { buildAuditEventsPageQuery } from '@/shared/server/auditPagination';
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, type AuditCollectionDiff, type AuditDiff, type AuditDiffEntry, type AuditEntityType, type AuditEventFilters, type AuditEventInput, type AuditEventListResult, type AuditEventRecord, type AuditLoggingSettingsResponse, type AuditMetadata } from '@/shared/audit/auditTypes';
 import { AUDIT_ACTION_LABELS } from '@/shared/audit/auditLabels';
-import { getAuditRetentionUntil } from '@/shared/audit/auditRetention';
+import { getAuditRetentionUntil, isDurableOrderAudit } from '@/shared/audit/auditRetention';
 import { ALL_PAGE_SIZE, isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
 import {
   ADMIN_SESSION_COOKIE,
@@ -19,9 +20,10 @@ type Queryable = {
 
 const MAX_PAGE_SIZE = 100;
 const AUDIT_SETTINGS_KEY = 'global';
+const DURABLE_ORDER_AUDIT_SQL = "(entity_type = 'order' or (entity_type = 'media' and coalesce(metadata_json->>'item_type', '') = 'pdf'))";
 const AUDIT_RETENTION_SQL = `(
   case
-    when entity_type = 'order' then occurred_at + interval '2 months'
+    when ${DURABLE_ORDER_AUDIT_SQL} then null
     when entity_type in ('item', 'category', 'media', 'system') then occurred_at + interval '3 years'
     else retention_until
   end
@@ -170,7 +172,7 @@ function mapAuditRow(row: Record<string, unknown>): AuditEventRecord {
     metadata: normalizeJsonObject(row.metadata_json),
     requestId: row.request_id === null || row.request_id === undefined ? null : String(row.request_id),
     source: String(row.source ?? 'admin'),
-    retentionUntil: toDateOrNull(row.retention_until),
+    retentionUntil: isDurableOrderAudit(String(row.entity_type) as AuditEntityType, normalizeJsonObject(row.metadata_json)) ? null : toDateOrNull(row.retention_until),
     createdAt: toDateOrNull(row.created_at) ?? new Date().toISOString()
   };
 }
@@ -326,7 +328,7 @@ export async function insertAuditEvent(input: AuditEventInput, db?: Queryable) {
     action: input.action,
     entityLabel: input.entityLabel
   });
-  const retentionUntil = input.retentionUntil === undefined
+  const retentionUntil = isDurableOrderAudit(input.entityType, input.metadata) ? null : input.retentionUntil === undefined
     ? getRetentionUntil(input.entityType, input.action, occurredAt)
     : input.retentionUntil;
   const diff = input.action === 'created' || input.action === 'uploaded' ? {} : input.diff ?? {};
@@ -398,8 +400,9 @@ export async function insertAuditEventForRequest(
 }
 
 function parsePage(value: unknown, fallback: number) {
+  if (value === null || value === undefined || String(value).trim() === '') return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : fallback;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.max(1, Math.floor(parsed)) : fallback;
 }
 
 export function normalizeAuditFilters(raw: Record<string, string | null | undefined>): Required<Pick<AuditEventFilters, 'page' | 'pageSize'>> & AuditEventFilters {
@@ -475,34 +478,16 @@ export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise
   const whereSql = where.length > 0 ? `where ${where.join(' and ')}` : '';
   const pool = await getPool();
 
-  const paginationSql = isAllPageSize(pageSize)
-    ? ''
-    : `limit $${params.length + 1}\n      offset $${params.length + 2}`;
-  const eventParams = isAllPageSize(pageSize)
-    ? params
-    : [...params, pageSize, (page - 1) * pageSize];
-
-  const [countResult, eventsResult] = await Promise.all([
-    pool.query(`select count(*)::int as total from audit_events ${whereSql}`, params),
-    pool.query(
-      `
-      select *
-      from audit_events
-      ${whereSql}
-      order by occurred_at desc, created_at desc
-      ${paginationSql}
-      `,
-      eventParams
-    )
-  ]);
-
-  const total = Number(countResult.rows[0]?.total ?? 0);
+  const query = buildAuditEventsPageQuery(whereSql, params, page, pageSize);
+  // Group totals and page members come from the same database snapshot.
+  const result = await pool.query(query.sql, query.params);
+  const metadata = result.rows[0];
   return {
-    events: eventsResult.rows.map(mapAuditRow),
-    total,
-    page,
+    events: result.rows.filter(row => row.id !== null).map(mapAuditRow),
+    total: Number(metadata?.audit_total ?? 0),
+    page: Number(metadata?.audit_page ?? 1),
     pageSize,
-    pageCount: isAllPageSize(pageSize) ? 1 : Math.max(1, Math.ceil(total / pageSize))
+    pageCount: Number(metadata?.audit_page_count ?? 1)
   };
 }
 
@@ -531,7 +516,7 @@ export async function deleteAuditEventsByIds(ids: string[]) {
 
   const pool = await getPool();
   const result = await pool.query(
-    'delete from audit_events where id = any($1::uuid[])',
+    `delete from audit_events where id = any($1::uuid[]) and not ${DURABLE_ORDER_AUDIT_SQL}`,
     [normalizedIds]
   );
   return { deletedEvents: result.rowCount ?? 0 };
@@ -555,7 +540,7 @@ export async function deleteAuditChangesByIds(changeIds: string[]) {
   try {
     await client.query('begin');
     const eventsResult = await client.query(
-      'select * from audit_events where id = any($1::uuid[]) for update',
+      `select * from audit_events where id = any($1::uuid[]) and not ${DURABLE_ORDER_AUDIT_SQL} for update`,
       [eventIds]
     );
 
@@ -602,9 +587,9 @@ export async function pruneExpiredAuditEvents(now = new Date()) {
   const result = await pool.query(
     `
     delete from audit_events
-    where (
+    where not ${DURABLE_ORDER_AUDIT_SQL} and (
       case
-        when entity_type = 'order' then occurred_at + interval '2 months'
+        when ${DURABLE_ORDER_AUDIT_SQL} then null
         when entity_type in ('item', 'category', 'media', 'system') then occurred_at + interval '3 years'
         else retention_until
       end

@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { createHash, randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import type { GenerateOrderPdfType } from '@/shared/domain/order/orderTypes';
@@ -29,6 +30,7 @@ export async function generateOrderDocumentRoute(
 
   try {
     const orderId = Number(params.orderId);
+    if (Number.isSafeInteger(orderId) && orderId > 0) { const historicalBlock = await rejectHistoricalOrderOperation(orderId); if (historicalBlock) return historicalBlock; }
     if (!Number.isFinite(orderId)) {
       return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
     }

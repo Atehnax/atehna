@@ -39,7 +39,7 @@ test('empty canvases stay empty and selection controls live outside clipped artw
   assert.match(canvas, /!project\.layers\.length/u);
   assert.match(canvas, /<Moveable/u);
   assert.ok(canvas.indexOf('<Moveable ref=') > canvas.indexOf('className={styles.canvasArtwork}'));
-  assert.match(source('src/shared/server/logoLibraryOperations.ts'), /selected\.fallback === 'none'\) return null/u);
+  assert.match(source('src/shared/domain/logo/publishedLogo.ts'), /selected\.fallback === 'none'\) return null/u);
 });
 test('placement previews reuse real storefront components and device constraints', () => {
   const preview = component('LogoPlacementPreview.tsx');
@@ -62,7 +62,8 @@ test('crop handles and numeric geometry support keyboard access', () => {
 });
 test('crop edits normalized coordinates while retaining the original source', () => {
   assert.match(crop, /onApply\(\{ \.\.\.crop \}\)/u);
-  assert.match(crop, /value \/ 100/u);
+  assert.match(crop, /setLogoCropPixels\(current, 'width'/u);
+  assert.match(crop, /unit="px"/u);
   assert.match(crop, /src=\{asset\.url\}/u);
   assert.doesNotMatch(crop, /fetch\(|PUT|upload|writeFile/u);
   assert.match(properties, /layer\.crop = nextCrop/u);
@@ -98,6 +99,9 @@ test('shared placement changes are explicit and retain separate editable project
   assert.match(placements, /action: 'assign'/u);
   assert.match(placements, /placements: \{ \[purpose\]: selectedAssignment \}/u);
   assert.match(placements, /expectedRevision: library\.revision/u);
-  assert.match(editor, /action: 'duplicate'/u);
+  assert.match(editor, /action: 'create'/u);
+  const createCopy = editor.slice(editor.indexOf('function beginCreate'), editor.indexOf('function copySelection'));
+  assert.match(createCopy, /cloneLogoProject/u);
+  assert.doesNotMatch(createCopy, /saveWorking\(|request\(/u);
   assert.doesNotMatch(placements, /action: 'save'|copySiteLogoPlacement/u);
 });

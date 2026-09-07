@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
 import { ORDER_STATUS_SELLER_ACCEPTANCE_REQUIRED } from '@/shared/domain/order/contractStatus';
 import { getPool } from '@/shared/server/db';
@@ -28,6 +29,7 @@ export async function POST(
 ) {
   const { orderId: rawOrderId } = await props.params;
   const orderId = Number(rawOrderId);
+  if (Number.isSafeInteger(orderId) && orderId > 0) { const historicalBlock = await rejectHistoricalOrderOperation(orderId); if (historicalBlock) return historicalBlock; }
   if (!Number.isSafeInteger(orderId) || orderId <= 0) {
     return NextResponse.json(
       { message: 'Neveljaven ID naročila.' },

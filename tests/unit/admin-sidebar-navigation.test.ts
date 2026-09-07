@@ -24,7 +24,7 @@ test('admin sidebar follows the requested grouped navigation order', () => {
     ['Naročila', 'Artikli', 'Kategorije', 'Seznam strank', 'Analitika'],
     ['Katalog', 'Urejevalnik', 'Podoba'],
     ['Email', 'Poštnina'],
-    ['Arhiv', 'Dnevnik sprememb']
+    ['Koš', 'Dnevnik sprememb']
   ]);
 });
 

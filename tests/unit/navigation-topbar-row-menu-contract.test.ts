@@ -49,8 +49,10 @@ test('shared row actions portal, flip, clamp, dismiss, and reposition outside cl
   assert.match(rowActionsDropdownSource, /refs: dismissRefs/u);
   assert.match(rowActionsDropdownSource, /window\.addEventListener\('resize', updateMenuPosition\)/u);
   assert.match(rowActionsDropdownSource, /window\.addEventListener\('scroll', updateMenuPosition, true\)/u);
-  assert.match(rowActionsDropdownSource, /aria-haspopup="menu"/u);
-  assert.match(rowActionsDropdownSource, /aria-expanded=\{isOpen\}/u);
+  assert.match(rowActionsDropdownSource, /'aria-haspopup': 'menu'/u);
+  assert.match(rowActionsDropdownSource, /'aria-expanded': isOpen/u);
+  assert.match(rowActionsDropdownSource, /'aria-controls': isOpen \? menuId : undefined/u);
+  assert.match(rowActionsDropdownSource, /renderTrigger \? renderTrigger\(triggerProps\) : <IconButton\s*\{\.\.\.triggerProps\}/u);
   assert.match(rowActionsDropdownSource, /role="menu"/u);
   assert.match(rowActionsDropdownSource, /data-testid=\{menuTestId\}/u);
 });

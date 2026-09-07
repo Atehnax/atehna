@@ -1,3 +1,4 @@
+import { GENERATED_ORDER_DRAFT_CUSTOMER_SQL } from '@/shared/server/manualDraftCustomers';
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import type { OrderCustomerSuggestionsResponse } from '@/shared/domain/order/orderTypes';
@@ -17,7 +18,7 @@ export async function GET() {
         select distinct
           coalesce(nullif(btrim(organization_name), ''), nullif(btrim(contact_name), '')) as label
         from orders
-        where not (coalesce(is_draft, false) and coalesce(contact_name, '') = 'Osnutek')
+        where not (${GENERATED_ORDER_DRAFT_CUSTOMER_SQL})
       ) customers
       where label is not null
       order by lower(label)

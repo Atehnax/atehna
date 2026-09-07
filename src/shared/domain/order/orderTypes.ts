@@ -135,6 +135,17 @@ export type OrderRow = {
   delivery_plan_revision: number;
   total: number | null;
   created_at: string;
+  recorded_at?: string | null;
+  entry_source?: 'website' | 'manual' | null;
+  is_historical?: boolean;
+  original_reference_system?: string | null;
+  original_reference?: string | null;
+  archived_at?: string | null;
+  historical_fulfilled_at?: string | null;
+  historical_payment_at?: string | null;
+  historical_revision?: number;
+  merchandise_refund_net?: number | null;
+  refund_history_complete?: boolean;
   is_draft?: boolean;
   deleted_at?: string | null;
 };
@@ -233,7 +244,13 @@ export type AdminOrderRowTuple = readonly [
   deletedAt: string | null,
   orderCode: string,
   sourceQuoteCode: string | null,
-  sourceQuoteOfferCode: string | null
+  sourceQuoteOfferCode: string | null,
+  entrySource?: 'website' | 'manual' | null,
+  isHistorical?: boolean,
+  originalReferenceSystem?: string | null,
+  originalReference?: string | null,
+  recordedAt?: string | null,
+  archivedAt?: string | null
 ];
 
 export type AdminOrderPdfDocumentTuple = readonly [

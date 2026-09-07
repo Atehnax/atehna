@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
+const sourceCustomerStyles = () => readFileSync(resolve(process.cwd(), 'src/shared/ui/admin-detail/AdminCustomerDetails.module.css'), 'utf8');
+
 const detail = readFileSync(
   resolve(
     process.cwd(),
@@ -224,7 +226,7 @@ test('activity is an embedded chronological horizontal timeline in the order hea
   assert.doesNotMatch(sharedActivityTimeline, /\bw-px\b/u);
 });
 
-test('order data uses compact expandable rows in the requested row-major order', () => {
+test('order data uses shared compact responsive rows and full-width customer fields without read/edit drift', () => {
   assert.match(detail, /function OrderDataRow/u);
   const orderDataRow = detail.slice(detail.indexOf('function OrderDataRow'));
   assert.match(
@@ -237,16 +239,19 @@ test('order data uses compact expandable rows in the requested row-major order',
   );
   assert.match(
     orderDataRow,
-    /<dt className="flex min-w-0 items-center gap-1\.5[^"]*">[\s\S]*?<DetailFieldIcon icon=\{icon\} \/>[\s\S]*?\{label\}/u
+    /<dt className="flex min-w-0 items-center gap-1\.5[^"]*">[\s\S]*?<DetailFieldIcon icon=\{icon\} \/>[\s\S]*?<span[^>]*title=\{label\}>/u
   );
+  assert.match(orderDataRow, /label === 'Številka naročila' \|\| label === 'Št\. povpraševanja' \? 'Številka' : label === 'Sporočilo stranke' \? 'Sporočilo' : label/u);
   assert.doesNotMatch(detail, /<DetailFieldShell icon=/u);
   assert.match(detail, /data-order-data-row=\{label\}/u);
   assert.match(detail, /data-order-data-value/u);
   assert.match(detail, /fullWidth\?: boolean;/u);
-  assert.match(
-    detail,
-    /fullWidth\s+\? 'grid-cols-\[120px_minmax\(0,1fr\)\] md:col-span-2'/u
-  );
+  assert.match(detail, /fullWidth \? customerDetailStyles\.fullWidthRow : ''/u);
+  const customerStyles = sourceCustomerStyles();
+  assert.match(customerStyles, /\.detailRow\.detailRow\s*\{[^}]*grid-template-columns: 88px minmax\(0, 1fr\);[^}]*gap: 8px;/u);
+  assert.match(customerStyles, /\.fullWidthRow\.fullWidthRow\s*\{\s*grid-column: 1 \/ -1;/u);
+  assert.match(customerStyles, /\.fieldShell\.fieldShell\s*\{[^}]*height: 28px !important;/u);
+  assert.doesNotMatch(customerStyles, /data-detail-editing='false'[^}]*height: auto/u);
   assert.match(detail, /data-order-data-span=\{fullWidth \? 'full' : undefined\}/u);
   assert.match(
     detail,
@@ -266,7 +271,7 @@ test('order data uses compact expandable rows in the requested row-major order',
   );
   assert.match(
     detail,
-    /isEditing \? \([\s\S]*?children[\s\S]*?\) : \([\s\S]*?<DetailFieldShell isEditing=\{false\}>[\s\S]*?orderDataReadValueClassName/u
+    /isEditing \? children : \(readContent \?\? \([\s\S]*?<DetailFieldShell isEditing=\{false\}>[\s\S]*?orderDataReadValueClassName/u
   );
   assert.doesNotMatch(detail, /\{isEditing \? children : display\}/u);
   assert.equal(detail.match(/<OrderDataRow/g)?.length, 7);
@@ -293,16 +298,17 @@ test('order data uses compact expandable rows in the requested row-major order',
   assert.match(customerTypeRowTag, /\breserveTrailingControl\b/u);
   assert.match(detail, /reserveTrailingControl \? 'pr-5' : ''/u);
 
-  const customerRowTag = orderDataRowTags[3];
+  const customerRowTag = orderDataRowTags[4];
   assert.ok(customerRowTag);
   assert.match(customerRowTag, /label=\{activeOrderDataDetails\.customerType === 'individual' \? 'Naročnik' : 'Naziv'\}/u);
   assert.match(customerRowTag, /icon="customer"/u);
   assert.deepEqual(orderDataRowTags.map((tag) => tag.match(/label="([^"]+)"/u)?.[1] ?? 'Naročnik/Naziv'), [
-    'Številka naročila', 'Datum', 'Tip naročnika', 'Naročnik/Naziv', 'Email', 'Naslov', 'Sporočilo stranke'
+    'Številka naročila', 'Datum', 'Tip naročnika', 'Email', 'Naročnik/Naziv', 'Naslov', 'Sporočilo stranke'
   ]);
   const addressRowTag = orderDataRowTags.find((tag) => tag.includes('label="Naslov"'));
   assert.ok(addressRowTag);
-  assert.doesNotMatch(addressRowTag, /\bfullWidth\b/u);
+  assert.match(addressRowTag, /\bfullWidth\b/u);
+  assert.match(customerRowTag, /\bfullWidth\b/u);
   for (const label of ['Sporočilo stranke']) {
     const rowTag = orderDataRowTags.find((tag) => tag.includes('label="' + label + '"'));
     assert.ok(rowTag, 'Expected a full-width order-data row for ' + label);
@@ -331,7 +337,7 @@ test('order data uses compact expandable rows in the requested row-major order',
 
 test('order customer identity and public code remain distinct from internal numbering when saved', () => {
   const customerCard = detail.slice(detail.indexOf('data-testid="admin-order-data-card"'), detail.indexOf('<AdminNotesCard'));
-  const saveDetails = detail.slice(detail.indexOf('const saveDetails ='), detail.indexOf('if (requests.length > 0)'));
+  const saveDetails = detail.slice(detail.indexOf('const coreDetailsPayload ='), detail.indexOf('if (requests.length > 0)'));
   const editor = readFileSync(resolve(process.cwd(), 'src/shared/ui/admin-detail/AdminCustomerNameEditor.tsx'), 'utf8');
   assert.match(customerCard, /label="Številka naročila" value=\{order\.order_code\}[\s\S]*?isEditing=\{false\}/u);
   assert.match(customerCard, /data-testid="admin-order-public-code-copy"/u);
@@ -343,7 +349,11 @@ test('order customer identity and public code remain distinct from internal numb
   assert.match(saveDetails, /contactName: draftDetails\.contactName\.trim\(\)/u);
   assert.doesNotMatch(saveDetails, /contactName: draftDetails\.organizationName/u);
   assert.match(editor, /aria-label=\{individual \? 'Naročnik' : 'Naziv'\}/u);
-  assert.match(editor, /!individual \? \([\s\S]*?aria-label="Kontaktna oseba"/u);
+  assert.match(editor, /!individual \? isEditing \? \([\s\S]*?aria-label="Kontaktna oseba"/u);
+  assert.match(editor, /styles\.nameShell[\s\S]*?styles\.nameFields/u);
+  assert.match(editor, /isEditing \? \([\s\S]*?<input[\s\S]*?styles\.compositeReadValue/u);
+  assert.match(customerCard, /readContent=\{<AdminCustomerNameEditor[\s\S]*?isEditing=\{false\}/u);
+  assert.match(sourceCustomerStyles(), /\.nameFields\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\);/u);
   assert.match(editor, /contactName: event\.target\.value/u);
   assert.doesNotMatch(editor, /event\.target\.value\.trim\(\)/u);
 });
@@ -364,6 +374,11 @@ test('order address remains structured inside one field and persists without los
     /value=\{formatOrderDataAddress\(activeOrderDataDetails\)\}/u
   );
   assert.match(detail, /function OrderAddressEditor/u);
+  assert.match(detail, /readContent=\{<AdminCustomerAddressValue[\s\S]*?addressLine1=\{activeOrderDataDetails\.deliveryAddress\}/u);
+  const addressValue = readFileSync(resolve(process.cwd(), 'src/shared/ui/admin-detail/AdminCustomerAddressValue.tsx'), 'utf8');
+  assert.match(addressValue, /styles\.addressShell[\s\S]*?styles\.addressFields/u);
+  assert.match(detail, /readContent=\{<AdminCustomerMessageField[^]*?isEditing=\{false\}/u);
+  assert.match(detail, /<AdminCustomerMessageField[^]*?isEditing disabled=/u);
   assert.match(detail, /aria-label="Naslovni podatki"/u);
   assert.match(detail, /data-testid="admin-order-address-fields"/u);
   assert.match(
@@ -494,7 +509,7 @@ test('section actions toggle independent drafts while the top pencil activates e
   assert.match(detail, /Osnutek lahko urejate in shranjujete sproti\./u);
   assert.match(
     detail,
-    /if \(statusDirty\) \{[\s\S]*?confirmationOnly: true[\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveHandlerRef\.current\(\{[\s\S]*?deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'[\s\S]*?\}\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\([\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)[\s\S]*?commitDeferredDeliveryPlan/u
+    /if \(statusDirty && !order\.is_historical\) \{[\s\S]*?confirmationOnly: true[\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveHandlerRef\.current\(\{[\s\S]*?deliveryPlanPersistence: statusDirty \? 'status' : 'after-page-save'[\s\S]*?\}\)[\s\S]*?await shippingSaveHandlerRef\.current\(latestPricingRevisionRef\.current\)[\s\S]*?await saveDetails\([\s\S]*?customerEmailConfirmationToken[\s\S]*?await itemsSaveResult\.persistDeferredDeliveryPlan\?\.\(\)[\s\S]*?commitDeferredDeliveryPlan/u
   );
 });
 
@@ -648,7 +663,8 @@ test('Postavke separates current and deferred delivery with atomic status coordi
   assert.match(detail, /V razdelku »V tej pošiljki« mora ostati vsaj ena postavka\./u);
   assert.match(detail, /option\.value === 'sent' \|\| option\.value === 'finished'/u);
   assert.match(detail, /Najprej premaknite vse postavke iz razdelka »Pošljemo pozneje«/u);
-  assert.match(detail, /const deliveryPlanEditingLockedReason = order\.deleted_at/u);
+  assert.match(detail, /const deliveryPlanEditingLockedReason = order\.is_historical[\s\S]*?: order\.deleted_at/u);
+  assert.match(detail, /Zgodovinski vnos ne spreminja trenutnega razporeda dobave\./u);
   assert.match(detail, /Razporeda dobave izbrisanega naročila ni mogoče spreminjati\./u);
   assert.match(detail, /getStatusLabel\(persistedDetails\.status\)/u);
   const deliveryPlanLockSource = detail.slice(
@@ -770,7 +786,7 @@ test('order item columns stay on one line while the article keeps separate name 
   );
   assert.match(
     itemsEditor,
-    /<p className="truncate text-\[12px\] font-medium text-slate-900">\{item\.name\}<\/p>\s*<p className="truncate text-\[11px\] text-slate-500">\{item\.sku\}<\/p>/u
+    /<p className=\{`\$\{adminTablePrimaryTextClassName\} truncate text-\[12px\] font-medium text-slate-900`\}>\{item\.name\}<\/p>\s*<p className=\{`\$\{adminTableSecondaryTextClassName\} truncate text-\[11px\] text-slate-500`\}>\{item\.sku\}<\/p>/u
   );
   assert.match(
     itemsEditor,
@@ -807,7 +823,7 @@ test('order item totals are indented into one compact right-aligned summary bloc
     itemsEditor,
     /data-testid="admin-order-items-totals"[\s\S]*?Vmesni seštevek brez DDV[\s\S]*?Poštnina[\s\S]*?DDV \(\{taxRateLabel\} %\)[\s\S]*?Skupaj z DDV/u
   );
-  assert.match(itemsEditor, /const shippingContextLabel = shippingManualQuote/u);
+  assert.match(itemsEditor, /const shippingContextLabel = isHistorical \? 'Izvorna' : shippingManualQuote/u);
   assert.match(itemsEditor, /hasShippingOverride[\s\S]*?shippingIsStale \? 'Zastarelo' : null/u);
   const totalsBlock = itemsEditor.slice(
     itemsEditor.indexOf('data-testid="admin-order-items-totals"'),

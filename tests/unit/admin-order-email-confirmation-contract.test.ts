@@ -84,7 +84,7 @@ test('order detail preflights before grouped mutations and commits with the sign
   assert.ok(shippingMutationIndex > preflightIndex);
   assert.ok(detailMutationIndex > preflightIndex);
   const groupedPreflight = detail.slice(saveAllStart, itemsMutationIndex);
-  assert.match(groupedPreflight, /if \(statusDirty\) \{/u);
+  assert.match(groupedPreflight, /if \(statusDirty && !order\.is_historical\) \{/u);
   assert.doesNotMatch(
     groupedPreflight,
     /statusDirty\s*&&\s*!customerEmailConfirmationToken/u

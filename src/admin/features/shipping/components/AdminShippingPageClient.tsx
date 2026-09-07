@@ -123,21 +123,25 @@ function hasValidDiscountAdjustment(
 }
 
 function buildShippingCalculationSteps(preview: CalculatedShippingPreview) {
-  const singleParcelFormula = `S = ${formatCents(preview.basePriceCents)} + ${formatCents(preview.surchargeAmountCents)} = ${formatCents(preview.singleParcelAmountCents)}`;
-  const multiPieceRule = preview.matchedMultiPieceDiscountRule;
-  const multiPieceFormula = preview.parcelCount === 1
-    ? `Sₙ = 1 × ${formatCents(preview.singleParcelAmountCents)} = ${formatCents(preview.afterMultiPieceAmountCents)}`
-    : multiPieceRule?.adjustmentType === 'percentage'
-      ? `Sₙ = ${preview.parcelCount} × ${formatCents(preview.singleParcelAmountCents)} × (1 − ${percentagePointsFormatter.format(multiPieceRule.adjustmentValue ?? 0)} / 100) = ${formatCents(preview.afterMultiPieceAmountCents)}`
-      : multiPieceRule?.adjustmentType === 'fixed'
-        ? `Sₙ = ${preview.parcelCount} × max(0, ${formatCents(preview.singleParcelAmountCents)} − ${formatCents(multiPieceRule.adjustmentValue ?? 0)}) = ${formatCents(preview.afterMultiPieceAmountCents)}`
-        : `Sₙ = ${preview.parcelCount} × ${formatCents(preview.singleParcelAmountCents)} = ${formatCents(preview.afterMultiPieceAmountCents)}`;
-  const finalFormula = `Sₖ = max(0, ${formatCents(preview.afterMultiPieceAmountCents)} − ${formatCents(preview.orderValueDiscountAmountCents)}) = ${formatCents(preview.finalAmountCents)}`;
-
   return [
-    { id: 'single-parcel', formula: singleParcelFormula },
-    { id: 'multi-piece', formula: multiPieceFormula },
-    { id: 'final', formula: finalFormula }
+    {
+      id: 'single-parcel',
+      title: 'En paket',
+      description: 'osnova + dodatek',
+      formula: `${formatCents(preview.basePriceCents)} + ${formatCents(preview.surchargeAmountCents)} = ${formatCents(preview.singleParcelAmountCents)}`
+    },
+    {
+      id: 'multi-piece',
+      title: 'Vsi paketi',
+      description: 'št. paketov × cena − popust za več paketov',
+      formula: `${preview.parcelCount} × ${formatCents(preview.singleParcelAmountCents)} − ${formatCents(preview.multiPieceDiscountAmountCents)} = ${formatCents(preview.afterMultiPieceAmountCents)}`
+    },
+    {
+      id: 'final',
+      title: 'Končna poštnina',
+      description: 'skupaj − popust glede na vrednost naročila',
+      formula: `${formatCents(preview.afterMultiPieceAmountCents)} − ${formatCents(preview.orderValueDiscountAmountCents)} = ${formatCents(preview.finalAmountCents)}`
+    }
   ];
 }
 
@@ -1631,7 +1635,7 @@ export default function AdminShippingPageClient({
                       }
                     />
                     <ShippingPreviewSummaryRow
-                      label="Poštnina na paket (S)"
+                      label="Poštnina na paket"
                       value={formatCents(preview.singleParcelAmountCents)}
                     />
                     {preview.parcelCount > 1 ? (
@@ -1674,9 +1678,9 @@ export default function AdminShippingPageClient({
                     />
                   </dl>
                   <ol
-                    className="mt-2 grid list-decimal gap-1.5 rounded-lg border border-slate-200/90 bg-slate-50/70 py-2.5 pl-8 pr-3 text-[11px] font-semibold leading-5 tabular-nums text-slate-600 marker:text-slate-400"
+                    className="mt-2 grid list-decimal gap-1 rounded-lg border border-slate-200/90 bg-slate-50/70 py-2 pl-8 pr-3 text-[12px] leading-5 text-slate-700 marker:font-semibold marker:text-slate-500"
                     data-testid="shipping-preview-calculation-breakdown"
-                    aria-label="Matematični koraki izračuna poštnine"
+                    aria-label="Koraki izračuna poštnine"
                   >
                     {buildShippingCalculationSteps(preview).map((step) => (
                       <li
@@ -1684,10 +1688,14 @@ export default function AdminShippingPageClient({
                         className="min-w-0 [overflow-wrap:anywhere]"
                         data-shipping-formula-step={step.id}
                       >
-                        {step.formula}
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                          <p className="min-w-0 text-slate-600"><span className="font-semibold text-slate-900">{step.title}</span>: {step.description}</p>
+                          <p className="font-medium tabular-nums text-slate-900">{step.formula}</p>
+                        </div>
                       </li>
                     ))}
                   </ol>
+                  <p className="mt-2 text-[11px] leading-4 text-slate-500">Zneski so zaokroženi na cente. Popusti ne morejo znižati poštnine pod 0 €.</p>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200/90 pt-3">

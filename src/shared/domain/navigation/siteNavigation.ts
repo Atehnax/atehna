@@ -121,6 +121,8 @@ export type SiteNavigationTopBarResponsiveSettings = {
   height: number;
   /** Maximum logo artwork height in visible CSS pixels; never changes header height. */
   logoHeightPx?: number;
+  /** Canvas preserves saved margins; artwork fits the published visible bounds. */
+  logoFit?: 'canvas' | 'artwork';
   paddingX: number;
   sticky: boolean;
   shadow: boolean;
@@ -374,6 +376,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         searchMode: 'icon',
         height: 73,
         logoHeightPx: 18,
+        logoFit: 'canvas',
         paddingX: 32,
         sticky: false,
         shadow: false,
@@ -405,6 +408,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         cartBadge: true,
         height: 64,
         logoHeightPx: 16.5,
+        logoFit: 'canvas',
         paddingX: 24,
         sticky: true,
         shadow: true
@@ -435,6 +439,7 @@ export const DEFAULT_SITE_NAVIGATION_TOP_BAR_LAYOUT: SiteNavigationTopBarLayout 
         cartBadge: true,
         height: 56,
         logoHeightPx: 15,
+        logoFit: 'canvas',
         paddingX: 16,
         sticky: true,
         shadow: false,
@@ -721,7 +726,9 @@ function normalizeTopBarResponsiveSettings(
   fallback: SiteNavigationTopBarResponsiveSettings
 ): SiteNavigationTopBarResponsiveSettings {
   const record = asRecord(value);
+  const logoFit: NonNullable<SiteNavigationTopBarResponsiveSettings['logoFit']> = record.logoFit === 'artwork' ? 'artwork' : 'canvas';
   const baseSettings = {
+    logoFit,
     logoHeightPx: asBoundedNumber(record.logoHeightPx, fallback.logoHeightPx ?? (device === 'desktop' ? 18 : device === 'tablet' ? 16.5 : 15), 8, 64, 0.5),
     widthMode: asTopBarWidthMode(record.widthMode, fallback.widthMode ?? 'match_content'),
     customMaxWidthPx: asNullableBoundedNumber(

@@ -9,6 +9,7 @@ import { SiteLogo, SiteLogoProvider } from '@/commercial/components/SiteLogo';
 import { COMMERCIAL_STOREFRONT_SCALE } from '@/commercial/components/commercialStorefrontScale';
 import { LOGO_PLACEMENT_LABELS, type LogoBounds, type LogoPlacementId, type LogoProject, type LogoSourceAsset, type PublishedLogoAsset, type PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 import { logoPlacementGuidance } from '../lib/logoPlacementGuidance';
+import { measureLogoPlacementImage } from '../lib/logoPlacementMeasurement';
 import { resolveHeaderLogoSize } from '@/shared/domain/logo/logoPlacement';
 import { normalizeSiteNavigationConfig, type SiteNavigationConfig, type SiteNavigationTopBarDevice } from '@/shared/domain/navigation/siteNavigation';
 
@@ -35,7 +36,7 @@ export default function LogoPlacementPreview({ published, navigation, purpose, d
   const asset = draftAsset === undefined ? published.placements[purpose] : draftAsset;
   const config = useMemo(() => draftAsset === undefined ? published
     : { ...published, placements: { ...published.placements, [purpose]: draftAsset } }, [draftAsset, published, purpose]);
-  const constraints = resolveHeaderLogoSize(device, normalized.topBarLayout.responsive[device], asset);
+  const constraints = useMemo(() => resolveHeaderLogoSize(device, normalized.topBarLayout.responsive[device], asset), [device, normalized, asset]);
   const outer = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -97,21 +98,20 @@ export default function LogoPlacementPreview({ published, navigation, purpose, d
         const local = logo.getBoundingClientRect();
         const rect = { left: local.left * previewScale, top: local.top * previewScale, width: local.width * previewScale, height: local.height * previewScale };
         const origin = { left: 0, top: 0 };
-        const fittedScale = Math.min(rect.width / asset.width, rect.height / asset.height);
-        const image = {
-          x: rect.left - origin.left + (rect.width - asset.width * fittedScale) / 2,
-          y: rect.top - origin.top + (rect.height - asset.height * fittedScale) / 2,
-          width: asset.width * fittedScale, height: asset.height * fittedScale
-        };
+        const source = header ? constraints.sourceBounds : { x: 0, y: 0, width: asset.width, height: asset.height };
+        const artwork = header ? {
+          x: source.x + constraints.artworkBounds.x / constraints.scale,
+          y: source.y + constraints.artworkBounds.y / constraints.scale,
+          width: constraints.artworkBounds.width / constraints.scale,
+          height: constraints.artworkBounds.height / constraints.scale
+        } : asset.bounds;
+        const measured = measureLogoPlacementImage({ x: rect.left - origin.left, y: rect.top - origin.top, width: rect.width, height: rect.height }, source, artwork);
         const area = header ? {
           x: rect.left - origin.left,
           y: rect.top - origin.top + rect.height / 2 - constraints.areaHeightPx * previewScale / 2,
           width: constraints.areaWidthPx * previewScale, height: constraints.areaHeightPx * previewScale
         } : { x: rect.left - origin.left, y: rect.top - origin.top, width: rect.width, height: rect.height };
-        const next = { area, image, sourceScale: fittedScale / previewScale, artwork: {
-          x: image.x + asset.bounds.x * fittedScale, y: image.y + asset.bounds.y * fittedScale,
-          width: asset.bounds.width * fittedScale, height: asset.bounds.height * fittedScale
-        } };
+        const next = { area, ...measured, sourceScale: measured.sourceScale / previewScale };
         setMeasurement(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
       });
     };
@@ -120,9 +120,12 @@ export default function LogoPlacementPreview({ published, navigation, purpose, d
     body.addEventListener('load', update, true);
     void previewDocument.fonts.ready.then(update);
     return () => { cancelAnimationFrame(pending); observer.disconnect(); body.removeEventListener('load', update, true); };
-  }, [asset, constraints.areaHeightPx, constraints.areaWidthPx, device, header, normalized, previewDocument, previewScale, purpose, viewportWidth]);
+  }, [asset, constraints, device, header, normalized, previewDocument, previewScale, purpose, viewportWidth]);
 
-  const whitespace = asset ? 1 - Math.min(1, asset.bounds.width * asset.bounds.height / (asset.width * asset.height)) : 0;
+  const croppedHeader = header && asset && (constraints.sourceBounds.x !== 0 || constraints.sourceBounds.y !== 0 || constraints.sourceBounds.width !== asset.width || constraints.sourceBounds.height !== asset.height);
+  const whitespace = asset ? header
+    ? 1 - Math.min(1, constraints.artworkBounds.width * constraints.artworkBounds.height / (constraints.widthPx * constraints.heightPx))
+    : 1 - Math.min(1, asset.bounds.width * asset.bounds.height / (asset.width * asset.height)) : 0;
   const guidance = project && measurement ? logoPlacementGuidance(project, assets, measurement.sourceScale) : null;
   const tinyText = guidance?.tinyText ?? false;
   const rasterUpscaled = guidance?.rasterUpscaled ?? Boolean(asset && !asset.svgUrl && measurement && measurement.sourceScale > 1.01);
@@ -188,7 +191,7 @@ export default function LogoPlacementPreview({ published, navigation, purpose, d
       </div>
     </div>
     <div className="space-y-1 text-[11px] leading-relaxed text-slate-600" aria-live="polite">
-      {measurement && <p>Platno v uporabi: {dimension(measurement.image.width / previewScale)} × {dimension(measurement.image.height / previewScale)} CSS px.
+      {measurement && <p>{croppedHeader ? 'Prikazano območje' : 'Platno v uporabi'}: {dimension(measurement.image.width / previewScale)} × {dimension(measurement.image.height / previewScale)} CSS px.
         {' '}Vidna vsebina: {dimension(measurement.artwork.width / previewScale)} × {dimension(measurement.artwork.height / previewScale)} CSS px.
         {' '}Razpoložljivi prostor: {dimension(measurement.area.width / previewScale)} × {dimension(measurement.area.height / previewScale)} CSS px.</p>}
       {overlays && <p>Modro: prostor uporabe · zeleno: vidna vsebina · pikčasto: priporočeni 5-odstotni varni rob.</p>}

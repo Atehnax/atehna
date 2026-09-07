@@ -1,5 +1,7 @@
 import type { PageSizeValue } from '@/shared/domain/pagination';
 
+export const AUDIT_GROUP_WINDOW_MS = 10_000;
+
 export const AUDIT_ENTITY_TYPES = ['item', 'order', 'category', 'media', 'system'] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
@@ -119,6 +121,7 @@ export type AuditEventFilters = {
 
 export type AuditEventListResult = {
   events: AuditEventRecord[];
+  /** Number of visible groups, before pagination. Events contain every member of the selected groups. */
   total: number;
   page: number;
   pageSize: PageSizeValue;

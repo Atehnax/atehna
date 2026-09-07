@@ -14,6 +14,7 @@ import {
   type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
+import { GripVertical } from 'lucide-react';
 import Link from 'next/link';
 import {
   DndContext,
@@ -111,14 +112,18 @@ import SiteFooter, {
   type SiteFooterLinkPlacement
 } from '@/commercial/components/SiteFooter';
 import SiteHeader from '@/commercial/components/SiteHeader';
-import { SiteLogo, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
+import { SiteLogo, SiteLogoProvider, useSiteLogoConfig } from '@/commercial/components/SiteLogo';
 import { COMMERCIAL_STOREFRONT_SCALE, toCommercialStorefrontLogicalPx } from '@/commercial/components/commercialStorefrontScale';
-import { resolveHeaderLogoSize, type LogoDisplaySize as SiteLogoDisplaySize } from '@/shared/domain/logo/logoPlacement';
-import type { LogoPlacementId as SiteLogoPurposeId } from '@/shared/domain/logo/logoLibrary';
+import { resizeHeaderLogo, resolveHeaderLogoSize, type LogoDisplaySize as SiteLogoDisplaySize } from '@/shared/domain/logo/logoPlacement';
+import type { LogoPlacementId as SiteLogoPurposeId, PublishedSiteLogoConfig } from '@/shared/domain/logo/logoLibrary';
 import LogoPlacementSelector from './LogoPlacementSelector';
 import { sortTopBarTableItemsByResolvedX } from '../lib/topBarTableOrder';
 import AdminPodobaTabs from './AdminPodobaTabs';
 import styles from './AdminNavigationAppearance.module.css';
+import footerStyles from './FooterEditorWorkspace.module.css';
+import FooterEditorWorkspace from './FooterEditorWorkspace';
+import AppearanceDeviceSelector, { APPEARANCE_DEVICE_LABELS as topBarDeviceLabels } from './AppearanceDeviceSelector';
+import AdminFooterPopover from './AdminFooterPopover';
 import {
   AppearanceEditorAlignmentControl,
   AppearanceEditorCompactSelect,
@@ -389,12 +394,6 @@ function estimateTopBarElementWidth({
 
   return Math.round(itemWidths.reduce((total, width) => total + width, 0) + gaps + overflowWidth);
 }
-
-const topBarDeviceLabels: Record<SiteNavigationTopBarDevice, string> = {
-  desktop: 'Desktop',
-  tablet: 'Tablica',
-  mobile: 'Mobilno'
-};
 
 const topBarSlotLabels: Record<SiteNavigationTopBarSlot, string> = {
   left: 'Levo',
@@ -922,33 +921,6 @@ function TopBarHelpVisual({ visual }: { visual: TopBarHelpVisualKind }) {
   );
 }
 
-function AdminTopBarDeviceGlyph({ device }: { device: SiteNavigationTopBarDevice }) {
-  if (device === 'mobile') {
-    return (
-      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-        <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" />
-        <path d="M9 15.5h2" />
-      </svg>
-    );
-  }
-
-  if (device === 'tablet') {
-    return (
-      <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-        <rect x="4.5" y="3" width="11" height="14" rx="1.7" />
-        <path d="M9 14.5h2" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <rect x="3" y="4" width="14" height="10" rx="1.5" />
-      <path d="M8 17h4M10 14v3" />
-    </svg>
-  );
-}
-
 function AdminTopBarSparklesGlyph({ className = 'h-[17px] w-[17px]' }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -1042,6 +1014,7 @@ function AdminTopBarBrandPreview({
       className={adminTopBarLogoClassNames[device]}
       alt="Atehna"
       style={style}
+      sourceBounds={displaySize?.sourceBounds}
     />
   );
 }
@@ -2390,7 +2363,7 @@ function getTopBarElementXInBounds(
   const baseMaxXPx = Math.max(0, placementBoundsWidth - baseElementWidth);
   const baseXPx = clampTopBarNumber(ratioX, 0, baseMaxXPx);
   if (item.region === 'center') {
-    return Math.round(baseXPx - Math.max(0, elementWidth - baseElementWidth) / 2);
+    return Math.round(baseXPx - (elementWidth - baseElementWidth) / 2);
   }
 
   return Math.round(clampTopBarNumber(ratioX, 0, maxXPx));
@@ -4657,7 +4630,13 @@ function TopBarLayoutEditor({
   onSiteLayoutChange: (updates: Partial<SiteNavigationSiteLayoutSettings>) => void;
   onSetInitialLayout: (layout: SiteNavigationTopBarLayout) => void | Promise<void>;
 }) {
-  const siteLogoConfig = useSiteLogoConfig();
+  const savedLogoConfig = useSiteLogoConfig();
+  const [adoptedLogoConfig, setAdoptedLogoConfig] = useState<PublishedSiteLogoConfig | null>(null);
+  const [previewLogoConfig, setPreviewLogoConfig] = useState<PublishedSiteLogoConfig | null>(null);
+  const pendingLogoLayout = useRef<{ device: SiteNavigationTopBarDevice; layout: SiteNavigationTopBarLayout['responsive'][SiteNavigationTopBarDevice] } | null>(null);
+  const committedLogoConfig = adoptedLogoConfig && adoptedLogoConfig.revision >= savedLogoConfig.revision
+    ? adoptedLogoConfig : savedLogoConfig;
+  const siteLogoConfig = previewLogoConfig ?? committedLogoConfig;
   const [showHeaderPreview, setShowHeaderPreview] = useState(false);
   const [showTechnicalOverlay, setShowTechnicalOverlay] = useState(false);
   const [device, setDevice] = useState<SiteNavigationTopBarDevice>('desktop');
@@ -4697,13 +4676,14 @@ function TopBarLayoutEditor({
           ? {
               enabled: true,
               navigation: previewNavigation,
+              logoConfig: siteLogoConfig,
               previewDevice: device,
               previewViewportWidth: selectedRendererPreviewViewportWidth,
             }
           : { enabled: false }
       })
     );
-  }, [device, previewNavigation, selectedRendererPreviewViewportWidth, showHeaderPreview]);
+  }, [device, previewNavigation, selectedRendererPreviewViewportWidth, showHeaderPreview, siteLogoConfig]);
 
   useEffect(() => {
     return () => {
@@ -4886,10 +4866,38 @@ function TopBarLayoutEditor({
   };
 
   const updateSettings = (updates: Partial<SiteNavigationTopBarResponsiveSettings>) => {
-    updateDeviceLayout((current) => ({
-      ...current,
-      settings: { ...current.settings, ...updates }
-    }));
+    updateDeviceLayout((current) => {
+      const next = { ...current, settings: { ...current.settings, ...updates } };
+      return updates.logoHeightPx == null ? next
+        : resizeHeaderLogo(next, siteLogoConfig.placements[logoPurposeId], updates.logoHeightPx);
+    });
+  };
+
+  const previewHeaderLogo = (published: PublishedSiteLogoConfig | null) => {
+    if (!published) {
+      const pending = pendingLogoLayout.current;
+      pendingLogoLayout.current = null;
+      setPreviewLogoConfig(null);
+      if (pending) onChange((current) => updateResponsiveLayout(current, pending.device, (profile) => ({
+        ...profile,
+        settings: { ...profile.settings, logoHeightPx: pending.layout.settings.logoHeightPx, logoFit: pending.layout.settings.logoFit },
+        items: profile.items.map((item) => item.id === 'logo'
+          ? pending.layout.items.find((previous) => previous.id === 'logo') ?? item : item)
+      })));
+      return;
+    }
+    pendingLogoLayout.current ??= { device, layout: deviceLayout };
+    setPreviewLogoConfig(published);
+    updateDeviceLayout((current) => resizeHeaderLogo(current, published.placements[logoPurposeId]));
+  };
+
+  const adoptHeaderLogo = (published: PublishedSiteLogoConfig) => {
+    const hadPreview = pendingLogoLayout.current?.device === device;
+    pendingLogoLayout.current = null;
+    setPreviewLogoConfig(null);
+    setAdoptedLogoConfig((current) => !current || published.revision >= current.revision ? published : current);
+    // Keep any manual height chosen while previewing this selection.
+    if (!hadPreview) updateDeviceLayout((current) => resizeHeaderLogo(current, published.placements[logoPurposeId]));
   };
 
   const updateDesktopBreakpointFrom = (nextDesktopBreakpointFrom: number) => {
@@ -5051,6 +5059,7 @@ function TopBarLayoutEditor({
   const hasSelectedTableElements = selectedTableElementIds.length > 0;
 
   return (
+    <SiteLogoProvider config={siteLogoConfig}>
     <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -5086,36 +5095,33 @@ function TopBarLayoutEditor({
 
       <div className="grid min-w-0 items-start gap-4">
         <div className="grid min-w-0 gap-4 min-[1280px]:grid-cols-[minmax(0,3fr)_minmax(500px,2fr)]">
-          <div className="col-span-full flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-              {(Object.keys(topBarDeviceLabels) as SiteNavigationTopBarDevice[]).map((currentDevice) => (
-                <button
-                  key={currentDevice}
-                  type="button"
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium leading-none transition ${adminControlFocusTokenClasses} ${
-                    device === currentDevice ? 'text-[color:var(--blue-500)]' : 'text-slate-500 hover:text-[color:var(--blue-500)]'
-                  }`}
-                  onClick={() => setDevice(currentDevice)}
-                >
-                  <AdminTopBarDeviceGlyph device={currentDevice} />
-                  {topBarDeviceLabels[currentDevice]}
-                </button>
-              ))}
+          <div className={`col-span-full row-start-1 ${styles.deviceToolbar}`} data-testid="top-bar-device-toolbar">
+            <AppearanceDeviceSelector
+              value={device}
+              onChange={(nextDevice) => { previewHeaderLogo(null); setDevice(nextDevice); }}
+              ariaLabel="Naprava za predogled zgornje vrstice"
+            />
+            <div className={styles.logoControls} data-testid="top-bar-logo-controls">
+              <LogoPlacementSelector key={logoPurposeId} purpose={logoPurposeId} toolbar onAssigned={adoptHeaderLogo} onPreview={previewHeaderLogo} />
+              <label className={styles.logoHeight} title={'Največja višina logotipa · ' + topBarDeviceLabels[device]}>
+                <span>Višina</span>
+                <TopBarUnitNumberInput
+                  ariaLabel={'Največja višina logotipa · ' + topBarDeviceLabels[device]}
+                  value={siteLogoConfig.placements[logoPurposeId] && logoDisplaySize.explicit
+                    ? Number(logoDisplaySize.heightPx.toFixed(2))
+                    : deviceLayout.settings.logoHeightPx ?? 18}
+                  min={8}
+                  max={64}
+                  step={0.5}
+                  suffix="px"
+                  variant="simulator"
+                  className={styles.logoHeightControl}
+                  onChange={(value) => updateSettings({ logoHeightPx: value })}
+                />
+              </label>
             </div>
           </div>
-
-          <div className="col-span-full flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3">
-            <LogoPlacementSelector key={logoPurposeId} purpose={logoPurposeId} compact />
-            <label className="grid gap-1 text-xs text-slate-600">Največja višina logotipa (px)
-              <input type="number" min={8} max={64} step={0.5}
-                aria-label={'Največja višina logotipa · ' + topBarDeviceLabels[device]}
-                value={deviceLayout.settings.logoHeightPx ?? 18}
-                onChange={event => updateSettings({ logoHeightPx: Number(event.target.value) })}
-                className="h-8 w-24 rounded-md border border-slate-300 px-2" />
-            </label>
-            <p className="text-[11px] text-slate-500">Logotip ohrani razmerje stranic in se omeji na prostor v vrstici.</p>
-          </div>
-          <div className="col-span-full">
+          <div className="col-span-full row-start-2" data-testid="top-bar-preview-section">
             <TopBarResponsivePreview
               device={device}
               logoDisplaySize={logoDisplaySize}
@@ -5559,6 +5565,7 @@ function TopBarLayoutEditor({
 
       </div>
     </section>
+    </SiteLogoProvider>
   );
 }
 
@@ -5880,8 +5887,9 @@ function FooterTextAlignmentMenu<Value extends FooterTextAlignment>({
 }) {
   const rootRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
-  const dismissRefs = useMemo(() => [rootRef], []);
+  const dismissRefs = useMemo(() => [rootRef, panelRef], []);
 
   useDropdownDismiss({ open, refs: dismissRefs, onClose: () => setOpen(false) });
 
@@ -5914,13 +5922,12 @@ function FooterTextAlignmentMenu<Value extends FooterTextAlignment>({
         <FooterAlignmentGlyph alignment={value} />
       </button>
       {open ? (
+        <AdminFooterPopover anchorRef={triggerRef} panelRef={panelRef} align={side}>
         <div
           role="dialog"
           aria-label={ariaLabel}
           data-footer-text-alignment-popover
-          className={`absolute top-full z-[130] mt-1 grid w-max gap-1.5 rounded-xl border border-white/15 bg-slate-950/95 p-2 text-white shadow-[0_16px_40px_rgba(15,23,42,0.35)] backdrop-blur-xl ${
-            side === 'left' ? 'left-0' : 'right-0'
-          }`}
+          className="grid w-max gap-1.5 rounded-xl border border-white/15 bg-slate-950/95 p-2 text-white shadow-[0_16px_40px_rgba(15,23,42,0.35)] backdrop-blur-xl"
         >
           <span className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
             Poravnava
@@ -5933,6 +5940,7 @@ function FooterTextAlignmentMenu<Value extends FooterTextAlignment>({
             tone="dark"
           />
         </div>
+        </AdminFooterPopover>
       ) : null}
     </span>
   );
@@ -6248,9 +6256,10 @@ function FooterLinkEditor({
 }) {
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: link.id });
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuPanelRef = useRef<HTMLDivElement | null>(null);
   const [urlOpen, setUrlOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuDismissRefs = useMemo(() => [menuRef], []);
+  const menuDismissRefs = useMemo(() => [menuRef, menuPanelRef], []);
 
   useDropdownDismiss({
     open: menuOpen || urlOpen,
@@ -6270,48 +6279,47 @@ function FooterLinkEditor({
         event.stopPropagation();
         setMenuOpen(true);
       }}
-      className={`group/footer-link relative max-w-full items-center gap-1 rounded-md border border-transparent px-1 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${
-        placement === 'column'
-          ? '-ml-1 grid min-h-7 w-full grid-cols-[minmax(0,1fr)_24px_24px]'
-          : 'grid min-h-7 grid-cols-[minmax(0,1fr)_24px_24px]'
-      } ${hidden ? 'opacity-50' : ''} ${isDragging ? 'z-20 bg-white opacity-80 shadow-sm' : ''}`}
+      className={`group/footer-link ${footerStyles.link} ${placement === 'column' ? footerStyles.columnLink : ''} ${hidden ? 'opacity-50' : ''} ${isDragging ? 'z-20 bg-white opacity-80 shadow-sm' : ''}`}
     >
       <button
         ref={setActivatorNodeRef}
         type="button"
         aria-label={`Premakni ${link.label || 'povezavo v nogi'}`}
-        className={adminDragSurfaceTokenClasses}
+        className={`${footerStyles.linkGrip} ${adminControlFocusTokenClasses}`}
         {...attributes}
         {...listeners}
-      />
-      <div className="pointer-events-none relative z-10 flex w-full min-w-0 items-center gap-1">
+      ><GripVertical className="h-3.5 w-3.5" aria-hidden="true" /></button>
+      <div className={`${footerStyles.linkLabel} relative z-10 flex w-full min-w-0 items-center gap-1`}>
         <InlineEditableText
           value={link.label}
           onChange={(label) => onChange({ label })}
           ariaLabel="Naziv povezave v nogi"
-          className={`site-link block w-full min-w-0 max-w-full truncate px-0.5 py-0 hover:!bg-transparent ${placement === 'column' ? 'text-[13px] leading-5' : 'text-[12px] leading-5'}`}
+          className={`site-link block w-full min-w-0 max-w-full px-0.5 py-0 hover:!bg-transparent ${placement === 'column' ? 'text-[13px] leading-5' : 'text-[12px] leading-5'}`}
           inputClassName={placement === 'column' ? 'h-7 w-40 text-[13px]' : 'h-7 w-44 text-[12px]'}
           style={{ textAlign: link.textAlign }}
           placeholder="Nova povezava"
         />
         {hidden ? <span className="shrink-0 text-[10px] font-semibold text-slate-500">Skrito</span> : null}
       </div>
-      <FooterTextAlignmentMenu
-        value={link.textAlign}
-        options={footerShortTextAlignmentOptions}
-        onValueChange={(textAlign) => onChange({ textAlign })}
-        ariaLabel={`Poravnava povezave ${link.label || 'v nogi'}`}
-      />
+      {placement !== 'column' ? (
+        <FooterTextAlignmentMenu
+          className={footerStyles.linkAlignment}
+          value={link.textAlign}
+          options={footerShortTextAlignmentOptions}
+          onValueChange={(textAlign) => onChange({ textAlign })}
+          ariaLabel={`Poravnava povezave ${link.label || 'v nogi'}`}
+        />
+      ) : null}
       <div
         ref={menuRef}
-        className={`relative self-center ${menuOpen || urlOpen ? 'z-[80]' : 'z-10'}`}
+        className={`relative self-center justify-self-end ${menuOpen || urlOpen ? 'z-[80]' : 'z-10'}`}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           aria-label={`Možnosti povezave v nogi ${link.label || ''}`.trim()}
           aria-expanded={menuOpen}
-          className={`${adminMiniIconButtonTokenClasses} opacity-75 hover:opacity-100 ${menuOpen || urlOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
+          className={`${adminMiniIconButtonTokenClasses} ${footerStyles.editorControl} opacity-75 group-hover/footer-link:opacity-100 ${menuOpen || urlOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
           onClick={(event) => {
             event.stopPropagation();
             setMenuOpen((current) => !current);
@@ -6321,7 +6329,8 @@ function FooterLinkEditor({
           <DotsGlyph className="h-3.5 w-3.5" />
         </button>
         {menuOpen ? (
-          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-36">
+          <AdminFooterPopover anchorRef={menuRef} panelRef={menuPanelRef}>
+          <MenuPanel className="w-36">
             <button
               type="button"
               className={adminActionMenuItemTokenClasses.base}
@@ -6347,9 +6356,11 @@ function FooterLinkEditor({
             </button>
             <DeleteButton label="Izbriši" onDelete={onDelete} menu />
           </MenuPanel>
+          </AdminFooterPopover>
         ) : null}
         {urlOpen ? (
-          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-64 p-2.5">
+          <AdminFooterPopover anchorRef={menuRef} panelRef={menuPanelRef}>
+          <MenuPanel className="w-64 p-2.5">
             <label className="grid gap-1.5">
               <span className="text-[11px] font-medium text-slate-500">Povezava</span>
               <Input
@@ -6362,6 +6373,7 @@ function FooterLinkEditor({
               />
             </label>
           </MenuPanel>
+          </AdminFooterPopover>
         ) : null}
       </div>
     </div>
@@ -6370,6 +6382,8 @@ function FooterLinkEditor({
 
 function FooterColumnEditor({
   column,
+  selected,
+  onSelect,
   children,
   sensors,
   onChange,
@@ -6378,6 +6392,8 @@ function FooterColumnEditor({
   onReorderLink
 }: {
   column: HomepageFooterColumn;
+  selected: boolean;
+  onSelect: () => void;
   children: ReactNode;
   sensors: ReturnType<typeof useSensors>;
   onChange: (updates: Partial<HomepageFooterColumn>) => void;
@@ -6385,43 +6401,55 @@ function FooterColumnEditor({
   onAddLink: () => void;
   onReorderLink: (event: DragEndEvent) => void;
 }) {
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id });
   const linkIds = useMemo(() => column.links.map((link) => link.id), [column.links]);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuPanelRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuDismissRefs = useMemo(() => [menuRef], []);
+  const menuDismissRefs = useMemo(() => [menuRef, menuPanelRef], []);
 
   useDropdownDismiss({ open: menuOpen, refs: menuDismissRefs, onClose: () => setMenuOpen(false) });
 
   return (
     <div
-      className={`group/footer-column relative -m-2 min-w-0 rounded-lg border border-transparent p-2 transition hover:border-[color:var(--blue-500)]/30 focus-within:border-[color:var(--blue-500)]/40 ${
-        column.visible === false ? 'opacity-50' : ''
-      }`}
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`group/footer-column ${footerStyles.column} ${column.visible === false ? 'opacity-50' : ''} ${isDragging ? 'z-40 bg-white shadow-sm' : ''}`}
+      data-footer-column={column.id}
+      data-selected={selected}
+      onClickCapture={onSelect}
+      onFocusCapture={onSelect}
     >
+      {selected && column.visible !== false ? <span className={footerStyles.selectedBadge}>Izbrano</span> : null}
+      <button ref={setActivatorNodeRef} type="button" aria-label={`Premakni stolpec ${column.title || ''}`}
+        className={`${footerStyles.columnGrip} ${adminControlFocusTokenClasses}`} {...attributes} {...listeners}>
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+      </button>
       {column.visible === false ? (
         <span className="absolute -top-2 left-1 rounded-md bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
           Skrito
         </span>
       ) : null}
-      <div className="absolute right-4 top-1.5 z-30 flex items-center gap-0.5">
+      <div className={footerStyles.columnActions}>
         <FooterTextAlignmentMenu
           value={column.titleTextAlign}
           options={footerShortTextAlignmentOptions}
           onValueChange={(titleTextAlign) => onChange({ titleTextAlign })}
-          ariaLabel={`Poravnava naslova ${column.title || 'stolpca'}`}
+          ariaLabel={`Poravnava skupine ${column.title || 'v nogi'}`}
         />
         <div ref={menuRef} className="relative">
           <button
             type="button"
             aria-label={`Možnosti stolpca ${column.title || ''}`.trim()}
             aria-expanded={menuOpen}
-            className={adminMiniIconButtonTokenClasses}
+            className={`${adminMiniIconButtonTokenClasses} ${footerStyles.editorControl} opacity-75 group-hover/footer-column:opacity-100 ${menuOpen ? '!text-[color:var(--blue-500)]' : ''}`}
             onClick={() => setMenuOpen((current) => !current)}
           >
             <DotsGlyph className="h-3.5 w-3.5" />
           </button>
           {menuOpen ? (
-            <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-36">
+            <AdminFooterPopover anchorRef={menuRef} panelRef={menuPanelRef}>
+          <MenuPanel className="w-36">
               <button
                 type="button"
                 className={adminActionMenuItemTokenClasses.flex}
@@ -6435,6 +6463,7 @@ function FooterColumnEditor({
               </button>
               <DeleteButton label="Izbriši" onDelete={onDelete} menu />
             </MenuPanel>
+          </AdminFooterPopover>
           ) : null}
         </div>
       </div>
@@ -6450,17 +6479,13 @@ function FooterColumnEditor({
         </SortableContext>
       </DndContext>
 
-      <IconButton
-        type="button"
-        size="sm"
-        tone="neutral"
-        className={`mt-3 !h-7 !w-7 ${adminTableNeutralIconButtonClassName}`}
-        aria-label={`Dodaj povezavo v ${column.title || 'stolpec'}`}
-        title="Dodaj povezavo"
-        onClick={onAddLink}
-      >
-        <PlusIcon />
-      </IconButton>
+      <div className="mt-3 pl-2">
+        <IconButton type="button" size="sm" tone="neutral" className={`${adminTableNeutralIconButtonClassName} ${footerStyles.editorControl}`}
+          aria-label={`Dodaj povezavo v ${column.title || 'stolpec'}`} title="Dodaj povezavo"
+          disabled={column.links.length >= 12} onClick={onAddLink}>
+          <PlusIcon />
+        </IconButton>
+      </div>
     </div>
   );
 }
@@ -6480,8 +6505,9 @@ function FooterSocialLinkEditor({
 }) {
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id: link.id });
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuPanelRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuDismissRefs = useMemo(() => [menuRef], []);
+  const menuDismissRefs = useMemo(() => [menuRef, menuPanelRef], []);
 
   useDropdownDismiss({
     open: menuOpen,
@@ -6526,16 +6552,17 @@ function FooterSocialLinkEditor({
           type="button"
           aria-label={`Možnosti družbenega omrežja ${link.label || homepageSocialTypeLabels[link.type]}`}
           aria-expanded={menuOpen}
-          className={`${adminMiniIconButtonTokenClasses} opacity-75 hover:opacity-100 ${menuOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
+          className={`${adminMiniIconButtonTokenClasses} ${footerStyles.editorControl} opacity-75 group-hover/footer-social:opacity-100 ${menuOpen ? '!text-[color:var(--blue-500)] !opacity-100' : ''}`}
           onClick={(event) => {
             event.stopPropagation();
             setMenuOpen((current) => !current);
           }}
         >
-          <DotsGlyph className="h-3 w-3" />
+          <DotsGlyph className="h-3.5 w-3.5" />
         </button>
         {menuOpen ? (
-          <MenuPanel className="absolute right-0 top-full z-[90] mt-1 w-64 p-2.5">
+          <AdminFooterPopover anchorRef={menuRef} panelRef={menuPanelRef}>
+          <MenuPanel className="w-64 p-2.5">
             <div className="grid gap-2.5">
               <div className="grid gap-1">
                 <span className="text-[11px] font-medium text-slate-500">Omrežje</span>
@@ -6583,6 +6610,7 @@ function FooterSocialLinkEditor({
               </div>
             </div>
           </MenuPanel>
+          </AdminFooterPopover>
         ) : null}
       </div>
     </div>
@@ -6792,6 +6820,7 @@ export default function AdminNavigationPageClient({
   const [selectedItemId, setSelectedItemId] = useState(() => normalizedInitialConfig.items[0]?.id ?? '');
   const [topLinkEditorId, setTopLinkEditorId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedFooterColumnId, setSelectedFooterColumnId] = useState<string | null>(normalizedInitialConfig.footer.columns[0]?.id ?? null);
   const appliedInitialConfigKeyRef = useRef(normalizedInitialConfigKey);
   const saveInFlightRef = useRef(false);
   const sensors = useSensors(
@@ -6911,12 +6940,23 @@ export default function AdminNavigationPageClient({
       ...current,
       footer: {
         ...current.footer,
-        columns: current.footer.columns.map((column) => column.id === columnId ? { ...column, ...updates } : column)
+        columns: current.footer.columns.map((column) => column.id === columnId
+          ? {
+              ...column,
+              ...updates,
+              links: updates.titleTextAlign !== undefined
+                ? (updates.links ?? column.links).map((link) => ({ ...link, textAlign: updates.titleTextAlign! }))
+                : updates.links ?? column.links
+            }
+          : column)
       }
     }));
   }
 
   function addFooterColumn() {
+    if (config.footer.columns.length >= 6) return;
+    const columnId = createId('footer-column');
+    setSelectedFooterColumnId(columnId);
     updateConfig((current) => ({
       ...current,
       footer: {
@@ -6924,7 +6964,7 @@ export default function AdminNavigationPageClient({
         columns: [
           ...current.footer.columns,
           {
-            id: createId('footer-column'),
+            id: columnId,
             title: 'Nov stolpec',
             titleTextAlign: 'left',
             links: [],
@@ -6972,7 +7012,7 @@ export default function AdminNavigationPageClient({
                   id: createId('footer-link'),
                   label: 'Nova povezava',
                   href: '#',
-                  textAlign: 'left',
+                  textAlign: column.titleTextAlign,
                   visible: true,
                   position: column.links.length
                 }
@@ -7250,6 +7290,14 @@ export default function AdminNavigationPageClient({
     }));
   }
 
+  function handleFooterColumnDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    updateConfig((current) => ({
+      ...current,
+      footer: { ...current.footer, columns: reorderById(current.footer.columns, String(active.id), String(over.id)) }
+    }));
+  }
+
   function handleFooterColumnLinkDragEnd(columnId: string) {
     return (event: DragEndEvent) => {
       const { active, over } = event;
@@ -7424,7 +7472,7 @@ export default function AdminNavigationPageClient({
         data-admin-footer-section-hidden={hidden ? 'true' : 'false'}
         className={hidden ? 'opacity-45' : undefined}
       >
-        {defaultNode}
+        <div className={footerStyles.upperContent}>{defaultNode}</div>
       </div>
     ),
     renderLowerSection: ({ defaultNode, hidden }) => (
@@ -7460,25 +7508,18 @@ export default function AdminNavigationPageClient({
         />
       </div>
     ),
-    renderColumns: ({ defaultNode }) => (
-      <div className="flex min-w-0 items-start gap-1.5">
-        <div className="min-w-0 flex-1">{defaultNode}</div>
-        <IconButton
-          type="button"
-          size="sm"
-          tone="neutral"
-          className={`-mt-1 !h-7 !w-7 shrink-0 ${adminTableNeutralIconButtonClassName}`}
-          aria-label="Dodaj stolpec v nogo"
-          title="Dodaj stolpec"
-          onClick={addFooterColumn}
-        >
-          <PlusIcon />
-        </IconButton>
-      </div>
+    renderColumns: ({ children }) => (
+      <DndContext id="site-navigation-footer-columns" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFooterColumnDragEnd}>
+        <SortableContext items={config.footer.columns.map((column) => column.id)} strategy={rectSortingStrategy}>
+          <nav aria-label="Povezave v nogi" className={footerStyles.columns}>{children}</nav>
+        </SortableContext>
+      </DndContext>
     ),
     renderColumn: ({ column, children }) => (
       <FooterColumnEditor
         column={column}
+        selected={selectedFooterColumnId === column.id}
+        onSelect={() => setSelectedFooterColumnId(column.id)}
         sensors={sensors}
         onChange={(updates) => updateFooterColumn(column.id, updates)}
         onDelete={() => deleteFooterColumn(column.id)}
@@ -7490,7 +7531,7 @@ export default function AdminNavigationPageClient({
     ),
     renderColumnTitle: ({ column, value }) => (
       <h2
-        className="pr-14 text-[13px] font-semibold text-[color:var(--site-color-text)]"
+        className={`${footerStyles.columnTitle} text-[13px] font-semibold text-[color:var(--site-color-text)]`}
         style={{ textAlign: column.titleTextAlign }}
       >
         <InlineEditableText
@@ -7578,7 +7619,7 @@ export default function AdminNavigationPageClient({
                 type="button"
                 size="sm"
                 tone="neutral"
-                className="!h-9 !w-9 shrink-0 self-start"
+                className={`${adminTableNeutralIconButtonClassName} ${footerStyles.editorControl} shrink-0 self-start`}
                 aria-label="Dodaj družbeni profil"
                 title="Dodaj profil"
                 onClick={addFooterSocialLink}
@@ -7627,21 +7668,15 @@ export default function AdminNavigationPageClient({
         collisionDetection={closestCenter}
         onDragEnd={handleFooterLegalLinkDragEnd}
       >
-        <div className="flex min-h-7 items-center justify-end gap-1 pr-1">
+        <div className="flex min-h-7 items-center justify-start gap-1 pr-1">
           <SortableContext items={footerLegalLinkIds} strategy={rectSortingStrategy}>
-            <nav aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-2">
+            <nav aria-label="Urejanje pravnih povezav" className="flex min-w-0 flex-wrap items-center justify-start gap-x-5 gap-y-2">
               {children}
             </nav>
           </SortableContext>
-          <IconButton
-            type="button"
-            size="sm"
-            tone="neutral"
-            className="!h-7 !w-7 shrink-0"
-            aria-label="Dodaj pravno povezavo"
-            title="Dodaj pravno povezavo"
-            onClick={addFooterLegalLink}
-          >
+          <IconButton type="button" size="sm" tone="neutral" className={`${adminTableNeutralIconButtonClassName} ${footerStyles.editorControl}`}
+            aria-label="Dodaj pravno povezavo" title="Dodaj pravno povezavo"
+            disabled={config.footer.legalLinks.length >= 12} onClick={addFooterLegalLink}>
             <PlusIcon />
           </IconButton>
         </div>
@@ -7794,79 +7829,17 @@ export default function AdminNavigationPageClient({
         )}
       </section>
 
-      <section
-        className="rounded-xl border border-slate-200 bg-white p-4"
-        data-testid="site-footer-links-editor"
-      >
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Noga spletnega mesta</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">
-              Iste povezave in kontaktni podatki so prikazani na vseh javnih straneh.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <details className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs">
-              <summary className="cursor-pointer font-medium">Logotipi noge</summary>
-              <div className="mt-3 grid gap-3">
-                {(['footer-desktop', 'footer-tablet', 'footer-mobile'] as const).map(purpose =>
-                  <LogoPlacementSelector key={purpose} purpose={purpose} compact />
-                )}
-              </div>
-            </details>
-            <fieldset
-              aria-label="Vidnost delov noge"
-              className="m-0 flex min-w-0 flex-wrap items-center justify-end gap-2 border-0 p-0"
-            >
-              <legend className="sr-only">Vidnost delov noge</legend>
-              <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
-                <AdminCheckbox
-                  checked={config.footer.upperSectionVisible}
-                  onChange={(event) => updateFooter({ upperSectionVisible: event.target.checked })}
-                />
-                Prikaži zgornji del
-              </label>
-              <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
-                <AdminCheckbox
-                  checked={config.footer.lowerSectionVisible}
-                  onChange={(event) => updateFooter({ lowerSectionVisible: event.target.checked })}
-                />
-                Prikaži spodnji del
-              </label>
-              {!config.footer.upperSectionVisible ? (
-                <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
-                  <AdminCheckbox
-                    checked={config.footer.lowerContactVisible}
-                    onChange={(event) => updateFooter({ lowerContactVisible: event.target.checked })}
-                  />
-                  Prikaži kontakt v spodnjem delu
-                </label>
-              ) : null}
-            </fieldset>
-            <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-2.5 text-xs font-medium text-slate-700">
-              <AdminCheckbox
-                checked={config.footer.visible}
-                onChange={(event) => updateFooter({ visible: event.target.checked })}
-              />
-              Prikaži nogo
-            </label>
-          </div>
-        </div>
-
-        <div
-          data-testid="site-footer-editor-preview"
-          data-admin-editor-preview-frame="true"
-          data-storefront-theme="true"
-          className={`storefront-theme-preview site-page-surface ${adminEditorPreviewFrameTokenClasses} bg-[color:var(--site-color-surface)]`}
-          style={footerPreviewVars}
-        >
-          <SiteFooter
-            settings={config.footer}
-            editorAdapter={footerEditorAdapter}
-            containerClassName={`site-container ${adminEditorPreviewContentTokenClasses}`}
-          />
-        </div>
-      </section>
+      <FooterEditorWorkspace
+        footer={config.footer}
+        adapter={footerEditorAdapter}
+        previewStyle={footerPreviewVars}
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onSave={save}
+        onAddColumn={addFooterColumn}
+        onChange={updateFooter}
+        historyResetKey={normalizedInitialConfigKey}
+      />
     </div>
   );
 }

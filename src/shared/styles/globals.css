@@ -108,6 +108,9 @@
 
   --admin-table-row-hover: color-mix(in srgb, var(--surface-subtle) 58%, white);
   --admin-table-row-selected: #e3e9f0;
+  /* Dnevnik's main/secondary table-cell rhythm, including the main value outline. */
+  --admin-table-primary-line-height: 18.2px;
+  --admin-table-secondary-line-height: 15px;
 
   /* admin destructive controls */
   --danger-600: #de144d;
@@ -2983,11 +2986,16 @@ textarea[readonly] {
 .admin-scope .euiTextArea,
 .admin-scope .euiSelect,
 .admin-scope .euiSelect__button,
-.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input):not(.site-topbar-typography-input):not([data-admin-order-item-value-input]),
+.admin-scope input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not(.admin-item-name-input):not(.site-topbar-typography-input):not([data-admin-order-item-value-input]):not([data-admin-table-value-input]),
 .admin-scope select,
 .admin-scope textarea {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 11px !important;
+}
+
+/* Table values keep their body text size when switched to inline inputs. */
+.admin-scope input[data-admin-table-value-input] {
+  font-size: 12px !important;
 }
 
 .admin-scope input[data-admin-order-item-value-input] {
@@ -3148,4 +3156,24 @@ input.admin-order-number-input:disabled,
 
 [data-product-toolbar-dark-controls] select option:disabled {
   color: rgb(255 255 255 / 42%);
+}
+
+/* Shared main/secondary table text; sizes, weight and alignment belong to each cell. */
+.admin-table-text-stack.admin-table-text-stack {
+  display: flex;
+  flex-direction: column;
+  row-gap: 0;
+  min-width: 0;
+}
+.admin-table-primary-text.admin-table-primary-text,
+.admin-table-secondary-text.admin-table-secondary-text {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.admin-table-primary-text.admin-table-primary-text {
+  line-height: var(--admin-table-primary-line-height);
+}
+.admin-table-secondary-text.admin-table-secondary-text {
+  line-height: var(--admin-table-secondary-line-height);
 }

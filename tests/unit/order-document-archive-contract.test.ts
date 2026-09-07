@@ -15,33 +15,14 @@ test('archive retention schema contains no existing-row recovery', () => {
   assert.doesNotMatch(schema, /alter table archive_blob_deletion_outbox/u);
 });
 
-test('archived order documents are deleted only by their required Blob pathname', () => {
+test('orders and their deleted documents remain recoverable without a permanent deletion path', () => {
   const archiveSource = source('src/shared/server/deletedArchive.ts');
-  const documentDeleteSource = source(
-    'src/admin/api/orders/[orderId]/documents/[documentId]/route.ts'
-  );
-  const deleteHandlerSource = documentDeleteSource.slice(
-    documentDeleteSource.indexOf('export async function DELETE')
-  );
-
-  assert.doesNotMatch(archiveSource, /fallbackTarget/u);
-  assert.doesNotMatch(archiveSource, /entry\.payload\?\.(?:blobPathname|blobUrl)/u);
-  assert.match(
-    archiveSource,
-    /from order_documents\s+where blob_pathname = \$1\s+\)/u,
-    'order document references use the required private-store pathname only'
-  );
-  assert.match(
-    archiveSource,
-    /source_item_type === 'order'[\s\S]*?deletePrivateOrderDocumentBlob/u
-  );
-  assert.match(
-    archiveSource,
-    /from catalog_media[\s\S]{0,180}?blob_pathname = \$1[\s\S]{0,80}?blob_url = \$1/u,
-    'catalog media keeps its independent URL fallback'
-  );
-  assert.doesNotMatch(
-    deleteHandlerSource,
-    /blob_pathname|blob_url|blobPathname|blobUrl/u
-  );
+  const deleteHandlerSource = source('src/admin/api/orders/[orderId]/documents/[documentId]/route.ts').split('export async function DELETE')[1]!;
+  assert.doesNotMatch(archiveSource, /delete from orders|delete from order_documents|deletePrivateOrderDocumentBlob|permanentlyDeleteArchiveEntries|cleanupExpiredArchiveEntries/u);
+  assert.doesNotMatch(deleteHandlerSource, /blob_pathname|blob_url|blobPathname|blobUrl|interval '90 days'/u);
+  assert.match(deleteHandlerSource, /values \(\$1, \$2, \$3, \$4, \$5, null, \$6::jsonb\)/u);
+  assert.match(archiveSource, /update orders set deleted_at = null/u);
+  assert.match(archiveSource, /update order_documents set deleted_at = null/u);
+  assert.match(archiveSource, /enforceCurrentPricingRevisionForRestoredDocuments/u);
+  assert.match(archiveSource, /enforceImmutableQuotePurchaseOrderEvidence/u);
 });

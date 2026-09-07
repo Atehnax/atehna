@@ -262,6 +262,7 @@ async function readOrderSnapshot(
         where id = $1
           and deleted_at is null
           and is_draft = false
+          and not is_historical
         limit 1
       `,
       [orderId]
@@ -910,7 +911,7 @@ async function deliverOrderEmailWhileRecipientCurrent(
   try {
     await client.query('begin');
     const orderResult = await client.query(
-      `select email, status, contract_status, is_draft, deleted_at
+      `select email, status, contract_status, is_draft, is_historical, deleted_at
        from orders
        where id = $1
        for share`,
@@ -927,6 +928,7 @@ async function deliverOrderEmailWhileRecipientCurrent(
     const orderLifecycleIsCurrent =
       currentOrder &&
       currentOrder.is_draft === false &&
+      currentOrder.is_historical !== true &&
       currentOrder.deleted_at === null &&
       typeof currentOrder.status === 'string' &&
       isOrderEmailRetryEventCurrent({
@@ -1209,6 +1211,7 @@ type FailedOrderEmailRetryRow = {
   order_status: string | null;
   contract_status: string | null;
   is_draft: boolean | null;
+  is_historical?: boolean;
   deleted_at: string | Date | null;
 };
 
@@ -1248,6 +1251,7 @@ export async function planFailedOrderEmailJobRetries(
         orders.status as order_status,
         orders.contract_status,
         orders.is_draft,
+        orders.is_historical,
         orders.deleted_at
       from order_email_jobs job
       join orders on orders.id = job.order_id
@@ -1299,6 +1303,7 @@ export async function planFailedOrderEmailJobRetries(
       row.provider_message_id !== null ||
       row.sent_at !== null ||
       row.is_draft !== false ||
+      row.is_historical === true ||
       row.deleted_at !== null ||
       typeof row.order_status !== 'string' ||
       !isOrderEmailRetryEventCurrent({

@@ -254,7 +254,7 @@ export async function DELETE(
             expires_at,
             payload
           )
-          values ($1, $2, $3, $4, $5, $5::timestamptz + interval '90 days', $6::jsonb)
+          values ($1, $2, $3, $4, $5, null, $6::jsonb)
           `,
           [
             'pdf',

@@ -172,10 +172,9 @@ test('the Masa row exposes an adjacent accessible product action using the expan
 
   assert.match(editorSource, /bulkApplyRowKey === 'weight' \? \(/u);
   assert.match(editorSource, /data-testid="dimension-variant-proportional-mass"/u);
-  assert.match(editorSource, /<span[\s\S]*?>\s*∏\s*<\/span>/u);
   assert.match(
     editorSource,
-    /className="inline-flex !h-3\.5 !w-3\.5 shrink-0 items-center justify-center text-\[14px\] font-semibold leading-none"/u
+    /data-testid="dimension-variant-proportional-mass"[^]*?<ProductSymbolIcon className="!h-3\.5 !w-3\.5" \/>/u
   );
   assert.match(
     editorSource,

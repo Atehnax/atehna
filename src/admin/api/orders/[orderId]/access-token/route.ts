@@ -1,3 +1,4 @@
+import { rejectHistoricalOrderOperation } from '@/shared/server/historicalOrders';
 import { NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
 import { getPool } from '@/shared/server/db';
@@ -189,6 +190,8 @@ export async function POST(
   }
 
   try {
+    const historicalBlock = await rejectHistoricalOrderOperation(orderId);
+    if (historicalBlock) return historicalBlock;
     const body = await readOptionalJson(request);
     const ttlRaw = Number(body.expiresInDays);
     const ttlDays = Number.isFinite(ttlRaw) ? ttlRaw : undefined;

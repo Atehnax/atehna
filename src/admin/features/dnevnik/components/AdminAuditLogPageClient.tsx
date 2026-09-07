@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefOb
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/shared/ui/admin-primitives';
+import { AdminSwitch } from '@/shared/ui/admin-switch';
 import {
   adminTableCardClassName,
   adminTableCardStyle,
@@ -29,8 +30,10 @@ import {
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableRowHeightClassName,
+  adminTableTextStackClassName,
+  adminTablePrimaryTextClassName,
+  adminTableSecondaryTextClassName,
   adminSubtableCellClassName,
-  adminSubtableFirstTextColumnIndentClassName,
   adminSubtableFirstTextColumnTextOffsetClassName,
   adminSubtableHeaderCellClassName,
   adminSubtableHeaderCellLeftClassName,
@@ -59,7 +62,10 @@ import { ColumnFilterIcon, TrashCanIcon } from '@/shared/ui/icons/AdminActionIco
 import { adminTableRowToneClasses, filterPillClearGlyph, filterPillTokenClasses } from '@/shared/ui/theme/tokens';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AUDIT_ENTITY_LABELS } from '@/shared/audit/auditLabels';
-import { getAuditRetentionUntil } from '@/shared/audit/auditRetention';
+import { getAuditLocation } from '@/shared/audit/auditLocation';
+import { useAdminCollapse } from '@/shared/ui/use-admin-collapse';
+import collapseStyles from '@/shared/ui/admin-collapse.module.css';
+import { getAuditRetentionUntil, isDurableOrderAudit } from '@/shared/audit/auditRetention';
 import {
   AUDIT_ACTION_FILTER_LABELS,
   getAuditActionsForFilter,
@@ -96,12 +102,15 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const AUDIT_STANDARD_COLUMN_CLASS = 'w-[170px] min-w-[170px] max-w-[170px]';
 const AUDIT_SUMMARY_COLUMN_CLASS = 'w-[220px] min-w-[220px] max-w-[220px]';
 const AUDIT_DATE_COLUMN_CLASS = 'w-[140px] min-w-[140px] max-w-[140px]';
-const AUDIT_SUBTABLE_LOCATION_COLUMN_CLASS = 'w-[352px] min-w-[352px] max-w-[352px]';
-const AUDIT_SUBTABLE_BEFORE_COLUMN_CLASS = 'w-[291px] min-w-[291px] max-w-[291px]';
-const AUDIT_SUBTABLE_AFTER_COLUMN_CLASS = 'w-[255px] min-w-[255px] max-w-[255px]';
-const AUDIT_SUBTABLE_TIME_COLUMN_CLASS = 'w-[238px] min-w-[238px] max-w-[238px]';
+// Match the parent table's selection column, including its proportional stretch.
+const AUDIT_TABLE_BASE_WIDTH = 1220;
+const AUDIT_SELECTION_COLUMN_WIDTH = 40;
+const AUDIT_DETAIL_COLUMN_WIDTHS = [352, 291, 255, 238];
+const AUDIT_DETAIL_BASE_WIDTH = AUDIT_DETAIL_COLUMN_WIDTHS.reduce((sum, width) => sum + width, 0);
 const AUDIT_SUBTABLE_TIME_ALIGN_CLASS = 'relative -left-[50px] inline-flex w-[140px] items-center justify-center';
-const AUDIT_SUBTABLE_LOCATION_INDENT_CLASS = adminSubtableFirstTextColumnIndentClassName;
+// Article labels start after the 28px arrow, 6px gap and 9px text inset.
+// Expanded labels use the same position plus the standard 16px child indent.
+const AUDIT_SUBTABLE_LOCATION_INDENT_CLASS = 'ml-[59px]';
 const AUDIT_SUBTABLE_LOCATION_TEXT_SLOT_CLASS =
   `inline-flex h-7 max-w-full ${adminSubtableFirstTextColumnTextOffsetClassName} items-center rounded-md border border-transparent`;
 const AUDIT_ACTION_HEADER_ALIGN_CLASS = 'ml-[52px]';
@@ -167,7 +176,7 @@ function parseAuditTime(value: string) {
 }
 
 function getAuditDeletionDate(group: AuditEventGroup) {
-  return getAuditRetentionUntil(group.entityType, group.occurredAt);
+  return getAuditRetentionUntil(group.entityType, group.occurredAt, group.events[0]?.metadata);
 }
 
 function formatDateOnly(value: Date | string) {
@@ -262,22 +271,6 @@ function getComparableCellValue(value: string) {
   return value.trim().toLocaleLowerCase('sl-SI').replace(/\s+/g, ' ') || '—';
 }
 
-function isArchiveRelevantGroup(group: AuditEventGroup) {
-  return group.events.some((event) => event.action === 'archived' || event.action === 'deleted' || event.action === 'removed');
-}
-
-function getAuditLocationHref(group: AuditEventGroup) {
-  if (isArchiveRelevantGroup(group)) {
-    if (group.entityType === 'item' || group.entityType === 'media') return '/admin/arhiv/artikli';
-    if (group.entityType === 'order') return '/admin/arhiv';
-  }
-  if (group.entityType === 'order') return `/admin/orders/${encodeURIComponent(group.entityId)}`;
-  if (group.entityType === 'item') return `/admin/artikli/${encodeURIComponent(group.entityId)}`;
-  if (group.entityType === 'media') return `/admin/artikli/${encodeURIComponent(group.entityId)}`;
-  if (group.entityType === 'category') return '/admin/kategorije';
-  return null;
-}
-
 function getAuditSortValue(group: AuditEventGroup, column: AuditSortableColumn) {
   switch (column) {
     case 'date':
@@ -293,7 +286,7 @@ function getAuditSortValue(group: AuditEventGroup, column: AuditSortableColumn) 
     case 'summary':
       return group.summary;
     case 'deletion':
-      return getAuditDeletionDate(group).getTime();
+      return getAuditDeletionDate(group)?.getTime() ?? Number.POSITIVE_INFINITY;
     default:
       return '';
   }
@@ -364,47 +357,42 @@ function AuditLoggingToggle({
   error: string | null;
   onToggle: () => void;
 }) {
-  const disabled = loading || saving;
+  const label = enabled ? 'Izklopi beleženje sprememb' : 'Vklopi beleženje sprememb';
   return (
-    <div className="flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-      <span className={`whitespace-nowrap text-xs font-medium ${error ? 'text-rose-600' : enabled ? 'text-[#1982bf]' : 'text-slate-500'}`}>
-        {enabled ? 'Beleženje' : 'Brez beleženja'}
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-label={enabled ? 'Izklopi beleženje sprememb' : 'Vklopi beleženje sprememb'}
-        disabled={disabled}
-        onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition ${
-          enabled ? 'border-[#1982bf] bg-[#1982bf]' : 'border-slate-300 bg-slate-200'
-        } ${disabled ? 'cursor-wait opacity-60' : 'hover:shadow-sm'}`}
-      >
-        <span
-          className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-            enabled ? 'translate-x-5' : 'translate-x-0.5'
-          }`}
-        />
-      </button>
+    <div className="flex min-h-9 items-center" title={error || label} aria-busy={loading || saving}>
+      <AdminSwitch
+        checked={enabled}
+        disabled={loading || saving}
+        ariaLabel={label}
+        onChange={onToggle}
+      />
+      {error ? <span className="sr-only" role="alert">{error}</span> : null}
     </div>
   );
 }
 
-function GroupDetails({ group }: { group: AuditEventGroup }) {
+function GroupDetails({ group, open }: { group: AuditEventGroup; open: boolean }) {
+  const motion = useAdminCollapse(open);
+  if (!motion.mounted) return null;
   return (
     <tr className={adminExpandableSubtableParentRowClassName}>
-      <td />
-      <td colSpan={7} className={adminExpandableSubtableParentContentCellClassName}>
-        <table className="w-full text-[12px]">
+      <td colSpan={8} className={adminExpandableSubtableParentContentCellClassName}>
+        <div className={collapseStyles.collapse} data-open={motion.expanded} aria-hidden={!open} inert={!open} onTransitionEnd={motion.onTransitionEnd}>
+        <div className={collapseStyles.content}>
+        <table className="w-full table-fixed text-[12px]" aria-label="Podrobnosti sprememb">
+          <colgroup>
+            <col style={{ width: `${100 * AUDIT_SELECTION_COLUMN_WIDTH / AUDIT_TABLE_BASE_WIDTH}%` }} />
+            {AUDIT_DETAIL_COLUMN_WIDTHS.map((width, index) => <col key={index} style={{ width: `${100 * (AUDIT_TABLE_BASE_WIDTH - AUDIT_SELECTION_COLUMN_WIDTH) / AUDIT_TABLE_BASE_WIDTH * width / AUDIT_DETAIL_BASE_WIDTH}%` }} />)}
+          </colgroup>
           <thead className="bg-[color:var(--admin-table-header-bg)]">
             <tr className={adminSubtableHeaderRowClassName}>
-              <th className={`${AUDIT_SUBTABLE_LOCATION_COLUMN_CLASS} ${adminSubtableHeaderCellLeftClassName}`}>
+              <th className={adminSubtableHeaderCellClassName} aria-label="Odmik" />
+              <th className={`${adminSubtableHeaderCellLeftClassName}`}>
                 <span className={AUDIT_SUBTABLE_LOCATION_INDENT_CLASS}>Točna lokacija</span>
               </th>
-              <th className={`${AUDIT_SUBTABLE_BEFORE_COLUMN_CLASS} ${adminSubtableHeaderCellLeftClassName}`}>Prej</th>
-              <th className={`${AUDIT_SUBTABLE_AFTER_COLUMN_CLASS} ${adminSubtableHeaderCellLeftClassName}`}>Potem</th>
-              <th className={`${AUDIT_SUBTABLE_TIME_COLUMN_CLASS} ${adminSubtableHeaderCellLeftClassName}`}>
+              <th className={`${adminSubtableHeaderCellLeftClassName}`}>Prej</th>
+              <th className={`${adminSubtableHeaderCellLeftClassName}`}>Potem</th>
+              <th className={`${adminSubtableHeaderCellLeftClassName}`}>
                 <span className={AUDIT_SUBTABLE_TIME_ALIGN_CLASS}>Čas spremembe</span>
               </th>
             </tr>
@@ -412,29 +400,32 @@ function GroupDetails({ group }: { group: AuditEventGroup }) {
           <tbody>
             {group.changes.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-8 text-center text-sm text-slate-500">Ni podrobnih sprememb.</td>
+                <td colSpan={5} className="px-3 py-8 text-center text-sm text-slate-500">Ni podrobnih sprememb.</td>
               </tr>
             ) : null}
             {group.changes.map((change) => (
-              <tr key={change.id} className={`${adminSubtableRowClassName} align-middle text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
-                <td className={`${AUDIT_SUBTABLE_LOCATION_COLUMN_CLASS} ${adminSubtableCellClassName} whitespace-nowrap font-medium text-slate-900`}>
+              <tr key={change.id} className={`${adminSubtableRowClassName} !h-[41px] bg-[#f8fafc] align-middle text-[12px] transition-colors hover:bg-[#f1f5f9]`}>
+                <td className={adminSubtableCellClassName} />
+                <td className={`${adminSubtableCellClassName} whitespace-nowrap font-semibold text-slate-900`}>
                   <span className={`${AUDIT_SUBTABLE_LOCATION_TEXT_SLOT_CLASS} ${AUDIT_SUBTABLE_LOCATION_INDENT_CLASS} truncate`} title={change.field}>
                     {change.field}
                   </span>
                 </td>
-                <td className={`${AUDIT_SUBTABLE_BEFORE_COLUMN_CLASS} ${adminSubtableCellClassName} whitespace-nowrap !text-rose-700`}>
+                <td className={`${adminSubtableCellClassName} whitespace-nowrap !text-rose-700`}>
                   <AuditChangeValue value={change.before} href={change.beforeHref} />
                 </td>
-                <td className={`${AUDIT_SUBTABLE_AFTER_COLUMN_CLASS} ${adminSubtableCellClassName} whitespace-nowrap !text-emerald-700`}>
+                <td className={`${adminSubtableCellClassName} whitespace-nowrap !text-emerald-700`}>
                   <AuditChangeValue value={change.after} href={change.afterHref} />
                 </td>
-                <td className={`${AUDIT_SUBTABLE_TIME_COLUMN_CLASS} ${adminSubtableCellClassName} whitespace-nowrap text-slate-500`}>
+                <td className={`${adminSubtableCellClassName} whitespace-nowrap text-slate-500`}>
                   <span className={AUDIT_SUBTABLE_TIME_ALIGN_CLASS}>{formatTimeOnly(change.eventOccurredAt)}</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
+        </div>
       </td>
     </tr>
   );
@@ -498,10 +489,11 @@ export default function AdminAuditLogPageClient() {
       return result || fallbackStable;
     });
   }, [rawGroups, sortState]);
-  const selectedGroups = useMemo(() => groups.filter((group) => selectedGroupIds.has(group.id)), [groups, selectedGroupIds]);
+  const selectedGroups = useMemo(() => groups.filter((group) => !isDurableOrderAudit(group.entityType, group.events[0]?.metadata) && selectedGroupIds.has(group.id)), [groups, selectedGroupIds]);
   const selectedEventIdList = useMemo(() => selectedGroups.flatMap((group) => group.events.map((event) => event.id)), [selectedGroups]);
   const selectedCount = selectedEventIdList.length;
-  const allVisibleSelected = groups.length > 0 && groups.every((group) => selectedGroupIds.has(group.id));
+  const selectableGroups = groups.filter((group) => !isDurableOrderAudit(group.entityType, group.events[0]?.metadata));
+  const allVisibleSelected = selectableGroups.length > 0 && selectableGroups.every((group) => selectedGroupIds.has(group.id));
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -630,6 +622,7 @@ export default function AdminAuditLogPageClient() {
   }, []);
 
   const toggleGroupSelection = (group: AuditEventGroup, checked: boolean) => {
+    if (isDurableOrderAudit(group.entityType, group.events[0]?.metadata)) return;
     setSelectedGroupIds((current) => {
       const next = new Set(current);
       if (checked) {
@@ -644,7 +637,7 @@ export default function AdminAuditLogPageClient() {
   const toggleAllVisible = () => {
     setSelectedGroupIds((current) => {
       const next = new Set(current);
-      groups.forEach((group) => {
+      selectableGroups.forEach((group) => {
         if (allVisibleSelected) {
           next.delete(group.id);
         } else {
@@ -810,6 +803,7 @@ export default function AdminAuditLogPageClient() {
   );
 
   const pageCount = data?.pageCount ?? 1;
+  const currentPage = data?.page ?? filters.page;
 
   return (
     <div className="w-full space-y-4 font-['Inter',system-ui,sans-serif]">
@@ -908,7 +902,7 @@ export default function AdminAuditLogPageClient() {
         filterRowRight={
           <EuiTablePagination
             allowAll
-            page={filters.page}
+            page={currentPage}
             pageCount={pageCount}
             onPageChange={(page) => updateFilters({ page })}
             itemsPerPage={filters.pageSize}
@@ -919,7 +913,7 @@ export default function AdminAuditLogPageClient() {
         footerRight={
           <EuiTablePagination
             allowAll
-            page={filters.page}
+            page={currentPage}
             pageCount={pageCount}
             onPageChange={(page) => updateFilters({ page })}
             itemsPerPage={filters.pageSize}
@@ -965,11 +959,10 @@ export default function AdminAuditLogPageClient() {
                 const canExpand = group.changes.length > 0;
                 const expanded = canExpand && expandedGroupIds.has(group.id);
                 const allSelected = selectedGroupIds.has(group.id);
-                const locationHref = getAuditLocationHref(group);
-                const locationLabel = group.entityLabel || group.entityId;
+                const { href: locationHref, label: locationLabel } = getAuditLocation(group);
                 const timestampParts = formatTimestampParts(group.occurredAt);
                 const deletionDate = getAuditDeletionDate(group);
-                const deletionDateLabel = formatDateOnly(deletionDate);
+                const deletionDateLabel = deletionDate ? formatDateOnly(deletionDate) : 'Brez omejitve';
                 const actor = actorLabel(group);
                 const typeLabel = AUDIT_ENTITY_LABELS[group.entityType];
                 const actionLabel = group.actionLabel;
@@ -992,13 +985,15 @@ export default function AdminAuditLogPageClient() {
                       <TD className={adminExpandableTableMainCenterCellClassName}>
                         <AdminCheckbox
                           checked={allSelected}
+                          disabled={isDurableOrderAudit(group.entityType, group.events[0]?.metadata)}
+                          title={isDurableOrderAudit(group.entityType, group.events[0]?.metadata) ? 'Zgodovina naročila se trajno ohrani.' : undefined}
                           aria-label={`Izberi zapis ${group.summary}`}
                           onClick={(event) => event.stopPropagation()}
                           onChange={(event) => toggleGroupSelection(group, event.target.checked)}
                         />
                       </TD>
                       <TD className={`${adminExpandableTableMainCellClassName} truncate`}>
-                        <div className="flex h-7 min-w-0 items-center gap-1.5">
+                        <div className="flex min-h-9 min-w-0 items-center gap-1.5">
                           {canExpand ? (
                             <button
                               type="button"
@@ -1014,31 +1009,16 @@ export default function AdminAuditLogPageClient() {
                           ) : (
                             <span className="inline-flex h-7 w-7 shrink-0" aria-hidden="true" />
                           )}
-                          {locationHref ? (
-                            <Link
-                              href={locationHref}
-                              className={`${adminExpandableTableTextSlotClassName} min-w-0 max-w-full truncate text-[12px] font-semibold text-slate-900 underline-offset-2 transition hover:text-[#1982bf] hover:underline focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-[#3e67d6]`}
-                              onClick={(event) => event.stopPropagation()}
-                              onMouseEnter={() => handleMatchEnter('location', locationLabel)}
-                              onMouseLeave={() => setHoveredCellMatch(null)}
-                              title={locationLabel}
-                            >
-                              <span className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${getMatchingValueClassName('location', locationLabel)}`}>
-                                {locationLabel}
-                              </span>
-                            </Link>
-                          ) : (
-                            <span
-                              className={`${adminExpandableTableTextSlotClassName} min-w-0 max-w-full truncate font-medium text-slate-900`}
-                              title={locationLabel}
-                              onMouseEnter={() => handleMatchEnter('location', locationLabel)}
-                              onMouseLeave={() => setHoveredCellMatch(null)}
-                            >
-                              <span className={`${adminTableMatchingValueBaseClassName} max-w-full truncate ${getMatchingValueClassName('location', locationLabel)}`}>
-                                {locationLabel}
-                              </span>
+                          <div className={`${adminTableTextStackClassName} flex-1 py-1`}>
+                            <span className={`${adminTablePrimaryTextClassName} truncate text-[12px] font-semibold text-slate-900`} title={locationLabel}
+                              onMouseEnter={() => handleMatchEnter('location', locationLabel)} onMouseLeave={() => setHoveredCellMatch(null)}>
+                              <span className={`${adminTableMatchingValueBaseClassName} max-w-full truncate !px-2 ${getMatchingValueClassName('location', locationLabel)}`}>{locationLabel}</span>
                             </span>
-                          )}
+                            {locationHref ? <Link href={locationHref} onClick={(event) => event.stopPropagation()}
+                              className={`${adminTableSecondaryTextClassName} truncate px-[9px] text-[11px] text-slate-500 hover:text-[color:var(--blue-500)] hover:underline`} title={locationHref}>
+                              {locationHref}
+                            </Link> : null}
+                          </div>
                         </div>
                       </TD>
                       <TD className={adminExpandableTableMainCenterCellClassName}>
@@ -1086,7 +1066,7 @@ export default function AdminAuditLogPageClient() {
                         >
                           <div className="min-w-0 flex-1">
                             <span
-                              className={`block w-full max-w-full text-left leading-[18px] ${
+                              className={`${adminTablePrimaryTextClassName} w-full max-w-full text-left ${
                                 summaryExpanded ? 'whitespace-normal break-words' : 'truncate'
                               }`}
                             >
@@ -1094,7 +1074,7 @@ export default function AdminAuditLogPageClient() {
                             </span>
                             {summaryDetail ? (
                               <span
-                                className={`block w-full max-w-full text-left text-[11px] leading-[15px] text-slate-400 ${
+                                className={`${adminTableSecondaryTextClassName} w-full max-w-full text-left text-[11px] text-slate-400 ${
                                   summaryExpanded ? 'whitespace-normal break-words' : 'truncate'
                                 }`}
                               >
@@ -1142,9 +1122,7 @@ export default function AdminAuditLogPageClient() {
                         </span>
                       </TD>
                     </TR>
-                    {expanded ? (
-                      <GroupDetails group={group} />
-                    ) : null}
+                    <GroupDetails group={group} open={expanded} />
                   </Fragment>
                 );
               })}

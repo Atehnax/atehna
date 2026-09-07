@@ -181,7 +181,7 @@ export async function placeOrderFromFrozenSnapshot(
         committed_at,
         stock_enforcement_applied,
         source_quote_offer_version_id,
-        is_draft
+        is_draft, entry_source
       )
       select
         id,
@@ -223,7 +223,7 @@ export async function placeOrderFromFrozenSnapshot(
         $25,
         $29,
         $30,
-        false
+        false, case when exists (select 1 from quote_offer_versions qov join quote_requests qr on qr.id=qov.quote_request_id where qov.id=$30 and qr.intake_source in ('admin_email','admin_testing')) then 'manual' else 'website' end
       from next_id
       on conflict (public_code_base) do nothing
       returning id, order_number, created_at

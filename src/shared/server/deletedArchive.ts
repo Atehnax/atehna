@@ -1,8 +1,4 @@
 import { getPool } from '@/shared/server/db';
-import {
-  deleteBlob,
-  deletePrivateOrderDocumentBlob
-} from '@/shared/server/blob';
 import { instrumentCatalogLoader } from '@/shared/server/diagnostics/instrumentation';
 import type { ArchiveEntry, ArchiveItemType, RestoreTarget } from '@/shared/domain/archive/archiveTypes';
 
@@ -28,14 +24,9 @@ type ArchiveEntryRow = {
   address: string | null;
   customer_type: string | null;
   deleted_at: DatabaseDateValue;
-  expires_at: DatabaseDateValue;
+  expires_at: DatabaseDateValue | null;
 };
 
-type ArchiveBlobOutboxRow = {
-  id: number | string;
-  blob_target: string;
-  source_item_type: string;
-};
 
 type ArchiveTransactionClient = {
   query: (
@@ -43,155 +34,6 @@ type ArchiveTransactionClient = {
     params?: unknown[]
   ) => Promise<{ rows: Array<Record<string, unknown>> }>;
 };
-
-async function queueDocumentBlobsForOrder(
-  client: ArchiveTransactionClient,
-  orderId: number
-) {
-  await client.query(
-    `
-    insert into archive_blob_deletion_outbox (
-      blob_target,
-      source_item_type,
-      source_order_id,
-      source_document_id
-    )
-    select
-      blob_pathname,
-      'order',
-      order_id,
-      id
-    from order_documents
-    where order_id = $1
-    on conflict (blob_target) do nothing
-    `,
-    [orderId]
-  );
-}
-
-async function queueDocumentBlob(
-  client: ArchiveTransactionClient,
-  documentId: number
-) {
-  await client.query(
-    `
-    insert into archive_blob_deletion_outbox (
-      blob_target,
-      source_item_type,
-      source_order_id,
-      source_document_id
-    )
-    select
-      d.blob_pathname,
-      'pdf',
-      d.order_id,
-      d.id
-    from order_documents d
-    where d.id = $1
-    on conflict (blob_target) do nothing
-    `,
-    [documentId]
-  );
-}
-
-export async function processArchiveBlobDeletionOutbox(limit = 200): Promise<{
-  deletedCount: number;
-  failedCount: number;
-  skippedCount: number;
-}> {
-  const safeLimit = Math.max(1, Math.min(500, Math.trunc(limit)));
-  const pool = await getPool();
-  const result = await pool.query<ArchiveBlobOutboxRow>(
-    `
-    select id, blob_target, source_item_type
-    from archive_blob_deletion_outbox
-    order by queued_at asc, id asc
-    limit $1
-    `,
-    [safeLimit]
-  );
-
-  let deletedCount = 0;
-  let failedCount = 0;
-  let skippedCount = 0;
-
-  for (const row of result.rows) {
-    const id = Number(row.id);
-    if (!Number.isFinite(id) || !row.blob_target) continue;
-
-    try {
-      const referenceResult = await pool.query<{ still_referenced: boolean }>(
-        `
-        select (
-          exists (
-            select 1
-            from order_documents
-            where blob_pathname = $1
-          )
-          or exists (
-            select 1
-            from quote_documents
-            where blob_pathname = $1
-          )
-          or exists (
-            select 1
-            from quote_manual_documents
-            where blob_pathname = $1
-          )
-          or exists (
-            select 1
-            from catalog_media
-            where blob_pathname = $1
-               or blob_url = $1
-          )
-        ) as still_referenced
-        `,
-        [row.blob_target]
-      );
-
-      if (referenceResult.rows[0]?.still_referenced) {
-        await pool.query(
-          `
-          update archive_blob_deletion_outbox
-          set
-            last_attempt_at = now(),
-            last_error = 'Blob deletion deferred while the target is still referenced.'
-          where id = $1
-          `,
-          [id]
-        );
-        skippedCount += 1;
-        continue;
-      }
-
-      if (row.source_item_type === 'order' || row.source_item_type === 'pdf') {
-        await deletePrivateOrderDocumentBlob(row.blob_target);
-      } else {
-        await deleteBlob(row.blob_target);
-      }
-      await pool.query('delete from archive_blob_deletion_outbox where id = $1', [id]);
-      deletedCount += 1;
-    } catch (error) {
-      failedCount += 1;
-      await pool.query(
-        `
-        update archive_blob_deletion_outbox
-        set
-          attempt_count = attempt_count + 1,
-          last_attempt_at = now(),
-          last_error = $2
-        where id = $1
-        `,
-        [
-          id,
-          (error instanceof Error ? error.message : 'Unknown blob deletion error').slice(0, 2000)
-        ]
-      );
-    }
-  }
-
-  return { deletedCount, failedCount, skippedCount };
-}
 
 async function enforceParentOrderRestoreForDeletedPdfChildren(
   client: { query: (text: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> },
@@ -295,14 +137,14 @@ async function enforceImmutableQuotePurchaseOrderEvidence(
   );
   if (quoteEvidenceResult.rows.length > 0) {
     throw new ArchiveRestoreConflictError(
-      'Naročilnice, ki je dokaz sprejema ponudbe, ni mogoče obnoviti prek splošnega arhiva.',
+      'Naročilnice, ki je dokaz sprejema ponudbe, ni mogoče obnoviti prek koša.',
       'ARCHIVE_QUOTE_PURCHASE_ORDER_IMMUTABLE'
     );
   }
 }
 
 export async function fetchArchiveEntries(itemType?: 'all' | ArchiveItemType): Promise<ArchiveEntry[]> {
-  return instrumentCatalogLoader('fetchArchiveEntries', '/admin/arhiv', async () => {
+  return instrumentCatalogLoader('fetchArchiveEntries', '/admin/trash', async () => {
     const pool = await getPool();
     const params: unknown[] = [];
     let where = '';
@@ -357,7 +199,7 @@ export async function fetchArchiveEntries(itemType?: 'all' | ArchiveItemType): P
       address: row.address ? String(row.address) : null,
       customer_type: row.customer_type ? String(row.customer_type) : null,
       deleted_at: new Date(row.deleted_at).toISOString(),
-      expires_at: new Date(row.expires_at).toISOString()
+      expires_at: row.expires_at ? new Date(row.expires_at).toISOString() : null
     }));
   });
 }
@@ -467,193 +309,4 @@ export async function restoreArchiveTargets(targets: RestoreTarget[]): Promise<n
   } finally {
     client.release();
   }
-}
-
-export async function permanentlyDeleteArchiveEntries(entryIds: number[]): Promise<number> {
-  if (entryIds.length === 0) return 0;
-
-  const pool = await getPool();
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    const entriesResult = await client.query(
-      `
-      select
-        id,
-        item_type,
-        order_id,
-        document_id,
-        expires_at,
-        expires_at <= now() as retention_expired
-      from deleted_archive_entries
-      where id = any($1::bigint[])
-      for update
-      `,
-      [entryIds]
-    );
-
-    const entries = entriesResult.rows as Array<{
-      id: number;
-      item_type: 'order' | 'pdf';
-      order_id: number | null;
-      document_id: number | null;
-      expires_at: DatabaseDateValue;
-      retention_expired: boolean;
-    }>;
-
-    const retentionLockedEntry = entries.find((entry) => !entry.retention_expired);
-    if (retentionLockedEntry) {
-      throw new Error(
-        'Trajni izbris je dovoljen šele po poteku 90-dnevne hrambe.'
-      );
-    }
-
-    const selectedOrderIds = Array.from(new Set(
-      entries
-        .filter((entry) => entry.item_type === 'order' && entry.order_id)
-        .map((entry) => Number(entry.order_id))
-    ));
-    const selectedOrderIdSet = new Set(selectedOrderIds);
-
-    if (selectedOrderIds.length > 0) {
-      const durableCommerceEvidence = await client.query(
-        `
-          select order_record.id
-          from orders order_record
-          where order_record.id = any($1::bigint[])
-            and (
-              order_record.source_quote_offer_version_id is not null
-              or exists (
-                select 1
-                from order_stock_holds stock_hold
-                where stock_hold.order_id = order_record.id
-              )
-            )
-          limit 1
-        `,
-        [selectedOrderIds]
-      );
-      if (durableCommerceEvidence.rows.length > 0) {
-        throw new Error(
-          'Naročila z evidenco zaloge ali izvorno ponudbo ni mogoče trajno izbrisati; ohraniti je treba pogodbeno in zalogovno sled.'
-        );
-      }
-      const protectedChildrenResult = await client.query(
-        `
-        select id
-        from deleted_archive_entries
-        where item_type = 'pdf'
-          and order_id = any($1::bigint[])
-          and expires_at > now()
-        limit 1
-        `,
-        [selectedOrderIds]
-      );
-      if (protectedChildrenResult.rows.length > 0) {
-        throw new Error(
-          'Trajni izbris naročila je dovoljen šele po poteku hrambe vseh pripadajočih dokumentov.'
-        );
-      }
-    }
-
-    const selectedPdfEntries = entries.filter(
-      (entry) =>
-        entry.item_type === 'pdf'
-        && entry.document_id
-        && !(entry.order_id && selectedOrderIdSet.has(Number(entry.order_id)))
-    );
-
-    for (const entry of selectedPdfEntries) {
-      if (!entry.order_id) continue;
-      const deletedParentResult = await client.query(
-        'select id from orders where id = $1 and deleted_at is not null limit 1',
-        [entry.order_id]
-      );
-      if (deletedParentResult.rows.length > 0) {
-        throw new Error(
-          'Dokument pod izbrisanim naročilom se trajno izbriše skupaj s pripadajočim naročilom.'
-        );
-      }
-    }
-
-    for (const orderId of selectedOrderIds) {
-      await queueDocumentBlobsForOrder(client, orderId);
-      await client.query('delete from orders where id = $1', [orderId]);
-      await client.query('delete from deleted_archive_entries where order_id = $1', [orderId]);
-    }
-
-    for (const entry of selectedPdfEntries) {
-      await queueDocumentBlob(client, Number(entry.document_id));
-      await client.query('delete from order_documents where id = $1', [entry.document_id]);
-    }
-
-    await client.query('delete from deleted_archive_entries where id = any($1::bigint[])', [entryIds]);
-    await client.query('COMMIT');
-
-    await processArchiveBlobDeletionOutbox().catch(() => {
-      // The durable outbox preserves failed targets for the next cleanup run.
-    });
-
-    return entries.length;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-export async function cleanupExpiredArchiveEntries(): Promise<number> {
-  const pool = await getPool();
-  const result = await pool.query(
-    `
-    select e.id
-    from deleted_archive_entries e
-    where e.expires_at <= now()
-      and not (
-        e.item_type = 'order'
-        and exists (
-          select 1
-          from orders durable_order
-          where durable_order.id = e.order_id
-            and (
-              durable_order.source_quote_offer_version_id is not null
-              or exists (
-                select 1
-                from order_stock_holds stock_hold
-                where stock_hold.order_id = durable_order.id
-              )
-            )
-        )
-      )
-      and not (
-        e.item_type = 'order'
-        and exists (
-          select 1
-          from deleted_archive_entries child
-          where child.item_type = 'pdf'
-            and child.order_id = e.order_id
-            and child.expires_at > now()
-        )
-      )
-      and (
-        e.item_type = 'order'
-        or not exists (
-          select 1
-          from orders o
-          where o.id = e.order_id
-            and o.deleted_at is not null
-        )
-      )
-    order by e.id asc
-    limit 200
-    `
-  );
-
-  const ids = result.rows.map((row) => Number(row.id)).filter((id) => Number.isFinite(id));
-  const deletedCount = ids.length === 0 ? 0 : await permanentlyDeleteArchiveEntries(ids);
-  await processArchiveBlobDeletionOutbox();
-  return deletedCount;
 }

@@ -56,10 +56,21 @@ reviewed quote/contract artifacts below, applied in this exact order:
 20. `database/migrations/20260905_schema_contract_v3.sql`
 21. `database/migrations/20260905_analytics_retirement.sql`
 22. `database/migrations/20260905_schema_contract_v4.sql`
+23. `database/migrations/20260906_pricing_stock.sql`
+24. `database/migrations/20260906_schema_contract_v5.sql`
+25. `database/migrations/20260907_historical_orders.sql`
+26. `database/migrations/20260907_schema_contract_v6.sql`
 
-The current terminal contract is `20260905.analytics-v4`. Business capture,
-resumable historical backfill and isolated validation commands are documented in
-[Business analytics capture](docs/business-analytics-capture.md).
+The current terminal contract is `20260907.historical-orders-v6`. A verified v5
+database needs only steps 25–26; a verified v4 database starts at step 23.
+See [Pricing and historical-order installation](docs/pricing-stock.md#installation-and-rollback)
+for the current sequence and [Business analytics capture](docs/business-analytics-capture.md)
+for the earlier analytics backfill. Pause application writes and cleanup workers
+during the v6 cutover, verify the contract, deploy the matching application, and
+then resume them. Existing order dates, numbers, prices and inventory remain
+unchanged; insertion provenance and permanent retention receive the documented
+backfill. Do not restore the previous application with historical-order workflows
+enabled: the old application does not understand those records.
 
 The ordered list above is the pre-deploy schema sequence. After the
 public-code-capable application is live and verified, every existing
@@ -105,7 +116,7 @@ envelope remains. The application contains no runtime aliases for the old custom
 variables: this guarded database rewrite is the only transition mechanism. Keep
 customer writes and both email workers paused from application deployment until this
 data step and its verification have completed.
-The final v2 schema-contract
+The final v6 schema-contract
 artifact verifies the required terminal tables, columns, constraints, functions,
 indexes, triggers, and settings before recording the same compatibility contract
 that a fresh schema records. It does not recreate or claim historical migration

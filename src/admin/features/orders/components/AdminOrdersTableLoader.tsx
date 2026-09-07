@@ -12,6 +12,9 @@ export default function AdminOrdersTableLoader(props: {
   initialQuery?: string;
   initialStatusFilter?: string;
   initialDocumentType?: string;
+  initialEntrySource?: string;
+  initialHistory?: string;
+  archived?: boolean;
   initialPage?: number;
   initialPageSize?: PageSizeValue;
   totalCount?: number;

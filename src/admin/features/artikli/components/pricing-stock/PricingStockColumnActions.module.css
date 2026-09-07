@@ -1,0 +1,15 @@
+.row.row > td { height:0; padding:0 8px; border-bottom:0; background:#f8fafc; }
+.collapse { composes:collapse from "../../../../../shared/ui/admin-collapse.module.css"; }
+.collapseContent { composes:content from "../../../../../shared/ui/admin-collapse.module.css"; }
+.cellContent { display:flex; align-items:center; min-width:0; min-height:30px; padding:6px 0; }
+.row[data-open=false] { pointer-events:none; }
+.trigger.trigger { width:27px!important; min-width:27px!important; max-width:27px!important; height:27px!important; min-height:27px!important; max-height:27px!important; border-radius:3px!important; padding:0!important; }
+.trigger.trigger > svg { width:13.5px!important; height:13.5px!important; }
+.buttons { display:flex; box-sizing:border-box; width:100%; min-width:0; align-items:center; justify-content:flex-end; gap:6px; padding-right:var(--pricing-filter-space,28px); }
+.triggerWrap { display:inline-flex; flex:none; }
+.trigger:disabled { opacity:.45; cursor:not-allowed; }
+.source { display:flex; align-items:center; gap:10px; min-width:0; font-size:11px; font-weight:400; color:#64748b; }
+.source > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.source strong { display:inline; font-size:inherit; font-weight:500; }
+.feedbackRow.feedbackRow > td { height:auto; padding:6px 12px; background:#f8fafc; }
+

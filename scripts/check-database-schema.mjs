@@ -18,7 +18,7 @@ const migrationPath = resolve(
   projectRoot,
   'database',
   'migrations',
-  '20260906_schema_contract_v5.sql'
+  '20260907_schema_contract_v6.sql'
 );
 const identifierPattern = /^[a-z][a-z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
@@ -136,6 +136,10 @@ export function validateManifest(manifest) {
     if (typeof column.nullable !== 'boolean') {
       fail('Column nullable must be boolean.');
     }
+    if (column.defaultEquals !== undefined && column.defaultEquals !== null
+      && (typeof column.defaultEquals !== 'string' || column.defaultEquals.trim() === '')) {
+      fail('Column defaultEquals must be null or a non-empty string.');
+    }
     requireFragments(
       column.defaultIncludes,
       `column ${column.table}.${column.name} defaultIncludes`
@@ -232,6 +236,16 @@ export function validateManifest(manifest) {
       `trigger ${trigger.name} definitionIncludes`
     );
   }
+  if (requirements.requiredRows !== undefined && !Array.isArray(requirements.requiredRows)) {
+    fail('requiredRows must be an array.');
+  }
+  for (const row of requirements.requiredRows ?? []) {
+    requireIdentifier(row.table, 'required row table');
+    if (typeof row.key !== 'string' || row.key.length === 0) {
+      fail('Required row key must be a non-empty string.');
+    }
+  }
+
   for (const setting of requirements.settings) {
     requireIdentifier(setting.table, 'setting table');
     if (typeof setting.key !== 'string' || setting.key.length === 0) {
@@ -250,6 +264,7 @@ export function validateManifest(manifest) {
   }
 
   for (const [description, entries, key] of [
+    ['requiredRows', requirements.requiredRows ?? [], (entry) => `${entry.table}.${entry.key}`],
     ['columns', requirements.columns, (entry) => `${entry.table}.${entry.name}`],
     [
       'constraints',
@@ -350,6 +365,7 @@ function normalizedFunctionBody(body) {
 
 function matchesRequiredDefault(actual, expected) {
   if (expected.defaultEquals === undefined) return true;
+  if (expected.defaultEquals === null) return actual === null;
   if (typeof actual !== 'string') return false;
   return normalizedSqlDefinition(actual)
     === normalizedSqlDefinition(expected.defaultEquals);
@@ -735,6 +751,16 @@ export async function verifyDatabaseContract(client, manifest) {
         .map((trigger) => `${trigger.table}.${trigger.name}`)
         .join(', ')}.`
     );
+  }
+
+  for (const row of requirements.requiredRows ?? []) {
+    const result = await client.query(
+      `select key from public.${quotedIdentifier(row.table)} where key = $1`,
+      [row.key]
+    );
+    if (result.rows.length !== 1) {
+      fail(`Required settings row ${row.table}.${row.key} is missing.`);
+    }
   }
 
   for (const setting of requirements.settings) {

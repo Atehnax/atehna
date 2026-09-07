@@ -16,6 +16,7 @@ type OrderDeleteRow = {
   country_code: string | null;
   created_at: string | null;
   deleted_at: string | null;
+  archived_at: string | null;
   source_quote_offer_version_id: string | number | null;
 };
 
@@ -38,7 +39,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
         `
         select id, order_number, contact_name, customer_type, address_line1,
                address_line2, postal_code, city, country_code, created_at,
-               deleted_at, source_quote_offer_version_id
+               deleted_at, archived_at, source_quote_offer_version_id
         from orders
         where id = $1
         for update
@@ -52,6 +53,11 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       }
 
       order = orderResult.rows[0] as OrderDeleteRow;
+
+      if (order.archived_at) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ code: 'ORDER_ARCHIVED_DELETE_BLOCKED', message: 'Pred premikom v koš naročilo najprej vrnite iz arhiva.' }, { status: 409 });
+      }
 
       if (order.source_quote_offer_version_id !== null) {
         await client.query('ROLLBACK');
@@ -82,7 +88,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
             expires_at,
             payload
           )
-          values ($1, $2, $3, $4, $4::timestamptz + interval '90 days', $5::jsonb)
+          values ($1, $2, $3, $4, null, $5::jsonb)
           `,
           [
             'order',
@@ -102,11 +108,11 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
         await client.query(
           `
           update deleted_archive_entries
-          set expires_at = greatest(expires_at, $2::timestamptz + interval '90 days')
+          set expires_at = null
           where item_type = 'pdf'
             and order_id = $1
           `,
-          [orderId, deletedAt]
+          [orderId]
         );
         newlyDeleted = true;
       }

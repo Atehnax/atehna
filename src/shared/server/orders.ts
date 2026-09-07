@@ -1,3 +1,5 @@
+import { GENERATED_ORDER_DRAFT_CUSTOMER_SQL } from '@/shared/server/manualDraftCustomers';
+import { normalizeManualDraftCustomer } from '@/shared/domain/order/manualDraftCustomer';
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogLoader, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import { normalizeOrderPdfFilenameForPresentation } from '@/shared/domain/order/orderTypes';
@@ -267,6 +269,7 @@ function nullableOrderJson<T>(value: unknown): T | null {
 }
 
 function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
+  rawRow = normalizeManualDraftCustomer(rawRow, 'order');
   const sourceQuoteCodeBase = asNullableString(rawRow.source_quote_public_code_base);
   const sourceOfferVersion = parseNullableNumber(rawRow.source_quote_offer_version_number);
   return {
@@ -346,6 +349,17 @@ function mapOrderRow(rawRow: Record<string, unknown>): OrderRow {
       Math.trunc(Number(rawRow.delivery_plan_revision) || 1)
     ),
     total: parseNullableNumber(rawRow.total),
+    recorded_at: toNullableIsoTimestamp(rawRow.recorded_at),
+    entry_source: rawRow.entry_source === 'website' || rawRow.entry_source === 'manual' ? rawRow.entry_source : null,
+    is_historical: rawRow.is_historical === true,
+    original_reference_system: asNullableString(rawRow.original_reference_system),
+    original_reference: asNullableString(rawRow.original_reference),
+    archived_at: toNullableIsoTimestamp(rawRow.archived_at),
+    historical_fulfilled_at: toNullableIsoTimestamp(rawRow.historical_fulfilled_at),
+    historical_payment_at: toNullableIsoTimestamp(rawRow.historical_payment_at),
+    historical_revision: Number(rawRow.historical_revision ?? 0),
+    merchandise_refund_net: parseNullableNumber(rawRow.merchandise_refund_net),
+    refund_history_complete: rawRow.refund_history_complete === true,
     created_at: toIsoTimestamp(rawRow.created_at),
     is_draft: Boolean(rawRow.is_draft),
     deleted_at: asNullableString(rawRow.deleted_at)
@@ -434,6 +448,9 @@ export async function fetchOrdersListPage(
     includeDrafts?: boolean;
     status?: string | null;
     documentType?: string | null;
+    entrySource?: string | null;
+    history?: string | null;
+    archived?: boolean;
     page?: number;
     pageSize?: PageSizeValue;
   },
@@ -445,13 +462,18 @@ export async function fetchOrdersListPage(
     const queryParams: unknown[] = [];
 
     if (!options?.includeDrafts) {
-      conditions.push(`not (
-        coalesce(orders.is_draft, false) = true
-        and coalesce(orders.email, '') = 'draft@atehna.si'
-        and coalesce(orders.contact_name, '') = 'Osnutek'
-      )`);
+      conditions.push(`not (${GENERATED_ORDER_DRAFT_CUSTOMER_SQL})`);
     }
     conditions.push('orders.deleted_at is null');
+    conditions.push(options?.archived ? 'orders.archived_at is not null' : 'orders.archived_at is null');
+    if (options?.entrySource === 'website' || options?.entrySource === 'manual') {
+      queryParams.push(options.entrySource);
+      conditions.push(`orders.entry_source = $${queryParams.length}`);
+    } else if (options?.entrySource === 'unknown') {
+      conditions.push('orders.entry_source is null');
+    }
+    if (options?.history === 'historical') conditions.push('orders.is_historical = true');
+    if (options?.history === 'current') conditions.push('orders.is_historical = false');
 
     if (options?.fromDate) {
       queryParams.push(options.fromDate);
@@ -502,6 +524,8 @@ export async function fetchOrdersListPage(
       conditions.push(
         `(
           orders.order_number::text ilike $${queryIndex}
+          or orders.original_reference ilike $${queryIndex}
+          or orders.original_reference_system ilike $${queryIndex}
           ${publicCodeConditions.length > 0 ? `or ${publicCodeConditions.join('\n          or ')}` : ''}
           or orders.organization_name ilike $${queryIndex}
           or orders.contact_name ilike $${queryIndex}
@@ -547,13 +571,13 @@ export async function fetchOrdersListPage(
       )`);
     }
 
-    const requestedPageSize = options?.pageSize ?? 50;
+    const requestedPageSize = options?.pageSize ?? 25;
     const showAllRows = isAllPageSize(requestedPageSize);
     const numericPageSize = showAllRows
       ? null
       : Math.min(
           100,
-          Math.max(10, Number.isFinite(requestedPageSize) ? Math.floor(requestedPageSize) : 50)
+          Math.max(10, Number.isFinite(requestedPageSize) ? Math.floor(requestedPageSize) : 25)
         );
     const page = showAllRows ? 1 : Math.max(1, options?.page ?? 1);
     let paginationClause = '';
@@ -597,6 +621,17 @@ export async function fetchOrdersListPage(
           orders.total::text as total,
           orders.pricing_revision,
           orders.delivery_plan_revision,
+          orders.recorded_at,
+          orders.entry_source,
+          orders.is_historical,
+          orders.original_reference_system,
+          orders.original_reference,
+          orders.archived_at,
+          orders.historical_fulfilled_at,
+          orders.historical_payment_at,
+          orders.historical_revision,
+          orders.merchandise_refund_net,
+          orders.refund_history_complete,
           orders.created_at,
           orders.is_draft,
           orders.deleted_at,
@@ -697,6 +732,8 @@ export async function fetchOrderAttentionCount(): Promise<number> {
         from orders
         where orders.status = any($1::text[])
           and orders.deleted_at is null
+          and orders.archived_at is null
+          and not orders.is_historical
       `,
       [[...ORDER_ATTENTION_STATUSES]]
     )
@@ -758,6 +795,17 @@ export async function fetchOrderById(orderId: number, diagnosticsContext = '/adm
       orders.pricing_revision,
       orders.delivery_plan_revision,
       orders.total::text as total,
+      orders.recorded_at,
+      orders.entry_source,
+      orders.is_historical,
+      orders.original_reference_system,
+      orders.original_reference,
+      orders.archived_at,
+      orders.historical_fulfilled_at,
+      orders.historical_payment_at,
+      orders.historical_revision,
+      orders.merchandise_refund_net,
+      orders.refund_history_complete,
       orders.created_at,
       orders.is_draft,
       orders.deleted_at
@@ -842,6 +890,17 @@ export async function fetchOrderDetailSnapshot(
             orders.shipping_override_stale,
             orders.parcel_count,
             orders.total::text as total,
+            orders.recorded_at,
+            orders.entry_source,
+            orders.is_historical,
+            orders.original_reference_system,
+            orders.original_reference,
+            orders.archived_at,
+            orders.historical_fulfilled_at,
+            orders.historical_payment_at,
+            orders.historical_revision,
+            orders.merchandise_refund_net,
+            orders.refund_history_complete,
             orders.created_at,
             orders.is_draft,
             orders.deleted_at,
@@ -932,6 +991,7 @@ export async function fetchOrderItemAllocationsForSkus(
       "coalesce(orders.status, '') <> 'cancelled'",
       'coalesce(orders.is_draft, false) = false',
       'orders.deleted_at is null',
+      'not orders.is_historical',
       "orders.commitment_status = 'binding'",
       "orders.contract_status <> 'rejected'"
     ];

@@ -425,30 +425,22 @@ test('calculation preview uses one aligned input row without duplicate summaries
   assert.doesNotMatch(shippingPageSource, /Preverjena (?:mera|dimenzija)/u);
 });
 
-test('calculation preview shows three aligned mathematical steps without prose', () => {
+test('calculation preview explains three labeled steps and subtracts actual discounts', () => {
   assert.match(shippingPageSource, /function buildShippingCalculationSteps/u);
-  assert.match(
-    shippingPageSource,
-    /S = \$\{formatCents\(preview\.basePriceCents\)\}/u
-  );
-  assert.match(shippingPageSource, /Sₙ = 1 ×/u);
-  assert.match(shippingPageSource, /Sₖ = max\(0,/u);
-  assert.match(shippingPageSource, /preview\.parcelCountGrossAmountCents/u);
-  assert.match(shippingPageSource, /preview\.multiPieceDiscountAmountCents/u);
-  assert.match(shippingPageSource, /preview\.orderValueDiscountAmountCents/u);
-  assert.match(shippingPageSource, /× max\(0,/u);
-  assert.match(shippingPageSource, /× \(1 −/u);
-  assert.match(
-    shippingPageSource,
-    /data-testid="shipping-preview-calculation-breakdown"/u
-  );
-  assert.match(shippingPageSource, /aria-label="Matematični koraki izračuna poštnine"/u);
+  assert.match(shippingPageSource, /formatCents\(preview\.basePriceCents\)/u);
+  assert.match(shippingPageSource, /formatCents\(preview\.surchargeAmountCents\)/u);
+  assert.match(shippingPageSource, /formatCents\(preview\.multiPieceDiscountAmountCents\)/u);
+  assert.match(shippingPageSource, /formatCents\(preview\.orderValueDiscountAmountCents\)/u);
+  assert.match(shippingPageSource, /\{step\.title\}/u);
+  assert.match(shippingPageSource, /\{step\.description\}/u);
+  assert.match(shippingPageSource, /\{step\.formula\}/u);
+  assert.match(shippingPageSource, /data-testid="shipping-preview-calculation-breakdown"/u);
+  assert.match(shippingPageSource, /aria-label="Koraki izračuna poštnine"/u);
   assert.match(shippingPageSource, /data-shipping-formula-step=\{step\.id\}/u);
   assert.match(shippingPageSource, /id: 'single-parcel'/u);
   assert.match(shippingPageSource, /id: 'multi-piece'/u);
   assert.match(shippingPageSource, /id: 'final'/u);
-  assert.doesNotMatch(shippingPageSource, /zato poštnina ostane/u);
-  assert.doesNotMatch(shippingPageSource, /return `\$\{singleParcelFormula\};/u);
+  assert.doesNotMatch(shippingPageSource, /Sₙ =|Sₖ =|`S =|× max\(0,/u);
 });
 
 test('calculated shipping result follows the item simulator summary hierarchy', () => {

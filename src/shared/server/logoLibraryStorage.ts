@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, relative, isAbsolute } from 'node:path';
-import { get, put } from '@vercel/blob';
+import { get, head, put } from '@vercel/blob';
 import type { LogoSourceAsset, LogoPublishedRevision, LogoProject, LogoOutputAsset } from '@/shared/domain/logo/logoLibrary';
 import { decodeLogoImport, renderLogoProject } from '@/shared/server/logoLibraryRender';
 import { LogoLibraryError } from '@/shared/server/logoLibraryOperations';
@@ -63,7 +63,7 @@ export async function readLimitedLogoStream(stream: ReadableStream<Uint8Array>, 
   } finally { reader.releaseLock(); }
   return Buffer.concat(chunks, size);
 }
-async function readBlob(pathname: string, mimeType: string, maximum: number, privateSource: boolean): Promise<Buffer> {
+async function readBlob(pathname: string, mimeType: string, maximum: number, privateSource: boolean, storedSize?: number): Promise<Buffer> {
   if (!(privateSource ? sourcePathPattern : outputPathPattern).test(pathname)) throw new LogoLibraryError('Pot logotipa ni veljavna.');
   if (isLocalLogoStorage()) {
     const target = localPath(pathname);
@@ -71,17 +71,41 @@ async function readBlob(pathname: string, mimeType: string, maximum: number, pri
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size <= 0 || stats.size > maximum) throw new LogoLibraryError('Datoteka logotipa ni veljavna.');
     return readFile(target);
   }
-  const result = await get(pathname, { access: privateSource ? 'private' : 'public', storeId: storeId(privateSource), useCache: true, abortSignal: AbortSignal.timeout(15_000) });
+  const options = { storeId: storeId(privateSource), abortSignal: AbortSignal.timeout(15_000) };
+  const result = await get(pathname, { ...options, access: privateSource ? 'private' : 'public', useCache: true });
   if (!result || result.statusCode !== 200) throw new LogoLibraryError('Datoteka logotipa ne obstaja.', 404);
-  if (result.blob.pathname !== pathname || result.blob.contentType.split(';', 1)[0] !== mimeType || result.blob.size <= 0 || result.blob.size > maximum) {
-    await result.stream.cancel(); throw new LogoLibraryError('Vsebina datoteke logotipa se ne ujema z njenim zapisom.');
+  try {
+    if (result.blob.pathname !== pathname || result.blob.contentType.split(';', 1)[0] !== mimeType) {
+      throw new LogoLibraryError('Vsebina datoteke logotipa se ne ujema z njenim zapisom.');
+    }
+    const contentLength = result.headers.get('content-length');
+    if (contentLength !== null && (!/^\d+$/u.test(contentLength) || !Number.isSafeInteger(Number(contentLength)) || Number(contentLength) <= 0 || Number(contentLength) > maximum)) {
+      throw new LogoLibraryError('Vsebina datoteke logotipa se ne ujema z njenim zapisom.');
+    }
+    // The SDK reports Content-Length (or zero); compressed bodies are decoded by fetch.
+    const encoding = result.headers.get('content-encoding')?.trim().toLowerCase();
+    let expectedSize = contentLength !== null && (!encoding || encoding === 'identity') ? Number(contentLength) : storedSize;
+    if (expectedSize === undefined) {
+      // Sources already carry their immutable byte count; only ambiguous outputs need metadata.
+      const metadata = await head(pathname, options);
+      if (metadata.pathname !== pathname || metadata.contentType.split(';', 1)[0] !== mimeType) {
+        throw new LogoLibraryError('Vsebina datoteke logotipa se ne ujema z njenim zapisom.');
+      }
+      expectedSize = metadata.size;
+    }
+    if (!Number.isSafeInteger(expectedSize) || expectedSize <= 0 || expectedSize > maximum) {
+      throw new LogoLibraryError('Vsebina datoteke logotipa se ne ujema z njenim zapisom.');
+    }
+    const bytes = await readLimitedLogoStream(result.stream, maximum);
+    if (bytes.byteLength !== expectedSize) throw new LogoLibraryError('Datoteka logotipa ni v celoti prenesena.');
+    return bytes;
+  } catch (error) {
+    await result.stream.cancel().catch(() => undefined);
+    throw error;
   }
-  const bytes = await readLimitedLogoStream(result.stream, maximum);
-  if (bytes.byteLength !== result.blob.size) throw new LogoLibraryError('Datoteka logotipa ni v celoti prenesena.');
-  return bytes;
 }
 export async function readLogoSource(asset: LogoSourceAsset): Promise<Uint8Array> {
-  const bytes = await readBlob(asset.pathname, asset.mimeType, LOGO_STORED_SOURCE_MAX_BYTES, true);
+  const bytes = await readBlob(asset.pathname, asset.mimeType, LOGO_STORED_SOURCE_MAX_BYTES, true, asset.bytes);
   if (bytes.byteLength !== asset.bytes) throw new LogoLibraryError('Izvirna datoteka logotipa se je spremenila.');
   return bytes;
 }

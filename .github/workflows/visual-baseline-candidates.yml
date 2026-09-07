@@ -1,0 +1,184 @@
+name: Admin visual baseline candidates
+
+on:
+  # Bootstrap this artifact-only workflow without merging the application release.
+  push:
+    branches: [release/admin-workflows-20260907]
+    paths: [.github/workflows/visual-baseline-candidates.yml]
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Exact reviewed commit to render (40 lowercase hex characters)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_visual
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_visual"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI: '1'
+      TARGET_SHA: ${{ inputs.release_sha || github.sha }}
+      REVIEWED_SOURCE_SHA: d183624ae3ff8f440cc3d91faefc38d3f64ac497
+    steps:
+      - name: Validate explicit revision
+        shell: bash
+        run: |
+          [[ "$TARGET_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+      - name: Checkout reviewed source without stored credentials
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify rendered source is the reviewed application
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          # The bootstrap commit may add this workflow, but cannot alter reviewed app/test inputs.
+          changed=$(git diff --name-only "$REVIEWED_SOURCE_SHA" HEAD -- . ':!.github/workflows/visual-baseline-candidates.yml')
+          test -z "$changed"
+
+      - name: Setup the same Node version as CI
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify schema contract files
+        run: npm run check:schema-contract
+
+      # Match CI's build job: no database or E2E runtime variables during compilation.
+      - name: Build reviewed application
+        run: npm run build
+
+      - name: Configure isolated test runtime
+        shell: bash
+        run: |
+          cat >> "$GITHUB_ENV" <<'ENV'
+          E2E_MODE=1
+          E2E_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_visual
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_visual
+          E2E_STORAGE_NAMESPACE=run-${{ github.run_id }}-${{ github.run_attempt }}-visual
+          ADMIN_USERNAME=e2e-admin
+          ADMIN_PASSWORD=e2e-admin-password
+          ADMIN_SESSION_SECRET=e2e-only-session-secret-with-at-least-32-characters
+          ORDER_ACCESS_BOOTSTRAP_KEY=e2e-only-order-bootstrap-key-with-at-least-32-characters
+          PLAYWRIGHT_SHARD=visual-candidates
+          PLAYWRIGHT_JSON_OUTPUT_FILE=visual-candidates/test-results.json
+          ENV
+
+      - name: Prepare isolated E2E database
+        run: npm run e2e:db:prepare
+
+      - name: Rehearse terminal schema contract
+        run: npm run e2e:db:rehearse-contract
+
+      - name: Verify isolated E2E database contract
+        run: npm run check:database-schema
+
+      - name: Install the same Playwright Chromium and OS dependencies as CI
+        run: npx playwright install --with-deps chromium
+
+      - name: Preserve original Linux baselines and environment receipt
+        shell: bash
+        run: |
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const { chromium } = require('@playwright/test');
+          (async () => {
+            const baseline = 'tests/e2e/admin-order-quote-visual-regression.spec.ts-snapshots';
+            fs.mkdirSync('visual-candidates/expected', { recursive: true });
+            const files = fs.readdirSync(baseline).filter(file => file.endsWith('-chromium-linux.png'));
+            if (!files.length) throw new Error('Reviewed Linux baselines are missing.');
+            for (const file of files) fs.copyFileSync(path.join(baseline, file), path.join('visual-candidates/expected', file));
+            const browser = await chromium.launch();
+            const chromiumVersion = browser.version();
+            await browser.close();
+            const receipt = {
+              sourceSha: process.env.TARGET_SHA, reviewedSourceSha: process.env.REVIEWED_SOURCE_SHA,
+              runId: process.env.GITHUB_RUN_ID, runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+              node: process.version, platform: process.platform,
+              runnerImage: process.env.ImageOS, runnerImageVersion: process.env.ImageVersion,
+              playwright: require('@playwright/test/package.json').version, chromium: chromiumVersion,
+              lockSha256: crypto.createHash('sha256').update(fs.readFileSync('package-lock.json')).digest('hex'),
+              operation: 'review-candidates-only', baselineFiles: files.length
+            };
+            fs.writeFileSync('visual-candidates/environment.json', JSON.stringify(receipt, null, 2));
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          NODE
+
+      - name: Render only admin quote and order visual candidates
+        id: render
+        run: >-
+          npm run test:e2e -- tests/e2e/admin-order-quote-visual-regression.spec.ts
+          --workers=1 --retries=0 --update-snapshots=all --reporter=line,json
+
+      - name: Collect candidate images and review manifest
+        if: always() && steps.render.outcome != 'skipped'
+        env:
+          RENDER_OUTCOME: ${{ steps.render.outcome }}
+        shell: bash
+        run: |
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const baseline = 'tests/e2e/admin-order-quote-visual-regression.spec.ts-snapshots';
+          const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          fs.mkdirSync('visual-candidates/actual', { recursive: true });
+          const files = fs.readdirSync(baseline).filter(file => file.endsWith('-chromium-linux.png'));
+          const comparisons = files.map(file => {
+            const actual = path.join('visual-candidates/actual', file);
+            const expected = path.join('visual-candidates/expected', file);
+            fs.copyFileSync(path.join(baseline, file), actual);
+            const expectedSha256 = fs.existsSync(expected) ? hash(expected) : null;
+            const actualSha256 = hash(actual);
+            return { file, expectedSha256, actualSha256, changed: expectedSha256 !== actualSha256 };
+          });
+          const reportFile = 'visual-candidates/test-results.json';
+          const stats = fs.existsSync(reportFile) ? JSON.parse(fs.readFileSync(reportFile, 'utf8')).stats : null;
+          const complete = process.env.RENDER_OUTCOME === 'success'
+            && stats?.expected === 14 && stats.skipped === 0 && stats.unexpected === 0 && stats.flaky === 0;
+          fs.writeFileSync('visual-candidates/review-manifest.json', JSON.stringify({
+            sourceSha: process.env.TARGET_SHA, complete, renderOutcome: process.env.RENDER_OUTCOME,
+            stats, comparisons, warning: 'Candidates require image-by-image review. No baseline is automatically approved or committed.'
+          }, null, 2));
+          if (!complete) throw new Error('Candidate evidence is incomplete; inspect the retained failure artifacts.');
+          NODE
+
+      - name: Upload review evidence only
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-visual-candidates-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            visual-candidates
+            test-results
+          if-no-files-found: warn
+          retention-days: 7
+          overwrite: true

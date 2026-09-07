@@ -266,7 +266,7 @@ test('quote internal-sequence filter remains URL-backed while search accepts exa
   );
   assert.match(
     server,
-    /select count\(\*\)::int as count from quote_requests qr where \$\{whereClause\}/u
+    /select count\(\*\)::int from quote_requests qr where \$\{whereClause\}\) as total_count/u
   );
 
   assert.equal(normalizeAdminQuoteRequestNumberBound(' 000014 '), '14');
@@ -344,7 +344,7 @@ test('quote Tip filter mirrors orders with URL-backed server pagination', () => 
   );
   assert.match(
     server,
-    /select count\(\*\)::int as count from quote_requests qr where \$\{whereClause\}/u
+    /select count\(\*\)::int from quote_requests qr where \$\{whereClause\}\) as total_count/u
   );
 
   assert.equal(normalizeAdminQuoteCustomerTypeFilter('school'), 'school');
@@ -415,9 +415,9 @@ test('quote Datum filter mirrors orders with strict URL-backed calendar ranges',
   );
   assert.match(
     server,
-    /select count\(\*\)::int as count from quote_requests qr where \$\{whereClause\}/u
+    /select count\(\*\)::int from quote_requests qr where \$\{whereClause\}\) as total_count/u
   );
-  assert.match(server, /select max\(created_at\) as latest_created_at/u);
+  assert.match(server, /select max\(created_at\) from quote_requests where voided_at is null\) as latest_created_at/u);
   assert.match(server, /latestCreatedAt:/u);
 
   assert.equal(normalizeAdminQuoteDateBound(' 2026-08-29 '), '2026-08-29');
@@ -489,7 +489,7 @@ test('quote value filter mirrors the order range control with URL-backed server 
   );
   assert.match(
     server,
-    /select count\(\*\)::int as count from quote_requests qr where \$\{whereClause\}/u
+    /select count\(\*\)::int from quote_requests qr where \$\{whereClause\}\) as total_count/u
   );
 
   assert.equal(normalizeAdminQuoteAmountBound(' 8.38 '), '8.38');

@@ -10,7 +10,6 @@ export type PaginationProps = {
   onPageChange: (page: number) => void;
   variant?: 'topPills' | 'bottomBar';
   size?: 'sm' | 'md';
-  showNumbers?: boolean;
   className?: string;
 };
 

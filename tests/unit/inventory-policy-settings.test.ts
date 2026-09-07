@@ -105,10 +105,6 @@ describe('global inventory policy settings', () => {
 
   test('persists one authoritative row and exposes an authenticated GET/PUT API', () => {
     const schema = readFileSync('database/schema.sql', 'utf8');
-    const migration = readFileSync(
-      'database/migrations/20260901_inventory_policy_settings.sql',
-      'utf8'
-    );
     const server = readFileSync('src/shared/server/inventoryPolicy.ts', 'utf8');
     const route = readFileSync('src/admin/api/inventory-policy/route.ts', 'utf8');
 
@@ -117,7 +113,6 @@ describe('global inventory policy settings', () => {
       schema,
       /"stockEnforcementEnabled": true[\s\S]*?jsonb_typeof\(config_json -> 'stockEnforcementEnabled'\) = 'boolean'/u
     );
-    assert.match(migration, /insert into inventory_policy_settings[\s\S]*?'default'/u);
     assert.match(server, /getInventoryPolicySettings/u);
     assert.match(server, /isStockEnforcementEnabled/u);
     assert.match(server, /to_regclass\('public\.inventory_policy_settings'\)/u);

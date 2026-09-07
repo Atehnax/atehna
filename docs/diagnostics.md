@@ -22,7 +22,7 @@ Optional refresh runs every 15 seconds while the page is visible. Export freezes
 
 ## Storage and cleanup
 
-Install the analytics retirement and v4 migrations before running the new application. Fresh databases use the current `database/schema.sql`. The `diagnostics_events` table is indexed by time, context/time and errors.
+Fresh databases install diagnostics with the current `database/schema.sql` in the same transaction as the rest of the application. The `diagnostics_events` table is indexed by time, context/time and errors.
 
 The daily 04:50 UTC Vercel job calls `GET /api/admin/analytics/diagnostics/prune` with `Authorization: Bearer <CRON_SECRET>`. The same header is required on any host. It removes observations older than seven days; physical retention can extend until the next successful daily cleanup. Self-hosted deployments must schedule that authenticated endpoint. Reads never resurrect the retired file collector or use compatibility fallbacks.
 
@@ -30,4 +30,4 @@ The daily 04:50 UTC Vercel job calls `GET /api/admin/analytics/diagnostics/prune
 
 - `tests/unit/diagnostics.test.ts`: trace isolation, measured phases, handled/thrown failures, privacy, sink failure isolation, bounded traces, input validation, CSV safety and standalone-invalidation scheduling.
 - `tests/e2e/diagnostics.spec.ts`: authenticated real route-to-database capture, aggregate/trace/CSV parity, dashboard controls, mobile layout, explicit read failures and retired routes returning 404.
-- `scripts/check-analytics-retirement.mjs`: current database contract, absence of retired tables/functions and protected archive behavior on isolated databases.
+- `npm run check:database-schema`: read-only exact contract verification, including absence of retired tables/functions and diagnostics constraints.

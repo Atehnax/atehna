@@ -1,5 +1,7 @@
 'use client';
 
+import { eur, numeric, percent, formatAnalyticsCalendarDay as dayLabel } from '../../lib/formatting';
+
 import { formatSlCount, formatSlOrderCount } from '@/shared/domain/formatting';
 import { readAnalyticsJson } from '@/shared/client/readAnalyticsJson';
 
@@ -16,7 +18,7 @@ import { CUSTOMER_TYPE_FORM_OPTIONS, getCustomerTypeLabel } from '@/shared/domai
 import { ORDER_STATUS_OPTIONS } from '@/shared/domain/order/orderStatus';
 import EuiTabs from '@/shared/ui/eui-tabs';
 import AdminOrdersActivityHeatmap from '../AdminOrdersActivityHeatmap';
-import BusinessChart, { DataTable, StatisticsDrawer, eur, numeric, percent, palette, downloadRows, type Drill, type TableRow } from './BusinessChart';
+import BusinessChart, { DataTable, StatisticsDrawer, palette, downloadRows, type Drill, type TableRow } from './BusinessChart';
 import BusinessRecords from './BusinessRecords';
 import BusinessQuoteSettings from './BusinessQuoteSettings';
 
@@ -25,7 +27,6 @@ const Laboratory = dynamic(() => import('./BusinessLaboratory'), { loading: () =
 const Measurements = dynamic(() => import('./BusinessMeasurements'), { ssr: false });
 const labels: Record<BusinessView, string> = { pregled: 'Pregled', narocila: 'Naročila', ponudbe: 'Ponudbe', stranke: 'Stranke', artikli: 'Artikli', postnina: 'Poštnina', zemljevid: 'Zemljevid', laboratorij: 'Laboratorij' };
 const control = adminAnalyticsControlClassName;
-const dayLabel = (date: string) => new Intl.DateTimeFormat('sl-SI', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date + 'T12:00:00Z'));
 const serializeDrill = (drill: Drill) => JSON.stringify(drill);
 
 function Histogram({ title, bins, unit, onDrill, kind = 'orders', basis = 'activity', markers, children }: { title: string; bins: HistogramBin[]; unit: string; onDrill: (drill: Drill) => void; kind?: string; basis?: string; markers?: { mean: number | null; median: number | null; q1: number | null; q3: number | null }; children?: React.ReactNode }) {

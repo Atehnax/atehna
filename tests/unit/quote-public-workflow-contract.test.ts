@@ -14,9 +14,7 @@ test('live pricing uses canonical estimate names while preserving the historical
   const appEstimateRoute = source('src/app/api/orders/estimate/route.ts');
 
   assert.match(contracts, /export type OrderEstimate =/u);
-  assert.match(contracts, /export type OrderQuote = OrderEstimate/u);
   assert.match(contracts, /export function isOrderEstimate/u);
-  assert.match(contracts, /export const isOrderQuote = isOrderEstimate/u);
   assert.match(estimateHook, /export function useOrderEstimate/u);
   assert.match(estimateHook, /fetch\('\/api\/orders\/estimate'/u);
   assert.match(estimateRoute, /buildAuthoritativeOrderEstimate/u);

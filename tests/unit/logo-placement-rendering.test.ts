@@ -1,12 +1,21 @@
 import assert from 'node:assert/strict';
+
 import test from 'node:test';
+
 import { createElement } from 'react';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { SiteLogo, SiteLogoProvider } from '@/commercial/components/SiteLogo';
+
 import SiteFooter from '@/commercial/components/SiteFooter';
+
 import { DEFAULT_HOMEPAGE_SETTINGS } from '@/shared/domain/landing/landingPage';
-import { cloneDefaultSiteNavigationConfig, normalizeSiteNavigationConfig } from '@/shared/domain/navigation/siteNavigation';
-import { HEADER_LOGO_DEFAULT_HEIGHTS, migrateLogoNavigationConstraints, resolveHeaderLogoSize } from '@/shared/domain/logo/logoPlacement';
+
+import { cloneDefaultSiteNavigationConfig } from '@/shared/domain/navigation/siteNavigation';
+
+import { HEADER_LOGO_DEFAULT_HEIGHTS, resolveHeaderLogoSize } from '@/shared/domain/logo/logoPlacement';
+
 import { publishedLogoAsset, publishedLogoFixture } from './fixtures/published-site-logo';
 
 test('every header profile contains very wide and tall artwork without changing its navigation geometry', () => {
@@ -44,28 +53,6 @@ test('explicit navigation height is capped by the existing header and raster ups
   assert.equal(fitted.heightPx, layout.settings.height * .75 - 7.5);
   assert.equal(fitted.rasterUpscaled, true);
   assert.equal(resolveHeaderLogoSize('mobile', layout, { ...raster, svgUrl: '/tiny.svg' }).rasterUpscaled, false);
-});
-
-test('migration moves previous logo sizes into navigation and preserves centered expansion anchors', () => {
-  const original = normalizeSiteNavigationConfig(cloneDefaultSiteNavigationConfig());
-  const mobileBefore = original.topBarLayout.responsive.mobile.items.find(item => item.id === 'logo')!;
-  const oldLogo = { placements: { 'header-desktop': { displayHeightPx: 30 }, 'header-mobile': { displayHeightPx: 60 }, standalone: { displayHeightPx: 64 } } };
-  const migrated = migrateLogoNavigationConstraints(original, oldLogo);
-  assert.equal(migrated.topBarLayout.responsive.desktop.settings.logoHeightPx, 30);
-  assert.equal(migrated.topBarLayout.responsive.tablet.settings.logoHeightPx, 16.5);
-  assert.equal(migrated.topBarLayout.responsive.mobile.settings.logoHeightPx, 60);
-  assert.equal(migrated.topBarInitialLayout.responsive.mobile.settings.logoHeightPx, 60);
-  for (const device of ['desktop', 'tablet', 'mobile'] as const) {
-    assert.equal(migrated.topBarLayout.responsive[device].settings.height, original.topBarLayout.responsive[device].settings.height);
-    assert.deepEqual(migrated.topBarLayout.responsive[device].items.filter(item => item.id !== 'logo'), original.topBarLayout.responsive[device].items.filter(item => item.id !== 'logo'));
-  }
-  const mobile = migrated.topBarLayout.responsive.mobile.items.find(item => item.id === 'logo')!;
-  assert.equal(mobile.widthPx, 175.5);
-  assert.equal(mobile.anchorWidthPx, 88);
-  assert.equal(mobile.xRatio, mobileBefore.xRatio);
-  assert.equal(mobile.xPx, mobileBefore.xPx);
-  assert.equal(normalizeSiteNavigationConfig(migrated).topBarLayout.responsive.mobile.items.find(item => item.id === 'logo')!.anchorWidthPx, 88);
-  assert.equal(original.topBarLayout.responsive.mobile.settings.logoHeightPx, 15);
 });
 
 test('one published variant can serve several placements while null and brand fallbacks remain explicit', () => {

@@ -106,21 +106,21 @@ Both route-level session checks and mutation origin checks run before database a
 - `PATCH /api/admin/pricing-stock`: explicit per-row patches, expected model revision, relevant row revisions, and optional proposed `model`; atomic result or current-row conflict response.
 - `PUT /api/admin/pricing-stock/model`: validated model and expected revision.
 
-## Installation and rollback
+## Installation and recovery
 
-For an existing v4 database, apply these files explicitly and in order before deploying code that reads the new fields:
+The complete pricing/stock and historical-order model is part of
+`database/schema.sql`. Install it once into a verified empty database using
+the [fresh installation procedure](shipping-rollout.md), then verify the
+`20260907.historical-orders-v6` contract read-only before serving traffic.
+The schema, durable history triggers and contract record commit atomically.
+Application requests, builds and startup do not perform DDL.
 
-1. `database/migrations/20260906_pricing_stock.sql`
-2. `database/migrations/20260906_schema_contract_v5.sql`
-3. `database/migrations/20260907_historical_orders.sql`
-4. `database/migrations/20260907_schema_contract_v6.sql`
-5. Run `node scripts/check-database-schema.mjs --require-database` against the intended database.
-
-For an existing v5 database, start at step 3. The current application requires the v6 contract, including the historical-order fields.
-
-The additive migration is transactional and repeatable. It preserves existing catalogue/order data and never resets an existing saved model. There is no automatic DDL during builds, requests, or startup. `database/schema.sql` is only for a new, empty database.
-
-Rollback normally means restoring the previous application deployment while leaving the additive columns, model, revisions, and history intact. Existing price/cost/inventory columns retain their original meaning, and the earlier v4 ledger entry remains. Do not drop history or restore an old database snapshot merely to undo the UI deployment. Reversing actual financial/stock edits requires reviewed compensating changes that account for intervening orders; a blanket stock restoration can overwrite sales. If the migration transaction fails, its DDL is rolled back and must be diagnosed before deploying dependent code.
+Preserve existing prices, costs, inventory and history in occupied databases.
+A source rebaseline does not rewrite their values or authorize a purge.
+Reversing real financial/stock edits requires reviewed compensating changes
+that account for intervening orders; blanket stock restoration can overwrite
+sales. Shared database replacement needs an exact approved target and scope,
+a restorable backup and a recovery plan.
 
 ## Verification
 
@@ -129,5 +129,3 @@ The focused unit suites cover exact calculations, four statuses, decimal input a
 The dedicated `admin-pricing-stock-quick-edit.spec.ts` mocks all pricing reads and mutations without database fixture hooks. It covers the always-visible model and accessible icon-only explanation toggle, display-first cells, explicit edit entry, one active row, entry-snapshot cancellation, guarded row switching, isolated row saves that preserve other drafts, the combined-save requirement for a dirty model, independent filter-tag removal with actual row filtering, top-pagination tag alignment, and whole-minute display without changing exact work values. Existing persistent-workflow tests enter quick edit explicitly and inspect read-only values after save or reload.
 
 `node --conditions=react-server --import tsx scripts/check-pricing-stock-database.ts` uses the repository's explicit, guarded loopback E2E environment. It verifies actual competing stock/price transactions, stale and ABA conflicts, atomic rollback, mandatory history with general audit disabled, timestamps, model CAS/row-dependent errors, inventory edits with order limiting disabled (including CAS/audit and unchanged policy), historical order costs, and hold replay/release.
-
-`node --import tsx scripts/check-pricing-stock-upgrade.ts` uses the same in-memory E2E configuration only to locate the reviewed local PostgreSQL service. It creates a unique sibling upgrade database, installs the pre-feature HEAD schema and deterministic fixtures, applies the additive migration twice and the v5 terminal verifier, compares original row fingerprints/counts, checks purchase timestamps and order history, then applies the subsequent historical-order migration and verifies the current v6 schema contract. It drops only the exact database OID created by that run. It never connects to or changes the existing E2E application database, never reads `.env` files, and refuses remote databases. By default HEAD must still be the pre-feature schema baseline. After committing, pass `--baseline <reviewed-full-pre-feature-commit-SHA>`; the script still refuses a baseline that already contains this feature.

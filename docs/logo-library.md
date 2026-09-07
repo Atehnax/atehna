@@ -30,15 +30,17 @@ Admin routes:
 
 Public logo/icon routes resolve immutable published outputs. Public components receive only dimensions, bounds, URLs, revision, name, and fallback information; no projects, source assets, or publication history.
 
-## Preserving existing logos
+## Fresh installation and preserved settings
 
-On the first read without a library, initialization takes an advisory transaction lock. It converts each effective legacy composition/presentation to an immutable preserved variant, preserving explicitly hidden placements and original/brand fallbacks. Identical artwork may share a variant. Original uploaded sources are also retained.
+An existing `website-logo-library` record is read unchanged, including its saved projects, placements, sources, publication history and revision. Preserved legacy rows and receipts are not rewritten or deleted.
 
-Legacy logo display-height settings are moved into navigation-owned logo constraints. Existing expanded slots and their anchors are preserved. The navbar height and locked core navigation styling do not change.
+A fresh settings store initializes the two established default variants under the existing advisory transaction lock. The server seed PNGs in `src/shared/server/logo-defaults` retain the original artwork and intentional PDF crop exactly. They enter the same private source upload, project validation, rendering and immutable publication pipeline as other library images. The library is inserted only after both publications succeed. A failed database transaction leaves no library pointer; as with ordinary publication, already-uploaded immutable files can remain unreferenced after a later failure and are not automatically deleted.
 
-Only after all preserved outputs exist are the new library and navigation settings committed together. The original raw logo/navigation settings are retained in `website-logo-library-migration-receipt-v1`, and the original logo row remains as a recovery record. No DDL or order-data migration is involved. If initialization fails, its transaction rolls back and the source records remain intact.
+The initial assignments remain distinct: standalone and PDF use their respective variants, header and metadata/icon placements use the brand fallback, and footer placements use the original fallback. Fresh navigation defaults already contain the existing 18/16.5/15 px logo heights; initialization does not rewrite navigation settings or navbar geometry. The historical `migratedAt` JSON field remains populated for API compatibility, but initialization does not convert an older configuration.
 
-The old editor, old shared controls, settings reader, render facade, and public upload scope are removed. `/api/admin/site-logo` returns 410. The old artwork model and rendering core remain solely as the one-time preservation converter; normal editing and rendering never use them.
+If the library is absent and a `website-site-logo` row exists, initialization fails before uploading or writing anything. This source supports a fresh database or a restored current library, not runtime conversion of older settings. Before connecting an environment with only old logo settings, preserve its exact logo/navigation records, private originals, public outputs and recovery backup, then restore a prepared current library through the approved operational procedure. Do not delete that row to force default artwork over an existing configuration.
+
+The old editor and public upload scope remain retired. `/api/admin/site-logo` continues to return 410. Public consumers use only the published projection and existing immutable asset URLs remain valid.
 
 ## Consumers
 

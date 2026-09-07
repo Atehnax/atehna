@@ -25,12 +25,6 @@ test('manual quote PDFs use an additive request-scoped table and shared opaque I
   assert.match(table[1], /content_sha256 text not null/u);
   assert.match(table[1], /created_by_actor_type text not null/u);
   assert.match(schema, /create trigger quote_manual_documents_append_only/u);
-
-  const migration = source(
-    'database/migrations/20260830_quote_manual_documents.sql'
-  );
-  assert.match(migration, /create table if not exists quote_manual_documents/u);
-  assert.match(migration, /must share quote_documents_id_seq/u);
 });
 
 test('manual quote upload is feature-gated, authenticated, and same-origin protected', () => {

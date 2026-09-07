@@ -344,10 +344,6 @@ values
   ('main-landing-page-defaults', '{}'::jsonb)
 on conflict (key) do update set config_json = excluded.config_json, updated_at = now();
 
-insert into site_logo_settings (key, config_json)
-values ('website-site-logo', '{}'::jsonb)
-on conflict (key) do update set config_json = excluded.config_json, updated_at = now();
-
 insert into gurs_addresses (
   gurs_house_number_id,
   street_name,

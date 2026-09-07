@@ -387,7 +387,7 @@ export async function fetchAdminQuoteRequestsPage(options: {
     const offsetIndex = queryParams.length;
     const whereClause = conditions.join(' and ');
 
-    const [rowsResult, countResult, newCountResult, latestCreatedAtResult] = await Promise.all([
+    const [rowsResult, metadataResult] = await Promise.all([
       pool.query(
         `
           select
@@ -485,16 +485,20 @@ export async function fetchAdminQuoteRequestsPage(options: {
         `,
         queryParams
       ),
-      pool.query(`select count(*)::int as count from quote_requests qr where ${whereClause}`, queryParams.slice(0, -2)),
-      pool.query(`select count(*)::int as count from quote_requests where status = 'received' and voided_at is null`),
-      pool.query(`select max(created_at) as latest_created_at from quote_requests where voided_at is null`)
+      pool.query(
+        `select
+          (select count(*)::int from quote_requests qr where ${whereClause}) as total_count,
+          (select count(*)::int from quote_requests where status = 'received' and voided_at is null) as new_count,
+          (select max(created_at) from quote_requests where voided_at is null) as latest_created_at`,
+        queryParams.slice(0, -2)
+      )
     ]);
 
     return {
       rows: rowsResult.rows.map((row) => mapQuoteListRow(row as RawRow)),
-      totalCount: toNumber(countResult.rows[0]?.count),
-      newCount: toNumber(newCountResult.rows[0]?.count),
-      latestCreatedAt: toNullableIso(latestCreatedAtResult.rows[0]?.latest_created_at)
+      totalCount: toNumber(metadataResult.rows[0]?.total_count),
+      newCount: toNumber(metadataResult.rows[0]?.new_count),
+      latestCreatedAt: toNullableIso(metadataResult.rows[0]?.latest_created_at)
     };
   });
 }

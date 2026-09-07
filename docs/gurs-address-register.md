@@ -36,17 +36,11 @@ a fresh database, run `npm run addresses:sync` and wait for the validated stagin
 dataset to publish before exposing checkout. The monthly protected job then keeps
 that active dataset current.
 
-For an existing database, coordinate
-`database/migrations/20260903_gurs_address_prefix_search.sql` and
-`database/migrations/20260904_gurs_postal_lookup_indexes.sql` with the code
-deployment. Stop scheduled and manual synchronization, confirm no import is
-active, apply any outstanding artifacts to the current table in filename order,
-and deploy the synchronizer that creates all prefix indexes on staging tables
-before allowing another sync. Then verify a one-character street lookup,
-postal-place lookup, exact postal-code completion, and their index-backed query
-plans. An expired lease is invalidated atomically by either migration and
-lingering `running` sync-history rows are marked failed; an unexpired lease
-blocks the migration.
+The canonical schema and current synchronizer create the same street/postal
+prefix indexes. Verify one-character street/place lookups, exact postal-code
+completion and index eligibility after installation and refresh. Existing
+database targets are verified with `npm run check:database-schema`; this
+repository provides no incremental index-upgrade operation.
 
 GURS identifiers are stored as PostgreSQL `text` and remain JavaScript strings.
 They must never be converted to numbers.

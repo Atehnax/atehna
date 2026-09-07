@@ -14,12 +14,6 @@ const scriptPath = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(scriptPath), '..');
 const manifestPath = resolve(projectRoot, 'database', 'schema-contract.json');
 const schemaPath = resolve(projectRoot, 'database', 'schema.sql');
-const migrationPath = resolve(
-  projectRoot,
-  'database',
-  'migrations',
-  '20260907_schema_contract_v6.sql'
-);
 const identifierPattern = /^[a-z][a-z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
 const checksumPattern = /^[a-f0-9]{64}$/u;
@@ -320,20 +314,17 @@ function requireContractLiteral(source, value, description) {
 }
 
 export async function verifyRepositoryContract(manifest) {
-  const [schema, migration] = await Promise.all([
-    readFile(schemaPath, 'utf8'),
-    readFile(migrationPath, 'utf8')
-  ]);
-  for (const [source, description, installationPath] of [
-    [schema, 'Canonical schema', 'fresh_schema'],
-    [migration, 'Terminal compatibility migration', 'existing_database']
-  ]) {
-    requireContractLiteral(source, manifest.contractId, description);
-    requireContractLiteral(source, manifest.contractSha256, description);
-    requireContractLiteral(source, installationPath, description);
+  const schema = await readFile(schemaPath, 'utf8');
+  requireContractLiteral(schema, manifest.contractId, 'Canonical schema');
+  requireContractLiteral(schema, manifest.contractSha256, 'Canonical schema');
+  requireContractLiteral(schema, 'fresh_schema', 'Canonical schema');
+  const transactions = schema.match(/^\s*(?:begin|commit);\s*$/gimu) ?? [];
+  if (transactions.length !== 2 || !/^\s*begin;/iu.test(transactions[0]) || !/^\s*commit;/iu.test(transactions[1]) || !/\bcommit;\s*$/iu.test(schema)) {
+    fail('Canonical schema must be one explicit fresh-install transaction.');
   }
-  if (!/\bbegin;[\s\S]*\bcommit;\s*$/iu.test(migration)) {
-    fail('Terminal compatibility migration must be one explicit transaction.');
+  const contractInsertAt = schema.lastIndexOf('insert into app_schema_contracts');
+  if (contractInsertAt < schema.lastIndexOf('create trigger ')) {
+    fail('Canonical schema must record its contract after all application objects.');
   }
 }
 

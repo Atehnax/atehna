@@ -35,9 +35,9 @@ begin
 end;
 $$;
 
--- Terminal schema compatibility contracts are deliberately separate from
--- deployment history. Fresh installs record only the application contract they
--- satisfy; they do not pretend that incremental deployments were applied.
+-- This records the current application contract, separately from deployment
+-- history. The existing_database value is retained only as historical provenance
+-- for previously installed databases; fresh setup always records fresh_schema.
 create table app_schema_contracts (
   contract_id text primary key,
   contract_sha256 text not null,
@@ -3428,19 +3428,9 @@ create table analytics_geography_backfill (
   updated_at timestamptz not null default now()
 );
 
-insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
-values ('20260907.historical-orders-v6', '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af', 'fresh_schema');
-
-commit;
 
 
--- Per-SKU pricing and TDABC inputs. Additive, preserves all existing stock/costs.
--- Run explicitly before the application release; never from a request/build.
-begin;
-set local lock_timeout = '10s';
-set local statement_timeout = '5min';
-set local search_path = public, pg_temp;
-select pg_advisory_xact_lock(hashtext('atehna:pricing-stock:20260906'));
+-- Per-SKU pricing, TDABC inputs, and durable change history.
 
 
 
@@ -3510,5 +3500,8 @@ end;
 $function$;
 create trigger catalog_variant_pricing_stock_history after update on catalog_item_variants
   for each row execute function record_catalog_variant_pricing_stock();
+
+insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
+values ('20260907.historical-orders-v6', '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af', 'fresh_schema');
 
 commit;

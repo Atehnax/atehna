@@ -27,8 +27,6 @@ const quoteTypesPath = 'src/shared/domain/quote/quoteTypes.ts';
 const commercialQuoteContractsPath = 'src/commercial/quote/contracts.ts';
 const pdfPreviewDialogPath = 'src/shared/ui/pdf-preview-dialog/PdfPreviewDialog.tsx';
 const schemaPath = 'database/schema.sql';
-const detailsMigrationPath = 'database/migrations/20260829_quote_request_admin_details.sql';
-const adminTitleMigrationPath = 'database/migrations/20260830_quote_request_admin_title.sql';
 const quoteAdminTypesPath = 'src/shared/domain/quote/quoteAdminTypes.ts';
 const quoteServerPath = 'src/shared/server/quotes.ts';
 
@@ -304,7 +302,6 @@ test('quote admin display title persists independently from the immutable reques
   const types = source(quoteAdminTypesPath);
   const server = source(quoteServerPath);
   const schema = source(schemaPath);
-  const migration = source(adminTitleMigrationPath);
   const titleRoute = source(adminTitleRoutePath);
   const appTitleRoute = source(appTitleRoutePath);
   const masterEditSource = sliceBetween(
@@ -327,13 +324,8 @@ test('quote admin display title persists independently from the immutable reques
     'create function guard_quote_request_history()',
     'create trigger quote_requests_guard_history'
   );
-  const migrationGuard = sliceBetween(
-    migration,
-    'create or replace function guard_quote_request_history()',
-    'do $$'
-  );
 
-  for (const path of [adminTitleRoutePath, appTitleRoutePath, adminTitleMigrationPath]) {
+  for (const path of [adminTitleRoutePath, appTitleRoutePath]) {
     assert.equal(existsSync(resolve(process.cwd(), path)), true, `Missing ${path}`);
   }
 
@@ -386,9 +378,6 @@ test('quote admin display title persists independently from the immutable reques
   assert.equal([...schemaGuard.matchAll(/'admin_title'/gu)].length, 2);
   assert.doesNotMatch(schemaGuard, /new\.admin_title is distinct from old\.admin_title/u);
   assert.doesNotMatch(schemaGuard, /'request_number'/u);
-  assert.match(migration, /add column if not exists admin_title text/u);
-  assert.equal([...migrationGuard.matchAll(/'admin_title'/gu)].length, 2);
-  assert.doesNotMatch(migrationGuard, /'request_number'/u);
 });
 
 test('quote detail uses the live draft version and permits partial address data before issuance', () => {
@@ -1328,11 +1317,9 @@ test('quote draft items use catalog selection plus full-snapshot add and remove 
   assert.match(draftRoute, /where quote_request_id = \$1[\s\S]*status = 'draft'/u);
 });
 test('database guard permits customer edits only before issue and preserves issued snapshots', () => {
-  assert.equal(existsSync(resolve(process.cwd(), detailsMigrationPath)), true);
   const schema = source(schemaPath);
-  const migration = source(detailsMigrationPath);
 
-  for (const sql of [schema, migration]) {
+  for (const sql of [schema]) {
     assert.match(sql, /admin_details_changed/u);
     assert.match(sql, /old\.status not in \('received', 'in_preparation'\)/u);
     assert.match(sql, /offer\.status = 'issued'/u);

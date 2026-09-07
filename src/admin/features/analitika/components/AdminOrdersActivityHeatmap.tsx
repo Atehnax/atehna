@@ -1,5 +1,7 @@
 'use client';
 
+import { formatAnalyticsCalendarDay as shortDate } from '../lib/formatting';
+
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { formatEuroAmount, formatEuroWithSuffix, formatSlCount, formatSlInteger } from '@/shared/domain/formatting';
 import { addCalendarDays } from '@/shared/domain/analytics/period';
@@ -18,9 +20,7 @@ const valueBands = ['< 20,00 €', '20,00–< 50,00 €', '50,00–< 100,00 €'
 const weekdays = ['P', 'T', 'S', 'Č', 'P', 'S', 'N'];
 const months = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'avg.', 'sep.', 'okt.', 'nov.', 'dec.'];
 const dayDate = (date: string) => new Date(date + 'T12:00:00Z');
-const shortDateFormat = new Intl.DateTimeFormat('sl-SI', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' });
 const fullDate = (date: string) => date.split('-').reverse().join('.');
-const shortDate = (date: string) => shortDateFormat.format(dayDate(date));
 const countLevel = (value: number | null) => value == null || value <= 0 ? 0 : value <= 2 ? 1 : value <= 5 ? 2 : value <= 10 ? 3 : value < 15 ? 4 : 5;
 const knownCount = (day: Day) => day.available ? day.orderCount : null;
 const knownValue = (day: Day) => day.available && day.valueCount === day.orderCount ? day.activityValue : null;

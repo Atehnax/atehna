@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import { ORDER_EMAIL_EVENT_DEFINITIONS } from '../../src/shared/domain/order/orderEmailSettings';
 
 const source = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8');
@@ -42,11 +43,10 @@ test('document email route pins the exact current immutable PDF', () => {
   assert.match(route, /scheduleOrderEmailJobs/u);
 });
 
-test('database accepts the two explicit document-email event types', () => {
-  const migration = source(
-    'database/migrations/20260903_order_document_email_events.sql'
-  );
-  assert.match(migration, /'predracun_issued'/u);
-  assert.match(migration, /'invoice_issued'/u);
-  assert.match(migration, /order_email_jobs_event_type_check/u);
+test('canonical database event types match the current order-email domain', () => {
+  const schema = source('database/schema.sql');
+  const constraint = schema.match(/constraint order_email_jobs_event_type_check check \(\s*event_type in \(([\s\S]*?)\)\s*\)/u);
+  assert.ok(constraint, 'The canonical event constraint must exist.');
+  const storedTypes = [...constraint[1].matchAll(/'([^']+)'/gu)].map(match => match[1]).sort();
+  assert.deepEqual(storedTypes, ORDER_EMAIL_EVENT_DEFINITIONS.map(event => event.value).sort());
 });

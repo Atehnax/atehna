@@ -108,7 +108,7 @@ import {
   normalizeWeightProductData,
   serializeQuantityDiscountTargets,
   adminProductInputChipClassName
-} from '@/admin/features/artikli/components/DimensionProductPricingSections';
+} from '@/admin/features/artikli/components/pricing/DimensionProductPricingSections';
 import type {
   ProductEditorType,
   CatalogItemAppearanceOverride,

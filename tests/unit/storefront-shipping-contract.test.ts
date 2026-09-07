@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
-  isOrderQuote,
-  type OrderQuote
+  isOrderEstimate,
+  parseOrderApiError,
+  type OrderEstimate
 } from '@/commercial/order/contracts';
 import { SHIPPING_CALCULATION_VERSION } from '@/shared/domain/shipping/shipping';
 import { STOREFRONT_CART_PENDING_SHIPPING_LABEL } from '@/shared/domain/shipping/storefrontShippingCopy';
@@ -12,7 +13,7 @@ import { STOREFRONT_CART_PENDING_SHIPPING_LABEL } from '@/shared/domain/shipping
 const source = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
-const calculatedQuote: OrderQuote = {
+const calculatedEstimate: OrderEstimate = {
   items: [],
   shippingConfigurationVersion: 4,
   quoteFingerprint: `order-quote-v1:${'a'.repeat(64)}`,
@@ -77,34 +78,34 @@ const calculatedQuote: OrderQuote = {
   }
 };
 
-test('quote contract accepts calculated shipping and rejects a synthetic zero fallback', () => {
-  assert.equal(isOrderQuote(calculatedQuote), true);
+test('estimate contract accepts calculated shipping and rejects a synthetic zero fallback', () => {
+  assert.equal(isOrderEstimate(calculatedEstimate), true);
   assert.equal(
-    isOrderQuote({
-      ...calculatedQuote,
+    isOrderEstimate({
+      ...calculatedEstimate,
       quoteFingerprint: undefined
     }),
     false
   );
   assert.equal(
-    isOrderQuote({
-      ...calculatedQuote,
+    isOrderEstimate({
+      ...calculatedEstimate,
       quoteFingerprint: 'missing-authoritative-digest'
     }),
     false
   );
   assert.equal(
-    isOrderQuote({
-      ...calculatedQuote,
+    isOrderEstimate({
+      ...calculatedEstimate,
       shipping: undefined
     }),
     false
   );
   assert.equal(
-    isOrderQuote({
-      ...calculatedQuote,
+    isOrderEstimate({
+      ...calculatedEstimate,
       totals: {
-        ...calculatedQuote.totals,
+        ...calculatedEstimate.totals,
         shipping: null,
         gross: null
       }
@@ -115,9 +116,9 @@ test('quote contract accepts calculated shipping and rejects a synthetic zero fa
 
 test('manual quote requires null shipping and gross totals', () => {
   const manualQuote = {
-    ...calculatedQuote,
+    ...calculatedEstimate,
     totals: {
-      ...calculatedQuote.totals,
+      ...calculatedEstimate.totals,
       shipping: null,
       gross: null
     },
@@ -137,16 +138,16 @@ test('manual quote requires null shipping and gross totals', () => {
         }
       ]
     }
-  } satisfies OrderQuote;
+  } satisfies OrderEstimate;
 
-  assert.equal(isOrderQuote(manualQuote), true);
+  assert.equal(isOrderEstimate(manualQuote), true);
   assert.equal(
-    isOrderQuote({
+    isOrderEstimate({
       ...manualQuote,
       totals: {
         ...manualQuote.totals,
         shipping: 0,
-        gross: calculatedQuote.totals.gross
+        gross: calculatedEstimate.totals.gross
       }
     }),
     false
@@ -252,4 +253,16 @@ test('cart page keeps the shipping breakdown while drawer, checkout and confirma
     appearanceSource,
     /free.?Shipping(?:Message|Label)|showFree.?Shipping|Brezplačn[a]? dostav/u
   );
+});
+
+test('estimate errors retain current and historical response field compatibility', () => {
+  for (const field of ['estimate', 'currentEstimate', 'quote', 'currentQuote']) {
+    const error = parseOrderApiError({ message: 'Cene so se spremenile.', [field]: calculatedEstimate });
+    assert.equal(error.estimate, calculatedEstimate);
+    assert.equal(error.quote, calculatedEstimate);
+    assert.equal(error.message, 'Cene so se spremenile.');
+  }
+  const malformed = parseOrderApiError({ quote: { ...calculatedEstimate, quoteFingerprint: 'invalid' } });
+  assert.equal(malformed.estimate, undefined);
+  assert.equal(malformed.quote, undefined);
 });

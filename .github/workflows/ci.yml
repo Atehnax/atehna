@@ -126,6 +126,12 @@ jobs:
       - name: Verify configured E2E database contract
         run: npm run check:database-schema
 
+      - name: Verify storage lifecycle PostgreSQL boundaries
+        if: matrix.shard == 1
+        env:
+          STORAGE_LIFECYCLE_TEST_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm run test:storage-db
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

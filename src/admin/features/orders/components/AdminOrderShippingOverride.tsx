@@ -20,7 +20,6 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
-import collapseStyles from '@/shared/ui/admin-collapse.module.css';
 
 type AdminOrderShippingOverrideProps = {
   orderId: number;
@@ -91,7 +90,8 @@ const LOCKED_ORDER_STATUSES = new Set([
 const LOCKED_PAYMENT_STATUSES = new Set(['paid', 'refunded']);
 
 const fieldClassName =
-  `h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
+  `h-6 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-[11px] leading-4 text-slate-900 disabled:cursor-not-allowed disabled:bg-white disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
+const readValueClassName = 'flex h-6 min-w-0 items-center border border-transparent px-2 text-[11px] leading-4 text-slate-900';
 const textareaClassName =
   `min-h-[68px] w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2 text-sm leading-5 text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 ${adminInputFocusTokenClasses}`;
 function eurosToCents(value: number): number {
@@ -575,10 +575,10 @@ export default function AdminOrderShippingOverride({
         data-testid="admin-order-shipping-card"
       >
         <div
-          className="flex min-h-11 items-center gap-2 px-4 py-2"
+          className="flex h-7 items-center gap-2 px-4"
           data-shipping-summary-row
         >
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             <h2
               id="admin-order-shipping-title"
               className="text-base font-semibold text-slate-900"
@@ -607,12 +607,6 @@ export default function AdminOrderShippingOverride({
                   ? 'Ročno'
                   : 'Samodejno'}
             </span>
-            <span className="text-[10px] leading-4 text-slate-400" aria-hidden="true">•</span>
-            <p className="min-w-0 text-[11px] leading-4 text-slate-600">
-              {shippingPending
-                ? 'Ročni znesek je potreben'
-                : String(currentParcelCount) + ' ' + (currentParcelCount === 1 ? 'paket' : 'paketov')}
-            </p>
           </div>
           <p
             className="shrink-0 whitespace-nowrap text-sm font-semibold leading-5 tabular-nums text-slate-950"
@@ -629,7 +623,6 @@ export default function AdminOrderShippingOverride({
               (externalEditMode ? ' bg-[color:var(--hover-neutral)]' : '')
             }
             aria-pressed={externalEditMode}
-            aria-expanded={externalEditMode}
             aria-controls={'admin-order-shipping-editor-' + orderId}
             aria-label={externalEditMode ? 'Končaj urejanje poštnine' : 'Uredi poštnino'}
             title={externalEditMode ? 'Končaj urejanje poštnine' : 'Uredi poštnino'}
@@ -641,110 +634,92 @@ export default function AdminOrderShippingOverride({
           </button>
         </div>
 
-        <div className="border-t border-slate-200">
-          <div
-            id={'admin-order-shipping-editor-' + orderId}
-            className={collapseStyles.collapse}
-            data-open={externalEditMode}
-            aria-hidden={!externalEditMode}
-            inert={!externalEditMode}
-          >
-            <div className={collapseStyles.content}>
-              <div
-                className="grid items-end gap-2 px-4 py-2 sm:grid-cols-[72px_96px_minmax(120px,1fr)]"
-                data-shipping-editor-row
-                data-testid="admin-order-shipping-editor"
+        <div
+          id={'admin-order-shipping-editor-' + orderId}
+          className="grid h-14 grid-cols-[80px_minmax(0,1fr)] grid-rows-2 items-center gap-x-2 border-t border-slate-200 px-4 sm:h-7 sm:grid-cols-[80px_100px_minmax(0,1fr)] sm:grid-rows-1"
+          data-shipping-editor-row
+          data-testid="admin-order-shipping-editor"
+        >
+          <label className="flex min-w-0 items-center gap-1" data-parcel-count-control>
+            <span className="shrink-0 text-[10px] leading-4 text-slate-500" title="Število paketov, oddanih skupaj">Paketi</span>
+            {externalEditMode ? (
+              <input
+                type="number"
+                min="1"
+                max={SHIPPING_MAX_PARCEL_COUNT}
+                step="1"
+                inputMode="numeric"
+                value={parcelCountInput}
+                onChange={(event) => setParcelCountInput(event.target.value)}
+                disabled={parcelCountControlsDisabled}
+                aria-label="Število paketov, oddanih skupaj"
+                aria-describedby={'admin-order-shipping-parcel-help-' + orderId}
+                className={fieldClassName + ' !px-1 text-center'}
+              />
+            ) : (
+              <span className={readValueClassName + ' flex-1 justify-center !px-1 tabular-nums'} title={String(currentParcelCount)}>
+                <span className="truncate">{currentParcelCount}</span>
+              </span>
+            )}
+            <span id={'admin-order-shipping-parcel-help-' + orderId} className="sr-only">
+              To je število fizičnih paketov, ki so istemu prejemniku oddani skupaj, ne število naročenih artiklov.
+            </span>
+          </label>
+          <label className="flex min-w-0 items-center gap-1">
+            <span className="shrink-0 text-[10px] leading-4 text-slate-500" title="Znesek poštnine v evrih">Znesek</span>
+            {externalEditMode ? (
+              <input
+                value={amountInput}
+                onChange={(event) => {
+                  setAmountInput(event.target.value);
+                  setDraftMode('override');
+                }}
+                inputMode="decimal"
+                disabled={controlsDisabled}
+                aria-label="Ročni znesek poštnine v evrih"
+                className={fieldClassName + ' text-right tabular-nums'}
+              />
+            ) : (
+              <span
+                className={readValueClassName + ' flex-1 justify-end tabular-nums'}
+                title={shippingPending ? '—' : formatCentsInput(finalAmountCents)}
               >
-                <label className="block min-w-0" data-parcel-count-control>
-                  <span
-                    className="text-[10px] font-semibold leading-4 text-slate-700"
-                    title="Število paketov, oddanih skupaj"
-                  >
-                    Paketi
-                  </span>
-                  <input
-                    type="number"
-                    min="1"
-                    max={SHIPPING_MAX_PARCEL_COUNT}
-                    step="1"
-                    inputMode="numeric"
-                    value={parcelCountInput}
-                    onChange={(event) => setParcelCountInput(event.target.value)}
-                    disabled={parcelCountControlsDisabled}
-                    aria-label="Število paketov, oddanih skupaj"
-                    aria-describedby={'admin-order-shipping-parcel-help-' + orderId}
-                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                  />
-                  <span
-                    id={'admin-order-shipping-parcel-help-' + orderId}
-                    className="sr-only"
-                  >
-                    To je število fizičnih paketov, ki so istemu prejemniku oddani
-                    skupaj, ne število naročenih artiklov.
-                  </span>
-                </label>
-                <label className="block min-w-0">
-                  <span className="text-[10px] font-semibold leading-4 text-slate-700">
-                    Znesek (€)
-                  </span>
-                  <input
-                    value={amountInput}
-                    onChange={(event) => {
-                      setAmountInput(event.target.value);
-                      setDraftMode('override');
-                    }}
-                    inputMode="decimal"
-                    disabled={controlsDisabled}
-                    aria-label="Ročni znesek poštnine v evrih"
-                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                  />
-                </label>
-                <label className="block min-w-0">
-                  <span className="text-[10px] font-semibold leading-4 text-slate-700">
-                    Razlog spremembe
-                  </span>
-                  <input
-                    type="text"
-                    value={reason}
-                    onChange={(event) => {
-                      setReason(event.target.value);
-                      setDraftMode('override');
-                    }}
-                    disabled={controlsDisabled}
-                    aria-label="Razlog ročne spremembe poštnine"
-                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                  />
-                </label>
-              </div>
-              <AdminNotice open={parcelCountHardLocked && !quoteDerived}>
-                <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
-                  Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
-                </p>
-              </AdminNotice>
-            </div>
-          </div>
-          <div
-            className={collapseStyles.collapse}
-            data-open={!externalEditMode}
-            aria-hidden={externalEditMode}
-            inert={externalEditMode}
-          >
-            <div className={collapseStyles.content}>
-              <div
-                className="grid min-h-10 grid-cols-[112px_minmax(0,1fr)] items-center gap-3 px-4 py-1.5"
+                <span className="truncate">{shippingPending ? '—' : formatCentsInput(finalAmountCents)}</span>
+              </span>
+            )}
+          </label>
+          <label className="col-span-2 flex min-w-0 items-center gap-1 sm:col-span-1">
+            <span className="shrink-0 text-[10px] leading-4 text-slate-500" title="Razlog spremembe">Razlog</span>
+            {externalEditMode ? (
+              <input
+                type="text"
+                value={reason}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  setDraftMode('override');
+                }}
+                disabled={controlsDisabled}
+                aria-label="Razlog ročne spremembe poštnine"
+                placeholder={shippingPending ? '—' : 'Brez ročne spremembe.'}
+                className={fieldClassName}
+              />
+            ) : (
+              <span
+                className={readValueClassName + ' flex-1'}
                 data-shipping-read-reason
+                title={currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
               >
-                <p className="text-[11px] font-medium leading-4 text-slate-500">Razlog spremembe</p>
-                <p
-                  className="truncate text-[11px] leading-4 text-slate-900"
-                  title={currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
-                >
-                  {currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
-                </p>
-              </div>
-            </div>
-          </div>
+                <span className="truncate">{currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}</span>
+              </span>
+            )}
+          </label>
         </div>
+
+        <AdminNotice open={parcelCountHardLocked && !quoteDerived}>
+          <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
+            Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
+          </p>
+        </AdminNotice>
 
         <AdminNotice open={Boolean(lockMessage)}>
           <p
@@ -756,16 +731,16 @@ export default function AdminOrderShippingOverride({
         </AdminNotice>
 
         <div
-          className="grid min-h-12 gap-2 border-t border-slate-200 px-4 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+          className="grid h-5 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t border-slate-200 px-4"
           data-shipping-automatic-summary
         >
-          <div className="flex min-w-0 items-baseline gap-2">
+          <div className="flex min-w-0 items-baseline gap-1.5">
             <p className="shrink-0 text-[11px] font-semibold leading-4 text-slate-900">Samodejni izračun</p>
             <p className="min-w-0 truncate text-[10px] leading-4 text-slate-500" title={automaticSummaryLabel}>
               {automaticSummaryLabel}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="flex items-center justify-end gap-1.5">
             <span className="shrink-0 text-[11px] font-semibold leading-4 tabular-nums text-slate-700">
               {automaticAmountCents === null
                 ? 'Ni na voljo'
@@ -781,7 +756,7 @@ export default function AdminOrderShippingOverride({
                   if (!externalEditMode) onRequestEdit();
                   setResetDialogOpen(true);
                 }}
-                className="shrink-0"
+                className="!h-4 !w-4 shrink-0 !p-0"
                 aria-label="Uporabi samodejno poštnino"
                 title={
                   automaticAmountCents === null
@@ -790,7 +765,7 @@ export default function AdminOrderShippingOverride({
                 }
                 data-testid="admin-order-shipping-reset-button"
               >
-                <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
+                <Calculator className="h-3 w-3" aria-hidden="true" />
               </IconButton>
             ) : null}
           </div>

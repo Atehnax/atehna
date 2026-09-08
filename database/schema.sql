@@ -2910,7 +2910,9 @@ create index idx_order_email_jobs_sent_retention
 
 -- Blob deletion is an external side effect and cannot be atomic with the
 -- database transaction. Queue every target before deleting its database row;
--- failures remain here for the next cleanup run.
+-- targets remain here for explicit storage lifecycle review. An outbox row is
+-- not deletion permission: retained references, recovery, and exact approval
+-- must be checked before deletion and acknowledgment.
 create table archive_blob_deletion_outbox (
   id bigserial primary key,
   blob_target text not null unique,

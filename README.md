@@ -382,3 +382,5 @@ truth for actual route-level transfer and cache behavior.
 
 # License
 Internal / project-specific.
+
+Storage review, exact recovery preparation, approved deletion and outbox acknowledgment: [Storage lifecycle](docs/storage-lifecycle.md).

@@ -3573,7 +3573,21 @@ $function$;
 create trigger catalog_variant_pricing_stock_history after update on catalog_item_variants
   for each row execute function record_catalog_variant_pricing_stock();
 
+-- Additive supplier directory. Article labels survive removal from the catalog.
+create table catalog_supplier_rows (
+  id text constraint catalog_supplier_rows_pkey primary key,
+  position integer not null,
+  catalog_item_id bigint constraint catalog_supplier_rows_catalog_item_fk references catalog_items(id) on delete set null,
+  article_label text not null default '',
+  cells jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint catalog_supplier_rows_cells_check check (jsonb_typeof(cells) = 'object')
+);
+create index catalog_supplier_rows_position_idx on catalog_supplier_rows(position, id);
+create index catalog_supplier_rows_catalog_item_idx on catalog_supplier_rows(catalog_item_id);
+
 insert into app_schema_contracts (contract_id, contract_sha256, installed_via)
-values ('20260908.admin-auth-v1', 'aaa39829b4667551c9736c21a786f809421f91f58435ff6e5ba981236edbf026', 'fresh_schema');
+values ('20260908.catalog-suppliers-v1', 'd36a4541b84a9b3da8fe4dea4abf7d088ea370deee89da2274ddb64c6b58414e', 'fresh_schema');
 
 commit;

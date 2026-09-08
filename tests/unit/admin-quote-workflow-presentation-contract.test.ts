@@ -509,7 +509,7 @@ test('quote administrator notes use the shared compact card and precede PDF docu
   assert.match(notesPresenter, /block h-10 min-h-10 w-full resize-none/u);
   assert.match(notesPresenter, /data-admin-card-edit-action=\{editActionId\}/u);
   assert.match(notesPresenter, /aria-pressed=\{isEditing\}/u);
-  assert.match(notesPresenter, /className="flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3"/u);
+  assert.match(notesPresenter, /className="flex h-10 w-full items-center rounded-md border border-slate-300 bg-\[color:var\(--field-locked-bg\)\] px-3"/u);
   assert.match(notesPresenter, /min-w-0 flex-1 truncate text-\[13px\]/u);
   assert.match(notesPresenter, /title=\{persistedValue\}/u);
 });

@@ -1,3 +1,4 @@
+import { isPaidOrder, paidOrderCents, paidOrderNetCents } from '@/shared/domain/analytics/paidOrders';
 import 'server-only';
 import { parseBusinessOriginFilters, matchesBusinessQuoteFilters } from '@/shared/domain/analytics/filters';
 import { quoteAnalyticsStart, type BusinessAnalyticsSettings } from '@/shared/domain/analytics/businessSettings';
@@ -47,7 +48,7 @@ const canonicalOrdersSql = (includeDetails: boolean, submittedFrom: boolean) => 
     candidate.customer_directory_profile_id, candidate.school_directory_row_id, candidate.customer_type,
     candidate.organization_name, candidate.contact_name, candidate.address_line1, candidate.address_line2,
     candidate.postal_code, candidate.city, candidate.country_code, candidate.gurs_house_number_id,
-    candidate.contract_status, candidate.commitment_status, candidate.status, candidate.source_quote_offer_version_id,
+    candidate.contract_status, candidate.commitment_status, candidate.status, candidate.payment_status, candidate.source_quote_offer_version_id,
     candidate.subtotal, candidate.currency, candidate.merchandise_refund_net, candidate.refund_history_complete,
     candidate.shipping_tax_rate,
     ${includeDetails ? 'candidate.analytics_fulfilled_lines_json, candidate.shipping_snapshot_json, candidate.actual_packed_weight_grams, candidate.actual_carrier_cost_net, candidate.actual_parcel_count, candidate.preparation_minutes, candidate.actual_oversize,' : ''}
@@ -72,7 +73,7 @@ const canonicalOrdersSql = (includeDetails: boolean, submittedFrom: boolean) => 
     ${submittedFrom ? 'and candidate.created_at >= $2::timestamptz' : ''}
   order by candidate.created_at, candidate.id
 `;
-export function mapCanonicalOrder(row: Record<string, unknown>): CanonicalOrder { const snapshot = object(row.analytics_snapshot_json); const snapshotOrigin = snapshot.origin === 'captured' ? 'captured' : snapshot.origin === 'legacy' ? 'legacy' : 'missing'; const currentAddress = { addressLine1: row.address_line1, addressLine2: row.address_line2, postalCode: row.postal_code, city: row.city, countryCode: row.country_code, gursHouseNumberId: row.gurs_house_number_id }; const type = String(snapshot.customerType ?? row.customer_type ?? 'unknown'); const linkedCustomer = row.school_directory_row_id ? `school:${row.school_directory_row_id}` : row.customer_directory_profile_id ? `profile:${row.customer_directory_profile_id}` : null; const initialCents = nullableNumber(snapshot.subtotalNetCents); const lineSubtotal = nullableNumber(row.original_subtotal_cents); const activityCents = row.currency !== 'EUR' ? null : snapshotOrigin === 'captured' ? initialCents : lineSubtotal ?? initialCents ?? decimalCents(row.subtotal); const contractEligible = row.contract_status === 'accepted' && row.commitment_status === 'binding'; const realised = contractEligible && (iso(row.analytics_fulfilled_at) !== null || row.is_historical === true && ['sent', 'finished'].includes(String(row.status))); return { id: String(row.id), number: String(row.order_number), submittedAt: iso(row.created_at)!, entrySource: row.entry_source === 'website' || row.entry_source === 'manual' ? row.entry_source : null, isHistorical: row.is_historical === true, realised, fulfilledAt: contractEligible ? iso(row.analytics_fulfilled_at) : null, customerKey: linkedCustomer, customerType: isCustomerType(type) ? type : 'unknown', customerName: String(snapshot.customerName ?? row.organization_name ?? row.contact_name ?? 'Nepovezan naročnik'), activityCents, fulfilledCents: contractEligible && row.currency === 'EUR' ? decimalCents(row.analytics_fulfilled_merchandise_net) : null, refundCents: decimalCents(row.merchandise_refund_net), refundComplete: row.refund_history_complete === true, status: String(row.status), source: row.source_quote_offer_version_id ? 'quote' : 'direct', addressSnapshot: Object.keys(object(snapshot.address)).length ? object(snapshot.address) : currentAddress, snapshotOrigin, fulfilledLines: Array.isArray(row.analytics_fulfilled_lines_json) ? row.analytics_fulfilled_lines_json as CanonicalOrder['lines'] : undefined, shippingGrossCents: nullableNumber(snapshot.shippingGrossCents), shippingTaxRate: nullableNumber(snapshot.shippingTaxRate) ?? nullableNumber(row.shipping_tax_rate), shippingSnapshot: snapshot.shippingSnapshot ?? row.shipping_snapshot_json, packedWeightGrams: nullableNumber(row.actual_packed_weight_grams), carrierCostNetCents: decimalCents(row.actual_carrier_cost_net), parcelCount: nullableNumber(row.actual_parcel_count), preparationMinutes: nullableNumber(row.preparation_minutes), oversize: typeof row.actual_oversize === 'boolean' ? row.actual_oversize : null, lines: Array.isArray(row.analytics_lines) ? row.analytics_lines.map((value: unknown) => { const line = object(value); return { id: String(line.id), key: String(line.key), name: String(line.name), category: String(line.category), quantity: Number(line.quantity), lineNetCents: Number(line.lineNetCents), unitCostCents: nullableNumber(line.unitCostCents) }; }) : [] }; }
+export function mapCanonicalOrder(row: Record<string, unknown>): CanonicalOrder { const snapshot = object(row.analytics_snapshot_json); const snapshotOrigin = snapshot.origin === 'captured' ? 'captured' : snapshot.origin === 'legacy' ? 'legacy' : 'missing'; const currentAddress = { addressLine1: row.address_line1, addressLine2: row.address_line2, postalCode: row.postal_code, city: row.city, countryCode: row.country_code, gursHouseNumberId: row.gurs_house_number_id }; const type = String(snapshot.customerType ?? row.customer_type ?? 'unknown'); const linkedCustomer = row.school_directory_row_id ? `school:${row.school_directory_row_id}` : row.customer_directory_profile_id ? `profile:${row.customer_directory_profile_id}` : null; const initialCents = nullableNumber(snapshot.subtotalNetCents); const lineSubtotal = nullableNumber(row.original_subtotal_cents); const activityCents = row.currency !== 'EUR' ? null : snapshotOrigin === 'captured' ? initialCents : lineSubtotal ?? initialCents ?? decimalCents(row.subtotal); const contractEligible = row.contract_status === 'accepted' && row.commitment_status === 'binding'; const realised = contractEligible && (iso(row.analytics_fulfilled_at) !== null || row.is_historical === true && ['sent', 'finished'].includes(String(row.status))); return { id: String(row.id), number: String(row.order_number), submittedAt: iso(row.created_at)!, entrySource: row.entry_source === 'website' || row.entry_source === 'manual' ? row.entry_source : null, isHistorical: row.is_historical === true, realised, fulfilledAt: contractEligible ? iso(row.analytics_fulfilled_at) : null, customerKey: linkedCustomer, customerType: isCustomerType(type) ? type : 'unknown', customerName: String(snapshot.customerName ?? row.organization_name ?? row.contact_name ?? 'Nepovezan naročnik'), activityCents, fulfilledCents: contractEligible && row.currency === 'EUR' ? decimalCents(row.analytics_fulfilled_merchandise_net) : null, paymentStatus: typeof row.payment_status === 'string' ? row.payment_status : null, contractStatus: typeof row.contract_status === 'string' ? row.contract_status : null, paidCents: row.currency === 'EUR' ? decimalCents(row.subtotal) : null, refundCents: decimalCents(row.merchandise_refund_net), refundComplete: row.refund_history_complete === true, status: String(row.status), source: row.source_quote_offer_version_id ? 'quote' : 'direct', addressSnapshot: Object.keys(object(snapshot.address)).length ? object(snapshot.address) : currentAddress, snapshotOrigin, fulfilledLines: Array.isArray(row.analytics_fulfilled_lines_json) ? row.analytics_fulfilled_lines_json as CanonicalOrder['lines'] : undefined, shippingGrossCents: nullableNumber(snapshot.shippingGrossCents), shippingTaxRate: nullableNumber(snapshot.shippingTaxRate) ?? nullableNumber(row.shipping_tax_rate), shippingSnapshot: snapshot.shippingSnapshot ?? row.shipping_snapshot_json, packedWeightGrams: nullableNumber(row.actual_packed_weight_grams), carrierCostNetCents: decimalCents(row.actual_carrier_cost_net), parcelCount: nullableNumber(row.actual_parcel_count), preparationMinutes: nullableNumber(row.preparation_minutes), oversize: typeof row.actual_oversize === 'boolean' ? row.actual_oversize : null, lines: Array.isArray(row.analytics_lines) ? row.analytics_lines.map((value: unknown) => { const line = object(value); return { id: String(line.id), key: String(line.key), name: String(line.name), category: String(line.category), quantity: Number(line.quantity), lineNetCents: Number(line.lineNetCents), unitCostCents: nullableNumber(line.unitCostCents) }; }) : [] }; }
 async function readOrders(client: PoolClient, asOf: Date, includeDetails = false, submittedFrom?: string): Promise<CanonicalOrder[]> { const result = await profileRoutePhase('db', 'business-orders', () => client.query(canonicalOrdersSql(includeDetails, submittedFrom !== undefined), submittedFrom === undefined ? [asOf.toISOString()] : [asOf.toISOString(), submittedFrom])); return result.rows.map(mapCanonicalOrder); }
 async function readQuotes(client: PoolClient, asOf: Date, settings: BusinessAnalyticsSettings): Promise<CanonicalQuote[]> { const start = quoteAnalyticsStart(settings.quoteGoLiveDate); if (start === null) return []; const result = await profileRoutePhase('db', 'business-quotes', () => client.query(`
   with first_issue as (
@@ -128,7 +129,7 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
   const period = resolveBusinessPeriod(filters, asOf);
   const kind = params.get('kind') ?? 'orders';
   const basis = params.get('basis') ?? 'activity';
-  if (!['orders', 'quotes', 'requests'].includes(kind) || !['activity', 'realised', 'lorenz', 'mature', 'issued', 'quote-response', 'quote-decision', 'weight'].includes(basis)) {
+  if (!['orders', 'quotes', 'requests'].includes(kind) || !['activity', 'paid', 'paid-net', 'realised', 'lorenz', 'mature', 'issued', 'quote-response', 'quote-decision', 'weight'].includes(basis)) {
     throw new BusinessAnalyticsInputError('Neveljavna populacija zapisov.');
   }
   const valueUnit = basis === 'quote-response' || basis === 'quote-decision' ? 'h' : basis === 'weight' ? 'kg' : 'EUR';
@@ -141,7 +142,6 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
   if (topCustomerCount !== null && (!Number.isSafeInteger(topCustomerCount) || topCustomerCount < 0 || basis !== 'lorenz' || population !== null)) throw new BusinessAnalyticsInputError('Število vodilnih naročnikov mora biti nenegativno celo število na populaciji Lorenz.');
   if (population !== null && (population < 0 || population > 1)) throw new BusinessAnalyticsInputError('Delež naročnikov mora biti med 0 in 1.');
   const date = params.get('date');
-  const { localDate } = await import('@/shared/domain/analytics/period');
   const inclusiveMax = params.get('last') === 'true' || params.get('inclusiveMax') === 'true';
   const acceptsValue = (value: number | null) => (min === null || value !== null && value >= min) && (max === null || value !== null && (inclusiveMax ? value <= max : value < max));
   const finish = (records: BusinessRecord[]): BusinessDrilldownResponse => {
@@ -192,7 +192,7 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
     const orders = allOrders.filter((order) => matchesBusinessFilters(order, filters));
     const firstMonthByCustomer = new Map<string, string>();
     for (const order of orders) {
-      if (!order.customerKey || !isRealisedOrder(order, asOf.toISOString())) continue;
+      if (!order.customerKey || !isPaidOrder(order)) continue;
       const month = localDate(order.submittedAt).slice(0, 7);
       const previous = firstMonthByCustomer.get(order.customerKey);
       if (!previous || month < previous) firstMonthByCustomer.set(order.customerKey, month);
@@ -201,28 +201,32 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
     if (basis === 'lorenz' && (population !== null || topCustomerCount !== null)) {
       const customerValues = new Map<string, bigint>();
       for (const order of orders) {
-        if (!order.customerKey || order.fulfilledCents === null || order.fulfilledCents < 0 || (!isRealisedOrder(order, asOf.toISOString()) || !inPeriod(order.submittedAt, period))) continue;
-        customerValues.set(order.customerKey, (customerValues.get(order.customerKey) ?? 0n) + BigInt(order.fulfilledCents));
+        const cents = paidOrderCents(order);
+        if (!order.customerKey || cents === null || cents < 0 || !isPaidOrder(order) || !inPeriod(order.submittedAt, period)) continue;
+        customerValues.set(order.customerKey, (customerValues.get(order.customerKey) ?? 0n) + BigInt(cents));
       }
       const rankedDescending = [...customerValues].sort((left, right) => left[1] === right[1] ? 0 : left[1] < right[1] ? 1 : -1);
       const selected = topCustomerCount !== null ? rankedDescending.slice(0, topCustomerCount) : rankedDescending.reverse().slice(0, Math.ceil(rankedDescending.length * population! - 1e-10));
       lorenzCustomers = new Set(selected.map(([key]) => key));
     }
-    const realised = basis === 'realised' || basis === 'lorenz' || params.has('cohort');
-    const value = (order: CanonicalOrder): number | null => basis === 'weight'
-      ? order.packedWeightGrams === null ? null : order.packedWeightGrams / 1000
-      : realised
-        ? order.fulfilledCents === null ? null : basis === 'lorenz' || params.has('cohort') ? order.fulfilledCents / 100 : order.refundComplete && order.refundCents !== null ? (order.fulfilledCents - order.refundCents) / 100 : null
-        : order.activityCents === null ? null : order.activityCents / 100;
+    const realised = basis === 'realised' && !params.has('cohort');
+    const paid = basis === 'paid' || basis === 'paid-net' || basis === 'lorenz' || params.has('cohort');
+    const value = (order: CanonicalOrder): number | null => {
+      if (basis === 'weight') return order.packedWeightGrams === null ? null : order.packedWeightGrams / 1000;
+      if (paid) { const cents = basis === 'paid-net' ? paidOrderNetCents(order) : paidOrderCents(order); return cents === null ? null : cents / 100; }
+      if (realised) return order.fulfilledCents !== null && order.refundComplete && order.refundCents !== null ? (order.fulfilledCents - order.refundCents) / 100 : null;
+      return order.activityCents === null ? null : order.activityCents / 100;
+    };
     return finish(orders.filter((order) => {
       const eventDate = order.submittedAt;
       const cohort = params.get('cohort');
       const cohortMonth = params.has('cohortMonth') ? Number(params.get('cohortMonth')) : null;
-      const fulfilledMonth = isRealisedOrder(order, asOf.toISOString()) ? localDate(order.submittedAt).slice(0, 7) : null;
+      const fulfilledMonth = isPaidOrder(order) ? localDate(order.submittedAt).slice(0, 7) : null;
       const elapsedMonths = cohort && fulfilledMonth ? (Number(fulfilledMonth.slice(0, 4)) - Number(cohort.slice(0, 4))) * 12 + Number(fulfilledMonth.slice(5, 7)) - Number(cohort.slice(5, 7)) : null;
       return (!realised || isRealisedOrder(order, asOf.toISOString()))
+        && (!paid || isPaidOrder(order))
         && (cohort ? !!order.customerKey && firstMonthByCustomer.get(order.customerKey) === cohort && (cohortMonth === null || elapsedMonths === cohortMonth) : inPeriod(eventDate, period))
-        && (basis !== 'lorenz' || !!order.customerKey && order.fulfilledCents !== null && order.fulfilledCents >= 0)
+        && (basis !== 'lorenz' || !!order.customerKey && paidOrderCents(order) !== null && paidOrderCents(order)! >= 0)
         && (basis !== 'weight' || order.packedWeightGrams !== null)
         && (!lorenzCustomers || !!order.customerKey && lorenzCustomers.has(order.customerKey))
         && acceptsValue(value(order))
@@ -233,12 +237,12 @@ export async function fetchBusinessRecords(params: URLSearchParams, exportAll = 
         && (!params.get('sourceGroup') || order.source === params.get('sourceGroup'));
     }).map((order) => ({
       id: order.id, number: order.number, date: order.submittedAt,
-      customerType: order.customerType, customerName: order.customerName, status: order.status,
+      customerType: order.customerType, customerName: order.customerName, status: order.status, paymentStatus: order.paymentStatus,
       source: order.source, entrySource: order.entrySource, isHistorical: order.isHistorical, valueUnit, value: value(order), href: orderHref(order)
     })));
   });
 }
-export function businessRecordsCsv(records: BusinessRecord[]): string { const quote = (value: unknown) => { const text = value === null ? 'Manjka podatek' : String(value); const safe = typeof value !== 'number' && /^[=+@\-]/.test(text) ? `'${text}` : text; return `"${safe.replaceAll('"', '""')}"`; }; return '\ufeff' + [['ID', 'Številka', 'Datum naročila / prve izdaje / prejema UTC', 'Tip naročnika', 'Naročnik', 'Status', 'Potek', 'Način vnosa', 'Zgodovinsko naročilo', 'Vrednost izbrane metrike', 'Enota (EUR brez DDV in poštnine, h ali kg)'], ...records.map((record) => [record.id, record.number, record.date, record.customerType, record.customerName, record.status, record.source, record.entrySource ?? 'unknown', record.isHistorical === undefined ? '' : record.isHistorical ? 'Da' : 'Ne', record.value, record.valueUnit ?? 'EUR'])].map((row) => row.map(quote).join(';')).join('\r\n'); }
+export function businessRecordsCsv(records: BusinessRecord[]): string { const quote = (value: unknown) => { const text = value === null ? 'Manjka podatek' : String(value); const safe = typeof value !== 'number' && /^[=+@\-]/.test(text) ? `'${text}` : text; return `"${safe.replaceAll('"', '""')}"`; }; return '\ufeff' + [['ID', 'Številka', 'Datum naročila / prve izdaje / prejema UTC', 'Tip naročnika', 'Naročnik', 'Status', 'Status plačila', 'Potek', 'Način vnosa', 'Zgodovinsko naročilo', 'Vrednost izbrane metrike', 'Enota (EUR brez DDV in poštnine, h ali kg)'], ...records.map((record) => [record.id, record.number, record.date, record.customerType, record.customerName, record.status, record.paymentStatus ?? '', record.source, record.entrySource ?? 'unknown', record.isHistorical === undefined ? '' : record.isHistorical ? 'Da' : 'Ne', record.value, record.valueUnit ?? 'EUR'])].map((row) => row.map(quote).join(';')).join('\r\n'); }
 
 /** Read canonical opportunities once, without loading order or operational details. */
 export async function fetchBusinessQuotePreview(asOf = new Date()) {

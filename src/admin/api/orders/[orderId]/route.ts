@@ -24,7 +24,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
   const params = await props.params;
   try {
     const orderId = Number(params.orderId);
-    if (!Number.isFinite(orderId)) {
+    if (!Number.isSafeInteger(orderId) || orderId <= 0) {
       return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
     }
 
@@ -53,11 +53,6 @@ export async function DELETE(request: Request, props: { params: Promise<{ orderI
       }
 
       order = orderResult.rows[0] as OrderDeleteRow;
-
-      if (order.archived_at) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ code: 'ORDER_ARCHIVED_DELETE_BLOCKED', message: 'Pred premikom v koš naročilo najprej vrnite iz arhiva.' }, { status: 409 });
-      }
 
       if (order.source_quote_offer_version_id !== null) {
         await client.query('ROLLBACK');

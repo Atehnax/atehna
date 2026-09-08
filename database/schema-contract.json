@@ -1,6 +1,6 @@
 {
-  "contractId": "20260908.admin-auth-v1",
-  "contractSha256": "aaa39829b4667551c9736c21a786f809421f91f58435ff6e5ba981236edbf026",
+  "contractId": "20260908.catalog-suppliers-v1",
+  "contractSha256": "d36a4541b84a9b3da8fe4dea4abf7d088ea370deee89da2274ddb64c6b58414e",
   "requirements": {
     "extensions": [
       "pg_trgm",
@@ -29,6 +29,7 @@
       "catalog_media",
       "catalog_option_axes",
       "catalog_option_values",
+      "catalog_supplier_rows",
       "catalog_variant_media",
       "catalog_variant_option_values",
       "customer_directory_profiles",
@@ -1406,6 +1407,52 @@
         "dataType": "timestamp with time zone",
         "nullable": false,
         "defaultEquals": null
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "position",
+        "dataType": "integer",
+        "nullable": false
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_item_id",
+        "dataType": "bigint",
+        "nullable": true
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "article_label",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": "''::text"
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "cells",
+        "dataType": "jsonb",
+        "nullable": false,
+        "defaultEquals": "'{}'::jsonb"
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "created_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
       }
     ],
     "constraints": [
@@ -1802,6 +1849,18 @@
         "name": "admin_session_policy_idle_check",
         "type": "check",
         "definitionEquals": "CHECK (idle_timeout_minutes >= 1 AND idle_timeout_minutes <= 1440)"
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_supplier_rows_catalog_item_fk",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (catalog_item_id) REFERENCES catalog_items(id) ON DELETE SET NULL"
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_supplier_rows_cells_check",
+        "type": "check",
+        "definitionEquals": "CHECK (jsonb_typeof(cells) = 'object'::text)"
       }
     ],
     "functions": [
@@ -2468,6 +2527,33 @@
         "definitionIncludes": [
           "admin_login_attempt",
           "admin_login_attempt_window_idx"
+        ]
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_supplier_rows_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX catalog_supplier_rows_pkey ON public.catalog_supplier_rows USING btree (id)",
+        "definitionIncludes": [
+          "catalog_supplier_rows",
+          "catalog_supplier_rows_pkey"
+        ]
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_supplier_rows_position_idx",
+        "definitionEquals": "CREATE INDEX catalog_supplier_rows_position_idx ON public.catalog_supplier_rows USING btree (\"position\", id)",
+        "definitionIncludes": [
+          "catalog_supplier_rows",
+          "catalog_supplier_rows_position_idx"
+        ]
+      },
+      {
+        "table": "catalog_supplier_rows",
+        "name": "catalog_supplier_rows_catalog_item_idx",
+        "definitionEquals": "CREATE INDEX catalog_supplier_rows_catalog_item_idx ON public.catalog_supplier_rows USING btree (catalog_item_id)",
+        "definitionIncludes": [
+          "catalog_supplier_rows",
+          "catalog_supplier_rows_catalog_item_idx"
         ]
       }
     ],

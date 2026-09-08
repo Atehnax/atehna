@@ -78,7 +78,7 @@ export function AdminNotesCard({
           />
         ) : persistedValue.trim() ? (
           <div
-            className="flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3"
+            className="flex h-10 w-full items-center rounded-md border border-slate-300 bg-[color:var(--field-locked-bg)] px-3"
             title={persistedValue}
           >
             <span className="min-w-0 flex-1 truncate text-[13px] leading-5 text-slate-700">

@@ -1,5 +1,7 @@
 'use client';
 
+import { AdminNotice } from '@/shared/ui/admin-detail/AdminNotice';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Calculator } from 'lucide-react';
 import type {
@@ -714,11 +716,11 @@ export default function AdminOrderShippingOverride({
                   />
                 </label>
               </div>
-              {parcelCountHardLocked && !quoteDerived ? (
+              <AdminNotice open={parcelCountHardLocked && !quoteDerived}>
                 <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
                   Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
                 </p>
-              ) : null}
+              </AdminNotice>
             </div>
           </div>
           <div
@@ -744,14 +746,14 @@ export default function AdminOrderShippingOverride({
           </div>
         </div>
 
-        {lockMessage ? (
+        <AdminNotice open={Boolean(lockMessage)}>
           <p
             className="border-t border-slate-300 bg-slate-100 px-4 py-1.5 text-[11px] font-medium leading-4 text-slate-700"
             data-shipping-lock-message
           >
             {lockMessage}
           </p>
-        ) : null}
+        </AdminNotice>
 
         <div
           className="grid min-h-12 gap-2 border-t border-slate-200 px-4 py-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"

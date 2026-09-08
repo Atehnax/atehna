@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { SupplierCatalogOption } from '@/shared/domain/supplierDirectory';
+import { CustomSelect } from '@/shared/ui/select';
 import type {
   SchoolDirectoryColumn,
   SchoolDirectoryData,
@@ -90,14 +92,14 @@ type PendingDelete = {
   rows: SchoolDirectoryRow[];
 };
 
-const FILTERABLE_COLUMN_IDS = [
+const SCHOOL_FILTERABLE_COLUMN_IDS = [
   'statisticna-regija',
   'obcina',
   'postna-stevilka',
   'posta'
 ] as const;
 
-type FilterableColumnId = (typeof FILTERABLE_COLUMN_IDS)[number];
+type FilterableColumnId = string;
 type SchoolColumnFilters = Record<FilterableColumnId, string>;
 
 type MutationResponse = {
@@ -134,18 +136,26 @@ class SchoolDirectoryRequestError extends Error {
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const EMPTY_COLUMN_FILTERS: SchoolColumnFilters = {
+  artikel: '',
+  dobavitelj: '',
+  naslov: '',
+  kontakt: '',
+  'e-naslov': '',
+  'spletna-stran': '',
   'statisticna-regija': '',
   obcina: '',
   'postna-stevilka': '',
   posta: ''
 };
 const FILTERABLE_COLUMN_LABELS: Record<FilterableColumnId, string> = {
+  artikel: 'Artikel', dobavitelj: 'Dobavitelj', naslov: 'Naslov', kontakt: 'Kontakt', 'e-naslov': 'E-naslov', 'spletna-stran': 'Spletna stran', opombe: 'Opombe',
   'statisticna-regija': 'Statistična regija',
   obcina: 'Občina',
   'postna-stevilka': 'P. št.',
   posta: 'Pošta'
 };
 const FILTERABLE_COLUMN_ALL_LABELS: Record<FilterableColumnId, string> = {
+  artikel: 'Vsi artikli', dobavitelj: 'Vsi dobavitelji', naslov: 'Vsi naslovi', kontakt: 'Vsi kontakti', 'e-naslov': 'Vsi e-naslovi', 'spletna-stran': 'Vse spletne strani', opombe: 'Vse opombe',
   'statisticna-regija': 'Vse statistične regije',
   obcina: 'Vse občine',
   'postna-stevilka': 'Vse poštne številke',
@@ -161,6 +171,8 @@ const DEFAULT_HIDDEN_COLUMN_IDS = new Set([
 ]);
 const MATCHING_VALUE_HOVER_COLUMN_IDS = new Set([
   'naziv',
+  'artikel',
+  'dobavitelj',
   'naslov',
   'postna-stevilka',
   'posta'
@@ -177,6 +189,7 @@ const SCHOOL_FIXED_COLUMNS_WIDTH = SCHOOL_SELECTION_COLUMN_WIDTH
   + SCHOOL_ROW_NUMBER_COLUMN_WIDTH
   + SCHOOL_ACTIONS_COLUMN_WIDTH;
 const SCHOOL_COLUMN_WIDTHS: Record<string, number> = {
+  artikel: 250, dobavitelj: 210, kontakt: 160, opombe: 240,
   zavsif: 112,
   prsmss: 112,
   'statisticna-regija': 200,
@@ -197,9 +210,6 @@ const EMPTY_CELL_MATCH_VALUE = '\u0000empty-cell';
 const FILTER_MENU_MIN_WIDTH = 120;
 const FILTER_MENU_MAX_WIDTH = 360;
 const FILTER_MENU_HORIZONTAL_CHROME = 52;
-
-const isFilterableColumnId = (columnId: string): columnId is FilterableColumnId =>
-  FILTERABLE_COLUMN_IDS.includes(columnId as FilterableColumnId);
 
 const getColumnTitle = (column: SchoolDirectoryColumn) => COLUMN_TITLE_OVERRIDES[column.id] ?? column.label;
 const isCenteredColumn = (columnId: string) => columnId === 'postna-stevilka';
@@ -312,7 +322,18 @@ const getResponsiveSchoolColumnWidth = (columnId: string, totalColumnWidth: numb
   return `calc(${percentage}% - ${fixedColumnOffset}px)`;
 };
 
-export default function AdminSchoolsTable({ initialDirectory }: { initialDirectory: SchoolDirectoryData }) {
+type DirectoryTableProps = { initialDirectory: SchoolDirectoryData; supplierArticles?: SupplierCatalogOption[] };
+
+export default function AdminSchoolsTable({ initialDirectory, supplierArticles }: DirectoryTableProps) {
+  const isSupplierDirectory = supplierArticles !== undefined;
+  const FILTERABLE_COLUMN_IDS: readonly string[] = useMemo(() => isSupplierDirectory
+    ? ['artikel', 'dobavitelj', 'naslov', 'kontakt', 'e-naslov', 'spletna-stran']
+    : SCHOOL_FILTERABLE_COLUMN_IDS, [isSupplierDirectory]);
+  const articleLabels = useMemo(() => new Map(supplierArticles?.map(article => [article.value, article.label])), [supplierArticles]);
+  const cellDisplayValue = useCallback((columnId: string, value: string) =>
+    isSupplierDirectory && columnId === 'artikel' ? articleLabels.get(value) ?? value : value,
+  [articleLabels, isSupplierDirectory]);
+  const rowLabel = (row: SchoolDirectoryRow) => row.cells[isSupplierDirectory ? 'dobavitelj' : 'naziv'];
   const [columns] = useState(initialDirectory.columns);
   const [rows, setRows] = useState(initialDirectory.rows);
   const [query, setQuery] = useState('');
@@ -367,7 +388,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
     FILTERABLE_COLUMN_IDS.forEach((columnId) => {
       const uniqueValues = new Map<string, string>();
       rows.forEach((row) => {
-        const value = (row.cells[columnId] ?? '').trim();
+        const value = cellDisplayValue(columnId, row.cells[columnId] ?? '').trim();
         if (!value) return;
         const comparableValue = normalizeComparableCellValue(value);
         if (!uniqueValues.has(comparableValue)) uniqueValues.set(comparableValue, value);
@@ -376,7 +397,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
         schoolCellCollator.compare(left, right));
     });
     return options;
-  }, [rows]);
+  }, [rows, FILTERABLE_COLUMN_IDS, cellDisplayValue]);
   const columnFilterMenuWidths = useMemo<Record<FilterableColumnId, number>>(() => {
     const widths = {} as Record<FilterableColumnId, number>;
     FILTERABLE_COLUMN_IDS.forEach((columnId) => {
@@ -386,41 +407,41 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
       ]);
     });
     return widths;
-  }, [columnFilterOptions]);
+  }, [columnFilterOptions, FILTERABLE_COLUMN_IDS]);
   const activeColumnFilters = useMemo(
     () => FILTERABLE_COLUMN_IDS.flatMap((columnId) => {
       const value = columnFilters[columnId];
       return value ? [{ columnId, label: FILTERABLE_COLUMN_LABELS[columnId], value }] : [];
     }),
-    [columnFilters]
+    [columnFilters, FILTERABLE_COLUMN_IDS]
   );
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('sl');
     const orderedRows = [...rows].sort(compareCanonicalRowOrder);
     return orderedRows.filter((row) => {
       const matchesSearch = !normalizedQuery || orderedColumns.some((column) =>
-        (row.cells[column.id] ?? '').toLocaleLowerCase('sl').includes(normalizedQuery));
+        cellDisplayValue(column.id, row.cells[column.id] ?? '').toLocaleLowerCase('sl').includes(normalizedQuery));
       const matchesColumnFilters = FILTERABLE_COLUMN_IDS.every((columnId) => {
         const selectedValue = columnFilters[columnId];
         return !selectedValue
-          || normalizeComparableCellValue(row.cells[columnId] ?? '') === normalizeComparableCellValue(selectedValue);
+          || normalizeComparableCellValue(cellDisplayValue(columnId, row.cells[columnId] ?? '')) === normalizeComparableCellValue(selectedValue);
       });
       return matchesSearch && matchesColumnFilters;
     });
-  }, [columnFilters, orderedColumns, query, rows]);
+  }, [columnFilters, orderedColumns, query, rows, FILTERABLE_COLUMN_IDS, cellDisplayValue]);
   const filteredAndSortedRows = useMemo(() => {
     if (!sortState) return filteredRows;
 
     const nonEmptyValues = rows
-      .map((row) => row.cells[sortState.columnId] ?? '')
+      .map((row) => cellDisplayValue(sortState.columnId, row.cells[sortState.columnId] ?? ''))
       .filter((value) => value.trim().length > 0);
     const isNumericColumn = nonEmptyValues.length > 0
       && nonEmptyValues.every((value) => parseNumericCellValue(value) !== null);
     const directionMultiplier = sortState.direction === 'asc' ? 1 : -1;
 
     return [...filteredRows].sort((left, right) => {
-      const leftValue = left.cells[sortState.columnId] ?? '';
-      const rightValue = right.cells[sortState.columnId] ?? '';
+      const leftValue = cellDisplayValue(sortState.columnId, left.cells[sortState.columnId] ?? '');
+      const rightValue = cellDisplayValue(sortState.columnId, right.cells[sortState.columnId] ?? '');
       const leftIsBlank = leftValue.trim().length === 0;
       const rightIsBlank = rightValue.trim().length === 0;
 
@@ -433,10 +454,10 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
       if (primaryResult !== 0) return primaryResult * directionMultiplier;
       return compareCanonicalRowOrder(left, right);
     });
-  }, [filteredRows, rows, sortState]);
+  }, [filteredRows, rows, sortState, cellDisplayValue]);
   const pagination = useTablePagination({
     totalCount: filteredRows.length,
-    storageKey: 'admin-schools-page-size-v3',
+    storageKey: isSupplierDirectory ? 'admin-suppliers-page-size-v1' : 'admin-schools-page-size-v3',
     defaultPageSize: 25,
     pageSizeOptions: PAGE_SIZE_OPTIONS
   });
@@ -517,7 +538,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
     if (!persistenceAvailable) throw new Error('Povezava z bazo ni nastavljena.');
     setPendingMutations((count) => count + 1);
     try {
-      const response = await fetch('/api/admin/schools', {
+      const response = await fetch(isSupplierDirectory ? '/api/admin/suppliers' : '/api/admin/schools', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(mutation)
@@ -619,7 +640,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
 
   const copyColumnValues = async (column: SchoolDirectoryColumn) => {
     const values = filteredAndSortedRows.flatMap((row) =>
-      (row.cells[column.id] ?? '')
+      cellDisplayValue(column.id, row.cells[column.id] ?? '')
         .split(/[;\r\n]+/)
         .map((value) => value.trim())
         .filter(Boolean));
@@ -646,21 +667,21 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
     setIsExportMenuOpen(false);
     const sourceRows = hasSelectedRows ? selectedRows : filteredAndSortedRows;
     if (sourceRows.length === 0) {
-      toast.info('Ni šol za izvoz glede na trenutne filtre.');
+      toast.info(isSupplierDirectory ? 'Ni dobaviteljev za izvoz glede na trenutne filtre.' : 'Ni šol za izvoz glede na trenutne filtre.');
       return;
     }
 
     const exportRows = [
       orderedColumns.map((column) => getColumnTitle(column)),
       ...sourceRows.map((row) =>
-        orderedColumns.map((column) => row.cells[column.id] ?? ''))
+        orderedColumns.map((column) => cellDisplayValue(column.id, row.cells[column.id] ?? '')))
     ];
 
     try {
       if (format === 'csv') {
-        downloadTableAsCsv(exportRows, 'seznam-sol.csv');
+        downloadTableAsCsv(exportRows, isSupplierDirectory ? 'dobavitelji.csv' : 'seznam-sol.csv');
       } else {
-        downloadTableAsXlsx(exportRows, 'seznam-sol.xlsx', { sheetName: 'Seznam šol' });
+        downloadTableAsXlsx(exportRows, isSupplierDirectory ? 'dobavitelji.xlsx' : 'seznam-sol.xlsx', { sheetName: isSupplierDirectory ? 'Dobavitelji' : 'Seznam šol' });
       }
       toast.success(`${hasSelectedRows ? 'Izbrane vrstice so izvožene' : 'Tabela je izvožena'} kot ${format.toUpperCase()}.`);
     } catch {
@@ -752,7 +773,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
       if (response.row) {
         setRows((currentRows) => currentRows.map((row) => row.id === rowId ? response.row as SchoolDirectoryRow : row));
       }
-      toast.success('Nova stranka je dodana.');
+      toast.success(isSupplierDirectory ? 'Dobavitelj je dodan.' : 'Nova stranka je dodana.');
     } catch (error) {
       setRows((currentRows) => currentRows.filter((row) => row.id !== rowId));
       toast.error(error instanceof Error ? error.message : 'Vrstice ni bilo mogoče dodati.');
@@ -869,7 +890,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
     <div className="space-y-3">
       {!persistenceAvailable ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Prikazani so uvoženi podatki, vendar povezava z bazo ni na voljo. Urejanje je začasno onemogočeno.
+          {isSupplierDirectory ? 'Povezava z bazo ni na voljo. Urejanje dobaviteljev je začasno onemogočeno.' : 'Prikazani so uvoženi podatki, vendar povezava z bazo ni na voljo. Urejanje je začasno onemogočeno.'}
         </div>
       ) : null}
 
@@ -884,7 +905,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             disabled={Boolean(activeRowEdit)}
-            placeholder="Išči po vseh podatkih šol ..."
+            placeholder={isSupplierDirectory ? 'Išči po vseh podatkih dobaviteljev ...' : 'Išči po vseh podatkih šol ...'}
             wrapperClassName={adminTableToolbarSearchWrapperClassName}
           />
         }
@@ -996,7 +1017,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
               disabled={!persistenceAvailable || isStructuralMutationPending || pendingMutations > 0 || Boolean(activeRowEdit)}
               onClick={() => void addRow()}
             >
-              Nova stranka
+              {isSupplierDirectory ? 'Nov dobavitelj' : 'Nova stranka'}
             </AdminTablePrimaryActionButton>
           </div>
         }
@@ -1092,7 +1113,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
               </TH>
               {visibleColumns.map((column) => {
                 const isSortedColumn = sortState?.columnId === column.id;
-                const filterableColumnId = isFilterableColumnId(column.id) ? column.id : null;
+                const filterableColumnId = FILTERABLE_COLUMN_IDS.includes(column.id) ? column.id : null;
                 const columnTitle = getColumnTitle(column);
                 const centered = isCenteredColumn(column.id);
                 const filterControlsDisabled = Boolean(activeRowEdit)
@@ -1175,7 +1196,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                   <EmptyState
                     title={query || activeColumnFilters.length > 0
                       ? 'Ni zadetkov za izbrano iskanje ali filtre.'
-                      : 'Seznam šol je prazen.'}
+                      : isSupplierDirectory ? 'Seznam dobaviteljev je prazen.' : 'Seznam šol je prazen.'}
                     description={query || activeColumnFilters.length > 0
                       ? 'Poskusite z drugim iskalnim nizom ali odstranite katerega od filtrov.'
                       : 'Dodajte prvo vrstico.'}
@@ -1196,7 +1217,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                       checked={isSelected}
                       disabled={selectionControlsDisabled}
                       onChange={() => toggleRowSelection(row.id)}
-                      aria-label={`Izberi ${row.cells.naziv || 'vrstico'}`}
+                      aria-label={`Izberi ${rowLabel(row) || 'vrstico'}`}
                     />
                   </div>
                 </TD>
@@ -1204,7 +1225,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                   <span className="tabular-nums">{rowNumberOffset + rowIndex + 1}</span>
                 </TD>
                 {visibleColumns.map((column, columnIndex) => {
-                  const value = row.cells[column.id] ?? '';
+                  const value = cellDisplayValue(column.id, row.cells[column.id] ?? '');
                   const columnTitle = getColumnTitle(column);
                   const centered = isCenteredColumn(column.id);
                   const supportsMatchingValueHover = MATCHING_VALUE_HOVER_COLUMN_IDS.has(column.id);
@@ -1217,7 +1238,19 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                       key={column.id}
                       className={centered ? adminTableBodyCellCenterClassName : adminTableBodyCellLeftClassName}
                     >
-                      {rowEdit ? (
+                      {rowEdit && isSupplierDirectory && column.id === 'artikel' ? (
+                        <CustomSelect
+                          value={rowEdit.draftCells.artikel ?? ''}
+                          options={[{ value: '', label: 'Izberite artikel' }, ...(supplierArticles ?? [])]}
+                          onChange={(value) => setActiveRowEdit(current => current?.rowId === row.id
+                            ? { ...current, draftCells: { ...current.draftCells, artikel: value } } : current)}
+                          disabled={rowEdit.isSaving}
+                          ariaLabel="Artikel, urejanje vrstice"
+                          triggerClassName={adminTableInlineEditInputClassName}
+                          containerClassName="min-w-0 w-full"
+                          menuClassName="min-w-[260px] max-w-[min(36rem,90vw)]"
+                        />
+                      ) : rowEdit ? (
                         <input
                           autoFocus={columnIndex === 0}
                           value={rowEdit.draftCells[column.id] ?? ''}
@@ -1324,7 +1357,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                         className={adminTableInlineConfirmButtonClassName}
                         onClick={() => void saveRowEdit()}
                         disabled={!isActiveRowDirty || rowEdit.isSaving}
-                        aria-label={`Shrani urejanje vrstice ${row.cells.naziv || row.id}`}
+                        aria-label={`Shrani urejanje vrstice ${rowLabel(row) || row.id}`}
                         title={isActiveRowDirty ? 'Shrani' : 'Ni sprememb za shranjevanje'}
                       >
                         <CheckIcon className={adminTableInlineConfirmIconClassName} strokeWidth={2.2} />
@@ -1336,7 +1369,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
                         className={adminTableInlineCancelButtonClassName}
                         onClick={cancelRowEdit}
                         disabled={rowEdit.isSaving}
-                        aria-label={`Prekliči urejanje vrstice ${row.cells.naziv || row.id}`}
+                        aria-label={`Prekliči urejanje vrstice ${rowLabel(row) || row.id}`}
                         title="Prekliči"
                       >
                         <CloseIcon
@@ -1468,7 +1501,7 @@ export default function AdminSchoolsTable({ initialDirectory }: { initialDirecto
         open={pendingDelete !== null}
         title={pendingDelete?.rows.length === 1 ? 'Izbrišem vrstico?' : 'Izbrišem izbrane vrstice?'}
         description={pendingDelete?.rows.length === 1
-          ? `Vrstica »${pendingDelete.rows[0]?.cells.naziv || 'izbrana vrstica'}« bo trajno izbrisana.`
+          ? `Vrstica »${(pendingDelete.rows[0] ? rowLabel(pendingDelete.rows[0]) : '') || 'izbrana vrstica'}« bo trajno izbrisana.`
           : `${pendingDelete?.rows.length ?? 0} izbranih vrstic bo trajno izbrisanih.`}
         confirmLabel="Izbriši"
         cancelLabel="Prekliči"

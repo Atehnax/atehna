@@ -64,9 +64,9 @@ test('legacy navigation redirects and backend guards preserve recoverable orders
   assert.match(source('src/admin/pages/arhiv/artikli/page.tsx'), /redirect\('\/admin\/trash\?view=articles'\)/u);
   assert.match(source('src/admin/pages/arhiv/podoba/page.tsx'), /redirect\('\/admin\/dnevnik'\)/u);
   const route = source('src/admin/api/orders/[orderId]/route.ts');
-  assert.ok(route.indexOf('if (order.archived_at)') < route.indexOf('update orders set deleted_at'));
+  assert.doesNotMatch(route, /ORDER_ARCHIVED_DELETE_BLOCKED/u);
   assert.doesNotMatch(route, /interval '90 days'|delete from orders/u);
-  assert.match(source('src/admin/api/archive/route.ts'), /TRASH_PERMANENT_DELETE_DISABLED[\s\S]*?status: 405/u);
+  assert.match(source('src/admin/api/archive/route.ts'), /permanentlyDeleteArchiveEntries/u);
   assert.doesNotMatch(source('src/admin/api/archive/cleanup/route.ts'), /cleanupExpiredArchiveEntries/u);
   const audit = source('src/shared/server/audit.ts');
   assert.match(audit, /delete from audit_events where id = any\(\$1::uuid\[\]\) and not \$\{DURABLE_ORDER_AUDIT_SQL\}/u);

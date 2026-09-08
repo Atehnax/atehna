@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import Link from 'next/link';
 import AdminOrderCustomerActions from '@/admin/features/orders/components/AdminOrderCustomerCard';
 import AdminAddressAutocompleteInput from '@/admin/components/AdminAddressAutocompleteInput';
@@ -33,10 +33,11 @@ import {
 } from '@/shared/domain/quote/quoteTypes';
 import { AdminChipDropdown } from '@/shared/ui/admin-controls/AdminChipDropdown';
 import { AdminDetailTitleSlot } from '@/shared/ui/admin-detail/AdminDetailTitleSlot';
+import { AdminNotice } from '@/shared/ui/admin-detail/AdminNotice';
 import { AdminNotesCard } from '@/shared/ui/admin-detail/AdminNotesCard';
 import { AdminUnitInput } from '@/shared/ui/admin-controls/AdminUnitInput';
 import { AdminInfoChip } from '@/shared/ui/badge';
-import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { AdminCatalogItemPicker } from '@/shared/ui/admin-detail/AdminCatalogItemPicker';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
 import { Button } from '@/shared/ui/button';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -45,7 +46,6 @@ import { ActionUndoIcon, CopyIcon, PencilIcon, PlusIcon, SaveIcon, TrashCanIcon 
 import { PdfPreviewDialog } from '@/shared/ui/pdf-preview-dialog';
 import { CustomSelect } from '@/shared/ui/select';
 import { useToast } from '@/shared/ui/toast';
-import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import {
   adminTableBodyCellCenterClassName,
   adminTableTextStackClassName,
@@ -60,9 +60,6 @@ import {
   adminTableHeaderCellLeftClassName,
   adminTableNeutralIconButtonClassName,
   adminTablePrimaryButtonClassName,
-  adminTableSearchIconClassName,
-  adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminWindowCardClassName,
   adminWindowCardStyle
@@ -735,7 +732,7 @@ function QuoteOfferFieldRow({
         <div className="flex h-7 min-w-0 flex-1 items-center">
           {isEditing ? children : (
             <span
-              className="block h-5 w-full min-w-0 truncate text-[11px] font-normal leading-5 text-slate-900"
+              className="flex h-7 w-full min-w-0 items-center overflow-hidden whitespace-nowrap rounded-md border border-slate-300 bg-[color:var(--field-locked-bg)] px-3 text-[11px] font-normal leading-5 text-slate-900"
               title={visibleValue}
             >
               {visibleValue}
@@ -757,7 +754,7 @@ function QuoteDetailFieldShell({
   className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
+    <div data-editing={isEditing} className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -966,162 +963,6 @@ const quoteItemDiscountSlotClassName = quoteItemQuantitySlotClassName;
 
 const quoteItemSelectionCheckboxClassName =
   'disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:opacity-60';
-const quoteItemPickerFocusableSelector = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])'
-].join(',');
-
-function QuoteCatalogItemPickerDialog({
-  open,
-  choices,
-  onAdd,
-  onClose,
-  triggerRef
-}: {
-  open: boolean;
-  choices: CatalogChoice[];
-  onAdd: (choice: CatalogChoice) => void;
-  onClose: () => void;
-  triggerRef: RefObject<HTMLButtonElement | null>;
-}) {
-  const [query, setQuery] = useState('');
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const dismissRefs = useMemo(() => [dialogRef] as const, []);
-  const dialogId = useId();
-  const titleId = useId();
-
-  const closeAndRestoreFocus = useCallback(() => {
-    onClose();
-    setQuery('');
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
-  }, [onClose, triggerRef]);
-
-  useDropdownDismiss({
-    open,
-    onClose: closeAndRestoreFocus,
-    refs: dismissRefs,
-    returnFocusRef: triggerRef
-  });
-
-  useEffect(() => {
-    if (!open) setQuery('');
-  }, [open]);
-
-  const filteredChoices = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('sl');
-    return choices.filter((choice) =>
-      !normalizedQuery
-        ? true
-        : choice.name.toLocaleLowerCase('sl').includes(normalizedQuery) ||
-          choice.sku.toLocaleLowerCase('sl').includes(normalizedQuery)
-    );
-  }, [choices, query]);
-
-  const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Tab') return;
-    const panel = dialogRef.current;
-    if (!panel) return;
-    const focusableElements = Array.from(
-      panel.querySelectorAll<HTMLElement>(quoteItemPickerFocusableSelector)
-    ).filter((element) => element.tabIndex >= 0 && !element.hasAttribute('disabled'));
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      panel.focus();
-      return;
-    }
-    const first = focusableElements[0];
-    const last = focusableElements[focusableElements.length - 1];
-    const activeElement = document.activeElement;
-    if (event.shiftKey && (activeElement === first || !panel.contains(activeElement))) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }, []);
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-      data-quote-item-picker-overlay
-    >
-      <div
-        id={dialogId}
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-        data-quote-item-picker-dialog
-        className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]"
-      >
-        <div className="flex items-center justify-between">
-          <h3 id={titleId} className="text-[13px] font-semibold text-slate-900">
-            Dodaj artikel v ponudbo
-          </h3>
-          <button
-            type="button"
-            className="text-[12px] text-slate-500 hover:text-slate-700"
-            onClick={closeAndRestoreFocus}
-          >
-            Zapri
-          </button>
-        </div>
-        <div className="mt-3">
-          <AdminSearchInput
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Išči po nazivu ali šifri"
-            aria-label="Išči artikel za ponudbo"
-            wrapperClassName={adminTableSearchWrapperClassName}
-            inputClassName={adminTableSearchInputClassName}
-            iconClassName={adminTableSearchIconClassName}
-          />
-        </div>
-        <div className="mt-3 max-h-[360px] overflow-y-auto rounded-md border border-slate-200">
-          {filteredChoices.map((choice) => (
-            <button
-              key={choice.catalogVariantId}
-              type="button"
-              onClick={() => {
-                onAdd(choice);
-                closeAndRestoreFocus();
-              }}
-              className="flex w-full items-center justify-between gap-4 border-b border-slate-200/80 px-3 py-3 text-left text-[12px] text-slate-700 transition-colors hover:bg-[color:var(--admin-table-row-hover)] last:border-b-0"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-medium text-slate-900">
-                  {itemTitle(choice)}
-                </span>
-                <span className="mt-0.5 block truncate text-[10px] text-slate-500">
-                  SKU: {choice.sku}
-                </span>
-              </span>
-              <span className="shrink-0 tabular-nums text-slate-600">
-                {formatCurrency(choice.unitPrice)}
-              </span>
-            </button>
-          ))}
-          {filteredChoices.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[12px] text-slate-500">
-              Ni ujemajočih artiklov.
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function QuoteItemsComparisonTable({
   requestedItems,
   draftItems,
@@ -1160,12 +1001,30 @@ function QuoteItemsComparisonTable({
     editable &&
     sourceItems.length > 0 &&
     sourceItems.every((item) => selectedDraftItemIds.includes(item.id));
-  const baseCatalogOptions = catalogChoices.map((choice) => ({
-    value: String(choice.catalogVariantId),
-    label: choice.name + ' · ' + choice.sku
-  }));
+  const [pickerItemId, setPickerItemId] = useState<number | null>(null);
+  const pickerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const pickerDialogId = useId();
+  const closePicker = useCallback(() => setPickerItemId(null), []);
+  const pickerItem = draftItems?.find(item => item.id === pickerItemId);
+  useEffect(() => { if (!editable) setPickerItemId(null); }, [editable]);
+  const selectCatalogItem = (choice: CatalogChoice) => {
+    if (!pickerItem || disabled) return;
+    const discountPct = normaliseDiscount(choice.discountPercentage);
+    onUpdateDraftItem(pickerItem.id, {
+      catalogItemId: choice.catalogItemId,
+      catalogVariantId: choice.catalogVariantId,
+      productName: choice.productName,
+      variantName: choice.variantName,
+      sku: choice.sku,
+      unit: choice.unit,
+      baseUnitNet: choice.unitPrice,
+      discountPct,
+      unitNet: unitNetFromDiscount(choice.unitPrice, discountPct)
+    });
+  };
 
   return (
+    <>
     <div className="overflow-x-auto border-y border-slate-200 bg-white">
       <table
         className="w-full min-w-[680px] table-fixed text-[12px]"
@@ -1217,19 +1076,6 @@ function QuoteItemsComparisonTable({
             : 'postavka ' + lineNumber;
           const offeredSku =
             draftItem?.sku || snapshotItem?.sku || requestedItem?.sku || '';
-          const catalogOptions = [...baseCatalogOptions];
-          if (
-            draftItem &&
-            draftItem.catalogVariantId > 0 &&
-            !catalogChoices.some(
-              (choice) => choice.catalogVariantId === draftItem.catalogVariantId
-            )
-          ) {
-            catalogOptions.unshift({
-              value: String(draftItem.catalogVariantId),
-              label: itemTitle(draftItem) + ' · ' + (draftItem.sku || 'brez SKU')
-            });
-          }
 
           return (
             <tbody key={lineNumber} className="border-t border-slate-200/90">
@@ -1313,56 +1159,22 @@ function QuoteItemsComparisonTable({
                   <td className={adminTableBodyCellLeftClassName + ' py-2'}>
                     <div className={adminTableTextStackClassName}>
                       {draftItem ? (
-                        <CustomSelect
-                          value={
-                            draftItem.catalogVariantId > 0
-                              ? String(draftItem.catalogVariantId)
-                              : ''
-                          }
-                          onChange={(catalogVariantId) => {
-                            const choice = catalogChoices.find(
-                              (candidate) =>
-                                candidate.catalogVariantId === Number(catalogVariantId)
-                            );
-                            if (!choice) return;
-                            const discountPct = normaliseDiscount(
-                              choice.discountPercentage
-                            );
-                            onUpdateDraftItem(draftItem.id, {
-                              catalogItemId: choice.catalogItemId,
-                              catalogVariantId: choice.catalogVariantId,
-                              productName: choice.productName,
-                              variantName: choice.variantName,
-                              sku: choice.sku,
-                              unit: choice.unit,
-                              baseUnitNet: choice.unitPrice,
-                              discountPct,
-                              unitNet: unitNetFromDiscount(
-                                choice.unitPrice,
-                                discountPct
-                              )
-                            });
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            pickerTriggerRef.current = event.currentTarget;
+                            setPickerItemId(draftItem.id);
                           }}
-                          options={catalogOptions}
-                          disabled={
-                            disabled ||
-                            catalogLoadState !== 'ready' ||
-                            catalogChoices.length === 0
-                          }
-                          placeholder={
-                            catalogLoadState === 'loading' ||
-                            catalogLoadState === 'idle'
-                              ? 'Nalagam katalog …'
-                              : catalogLoadState === 'error'
-                                ? 'Kataloga ni mogoče naložiti'
-                                : 'Izberite artikel'
-                          }
-                          ariaLabel={'Ponujeni artikel ' + rowLabel}
-                          containerClassName="w-full"
-                          className={compactInputClassName + ' !h-7 w-full text-left'}
-                          valueClassName="text-[11px] font-medium text-slate-900"
-                          menuClassName="text-[11px]"
-                        />
+                          aria-label={'Ponujeni artikel ' + rowLabel}
+                          aria-haspopup="dialog"
+                          aria-expanded={pickerItemId === draftItem.id}
+                          aria-controls={pickerDialogId}
+                          disabled={disabled || catalogLoadState !== 'ready' || catalogChoices.length === 0}
+                          className={compactInputClassName + ' !h-7 w-full truncate text-left font-medium'}
+                          title={itemTitle(draftItem) + ' · ' + draftItem.sku}
+                        >
+                          {itemTitle(draftItem)} · {draftItem.sku}
+                        </button>
                       ) : (
                         <span
                           data-item-title
@@ -1496,6 +1308,19 @@ function QuoteItemsComparisonTable({
         })}
       </table>
     </div>
+    <AdminCatalogItemPicker
+      open={Boolean(pickerItem)}
+      choices={catalogChoices}
+      onSelect={selectCatalogItem}
+      onClose={closePicker}
+      triggerRef={pickerTriggerRef}
+      dialogId={pickerDialogId}
+      title="Izberi artikel za ponudbo"
+      searchLabel="Išči artikel za ponudbo"
+      context="quote"
+      getChoiceLabel={itemTitle}
+    />
+    </>
   );
 }
 export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteDetail }) {
@@ -3134,16 +2959,14 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
               </button>
             </div>
 
-            {currentIssuedVersion ? (
-              <p
-                className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800"
-                data-testid="quote-customer-correction-revision-notice"
+            <AdminNotice open={Boolean(currentIssuedVersion)} spacingClassName="pt-3"
+                className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800"
+                testId="quote-customer-correction-revision-notice"
               >
                 {draftVersion
                   ? 'Popravki podatkov se shranijo v novo različico. Trenutno izdana ponudba ostane nespremenjena.'
                   : 'Popravki podatkov ob shranjevanju ustvarijo novo različico. Trenutno izdana ponudba ostane nespremenjena.'}
-              </p>
-            ) : null}
+            </AdminNotice>
 
             <dl className={`mt-2 grid min-w-0 gap-x-8 md:grid-cols-2 ${customerDetailStyles.detailsGrid}`}>
               <QuoteDetailRow label="Št. povpraševanja" value={detail.quoteCode} icon="reference" isEditing={false} noWrapLabel
@@ -3611,12 +3434,16 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
 
             </section>
           </section>
-          <QuoteCatalogItemPickerDialog
+          <AdminCatalogItemPicker
             open={isQuoteItemPickerOpen}
             choices={catalogChoices}
-            onAdd={addCatalogItemToDraft}
+            onSelect={addCatalogItemToDraft}
             onClose={closeQuoteItemPicker}
             triggerRef={quoteItemPickerTriggerRef}
+            title="Dodaj artikel v ponudbo"
+            searchLabel="Išči artikel za ponudbo"
+            context="quote"
+            getChoiceLabel={itemTitle}
           />
 
         </main>

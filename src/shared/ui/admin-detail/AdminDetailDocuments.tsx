@@ -1,3 +1,4 @@
+import { AdminNotice } from './AdminNotice';
 import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
@@ -36,14 +37,10 @@ export function AdminDetailDocumentsCard({
       ) : null}
 
       <h2 className="text-base font-semibold text-slate-900">PDF dokumenti</h2>
-      {notice ? (
-        <p
-          id={noticeId}
-          className="mt-1.5 text-[11px] leading-4 text-amber-700"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <AdminNotice open={Boolean(notice)} id={noticeId} spacingClassName="pt-1.5"
+        className="text-[11px] leading-4 text-amber-700">
+        {notice}
+      </AdminNotice>
       <div className="mt-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {children}
       </div>

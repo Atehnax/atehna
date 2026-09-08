@@ -251,6 +251,7 @@ async function captureCustomerFieldPresentation(card: Locator, rowAttribute: str
     const style = getComputedStyle(shell);
     return {
       box: { x, y: y + window.scrollY, width, height },
+      editing: shell.getAttribute('data-editing') === 'true',
       background: style.backgroundColor,
       borderColor: style.borderColor,
       borderWidth: style.borderWidth,
@@ -1027,6 +1028,94 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
     });
   }
 
+  test('quote row replacement uses the shared order popup with search and keyboard focus', async ({ page }, testInfo) => {
+    await page.goto(`/admin/orders/${fixture.orderId}`);
+    await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
+    const orderAdd = page.getByRole('button', { name: 'Dodaj postavko', exact: true });
+    await orderAdd.click();
+    const orderPicker = page.getByRole('dialog', { name: 'Dodaj artikel', exact: true });
+    await expect(orderPicker.getByRole('searchbox', { name: 'Išči artikel' })).toBeFocused();
+    const orderPickerClass = await orderPicker.getAttribute('class');
+    await page.keyboard.press('Escape');
+    await expect(orderPicker).toHaveCount(0);
+    await expect(orderAdd).toBeFocused();
+
+    await page.goto(`/admin/orders/quotes/${fixture.quoteRequestId}`);
+    await page.getByTestId('quote-offer-card').getByRole('button', { name: 'Uredi ponudbo', exact: true }).click();
+    const table = page.getByTestId('quote-items-comparison-table');
+    const requestedText = await table.locator('[data-item-row="requested"]').innerText();
+    const rowPicker = table.getByRole('button', { name: /^Ponujeni artikel /u }).first();
+    await expect(rowPicker).toBeEnabled();
+    await rowPicker.click();
+    const picker = page.getByRole('dialog', { name: 'Izberi artikel za ponudbo', exact: true });
+    await expect(picker).toHaveAttribute('class', orderPickerClass!);
+    await expect(picker).toHaveAttribute('aria-modal', 'true');
+    const search = picker.getByRole('searchbox', { name: 'Išči artikel za ponudbo' });
+    await expect(search).toBeFocused();
+    await search.fill('definitely-no-such-catalog-item');
+    await expect(picker.getByText('Ni ujemajočih artiklov.')).toBeVisible();
+    await search.fill('MAT-KOV-ALU-200');
+    const choice = picker.getByRole('button', { name: /MAT-KOV-ALU-200/u });
+    await expect(choice).toHaveCount(1);
+    await search.press('Shift+Tab');
+    await expect(picker.getByRole('button', { name: 'Zapri', exact: true })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(choice).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(picker.getByRole('button', { name: 'Zapri', exact: true })).toBeFocused();
+    await testInfo.attach('quote-shared-item-picker', { body: await picker.screenshot(), contentType: 'image/png' });
+    await choice.click();
+    await expect(picker).toHaveCount(0);
+    await expect(rowPicker).toBeFocused();
+    await expect(rowPicker).toContainText('MAT-KOV-ALU-200');
+    expect(await table.locator('[data-item-row="requested"]').innerText()).toBe(requestedText);
+    await rowPicker.click();
+    await expect(search).toHaveValue('');
+    await page.keyboard.press('Escape');
+    await expect(rowPicker).toBeFocused();
+  });
+
+  test('order date stays white while editing and draft notices animate both ways with reduced motion', async ({ page }) => {
+    const original = (await database.query<{ is_draft: boolean }>('select is_draft from orders where id = $1', [fixture.orderId])).rows[0]!;
+    try {
+      await database.query('update orders set is_draft = true where id = $1', [fixture.orderId]);
+      for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+        await page.emulateMedia({ reducedMotion });
+        await page.goto(`/admin/orders/${fixture.orderId}`);
+        const notice = page.getByTestId('admin-order-draft-notice');
+        await expect(notice).toBeVisible();
+        const noticeFrame = notice.locator('xpath=../../..');
+        const fullHeight = (await box(noticeFrame)).height;
+        const card = page.getByTestId('admin-order-data-card');
+        await card.locator('button[data-admin-card-edit-action]').click();
+        const date = card.getByRole('combobox', { name: 'Datum naročila' });
+        await expect(date).toBeVisible();
+        expect(await date.locator('..').evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)');
+        expect(await date.evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+        await date.click();
+        await expect(page.getByRole('dialog', { name: 'Izbira datuma' })).toBeVisible();
+        await page.keyboard.press('Escape');
+        const message = card.getByRole('textbox', { name: 'Sporočilo stranke', exact: true });
+        const originalMessage = await message.inputValue();
+        await message.fill(originalMessage + ' sprememba');
+        if (reducedMotion === 'no-preference') {
+          await expect(noticeFrame).toHaveAttribute('data-open', 'false');
+          expect((await box(noticeFrame)).height).toBeLessThanOrEqual(fullHeight);
+          expect(await noticeFrame.evaluate(element => getComputedStyle(element).transitionDuration)).toContain('0.24s');
+        }
+        await expect(notice).toHaveCount(0);
+        await message.fill(originalMessage);
+        await expect(notice).toBeVisible();
+        await expect(noticeFrame).toHaveAttribute('data-open', 'true');
+        if (reducedMotion === 'reduce') {
+          expect(await noticeFrame.evaluate(element => getComputedStyle(element).transitionDuration)).toBe('0s');
+        }
+      }
+    } finally {
+      await database.query('update orders set is_draft = $2 where id = $1', [fixture.orderId, original.is_draft]);
+    }
+  });
+
   for (const kind of ['quote', 'order'] as const) {
     test(`${kind} first data row copies the complete immutable public code`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: 1280, height: 920 });
@@ -1057,7 +1146,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       fieldPresentation.forEach((field, index) => {
         const editingField = editingPresentation[index]!;
         expectSameBox(field.box, editingField.box);
-        expect({ ...editingField, box: undefined }).toEqual({ ...field, box: undefined });
+        expect(field.background).toBe('rgb(245, 246, 248)');
+        expect(editingField.background).toBe(editingField.editing ? 'rgb(255, 255, 255)' : field.background);
+        expect({ ...editingField, box: undefined, background: undefined, editing: undefined }).toEqual({ ...field, box: undefined, background: undefined, editing: undefined });
       });
       expect(await customerTypeTextColor(card, rowAttribute)).toBe(typeColor);
       await testInfo.attach(`${kind}-customer-desktop-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-desktop-edit.png`) }), contentType: 'image/png' });
@@ -1092,7 +1183,10 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         const framesAfter = await captureCustomerFieldPresentation(card, rowAttribute);
         framesBefore.forEach((field, index) => {
           expectSameBox(field.box, framesAfter[index]!.box);
-          expect({ ...framesAfter[index], box: undefined }).toEqual({ ...field, box: undefined });
+          const editingField = framesAfter[index]!;
+          expect(field.background).toBe('rgb(245, 246, 248)');
+          expect(editingField.background).toBe(editingField.editing ? 'rgb(255, 255, 255)' : field.background);
+          expect({ ...editingField, box: undefined, background: undefined, editing: undefined }).toEqual({ ...field, box: undefined, background: undefined, editing: undefined });
         });
         const extra = card.getByLabel('Dodatni naslov', { exact: true });
         await expect(extra).toHaveAttribute('placeholder', 'Ni dodatka');

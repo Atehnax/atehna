@@ -1,3 +1,4 @@
+import { ArchiveDeleteConflictError, permanentlyDeleteArchiveEntries } from '@/shared/server/purgeDeletedArchive';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import {
@@ -46,11 +47,28 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE() {
-  return NextResponse.json(
-    { code: 'TRASH_PERMANENT_DELETE_DISABLED', message: 'Naročila in dokumenti v košu ostanejo na voljo za obnovo. Trajni izbris ni dovoljen.' },
-    { status: 405, headers: { Allow: 'GET, PATCH' } }
-  );
+export async function DELETE(request: Request) {
+  try {
+    const parsed = await readRequiredJsonRecord(request);
+    if (!parsed.ok) return parsed.response;
+    const { ids = [], targets = [] } = parsed.body;
+    if (!Array.isArray(ids) || !Array.isArray(targets) || ids.length + targets.length > 1000 ||
+      !ids.every(id => Number.isSafeInteger(id) && id > 0) || !targets.every(target => isRestoreTarget(target) &&
+        (target.order_id === null || (Number.isSafeInteger(target.order_id) && target.order_id > 0)) &&
+        (target.document_id === null || (Number.isSafeInteger(target.document_id) && target.document_id > 0))) ||
+      ids.length + targets.length === 0) {
+      return NextResponse.json({ message: 'Izberite veljavne zapise za trajni izbris.' }, { status: 400 });
+    }
+    const result = await permanentlyDeleteArchiveEntries(request, ids, targets);
+    revalidatePath('/admin/trash');
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/orders/[orderId]', 'page');
+    revalidatePath('/admin/analitika');
+    return NextResponse.json({ success: true, ...result });
+  } catch (error) {
+    const conflict = error instanceof ArchiveDeleteConflictError;
+    return NextResponse.json({ message: conflict ? error.message : 'Trajni izbris ni uspel. Poskusite znova.', code: conflict ? error.code : undefined }, { status: conflict ? 409 : 500 });
+  }
 }
 
 export async function PATCH(request: Request) {

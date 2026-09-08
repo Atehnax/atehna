@@ -1,3 +1,6 @@
+import AdminSuppliersTable from '@/admin/features/artikli/components/AdminSuppliersTable';
+import { getSupplierDirectory } from '@/shared/server/supplierDirectory';
+import { SUPPLIER_DIRECTORY_COLUMNS, type SupplierDirectoryData } from '@/shared/domain/supplierDirectory';
 import AdminArticlesWorkspace from '@/admin/features/artikli/components/AdminArticlesWorkspace';
 import AdminItemsManagerLoader from '@/admin/features/artikli/components/AdminItemsManagerLoader';
 import AdminInventoryPolicyControl from '@/admin/features/artikli/components/AdminInventoryPolicyControl';
@@ -64,13 +67,23 @@ async function AdminItemsManagerSection() {
 }
 
 
+async function AdminSuppliersSection() {
+  let directory: SupplierDirectoryData;
+  try { directory = await getSupplierDirectory(); }
+  catch (error) {
+    if (!isDatabaseUnavailableError(error)) throw error;
+    directory = { columns: SUPPLIER_DIRECTORY_COLUMNS, rows: [], articles: [], updatedAt: null, persistenceAvailable: false };
+  }
+  return <AdminSuppliersTable initialDirectory={directory} />;
+}
+
 export default async function AdminArtikliPage({ searchParams }: { searchParams?: Promise<{ view?: string | string[] }> }) {
   const params = await searchParams;
-  const view = params?.view === 'pricing-stock' ? 'pricing-stock' : 'list';
+  const view = params?.view === 'pricing-stock' ? 'pricing-stock' : params?.view === 'suppliers' ? 'suppliers' : 'list';
   return (
     <div className="w-full space-y-4">
       <AdminPageHeader title="Artikli" description="Urejanje artiklov, statusov in prikaza v katalogu." />
-      <AdminArticlesWorkspace view={view}>{view === 'list' ? await AdminItemsManagerSection() : null}</AdminArticlesWorkspace>
+      <AdminArticlesWorkspace view={view}>{view === 'list' ? await AdminItemsManagerSection() : view === 'suppliers' ? await AdminSuppliersSection() : null}</AdminArticlesWorkspace>
     </div>
   );
 }

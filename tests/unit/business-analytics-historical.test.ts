@@ -18,7 +18,7 @@ const filters: BusinessFilters = { range: 'custom', from: '2026-08-01', to: '202
 const order = (patch: Partial<CanonicalOrder> = {}): CanonicalOrder => ({
   id: '1', number: 'N-1', submittedAt: '2026-08-05T10:00:00.000Z', fulfilledAt: '2026-09-01T10:00:00.000Z',
   customerKey: 'profile:1', customerType: 'company', customerName: 'Primer', activityCents: 10000, fulfilledCents: 10000,
-  refundCents: 0, refundComplete: true, status: 'finished', source: 'direct', entrySource: 'manual', isHistorical: false,
+  refundCents: 0, refundComplete: true, status: 'finished', paymentStatus: 'paid', source: 'direct', entrySource: 'manual', isHistorical: false,
   addressSnapshot: {}, snapshotOrigin: 'captured', shippingGrossCents: null, shippingTaxRate: null, shippingSnapshot: null,
   packedWeightGrams: null, carrierCostNetCents: null, parcelCount: null, preparationMinutes: null, oversize: null,
   lines: [{ id: '1', key: 'variant:1', name: 'Artikel', category: 'Kategorija', quantity: 1, lineNetCents: 10000, unitCostCents: null }], ...patch

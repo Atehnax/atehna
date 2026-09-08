@@ -78,6 +78,11 @@ To preserve credentials that are already securely supplied as `ADMIN_USERNAME` a
 node scripts/init-admin-account.mjs --import-legacy-env
 ```
 
+The explicit legacy import preserves an existing nonempty password of 1–128
+characters, including one shorter than the current new-password minimum. This
+exception applies only to this offline import flag. Interactive initialization and
+subsequent password changes continue to require 12–128 characters.
+
 Do not put plaintext passwords into shell history. Both modes refuse to overwrite
 an existing administrator. The initializer locks the account table, inserts the
 user and Better Auth credential hash atomically, and records a security audit

@@ -37,12 +37,13 @@ export async function main(args = process.argv.slice(2)) {
   if (args.length > 1 || (args.length === 1 && args[0] !== '--import-legacy-env')) {
     throw new AdminAccountSetupError('Usage: node scripts/init-admin-account.mjs [--import-legacy-env]. Credentials are never accepted as arguments.');
   }
+  const initializationOptions = { legacyImport: args[0] === '--import-legacy-env' };
   const pool = createAdminSetupPool();
   try {
     await verifyDatabaseContract(pool, await loadManifest());
     let credentials;
     if (args[0] === '--import-legacy-env') {
-      credentials = validateAdminCredentials(process.env.ADMIN_USERNAME, process.env.ADMIN_PASSWORD);
+      credentials = validateAdminCredentials(process.env.ADMIN_USERNAME, process.env.ADMIN_PASSWORD, initializationOptions);
     } else {
       const username = await promptLine('Administrator username: ');
       const password = await promptLine('Administrator password (hidden): ', true);
@@ -50,7 +51,7 @@ export async function main(args = process.argv.slice(2)) {
       if (password !== confirmation) throw new AdminAccountSetupError('Passwords do not match. No account was created.');
       credentials = validateAdminCredentials(username, password);
     }
-    await initializeAdminAccount(pool, credentials);
+    await initializeAdminAccount(pool, credentials, initializationOptions);
     console.info('Administrator account initialized. Remove legacy ADMIN_USERNAME, ADMIN_PASSWORD and ADMIN_SESSION_TTL_SECONDS from runtime configuration.');
   } finally { await pool.end(); }
 }

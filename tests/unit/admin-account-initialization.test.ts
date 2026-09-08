@@ -70,3 +70,39 @@ test('offline initialization rolls back account creation when its mandatory audi
   assert.equal(pool.queries.at(-1)?.text, 'rollback');
   assert.equal(pool.released, true);
 });
+
+test('legacy password bounds require an explicit offline import option', () => {
+  for (const password of ['x', 'x'.repeat(11)]) {
+    assert.throws(() => validateAdminCredentials('Admin', password), /12–128/u);
+    assert.throws(() => validateAdminCredentials('Admin', password, { legacyImport: false }), /12–128/u);
+    assert.equal(validateAdminCredentials('Admin', password, { legacyImport: true }).password, password);
+  }
+  for (const password of ['x'.repeat(12), 'x'.repeat(128)]) {
+    assert.equal(validateAdminCredentials('Admin', password).password, password);
+    assert.equal(validateAdminCredentials('Admin', password, { legacyImport: true }).password, password);
+  }
+  for (const password of ['', 'x'.repeat(129), undefined, null, 1]) {
+    assert.throws(() => validateAdminCredentials('Admin', password));
+    assert.throws(() => validateAdminCredentials('Admin', password, { legacyImport: true }));
+  }
+});
+
+test('explicit offline legacy import hashes a short existing password without relaxing normal creation', async () => {
+  const normal = fakePool();
+  await assert.rejects(initializeAdminAccount(normal, { username: 'Admin', password: 'legacy' }), /12–128/u);
+  assert.equal(normal.queries.length, 0);
+  const legacy = fakePool();
+  await initializeAdminAccount(legacy, { username: 'Admin', password: 'legacy' }, { legacyImport: true });
+  const account = legacy.queries.find(query => query.text.startsWith('insert into public.admin_auth_account'))!;
+  assert.equal(await verifyPassword({ hash: String(account.values[2]), password: 'legacy' }), true);
+  assert.notEqual(account.values[2], 'legacy');
+  assert.equal(legacy.queries.at(-1)?.text, 'commit');
+});
+
+test('legacy import still refuses to overwrite an existing account', async () => {
+  const pool = fakePool({ existing: true });
+  await assert.rejects(initializeAdminAccount(pool, { username: 'Admin', password: 'legacy' }, { legacyImport: true }), /already exists/u);
+  assert.equal(pool.queries.some(query => query.text.startsWith('insert')), false);
+  assert.equal(pool.queries.at(-1)?.text, 'rollback');
+  assert.equal(pool.released, true);
+});

@@ -3,20 +3,21 @@ import { hashPassword } from 'better-auth/crypto';
 
 export class AdminAccountSetupError extends Error {}
 
-export function validateAdminCredentials(username, password) {
+export function validateAdminCredentials(username, password, options = {}) {
   const normalizedUsername = typeof username === 'string' ? username.trim() : '';
   if (!normalizedUsername || normalizedUsername.length > 128 || /[\u0000-\u001f\u007f-\u009f]/u.test(normalizedUsername)) {
     throw new AdminAccountSetupError('Username must contain 1–128 characters without control characters.');
   }
-  if (typeof password !== 'string' || password.length < 12 || password.length > 128) {
-    throw new AdminAccountSetupError('Password must contain 12–128 characters.');
+  const minimumPasswordLength = options.legacyImport === true ? 1 : 12;
+  if (typeof password !== 'string' || password.length < minimumPasswordLength || password.length > 128) {
+    throw new AdminAccountSetupError('Password must contain ' + minimumPasswordLength + '–128 characters.');
   }
   return { username: normalizedUsername, password };
 }
 
 /** Offline only. The runtime never imports this initializer or creates accounts. */
-export async function initializeAdminAccount(pool, input) {
-  const { username, password } = validateAdminCredentials(input.username, input.password);
+export async function initializeAdminAccount(pool, input, options = {}) {
+  const { username, password } = validateAdminCredentials(input.username, input.password, options);
   const passwordHash = await hashPassword(password);
   const client = await pool.connect();
   let transactionStarted = false;

@@ -129,3 +129,53 @@ test('a trashed child PDF can be permanently deleted without selecting or restor
   const entries = await database.query("select id from deleted_archive_entries where item_type='order' and order_id=$1", [id]);
   expect((await request.delete('/api/admin/archive', { data: { ids: entries.rows.map(entry => Number(entry.id)) } })).ok()).toBeTruthy();
 });
+
+test('a restore queued behind permanent deletion returns a conflict and never records a false restoration', async ({ request }) => {
+  test.setTimeout(60_000);
+  const created = await request.post('/api/admin/orders');
+  expect(created.ok()).toBeTruthy();
+  const orderId = Number((await created.json()).orderId);
+  expect((await request.delete(`/api/admin/orders/${orderId}`)).ok()).toBeTruthy();
+  const archiveId = Number((await database.query("select id from deleted_archive_entries where item_type='order' and order_id=$1", [orderId])).rows[0].id);
+  const blocker = await database.connect();
+  let holdingLock = false;
+  let purge: ReturnType<typeof request.delete> | undefined;
+  let restore: ReturnType<typeof request.patch> | undefined;
+  try {
+    await blocker.query('BEGIN');
+    holdingLock = true;
+    const blockerPid = Number((await blocker.query('select pg_backend_pid() as pid')).rows[0].pid);
+    await blocker.query('select id from orders where id=$1 for update', [orderId]);
+    purge = request.delete('/api/admin/archive', { data: { ids: [archiveId] } });
+    let purgePid: number | null = null;
+    await expect.poll(async () => {
+      const waiting = await database.query(`select pid from pg_stat_activity
+        where datname=current_database() and wait_event_type='Lock'
+          and $1::int = any(pg_blocking_pids(pid))
+          and query like '%select id, deleted_at, source_quote_offer_version_id from orders%'`, [blockerPid]);
+      purgePid = waiting.rows.length ? Number(waiting.rows[0].pid) : null;
+      return purgePid;
+    }, { timeout: 10_000, message: 'Purge holds the archive entry while waiting for the test-owned order lock.' }).not.toBeNull();
+    restore = request.patch('/api/admin/archive', { data: { ids: [archiveId] } });
+    await expect.poll(async () => {
+      const waiting = await database.query(`select pid from pg_stat_activity
+        where datname=current_database() and wait_event_type='Lock'
+          and $1::int = any(pg_blocking_pids(pid))
+          and query like '%from deleted_archive_entries e%'`, [purgePid]);
+      return waiting.rows.length;
+    }, { timeout: 10_000, message: 'Restore must wait on the same archive entry before reading or updating resources.' }).toBe(1);
+    await blocker.query('COMMIT');
+    holdingLock = false;
+    const [purged, restored] = await Promise.all([purge, restore]);
+    expect(purged.status()).toBe(200);
+    expect(restored.status()).toBe(409);
+    expect((await restored.json()).code).toBe('ARCHIVE_RESTORE_CONFLICT');
+    expect((await database.query('select id from orders where id=$1', [orderId])).rowCount).toBe(0);
+    expect((await database.query("select id from audit_events where entity_type='order' and entity_id=$1 and action='restored' and metadata_json->>'archive_entry_id'=$2", [String(orderId), String(archiveId)])).rowCount).toBe(0);
+    expect((await database.query("select id from audit_events where entity_type='order' and entity_id=$1 and metadata_json->>'permanent_delete'='true'", [String(orderId)])).rowCount).toBe(1);
+  } finally {
+    try { if (holdingLock) await blocker.query('ROLLBACK'); }
+    finally { blocker.release(); }
+    await Promise.allSettled([purge, restore].filter((operation): operation is NonNullable<typeof operation> => operation !== undefined));
+  }
+});

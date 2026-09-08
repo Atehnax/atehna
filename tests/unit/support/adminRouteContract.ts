@@ -29,4 +29,3 @@ export function assertProtectedAdminRouteBinding(
   assert.equal(declaration.initializer.arguments[0]?.getText(source), binding);
   assert.match(text, /import \{ withAdminRoute \} from '@\/shared\/auth\/adminRoute'/u);
 }
-

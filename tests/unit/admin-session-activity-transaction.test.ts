@@ -96,4 +96,3 @@ test('an already invalid activity session never opens a database transaction', a
   assert.equal((await harness.run()).status, 401);
   assert.deepEqual(harness.operations, []);
 });
-

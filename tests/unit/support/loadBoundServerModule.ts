@@ -20,4 +20,3 @@ export function loadBoundServerModule<T>(
   );
   return exports as T;
 }
-

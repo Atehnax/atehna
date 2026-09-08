@@ -25,4 +25,3 @@ export function isAuthorizedAdminCron(request: Request): boolean {
   const expected = createHash('sha256').update('Bearer ' + secret).digest();
   return timingSafeEqual(supplied, expected);
 }
-

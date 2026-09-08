@@ -21,4 +21,3 @@ export function withAdminPage<Props extends object>(
     return <ProtectedPage {...props} />;
   };
 }
-

@@ -131,4 +131,3 @@ test('every protected admin page verifies its session before rendering private s
   assert.ok(checked >= 31);
   assert.equal(renders, 0);
 });
-

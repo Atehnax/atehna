@@ -48,4 +48,3 @@ export function withAdminRoute<Handler extends RouteHandler>(
   };
   return protectedHandler as unknown as Handler;
 }
-

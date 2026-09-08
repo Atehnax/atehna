@@ -7,7 +7,8 @@ creation at startup. The database singleton index also prevents a second account
 
 ## Runtime configuration
 
-Configure these server-only values in the selected deployment:
+Retain the existing database connection and session secret when configured. No new
+database or replacement credentials are needed. The deployment uses these server-only values:
 
 - `DATABASE_URL`: the intended PostgreSQL database.
 - `ADMIN_SESSION_SECRET`: a stable secret of at least 32 characters.

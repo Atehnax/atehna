@@ -21,6 +21,7 @@ export function createAdminSetupPool(environment = process.env) {
     max: 1,
     connectionTimeoutMillis: 5_000,
     idleTimeoutMillis: 5_000,
-    options: '--statement_timeout=15000 --lock_timeout=5000'
+    statement_timeout: 15_000,
+    lock_timeout: 5_000
   });
 }

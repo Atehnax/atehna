@@ -2886,7 +2886,7 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
             </div>
           </div>
 
-          <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-end">
+          <div className="mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-center">
             <div className="min-w-0 lg:max-w-[420px]">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                 <span>{formatDateTime(detail.createdAt)}</span>
@@ -2913,7 +2913,9 @@ export default function AdminQuoteDetailClient({ detail }: { detail: AdminQuoteD
                 ) : null}
               </div>
             </div>
-            <AdminQuoteActivityTimeline events={detail.events} />
+            <div className="min-w-0 lg:border-l lg:border-slate-200 lg:pl-4">
+              <AdminQuoteActivityTimeline events={detail.events} />
+            </div>
           </div>
         </section>
 

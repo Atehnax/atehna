@@ -2330,7 +2330,7 @@ export default function AdminOrdersTable({
             />
           }
         >
-          <Table className="min-w-[1250px] w-full table-fixed text-[12px] [&_thead_th]:!border-slate-200">
+          <Table className="min-w-[1250px] w-full table-fixed font-['Inter',system-ui,sans-serif] text-[12px] font-normal [&_thead_th]:!border-slate-200">
             <colgroup>
               <col style={{ width: columnWidths.selectAndDelete }} />
               {visibleColumns.order ? <col style={{ width: columnWidths.order }} /> : null}

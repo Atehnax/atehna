@@ -30,9 +30,9 @@ export function AdminActivityTimeline({
   error = false,
   loadingMessage = 'Nalaganje dejavnosti …',
   errorMessage = 'Dejavnosti trenutno ni mogoče prikazati.',
-  messageMinHeightClassName = 'min-h-[32px]'
+  messageMinHeightClassName = 'min-h-9'
 }: AdminActivityTimelineProps) {
-  const messageClassName = `flex ${messageMinHeightClassName} items-center justify-center text-[11px] text-slate-500`;
+  const messageClassName = `flex ${messageMinHeightClassName} items-center text-[11px] text-slate-500`;
 
   return (
     <section
@@ -48,17 +48,23 @@ export function AdminActivityTimeline({
       ) : null}
 
       {!loading && !error && items.length > 0 ? (
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
-          <ol className="flex min-w-max lg:min-w-full" aria-label={progressAriaLabel}>
+        <div className="overflow-x-auto">
+          <ol
+            className={[
+              'relative flex min-w-max justify-between gap-6',
+              items.length > 1 ? 'before:absolute before:bottom-2 before:left-2 before:right-2 before:h-0.5 before:translate-y-1/2 before:bg-emerald-500' : ''
+            ].join(' ')}
+            aria-label={progressAriaLabel}
+          >
             {items.map((item, index) => (
               <li
                 key={item.id}
-                className="min-w-[112px] flex-1 text-center"
+                className="group min-w-[112px] text-center first:text-left last:text-right only:text-left"
                 aria-current={index === items.length - 1 ? 'step' : undefined}
               >
-                <div className="min-h-[16px] px-1">
+                <div className="min-h-4">
                   <p
-                    className="truncate whitespace-nowrap text-[9px] leading-3 text-slate-500"
+                    className="whitespace-nowrap text-[10px] leading-4 text-slate-500"
                     title={item.fullLabel}
                     aria-label={item.fullLabel}
                     data-activity-compact-label
@@ -72,14 +78,19 @@ export function AdminActivityTimeline({
                     )}
                   </p>
                 </div>
-                <div className="relative mt-1 flex h-3 items-center justify-center" aria-hidden>
-                  {index > 0 ? (
-                    <span className="absolute left-0 right-1/2 top-1/2 h-px -translate-y-1/2 bg-emerald-300" />
-                  ) : null}
-                  {index < items.length - 1 ? (
-                    <span className="absolute left-1/2 right-0 top-1/2 h-px -translate-y-1/2 bg-emerald-300" />
-                  ) : null}
-                  <span className="relative z-10 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]" />
+                <div className="relative mt-1 flex h-4 items-center justify-center group-first:justify-start group-last:justify-end group-only:justify-start" aria-hidden>
+                  <span className={[
+                    'relative z-10 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white',
+                    index === items.length - 1 ? 'border border-emerald-500 bg-white p-0.5' : ''
+                  ].join(' ')}>
+                    {index === items.length - 1 ? (
+                      <span className="h-full w-full rounded-full bg-emerald-500" />
+                    ) : (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m5 12 4 4L19 6" />
+                      </svg>
+                    )}
+                  </span>
                 </div>
               </li>
             ))}

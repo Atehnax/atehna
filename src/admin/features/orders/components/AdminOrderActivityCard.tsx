@@ -111,7 +111,6 @@ export default function AdminOrderActivityCard({
       error={error}
       loadingMessage="Nalaganje napredovanja …"
       errorMessage="Napredovanja trenutno ni mogoče prikazati."
-      messageMinHeightClassName="min-h-[52px]"
     />
   );
 }

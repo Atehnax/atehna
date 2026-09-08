@@ -24,8 +24,10 @@ test('admin sidebar follows the requested grouped navigation order', () => {
     ['Naročila', 'Artikli', 'Kategorije', 'Seznam strank', 'Analitika'],
     ['Katalog', 'Urejevalnik', 'Podoba'],
     ['Email', 'Poštnina'],
-    ['Koš', 'Dnevnik sprememb', 'Skrbniki']
+    ['Koš', 'Dnevnik sprememb'],
+    ['Skrbniki']
   ]);
+  assert.match(sidebarSource, /href: '\/admin\/skrbniki', label: 'Skrbniki', icon: UserShieldIcon/u);
 });
 
 test('admin sidebar separates every group with subtle rules aligned to the collapsed icon rail', () => {

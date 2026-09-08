@@ -1666,8 +1666,8 @@ export default function AdminOrderDetailClient({
 
           <div className={
             order.is_historical
-              ? 'mt-3 grid min-w-0 gap-4 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-end'
-              : 'mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-end'
+              ? 'mt-3 grid min-w-0 gap-4 xl:grid-cols-[max-content_minmax(0,1fr)] xl:items-center'
+              : 'mt-3 grid min-w-0 gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-center'
           }>
             <div className={order.is_historical ? 'min-w-0' : 'min-w-0 lg:max-w-[360px]'}>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -1739,10 +1739,12 @@ export default function AdminOrderDetailClient({
               ) : null}
             </div>
 
-            <AdminOrderActivityCard
-              orderId={orderId}
-              refreshToken={activityRefreshToken}
-            />
+            <div className={order.is_historical ? 'min-w-0 xl:border-l xl:border-slate-200 xl:pl-4' : 'min-w-0 lg:border-l lg:border-slate-200 lg:pl-4'}>
+              <AdminOrderActivityCard
+                orderId={orderId}
+                refreshToken={activityRefreshToken}
+              />
+            </div>
           </div>
 
         </section>

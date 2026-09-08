@@ -1134,7 +1134,7 @@ export default function AdminQuotesTable({
           />
         }
       >
-        <Table className="min-w-[1375px] w-full table-fixed border-collapse text-[12px] [&_thead_th]:!border-slate-200">
+        <Table className="min-w-[1375px] w-full table-fixed border-collapse font-['Inter',system-ui,sans-serif] text-[12px] font-normal [&_thead_th]:!border-slate-200">
           <colgroup>
             <col className="w-[40px]" />
             <col className="w-[190px]" />
@@ -1461,7 +1461,7 @@ export default function AdminQuotesTable({
                       <div className={adminTableTextStackClassName}>
                         <span className={adminTablePrimaryTextClassName}>
                           <span
-                            className={`${adminTableMatchingValueBaseClassName} -ml-[5px] max-w-full truncate align-top font-medium text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
+                            className={`${adminTableMatchingValueBaseClassName} -ml-[5px] max-w-full truncate align-top font-normal text-slate-900 ${getMatchingValueClassName('customer', customerIdentity.name)}`}
                             title={customerIdentity.name}
                             data-testid={`quote-table-customer-name-${row.id}`}
                             onMouseEnter={() =>

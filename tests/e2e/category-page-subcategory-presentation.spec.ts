@@ -1219,6 +1219,12 @@ test('variant listing card keeps price, square media, and CTA parity in the admi
   const writes: string[] = [];
   await page.route('**/api/admin/**', async (route) => {
     const outgoing = route.request();
+    // Session activity does not persist content or unsaved editor changes.
+    if (outgoing.method() === 'POST'
+      && new URL(outgoing.url()).pathname === '/api/admin/session/activity') {
+      await route.continue();
+      return;
+    }
     if (writeMethods.has(outgoing.method())) {
       writes.push(`${outgoing.method()} ${new URL(outgoing.url()).pathname}`);
       await route.abort();

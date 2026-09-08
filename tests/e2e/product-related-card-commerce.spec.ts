@@ -479,6 +479,12 @@ test.describe('related-product compact commerce card', () => {
     const writes: string[] = [];
     await page.route('**/api/**', async (route) => {
       const outgoing = route.request();
+      // Session activity does not persist content or unsaved editor changes.
+      if (outgoing.method() === 'POST'
+        && new URL(outgoing.url()).pathname === '/api/admin/session/activity') {
+        await route.continue();
+        return;
+      }
       const pathname = new URL(outgoing.url()).pathname;
       if (
         writeMethods.has(outgoing.method())
@@ -634,6 +640,12 @@ test.describe('related-product compact commerce card', () => {
     const writes: string[] = [];
     await page.route('**/api/**', async (route) => {
       const outgoing = route.request();
+      // Session activity does not persist content or unsaved editor changes.
+      if (outgoing.method() === 'POST'
+        && new URL(outgoing.url()).pathname === '/api/admin/session/activity') {
+        await route.continue();
+        return;
+      }
       const pathname = new URL(outgoing.url()).pathname;
       if (
         writeMethods.has(outgoing.method())

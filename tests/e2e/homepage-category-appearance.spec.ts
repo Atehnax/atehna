@@ -65,6 +65,7 @@ test('homepage category appearance action reuses one staged shared editor and on
     if (
       pathname.startsWith('/api/admin/')
       && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method())
+      && !(request.method() === 'POST' && pathname === '/api/admin/session/activity')
     ) {
       writes.push(`${request.method()} ${pathname}`);
     }

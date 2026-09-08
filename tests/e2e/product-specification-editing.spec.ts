@@ -81,6 +81,12 @@ test.describe('product specification editing compatibility', () => {
     const writes: string[] = [];
     await page.route('**/api/admin/**', async (route) => {
       const method = route.request().method();
+      // Session activity does not persist content or unsaved editor changes.
+      if (method === 'POST'
+        && new URL(route.request().url()).pathname === '/api/admin/session/activity') {
+        await route.continue();
+        return;
+      }
       if (writeMethods.has(method)) {
         writes.push(`${method} ${new URL(route.request().url()).pathname}`);
         await route.abort('blockedbyclient');
@@ -154,6 +160,12 @@ test.describe('product specification editing compatibility', () => {
     const writes: string[] = [];
     await page.route('**/api/admin/**', async (route) => {
       const method = route.request().method();
+      // Session activity does not persist content or unsaved editor changes.
+      if (method === 'POST'
+        && new URL(route.request().url()).pathname === '/api/admin/session/activity') {
+        await route.continue();
+        return;
+      }
       if (writeMethods.has(method)) {
         writes.push(`${method} ${new URL(route.request().url()).pathname}`);
         await route.abort('blockedbyclient');

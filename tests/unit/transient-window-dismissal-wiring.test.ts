@@ -20,21 +20,17 @@ function sourceBetween(wholeSource: string, startMarker: string, endMarker: stri
   return wholeSource.slice(start, end);
 }
 
-test('the order item picker owns outside dismissal, Escape focus return, and modal focus', () => {
-  const picker = sourceBetween(
-    orderItemsSource,
-    'const pickerDialogRef',
-    'const itemsEditable'
-  );
-  assert.match(orderItemsSource, /useDropdownDismiss/u);
-  assert.match(picker, /open:\s*isPickerOpen/u);
-  assert.match(picker, /refs:\s*pickerDismissRefs/u);
-  assert.match(picker, /returnFocusRef:\s*pickerTriggerRef/u);
+test('order and quote item pickers share outside dismissal, Escape focus return, and modal focus', () => {
+  const picker = source('src/shared/ui/admin-detail/AdminCatalogItemPicker.tsx');
+  const quote = source('src/admin/features/quotes/components/AdminQuoteDetailClient.tsx');
+  assert.match(orderItemsSource, /<AdminCatalogItemPicker/u);
+  assert.equal(quote.match(/<AdminCatalogItemPicker/gu)?.length, 2);
+  assert.match(picker, /useDropdownDismiss\(\{ open, onClose: closeAndRestoreFocus, refs: dismissRefs, returnFocusRef: triggerRef \}\)/u);
   assert.match(picker, /event\.key !== 'Tab'/u);
-  assert.match(orderItemsSource, /role="dialog"/u);
-  assert.match(orderItemsSource, /aria-modal="true"/u);
-  assert.match(orderItemsSource, /data-admin-order-item-picker-dialog/u);
-  assert.match(orderItemsSource, /<AdminSearchInput\s+autoFocus/u);
+  assert.match(picker, /role="dialog"/u);
+  assert.match(picker, /aria-modal="true"/u);
+  assert.match(picker, /data-admin-order-item-picker-dialog/u);
+  assert.match(picker, /<AdminSearchInput\s+autoFocus/u);
 });
 
 test('the rich-text link panel is a registered transient child with focus restoration', () => {

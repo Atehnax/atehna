@@ -58,6 +58,7 @@ import { useToast } from '@/shared/ui/toast';
 import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { AdminChipDropdown } from '@/shared/ui/admin-controls/AdminChipDropdown';
 import { AdminDetailTitleSlot } from '@/shared/ui/admin-detail/AdminDetailTitleSlot';
+import { AdminNotice } from '@/shared/ui/admin-detail/AdminNotice';
 import { AdminNotesCard } from '@/shared/ui/admin-detail/AdminNotesCard';
 import {
   adminCardSectionEditIconButtonClassName,
@@ -428,7 +429,7 @@ function DetailFieldShell({
   className?: string;
 }) {
   return (
-    <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
+    <div data-editing={isEditing} className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName} ${className}`}>
       {children}
     </div>
   );
@@ -611,7 +612,7 @@ function OrderDatePickerField({
 
   return (
     <div ref={rootRef} className="relative">
-      <div className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
+      <div data-editing={isEditing} className={`${detailFieldShellClassName} ${customerDetailStyles.fieldShell} ${isEditing ? '' : detailFieldLockedShellClassName}`}>
 
         <input
           type="text"
@@ -1470,17 +1471,16 @@ export default function AdminOrderDetailClient({
           <span>{pageTitle}</span>
         </div>
 
-        {order.is_draft && !order.is_historical && !hasUnsavedChanges ? (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Osnutek lahko urejate in shranjujete sproti. Dokumenti in rezervacija zaloge bodo na voljo, ko bodo podatki popolni.
-          </div>
-        ) : null}
+        <AdminNotice open={Boolean(order.is_draft && !order.is_historical && !hasUnsavedChanges)}
+          wrapperClassName="!mt-0" spacingClassName="pt-5" testId="admin-order-draft-notice"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Osnutek lahko urejate in shranjujete sproti. Dokumenti in rezervacija zaloge bodo na voljo, ko bodo podatki popolni.
+        </AdminNotice>
 
-        {order.deleted_at ? (
-          <div className="rounded-lg border border-rose-300/80 bg-rose-100/70 px-3 py-2 text-sm font-semibold text-rose-800">
-            To naročilo je bilo izbrisano.
-          </div>
-        ) : null}
+        <AdminNotice open={Boolean(order.deleted_at)} wrapperClassName="!mt-0" spacingClassName="pt-5"
+          className="rounded-lg border border-rose-300/80 bg-rose-100/70 px-3 py-2 text-sm font-semibold text-rose-800">
+          To naročilo je bilo izbrisano.
+        </AdminNotice>
 
         <section
           className={`${adminWindowCardClassName} px-5 py-4`}

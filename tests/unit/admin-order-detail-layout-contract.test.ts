@@ -543,7 +543,7 @@ test('administrator notes use the compact reference-style add action and top-sav
   assert.match(sharedNotesCard, /data-admin-card-edit-action=\{editActionId\}/u);
   assert.match(sharedNotesCard, /aria-label=\{isEditing \? 'Končaj urejanje opombe' : 'Uredi interno opombo'\}/u);
   assert.match(sharedNotesCard, /aria-pressed=\{isEditing\}/u);
-  assert.match(sharedNotesCard, /className="flex h-10 w-full items-center rounded-lg border border-slate-200 bg-white px-3"/u);
+  assert.match(sharedNotesCard, /className="flex h-10 w-full items-center rounded-md border border-slate-300 bg-\[color:var\(--field-locked-bg\)\] px-3"/u);
   assert.match(sharedNotesCard, /min-w-0 flex-1 truncate text-\[13px\]/u);
   assert.match(sharedNotesCard, /title=\{persistedValue\}/u);
   assert.doesNotMatch(sharedNotesCard, /aria-label=\{`Uredi interno opombo: \$\{persistedValue\}`\}/u);

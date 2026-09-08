@@ -1590,13 +1590,13 @@ export default function AdminOrdersTable({
         selected.map((orderId) => fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' }))
       );
 
-      const failedDeletes = deleteResults.filter((result) => result.status === 'fulfilled' && !result.value.ok).length;
+      const failedDeletes = deleteResults.filter((result) => result.status === 'rejected' || !result.value.ok).length;
 
       if (failedDeletes > 0) {
         toast.error(`Brisanje ni uspelo za ${failedDeletes} naročil.`);
       }
 
-      toast.success('Izbrisano');
+      if (failedDeletes < selected.length) toast.success('Naročila so premaknjena v koš.');
       router.refresh();
     } finally {
       setIsDeleting(false);
@@ -2269,7 +2269,7 @@ export default function AdminOrdersTable({
                 >
                   {archived ? <ArchiveRestore className={adminActionIconSizeClassName} /> : <Archive className={adminActionIconSizeClassName} />}
                 </IconButton>
-                {!archived ? <IconButton
+                <IconButton
                   type="button"
                   onClick={handleDelete}
                   disabled={!hasSelectedRows || isDeleting}
@@ -2284,7 +2284,7 @@ export default function AdminOrdersTable({
                   ) : (
                     <TrashCanIcon />
                   )}
-                </IconButton> : null}
+                </IconButton>
                 {topAction ? <div className="flex items-center">{topAction}</div> : null}
               </div>
             </>
@@ -2975,7 +2975,7 @@ export default function AdminOrdersTable({
                                     label: 'Izbriši',
                                     icon: deletingRowId === order.id ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />,
                                     className: adminTableDeleteMenuItemClassName,
-                                    disabled: archived || deletingRowId === order.id,
+                                    disabled: deletingRowId === order.id,
                                     onSelect: () => {
                                       void handleDeleteRow(order.id);
                                     }

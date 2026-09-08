@@ -1,7 +1,7 @@
 /* Order and quote information uses the card width and identical read/edit slots. */
 .customerCard {
   container-type: inline-size;
-  --customer-field-background: #f1f5f9;
+  --customer-field-background: var(--field-locked-bg);
   --customer-field-border: #d7e3f2;
   --customer-field-text: #172554;
   --customer-field-placeholder: #9bb2d4;
@@ -250,7 +250,7 @@
   min-height: 0;
 }
 
-/* Keep the reference field surface and compartments in both editing modes. */
+/* Keep field geometry identical while distinguishing editable and locked surfaces. */
 .fieldShell.fieldShell,
 .nameShell.nameShell,
 .addressShell.addressShell,
@@ -286,4 +286,16 @@
 .publicCode > button {
   margin-left: auto;
   color: var(--blue-500);
+}
+
+.fieldShell[data-editing='true'],
+.nameShell[data-editing='true'],
+.addressShell[data-editing='true'],
+.messageShell[data-editing='true'] {
+  background: #fff;
+}
+
+/* The calendar trigger is readonly so dates are selected from its popup. */
+.fieldShell[data-editing='true'] input[role='combobox'][readonly]:not(:disabled) {
+  background-color: transparent !important;
 }

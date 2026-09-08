@@ -1,5 +1,6 @@
 'use client';
 
+import LazyConfirmDialog from '@/shared/ui/confirm-dialog/lazy-confirm-dialog';
 import { groupTrashRows } from '@/shared/domain/archive/trashRows';
 import TrashRowMotion from './TrashRowMotion';
 import { SlidersHorizontal } from 'lucide-react';
@@ -30,6 +31,7 @@ import {
   adminTableSearchIconClassName,
   adminTableSearchInputClassName,
   adminTableSelectedSuccessIconButtonClassName,
+  adminTableSelectedDangerIconButtonClassName,
   adminTableToolbarActionsClassName,
   adminTableToolbarGroupClassName,
   adminTableToolbarSearchWrapperClassName,
@@ -37,7 +39,7 @@ import {
   ColumnVisibilityControl
 } from '@/shared/ui/admin-table';
 import { DATE_RANGE_PRESETS, getQuickDateRange } from '@/shared/ui/admin-table/dateRangePresets';
-import { ActionRestoreIcon, ColumnFilterIcon, adminActionIconSizeClassName } from '@/shared/ui/icons/AdminActionIcons';
+import { ActionRestoreIcon, TrashCanIcon, ColumnFilterIcon, adminActionIconSizeClassName } from '@/shared/ui/icons/AdminActionIcons';
 import { EuiTablePagination, useTablePagination } from '@/shared/ui/pagination';
 import { MenuItem, MenuPanel } from '@/shared/ui/menu';
 import { AdminSearchInput } from '@/shared/ui/admin-search-input';
@@ -138,6 +140,8 @@ export default function AdminDeletedArchiveTable({
   const customerTypeFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const deletedDateFilterButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSelection, setDeleteSelection] = useState<ArchiveEntry[] | null>(null);
   const { toast } = useToast();
 
   const filtered = useMemo(() => {
@@ -317,16 +321,6 @@ export default function AdminDeletedArchiveTable({
     return groupedChildIds;
   }, [displayRows]);
 
-  const parentRowIdByOrder = useMemo(() => {
-    const parentIdsByOrder = new Map<number, number>();
-    displayRows.forEach((row) => {
-      if (row.isChild) return;
-      if (row.entry.item_type !== 'order' || row.entry.order_id === null) return;
-      parentIdsByOrder.set(row.entry.order_id, row.entry.id);
-    });
-    return parentIdsByOrder;
-  }, [displayRows]);
-
   const selectedEntriesFromRows = useMemo(
     () =>
       displayRows
@@ -338,13 +332,14 @@ export default function AdminDeletedArchiveTable({
     [displayRows, selectedIdSet]
   );
 
+  const hasUnselectedDeletedParent = selectedEntriesFromRows.some(entry => {
+    if (entry.item_type !== 'pdf' || entry.order_id === null) return false;
+    const parent = entries.find(candidate => candidate.item_type === 'order' && candidate.order_id === entry.order_id);
+    return parent !== undefined && !selectedIdSet.has(parent.id);
+  });
+
   const toggleOne = (row: DisplayRow) => {
     const { entry, isChild, parentOrderId } = row;
-
-    if (isChild && parentOrderId !== null) {
-      const parentRowId = parentRowIdByOrder.get(parentOrderId);
-      if (!parentRowId || !selectedIdSet.has(parentRowId)) return;
-    }
 
     setSelected((previousSelected) => {
       if (isChild && parentOrderId !== null) {
@@ -432,6 +427,35 @@ export default function AdminDeletedArchiveTable({
 
 
 
+  const permanentlyDelete = async () => {
+    if (!deleteSelection?.length) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/admin/archive', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: deleteSelection.filter(entry => entry.id > 0).map(entry => entry.id),
+          targets: deleteSelection.filter(entry => entry.id <= 0).map(({ item_type, order_id, document_id }) => ({ item_type, order_id, document_id }))
+        })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(body.message || 'Trajni izbris ni uspel.');
+        return;
+      }
+      const deletedIds = new Set<number>(body.deletedIds ?? []);
+      setEntries(previous => previous.filter(entry => !deletedIds.has(entry.id)));
+      setSelected([]);
+      toast.success('Izbrani zapisi so trajno izbrisani.');
+      router.refresh();
+    } catch {
+      toast.error('Trajni izbris ni uspel. Preverite povezavo in poskusite znova.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteSelection(null);
+    }
+  };
+
   const handleSort = (key: ArchiveSortKey) => {
     const currentDirection = sortState?.key === key ? sortState.direction : null;
     const nextDirection = currentDirection === 'desc' ? 'asc' : currentDirection === 'asc' ? null : 'desc';
@@ -462,6 +486,14 @@ export default function AdminDeletedArchiveTable({
 
 
   return (
+    <>
+    {deleteSelection ? <LazyConfirmDialog
+      open title="Trajni izbris"
+      description={`Trajno izbrišem izbrane zapise (${deleteSelection.length})? Izbris naročila vključuje vse njegove dokumente. Obnova po izbrisu ni več mogoča.`}
+      confirmLabel="Trajno izbriši" cancelLabel="Prekliči" isDanger
+      onCancel={() => { if (!isDeleting) setDeleteSelection(null); }}
+      onConfirm={() => { void permanentlyDelete(); }} confirmDisabled={isDeleting}
+    /> : null}
     <AdminTableLayout
       className={`w-full ${adminTableCardClassName}`}
       style={adminTableCardStyle}
@@ -498,15 +530,24 @@ export default function AdminDeletedArchiveTable({
             tone={hasSelectedRows ? 'success' : 'neutral'}
             className={hasSelectedRows ? adminTableSelectedSuccessIconButtonClassName : `${adminTableNeutralIconButtonClassName} !transition-none`}
             onClick={bulkRestore}
-            disabled={!hasSelectedRows || isRestoring}
+            disabled={!hasSelectedRows || isRestoring || isDeleting || hasUnselectedDeletedParent}
             aria-label="Obnovi izbrano"
-            title="Obnovi"
+            title={hasUnselectedDeletedParent ? 'Za obnovo dokumenta izberite tudi pripadajoče naročilo.' : 'Obnovi'}
           >
             {isRestoring ? (
               <Spinner size="sm" className="text-slate-500" />
             ) : (
               <ActionRestoreIcon />
             )}
+          </IconButton>
+          <IconButton type="button" size="sm"
+            tone={hasSelectedRows ? 'danger' : 'neutral'}
+            className={hasSelectedRows ? adminTableSelectedDangerIconButtonClassName : adminTableNeutralIconButtonClassName}
+            onClick={() => setDeleteSelection([...selectedEntriesFromRows])}
+            disabled={!hasSelectedRows || isRestoring || isDeleting}
+            aria-label="Trajno izbriši izbrano" title="Trajno izbriši"
+          >
+            {isDeleting ? <Spinner size="sm" className="text-[var(--danger-600)]" /> : <TrashCanIcon />}
           </IconButton>
         </div>
       }
@@ -612,14 +653,6 @@ export default function AdminDeletedArchiveTable({
           <TBody>
             {pagedRows.map((row) => {
               const { entry, isChild, parentOrderId } = row;
-              const parentSelected =
-                !isChild || parentOrderId === null
-                  ? true
-                  : (() => {
-                      const parentRowId = parentRowIdByOrder.get(parentOrderId);
-                      return parentRowId ? selectedIdSet.has(parentRowId) : false;
-                    })();
-
               return (
                 <TrashRowMotion key={entry.id} open={!isChild || (parentOrderId !== null && expandedOrders.has(parentOrderId))}>
                 <TR className={`border-t border-slate-200/90 bg-white text-[12px] transition-colors ${adminTableRowToneClasses.hover}`}>
@@ -628,7 +661,6 @@ export default function AdminDeletedArchiveTable({
                       className="disabled:cursor-default disabled:opacity-50"
                       checked={selectedIdSet.has(entry.id)}
                       onChange={() => toggleOne(row)}
-                      disabled={isChild && !parentSelected}
                       aria-label={`Izberi zapis ${entry.label}`}
                     />
                   </TD>
@@ -758,5 +790,6 @@ export default function AdminDeletedArchiveTable({
       </HeaderFilterPortal>
 
     </AdminTableLayout>
+    </>
   );
 }

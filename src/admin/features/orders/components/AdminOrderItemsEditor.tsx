@@ -6,11 +6,10 @@ import {
   useId,
   useMemo,
   useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent
+  useState
 } from 'react';
 import { AdminCheckbox } from '@/shared/ui/checkbox';
-import { AdminSearchInput } from '@/shared/ui/admin-search-input';
+import { AdminCatalogItemPicker } from '@/shared/ui/admin-detail/AdminCatalogItemPicker';
 import {
   adminCardSectionEditIconButtonClassName,
   adminTableTextStackClassName,
@@ -23,9 +22,6 @@ import {
   adminTableInlineConfirmIconClassName,
   adminTableInlineEditInputClassName,
   adminTableNeutralIconButtonClassName,
-  adminTableSearchIconClassName,
-  adminTableSearchInputClassName,
-  adminTableSearchWrapperClassName,
   adminTableSelectedDangerIconButtonClassName,
   adminWindowCardClassName,
   adminWindowCardStyle
@@ -42,7 +38,6 @@ import {
 } from '@/shared/ui/icons/AdminActionIcons';
 import { adminTableRowToneClasses } from '@/shared/ui/theme/tokens';
 import { useToast } from '@/shared/ui/toast';
-import { useDropdownDismiss } from '@/shared/ui/dropdown/use-dropdown-dismiss';
 import { formatEuro } from '@/shared/domain/formatting';
 import type { OrderItemInput } from '@/shared/domain/order/orderTypes';
 
@@ -188,14 +183,7 @@ const orderItemsReadValueClassName =
   "inline-flex h-full w-full min-w-0 items-center justify-center px-2 font-['Inter',system-ui,sans-serif] text-[12px] font-normal leading-5 text-slate-900";
 const selectionCheckboxClassName =
   'disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-100 disabled:opacity-60';
-const pickerFocusableSelector = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])'
-].join(',');
+
 
 export default function AdminOrderItemsEditor({
   orderId,
@@ -266,7 +254,6 @@ export default function AdminOrderItemsEditor({
   const [draftHistoricalTaxPercent, setDraftHistoricalTaxPercent] = useState(String((initialTaxRate ?? TAX_RATE) * 100));
   const [selectedDraftItemIds, setSelectedDraftItemIds] = useState<string[]>([]);
   const [catalogChoices, setCatalogChoices] = useState<CatalogChoice[]>([]);
-  const [catalogQuery, setCatalogQuery] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const { toast } = useToast();
   const historicalRevisionRef = useRef(initialHistoricalRevision);
@@ -280,11 +267,8 @@ export default function AdminOrderItemsEditor({
       : 1
   );
   const lastExternalEditModeRef = useRef<boolean | undefined>(undefined);
-  const pickerDialogRef = useRef<HTMLDivElement | null>(null);
   const pickerTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const pickerDismissRefs = useMemo(() => [pickerDialogRef] as const, []);
   const pickerDialogId = useId();
-  const pickerTitleId = useId();
 
   useEffect(() => {
     if (
@@ -309,45 +293,12 @@ export default function AdminOrderItemsEditor({
 
   const closeItemPicker = useCallback(() => {
     setIsPickerOpen(false);
-    setCatalogQuery('');
   }, []);
 
   const closeItemPickerAndRestoreFocus = useCallback(() => {
     closeItemPicker();
     window.requestAnimationFrame(() => pickerTriggerRef.current?.focus());
   }, [closeItemPicker]);
-
-  useDropdownDismiss({
-    open: isPickerOpen,
-    onClose: closeItemPicker,
-    refs: pickerDismissRefs,
-    returnFocusRef: pickerTriggerRef
-  });
-
-  const handlePickerKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Tab') return;
-
-    const panel = pickerDialogRef.current;
-    if (!panel) return;
-    const focusableElements = Array.from(panel.querySelectorAll<HTMLElement>(pickerFocusableSelector))
-      .filter((element) => element.tabIndex >= 0 && !element.hasAttribute('disabled'));
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      panel.focus();
-      return;
-    }
-
-    const first = focusableElements[0];
-    const last = focusableElements[focusableElements.length - 1];
-    const activeElement = document.activeElement;
-    if (event.shiftKey && (activeElement === first || !panel.contains(activeElement))) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }, []);
 
   const itemsEditable = hasExternalEditMode ? Boolean(externalEditMode) : itemsSectionMode === 'edit';
   const standardTaxRate =
@@ -430,16 +381,6 @@ export default function AdminOrderItemsEditor({
       ? shippingIsStale ? 'Zastarelo' : null
       : `Samodejna${shippingIsStale ? ' · zastarelo' : ''}`;
 
-  const filteredChoices = useMemo(() => {
-    const normalizedQuery = catalogQuery.trim().toLocaleLowerCase('sl');
-    return catalogChoices.filter((choice) =>
-      !normalizedQuery
-        ? true
-        : choice.name.toLocaleLowerCase('sl').includes(normalizedQuery) ||
-          choice.sku.toLocaleLowerCase('sl').includes(normalizedQuery)
-    );
-  }, [catalogChoices, catalogQuery]);
-
   const updateItem = (id: string, updates: Partial<EditableItem>) => {
     if (!commercialItemsEditable) return;
     setDraftItems((currentItems) =>
@@ -472,7 +413,6 @@ export default function AdminOrderItemsEditor({
     setSelectedDraftItemIds([]);
     setItemsSectionMode('read');
     setIsPickerOpen(false);
-    setCatalogQuery('');
   }, [persistedItems, persistedHistoricalTaxRate]);
 
   const addManualHistoricalItem = () => {
@@ -524,7 +464,6 @@ export default function AdminOrderItemsEditor({
         }
       ];
     });
-    closeItemPickerAndRestoreFocus();
   };
 
   const saveItems = useCallback<OrderItemsSaveHandler>(async (options = {}) => {
@@ -747,7 +686,6 @@ export default function AdminOrderItemsEditor({
     setItemsSectionMode(externalEditMode ? 'edit' : 'read');
     if (!externalEditMode) {
       setIsPickerOpen(false);
-      setCatalogQuery('');
     }
   }, [externalEditMode, hasExternalEditMode, persistedItems, persistedHistoricalTaxRate]);
 
@@ -1228,72 +1166,19 @@ export default function AdminOrderItemsEditor({
         </div>
       </div>
 
-      {isPickerOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-          data-admin-order-item-picker-overlay
-        >
-          <div
-            id={pickerDialogId}
-            ref={pickerDialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={pickerTitleId}
-            tabIndex={-1}
-            onKeyDown={handlePickerKeyDown}
-            data-admin-order-item-picker-dialog
-            className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08),0_2px_6px_rgba(15,23,42,0.05)]"
-          >
-            <div className="flex items-center justify-between">
-              <h3 id={pickerTitleId} className="text-[13px] font-semibold text-slate-900">Dodaj artikel</h3>
-              <button
-                type="button"
-                className="text-[12px] text-slate-500 hover:text-slate-700"
-                onClick={closeItemPickerAndRestoreFocus}
-              >
-                Zapri
-              </button>
-            </div>
-
-            <div className="mt-3">
-              <AdminSearchInput
-                autoFocus
-                value={catalogQuery}
-                onChange={(event) => setCatalogQuery(event.target.value)}
-                placeholder="Išči po nazivu ali šifri"
-                aria-label="Išči artikel"
-                wrapperClassName={adminTableSearchWrapperClassName}
-                inputClassName={adminTableSearchInputClassName}
-                iconClassName={adminTableSearchIconClassName}
-              />
-            </div>
-
-            <div className="mt-3 max-h-[360px] overflow-y-auto rounded-md border border-slate-200">
-              {filteredChoices.map((choice) => (
-                <button
-                  key={choice.sku}
-                  type="button"
-                  onClick={() => addCatalogItem(choice)}
-                  className="flex w-full items-center justify-between border-b border-slate-200/80 px-3 py-3 text-left text-[12px] text-slate-700 transition-colors hover:bg-[color:var(--admin-table-row-hover)] last:border-b-0"
-                >
-                  <span className="font-medium text-slate-900">{choice.name}</span>
-                  <span className="text-[12px] text-slate-600">{formatCurrency(choice.unitPrice)}</span>
-                </button>
-              ))}
-              {filteredChoices.length === 0 ? (
-                <div className="px-3 py-6 text-center text-[12px] text-slate-500">Ni ujemajočih artiklov.</div>
-              ) : null}
-            </div>
-            {isHistorical ? (
-              <div className="mt-3 flex justify-end">
-                <Button type="button" variant="default" size="toolbar" onClick={addManualHistoricalItem} disabled={addItemDisabled}>
-                  Vnesi postavko ročno
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <AdminCatalogItemPicker
+        open={isPickerOpen}
+        choices={catalogChoices}
+        onSelect={addCatalogItem}
+        onClose={closeItemPicker}
+        triggerRef={pickerTriggerRef}
+        dialogId={pickerDialogId}
+        footer={isHistorical ? (
+          <Button type="button" variant="default" size="toolbar" onClick={addManualHistoricalItem} disabled={addItemDisabled}>
+            Vnesi postavko ročno
+          </Button>
+        ) : undefined}
+      />
     </section>
   );
 }

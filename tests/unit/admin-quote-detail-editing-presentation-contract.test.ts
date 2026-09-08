@@ -953,7 +953,7 @@ test('every writable quote window keeps one persistent blue icon-only pencil in 
     detail,
     /const canEditRequestDetails =[\s\S]*?Boolean\(draftVersion \|\| currentIssuedVersion\)[\s\S]*?detail.status === 'received'[\s\S]*?detail.status === 'in_preparation'/u
   );
-  assert.match(detail, /data-testid="quote-customer-correction-revision-notice"/u);
+  assert.match(detail, /testId="quote-customer-correction-revision-notice"/u);
   assert.match(detail, /Popravki podatkov ob shranjevanju ustvarijo novo različico/u);
   assert.match(detail, /Trenutno izdana ponudba ostane nespremenjena/u);
   assert.match(
@@ -1128,7 +1128,7 @@ test('requested and offered items keep a compact stock notice in the header and 
   const itemsSection = sliceBetween(
     detail,
     'data-testid="quote-items-card"',
-    '<QuoteCatalogItemPickerDialog'
+    '<AdminCatalogItemPicker'
   );
 
   assert.match(
@@ -1239,9 +1239,9 @@ test('quote draft items use catalog selection plus full-snapshot add and remove 
     /if \(!isEditingOffer \|\| catalogLoadState !== 'idle'\) return;[\s\S]*?fetch\('\/api\/admin\/catalog-items'\)/u
   );
   assert.match(detail, /type DraftItem = Pick<[\s\S]*?'lineNumber'[\s\S]*?>;/u);
-  assert.equal(comparisonTable.match(/<CustomSelect\b/gu)?.length ?? 0, 1);
-  assert.match(comparisonTable, /options=\{catalogOptions\}/u);
-  assert.match(comparisonTable, /ariaLabel=\{'Ponujeni artikel ' \+ rowLabel\}/u);
+  assert.equal(comparisonTable.match(/<CustomSelect\b/gu)?.length ?? 0, 0);
+  assert.match(comparisonTable, /<AdminCatalogItemPicker[\s\S]*?choices=\{catalogChoices\}/u);
+  assert.match(comparisonTable, /aria-label=\{'Ponujeni artikel ' \+ rowLabel\}/u);
   assert.match(comparisonTable, /catalogItemId: choice\.catalogItemId/u);
   assert.match(comparisonTable, /catalogVariantId: choice\.catalogVariantId/u);
   assert.match(comparisonTable, /productName: choice\.productName/u);
@@ -1255,8 +1255,8 @@ test('quote draft items use catalog selection plus full-snapshot add and remove 
 
   assert.match(detail, /aria-label="Dodaj postavko ponudbe"/u);
   assert.match(detail, /aria-label="Odstrani izbrane postavke ponudbe"/u);
-  assert.match(detail, /function QuoteCatalogItemPickerDialog/u);
-  assert.match(detail, /aria-label="Išči artikel za ponudbo"/u);
+  assert.match(detail, /<AdminCatalogItemPicker/u);
+  assert.match(detail, /searchLabel="Išči artikel za ponudbo"/u);
   assert.match(detail, /const \[selectedDraftItemIds, setSelectedDraftItemIds\]/u);
   assert.match(detail, /const toggleSelectedDraftItem/u);
   assert.match(detail, /const toggleAllDraftItems/u);

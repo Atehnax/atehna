@@ -1555,7 +1555,7 @@ test.describe('quote and seller-contract workflow', () => {
       const catalogSelect = page.getByLabel(/^Ponujeni artikel /u).first();
       await expect(catalogSelect).toBeEnabled();
       await catalogSelect.click();
-      await page.getByRole('option', { name: /MAT-KOV-ALU-200/u }).click();
+      await page.getByRole('dialog', { name: 'Izberi artikel za ponudbo' }).getByRole('button', { name: /MAT-KOV-ALU-200/u }).click();
       await expect(catalogSelect).toContainText('MAT-KOV-ALU-200');
       await expect(offeredItemRow.locator('[data-item-sku]')).toHaveText(
         'SKU: MAT-KOV-ALU-200'
@@ -2288,7 +2288,7 @@ test.describe('quote and seller-contract workflow', () => {
       const catalogSelect = page.getByLabel(/^Ponujeni artikel /u).first();
       await expect(catalogSelect).toBeEnabled();
       await catalogSelect.click();
-      await page.getByRole('option', { name: /MAT-KOV-ALU-200/u }).click();
+      await page.getByRole('dialog', { name: 'Izberi artikel za ponudbo' }).getByRole('button', { name: /MAT-KOV-ALU-200/u }).click();
       await page.getByLabel('Velja do').fill('2099-12-31');
       await page.getByRole('spinbutton', { name: 'Poštnina', exact: true }).fill('12.34');
       await page.getByLabel('Dobavni pogoji').fill('Dobava v treh delovnih dneh.');

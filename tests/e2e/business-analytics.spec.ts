@@ -341,14 +341,14 @@ test('histogram retains its long tail without plotting variance as currency, and
   test.setTimeout(120_000);
   const business = await (await request.get('/api/admin/analytics/business?range=90D&view=narocila')).json() as BusinessAnalyticsResponse;
   await page.goto('/admin/analitika?view=narocila&range=90D');
-  const histogram = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Porazdelitev vrednosti oddanih naročil', exact: true }) });
+  const histogram = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Porazdelitev vrednosti plačanih naročil', exact: true }) });
   await expect(histogram).toBeVisible();
-  if (business.orders.statistics.n > 0) {
+  if (business.paid.orders.statistics.n > 0) {
     const plot = histogram.locator('.js-plotly-plot');
     await expect(plot).toBeVisible();
     await expect(plot.locator('.annotation-text')).toHaveText(['Povp.', 'Med.', 'Q1', 'Q3']);
     const range = await plot.evaluate(element => (element as HTMLElement & { _fullLayout: { xaxis: { range: number[] } } })._fullLayout.xaxis.range);
-    const maximum = business.orders.statistics.max!;
+    const maximum = business.paid.orders.statistics.max!;
     expect(range[1]).toBeGreaterThanOrEqual(maximum);
     expect(range[1]).toBeLessThan(Math.max(maximum * 2, 10));
   }
@@ -364,4 +364,78 @@ test('histogram retains its long tail without plotting variance as currency, and
   await expect(page.getByText('E[X] = np =', { exact: false })).toContainText('0');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('paid headline cards, daily totals and private drilldowns exclude unpaid, refunded, cancelled, draft and test orders', async ({ page, request }, testInfo) => {
+  test.setTimeout(120_000);
+  const environment = readE2eEnvironment();
+  const health = await request.get('/api/e2e/health');
+  expect(health.status()).toBe(200);
+  assertLiveDatabaseIdentity(environment.databaseIdentity, readLiveDatabaseIdentity(await health.json()));
+  const database = new Client({ connectionString: environment.databaseUrl, ssl: false, connectionTimeoutMillis: 5_000, options: '--statement_timeout=15000 --lock_timeout=5000' });
+  const prefix = 'E2E-PAID-ANALYTICS-' + randomUUID();
+  const cases = [
+    { key: 'paid', payment: 'paid', amount: 25 }, { key: 'paid-second', payment: 'paid', amount: 40 },
+    { key: 'unpaid', payment: 'unpaid', amount: 500 }, { key: 'cancelled', payment: 'paid', amount: 700, status: 'cancelled' },
+    { key: 'refunded', payment: 'refunded', amount: 900 }, { key: 'draft', payment: 'paid', amount: 1100, draft: true },
+    { key: 'trash', payment: 'paid', amount: 1200, deleted: true }, { key: 'test', payment: 'paid', amount: 1300, analyticsTest: true }
+  ];
+  const ids: string[] = [];
+  await database.connect();
+  try {
+    await verifyE2eResetTarget(database, environment.databaseIdentity, environment.storageNamespace, environment.resetOwnershipHash);
+    for (const row of cases) {
+      const inserted = await database.query<{ id: string }>(
+        `insert into orders (order_number, customer_type, contact_name, email, subtotal, tax, total, created_at,
+          payment_status, status, is_draft, deleted_at, analytics_is_test)
+         values ($1, 'individual', 'E2E paid analytics', 'paid-analytics@example.test', $2, 0, $2, '2001-03-15T12:00:00Z',
+          $3, $4, $5, case when $6 then now() else null end, $7) returning id::text`,
+        [prefix + '-' + row.key, row.amount, row.payment, row.status ?? 'received', row.draft ?? false, row.deleted ?? false, row.analyticsTest ?? false]
+      );
+      ids.push(inserted.rows[0].id);
+    }
+    const query = 'range=custom&from=2001-03-15&to=2001-03-15';
+    const response = await request.get('/api/admin/analytics/business?' + query);
+    expect(response.status()).toBe(200);
+    const business = await response.json() as BusinessAnalyticsResponse;
+    expect(business.summary.orderCount).toBe(5);
+    expect(business.paid.count).toBe(2);
+    expect(business.paid.value).toBe(65);
+    expect(business.paid.orders.statistics.mean).toBe(32.5);
+    expect(business.paid.orders.statistics.median).toBe(32.5);
+    expect(business.paid.excludedCount).toBe(1);
+    expect(business.paid.days[0].orderCount).toBe(2);
+    expect(business.paid.days[0].activityValue).toBe(65);
+    const frozen = query + '&basis=paid&asOf=' + encodeURIComponent(business.asOf);
+    const recordsResponse = await request.get('/api/admin/analytics/business/records?' + frozen);
+    expect(recordsResponse.status()).toBe(200);
+    const records = await recordsResponse.json();
+    expect(records.total).toBe(2);
+    expect(records.records.map((row: { id: string }) => row.id).sort()).toEqual(ids.slice(0, 2).sort());
+    const csv = await request.get('/api/admin/analytics/business/records?' + frozen + '&format=csv');
+    expect(csv.status()).toBe(200);
+    expect((await csv.text()).split(/\r?\n/u)).toHaveLength(3);
+    await page.goto('/admin/analitika?' + query);
+    const paidCard = page.getByRole('button', { name: /^Število plačanih naročil:/u });
+    await expect(paidCard).toContainText('2');
+    await expect(page.getByRole('button', { name: /^Povprečno plačano naročilo:/u })).toBeVisible();
+    await expect(page.getByText('Po datumu naročila · blago brez DDV in poštnine, pred vračili.', { exact: false })).toBeVisible();
+    const operations = page.getByRole('heading', { name: 'Aktivnost in operativa', exact: true });
+    await expect(operations).toBeVisible();
+    expect((await operations.boundingBox())!.y).toBeGreaterThan((await paidCard.boundingBox())!.y);
+    await page.screenshot({ path: testInfo.outputPath('paid-analytics-desktop.png') });
+    await paidCard.click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Osnova: Plačana naročila', { exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog').getByRole('columnheader', { name: 'Plačilo', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Zapri', exact: true }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(paidCard).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('paid-analytics-mobile.png') });
+  } finally {
+    try {
+      if (ids.length) await database.query('delete from orders where id = any($1::bigint[]) and order_number like $2', [ids, prefix + '%']);
+    } finally { await database.end(); }
+  }
 });

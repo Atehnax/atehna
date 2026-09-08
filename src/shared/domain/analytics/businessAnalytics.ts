@@ -13,9 +13,10 @@ export type CustomerConcentration = { customers: { key: string; label: string; v
 export type QuoteBand = QuoteRate & { key: string; label: string; min?: number; max?: number | null; customerType?: string; href: string };
 export type BusinessAnalyticsResponse = {
   asOf: string; timezone: 'Europe/Ljubljana'; period: BusinessPeriod; filters: BusinessFilters; settings: BusinessAnalyticsSettings;
-  definitions: { activity: string; realised: string; quotes: string; costs: string; statistics: string };
+  definitions: { paid: string; activity: string; realised: string; quotes: string; costs: string; statistics: string };
   coverage: { historyFrom: string | null; legacyOrders: number; snapshotOrders: number; valueOrders: number; eligibleOrders: number; realisedOrders: number; realisedValueOrders: number; refundKnownOrders: number; linkedCustomers: number; warnings: string[] };
   summary: { orderCount: number; activityValue: number | null; realisedValue: number | null; realisedCount: number; meanOrderValue: number | null; medianOrderValue: number | null; quoteAcceptance: QuoteRate; previousOrderCount: number | null; previousActivityValue: number | null; previousRealisedValue: number | null };
+  paid: { count: number; value: number | null; valueOrders: number; refundAdjustedValue: number | null; refundKnownOrders: number; excludedCount: number; previousCount: number | null; previousValue: number | null; days: BusinessDay[]; orders: BusinessAnalyticsResponse['orders'] };
   days: BusinessDay[];
   orders: { statistics: DescriptiveStatistics; histogram: HistogramBin[]; boxes: BusinessBox[]; sourceBoxes: BusinessBox[] };
   quotes: { enabled: boolean; goLiveDate: string | null; requestCount: number | null; issuedCount: number | null; mature: QuoteRate; immature: number; acceptedAfterWindow: number; missingInitialValue: number; byValue: QuoteBand[]; byType: QuoteBand[]; responseStatistics: DescriptiveStatistics; decisionStatistics: DescriptiveStatistics; responseHistogram: HistogramBin[]; decisionHistogram: HistogramBin[]; logistic: { available: boolean; reason: string | null; intercept: number | null; slope: number | null; points: { value: number; probability: number }[] } };
@@ -26,10 +27,11 @@ export type BusinessAnalyticsResponse = {
   workload: { points: BusinessPoint[]; total: number; usable: number; regression: Regression; preparationStatistics: DescriptiveStatistics };
   laboratory: { points: BusinessPoint[]; plotted: number; total: number; positiveCount: number; nonPositiveCount: number; valueCdf: { value: number; probability: number }[]; weightCdf: { value: number; probability: number }[]; distribution: DistributionFit; binomialSource: QuoteRate };
 };
-export type BusinessRecord = { valueUnit?: 'EUR' | 'h' | 'kg'; id: string; number: string; date: string; customerType: string; customerName: string; status: string; source: string; entrySource?: 'website' | 'manual' | null; isHistorical?: boolean; value: number | null; href: string };
+export type BusinessRecord = { valueUnit?: 'EUR' | 'h' | 'kg'; id: string; number: string; date: string; customerType: string; customerName: string; status: string; paymentStatus?: string | null; source: string; entrySource?: 'website' | 'manual' | null; isHistorical?: boolean; value: number | null; href: string };
 export type BusinessDrilldownResponse = { valueUnit?: 'EUR' | 'h' | 'kg'; asOf: string; period: BusinessPeriod; total: number; page: number; pageSize: number; records: BusinessRecord[] };
 export type CanonicalOrder = {
   id: string; number: string; /** Displayed, editable order date; not the immutable submission timestamp. */ submittedAt: string; entrySource?: 'website' | 'manual' | null; isHistorical?: boolean; fulfilledAt: string | null; realised?: boolean; customerKey: string | null; customerType: string; customerName: string;
+  paymentStatus?: string | null; contractStatus?: string | null; paidCents?: number | null;
   activityCents: number | null; fulfilledCents: number | null; refundCents: number | null; refundComplete: boolean; status: string; source: 'direct' | 'quote';
   addressSnapshot: Record<string, unknown>; snapshotOrigin: 'captured' | 'legacy' | 'missing'; shippingGrossCents: number | null; shippingTaxRate: number | null; shippingSnapshot: unknown;
   packedWeightGrams: number | null; carrierCostNetCents: number | null; parcelCount: number | null; preparationMinutes: number | null; oversize: boolean | null;

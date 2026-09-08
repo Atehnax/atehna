@@ -209,9 +209,9 @@ async function expectArchivedEntriesRetained(
   const response = await request.delete('/api/admin/archive', {
     data: { ids: entryIds }
   });
-  expect(response.status()).toBe(405);
+  expect(response.status()).toBe(409);
   await expect(response.json()).resolves.toMatchObject({
-    code: 'TRASH_PERMANENT_DELETE_DISABLED'
+    code: 'ARCHIVE_DELETE_CONFLICT'
   });
   const after = await database.query(
     'select * from deleted_archive_entries where id = any($1::bigint[]) order by id',

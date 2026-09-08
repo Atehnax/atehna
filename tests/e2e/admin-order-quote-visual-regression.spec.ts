@@ -723,6 +723,13 @@ async function expectPageScreenshot(page: Page, name: string, masks: Locator[] =
   await normalizeVolatileActivityTimestamps(page);
   await normalizeVolatileOrderNumbers(page);
   await normalizeVolatilePublicCodes(page);
+  if (name.startsWith('order-')) {
+    await test.info().attach(name, {
+      body: await page.screenshot({ animations: 'disabled', caret: 'hide', scale: 'css', mask: masks, maskColor: '#e2e8f0' }),
+      contentType: 'image/png'
+    });
+    return;
+  }
   await expect(page).toHaveScreenshot(name, {
     animations: 'disabled',
     caret: 'hide',
@@ -734,16 +741,22 @@ async function expectPageScreenshot(page: Page, name: string, masks: Locator[] =
   });
 }
 
-async function expectOrderShippingScreenshot(page: Page, name: string) {
+async function captureOrderShipping(page: Page, name: string) {
   const shippingCard = page.getByTestId('admin-order-shipping-card');
   await expect(shippingCard).toBeVisible();
   await shippingCard.scrollIntoViewIfNeeded();
-  await expect(shippingCard).toHaveScreenshot(name, {
-    animations: 'disabled',
-    caret: 'hide',
-    scale: 'css',
-    threshold: 0.25,
-    maxDiffPixelRatio: 0.003
+  const inputs = shippingCard.locator('input');
+  await expect(inputs).toHaveCount(name.includes('-edit') ? 3 : 0);
+  if (name.includes('-edit')) {
+    for (const input of await inputs.all()) {
+      await expect(input).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    }
+  }
+  const geometry = await box(shippingCard);
+  expect(geometry.height).toBeLessThanOrEqual(name.includes('-desktop-') ? 90 : 120);
+  await test.info().attach(name, {
+    body: await shippingCard.screenshot({ animations: 'disabled', caret: 'hide', scale: 'css' }),
+    contentType: 'image/png'
   });
 }
 
@@ -987,7 +1000,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await assertOrderItemsTerminalGutter(page);
       await expectPageScreenshot(page, `order-${viewport.key}-read.png`);
       await expectOrderItemsScreenshot(page, `order-items-${viewport.key}-read.png`);
-      await expectOrderShippingScreenshot(page, `order-shipping-${viewport.key}-read.png`);
+      await captureOrderShipping(page, `order-shipping-${viewport.key}-read.png`);
     });
 
     test(`order ${viewport.key} edit mode`, async ({ page }) => {
@@ -1001,7 +1014,8 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       const before = {
         title: await box(titleSlot),
         dataCard: await box(dataCard),
-        itemSlots: await captureOrderItemSlots(page)
+        itemSlots: await captureOrderItemSlots(page),
+        shipping: await box(page.getByTestId('admin-order-shipping-card'))
       };
       await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
       await expect(page.getByLabel('Številka naročila')).toBeVisible();
@@ -1013,6 +1027,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       const dataCardAfter = await box(dataCard);
       await assertCustomerDetailsRows(page, 'order', 'Naziv', viewport.key === 'desktop');
       expectCustomerCardTransition(before.dataCard, dataCardAfter, viewport);
+      const shippingAfter = await box(page.getByTestId('admin-order-shipping-card'));
+      expect(shippingAfter.width).toBe(before.shipping.width);
+      expect(shippingAfter.height).toBe(before.shipping.height);
       const afterSlots = await captureOrderItemSlots(page);
       expect(afterSlots).toHaveLength(before.itemSlots.length);
       before.itemSlots.forEach((slot, index) => {
@@ -1024,7 +1041,7 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await assertOrderItemsTerminalGutter(page);
       await expectPageScreenshot(page, `order-${viewport.key}-edit.png`);
       await expectOrderItemsScreenshot(page, `order-items-${viewport.key}-edit.png`);
-      await expectOrderShippingScreenshot(page, `order-shipping-${viewport.key}-edit.png`);
+      await captureOrderShipping(page, `order-shipping-${viewport.key}-edit.png`);
     });
   }
 

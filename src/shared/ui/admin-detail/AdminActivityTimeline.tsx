@@ -86,8 +86,8 @@ export function AdminActivityTimeline({
                     {index === items.length - 1 ? (
                       <span className="h-full w-full rounded-full bg-emerald-500" />
                     ) : (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m5 12 4 4L19 6" />
+                      <svg className="block shrink-0" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m4 8 2.5 2.5L12 5.5" />
                       </svg>
                     )}
                   </span>

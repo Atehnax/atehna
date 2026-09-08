@@ -715,10 +715,10 @@ test('order header uses the shared title slot for identical read and master-edit
 });
 
 test('master edit keeps the reference-style shipping card in normal document flow', () => {
-  assert.doesNotMatch(shippingOverride, /detailsOpen|setDetailsOpen/u);
+  assert.doesNotMatch(shippingOverride, /detailsOpen|setDetailsOpen|collapseStyles|data-open=|aria-expanded=/u);
   assert.match(
     shippingOverride,
-    /data-open=\{externalEditMode\}[\s\S]*?data-shipping-editor-row[\s\S]*?data-open=\{!externalEditMode\}[\s\S]*?data-shipping-read-reason/u
+    /data-shipping-editor-row[\s\S]*?data-shipping-read-reason[\s\S]*?data-shipping-automatic-summary/u
   );
   assert.match(shippingOverride, /aria-pressed=\{externalEditMode\}/u);
   assert.match(shippingOverride, /onClick=\{onRequestEdit\}/u);

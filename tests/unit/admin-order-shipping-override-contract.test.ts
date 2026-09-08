@@ -200,13 +200,12 @@ test('shipping card mirrors the persistent reference hierarchy without a redunda
   assert.ok(readReasonStart > summaryStart);
   assert.ok(automaticStart > readReasonStart);
 
-  assert.match(renderSource, /data-open=\{externalEditMode\}[\s\S]*?aria-hidden=\{!externalEditMode\}[\s\S]*?inert=\{!externalEditMode\}[\s\S]*?data-shipping-editor-row/u);
-  assert.match(renderSource, /data-open=\{!externalEditMode\}[\s\S]*?aria-hidden=\{externalEditMode\}[\s\S]*?inert=\{externalEditMode\}[\s\S]*?data-shipping-read-reason/u);
-  assert.match(renderSource, /sm:grid-cols-\[72px_96px_minmax\(120px,1fr\)\]/u);
-  assert.match(
-    renderSource,
-    /<label className="block min-w-0">\s*<span[^>]*>\s*Razlog spremembe/u
-  );
+  assert.doesNotMatch(editorSource, /collapseStyles|data-open=|inert=|aria-expanded=/u);
+  assert.equal(renderSource.match(/\{externalEditMode \? \(\s*<input/gu)?.length, 3);
+  assert.match(renderSource, /data-shipping-editor-row[\s\S]*?data-shipping-read-reason/u);
+  assert.match(renderSource, /grid-rows-2[\s\S]*?sm:grid-rows-1/u);
+  assert.match(renderSource, /col-span-2[^"]*sm:col-span-1/u);
+  assert.match(renderSource, /title="Razlog spremembe">Razlog/u);
   assert.doesNotMatch(renderSource, /sm:col-span-2/u);
   assert.match(
     renderSource,
@@ -223,19 +222,9 @@ test('shipping card mirrors the persistent reference hierarchy without a redunda
 
   assert.match(renderSource, /Samodejni izračun/u);
   assert.match(renderSource, /automaticSummaryLabel/u);
-  assert.match(
-    renderSource,
-    /className="flex min-h-11 items-center gap-2 px-4 py-2"\s*data-shipping-summary-row/u
-  );
-  assert.match(
-    renderSource,
-    /className="grid min-h-10 grid-cols-\[112px_minmax\(0,1fr\)\] items-center gap-3 px-4 py-1\.5"\s*data-shipping-read-reason/u
-  );
-  assert.match(
-    renderSource,
-    /className="grid min-h-12 gap-2 border-t border-slate-200 px-4 py-1\.5 sm:grid-cols-\[minmax\(0,1fr\)_auto\] sm:items-center"\s*data-shipping-automatic-summary/u
-  );
-  assert.match(renderSource, /!h-7 !px-2 !text-\[11px\] !leading-4/u);
+  assert.match(editorSource, /const fieldClassName =[\s\S]*?h-6[\s\S]*?bg-white/u);
+  assert.match(editorSource, /const readValueClassName = '[^']*h-6[^']*border-transparent[^']*';/u);
+  assert.doesNotMatch(editorSource, /const readValueClassName = '[^']*bg-/u);
   assert.doesNotMatch(renderSource, /min-h-\[(?:56|72|84)px\]|text-lg/u);
   assert.match(renderSource, /disabled=\{!canRequestReset\}/u);
   assert.match(

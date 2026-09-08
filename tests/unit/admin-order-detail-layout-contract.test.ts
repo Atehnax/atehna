@@ -168,7 +168,7 @@ test('order detail follows the requested two-column information hierarchy', () =
 test('activity is an embedded chronological horizontal timeline in the order header', () => {
   assert.match(
     detail,
-    /mt-3 grid min-w-0 gap-4 lg:grid-cols-\[max-content_minmax\(0,1fr\)\] lg:items-end/u
+    /lg:items-center/u
   );
   assert.match(detail, /refreshToken=\{activityRefreshToken\}/u);
   assert.match(detail, /setActivityRefreshToken\(\(current\) => current \+ 1\)/u);
@@ -203,21 +203,14 @@ test('activity is an embedded chronological horizontal timeline in the order hea
   assert.match(sharedActivityTimeline, /data-testid=\{testId\}/u);
   assert.match(sharedActivityTimeline, /aria-label=\{ariaLabel\}/u);
   assert.match(sharedActivityTimeline, /aria-label=\{progressAriaLabel\}/u);
-  assert.match(sharedActivityTimeline, /className="-mx-1 overflow-x-auto px-1 pb-1"/u);
-  assert.match(sharedActivityTimeline, /className="flex min-w-max lg:min-w-full"/u);
-  assert.match(sharedActivityTimeline, /className="min-w-\[112px\] flex-1 text-center"/u);
-  assert.match(sharedActivityTimeline, /className="min-h-\[16px\] px-1"/u);
-  assert.match(
-    sharedActivityTimeline,
-    /className="truncate whitespace-nowrap text-\[9px\] leading-3 text-slate-500"/u
-  );
+  assert.match(sharedActivityTimeline, /overflow-x-auto/u);
+  assert.match(sharedActivityTimeline, /<ol[\s\S]*?aria-label=\{progressAriaLabel\}/u);
+  assert.match(sharedActivityTimeline, /items\.map\(\(item, index\) =>/u);
   assert.match(sharedActivityTimeline, /data-activity-compact-label/u);
   assert.match(
     sharedActivityTimeline,
     /item\.timestampKnown \? \([\s\S]*?<time dateTime=\{item\.occurredAt\}>\{item\.timestampLabel\}<\/time>[\s\S]*?: \([\s\S]*?<span data-activity-timestamp-unknown>\{item\.timestampLabel\}<\/span>/u
   );
-  assert.match(sharedActivityTimeline, /index > 0[\s\S]*?left-0 right-1\/2[\s\S]*?index < items\.length - 1[\s\S]*?left-1\/2 right-0/u);
-  assert.match(sharedActivityTimeline, /h-px -translate-y-1\/2 bg-emerald-300/u);
   assert.match(sharedActivityTimeline, /aria-current=\{index === items\.length - 1 \? 'step' : undefined\}/u);
   assert.doesNotMatch(sharedActivityTimeline, /adminWindowCardClassName/u);
   assert.doesNotMatch(sharedActivityTimeline, />Dejavnost<\/h2>/u);

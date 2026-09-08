@@ -1139,7 +1139,7 @@ export default function AdminSchoolsTable({ initialDirectory, supplierArticles }
                         aria-label={getSortActionLabel(column)}
                         title={getSortActionLabel(column)}
                       >
-                        <span className="block min-w-0 truncate">{columnTitle}</span>
+                        <span className="block min-w-0 truncate leading-5">{columnTitle}</span>
                       </button>
                       <span className={adminTableHeaderAdjacentControlsClassName}>
                         {filterableColumnId ? (

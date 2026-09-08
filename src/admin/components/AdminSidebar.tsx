@@ -25,8 +25,10 @@ const primaryLinkGroups = [
   ],
   [
     { href: '/admin/trash', label: 'Koš', icon: TrashIcon },
-    { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon },
-    { href: '/admin/skrbniki', label: 'Skrbniki', icon: UsersIcon }
+    { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
+  ],
+  [
+    { href: '/admin/skrbniki', label: 'Skrbniki', icon: UserShieldIcon }
   ]
 ] as const;
 
@@ -86,6 +88,16 @@ function ClipboardListIcon({ className }: { className?: string }) {
       <path d="M12 16h4" />
       <path d="M8 11h.01" />
       <path d="M8 16h.01" />
+    </svg>
+  );
+}
+
+function UserShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg {...sidebarSvgProps} className={className}>
+      <path d="M10 15H6a4 4 0 0 0-4 4v2" />
+      <path d="M22 17.5c0 2.499-1.75 3.749-3.83 4.474a.5.5 0 0 1-.335-.005c-2.085-.72-3.835-1.97-3.835-4.47V14a.5.5 0 0 1 .5-.499c1 0 2.25-.6 3.12-1.36a.6.6 0 0 1 .76-.001c.875.765 2.12 1.36 3.12 1.36a.5.5 0 0 1 .5.5z" />
+      <circle cx="9" cy="7" r="4" />
     </svg>
   );
 }

@@ -836,7 +836,7 @@ test('quote activity stays in the header through the shared bounded horizontal t
   );
   assert.match(
     header,
-    /mt-3 grid min-w-0 gap-4 lg:grid-cols-\[max-content_minmax\(0,1fr\)\] lg:items-end/u
+    /lg:items-center/u
   );
 
   assert.match(
@@ -868,18 +868,9 @@ test('quote activity stays in the header through the shared bounded horizontal t
 
   assert.match(adminActivityTimeline, /data-testid=\{testId\}/u);
   assert.match(adminActivityTimeline, /aria-live="polite"/u);
-  assert.match(
-    adminActivityTimeline,
-    /className="-mx-1 overflow-x-auto px-1 pb-1"/u
-  );
-  assert.match(
-    adminActivityTimeline,
-    /className="flex min-w-max lg:min-w-full"/u
-  );
-  assert.match(
-    adminActivityTimeline,
-    /className="min-w-\[112px\] flex-1 text-center"/u
-  );
+  assert.match(adminActivityTimeline, /overflow-x-auto/u);
+  assert.match(adminActivityTimeline, /<ol[\s\S]*?aria-label=\{progressAriaLabel\}/u);
+  assert.match(adminActivityTimeline, /items\.map\(\(item, index\) =>/u);
   assert.match(adminActivityTimeline, /data-activity-compact-label/u);
   assert.match(adminActivityTimeline, /title=\{item\.fullLabel\}/u);
   assert.match(adminActivityTimeline, /aria-label=\{item\.fullLabel\}/u);

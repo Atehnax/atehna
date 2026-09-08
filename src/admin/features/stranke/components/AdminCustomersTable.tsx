@@ -1312,7 +1312,7 @@ export default function AdminCustomersTable({ initialDirectory }: { initialDirec
                         aria-label={getSortActionLabel(column)}
                         title={getSortActionLabel(column)}
                       >
-                        <span className="block min-w-0 truncate">{column.label}</span>
+                        <span className="block min-w-0 truncate leading-5">{column.label}</span>
                       </button>
                       {headerFilterColumnId || supportsHeaderCopy ? (
                         <span className={adminTableHeaderAdjacentControlsClassName}>

@@ -79,7 +79,7 @@ function confirmationEnabledSettings(
   };
 }
 
-async function requireOk(response: APIResponse, label: string) {
+async function requireOk(response: Pick<APIResponse, 'ok' | 'status' | 'text'>, label: string) {
   if (response.ok()) return;
   throw new Error(`${label} failed with ${response.status()}: ${await response.text()}`);
 }

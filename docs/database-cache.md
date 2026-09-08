@@ -1,0 +1,11 @@
+# Database cache freshness
+
+Persistent database readers use `cacheDatabaseRead` in `src/shared/server/databaseCache.ts`. It retains each reader's existing key parts and tags, adds a versioned policy key, and sets Next's revalidation interval to **60 seconds**. The versioned key keeps previously indefinite entries out of the new policy. Catalog, category showcase, navigation, logo publication, global style, landing-page settings/defaults, product appearance and document templates use this policy. Existing immediate tag invalidations after successful edits remain in place.
+
+Production and Preview have separate Vercel Data Caches even when they share a database. An edit invalidates the environment that handled it. The other environment's active reads refresh through the finite interval, without a new service or cross-environment credential. This is stale-while-revalidate: the first request after expiry may receive the previous value while Next refreshes it. A quiet page needs a subsequent request, and a failed refresh can retain stale data. Sixty seconds is therefore a refresh interval, not a strict maximum stale age or immediate cross-environment read-after-write guarantee. Existing open pages also require their normal client refresh.
+
+Keep direct `unstable_cache` use inside this shared wrapper; do not give an individual database reader an indefinite lifetime. Tests check all persistent readers use the policy and exercise the installed Next cache's cold, warm, expired, invalidated and failure behavior. Existing uncached transactional reads and authorization checks remain uncached.
+
+Changing a database binding still requires the controlled deployment cache procedure: older deployments can use their old namespace and data source. If an operator needs immediate freshness in both environments, invalidate the relevant tags in both after the intended database write. Do not save unchanged settings merely to refresh a cache.
+
+See [Next unstable_cache](https://nextjs.org/docs/app/api-reference/functions/unstable_cache), [Vercel Data Cache](https://vercel.com/docs/caching/runtime-cache/data-cache), and [project/environment tag purging](https://vercel.com/docs/caching/cdn-cache/purge).

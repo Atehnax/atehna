@@ -61,6 +61,11 @@ sender/recipient settings and real address data before serving traffic.
 
 ## Runtime configuration
 
+Persistent database reads use a shared 60-second revalidation policy. When Production
+and Preview share a database, their separate caches refresh active reads through
+this interval; immediate invalidation still applies to the environment handling
+each edit. See [database cache freshness and its limits](docs/database-cache.md).
+
 ### Isolated localhost on Windows
 
 This workspace has a gitignored .env.development.local and an isolated

@@ -1,7 +1,8 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient } from 'pg';
 import {
   ORDER_DOCUMENT_TEMPLATE_SETTINGS_KEY,
@@ -55,7 +56,7 @@ async function readOrderDocumentTemplatesRow(): Promise<OrderDocumentTemplatesSe
   return (result.rows[0] as OrderDocumentTemplatesSettingsRow | undefined) ?? null;
 }
 
-const getCachedOrderDocumentTemplates = unstable_cache(
+const getCachedOrderDocumentTemplates = cacheDatabaseRead(
   readOrderDocumentTemplatesRow,
   ['order-document-templates-config', ORDER_DOCUMENT_TEMPLATES_CACHE_VERSION],
   { tags: [ORDER_DOCUMENT_TEMPLATES_CACHE_TAG] }

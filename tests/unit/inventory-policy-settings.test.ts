@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
-import {
-  ADMIN_SESSION_COOKIE,
-  createAdminSessionToken,
-  getAdminAuthConfig,
-  hasValidAdminSession
-} from '@/shared/auth/adminSession';
+import { loadBoundServerModule } from './support/loadBoundServerModule';
 import {
   DEFAULT_INVENTORY_POLICY_SETTINGS,
   cloneDefaultInventoryPolicySettings,
@@ -89,18 +84,24 @@ describe('global inventory policy settings', () => {
     assert.equal(draftWithStockPolicyDisabledThroughout, false);
   });
 
-  test('validates the signed admin cookie used by the policy API', () => {
-    const config = getAdminAuthConfig();
-    assert.ok(config);
-    const session = createAdminSessionToken(config);
-    const authenticated = new Request('http://localhost/api/admin/inventory-policy', {
-      headers: {
-        cookie: `${ADMIN_SESSION_COOKIE}=${encodeURIComponent(session.token)}`
+  test('policy API awaits an active server session before reading settings', async () => {
+    let reads = 0;
+    const api = loadBoundServerModule<{ GET: (request: Request) => Promise<Response> }>(
+      'src/admin/api/inventory-policy/route.ts',
+      {
+        NextResponse: Response,
+        hasValidAdminSession: async (request: Request) => request.headers.get('x-test-session') === 'active',
+        getInventoryPolicySettings: async () => { reads++; return { stockEnforcementEnabled: true }; },
+        isDatabaseUnavailableError: () => false
       }
-    });
-    const anonymous = new Request('http://localhost/api/admin/inventory-policy');
-    assert.equal(hasValidAdminSession(authenticated), true);
-    assert.equal(hasValidAdminSession(anonymous), false);
+    );
+    const url = 'https://atehna.test/api/admin/inventory-policy';
+    const denied = await api.GET(new Request(url));
+    assert.equal(denied.status, 401);
+    assert.equal(reads, 0);
+    const allowed = await api.GET(new Request(url, { headers: { 'x-test-session': 'active' } }));
+    assert.equal(allowed.status, 200);
+    assert.equal(reads, 1);
   });
 
   test('persists one authoritative row and exposes an authenticated GET/PUT API', () => {

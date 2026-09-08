@@ -13,8 +13,8 @@ const controlledEnvironmentKeys = [
   'E2E_DATABASE_URL',
   'DATABASE_URL',
   'E2E_STORAGE_NAMESPACE',
-  'ADMIN_USERNAME',
-  'ADMIN_PASSWORD',
+  'E2E_ADMIN_USERNAME',
+  'E2E_ADMIN_PASSWORD',
   'ADMIN_SESSION_SECRET'
 ] as const;
 const originalEnvironment = Object.fromEntries(
@@ -44,8 +44,8 @@ function configureEnvironment(databaseName: string, namespace: string) {
   process.env.E2E_DATABASE_URL = `postgresql://e2e-user@127.0.0.1:55432/${databaseName}`;
   process.env.DATABASE_URL = process.env.E2E_DATABASE_URL;
   process.env.E2E_STORAGE_NAMESPACE = namespace;
-  process.env.ADMIN_USERNAME = 'e2e-admin';
-  process.env.ADMIN_PASSWORD = 'e2e-password';
+  process.env.E2E_ADMIN_USERNAME = 'e2e-admin';
+  process.env.E2E_ADMIN_PASSWORD = 'e2e-only-test-password';
   process.env.ADMIN_SESSION_SECRET = 'unit-test-session-secret-at-least-32-characters';
 }
 

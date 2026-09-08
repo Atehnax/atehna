@@ -37,12 +37,12 @@ test('unauthenticated admin API is rejected before payload validation', async ()
 });
 
 test('configured admin credentials create a session that reaches protected database data', async () => {
-  const username = process.env.ADMIN_USERNAME?.trim();
-  const password = process.env.ADMIN_PASSWORD;
+  const username = process.env.E2E_ADMIN_USERNAME?.trim();
+  const password = process.env.E2E_ADMIN_PASSWORD;
   expect(username).toBeTruthy();
   expect(password).toBeTruthy();
 
-  const loginRequest = await playwrightRequest.newContext({ baseURL });
+  const loginRequest = await playwrightRequest.newContext({ baseURL, extraHTTPHeaders: { Origin: baseURL } });
   try {
     const login = await loginRequest.post('/api/admin/login', {
       data: { username, password }

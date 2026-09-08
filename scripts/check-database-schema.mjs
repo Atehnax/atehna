@@ -14,7 +14,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 const projectRoot = resolve(dirname(scriptPath), '..');
 const manifestPath = resolve(projectRoot, 'database', 'schema-contract.json');
 const schemaPath = resolve(projectRoot, 'database', 'schema.sql');
-const identifierPattern = /^[a-z][a-z0-9_]*$/u;
+const identifierPattern = /^[a-zA-Z][a-zA-Z0-9_]*$/u;
 const contractIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$/u;
 const checksumPattern = /^[a-f0-9]{64}$/u;
 const constraintTypeCodes = Object.freeze({
@@ -235,6 +235,7 @@ export function validateManifest(manifest) {
   }
   for (const row of requirements.requiredRows ?? []) {
     requireIdentifier(row.table, 'required row table');
+    if (row.column !== undefined) requireIdentifier(row.column, 'required row column');
     if (typeof row.key !== 'string' || row.key.length === 0) {
       fail('Required row key must be a non-empty string.');
     }
@@ -746,7 +747,7 @@ export async function verifyDatabaseContract(client, manifest) {
 
   for (const row of requirements.requiredRows ?? []) {
     const result = await client.query(
-      `select key from public.${quotedIdentifier(row.table)} where key = $1`,
+      `select ${quotedIdentifier(row.column ?? 'key')} from public.${quotedIdentifier(row.table)} where ${quotedIdentifier(row.column ?? 'key')} = $1`,
       [row.key]
     );
     if (result.rows.length !== 1) {

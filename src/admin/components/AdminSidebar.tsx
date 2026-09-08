@@ -25,7 +25,8 @@ const primaryLinkGroups = [
   ],
   [
     { href: '/admin/trash', label: 'Koš', icon: TrashIcon },
-    { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon }
+    { href: '/admin/dnevnik', label: 'Dnevnik sprememb', icon: HistoryIcon },
+    { href: '/admin/skrbniki', label: 'Skrbniki', icon: UsersIcon }
   ]
 ] as const;
 
@@ -248,19 +249,18 @@ export default function AdminSidebar({ onExpandedChange }: { onExpandedChange?: 
   };
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
       const response = await fetch('/api/admin/logout', { method: 'POST' });
-      if (!response.ok) {
-        toast.error('Napaka pri odjavi');
+      if (!response.ok && response.status !== 401) {
+        const payload = await response.json().catch(() => ({})) as { error?: string };
+        toast.error(payload.error || 'Napaka pri odjavi');
         return;
       }
 
-      toast.success('Odjava uspešna');
-      router.push('/admin');
-      router.refresh();
-    } catch (error) {
-      console.error(error);
+      window.location.replace('/admin');
+    } catch {
       toast.error('Napaka pri odjavi');
     } finally {
       setIsLoggingOut(false);

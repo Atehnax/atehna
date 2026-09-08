@@ -15,8 +15,8 @@ for (const route of ['/api/admin/analytics/business', '/api/admin/analytics/busi
   assert.equal((await fetch(new URL(route, base))).status, 401, 'Aggregate, CSV, map and capture endpoints require admin authentication.');
 }
 const login = await fetch(new URL('/api/admin/login', base), {
-  method: 'POST', headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ username: process.env.ADMIN_USERNAME, password: process.env.ADMIN_PASSWORD })
+  method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base.origin },
+  body: JSON.stringify({ username: process.env.E2E_ADMIN_USERNAME, password: process.env.E2E_ADMIN_PASSWORD })
 });
 assert.equal(login.status, 200);
 const cookie = login.headers.get('set-cookie')?.split(';')[0];

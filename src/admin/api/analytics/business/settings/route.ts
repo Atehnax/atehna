@@ -15,13 +15,13 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request) {
   return instrumentAdminRouteRender('/api/admin/analytics/business/settings', async () => {
-    if (!hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
+    if (!await hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
     try { return Response.json(await fetchBusinessAnalyticsSettings(), { headers }); } catch (error) { return failure(error); }
   });
 }
 export async function PUT(request: Request) {
   return instrumentAdminRouteRender('/api/admin/analytics/business/settings', async () => {
-    if (!hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
+    if (!await hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
     if (request.headers.get('sec-fetch-site') === 'cross-site' || !requestOriginMatchesHost(request)) return Response.json({ message: 'Zahtevek mora izvirati iz te administracije.' }, { status: 403, headers });
     const body = await readRequiredJsonRecord(request);
     if (!body.ok) { body.response.headers.set('Cache-Control', headers['Cache-Control']); return body.response; }

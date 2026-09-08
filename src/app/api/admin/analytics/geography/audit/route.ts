@@ -1,8 +1,10 @@
+import { withAdminRoute } from '@/shared/auth/adminRoute';
+
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export async function GET(request: Request) {
+async function handleAdminGET(request: Request) {
   const orderId = new URL(request.url).searchParams.get('orderId');
   if (orderId && !/^\d{1,19}$/.test(orderId)) return NextResponse.json({ message: 'Neveljaven ID naročila.' }, { status: 400 });
   try {
@@ -19,3 +21,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Revizijska sled trenutno ni na voljo.' }, { status: 503 });
   }
 }
+
+export const GET = withAdminRoute(handleAdminGET);

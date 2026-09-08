@@ -8,11 +8,7 @@ import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, type AuditAction, type AuditActor, t
 import { AUDIT_ACTION_LABELS } from '@/shared/audit/auditLabels';
 import { getAuditRetentionUntil, isDurableOrderAudit } from '@/shared/audit/auditRetention';
 import { ALL_PAGE_SIZE, isAllPageSize, type PageSizeValue } from '@/shared/domain/pagination';
-import {
-  ADMIN_SESSION_COOKIE,
-  getAdminAuthConfig,
-  verifyAdminSessionToken
-} from '@/shared/auth/adminSession';
+import { getAdminSession } from '@/shared/auth/adminSession';
 
 type Queryable = {
   query: (sql: string, params?: unknown[]) => Promise<QueryResult<Record<string, unknown>>>;
@@ -29,28 +25,12 @@ const AUDIT_RETENTION_SQL = `(
   end
 )`;
 
-function parseCookies(cookieHeader: string | null) {
-  const cookies = new Map<string, string>();
-  if (!cookieHeader) return cookies;
-  for (const part of cookieHeader.split(';')) {
-    const [rawName, ...rawValueParts] = part.trim().split('=');
-    if (!rawName) continue;
-    try {
-      cookies.set(rawName, decodeURIComponent(rawValueParts.join('=')));
-    } catch {
-      cookies.set(rawName, rawValueParts.join('='));
-    }
-  }
-  return cookies;
-}
-
 function hashRequestValue(value: string | null) {
   const normalized = value?.trim();
   if (!normalized) return null;
   const salt =
     process.env.AUDIT_HASH_SALT ??
     process.env.ADMIN_SESSION_SECRET ??
-    process.env.ADMIN_PASSWORD ??
     'atehna-development-audit';
   return createHash('sha256').update(`${salt}:${normalized}`).digest('hex');
 }
@@ -225,12 +205,11 @@ export async function isAuditLoggingEnabled(db?: Queryable) {
 }
 
 export async function getAuditActor(request: Request): Promise<AuditActor> {
-  const authConfig = getAdminAuthConfig();
-  const cookieValue = parseCookies(request.headers.get('cookie')).get(ADMIN_SESSION_COOKIE);
-  if (authConfig && verifyAdminSessionToken(cookieValue, authConfig)) {
+  const session = await getAdminSession(request);
+  if (session) {
     return {
-      actor_id: `admin:${authConfig.username}`,
-      actor_name: authConfig.username,
+      actor_id: `admin:${session.userId}`,
+      actor_name: session.username,
       actor_email: null
     };
   }
@@ -314,9 +293,9 @@ export function createAuditSummary(input: {
   return AUDIT_ACTION_LABELS[input.action] ?? 'Sprememba zabelezena';
 }
 
-export async function insertAuditEvent(input: AuditEventInput, db?: Queryable) {
+export async function insertAuditEvent(input: AuditEventInput, db?: Queryable, options: { force?: boolean } = {}) {
   const target = db ?? await getPool();
-  if (!(await isAuditLoggingEnabled(target))) return null;
+  if (!options.force && !(await isAuditLoggingEnabled(target))) return null;
   const occurredAt = input.occurredAt ?? new Date();
   const actor = input.actor ?? {
     actor_id: input.actor_id ?? null,

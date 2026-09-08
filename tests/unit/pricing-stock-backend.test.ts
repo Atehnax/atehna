@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { loadBoundServerModule } from './support/loadBoundServerModule';
 import test from 'node:test';
-import { createDefaultPricingStockModel } from '@/shared/domain/pricingStock';
-import { normalizePricingStockBatch, requirePricingStockRevision } from '@/shared/server/pricingStockTransaction';
+import { createDefaultPricingStockModel, PricingStockValidationError } from '@/shared/domain/pricingStock';
+import { normalizePricingStockBatch, requirePricingStockRevision, PricingStockError } from '@/shared/server/pricingStockTransaction';
 import { overlayCanonicalEditorPricing } from '@/shared/server/pricingStockEditorData';
 import { normalizeWeightProductData, buildWeightCatalogVariants, syncWeightVariantsWithFractionInventory } from '@/admin/features/artikli/components/pricing/productData';
 import { createVariant } from '@/admin/features/artikli/lib/familyModel';
@@ -43,18 +43,29 @@ test('weight SKU inventory stays distinct through editor normalization and seria
   assert.deepEqual(normalizeWeightProductData({...data,variants:changed}).variants.map(v=>v.stockKg),[12,12]);
   assert.equal(createVariant({stock:4}).stock,4);
 });
-test('private API denies unauthenticated reads and cross-origin writes before any database access',()=>{
-  const code=`import assert from 'node:assert/strict';
-    import {GET,PATCH} from './src/admin/api/pricing-stock/route.ts';
-    import {createAdminSessionToken,getAdminAuthConfig,ADMIN_SESSION_COOKIE} from './src/shared/auth/adminSession.ts';
-    const denied=await GET(new Request('http://localhost:3000/api/admin/pricing-stock'));
-    assert.equal(denied.status,401);assert.match(denied.headers.get('cache-control'),/no-store/);assert.doesNotMatch(await denied.text(),/purchaseNet|actor|rows/);
-    const session=createAdminSessionToken(getAdminAuthConfig());
-    const headers={'content-type':'application/json',cookie:ADMIN_SESSION_COOKIE+'='+session.token,origin:'https://foreign.example',host:'localhost:3000','sec-fetch-site':'cross-site'};
-    const deniedWrite=await PATCH(new Request('http://localhost:3000/api/admin/pricing-stock',{method:'PATCH',headers,body:JSON.stringify({expectedModelRevision:'0',rows:[{variantId:1,expectedStockRevision:'0',patch:{inventory:1}}]})}));
-    assert.equal(deniedWrite.status,403);
-    const nullSale=await PATCH(new Request('http://localhost:3000/api/admin/pricing-stock',{method:'PATCH',headers:{...headers,origin:'http://localhost:3000','sec-fetch-site':'same-origin'},body:JSON.stringify({expectedModelRevision:'0',rows:[{variantId:1,expectedPricingRevision:'0',patch:{saleNet:null}}]})}));
-    assert.equal(nullSale.status,400);const nullSaleBody=await nullSale.json();assert.equal(nullSaleBody.issues[0].code,'REQUIRED');console.log('private boundary passed');`;
-  const result=spawnSync(process.execPath,['--conditions=react-server','--import','tsx','--input-type=module','-e',code],{cwd:process.cwd(),encoding:'utf8',env:{...process.env,NODE_ENV:'development',ADMIN_USERNAME:'pricing-test',ADMIN_PASSWORD:'test-only',ADMIN_SESSION_SECRET:'test-only-session-secret',DATABASE_URL:''}});
-  assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/private boundary passed/);
+test('private API denies unauthenticated reads and cross-origin writes before business data access', async () => {
+  type Handler = (request: Request) => Promise<Response>;
+  let reads = 0; let writes = 0;
+  const { requestOriginMatchesHost } = loadBoundServerModule<{ requestOriginMatchesHost: (request: Request) => boolean }>('src/shared/server/requestSecurity.ts', {});
+  const requestHelpers = loadBoundServerModule<Record<string, unknown>>('src/shared/server/pricingStockRequest.ts', {
+    hasValidAdminSession: async (request: Request) => request.headers.get('x-test-session') === 'active',
+    requestOriginMatchesHost, PricingStockError, PricingStockValidationError
+  });
+  const { GET, PATCH } = loadBoundServerModule<{ GET: Handler; PATCH: Handler }>('src/admin/api/pricing-stock/route.ts', {
+    ...requestHelpers, normalizePricingStockBatch,
+    getPricingStockState: async () => { reads++; return {}; },
+    savePricingStockRows: async () => { writes++; return {}; }
+  });
+  const url = 'http://localhost:3000/api/admin/pricing-stock';
+  const denied = await GET(new Request(url));
+  assert.equal(denied.status, 401);
+  assert.match(denied.headers.get('cache-control') ?? '', /no-store/);
+  assert.doesNotMatch(await denied.text(), /purchaseNet|actor|rows/);
+  const headers = { 'content-type': 'application/json', 'x-test-session': 'active', origin: 'https://foreign.example', host: 'localhost:3000', 'sec-fetch-site': 'cross-site' };
+  const deniedWrite = await PATCH(new Request(url, { method: 'PATCH', headers, body: JSON.stringify({ expectedModelRevision: '0', rows: [{ variantId: 1, expectedStockRevision: '0', patch: { inventory: 1 } }] }) }));
+  assert.equal(deniedWrite.status, 403);
+  const nullSale = await PATCH(new Request(url, { method: 'PATCH', headers: { ...headers, origin: 'http://localhost:3000', 'sec-fetch-site': 'same-origin' }, body: JSON.stringify({ expectedModelRevision: '0', rows: [{ variantId: 1, expectedPricingRevision: '0', patch: { saleNet: null } }] }) }));
+  assert.equal(nullSale.status, 400);
+  assert.equal((await nullSale.json()).issues[0].code, 'REQUIRED');
+  assert.equal(reads, 0); assert.equal(writes, 0);
 });

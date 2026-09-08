@@ -26,7 +26,8 @@
     "storage:review": "tsx scripts/storage-lifecycle.ts review",
     "storage:prepare": "tsx scripts/storage-lifecycle.ts prepare",
     "storage:apply": "tsx scripts/storage-lifecycle.ts apply",
-    "test:storage-db": "tsx --test tests/storage/*.test.ts"
+    "test:storage-db": "tsx --test tests/storage/*.test.ts",
+    "admin:init": "node scripts/init-admin-account.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -54,6 +55,7 @@
     "@types/plotly.js": "^3.0.10",
     "@vercel/blob": "^2.8.0",
     "@xmldom/xmldom": "0.9.12",
+    "better-auth": "^1.7.3",
     "cropperjs": "^2.1.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.22.0",

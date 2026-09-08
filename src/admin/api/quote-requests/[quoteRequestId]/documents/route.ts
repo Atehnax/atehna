@@ -99,7 +99,7 @@ export async function POST(
       { status: 404, headers: PRIVATE_HEADERS }
     );
   }
-  if (!hasValidQuoteAdminSession(request)) {
+  if (!await hasValidQuoteAdminSession(request)) {
     return NextResponse.json(
       { message: 'Za dostop je potrebna prijava.' },
       { status: 401, headers: PRIVATE_HEADERS }

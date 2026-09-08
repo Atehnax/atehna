@@ -11,6 +11,7 @@ type DatabaseReadinessRow = {
   has_schema_contract_table?: boolean;
   has_seed?: boolean;
   has_reference_product?: boolean;
+  has_admin_account?: boolean;
 };
 
 function getConfiguredDatabaseTarget() {
@@ -37,9 +38,8 @@ export async function GET() {
   }
 
   if (
-    !process.env.ADMIN_USERNAME?.trim()
-    || !process.env.ADMIN_PASSWORD
-    || !process.env.ADMIN_SESSION_SECRET
+    !process.env.ADMIN_SESSION_SECRET
+    || process.env.ADMIN_SESSION_SECRET.length < 32
   ) {
     return NextResponse.json(
       { ok: false, reason: 'admin-auth-not-configured' },
@@ -81,7 +81,13 @@ export async function GET() {
           where item.slug = 'aluminijasta-plosca'
             and item.status = 'active'
             and variant.status = 'active'
-        ) as has_reference_product
+        ) as has_reference_product,
+        exists (
+          select 1 from admin_auth_user u
+          join admin_auth_account a on a."userId" = u.id
+          where a."providerId" = 'credential'
+            and a.password is not null and a.password <> ''
+        ) as has_admin_account
     `);
     const row = result.rows[0] as DatabaseReadinessRow | undefined;
     let hasExactSchemaContract = false;
@@ -103,6 +109,7 @@ export async function GET() {
       || !hasExactSchemaContract
       || row.has_seed !== true
       || row.has_reference_product !== true
+      || row.has_admin_account !== true
     ) {
       return NextResponse.json(
         { ok: false, reason: 'database-not-prepared' },

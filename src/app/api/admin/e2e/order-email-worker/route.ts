@@ -1,10 +1,12 @@
+import { withAdminRoute } from '@/shared/auth/adminRoute';
+
 import { NextResponse } from 'next/server';
 import { getPool } from '@/shared/server/db';
 import { processDueOrderEmailJobs } from '@/shared/server/orderEmailJobs';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+async function handleAdminPOST() {
   if (process.env.E2E_MODE !== '1') {
     return new NextResponse(null, { status: 404 });
   }
@@ -17,3 +19,5 @@ export async function POST() {
     headers: { 'Cache-Control': 'private, no-store' }
   });
 }
+
+export const POST = withAdminRoute(handleAdminPOST);

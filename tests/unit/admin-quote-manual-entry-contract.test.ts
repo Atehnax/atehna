@@ -1,3 +1,4 @@
+import { assertProtectedAdminRouteBinding } from './support/adminRouteContract';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -57,7 +58,7 @@ test('manual admin intake is authenticated, attributed, non-binding, and has no 
   assert.doesNotMatch(route, /insert into quote_email_jobs/iu);
   assert.doesNotMatch(route, /enqueueQuoteEmail|scheduleQuoteEmailJobs/u);
   assert.doesNotMatch(route, /insert into\s+orders\b/iu);
-  assert.match(wrapper, /export \{ POST \} from '@\/admin\/api\/quote-requests\/route'/u);
+  assertProtectedAdminRouteBinding(wrapper, 'POST', '@/admin/api/quote-requests/route');
 });
 
 test('admin quote creation supports a direct draft while preserving full manual intake', () => {
@@ -167,10 +168,7 @@ test('admin delete is a lifecycle-guarded logical void and never deletes the quo
   assert.match(route, /insertAuditEventForRequest/u);
   assert.match(route, /revalidateAdminQuotePaths\(quoteRequestId\)/u);
   assert.doesNotMatch(route, /delete\s+from\s+quote_requests/iu);
-  assert.match(
-    wrapper,
-    /export \{ DELETE \} from '@\/admin\/api\/quote-requests\/\[quoteRequestId\]\/route'/u
-  );
+  assertProtectedAdminRouteBinding(wrapper, 'DELETE', '@/admin/api/quote-requests/[quoteRequestId]/route');
 });
 
 test('voided quote requests are excluded from the list, new badge, detail, and analytics', () => {

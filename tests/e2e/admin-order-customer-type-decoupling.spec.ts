@@ -242,6 +242,9 @@ async function changeCustomerType(
   await page.getByRole('button', { name: 'Shrani', exact: true }).click();
   const response = await responsePromise;
   await requireOk(response, `change customer type to ${customerTypeLabel}`);
+  // Read the persisted correction before another edit; the save also starts an
+  // asynchronous router refresh that can dismiss a menu opened immediately after it.
+  await page.reload();
   await expect(page.getByRole('button', { name: 'Uredi celotno naročilo' })).toBeEnabled();
 }
 

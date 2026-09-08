@@ -96,8 +96,8 @@ jobs:
       E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/atehna_e2e_run_${{ github.run_id }}_${{ github.run_attempt }}_shard_${{ matrix.shard }}
       E2E_STORAGE_NAMESPACE: run-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-      ADMIN_USERNAME: e2e-admin
-      ADMIN_PASSWORD: e2e-admin-password
+      E2E_ADMIN_USERNAME: e2e-admin
+      E2E_ADMIN_PASSWORD: e2e-admin-password
       ADMIN_SESSION_SECRET: e2e-only-session-secret-with-at-least-32-characters
       ORDER_ACCESS_BOOTSTRAP_KEY: e2e-only-order-bootstrap-key-with-at-least-32-characters
       PLAYWRIGHT_SHARD: ${{ matrix.shard }}-of-4

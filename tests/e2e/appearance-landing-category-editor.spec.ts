@@ -652,7 +652,8 @@ test.describe('admin podoba redesign', () => {
     page.on('request', (request) => {
       const url = new URL(request.url());
       const method = request.method();
-      if (['PATCH', 'POST', 'PUT', 'DELETE'].includes(method)) {
+      if (['PATCH', 'POST', 'PUT', 'DELETE'].includes(method)
+        && !(method === 'POST' && url.pathname === '/api/admin/session/activity')) {
         categorySettingsWrites.push(`${method} ${url.pathname}`);
       }
       if (method === 'GET' && url.pathname === '/api/admin/categories' && !url.search) {

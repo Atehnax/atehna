@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before, after } from 'node:test';
 import {
   CUSTOMER_EMAIL_CONFIRMATION_REQUIRED_CODE
 } from '@/shared/domain/email/adminCustomerEmailConfirmation';
 import {
   requireAdminCustomerEmailConfirmationForDeliveries
 } from '@/shared/server/adminCustomerEmailConfirmationToken';
+
+const previousSessionSecret = process.env.ADMIN_SESSION_SECRET;
+before(() => { process.env.ADMIN_SESSION_SECRET = 'isolated-recipient-confirmation-test-secret'; });
+after(() => {
+  if (previousSessionSecret === undefined) delete process.env.ADMIN_SESSION_SECRET;
+  else process.env.ADMIN_SESSION_SECRET = previousSessionSecret;
+});
 
 const baseInput = {
   action: 'change_order_status',

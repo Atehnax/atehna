@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const headers = { 'cache-control': 'private, no-store' };
 
 async function handleGet(request: Request) {
-  if (!hasValidAdminSession(request)) return NextResponse.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
+  if (!await hasValidAdminSession(request)) return NextResponse.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
   try {
     const data = await fetchBusinessActivity(new URL(request.url).searchParams);
     profilePayloadEstimate('business-activity', data);

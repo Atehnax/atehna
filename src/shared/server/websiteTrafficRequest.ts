@@ -4,7 +4,7 @@ import { WebsiteTrafficInputError, WEBSITE_EXPORTS, websiteCsv, websitePeriod, t
 const defaultLoad = async (params: URLSearchParams) => (await import('./websiteTraffic')).fetchWebsiteTraffic(params);
 const headers = { 'cache-control': 'private, no-store' };
 export async function handleWebsiteTrafficRequest(request: Request, load: (params: URLSearchParams) => Promise<WebsiteTraffic> = defaultLoad) {
-  if (!hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
+  if (!await hasValidAdminSession(request)) return Response.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401, headers });
   try {
     const params = new URL(request.url).searchParams;
     const kind = params.get('export');

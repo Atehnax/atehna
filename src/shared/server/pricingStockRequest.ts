@@ -6,8 +6,8 @@ import { PricingStockError } from './pricingStockTransaction';
 export const pricingStockPrivateHeaders={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'};
 // The application currently has one administrator identity, with all four capabilities.
 // Keep this explicit boundary so future roles cannot accidentally expose acquisition costs.
-export function authorizePricingStockRequest(request:Request,capability:'viewCosts'|'editCosts'|'editPrices'|'editStock'|'editModel'='viewCosts') {
-  if(!hasValidAdminSession(request))throw new PricingStockError('Za dostop je potrebna prijava.',401,'UNAUTHORIZED');
+export async function authorizePricingStockRequest(request:Request,capability:'viewCosts'|'editCosts'|'editPrices'|'editStock'|'editModel'='viewCosts') {
+  if(!await hasValidAdminSession(request))throw new PricingStockError('Za dostop je potrebna prijava.',401,'UNAUTHORIZED');
   if(capability!=='viewCosts' && (request.headers.get('sec-fetch-site')==='cross-site'||!requestOriginMatchesHost(request)))throw new PricingStockError('Zahtevek mora izvirati iz te administracije.',403,'FORBIDDEN');
 }
 export async function readPricingStockBody(request:Request):Promise<unknown> {

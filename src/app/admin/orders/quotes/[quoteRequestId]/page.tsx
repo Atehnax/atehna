@@ -1,3 +1,8 @@
+import { withAdminPage } from '@/shared/auth/adminPage';
+import AdminPage from '@/admin/pages/orders/quotes/[quoteRequestId]/page';
+
 export const dynamic = 'force-dynamic';
 
-export { default, metadata } from '@/admin/pages/orders/quotes/[quoteRequestId]/page';
+export { metadata } from '@/admin/pages/orders/quotes/[quoteRequestId]/page';
+
+export default withAdminPage(AdminPage);

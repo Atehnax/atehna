@@ -6,9 +6,9 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 const projectRoot = process.cwd();
-const contractId = '20260907.historical-orders-v6';
+const contractId = '20260908.admin-auth-v1';
 const contractSha256 =
-  '2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af';
+  'aaa39829b4667551c9736c21a786f809421f91f58435ff6e5ba981236edbf026';
 
 const source = (relativePath: string) =>
   readFileSync(resolve(projectRoot, relativePath), 'utf8');
@@ -47,7 +47,7 @@ test('schema manifest carries a deterministic requirements checksum', () => {
       /^create table ([a-z0-9_]+) \(/gmu
     )
   ].map((match) => match[1]).sort();
-  assert.equal(manifest.requirements.tables.length, 71);
+  assert.equal(manifest.requirements.tables.length, 77);
   assert.deepEqual(
     [...manifest.requirements.tables, 'app_schema_contracts'].sort(),
     schemaTables
@@ -179,7 +179,7 @@ test('every named manifest requirement is bound to the canonical schema', () => 
   }
 });
 
-test('contract requires insert defaults while treating inventory policy as mutable', () => {
+test('commerce contract preserves insert defaults while treating inventory policy as mutable', () => {
   const manifest = JSON.parse(source('database/schema-contract.json')) as {
     requirements: {
       columns: Array<{
@@ -227,7 +227,7 @@ test('contract requires insert defaults while treating inventory policy as mutab
   });
   const exactDefaults = Object.fromEntries(
     manifest.requirements.columns
-      .filter((column) => column.defaultEquals !== undefined)
+      .filter((column) => column.defaultEquals !== undefined && !column.table.startsWith('admin_'))
       .map((column) => [
         column.table + '.' + column.name,
         column.defaultEquals
@@ -437,7 +437,10 @@ test('v6 binds durable history, provenance and the absence of trash expiry defau
       column.table === 'deleted_archive_entries' && column.name === 'expires_at'),
     {table: 'deleted_archive_entries', name: 'expires_at', dataType: 'timestamp with time zone', nullable: true, defaultEquals: null}
   );
-  assert.deepEqual(manifest.requirements.requiredRows, [{table: 'business_analytics_settings', key: 'default'}]);
+  assert.deepEqual(manifest.requirements.requiredRows, [
+    {table: 'business_analytics_settings', key: 'default'},
+    {table: 'admin_session_policy', key: '1', column: 'id'}
+  ]);
   for (const guard of ['protect_order_entry_evidence', 'reject_historical_order_stock_hold', 'protect_order_audit_history', 'protect_historical_change_log']) {
     assert.ok(manifest.requirements.functions.some((routine: {name: string}) => routine.name === guard));
     assert.ok(manifest.requirements.triggers.some((trigger: {function: string}) => trigger.function === guard));

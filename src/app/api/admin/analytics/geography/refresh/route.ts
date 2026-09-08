@@ -1,7 +1,9 @@
+import { withAdminRoute } from '@/shared/auth/adminRoute';
+
 import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
-export async function GET(request: Request) {
+async function handleAdminGET(request: Request) {
   if (!process.env.CRON_SECRET || request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ message: 'Nedovoljen dostop.' }, { status: 401 });
   try {
     const { importGeographyReference } = await import('@/shared/server/geographyReference');
@@ -11,3 +13,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Osvežitev uradnih geografskih podatkov ni uspela; zadnja veljavna različica je ohranjena.' }, { status: 503 });
   }
 }
+
+export const GET = withAdminRoute(handleAdminGET, { allowCron: true });

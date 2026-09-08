@@ -8,9 +8,10 @@ import { Button } from '@/shared/ui/button';
 
 type AdminLoginFormProps = {
   nextPath: string;
+  passwordChanged?: boolean;
 };
 
-export default function AdminLoginForm({ nextPath }: AdminLoginFormProps) {
+export default function AdminLoginForm({ nextPath, passwordChanged = false }: AdminLoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +20,7 @@ export default function AdminLoginForm({ nextPath }: AdminLoginFormProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setError(null);
     setIsSubmitting(true);
 
@@ -31,7 +33,7 @@ export default function AdminLoginForm({ nextPath }: AdminLoginFormProps) {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.message || 'Prijava ni uspela.');
+        throw new Error(body.error || body.message || 'Prijava ni uspela.');
       }
 
       router.replace(nextPath);
@@ -47,29 +49,37 @@ export default function AdminLoginForm({ nextPath }: AdminLoginFormProps) {
       <h1 className="text-2xl font-semibold text-slate-900">Admin prijava</h1>
       <p className="mt-1 text-sm text-slate-500">Prijavite se za dostop do administracije.</p>
 
-      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+      {passwordChanged ? <p role="status" className="mt-3 text-sm text-emerald-700">Geslo je spremenjeno. Prijavite se z novim geslom.</p> : null}
+      <form className="mt-5 space-y-4" onSubmit={handleSubmit} aria-busy={isSubmitting}>
         <FloatingInput
           id="admin-username"
+          name="username"
           tone="admin"
           label="Uporabniško ime"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          aria-describedby={error ? 'admin-login-error' : undefined}
           required
         />
 
         <FloatingInput
           id="admin-password"
+          name="password"
           tone="admin"
           type="password"
           label="Geslo"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           autoComplete="current-password"
+          aria-describedby={error ? 'admin-login-error' : undefined}
           required
         />
 
-        {error ? <p className="text-sm font-medium text-rose-600">{error}</p> : null}
+        {error ? <p id="admin-login-error" role="alert" className="text-sm font-medium text-rose-600">{error}</p> : null}
 
         <Button
           type="submit"

@@ -1,3 +1,4 @@
+import { assertProtectedAdminRouteBinding } from './support/adminRouteContract';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -86,5 +87,5 @@ test('quote email cancellation is authenticated, row-locked, pending-only, redac
   assert.match(cancelRoute, /mirrorQuoteAdminAudit/u);
   assert.match(cancelRoute, /queue_action: 'cancelled'/u);
   assert.doesNotMatch(cancelRoute, /scheduleQuoteEmailJobs/u);
-  assert.match(cancelWrapper, /export \{ DELETE \}/u);
+  assertProtectedAdminRouteBinding(cancelWrapper, 'DELETE', '@/admin/api/quote-email-jobs/[jobId]/route');
 });

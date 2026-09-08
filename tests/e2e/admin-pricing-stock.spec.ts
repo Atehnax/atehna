@@ -93,7 +93,7 @@ test.describe('persistent SKU prices, TDABC and safe stock',()=>{
   expect(after.rows.find(r=>r.variantId===otherVariantId)).toMatchObject({saleNet:sibling.saleNet,purchaseNet:sibling.purchaseNet,inventory:sibling.inventory});
   expect(row.purchaseUpdatedAt).not.toBeNull();
   const audit=await database.query("select actor_name,source,before_json,after_json,sku from pricing_stock_history where entity_type='variant' and entity_id=$1 and source='admin/pricing-stock' order by id desc limit 1",[String(variantId)]);
-  expect(audit.rows[0]).toMatchObject({actor_name:process.env.ADMIN_USERNAME,source:'admin/pricing-stock',sku:'MAT-KOV-ALU-100',before_json:{purchaseNet:'2.10'},after_json:{purchaseNet:'3.10',saleNet:'5.00',workMinutes:'4.0000'}});
+  expect(audit.rows[0]).toMatchObject({actor_name:process.env.E2E_ADMIN_USERNAME,source:'admin/pricing-stock',sku:'MAT-KOV-ALU-100',before_json:{purchaseNet:'2.10'},after_json:{purchaseNet:'3.10',saleNet:'5.00',workMinutes:'4.0000'}});
  });
 
  test('Excel paste and selected-row edits remain drafts until saved',async({page,request})=>{
@@ -191,13 +191,13 @@ test.describe('persistent SKU prices, TDABC and safe stock',()=>{
   expect(after.rows.find(row=>row.variantId===otherVariantId)).toMatchObject({...expected,inventory:target.inventory,stockRevision:target.stockRevision});
   for(const row of before.rows.filter(row=>row.variantId!==otherVariantId))expect(after.rows.find(current=>current.variantId===row.variantId)).toEqual(row);
   const audit=await database.query("select actor_name,after_json from pricing_stock_history where entity_type='variant' and entity_id=$1 and source='admin/pricing-stock' order by id desc limit 1",[String(otherVariantId)]);
-  expect(audit.rows[0]).toMatchObject({actor_name:process.env.ADMIN_USERNAME,after_json:expected});
+  expect(audit.rows[0]).toMatchObject({actor_name:process.env.E2E_ADMIN_USERNAME,after_json:expected});
  });
 
  test('editable formula persists, audits and never rewrites sale prices; invalid expressions fail',async({page,request})=>{
   await open(page);const before=await state(request);const formula='drugi_spremenljivi_stroški_artikla + čas_artikla_v_minutah';await openFormula(page);await page.getByLabel('Enačba ciljne RVC',{exact:true}).fill('v + t');await expect(page.getByTestId('pricing-model-equation').getByTestId('pricing-formula-math')).toHaveAttribute('aria-label','Ciljna RVC: v + t');const savedModel=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/admin/pricing-stock/model'&&r.request().method()==='PUT',{timeout:45000});await page.getByRole('button',{name:'Shrani enačbo',exact:true}).click();expect((await savedModel).status()).toBe(200);await expect(page.getByTestId('pricing-stock-save-status')).toHaveText('Shranjeno');await page.reload();await openFormula(page);await expect(page.getByLabel('Enačba ciljne RVC',{exact:true})).toHaveValue('v + t');
   const after=await state(request);expect(after.model.formula).toBe(formula);expect(after.rows.map(r=>r.saleNet)).toEqual(before.rows.map(r=>r.saleNet));expect(after.rows.find(r=>r.variantId===variantId)!.calculation.targetRvc).toBe('8.00');
-  const audit=await database.query("select before_json,after_json,actor_name from pricing_stock_history where entity_type='model' order by id desc limit 1");expect(audit.rows[0].after_json.formula).toBe(formula);expect(audit.rows[0].actor_name).toBe(process.env.ADMIN_USERNAME);
+  const audit=await database.query("select before_json,after_json,actor_name from pricing_stock_history where entity_type='model' order by id desc limit 1");expect(audit.rows[0].after_json.formula).toBe(formula);expect(audit.rows[0].actor_name).toBe(process.env.E2E_ADMIN_USERNAME);
   for(const invalid of ['process.exit(1)','prodajna_cena; DROP TABLE orders','neznana_spremenljivka','(1 + 2','1 / 0','ciljna_rvc + 1']){const r=await request.put('/api/admin/pricing-stock/model',{headers,data:{expectedRevision:after.model.revision,model:{...after.model,formula:invalid}}});expect(r.status(),invalid).toBe(400);}
   const zero=await request.put('/api/admin/pricing-stock/model',{headers,data:{expectedRevision:after.model.revision,model:{...after.model,parameters:{...after.model.parameters,headcount:'0'}}}});expect(zero.status()).toBe(400);
   expect((await state(request)).model.revision).toBe(after.model.revision);

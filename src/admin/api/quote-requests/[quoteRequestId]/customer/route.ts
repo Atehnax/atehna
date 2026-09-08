@@ -21,7 +21,7 @@ export async function GET(
       { status: 404, headers: noStoreHeaders }
     );
   }
-  if (!hasValidQuoteAdminSession(request)) {
+  if (!await hasValidQuoteAdminSession(request)) {
     return NextResponse.json(
       { message: 'Za dostop je potrebna prijava.' },
       { status: 401, headers: noStoreHeaders }

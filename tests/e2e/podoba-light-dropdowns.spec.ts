@@ -1,12 +1,14 @@
+import { E2E_BASE_URL } from './support/auth';
 import { expect, test, type Locator } from '@playwright/test';
 import { getAppearanceEditorCompactSelect } from './support/appearance-editor-compact-select';
 
 test.beforeEach(async ({ page }) => {
-  const username = process.env.ADMIN_USERNAME?.trim();
-  const password = process.env.ADMIN_PASSWORD?.trim();
+  const username = process.env.E2E_ADMIN_USERNAME?.trim();
+  const password = process.env.E2E_ADMIN_PASSWORD?.trim();
   if (!username || !password) throw new Error('Local admin credentials are required.');
 
   const login = await page.request.post('/api/admin/login', {
+    headers: { Origin: E2E_BASE_URL },
     data: { username, password }
   });
   expect(login.ok()).toBeTruthy();

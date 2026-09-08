@@ -28,7 +28,7 @@ export async function GET(
   }
 ) {
   if (!isQuoteAdminEnabled()) return notFound();
-  if (!hasValidQuoteAdminSession(request)) {
+  if (!await hasValidQuoteAdminSession(request)) {
     return NextResponse.json(
       { message: 'Za dostop je potrebna prijava.' },
       { status: 401, headers: PRIVATE_HEADERS }

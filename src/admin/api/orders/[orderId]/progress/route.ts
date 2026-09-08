@@ -24,7 +24,7 @@ export async function GET(
   request: Request,
   props: { params: Promise<{ orderId: string }> }
 ) {
-  if (!hasValidAdminSession(request)) {
+  if (!await hasValidAdminSession(request)) {
     return NextResponse.json(
       { message: 'Za dostop je potrebna prijava.' },
       { status: 401, headers: noStoreHeaders }

@@ -25,14 +25,22 @@ async function guardAdminWrites(page: Page) {
 
   page.on('request', (request) => {
     const pathname = new URL(request.url()).pathname;
-    if (pathname.startsWith('/api/admin/') && writeMethods.has(request.method())) {
+    if (
+      pathname.startsWith('/api/admin/')
+      && writeMethods.has(request.method())
+      && !(request.method() === 'POST' && pathname === '/api/admin/session/activity')
+    ) {
       writes.push({ method: request.method(), pathname });
     }
   });
 
   await page.route('**/api/admin/**', async (route) => {
     const request = route.request();
-    if (!writeMethods.has(request.method())) {
+    if (
+      !writeMethods.has(request.method())
+      || (request.method() === 'POST'
+        && new URL(request.url()).pathname === '/api/admin/session/activity')
+    ) {
       await route.continue();
       return;
     }

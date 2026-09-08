@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminSidebar from '@/admin/components/AdminSidebar';
+import AdminSessionActivityTracker from '@/admin/components/AdminSessionActivityTracker';
 import { ToastProvider, Toaster } from '@/shared/ui/toast';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <ToastProvider>
+      <AdminSessionActivityTracker />
       <div className="admin-scope flex min-h-screen w-full flex-1 bg-slate-50">
         <div className="flex min-h-screen w-full flex-1 items-stretch">
           <AdminSidebar onExpandedChange={setIsSidebarExpanded} />

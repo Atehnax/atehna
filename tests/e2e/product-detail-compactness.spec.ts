@@ -162,6 +162,12 @@ test.describe('compact product-detail appearance', () => {
     await assertAuthenticatedAdmin(request);
     const blockedWrites: string[] = [];
     await page.route('**/api/admin/**', async (route) => {
+      // Session activity does not persist content or unsaved editor changes.
+      if (route.request().method() === 'POST'
+        && new URL(route.request().url()).pathname === '/api/admin/session/activity') {
+        await route.continue();
+        return;
+      }
       if (writeMethods.has(route.request().method())) {
         blockedWrites.push(
           `${route.request().method()} ${route.request().url()}`

@@ -22,9 +22,12 @@ async function mockWorkspace(page: Page, configure?: (state: PricingStockState) 
   const state = fixture(), writes: PricingStockBatchRequest[] = [], blocked: string[] = [];
   configure?.(state);
   for (const target of state.rows) target.calculation = calculatePricingStockRow(target, state.model);
-  // Every browser mutation is intercepted; this spec has no database fixture hooks.
+  // Content mutations are intercepted; session activity uses the real authenticated endpoint.
   await page.route('**/api/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname;
+    if (request.method() === 'POST' && path === '/api/admin/session/activity') {
+      await route.continue(); return;
+    }
     if (path === '/api/admin/pricing-stock') {
       if (request.method() === 'GET') { await route.fulfill({ status: 200, json: state }); return; }
       if (request.method() === 'PATCH') {

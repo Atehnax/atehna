@@ -681,9 +681,13 @@ export async function POST(
         await client.query('rollback');
         client.release();
         client = null;
+        const deliveryPlanInstructions = previousStatus === 'partially_sent' &&
+          (status === 'sent' || status === 'finished')
+          ? 'V podrobnostih naročila najprej nastavite status »V obdelavi« in shranite. Nato shranite načrt dobave, ustvarite novo Dobavnico in ponovno izberite želeni končni status.'
+          : 'V podrobnostih naročila najprej shranite načrt dobave ob nespremenjenem statusu, nato ustvarite novo Dobavnico in ponovno spremenite status.';
         return NextResponse.json({
           ...documentBlock,
-          message: `${documentBlock.message} V podrobnostih naročila najprej shranite načrt dobave ob nespremenjenem statusu, nato ustvarite novo Dobavnico in ponovno spremenite status.`
+          message: `${documentBlock.message} ${deliveryPlanInstructions}`
         }, { status: 409 });
       }
     }

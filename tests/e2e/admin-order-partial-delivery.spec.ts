@@ -234,6 +234,12 @@ async function finalizeAndAcceptOrder(
   await requireOk(acceptResponse, 'accept direct order');
 }
 
+async function generateShippingPdf(request: APIRequestContext, orderId: number, type: 'dobavnica' | 'predracun') {
+  const response = await request.post(`/api/admin/orders/${orderId}/generate-${type}`);
+  await requireOk(response, `generate current ${type}`);
+  return response.json() as Promise<{ id: number; filename: string; url: string }>;
+}
+
 async function openStatusMenu(page: Page) {
   const statusTrigger = page
     .getByTestId('admin-order-header-statuses')
@@ -356,18 +362,19 @@ test.beforeEach(async ({ request }) => {
   );
 });
 
-test('requires and atomically persists a two-section plan for partial delivery', async ({
+test('requires saved delivery plans and current PDFs before partial and complete shipment', async ({
   page,
   request
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const ownedOrderIds: number[] = [];
-  const staleDocumentIds: number[] = [];
 
   try {
     const order = await createOrderWithItems(request, CATALOG_LINES);
     ownedOrderIds.push(order.orderId);
     await finalizeAndAcceptOrder(request, order.orderId);
+    const originalDeliveryNote = await generateShippingPdf(request, order.orderId, 'dobavnica');
+    await generateShippingPdf(request, order.orderId, 'predracun');
     const [currentItemName, laterItemName] = order.itemNames;
 
     const foreignOrder = await createOrderWithItems(request, [CATALOG_LINES[0]]);
@@ -477,7 +484,7 @@ test('requires and atomically persists a two-section plan for partial delivery',
       exact: true
     });
     await expect(pdfSaveFirstMessage).toBeVisible();
-    await expect(createPdfActions).toHaveCount(4);
+    await expect(createPdfActions).toHaveCount(2);
     for (let index = 0; index < await createPdfActions.count(); index += 1) {
       await expect(createPdfActions.nth(index)).toBeDisabled();
     }
@@ -490,52 +497,51 @@ test('requires and atomically persists a two-section plan for partial delivery',
     await expect(partialOption).not.toHaveAttribute('aria-disabled', 'true');
     await partialOption.click();
 
-    const firstSaveMutations: string[] = [];
-    page.on('request', (outboundRequest) => {
-      if (outboundRequest.method() !== 'POST') return;
-      const pathname = new URL(outboundRequest.url()).pathname;
-      if (
-        pathname === `/api/admin/orders/${order.orderId}/status`
-        || pathname === `/api/admin/orders/${order.orderId}/delivery-plan`
-      ) {
-        if (
-          pathname === `/api/admin/orders/${order.orderId}/status`
-          && (outboundRequest.postDataJSON() as {
-            confirmationOnly?: unknown;
-          }).confirmationOnly === true
-        ) return;
-        firstSaveMutations.push(pathname);
-      }
+    const attemptedPartialSave = await saveStatusWithCustomerEmailConfirmation(page, `/api/admin/orders/${order.orderId}/status`);
+    expect(attemptedPartialSave.response.status()).toBe(409);
+    expect(await attemptedPartialSave.response.json()).toMatchObject({
+      code: 'ORDER_STATUS_DOCUMENTS_REQUIRED', missingDocumentTypes: ['dobavnica'],
+      message: expect.stringContaining('najprej shranite načrt dobave')
     });
-    const partialSave = await saveStatusWithCustomerEmailConfirmation(
-      page,
-      `/api/admin/orders/${order.orderId}/status`
-    );
-    const partialStatusResponse = partialSave.response;
-    expect(partialStatusResponse.status()).toBe(200);
-    expect(partialStatusResponse.request().postDataJSON()).toEqual({
-      status: 'partially_sent',
-      shipLaterItemIds: [order.itemIds[1]],
-      expectedDeliveryPlanRevision: order.deliveryPlanRevision,
-      customerEmailConfirmationToken:
-        partialSave.customerEmailConfirmationToken
-    });
-    const partialStatusPayload = await partialStatusResponse.json() as {
-      deliveryPlanRevision?: unknown;
-    };
-    const partialDeliveryPlanRevision = Number(
-      partialStatusPayload.deliveryPlanRevision
-    );
+    const rolledBack = await database.query('select status, delivery_plan_revision from orders where id = $1', [order.orderId]);
+    expect(rolledBack.rows[0]).toMatchObject({ status: 'in_progress', delivery_plan_revision: order.deliveryPlanRevision });
+
+    // Make the delivery plan durable while the order remains in progress, then refresh its PDF.
+    await openStatusMenu(page);
+    await page.getByRole('menuitem', { name: /^V obdelavi/u }).click();
+    const savedPlanResponsePromise = page.waitForResponse((response) => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === `/api/admin/orders/${order.orderId}/delivery-plan`);
+    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+    const savedPlanResponse = await savedPlanResponsePromise;
+    await requireOk(savedPlanResponse, 'save partial plan before shipping status');
+    const partialDeliveryPlanRevision = Number((await savedPlanResponse.json()).deliveryPlanRevision);
     expect(partialDeliveryPlanRevision).toBe(order.deliveryPlanRevision + 1);
-    await expect(page.getByText('Naročilo je shranjeno.', { exact: true })).toBeVisible();
     await expect(pdfSaveFirstMessage).toHaveCount(0);
-    for (let index = 0; index < await createPdfActions.count(); index += 1) {
-      await expect(createPdfActions.nth(index)).toBeEnabled();
-    }
     await expect(uploadPdfAction).toBeEnabled();
-    expect(firstSaveMutations).toEqual([
-      `/api/admin/orders/${order.orderId}/status`
-    ]);
+
+    const staleNoteStatus = await request.post(`/api/admin/orders/${order.orderId}/status`, { data: { status: 'partially_sent' } });
+    expect(staleNoteStatus.status()).toBe(409);
+    expect(await staleNoteStatus.json()).toMatchObject({ code: 'ORDER_STATUS_DOCUMENTS_REQUIRED', missingDocumentTypes: ['dobavnica'] });
+    const deletedDeliveryNote = await generateShippingPdf(request, order.orderId, 'dobavnica');
+    await requireOk(await request.delete(deletedDeliveryNote.url), 'delete current delivery note');
+    expect((await request.get(deletedDeliveryNote.url)).status()).toBe(404);
+    const deletedNoteStatus = await request.post(`/api/admin/orders/${order.orderId}/status`, { data: { status: 'partially_sent' } });
+    expect(deletedNoteStatus.status()).toBe(409);
+    expect(await deletedNoteStatus.json()).toMatchObject({ code: 'ORDER_STATUS_DOCUMENTS_REQUIRED', missingDocumentTypes: ['dobavnica'] });
+    await generateShippingPdf(request, order.orderId, 'dobavnica');
+
+    await page.reload();
+    await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
+    await openStatusMenu(page);
+    await page.getByRole('menuitem', { name: /^Delno poslano/u }).click();
+    const partialSave = await saveStatusWithCustomerEmailConfirmation(page, `/api/admin/orders/${order.orderId}/status`);
+    expect(partialSave.response.status()).toBe(200);
+    expect(partialSave.response.request().postDataJSON()).toEqual({
+      status: 'partially_sent', shipLaterItemIds: [order.itemIds[1]], expectedDeliveryPlanRevision: partialDeliveryPlanRevision,
+      customerEmailConfirmationToken: partialSave.customerEmailConfirmationToken
+    });
+    expect((await partialSave.response.json()).deliveryPlanRevision).toBe(partialDeliveryPlanRevision);
+    await expect(page.getByText('Naročilo je shranjeno.', { exact: true })).toBeVisible();
 
     const noOpPlanResponse = await request.post(
       `/api/admin/orders/${order.orderId}/delivery-plan`,
@@ -589,68 +595,13 @@ test('requires and atomically persists a two-section plan for partial delivery',
       { status: 'partially_sent', id: order.itemIds[1], shipLater: true }
     ]);
 
-    const staleDocumentAccessId = randomUUID();
-    const staleDocumentFilename = `stale-dobavnica-${order.orderId}.pdf`;
-    const staleDocument = await database.query<{
-      id: string | number;
-      customer_access_id: string;
-    }>(
-      `insert into order_documents (
-         order_id,
-         customer_access_id,
-         type,
-         filename,
-         blob_pathname,
-         version_number,
-         order_pricing_revision,
-         order_delivery_plan_revision,
-         document_number,
-         issued_at,
-         content_sha256,
-         legal_status,
-         format_marker
-       )
-       values (
-         $1,
-         $2,
-         'dobavnica',
-         $3,
-         $4,
-         1,
-         (select pricing_revision from orders where id = $1),
-         $5,
-         $6,
-         now(),
-         $7,
-         'operational',
-         'atehna-template-pdf-v3'
-       )
-       returning id, customer_access_id`,
-      [
-        order.orderId,
-        staleDocumentAccessId,
-        staleDocumentFilename,
-        `e2e/stale-dobavnica-${order.orderId}.pdf`,
-        order.deliveryPlanRevision,
-        `DOB-E2E-${order.orderId}`,
-        '0'.repeat(64)
-      ]
+    const originalDocument = await database.query<{ customer_access_id: string }>(
+      'select customer_access_id from order_documents where id = $1', [originalDeliveryNote.id]
     );
-    const staleDocumentId = Number(staleDocument.rows[0]?.id);
-    staleDocumentIds.push(staleDocumentId);
-    expect(
-      (await request.get(
-        `/api/admin/orders/${order.orderId}/documents/${staleDocumentId}`
-      )).status()
-    ).toBe(404);
-    expect(
-      (await request.get(
-        `/api/orders/documents/${staleDocument.rows[0]?.customer_access_id}`
-      )).status()
-    ).toBe(404);
-
+    expect((await request.get(originalDeliveryNote.url)).status()).toBe(404);
+    expect((await request.get(`/api/orders/documents/${originalDocument.rows[0]!.customer_access_id}`)).status()).toBe(404);
     await page.reload();
-    await expect(page.getByText(staleDocumentFilename, { exact: true })).toHaveCount(0);
+    await expect(page.locator('a[href="' + originalDeliveryNote.url + '"]')).toHaveCount(0);
     await expect(page.getByTestId('admin-order-detail-header')).toContainText('Delno poslano');
     const orderTimeline = page
       .getByTestId('admin-order-detail-header')
@@ -695,6 +646,14 @@ test('requires and atomically persists a two-section plan for partial delivery',
       laterItemName
     );
 
+    // Partial delivery must retain both groups until processing resumes.
+    await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
+    await openStatusMenu(page);
+    await page.getByRole('menuitem', { name: /^V obdelavi/u }).click();
+    const processingSave = await saveStatusWithCustomerEmailConfirmation(page, `/api/admin/orders/${order.orderId}/status`);
+    await requireOk(processingSave.response, 'return partial delivery to processing for final plan');
+    await page.reload();
+
     await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
     await page
       .getByTestId('admin-order-items-later-group')
@@ -706,50 +665,31 @@ test('requires and atomically persists a two-section plan for partial delivery',
     );
     await transferButton.click();
 
+    const finalPlanPromise = page.waitForResponse((response) => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === `/api/admin/orders/${order.orderId}/delivery-plan`);
+    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+    const finalPlanResponse = await finalPlanPromise;
+    await requireOk(finalPlanResponse, 'save final delivery plan before refreshing PDF');
+    const finalPlanRevision = Number((await finalPlanResponse.json()).deliveryPlanRevision);
+    expect(finalPlanRevision).toBe(partialDeliveryPlanRevision + 1);
+    const finalStaleNote = await request.post(`/api/admin/orders/${order.orderId}/status`, { data: { status: 'sent' } });
+    expect(finalStaleNote.status()).toBe(409);
+    expect(await finalStaleNote.json()).toMatchObject({ code: 'ORDER_STATUS_DOCUMENTS_REQUIRED', missingDocumentTypes: ['dobavnica'] });
+    await generateShippingPdf(request, order.orderId, 'dobavnica');
+    await page.reload();
+    await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
     await openStatusMenu(page);
     const sentOption = page.getByRole('menuitem', { name: /^Poslano/u });
     await expect(sentOption).not.toHaveAttribute('aria-disabled', 'true');
     await sentOption.click();
-
-    const finalSaveMutations: string[] = [];
-    page.on('request', (outboundRequest) => {
-      if (outboundRequest.method() !== 'POST') return;
-      const pathname = new URL(outboundRequest.url()).pathname;
-      if (
-        pathname === `/api/admin/orders/${order.orderId}/status`
-        || pathname === `/api/admin/orders/${order.orderId}/delivery-plan`
-      ) {
-        if (
-          pathname === `/api/admin/orders/${order.orderId}/status`
-          && (outboundRequest.postDataJSON() as {
-            confirmationOnly?: unknown;
-          }).confirmationOnly === true
-        ) return;
-        finalSaveMutations.push(pathname);
-      }
-    });
-    const sentSave = await saveStatusWithCustomerEmailConfirmation(
-      page,
-      `/api/admin/orders/${order.orderId}/status`
-    );
-    const sentStatusResponse = sentSave.response;
-    expect(sentStatusResponse.status()).toBe(200);
-    expect(sentStatusResponse.request().postDataJSON()).toEqual({
-      status: 'sent',
-      shipLaterItemIds: [],
-      expectedDeliveryPlanRevision: partialDeliveryPlanRevision,
+    const sentSave = await saveStatusWithCustomerEmailConfirmation(page, `/api/admin/orders/${order.orderId}/status`);
+    expect(sentSave.response.status()).toBe(200);
+    expect(sentSave.response.request().postDataJSON()).toEqual({
+      status: 'sent', shipLaterItemIds: [], expectedDeliveryPlanRevision: finalPlanRevision,
       customerEmailConfirmationToken: sentSave.customerEmailConfirmationToken
     });
-    const sentStatusPayload = await sentStatusResponse.json() as {
-      deliveryPlanRevision?: unknown;
-    };
-    expect(Number(sentStatusPayload.deliveryPlanRevision)).toBe(
-      partialDeliveryPlanRevision + 1
-    );
+    expect((await sentSave.response.json()).deliveryPlanRevision).toBe(finalPlanRevision);
     await expect(page.getByText('Naročilo je shranjeno.', { exact: true })).toBeVisible();
-    expect(finalSaveMutations).toEqual([
-      `/api/admin/orders/${order.orderId}/status`
-    ]);
 
     const finalState = await database.query<{
       status: string;
@@ -780,12 +720,6 @@ test('requires and atomically persists a two-section plan for partial delivery',
       laterItemName
     );
   } finally {
-    if (staleDocumentIds.length > 0) {
-      await database.query(
-        'delete from order_documents where id = any($1::bigint[])',
-        [staleDocumentIds]
-      );
-    }
     await cleanupOrders(request, ownedOrderIds);
   }
 });

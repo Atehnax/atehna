@@ -488,6 +488,54 @@ test('decouples customer type from order state while retaining the school purcha
     ).toBeVisible();
 
     await selectStatus(page, /^Poslano/u);
+    const missingShippingDocumentsPromise = page.waitForResponse((response) =>
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === `/api/admin/orders/${accepted.orderId}/status`
+    );
+    await page.getByRole('button', { name: 'Shrani', exact: true }).click();
+    const missingShippingDocuments = await missingShippingDocumentsPromise;
+    expect(missingShippingDocuments.status()).toBe(409);
+    const missingShippingDocumentsPayload = await missingShippingDocuments.json() as {
+      code: string;
+      message: string;
+      missingDocumentTypes: string[];
+    };
+    expect(missingShippingDocumentsPayload).toMatchObject({
+      code: 'ORDER_STATUS_DOCUMENTS_REQUIRED',
+      missingDocumentTypes: ['dobavnica', 'predracun', 'purchase_order']
+    });
+    expect(missingShippingDocumentsPayload.message).toContain('»Poslano«');
+    for (const documentLabel of ['Dobavnica', 'Predračun', 'Naročilnica']) {
+      expect(missingShippingDocumentsPayload.message).toContain(documentLabel);
+    }
+    await expect(page.getByRole('status').filter({
+      hasText: missingShippingDocumentsPayload.message
+    })).toBeVisible();
+    expect(correctionInvariant(await readOrderState(accepted.orderId))).toEqual(
+      correctionInvariant(acceptedBeforeCorrections)
+    );
+
+    const acceptedSchoolPurchaseOrder = await request.post(
+      `/api/admin/orders/${accepted.orderId}/documents`,
+      {
+        multipart: {
+          type: 'purchase_order',
+          file: {
+            name: 'e2e-accepted-school-purchase-order.pdf',
+            mimeType: 'application/pdf',
+            buffer: VALID_PDF
+          }
+        }
+      }
+    );
+    await requireOk(acceptedSchoolPurchaseOrder, 'upload accepted-school purchase order');
+    for (const documentType of ['dobavnica', 'predracun']) {
+      const generatedDocument = await request.post(
+        `/api/admin/orders/${accepted.orderId}/generate-${documentType}`
+      );
+      await requireOk(generatedDocument, `generate current ${documentType} for corrected school order`);
+    }
+
     const laterStatusPromise = page.waitForResponse((response) =>
       response.request().method() === 'POST'
       && new URL(response.url()).pathname === `/api/admin/orders/${accepted.orderId}/status`
@@ -508,7 +556,7 @@ test('decouples customer type from order state while retaining the school purcha
       status: 'sent',
       commitment_status: 'binding',
       contract_status: 'accepted',
-      purchase_order_count: 0
+      purchase_order_count: 1
     });
     expect({
       contract_state_version: sentSchool.contract_state_version,

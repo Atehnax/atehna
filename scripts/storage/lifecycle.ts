@@ -131,7 +131,7 @@ export function validateObject(object: ObjectInfo, config: Config) {
     ensure(store && store.access === object.access && typeof object.pathname === 'string' && object.pathname.length > 0 && object.pathname.length < 8192 && !/[\u0000-\u001f\\]/u.test(object.pathname), 'OBJECT_SCOPE_MISMATCH');
     ensure(object.id === objectId(object.storeId, object.pathname) && Number.isSafeInteger(object.size) && object.size >= 0 && Number.isFinite(Date.parse(object.uploadedAt)), 'INVALID_OBJECT_METADATA');
     const url = new URL(object.url);
-    ensure(url.protocol === 'https:' && !url.username && !url.password && url.hostname.endsWith('.blob.vercel-storage.com') && decodeURIComponent(url.pathname.slice(1)) === object.pathname && !url.search && !url.hash, 'OBJECT_URL_MISMATCH');
+    ensure(url.protocol === 'https:' && !url.username && !url.password && url.hostname === `${store.id.slice(6).toLowerCase()}.${store.access}.blob.vercel-storage.com` && decodeURIComponent(url.pathname.slice(1)) === object.pathname && !url.search && !url.hash, 'OBJECT_URL_MISMATCH');
 }
 export function reviewObjects(config: Config, inventory: ObjectInfo[], scan: Scan, now = new Date()): Review {
     ensure(new Set(inventory.map(object => object.id)).size === inventory.length, 'DUPLICATE_INVENTORY_OBJECT');

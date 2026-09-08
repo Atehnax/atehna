@@ -31,7 +31,7 @@ test('real PostgreSQL retains historical/schema references and acknowledges only
         const fixtureUrl = new URL(raw);
         fixtureUrl.pathname = `/${database}`;
         process.env.STORAGE_LIFECYCLE_FIXTURE_URL = fixtureUrl.toString();
-        const object = (file: string): ObjectInfo => { const pathname = `catalog-items/test/${file}`; return { id: objectId('store_Test001', pathname), storeId: 'store_Test001', access: 'public', pathname, url: `https://example.public.blob.vercel-storage.com/${pathname}`, size: 12, uploadedAt: '2025-01-01T00:00:00.000Z' }; };
+        const object = (file: string): ObjectInfo => { const pathname = `catalog-items/test/${file}`; return { id: objectId('store_Test001', pathname), storeId: 'store_Test001', access: 'public', pathname, url: `https://test001.public.blob.vercel-storage.com/${pathname}`, size: 12, uploadedAt: '2025-01-01T00:00:00.000Z' }; };
         const historical = object('historical.png'), queued = object('queued.png'), malformed = object('malformed.png'), defaultOnly = object('default.png'), materialized = object('materialized.png'), orphan = object('orphan.png');
         await fixture.query('insert into order_snapshots values(now(),$1)', [JSON.stringify({ history: [{ image: historical.url }] })]);
         await fixture.query('insert into archive_blob_deletion_outbox(id,blob_target,source_item_type,source_product_id) values($1,$2,$3,$4)', ['9007199254740993', queued.pathname, 'product_media', '9007199254740995']);

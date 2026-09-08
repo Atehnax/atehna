@@ -3,7 +3,7 @@ import test from 'node:test';
 import { applyApproved, canonical, hash, matchesOutboxTarget, objectId, reviewObjects, safeReview, selectCandidates, validateConfig, validateManifest, type ApplyIO, type Config, type Event, type Manifest, type Metadata, type ObjectInfo, type PreparedObject, type Scan } from '../../scripts/storage/lifecycle';
 import { databaseOptions, patterns, referenceSql } from '../../scripts/storage/postgres';
 const config: Config = { version: 1, connectionEnv: 'STORAGE_DATABASE_URL', expectedHost: 'db.example.test', expectedPort: 5432, databases: ['production', 'preview'], minimumAgeHours: 24, stores: [{ id: 'store_Public001', access: 'public', oidcTokenEnv: 'STORAGE_OIDC_TOKEN', ownedPrefixes: ['catalog-items/'] }] };
-function object(name = 'image.png'): ObjectInfo { const pathname = `catalog-items/example/${name}`; return { id: objectId(config.stores[0].id, pathname), storeId: config.stores[0].id, access: 'public', pathname, url: `https://example.public.blob.vercel-storage.com/${pathname}`, size: 12, uploadedAt: '2025-01-01T00:00:00.000Z' }; }
+function object(name = 'image.png'): ObjectInfo { const pathname = `catalog-items/example/${name}`; return { id: objectId(config.stores[0].id, pathname), storeId: config.stores[0].id, access: 'public', pathname, url: `https://public001.public.blob.vercel-storage.com/${pathname}`, size: 12, uploadedAt: '2025-01-01T00:00:00.000Z' }; }
 function scan(): Scan { return { complete: true, issues: [], databases: config.databases.map(database => ({ database, tables: 1, readOnly: true, tlsVerified: true })), references: {}, intents: {} }; }
 function prepared(name?: string): PreparedObject { return { ...object(name), etag: '"reviewed-version"', contentType: 'image/png', cacheControlMaxAge: 3600, sha256: 'a'.repeat(64), recoveryFile: `files/${object(name).id}.blob`, intents: [{ database: 'production', row: { id: '9007199254740993', blob_target: object(name).pathname, source_item_type: 'product_media' } }] }; }
 function manifest(objects = [prepared()]): Manifest { return { version: 1, createdAt: '2026-01-01T00:00:00.000Z', configSha256: hash(canonical(config)), reviewSha256: 'b'.repeat(64), externalReview: { reviewedBy: 'operator', reviewedAt: '2026-01-01T00:00:00.000Z', backupsAndExternalConsumersChecked: true, note: 'Checked all shared stores, archives and delivered documents.' }, objects }; }
@@ -64,7 +64,7 @@ for (const [name, change, blocker] of [
 test('undeclared prefixes and arbitrary public URLs are not cleanup input', () => {
     const value = object();
     value.pathname = 'outside/image.png';
-    value.url = `https://example.public.blob.vercel-storage.com/${value.pathname}`;
+    value.url = `https://public001.public.blob.vercel-storage.com/${value.pathname}`;
     value.id = objectId(value.storeId, value.pathname);
     assert.ok(reviewObjects(config, [value], scan()).objects[0].blockers.includes('outside-declared-owned-prefix'));
     assert.throws(() => reviewObjects(config, [{ ...value, url: 'https://unrelated.test/image.png' }], scan()), /OBJECT_URL_MISMATCH/u);
@@ -83,7 +83,7 @@ test('outbox identity accepts exact decoded URL but never a UUID sibling or anot
     assert.equal(matchesOutboxTarget(value.url.replace('@', '%40'), 'product_media', value), true);
     assert.equal(matchesOutboxTarget(encodeURIComponent(value.url), 'product_media', value), true);
     assert.equal(matchesOutboxTarget(value.pathname.replace('@2x', '@1x'), 'product_media', value), false);
-    assert.equal(matchesOutboxTarget(value.url.replace('example.public', 'other.public'), 'product_media', value), false);
+    assert.equal(matchesOutboxTarget(value.url.replace('public001.public', 'other.public'), 'product_media', value), false);
     assert.equal(matchesOutboxTarget(value.pathname, 'pdf', value), false);
 });
 test('reference patterns cover encoded URLs and UUID composition without reducing historical scope', () => {
@@ -174,7 +174,13 @@ test('a successful delete response alone cannot acknowledge an outbox entry', as
 });
 test('an authoritative HEAD URL change blocks deletion even when all version fields match', async () => {
     const f = fixture();
-    f.current.get(f.value.objects[0].id)!.url = f.value.objects[0].url.replace('example.public', 'another.public');
+    f.current.get(f.value.objects[0].id)!.url = f.value.objects[0].url.replace('public001.public', 'another.public');
     await assert.rejects(applyApproved(f.value, config, f.events, f.io), /OBJECT_VERSION_CHANGED/u);
     assert.ok(!f.calls.some(call => call.startsWith('delete:')));
+});
+
+test('inventory URLs must bind to the configured store and access even when metadata labels match', () => {
+    const value = object();
+    assert.throws(() => reviewObjects(config, [{ ...value, url: value.url.replace('public001.public', 'otherstore.public') }], scan()), /OBJECT_URL_MISMATCH/u);
+    assert.throws(() => reviewObjects(config, [{ ...value, url: value.url.replace('public001.public', 'public001.private') }], scan()), /OBJECT_URL_MISMATCH/u);
 });

@@ -263,7 +263,7 @@ test('order data uses shared compact responsive rows and full-width customer fie
   );
   assert.match(
     detail,
-    /const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';/u
+    /const detailFieldLockedShellClassName = 'shadow-none';/u
   );
   assert.match(
     detail,
@@ -725,7 +725,7 @@ test('master edit keeps the reference-style shipping card in normal document flo
   assert.doesNotMatch(shippingOverride, /detailsOpen|setDetailsOpen/u);
   assert.match(
     shippingOverride,
-    /\{externalEditMode \? \([\s\S]*?data-shipping-editor-row[\s\S]*?\) : \([\s\S]*?data-shipping-read-reason/u
+    /data-open=\{externalEditMode\}[\s\S]*?data-shipping-editor-row[\s\S]*?data-open=\{!externalEditMode\}[\s\S]*?data-shipping-read-reason/u
   );
   assert.match(shippingOverride, /aria-pressed=\{externalEditMode\}/u);
   assert.match(shippingOverride, /onClick=\{onRequestEdit\}/u);

@@ -13,6 +13,7 @@ const AdminOrderPdfManager = dynamic(() => import('@/admin/features/orders/compo
 export default function AdminOrderPdfManagerClient(props: {
   orderId: number;
   orderCode?: string;
+  isHistorical?: boolean;
   documents: PersistedOrderPdfDocument[];
   adminNotesSlot?: ReactNode;
   unsavedChangesReason?: string;

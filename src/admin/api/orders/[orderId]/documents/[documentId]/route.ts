@@ -75,7 +75,7 @@ export async function GET(
           and d.order_id = $2
           and d.deleted_at is null
           and o.deleted_at is null
-          and d.order_pricing_revision = o.pricing_revision
+          and ((o.is_historical and d.type = 'invoice') or d.order_pricing_revision = o.pricing_revision)
           and (
             d.type <> 'dobavnica'
             or d.order_delivery_plan_revision = o.delivery_plan_revision

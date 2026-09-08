@@ -8,7 +8,7 @@ export function AdminCustomerAddressValue({ addressLine1, addressLine2, postalCo
   return (
     <div className={`${adminCompactIconFieldShellClassName} !mt-0 !h-7 w-full ${styles.addressShell}`} data-editing="false">
       <div className={styles.addressFields} role="group" aria-label="Naslovni podatki">
-        {values.map((value, index) => <span key={index} className={styles.compositeReadValue} title={value}>{value.trim() || '—'}</span>)}
+        {values.map((value, index) => <span key={index} className={styles.compositeReadValue} data-empty={!value.trim()} title={value}>{value.trim() || (index === 1 ? 'Ni dodatka' : '—')}</span>)}
       </div>
     </div>
   );

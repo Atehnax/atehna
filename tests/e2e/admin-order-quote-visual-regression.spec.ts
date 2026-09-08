@@ -239,6 +239,34 @@ function expectSameBox(before: Rect, after: Rect, tolerance = 1) {
   }
 }
 
+async function captureCustomerFieldPresentation(card: Locator, rowAttribute: string) {
+  return card.locator('[' + rowAttribute + ']').evaluateAll((rows) => rows.map((row) => {
+    const value = row.querySelector('dd');
+    // The order date adds an unpainted popover anchor around the visible field.
+    const shell = value && Array.from(value.querySelectorAll('*')).find((element) =>
+      Number.parseFloat(getComputedStyle(element).borderTopWidth) > 0
+    );
+    if (!shell) throw new Error('Customer field shell is missing.');
+    const { x, y, width, height } = shell.getBoundingClientRect();
+    const style = getComputedStyle(shell);
+    return {
+      box: { x, y: y + window.scrollY, width, height },
+      background: style.backgroundColor,
+      borderColor: style.borderColor,
+      borderWidth: style.borderWidth,
+      radius: style.borderRadius
+    };
+  }));
+}
+
+async function customerTypeTextColor(card: Locator, rowAttribute: string) {
+  return card.locator('[' + rowAttribute + '="Tip naročnika"] dd').evaluate((value) => {
+    const label = value.querySelector('button[aria-haspopup="listbox"] > span') ?? value.querySelector('span');
+    if (!label) throw new Error('Customer type label is missing.');
+    return getComputedStyle(label).color;
+  });
+}
+
 async function assertDetailColumns(
   page: Page,
   kind: 'quote' | 'order',
@@ -1014,15 +1042,72 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(page.url()).origin });
       const copy = numberRow.getByTestId(`admin-${kind}-public-code-copy`);
       await assertCustomerDetailsRows(page, kind, kind === 'quote' ? 'Naročnik' : 'Naziv', true);
+      await settleRenderedPage(page);
+      const fieldPresentation = await captureCustomerFieldPresentation(card, rowAttribute);
+      const typeColor = await customerTypeTextColor(card, rowAttribute);
       await testInfo.attach(`${kind}-customer-desktop-read`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-desktop-read.png`) }), contentType: 'image/png' });
       await copy.click();
       await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
       await card.locator('button[data-admin-card-edit-action]').click();
       await expect(numberRow.locator('input')).toHaveCount(0);
       await assertCustomerDetailsRows(page, kind, kind === 'quote' ? 'Naročnik' : 'Naziv', true);
+      await settleRenderedPage(page);
+      const editingPresentation = await captureCustomerFieldPresentation(card, rowAttribute);
+      expect(editingPresentation).toHaveLength(fieldPresentation.length);
+      fieldPresentation.forEach((field, index) => {
+        const editingField = editingPresentation[index]!;
+        expectSameBox(field.box, editingField.box);
+        expect({ ...editingField, box: undefined }).toEqual({ ...field, box: undefined });
+      });
+      expect(await customerTypeTextColor(card, rowAttribute)).toBe(typeColor);
       await testInfo.attach(`${kind}-customer-desktop-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-desktop-edit.png`) }), contentType: 'image/png' });
       await copy.click();
       await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+    });
+
+    test(`${kind} empty optional customer fields preserve appearance and focus without moving`, async ({ page }, testInfo) => {
+      const id = kind === 'quote' ? fixture.quoteRequestId : fixture.orderId;
+      const table = kind === 'quote' ? 'quote_requests' : 'orders';
+      const messageColumn = kind === 'quote' ? 'customer_message' : 'notes';
+      const original = (await database.query<{ address_line2: string | null; message: string | null }>(
+        `select address_line2, ${messageColumn} as message from ${table} where id = $1`, [id]
+      )).rows[0]!;
+      try {
+        await database.query(`update ${table} set address_line2 = '', ${messageColumn} = ''${kind === 'quote' ? ', state_version = state_version + 1' : ''} where id = $1`, [id]);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto(kind === 'quote' ? `/admin/orders/quotes/${id}` : `/admin/orders/${id}`);
+        const card = page.getByTestId(kind === 'quote' ? 'quote-request-details-card' : 'admin-order-data-card');
+        const rowAttribute = kind === 'quote' ? 'data-quote-detail-row' : 'data-order-data-row';
+        await settleRenderedPage(page);
+        const framesBefore = await captureCustomerFieldPresentation(card, rowAttribute);
+        const address = card.getByRole('group', { name: 'Naslovni podatki' });
+        const supplement = address.locator(':scope > span').nth(1);
+        await expect(supplement).toHaveText('Ni dodatka');
+        const emptyColor = await supplement.evaluate((element) => getComputedStyle(element).color);
+        const messageRow = card.locator('[' + rowAttribute + '="Sporočilo stranke"]');
+        await expect(messageRow.locator('[data-empty="true"]')).toHaveText('Ni sporočila');
+        const messageColor = await messageRow.locator('[data-empty="true"]').evaluate((element) => getComputedStyle(element).color);
+        await card.locator('button[data-admin-card-edit-action]').click();
+        await settleRenderedPage(page);
+        const framesAfter = await captureCustomerFieldPresentation(card, rowAttribute);
+        framesBefore.forEach((field, index) => {
+          expectSameBox(field.box, framesAfter[index]!.box);
+          expect({ ...framesAfter[index], box: undefined }).toEqual({ ...field, box: undefined });
+        });
+        const extra = card.getByLabel('Dodatni naslov', { exact: true });
+        await expect(extra).toHaveAttribute('placeholder', 'Ni dodatka');
+        expect(await extra.evaluate((element) => getComputedStyle(element, '::placeholder').color)).toBe(emptyColor);
+        const message = card.getByLabel('Sporočilo stranke', { exact: true });
+        expect(await message.evaluate((element) => getComputedStyle(element, '::placeholder').color)).toBe(messageColor);
+        const addressFrame = address.locator('..');
+        const unfocusedBorder = await addressFrame.evaluate((element) => getComputedStyle(element).borderColor);
+        await extra.focus();
+        await expect(extra).toBeFocused();
+        expect(await addressFrame.evaluate((element) => getComputedStyle(element).borderColor)).not.toBe(unfocusedBorder);
+        await testInfo.attach(`${kind}-customer-empty-mobile-edit`, { body: await card.screenshot({ path: testInfo.outputPath(`${kind}-customer-empty-mobile-edit.png`) }), contentType: 'image/png' });
+      } finally {
+        await database.query(`update ${table} set address_line2 = $2, ${messageColumn} = $3${kind === 'quote' ? ', state_version = state_version + 1' : ''} where id = $1`, [id, original.address_line2, original.message]);
+      }
     });
 
     test(`${kind} keeps full customer names and distinct organization contacts when saving details`, async ({ page }, testInfo) => {

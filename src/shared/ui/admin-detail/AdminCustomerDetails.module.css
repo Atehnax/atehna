@@ -1,6 +1,10 @@
 /* Order and quote information uses the card width and identical read/edit slots. */
 .customerCard {
   container-type: inline-size;
+  --customer-field-background: #f1f5f9;
+  --customer-field-border: #d7e3f2;
+  --customer-field-text: #172554;
+  --customer-field-placeholder: #9bb2d4;
 }
 
 .detailsGrid {
@@ -26,7 +30,7 @@
   font-size: 11px;
   font-weight: 500;
   line-height: 18px;
-  color: #64748b;
+  color: #5274a8;
 }
 
 .detailRow dt > svg { display: none; }
@@ -56,7 +60,7 @@
   font-weight: 400;
   line-height: 20px;
   text-align: left;
-  color: #0f172a;
+  color: var(--customer-field-text);
   user-select: text;
 }
 
@@ -106,7 +110,7 @@
 
 .nameFields > * + *,
 .addressFields > * + * {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid var(--customer-field-border);
 }
 
 .nameFields input,
@@ -122,7 +126,7 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 20px;
-  color: #0f172a;
+  color: var(--customer-field-text);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -147,31 +151,13 @@
   padding-inline: 4px;
 }
 
-.nameShell[data-editing='false'],
-.addressShell[data-editing='false'],
-.messageShell[data-editing='false'] {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-.nameShell[data-editing='false'] .nameFields > *,
-.addressShell[data-editing='false'] .addressFields > * {
-  border-color: transparent;
-}
-
 .messageShell {
   display: grid;
   width: 100%;
   min-width: 0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--customer-field-border);
   border-radius: 6px;
-  background: white;
-  transition: border-color 150ms;
-}
-
-.messageShell:focus-within {
-  border-color: var(--blue-500);
+  background: var(--customer-field-background);
 }
 
 .messageMeasure,
@@ -186,7 +172,7 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 20px;
-  color: #0f172a;
+  color: var(--customer-field-text);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -236,7 +222,7 @@
   .addressFields > :nth-child(-n + 2) { grid-column: 1 / -1; }
   .addressFields > :nth-child(2),
   .addressFields > :nth-child(3) { border-left-width: 0; }
-  .addressFields > :nth-child(n + 2) { border-top: 1px solid #e2e8f0; }
+  .addressFields > :nth-child(n + 2) { border-top: 1px solid var(--customer-field-border); }
 }
 
 @media (max-width: 767px) {
@@ -264,10 +250,40 @@
   min-height: 0;
 }
 
-/* Reveal every field frame in the same paint when switching editing modes. */
+/* Keep the reference field surface and compartments in both editing modes. */
 .fieldShell.fieldShell,
 .nameShell.nameShell,
 .addressShell.addressShell,
 .messageShell {
+  border-color: var(--customer-field-border);
+  background: var(--customer-field-background);
+  box-shadow: none;
   transition: none;
+}
+
+.fieldShell.fieldShell:focus-within,
+.nameShell.nameShell:focus-within,
+.addressShell.addressShell:focus-within,
+.messageShell:focus-within {
+  border-color: var(--blue-500);
+}
+
+.customerCard .fieldShell input,
+.customerCard .nameFields input,
+.fieldShell > span,
+.fieldShell button[aria-haspopup='listbox'] {
+  color: var(--customer-field-text);
+}
+
+.customerCard input::placeholder,
+.customerCard textarea::placeholder,
+.compositeReadValue[data-empty='true'],
+.messageControl[data-empty='true'] {
+  color: var(--customer-field-placeholder);
+  opacity: 1;
+}
+
+.publicCode > button {
+  margin-left: auto;
+  color: var(--blue-500);
 }

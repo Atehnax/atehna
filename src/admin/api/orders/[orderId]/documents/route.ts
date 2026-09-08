@@ -15,8 +15,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // Opaque administrator bytes cannot prove that financial totals and shipping
 // match the current order revision. Operational documents are server-generated;
-// only external purchase-order evidence may be uploaded.
-const ALLOWED_DOCUMENT_TYPES = new Set(['purchase_order']);
+// external purchase-order evidence and historical source invoices may be uploaded.
+const ALLOWED_DOCUMENT_TYPES = new Set(['purchase_order', 'invoice']);
 
 function isPdfFile(file: File): boolean {
   const fileNameLower = file.name.toLowerCase();
@@ -66,7 +66,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
 
     const pool = await getPool();
     const orderResult = await pool.query(
-      `select id, order_number, source_quote_offer_version_id, contract_status
+      `select id, order_number, source_quote_offer_version_id, contract_status, is_historical
        from orders where id = $1`,
       [orderId]
     );
@@ -76,10 +76,14 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           order_number: string | null;
           source_quote_offer_version_id: string | number | null;
           contract_status: string | null;
+          is_historical: boolean;
         }
       | undefined;
     if (!order) {
       return NextResponse.json({ message: 'Naročilo ne obstaja.' }, { status: 404 });
+    }
+    if (normalizedType === 'invoice' && order.is_historical !== true) {
+      return NextResponse.json({ message: 'Račun lahko naložite samo za zgodovinsko naročilo.' }, { status: 400 });
     }
     if (
       normalizedType === 'purchase_order' &&
@@ -120,6 +124,7 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
             id,
             deleted_at,
             source_quote_offer_version_id,
+            is_historical,
             contract_status
           from orders
           where id = $1
@@ -150,6 +155,12 @@ export async function POST(request: Request, props: { params: Promise<{ orderId:
           },
           { status: 409 }
         );
+      }
+      if (normalizedType === 'invoice' && lockedOrder.is_historical !== true) {
+        await client.query('rollback');
+        await deletePrivateOrderDocumentBlob(blob.pathname).catch(() => undefined);
+        uploadedPath = null;
+        return NextResponse.json({ message: 'Račun lahko naložite samo za zgodovinsko naročilo.' }, { status: 400 });
       }
       if (
         normalizedType === 'purchase_order' &&

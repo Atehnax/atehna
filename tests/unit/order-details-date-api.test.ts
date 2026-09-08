@@ -57,6 +57,7 @@ function setup(isHistorical = false) {
   const revalidate = { revalidateAdminOrderPaths() {} };
   const modules: Record<string, unknown> = {
     '@/shared/domain/order/manualDraftCustomer': manualDraftCustomer,
+    './orderStatusDocuments': { validateLockedOrderStatusDocuments: async () => null },
     'server-only': {}, 'next/server': { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
     './orders': { getOrderNumberAvailability: async () => null }, './gursAddresses': { getGursAddressById: async () => null },
     './db': { getPool: async () => pool }, '@/shared/server/db': { getPool: async () => pool },

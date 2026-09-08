@@ -7,6 +7,7 @@ import {
   isDirectOrderSellerAcceptanceTransition,
   isSchoolOrderSellerAcceptanceTransition
 } from '@/shared/domain/order/contractStatus';
+import { validateLockedOrderStatusDocuments } from '@/shared/server/orderStatusDocuments';
 import { isOrderStatus } from '@/shared/domain/order/orderStatus';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
@@ -147,6 +148,8 @@ export async function POST(
           order_number,
           status,
           customer_type,
+          entry_source,
+          is_historical,
           commitment_status,
           contract_status,
           stock_enforcement_applied,
@@ -215,6 +218,15 @@ export async function POST(
         },
         { status: 409 }
       );
+    }
+    if (previousStatus !== status) {
+      const documentBlock = await validateLockedOrderStatusDocuments(client, orderId, workflow, status);
+      if (documentBlock) {
+        await client.query('rollback');
+        client.release();
+        client = null;
+        return NextResponse.json(documentBlock, { status: 409 });
+      }
     }
     const automaticallyAcceptsDirectOrder =
       isDirectOrderSellerAcceptanceTransition({
@@ -662,6 +674,22 @@ export async function POST(
         },
         { status: 409 }
       );
+    }
+    if (changed && deliveryPlan.changed) {
+      const documentBlock = await validateLockedOrderStatusDocuments(client, orderId, workflow, status);
+      if (documentBlock) {
+        await client.query('rollback');
+        client.release();
+        client = null;
+        const deliveryPlanInstructions = previousStatus === 'partially_sent' &&
+          (status === 'sent' || status === 'finished')
+          ? 'V podrobnostih naročila najprej nastavite status »V obdelavi« in shranite. Nato shranite načrt dobave, ustvarite novo Dobavnico in ponovno izberite želeni končni status.'
+          : 'V podrobnostih naročila najprej shranite načrt dobave ob nespremenjenem statusu, nato ustvarite novo Dobavnico in ponovno spremenite status.';
+        return NextResponse.json({
+          ...documentBlock,
+          message: `${documentBlock.message} ${deliveryPlanInstructions}`
+        }, { status: 409 });
+      }
     }
     if (changed) {
       let releasedStockUnits = 0;

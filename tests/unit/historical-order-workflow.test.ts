@@ -1,3 +1,4 @@
+import * as statusDocuments from '../../src/shared/domain/order/orderStatusDocuments';
 import * as manualDraftCustomer from '../../src/shared/domain/order/manualDraftCustomer';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -37,7 +38,7 @@ test('invalid dates, future dates, precision and claimed complete refunds are re
 });
 type Handler = (request: Request, orderId: number, body: Record<string, unknown>) => Promise<Response | null>;
 const compiled=ts.transpileModule(readFileSync(resolve('src/shared/server/historicalOrders.ts'),'utf8'), { compilerOptions: {module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022} }).outputText;
-function setup(options: { auditFailure?: boolean; duplicate?: boolean; numberConflict?: boolean; numberRace?: boolean; itemCount?: number; canonicalAddress?: Record<string, unknown>; row?: Record<string, unknown> } = {}) {
+function setup(options: { documentTypes?: string[]; auditFailure?: boolean; duplicate?: boolean; numberConflict?: boolean; numberRace?: boolean; itemCount?: number; canonicalAddress?: Record<string, unknown>; row?: Record<string, unknown> } = {}) {
   let row: Record<string, unknown> = { ...baseline(), ...options.row }, before = { ...row };
   const sql: string[] = [];const history: unknown[][] = [];const revalidated: number[] = [];
   const client = {
@@ -68,6 +69,7 @@ function setup(options: { auditFailure?: boolean; duplicate?: boolean; numberCon
   };
   const modules:Record<string,unknown>={
     '@/shared/domain/order/manualDraftCustomer': manualDraftCustomer,
+    './orderStatusDocuments':{validateLockedOrderStatusDocuments:async(_client:unknown,_id:number,order:Record<string,unknown>,status:string)=>statusDocuments.orderStatusDocumentBlock(order,status,options.documentTypes ?? ['invoice'])},
     'server-only':{},'next/server':{NextResponse:{json:(body:unknown,init?:ResponseInit)=>Response.json(body,init)}},
     './db':{getPool:async()=>({connect:async()=>client,query:client.query})},
     './orders':{getOrderNumberAvailability:async(value:string)=>({normalizedOrderNumber:/^#?\d+$/.test(value) ? Number(value.replace('#','')) : null,formattedOrderNumber:'#'+value.replace('#',''),isAvailable:!options.numberConflict})},
@@ -211,4 +213,28 @@ test('blank and legacy generated historical customers cannot finalize, while rea
   const actual=setup({row:{customer_type:'company',contact_name:'Osnutek',email:'person@example.test',address_line1:'Real street 2'}});
   assert.equal((await actual.send({expectedHistoricalRevision:'0',expectedPricingRevision:2,historicalComplete:true}))?.status,200);
   assert.equal(actual.state().contact_name,'Osnutek');
+});
+
+
+test('historical completion and later shipped status changes require only an invoice', async () => {
+  for (const status of ['partially_sent', 'sent', 'finished']) {
+    const missing = setup({ documentTypes: ['order_summary', 'purchase_order', 'dobavnica', 'predracun'] });
+    const response = await missing.send({ expectedHistoricalRevision: '0', expectedPricingRevision: 2, historicalComplete: true, historicalStatus: status });
+    assert.equal(response?.status, 409);
+    assert.deepEqual((await response!.json()).missingDocumentTypes, ['invoice']);
+    assert.equal(missing.state().is_draft, true);
+    assert.equal(missing.history.length, 0);
+    const valid = setup({ documentTypes: ['invoice'], row: { customer_type: 'school' } });
+    assert.equal((await valid.send({ expectedHistoricalRevision: '0', expectedPricingRevision: 2, historicalComplete: true, historicalStatus: status }))?.status, 200);
+    const change = setup({ documentTypes: [], row: { is_draft: false, status: 'received' } });
+    assert.equal((await change.send({ expectedHistoricalRevision: '0', historicalStatus: status }))?.status, 409);
+  }
+});
+
+test('historical drafts can save metadata before invoice upload but cannot enter protected statuses', async () => {
+  const draft = setup({ documentTypes: [] });
+  assert.equal((await draft.send({ expectedHistoricalRevision: '0', historicalStatus: 'finished' }))?.status, 409);
+  assert.equal((await draft.send({ expectedHistoricalRevision: '0', historicalNotes: 'Source facts' }))?.status, 200);
+  const finalized = setup({ documentTypes: [], row: { is_draft: false, status: 'finished' } });
+  assert.equal((await finalized.send({ expectedHistoricalRevision: '0', historicalNotes: 'Source correction' }))?.status, 200);
 });

@@ -18,6 +18,7 @@ import {
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
+import collapseStyles from '@/shared/ui/admin-collapse.module.css';
 
 type AdminOrderShippingOverrideProps = {
   orderId: number;
@@ -626,6 +627,7 @@ export default function AdminOrderShippingOverride({
               (externalEditMode ? ' bg-[color:var(--hover-neutral)]' : '')
             }
             aria-pressed={externalEditMode}
+            aria-expanded={externalEditMode}
             aria-controls={'admin-order-shipping-editor-' + orderId}
             aria-label={externalEditMode ? 'Končaj urejanje poštnine' : 'Uredi poštnino'}
             title={externalEditMode ? 'Končaj urejanje poštnine' : 'Uredi poštnino'}
@@ -638,95 +640,109 @@ export default function AdminOrderShippingOverride({
         </div>
 
         <div className="border-t border-slate-200">
-          {externalEditMode ? (
-            <div
-              id={'admin-order-shipping-editor-' + orderId}
-              className="grid items-end gap-2 px-4 py-2 sm:grid-cols-[72px_96px_minmax(120px,1fr)]"
-              data-shipping-editor-row
-              data-testid="admin-order-shipping-editor"
-            >
-              <label className="block min-w-0" data-parcel-count-control>
-                <span
-                  className="text-[10px] font-semibold leading-4 text-slate-700"
-                  title="Število paketov, oddanih skupaj"
-                >
-                  Paketi
-                </span>
-                <input
-                  type="number"
-                  min="1"
-                  max={SHIPPING_MAX_PARCEL_COUNT}
-                  step="1"
-                  inputMode="numeric"
-                  value={parcelCountInput}
-                  onChange={(event) => setParcelCountInput(event.target.value)}
-                  disabled={parcelCountControlsDisabled}
-                  aria-label="Število paketov, oddanih skupaj"
-                  aria-describedby={'admin-order-shipping-parcel-help-' + orderId}
-                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                />
-                <span
-                  id={'admin-order-shipping-parcel-help-' + orderId}
-                  className="sr-only"
-                >
-                  To je število fizičnih paketov, ki so istemu prejemniku oddani
-                  skupaj, ne število naročenih artiklov.
-                </span>
-              </label>
-              <label className="block min-w-0">
-                <span className="text-[10px] font-semibold leading-4 text-slate-700">
-                  Znesek (€)
-                </span>
-                <input
-                  value={amountInput}
-                  onChange={(event) => {
-                    setAmountInput(event.target.value);
-                    setDraftMode('override');
-                  }}
-                  inputMode="decimal"
-                  disabled={controlsDisabled}
-                  aria-label="Ročni znesek poštnine v evrih"
-                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                />
-              </label>
-              <label className="block min-w-0">
-                <span className="text-[10px] font-semibold leading-4 text-slate-700">
-                  Razlog spremembe
-                </span>
-                <input
-                  type="text"
-                  value={reason}
-                  onChange={(event) => {
-                    setReason(event.target.value);
-                    setDraftMode('override');
-                  }}
-                  disabled={controlsDisabled}
-                  aria-label="Razlog ročne spremembe poštnine"
-                  className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
-                />
-              </label>
-            </div>
-          ) : (
-            <div
-              className="grid min-h-10 grid-cols-[112px_minmax(0,1fr)] items-center gap-3 px-4 py-1.5"
-              data-shipping-read-reason
-            >
-              <p className="text-[11px] font-medium leading-4 text-slate-500">Razlog spremembe</p>
-              <p
-                className="truncate text-[11px] leading-4 text-slate-900"
-                title={currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
+          <div
+            id={'admin-order-shipping-editor-' + orderId}
+            className={collapseStyles.collapse}
+            data-open={externalEditMode}
+            aria-hidden={!externalEditMode}
+            inert={!externalEditMode}
+          >
+            <div className={collapseStyles.content}>
+              <div
+                className="grid items-end gap-2 px-4 py-2 sm:grid-cols-[72px_96px_minmax(120px,1fr)]"
+                data-shipping-editor-row
+                data-testid="admin-order-shipping-editor"
               >
-                {currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
-              </p>
+                <label className="block min-w-0" data-parcel-count-control>
+                  <span
+                    className="text-[10px] font-semibold leading-4 text-slate-700"
+                    title="Število paketov, oddanih skupaj"
+                  >
+                    Paketi
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={SHIPPING_MAX_PARCEL_COUNT}
+                    step="1"
+                    inputMode="numeric"
+                    value={parcelCountInput}
+                    onChange={(event) => setParcelCountInput(event.target.value)}
+                    disabled={parcelCountControlsDisabled}
+                    aria-label="Število paketov, oddanih skupaj"
+                    aria-describedby={'admin-order-shipping-parcel-help-' + orderId}
+                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
+                  />
+                  <span
+                    id={'admin-order-shipping-parcel-help-' + orderId}
+                    className="sr-only"
+                  >
+                    To je število fizičnih paketov, ki so istemu prejemniku oddani
+                    skupaj, ne število naročenih artiklov.
+                  </span>
+                </label>
+                <label className="block min-w-0">
+                  <span className="text-[10px] font-semibold leading-4 text-slate-700">
+                    Znesek (€)
+                  </span>
+                  <input
+                    value={amountInput}
+                    onChange={(event) => {
+                      setAmountInput(event.target.value);
+                      setDraftMode('override');
+                    }}
+                    inputMode="decimal"
+                    disabled={controlsDisabled}
+                    aria-label="Ročni znesek poštnine v evrih"
+                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
+                  />
+                </label>
+                <label className="block min-w-0">
+                  <span className="text-[10px] font-semibold leading-4 text-slate-700">
+                    Razlog spremembe
+                  </span>
+                  <input
+                    type="text"
+                    value={reason}
+                    onChange={(event) => {
+                      setReason(event.target.value);
+                      setDraftMode('override');
+                    }}
+                    disabled={controlsDisabled}
+                    aria-label="Razlog ročne spremembe poštnine"
+                    className={'mt-0.5 ' + fieldClassName + ' !h-7 !px-2 !text-[11px] !leading-4'}
+                  />
+                </label>
+              </div>
+              {parcelCountHardLocked && !quoteDerived ? (
+                <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
+                  Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
+                </p>
+              ) : null}
             </div>
-          )}
+          </div>
+          <div
+            className={collapseStyles.collapse}
+            data-open={!externalEditMode}
+            aria-hidden={externalEditMode}
+            inert={externalEditMode}
+          >
+            <div className={collapseStyles.content}>
+              <div
+                className="grid min-h-10 grid-cols-[112px_minmax(0,1fr)] items-center gap-3 px-4 py-1.5"
+                data-shipping-read-reason
+              >
+                <p className="text-[11px] font-medium leading-4 text-slate-500">Razlog spremembe</p>
+                <p
+                  className="truncate text-[11px] leading-4 text-slate-900"
+                  title={currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
+                >
+                  {currentOverride?.reason || (shippingPending ? '—' : 'Brez ročne spremembe.')}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {externalEditMode && parcelCountHardLocked && !quoteDerived ? (
-          <p className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] font-medium leading-4 text-rose-700">
-            Števila paketov pri izbrisanem ali preklicanem naročilu ni mogoče spremeniti.
-          </p>
-        ) : null}
 
         {lockMessage ? (
           <p

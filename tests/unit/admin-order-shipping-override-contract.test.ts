@@ -200,7 +200,8 @@ test('shipping card mirrors the persistent reference hierarchy without a redunda
   assert.ok(readReasonStart > summaryStart);
   assert.ok(automaticStart > readReasonStart);
 
-  assert.match(renderSource, /\{externalEditMode \? \([\s\S]*?data-shipping-editor-row[\s\S]*?\) : \([\s\S]*?data-shipping-read-reason/u);
+  assert.match(renderSource, /data-open=\{externalEditMode\}[\s\S]*?aria-hidden=\{!externalEditMode\}[\s\S]*?inert=\{!externalEditMode\}[\s\S]*?data-shipping-editor-row/u);
+  assert.match(renderSource, /data-open=\{!externalEditMode\}[\s\S]*?aria-hidden=\{externalEditMode\}[\s\S]*?inert=\{externalEditMode\}[\s\S]*?data-shipping-read-reason/u);
   assert.match(renderSource, /sm:grid-cols-\[72px_96px_minmax\(120px,1fr\)\]/u);
   assert.match(
     renderSource,

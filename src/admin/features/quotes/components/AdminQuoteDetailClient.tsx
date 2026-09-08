@@ -154,7 +154,7 @@ const compactOfferTextareaClassName =
 const quoteRequestDefaultTitle = (requestNumber: string) =>
   `Povpraševanje ${requestNumber}`;
 const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 !h-7 w-full`;
-const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';
+const detailFieldLockedShellClassName = 'shadow-none';
 const quoteDetailValueControlClassName = `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const quoteDetailCompositeInputClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 !h-6 !px-2 !leading-5`;
@@ -809,7 +809,7 @@ function QuoteAddressEditor({
           type="text"
           value={details.addressLine2}
           disabled={disabled}
-          placeholder="Dodatek"
+          placeholder="Ni dodatka"
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={quoteDetailCompositeInputClassName}
         />

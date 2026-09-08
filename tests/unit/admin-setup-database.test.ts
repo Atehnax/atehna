@@ -4,7 +4,7 @@ import { createAdminSetupPool } from '../../scripts/admin-setup-database.mjs';
 
 test('offline admin setup uses native PostgreSQL timeout parameters without an options command string', async () => {
   const databaseUrl = 'postgresql://setup-test@127.0.0.1:5432/offline_setup_configuration_test';
-  const pool = createAdminSetupPool({ DATABASE_URL: databaseUrl });
+  const pool = createAdminSetupPool({ NODE_ENV: 'test', DATABASE_URL: databaseUrl });
   try {
     assert.equal(pool.options.connectionString, databaseUrl);
     assert.equal(pool.options.statement_timeout, 15_000);
@@ -21,6 +21,6 @@ test('offline admin setup uses native PostgreSQL timeout parameters without an o
 
 test('offline admin setup still requires an explicit PostgreSQL target', () => {
   for (const environment of [{}, { DATABASE_URL: '' }, { DATABASE_URL: 'invalid' }, { DATABASE_URL: 'https://example.test' }]) {
-    assert.throws(() => createAdminSetupPool(environment));
+    assert.throws(() => createAdminSetupPool({ NODE_ENV: 'test', ...environment }));
   }
 });

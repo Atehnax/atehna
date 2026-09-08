@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       WHERE d.created_at BETWEEN $1 AND $2
         AND d.deleted_at is null
         AND o.deleted_at is null
-        AND d.order_pricing_revision = o.pricing_revision
+        AND ((o.is_historical and d.type = 'invoice') or d.order_pricing_revision = o.pricing_revision)
         AND (
           d.type <> 'dobavnica'
           OR d.order_delivery_plan_revision = o.delivery_plan_revision
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       WHERE d.created_at BETWEEN $1 AND $2 AND d.type = $3
         AND d.deleted_at is null
         AND o.deleted_at is null
-        AND d.order_pricing_revision = o.pricing_revision
+        AND ((o.is_historical and d.type = 'invoice') or d.order_pricing_revision = o.pricing_revision)
         AND (
           d.type <> 'dobavnica'
           OR d.order_delivery_plan_revision = o.delivery_plan_revision

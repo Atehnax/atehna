@@ -268,7 +268,7 @@ test('manual upload persists the same current evidence consumed by status accept
   const status = source('src/admin/api/orders/[orderId]/status/route.ts');
 
   assert.ok(
-    upload.includes("const ALLOWED_DOCUMENT_TYPES = new Set(['purchase_order'])")
+    upload.includes("const ALLOWED_DOCUMENT_TYPES = new Set(['purchase_order', 'invoice'])")
   );
   const uploadRevision = upload.indexOf(
     '(select pricing_revision from orders where id = $1)'

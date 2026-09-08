@@ -30,7 +30,7 @@ export function AdminCustomerNameEditor({ values, disabled, onChange, isEditing 
               : { organizationName: event.target.value })}
             className={adminCompactIconFieldInputClassName}
           />
-        ) : <span className={styles.compositeReadValue} title={displayName}>{displayName.trim() || '—'}</span>}
+        ) : <span className={styles.compositeReadValue} data-empty={!displayName.trim()} title={displayName}>{displayName.trim() || '—'}</span>}
         {!individual ? isEditing ? (
           <input
             aria-label="Kontaktna oseba"
@@ -42,7 +42,7 @@ export function AdminCustomerNameEditor({ values, disabled, onChange, isEditing 
             onChange={(event) => onChange({ contactName: event.target.value })}
             className={adminCompactIconFieldInputClassName}
           />
-        ) : <span className={styles.compositeReadValue} title={values.contactName}>{values.contactName.trim() || '—'}</span> : null}
+        ) : <span className={styles.compositeReadValue} data-empty={!values.contactName.trim()} title={values.contactName}>{values.contactName.trim() || '—'}</span> : null}
       </div>
     </div>
   );

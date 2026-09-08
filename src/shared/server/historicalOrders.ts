@@ -1,5 +1,6 @@
 import { normalizeManualDraftCustomer } from '@/shared/domain/order/manualDraftCustomer';
 import 'server-only';
+import { validateLockedOrderStatusDocuments } from './orderStatusDocuments';
 import { NextResponse } from 'next/server';
 import type { PoolClient } from 'pg';
 import { getOrderNumberAvailability } from './orders';
@@ -102,6 +103,13 @@ export async function handleHistoricalOrderDetails(request: Request, orderId: nu
       const customer = normalizeManualDraftCustomer({ ...current, ...customerPatch }, 'order');
       const contact = String(customer.contact_name ?? '').trim();
       if (!counts.rows[0]?.count || !contact) throw new HistoricalOrderInputError('Pred zaključkom vnesite naročnika in vsaj eno postavko z izvornimi zneski.');
+    }
+    if (next.status !== current.status || (next.complete && current.is_draft)) {
+      const documentBlock = await validateLockedOrderStatusDocuments(client, orderId, current, next.status);
+      if (documentBlock) {
+        await client.query('rollback');
+        return NextResponse.json(documentBlock, { status: 409 });
+      }
     }
     const hold = await client.query("select 1 from order_stock_holds where order_id = $1 and state = 'held' limit 1", [orderId]);
     if (hold.rowCount) throw new HistoricalOrderInputError('Zgodovinski zapis ne sme imeti rezervacije zaloge.');

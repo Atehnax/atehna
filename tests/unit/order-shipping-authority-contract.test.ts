@@ -272,11 +272,13 @@ test('manual-quote drafts persist safely before a reasoned override', () => {
 });
 
 test('operational state is readiness-gated and opaque financial PDFs cannot be uploaded', () => {
-  assert.match(uploadedDocumentRouteSource, /ALLOWED_DOCUMENT_TYPES = new Set\(\['purchase_order'\]\)/u);
+  assert.match(uploadedDocumentRouteSource, /ALLOWED_DOCUMENT_TYPES = new Set\(\['purchase_order', 'invoice'\]\)/u);
   assert.doesNotMatch(
     uploadedDocumentRouteSource,
-    /ALLOWED_DOCUMENT_TYPES[\s\S]*?'(?:order_summary|predracun|dobavnica|invoice)'/u
+    /ALLOWED_DOCUMENT_TYPES[\s\S]*?'(?:order_summary|predracun|dobavnica)'/u
   );
+  assert.match(uploadedDocumentRouteSource, /normalizedType === 'invoice' && order\.is_historical !== true/u);
+  assert.match(uploadedDocumentRouteSource, /normalizedType === 'invoice' && lockedOrder\.is_historical !== true/u);
   assert.match(pdfManagerSource, /pdfType\.key === 'purchase_order'/u);
   assert.match(paymentStatusRouteSource, /validateLockedOrderShippingReadiness/u);
   assert.match(paymentStatusRouteSource, /ORDER_PAYMENT_SHIPPING_NOT_READY/u);

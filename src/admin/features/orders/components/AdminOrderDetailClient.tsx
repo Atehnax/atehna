@@ -225,7 +225,7 @@ const EMPTY_ORDER_EDIT_SCOPES: OrderEditScopes = {
 const topActionSaveButtonClassName = `gap-2 ${adminTablePrimaryButtonClassName} !h-8 !leading-none !tracking-[0] disabled:!border-transparent disabled:!bg-[color:var(--blue-500)] disabled:!text-white disabled:!opacity-50`;
 const topSaveActionButtonIconClassName = 'h-[15.3px] w-[15.3px]';
 const detailFieldShellClassName = `${adminCompactIconFieldShellClassName} !mt-0 !h-7 w-full`;
-const detailFieldLockedShellClassName = '!border-transparent !bg-transparent !shadow-none';
+const detailFieldLockedShellClassName = 'shadow-none';
 const orderDataValueControlClassName =
   `${adminCompactIconFieldInputClassName} min-w-0 flex-1`;
 const orderDataCompositeInputClassName =
@@ -480,7 +480,7 @@ function OrderAddressEditor({
           type="text"
           value={details.addressLine2}
           disabled={disabled}
-          placeholder="Dodatek"
+          placeholder="Ni dodatka"
           onChange={(event) => onChange({ addressLine2: event.target.value })}
           className={orderDataCompositeInputClassName}
         />
@@ -1970,6 +1970,7 @@ export default function AdminOrderDetailClient({
             />}
 
             <AdminOrderPdfManagerClient
+              isHistorical={Boolean(order.is_historical)}
               orderId={orderId}
               orderCode={order.order_code}
               documents={documents}

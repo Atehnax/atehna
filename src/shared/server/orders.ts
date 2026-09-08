@@ -562,7 +562,7 @@ export async function fetchOrdersListPage(
           where od.order_id = orders.id
             and od.deleted_at is null
             and od.type = $${documentTypeIndex}
-            and od.order_pricing_revision = orders.pricing_revision
+            and ((orders.is_historical and od.type = 'invoice') or od.order_pricing_revision = orders.pricing_revision)
             and (
               od.type <> 'dobavnica'
               or od.order_delivery_plan_revision = orders.delivery_plan_revision
@@ -666,7 +666,7 @@ export async function fetchOrdersListPage(
           from order_documents od
           join paged_orders po
             on po.id = od.order_id
-           and po.pricing_revision = od.order_pricing_revision
+           and ((po.is_historical and od.type = 'invoice') or po.pricing_revision = od.order_pricing_revision)
            and (
              od.type <> 'dobavnica'
              or po.delivery_plan_revision = od.order_delivery_plan_revision
@@ -930,7 +930,7 @@ export async function fetchOrderDetailSnapshot(
             from order_documents d
             where d.order_id = $1
               and d.deleted_at is null
-              and d.order_pricing_revision = $2
+              and (($4::boolean and d.type = 'invoice') or d.order_pricing_revision = $2)
               and (
                 d.type <> 'dobavnica'
                 or d.order_delivery_plan_revision = $3
@@ -940,7 +940,8 @@ export async function fetchOrderDetailSnapshot(
           [
             orderId,
             rawOrder.pricing_revision,
-            rawOrder.delivery_plan_revision
+            rawOrder.delivery_plan_revision,
+            rawOrder.is_historical === true
           ]
         );
         rawDocuments = documentsResult.rows as Record<string, unknown>[];
@@ -1046,7 +1047,7 @@ export async function fetchOrderDocuments(orderId: number, diagnosticsContext = 
         join orders o on o.id = d.order_id
         where d.order_id = $1
           and d.deleted_at is null
-          and d.order_pricing_revision = o.pricing_revision
+          and ((o.is_historical and d.type = 'invoice') or d.order_pricing_revision = o.pricing_revision)
           and (
             d.type <> 'dobavnica'
             or d.order_delivery_plan_revision = o.delivery_plan_revision
@@ -1075,7 +1076,7 @@ export async function fetchOrderDocumentsForOrders(
         join orders o on o.id = d.order_id
         where d.order_id = any($1::bigint[])
           and d.deleted_at is null
-          and d.order_pricing_revision = o.pricing_revision
+          and ((o.is_historical and d.type = 'invoice') or d.order_pricing_revision = o.pricing_revision)
           and (
             d.type <> 'dobavnica'
             or d.order_delivery_plan_revision = o.delivery_plan_revision

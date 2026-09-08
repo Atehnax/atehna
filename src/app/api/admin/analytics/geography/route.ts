@@ -1,3 +1,5 @@
+import { withAdminRoute } from '@/shared/auth/adminRoute';
+
 import { NextResponse } from 'next/server';
 import { fetchGeography, correctGeography, backfillGeography } from '@/shared/server/geographyAnalytics';
 export const dynamic = 'force-dynamic';
@@ -9,7 +11,7 @@ function csvCell(value: unknown) {
   if (/^[=+@\-]/.test(text)) text = "'" + text;
   return '"' + text.replaceAll('"', '""') + '"';
 }
-export async function GET(request: Request) {
+async function handleAdminGET(request: Request) {
   try {
     const params = new URL(request.url).searchParams;
     const result = await fetchGeography(params);
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Geografska analitika ni na voljo. Preverite uvoz in migracijo podatkov.' }, { status: 503, headers });
   }
 }
-export async function PATCH(request: Request) {
+async function handleAdminPATCH(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     if (typeof body.orderId !== 'string' || typeof body.reason !== 'string' || (body.municipalityId != null && typeof body.municipalityId !== 'string') || (body.regionId != null && typeof body.regionId !== 'string')) return NextResponse.json({ message: 'Neveljaven geografski popravek.' }, { status: 400, headers });
@@ -38,7 +40,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: error instanceof Error ? error.message : 'Popravka ni mogoče shraniti.' }, { status: 400, headers });
   }
 }
-export async function POST(request: Request) {
+async function handleAdminPOST(request: Request) {
   try {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     return NextResponse.json(await backfillGeography({ retryUnresolved: body.retryUnresolved === true }), { headers });
@@ -47,3 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Dopolnjevanje geografije ni uspelo. Zadnje preslikave so ohranjene.' }, { status: 503, headers });
   }
 }
+
+export const GET = withAdminRoute(handleAdminGET);
+export const PATCH = withAdminRoute(handleAdminPATCH);
+export const POST = withAdminRoute(handleAdminPOST);

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export async function GET(request: Request, context: { params: Promise<{ assetId: string }> }) {
   try {
-    authorizeLogoRequest(request);
+    await authorizeLogoRequest(request);
     const { assetId } = await context.params;
     const asset = (await getLogoLibrary()).assets.find(value => value.id === assetId);
     if (!asset) throw new LogoLibraryError('Izvorna slika ne obstaja.', 404);

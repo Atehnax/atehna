@@ -1,3 +1,4 @@
+import { assertProtectedAdminRouteBinding } from './support/adminRouteContract';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -150,10 +151,7 @@ test('quote request detail edits persist through the admin route and app-router 
   const appRoute = source(appDetailsRoutePath);
   assert.match(adminRoute, /export async function PUT/u);
   assert.match(adminRoute, /expectedRequestStateVersion/u);
-  assert.match(
-    appRoute,
-    /export (?:\*|\{\s*PUT\s*\}) from '@\/admin\/api\/quote-requests\/\[quoteRequestId\]\/details\/route';/u
-  );
+  assertProtectedAdminRouteBinding(appRoute, 'PUT', '@/admin/api/quote-requests/[quoteRequestId]/details/route');
 });
 
 test('quote header master pencil edits title and status without bypassing lifecycle actions', () => {
@@ -220,7 +218,7 @@ test('quote header master pencil edits title and status without bypassing lifecy
 
   assert.equal(existsSync(resolve(process.cwd(), adminStatusRoutePath)), true);
   assert.equal(existsSync(resolve(process.cwd(), appStatusRoutePath)), true);
-  assert.match(appStatusRoute, /export \{ POST \} from '@\/admin\/api\/quote-requests\/\[quoteRequestId\]\/status\/route';/u);
+  assertProtectedAdminRouteBinding(appStatusRoute, 'POST', '@/admin/api/quote-requests/[quoteRequestId]/status/route');
   assert.match(statusRoute, /export async function POST/u);
   assert.match(statusRoute, /isQuoteAdminEnabled\(\)/u);
   assert.match(statusRoute, /hasValidQuoteAdminSession\(request\)/u);
@@ -368,10 +366,7 @@ test('quote admin display title persists independently from the immutable reques
   assert.match(titleRoute, /changedFields: \['adminTitle'\]/u);
   assert.match(titleRoute, /eventType: 'quote_request_details_changed'/u);
   assert.doesNotMatch(titleRoute, /set request_number =/u);
-  assert.match(
-    appTitleRoute,
-    /export \{ PUT \} from '@\/admin\/api\/quote-requests\/\[quoteRequestId\]\/title\/route';/u
-  );
+  assertProtectedAdminRouteBinding(appTitleRoute, 'PUT', '@/admin/api/quote-requests/[quoteRequestId]/title/route');
 
   assert.match(schema, /admin_title text/u);
   assert.match(schema, /constraint quote_requests_admin_title_check/u);
@@ -1050,7 +1045,7 @@ test('quote administrator notes hydrate and persist independently across every n
   assert.match(detail, /let nextRequestStateVersion = requestStateVersion/u);
   assert.match(detail, /saveRequestDetails\([\s\S]*?nextRequestStateVersion[\s\S]*?saveAdminNotes\(nextRequestStateVersion\)/u);
 
-  assert.match(appRoute, /export \{ PUT \} from '@\/admin\/api\/quote-requests\/\[quoteRequestId\]\/notes\/route';/u);
+  assertProtectedAdminRouteBinding(appRoute, 'PUT', '@/admin/api/quote-requests/[quoteRequestId]/notes/route');
   assert.match(route, /isQuoteAdminEnabled\(\)/u);
   assert.match(route, /hasValidQuoteAdminSession\(request\)/u);
   assert.match(route, /boundedText\(parsed\.body\.adminNotes, 8_000\) \|\| null/u);

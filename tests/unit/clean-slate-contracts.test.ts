@@ -38,7 +38,7 @@ test('public customer codes use canonical templates with no runtime aliases', ()
   assert.match(rollout, /database\/schema\.sql/u);
 });
 
-test('database setup has one canonical schema with no upgrade runner', () => {
+test('fresh database setup stays canonical with one explicit additive admin-auth upgrade', () => {
   const schemaPath = resolve(process.cwd(), 'database', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf8');
   const tableNames = Array.from(
@@ -49,12 +49,22 @@ test('database setup has one canonical schema with no upgrade runner', () => {
     .filter((fileName) => fileName.endsWith('.sql'))
     .sort();
   assert.equal(existsSync(resolve(process.cwd(), 'migrations')), false);
-  assert.equal(existsSync(resolve(process.cwd(), 'database', 'migrations')), false);
+  const migrationFiles = readdirSync(resolve(process.cwd(), 'database', 'migrations')).sort();
+  assert.deepEqual(migrationFiles, ['20260908.admin-auth-v1.sql']);
+  const authenticationUpgrade = source('database/migrations/20260908.admin-auth-v1.sql');
+  const addedTables = [...authenticationUpgrade.matchAll(/create table if not exists\s+([a-z0-9_]+)/giu)]
+    .map(match => match[1]).sort();
+  assert.deepEqual(addedTables, [
+    'admin_auth_account', 'admin_auth_session', 'admin_auth_user', 'admin_auth_verification',
+    'admin_login_attempt', 'admin_session_policy'
+  ]);
+  assert.doesNotMatch(authenticationUpgrade, /(?:drop|truncate)\s+table|alter\s+table\s+(?!admin_)/iu);
+  assert.match(authenticationUpgrade, /scripts\/migrate-admin-auth\.mjs/u);
   assert.deepEqual(schemaSqlFiles, ['schema.sql']);
   assert.equal(schema.match(/^begin;/gmu)?.length, 1);
   assert.equal(schema.match(/^commit;/gmu)?.length, 1);
-  assert.equal(tableNames.length, 72);
-  assert.equal(new Set(tableNames).size, 72);
+  assert.equal(tableNames.length, 78);
+  assert.equal(new Set(tableNames).size, 78);
   assert.equal(schema.match(/^\s*alter\s+table\b/gimu)?.length, 5);
   assert.match(
     schema,

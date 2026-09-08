@@ -3,5 +3,5 @@ import { authorizePricingStockRequest, pricingStockErrorResponse, pricingStockPr
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 export async function PUT(request:Request) {
-  try {authorizePricingStockRequest(request,'editModel');return Response.json({model:await savePricingStockModel(await readPricingStockBody(request),request)},{headers:pricingStockPrivateHeaders});}catch(error){return pricingStockErrorResponse(error);}
+  try {await authorizePricingStockRequest(request,'editModel');return Response.json({model:await savePricingStockModel(await readPricingStockBody(request),request)},{headers:pricingStockPrivateHeaders});}catch(error){return pricingStockErrorResponse(error);}
 }

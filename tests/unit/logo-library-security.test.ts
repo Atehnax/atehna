@@ -1,11 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
+import assert from 'node:assert/strict';
+import { LogoLibraryError } from '@/shared/server/logoLibraryOperations';
+import { loadBoundServerModule } from './support/loadBoundServerModule';
 
 const run = (body: string) => execFileSync(process.execPath, ['--conditions=react-server', '--import', 'tsx', '--input-type=module', '--eval', `
   import assert from 'node:assert/strict';
   import { randomUUID } from 'node:crypto';
   import sharp from 'sharp';
-  import { createAdminSessionToken, getAdminAuthConfig } from './src/shared/auth/adminSession.ts';
   import { authorizeLogoRequest, boundedLogoBody } from './src/shared/server/logoLibraryRequest.ts';
   import { isLocalLogoStorage, storeLogoSource, readLogoSource, readLogoPublishedOutput, createLogoPublication, imageLogoProject } from './src/shared/server/logoLibraryStorage.ts';
   ${body}`], { cwd: process.cwd(), encoding: 'utf8', timeout: 30000, env: {
@@ -14,21 +16,23 @@ const run = (body: string) => execFileSync(process.execPath, ['--conditions=reac
     ADMIN_USERNAME: 'logo-test-admin', ADMIN_PASSWORD: 'test-only-password', ADMIN_SESSION_SECRET: 'isolated-logo-security-test-secret'
   } });
 
-test('logo API requires a valid session and rejects cross-origin writes', () => {
-  run(`
-    const url = 'https://atehna.test/api/admin/logo-library';
-    assert.throws(() => authorizeLogoRequest(new Request(url)), error => error.status === 401);
-    assert.throws(() => authorizeLogoRequest(new Request(url, {headers:{cookie:'atehna_admin_session=forged'}})), error => error.status === 401);
-    const {token} = createAdminSessionToken(getAdminAuthConfig());
-    const cookie = 'atehna_admin_session=' + encodeURIComponent(token);
-    authorizeLogoRequest(new Request(url, {headers:{cookie}}));
-    authorizeLogoRequest(new Request(url, {method:'POST',headers:{cookie,host:'atehna.test',origin:'https://atehna.test','sec-fetch-site':'same-origin'}}), true);
-    authorizeLogoRequest(new Request('http://localhost:3000/api/admin/logo-library', {method:'POST', headers:{cookie,host:'127.0.0.1:3000',origin:'http://127.0.0.1:3000','sec-fetch-site':'same-origin'}}), true);
-    authorizeLogoRequest(new Request('http://internal.vercel.local/api/admin/logo-library', {method:'POST', headers:{cookie,host:'internal.vercel.local',origin:'https://atehna.test','x-forwarded-host':'atehna.test','x-forwarded-proto':'https','sec-fetch-site':'same-origin'}}), true);
-    for (const headers of [{cookie,host:'atehna.test',origin:'https://attacker.test'},{cookie,host:'atehna.test',origin:'http://atehna.test','x-forwarded-proto':'https'},{cookie,'sec-fetch-site':'cross-site'}]) {
-      assert.throws(() => authorizeLogoRequest(new Request(url, {method:'POST',headers}), true), error => error.status === 403);
-    }
-  `);
+test('logo API awaits a server session and rejects cross-origin writes', async () => {
+  const { requestOriginMatchesHost } = loadBoundServerModule<{ requestOriginMatchesHost: (request: Request) => boolean }>('src/shared/server/requestSecurity.ts', {});
+  const { authorizeLogoRequest } = loadBoundServerModule<{ authorizeLogoRequest: (request: Request, mutation?: boolean) => Promise<void> }>('src/shared/server/logoLibraryRequest.ts', {
+    hasValidAdminSession: async (request: Request) => request.headers.get('x-test-session') === 'active',
+    requestOriginMatchesHost, LogoLibraryError
+  });
+  const url = 'https://atehna.test/api/admin/logo-library';
+  await assert.rejects(() => authorizeLogoRequest(new Request(url)), (error: unknown) => error instanceof LogoLibraryError && error.status === 401);
+  await assert.rejects(() => authorizeLogoRequest(new Request(url, { headers: { cookie: 'atehna_admin_session=forged' } })), (error: unknown) => error instanceof LogoLibraryError && error.status === 401);
+  const session = { 'x-test-session': 'active' };
+  await authorizeLogoRequest(new Request(url, { headers: session }));
+  await authorizeLogoRequest(new Request(url, { method: 'POST', headers: { ...session, host: 'atehna.test', origin: 'https://atehna.test', 'sec-fetch-site': 'same-origin' } }), true);
+  for (const headers of [
+    { ...session, host: 'atehna.test', origin: 'https://attacker.test' },
+    { ...session, host: 'atehna.test', origin: 'http://atehna.test', 'x-forwarded-proto': 'https' },
+    { ...session, 'sec-fetch-site': 'cross-site' }
+  ]) await assert.rejects(() => authorizeLogoRequest(new Request(url, { method: 'POST', headers }), true), (error: unknown) => error instanceof LogoLibraryError && error.status === 403);
 });
 
 test('logo request limits reject both advertised size and actual streamed overflow', () => {

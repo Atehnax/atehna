@@ -12,14 +12,17 @@ async function main() {
   const { schemaSha256 } = await checkE2eDatabase();
 
   const port = process.env.PORT?.trim() || '3000';
+  const runtimeEnvironment = { ...process.env };
+  for (const name of ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'ADMIN_SESSION_TTL', 'ADMIN_SESSION_TTL_SECONDS', 'E2E_ADMIN_USERNAME', 'E2E_ADMIN_PASSWORD']) delete runtimeEnvironment[name];
   const child = spawn(
     process.execPath,
     [nextCli, 'start', '--hostname', 'localhost', '--port', port],
     {
       stdio: 'inherit',
       env: {
-        ...process.env,
+        ...runtimeEnvironment,
         DATABASE_URL: databaseUrl,
+        ADMIN_AUTH_URL: 'http://localhost:' + port,
         PGSSLMODE: 'disable',
         BLOB_READ_WRITE_TOKEN: 'e2e-external-blob-disabled',
         E2E_LOCAL_PRIVATE_BLOB: '1',

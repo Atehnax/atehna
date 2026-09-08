@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { initializeAdminAccount, validateAdminCredentials } from './admin-account-core.mjs';
 import {
   loadManifest,
   verifyDatabaseContract
@@ -97,8 +98,7 @@ export function readE2eEnvironment() {
     fail('DATABASE_URL and E2E_DATABASE_URL differ. Refusing to start against ambiguous database targets.');
   }
 
-  requiredEnvironment('ADMIN_USERNAME');
-  requiredEnvironment('ADMIN_PASSWORD');
+  validateAdminCredentials(requiredEnvironment('E2E_ADMIN_USERNAME'), process.env.E2E_ADMIN_PASSWORD);
   const adminSessionSecret = requiredEnvironment('ADMIN_SESSION_SECRET');
   if (adminSessionSecret.length < 32) {
     fail('ADMIN_SESSION_SECRET must contain at least 32 characters.');
@@ -349,7 +349,14 @@ async function verifyDatabase(pool, schemaSha256, seedChecksum) {
         where reference.slug = 'aluminijasta-plosca'
           and related.slug <> reference.slug
           and related.status = 'active'
-      ) as has_related_product
+      ) as has_related_product,
+      exists (
+        select 1 from admin_auth_user u
+        join admin_auth_account a on a."userId" = u.id
+        where a."providerId" = 'credential'
+          and a.password is not null
+          and a.password <> ''
+      ) as has_admin_account
   `, [seedVersion, seedChecksum]);
   const seed = seedProbe.rows[0] ?? {};
   if (seed.has_seed_sentinel !== true) fail('Deterministic seed sentinel is missing or stale.');
@@ -357,6 +364,7 @@ async function verifyDatabase(pool, schemaSha256, seedChecksum) {
   if (Number(seed.dimensional_variant_count) < 2) fail('Reference dimensional variants are incomplete.');
   if (Number(seed.gallery_image_count) < 2) fail('Reference gallery media is incomplete.');
   if (seed.has_related_product !== true) fail('Related-product fixture is missing.');
+  if (seed.has_admin_account !== true) fail('Isolated administrator account is missing.');
 }
 
 export async function checkE2eDatabase() {
@@ -402,6 +410,10 @@ export async function prepareE2eDatabase() {
       storageNamespace,
       resetOwnershipHash
     );
+    await initializeAdminAccount(pool, {
+      username: process.env.E2E_ADMIN_USERNAME,
+      password: process.env.E2E_ADMIN_PASSWORD
+    });
     await verifyDatabase(pool, schemaSha256, seedChecksum);
     await rm(nextRuntimeCacheDirectory, { recursive: true, force: true });
     return { databaseName, schemaSha256 };

@@ -29,11 +29,12 @@ Diagnostika uses a new persistent PostgreSQL collector with request traces, meas
 # Fresh database schema
 
 Install `database/schema.sql` once into a verified new, empty PostgreSQL database.
-It is the only schema installation path and creates the complete current schema
+It creates the complete current schema
 in one transaction, recording its contract after every application object exists.
-There is no incremental migration runner or startup/build/request-time DDL. The
-current contract is `20260907.historical-orders-v6`; its identifier describes
-the required object definitions, not a sequence of upgrades to execute.
+There is no startup/build/request-time DDL. The current contract is
+`20260908.admin-auth-v1`. Existing databases on the preceding contract have one
+explicit, additive [administrator-auth upgrade](docs/admin-auth-setup.md); all
+other schema replacement still follows the fresh installation process.
 
 Follow [fresh installation and recovery](docs/shipping-rollout.md). Existing
 databases are checked read-only; source rebaselining does not replace them,
@@ -97,8 +98,11 @@ corresponding environment variables in production.
   `0` to disable an individual timeout; invalid values fail before a connection
   pool is created. Timeout parameters embedded in the database URL take
   precedence over these separate settings.
-- `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` are required
-  in production. Missing production admin credentials fail closed.
+- `ADMIN_SESSION_SECRET` (at least 32 characters) and the persisted administrator
+  account are required for admin access. Configure `ADMIN_AUTH_URL` with the
+  canonical origin. Initialize the account with the explicit offline procedure in
+  [administrator setup](docs/admin-auth-setup.md); remove legacy `ADMIN_USERNAME`,
+  `ADMIN_PASSWORD`, and `ADMIN_SESSION_TTL_SECONDS` from runtime configuration afterwards.
 - `CRON_SECRET` secures the scheduled maintenance and address-sync routes in
   `vercel.json`.
 - `RESEND_API_KEY` is required whenever Resend-backed order or quote email
@@ -162,9 +166,9 @@ To activate delivery for `www.atehna-test.site`:
    Vercel Production environment as Sensitive, keep `CRON_SECRET` configured,
    and redeploy because environment changes do not affect existing deployments.
 3. Install the current canonical `database/schema.sql` before exposing the new
-   code. This repository intentionally does not migrate an existing database;
-   use the documented fresh-database deployment flow or coordinate an explicit
-   external schema rollout before activation.
+   code. Use the documented fresh-database deployment flow or coordinate an
+   explicit schema rollout before activation. The narrowly scoped auth upgrade
+   is documented separately in [administrator setup](docs/admin-auth-setup.md).
 4. Open `/admin/email` on the `Nastavitve` tab. Set a verified From address, for
    example `narocila@updates.atehna-test.site`; set a real Reply-To inbox; add
    one or more administrator recipient inboxes; and review the customer/admin
@@ -280,12 +284,13 @@ See [the verification policy](docs/testing/verification-policy.md) for scope, re
 - Before running Playwright, set `E2E_MODE=1`, set both `E2E_DATABASE_URL` and
   `DATABASE_URL` to the same loopback database URL, and set isolated
   unique 12–52 character `E2E_STORAGE_NAMESPACE` made from lower-case letters,
-  digits and hyphens, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and an
+  digits and hyphens, `E2E_ADMIN_USERNAME`, `E2E_ADMIN_PASSWORD` (12–128 characters), and an
   `ADMIN_SESSION_SECRET` of at least 32 characters.
 - Run `npm run build`, `npm run e2e:db:prepare`,
   `npm run check:database-schema`, then
   `npm run test:e2e -- --workers=1 --retries=0`. Preparation applies
-  `database/schema.sql`, installs deterministic catalog/media fixtures, verifies
+  `database/schema.sql`, installs deterministic catalog/media fixtures and the
+  explicitly configured hashed E2E administrator account, verifies
   the sentinel data and exact live contract, and clears the generated Next cache.
   Playwright clears that cache again during teardown so disposable database
   values cannot leak into the normal application.

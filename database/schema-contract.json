@@ -1,12 +1,18 @@
 {
-  "contractId": "20260907.historical-orders-v6",
-  "contractSha256": "2f9d3f55493eb28a40d6b16f025e8b40ca482c5d0d87e1023c3ab72d64b074af",
+  "contractId": "20260908.admin-auth-v1",
+  "contractSha256": "aaa39829b4667551c9736c21a786f809421f91f58435ff6e5ba981236edbf026",
   "requirements": {
     "extensions": [
       "pg_trgm",
       "pgcrypto"
     ],
     "tables": [
+      "admin_auth_account",
+      "admin_auth_session",
+      "admin_auth_user",
+      "admin_auth_verification",
+      "admin_login_attempt",
+      "admin_session_policy",
       "analytics_geography_backfill",
       "analytics_geography_references",
       "analytics_geography_state",
@@ -1085,6 +1091,321 @@
         "name": "archived_at",
         "dataType": "timestamp with time zone",
         "nullable": true
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "name",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "email",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "emailVerified",
+        "dataType": "boolean",
+        "nullable": false,
+        "defaultEquals": "true"
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "image",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "createdAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "updatedAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "username",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "credentialVersion",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "1"
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "accountId",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "providerId",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "userId",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "accessToken",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "refreshToken",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "idToken",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "scope",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "password",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "accessTokenExpiresAt",
+        "dataType": "timestamp with time zone",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "refreshTokenExpiresAt",
+        "dataType": "timestamp with time zone",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "createdAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "updatedAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "token",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "userId",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "expiresAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "createdAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "updatedAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "ipAddress",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "userAgent",
+        "dataType": "text",
+        "nullable": true,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "lastActivityAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "credentialVersion",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "id",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "identifier",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "value",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "expiresAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "createdAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "updatedAt",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "id",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "max_lifetime_days",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "30"
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "idle_timeout_minutes",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": "30"
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "updated_at",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": "now()"
+      },
+      {
+        "table": "admin_login_attempt",
+        "name": "key",
+        "dataType": "text",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_login_attempt",
+        "name": "attempts",
+        "dataType": "integer",
+        "nullable": false,
+        "defaultEquals": null
+      },
+      {
+        "table": "admin_login_attempt",
+        "name": "window_start",
+        "dataType": "timestamp with time zone",
+        "nullable": false,
+        "defaultEquals": null
       }
     ],
     "constraints": [
@@ -1451,6 +1772,36 @@
         "name": "orders_original_reference_check",
         "type": "check",
         "definitionEquals": "CHECK ((original_reference_system IS NULL) = (original_reference IS NULL) AND (original_reference_system IS NULL OR length(btrim(original_reference_system)) >= 1 AND length(btrim(original_reference_system)) <= 80) AND (original_reference IS NULL OR length(btrim(original_reference)) >= 1 AND length(btrim(original_reference)) <= 200) AND (NOT is_historical OR is_draft OR original_reference IS NOT NULL))"
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "admin_auth_account_user_fk",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (\"userId\") REFERENCES admin_auth_user(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "admin_auth_session_user_fk",
+        "type": "foreign_key",
+        "definitionEquals": "FOREIGN KEY (\"userId\") REFERENCES admin_auth_user(id) ON DELETE CASCADE"
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "admin_session_policy_singleton_check",
+        "type": "check",
+        "definitionEquals": "CHECK (id = 1)"
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "admin_session_policy_lifetime_check",
+        "type": "check",
+        "definitionEquals": "CHECK (max_lifetime_days >= 1 AND max_lifetime_days <= 90)"
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "admin_session_policy_idle_check",
+        "type": "check",
+        "definitionEquals": "CHECK (idle_timeout_minutes >= 1 AND idle_timeout_minutes <= 1440)"
       }
     ],
     "functions": [
@@ -1992,6 +2343,132 @@
           "orders",
           "btree"
         ]
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "admin_auth_user_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_user_pkey ON public.admin_auth_user USING btree (id)",
+        "definitionIncludes": [
+          "admin_auth_user",
+          "admin_auth_user_pkey"
+        ]
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "admin_auth_account_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_account_pkey ON public.admin_auth_account USING btree (id)",
+        "definitionIncludes": [
+          "admin_auth_account",
+          "admin_auth_account_pkey"
+        ]
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "admin_auth_session_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_session_pkey ON public.admin_auth_session USING btree (id)",
+        "definitionIncludes": [
+          "admin_auth_session",
+          "admin_auth_session_pkey"
+        ]
+      },
+      {
+        "table": "admin_auth_verification",
+        "name": "admin_auth_verification_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_verification_pkey ON public.admin_auth_verification USING btree (id)",
+        "definitionIncludes": [
+          "admin_auth_verification",
+          "admin_auth_verification_pkey"
+        ]
+      },
+      {
+        "table": "admin_session_policy",
+        "name": "admin_session_policy_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_session_policy_pkey ON public.admin_session_policy USING btree (id)",
+        "definitionIncludes": [
+          "admin_session_policy",
+          "admin_session_policy_pkey"
+        ]
+      },
+      {
+        "table": "admin_login_attempt",
+        "name": "admin_login_attempt_pkey",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_login_attempt_pkey ON public.admin_login_attempt USING btree (key)",
+        "definitionIncludes": [
+          "admin_login_attempt",
+          "admin_login_attempt_pkey"
+        ]
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "admin_auth_user_email_key",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_user_email_key ON public.admin_auth_user USING btree (email)",
+        "definitionIncludes": [
+          "admin_auth_user",
+          "admin_auth_user_email_key"
+        ]
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "admin_auth_user_username_key",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_user_username_key ON public.admin_auth_user USING btree (username)",
+        "definitionIncludes": [
+          "admin_auth_user",
+          "admin_auth_user_username_key"
+        ]
+      },
+      {
+        "table": "admin_auth_user",
+        "name": "admin_auth_user_singleton",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_user_singleton ON public.admin_auth_user USING btree ((true))",
+        "definitionIncludes": [
+          "admin_auth_user",
+          "admin_auth_user_singleton"
+        ]
+      },
+      {
+        "table": "admin_auth_account",
+        "name": "admin_auth_account_provider_account_key",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_account_provider_account_key ON public.admin_auth_account USING btree (\"providerId\", \"accountId\")",
+        "definitionIncludes": [
+          "admin_auth_account",
+          "admin_auth_account_provider_account_key"
+        ]
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "admin_auth_session_token_key",
+        "definitionEquals": "CREATE UNIQUE INDEX admin_auth_session_token_key ON public.admin_auth_session USING btree (token)",
+        "definitionIncludes": [
+          "admin_auth_session",
+          "admin_auth_session_token_key"
+        ]
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "admin_auth_session_user_idx",
+        "definitionEquals": "CREATE INDEX admin_auth_session_user_idx ON public.admin_auth_session USING btree (\"userId\")",
+        "definitionIncludes": [
+          "admin_auth_session",
+          "admin_auth_session_user_idx"
+        ]
+      },
+      {
+        "table": "admin_auth_session",
+        "name": "admin_auth_session_expiry_idx",
+        "definitionEquals": "CREATE INDEX admin_auth_session_expiry_idx ON public.admin_auth_session USING btree (\"expiresAt\")",
+        "definitionIncludes": [
+          "admin_auth_session",
+          "admin_auth_session_expiry_idx"
+        ]
+      },
+      {
+        "table": "admin_login_attempt",
+        "name": "admin_login_attempt_window_idx",
+        "definitionEquals": "CREATE INDEX admin_login_attempt_window_idx ON public.admin_login_attempt USING btree (window_start)",
+        "definitionIncludes": [
+          "admin_login_attempt",
+          "admin_login_attempt_window_idx"
+        ]
       }
     ],
     "triggers": [
@@ -2254,6 +2731,11 @@
       {
         "table": "business_analytics_settings",
         "key": "default"
+      },
+      {
+        "table": "admin_session_policy",
+        "key": "1",
+        "column": "id"
       }
     ]
   }

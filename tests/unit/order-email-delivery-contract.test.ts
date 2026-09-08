@@ -1,3 +1,4 @@
+import { assertProtectedAdminRouteBinding } from './support/adminRouteContract';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -241,7 +242,9 @@ test('cron recovery is authenticated and deployable on Vercel Hobby cadence', ()
 
   assert.ok(cron);
   assert.equal(cron.schedule, '40 3 * * *');
-  assert.match(proxy, /pathname === '\/api\/admin\/order-email-settings\/process'/u);
+  assert.match(proxy, /isAuthorizedAdminCron\(request\)/u);
+  assert.match(source('src/shared/auth/adminCron.ts'), /'\/api\/admin\/order-email-settings\/process'/u);
+  assert.match(appCronRoute, /allowCron: true/u);
   assert.match(cronRoute, /request\.headers\.get\('authorization'\) !== `Bearer \$\{cronSecret\}`/u);
   assert.match(cronRoute, /maxJobs: 100/u);
   assert.match(cronRoute, /deadlineMs: 45_000/u);
@@ -249,10 +252,7 @@ test('cron recovery is authenticated and deployable on Vercel Hobby cadence', ()
   assert.match(cronRoute, /isOrderEmailSchemaReady\(pool\)/u);
   assert.match(appCronRoute, /export const dynamic = 'force-dynamic'/u);
   assert.match(appCronRoute, /export const maxDuration = 60/u);
-  assert.match(
-    appCronRoute,
-    /export \{ GET \} from '@\/admin\/api\/order-email-settings\/process\/route'/u
-  );
+  assertProtectedAdminRouteBinding(appCronRoute, 'GET', '@/admin/api/order-email-settings/process/route');
 });
 
 test('provider secret is server-only and explicitly removed from E2E runtime', () => {

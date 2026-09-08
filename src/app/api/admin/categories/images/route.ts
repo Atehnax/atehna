@@ -1,3 +1,5 @@
+import { withAdminRoute } from '@/shared/auth/adminRoute';
+
 import {
   GET as handleGetCategoryImages,
   PATCH as handlePatchCategoryImages
@@ -6,10 +8,13 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function GET(request: Request) {
+async function handleAdminGET(request: Request) {
   return handleGetCategoryImages(request);
 }
 
-export async function PATCH(request: Request) {
+async function handleAdminPATCH(request: Request) {
   return handlePatchCategoryImages(request);
 }
+
+export const GET = withAdminRoute(handleAdminGET);
+export const PATCH = withAdminRoute(handleAdminPATCH);

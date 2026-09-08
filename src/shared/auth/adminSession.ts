@@ -1,148 +1,83 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import 'server-only';
 
-export const ADMIN_SESSION_COOKIE = 'atehna_admin_session';
+import { cache } from 'react';
+import { headers } from 'next/headers';
+import type { PoolClient } from 'pg';
+import { getPool } from '@/shared/server/db';
+import { getAdminAuth } from '@/shared/auth/adminAuth';
+import { ADMIN_SESSION_COOKIE } from '@/shared/auth/adminCookie';
 
-export type AdminAuthConfig = {
+export { ADMIN_SESSION_COOKIE };
+export { getAdminSessionSecret } from '@/shared/auth/adminAuth';
+
+export type AdminSession = {
+  id: string;
+  userId: string;
   username: string;
-  password: string;
-  sessionSecret: string;
-  sessionTtlSeconds: number;
+  credentialVersion: number;
+  createdAt: Date;
+  lastActivityAt: Date;
+  /** Effective deadline: minimum of the absolute and inactivity limits. */
+  expiresAt: Date;
 };
+export type AdminSessionPolicy = { maxLifetimeDays: number; idleTimeoutMinutes: number };
 
-type AdminSessionPayload = {
-  v: 1;
-  sub: string;
-  iat: number;
-  exp: number;
-};
-
-const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
-const MIN_SESSION_TTL_SECONDS = 5 * 60;
-const MAX_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
-
-function safeTextEqual(left: string, right: string): boolean {
-  const leftHash = createHash('sha256').update(left, 'utf8').digest();
-  const rightHash = createHash('sha256').update(right, 'utf8').digest();
-  return timingSafeEqual(leftHash, rightHash);
+export async function getAdminSessionPolicy(): Promise<AdminSessionPolicy> {
+  const { rows } = await (await getPool()).query('select max_lifetime_days, idle_timeout_minutes from admin_session_policy where id = 1');
+  if (!rows[0]) throw new Error('Admin session policy is not initialized.');
+  return { maxLifetimeDays: Number(rows[0].max_lifetime_days), idleTimeoutMinutes: Number(rows[0].idle_timeout_minutes) };
 }
 
-function normalizeSessionTtl(value: string | undefined): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return DEFAULT_SESSION_TTL_SECONDS;
-  return Math.min(
-    MAX_SESSION_TTL_SECONDS,
-    Math.max(MIN_SESSION_TTL_SECONDS, Math.floor(parsed))
-  );
+// Shared by verification and mutations. Reads never update activity or extend a session.
+export const LIVE_ADMIN_SESSION_SQL = `
+  select s.id, s."userId", u.username, s."credentialVersion", s."createdAt", s."lastActivityAt",
+    least(s."expiresAt",
+      s."createdAt" + p.max_lifetime_days * interval '1 day',
+      s."lastActivityAt" + p.idle_timeout_minutes * interval '1 minute') as deadline
+  from admin_auth_session s
+  join admin_auth_user u on u.id = s."userId" and u."credentialVersion" = s."credentialVersion"
+  cross join admin_session_policy p
+  where s.id = $1 and p.id = 1 and
+    least(s."expiresAt", s."createdAt" + p.max_lifetime_days * interval '1 day',
+      s."lastActivityAt" + p.idle_timeout_minutes * interval '1 minute') > clock_timestamp()
+`;
+
+export async function findLiveAdminSession(id: string, db?: PoolClient): Promise<AdminSession | null> {
+  const { rows } = await (db ?? await getPool()).query(LIVE_ADMIN_SESSION_SQL, [id]);
+  const row = rows[0];
+  return row ? {
+    id: row.id, userId: row.userId, username: row.username,
+    credentialVersion: Number(row.credentialVersion),
+    createdAt: new Date(row.createdAt), lastActivityAt: new Date(row.lastActivityAt), expiresAt: new Date(row.deadline)
+  } : null;
 }
 
-export function getAdminAuthConfig(): AdminAuthConfig | null {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const configuredUsername = process.env.ADMIN_USERNAME?.trim();
-  const configuredPassword = process.env.ADMIN_PASSWORD;
-  const configuredSecret = process.env.ADMIN_SESSION_SECRET;
-
-  if (isProduction && (!configuredUsername || !configuredPassword || !configuredSecret)) {
-    return null;
+async function verifyHeaders(requestHeaders: Headers): Promise<AdminSession | null> {
+  if (!requestHeaders.get('cookie')?.split(';').some((part) => part.trim().startsWith(`${ADMIN_SESSION_COOKIE}=`))) return null;
+  const auth = await getAdminAuth();
+  const result = await auth.api.getSession({
+    headers: requestHeaders, query: { disableCookieCache: true, disableRefresh: true }
+  });
+  if (!result) return null;
+  const session = await findLiveAdminSession(result.session.id);
+  if (!session) {
+    // Make expiry terminal even if policy is subsequently increased.
+    await (await getPool()).query('delete from admin_auth_session where id = $1', [result.session.id]);
   }
-
-  const username = configuredUsername || 'admin';
-  const password = configuredPassword || 'admin';
-  const sessionSecret =
-    configuredSecret ||
-    createHash('sha256')
-      .update(`atehna-development-session:${username}:${password}`, 'utf8')
-      .digest('hex');
-
-  return {
-    username,
-    password,
-    sessionSecret,
-    sessionTtlSeconds: normalizeSessionTtl(process.env.ADMIN_SESSION_TTL_SECONDS)
-  };
+  return session;
 }
 
-function signPayload(encodedPayload: string, secret: string): string {
-  return createHmac('sha256', secret).update(encodedPayload, 'utf8').digest('base64url');
-}
-
-export function createAdminSessionToken(
-  config: AdminAuthConfig,
-  now = new Date()
-): { token: string; expiresAt: Date; maxAge: number } {
-  const issuedAt = Math.floor(now.getTime() / 1000);
-  const expiresAtSeconds = issuedAt + config.sessionTtlSeconds;
-  const payload: AdminSessionPayload = {
-    v: 1,
-    sub: config.username,
-    iat: issuedAt,
-    exp: expiresAtSeconds
-  };
-  const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const signature = signPayload(encodedPayload, config.sessionSecret);
-
-  return {
-    token: `${encodedPayload}.${signature}`,
-    expiresAt: new Date(expiresAtSeconds * 1000),
-    maxAge: config.sessionTtlSeconds
-  };
-}
-
-export function verifyAdminSessionToken(
-  token: string | null | undefined,
-  config: AdminAuthConfig | null,
-  now = new Date()
-): boolean {
-  if (!token || !config) return false;
-  const [encodedPayload, suppliedSignature, extra] = token.split('.');
-  if (!encodedPayload || !suppliedSignature || extra !== undefined) return false;
-
-  const expectedSignature = signPayload(encodedPayload, config.sessionSecret);
-  if (!safeTextEqual(suppliedSignature, expectedSignature)) return false;
-
-  try {
-    const payload = JSON.parse(
-      Buffer.from(encodedPayload, 'base64url').toString('utf8')
-    ) as Partial<AdminSessionPayload>;
-    const nowSeconds = Math.floor(now.getTime() / 1000);
-
-    return (
-      payload.v === 1 &&
-      typeof payload.sub === 'string' &&
-      safeTextEqual(payload.sub, config.username) &&
-      typeof payload.iat === 'number' &&
-      typeof payload.exp === 'number' &&
-      payload.iat <= nowSeconds + 300 &&
-      payload.exp > nowSeconds
-    );
-  } catch {
-    return false;
+const requestSessions = new WeakMap<Request, Promise<AdminSession | null>>();
+export function getAdminSession(request: Request): Promise<AdminSession | null> {
+  let result = requestSessions.get(request);
+  if (!result) {
+    result = verifyHeaders(request.headers);
+    requestSessions.set(request, result);
   }
+  return result;
 }
-
-export function hasValidAdminSession(request: Request): boolean {
-  const cookieHeader = request.headers.get('cookie') ?? '';
-  let token: string | null = null;
-  for (const part of cookieHeader.split(';')) {
-    const separator = part.indexOf('=');
-    if (separator < 0) continue;
-    const name = part.slice(0, separator).trim();
-    if (name !== ADMIN_SESSION_COOKIE) continue;
-    const value = part.slice(separator + 1).trim();
-    try {
-      token = decodeURIComponent(value);
-    } catch {
-      token = value;
-    }
-    break;
-  }
-  return verifyAdminSessionToken(token, getAdminAuthConfig());
+export async function hasValidAdminSession(request: Request): Promise<boolean> {
+  return Boolean(await getAdminSession(request));
 }
-
-export function verifyAdminCredentials(
-  username: unknown,
-  password: unknown,
-  config: AdminAuthConfig | null
-): boolean {
-  if (!config || typeof username !== 'string' || typeof password !== 'string') return false;
-  return safeTextEqual(username, config.username) && safeTextEqual(password, config.password);
-}
+// React cache is request-scoped; nothing survives between incoming requests.
+export const getAdminPageSession = cache(async () => verifyHeaders(new Headers(await headers())));

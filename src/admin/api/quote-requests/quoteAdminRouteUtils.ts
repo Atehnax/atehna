@@ -1,9 +1,5 @@
 import type { PoolClient } from 'pg';
-import {
-  ADMIN_SESSION_COOKIE,
-  getAdminAuthConfig,
-  verifyAdminSessionToken
-} from '@/shared/auth/adminSession';
+import { hasValidAdminSession } from '@/shared/auth/adminSession';
 import {
   getAuditActor,
   getAuditRequestContext,
@@ -19,23 +15,8 @@ export type QuoteAdminEvidence = {
   requestId: string;
 };
 
-export function hasValidQuoteAdminSession(request: Request): boolean {
-  const cookieHeader = request.headers.get('cookie') ?? '';
-  let sessionToken: string | null = null;
-  for (const part of cookieHeader.split(';')) {
-    const separator = part.indexOf('=');
-    if (separator < 0) continue;
-    const name = part.slice(0, separator).trim();
-    if (name !== ADMIN_SESSION_COOKIE) continue;
-    const value = part.slice(separator + 1).trim();
-    try {
-      sessionToken = decodeURIComponent(value);
-    } catch {
-      sessionToken = value;
-    }
-    break;
-  }
-  return verifyAdminSessionToken(sessionToken, getAdminAuthConfig());
+export async function hasValidQuoteAdminSession(request: Request): Promise<boolean> {
+  return hasValidAdminSession(request);
 }
 
 export function positiveInteger(value: unknown): number | null {

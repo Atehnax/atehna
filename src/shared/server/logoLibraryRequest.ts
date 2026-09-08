@@ -5,8 +5,8 @@ import { LogoLibraryError } from './logoLibraryOperations';
 import { readLimitedLogoStream } from './logoLibraryStorage';
 
 export const logoPrivateHeaders = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex, nofollow' };
-export function authorizeLogoRequest(request: Request, mutation = false) {
-  if (!hasValidAdminSession(request)) throw new LogoLibraryError('Za dostop je potrebna prijava.', 401);
+export async function authorizeLogoRequest(request: Request, mutation = false) {
+  if (!await hasValidAdminSession(request)) throw new LogoLibraryError('Za dostop je potrebna prijava.', 401);
   if (mutation && (request.headers.get('sec-fetch-site') === 'cross-site' || !requestOriginMatchesHost(request))) {
     throw new LogoLibraryError('Zahtevek mora izvirati iz te administracije.', 403);
   }

@@ -13,18 +13,18 @@ import { hasValidQuoteAdminSession } from '@/admin/api/quote-requests/quoteAdmin
 
 export const dynamic = 'force-dynamic';
 
-function authorize(request: Request): NextResponse | null {
+async function authorize(request: Request): Promise<NextResponse | null> {
   if (!isQuoteAdminEnabled()) {
     return NextResponse.json({ message: 'Ponudbe niso omogočene.' }, { status: 404 });
   }
-  if (!hasValidQuoteAdminSession(request)) {
+  if (!await hasValidQuoteAdminSession(request)) {
     return NextResponse.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401 });
   }
   return null;
 }
 
 export async function GET(request: Request) {
-  const denied = authorize(request);
+  const denied = await authorize(request);
   if (denied) return denied;
   try {
     return NextResponse.json({ state: await getQuoteEmailAdminState() });
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const denied = authorize(request);
+  const denied = await authorize(request);
   if (denied) return denied;
   try {
     const parsed = await readRequiredJsonRecord(request);

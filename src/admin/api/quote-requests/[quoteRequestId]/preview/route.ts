@@ -26,7 +26,7 @@ export async function POST(
   if (!isQuoteAdminEnabled()) {
     return NextResponse.json({ message: 'Ponudbe niso omogočene.' }, { status: 404 });
   }
-  if (!hasValidQuoteAdminSession(request)) {
+  if (!await hasValidQuoteAdminSession(request)) {
     return NextResponse.json({ message: 'Za dostop je potrebna prijava.' }, { status: 401 });
   }
   const { quoteRequestId: rawQuoteRequestId } = await props.params;

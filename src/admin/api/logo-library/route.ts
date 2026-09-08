@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 120;
 export async function GET(request: Request) {
   try {
-    authorizeLogoRequest(request);
+    await authorizeLogoRequest(request);
     const library = await getLogoLibrary();
     return Response.json({ library, published: publishedLogoProjection(library) }, { headers: logoPrivateHeaders });
   }
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   try {
-    authorizeLogoRequest(request, true);
+    await authorizeLogoRequest(request, true);
     if (!request.headers.get('content-type')?.startsWith('application/json')) throw new LogoLibraryError('Pričakovan je zahtevek JSON.');
     let input: LogoLibraryAction;
     try { input = JSON.parse((await boundedLogoBody(request, 1024 * 1024)).toString('utf8')); }

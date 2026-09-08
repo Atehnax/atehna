@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import {
-  ADMIN_SESSION_COOKIE,
-  getAdminAuthConfig,
-  verifyAdminSessionToken
-} from '@/shared/auth/adminSession';
-import { normalizeAdminReturnPath } from '@/shared/auth/adminReturnPath';
+import { ADMIN_SESSION_COOKIE } from '@/shared/auth/adminCookie';
+import { isAuthorizedAdminCron } from '@/shared/auth/adminCron';
 
 const sensitiveOrderPages = new Set([
   '/order/confirmation',
@@ -40,45 +36,14 @@ export function proxy(request: NextRequest) {
     return applySensitiveOrderPageHeaders(NextResponse.next());
   }
 
-  const authConfig = getAdminAuthConfig();
+  // This is only an optimistic redirect. Each page and API handler performs
+  // database-backed verification before loading private data or mutating it.
   const isLoginPage = pathname === '/admin';
   const isAdminApi = pathname === '/api/admin' || pathname.startsWith('/api/admin/');
   const isPublicAdminApi = pathname === '/api/admin/login' || pathname === '/api/admin/logout';
-  const cronSecret = process.env.CRON_SECRET;
-  const isConfiguredCronPath =
-    pathname === '/api/admin/archive/cleanup' ||
-    pathname === '/api/admin/audit-events/prune' ||
-    pathname === '/api/admin/order-email-settings/process' ||
-    pathname === '/api/admin/quote-workflow/process' ||
-    pathname === '/api/admin/addresses/sync' ||
-    pathname === '/api/admin/analytics/geography/refresh' ||
-    pathname === '/api/admin/analytics/geography/process' ||
-    pathname === '/api/admin/analytics/diagnostics/prune';
-  const isAuthorizedCron =
-    isConfiguredCronPath &&
-    request.method === 'GET' &&
-    Boolean(cronSecret) &&
-    request.headers.get('authorization') === `Bearer ${cronSecret}`;
-  const authenticated = verifyAdminSessionToken(
-    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
-    authConfig
-  );
+  const hasSessionCookie = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
 
-  if (authenticated && isLoginPage) {
-    return NextResponse.redirect(
-      new URL(
-        normalizeAdminReturnPath(request.nextUrl.searchParams.get('next')),
-        request.url
-      )
-    );
-  }
-
-  if (
-    isLoginPage ||
-    isPublicAdminApi ||
-    authenticated ||
-    isAuthorizedCron
-  ) {
+  if (isLoginPage || isPublicAdminApi || hasSessionCookie || isAuthorizedAdminCron(request)) {
     return NextResponse.next();
   }
 

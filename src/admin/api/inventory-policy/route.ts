@@ -12,8 +12,8 @@ import { readRequiredJsonRecord } from '@/shared/server/requestJson';
 
 export const dynamic = 'force-dynamic';
 
-function authorize(request: Request): NextResponse | null {
-  if (!hasValidAdminSession(request)) {
+async function authorize(request: Request): Promise<NextResponse | null> {
+  if (!await hasValidAdminSession(request)) {
     return NextResponse.json(
       { message: 'Za dostop je potrebna prijava.' },
       { status: 401 }
@@ -23,7 +23,7 @@ function authorize(request: Request): NextResponse | null {
 }
 
 export async function GET(request: Request) {
-  const denied = authorize(request);
+  const denied = await authorize(request);
   if (denied) return denied;
 
   try {
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const denied = authorize(request);
+  const denied = await authorize(request);
   if (denied) return denied;
 
   try {

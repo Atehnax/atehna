@@ -27,13 +27,14 @@ export default async function globalSetup(config: FullConfig) {
       ?? process.env.PLAYWRIGHT_BASE_URL
       ?? 'http://localhost:3000'
   );
-  const username = requiredEnvironment('ADMIN_USERNAME');
-  const password = requiredEnvironment('ADMIN_PASSWORD');
+  const username = requiredEnvironment('E2E_ADMIN_USERNAME');
+  requiredEnvironment('E2E_ADMIN_PASSWORD');
+  const password = process.env.E2E_ADMIN_PASSWORD!;
   requiredEnvironment('ADMIN_SESSION_SECRET');
   const { databaseIdentity: expectedDatabaseIdentity } = readE2eEnvironment();
   await checkE2eDatabase();
 
-  const adminRequest = await request.newContext({ baseURL });
+  const adminRequest = await request.newContext({ baseURL, extraHTTPHeaders: { Origin: new URL(baseURL).origin } });
   try {
     const health = await adminRequest.get('/api/e2e/health');
     if (!health.ok()) {

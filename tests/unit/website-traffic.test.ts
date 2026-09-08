@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { completeWebsiteTraffic, websitePeriod, websiteCsv, type WebsiteQueryResult } from '@/shared/domain/analytics/websiteTraffic';
+import { loadBoundServerModule } from './support/loadBoundServerModule';
+import { completeWebsiteTraffic, websitePeriod, websiteCsv, WEBSITE_EXPORTS, WebsiteTrafficInputError, type WebsiteQueryResult, type WebsiteTraffic } from '@/shared/domain/analytics/websiteTraffic';
 import { resolveBusinessPeriod } from '@/shared/domain/analytics/period';
 import { createWebsiteEventQueue, productIdFromPath } from '@/commercial/lib/websiteEventQueue';
 
@@ -92,9 +93,13 @@ test('a failed page event skips its orphan product event and does not block late
 });
 
 
-test('website API enforces real admin authentication, validates periods and exposes read failure as 503', async () => {
-  const { handleWebsiteTrafficRequest } = await import('@/shared/server/websiteTrafficRequest');
-  const { createAdminSessionToken, getAdminAuthConfig, ADMIN_SESSION_COOKIE } = await import('@/shared/auth/adminSession');
+test('website API awaits server authentication, validates periods and exposes read failure as 503', async () => {
+  const { handleWebsiteTrafficRequest } = loadBoundServerModule<{
+    handleWebsiteTrafficRequest: (request: Request, load: (params: URLSearchParams) => Promise<WebsiteTraffic>) => Promise<Response>
+  }>('src/shared/server/websiteTrafficRequest.ts', {
+    hasValidAdminSession: async (request: Request) => request.headers.get('x-test-session') === 'active',
+    websitePeriod, websiteCsv, WEBSITE_EXPORTS, WebsiteTrafficInputError
+  });
   let reads = 0;
   const load = async (params: URLSearchParams) => {
     reads++;
@@ -103,8 +108,7 @@ test('website API enforces real admin authentication, validates periods and expo
   };
   const forbidden = await handleWebsiteTrafficRequest(new Request('http://localhost/api/admin/analytics/website'), load);
   assert.equal(forbidden.status, 401); assert.equal(reads, 0);
-  const cookie = ADMIN_SESSION_COOKIE + '=' + createAdminSessionToken(getAdminAuthConfig()!).token;
-  const authorized = (query: string) => new Request('http://localhost/api/admin/analytics/website?' + query, { headers: { cookie } });
+  const authorized = (query: string) => new Request('http://localhost/api/admin/analytics/website?' + query, { headers: { 'x-test-session': 'active' } });
   const invalid = await handleWebsiteTrafficRequest(authorized('range=custom&from=2026-02-30&to=2026-03-01'), load);
   assert.equal(invalid.status, 400); assert.equal(reads, 0);
   const invalidExport = await handleWebsiteTrafficRequest(authorized('export=raw-visitors'), load);

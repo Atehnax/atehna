@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { getAdminAuthConfig } from '@/shared/auth/adminSession';
+import { getAdminSessionSecret } from '@/shared/auth/adminSecret';
 import {
   CUSTOMER_EMAIL_CONFIRMATION_REQUIRED_CODE,
   type AdminCustomerEmailConfirmationChallenge,
@@ -83,9 +83,7 @@ function safeTextEqual(left: string, right: string): boolean {
 }
 
 function tokenSecret(): string {
-  const config = getAdminAuthConfig();
-  if (!config) throw new Error('Admin authentication is not configured.');
-  return config.sessionSecret;
+  return getAdminSessionSecret();
 }
 
 function createConfirmationToken(

@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 120;
 export async function POST(request: Request) {
   try {
-    authorizeLogoRequest(request, true);
+    await authorizeLogoRequest(request, true);
     const contentType = request.headers.get('content-type') ?? '';
     if (!contentType.startsWith('multipart/form-data;')) throw new LogoLibraryError('Pričakovana je slikovna datoteka.');
     const bytes = await boundedLogoBody(request, LOGO_SOURCE_MAX_BYTES + 64 * 1024);

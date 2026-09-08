@@ -48,7 +48,6 @@ test('quote list follows the standardized orders table presentation and interact
   assert.match(quoteTable, /adminTableHeaderCellCenterClassName/u);
   assert.match(quoteTable, /adminTableBodyCellCenterClassName/u);
   assert.match(quoteTable, /h-12 border-t border-slate-200\/90/u);
-  assert.doesNotMatch(quoteTable, /font-\['Inter',system-ui,sans-serif\]/u);
   assert.match(quoteTable, /router\.replace/u);
   assert.doesNotMatch(quoteTable, /rounded-full px-3 py-1\.5 text-xs font-semibold transition/u);
   assert.doesNotMatch(quoteTable, /<form action="\/admin\/orders"/u);

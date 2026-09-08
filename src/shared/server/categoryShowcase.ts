@@ -1,4 +1,4 @@
-import { unstable_cache } from 'next/cache';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 import type { CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
 import {
   normalizeCategoryShowcaseMediaSettings,
@@ -71,7 +71,7 @@ async function readCategoryShowcaseItemsFromDatabase(): Promise<StoredCategorySh
  * filter them out, while admin consumers can preserve their status-aware view
  * without creating a second presentation cache.
  */
-const getCachedCategoryShowcaseItemsFromDatabase = unstable_cache(
+const getCachedCategoryShowcaseItemsFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss(
     'getCachedCategoryShowcaseItemsFromDatabase',
     'category-showcase:shared',

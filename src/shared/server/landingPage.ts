@@ -1,7 +1,8 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient } from 'pg';
 import {
   LANDING_PAGE_DEFAULTS_KEY,
@@ -81,13 +82,13 @@ async function readLandingPageDefaultsFromDatabase(): Promise<LandingPageConfig>
   return readLandingPageConfigByKey(LANDING_PAGE_DEFAULTS_KEY);
 }
 
-const getCachedLandingPageConfigFromDatabase = unstable_cache(
+const getCachedLandingPageConfigFromDatabase = cacheDatabaseRead(
   readLandingPageConfigFromDatabase,
   ['landing-page-config'],
   { tags: [LANDING_PAGE_CACHE_TAG] }
 );
 
-const getCachedLandingPageDefaultsFromDatabase = unstable_cache(
+const getCachedLandingPageDefaultsFromDatabase = cacheDatabaseRead(
   readLandingPageDefaultsFromDatabase,
   ['landing-page-defaults'],
   { tags: [LANDING_PAGE_DEFAULTS_CACHE_TAG] }

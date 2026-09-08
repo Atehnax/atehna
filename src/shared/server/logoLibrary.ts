@@ -1,7 +1,8 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
-import { unstable_cache, unstable_noStore as noStore, revalidatePath } from 'next/cache';
+import { unstable_noStore as noStore, revalidatePath } from 'next/cache';
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
 import { getPool } from '@/shared/server/db';
 import { insertAuditEventForRequest } from '@/shared/server/audit';
@@ -38,7 +39,7 @@ export async function ensureLogoLibrary(): Promise<LogoLibrary> { return readLog
 export async function getLogoLibrary(): Promise<LogoLibrary> {
   noStore(); return readLogoLibrary();
 }
-const cachedPublished = unstable_cache(async () => publishedLogoProjection(await readLogoLibrary()), ['logo-library-published-v1'], { tags: [LOGO_LIBRARY_PUBLIC_CACHE_TAG] });
+const cachedPublished = cacheDatabaseRead(async () => publishedLogoProjection(await readLogoLibrary()), ['logo-library-published-v1'], { tags: [LOGO_LIBRARY_PUBLIC_CACHE_TAG] });
 export async function getPublishedSiteLogos() { return cachedPublished(); }
 export function revalidatePublishedLogos() {
   revalidateTag(LOGO_LIBRARY_PUBLIC_CACHE_TAG, { expire: 0 });

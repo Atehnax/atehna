@@ -1,5 +1,5 @@
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache } from 'next/cache';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 import { getPool } from '@/shared/server/db';
 import { instrumentCatalogCacheMiss, instrumentCatalogLoader, profilePayloadEstimate, profileRoutePhase } from '@/shared/server/diagnostics/instrumentation';
 import type { CatalogItem, CategoriesView, CategoryStatus } from '@/shared/domain/catalog/catalogTypes';
@@ -652,13 +652,13 @@ async function readCatalogItemsIndexFromDatabase(): Promise<CatalogItemsIndex> {
   return payload;
 }
 
-const getCachedCatalogDataFromDatabase = unstable_cache(
+const getCachedCatalogDataFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss('getCachedCatalogDataFromDatabase', 'catalog:data', () => readCatalogDataFromDatabase()),
   [CATALOG_CACHE_DATA_VERSION, 'catalog-data-active'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
-const getCachedCatalogAdminDataFromDatabase = unstable_cache(
+const getCachedCatalogAdminDataFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss(
     'getCachedCatalogAdminDataFromDatabase',
     '/admin/kategorije',
@@ -668,7 +668,7 @@ const getCachedCatalogAdminDataFromDatabase = unstable_cache(
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
-const getCachedCatalogAdminPreviewDataFromDatabase = unstable_cache(
+const getCachedCatalogAdminPreviewDataFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss(
     'getCachedCatalogAdminPreviewDataFromDatabase',
     '/admin/kategorije/predogled',
@@ -678,13 +678,13 @@ const getCachedCatalogAdminPreviewDataFromDatabase = unstable_cache(
   { tags: [CATALOG_PUBLIC_TAG, CATALOG_ADMIN_TAG] }
 );
 
-const getCachedCatalogCategorySummariesFromDatabase = unstable_cache(
+const getCachedCatalogCategorySummariesFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss('getCachedCatalogCategorySummariesFromDatabase', 'catalog:category-summaries', () => readCatalogCategorySummariesFromDatabase()),
   [CATALOG_CACHE_DATA_VERSION, 'catalog-category-summaries'],
   { tags: [CATALOG_PUBLIC_TAG] }
 );
 
-const getCachedCatalogItemsIndexFromDatabase = unstable_cache(
+const getCachedCatalogItemsIndexFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss('getCachedCatalogItemsIndexFromDatabase', 'catalog:items-index', () => readCatalogItemsIndexFromDatabase()),
   [CATALOG_CACHE_DATA_VERSION, 'catalog-items-index'],
   { tags: [CATALOG_PUBLIC_TAG] }
@@ -940,7 +940,7 @@ async function readCatalogAdminPreviewInitialPayloadFromDatabase(): Promise<Cata
   return payload;
 }
 
-const getCachedCatalogAdminTableInitialPayloadFromDatabase = unstable_cache(
+const getCachedCatalogAdminTableInitialPayloadFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss(
     'getCachedCatalogAdminTableInitialPayloadFromDatabase',
     '/admin/kategorije:initial',
@@ -950,7 +950,7 @@ const getCachedCatalogAdminTableInitialPayloadFromDatabase = unstable_cache(
   { tags: [CATALOG_ADMIN_TAG] }
 );
 
-const getCachedCatalogAdminMillerInitialPayloadFromDatabase = unstable_cache(
+const getCachedCatalogAdminMillerInitialPayloadFromDatabase = cacheDatabaseRead(
   async () => instrumentCatalogCacheMiss(
     'getCachedCatalogAdminMillerInitialPayloadFromDatabase',
     '/admin/kategorije/miller-view:initial',
@@ -1217,7 +1217,7 @@ export async function getCatalogCategoryWithSubcategoriesFromDatabase(
   slug: string,
   diagnosticsContext = 'catalog:category-details'
 ): Promise<CatalogCategoryWithSubcategories | null> {
-  const getCachedCategory = unstable_cache(
+  const getCachedCategory = cacheDatabaseRead(
     async () => instrumentCatalogCacheMiss('getCachedCatalogCategoryWithSubcategoriesFromDatabase', diagnosticsContext, () =>
       readCatalogCategoryWithSubcategoriesFromDatabase(slug)
     ),
@@ -1247,7 +1247,7 @@ export async function getCatalogCategoryPageDataFromDatabase(
   slug: string,
   diagnosticsContext = '/products/[category]'
 ): Promise<CatalogCategoryPageData | null> {
-  const getCachedCategoryPageData = unstable_cache(
+  const getCachedCategoryPageData = cacheDatabaseRead(
     async () =>
       instrumentCatalogCacheMiss('getCachedCatalogCategoryPageDataFromDatabase', diagnosticsContext, () =>
         readCatalogCategoryPageDataFromDatabase(slug)
@@ -1275,7 +1275,7 @@ export async function getCatalogSubcategoryWithCategoryFromDatabase(
   category: CatalogCategorySummary;
   subcategory: Pick<RecursiveCatalogSubcategory, 'id' | 'slug' | 'title' | 'description' | 'image' | 'presentation' | 'items'>;
 } | null> {
-  const getCachedSubcategory = unstable_cache(
+  const getCachedSubcategory = cacheDatabaseRead(
     async () => instrumentCatalogCacheMiss('getCachedCatalogSubcategoryWithCategoryFromDatabase', diagnosticsContext, () =>
       readCatalogSubcategoryWithCategoryFromDatabase(categorySlug, subSlug)
     ),
@@ -1290,7 +1290,7 @@ export async function getCatalogSearchIndexFromDatabase(diagnosticsContext = 'ca
   categories: CatalogCategoryCard[];
   searchItems: Array<{ categorySlug: string; subcategorySlug?: string; items: CatalogItem[] }>;
 }> {
-  const getCachedSearchIndex = unstable_cache(
+  const getCachedSearchIndex = cacheDatabaseRead(
     async () => instrumentCatalogCacheMiss('getCachedCatalogSearchIndexFromDatabase', diagnosticsContext, () => readCatalogSearchIndexFromDatabase()),
     [CATALOG_CACHE_DATA_VERSION, 'catalog-search-index'],
     { tags: [CATALOG_PUBLIC_TAG] }

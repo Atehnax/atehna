@@ -1,7 +1,8 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient } from 'pg';
 import {
   GLOBAL_STYLE_SETTINGS_KEY,
@@ -39,7 +40,7 @@ async function readGlobalStyleConfigFromDatabase(): Promise<GlobalStyleConfig> {
   return { ...normalizeGlobalStyleConfig(row.config_json), updatedAt: toIso(row.updated_at) };
 }
 
-const getCachedGlobalStyleConfigFromDatabase = unstable_cache(
+const getCachedGlobalStyleConfigFromDatabase = cacheDatabaseRead(
   readGlobalStyleConfigFromDatabase,
   ['global-style-config'],
   { tags: [GLOBAL_STYLE_CACHE_TAG] }

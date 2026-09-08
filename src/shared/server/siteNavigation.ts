@@ -1,8 +1,9 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 import { ensureLogoLibrary } from '@/shared/server/logoLibrary';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient, QueryResult } from 'pg';
 import {
   SITE_NAVIGATION_SETTINGS_KEY,
@@ -825,7 +826,7 @@ async function readSiteNavigationConfigFromDatabase(): Promise<SiteNavigationCon
   };
 }
 
-const getCachedSiteNavigationConfigFromDatabase = unstable_cache(
+const getCachedSiteNavigationConfigFromDatabase = cacheDatabaseRead(
   readSiteNavigationConfigFromDatabase,
   ['site-navigation-config-v2-logo-library'],
   { tags: [SITE_NAVIGATION_CACHE_TAG] }

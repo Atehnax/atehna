@@ -1,7 +1,8 @@
 import 'server-only';
+import { cacheDatabaseRead } from '@/shared/server/databaseCache';
 
 import { revalidateTag } from '@/shared/server/diagnostics/cache';
-import { unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { PoolClient } from 'pg';
 import {
   PRODUCT_APPEARANCE_SETTINGS_KEY,
@@ -40,7 +41,7 @@ async function readProductAppearanceConfigFromDatabase(): Promise<ProductAppeara
   return { ...normalizeProductAppearanceConfig(row.config_json), updatedAt: toIso(row.updated_at) };
 }
 
-const getCachedProductAppearanceConfigFromDatabase = unstable_cache(
+const getCachedProductAppearanceConfigFromDatabase = cacheDatabaseRead(
   readProductAppearanceConfigFromDatabase,
   ['product-appearance-config-v11'],
   { tags: [PRODUCT_APPEARANCE_CACHE_TAG] }

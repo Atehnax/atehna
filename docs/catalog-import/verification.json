@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-09",
+  "products": 43,
+  "desiredVariants": 182,
+  "storedVariants": 183,
+  "selectedImages": 72,
+  "visibleStoredImages": 72,
+  "newDraftProducts": 41,
+  "existingActiveProducts": 2,
+  "financialValuesPreserved": true,
+  "unrelatedProductPreserved": true,
+  "failures": [],
+  "focusedTestsPassed": 22,
+  "typecheckPassed": true,
+  "publicProductBrowserCheck": "passed",
+  "adminAuthenticatedBrowserCheck": "blocked: pre-existing missing local authentication tables",
+  "serviceHydrationCheck": "passed: all43 products"
+}

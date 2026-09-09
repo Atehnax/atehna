@@ -1,0 +1,4 @@
+interface:
+  display_name: "ATEHNA Product Background"
+  short_description: "Standardize ATEHNA catalog product photo backgrounds"
+  default_prompt: "Use $atehna-product-background to give these product photos the ATEHNA white-background style."

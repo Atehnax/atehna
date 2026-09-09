@@ -1,19 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Button from '@/shared/ui/button/Button';
-import { Dialog, dialogActionButtonClassName, dialogFooterClassName } from '@/shared/ui/dialog';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import {
   AdminDetailDocumentOpenLink,
   AdminDetailDocumentPrimaryAction
 } from '@/shared/ui/admin-detail';
 import {
-  adminCardSectionEditIconButtonClassName,
+  adminWindowCardClassName,
+  adminWindowCardStyle,
   adminCardSectionIconActionButtonClassName,
   adminCardSectionIconClassName
 } from '@/shared/ui/admin-table';
-import { CopyIcon, PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { CopyIcon } from '@/shared/ui/icons/AdminActionIcons';
 import { useToast } from '@/shared/ui/toast';
 
 type CommitmentStatus = 'binding' | 'pending_confirmation' | 'rejected';
@@ -73,7 +72,6 @@ export default function AdminOrderCustomerAccess({
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'revoke' | null>(null);
-  const [isManagementOpen, setIsManagementOpen] = useState(false);
   const latestActive = useMemo(
     () => status?.tokens.find((token) => token.active) ?? null,
     [status]
@@ -173,49 +171,87 @@ export default function AdminOrderCustomerAccess({
     return (
       <>
         <section
-          className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06),0_2px_6px_rgba(15,23,42,0.04)]"
+          className={adminWindowCardClassName + ' p-4'}
+          style={adminWindowCardStyle}
+          aria-labelledby={'admin-order-customer-access-title-' + orderId}
           data-testid="admin-order-customer-access-compact"
         >
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold text-slate-900">Stranka in dostop</h2>
-            <button
-              type="button"
-              className={`${adminCardSectionEditIconButtonClassName} ${isManagementOpen ? 'bg-[color:var(--hover-neutral)]' : ''}`}
-              onClick={() => setIsManagementOpen(true)}
-              aria-label="Upravljaj dostop"
-              aria-haspopup="dialog"
-              aria-controls={`admin-order-customer-access-management-${orderId}`}
-              title="Upravljaj dostop"
-              data-admin-card-edit-action="customer-access"
-            >
-              <PencilIcon className="h-4 w-4" />
-            </button>
-          </div>
-
-          <dl className="mt-4 divide-y divide-slate-200 text-xs">
-            <div className="flex items-center justify-between gap-4 py-2 first:pt-0">
-              <dt className="text-slate-600">Zavezanost naročila</dt>
-              <dd className={`font-semibold ${
+          <div className="flex items-center justify-between gap-3">
+            <h2 id={'admin-order-customer-access-title-' + orderId} className="text-base font-semibold text-slate-900">Stranka in dostop</h2>
+            <span
+              className={['max-w-[55%] shrink-0 rounded-full px-2.5 py-1 text-right text-[11px] font-semibold leading-4',
                 commitmentStatus === 'binding'
-                  ? 'text-emerald-700'
+                  ? 'bg-emerald-50 text-emerald-700'
                   : commitmentStatus === 'rejected'
-                    ? 'text-rose-700'
-                    : 'text-amber-700'
-              }`}>
-                {commitmentLabel}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 py-2">
-              <dt className="text-slate-600">Dostop stranke</dt>
-              <dd className={`font-semibold ${latestActive ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    ? 'bg-rose-50 text-rose-700'
+                    : 'bg-amber-50 text-amber-700'
+              ].join(' ')}
+              title={commitmentStatus === 'pending_confirmation' ? pendingCommitmentHelp : commitmentLabel}
+              aria-describedby={commitmentStatus === 'pending_confirmation' ? 'admin-order-customer-access-help-' + orderId : undefined}
+            >
+              {commitmentLabel}
+            </span>
+          </div>
+          {commitmentStatus === 'pending_confirmation' ? (
+            <p id={'admin-order-customer-access-help-' + orderId} className="sr-only">{pendingCommitmentHelp}</p>
+          ) : null}
+
+          <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
+            <div className="min-w-0">
+              <dt className="text-[11px] leading-4 text-slate-500">Dostop stranke</dt>
+              <dd className={'mt-1 min-h-8 font-medium leading-4 ' + (latestActive ? 'text-emerald-700' : 'text-slate-500')}>
                 {isLoading ? 'Preverjam …' : latestActive ? 'Omogočen' : 'Ni omogočen'}
               </dd>
             </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] leading-4 text-slate-500">Velja do</dt>
+              <dd className="mt-1 min-h-8 font-medium leading-4 tabular-nums text-slate-800">{formatDateTime(latestActive?.expiresAt)}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] leading-4 text-slate-500">Nazadnje uporabljena</dt>
+              <dd className="mt-1 min-h-8 font-medium leading-4 tabular-nums text-slate-800">{formatDateTime(latestActive?.lastUsedAt)}</dd>
+            </div>
           </dl>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <AdminDetailDocumentPrimaryAction type="button" disabled={isWorking} onClick={() => void regenerate()}>
+              {latestActive ? 'Obnovi povezavo' : 'Ustvari povezavo'}
+            </AdminDetailDocumentPrimaryAction>
+            <AdminDetailDocumentPrimaryAction
+              type="button"
+              className="!text-rose-700 hover:!bg-rose-50 active:!bg-rose-100"
+              disabled={isWorking || !latestActive}
+              onClick={() => setConfirmAction('revoke')}
+            >
+              Prekliči dostop
+            </AdminDetailDocumentPrimaryAction>
+          </div>
+
+          {issuedUrl ? (
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
+              <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-8 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <AdminDetailDocumentOpenLink href={issuedUrl} target="_blank" rel="noreferrer noopener" className="no-underline">
+                  Odpri povezavo
+                </AdminDetailDocumentOpenLink>
+                <button
+                  type="button"
+                  className={adminCardSectionIconActionButtonClassName}
+                  onClick={() => void copyIssuedUrl()}
+                  aria-label="Kopiraj povezavo"
+                  title="Kopiraj povezavo"
+                  data-testid="admin-order-customer-access-copy"
+                >
+                  <CopyIcon className={adminCardSectionIconClassName} />
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {missingSchoolPurchaseOrderEvidence ? (
             <div
-              className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800"
+              className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800"
               data-testid="missing-school-purchase-order-evidence-compact"
             >
               <p className="font-semibold">Manjka naročilnica</p>
@@ -223,82 +259,6 @@ export default function AdminOrderCustomerAccess({
             </div>
           ) : null}
         </section>
-
-        <Dialog
-          open={isManagementOpen}
-          onOpenChange={setIsManagementOpen}
-          title="Upravljanje dostopa"
-          isDismissable={!isWorking}
-          panelClassName="max-h-[calc(100dvh-3rem)] overflow-y-auto"
-          footer={
-            <div className={dialogFooterClassName}>
-              <Button type="button" variant="default" size="toolbar" className={dialogActionButtonClassName} disabled={isWorking} onClick={() => setIsManagementOpen(false)}>
-                Zapri
-              </Button>
-            </div>
-          }
-        >
-          <div
-            id={`admin-order-customer-access-management-${orderId}`}
-            className="mt-4"
-          >
-            {commitmentStatus === 'pending_confirmation' ? (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-xs leading-5 text-amber-800">
-                  {pendingCommitmentHelp}
-                </p>
-
-              </div>
-            ) : null}
-
-            <dl className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <dt className="text-slate-500">Velja do</dt>
-                <dd className="mt-1 font-medium text-slate-800">{formatDateTime(latestActive?.expiresAt)}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Nazadnje uporabljena</dt>
-                <dd className="mt-1 font-medium text-slate-800">{formatDateTime(latestActive?.lastUsedAt)}</dd>
-              </div>
-            </dl>
-
-            {issuedUrl ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="text-[11px] font-semibold text-emerald-800">Nova povezava — prikazana samo zdaj</p>
-                <input readOnly value={issuedUrl} aria-label="Nova povezava za stranko" className="mt-2 h-9 w-full min-w-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs text-slate-700 outline-none" />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <AdminDetailDocumentOpenLink href={issuedUrl} target="_blank" rel="noreferrer noopener" className="no-underline">
-                    Odpri povezavo
-                  </AdminDetailDocumentOpenLink>
-                  <button
-                    type="button"
-                    className={adminCardSectionIconActionButtonClassName}
-                    onClick={() => void copyIssuedUrl()}
-                    aria-label="Kopiraj povezavo"
-                    title="Kopiraj povezavo"
-                    data-testid="admin-order-customer-access-copy"
-                  >
-                    <CopyIcon className={adminCardSectionIconClassName} />
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <AdminDetailDocumentPrimaryAction type="button" disabled={isWorking} onClick={() => void regenerate()}>
-                {latestActive ? 'Obnovi povezavo' : 'Ustvari povezavo'}
-              </AdminDetailDocumentPrimaryAction>
-              <AdminDetailDocumentPrimaryAction
-                type="button"
-                className="!text-rose-700 hover:!bg-rose-50 active:!bg-rose-100"
-                disabled={isWorking || !latestActive}
-                onClick={() => setConfirmAction('revoke')}
-              >
-                Prekliči dostop
-              </AdminDetailDocumentPrimaryAction>
-            </div>
-          </div>
-        </Dialog>
 
         <ConfirmDialog
           open={confirmAction !== null}

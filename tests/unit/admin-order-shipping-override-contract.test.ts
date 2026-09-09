@@ -184,29 +184,45 @@ test('shipping card keeps one shared blue icon-only edit action and no independe
   assert.doesNotMatch(editorSource, />\s*Uredi\s*<|Shrani ročni znesek|Shrani število paketov/u);
 });
 
-test('shipping card mirrors the persistent reference hierarchy without a redundant footer', () => {
+test('shipping card keeps amount above parcel and reason fields with notices confined to its info tooltip', () => {
   const renderStart = editorSource.indexOf('data-testid="admin-order-shipping-card"');
   const renderEnd = editorSource.indexOf('<ConfirmDialog', renderStart);
   const renderSource = editorSource.slice(renderStart, renderEnd);
 
   assert.ok(renderStart >= 0 && renderEnd > renderStart);
-  assert.match(editorSource, /adminWindowCardClassName \+ ' overflow-hidden !p-0'/u);
+  assert.match(editorSource, /className=\{adminWindowCardClassName/u);
+  assert.match(editorSource, /style=\{adminWindowCardStyle\}/u);
 
   const summaryStart = renderSource.indexOf('data-shipping-summary-row');
+  const amountStart = renderSource.indexOf('data-shipping-amount-slot');
+  const editorRowStart = renderSource.indexOf('data-shipping-editor-row');
+  const parcelStart = renderSource.indexOf('data-parcel-count-control');
   const readReasonStart = renderSource.indexOf('data-shipping-read-reason');
-  const automaticStart = renderSource.indexOf('data-shipping-automatic-summary');
+  const infoStart = renderSource.indexOf('<AdminOrderShippingInfo>');
+  const infoEnd = renderSource.indexOf('</AdminOrderShippingInfo>', infoStart);
 
-  assert.ok(summaryStart >= 0);
-  assert.ok(readReasonStart > summaryStart);
-  assert.ok(automaticStart > readReasonStart);
+  assert.ok(summaryStart >= 0 && amountStart > summaryStart);
+  assert.ok(editorRowStart > amountStart && parcelStart > editorRowStart);
+  assert.ok(readReasonStart > parcelStart);
+  assert.ok(infoStart > summaryStart && infoEnd > infoStart && infoEnd < amountStart);
+  const headerSource = renderSource.slice(summaryStart, editorRowStart);
+  const fieldsSource = renderSource.slice(editorRowStart);
+  const infoSource = renderSource.slice(infoStart, infoEnd);
+  const outsideInfoSource = renderSource.slice(0, infoStart) + renderSource.slice(infoEnd);
+
+  assert.match(headerSource, /value=\{amountInput\}/u);
+  assert.match(fieldsSource, /value=\{parcelCountInput\}/u);
+  assert.match(fieldsSource, /value=\{reason\}/u);
+  assert.doesNotMatch(fieldsSource, /value=\{amountInput\}/u);
+  assert.match(infoSource, /data-shipping-automatic-summary[\s\S]*?automaticSummaryLabel/u);
+  assert.match(infoSource, /data-shipping-lock-message[\s\S]*?lockMessage/u);
+  assert.match(infoSource, /parcelCountHardLocked && !quoteDerived/u);
+  assert.doesNotMatch(outsideInfoSource, /data-shipping-automatic-summary|data-shipping-lock-message|<AdminNotice/u);
 
   assert.doesNotMatch(editorSource, /collapseStyles|data-open=|inert=|aria-expanded=/u);
   assert.equal(renderSource.match(/\{externalEditMode \? \(\s*<input/gu)?.length, 3);
-  assert.match(renderSource, /data-shipping-editor-row[\s\S]*?data-shipping-read-reason/u);
-  assert.match(renderSource, /grid-rows-2[\s\S]*?sm:grid-rows-1/u);
-  assert.match(renderSource, /col-span-2[^"]*sm:col-span-1/u);
-  assert.match(renderSource, /title="Razlog spremembe">Razlog/u);
-  assert.doesNotMatch(renderSource, /sm:col-span-2/u);
+  assert.match(fieldsSource, /data-parcel-count-control[\s\S]*?automaticSummaryLabel[\s\S]*?data-shipping-read-reason/u);
+  assert.match(fieldsSource, /aria-label="Razlog ročne spremembe poštnine"/u);
   assert.match(
     renderSource,
     /data-parcel-count-control[\s\S]*?disabled=\{parcelCountControlsDisabled\}/u
@@ -242,8 +258,6 @@ test('shipping card mirrors the persistent reference hierarchy without a redunda
     /data-shipping-info-row|data-shipping-details-toggle|data-shipping-breakdown-panel|Spremembe poštnine veljajo le za to naročilo/u
   );
 
-  const lockWarning = renderSource.indexOf('data-shipping-lock-message');
-  assert.ok(lockWarning >= 0 && lockWarning < automaticStart);
   assert.doesNotMatch(renderSource, /data-shipping-override-stale|data-shipping-warning/u);
   assert.doesNotMatch(renderSource, /<(?:details|summary)\b|⌄/u);
   assert.doesNotMatch(editorSource, /compactTextareaClassName/u);

@@ -1,0 +1,6 @@
+.card { container-type: inline-size; }
+
+@container (max-width: 279px) {
+  .header { height: 48px; align-items: flex-start; }
+  .heading { flex-wrap: wrap; row-gap: 4px; }
+}

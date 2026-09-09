@@ -753,7 +753,20 @@ async function captureOrderShipping(page: Page, name: string) {
     }
   }
   const geometry = await box(shippingCard);
-  expect(geometry.height).toBeLessThanOrEqual(name.includes('-desktop-') ? 90 : 120);
+  const summary = await box(shippingCard.locator('[data-shipping-summary-row]'));
+  const amount = await box(shippingCard.locator('[data-shipping-amount-slot]'));
+  const lower = await box(shippingCard.getByTestId('admin-order-shipping-editor'));
+  expect(amount.y).toBeLessThan(lower.y);
+  expect(amount.x).toBeGreaterThan(summary.x + summary.width / 2);
+  const info = shippingCard.getByRole('button', { name: 'Informacije o poštnini', exact: true });
+  await info.focus();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toContainText('Samodejni izračun:');
+  expectSameBox(geometry, await box(shippingCard));
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toHaveCount(0);
+  await info.blur();
+  expect(geometry.height).toBeLessThanOrEqual(geometry.width < 314 ? 120 : 90);
   await test.info().attach(name, {
     body: await shippingCard.screenshot({ animations: 'disabled', caret: 'hide', scale: 'css' }),
     contentType: 'image/png'
@@ -1015,7 +1028,9 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
         title: await box(titleSlot),
         dataCard: await box(dataCard),
         itemSlots: await captureOrderItemSlots(page),
-        shipping: await box(page.getByTestId('admin-order-shipping-card'))
+        shipping: await box(page.getByTestId('admin-order-shipping-card')),
+        shippingSlots: await page.getByTestId('admin-order-shipping-card').locator('[data-shipping-amount-slot], [data-parcel-count-control], [data-shipping-read-reason]').evaluateAll(elements => elements.map(element => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })),
+        access: await box(page.getByTestId('admin-order-customer-access-compact'))
       };
       await page.getByRole('button', { name: 'Uredi celotno naročilo' }).click();
       await expect(page.getByLabel('Številka naročila')).toBeVisible();
@@ -1030,6 +1045,11 @@ test.describe.serial('admin quote and order rendered visual regression', () => {
       const shippingAfter = await box(page.getByTestId('admin-order-shipping-card'));
       expect(shippingAfter.width).toBe(before.shipping.width);
       expect(shippingAfter.height).toBe(before.shipping.height);
+      const shippingSlotsAfter = await page.getByTestId('admin-order-shipping-card').locator('[data-shipping-amount-slot], [data-parcel-count-control], input[aria-label="Razlog ročne spremembe poštnine"]').evaluateAll(elements => elements.map(element => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }));
+      before.shippingSlots.forEach((slot, index) => expectSameBox(slot, shippingSlotsAfter[index]!));
+      expectSameBox(before.access, await box(page.getByTestId('admin-order-customer-access-compact')));
+      await expect(page.getByTestId('admin-order-customer-access-compact').getByRole('button', { name: /^(Ustvari|Obnovi) povezavo$/u })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Upravljanje dostopa', exact: true })).toHaveCount(0);
       const afterSlots = await captureOrderItemSlots(page);
       expect(afterSlots).toHaveLength(before.itemSlots.length);
       before.itemSlots.forEach((slot, index) => {

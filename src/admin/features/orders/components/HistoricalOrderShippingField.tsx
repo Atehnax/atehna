@@ -1,13 +1,15 @@
 'use client';
 
-import { formatEuro } from '@/shared/domain/formatting';
-import { AdminUnitInput } from '@/shared/ui/admin-controls/AdminUnitInput';
+import { formatEuro, formatEuroAmount } from '@/shared/domain/formatting';
 import {
   adminCardSectionEditIconButtonClassName,
   adminWindowCardClassName,
   adminWindowCardStyle
 } from '@/shared/ui/admin-table';
 import { PencilIcon } from '@/shared/ui/icons/AdminActionIcons';
+import { adminInputFocusTokenClasses } from '@/shared/ui/theme/tokens';
+import AdminOrderShippingInfo from './AdminOrderShippingInfo';
+import cardStyles from './AdminOrderShippingCard.module.css';
 
 type Props = {
   orderId: number;
@@ -37,27 +39,53 @@ export default function HistoricalOrderShippingField({
 
   return (
     <section
-      className={adminWindowCardClassName + ' overflow-hidden !p-0'}
+      className={adminWindowCardClassName + ' overflow-hidden !px-4 !py-3 ' + cardStyles.card}
       style={adminWindowCardStyle}
       aria-labelledby={titleId}
       data-testid="admin-historical-shipping-card"
     >
-      <div className="flex min-h-11 items-center gap-2 px-4 py-2" data-shipping-summary-row>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          <h2 id={titleId} className="text-base font-semibold text-slate-900">Poštnina</h2>
+      <div className={'flex h-7 items-center gap-2 ' + cardStyles.header} data-shipping-summary-row>
+        <div className={'flex min-w-0 flex-1 items-center gap-1.5 ' + cardStyles.heading}>
+          <h2 id={titleId} className="shrink-0 text-base font-semibold text-slate-900">Poštnina</h2>
+          <AdminOrderShippingInfo>
+            <p>Poštnina zgodovinskega naročila je ročno vnesen znesek z DDV.</p>
+            {error ? <p className="font-medium text-rose-700">{error}</p> : null}
+          </AdminOrderShippingInfo>
           <span
             data-shipping-mode="manual"
-            className="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-600"
+            title="Ročno"
+            className="shrink-0 truncate rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-4 text-slate-600"
           >
             Ročno
           </span>
         </div>
-        <p
-          className="shrink-0 whitespace-nowrap text-sm font-semibold leading-5 tabular-nums text-slate-950"
-          data-shipping-final-amount
-        >
-          {amountIsValid ? formatEuro(amount) : '—'}
-        </p>
+        <div className="relative h-6 w-[76px] shrink-0" data-historical-shipping-amount-slot>
+          {isEditing ? (
+            <input
+              id={fieldId}
+              aria-label="Poštnina z DDV v evrih"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? errorId : undefined}
+              inputMode="decimal"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              disabled={disabled}
+              className={adminInputFocusTokenClasses + ' block h-6 w-full min-w-0 rounded-md border border-slate-300 bg-white py-0 pl-2 pr-5 text-right text-[11px] font-semibold leading-4 tabular-nums text-slate-900 disabled:cursor-not-allowed disabled:bg-white disabled:text-slate-500'}
+            />
+          ) : (
+            <span
+              id={fieldId}
+              className="flex h-6 min-w-0 items-center justify-end border border-transparent pl-2 pr-5 text-[11px] font-semibold leading-4 tabular-nums text-slate-900"
+              data-historical-shipping-read-value
+              data-shipping-final-amount
+              title={amountIsValid ? formatEuro(amount) : '—'}
+              aria-label={amountIsValid ? formatEuro(amount) : 'Poštnina ni vnesena'}
+            >
+              <span className="truncate">{amountIsValid ? formatEuroAmount(amount) : '—'}</span>
+            </span>
+          )}
+          <span className="pointer-events-none absolute inset-y-0 right-1 flex items-center text-[11px] font-semibold text-slate-900" aria-hidden="true">€</span>
+        </div>
         <button
           type="button"
           className={adminCardSectionEditIconButtonClassName + (isEditing ? ' bg-[color:var(--hover-neutral)]' : '')}
@@ -72,34 +100,10 @@ export default function HistoricalOrderShippingField({
           <PencilIcon className="h-4 w-4" />
         </button>
       </div>
-      <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_112px] items-center gap-3 border-t border-slate-200 px-4 py-2">
-        <label htmlFor={fieldId} className="text-[11px] font-medium leading-4 text-slate-500">Znesek z DDV</label>
-        <div className="h-7 min-w-0" data-historical-shipping-amount-slot>
-          {isEditing ? (
-            <AdminUnitInput
-              id={fieldId}
-              aria-label="Poštnina z DDV v evrih"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? errorId : undefined}
-              inputMode="decimal"
-              value={value}
-              onChange={(event) => onChange(event.target.value)}
-              disabled={disabled}
-              unit="€"
-              className="!h-7"
-              inputClassName="text-right !leading-[26px]"
-            />
-          ) : (
-            <span id={fieldId} className="flex h-7 min-w-0 rounded-md border border-transparent" data-historical-shipping-read-value>
-              <span className="min-w-0 flex-1 px-2 text-right font-['Inter',system-ui,sans-serif] text-[11px] font-normal leading-[26px] text-slate-900">
-                {value.trim() || '—'}
-              </span>
-              <span className="inline-flex h-full shrink-0 items-center justify-center border-l border-transparent px-1.5 text-[10px] font-medium text-slate-500">€</span>
-            </span>
-          )}
-        </div>
-      </div>
-      {error ? <p id={errorId} role="alert" className="border-t border-rose-200 bg-rose-50 px-4 py-1.5 text-[11px] leading-4 text-rose-700">{error}</p> : null}
+      <p className="mt-2 flex h-6 min-w-0 items-center text-[11px] leading-4 text-slate-500">
+        <span className="truncate" title="Zgodovinsko naročilo · Ročni vnos">Zgodovinsko naročilo · Ročni vnos</span>
+      </p>
+      {error ? <p id={errorId} role="alert" className="sr-only">{error}</p> : null}
     </section>
   );
 }
